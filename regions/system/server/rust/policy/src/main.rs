@@ -90,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
     // Kafka event publisher
-    let _event_publisher: Arc<dyn PolicyEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
+    let event_publisher: Arc<dyn PolicyEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
         info!(
             brokers = %kafka_cfg.brokers.join(","),
             topic = %kafka_cfg.topic,
@@ -112,10 +112,19 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
-    let create_policy_uc = Arc::new(usecase::CreatePolicyUseCase::new(policy_repo.clone()));
+    let create_policy_uc = Arc::new(usecase::CreatePolicyUseCase::with_publisher(
+        policy_repo.clone(),
+        event_publisher.clone(),
+    ));
     let get_policy_uc = Arc::new(usecase::GetPolicyUseCase::new(policy_repo.clone()));
-    let update_policy_uc = Arc::new(usecase::UpdatePolicyUseCase::new(policy_repo.clone()));
-    let delete_policy_uc = Arc::new(usecase::DeletePolicyUseCase::new(policy_repo.clone()));
+    let update_policy_uc = Arc::new(usecase::UpdatePolicyUseCase::with_publisher(
+        policy_repo.clone(),
+        event_publisher.clone(),
+    ));
+    let delete_policy_uc = Arc::new(usecase::DeletePolicyUseCase::with_publisher(
+        policy_repo.clone(),
+        event_publisher,
+    ));
     let list_policies_uc = Arc::new(usecase::ListPoliciesUseCase::new(policy_repo.clone()));
     let evaluate_policy_uc = Arc::new(usecase::EvaluatePolicyUseCase::new(
         policy_repo.clone(),

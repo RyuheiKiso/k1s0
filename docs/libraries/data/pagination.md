@@ -293,12 +293,12 @@ mod tests {
     #[test]
     fn test_validate_per_page_valid() {
         assert!(validate_per_page(1).is_ok());
-        assert!(validate_per_page(100).is_ok());
+        assert!(validate_per_page(200).is_ok());
     }
 
     #[test]
     fn test_validate_per_page_over_max() {
-        assert!(validate_per_page(101).is_err()); // 最大 100、超過はバリデーションエラー
+        assert!(validate_per_page(201).is_err()); // 最大 200、超過はバリデーションエラー
     }
 }
 ```

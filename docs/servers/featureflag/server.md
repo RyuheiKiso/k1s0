@@ -447,7 +447,7 @@ message FlagRule {
 | 項目 | 値 |
 | --- | --- |
 | キャッシュライブラリ | moka v0.12 |
-| キャッシュキー | `{flag_key}:{environment}:{user_id}` |
+| キャッシュキー | `{flag_key}` |
 | TTL | 60 秒 |
 | 最大エントリ数 | 10,000 |
 | 無効化トリガー | フラグ更新・削除時に即座に無効化 + Kafka 通知受信時 |
@@ -476,14 +476,26 @@ message FlagRule {
   "timestamp": "2026-02-20T12:30:00.000+00:00",
   "actor_user_id": "admin-001",
   "before": {
+    "id": "01JABCDEF1234567890",
+    "flag_key": "enable-new-checkout",
+    "description": "Enable new checkout flow",
     "enabled": false,
-    "variants": []
+    "variants": [],
+    "rules": [],
+    "created_at": "2026-02-20T12:00:00.000+00:00",
+    "updated_at": "2026-02-20T12:00:00.000+00:00"
   },
   "after": {
+    "id": "01JABCDEF1234567890",
+    "flag_key": "enable-new-checkout",
+    "description": "Enable new checkout flow",
     "enabled": true,
     "variants": [
       { "name": "on", "value": "true", "weight": 100 }
-    ]
+    ],
+    "rules": [],
+    "created_at": "2026-02-20T12:00:00.000+00:00",
+    "updated_at": "2026-02-20T12:30:00.000+00:00"
   }
 }
 ```

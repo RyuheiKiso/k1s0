@@ -1,6 +1,6 @@
 ﻿# system-vault-server 設計
 
-> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `secrets/read`, `secrets/write`, `secrets/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
 
 system tier のシークレット管理サーバー設計を定義する。HashiCorp Vault 統合によるバージョン管理付き KV シークレットストアを提供し、Kafka 通知、SPIFFE 認証、監査ログに対応する。Rust での実装を定義する。
@@ -26,7 +26,7 @@ system tier の Vault Server は以下の機能を提供する。
 | シークレット削除 | パス指定でシークレットを削除する |
 | HashiCorp Vault 連携 | KV v2 / Dynamic Secrets 連携 |
 | シークレットローテーション | 自動・手動によるシークレットローテーション |
-| Kafka 通知 | `k1s0.system.vault.secret_rotated.v1` トピックでローテーション通知を配信 |
+| Kafka 通知 | アクセス監査は `k1s0.system.vault.access.v1`、ローテーション通知は `k1s0.system.vault.secret_rotated.v1` に配信 |
 | アクセス監査ログ | シークレットアクセスの監査ログを PostgreSQL に記録 |
 | ヘルスモニタリング | ヘルスチェック・レディネスチェック・Prometheus メトリクス |
 
@@ -57,7 +57,7 @@ system tier の Vault Server は以下の機能を提供する。
 | バージョン管理 | シークレット更新時にバージョンが自動インクリメント（KV v2 互換） |
 | アクセス制御 | SPIFFE ID ベースの認可 |
 | キャッシュ | moka キャッシュ |
-| Kafka | ローテーション通知 |
+| Kafka | アクセス監査 + ローテーション通知 |
 | 監査ログ | PostgreSQL に記録 |
 
 ---
@@ -543,6 +543,39 @@ app:
 server:
   host: "0.0.0.0"
   port: 8090
+  grpc_port: 50051
+
+auth:
+  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+  issuer: "https://auth.k1s0.example.com/realms/system"
+  audience: "k1s0-system"
+  jwks_cache_ttl_secs: 3600
+
+database:
+  host: "postgres.k1s0-system.svc.cluster.local"
+  port: 5432
+  name: "k1s0_system"
+  user: "app"
+  password: ""
+  ssl_mode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
+
+kafka:
+  brokers:
+    - "kafka-0.messaging.svc.cluster.local:9092"
+  consumer_group: "vault-server.default"
+  security_protocol: "PLAINTEXT"
+  sasl:
+    mechanism: ""
+    username: ""
+    password: ""
+  topics:
+    publish:
+      - "k1s0.system.vault.access.v1"
+      - "k1s0.system.vault.secret_rotated.v1"
+    subscribe: []
 ```
 
 ---

@@ -6,8 +6,8 @@ use crate::domain::repository::FileMetadataRepository;
 #[derive(Debug, Clone)]
 pub struct ListFilesInput {
     pub tenant_id: Option<String>,
-    pub owner_id: Option<String>,
-    pub mime_type: Option<String>,
+    pub uploaded_by: Option<String>,
+    pub content_type: Option<String>,
     pub tag: Option<(String, String)>,
     pub page: u32,
     pub page_size: u32,
@@ -42,8 +42,8 @@ impl ListFilesUseCase {
             .repo
             .find_all(
                 input.tenant_id.clone(),
-                input.owner_id.clone(),
-                input.mime_type.clone(),
+                input.uploaded_by.clone(),
+                input.content_type.clone(),
                 input.tag.clone(),
                 input.page,
                 input.page_size,
@@ -95,8 +95,8 @@ mod tests {
         let uc = ListFilesUseCase::new(Arc::new(mock));
         let input = ListFilesInput {
             tenant_id: Some("tenant-abc".to_string()),
-            owner_id: None,
-            mime_type: None,
+            uploaded_by: None,
+            content_type: None,
             tag: None,
             page: 1,
             page_size: 20,
@@ -119,8 +119,8 @@ mod tests {
         let uc = ListFilesUseCase::new(Arc::new(mock));
         let input = ListFilesInput {
             tenant_id: None,
-            owner_id: None,
-            mime_type: None,
+            uploaded_by: None,
+            content_type: None,
             tag: None,
             page: 1,
             page_size: 20,
@@ -142,8 +142,8 @@ mod tests {
         let uc = ListFilesUseCase::new(Arc::new(mock));
         let input = ListFilesInput {
             tenant_id: None,
-            owner_id: None,
-            mime_type: None,
+            uploaded_by: None,
+            content_type: None,
             tag: None,
             page: 1,
             page_size: 20,

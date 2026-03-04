@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
+use crate::domain::service::SchedulerDomainService;
 use crate::infrastructure::kafka_producer::SchedulerEventPublisher;
 
 #[derive(Debug, thiserror::Error)]
@@ -57,7 +58,7 @@ impl TriggerJobUseCase {
             .map_err(|e| TriggerJobError::Internal(e.to_string()))?
             .ok_or(TriggerJobError::NotFound(*job_id))?;
 
-        if job.status != "active" {
+        if !SchedulerDomainService::can_trigger(&job.status) {
             return Err(TriggerJobError::NotActive(*job_id));
         }
 

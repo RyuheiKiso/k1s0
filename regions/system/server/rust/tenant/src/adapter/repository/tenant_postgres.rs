@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::entity::{Tenant, TenantStatus};
+use crate::domain::entity::{Plan, Tenant, TenantStatus};
 use crate::domain::repository::TenantRepository;
 
 pub struct TenantPostgresRepository {
@@ -42,21 +42,28 @@ fn status_from_str(s: &str) -> TenantStatus {
     }
 }
 
-impl From<TenantRow> for Tenant {
-    fn from(r: TenantRow) -> Self {
-        Tenant {
+fn plan_from_str(s: &str) -> anyhow::Result<Plan> {
+    s.parse::<Plan>()
+        .map_err(|e| anyhow::anyhow!("invalid tenant plan in database: {}", e))
+}
+
+impl TryFrom<TenantRow> for Tenant {
+    type Error = anyhow::Error;
+
+    fn try_from(r: TenantRow) -> Result<Self, Self::Error> {
+        Ok(Tenant {
             id: r.id,
             name: r.name,
             display_name: r.display_name,
             status: status_from_str(&r.status),
-            plan: r.plan,
+            plan: plan_from_str(&r.plan)?,
             owner_id: r.owner_id,
             settings: r.settings,
             keycloak_realm: r.keycloak_realm,
             db_schema: r.db_schema,
             created_at: r.created_at,
             updated_at: r.updated_at,
-        }
+        })
     }
 }
 
@@ -70,7 +77,7 @@ impl TenantRepository for TenantPostgresRepository {
         .bind(id)
         .fetch_optional(self.pool.as_ref())
         .await?;
-        Ok(row.map(Into::into))
+        row.map(TryInto::try_into).transpose()
     }
 
     async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<Tenant>> {
@@ -81,7 +88,7 @@ impl TenantRepository for TenantPostgresRepository {
         .bind(name)
         .fetch_optional(self.pool.as_ref())
         .await?;
-        Ok(row.map(Into::into))
+        row.map(TryInto::try_into).transpose()
     }
 
     async fn list(&self, page: i32, page_size: i32) -> anyhow::Result<(Vec<Tenant>, i64)> {
@@ -101,7 +108,11 @@ impl TenantRepository for TenantPostgresRepository {
             .fetch_one(self.pool.as_ref())
             .await?;
 
-        Ok((rows.into_iter().map(Into::into).collect(), count.0))
+        let tenants = rows
+            .into_iter()
+            .map(TryInto::try_into)
+            .collect::<anyhow::Result<Vec<Tenant>>>()?;
+        Ok((tenants, count.0))
     }
 
     async fn create(&self, tenant: &Tenant) -> anyhow::Result<()> {
@@ -113,7 +124,7 @@ impl TenantRepository for TenantPostgresRepository {
         .bind(&tenant.name)
         .bind(&tenant.display_name)
         .bind(tenant.status.as_str())
-        .bind(&tenant.plan)
+        .bind(tenant.plan.as_str())
         .bind(&tenant.owner_id)
         .bind(&tenant.settings)
         .bind(&tenant.keycloak_realm)
@@ -134,7 +145,7 @@ impl TenantRepository for TenantPostgresRepository {
         .bind(tenant.id)
         .bind(&tenant.display_name)
         .bind(tenant.status.as_str())
-        .bind(&tenant.plan)
+        .bind(tenant.plan.as_str())
         .bind(&tenant.owner_id)
         .bind(&tenant.settings)
         .bind(&tenant.keycloak_realm)
@@ -189,10 +200,10 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        let tenant: Tenant = row.into();
+        let tenant: Tenant = row.try_into().unwrap();
         assert_eq!(tenant.name, "acme-corp");
         assert_eq!(tenant.status, TenantStatus::Active);
-        assert_eq!(tenant.plan, "professional");
+        assert_eq!(tenant.plan, Plan::Professional);
         assert_eq!(tenant.keycloak_realm, Some("acme".to_string()));
         assert_eq!(tenant.db_schema, None);
     }

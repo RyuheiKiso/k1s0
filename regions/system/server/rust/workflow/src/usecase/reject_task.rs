@@ -4,6 +4,7 @@ use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::domain::repository::WorkflowDefinitionRepository;
 use crate::domain::repository::WorkflowInstanceRepository;
 use crate::domain::repository::WorkflowTaskRepository;
+use crate::domain::service::WorkflowDomainService;
 
 #[derive(Debug, Clone)]
 pub struct RejectTaskInput {
@@ -94,45 +95,50 @@ impl RejectTaskUseCase {
                 RejectTaskError::DefinitionNotFound(instance.workflow_id.clone())
             })?;
 
-        let current_step = definition.find_step(&task.step_id);
-        let next_step_id = current_step.and_then(|s| s.on_reject.as_deref());
+        let next_step_id = WorkflowDomainService::next_step_on_reject(&definition, &task.step_id);
 
         let mut next_task = None;
 
-        match next_step_id {
-            Some("end") | None => {
-                instance.fail();
-                self.instance_repo
-                    .update(&instance)
-                    .await
-                    .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
-            }
-            Some(next_id) => {
-                if let Some(next_step) = definition.find_step(next_id) {
-                    instance.current_step_id = Some(next_id.to_string());
-                    self.instance_repo
-                        .update(&instance)
-                        .await
-                        .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+        if WorkflowDomainService::is_terminal_step(next_step_id.as_deref()) {
+            instance.fail();
+            self.instance_repo
+                .update(&instance)
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+        } else {
+            match next_step_id.as_deref() {
+                Some(next_id) => {
+                    if let Some(next_step) = definition.find_step(next_id) {
+                        instance.current_step_id = Some(next_id.to_string());
+                        self.instance_repo
+                            .update(&instance)
+                            .await
+                            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
 
-                    let new_task_id = format!("task_{}", uuid::Uuid::new_v4().simple());
-                    let due_at = next_step
-                        .timeout_hours
-                        .map(|h| chrono::Utc::now() + chrono::Duration::hours(h as i64));
-                    let new_task = WorkflowTask::new(
-                        new_task_id,
-                        instance.id.clone(),
-                        next_step.step_id.clone(),
-                        next_step.name.clone(),
-                        None,
-                        due_at,
-                    );
-                    self.task_repo
-                        .create(&new_task)
-                        .await
-                        .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
-                    next_task = Some(new_task);
-                } else {
+                        let new_task_id = format!("task_{}", uuid::Uuid::new_v4().simple());
+                        let due_at = WorkflowDomainService::task_due_at(next_step.timeout_hours);
+                        let new_task = WorkflowTask::new(
+                            new_task_id,
+                            instance.id.clone(),
+                            next_step.step_id.clone(),
+                            next_step.name.clone(),
+                            None,
+                            due_at,
+                        );
+                        self.task_repo
+                            .create(&new_task)
+                            .await
+                            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+                        next_task = Some(new_task);
+                    } else {
+                        instance.fail();
+                        self.instance_repo
+                            .update(&instance)
+                            .await
+                            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+                    }
+                }
+                None => {
                     instance.fail();
                     self.instance_repo
                         .update(&instance)

@@ -61,6 +61,10 @@ pub struct DatabaseConfig {
     pub ssl_mode: String,
     #[serde(default = "default_max_open_conns")]
     pub max_open_conns: u32,
+    #[serde(default = "default_max_idle_conns")]
+    pub max_idle_conns: u32,
+    #[serde(default = "default_conn_max_lifetime_secs")]
+    pub conn_max_lifetime: u64,
 }
 
 fn default_ssl_mode() -> String {
@@ -68,6 +72,12 @@ fn default_ssl_mode() -> String {
 }
 fn default_max_open_conns() -> u32 {
     25
+}
+fn default_max_idle_conns() -> u32 {
+    5
+}
+fn default_conn_max_lifetime_secs() -> u64 {
+    300
 }
 
 impl DatabaseConfig {
@@ -98,6 +108,12 @@ pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(alias = "schema_updated_topic")]
     pub topic: String,
+    #[serde(default = "default_kafka_security_protocol")]
+    pub security_protocol: String,
+}
+
+fn default_kafka_security_protocol() -> String {
+    "PLAINTEXT".to_string()
 }
 
 impl Default for KafkaConfig {
@@ -105,6 +121,7 @@ impl Default for KafkaConfig {
         Self {
             brokers: vec!["localhost:9092".to_string()],
             topic: "k1s0.system.apiregistry.schema_updated.v1".to_string(),
+            security_protocol: default_kafka_security_protocol(),
         }
     }
 }
@@ -158,6 +175,8 @@ mod tests {
             password: "pass".to_string(),
             ssl_mode: "disable".to_string(),
             max_open_conns: 10,
+            max_idle_conns: 5,
+            conn_max_lifetime: 300,
         };
         assert_eq!(
             db.connection_url(),

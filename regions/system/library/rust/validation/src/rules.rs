@@ -3,44 +3,50 @@ use regex::Regex;
 
 use crate::error::ValidationError;
 
-pub fn validate_email(email: &str) -> Result<(), ValidationError> {
+pub fn validate_email(field: &str, email: &str) -> Result<(), ValidationError> {
     let re = Regex::new(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").unwrap();
     if re.is_match(email) {
         Ok(())
     } else {
-        Err(ValidationError::InvalidEmail(email.to_string()))
+        Err(ValidationError::InvalidEmail(format!(
+            "{}: {}",
+            field, email
+        )))
     }
 }
 
-pub fn validate_uuid(id: &str) -> Result<(), ValidationError> {
+pub fn validate_uuid(field: &str, id: &str) -> Result<(), ValidationError> {
     uuid::Uuid::parse_str(id)
         .map(|_| ())
-        .map_err(|_| ValidationError::InvalidUuid(id.to_string()))
+        .map_err(|_| ValidationError::InvalidUuid(format!("{}: {}", field, id)))
 }
 
-pub fn validate_url(input: &str) -> Result<(), ValidationError> {
+pub fn validate_url(field: &str, input: &str) -> Result<(), ValidationError> {
     let parsed =
-        url::Url::parse(input).map_err(|_| ValidationError::InvalidUrl(input.to_string()))?;
+        url::Url::parse(input).map_err(|_| ValidationError::InvalidUrl(format!("{}: {}", field, input)))?;
     match parsed.scheme() {
         "http" | "https" => Ok(()),
         _ => Err(ValidationError::InvalidUrl(format!(
-            "unsupported scheme: {}",
+            "{}: unsupported scheme: {}",
+            field,
             parsed.scheme()
         ))),
     }
 }
 
-pub fn validate_tenant_id(id: &str) -> Result<(), ValidationError> {
+pub fn validate_tenant_id(field: &str, id: &str) -> Result<(), ValidationError> {
     let re = Regex::new(r"^[a-zA-Z0-9\-]+$").unwrap();
     if id.len() < 3 || id.len() > 63 {
         return Err(ValidationError::InvalidTenantId(format!(
-            "length must be 3-63, got {}",
+            "{}: length must be 3-63, got {}",
+            field,
             id.len()
         )));
     }
     if !re.is_match(id) {
         return Err(ValidationError::InvalidTenantId(format!(
-            "must contain only alphanumeric and hyphens: {}",
+            "{}: must contain only alphanumeric and hyphens: {}",
+            field,
             id
         )));
     }
@@ -83,52 +89,52 @@ mod tests {
 
     #[test]
     fn test_validate_email_success() {
-        assert!(validate_email("user@example.com").is_ok());
-        assert!(validate_email("a@b.c").is_ok());
+        assert!(validate_email("email", "user@example.com").is_ok());
+        assert!(validate_email("email", "a@b.c").is_ok());
     }
 
     #[test]
     fn test_validate_email_failure() {
-        assert!(validate_email("invalid").is_err());
-        assert!(validate_email("@example.com").is_err());
-        assert!(validate_email("user@").is_err());
-        assert!(validate_email("user@example").is_err());
+        assert!(validate_email("email", "invalid").is_err());
+        assert!(validate_email("email", "@example.com").is_err());
+        assert!(validate_email("email", "user@").is_err());
+        assert!(validate_email("email", "user@example").is_err());
     }
 
     #[test]
     fn test_validate_uuid_success() {
-        assert!(validate_uuid("550e8400-e29b-41d4-a716-446655440000").is_ok());
+        assert!(validate_uuid("tenant_id", "550e8400-e29b-41d4-a716-446655440000").is_ok());
     }
 
     #[test]
     fn test_validate_uuid_failure() {
-        assert!(validate_uuid("not-a-uuid").is_err());
-        assert!(validate_uuid("").is_err());
+        assert!(validate_uuid("tenant_id", "not-a-uuid").is_err());
+        assert!(validate_uuid("tenant_id", "").is_err());
     }
 
     #[test]
     fn test_validate_url_success() {
-        assert!(validate_url("https://example.com").is_ok());
-        assert!(validate_url("http://example.com/path?q=1").is_ok());
+        assert!(validate_url("endpoint", "https://example.com").is_ok());
+        assert!(validate_url("endpoint", "http://example.com/path?q=1").is_ok());
     }
 
     #[test]
     fn test_validate_url_failure() {
-        assert!(validate_url("ftp://example.com").is_err());
-        assert!(validate_url("not a url").is_err());
+        assert!(validate_url("endpoint", "ftp://example.com").is_err());
+        assert!(validate_url("endpoint", "not a url").is_err());
     }
 
     #[test]
     fn test_validate_tenant_id_success() {
-        assert!(validate_tenant_id("abc").is_ok());
-        assert!(validate_tenant_id("my-tenant-123").is_ok());
+        assert!(validate_tenant_id("tenant_id", "abc").is_ok());
+        assert!(validate_tenant_id("tenant_id", "my-tenant-123").is_ok());
     }
 
     #[test]
     fn test_validate_tenant_id_failure() {
-        assert!(validate_tenant_id("ab").is_err()); // too short
-        assert!(validate_tenant_id(&"a".repeat(64)).is_err()); // too long
-        assert!(validate_tenant_id("invalid_underscore").is_err());
+        assert!(validate_tenant_id("tenant_id", "ab").is_err()); // too short
+        assert!(validate_tenant_id("tenant_id", &"a".repeat(64)).is_err()); // too long
+        assert!(validate_tenant_id("tenant_id", "invalid_underscore").is_err());
     }
 
     #[test]

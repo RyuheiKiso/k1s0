@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -20,7 +21,7 @@ impl TenantStatus {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Plan {
     Free,
     Starter,
@@ -39,13 +40,27 @@ impl Plan {
     }
 }
 
+impl FromStr for Plan {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "free" => Ok(Plan::Free),
+            "starter" => Ok(Plan::Starter),
+            "professional" => Ok(Plan::Professional),
+            "enterprise" => Ok(Plan::Enterprise),
+            _ => Err(format!("unknown plan: {}", s)),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Tenant {
     pub id: Uuid,
     pub name: String,
     pub display_name: String,
     pub status: TenantStatus,
-    pub plan: String,
+    pub plan: Plan,
     pub owner_id: Option<String>,
     pub settings: serde_json::Value,
     pub keycloak_realm: Option<String>,
@@ -55,7 +70,7 @@ pub struct Tenant {
 }
 
 impl Tenant {
-    pub fn new(name: String, display_name: String, plan: String, owner_id: Option<Uuid>) -> Self {
+    pub fn new(name: String, display_name: String, plan: Plan, owner_id: Option<Uuid>) -> Self {
         Self {
             id: Uuid::new_v4(),
             name,
@@ -87,17 +102,17 @@ mod tests {
         let t = Tenant::new(
             "acme-corp".to_string(),
             "ACME Corporation".to_string(),
-            "professional".to_string(),
+            Plan::Professional,
             Some(owner),
         );
         assert_eq!(t.name, "acme-corp");
         assert_eq!(t.status, TenantStatus::Provisioning);
-        assert_eq!(t.plan, "professional");
+        assert_eq!(t.plan, Plan::Professional);
     }
 
     #[test]
     fn test_tenant_activate() {
-        let t = Tenant::new("t".to_string(), "T".to_string(), "free".to_string(), None);
+        let t = Tenant::new("t".to_string(), "T".to_string(), Plan::Free, None);
         let t = t.activate();
         assert_eq!(t.status, TenantStatus::Active);
     }
@@ -116,5 +131,11 @@ mod tests {
         assert_eq!(Plan::Starter.as_str(), "starter");
         assert_eq!(Plan::Professional.as_str(), "professional");
         assert_eq!(Plan::Enterprise.as_str(), "enterprise");
+    }
+
+    #[test]
+    fn test_plan_from_str() {
+        assert_eq!(Plan::from_str("free").unwrap(), Plan::Free);
+        assert!(Plan::from_str("invalid").is_err());
     }
 }

@@ -7,11 +7,11 @@ use crate::domain::repository::{FileMetadataRepository, FileStorageRepository};
 
 #[derive(Debug, Clone)]
 pub struct GenerateUploadUrlInput {
-    pub name: String,
+    pub filename: String,
     pub size_bytes: u64,
-    pub mime_type: String,
+    pub content_type: String,
     pub tenant_id: String,
-    pub owner_id: String,
+    pub uploaded_by: String,
     pub tags: HashMap<String, String>,
     pub expires_in_seconds: u32,
 }
@@ -55,9 +55,9 @@ impl GenerateUploadUrlUseCase {
         &self,
         input: &GenerateUploadUrlInput,
     ) -> Result<GenerateUploadUrlOutput, GenerateUploadUrlError> {
-        if input.name.is_empty() {
+        if input.filename.is_empty() {
             return Err(GenerateUploadUrlError::Validation(
-                "name is required".to_string(),
+                "filename is required".to_string(),
             ));
         }
         if input.size_bytes == 0 {
@@ -72,22 +72,22 @@ impl GenerateUploadUrlUseCase {
                 max: max_size,
             });
         }
-        if input.mime_type.is_empty() {
+        if input.content_type.is_empty() {
             return Err(GenerateUploadUrlError::Validation(
-                "mime_type is required".to_string(),
+                "content_type is required".to_string(),
             ));
         }
 
         let file_id = format!("file_{}", uuid::Uuid::new_v4().to_string().replace('-', ""));
-        let storage_key = FileMetadata::generate_storage_key(&input.tenant_id, &input.name);
+        let storage_key = FileMetadata::generate_storage_key(&input.tenant_id, &input.filename);
 
         let file = FileMetadata::new(
             file_id.clone(),
-            input.name.clone(),
+            input.filename.clone(),
             input.size_bytes,
-            input.mime_type.clone(),
+            input.content_type.clone(),
             input.tenant_id.clone(),
-            input.owner_id.clone(),
+            input.uploaded_by.clone(),
             input.tags.clone(),
             storage_key.clone(),
         );
@@ -99,7 +99,7 @@ impl GenerateUploadUrlUseCase {
 
         let upload_url = self
             .storage_repo
-            .generate_upload_url(&storage_key, &input.mime_type, input.expires_in_seconds)
+            .generate_upload_url(&storage_key, &input.content_type, input.expires_in_seconds)
             .await
             .map_err(|e| GenerateUploadUrlError::Internal(e.to_string()))?;
 
@@ -120,11 +120,11 @@ mod tests {
 
     fn valid_input() -> GenerateUploadUrlInput {
         GenerateUploadUrlInput {
-            name: "report.pdf".to_string(),
+            filename: "report.pdf".to_string(),
             size_bytes: 2048,
-            mime_type: "application/pdf".to_string(),
+            content_type: "application/pdf".to_string(),
             tenant_id: "tenant-abc".to_string(),
-            owner_id: "user-001".to_string(),
+            uploaded_by: "user-001".to_string(),
             tags: HashMap::new(),
             expires_in_seconds: 3600,
         }
@@ -159,7 +159,7 @@ mod tests {
         let uc =
             GenerateUploadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
         let mut input = valid_input();
-        input.name = "".to_string();
+        input.filename = "".to_string();
 
         let result = uc.execute(&input).await;
         assert!(result.is_err());

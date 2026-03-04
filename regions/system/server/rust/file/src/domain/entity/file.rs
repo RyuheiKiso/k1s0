@@ -6,11 +6,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileMetadata {
     pub id: String,
-    pub name: String,
+    #[serde(alias = "name")]
+    pub filename: String,
     pub size_bytes: u64,
-    pub mime_type: String,
+    #[serde(alias = "mime_type")]
+    pub content_type: String,
     pub tenant_id: String,
-    pub owner_id: String,
+    #[serde(alias = "owner_id")]
+    pub uploaded_by: String,
     pub tags: HashMap<String, String>,
     pub storage_key: String,
     pub checksum_sha256: Option<String>,
@@ -22,22 +25,22 @@ pub struct FileMetadata {
 impl FileMetadata {
     pub fn new(
         id: String,
-        name: String,
+        filename: String,
         size_bytes: u64,
-        mime_type: String,
+        content_type: String,
         tenant_id: String,
-        owner_id: String,
+        uploaded_by: String,
         tags: HashMap<String, String>,
         storage_key: String,
     ) -> Self {
         let now = Utc::now();
         Self {
             id,
-            name,
+            filename,
             size_bytes,
-            mime_type,
+            content_type,
             tenant_id,
-            owner_id,
+            uploaded_by,
             tags,
             storage_key,
             checksum_sha256: None,
@@ -63,8 +66,8 @@ impl FileMetadata {
         self.updated_at = Utc::now();
     }
 
-    pub fn generate_storage_key(tenant_id: &str, file_name: &str) -> String {
-        format!("{}/{}", tenant_id, file_name)
+    pub fn generate_storage_key(tenant_id: &str, filename: &str) -> String {
+        format!("{}/{}", tenant_id, filename)
     }
 }
 
@@ -92,11 +95,11 @@ mod tests {
         );
 
         assert_eq!(file.id, "file_001");
-        assert_eq!(file.name, "report.pdf");
+        assert_eq!(file.filename, "report.pdf");
         assert_eq!(file.size_bytes, 2048);
-        assert_eq!(file.mime_type, "application/pdf");
+        assert_eq!(file.content_type, "application/pdf");
         assert_eq!(file.tenant_id, "tenant-abc");
-        assert_eq!(file.owner_id, "user-001");
+        assert_eq!(file.uploaded_by, "user-001");
         assert_eq!(file.status, "pending");
         assert!(file.checksum_sha256.is_none());
     }

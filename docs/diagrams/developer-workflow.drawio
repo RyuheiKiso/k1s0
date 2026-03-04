@@ -1,0 +1,687 @@
+<mxfile>
+  <diagram name="Developer Workflow">
+    <mxGraphModel dx="3000" dy="2200" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2200" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="k1s0 開発者ワークフロー全体図" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="900" y="15" width="600" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="section1" value="Section 1: Proto パイプライン" style="swimlane;startSize=30;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;fontSize=14;swimlaneLine=1;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="2920" height="380" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="proto_files" value="&lt;b&gt;.proto ファイル&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;api/proto/k1s0/{tier}/{domain}/v1/&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gRPC サービス定義 + Kafka イベント&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="section1">
+          <mxGeometry x="40" y="55" width="260" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="proto_dir" value="&lt;b&gt;ディレクトリ構成&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;api/proto/k1s0/&lt;br&gt;├── system/{domain}/v1/&lt;br&gt;├── business/{domain}/v1/&lt;br&gt;├── service/{domain}/v1/&lt;br&gt;└── event/{tier}/{domain}/v1/&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="section1">
+          <mxGeometry x="40" y="155" width="260" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="buf_lint" value="&lt;b&gt;buf lint&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;スタイル・命名規則チェック&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;buf.yaml ルールに準拠&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="section1">
+          <mxGeometry x="380" y="55" width="220" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="buf_breaking" value="&lt;b&gt;buf breaking&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;破壊的変更検出&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;main ブランチと比較&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="section1">
+          <mxGeometry x="380" y="155" width="220" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="buf_gen" value="&lt;b&gt;buf generate&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;buf.gen.yaml に基づく&lt;br&gt;コード生成&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="section1">
+          <mxGeometry x="680" y="100" width="220" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="gen_go" value="&lt;b&gt;Go 生成コード&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;protoc-gen-go&lt;br&gt;protoc-gen-go-grpc&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gen/go/k1s0/...&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F3FF;strokeColor=#6C8EBF;fontSize=11;" vertex="1" parent="section1">
+          <mxGeometry x="1000" y="45" width="195" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="gen_rust" value="&lt;b&gt;Rust 生成コード&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;prost + tonic-build&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;src/proto/mod.rs で include&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F3FF;strokeColor=#6C8EBF;fontSize=11;" vertex="1" parent="section1">
+          <mxGeometry x="1000" y="125" width="195" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="gen_ts" value="&lt;b&gt;TypeScript 生成コード&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;ts-proto&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;BFF / クライアント SDK&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F3FF;strokeColor=#6C8EBF;fontSize=11;" vertex="1" parent="section1">
+          <mxGeometry x="1000" y="205" width="195" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="gen_dart" value="&lt;b&gt;Dart 生成コード&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;（将来対応予定）&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Flutter クライアント用&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F3FF;strokeColor=#6C8EBF;fontSize=11;strokeDasharray=8 8;" vertex="1" parent="section1">
+          <mxGeometry x="1000" y="285" width="195" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="schema_registry" value="&lt;b&gt;Schema Registry&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Kafka イベントスキーマ管理&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;互換性チェック（BACKWARD）&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" vertex="1" parent="section1">
+          <mxGeometry x="1290" y="110" width="200" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="proto_common" value="&lt;b&gt;共通型 (common.proto)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Pagination / PaginationResult&lt;br&gt;Timestamp / EventMetadata&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;" vertex="1" parent="section1">
+          <mxGeometry x="40" y="295" width="260" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="proto_ci" value="&lt;b&gt;Proto Check CI&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;proto.yaml ワークフロー&lt;br&gt;PR 時に自動実行&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" vertex="1" parent="section1">
+          <mxGeometry x="380" y="260" width="220" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_proto1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="proto_files" target="buf_lint" parent="section1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_proto2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="buf_lint" target="buf_breaking" parent="section1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_proto3" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="buf_breaking" target="buf_gen" parent="section1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_proto4" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="buf_gen" target="gen_go" parent="section1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_proto5" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="buf_gen" target="gen_rust" parent="section1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_proto6" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="buf_gen" target="gen_ts" parent="section1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_proto7" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;dashed=1;" edge="1" source="buf_gen" target="gen_dart" parent="section1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_proto8" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;dashed=1;" edge="1" source="gen_rust" target="schema_registry" parent="section1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_proto_ci" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;dashed=1;" edge="1" source="buf_lint" target="proto_ci" parent="section1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="section2" value="Section 2: CLI テンプレート生成" style="swimlane;startSize=30;fillColor=#FCE4EC;strokeColor=#C62828;fontStyle=1;fontSize=14;swimlaneLine=1;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="480" width="1400" height="500" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_start" value="&lt;b&gt;$ k1s0&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;対話式 CLI 起動&lt;br&gt;（dialoguer）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=12;" vertex="1" parent="section2">
+          <mxGeometry x="30" y="50" width="160" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_menu" value="&lt;b&gt;メインメニュー&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;プロジェクト初期化 / ひな形生成&lt;br&gt;設定スキーマ型生成 / ナビゲーション型生成&lt;br&gt;バリデーション / ビルド / テスト / デプロイ&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=11;" vertex="1" parent="section2">
+          <mxGeometry x="30" y="145" width="210" height="85" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_generate" value="&lt;b&gt;ひな形生成コマンド&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;k1s0 generate&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=12;fontStyle=1;" vertex="1" parent="section2">
+          <mxGeometry x="300" y="50" width="200" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_kind" value="&lt;b&gt;Step 1: 種別選択&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;サーバー / クライアント&lt;br&gt;ライブラリ / データベース&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=11;" vertex="1" parent="section2">
+          <mxGeometry x="305" y="130" width="190" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_tier" value="&lt;b&gt;Step 2: Tier 選択&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;system / business / service&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;（種別に応じて制限あり）&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=11;" vertex="1" parent="section2">
+          <mxGeometry x="305" y="270" width="190" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_lang" value="&lt;b&gt;Step 3-4: 言語選択&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;サーバー: Go / Rust&lt;br&gt;クライアント: React / Flutter&lt;br&gt;ライブラリ: Go / Rust / TS / Dart&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=10;" vertex="1" parent="section2">
+          <mxGeometry x="555" y="55" width="210" height="130" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_detail" value="&lt;b&gt;Step 5: 詳細設定&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;API 方式: REST / gRPC / GraphQL&lt;br&gt;DB: PostgreSQL / MySQL / SQLite&lt;br&gt;Kafka / Redis 有効化&lt;br&gt;BFF 生成（service + GraphQL）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=10;" vertex="1" parent="section2">
+          <mxGeometry x="555" y="220" width="210" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_confirm" value="&lt;b&gt;確認画面&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;設定サマリー表示&lt;br&gt;はい / いいえ / キャンセル&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=11;" vertex="1" parent="section2">
+          <mxGeometry x="555" y="350" width="210" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_tera" value="&lt;b&gt;Tera テンプレートエンジン&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;テンプレート変数展開&lt;br&gt;条件付きファイル生成&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;CLI/templates/ 配下&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=11;" vertex="1" parent="section2">
+          <mxGeometry x="830" y="50" width="210" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_output" value="&lt;b&gt;生成ファイル出力&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;regions/{tier}/server/{lang}/{name}/&lt;br&gt;├── src/ (ソースコード)&lt;br&gt;├── config/config.yaml&lt;br&gt;├── Dockerfile&lt;br&gt;├── openapi.yaml / .proto&lt;br&gt;└── tests/&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="section2">
+          <mxGeometry x="830" y="155" width="230" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_sparse" value="&lt;b&gt;sparse-checkout 統合&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;選択した Tier のみ&lt;br&gt;チェックアウト&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;プロジェクト初期化時&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=10;" vertex="1" parent="section2">
+          <mxGeometry x="830" y="300" width="210" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_infra" value="&lt;b&gt;インフラ生成物&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Helm Chart / CI/CD ワークフロー&lt;br&gt;Terraform / docker-compose&lt;br&gt;Flagger Canary 定義&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=10;" vertex="1" parent="section2">
+          <mxGeometry x="830" y="400" width="210" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_gui" value="&lt;b&gt;Tauri GUI（代替 UI）&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;k1s0-core 共有クレート&lt;br&gt;React + Tauri 2&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;CLI と同等の操作をウィザード形式で提供&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8BBD0;strokeColor=#C62828;fontSize=10;dashed=1;" vertex="1" parent="section2">
+          <mxGeometry x="1120" y="50" width="240" height="85" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cli_core" value="&lt;b&gt;k1s0-core&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;共有 Rust ライブラリクレート&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;commands / config / template / validation&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8BBD0;strokeColor=#C62828;fontSize=10;" vertex="1" parent="section2">
+          <mxGeometry x="1120" y="165" width="240" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_cli1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="cli_start" target="cli_menu" parent="section2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cli2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="cli_menu" target="cli_generate" parent="section2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cli3" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="cli_generate" target="cli_kind" parent="section2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cli4" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="cli_kind" target="cli_tier" parent="section2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cli5" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="cli_kind" target="cli_lang" parent="section2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cli6" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="cli_lang" target="cli_detail" parent="section2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cli7" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="cli_detail" target="cli_confirm" parent="section2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cli8" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="cli_confirm" target="cli_tera" parent="section2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="383"/>
+              <mxPoint x="800" y="90"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_cli9" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="cli_tera" target="cli_output" parent="section2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cli10" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;dashed=1;" edge="1" source="cli_tera" target="cli_infra" parent="section2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cli11" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;dashed=1;" edge="1" source="cli_gui" target="cli_core" parent="section2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cli12" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;dashed=1;" edge="1" source="cli_start" target="cli_core" parent="section2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="430"/>
+              <mxPoint x="1240" y="430"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="section3" value="Section 3: SDUI フロー" style="swimlane;startSize=30;fillColor=#FFF2CC;strokeColor=#D6B656;fontStyle=1;fontSize=14;swimlaneLine=1;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="480" width="1480" height="500" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sdui_config_label" value="&lt;b&gt;Config SDUI フロー&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=5;fontColor=#D6B656;" vertex="1" parent="section3">
+          <mxGeometry x="30" y="40" width="660" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sdui_nav_label" value="&lt;b&gt;Navigation SDUI フロー&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=5;fontColor=#D6B656;" vertex="1" parent="section3">
+          <mxGeometry x="740" y="40" width="700" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sdui_divider" value="" style="line;strokeWidth=2;strokeColor=#D6B656;dashed=1;" vertex="1" parent="section3">
+          <mxGeometry x="720" y="40" width="1" height="440" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="config_schema" value="&lt;b&gt;config-schema.yaml&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;設定スキーマ定義&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;categories / fields / type / validation&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="section3">
+          <mxGeometry x="40" y="80" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="config_cli_gen" value="&lt;b&gt;k1s0 generate config-types&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;CLI 対話式コマンド&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="section3">
+          <mxGeometry x="40" y="180" width="220" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="config_put" value="&lt;b&gt;Config Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;PUT /api/v1/config-schema/{service}&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;スキーマをサーバーに登録&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="section3">
+          <mxGeometry x="310" y="80" width="250" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="config_types_ts" value="&lt;b&gt;config-types.ts&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;TypeScript 型定義&lt;br&gt;__generated__/&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="310" y="180" width="120" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="config_types_dart" value="&lt;b&gt;config_types.dart&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Dart 型定義&lt;br&gt;__generated__/&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="450" y="180" width="120" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="config_editor_react" value="&lt;b&gt;React ConfigEditorPage&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;スキーマインタープリター&lt;br&gt;動的 UI 自動組み立て&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="310" y="270" width="120" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="config_editor_flutter" value="&lt;b&gt;Flutter ConfigEditor&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;スキーマインタープリター&lt;br&gt;動的 UI 自動組み立て&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="450" y="270" width="120" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="config_flow_desc" value="&lt;font style=&quot;font-size:9px&quot;&gt;開発者が config-schema.yaml を編集&lt;br&gt;→ CLI で型生成 + サーバー登録&lt;br&gt;→ クライアントがスキーマから UI を動的生成&lt;br&gt;→ フロントエンド変更不要&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;dashed=1;" vertex="1" parent="section3">
+          <mxGeometry x="40" y="280" width="230" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="config_save" value="&lt;b&gt;設定値保存&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;PUT /api/v1/config/{ns}/{key}&lt;br&gt;楽観ロック制御&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="310" y="370" width="260" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_sdui_c1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="config_schema" target="config_cli_gen" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_c2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="config_cli_gen" target="config_put" parent="section3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="280" y="208"/>
+              <mxPoint x="280" y="115"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_sdui_c3" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="config_cli_gen" target="config_types_ts" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_c4" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="config_cli_gen" target="config_types_dart" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_c5" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="config_put" target="config_editor_react" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_c6" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="config_put" target="config_editor_flutter" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_c7" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="config_editor_react" target="config_save" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_c8" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="config_editor_flutter" target="config_save" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nav_yaml" value="&lt;b&gt;navigation.yaml&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;ナビゲーション定義&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;routes / guards / transition&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="section3">
+          <mxGeometry x="770" y="80" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nav_cli_gen" value="&lt;b&gt;k1s0 generate navigation&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;CLI 対話式コマンド&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="section3">
+          <mxGeometry x="770" y="180" width="220" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nav_route_ts" value="&lt;b&gt;route-types.ts&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;RouteIds / RouteParams&lt;br&gt;型安全なルート ID&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="1050" y="80" width="140" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nav_route_dart" value="&lt;b&gt;route_ids.dart&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;RouteId enum&lt;br&gt;TypedNavigation 拡張&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="1050" y="165" width="140" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nav_server" value="&lt;b&gt;system server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;GET /api/v1/navigation&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;認証トークンに応じて&lt;br&gt;ルートをフィルタリング&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="770" y="270" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nav_interpreter" value="&lt;b&gt;NavigationInterpreter&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;system-client SDK&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;ルーター自動構築&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="section3">
+          <mxGeometry x="1050" y="270" width="180" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nav_react" value="&lt;b&gt;React&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;TanStack Router&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="1050" y="370" width="80" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nav_flutter" value="&lt;b&gt;Flutter&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;GoRouter&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="1150" y="370" width="80" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nav_local" value="&lt;b&gt;Local-first 開発モード&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;development: YAML 直接読み込み&lt;br&gt;production: サーバー経由&lt;br&gt;→ サーバー不要で UI 開発可能&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;dashed=1;" vertex="1" parent="section3">
+          <mxGeometry x="1260" y="80" width="200" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nav_component_reg" value="&lt;b&gt;component-registry&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;component_id → Component&lt;br&gt;lazy import で紐付け&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="section3">
+          <mxGeometry x="1260" y="185" width="200" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_sdui_n1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="nav_yaml" target="nav_cli_gen" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_n2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="nav_cli_gen" target="nav_route_ts" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_n3" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="nav_cli_gen" target="nav_route_dart" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_n4" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="nav_yaml" target="nav_server" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_n5" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="nav_server" target="nav_interpreter" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_n6" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="nav_interpreter" target="nav_react" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sdui_n7" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="nav_interpreter" target="nav_flutter" parent="section3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="section4" value="Section 4: CI/CD パイプライン" style="swimlane;startSize=30;fillColor=#E6FFE6;strokeColor=#339933;fontStyle=1;fontSize=14;swimlaneLine=1;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1010" width="2920" height="1150" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_trigger" value="&lt;b&gt;PR 作成 / 更新&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;main ブランチへの PR&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;GitHub Actions トリガー&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=12;" vertex="1" parent="section4">
+          <mxGeometry x="40" y="50" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_detect" value="&lt;b&gt;変更検出&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;dorny/paths-filter&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;言語別・パス別に変更を検出&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=11;" vertex="1" parent="section4">
+          <mxGeometry x="300" y="50" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_lint_group" value="Lint（4言語並列）" style="swimlane;startSize=25;fillColor=#F0FFF0;strokeColor=#339933;fontStyle=1;fontSize=11;rounded=1;" vertex="1" parent="section4">
+          <mxGeometry x="560" y="40" width="580" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_lint_rust" value="&lt;b&gt;Rust Lint&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;cargo fmt --check&lt;br&gt;cargo clippy -D warnings&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_lint_group">
+          <mxGeometry x="10" y="30" width="130" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_lint_go" value="&lt;b&gt;Go Lint&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;go vet ./...&lt;br&gt;golangci-lint run&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_lint_group">
+          <mxGeometry x="150" y="30" width="130" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_lint_ts" value="&lt;b&gt;TypeScript Lint&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;npx eslint .&lt;br&gt;npx prettier --check&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_lint_group">
+          <mxGeometry x="290" y="30" width="130" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_lint_dart" value="&lt;b&gt;Dart Lint&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;dart analyze&lt;br&gt;dart format --check&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_lint_group">
+          <mxGeometry x="430" y="30" width="130" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_test_group" value="Test（4言語並列）" style="swimlane;startSize=25;fillColor=#F0FFF0;strokeColor=#339933;fontStyle=1;fontSize=11;rounded=1;" vertex="1" parent="section4">
+          <mxGeometry x="560" y="175" width="580" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_test_rust" value="&lt;b&gt;Rust Test&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;cargo test --all&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_test_group">
+          <mxGeometry x="10" y="30" width="130" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_test_go" value="&lt;b&gt;Go Test&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;go test ./...&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_test_group">
+          <mxGeometry x="150" y="30" width="130" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_test_ts" value="&lt;b&gt;TypeScript Test&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;npm test&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_test_group">
+          <mxGeometry x="290" y="30" width="130" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_test_dart" value="&lt;b&gt;Dart Test&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;flutter test&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_test_group">
+          <mxGeometry x="430" y="30" width="130" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_integration" value="&lt;b&gt;統合テスト&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;integration-test.yaml&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;PostgreSQL 17 + Kafka 3.8.0（KRaft）&lt;br&gt;auth / config / saga / dlq-manager&lt;br&gt;cargo test --all -- --ignored&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="section4">
+          <mxGeometry x="560" y="310" width="280" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_security" value="&lt;b&gt;セキュリティスキャン&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Trivy + cargo audit&lt;br&gt;npm audit&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;HIGH/CRITICAL で PR ブロック&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="section4">
+          <mxGeometry x="870" y="310" width="200" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_build_group" value="Docker ビルド（マルチステージ）" style="swimlane;startSize=25;fillColor=#F0FFF0;strokeColor=#339933;fontStyle=1;fontSize=11;rounded=1;" vertex="1" parent="section4">
+          <mxGeometry x="40" y="440" width="1100" height="130" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_build_rust" value="&lt;b&gt;Rust サーバー&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;rust:1.88-bookworm&lt;br&gt;→ distroless/cc-debian12&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_build_group">
+          <mxGeometry x="15" y="35" width="200" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_build_go" value="&lt;b&gt;Go BFF&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;golang:1.23-alpine&lt;br&gt;→ distroless/static-debian12&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_build_group">
+          <mxGeometry x="235" y="35" width="200" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_build_react" value="&lt;b&gt;React クライアント&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;node:22-bookworm&lt;br&gt;→ nginx:1.27-alpine&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_build_group">
+          <mxGeometry x="455" y="35" width="200" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_build_flutter" value="&lt;b&gt;Flutter Web&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;cirruslabs/flutter:3.24.0&lt;br&gt;→ nginx:1.27-alpine&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="ci_build_group">
+          <mxGeometry x="675" y="35" width="200" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_build_nonroot" value="&lt;font style=&quot;font-size:9px&quot;&gt;USER nonroot:nonroot&lt;br&gt;（全イメージ非 root 実行）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FFF0;strokeColor=#339933;fontSize=9;dashed=1;" vertex="1" parent="ci_build_group">
+          <mxGeometry x="900" y="50" width="180" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_sign" value="&lt;b&gt;Cosign 署名&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Keyless Signing (OIDC)&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Fulcio 証明書 + Rekor 透明性ログ&lt;br&gt;cosign sign --yes&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=11;" vertex="1" parent="section4">
+          <mxGeometry x="1220" y="460" width="230" height="85" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_push" value="&lt;b&gt;Harbor Push&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;harbor.internal.example.com&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;k1s0-{tier}/{service}:{version}-{sha}&lt;br&gt;Trivy 自動スキャン&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#E6FFE6;strokeColor=#339933;fontSize=11;" vertex="1" parent="section4">
+          <mxGeometry x="1520" y="450" width="240" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_tag_info" value="&lt;b&gt;イメージタグ規則&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;{version} — リリースバージョン&lt;br&gt;{version}-{git-sha} — ビルド特定用&lt;br&gt;latest — 最新安定版&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FFF0;strokeColor=#339933;fontSize=10;dashed=1;" vertex="1" parent="section4">
+          <mxGeometry x="1520" y="570" width="240" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_deploy_label" value="&lt;b&gt;環境プロモーション&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=5;fontColor=#339933;" vertex="1" parent="section4">
+          <mxGeometry x="40" y="600" width="1100" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_deploy_dev" value="&lt;b&gt;dev 環境&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;自動デプロイ&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;承認不要&lt;br&gt;self-hosted ランナー [dev]&lt;br&gt;helm upgrade --install&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#339933;fontSize=11;" vertex="1" parent="section4">
+          <mxGeometry x="40" y="640" width="220" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_deploy_staging" value="&lt;b&gt;staging 環境&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;自動デプロイ&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;承認不要&lt;br&gt;self-hosted ランナー [staging]&lt;br&gt;helm upgrade --install&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#339933;fontSize=11;" vertex="1" parent="section4">
+          <mxGeometry x="340" y="640" width="220" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_deploy_prod" value="&lt;b&gt;prod 環境&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;手動承認&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Required reviewers: 2名以上&lt;br&gt;Wait timer: 5分&lt;br&gt;self-hosted ランナー [prod]&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#339933;fontSize=11;fontStyle=0;" vertex="1" parent="section4">
+          <mxGeometry x="640" y="640" width="220" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_verify" value="&lt;b&gt;署名検証&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;cosign verify&lt;br&gt;各環境デプロイ前に必須&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=10;" vertex="1" parent="section4">
+          <mxGeometry x="940" y="655" width="160" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_arrow_auto1" value="&lt;font style=&quot;font-size:10px;color:#339933&quot;&gt;自動&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;" vertex="1" parent="section4">
+          <mxGeometry x="270" y="665" width="60" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_arrow_auto2" value="&lt;font style=&quot;font-size:10px;color:#339933&quot;&gt;自動&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;" vertex="1" parent="section4">
+          <mxGeometry x="570" y="665" width="60" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_canary_group" value="Flagger カナリアデプロイ" style="swimlane;startSize=25;fillColor=#F0FFF0;strokeColor=#339933;fontStyle=1;fontSize=11;rounded=1;" vertex="1" parent="section4">
+          <mxGeometry x="40" y="780" width="1100" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_canary_10" value="&lt;b&gt;10%&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;初期トラフィック&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#339933;fontSize=12;" vertex="1" parent="ci_canary_group">
+          <mxGeometry x="20" y="35" width="100" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_canary_20" value="&lt;b&gt;20%&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;分析 OK&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#339933;fontSize=12;" vertex="1" parent="ci_canary_group">
+          <mxGeometry x="150" y="35" width="100" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_canary_30" value="&lt;b&gt;30%&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;分析 OK&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#339933;fontSize=12;" vertex="1" parent="ci_canary_group">
+          <mxGeometry x="280" y="35" width="100" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_canary_40" value="&lt;b&gt;40%&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;分析 OK&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#339933;fontSize=12;" vertex="1" parent="ci_canary_group">
+          <mxGeometry x="410" y="35" width="100" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_canary_50" value="&lt;b&gt;50%&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;maxWeight&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#339933;fontSize=12;" vertex="1" parent="ci_canary_group">
+          <mxGeometry x="540" y="35" width="100" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_canary_promote" value="&lt;b&gt;100% プロモート&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;全トラフィック切替&lt;br&gt;カナリア完了&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#81C784;strokeColor=#339933;fontSize=11;" vertex="1" parent="ci_canary_group">
+          <mxGeometry x="680" y="30" width="150" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_canary_rollback" value="&lt;b&gt;ロールバック&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;メトリクス閾値超過時&lt;br&gt;自動ロールバック&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="ci_canary_group">
+          <mxGeometry x="870" y="30" width="140" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_canary_metrics" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;分析メトリクス:&lt;/b&gt;&lt;br&gt;request-success-rate &amp;gt; 99% (system) / 95% (business/service)&lt;br&gt;request-duration &amp;lt; 500ms (system) / 1000ms (business/service)&lt;br&gt;stepWeight: 10 / interval: 30s&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FFF0;strokeColor=#339933;fontSize=9;dashed=1;" vertex="1" parent="ci_canary_group">
+          <mxGeometry x="20" y="100" width="620" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_canary1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#339933;" edge="1" source="ci_canary_10" target="ci_canary_20" parent="ci_canary_group">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_canary2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#339933;" edge="1" source="ci_canary_20" target="ci_canary_30" parent="ci_canary_group">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_canary3" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#339933;" edge="1" source="ci_canary_30" target="ci_canary_40" parent="ci_canary_group">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_canary4" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#339933;" edge="1" source="ci_canary_40" target="ci_canary_50" parent="ci_canary_group">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_canary5" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#339933;" edge="1" source="ci_canary_50" target="ci_canary_promote" parent="ci_canary_group">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_canary_rb" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#C62828;dashed=1;" edge="1" source="ci_canary_50" target="ci_canary_rollback" parent="ci_canary_group">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="63"/>
+              <mxPoint x="850" y="63"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ci_helm_info" value="&lt;b&gt;Helm デプロイ連携&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;helm upgrade --install {service}&lt;br&gt;./infra/helm/services/{helm_path}&lt;br&gt;-n k1s0-{tier}&lt;br&gt;-f values-{env}.yaml&lt;br&gt;--set image.tag={version}-{sha}&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FFF0;strokeColor=#339933;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="section4">
+          <mxGeometry x="40" y="950" width="280" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_ns_info" value="&lt;b&gt;Namespace 構成&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;k1s0-system — system tier サーバー&lt;br&gt;k1s0-business — business tier&lt;br&gt;k1s0-service — service tier&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FFF0;strokeColor=#339933;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="section4">
+          <mxGeometry x="350" y="950" width="250" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_cache_info" value="&lt;b&gt;キャッシュ戦略&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Go: ~/go/pkg/mod&lt;br&gt;Rust: ~/.cargo + target/&lt;br&gt;Node: node_modules/&lt;br&gt;Dart: ~/.pub-cache&lt;br&gt;Docker: cache-from type=gha&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FFF0;strokeColor=#339933;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="section4">
+          <mxGeometry x="630" y="950" width="220" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ci_workflows" value="&lt;b&gt;専用 CI/CD ワークフロー&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;auth-ci.yaml / config-ci.yaml / saga-ci.yaml&lt;br&gt;dlq-manager-ci.yaml / bff-proxy-ci.yaml&lt;br&gt;各サーバーの変更パスでトリガー&lt;br&gt;対応する deploy ワークフローも個別に定義&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FFF0;strokeColor=#339933;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="section4">
+          <mxGeometry x="880" y="950" width="300" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_ci1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="ci_trigger" target="ci_detect" parent="section4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ci2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="ci_detect" target="ci_lint_group" parent="section4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ci3" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="ci_lint_group" target="ci_test_group" parent="section4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="95"/>
+              <mxPoint x="520" y="230"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_ci4" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="ci_test_group" target="ci_integration" parent="section4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ci5" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;dashed=1;" edge="1" source="ci_test_group" target="ci_security" parent="section4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ci6" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="ci_integration" target="ci_build_group" parent="section4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="355"/>
+              <mxPoint x="500" y="505"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_ci7" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="ci_build_group" target="ci_sign" parent="section4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ci8" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="ci_sign" target="ci_push" parent="section4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ci9" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" source="ci_push" target="ci_deploy_dev" parent="section4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1640" y="620"/>
+              <mxPoint x="150" y="620"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_ci10" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#339933;" edge="1" source="ci_deploy_dev" target="ci_deploy_staging" parent="section4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ci11" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#339933;" edge="1" source="ci_deploy_staging" target="ci_deploy_prod" parent="section4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ci12" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;dashed=1;" edge="1" source="ci_deploy_prod" target="ci_verify" parent="section4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="swimlane;startSize=25;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=12;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1600" y="70" width="1360" height="380" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_proto" value="Proto / API パイプライン" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;fontStyle=1;" vertex="1" parent="legend">
+          <mxGeometry x="30" y="40" width="200" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_cli" value="CLI / テンプレート生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C62828;fontSize=11;fontStyle=1;" vertex="1" parent="legend">
+          <mxGeometry x="30" y="90" width="200" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_sdui" value="SDUI（Server-Driven UI）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;fontStyle=1;" vertex="1" parent="legend">
+          <mxGeometry x="30" y="140" width="200" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_cicd" value="CI/CD パイプライン" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=11;fontStyle=1;" vertex="1" parent="legend">
+          <mxGeometry x="30" y="190" width="200" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_infra" value="インフラ / 補足情報" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="legend">
+          <mxGeometry x="30" y="240" width="200" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_solid" value="" style="endArrow=block;endFill=1;strokeColor=#333333;" edge="1" parent="legend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="300" y="57" as="sourcePoint"/>
+            <mxPoint x="450" y="57" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_solid_label" value="&lt;font style=&quot;font-size:11px&quot;&gt;フローの方向（実線）&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="460" y="45" width="200" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_dashed" value="" style="endArrow=block;endFill=1;strokeColor=#333333;dashed=1;" edge="1" parent="legend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="300" y="107" as="sourcePoint"/>
+            <mxPoint x="450" y="107" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_dashed_label" value="&lt;font style=&quot;font-size:11px&quot;&gt;非同期 / オプション（破線）&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="460" y="95" width="200" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_cylinder" value="データストア" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="330" y="140" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_cylinder_label" value="&lt;font style=&quot;font-size:11px&quot;&gt;永続データストア / レジストリ&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="460" y="152" width="230" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_diamond" value="選択" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="345" y="210" width="70" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_diamond_label" value="&lt;font style=&quot;font-size:11px&quot;&gt;分岐 / 選択ポイント&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="460" y="222" width="200" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_dashed_box" value="オプション" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;dashed=1;" vertex="1" parent="legend">
+          <mxGeometry x="330" y="280" width="100" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_dashed_box_label" value="&lt;font style=&quot;font-size:11px&quot;&gt;オプション / 将来対応&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;" vertex="1" parent="legend">
+          <mxGeometry x="460" y="285" width="200" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_langs" value="&lt;b&gt;対応言語&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;サーバー: Go / Rust&lt;br&gt;クライアント: React (TypeScript) / Flutter (Dart)&lt;br&gt;ライブラリ: Go / Rust / TypeScript / Dart&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="legend">
+          <mxGeometry x="730" y="40" width="310" height="85" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_tiers" value="&lt;b&gt;Tier アーキテクチャ&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;system — 共通基盤サービス&lt;br&gt;business — 業務ドメインサービス&lt;br&gt;service — エンドユーザーサービス&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="legend">
+          <mxGeometry x="730" y="140" width="310" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_tools" value="&lt;b&gt;主要ツール&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;CLI: Rust (dialoguer) + Tauri GUI&lt;br&gt;Proto: buf + protoc + prost/tonic&lt;br&gt;CI: GitHub Actions + self-hosted runner&lt;br&gt;Registry: Harbor + Cosign + Trivy&lt;br&gt;Deploy: Helm + Flagger + Istio&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="legend">
+          <mxGeometry x="730" y="235" width="310" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_registry_info" value="&lt;b&gt;レジストリ構成&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;harbor.internal.example.com/&lt;br&gt;├── k1s0-system/{service}:{tag}&lt;br&gt;├── k1s0-business/{domain}-{service}:{tag}&lt;br&gt;└── k1s0-service/{service}:{tag}&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="legend">
+          <mxGeometry x="1070" y="40" width="270" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_proto_naming" value="&lt;b&gt;Proto パッケージ命名&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;k1s0.{tier}.{domain}.v{major}&lt;br&gt;例: k1s0.system.auth.v1&lt;br&gt;初期バージョンは v1 固定&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="legend">
+          <mxGeometry x="1070" y="155" width="270" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_sdui_concept" value="&lt;b&gt;SDUI コンセプト&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;サーバーが UI 定義を持ち&lt;br&gt;クライアントはインタープリター&lt;br&gt;として動作する設計パターン&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="legend">
+          <mxGeometry x="1070" y="250" width="270" height="80" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

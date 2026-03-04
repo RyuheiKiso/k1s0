@@ -73,6 +73,10 @@ event := messaging.EventEnvelope{
 
 Go 実装の `EventMetadata` は `SchemaVersion int32` を持つ。`NewEventMetadata(...)` で生成した場合のデフォルト値は `1`。
 
+### Go `EventMetadata.WithTraceId`
+
+Go 実装は値レシーバのビルダーメソッド `WithTraceId(traceId string)` を提供する。`TraceId` をセットした新しい `EventMetadata` を返す。
+
 ### Go `MessagingError`
 
 ```go

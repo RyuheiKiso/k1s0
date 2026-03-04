@@ -93,6 +93,32 @@ impl From<anyhow::Error> for AppError {
         let msg = err.to_string();
         let lower = msg.to_ascii_lowercase();
 
+        if lower.contains("not found") {
+            if lower.contains("table") {
+                return Self::not_found("SYS_MM_TABLE_NOT_FOUND", &msg);
+            }
+            if lower.contains("record") {
+                return Self::not_found("SYS_MM_RECORD_NOT_FOUND", &msg);
+            }
+            if lower.contains("rule") {
+                return Self::not_found("SYS_MM_RULE_NOT_FOUND", &msg);
+            }
+            if lower.contains("display config") {
+                return Self::not_found("SYS_MM_DISPLAY_CONFIG_NOT_FOUND", &msg);
+            }
+            if lower.contains("import job") {
+                return Self::not_found("SYS_MM_IMPORT_JOB_NOT_FOUND", &msg);
+            }
+            if lower.contains("relationship") {
+                return Self::not_found("SYS_MM_RELATIONSHIP_NOT_FOUND", &msg);
+            }
+            return Self::not_found("SYS_MM_NOT_FOUND", &msg);
+        }
+        if lower.contains("delete not allowed")
+            || (lower.contains("delete") && lower.contains("not allowed"))
+        {
+            return Self::forbidden("SYS_MM_DELETE_NOT_ALLOWED", &msg);
+        }
         if lower.contains("duplicate table")
             || (lower.contains("table") && lower.contains("already exists"))
         {

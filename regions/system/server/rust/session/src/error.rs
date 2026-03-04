@@ -8,6 +8,8 @@ pub enum SessionError {
     Expired(String),
     #[error("session revoked: {0}")]
     Revoked(String),
+    #[error("session already revoked: {0}")]
+    AlreadyRevoked(String),
     #[error("invalid input: {0}")]
     InvalidInput(String),
     #[error("too many sessions for user: {0}")]

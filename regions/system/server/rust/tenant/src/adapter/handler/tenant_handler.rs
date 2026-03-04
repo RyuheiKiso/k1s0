@@ -11,6 +11,7 @@ use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
 use crate::adapter::middleware::auth::TenantAuthState;
+use crate::domain::entity::Plan;
 use crate::usecase::{
     ActivateTenantError, ActivateTenantUseCase, AddMemberError, AddMemberInput, AddMemberUseCase,
     CreateTenantError, CreateTenantInput, CreateTenantUseCase, DeleteTenantError,
@@ -163,7 +164,7 @@ pub async fn list_tenants(
                         name: t.name,
                         display_name: t.display_name,
                         status: t.status.as_str().to_string(),
-                        plan: t.plan,
+                        plan: t.plan.as_str().to_string(),
                         owner_id: t.owner_id,
                         settings: t.settings,
                         keycloak_realm: t.keycloak_realm,
@@ -208,7 +209,7 @@ pub async fn get_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -240,10 +241,21 @@ pub async fn create_tenant(
         }
     };
 
+    let plan = match req.plan.parse::<Plan>() {
+        Ok(plan) => plan,
+        Err(_) => {
+            return bad_request_response(
+                codes::tenant::validation_error(),
+                format!("invalid plan: {}", req.plan),
+            )
+                .into_response()
+        }
+    };
+
     let input = CreateTenantInput {
         name: req.name,
         display_name: req.display_name,
-        plan: req.plan,
+        plan,
         owner_id,
     };
 
@@ -254,7 +266,7 @@ pub async fn create_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -296,10 +308,21 @@ pub async fn update_tenant(
         }
     };
 
+    let plan = match req.plan.parse::<Plan>() {
+        Ok(plan) => plan,
+        Err(_) => {
+            return bad_request_response(
+                codes::tenant::validation_error(),
+                format!("invalid plan: {}", req.plan),
+            )
+                .into_response()
+        }
+    };
+
     let input = UpdateTenantInput {
         id: tenant_id,
         display_name: req.display_name,
-        plan: req.plan,
+        plan,
     };
 
     match state.update_tenant_uc.execute(input).await {
@@ -309,7 +332,7 @@ pub async fn update_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -352,7 +375,7 @@ pub async fn delete_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -395,7 +418,7 @@ pub async fn suspend_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -438,7 +461,7 @@ pub async fn activate_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,

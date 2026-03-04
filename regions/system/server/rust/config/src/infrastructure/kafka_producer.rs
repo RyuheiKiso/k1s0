@@ -233,6 +233,7 @@ mod tests {
             new_version: 4,
             change_type: "UPDATED".to_string(),
             changed_by: "operator@example.com".to_string(),
+            trace_id: Some("trace-123".to_string()),
         })
     }
 

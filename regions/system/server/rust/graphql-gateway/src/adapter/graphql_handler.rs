@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_graphql::dataloader::DataLoader;
-use async_graphql::{Context, Data, FieldResult, Object, Schema, Subscription};
+use async_graphql::{Context, Data, ErrorExtensions, FieldResult, Object, Schema, Subscription};
 use async_graphql::futures_util::Stream;
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
@@ -15,7 +15,7 @@ use axum::{
 use crate::adapter::middleware::auth_middleware::{AuthMiddlewareLayer, Claims};
 use crate::domain::model::{
     ConfigEntry, CreateTenantPayload, FeatureFlag, SetFeatureFlagPayload, Tenant,
-    TenantConnection, TenantStatus, UpdateTenantPayload, UserError,
+    TenantConnection, TenantStatus, UpdateTenantPayload,
 };
 use crate::domain::model::graphql_context::{
     ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
@@ -27,6 +27,52 @@ use crate::usecase::{
     ConfigQueryResolver, FeatureFlagQueryResolver, SubscriptionResolver, TenantMutationResolver,
     TenantQueryResolver,
 };
+
+const CODE_FORBIDDEN: &str = "FORBIDDEN";
+const CODE_VALIDATION: &str = "VALIDATION_ERROR";
+const CODE_BACKEND: &str = "BACKEND_ERROR";
+
+fn gql_error(code: &'static str, message: impl Into<String>) -> async_graphql::Error {
+    async_graphql::Error::new(message.into()).extend_with(|_, e| e.set("code", code))
+}
+
+fn classify_domain_error(message: &str) -> &'static str {
+    let lower = message.to_ascii_lowercase();
+    if lower.contains("validation")
+        || lower.contains("invalid")
+        || lower.contains("required")
+        || lower.contains("unknown")
+    {
+        CODE_VALIDATION
+    } else {
+        CODE_BACKEND
+    }
+}
+
+fn has_write_role(roles: &[String]) -> bool {
+    roles
+        .iter()
+        .any(|r| r == "sys_admin" || r == "sys_operator")
+}
+
+fn ensure_write_permission(ctx: &Context<'_>) -> FieldResult<()> {
+    let roles = if let Ok(gql_ctx) = ctx.data::<GraphqlContext>() {
+        gql_ctx.roles.clone()
+    } else if let Ok(claims) = ctx.data::<Claims>() {
+        claims.roles()
+    } else {
+        vec![]
+    };
+
+    if has_write_role(&roles) {
+        Ok(())
+    } else {
+        Err(gql_error(
+            CODE_FORBIDDEN,
+            "insufficient permissions for this operation",
+        ))
+    }
+}
 
 // --- Input types ---
 
@@ -66,7 +112,7 @@ impl QueryRoot {
         self.tenant_query
             .get_tenant(id.as_str())
             .await
-            .map_err(|e| async_graphql::Error::new(e.to_string()))
+            .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
 
     async fn tenants(
@@ -78,7 +124,7 @@ impl QueryRoot {
         self.tenant_query
             .list_tenants(first, after)
             .await
-            .map_err(|e| async_graphql::Error::new(e.to_string()))
+            .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
 
     async fn feature_flag(
@@ -89,7 +135,7 @@ impl QueryRoot {
         self.feature_flag_query
             .get_feature_flag(&key)
             .await
-            .map_err(|e| async_graphql::Error::new(e.to_string()))
+            .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
 
     async fn feature_flags(
@@ -100,7 +146,7 @@ impl QueryRoot {
         self.feature_flag_query
             .list_feature_flags(environment.as_deref())
             .await
-            .map_err(|e| async_graphql::Error::new(e.to_string()))
+            .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
 
     async fn config(
@@ -113,13 +159,13 @@ impl QueryRoot {
                 .config_loader
                 .load_one(key.clone())
                 .await
-                .map_err(|e| async_graphql::Error::new(e.to_string()));
+                .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()));
         }
 
         self.config_query
             .get_config(&key)
             .await
-            .map_err(|e| async_graphql::Error::new(e.to_string()))
+            .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
 }
 
@@ -137,6 +183,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateTenantInput,
     ) -> FieldResult<CreateTenantPayload> {
+        ensure_write_permission(ctx)?;
         let claims = ctx.data::<Claims>().ok();
         let owner_user_id = claims.map(|c| c.sub.as_str()).unwrap_or("unknown");
         Ok(self
@@ -147,10 +194,11 @@ impl MutationRoot {
 
     async fn update_tenant(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         id: async_graphql::ID,
         input: UpdateTenantInput,
     ) -> FieldResult<UpdateTenantPayload> {
+        ensure_write_permission(ctx)?;
         let status_str = input.status.map(|s| match s {
             TenantStatus::Active => "ACTIVE".to_string(),
             TenantStatus::Suspended => "SUSPENDED".to_string(),
@@ -168,10 +216,11 @@ impl MutationRoot {
 
     async fn set_feature_flag(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         key: String,
         input: SetFeatureFlagInput,
     ) -> FieldResult<SetFeatureFlagPayload> {
+        ensure_write_permission(ctx)?;
         match self
             .feature_flag_client
             .set_flag(
@@ -186,13 +235,10 @@ impl MutationRoot {
                 feature_flag: Some(flag),
                 errors: vec![],
             }),
-            Err(e) => Ok(SetFeatureFlagPayload {
-                feature_flag: None,
-                errors: vec![UserError {
-                    field: None,
-                    message: e.to_string(),
-                }],
-            }),
+            Err(e) => {
+                let msg = e.to_string();
+                Err(gql_error(classify_domain_error(&msg), msg))
+            }
         }
     }
 }
@@ -436,12 +482,12 @@ async fn graphql_ws_handler(
                     let config_loader = config_loader.clone();
                     async move {
                         let token = extract_bearer_token_from_connection_init(&payload)
-                            .ok_or_else(|| async_graphql::Error::new("missing bearer token in connection_init payload"))?;
+                            .ok_or_else(|| gql_error(CODE_VALIDATION, "missing bearer token in connection_init payload"))?;
 
                         let claims = verifier
                             .verify_token(&token)
                             .await
-                            .map_err(|_| async_graphql::Error::new("invalid or expired JWT token"))?;
+                            .map_err(|_| gql_error(CODE_FORBIDDEN, "invalid or expired JWT token"))?;
 
                         let mut data = Data::default();
                         data.insert(GraphqlContext {

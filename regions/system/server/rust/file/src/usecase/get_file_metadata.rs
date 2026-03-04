@@ -76,7 +76,7 @@ mod tests {
 
         let file = result.unwrap();
         assert_eq!(file.id, "file_001");
-        assert_eq!(file.name, "report.pdf");
+        assert_eq!(file.filename, "report.pdf");
     }
 
     #[tokio::test]

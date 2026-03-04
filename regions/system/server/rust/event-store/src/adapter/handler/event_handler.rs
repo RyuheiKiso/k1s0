@@ -1,6 +1,8 @@
 use axum::extract::{Path, Query, State};
 use axum::Json;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use std::time::Duration;
 
 use super::error::EventStoreError;
 use super::AppState;
@@ -87,6 +89,49 @@ fn default_page() -> u32 {
 
 fn default_page_size() -> u32 {
     50
+}
+
+const INITIAL_PUBLISH_RETRY_DELAY_MS: u64 = 500;
+const MAX_PUBLISH_RETRY_DELAY_MS: u64 = 30_000;
+
+fn spawn_publish_events_with_retry(
+    publisher: Arc<dyn crate::infrastructure::kafka::EventPublisher>,
+    stream_id: String,
+    events: Vec<crate::domain::entity::event::StoredEvent>,
+) {
+    tokio::spawn(async move {
+        let mut attempt: u32 = 0;
+        let mut retry_delay = Duration::from_millis(INITIAL_PUBLISH_RETRY_DELAY_MS);
+        let max_retry_delay = Duration::from_millis(MAX_PUBLISH_RETRY_DELAY_MS);
+
+        loop {
+            attempt += 1;
+            match publisher.publish_events(&stream_id, &events).await {
+                Ok(_) => {
+                    if attempt > 1 {
+                        tracing::info!(
+                            stream_id = %stream_id,
+                            attempts = attempt,
+                            "event publish succeeded after retry"
+                        );
+                    }
+                    break;
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        stream_id = %stream_id,
+                        attempts = attempt,
+                        next_retry_ms = retry_delay.as_millis() as u64,
+                        "failed to publish events to kafka, will retry"
+                    );
+
+                    tokio::time::sleep(retry_delay).await;
+                    retry_delay = std::cmp::min(retry_delay.saturating_mul(2), max_retry_delay);
+                }
+            }
+        }
+    });
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
@@ -247,14 +292,11 @@ pub async fn append_events(
         AppendEventsError::Internal(msg) => EventStoreError::Internal(msg),
     })?;
 
-    // Publish events to Kafka (best-effort)
-    if let Err(e) = state
-        .event_publisher
-        .publish_events(&output.stream_id, &output.events)
-        .await
-    {
-        tracing::warn!(error = %e, "failed to publish events to kafka");
-    }
+    // Publish in background with retry for at-least-once delivery semantics.
+    let publisher = state.event_publisher.clone();
+    let stream_id = output.stream_id.clone();
+    let events = output.events.clone();
+    spawn_publish_events_with_retry(publisher, stream_id, events);
 
     let event_responses: Vec<StoredEventResponse> =
         output.events.iter().map(to_stored_event_response).collect();

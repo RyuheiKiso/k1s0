@@ -154,19 +154,6 @@ ID 指定でジョブの詳細を取得する。
 }
 ```
 
-**レスポンス例（409 Conflict）**
-
-```json
-{
-  "error": {
-    "code": "SYS_SCHED_JOB_RUNNING",
-    "message": "job is currently running: job_01JABCDEF1234567890",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
-
 #### POST /api/v1/jobs
 
 新しいスケジューラージョブを作成する。`target_type` は `kafka` または `http` を指定する。作成後すぐにスケジューリングが開始される。
@@ -558,7 +545,7 @@ message JobExecution {
 | domain/service | `SchedulerDomainService` | cron 式解析・次回実行時刻計算・分散ロック判定 |
 | usecase | `CreateJobUsecase`, `UpdateJobUsecase`, `DeleteJobUsecase`, `GetJobUsecase`, `ListJobsUsecase`, `TriggerJobUsecase`, `PauseJobUsecase`, `ResumeJobUsecase`, `ListExecutionsUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
-| adapter/scheduler | `CronSchedulerEngine` | tokio による cron スケジューリングループ |
+| infrastructure | `CronSchedulerEngine` (`infrastructure/cron_engine.rs`) | tokio による cron スケジューリングループ |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/persistence | `SchedulerJobPostgresRepository`, `JobExecutionPostgresRepository` | PostgreSQL リポジトリ実装 |
 | infrastructure/lock | `DistributedLockPostgres` | PostgreSQL 分散ロック実装 |
@@ -692,5 +679,6 @@ message JobExecution {
 - trigger レスポンスは SchedulerExecution（id, job_id, status, triggered_by, started_at, finished_at, error_message）に合わせる。
 - target_type と payload は必須。
 - 実行単体取得ユースケースは未実装のため記載対象外とする。
+
 
 

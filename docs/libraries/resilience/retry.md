@@ -4,6 +4,8 @@
 
 指数バックオフリトライ + サーキットブレーカーパターン実装ライブラリ。サービス間 gRPC/HTTP 呼び出しで利用する。`RetryConfig` と `CircuitBreaker` を組み合わせた `with_retry` 関数を提供する。OpenTelemetry メトリクス連携によりリトライ回数・サーキットブレーカー状態を計測する。
 
+Rust 実装の `CircuitBreaker` は `k1s0-circuit-breaker` パッケージへ委譲する薄い互換ラッパーであり、閾値型や状態遷移ロジックは `k1s0-circuit-breaker` 側と統一される。
+
 **配置先**: `regions/system/library/rust/retry/`
 
 ## 公開 API
@@ -50,7 +52,7 @@ retry/
 ├── src/
 │   ├── lib.rs              # 公開 API（再エクスポート）
 │   ├── policy.rs           # RetryConfig（指数バックオフ・ジッター設定）
-│   ├── circuit_breaker.rs  # CircuitBreaker・CircuitBreakerState
+│   ├── circuit_breaker.rs  # k1s0-circuit-breaker への互換ラッパー
 │   ├── retry.rs            # with_retry 関数
 │   └── error.rs            # RetryError
 └── Cargo.toml

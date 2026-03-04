@@ -1,6 +1,6 @@
 ﻿# system-session-server 設計
 
-> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `sessions/read`, `sessions/write`, `sessions/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
 
 system tier のセッション管理サーバー設計を定義する。Redis によるセッションデータ管理とマルチデバイス対応、セッション失効を提供する。JWT 認証と補完し、ステートフルセッションが必要な要件に対応する。Rust での実装を定義する。
@@ -458,13 +458,13 @@ message Session {
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/entity | `Session`, `UserSession` | エンティティ定義 |
-| domain/repository | `SessionRepository`, `UserSessionRepository` | リポジトリトレイト |
+| domain/entity | `Session` | エンティティ定義 |
+| domain/repository | `SessionRepository` | リポジトリトレイト |
 | domain/service | `SessionDomainService` | TTL計算・デバイス数制限ロジック |
 | usecase | `CreateSessionUsecase`, `GetSessionUsecase`, `RefreshSessionUsecase`, `RevokeSessionUsecase`, `RevokeAllSessionsUsecase`, `ListUserSessionsUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic）, Kafka コンシューマー | プロトコル変換 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
-| infrastructure/persistence | `SessionRedisRepository`, `UserSessionPostgresRepository` | Redis・PostgreSQL リポジトリ実装 |
+| infrastructure/persistence | `SessionRedisRepository`, `SessionMetadataPostgresRepository` | Redis・PostgreSQL リポジトリ実装 |
 | infrastructure/messaging | `SessionRevokeAllKafkaConsumer`, `SessionKafkaProducer` | Kafka コンシューマー・プロデューサー |
 
 ### ドメインモデル
@@ -485,7 +485,6 @@ message Session {
 | `user_agent` | Option\<String\> | User-Agent |
 | `ip_address` | Option\<String\> | IP アドレス |
 | `metadata` | HashMap\<String, String\> | 任意メタデータ |
-| `max_devices` | Option\<u32\> | 同時デバイス上限（作成時パラメータ。セッション実体には永続化しない） |
 
 **メソッド:**
 - `is_valid()` -- セッションが有効か判定（未失効かつ未期限切れ）
@@ -530,8 +529,7 @@ message Session {
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
     │  domain/entity  │              │ domain/repository          │   │
-    │  Session,       │              │ SessionRepository          │   │
-    │  UserSession    │              │ UserSessionRepository      │   │
+    │  Session        │              │ SessionRepository          │   │
     └────────────────┘              │ (trait)                    │   │
               │                     └──────────┬─────────────────┘   │
               │  ┌────────────────┐            │                     │
@@ -548,7 +546,7 @@ message Session {
                     │  │ Consumer /   │  │ Repository              │  │
                     │  │ Producer     │  │ (Redis 7, TTL)          │  │
                     │  │ revoke_all   │  ├────────────────────────┤  │
-                    │  │ .v1 /        │  │ UserSessionPostgres     │  │
+                    │  │ .v1 /        │  │ SessionMetadataPostgres │  │
                     │  │ created.v1 / │  │ Repository              │  │
                     │  │ revoked.v1   │  │ (メタデータ)            │  │
                     │  └──────────────┘  └────────────────────────┘  │

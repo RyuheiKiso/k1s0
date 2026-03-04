@@ -87,7 +87,7 @@ impl FileGrpcService {
         &self,
         tenant_id: String,
         uploaded_by: Option<String>,
-        mime_type: Option<String>,
+        content_type: Option<String>,
         tag: Option<String>,
         page: u32,
         page_size: u32,
@@ -98,8 +98,8 @@ impl FileGrpcService {
             } else {
                 Some(tenant_id)
             },
-            owner_id: uploaded_by.filter(|v| !v.is_empty()),
-            mime_type: mime_type.filter(|v| !v.is_empty()),
+            uploaded_by: uploaded_by.filter(|v| !v.is_empty()),
+            content_type: content_type.filter(|v| !v.is_empty()),
             tag: tag.as_deref().and_then(parse_tag_filter),
             page: if page == 0 { 1 } else { page },
             page_size: if page_size == 0 { 20 } else { page_size },
@@ -134,11 +134,11 @@ impl FileGrpcService {
             ));
         }
         let input = GenerateUploadUrlInput {
-            name: filename,
+            filename,
             size_bytes: size_bytes as u64,
-            mime_type: content_type,
+            content_type,
             tenant_id,
-            owner_id: uploaded_by,
+            uploaded_by,
             tags,
             expires_in_seconds,
         };

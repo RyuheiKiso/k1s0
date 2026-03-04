@@ -15,6 +15,7 @@ pub struct ConfigChangeLog {
     pub new_version: i32,
     pub change_type: String,
     pub changed_by: String,
+    pub trace_id: Option<String>,
     pub changed_at: DateTime<Utc>,
 }
 
@@ -30,6 +31,7 @@ pub struct CreateChangeLogRequest {
     pub new_version: i32,
     pub change_type: String,
     pub changed_by: String,
+    pub trace_id: Option<String>,
 }
 
 impl ConfigChangeLog {
@@ -46,6 +48,7 @@ impl ConfigChangeLog {
             new_version: req.new_version,
             change_type: req.change_type,
             changed_by: req.changed_by,
+            trace_id: req.trace_id,
             changed_at: Utc::now(),
         }
     }
@@ -68,6 +71,7 @@ mod tests {
             new_version: 4,
             change_type: "UPDATED".to_string(),
             changed_by: "operator@example.com".to_string(),
+            trace_id: Some("trace-001".to_string()),
         });
 
         assert_eq!(log.config_entry_id, entry_id);
@@ -79,6 +83,7 @@ mod tests {
         assert_eq!(log.new_version, 4);
         assert_eq!(log.change_type, "UPDATED");
         assert_eq!(log.changed_by, "operator@example.com");
+        assert_eq!(log.trace_id.as_deref(), Some("trace-001"));
     }
 
     #[test]
@@ -96,6 +101,7 @@ mod tests {
             new_version: 1,
             change_type: "CREATED".to_string(),
             changed_by: "admin@example.com".to_string(),
+            trace_id: None,
         });
 
         assert!(log.old_value.is_none());
@@ -116,6 +122,7 @@ mod tests {
             new_version: 6,
             change_type: "DELETED".to_string(),
             changed_by: "admin@example.com".to_string(),
+            trace_id: None,
         });
 
         assert!(log.old_value.is_some());
@@ -136,6 +143,7 @@ mod tests {
             new_version: 4,
             change_type: "UPDATED".to_string(),
             changed_by: "operator@example.com".to_string(),
+            trace_id: None,
         });
 
         let json = serde_json::to_string(&log).unwrap();

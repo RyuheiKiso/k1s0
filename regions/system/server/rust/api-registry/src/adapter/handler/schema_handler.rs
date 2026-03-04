@@ -131,6 +131,9 @@ pub async fn register_schema(
         Err(RegisterSchemaError::Validation(msg)) => {
             ApiError::unprocessable_entity(msg).into_response()
         }
+        Err(RegisterSchemaError::ValidatorError(msg)) => {
+            ApiError::validator_error(msg).into_response()
+        }
         Err(RegisterSchemaError::Internal(msg)) => ApiError::internal(msg).into_response(),
     }
 }
@@ -244,6 +247,9 @@ pub async fn register_version(
         }
         Err(RegisterVersionError::Validation(msg)) => {
             ApiError::unprocessable_entity(msg).into_response()
+        }
+        Err(RegisterVersionError::ValidatorError(msg)) => {
+            ApiError::validator_error(msg).into_response()
         }
         Err(RegisterVersionError::Internal(msg)) => ApiError::internal(msg).into_response(),
     }

@@ -1,6 +1,6 @@
 ﻿# system-policy-server 設計
 
-> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `policies/read`, `policies/write`, `policies/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
 
 OPA 連携の動的ポリシー評価サーバー。Rego ポリシー管理・バンドル管理・評価キャッシュを提供。
@@ -587,7 +587,7 @@ message PolicyBundle {
   "event_type": "POLICY_CHANGED",
   "policy_id": "policy-001",
   "policy_name": "k1s0-tenant-access",
-  "action": "UPDATE",
+  "action": "UPDATED",
   "version": 4,
   "before": {
     "enabled": true
@@ -599,6 +599,8 @@ message PolicyBundle {
   "actor_user_id": "admin-001"
 }
 ```
+
+> `action` は `CREATED` / `UPDATED` / `DELETED` の過去分詞形を使用する。
 
 ---
 

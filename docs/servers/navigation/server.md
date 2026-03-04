@@ -185,6 +185,14 @@ GetNavigationRequest {
 
 ## 設定
 
+### app
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `name` | string | アプリケーション名 |
+| `version` | string | アプリケーションバージョン（デフォルト `0.1.0`） |
+| `environment` | string | 実行環境（`dev` / `staging` / `production`） |
+
 ### auth
 
 | フィールド | 型 | 説明 |
@@ -198,6 +206,7 @@ GetNavigationRequest {
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
+| `host` | string | バインドアドレス（デフォルト `0.0.0.0`） |
 | `port` | uint16 | REST ポート |
 | `grpc_port` | uint16 | gRPC ポート |
 
@@ -205,12 +214,18 @@ GetNavigationRequest {
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `navigation_path` | string | ナビゲーション定義 JSON の読み込みパス |
+| `navigation_path` | string | ナビゲーション定義 YAML の読み込みパス（デフォルト `config/navigation.yaml`） |
 
 **設定例**
 
 ```yaml
+app:
+  name: "k1s0-navigation-server"
+  version: "0.1.0"
+  environment: "dev"
+
 server:
+  host: "0.0.0.0"
   port: 8080
   grpc_port: 50051
 
@@ -221,7 +236,7 @@ auth:
   jwks_cache_ttl_secs: 300
 
 navigation:
-  navigation_path: "/etc/k1s0/navigation/navigation.json"
+  navigation_path: "/etc/k1s0/navigation/navigation.yaml"
 ```
 
 ---

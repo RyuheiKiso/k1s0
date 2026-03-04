@@ -300,6 +300,7 @@ impl ApiRegistryGrpcService {
                     GrpcError::AlreadyExists(format!("schema already exists: {}", name))
                 }
                 RegisterSchemaError::Validation(msg) => GrpcError::InvalidArgument(msg),
+                RegisterSchemaError::ValidatorError(msg) => GrpcError::Internal(msg),
                 RegisterSchemaError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -377,6 +378,7 @@ impl ApiRegistryGrpcService {
                     GrpcError::NotFound(format!("schema not found: {}", name))
                 }
                 RegisterVersionError::Validation(msg) => GrpcError::InvalidArgument(msg),
+                RegisterVersionError::ValidatorError(msg) => GrpcError::Internal(msg),
                 RegisterVersionError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 

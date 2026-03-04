@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
+use crate::domain::service::NotificationDomainService;
 
 #[derive(Debug, Clone)]
 pub struct CreateChannelInput {
@@ -13,6 +14,9 @@ pub struct CreateChannelInput {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateChannelError {
+    #[error("validation error: {0}")]
+    Validation(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -27,6 +31,9 @@ impl CreateChannelUseCase {
     }
 
     pub async fn execute(&self, input: &CreateChannelInput) -> Result<NotificationChannel, CreateChannelError> {
+        NotificationDomainService::validate_channel_type(&input.channel_type)
+            .map_err(CreateChannelError::Validation)?;
+
         let channel = NotificationChannel::new(
             input.name.clone(),
             input.channel_type.clone(),

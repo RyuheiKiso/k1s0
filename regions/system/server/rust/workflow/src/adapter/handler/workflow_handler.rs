@@ -4,6 +4,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use k1s0_server_common::ErrorResponse;
 use serde::{Deserialize, Serialize};
 
 use crate::usecase::create_workflow::{CreateWorkflowError, CreateWorkflowInput};
@@ -177,6 +178,7 @@ pub struct ExecuteWorkflowResponse {
     pub status: String,
     pub current_step_id: Option<String>,
     pub started_at: String,
+    pub created_at: String,
     pub completed_at: Option<String>,
 }
 
@@ -186,9 +188,12 @@ pub struct InstanceStatusResponse {
     pub workflow_id: String,
     pub workflow_name: String,
     pub title: String,
+    pub initiator_id: String,
+    pub context: serde_json::Value,
     pub status: String,
     pub current_step_id: Option<String>,
     pub started_at: String,
+    pub created_at: String,
     pub completed_at: Option<String>,
 }
 
@@ -250,38 +255,6 @@ pub struct ReassignTaskRequest {
     pub reason: Option<String>,
     #[serde(alias = "actor_id")]
     pub actor_user_id: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    pub error: ErrorBody,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ErrorBody {
-    pub code: String,
-    pub message: String,
-    pub request_id: String,
-    pub details: Vec<ErrorDetail>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ErrorDetail {
-    pub field: String,
-    pub message: String,
-}
-
-impl ErrorResponse {
-    pub fn new(code: &str, message: &str) -> Self {
-        Self {
-            error: ErrorBody {
-                code: code.to_string(),
-                message: message.to_string(),
-                request_id: uuid::Uuid::new_v4().to_string(),
-                details: vec![],
-            },
-        }
-    }
 }
 
 fn error_json(code: &str, message: &str) -> serde_json::Value {
@@ -472,6 +445,7 @@ pub async fn execute_workflow(
                 status: output.instance.status,
                 current_step_id: output.instance.current_step_id,
                 started_at: output.instance.started_at.to_rfc3339(),
+                created_at: output.instance.created_at.to_rfc3339(),
                 completed_at: output.instance.completed_at.map(|t| t.to_rfc3339()),
             };
             (
@@ -527,9 +501,12 @@ pub async fn get_workflow_status(
                 workflow_id: inst.workflow_id,
                 workflow_name: inst.workflow_name,
                 title: inst.title,
+                initiator_id: inst.initiator_id,
+                context: inst.context,
                 status: inst.status,
                 current_step_id: inst.current_step_id,
                 started_at: inst.started_at.to_rfc3339(),
+                created_at: inst.created_at.to_rfc3339(),
                 completed_at: inst.completed_at.map(|t| t.to_rfc3339()),
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
@@ -709,9 +686,12 @@ pub async fn get_instance(
                 workflow_id: inst.workflow_id,
                 workflow_name: inst.workflow_name,
                 title: inst.title,
+                initiator_id: inst.initiator_id,
+                context: inst.context,
                 status: inst.status,
                 current_step_id: inst.current_step_id,
                 started_at: inst.started_at.to_rfc3339(),
+                created_at: inst.created_at.to_rfc3339(),
                 completed_at: inst.completed_at.map(|t| t.to_rfc3339()),
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()

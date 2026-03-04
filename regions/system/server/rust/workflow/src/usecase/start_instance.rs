@@ -5,6 +5,7 @@ use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::domain::repository::WorkflowDefinitionRepository;
 use crate::domain::repository::WorkflowInstanceRepository;
 use crate::domain::repository::WorkflowTaskRepository;
+use crate::domain::service::WorkflowDomainService;
 
 #[derive(Debug, Clone)]
 pub struct StartInstanceInput {
@@ -65,7 +66,7 @@ impl StartInstanceUseCase {
             .map_err(|e| StartInstanceError::Internal(e.to_string()))?
             .ok_or_else(|| StartInstanceError::WorkflowNotFound(input.workflow_id.clone()))?;
 
-        if !definition.enabled {
+        if !WorkflowDomainService::can_start_workflow(definition.enabled) {
             return Err(StartInstanceError::WorkflowDisabled(
                 input.workflow_id.clone(),
             ));
@@ -92,9 +93,7 @@ impl StartInstanceUseCase {
             .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
 
         let task_id = format!("task_{}", uuid::Uuid::new_v4().simple());
-        let due_at = first_step
-            .timeout_hours
-            .map(|h| chrono::Utc::now() + chrono::Duration::hours(h as i64));
+        let due_at = WorkflowDomainService::task_due_at(first_step.timeout_hours);
         let task = WorkflowTask::new(
             task_id,
             instance_id,

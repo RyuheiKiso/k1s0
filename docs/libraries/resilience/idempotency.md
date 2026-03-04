@@ -147,6 +147,8 @@ func NewRedisIdempotencyStore(client redis.Cmdable, opts ...RedisStoreOption) *R
 func NewRedisIdempotencyStoreFromURL(url string, opts ...RedisStoreOption) (*RedisIdempotencyStore, error)
 ```
 
+`NewRedisIdempotencyStore` のデフォルト TTL は `24時間`（`24 * time.Hour`）。
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/idempotency/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）

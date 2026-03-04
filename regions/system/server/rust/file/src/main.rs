@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use tracing::info;
 
@@ -57,6 +58,7 @@ async fn main() -> anyhow::Result<()> {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(db_cfg.max_connections)
             .min_connections(db_cfg.min_connections)
+            .acquire_timeout(Duration::from_secs(db_cfg.connect_timeout_seconds))
             .connect(&database_url)
             .await?;
         Arc::new(
@@ -70,6 +72,7 @@ async fn main() -> anyhow::Result<()> {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(10)
             .min_connections(1)
+            .acquire_timeout(Duration::from_secs(10))
             .connect(&database_url)
             .await?;
         Arc::new(
@@ -266,8 +269,8 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
     async fn find_all(
         &self,
         tenant_id: Option<String>,
-        owner_id: Option<String>,
-        mime_type: Option<String>,
+        uploaded_by: Option<String>,
+        content_type: Option<String>,
         tag: Option<(String, String)>,
         page: u32,
         page_size: u32,
@@ -281,13 +284,13 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
                         return false;
                     }
                 }
-                if let Some(ref oid) = owner_id {
-                    if f.owner_id != *oid {
+                if let Some(ref uploaded_by) = uploaded_by {
+                    if f.uploaded_by != *uploaded_by {
                         return false;
                     }
                 }
-                if let Some(ref mime) = mime_type {
-                    if !f.mime_type.starts_with(mime) {
+                if let Some(ref content_type) = content_type {
+                    if !f.content_type.starts_with(content_type) {
                         return false;
                     }
                 }
@@ -338,7 +341,7 @@ impl FileStorageRepository for InMemoryFileStorageRepository {
     async fn generate_upload_url(
         &self,
         storage_key: &str,
-        _mime_type: &str,
+        _content_type: &str,
         _expires_in_seconds: u32,
     ) -> anyhow::Result<String> {
         Ok(format!(

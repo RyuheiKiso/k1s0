@@ -629,6 +629,7 @@ enum ConfigFieldType {
 | `new_version` | int | 変更後のバージョン |
 | `change_type` | string | 変更種別（`CREATED`, `UPDATED`, `DELETED`） |
 | `changed_by` | string | 変更者 |
+| `trace_id` | string? | 分散トレーシング ID（付与されない場合は null） |
 | `changed_at` | timestamp | 変更日時 |
 
 ### 依存関係図

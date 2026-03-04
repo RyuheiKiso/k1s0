@@ -82,7 +82,7 @@ pub fn router(state: AppState) -> Router {
 
     // 認証が設定されている場合は RBAC 付きルーティング、そうでなければオープンアクセス
     let api_routes = if let Some(ref auth_state) = state.auth_state {
-        // GET -> event-store/read
+        // GET -> events/read
         let read_routes = Router::new()
             .route(
                 "/api/v1/events",
@@ -102,10 +102,10 @@ pub fn router(state: AppState) -> Router {
                 get(event_handler::get_snapshot),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "event-store", "read",
+                "events", "read",
             )));
 
-        // POST events/snapshot -> event-store/write
+        // POST events/snapshot -> events/write
         let write_routes = Router::new()
             .route(
                 "/api/v1/events",
@@ -116,17 +116,17 @@ pub fn router(state: AppState) -> Router {
                 post(event_handler::create_snapshot),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "event-store", "write",
+                "events", "write",
             )));
 
-        // DELETE stream -> event-store/admin
+        // DELETE stream -> events/admin
         let admin_routes = Router::new()
             .route(
                 "/api/v1/streams/:stream_id",
                 delete(event_handler::delete_stream),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "event-store", "admin",
+                "events", "admin",
             )));
 
         // 認証ミドルウェアを全 API ルートに適用

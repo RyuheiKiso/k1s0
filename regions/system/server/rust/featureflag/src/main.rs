@@ -15,7 +15,7 @@ mod usecase;
 
 use adapter::grpc::FeatureFlagGrpcService;
 use domain::entity::feature_flag::FeatureFlag;
-use domain::repository::FeatureFlagRepository;
+use domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
 use infrastructure::config::Config;
 
 #[tokio::main]
@@ -51,17 +51,27 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Flag repository: PostgreSQL if DATABASE_URL or database config is set, otherwise in-memory
-    let flag_repo: Arc<dyn FeatureFlagRepository> =
+    let (flag_repo, audit_log_repo, local_cache): (
+        Arc<dyn FeatureFlagRepository>,
+        Arc<dyn FlagAuditLogRepository>,
+        Option<Arc<infrastructure::cache::FlagCache>>,
+    ) =
         if let Ok(database_url) = std::env::var("DATABASE_URL") {
             info!("connecting to PostgreSQL...");
             let pool = sqlx::postgres::PgPoolOptions::new()
                 .max_connections(cfg.database.as_ref().map_or(25, |db| db.max_open_conns))
                 .connect(&database_url)
                 .await?;
+            let pool = Arc::new(pool);
             info!("connected to PostgreSQL");
             let pg_repo = Arc::new(
                 adapter::repository::featureflag_postgres::FeatureFlagPostgresRepository::new(
-                    Arc::new(pool),
+                    pool.clone(),
+                ),
+            );
+            let audit_repo: Arc<dyn FlagAuditLogRepository> = Arc::new(
+                adapter::repository::flag_audit_log_postgres::FlagAuditLogPostgresRepository::new(
+                    pool,
                 ),
             );
             // キャッシュでラップ（設定から TTL と最大エントリ数を読み取り）
@@ -74,12 +84,16 @@ async fn main() -> anyhow::Result<()> {
                 ttl_seconds = cfg.cache.ttl_seconds,
                 "flag cache initialized"
             );
-            Arc::new(
+            (
+                Arc::new(
                 adapter::repository::cached_featureflag_repository::CachedFeatureFlagRepository::with_metrics(
                     pg_repo,
-                    cache,
+                    cache.clone(),
                     metrics.clone(),
                 ),
+                ),
+                audit_repo,
+                Some(cache),
             )
         } else if let Some(ref db_cfg) = cfg.database {
             info!("connecting to PostgreSQL via config...");
@@ -87,10 +101,16 @@ async fn main() -> anyhow::Result<()> {
                 .max_connections(db_cfg.max_open_conns)
                 .connect(&db_cfg.connection_url())
                 .await?;
+            let pool = Arc::new(pool);
             info!("connected to PostgreSQL");
             let pg_repo = Arc::new(
                 adapter::repository::featureflag_postgres::FeatureFlagPostgresRepository::new(
-                    Arc::new(pool),
+                    pool.clone(),
+                ),
+            );
+            let audit_repo: Arc<dyn FlagAuditLogRepository> = Arc::new(
+                adapter::repository::flag_audit_log_postgres::FlagAuditLogPostgresRepository::new(
+                    pool,
                 ),
             );
             // キャッシュでラップ
@@ -103,16 +123,24 @@ async fn main() -> anyhow::Result<()> {
                 ttl_seconds = cfg.cache.ttl_seconds,
                 "flag cache initialized"
             );
-            Arc::new(
+            (
+                Arc::new(
                 adapter::repository::cached_featureflag_repository::CachedFeatureFlagRepository::with_metrics(
                     pg_repo,
-                    cache,
+                    cache.clone(),
                     metrics.clone(),
                 ),
+                ),
+                audit_repo,
+                Some(cache),
             )
         } else {
             info!("no database configured, using in-memory repository");
-            Arc::new(InMemoryFeatureFlagRepository::new())
+            (
+                Arc::new(InMemoryFeatureFlagRepository::new()),
+                Arc::new(NoopFlagAuditLogRepository),
+                None,
+            )
         };
 
     // Kafka producer (optional)
@@ -138,6 +166,14 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(infrastructure::kafka_producer::NoopFlagEventPublisher)
         };
 
+    // Kafka consumer for cross-instance cache invalidation.
+    if let (Some(kafka_cfg), Some(cache)) = (cfg.kafka.clone(), local_cache.clone()) {
+        match infrastructure::kafka_consumer::spawn_flag_cache_invalidator(kafka_cfg, cache) {
+            Ok(_) => info!("featureflag cache invalidation consumer started"),
+            Err(e) => tracing::warn!(error = %e, "failed to start featureflag cache invalidation consumer"),
+        }
+    }
+
     // Use cases
     let list_flags_uc = Arc::new(usecase::ListFlagsUseCase::new(flag_repo.clone()));
     let evaluate_flag_uc = Arc::new(usecase::EvaluateFlagUseCase::new(flag_repo.clone()));
@@ -145,12 +181,18 @@ async fn main() -> anyhow::Result<()> {
     let create_flag_uc = Arc::new(usecase::CreateFlagUseCase::new(
         flag_repo.clone(),
         kafka_producer.clone(),
+        audit_log_repo.clone(),
     ));
     let update_flag_uc = Arc::new(usecase::UpdateFlagUseCase::new(
         flag_repo.clone(),
         kafka_producer.clone(),
+        audit_log_repo.clone(),
     ));
-    let delete_flag_uc = Arc::new(usecase::DeleteFlagUseCase::new(flag_repo.clone()));
+    let delete_flag_uc = Arc::new(usecase::DeleteFlagUseCase::new(
+        flag_repo.clone(),
+        kafka_producer.clone(),
+        audit_log_repo,
+    ));
 
     let grpc_svc = Arc::new(FeatureFlagGrpcService::new(
         list_flags_uc.clone(),
@@ -245,6 +287,24 @@ async fn main() -> anyhow::Result<()> {
 
 struct InMemoryFeatureFlagRepository {
     flags: tokio::sync::RwLock<HashMap<String, FeatureFlag>>,
+}
+
+struct NoopFlagAuditLogRepository;
+
+#[async_trait::async_trait]
+impl FlagAuditLogRepository for NoopFlagAuditLogRepository {
+    async fn create(&self, _log: &domain::entity::flag_audit_log::FlagAuditLog) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn list_by_flag_id(
+        &self,
+        _flag_id: &Uuid,
+        _limit: i64,
+        _offset: i64,
+    ) -> anyhow::Result<Vec<domain::entity::flag_audit_log::FlagAuditLog>> {
+        Ok(vec![])
+    }
 }
 
 impl InMemoryFeatureFlagRepository {

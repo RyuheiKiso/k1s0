@@ -1,6 +1,6 @@
 ﻿# system-search-server 設計
 
-> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `search/read`, `search/write`, `search/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
 
 OpenSearch 連携の全文検索サーバー。インデックス管理・全文検索クエリ・Kafka 非同期インデックスを提供。

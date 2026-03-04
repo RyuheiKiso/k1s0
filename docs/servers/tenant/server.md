@@ -1,6 +1,6 @@
 ﻿# system-tenant-server 設計
 
-> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `tenants/read`, `tenants/write`, `tenants/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
 
 system tier のテナント管理サーバー設計を定義する。マルチテナンシーを実現するためのテナントプロビジョニング・管理・分離制御を提供し、Keycloak realm と連携してテナント単位の認証境界を確立する。テナントライフサイクル管理（作成・更新・一時停止・削除）を行い、テナントイベントを Kafka で配信する。
@@ -106,6 +106,7 @@ system tier の Tenant Server は以下の機能を提供する。
   "display_name": "Acme Corporation",
   "status": "provisioning",
   "plan": "enterprise",
+  "owner_id": "660e8400-e29b-41d4-a716-446655440001",
   "settings": {},
   "keycloak_realm": "k1s0-acme-corp",
   "db_schema": "tenant_550e8400e29b41d4a716446655440000",
@@ -162,6 +163,7 @@ system tier の Tenant Server は以下の機能を提供する。
       "display_name": "Acme Corporation",
       "status": "active",
       "plan": "enterprise",
+      "owner_id": "660e8400-e29b-41d4-a716-446655440001",
       "settings": {},
       "keycloak_realm": "k1s0-acme-corp",
       "db_schema": "tenant_550e8400e29b41d4a716446655440000",
@@ -188,6 +190,7 @@ ID 指定でテナントの詳細を取得する。
   "display_name": "Acme Corporation",
   "status": "active",
   "plan": "enterprise",
+  "owner_id": "660e8400-e29b-41d4-a716-446655440001",
   "settings": {},
   "keycloak_realm": "k1s0-acme-corp",
   "db_schema": "tenant_550e8400e29b41d4a716446655440000",
@@ -236,6 +239,7 @@ ID 指定でテナントの詳細を取得する。
   "display_name": "Acme Corp International",
   "status": "active",
   "plan": "enterprise",
+  "owner_id": "660e8400-e29b-41d4-a716-446655440001",
   "settings": {},
   "keycloak_realm": "k1s0-acme-corp",
   "db_schema": "tenant_550e8400e29b41d4a716446655440000",
@@ -259,6 +263,7 @@ ID 指定でテナントの詳細を取得する。
   "display_name": "Acme Corporation",
   "status": "suspended",
   "plan": "enterprise",
+  "owner_id": "660e8400-e29b-41d4-a716-446655440001",
   "settings": {},
   "keycloak_realm": "k1s0-acme-corp",
   "db_schema": "tenant_550e8400e29b41d4a716446655440000",
@@ -295,6 +300,7 @@ ID 指定でテナントの詳細を取得する。
   "display_name": "Acme Corporation",
   "status": "active",
   "plan": "enterprise",
+  "owner_id": "660e8400-e29b-41d4-a716-446655440001",
   "settings": {},
   "keycloak_realm": "k1s0-acme-corp",
   "db_schema": "tenant_550e8400e29b41d4a716446655440000",
@@ -316,6 +322,7 @@ ID 指定でテナントの詳細を取得する。
   "display_name": "Acme Corporation",
   "status": "deleted",
   "plan": "enterprise",
+  "owner_id": "660e8400-e29b-41d4-a716-446655440001",
   "settings": {},
   "keycloak_realm": "k1s0-acme-corp",
   "db_schema": "tenant_550e8400e29b41d4a716446655440000",
@@ -664,7 +671,8 @@ Step 4: テナントステータスを active に遷移
 | `name` | String | テナント名（URL フレンドリー、一意制約） |
 | `display_name` | String | テナント表示名 |
 | `status` | TenantStatus | テナントステータス（`provisioning` / `active` / `suspended` / `deleted`） |
-| `plan` | String | 契約プラン（`free` / `starter` / `professional` / `enterprise`） |
+| `plan` | Plan | 契約プラン enum（`free` / `starter` / `professional` / `enterprise`） |
+| `owner_id` | Option\<String\> | テナントオーナーのユーザー ID |
 | `settings` | string (JSON) | proto では string。実際の値は JSON 文字列として扱う |
 | `keycloak_realm` | Option\<String\> | Keycloak realm 名（`k1s0-{name}`） |
 | `db_schema` | Option\<String\> | PostgreSQL スキーマ名（`tenant_{id}`） |

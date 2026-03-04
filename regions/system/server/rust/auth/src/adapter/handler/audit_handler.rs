@@ -5,10 +5,13 @@
     Json,
 };
 
+use k1s0_server_common::error as codes;
+
 use super::{AppState, ErrorResponse};
 use crate::domain::entity::audit_log::{
     AuditLogSearchResult, CreateAuditLogRequest, CreateAuditLogResponse,
 };
+use crate::usecase::record_audit_log::RecordAuditLogError;
 use crate::usecase::search_audit_logs::SearchAuditLogsQueryParams;
 
 #[utoipa::path(
@@ -31,9 +34,13 @@ pub async fn record_audit_log(
             Json(serde_json::to_value(response).unwrap()),
         )
             .into_response(),
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", &e.to_string());
+        Err(RecordAuditLogError::Validation(msg)) => {
+            let err = ErrorResponse::new(codes::auth::audit_validation(), msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+        Err(RecordAuditLogError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }

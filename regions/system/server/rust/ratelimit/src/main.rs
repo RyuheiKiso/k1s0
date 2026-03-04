@@ -69,17 +69,33 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Redis connection (optional)
-    let redis_conn = if let Some(ref redis_config) = cfg.redis {
+    let redis_conns = if let Some(ref redis_config) = cfg.redis {
         let url = std::env::var("REDIS_URL").unwrap_or_else(|_| redis_config.url.clone());
         let client = redis::Client::open(url.as_str())?;
-        let conn = redis::aio::ConnectionManager::new(client).await?;
-        info!("Redis connection established");
-        Some(conn)
+        let manager_config = redis::aio::ConnectionManagerConfig::new()
+            .set_connection_timeout(std::time::Duration::from_millis(redis_config.timeout_ms))
+            .set_response_timeout(std::time::Duration::from_millis(redis_config.timeout_ms));
+
+        let mut conns = Vec::with_capacity(redis_config.pool_size.max(1));
+        for _ in 0..redis_config.pool_size.max(1) {
+            let conn = redis::aio::ConnectionManager::new_with_config(
+                client.clone(),
+                manager_config.clone(),
+            )
+            .await?;
+            conns.push(conn);
+        }
+        info!(
+            pool_size = redis_config.pool_size,
+            timeout_ms = redis_config.timeout_ms,
+            "Redis connection pool established"
+        );
+        Some(conns)
     } else if let Ok(url) = std::env::var("REDIS_URL") {
         let client = redis::Client::open(url.as_str())?;
         let conn = redis::aio::ConnectionManager::new(client).await?;
         info!("Redis connection established from REDIS_URL");
-        Some(conn)
+        Some(vec![conn])
     } else {
         info!("no Redis configured, using in-memory state store");
         None
@@ -108,16 +124,19 @@ async fn main() -> anyhow::Result<()> {
         };
 
     let state_store: Arc<dyn domain::repository::RateLimitStateStore> =
-        if let Some(conn) = redis_conn {
-            Arc::new(RedisRateLimitStore::new(conn))
+        if let Some(conns) = redis_conns {
+            Arc::new(RedisRateLimitStore::new(conns))
         } else {
             Arc::new(InMemoryRateLimitStateStore::new())
         };
 
     // Use cases
-    let check_uc = Arc::new(usecase::CheckRateLimitUseCase::new(
+    let check_uc = Arc::new(usecase::CheckRateLimitUseCase::with_fallback_policy(
         rule_repo.clone(),
         state_store.clone(),
+        cfg.ratelimit.fail_open,
+        cfg.ratelimit.default_limit,
+        cfg.ratelimit.default_window_seconds,
     ));
     let create_uc = Arc::new(usecase::CreateRuleUseCase::new(rule_repo.clone()));
     let get_uc = Arc::new(usecase::GetRuleUseCase::new(rule_repo.clone()));
@@ -179,7 +198,7 @@ async fn main() -> anyhow::Result<()> {
     let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server (port 50051)
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;

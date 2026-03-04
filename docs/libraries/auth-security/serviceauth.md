@@ -140,6 +140,7 @@ type ServiceClaims struct {
 > Go 実装では `scope` は `ServiceClaims` ではなく `ServiceToken.Scope` に保持する。
 > 旧ドキュメントにあった jwx 依存は削除済みで、Go 実装は JWT 検証ライブラリを直接依存しない。
 > Go 実装は `ServiceAuthError` 専用型を公開せず、`error`（`fmt.Errorf` ラップ）で返却する。
+> Go の `SpiffeId` は `uri` フィールドを保持せず、`String()` メソッドで URI を動的生成する。
 
 ## TypeScript 実装
 

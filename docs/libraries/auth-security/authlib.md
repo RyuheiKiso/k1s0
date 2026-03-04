@@ -24,7 +24,8 @@
 |------|-----------|------|
 | `HasRole` / `has_role` | `(claims, role) -> bool` | レルムロール保有チェック |
 | `HasResourceRole` / `has_resource_role` | `(claims, resource, role) -> bool` | リソースロール保有チェック |
-| `HasPermission` / `has_permission` | `(claims, resource, action) -> bool` | リソース × アクション権限チェック |
+| `CheckPermission` / `check_permission` | `(claims, resource, action) -> bool` | リソース × アクション権限チェック（推奨） |
+| `HasPermission` / `has_permission` | `(claims, resource, action) -> bool` | 後方互換エイリアス（`CheckPermission` を内部呼び出し） |
 | `HasTierAccess` / `has_tier_access` | `(claims, tier) -> bool` | tier_access チェック |
 
 ### ミドルウェア（HTTP / gRPC 認証ハンドラ）
@@ -50,7 +51,7 @@
 
 ```go
 type JWKSFetcher interface {
-    Fetch(ctx context.Context, jwksURL string) (jwk.Set, error)
+    FetchKeys(ctx context.Context, jwksURL string) (jwk.Set, error)
 }
 
 func NewJWKSVerifierWithFetcher(

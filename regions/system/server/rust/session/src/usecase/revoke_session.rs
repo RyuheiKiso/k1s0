@@ -32,6 +32,10 @@ impl RevokeSessionUseCase {
             .await?
             .ok_or_else(|| SessionError::NotFound(input.id.clone()))?;
 
+        if session.revoked {
+            return Err(SessionError::AlreadyRevoked(input.id.clone()));
+        }
+
         session.revoke();
         self.repo.save(&session).await?;
         self.event_publisher
@@ -106,5 +110,26 @@ mod tests {
             })
             .await;
         assert!(matches!(result, Err(SessionError::NotFound(_))));
+    }
+
+    #[tokio::test]
+    async fn already_revoked() {
+        let mut mock = MockSessionRepository::new();
+        mock.expect_find_by_id().returning(|_| {
+            let mut s = make_session();
+            s.revoked = true;
+            Ok(Some(s))
+        });
+
+        let uc = RevokeSessionUseCase::new(
+            Arc::new(mock),
+            Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
+        );
+        let result = uc
+            .execute(&RevokeSessionInput {
+                id: "sess-1".to_string(),
+            })
+            .await;
+        assert!(matches!(result, Err(SessionError::AlreadyRevoked(_))));
     }
 }

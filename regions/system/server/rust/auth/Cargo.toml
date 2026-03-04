@@ -41,6 +41,7 @@ anyhow = "1"
 thiserror = "2"
 validator = { version = "0.18", features = ["derive"] }
 async-trait = "0.1"
+sha2 = "0.10"
 
 # Logging / Tracing
 tracing = "0.1"

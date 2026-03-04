@@ -4,6 +4,9 @@ use uuid::Uuid;
 use crate::domain::entity::policy::Policy;
 use crate::domain::repository::PolicyRepository;
 use crate::domain::service::PolicyDomainService;
+use crate::infrastructure::kafka_producer::{
+    NoopPolicyEventPublisher, PolicyChangedEvent, PolicyEventPublisher,
+};
 
 #[derive(Debug, Clone)]
 pub struct CreatePolicyInput {
@@ -28,11 +31,25 @@ pub enum CreatePolicyError {
 
 pub struct CreatePolicyUseCase {
     repo: Arc<dyn PolicyRepository>,
+    event_publisher: Arc<dyn PolicyEventPublisher>,
 }
 
 impl CreatePolicyUseCase {
     pub fn new(repo: Arc<dyn PolicyRepository>) -> Self {
-        Self { repo }
+        Self {
+            repo,
+            event_publisher: Arc::new(NoopPolicyEventPublisher),
+        }
+    }
+
+    pub fn with_publisher(
+        repo: Arc<dyn PolicyRepository>,
+        event_publisher: Arc<dyn PolicyEventPublisher>,
+    ) -> Self {
+        Self {
+            repo,
+            event_publisher,
+        }
     }
 
     pub async fn execute(&self, input: &CreatePolicyInput) -> Result<Policy, CreatePolicyError> {
@@ -63,6 +80,14 @@ impl CreatePolicyUseCase {
             .create(&policy)
             .await
             .map_err(|e| CreatePolicyError::Internal(e.to_string()))?;
+
+        if let Err(e) = self
+            .event_publisher
+            .publish_policy_changed(&PolicyChangedEvent::created(&policy))
+            .await
+        {
+            tracing::warn!(error = %e, policy_id = %policy.id, "failed to publish policy created event");
+        }
 
         Ok(policy)
     }

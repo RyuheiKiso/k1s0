@@ -68,8 +68,15 @@ async fn main() -> anyhow::Result<()> {
             metrics.clone(),
         ));
         // キャッシュでラップ（TTL 300秒、最大10000エントリ）
-        let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
-        info!("config cache initialized (max_capacity=10000, ttl=300s)");
+        let cache = Arc::new(infrastructure::cache::ConfigCache::new(
+            cfg.config_server.cache.max_entries as u64,
+            cfg.config_server.cache.ttl_seconds,
+        ));
+        info!(
+            max_capacity = cfg.config_server.cache.max_entries,
+            ttl_seconds = cfg.config_server.cache.ttl_seconds,
+            "config cache initialized"
+        );
         (
             Arc::new(
                 adapter::repository::cached_config_repository::CachedConfigRepository::with_metrics(
@@ -96,8 +103,15 @@ async fn main() -> anyhow::Result<()> {
             metrics.clone(),
         ));
         // キャッシュでラップ（TTL 300秒、最大10000エントリ）
-        let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
-        info!("config cache initialized (max_capacity=10000, ttl=300s)");
+        let cache = Arc::new(infrastructure::cache::ConfigCache::new(
+            cfg.config_server.cache.max_entries as u64,
+            cfg.config_server.cache.ttl_seconds,
+        ));
+        info!(
+            max_capacity = cfg.config_server.cache.max_entries,
+            ttl_seconds = cfg.config_server.cache.ttl_seconds,
+            "config cache initialized"
+        );
         (
             Arc::new(
                 adapter::repository::cached_config_repository::CachedConfigRepository::with_metrics(

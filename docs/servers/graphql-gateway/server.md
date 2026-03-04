@@ -401,6 +401,18 @@ input SetFeatureFlagInput {
 | `config.address` | string | 設定サービス gRPC エンドポイント |
 | `config.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
 
+### observability
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `log.level` | string | ログレベル（`debug` / `info` / `warn` / `error`） |
+| `log.format` | string | ログフォーマット（`text` / `json`） |
+| `trace.enabled` | bool | トレース出力の有効/無効 |
+| `trace.endpoint` | string | OTLP エンドポイント |
+| `trace.sample_rate` | float | サンプリングレート |
+| `metrics.enabled` | bool | メトリクス出力の有効/無効 |
+| `metrics.path` | string | メトリクスエンドポイントパス |
+
 ---
 
 ## 設定ファイル例
@@ -437,6 +449,18 @@ backends:
   config:
     address: "http://config-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
+
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: true
+    endpoint: "http://otel-collector.observability.svc.cluster.local:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"
 ```
 
 ### Helm values

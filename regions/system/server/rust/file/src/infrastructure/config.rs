@@ -62,6 +62,8 @@ pub struct DatabaseConfig {
     pub max_connections: u32,
     #[serde(default = "default_min_connections")]
     pub min_connections: u32,
+    #[serde(default = "default_connect_timeout_seconds")]
+    pub connect_timeout_seconds: u64,
 }
 
 fn default_schema() -> String {
@@ -74,6 +76,10 @@ fn default_max_connections() -> u32 {
 
 fn default_min_connections() -> u32 {
     1
+}
+
+fn default_connect_timeout_seconds() -> u64 {
+    10
 }
 
 #[derive(Debug, Clone, Deserialize)]

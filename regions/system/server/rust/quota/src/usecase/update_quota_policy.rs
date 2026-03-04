@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use chrono::Utc;
 
-use crate::domain::entity::quota::{Period, QuotaPolicy, SubjectType};
+use crate::domain::entity::quota::QuotaPolicy;
 use crate::domain::repository::QuotaPolicyRepository;
+use crate::domain::service::QuotaDomainService;
 
 #[derive(Debug, Clone)]
 pub struct UpdateQuotaPolicyInput {
@@ -42,25 +43,14 @@ impl UpdateQuotaPolicyUseCase {
         &self,
         input: &UpdateQuotaPolicyInput,
     ) -> Result<QuotaPolicy, UpdateQuotaPolicyError> {
-        let subject_type = SubjectType::from_str(&input.subject_type).ok_or_else(|| {
-            UpdateQuotaPolicyError::Validation(format!(
-                "subject_type must be one of: tenant, user, api_key, got: {}",
-                input.subject_type
-            ))
-        })?;
-
-        let period = Period::from_str(&input.period).ok_or_else(|| {
-            UpdateQuotaPolicyError::Validation(format!(
-                "period must be one of: daily, monthly, got: {}",
-                input.period
-            ))
-        })?;
-
-        if input.limit == 0 {
-            return Err(UpdateQuotaPolicyError::Validation(
-                "limit must be greater than 0".to_string(),
-            ));
-        }
+        let subject_type = QuotaDomainService::parse_subject_type(&input.subject_type)
+            .map_err(UpdateQuotaPolicyError::Validation)?;
+        let period = QuotaDomainService::parse_period(&input.period)
+            .map_err(UpdateQuotaPolicyError::Validation)?;
+        QuotaDomainService::validate_limit(input.limit)
+            .map_err(UpdateQuotaPolicyError::Validation)?;
+        QuotaDomainService::validate_alert_threshold(input.alert_threshold_percent)
+            .map_err(UpdateQuotaPolicyError::Validation)?;
 
         let mut policy = self
             .repo

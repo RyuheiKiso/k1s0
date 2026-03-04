@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::{Algorithm, RateLimitDecision};
 use crate::domain::repository::{RateLimitRepository, RateLimitStateStore};
+use crate::domain::service::RateLimitDomainService;
 
 /// CheckRateLimitError はレートリミットチェックに関するエラー。
 #[derive(Debug, thiserror::Error)]
@@ -23,6 +24,9 @@ pub enum CheckRateLimitError {
 pub struct CheckRateLimitUseCase {
     rule_repo: Arc<dyn RateLimitRepository>,
     state_store: Arc<dyn RateLimitStateStore>,
+    fail_open: bool,
+    default_limit: u32,
+    default_window_seconds: u32,
 }
 
 impl CheckRateLimitUseCase {
@@ -33,6 +37,25 @@ impl CheckRateLimitUseCase {
         Self {
             rule_repo,
             state_store,
+            fail_open: true,
+            default_limit: 100,
+            default_window_seconds: 60,
+        }
+    }
+
+    pub fn with_fallback_policy(
+        rule_repo: Arc<dyn RateLimitRepository>,
+        state_store: Arc<dyn RateLimitStateStore>,
+        fail_open: bool,
+        default_limit: u32,
+        default_window_seconds: u32,
+    ) -> Self {
+        Self {
+            rule_repo,
+            state_store,
+            fail_open,
+            default_limit: default_limit.max(1),
+            default_window_seconds: default_window_seconds.max(1),
         }
     }
 
@@ -42,12 +65,10 @@ impl CheckRateLimitUseCase {
         identifier: &str,
         window_secs: i64,
     ) -> Result<RateLimitDecision, CheckRateLimitError> {
-        if scope.is_empty() {
-            return Err(CheckRateLimitError::ValidationError("scope is required".to_string()));
-        }
-        if identifier.is_empty() {
-            return Err(CheckRateLimitError::ValidationError("identifier is required".to_string()));
-        }
+        RateLimitDomainService::validate_scope(scope)
+            .map_err(CheckRateLimitError::ValidationError)?;
+        RateLimitDomainService::validate_identifier(identifier)
+            .map_err(CheckRateLimitError::ValidationError)?;
 
         // scopeでルールを検索し、最初のenabledなルールを使用
         let rules = self
@@ -57,19 +78,20 @@ impl CheckRateLimitUseCase {
             .map_err(|e| CheckRateLimitError::Internal(e.to_string()))?;
 
         let matched_rule = rules.iter().find(|r| r.enabled);
-        let (limit, effective_window) = matched_rule
-            .map(|r| (r.limit, r.window_seconds))
-            .unwrap_or((100, if window_secs > 0 { window_secs as u32 } else { 60 }));
+        let (limit, effective_window) = RateLimitDomainService::effective_limit_and_window(
+            matched_rule,
+            self.default_limit,
+            self.default_window_seconds,
+            window_secs,
+        );
 
         // Redis キー: ratelimit:{scope}:{identifier}
         let redis_key = format!("ratelimit:{}:{}", scope, identifier);
 
         // マッチするルールがある場合はそのアルゴリズムを使用、なければトークンバケット
-        let algorithm = matched_rule
-            .map(|r| r.algorithm.clone())
-            .unwrap_or(Algorithm::TokenBucket);
+        let algorithm = RateLimitDomainService::resolve_algorithm(matched_rule);
 
-        let mut decision = match algorithm {
+        let backend_decision = match algorithm {
             Algorithm::TokenBucket => {
                 self.state_store
                     .check_token_bucket(
@@ -106,8 +128,24 @@ impl CheckRateLimitUseCase {
                     )
                     .await
             }
-        }
-        .map_err(|e| CheckRateLimitError::Internal(e.to_string()))?;
+        };
+
+        let mut decision = match backend_decision {
+            Ok(decision) => decision,
+            Err(e) => {
+                if self.fail_open {
+                    RateLimitDomainService::fail_open_decision(
+                        scope,
+                        identifier,
+                        limit,
+                        effective_window,
+                        matched_rule.map(|r| r.id.to_string()),
+                    )
+                } else {
+                    return Err(CheckRateLimitError::Internal(e.to_string()));
+                }
+            }
+        };
 
         decision.scope = scope.to_string();
         decision.identifier = identifier.to_string();
@@ -287,5 +325,48 @@ mod tests {
 
         assert!(result.is_ok());
         assert!(result.unwrap().allowed);
+    }
+
+    #[tokio::test]
+    async fn test_check_rate_limit_fail_open_on_backend_error() {
+        let mut repo = MockRateLimitRepository::new();
+        repo.expect_find_by_scope().returning(|_| Ok(vec![]));
+
+        let mut state_store = MockRateLimitStateStore::new();
+        state_store
+            .expect_check_token_bucket()
+            .returning(|_, _, _| Err(anyhow::anyhow!("redis unavailable")));
+
+        let uc = CheckRateLimitUseCase::with_fallback_policy(
+            Arc::new(repo),
+            Arc::new(state_store),
+            true,
+            100,
+            60,
+        );
+        let result = uc.execute("service", "user-123", 60).await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().allowed);
+    }
+
+    #[tokio::test]
+    async fn test_check_rate_limit_fail_closed_on_backend_error() {
+        let mut repo = MockRateLimitRepository::new();
+        repo.expect_find_by_scope().returning(|_| Ok(vec![]));
+
+        let mut state_store = MockRateLimitStateStore::new();
+        state_store
+            .expect_check_token_bucket()
+            .returning(|_, _, _| Err(anyhow::anyhow!("redis unavailable")));
+
+        let uc = CheckRateLimitUseCase::with_fallback_policy(
+            Arc::new(repo),
+            Arc::new(state_store),
+            false,
+            100,
+            60,
+        );
+        let result = uc.execute("service", "user-123", 60).await;
+        assert!(matches!(result, Err(CheckRateLimitError::Internal(_))));
     }
 }

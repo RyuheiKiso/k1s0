@@ -51,7 +51,7 @@ fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
             err.to_string(),
         ),
         SessionError::Expired(_) => (StatusCode::GONE, codes::session::expired(), err.to_string()),
-        SessionError::Revoked(_) => (
+        SessionError::Revoked(_) | SessionError::AlreadyRevoked(_) => (
             StatusCode::CONFLICT,
             codes::session::already_revoked(),
             err.to_string(),

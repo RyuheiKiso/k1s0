@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::domain::entity::Tenant;
+use crate::domain::entity::{Plan, Tenant};
 use crate::domain::repository::TenantRepository;
 use crate::infrastructure::keycloak_admin::{KeycloakAdmin, NoopKeycloakAdmin};
 use crate::infrastructure::kafka_producer::{NoopTenantEventPublisher, TenantEventPublisher};
@@ -18,7 +18,7 @@ pub enum CreateTenantError {
 pub struct CreateTenantInput {
     pub name: String,
     pub display_name: String,
-    pub plan: String,
+    pub plan: Plan,
     pub owner_id: Option<Uuid>,
 }
 
@@ -129,7 +129,7 @@ mod tests {
         let input = CreateTenantInput {
             name: "acme-corp".to_string(),
             display_name: "ACME Corporation".to_string(),
-            plan: Plan::Professional.as_str().to_string(),
+            plan: Plan::Professional,
             owner_id: Some(Uuid::new_v4()),
         };
 
@@ -137,7 +137,7 @@ mod tests {
         assert_eq!(tenant.name, "acme-corp");
         assert_eq!(tenant.display_name, "ACME Corporation");
         assert_eq!(tenant.status, TenantStatus::Provisioning);
-        assert_eq!(tenant.plan, "professional");
+        assert_eq!(tenant.plan, Plan::Professional);
     }
 
     #[tokio::test]
@@ -147,7 +147,7 @@ mod tests {
             Ok(Some(Tenant::new(
                 name.to_string(),
                 "Existing".to_string(),
-                Plan::Free.as_str().to_string(),
+                Plan::Free,
                 None,
             )))
         });
@@ -156,7 +156,7 @@ mod tests {
         let input = CreateTenantInput {
             name: "acme-corp".to_string(),
             display_name: "ACME Corporation".to_string(),
-            plan: Plan::Professional.as_str().to_string(),
+            plan: Plan::Professional,
             owner_id: None,
         };
 

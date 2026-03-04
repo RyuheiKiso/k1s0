@@ -69,6 +69,8 @@ struct ServerConfig {
     host: String,
     #[serde(default = "default_port")]
     port: u16,
+    #[serde(default = "default_grpc_port")]
+    grpc_port: u16,
 }
 
 fn default_host() -> String {
@@ -77,6 +79,10 @@ fn default_host() -> String {
 
 fn default_port() -> u16 {
     8090
+}
+
+fn default_grpc_port() -> u16 {
+    50051
 }
 
 #[tokio::main]
@@ -189,6 +195,7 @@ async fn main() -> anyhow::Result<()> {
     let rotate_secret_uc = Arc::new(usecase::RotateSecretUseCase::new(
         get_secret_uc.clone(),
         set_secret_uc.clone(),
+        event_publisher.clone(),
     ));
     let delete_secret_uc = Arc::new(usecase::DeleteSecretUseCase::new(
         secret_store.clone(),
@@ -258,7 +265,7 @@ async fn main() -> anyhow::Result<()> {
 
     let vault_tonic = adapter::grpc::VaultServiceTonic::new(vault_grpc_svc);
 
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;

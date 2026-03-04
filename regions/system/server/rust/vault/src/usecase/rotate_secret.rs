@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::infrastructure::kafka_producer::{VaultEventPublisher, VaultSecretRotatedEvent};
 use crate::usecase::get_secret::{GetSecretError, GetSecretInput, GetSecretUseCase};
 use crate::usecase::set_secret::{SetSecretError, SetSecretInput, SetSecretUseCase};
 
@@ -28,13 +29,19 @@ pub enum RotateSecretError {
 pub struct RotateSecretUseCase {
     get_secret_uc: Arc<GetSecretUseCase>,
     set_secret_uc: Arc<SetSecretUseCase>,
+    event_publisher: Arc<dyn VaultEventPublisher>,
 }
 
 impl RotateSecretUseCase {
-    pub fn new(get_secret_uc: Arc<GetSecretUseCase>, set_secret_uc: Arc<SetSecretUseCase>) -> Self {
+    pub fn new(
+        get_secret_uc: Arc<GetSecretUseCase>,
+        set_secret_uc: Arc<SetSecretUseCase>,
+        event_publisher: Arc<dyn VaultEventPublisher>,
+    ) -> Self {
         Self {
             get_secret_uc,
             set_secret_uc,
+            event_publisher,
         }
     }
 
@@ -72,6 +79,17 @@ impl RotateSecretUseCase {
                 new_version, current.current_version
             )));
         }
+
+        self.event_publisher
+            .publish_secret_rotated(&VaultSecretRotatedEvent {
+                key_path: input.path.clone(),
+                old_version: current.current_version,
+                new_version,
+                actor_id: "system".to_string(),
+                timestamp: chrono::Utc::now().to_rfc3339(),
+            })
+            .await
+            .map_err(|e| RotateSecretError::Internal(e.to_string()))?;
 
         Ok(RotateSecretOutput {
             path: input.path.clone(),

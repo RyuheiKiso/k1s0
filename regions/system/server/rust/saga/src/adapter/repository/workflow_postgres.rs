@@ -19,17 +19,32 @@ impl WorkflowPostgresRepository {
 #[allow(dead_code)]
 struct WorkflowDefinitionRow {
     name: String,
-    steps: serde_json::Value,
+    version: i32,
+    definition: serde_json::Value,
+    enabled: bool,
     created_at: chrono::DateTime<chrono::Utc>,
+    updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl TryFrom<WorkflowDefinitionRow> for WorkflowDefinition {
     type Error = anyhow::Error;
 
     fn try_from(row: WorkflowDefinitionRow) -> anyhow::Result<Self> {
-        let steps: Vec<WorkflowStep> = serde_json::from_value(row.steps)?;
+        let steps: Vec<WorkflowStep> = if row.definition.is_array() {
+            // Backward compatibility: previous schema stored the step array directly.
+            serde_json::from_value(row.definition)?
+        } else {
+            let steps_value = row
+                .definition
+                .get("steps")
+                .cloned()
+                .ok_or_else(|| anyhow::anyhow!("workflow definition must contain 'steps'"))?;
+            serde_json::from_value(steps_value)?
+        };
         Ok(WorkflowDefinition {
             name: row.name,
+            version: row.version,
+            enabled: row.enabled,
             steps,
         })
     }
@@ -38,18 +53,25 @@ impl TryFrom<WorkflowDefinitionRow> for WorkflowDefinition {
 #[async_trait]
 impl WorkflowRepository for WorkflowPostgresRepository {
     async fn register(&self, workflow: WorkflowDefinition) -> anyhow::Result<()> {
-        let steps_json = serde_json::to_value(&workflow.steps)?;
+        let definition_json = serde_json::json!({
+            "steps": workflow.steps,
+        });
 
         sqlx::query(
             r#"
-            INSERT INTO saga.workflow_definitions (name, steps, created_at)
-            VALUES ($1, $2, NOW())
+            INSERT INTO saga.workflow_definitions (name, version, definition, enabled, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, NOW(), NOW())
             ON CONFLICT (name) DO UPDATE
-            SET steps = EXCLUDED.steps
+            SET version = EXCLUDED.version,
+                definition = EXCLUDED.definition,
+                enabled = EXCLUDED.enabled,
+                updated_at = NOW()
             "#,
         )
         .bind(&workflow.name)
-        .bind(&steps_json)
+        .bind(workflow.version)
+        .bind(&definition_json)
+        .bind(workflow.enabled)
         .execute(&self.pool)
         .await?;
 
@@ -59,7 +81,7 @@ impl WorkflowRepository for WorkflowPostgresRepository {
     async fn get(&self, name: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
         let row = sqlx::query_as::<_, WorkflowDefinitionRow>(
             r#"
-            SELECT name, steps, created_at
+            SELECT name, version, definition, enabled, created_at, updated_at
             FROM saga.workflow_definitions
             WHERE name = $1
             "#,
@@ -74,7 +96,7 @@ impl WorkflowRepository for WorkflowPostgresRepository {
     async fn list(&self) -> anyhow::Result<Vec<WorkflowDefinition>> {
         let rows = sqlx::query_as::<_, WorkflowDefinitionRow>(
             r#"
-            SELECT name, steps, created_at
+            SELECT name, version, definition, enabled, created_at, updated_at
             FROM saga.workflow_definitions
             ORDER BY name
             "#,
@@ -93,23 +115,28 @@ mod tests {
 
     #[test]
     fn test_workflow_definition_row_conversion() {
-        let steps_json = serde_json::json!([
-            {
+        let definition_json = serde_json::json!({
+            "steps": [{
                 "name": "step1",
                 "service": "svc",
                 "method": "Svc.Do",
                 "timeout_secs": 30
-            }
-        ]);
+            }]
+        });
 
         let row = WorkflowDefinitionRow {
             name: "test-workflow".to_string(),
-            steps: steps_json,
+            version: 1,
+            definition: definition_json,
+            enabled: true,
             created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
         };
 
         let def: WorkflowDefinition = row.try_into().unwrap();
         assert_eq!(def.name, "test-workflow");
+        assert_eq!(def.version, 1);
+        assert!(def.enabled);
         assert_eq!(def.steps.len(), 1);
         assert_eq!(def.steps[0].name, "step1");
         assert_eq!(def.steps[0].service, "svc");
@@ -119,8 +146,8 @@ mod tests {
 
     #[test]
     fn test_workflow_definition_row_conversion_with_retry() {
-        let steps_json = serde_json::json!([
-            {
+        let definition_json = serde_json::json!({
+            "steps": [{
                 "name": "reserve-inventory",
                 "service": "inventory-service",
                 "method": "InventoryService.Reserve",
@@ -131,17 +158,22 @@ mod tests {
                     "backoff": "exponential",
                     "initial_interval_ms": 1000
                 }
-            }
-        ]);
+            }]
+        });
 
         let row = WorkflowDefinitionRow {
             name: "order-fulfillment".to_string(),
-            steps: steps_json,
+            version: 2,
+            definition: definition_json,
+            enabled: false,
             created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
         };
 
         let def: WorkflowDefinition = row.try_into().unwrap();
         assert_eq!(def.name, "order-fulfillment");
+        assert_eq!(def.version, 2);
+        assert!(!def.enabled);
         assert_eq!(def.steps.len(), 1);
         assert_eq!(def.steps[0].name, "reserve-inventory");
         assert_eq!(
@@ -158,11 +190,37 @@ mod tests {
     fn test_workflow_definition_row_invalid_steps_json() {
         let row = WorkflowDefinitionRow {
             name: "bad-workflow".to_string(),
-            steps: serde_json::json!("not-an-array"),
+            version: 1,
+            definition: serde_json::json!({"invalid": true}),
+            enabled: true,
             created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
         };
 
         let result: Result<WorkflowDefinition, _> = row.try_into();
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_workflow_definition_row_backward_compat_array_definition() {
+        let row = WorkflowDefinitionRow {
+            name: "legacy-workflow".to_string(),
+            version: 1,
+            definition: serde_json::json!([
+                {
+                    "name": "step1",
+                    "service": "svc",
+                    "method": "Svc.Do",
+                    "timeout_secs": 30
+                }
+            ]),
+            enabled: true,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+
+        let def: WorkflowDefinition = row.try_into().unwrap();
+        assert_eq!(def.name, "legacy-workflow");
+        assert_eq!(def.steps.len(), 1);
     }
 }

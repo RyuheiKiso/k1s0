@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Rust-1.82-orange?logo=rust" alt="Rust">
+  <img src="https://img.shields.io/badge/Rust-1.88-orange?logo=rust" alt="Rust">
   <img src="https://img.shields.io/badge/Go-1.23-00ADD8?logo=go" alt="Go">
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React">
   <img src="https://img.shields.io/badge/Flutter-3.24-02569B?logo=flutter" alt="Flutter">
@@ -13,97 +13,40 @@
 
 ---
 
-## k1s0 とは
+**k1s0（キソ）** — CLI 一つでマイクロサービスの構築から運用まで完結する、エンタープライズ向け開発基盤。
 
-k1s0（キソ）は、企業のシステム開発部門を対象とした **ワンストップ開発基盤** です。
-
-対話式CLIまたはデスクトップGUIから、プロジェクトの初期構築・ひな形生成・ビルド・テスト・デプロイまでを一貫して実行できます。クリーンアーキテクチャ・DDD・TDDに基づいたベストプラクティスが最初から組み込まれており、チームの技術力に依存せず高品質なコードベースを維持できます。
-
-### 解決する課題
-
-| 課題                               | k1s0 のアプローチ                                                 |
-| ---------------------------------- | ----------------------------------------------------------------- |
-| プロジェクト初期構築に数週間かかる | 対話式CLIで数分で完了。認証・可観測性・CI/CD込み                  |
-| 新技術の採用ハードルが高い         | ベストプラクティス内蔵のテンプレートで学習コストを最小化          |
-| サービスの追加・変更に手間がかかる | マイクロサービス前提の設計で、新サービスをコマンド1つで追加       |
-| 可観測性の後付けが困難             | OpenTelemetry・ログ・メトリクスをゼロコンフィグで初期構成に組込み |
-| 開発環境のセットアップが属人化     | Dev Container + docker-compose で環境を即時再現                   |
+Go / Rust / TypeScript / Dart の 4 言語に対応し、クリーンアーキテクチャ・DDD・TDD に沿った設計を初期構成に組み込みます。対話式 CLI と Tauri デスクトップ GUI で、ひな形生成・ビルド・テスト・デプロイまで開発者体験を統一します。
 
 ---
 
-## なぜ k1s0 なのか
+## 目次
 
-### 設計ドキュメントが「生きている」
-
-k1s0 のリポジトリには 100 以上の設計ドキュメントが同梱されています。API設計・認証認可・可観測性・メッセージング・サービスメッシュ・Kubernetes・Helm・Terraform――これらはコードと同じリポジトリで管理され、実装と常に同期しています。ドキュメントが形骸化しない仕組みが、チームのオンボーディングと意思決定を加速します。
-
-### コード生成ではなく「アーキテクチャ生成」
-
-一般的なスキャフォールディングツールはファイルを生成して終わりですが、k1s0 が生成するのはアーキテクチャそのものです。クリーンアーキテクチャに基づくレイヤー分離、Repository パターンによるDB抽象化、OpenTelemetry 計装、ヘルスチェックエンドポイント、CI/CD パイプライン、Helm Chart、Dockerfile――本番運用に必要な構成要素が最初から揃った状態でプロジェクトが始まります。
-
-### 言語の壁を越える統一設計
-
-Go と Rust のサーバー、React と Flutter のクライアント。異なる言語・フレームワークを採用しても、ディレクトリ構成・テスト戦略・設定管理・エラーハンドリングのパターンが統一されています。あるサービスで身につけた知識が、別の言語のサービスでもそのまま通用する設計です。
-
-### 独自の3階層で「成長する基盤」
-
-system / business / service の3階層は、組織の成長に合わせて自然にスケールします。最初は system 層の認証と1つの service だけで始め、部門が増えれば business 層を追加し、サービスが増えても依存方向のルールが秩序を保ちます。小さく始めて大きく育てるアーキテクチャです。
-
-### セキュリティとガバナンスが初期構成
-
-Keycloak による認証基盤、Vault によるシークレット管理、Istio の mTLS によるサービス間暗号化、Cosign によるコンテナイメージ署名、Kong のレート制限――エンタープライズに求められるセキュリティ要件が、後から追加するのではなく最初から組み込まれています。
+- [3 ティアアーキテクチャ](#3-ティアアーキテクチャ)
+- [技術スタック](#技術スタック)
+- [ディレクトリ構成](#ディレクトリ構成)
+- [System サーバー（22 サービス）](#system-サーバー22-サービス)
+- [マルチ言語ライブラリ（50+）](#マルチ言語ライブラリ50)
+- [CLI / GUI](#cli--gui)
+- [インフラ構成](#インフラ構成)
+- [クイックスタート](#クイックスタート)
+- [アーキテクチャ図](#アーキテクチャ図)
+- [ドキュメント](#ドキュメント)
 
 ---
 
-## 主な特徴
+## 3 ティアアーキテクチャ
 
-### CLIによるワンストップ開発
+<p align="center">
+  <img src="docs/diagrams/tier-architecture.svg" alt="3 Tier Architecture" width="780">
+</p>
 
-```
-$ k1s0
+| Tier | 役割 | K8s Namespace |
+|------|------|---------------|
+| **system** | 全プロジェクト共通の基盤サービス・ライブラリ | `k1s0-system` |
+| **business** | 業務領域ごとの共有基盤 | `k1s0-business` |
+| **service** | 個別業務サービス（エンドユーザー向け） | `k1s0-service` |
 
-? 操作を選択してください
-> プロジェクト初期化
-  ひな形生成
-  ビルド
-  テスト実行
-  デプロイ
-```
-
-対話式のプロンプトに答えるだけで、サーバー・クライアント・ライブラリ・データベースのひな形を自動生成。技術選択（Go/Rust、React/Flutter、REST/gRPC/GraphQL）も対話的に行えます。
-
-### 3階層アーキテクチャ（Tier Architecture）
-
-```
-regions/
-├── system/      全プロジェクト共通の基盤（認証・API GW・可観測性）
-├── business/    部門・業務領域ごとの共通基盤（経理・FA 等）
-└── service/     個別サービスの実装（注文・在庫 等）
-```
-
-**system → business → service** の明確な依存方向により、共通基盤の再利用と各サービスの独立性を両立。大規模組織でも統制の取れたサービス開発を実現します。
-
-### ベストプラクティスの内蔵
-
-生成されるコードは以下の設計思想に準拠しています。
-
-- **クリーンアーキテクチャ** — レイヤー分離によるテスタビリティの確保
-- **ドメイン駆動設計（DDD）** — ドメインモデルを中心とした設計
-- **テスト駆動開発（TDD）** — テストファーストによる品質担保
-- **イベント駆動アーキテクチャ** — サービス間の疎結合な連携
-- **CQRS / Event Sourcing / Saga** — 必要に応じた段階的導入
-
-### 可観測性のゼロコンフィグ
-
-すべてのサービスに OpenTelemetry ベースの可観測性スタックが初期構成として組み込まれます。
-
-| コンポーネント                      | 用途                         |
-| ----------------------------------- | ---------------------------- |
-| OpenTelemetry                       | テレメトリデータの収集・送信 |
-| Jaeger 1.62                         | 分散トレーシング             |
-| Prometheus v2.55 + Alertmanager     | メトリクス収集・アラート管理 |
-| Grafana 11.3                        | ダッシュボード・可視化       |
-| Loki 3.3 + Promtail                 | ログ集約・収集               |
+依存は **下位 → 上位の一方向のみ**（service → business → system）。逆方向の依存は禁止です。
 
 ---
 
@@ -111,54 +54,212 @@ regions/
 
 ### 言語・フレームワーク
 
-| カテゴリ                         | 技術                                              |
-| -------------------------------- | ------------------------------------------------- |
-| サーバー                         | **Go 1.23** / **Rust 1.82**                       |
-| Web クライアント                 | **React** (TanStack Query, Zustand, Tailwind CSS) |
-| モバイル・クロスプラットフォーム | **Flutter 3.24** (Riverpod, go_router, freezed)   |
-| デスクトップGUI                  | **Tauri 2** + React                               |
-| CLI                              | **Rust** (dialoguer, Tera テンプレートエンジン)   |
-| システムライブラリ               | **Go / Rust / TypeScript / Dart**（4言語） |
+| 言語 | バージョン | 用途 | フレームワーク |
+|------|-----------|------|--------------|
+| Rust | 1.88 | サーバー・CLI・デスクトップ GUI | axum / tonic / Tauri |
+| Go | 1.23 | BFF プロキシ・ライブラリ | Gin / gRPC |
+| TypeScript | Node 22 | React クライアント | TanStack Query / Zustand |
+| Dart | 3.4 | Flutter モバイルアプリ | Riverpod / go_router |
 
-### API・通信
+### インフラ・ミドルウェア
 
-| 技術                             | 用途                               |
-| -------------------------------- | ---------------------------------- |
-| REST API + OpenAPI               | 汎用的な HTTP 通信                 |
-| gRPC + Protocol Buffers          | サービス間の高速内部通信           |
-| GraphQL (gqlgen / async-graphql) | クライアント主導の柔軟なデータ取得 |
-| Kafka 3.8 (Strimzi)              | 非同期メッセージング・イベント駆動 |
+| カテゴリ | 技術 |
+|----------|------|
+| API | REST (8080) / gRPC (50051) / GraphQL |
+| 認証 | Keycloak 26.0 LTS / OAuth 2.0 OIDC PKCE / JWT RS256 |
+| シークレット | HashiCorp Vault 1.17 (Raft HA) |
+| メッセージング | Kafka 3.8 (Strimzi / KRaft) / Schema Registry |
+| 可観測性 | OpenTelemetry / Prometheus / Grafana / Loki / Jaeger |
+| サービスメッシュ | Istio 1.24 / Envoy sidecar / mTLS STRICT |
+| データベース | PostgreSQL 17 / Redis 7 / OpenSearch |
+| コンテナ | Kubernetes (kubeadm) / Helm 3.16 / Harbor |
+| IaC | Terraform (Consul backend) / Ansible |
+| CI/CD | GitHub Actions / Flagger (Canary deploy) |
+| ネットワーク | Calico CNI / MetalLB / Nginx Ingress / cert-manager |
+| ストレージ | Ceph (RBD / CephFS / RGW) |
 
-### インフラ・運用
+---
 
-| 技術                | 用途                                 |
-| ------------------- | ------------------------------------ |
-| Docker + Kubernetes | コンテナオーケストレーション         |
-| Helm                | マニフェストのテンプレート管理       |
-| Terraform + Ansible | IaC・プロビジョニング                |
-| Istio + Envoy       | サービスメッシュ・mTLS               |
-| Kong 3.8            | API ゲートウェイ                     |
-| GitHub Actions      | CI/CD パイプライン                   |
-| Flagger             | プログレッシブデリバリー（カナリア） |
-| Harbor + Cosign     | コンテナレジストリ・イメージ署名     |
+## ディレクトリ構成
 
-### セキュリティ
+```
+k1s0/
+├── CLI/                          # Rust 製 CLI + Tauri GUI
+│   └── crates/
+│       ├── k1s0-core/            #   共有ライブラリ
+│       └── k1s0-cli/             #   CLI バイナリ
+├── regions/                      # 3 ティア構成
+│   ├── system/
+│   │   ├── server/
+│   │   │   ├── rust/             #   21 Rust サーバー
+│   │   │   └── go/bff-proxy/     #   1 Go サーバー
+│   │   ├── client/
+│   │   │   ├── react/            #   React SDK
+│   │   │   └── flutter/          #   Flutter SDK
+│   │   ├── library/
+│   │   │   ├── go/               #   Go ライブラリ群
+│   │   │   ├── rust/             #   Rust ライブラリ群
+│   │   │   ├── typescript/       #   TypeScript ライブラリ群
+│   │   │   └── dart/             #   Dart ライブラリ群
+│   │   └── database/             #   DB スキーマ
+│   ├── business/{領域}/          # 業務領域別
+│   └── service/{サービス}/       # 個別サービス別
+├── api/
+│   ├── proto/                    # Protocol Buffers
+│   └── graphql/                  # GraphQL スキーマ
+├── infra/                        # Terraform / Ansible
+├── docs/                         # 設計書・仕様書
+├── .devcontainer/                # Dev Container
+├── .github/workflows/            # CI/CD
+└── docker-compose.yaml           # ローカル開発環境
+```
 
-| 技術                 | 用途                 |
-| -------------------- | -------------------- |
-| OAuth 2.0 / OIDC     | 認証・ID 連携        |
-| JWT                  | トークンベースの認可 |
-| Keycloak 26.0 LTS    | ID プロバイダー      |
-| HashiCorp Vault 1.17 | シークレット一元管理 |
+---
 
-### データストア
+## System サーバー（22 サービス）
 
-| 技術          | 用途                       |
-| ------------- | -------------------------- |
-| PostgreSQL 17 | メインの RDBMS             |
-| MySQL 8.4     | 互換性が求められる場合     |
-| SQLite        | 軽量な組込み用途           |
-| Redis 7       | キャッシュ・セッション管理 |
+全サーバーは REST (8080) + gRPC (50051) のデュアルプロトコルに対応しています。
+
+### 認証・セキュリティ
+
+| サーバー | 言語 | 機能 |
+|----------|------|------|
+| **auth** | Rust | JWT 検証・ユーザー管理・RBAC・監査ログ・API キー |
+| **vault** | Rust | シークレット管理・証明書ローテーション |
+| **session** | Rust | セッション管理・トークンリフレッシュ |
+| **bff-proxy** | Go | BFF プロキシ・Cookie/CSRF/CORS 統一処理 |
+
+### API ゲートウェイ・ルーティング
+
+| サーバー | 言語 | 機能 |
+|----------|------|------|
+| **graphql-gateway** | Rust | GraphQL API 集約・リゾルバー統合 |
+| **api-registry** | Rust | API スキーマ管理・バージョニング |
+| **navigation** | Rust | UI ナビゲーション構造・メニュー定義 (SDUI) |
+| **ratelimit** | Rust | レート制限（スライディングウィンドウ/トークンバケット） |
+
+### データ管理・設定
+
+| サーバー | 言語 | 機能 |
+|----------|------|------|
+| **config** | Rust | 環境別設定・YAML 管理・動的リロード |
+| **featureflag** | Rust | フィーチャーフラグ・A/B テスト |
+| **master-maintenance** | Rust | マスターデータ CRUD・バリデーション |
+| **tenant** | Rust | マルチテナント管理・プロビジョニング |
+| **quota** | Rust | リソースクォータ・使用量追跡 |
+| **policy** | Rust | ポリシー定義・アクセス制御ルール |
+
+### メッセージング・ワークフロー
+
+| サーバー | 言語 | 機能 |
+|----------|------|------|
+| **event-store** | Rust | イベントソーシング・Append-only ストア |
+| **saga** | Rust | 分散トランザクション (Saga パターン) |
+| **workflow** | Rust | ワークフロー実行・状態遷移管理 |
+| **dlq-manager** | Rust | Dead Letter Queue 管理・メッセージ再処理 |
+| **notification** | Rust | メール・SMS・Push 通知・テンプレート管理 |
+| **scheduler** | Rust | ジョブスケジューリング・cron 実行 |
+
+### 検索・ファイル
+
+| サーバー | 言語 | 機能 |
+|----------|------|------|
+| **search** | Rust | 全文検索 (OpenSearch)・集約クエリ |
+| **file** | Rust | ファイル管理・S3/Ceph/GCS 対応 |
+
+---
+
+## マルチ言語ライブラリ（50+）
+
+Go / Rust / TypeScript / Dart の 4 言語で同一コンセプトのライブラリを提供します。
+
+| カテゴリ | ライブラリ | 機能 |
+|----------|-----------|------|
+| **認証** | authlib | JWT 検証・OAuth2 PKCE トークン管理 |
+| | serviceauth | サービス間 Client Credentials 認証 |
+| | encryption | AES-GCM・RSA・Argon2id ハッシュ |
+| **設定** | config | YAML 設定・環境別オーバーライド |
+| | featureflag | フィーチャーフラグ・動的機能制御 |
+| **データ** | pagination | カーソル/オフセットベースページング |
+| | migration | DB マイグレーション・ロールバック |
+| | cache | Redis 分散キャッシュ・分散ロック |
+| **メッセージング** | k1s0-messaging | Kafka イベント発行・購読抽象化 |
+| | k1s0-outbox | トランザクショナルアウトボックス |
+| **耐障害性** | retry | 指数バックオフリトライ |
+| | circuit-breaker | サーキットブレーカーパターン |
+| | idempotency | API 冪等性保証 (Idempotency-Key) |
+| **可観測性** | telemetry | OpenTelemetry 初期化・構造化ログ |
+| | tracing | W3C TraceContext 伝播 |
+| | health | liveness / readiness / startup プローブ |
+| **テスト** | test-helper | テストユーティリティ・モックビルダー |
+| | validation | 宣言的バリデーションルール |
+
+---
+
+## CLI / GUI
+
+### 対話式 CLI（Rust 製）
+
+```bash
+$ k1s0
+? メインメニュー
+  > プロジェクト初期化
+  > ひな形生成
+  > 設定スキーマ型生成
+  > ナビゲーション型生成
+  > ビルド
+  > テスト実行
+  > デプロイ
+```
+
+| 機能 | 説明 |
+|------|------|
+| プロジェクト初期化 | モノリポセットアップ・sparse-checkout・Tier 選択 |
+| ひな形生成 | サーバー・クライアント・ライブラリ・DB マイグレーション生成 |
+| 型生成 | 設定スキーマ / ナビゲーション構造の 4 言語型定義自動生成 |
+| ビルド・テスト | 言語別ビルドツール自動選択（cargo / go / npm / flutter） |
+| デプロイ | Kubernetes ローリングデプロイ・Flagger Canary デリバリー |
+
+### Tauri デスクトップ GUI
+
+CLI と同等の全機能をウィザード形式で提供。Windows / macOS / Linux 対応。
+
+---
+
+## インフラ構成
+
+### 環境構成（オンプレミス Kubernetes）
+
+| 環境 | Master | Worker | HPA |
+|------|--------|--------|-----|
+| dev | 1 台 | 2 台 | min=1 / max=2 |
+| staging | 1 台 | 3 台 | min=2 / max=5 |
+| prod | 3 台 (HA) | 5+ 台 | min=3 / max=10 |
+
+### Kubernetes Namespace（9 個）
+
+```
+k1s0-system       22 サービス + Kong + Keycloak + PostgreSQL + Redis
+k1s0-business     業務領域サービス群
+k1s0-service      個別業務 BFF 群
+observability     Prometheus / Grafana / Loki / Jaeger / Alertmanager / OpenSearch
+messaging         Kafka Brokers (Strimzi) / Schema Registry
+service-mesh      istiod / Kiali / Flagger
+cert-manager      内部 CA (ECDSA P-256) / ClusterIssuer
+harbor            コンテナレジストリ / Trivy 脆弱性スキャン
+ingress           Nginx Ingress Controller
+```
+
+### バックアップ戦略
+
+| 対象 | 頻度 | 保持期間 |
+|------|------|----------|
+| etcd snapshot | 毎日 | 30 日 |
+| PostgreSQL dump (12 DB) | 毎日 | 30 日 |
+| Ceph RBD snapshot | 毎日 | 14 日 |
+| Vault Raft snapshot | 毎日 | 30 日 |
+| Consul snapshot | 毎日 | 7 世代 |
+| Harbor DB | 週次 | 90 日 |
 
 ---
 
@@ -166,220 +267,84 @@ regions/
 
 ### 前提条件
 
-- Rust 1.82+
-- Docker & Docker Compose
-- Go 1.23+（Go サーバー開発時）
-### インストールと起動
+- Rust 1.88+　/　Go 1.23+　/　Node.js 22+　/　Dart 3.4+
+- Docker / Docker Compose
+
+### 1. クローン & 環境構築
 
 ```bash
-# リポジトリのクローン
-git clone https://github.com/RyheiKiso/k1s0.git
+git clone https://github.com/k1s0/k1s0.git
 cd k1s0
+docker-compose up -d    # PostgreSQL, Kafka, Redis, Keycloak 起動
+```
 
-# CLI のビルド
-cd CLI && cargo build --release
+### 2. CLI ビルド & 実行
 
-# k1s0 CLI の起動
+```bash
+cd CLI
+cargo build --release
 ./target/release/k1s0
 ```
 
-### Dev Container での開発（推奨）
-
-VS Code + Dev Containers 拡張機能を使えば、開発環境を即時構築できます。
+### 3. ひな形生成（例: business tier の Rust サーバー）
 
 ```bash
-# VS Code で開く
-code .
-# → "Reopen in Container" を選択
+k1s0
+# 「ひな形生成」→ サーバー → business → Rust → サーバー名入力
+# → regions/business/{領域}/server/rust/{名前}/ に自動生成
 ```
 
-### ローカルインフラの起動
+### 4. ビルド & テスト
 
 ```bash
-# PostgreSQL, Redis 等のインフラを起動
-docker compose --profile infra up -d
+# Rust サーバー
+cargo build && cargo test --lib
+
+# Go ライブラリ
+go build ./... && go test ./...
+```
+
+### 5. Kubernetes デプロイ
+
+```bash
+k1s0
+# 「デプロイ」→ 環境選択 → Helm + Flagger で自動デプロイ
 ```
 
 ---
 
-## プロジェクト構成
+## アーキテクチャ図
 
-```
-k1s0/
-├── CLI/                    Rust CLI（k1s0-cli / k1s0-core / k1s0-gui）
-│   └── crates/               3 クレート構成（CLI・コアライブラリ・Tauri GUI）
-├── regions/                3 階層のアプリケーション基盤
-│   ├── system/               共通基盤
-│   │   ├── server/             22 サービス（Rust 21 + Go 1）
-│   │   ├── library/            48 パッケージ × 5 言語（240 ライブラリ）
-│   │   └── database/           auth-db / config-db / api-registry-db / saga-db / dlq-db
-│   ├── business/             部門固有（accounting）
-│   │   ├── server/ client/ library/
-│   │   └── database/
-│   └── service/              個別サービス（order）
-│       ├── server/ client/
-│       └── database/
-├── api/proto/              共有 Protocol Buffers 定義（buf 管理、14 サービス）
-├── infra/                  IaC・インフラ設定
-│   ├── docker/               Docker 初期化・設定
-│   ├── kubernetes/           K8s マニフェスト
-│   ├── helm/                 Helm Charts
-│   ├── terraform/            Terraform モジュール
-│   ├── istio/                サービスメッシュ設定
-│   ├── kong/                 API ゲートウェイ設定
-│   ├── keycloak/             認証基盤設定
-│   ├── vault/                シークレット管理
-│   ├── messaging/            Kafka・Schema Registry
-│   ├── observability/        監視・アラート設定
-│   └── ansible/              プロビジョニング
-├── scripts/                ユーティリティスクリプト
-├── docs/                   設計ドキュメント（100+ ファイル）
-├── .github/workflows/      CI/CD パイプライン（20 ワークフロー）
-└── docker-compose.yaml     ローカル開発環境（3 プロファイル）
-```
+`docs/diagrams/` に draw.io 形式の詳細図を格納しています。
 
----
-
-## System Tier サービス一覧
-
-`regions/system/server/` に実装済みの 22 サービスです。
-
-| サービス          | 言語 | 主な機能                                         |
-| ----------------- | ---- | ------------------------------------------------ |
-| auth              | Rust | 認証・認可・RBAC・JWT 発行（gRPC）               |
-| config            | Rust | 設定管理・Watch ストリーム・スキーマ検証         |
-| api-registry      | Rust | API スキーマ・バージョン管理（PostgreSQL）       |
-| event-store       | Rust | イベント永続化・スナップショット（CQRS 基盤）    |
-| search            | Rust | 検索インデックス・ドキュメント管理               |
-| session           | Rust | セッション管理・有効期限制御                     |
-| saga              | Rust | Saga パターンによる分散トランザクション          |
-| featureflag       | Rust | 機能フラグの動的制御                             |
-| vault             | Rust | Vault 連携・シークレット取得                     |
-| ratelimit         | Rust | レート制限・クォータ管理                         |
-| tenant            | Rust | マルチテナント管理                               |
-| scheduler         | Rust | スケジュールジョブ管理                           |
-| quota             | Rust | リソースクォータ管理                             |
-| notification      | Rust | 通知配信（メール・Push・Webhook）                |
-| policy            | Rust | ポリシー評価・アクセス制御                       |
-| workflow          | Rust | ワークフロー定義・実行管理                       |
-| dlq-manager       | Rust | Dead Letter Queue の監視・再処理                 |
-| file              | Rust | ファイルアップロード・ストレージ管理             |
-| graphql-gateway   | Rust | GraphQL フェデレーション・ゲートウェイ           |
-| audit             | Rust | 監査ログ記録・検索                               |
-| idempotency       | Rust | 冪等性キー管理                                   |
-| bff-proxy         | Go   | BFF プロキシ・クライアント集約                   |
-
----
-
-## System Tier ライブラリ
-
-`regions/system/library/` に 5 言語 × 48 パッケージ（計 240 ライブラリ）を提供します。
-
-| パッケージ           | 用途                              |
-| -------------------- | --------------------------------- |
-| auth                 | 認証・トークン検証                |
-| config               | 設定取得・ウォッチ                |
-| telemetry / tracing  | OpenTelemetry 計装                |
-| kafka                | Kafka プロデューサー / コンシューマー |
-| event-bus / outbox   | イベント発行・Transactional Outbox |
-| eventstore           | イベントストアクライアント        |
-| saga                 | Saga パターン実装                 |
-| resiliency / retry / circuit-breaker | 回復力パターン      |
-| cache                | Redis キャッシュ                  |
-| distributed-lock     | 分散ロック                        |
-| pagination           | ページネーション共通実装          |
-| validation           | 入力バリデーション                |
-| health               | ヘルスチェックエンドポイント      |
-| migration            | DB マイグレーション               |
-| idempotency          | 冪等性キー管理                    |
-| featureflag          | 機能フラグクライアント            |
-| session-client       | セッションクライアント            |
-| vault-client         | Vault シークレット取得            |
-| tenant-client        | テナント情報取得                  |
-| notification-client  | 通知送信クライアント              |
-| search-client        | 検索クライアント                  |
-| scheduler-client     | スケジューラクライアント          |
-| quota-client         | クォータクライアント              |
-| ratelimit-client     | レート制限クライアント            |
-| serviceauth          | サービス間認証（mTLS / JWT）      |
-| schemaregistry       | Kafka Schema Registry クライアント |
-| messaging            | 汎用メッセージングインターフェース |
-| websocket            | WebSocket サポート                |
-| webhook-client       | Webhook 送信クライアント          |
-| graphql-client       | GraphQL クライアント              |
-| file-client          | ファイルストレージクライアント    |
-| audit-client         | 監査ログクライアント              |
-| correlation          | 相関 ID 伝播                      |
-| test-helper          | テストユーティリティ              |
+| 図 | 内容 |
+|----|------|
+| [architecture.drawio](docs/diagrams/architecture.drawio) | 全体アーキテクチャ（3 ティア・インフラ・依存関係） |
+| [infrastructure-topology.drawio](docs/diagrams/infrastructure-topology.drawio) | K8s インフラトポロジ（3 環境・9 NS・ストレージ・IaC） |
+| [kafka-event-flows.drawio](docs/diagrams/kafka-event-flows.drawio) | Kafka トピック・Producer/Consumer マッピング |
+| [auth-login-flow.drawio](docs/diagrams/auth-login-flow.drawio) | 認証フロー（OIDC PKCE・RBAC・JWKS・Device Code） |
+| [system-internal-dependencies.drawio](docs/diagrams/system-internal-dependencies.drawio) | System 22 サービスの内部依存グラフ |
+| [developer-workflow.drawio](docs/diagrams/developer-workflow.drawio) | 開発者ワークフロー（Proto・CLI・SDUI・CI/CD） |
+| [saga-order-flow.drawio](docs/diagrams/saga-order-flow.drawio) | 注文 Saga フロー（補償トランザクション） |
+| [observability-data-flow.drawio](docs/diagrams/observability-data-flow.drawio) | 可観測性データパイプライン |
+| [security-architecture.drawio](docs/diagrams/security-architecture.drawio) | セキュリティアーキテクチャ（TLS・Vault・RBAC） |
+| [database-ownership.drawio](docs/diagrams/database-ownership.drawio) | データベース所有権マッピング |
 
 ---
 
 ## ドキュメント
 
-設計の全体像と各コンポーネントの詳細は `docs/` 配下に整備されています。
-
-| ドキュメント                                     | 内容                                       |
-| ------------------------------------------------ | ------------------------------------------ |
-| [コンセプト](docs/コンセプト.md)                 | プロジェクトの目的・技術スタック・設計思想 |
-| [Tier Architecture](docs/tier-architecture.md)   | 3階層アーキテクチャの設計と依存ルール      |
-| [ディレクトリ構成図](docs/ディレクトリ構成図.md) | モノリポのディレクトリ設計                 |
-| [CLIフロー](docs/CLIフロー.md)                   | CLI の対話フローと操作手順                 |
-| [API設計](docs/API設計.md)                       | REST / gRPC / GraphQL の設計方針           |
-| [認証認可設計](docs/認証認可設計.md)             | OAuth 2.0・JWT・Keycloak・Vault            |
-| [可観測性設計](docs/可観測性設計.md)             | 監視・アラート・SLO/SLA・構造化ログ        |
-| [kubernetes設計](docs/kubernetes設計.md)         | Kubernetes リソース設計                    |
-| [CI-CD設計](docs/CI-CD設計.md)                   | GitHub Actions パイプライン                |
-| [コーディング規約](docs/コーディング規約.md)     | 言語横断のコーディング規約・命名規則       |
+| カテゴリ | パス | 内容 |
+|----------|------|------|
+| アーキテクチャ | `docs/architecture/` | 全体設計・規約・認証・API・メッセージング・可観測性 |
+| サーバー設計書 | `docs/servers/` | 22 サーバーの API 仕様・DB スキーマ・デプロイ設定 |
+| ライブラリ設計書 | `docs/libraries/` | 50+ ライブラリの設計・インターフェース仕様 |
+| インフラ設計 | `docs/infrastructure/` | Kubernetes・ネットワーク・ストレージ・IaC・監視 |
+| CLI 仕様 | `docs/cli/` | CLI フロー・設定・テンプレート仕様 |
+| テンプレート | `docs/templates/` | コード生成テンプレート仕様 |
 
 ---
 
-## 導入の流れ
+## ライセンス
 
-```
-1. k1s0 CLI でプロジェクトを初期化
-   → モノリポ構成・CI/CD・Dev Container が即座に生成される
-
-2. 対話式プロンプトで最初のサービスを追加
-   → クリーンアーキテクチャ準拠のサーバー + DB マイグレーション + テスト + Helm Chart
-
-3. docker compose up で開発開始
-   → PostgreSQL・Redis・Kafka・Prometheus・Grafana がローカルで起動
-
-4. コードを書いて push
-   → GitHub Actions が自動でリント・テスト・ビルド・イメージ署名・デプロイ
-```
-
-チームメンバーの追加も簡単です。Dev Container を開くだけで、全員が同じ開発環境を手に入れられます。sparse-checkout を使えば、担当する階層のコードだけをチェックアウトすることも可能です。
-
----
-
-## 開発への参加
-
-### ブランチ戦略
-
-- `main` — 安定版
-- `work` — 開発ブランチ
-
-### テストの実行
-
-```bash
-# Rust ユニットテスト
-cargo test --lib
-
-# Go テスト
-go test ./...
-
-# テストカバレッジ
-scripts/coverage.sh
-```
-
-### リント
-
-```bash
-# Rust
-cargo clippy --all-targets
-cargo fmt --check
-
-# Go
-golangci-lint run ./...
-```
+Private Repository - All Rights Reserved

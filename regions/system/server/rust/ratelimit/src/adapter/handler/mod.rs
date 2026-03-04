@@ -109,7 +109,7 @@ pub fn router(state: AppState) -> Router {
     );
 
     let api_routes = if let Some(ref auth_state) = state.auth_state {
-        // GET rules/usage -> ratelimit/read
+        // GET rules/usage -> ratelimits/read
         let read_routes = Router::new()
             .route(
                 "/api/v1/ratelimit/rules",
@@ -124,10 +124,10 @@ pub fn router(state: AppState) -> Router {
                 get(ratelimit_handler::get_usage),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimit", "read",
+                "ratelimits", "read",
             )));
 
-        // POST rules/PUT rules -> ratelimit/write
+        // POST rules/PUT rules -> ratelimits/write
         let write_routes = Router::new()
             .route(
                 "/api/v1/ratelimit/rules",
@@ -138,10 +138,10 @@ pub fn router(state: AppState) -> Router {
                 axum::routing::put(ratelimit_handler::update_rule),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimit", "write",
+                "ratelimits", "write",
             )));
 
-        // DELETE rules/reset -> ratelimit/admin
+        // DELETE rules/reset -> ratelimits/admin
         let admin_routes = Router::new()
             .route(
                 "/api/v1/ratelimit/rules/:id",
@@ -152,7 +152,7 @@ pub fn router(state: AppState) -> Router {
                 post(ratelimit_handler::reset_rate_limit),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimit", "admin",
+                "ratelimits", "admin",
             )));
 
         public_api_routes

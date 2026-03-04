@@ -451,6 +451,10 @@ pub mod auth {
     pub fn jwks_fetch_failed() -> ErrorCode {
         ErrorCode::new("SYS_AUTH_JWKS_FETCH_FAILED")
     }
+
+    pub fn audit_validation() -> ErrorCode {
+        ErrorCode::new("SYS_AUTH_AUDIT_VALIDATION")
+    }
 }
 
 /// Well-known error codes for the Config service.
@@ -603,6 +607,10 @@ pub mod api_registry {
 
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_INTERNAL_ERROR")
+    }
+
+    pub fn validator_error() -> ErrorCode {
+        ErrorCode::new("SYS_APIREG_VALIDATOR_ERROR")
     }
 
     pub fn schema_not_found() -> ErrorCode {
@@ -924,6 +932,10 @@ mod tests {
             "SYS_AUTH_PERMISSION_DENIED"
         );
         assert_eq!(auth::unauthorized().as_str(), "SYS_AUTH_UNAUTHORIZED");
+        assert_eq!(
+            auth::audit_validation().as_str(),
+            "SYS_AUTH_AUDIT_VALIDATION"
+        );
     }
 
     #[test]
@@ -948,6 +960,10 @@ mod tests {
     fn test_well_known_api_registry_codes() {
         assert_eq!(api_registry::not_found().as_str(), "SYS_APIREG_NOT_FOUND");
         assert_eq!(api_registry::conflict().as_str(), "SYS_APIREG_CONFLICT");
+        assert_eq!(
+            api_registry::validator_error().as_str(),
+            "SYS_APIREG_VALIDATOR_ERROR"
+        );
     }
 
     #[test]

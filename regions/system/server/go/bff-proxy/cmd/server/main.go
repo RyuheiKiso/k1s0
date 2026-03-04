@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -117,17 +118,17 @@ func run() error {
 	}
 
 	// Initialize OpenTelemetry tracer provider.
-	tp, err := initTracerProvider(ctx)
+	tp, err := initTracerProvider(ctx, cfg.Observability.Trace, cfg.App)
 	if err != nil {
 		logger.Warn("Failed to initialize OTel tracer provider", slog.String("error", err.Error()))
-	} else {
+	} else if tp != nil {
 		defer func() {
 			_ = tp.Shutdown(context.Background())
 		}()
 	}
 
 	// Set up Gin router.
-	if cfg.App.Environment == "prod" {
+	if isProductionEnvironment(cfg.App.Environment) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	router := gin.New()
@@ -140,7 +141,13 @@ func run() error {
 	// Health / Metrics endpoints (no auth required).
 	router.GET("/healthz", healthHandler.Healthz)
 	router.GET("/readyz", healthHandler.Readyz)
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	if cfg.Observability.Metrics.Enabled {
+		metricsPath := cfg.Observability.Metrics.Path
+		if metricsPath == "" {
+			metricsPath = "/metrics"
+		}
+		router.GET(metricsPath, gin.WrapH(promhttp.Handler()))
+	}
 
 	// Auth endpoints (no session required).
 	router.GET("/auth/login", authHandler.Login)
@@ -198,32 +205,52 @@ func run() error {
 	return nil
 }
 
-func initTracerProvider(ctx context.Context) (*sdktrace.TracerProvider, error) {
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+func initTracerProvider(
+	ctx context.Context,
+	traceCfg config.TraceConfig,
+	appCfg config.AppConfig,
+) (*sdktrace.TracerProvider, error) {
+	if !traceCfg.Enabled {
+		return nil, nil
+	}
+
+	endpoint := traceCfg.Endpoint
 	if endpoint == "" {
 		endpoint = "localhost:4317"
 	}
 
-	exporter, err := otlptracegrpc.New(ctx,
+	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(endpoint),
-		otlptracegrpc.WithInsecure(),
-	)
+	}
+	if !strings.HasPrefix(endpoint, "https://") {
+		opts = append(opts, otlptracegrpc.WithInsecure())
+	}
+
+	exporter, err := otlptracegrpc.New(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OTLP exporter: %w", err)
 	}
 
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
-			semconv.ServiceNameKey.String("bff-proxy"),
+			semconv.ServiceNameKey.String(appCfg.Name),
 		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
+	sampleRate := traceCfg.SampleRate
+	if sampleRate < 0 {
+		sampleRate = 0
+	} else if sampleRate > 1 {
+		sampleRate = 1
+	}
+
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
+		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(sampleRate))),
 	)
 	otel.SetTracerProvider(tp)
 	return tp, nil
@@ -242,6 +269,18 @@ func newLogger(logCfg config.LogConfig) *slog.Logger {
 		level = slog.LevelError
 	}
 
-	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
-	return slog.New(handler)
+	opts := &slog.HandlerOptions{Level: level}
+	if strings.EqualFold(logCfg.Format, "text") {
+		return slog.New(slog.NewTextHandler(os.Stdout, opts))
+	}
+	return slog.New(slog.NewJSONHandler(os.Stdout, opts))
+}
+
+func isProductionEnvironment(env string) bool {
+	switch strings.ToLower(strings.TrimSpace(env)) {
+	case "prod", "production":
+		return true
+	default:
+		return false
+	}
 }

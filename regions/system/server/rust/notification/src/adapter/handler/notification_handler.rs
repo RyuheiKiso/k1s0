@@ -235,6 +235,17 @@ pub async fn create_channel(
 ) -> impl IntoResponse {
     use crate::usecase::create_channel::CreateChannelInput;
 
+    if !is_valid_channel_type(&req.channel_type) {
+        return error_response(
+            StatusCode::BAD_REQUEST,
+            codes::notification::validation_error(),
+            format!(
+                "invalid channel_type: {} (allowed: email, slack, webhook, sms, push)",
+                req.channel_type
+            ),
+        );
+    }
+
     let input = CreateChannelInput {
         name: req.name,
         channel_type: req.channel_type,
@@ -256,6 +267,11 @@ pub async fn create_channel(
             })),
         )
             .into_response(),
+        Err(crate::usecase::create_channel::CreateChannelError::Validation(msg)) => error_response(
+            StatusCode::BAD_REQUEST,
+            codes::notification::validation_error(),
+            msg,
+        ),
         Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
             codes::notification::channel_create_failed(),
@@ -453,6 +469,11 @@ pub async fn create_template(
             })),
         )
             .into_response(),
+        Err(crate::usecase::create_template::CreateTemplateError::Validation(msg)) => error_response(
+            StatusCode::BAD_REQUEST,
+            codes::notification::validation_error(),
+            msg,
+        ),
         Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
             codes::notification::template_create_failed(),
@@ -733,4 +754,11 @@ fn strip_sensitive_config(config: &serde_json::Value) -> serde_json::Value {
         }
         _ => config.clone(),
     }
+}
+
+fn is_valid_channel_type(channel_type: &str) -> bool {
+    matches!(
+        channel_type,
+        "email" | "slack" | "webhook" | "sms" | "push"
+    )
 }

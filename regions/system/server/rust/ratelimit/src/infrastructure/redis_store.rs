@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use redis::aio::ConnectionManager;
 use redis::Script;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::domain::entity::RateLimitDecision;
 use crate::domain::repository::{RateLimitStateStore, UsageSnapshot};
@@ -157,12 +158,21 @@ return {allowed, remaining, reset_at}
 
 /// RedisRateLimitStore は Redis ベースのレートリミット状態ストア。
 pub struct RedisRateLimitStore {
-    conn: ConnectionManager,
+    conns: Vec<ConnectionManager>,
+    next: AtomicUsize,
 }
 
 impl RedisRateLimitStore {
-    pub fn new(conn: ConnectionManager) -> Self {
-        Self { conn }
+    pub fn new(conns: Vec<ConnectionManager>) -> Self {
+        Self {
+            conns,
+            next: AtomicUsize::new(0),
+        }
+    }
+
+    fn pick_conn(&self) -> ConnectionManager {
+        let idx = self.next.fetch_add(1, Ordering::Relaxed);
+        self.conns[idx % self.conns.len()].clone()
     }
 }
 
@@ -176,12 +186,13 @@ impl RateLimitStateStore for RedisRateLimitStore {
     ) -> anyhow::Result<RateLimitDecision> {
         let now = chrono::Utc::now().timestamp();
         let script = Script::new(TOKEN_BUCKET_SCRIPT);
+        let mut conn = self.pick_conn();
         let result: Vec<i64> = script
             .key(key)
             .arg(limit)
             .arg(window_secs)
             .arg(now)
-            .invoke_async(&mut self.conn.clone())
+            .invoke_async(&mut conn)
             .await?;
 
         if result.len() < 3 {
@@ -212,12 +223,13 @@ impl RateLimitStateStore for RedisRateLimitStore {
     ) -> anyhow::Result<RateLimitDecision> {
         let now = chrono::Utc::now().timestamp();
         let script = Script::new(FIXED_WINDOW_SCRIPT);
+        let mut conn = self.pick_conn();
         let result: Vec<i64> = script
             .key(key)
             .arg(limit)
             .arg(window_secs)
             .arg(now)
-            .invoke_async(&mut self.conn.clone())
+            .invoke_async(&mut conn)
             .await?;
 
         if result.len() < 3 {
@@ -248,12 +260,13 @@ impl RateLimitStateStore for RedisRateLimitStore {
     ) -> anyhow::Result<RateLimitDecision> {
         let now = chrono::Utc::now().timestamp();
         let script = Script::new(SLIDING_WINDOW_SCRIPT);
+        let mut conn = self.pick_conn();
         let result: Vec<i64> = script
             .key(key)
             .arg(limit)
             .arg(window_secs)
             .arg(now)
-            .invoke_async(&mut self.conn.clone())
+            .invoke_async(&mut conn)
             .await?;
 
         if result.len() < 3 {
@@ -284,12 +297,13 @@ impl RateLimitStateStore for RedisRateLimitStore {
     ) -> anyhow::Result<RateLimitDecision> {
         let now = chrono::Utc::now().timestamp();
         let script = Script::new(LEAKY_BUCKET_SCRIPT);
+        let mut conn = self.pick_conn();
         let result: Vec<i64> = script
             .key(key)
             .arg(limit)
             .arg(window_secs)
             .arg(now)
-            .invoke_async(&mut self.conn.clone())
+            .invoke_async(&mut conn)
             .await?;
 
         if result.len() < 3 {
@@ -313,7 +327,7 @@ impl RateLimitStateStore for RedisRateLimitStore {
     }
 
     async fn reset(&self, key: &str) -> anyhow::Result<()> {
-        let mut conn = self.conn.clone();
+        let mut conn = self.pick_conn();
         redis::cmd("DEL")
             .arg(key)
             .query_async::<()>(&mut conn)
@@ -322,7 +336,7 @@ impl RateLimitStateStore for RedisRateLimitStore {
     }
 
     async fn get_usage(&self, key: &str, limit: i64, window_secs: i64) -> anyhow::Result<Option<UsageSnapshot>> {
-        let mut conn = self.conn.clone();
+        let mut conn = self.pick_conn();
         let result: Vec<Option<String>> = redis::cmd("HMGET")
             .arg(key)
             .arg("tokens")

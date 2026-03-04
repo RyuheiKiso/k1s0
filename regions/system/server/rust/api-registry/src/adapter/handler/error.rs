@@ -75,6 +75,14 @@ impl ApiError {
         )
     }
 
+    pub fn validator_error(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+        let err = ErrorResponse::new(codes::api_registry::validator_error(), message);
+        (
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::to_value(&err).unwrap()),
+        )
+    }
+
     pub fn unauthorized(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
         let err = ErrorResponse::new(codes::api_registry::unauthorized(), message);
         (

@@ -172,6 +172,42 @@ fn default_keycloak_admin_token_cache_ttl_secs() -> u64 {
     300
 }
 
+fn parse_pool_duration(input: &str) -> Option<std::time::Duration> {
+    let value = input.trim();
+    if value.is_empty() {
+        return None;
+    }
+    if let Some(raw) = value.strip_suffix("ms") {
+        return raw
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(std::time::Duration::from_millis);
+    }
+    if let Some(raw) = value.strip_suffix('s') {
+        return raw
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(std::time::Duration::from_secs);
+    }
+    if let Some(raw) = value.strip_suffix('m') {
+        return raw
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(|v| std::time::Duration::from_secs(v * 60));
+    }
+    if let Some(raw) = value.strip_suffix('h') {
+        return raw
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(|v| std::time::Duration::from_secs(v * 60 * 60));
+    }
+    value.parse::<u64>().ok().map(std::time::Duration::from_secs)
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
@@ -218,8 +254,13 @@ async fn main() -> anyhow::Result<()> {
     let db_pool = if let Some(ref db_config) = cfg.database {
         let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_config.connection_url());
         info!(url = %url.replace(|c: char| c == ':' && url.contains("@"), "*"), "connecting to database");
+        let lifetime = parse_pool_duration(&db_config.conn_max_lifetime)
+            .unwrap_or_else(|| std::time::Duration::from_secs(300));
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(db_config.max_open_conns)
+            .min_connections(db_config.max_idle_conns.min(db_config.max_open_conns))
+            .idle_timeout(Some(lifetime))
+            .max_lifetime(Some(lifetime))
             .connect(&url)
             .await?;
         info!("database connection pool established");
@@ -227,6 +268,9 @@ async fn main() -> anyhow::Result<()> {
     } else if let Ok(url) = std::env::var("DATABASE_URL") {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(25)
+            .min_connections(5)
+            .idle_timeout(Some(std::time::Duration::from_secs(300)))
+            .max_lifetime(Some(std::time::Duration::from_secs(300)))
             .connect(&url)
             .await?;
         info!("database connection pool established from DATABASE_URL");

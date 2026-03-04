@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::domain::entity::{ProvisioningJob, Tenant, TenantMember};
+use crate::domain::entity::{Plan, ProvisioningJob, Tenant, TenantMember};
 use crate::usecase::{
     ActivateTenantError, ActivateTenantUseCase, AddMemberInput, AddMemberUseCase,
     CreateTenantInput, CreateTenantUseCase, DeleteTenantError, DeleteTenantUseCase,
@@ -248,7 +248,10 @@ impl TenantGrpcService {
         &self,
         req: CreateTenantRequest,
     ) -> Result<CreateTenantResponse, GrpcError> {
-        validate_plan(&req.plan)?;
+        let plan = req
+            .plan
+            .parse::<Plan>()
+            .map_err(GrpcError::InvalidArgument)?;
         let owner_id = if req.owner_id.is_empty() {
             None
         } else {
@@ -261,7 +264,7 @@ impl TenantGrpcService {
         let input = CreateTenantInput {
             name: req.name,
             display_name: req.display_name,
-            plan: req.plan,
+            plan,
             owner_id,
         };
 
@@ -338,10 +341,14 @@ impl TenantGrpcService {
     ) -> Result<UpdateTenantResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
             .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+        let plan = req
+            .plan
+            .parse::<Plan>()
+            .map_err(GrpcError::InvalidArgument)?;
         let input = UpdateTenantInput {
             id: tenant_id,
             display_name: req.display_name,
-            plan: req.plan,
+            plan,
         };
 
         match self.update_tenant_uc.execute(input).await {
@@ -494,13 +501,6 @@ impl TenantGrpcService {
 
 // --- Validation helpers ---
 
-fn validate_plan(s: &str) -> Result<(), GrpcError> {
-    match s {
-        "free" | "starter" | "professional" | "enterprise" => Ok(()),
-        _ => Err(GrpcError::InvalidArgument(format!("unknown plan: {}", s))),
-    }
-}
-
 fn validate_role(s: &str) -> Result<(), GrpcError> {
     match s {
         "owner" | "admin" | "member" | "viewer" => Ok(()),
@@ -516,7 +516,7 @@ fn domain_tenant_to_pb(t: &Tenant) -> PbTenant {
         name: t.name.clone(),
         display_name: t.display_name.clone(),
         status: t.status.as_str().to_string(),
-        plan: t.plan.clone(),
+        plan: t.plan.as_str().to_string(),
         keycloak_realm: t.keycloak_realm.clone().unwrap_or_default(),
         owner_id: t.owner_id.clone().unwrap_or_default(),
         settings: t.settings.to_string(),
@@ -566,7 +566,7 @@ fn domain_job_to_pb(j: &ProvisioningJob) -> PbProvisioningJob {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::{Plan, ProvisioningStatus, TenantStatus};
+    use crate::domain::entity::{ProvisioningStatus, TenantStatus};
     use crate::domain::repository::member_repository::MockMemberRepository;
     use crate::domain::repository::tenant_repository::MockTenantRepository;
 
@@ -584,7 +584,7 @@ mod tests {
                 name: "acme-corp".to_string(),
                 display_name: "ACME Corporation".to_string(),
                 status: TenantStatus::Active,
-                plan: "pro".to_string(),
+                plan: Plan::Professional,
                 owner_id: None,
                 settings: serde_json::json!({}),
                 keycloak_realm: None,
@@ -598,7 +598,7 @@ mod tests {
                 vec![Tenant::new(
                     "acme-corp".to_string(),
                     "ACME Corporation".to_string(),
-                    Plan::Professional.as_str().to_string(),
+                    Plan::Professional,
                     None,
                 )],
                 1,

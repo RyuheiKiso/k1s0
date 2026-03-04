@@ -1,0 +1,458 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="sys-deps" name="System Internal Dependencies">
+    <mxGraphModel dx="2400" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2800" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="System Tier 内部依存関係図" style="text;html=1;fontSize=28;fontStyle=1;align=center;verticalAlign=middle;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="700" y="20" width="600" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="22サービス間の gRPC/REST 直接呼出し + Kafka イベント + インフラ依存" style="text;html=1;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="600" y="70" width="800" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="label_entry" value="Entry Points" style="text;html=1;fontSize=12;fontStyle=3;align=right;verticalAlign=middle;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="20" y="145" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_core" value="Core Services" style="text;html=1;fontSize=12;fontStyle=3;align=right;verticalAlign=middle;fontColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="20" y="335" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_middle" value="Domain Services" style="text;html=1;fontSize=12;fontStyle=3;align=right;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="20" y="580" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_bottom" value="Event / Tx Services" style="text;html=1;fontSize=12;fontStyle=3;align=right;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="20" y="880" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_infra" value="Infrastructure" style="text;html=1;fontSize=12;fontStyle=3;align=right;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1120" width="120" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="bff" value="BFF Proxy&#xa;(Go)&#xa;Cookie/Bearer変換&#xa;OIDC PKCE&#xa;CSRF保護" style="rounded=1;whiteSpace=wrap;fillColor=#FFE0B2;strokeColor=#E65100;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="120" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="gql" value="GraphQL Gateway&#xa;(Rust)&#xa;async-graphql&#xa;サービス集約&#xa;スキーマ統合" style="rounded=1;whiteSpace=wrap;fillColor=#FFE0B2;strokeColor=#E65100;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="120" width="200" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="auth" value="Auth Server&#xa;(Rust)&#xa;JWT/JWKS検証&#xa;RBAC認可&#xa;APIキー管理" style="rounded=1;whiteSpace=wrap;fillColor=#FFF2CC;strokeColor=#D6B656;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="400" y="310" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="config" value="Config Server&#xa;(Rust)&#xa;集中設定管理&#xa;バージョニング&#xa;テナント別設定" style="rounded=1;whiteSpace=wrap;fillColor=#FFF2CC;strokeColor=#D6B656;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="850" y="310" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="session" value="Session Server&#xa;(Rust)&#xa;分散セッション管理&#xa;メタデータ保存&#xa;デバイス追跡" style="rounded=1;whiteSpace=wrap;fillColor=#FFF2CC;strokeColor=#D6B656;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="310" width="200" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="universal_note" value="全サービス依存: Auth Server (JWKS JWT検証) + Config Server (設定取得)" style="text;html=1;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;fontColor=#999999;fillColor=#FAFAFA;strokeColor=#CCCCCC;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="260" width="480" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="tenant" value="Tenant Server&#xa;(Rust)&#xa;テナント管理&#xa;マルチテナンシー&#xa;gRPC対応" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="160" y="490" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="nav" value="Navigation Server&#xa;(Rust)&#xa;メニュー構造管理&#xa;権限ベースフィルタ&#xa;gRPC対応" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="490" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="file" value="File Server&#xa;(Rust)&#xa;ファイル管理&#xa;アップロード/DL&#xa;メタデータ管理" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="490" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="ff" value="FeatureFlag Server&#xa;(Rust)&#xa;機能フラグ管理&#xa;A/Bテスト&#xa;段階リリース" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="820" y="490" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="policy" value="Policy Server&#xa;(Rust)&#xa;ポリシー評価&#xa;ルールエンジン&#xa;アクセス制御" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="490" width="180" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ratelimit" value="RateLimit Server&#xa;(Rust)&#xa;レート制限&#xa;スライディングウィンドウ&#xa;Redis カウンター" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="490" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="quota" value="Quota Server&#xa;(Rust)&#xa;使用量管理&#xa;クォータ制限&#xa;テナント別制御" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="490" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="apiregistry" value="API Registry&#xa;(Rust)&#xa;APIスキーマ管理&#xa;バージョン管理&#xa;互換性チェック" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="160" y="640" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="search" value="Search Server&#xa;(Rust)&#xa;全文検索&#xa;OpenSearch連携&#xa;インデックス管理" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="640" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="mastermaint" value="Master Maintenance&#xa;(Rust)&#xa;マスタデータ管理&#xa;CRUD自動生成&#xa;メタデータ駆動" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="640" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="notification" value="Notification Server&#xa;(Rust)&#xa;通知配信&#xa;テンプレート管理&#xa;マルチチャネル" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="820" y="640" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="vault" value="Vault Server&#xa;(Rust)&#xa;シークレット管理&#xa;暗号化/復号&#xa;キーローテーション" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="640" width="180" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="eventstore" value="Event Store&#xa;(Rust)&#xa;イベント永続化&#xa;イベントソーシング&#xa;Kafka連携" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="260" y="850" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="saga" value="Saga Server&#xa;(Rust)&#xa;分散トランザクション&#xa;補償処理&#xa;状態管理" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="850" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="workflow" value="Workflow Server&#xa;(Rust)&#xa;ワークフロー管理&#xa;ステップ実行&#xa;承認フロー" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="860" y="850" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="scheduler" value="Scheduler Server&#xa;(Rust)&#xa;ジョブスケジューリング&#xa;cron管理&#xa;分散実行" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="850" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="dlq" value="DLQ Manager&#xa;(Rust)&#xa;Dead Letter Queue管理&#xa;リトライ処理&#xa;エラー分析" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="850" width="200" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="postgres" value="PostgreSQL&#xa;サービス別スキーマ" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="260" y="1080" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="redis_cache" value="Redis (Cache)&#xa;キャッシュ / カウンター" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="1080" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="redis_session" value="Redis (Session)&#xa;セッション保存" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="1080" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="kafka" value="Kafka&#xa;イベントバス" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="1080" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="keycloak" value="Keycloak&#xa;OIDC / IdP" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="1080" width="160" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="db_note" value="全サーバー → PostgreSQL (サービス別スキーマ)" style="text;html=1;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;fontColor=#999999;fillColor=#FAFAFA;strokeColor=#CCCCCC;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="190" y="1030" width="300" height="25" as="geometry"/>
+        </mxCell>
+
+
+        <mxCell id="dep_bff_auth" value="JWT検証/トークン交換" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;fontSize=9;fontColor=#E65100;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="bff" target="auth">
+          <mxGeometry x="0.2" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_bff_session" value="セッション管理" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;fontSize=9;fontColor=#E65100;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="bff" target="session">
+          <mxGeometry x="0.2" y="-10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_gql_auth" value="gRPC ユーザー認証" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;fontSize=9;fontColor=#E65100;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gql" target="auth">
+          <mxGeometry x="0.3" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="1050" y="280"/>
+              <mxPoint x="550" y="280"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_gql_config" value="gRPC 設定取得" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;fontSize=9;fontColor=#E65100;exitX=0.35;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gql" target="config">
+          <mxGeometry x="0.2" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_gql_tenant" value="gRPC テナント情報" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;fontSize=9;fontColor=#E65100;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gql" target="tenant">
+          <mxGeometry x="0.5" y="15" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="1060" y="185"/>
+              <mxPoint x="1060" y="440"/>
+              <mxPoint x="340" y="440"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_gql_nav" value="gRPC ナビゲーション" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;fontSize=9;fontColor=#E65100;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gql" target="nav">
+          <mxGeometry x="0.6" y="15" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="1070" y="165"/>
+              <mxPoint x="1070" y="450"/>
+              <mxPoint x="560" y="450"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_saga_es" value="イベント永続化" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;fontSize=9;fontColor=#E65100;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="saga" target="eventstore">
+          <mxGeometry x="-0.1" y="12" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_wf_saga" value="分散トランザクション委譲" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;fontSize=9;fontColor=#E65100;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="workflow" target="saga">
+          <mxGeometry x="-0.1" y="12" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_wf_es" value="イベント永続化" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;fontSize=9;fontColor=#E65100;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="workflow" target="eventstore">
+          <mxGeometry x="0.3" y="15" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="860" y="980"/>
+              <mxPoint x="360" y="980"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_sched_various" value="ジョブ実行トリガー&#xa;(各サービスへ)" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;dashed=1;dashPattern=8 4;fontSize=9;fontColor=#E65100;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="scheduler">
+          <mxGeometry x="-0.5" y="0" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <mxPoint x="1260" y="780" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+
+        <mxCell id="dep_auth_kc" value="OIDC/Admin API" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#666666;fontSize=9;fontColor=#666666;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="auth" target="keycloak">
+          <mxGeometry x="0.5" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="500" y="1060"/>
+              <mxPoint x="1460" y="1060"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_bff_redis" value="セッション保存" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#666666;fontSize=9;fontColor=#666666;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="bff" target="redis_session">
+          <mxGeometry x="0.6" y="-10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="940" y="230"/>
+              <mxPoint x="1740" y="230"/>
+              <mxPoint x="1740" y="1060"/>
+              <mxPoint x="940" y="1060"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_rl_redis" value="カウンター" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#666666;fontSize=9;fontColor=#666666;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ratelimit" target="redis_cache">
+          <mxGeometry x="0.5" y="-10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="1350" y="1050"/>
+              <mxPoint x="680" y="1050"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_ff_redis" value="キャッシュ" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#666666;fontSize=9;fontColor=#666666;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ff" target="redis_cache">
+          <mxGeometry x="0.5" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="910" y="1040"/>
+              <mxPoint x="640" y="1040"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dep_session_redis" value="セッション保存" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#666666;fontSize=9;fontColor=#666666;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="session" target="redis_session">
+          <mxGeometry x="0.3" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="1400" y="1070"/>
+              <mxPoint x="940" y="1070"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+
+        <mxCell id="ev_config_kafka" value="config.changed.v1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;fontSize=9;fontColor=#2E7D32;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="config" target="kafka">
+          <mxGeometry x="0.3" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="950" y="1010"/>
+              <mxPoint x="1200" y="1010"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ev_ff_kafka" value="featureflag.changed.v1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;fontSize=9;fontColor=#2E7D32;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.35;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ff" target="kafka">
+          <mxGeometry x="0.3" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="955" y="1000"/>
+              <mxPoint x="1216" y="1000"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ev_es_kafka" value="event.published.v1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;fontSize=9;fontColor=#2E7D32;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="eventstore" target="kafka">
+          <mxGeometry x="0.3" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="410" y="990"/>
+              <mxPoint x="1140" y="990"/>
+              <mxPoint x="1140" y="1120"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ev_kafka_notif" value="notification.requested.v1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;fontSize=9;fontColor=#2E7D32;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="kafka" target="notification">
+          <mxGeometry x="0.3" y="-10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="1200" y="1010"/>
+              <mxPoint x="910" y="1010"/>
+              <mxPoint x="910" y="750"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ev_kafka_dlq" value="*.dlq.v1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;fontSize=9;fontColor=#2E7D32;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="kafka" target="dlq">
+          <mxGeometry x="0.2" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="1280" y="1010"/>
+              <mxPoint x="1560" y="1010"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ev_mm_kafka" value="data_changed.v1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;fontSize=9;fontColor=#2E7D32;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.15;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="mastermaint" target="kafka">
+          <mxGeometry x="0.3" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="735" y="990"/>
+              <mxPoint x="1184" y="990"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ev_saga_kafka" value="saga.state_changed.v1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;fontSize=9;fontColor=#2E7D32;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="saga" target="kafka">
+          <mxGeometry x="0.3" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="710" y="1000"/>
+              <mxPoint x="1130" y="1000"/>
+              <mxPoint x="1130" y="1100"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ev_file_kafka" value="file.uploaded/deleted.v1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;fontSize=9;fontColor=#2E7D32;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="file" target="kafka">
+          <mxGeometry x="0.3" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="690" y="980"/>
+              <mxPoint x="1176" y="980"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ev_auth_kafka" value="auth.audit.v1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;fontSize=9;fontColor=#2E7D32;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="auth" target="kafka">
+          <mxGeometry x="0.5" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="600" y="970"/>
+              <mxPoint x="1240" y="970"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ev_session_kafka" value="session.events.v1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;fontSize=9;fontColor=#2E7D32;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.65;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="session" target="kafka">
+          <mxGeometry x="0.3" y="10" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+            <Array as="points">
+              <mxPoint x="1450" y="1020"/>
+              <mxPoint x="1264" y="1020"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="legend_box" value="" style="rounded=1;whiteSpace=wrap;fillColor=#FAFAFA;strokeColor=#CCCCCC;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1800" y="120" width="380" height="320" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="凡例 (Legend)" style="text;html=1;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1800" y="125" width="380" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_line1" value="" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1830" y="180" as="sourcePoint"/>
+            <mxPoint x="1920" y="180" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_text1" value="gRPC/REST 直接呼出し (同期)" style="text;html=1;fontSize=11;fontStyle=0;align=left;verticalAlign=middle;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="1930" y="168" width="240" height="24" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_line1b" value="" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;dashed=1;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1830" y="210" as="sourcePoint"/>
+            <mxPoint x="1920" y="210" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_text1b" value="トリガー呼出し (オプション)" style="text;html=1;fontSize=11;fontStyle=0;align=left;verticalAlign=middle;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="1930" y="198" width="240" height="24" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_line2" value="" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#2E7D32;dashed=1;dashPattern=6 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1830" y="245" as="sourcePoint"/>
+            <mxPoint x="1920" y="245" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_text2" value="Kafka イベント (非同期)" style="text;html=1;fontSize=11;fontStyle=0;align=left;verticalAlign=middle;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="1930" y="233" width="240" height="24" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_line3" value="" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1830" y="278" as="sourcePoint"/>
+            <mxPoint x="1920" y="278" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_text3" value="インフラ依存 (DB/Redis/IdP)" style="text;html=1;fontSize=11;fontStyle=0;align=left;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1930" y="266" width="240" height="24" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_line4" value="" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#999999;dashed=1;dashPattern=4 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1830" y="310" as="sourcePoint"/>
+            <mxPoint x="1920" y="310" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_text4" value="全サービス共通依存 (Auth+Config)" style="text;html=1;fontSize=11;fontStyle=0;align=left;verticalAlign=middle;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="1930" y="298" width="240" height="24" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_box1" value="" style="rounded=1;fillColor=#FFE0B2;strokeColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="1830" y="340" width="20" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_boxtext1" value="Entry Point (BFF/GQL)" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1858" y="334" width="160" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_box2" value="" style="rounded=1;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="1830" y="360" width="20" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_boxtext2" value="Core Service (Auth/Config/Session)" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1858" y="354" width="200" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_box3" value="" style="rounded=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1830" y="380" width="20" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_boxtext3" value="Domain Service" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1858" y="374" width="160" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_box4" value="" style="rounded=1;fillColor=#E3F2FD;strokeColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="1830" y="400" width="20" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_boxtext4" value="Event / Transaction Service" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1858" y="394" width="160" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_box5" value="" style="shape=cylinder3;size=6;fillColor=#F5F5F5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1830" y="418" width="20" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_boxtext5" value="Infrastructure (DB/Cache/MQ/IdP)" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1858" y="414" width="200" height="24" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="count_note" value="合計: 22サービス (Rust 21 + Go 1)&#xa;Entry Points: 2 | Core: 3 | Domain: 12 | Event/Tx: 5" style="text;html=1;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;fontColor=#666666;fillColor=#FAFAFA;strokeColor=#CCCCCC;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1800" y="460" width="380" height="40" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

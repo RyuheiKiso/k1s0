@@ -6,6 +6,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowDefinition {
     pub name: String,
+    #[serde(default = "default_workflow_version")]
+    pub version: i32,
+    #[serde(default = "default_workflow_enabled")]
+    pub enabled: bool,
     pub steps: Vec<WorkflowStep>,
 }
 
@@ -25,6 +29,14 @@ pub struct WorkflowStep {
 
 fn default_timeout_secs() -> u64 {
     30
+}
+
+fn default_workflow_version() -> i32 {
+    1
+}
+
+fn default_workflow_enabled() -> bool {
+    true
 }
 
 /// RetryConfig はリトライ設定を表す。
@@ -134,6 +146,8 @@ steps:
     fn test_from_yaml() {
         let def = WorkflowDefinition::from_yaml(SAMPLE_YAML).unwrap();
         assert_eq!(def.name, "order-fulfillment");
+        assert_eq!(def.version, 1);
+        assert!(def.enabled);
         assert_eq!(def.steps.len(), 3);
         assert_eq!(def.steps[0].name, "reserve-inventory");
         assert_eq!(def.steps[0].service, "inventory-service");

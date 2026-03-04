@@ -48,11 +48,17 @@ async fn main() -> anyhow::Result<()> {
     let db_pool = if let Some(ref db_cfg) = cfg.database {
         let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_cfg.connection_url());
         info!("connecting to database");
-        let pool = create_pool(&url, db_cfg.max_open_conns).await?;
+        let pool = create_pool(
+            &url,
+            db_cfg.max_open_conns,
+            db_cfg.max_idle_conns,
+            db_cfg.conn_max_lifetime,
+        )
+        .await?;
         info!("database connection established");
         Some(Arc::new(pool))
     } else if let Ok(url) = std::env::var("DATABASE_URL") {
-        let pool = create_pool(&url, 10).await?;
+        let pool = create_pool(&url, 10, 2, 300).await?;
         info!("database connection established from DATABASE_URL");
         Some(Arc::new(pool))
     } else {
@@ -80,7 +86,11 @@ async fn main() -> anyhow::Result<()> {
 
     // Kafka publisher
     let publisher: Arc<dyn SchemaEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
-        match KafkaSchemaEventPublisher::new(&kafka_cfg.brokers, &kafka_cfg.topic) {
+        match KafkaSchemaEventPublisher::new(
+            &kafka_cfg.brokers,
+            &kafka_cfg.topic,
+            Some(&kafka_cfg.security_protocol),
+        ) {
             Ok(p) => {
                 info!("Kafka schema event publisher enabled");
                 Arc::new(p)
