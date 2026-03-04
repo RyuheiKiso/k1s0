@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ListExecutionsError {
     #[error("job not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -32,7 +30,7 @@ impl ListExecutionsUseCase {
 
     pub async fn execute(
         &self,
-        job_id: &Uuid,
+        job_id: &str,
     ) -> Result<Vec<SchedulerExecution>, ListExecutionsError> {
         // Verify job exists
         let _job = self
@@ -40,7 +38,7 @@ impl ListExecutionsUseCase {
             .find_by_id(job_id)
             .await
             .map_err(|e| ListExecutionsError::Internal(e.to_string()))?
-            .ok_or(ListExecutionsError::NotFound(*job_id))?;
+            .ok_or_else(|| ListExecutionsError::NotFound(job_id.to_string()))?;
 
         self.execution_repo
             .find_by_job_id(job_id)
@@ -65,12 +63,12 @@ mod tests {
             "* * * * *".to_string(),
             serde_json::json!({}),
         );
-        let job_id = job.id;
+        let job_id = job.id.clone();
         let return_job = job.clone();
 
         mock_job
             .expect_find_by_id()
-            .withf(move |id| *id == job_id)
+            .withf(move |id| id == job_id.as_str())
             .returning(move |_| Ok(Some(return_job.clone())));
 
         mock_exec.expect_find_by_job_id().returning(|_| Ok(vec![]));
@@ -85,7 +83,7 @@ mod tests {
     async fn not_found() {
         let mut mock_job = MockSchedulerJobRepository::new();
         let mock_exec = MockSchedulerExecutionRepository::new();
-        let missing_id = Uuid::new_v4();
+        let missing_id = "job_missing".to_string();
         mock_job.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = ListExecutionsUseCase::new(Arc::new(mock_job), Arc::new(mock_exec));

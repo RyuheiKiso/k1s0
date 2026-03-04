@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
 use crate::usecase::create_channel::{CreateChannelInput, CreateChannelUseCase};
@@ -350,15 +348,9 @@ impl NotificationGrpcService {
         &self,
         req: SendNotificationRequest,
     ) -> Result<SendNotificationResponse, GrpcError> {
-        let channel_id = Uuid::parse_str(&req.channel_id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid channel_id: {}", req.channel_id)))?;
-
-        let template_id = req
-            .template_id
-            .as_deref()
-            .map(Uuid::parse_str)
-            .transpose()
-            .map_err(|_| GrpcError::InvalidArgument("invalid template_id".to_string()))?;
+        if req.channel_id.trim().is_empty() {
+            return Err(GrpcError::InvalidArgument("channel_id is required".to_string()));
+        }
 
         let body = req.body.unwrap_or_default();
 
@@ -369,8 +361,8 @@ impl NotificationGrpcService {
         };
 
         let input = SendNotificationInput {
-            channel_id,
-            template_id,
+            channel_id: req.channel_id,
+            template_id: req.template_id,
             recipient: req.recipient,
             subject: req.subject,
             body,
@@ -400,16 +392,14 @@ impl NotificationGrpcService {
         &self,
         req: GetNotificationRequest,
     ) -> Result<GetNotificationResponse, GrpcError> {
-        let id = Uuid::parse_str(&req.notification_id).map_err(|_| {
-            GrpcError::InvalidArgument(format!("invalid notification_id: {}", req.notification_id))
-        })?;
-
         let log = self
             .log_repo
-            .find_by_id(&id)
+            .find_by_id(&req.notification_id)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?
-            .ok_or_else(|| GrpcError::NotFound(format!("notification not found: {}", id)))?;
+            .ok_or_else(|| {
+                GrpcError::NotFound(format!("notification not found: {}", req.notification_id))
+            })?;
 
         let channel_type = match self
             .channel_repo
@@ -431,13 +421,10 @@ impl NotificationGrpcService {
         req: RetryNotificationRequest,
     ) -> Result<RetryNotificationResponse, GrpcError> {
         let uc = Self::require(&self.retry_notification_uc, "retry_notification")?;
-        let id = Uuid::parse_str(&req.notification_id).map_err(|_| {
-            GrpcError::InvalidArgument(format!("invalid notification_id: {}", req.notification_id))
-        })?;
 
         let log = uc
             .execute(&RetryNotificationInput {
-                notification_id: id,
+                notification_id: req.notification_id,
             })
             .await
             .map_err(|e| match e {
@@ -473,16 +460,9 @@ impl NotificationGrpcService {
         let page = if req.page == 0 { 1 } else { req.page };
         let page_size = if req.page_size == 0 { 20 } else { req.page_size };
 
-        let channel_id = req
-            .channel_id
-            .as_deref()
-            .map(Uuid::parse_str)
-            .transpose()
-            .map_err(|_| GrpcError::InvalidArgument("invalid channel_id".to_string()))?;
-
         let (logs, total) = self
             .log_repo
-            .find_all_paginated(page, page_size, channel_id, req.status)
+            .find_all_paginated(page, page_size, req.channel_id, req.status)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
 
@@ -558,9 +538,7 @@ impl NotificationGrpcService {
         req: GetChannelRequest,
     ) -> Result<GetChannelResponse, GrpcError> {
         let uc = Self::require(&self.get_channel_uc, "get_channel")?;
-        let id = Uuid::parse_str(&req.id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid channel id: {}", req.id)))?;
-        let channel = uc.execute(&id).await.map_err(|e| {
+        let channel = uc.execute(&req.id).await.map_err(|e| {
             let msg = e.to_string();
             if msg.contains("not found") {
                 GrpcError::NotFound(msg)
@@ -578,8 +556,6 @@ impl NotificationGrpcService {
         req: UpdateChannelRequest,
     ) -> Result<UpdateChannelResponse, GrpcError> {
         let uc = Self::require(&self.update_channel_uc, "update_channel")?;
-        let id = Uuid::parse_str(&req.id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid channel id: {}", req.id)))?;
         let config = match req.config_json {
             Some(raw) => Some(
                 serde_json::from_str::<serde_json::Value>(&raw)
@@ -588,7 +564,7 @@ impl NotificationGrpcService {
             None => None,
         };
         let input = UpdateChannelInput {
-            id,
+            id: req.id,
             name: req.name,
             enabled: req.enabled,
             config,
@@ -611,9 +587,7 @@ impl NotificationGrpcService {
         req: DeleteChannelRequest,
     ) -> Result<DeleteChannelResponse, GrpcError> {
         let uc = Self::require(&self.delete_channel_uc, "delete_channel")?;
-        let id = Uuid::parse_str(&req.id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid channel id: {}", req.id)))?;
-        uc.execute(&id).await.map_err(|e| {
+        uc.execute(&req.id).await.map_err(|e| {
             let msg = e.to_string();
             if msg.contains("not found") {
                 GrpcError::NotFound(msg)
@@ -623,7 +597,7 @@ impl NotificationGrpcService {
         })?;
         Ok(DeleteChannelResponse {
             success: true,
-            message: format!("channel {} deleted", id),
+            message: format!("channel {} deleted", req.id),
         })
     }
 
@@ -672,9 +646,7 @@ impl NotificationGrpcService {
         req: GetTemplateRequest,
     ) -> Result<GetTemplateResponse, GrpcError> {
         let uc = Self::require(&self.get_template_uc, "get_template")?;
-        let id = Uuid::parse_str(&req.id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid template id: {}", req.id)))?;
-        let template = uc.execute(&id).await.map_err(|e| {
+        let template = uc.execute(&req.id).await.map_err(|e| {
             let msg = e.to_string();
             if msg.contains("not found") {
                 GrpcError::NotFound(msg)
@@ -692,10 +664,8 @@ impl NotificationGrpcService {
         req: UpdateTemplateRequest,
     ) -> Result<UpdateTemplateResponse, GrpcError> {
         let uc = Self::require(&self.update_template_uc, "update_template")?;
-        let id = Uuid::parse_str(&req.id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid template id: {}", req.id)))?;
         let input = UpdateTemplateInput {
-            id,
+            id: req.id,
             name: req.name,
             subject_template: req.subject_template,
             body_template: req.body_template,
@@ -718,9 +688,7 @@ impl NotificationGrpcService {
         req: DeleteTemplateRequest,
     ) -> Result<DeleteTemplateResponse, GrpcError> {
         let uc = Self::require(&self.delete_template_uc, "delete_template")?;
-        let id = Uuid::parse_str(&req.id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid template id: {}", req.id)))?;
-        uc.execute(&id).await.map_err(|e| {
+        uc.execute(&req.id).await.map_err(|e| {
             let msg = e.to_string();
             if msg.contains("not found") {
                 GrpcError::NotFound(msg)
@@ -730,7 +698,7 @@ impl NotificationGrpcService {
         })?;
         Ok(DeleteTemplateResponse {
             success: true,
-            message: format!("template {} deleted", id),
+            message: format!("template {} deleted", req.id),
         })
     }
 }
@@ -761,10 +729,10 @@ fn template_to_pb(template: &crate::domain::entity::notification_template::Notif
 
 fn log_to_pb(log: crate::domain::entity::notification_log::NotificationLog, channel_type: String) -> PbNotificationLog {
     PbNotificationLog {
-        id: log.id.to_string(),
-        channel_id: log.channel_id.to_string(),
+        id: log.id,
+        channel_id: log.channel_id,
         channel_type,
-        template_id: log.template_id.map(|id| id.to_string()),
+        template_id: log.template_id,
         recipient: log.recipient,
         subject: log.subject,
         body: log.body,
@@ -849,7 +817,7 @@ mod tests {
         );
 
         let req = SendNotificationRequest {
-            channel_id: "not-a-uuid".to_string(),
+            channel_id: "".to_string(),
             template_id: None,
             template_variables: std::collections::HashMap::new(),
             recipient: "user@example.com".to_string(),
@@ -859,7 +827,7 @@ mod tests {
         let result = svc.send_notification(req).await;
         assert!(result.is_err());
         match result.unwrap_err() {
-            GrpcError::InvalidArgument(msg) => assert!(msg.contains("invalid channel_id")),
+            GrpcError::InvalidArgument(msg) => assert!(msg.contains("channel_id is required")),
             e => unreachable!("unexpected error: {:?}", e),
         }
     }
@@ -875,7 +843,7 @@ mod tests {
 
         channel_mock.expect_find_by_id().returning(|_| Ok(None));
 
-        let missing_id = Uuid::new_v4();
+        let missing_id = "ch_missing".to_string();
         let svc = NotificationGrpcService::new(
             Arc::new(SendNotificationUseCase::new(
                 Arc::new(channel_mock),
@@ -886,7 +854,7 @@ mod tests {
         );
 
         let req = SendNotificationRequest {
-            channel_id: missing_id.to_string(),
+            channel_id: missing_id,
             template_id: None,
             template_variables: std::collections::HashMap::new(),
             recipient: "user@example.com".to_string(),
@@ -908,24 +876,24 @@ mod tests {
         let mut log_mock_for_repo = MockNotificationLogRepository::new();
 
         let log = NotificationLog::new(
-            Uuid::new_v4(),
+            "ch_00000000000000000000000000000000".to_string(),
             "user@example.com".to_string(),
             Some("Subject".to_string()),
             "Body".to_string(),
         );
-        let log_id = log.id;
-        let channel_id = log.channel_id;
+        let log_id = log.id.clone();
+        let channel_id = log.channel_id.clone();
         let return_log = log.clone();
 
         log_mock_for_repo
             .expect_find_by_id()
-            .withf(move |id| *id == log_id)
+            .withf(move |id| id == log_id.as_str())
             .returning(move |_| Ok(Some(return_log.clone())));
 
         let mut channel_mock_for_repo = MockNotificationChannelRepository::new();
         channel_mock_for_repo
             .expect_find_by_id()
-            .withf(move |id| *id == channel_id)
+            .withf(move |id| id == channel_id.as_str())
             .returning(|_| {
                 Ok(Some(NotificationChannel::new(
                     "test".to_string(),
@@ -945,10 +913,10 @@ mod tests {
         );
 
         let req = GetNotificationRequest {
-            notification_id: log_id.to_string(),
+            notification_id: log_id.clone(),
         };
         let resp = svc.get_notification(req).await.unwrap();
-        assert_eq!(resp.notification.id, log_id.to_string());
+        assert_eq!(resp.notification.id, log_id);
         assert_eq!(resp.notification.recipient, "user@example.com");
     }
 
@@ -972,7 +940,7 @@ mod tests {
         );
 
         let req = GetNotificationRequest {
-            notification_id: Uuid::new_v4().to_string(),
+            notification_id: "notif_missing".to_string(),
         };
         let result = svc.get_notification(req).await;
         assert!(result.is_err());

@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::domain::entity::notification_template::NotificationTemplate;
 use crate::domain::repository::NotificationTemplateRepository;
@@ -20,7 +19,7 @@ impl TemplatePostgresRepository {
 
 #[derive(sqlx::FromRow)]
 struct TemplateRow {
-    id: Uuid,
+    id: String,
     name: String,
     channel_type: String,
     subject_template: String,
@@ -49,7 +48,7 @@ impl From<TemplateRow> for NotificationTemplate {
 
 #[async_trait]
 impl NotificationTemplateRepository for TemplatePostgresRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<NotificationTemplate>> {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
         let row: Option<TemplateRow> = sqlx::query_as(
             "SELECT id, name, channel_type, subject_template, body_template, created_at, updated_at \
              FROM notification.templates WHERE id = $1",
@@ -127,7 +126,7 @@ impl NotificationTemplateRepository for TemplatePostgresRepository {
              (id, name, channel_type, subject_template, body_template, created_at, updated_at) \
              VALUES ($1, $2, $3, $4, $5, $6, $7)",
         )
-        .bind(template.id)
+        .bind(&template.id)
         .bind(&template.name)
         .bind(&template.channel_type)
         .bind(template.subject_template.as_deref().unwrap_or(""))
@@ -145,7 +144,7 @@ impl NotificationTemplateRepository for TemplatePostgresRepository {
              SET name = $2, subject_template = $3, body_template = $4, updated_at = $5 \
              WHERE id = $1",
         )
-        .bind(template.id)
+        .bind(&template.id)
         .bind(&template.name)
         .bind(template.subject_template.as_deref().unwrap_or(""))
         .bind(&template.body_template)
@@ -155,7 +154,7 @@ impl NotificationTemplateRepository for TemplatePostgresRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
         let result = sqlx::query("DELETE FROM notification.templates WHERE id = $1")
             .bind(id)
             .execute(self.pool.as_ref())

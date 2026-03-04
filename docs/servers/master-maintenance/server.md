@@ -1920,5 +1920,7 @@ curl -X POST http://localhost:8110/api/v1/rules \
 
 ### Message/Field Corrections
 - `TableRelationship` includes `id(6)`, `is_cascade_delete(7)`, `created_at(8)`.
+- `AppErrorResponse.request_id` は現行実装では未採番で、常に `None`（JSON では `null`）となる。
+- `rule_engine` / `import` セクションは `config.yaml` で設定可能（`rule_engine.max_rules_per_table` など）。
 
 

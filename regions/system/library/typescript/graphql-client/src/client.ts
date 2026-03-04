@@ -10,9 +10,11 @@ export class GraphQlHttpClient implements GraphQlClient {
   private readonly endpoint: string;
   private readonly init: RequestInit;
 
-  constructor(endpoint: string, init: RequestInit = {}) {
+  constructor(endpoint: string, headers?: Record<string, string>) {
     this.endpoint = endpoint;
-    this.init = init;
+    this.init = {
+      headers: headers ? new Headers(headers) : undefined,
+    };
   }
 
   async execute<T = unknown>(query: GraphQlQuery): Promise<GraphQlResponse<T>> {

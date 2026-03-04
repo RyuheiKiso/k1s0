@@ -19,7 +19,7 @@ impl QuotaPolicyPostgresRepository {
 
 #[derive(sqlx::FromRow)]
 struct QuotaPolicyRow {
-    id: uuid::Uuid,
+    id: String,
     name: String,
     subject_type: String,
     subject_id: String,
@@ -34,7 +34,7 @@ struct QuotaPolicyRow {
 impl From<QuotaPolicyRow> for QuotaPolicy {
     fn from(r: QuotaPolicyRow) -> Self {
         QuotaPolicy {
-            id: r.id.to_string(),
+            id: r.id,
             name: r.name,
             subject_type: SubjectType::from_str(&r.subject_type)
                 .unwrap_or(SubjectType::Tenant),
@@ -52,15 +52,12 @@ impl From<QuotaPolicyRow> for QuotaPolicy {
 #[async_trait]
 impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<QuotaPolicy>> {
-        let uuid = uuid::Uuid::parse_str(id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
         let row: Option<QuotaPolicyRow> = sqlx::query_as(
             "SELECT id, name, subject_type, subject_id, quota_limit, period, \
                     enabled, alert_threshold_percent, created_at, updated_at \
              FROM quota.quota_policies WHERE id = $1",
         )
-        .bind(uuid)
+        .bind(id)
         .fetch_optional(self.pool.as_ref())
         .await?;
 
@@ -94,19 +91,13 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
     }
 
     async fn create(&self, policy: &QuotaPolicy) -> anyhow::Result<()> {
-        let uuid = uuid::Uuid::parse_str(&policy.id)
-            .or_else(|_| {
-                // id が "quota_xxx" 形式の場合は新しい UUID を生成
-                Ok::<uuid::Uuid, uuid::Error>(uuid::Uuid::new_v4())
-            })?;
-
         sqlx::query(
             "INSERT INTO quota.quota_policies \
              (id, name, subject_type, subject_id, quota_limit, period, \
               enabled, alert_threshold_percent, created_at, updated_at) \
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         )
-        .bind(uuid)
+        .bind(&policy.id)
         .bind(&policy.name)
         .bind(policy.subject_type.as_str())
         .bind(&policy.subject_id)
@@ -123,16 +114,13 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
     }
 
     async fn update(&self, policy: &QuotaPolicy) -> anyhow::Result<()> {
-        let uuid = uuid::Uuid::parse_str(&policy.id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
         sqlx::query(
             "UPDATE quota.quota_policies \
              SET name = $2, subject_type = $3, subject_id = $4, quota_limit = $5, \
                  period = $6, enabled = $7, alert_threshold_percent = $8, updated_at = $9 \
              WHERE id = $1",
         )
-        .bind(uuid)
+        .bind(&policy.id)
         .bind(&policy.name)
         .bind(policy.subject_type.as_str())
         .bind(&policy.subject_id)
@@ -148,11 +136,8 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
     }
 
     async fn delete(&self, id: &str) -> anyhow::Result<bool> {
-        let uuid = uuid::Uuid::parse_str(id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
         let result = sqlx::query("DELETE FROM quota.quota_policies WHERE id = $1")
-            .bind(uuid)
+            .bind(id)
             .execute(self.pool.as_ref())
             .await?;
 

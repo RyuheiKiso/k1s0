@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::domain::repository::SchedulerExecutionRepository;
@@ -23,8 +22,8 @@ impl SchedulerExecutionPostgresRepository {
 #[derive(sqlx::FromRow)]
 #[allow(dead_code)]
 struct SchedulerExecutionRow {
-    id: Uuid,
-    job_id: Uuid,
+    id: String,
+    job_id: String,
     status: String,
     triggered_by: String,
     started_at: DateTime<Utc>,
@@ -54,8 +53,8 @@ impl SchedulerExecutionRepository for SchedulerExecutionPostgresRepository {
              (id, job_id, status, triggered_by, started_at, completed_at, error_message) \
              VALUES ($1, $2, $3, $4, $5, $6, $7)",
         )
-        .bind(execution.id)
-        .bind(execution.job_id)
+        .bind(&execution.id)
+        .bind(&execution.job_id)
         .bind(&execution.status)
         .bind(&execution.triggered_by)
         .bind(execution.started_at)
@@ -66,7 +65,7 @@ impl SchedulerExecutionRepository for SchedulerExecutionPostgresRepository {
         Ok(())
     }
 
-    async fn find_by_job_id(&self, job_id: &Uuid) -> anyhow::Result<Vec<SchedulerExecution>> {
+    async fn find_by_job_id(&self, job_id: &str) -> anyhow::Result<Vec<SchedulerExecution>> {
         let rows: Vec<SchedulerExecutionRow> = sqlx::query_as(
             "SELECT id, job_id, status, triggered_by, started_at, completed_at, error_message \
              FROM scheduler.job_executions \
@@ -81,7 +80,7 @@ impl SchedulerExecutionRepository for SchedulerExecutionPostgresRepository {
 
     async fn update_status(
         &self,
-        id: &Uuid,
+        id: &str,
         status: String,
         error_message: Option<String>,
     ) -> anyhow::Result<()> {
@@ -99,7 +98,7 @@ impl SchedulerExecutionRepository for SchedulerExecutionPostgresRepository {
         Ok(())
     }
 
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<SchedulerExecution>> {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<SchedulerExecution>> {
         let row: Option<SchedulerExecutionRow> = sqlx::query_as(
             "SELECT id, job_id, status, triggered_by, started_at, completed_at, error_message \
              FROM scheduler.job_executions WHERE id = $1",
@@ -119,8 +118,8 @@ mod tests {
     fn test_row_to_entity() {
         let now = Utc::now();
         let row = SchedulerExecutionRow {
-            id: Uuid::new_v4(),
-            job_id: Uuid::new_v4(),
+            id: format!("exec_{}", uuid::Uuid::new_v4().simple()),
+            job_id: format!("job_{}", uuid::Uuid::new_v4().simple()),
             status: "running".to_string(),
             triggered_by: "scheduler".to_string(),
             started_at: now,
@@ -137,8 +136,8 @@ mod tests {
     fn test_row_to_entity_completed() {
         let now = Utc::now();
         let row = SchedulerExecutionRow {
-            id: Uuid::new_v4(),
-            job_id: Uuid::new_v4(),
+            id: format!("exec_{}", uuid::Uuid::new_v4().simple()),
+            job_id: format!("job_{}", uuid::Uuid::new_v4().simple()),
             status: "failed".to_string(),
             triggered_by: "scheduler".to_string(),
             started_at: now,

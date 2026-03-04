@@ -60,6 +60,10 @@ pub struct AppState {
     pub remove_member_uc: Arc<RemoveMemberUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<TenantAuthState>,
+    pub db_pool: Option<Arc<sqlx::PgPool>>,
+    pub kafka_brokers: Option<Vec<String>>,
+    pub keycloak_health_url: Option<String>,
+    pub http_client: reqwest::Client,
 }
 
 impl AppState {
@@ -138,6 +142,7 @@ pub struct ListTenantsResponse {
     pub total_count: i64,
     pub page: i32,
     pub page_size: i32,
+    pub has_next: bool,
 }
 
 // --- Handlers ---
@@ -146,8 +151,88 @@ pub async fn healthz() -> impl IntoResponse {
     Json(serde_json::json!({"status": "ok"}))
 }
 
-pub async fn readyz() -> impl IntoResponse {
-    Json(serde_json::json!({"status": "ready"}))
+pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
+    let mut checks = serde_json::Map::new();
+    let mut is_ready = true;
+
+    if let Some(pool) = &state.db_pool {
+        match sqlx::query("SELECT 1").execute(pool.as_ref()).await {
+            Ok(_) => {
+                checks.insert("database".to_string(), serde_json::json!("ok"));
+            }
+            Err(e) => {
+                checks.insert("database".to_string(), serde_json::json!(e.to_string()));
+                is_ready = false;
+            }
+        }
+    } else {
+        checks.insert("database".to_string(), serde_json::json!("not_configured"));
+    }
+
+    if let Some(brokers) = &state.kafka_brokers {
+        use rdkafka::config::ClientConfig;
+        use rdkafka::consumer::{BaseConsumer, Consumer};
+
+        let consumer = ClientConfig::new()
+            .set("bootstrap.servers", brokers.join(","))
+            .set("group.id", "tenant-readyz-check")
+            .set("enable.auto.commit", "false")
+            .create::<BaseConsumer>();
+
+        match consumer {
+            Ok(c) => match c.fetch_metadata(None, std::time::Duration::from_secs(2)) {
+                Ok(_) => {
+                    checks.insert("kafka".to_string(), serde_json::json!("ok"));
+                }
+                Err(e) => {
+                    checks.insert("kafka".to_string(), serde_json::json!(e.to_string()));
+                    is_ready = false;
+                }
+            },
+            Err(e) => {
+                checks.insert("kafka".to_string(), serde_json::json!(e.to_string()));
+                is_ready = false;
+            }
+        }
+    } else {
+        checks.insert("kafka".to_string(), serde_json::json!("not_configured"));
+    }
+
+    if let Some(url) = &state.keycloak_health_url {
+        match state.http_client.get(url).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                checks.insert("keycloak".to_string(), serde_json::json!("ok"));
+            }
+            Ok(resp) => {
+                checks.insert(
+                    "keycloak".to_string(),
+                    serde_json::json!(format!("status {}", resp.status())),
+                );
+                is_ready = false;
+            }
+            Err(e) => {
+                checks.insert("keycloak".to_string(), serde_json::json!(e.to_string()));
+                is_ready = false;
+            }
+        }
+    } else {
+        checks.insert("keycloak".to_string(), serde_json::json!("not_configured"));
+    }
+
+    let status = if is_ready { "ready" } else { "not_ready" };
+    let code = if is_ready {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    (
+        code,
+        Json(serde_json::json!({
+            "status": status,
+            "checks": checks,
+        })),
+    )
 }
 
 pub async fn list_tenants(
@@ -156,6 +241,7 @@ pub async fn list_tenants(
 ) -> impl IntoResponse {
     match state.list_tenants_uc.execute(query.page, query.page_size).await {
         Ok((tenants, total)) => {
+            let has_next = i64::from(query.page) * i64::from(query.page_size) < total;
             let resp = ListTenantsResponse {
                 tenants: tenants
                     .into_iter()
@@ -176,6 +262,7 @@ pub async fn list_tenants(
                 total_count: total,
                 page: query.page,
                 page_size: query.page_size,
+                has_next,
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }

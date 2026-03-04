@@ -1,4 +1,4 @@
-﻿# system-quota-server 設計
+# system-quota-server 設計
 
 テナント・ユーザー・APIキーごとの日次/月次クォータ管理サーバー。Redis 低レイテンシカウンター・超過検知を提供。
 
@@ -693,6 +693,8 @@ message ResetQuotaUsageResponse {
 ## 設定ファイル例
 
 ### config.yaml（本番）
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:
@@ -820,6 +822,7 @@ vault:
 
 ### 2026-03-03 追補
 - POST /api/v1/quotas/:id/check の認可は sys_auditor 相当（quotas/read）。
+- `CheckQuota` は `GetQuotaUsageUseCase`（`get_usage_uc`）を流用して実装している。
 - Kafka メッセージキーは quota_id ではなく {subject_type}:{subject_id}。
 - REST 更新はフル更新（必須項目あり）、gRPC 更新は optional による部分更新。
 - alert_threshold_percent はドメイン u8 と proto uint32 のマッピングを行う。

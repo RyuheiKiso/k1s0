@@ -1,4 +1,4 @@
-﻿# system-saga-server 設計
+# system-saga-server 設計
 
 system tier の Saga Orchestrator 設計を定義する。YAML ベースのワークフロー定義に基づく分散トランザクションオーケストレーション（5 ステップ以上）を担い、Rust で実装する。
 
@@ -1156,6 +1156,8 @@ services:
 ## 設定ファイル例
 
 ### config.yaml（本番）
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:

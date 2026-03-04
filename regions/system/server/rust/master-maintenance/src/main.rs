@@ -24,10 +24,10 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
-        sample_rate: 1.0,
-        log_level: cfg.observability.log_level.clone(),
-        log_format: cfg.observability.log_format.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
@@ -37,8 +37,12 @@ async fn main() -> anyhow::Result<()> {
     // 3. Database
     let db_pool = if let Some(ref db_cfg) = cfg.database {
         let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_cfg.connection_url());
+        let lifetime = std::time::Duration::from_secs(db_cfg.conn_max_lifetime);
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(db_cfg.max_connections)
+            .min_connections(db_cfg.max_idle_conns.min(db_cfg.max_connections))
+            .idle_timeout(Some(lifetime))
+            .max_lifetime(Some(lifetime))
             .connect(&url)
             .await?;
         info!("database connected");

@@ -6,6 +6,12 @@ app:
 server:
   host: "0.0.0.0"
   port: 8082
+  read_timeout: "10s"
+  write_timeout: "30s"
+  shutdown_timeout: "15s"
+
+grpc:
+  port: 50051
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
@@ -34,8 +40,49 @@ kafka:
       - "k1s0.system.config.changed.v1"
     subscribe: []
 
+config_server:
+  cache:
+    max_entries: 10000
+    ttl: "300s"
+    refresh_on_miss: true
+  audit:
+    enabled: true
+    retention_days: 365
+    kafka_enabled: false
+    kafka_topic: "k1s0.system.config.audit.v1"
+  namespace:
+    default_prefix: "system"
+    allowed_tiers: ["system", "business", "tenant"]
+    max_depth: 4
+
 observability:
-  otlp_endpoint: "http://otel-collector.observability:4317"
-  log_level: "info"
-  log_format: "json"
-  metrics_enabled: true
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: true
+    endpoint: "http://otel-collector.observability:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"
+
+# === Production configuration (uncomment as needed) ===
+# database:
+#   host: "localhost"
+#   port: 5432
+#   name: "k1s0_system"
+#   user: "app"
+#   password: ""
+#   ssl_mode: "disable"
+#   max_open_conns: 25
+#   max_idle_conns: 5
+#   conn_max_lifetime: "5m"
+# kafka:
+#   brokers:
+#     - "localhost:9092"
+#   security_protocol: "PLAINTEXT"
+# auth:
+#   jwks_url: "http://auth:8080/jwks"
+#   issuer: "k1s0"
+#   audience: "k1s0-system"

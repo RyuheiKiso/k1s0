@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetChannelError {
     #[error("channel not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -23,12 +21,12 @@ impl GetChannelUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, id: &Uuid) -> Result<NotificationChannel, GetChannelError> {
+    pub async fn execute(&self, id: &str) -> Result<NotificationChannel, GetChannelError> {
         self.repo
             .find_by_id(id)
             .await
             .map_err(|e| GetChannelError::Internal(e.to_string()))?
-            .ok_or(GetChannelError::NotFound(*id))
+            .ok_or_else(|| GetChannelError::NotFound(id.to_string()))
     }
 }
 
@@ -46,11 +44,11 @@ mod tests {
             serde_json::json!({}),
             true,
         );
-        let channel_id = channel.id;
+        let channel_id = channel.id.clone();
         let return_channel = channel.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| *id == channel_id)
+            .withf(move |id| id == channel_id.as_str())
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         let uc = GetChannelUseCase::new(Arc::new(mock));
@@ -65,7 +63,7 @@ mod tests {
         mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = GetChannelUseCase::new(Arc::new(mock));
-        let result = uc.execute(&Uuid::new_v4()).await;
+        let result = uc.execute("ch_missing").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

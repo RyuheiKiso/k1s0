@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::domain::entity::scheduler_job::SchedulerJob;
 use crate::domain::repository::SchedulerJobRepository;
@@ -24,7 +23,7 @@ impl SchedulerJobPostgresRepository {
 #[derive(sqlx::FromRow)]
 #[allow(dead_code)]
 struct SchedulerJobRow {
-    id: Uuid,
+    id: String,
     name: String,
     cron_expression: String,
     job_type: String,
@@ -68,7 +67,7 @@ impl From<SchedulerJobRow> for SchedulerJob {
 
 #[async_trait]
 impl SchedulerJobRepository for SchedulerJobPostgresRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<SchedulerJob>> {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<SchedulerJob>> {
         let row: Option<SchedulerJobRow> = sqlx::query_as(
             "SELECT id, name, cron_expression, job_type, payload, enabled, max_retries, \
                     description, timezone, target_type, target, \
@@ -101,7 +100,7 @@ impl SchedulerJobRepository for SchedulerJobPostgresRepository {
               last_run_at, next_run_at, created_at, updated_at) \
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
         )
-        .bind(job.id)
+        .bind(&job.id)
         .bind(&job.name)
         .bind(&job.cron_expression)
         .bind(&job.payload)
@@ -128,7 +127,7 @@ impl SchedulerJobRepository for SchedulerJobPostgresRepository {
                  last_run_at = $10, next_run_at = $11, updated_at = $12 \
              WHERE id = $1",
         )
-        .bind(job.id)
+        .bind(&job.id)
         .bind(&job.name)
         .bind(&job.cron_expression)
         .bind(&job.payload)
@@ -145,7 +144,7 @@ impl SchedulerJobRepository for SchedulerJobPostgresRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
         let result = sqlx::query("DELETE FROM scheduler.scheduler_jobs WHERE id = $1")
             .bind(id)
             .execute(self.pool.as_ref())
@@ -175,7 +174,7 @@ mod tests {
     #[test]
     fn test_row_to_entity_active() {
         let row = SchedulerJobRow {
-            id: Uuid::new_v4(),
+            id: format!("job_{}", uuid::Uuid::new_v4().simple()),
             name: "test-job".to_string(),
             cron_expression: "* * * * *".to_string(),
             job_type: "default".to_string(),
@@ -201,7 +200,7 @@ mod tests {
     #[test]
     fn test_row_to_entity_paused() {
         let row = SchedulerJobRow {
-            id: Uuid::new_v4(),
+            id: format!("job_{}", uuid::Uuid::new_v4().simple()),
             name: "paused-job".to_string(),
             cron_expression: "0 12 * * *".to_string(),
             job_type: "default".to_string(),

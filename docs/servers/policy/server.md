@@ -1,4 +1,4 @@
-﻿# system-policy-server 設計
+# system-policy-server 設計
 
 > **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `policies/read`, `policies/write`, `policies/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
@@ -775,6 +775,8 @@ CREATE INDEX idx_policies_package_path ON policy.policies(package_path);
 ## 設定ファイル例
 
 ### config.yaml（本番）
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:

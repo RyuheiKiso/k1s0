@@ -117,7 +117,7 @@ impl From<anyhow::Error> for AppError {
         if lower.contains("delete not allowed")
             || (lower.contains("delete") && lower.contains("not allowed"))
         {
-            return Self::forbidden("SYS_MM_DELETE_NOT_ALLOWED", &msg);
+            return Self::forbidden("SYS_AUTH_PERMISSION_DENIED", &msg);
         }
         if lower.contains("duplicate table")
             || (lower.contains("table") && lower.contains("already exists"))
@@ -136,10 +136,10 @@ impl From<anyhow::Error> for AppError {
             return Self::bad_request("SYS_MM_IMPORT_FAILED", &msg);
         }
         if lower.contains("sql") && lower.contains("build") {
-            return Self::internal("SYS_MM_SQL_BUILD_ERROR", &msg);
+            return Self::internal("SYS_MM_INTERNAL_ERROR", &msg);
         }
         if lower.contains("validation") {
-            return Self::bad_request("SYS_MM_VALIDATION_ERROR", &msg);
+            return Self::bad_request("SYS_MM_VALIDATION_FAILED", &msg);
         }
 
         Self::internal("SYS_MM_INTERNAL_ERROR", &msg)

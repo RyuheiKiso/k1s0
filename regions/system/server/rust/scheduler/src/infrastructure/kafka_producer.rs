@@ -239,7 +239,7 @@ mod tests {
         )
     }
 
-    fn make_test_execution(job_id: uuid::Uuid) -> SchedulerExecution {
+    fn make_test_execution(job_id: String) -> SchedulerExecution {
         SchedulerExecution::new(job_id)
     }
 

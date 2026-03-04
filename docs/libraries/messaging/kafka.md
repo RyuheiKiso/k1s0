@@ -95,7 +95,7 @@ let topic = TopicConfig {
 assert!(topic.validate_name());
 ```
 
-**SASL フィールドに関する注記**: Go/TypeScript/Dart の `KafkaConfig` は `saslMechanism`・`saslUsername`・`saslPassword` フィールドを保持するが、Rust の `KafkaConfig` は現時点でこれらのフィールドを持たない（`security_protocol` のみ対応）。SASL 認証が必要な場合は rdkafka の設定で別途指定する想定。
+**SASL フィールドに関する注記**: Rust / Go / TypeScript / Dart の `KafkaConfig` は `sasl_mechanism`（`saslMechanism`）・`sasl_username`（`saslUsername`）・`sasl_password`（`saslPassword`）を保持する。SASL 認証時は `security_protocol` を `SASL_PLAINTEXT` または `SASL_SSL` に設定する。
 
 ## Go 実装
 

@@ -1,4 +1,4 @@
-﻿# system-vault-server 設計
+# system-vault-server 設計
 
 > **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `secrets/read`, `secrets/write`, `secrets/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
@@ -534,6 +534,8 @@ moka を使用した TTL ベースのインメモリキャッシュにより、V
 ## 設定ファイル
 
 ### config.yaml
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:

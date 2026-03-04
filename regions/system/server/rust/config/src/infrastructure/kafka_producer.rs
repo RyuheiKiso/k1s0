@@ -30,6 +30,8 @@ pub struct KafkaConfig {
     pub sasl: SaslConfig,
     #[serde(default)]
     pub topics: TopicsConfig,
+    #[serde(default, alias = "topic_changed", alias = "topic")]
+    pub topic_changed: String,
 }
 
 fn default_security_protocol() -> String {
@@ -76,12 +78,16 @@ impl KafkaProducer {
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
-        let topic = config
-            .topics
-            .publish
-            .first()
-            .cloned()
-            .unwrap_or_else(|| "k1s0.system.config.changed.v1".to_string());
+        let topic = if !config.topic_changed.is_empty() {
+            config.topic_changed.clone()
+        } else {
+            config
+                .topics
+                .publish
+                .first()
+                .cloned()
+                .unwrap_or_else(|| "k1s0.system.config.changed.v1".to_string())
+        };
 
         let mut client_config = ClientConfig::new();
         client_config.set("bootstrap.servers", config.brokers.join(","));

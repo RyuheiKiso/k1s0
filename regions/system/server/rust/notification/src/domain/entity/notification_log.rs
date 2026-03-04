@@ -1,12 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NotificationLog {
-    pub id: Uuid,
-    pub channel_id: Uuid,
-    pub template_id: Option<Uuid>,
+    pub id: String,
+    pub channel_id: String,
+    pub template_id: Option<String>,
     pub recipient: String,
     pub subject: Option<String>,
     pub body: String,
@@ -18,9 +17,9 @@ pub struct NotificationLog {
 }
 
 impl NotificationLog {
-    pub fn new(channel_id: Uuid, recipient: String, subject: Option<String>, body: String) -> Self {
+    pub fn new(channel_id: String, recipient: String, subject: Option<String>, body: String) -> Self {
         Self {
-            id: Uuid::new_v4(),
+            id: format!("notif_{}", uuid::Uuid::new_v4().simple()),
             channel_id,
             template_id: None,
             recipient,

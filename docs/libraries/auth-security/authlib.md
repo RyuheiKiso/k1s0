@@ -15,7 +15,7 @@
 | `NewJWKSVerifierWithFetcher` | `(jwksURL, issuer, audience, cacheTTL, fetcher) -> Verifier` | Go のみ: JWKS 取得実装を差し替え可能な検証器を生成 |
 | `VerifyToken` / `verify_token` | `(tokenString) -> (Claims, Error)` | JWT トークンを検証 |
 | `Claims` | struct | JWT クレーム（sub, iss, aud, realm_access, resource_access, tier_access 等） |
-| `AuthError` | enum | `MissingToken` / `InvalidAuthHeader` / `TokenExpired` / `InvalidToken` / `JwksFetchFailed` / `PermissionDenied` |
+| `AuthError` | enum | `MissingToken` / `InvalidAuthHeader` / `TokenExpired` / `InvalidToken` / `JwksFetchFailed` / `PermissionDenied` / `TierAccessDenied` |
 | `JWKSFetcher` | interface | Go のみ: JWKS 取得処理の差し替えインターフェース |
 
 ### RBAC チェック関数
@@ -259,7 +259,7 @@ use tokio::sync::RwLock;
 pub struct Claims {
     pub sub: String,
     pub iss: String,
-    pub aud: Vec<String>,
+    pub aud: Audience,
     pub exp: u64,
     pub iat: u64,
     pub jti: Option<String>,
@@ -283,6 +283,9 @@ pub struct RoleSet {
     pub roles: Vec<String>,
 }
 
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct Audience(pub Vec<String>);
+
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
     #[error("token expired")]
@@ -291,8 +294,14 @@ pub enum AuthError {
     InvalidToken(String),
     #[error("JWKS fetch failed: {0}")]
     JwksFetchFailed(String),
+    #[error("missing Authorization header")]
+    MissingToken,
+    #[error("invalid Authorization header format")]
+    InvalidAuthHeader,
     #[error("permission denied")]
     PermissionDenied,
+    #[error("tier access denied")]
+    TierAccessDenied,
 }
 
 pub struct JwksVerifier {
@@ -369,14 +378,14 @@ impl JwksVerifier {
     }
 }
 
-pub fn check_permission(claims: &Claims, _resource: &str, action: &str) -> bool {
+pub fn check_permission(claims: &Claims, resource: &str, action: &str) -> bool {
     if let Some(ref realm) = claims.realm_access {
-        if realm.roles.contains(&"admin".to_string()) {
+        if realm.roles.contains(&"sys_admin".to_string()) || realm.roles.contains(&"admin".to_string()) {
             return true;
         }
     }
     if let Some(ref resources) = claims.resource_access {
-        for roles in resources.values() {
+        if let Some(roles) = resources.get(resource) {
             if roles.roles.contains(&action.to_string()) || roles.roles.contains(&"admin".to_string()) {
                 return true;
             }

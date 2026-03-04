@@ -1,10 +1,9 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchedulerJob {
-    pub id: Uuid,
+    pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub cron_expression: String,
@@ -23,7 +22,7 @@ impl SchedulerJob {
     pub fn new(name: String, cron_expression: String, payload: serde_json::Value) -> Self {
         let now = Utc::now();
         Self {
-            id: Uuid::new_v4(),
+            id: format!("job_{}", uuid::Uuid::new_v4().simple()),
             name,
             description: None,
             cron_expression,

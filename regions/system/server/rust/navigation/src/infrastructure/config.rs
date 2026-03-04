@@ -95,41 +95,90 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
-    #[serde(default = "default_otlp_endpoint")]
-    pub otlp_endpoint: String,
-    #[serde(default = "default_log_level")]
-    pub log_level: String,
-    #[serde(default = "default_log_format")]
-    pub log_format: String,
-    #[serde(default = "default_metrics_enabled")]
-    pub metrics_enabled: bool,
+    #[serde(default)]
+    pub log: LogConfig,
+    #[serde(default)]
+    pub trace: TraceConfig,
+    #[serde(default)]
+    pub metrics: MetricsConfig,
 }
-
 impl Default for ObservabilityConfig {
     fn default() -> Self {
         Self {
-            otlp_endpoint: default_otlp_endpoint(),
-            log_level: default_log_level(),
-            log_format: default_log_format(),
-            metrics_enabled: default_metrics_enabled(),
+            log: LogConfig::default(),
+            trace: TraceConfig::default(),
+            metrics: MetricsConfig::default(),
         }
     }
 }
-
-fn default_otlp_endpoint() -> String {
+#[derive(Debug, Clone, Deserialize)]
+pub struct LogConfig {
+    #[serde(default = "default_log_level")]
+    pub level: String,
+    #[serde(default = "default_log_format")]
+    pub format: String,
+}
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            level: default_log_level(),
+            format: default_log_format(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct TraceConfig {
+    #[serde(default = "default_trace_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_trace_endpoint")]
+    pub endpoint: String,
+    #[serde(default = "default_trace_sample_rate")]
+    pub sample_rate: f64,
+}
+impl Default for TraceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_trace_enabled(),
+            endpoint: default_trace_endpoint(),
+            sample_rate: default_trace_sample_rate(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct MetricsConfig {
+    #[serde(default = "default_metrics_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_metrics_path")]
+    pub path: String,
+}
+impl Default for MetricsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_metrics_enabled(),
+            path: default_metrics_path(),
+        }
+    }
+}
+fn default_trace_enabled() -> bool {
+    true
+}
+fn default_trace_endpoint() -> String {
     "http://otel-collector.observability:4317".to_string()
 }
-
+fn default_trace_sample_rate() -> f64 {
+    1.0
+}
 fn default_log_level() -> String {
     "info".to_string()
 }
-
 fn default_log_format() -> String {
     "json".to_string()
 }
-
 fn default_metrics_enabled() -> bool {
     true
+}
+fn default_metrics_path() -> String {
+    "/metrics".to_string()
 }
 #[cfg(test)]
 mod tests {

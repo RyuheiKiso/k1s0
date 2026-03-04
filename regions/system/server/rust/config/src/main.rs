@@ -30,10 +30,10 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
-        sample_rate: 1.0,
-        log_level: cfg.observability.log_level.clone(),
-        log_format: cfg.observability.log_format.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
@@ -43,6 +43,9 @@ async fn main() -> anyhow::Result<()> {
         app_name = %cfg.app.name,
         version = %cfg.app.version,
         environment = %cfg.app.environment,
+        read_timeout = %cfg.server.read_timeout,
+        write_timeout = %cfg.server.write_timeout,
+        shutdown_timeout = %cfg.server.shutdown_timeout,
         "starting config server"
     );
 
@@ -68,14 +71,18 @@ async fn main() -> anyhow::Result<()> {
             pool,
             metrics.clone(),
         ));
-        // 繧ｭ繝｣繝・す繝･縺ｧ繝ｩ繝・・・・TL 300遘偵∵怙螟ｧ10000繧ｨ繝ｳ繝医Μ・・
+        let cache_ttl_seconds = cfg.config_server.cache.ttl_seconds().unwrap_or_else(|e| {
+            tracing::warn!(error = %e, ttl = %cfg.config_server.cache.ttl, "invalid cache ttl, fallback to 300s");
+            300
+        });
+
         let cache = Arc::new(infrastructure::cache::ConfigCache::new(
             cfg.config_server.cache.max_entries as u64,
-            cfg.config_server.cache.ttl_seconds,
+            cache_ttl_seconds,
         ));
         info!(
             max_capacity = cfg.config_server.cache.max_entries,
-            ttl_seconds = cfg.config_server.cache.ttl_seconds,
+            ttl_seconds = cache_ttl_seconds,
             "config cache initialized"
         );
         (
@@ -103,14 +110,18 @@ async fn main() -> anyhow::Result<()> {
             pool,
             metrics.clone(),
         ));
-        // 繧ｭ繝｣繝・す繝･縺ｧ繝ｩ繝・・・・TL 300遘偵∵怙螟ｧ10000繧ｨ繝ｳ繝医Μ・・
+        let cache_ttl_seconds = cfg.config_server.cache.ttl_seconds().unwrap_or_else(|e| {
+            tracing::warn!(error = %e, ttl = %cfg.config_server.cache.ttl, "invalid cache ttl, fallback to 300s");
+            300
+        });
+
         let cache = Arc::new(infrastructure::cache::ConfigCache::new(
             cfg.config_server.cache.max_entries as u64,
-            cfg.config_server.cache.ttl_seconds,
+            cache_ttl_seconds,
         ));
         info!(
             max_capacity = cfg.config_server.cache.max_entries,
-            ttl_seconds = cfg.config_server.cache.ttl_seconds,
+            ttl_seconds = cache_ttl_seconds,
             "config cache initialized"
         );
         (
@@ -265,7 +276,7 @@ async fn main() -> anyhow::Result<()> {
     let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.grpc.port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
     use proto::k1s0::system::config::v1::config_service_server::ConfigServiceServer;

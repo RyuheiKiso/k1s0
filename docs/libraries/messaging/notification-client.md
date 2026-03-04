@@ -172,6 +172,7 @@ type NotificationResponse struct {
 
 type NotificationClient interface {
     Send(ctx context.Context, req NotificationRequest) (NotificationResponse, error)
+    SendBatch(ctx context.Context, reqs []NotificationRequest) ([]NotificationResponse, error)
 }
 
 type InMemoryClient struct{ /* ... */ }
@@ -179,7 +180,7 @@ func NewInMemoryClient() *InMemoryClient
 func (c *InMemoryClient) SentRequests() []NotificationRequest
 ```
 
-> **注**: Go 実装には `SendBatch` メソッドがない（Rust / Dart のみ `send_batch` を提供）。TypeScript も同様に `send` のみ。一括送信が必要な場合はループで `Send` を呼び出す。
+> **注**: Go / TypeScript / Dart は `SendBatch`（`sendBatch`）を提供する。Rust は `send_batch` を提供する。
 
 ## TypeScript 実装
 
@@ -207,10 +208,12 @@ export interface NotificationResponse {
 
 export interface NotificationClient {
   send(request: NotificationRequest): Promise<NotificationResponse>;
+  sendBatch(requests: NotificationRequest[]): Promise<NotificationResponse[]>;
 }
 
 export class InMemoryNotificationClient implements NotificationClient {
   async send(request: NotificationRequest): Promise<NotificationResponse>;
+  async sendBatch(requests: NotificationRequest[]): Promise<NotificationResponse[]>;
   getSent(): NotificationRequest[];
 }
 ```
@@ -273,7 +276,7 @@ class InMemoryNotificationClient implements NotificationClient {
 
 ### `send_batch`
 
-一括送信メソッド `send_batch` は **Rust と Dart のみ** で提供される。Go / TypeScript で一括送信が必要な場合はループで `send` を呼び出す。
+一括送信メソッドは全言語で提供される（Rust: `send_batch`、Go: `SendBatch`、TypeScript: `sendBatch`、Dart: `sendBatch`）。
 
 ## テスト戦略
 

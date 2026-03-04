@@ -1,21 +1,51 @@
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use axum::Json;
 
 use crate::adapter::handler::AppState;
 
 pub async fn healthz() -> impl IntoResponse {
-    (StatusCode::OK, "ok")
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "status": "ok",
+        })),
+    )
 }
 
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     if let Some(ref pool) = state.db_pool {
         match sqlx::query("SELECT 1").execute(pool).await {
-            Ok(_) => (StatusCode::OK, "ready"),
-            Err(_) => (StatusCode::SERVICE_UNAVAILABLE, "database not ready"),
+            Ok(_) => (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "status": "ready",
+                    "checks": {
+                        "database": "ok",
+                    }
+                })),
+            ),
+            Err(e) => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({
+                    "status": "not_ready",
+                    "checks": {
+                        "database": e.to_string(),
+                    }
+                })),
+            ),
         }
     } else {
-        (StatusCode::OK, "ready")
+        (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "status": "ready",
+                "checks": {
+                    "database": "ok",
+                }
+            })),
+        )
     }
 }
 

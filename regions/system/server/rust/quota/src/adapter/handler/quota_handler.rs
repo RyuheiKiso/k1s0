@@ -152,35 +152,15 @@ pub async fn update_quota(
     Path(id): Path<String>,
     Json(req): Json<UpdateQuotaRequest>,
 ) -> impl IntoResponse {
-    let current = match state.get_policy_uc.execute(&id).await {
-        Ok(policy) => policy,
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &msg);
-                return (StatusCode::NOT_FOUND, Json(err)).into_response();
-            }
-            let (status, code) = classify_internal_error(&msg);
-            let err = ErrorResponse::new(code, &msg);
-            return (status, Json(err)).into_response();
-        }
-    };
-
     let input = UpdateQuotaPolicyInput {
         id,
-        name: req.name.unwrap_or(current.name),
-        subject_type: req
-            .subject_type
-            .unwrap_or_else(|| current.subject_type.as_str().to_string()),
-        subject_id: req.subject_id.unwrap_or(current.subject_id),
-        limit: req.limit.unwrap_or(current.limit),
-        period: req
-            .period
-            .unwrap_or_else(|| current.period.as_str().to_string()),
-        enabled: req.enabled.unwrap_or(current.enabled),
-        alert_threshold_percent: req
-            .alert_threshold_percent
-            .or(current.alert_threshold_percent),
+        name: req.name,
+        subject_type: req.subject_type,
+        subject_id: req.subject_id,
+        limit: req.limit,
+        period: req.period,
+        enabled: req.enabled,
+        alert_threshold_percent: Some(req.alert_threshold_percent),
     };
 
     match state.update_policy_uc.execute(&input).await {
@@ -245,13 +225,13 @@ pub struct CreateQuotaRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateQuotaRequest {
-    pub name: Option<String>,
-    pub subject_type: Option<String>,
-    pub subject_id: Option<String>,
-    pub limit: Option<u64>,
-    pub period: Option<String>,
-    pub enabled: Option<bool>,
-    pub alert_threshold_percent: Option<u8>,
+    pub name: String,
+    pub subject_type: String,
+    pub subject_id: String,
+    pub limit: u64,
+    pub period: String,
+    pub enabled: bool,
+    pub alert_threshold_percent: u8,
 }
 
 /// DELETE /api/v1/quotas/:id

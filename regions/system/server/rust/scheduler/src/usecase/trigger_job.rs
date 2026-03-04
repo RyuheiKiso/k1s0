@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
 use crate::domain::service::SchedulerDomainService;
@@ -10,10 +8,10 @@ use crate::infrastructure::kafka_producer::SchedulerEventPublisher;
 #[derive(Debug, thiserror::Error)]
 pub enum TriggerJobError {
     #[error("job not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("job not active: {0}")]
-    NotActive(Uuid),
+    NotActive(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -50,19 +48,19 @@ impl TriggerJobUseCase {
         }
     }
 
-    pub async fn execute(&self, job_id: &Uuid) -> Result<SchedulerExecution, TriggerJobError> {
+    pub async fn execute(&self, job_id: &str) -> Result<SchedulerExecution, TriggerJobError> {
         let mut job = self
             .repo
             .find_by_id(job_id)
             .await
             .map_err(|e| TriggerJobError::Internal(e.to_string()))?
-            .ok_or(TriggerJobError::NotFound(*job_id))?;
+            .ok_or_else(|| TriggerJobError::NotFound(job_id.to_string()))?;
 
         if !SchedulerDomainService::can_trigger(&job.status) {
-            return Err(TriggerJobError::NotActive(*job_id));
+            return Err(TriggerJobError::NotActive(job_id.to_string()));
         }
 
-        let execution = SchedulerExecution::new(job.id);
+        let execution = SchedulerExecution::new(job.id.clone());
 
         // 実行記録を保存
         self.execution_repo
@@ -109,12 +107,12 @@ mod tests {
             "* * * * *".to_string(),
             serde_json::json!({}),
         );
-        let job_id = job.id;
+        let job_id = job.id.clone();
         let return_job = job.clone();
 
         mock_job
             .expect_find_by_id()
-            .withf(move |id| *id == job_id)
+            .withf(move |id| id == job_id.as_str())
             .returning(move |_| Ok(Some(return_job.clone())));
         mock_job.expect_update().returning(|_| Ok(()));
 
@@ -140,12 +138,12 @@ mod tests {
             serde_json::json!({}),
         );
         job.status = "paused".to_string();
-        let job_id = job.id;
+        let job_id = job.id.clone();
         let return_job = job.clone();
 
         mock_job
             .expect_find_by_id()
-            .withf(move |id| *id == job_id)
+            .withf(move |id| id == job_id.as_str())
             .returning(move |_| Ok(Some(return_job.clone())));
 
         let uc = TriggerJobUseCase::new(Arc::new(mock_job), Arc::new(mock_exec));

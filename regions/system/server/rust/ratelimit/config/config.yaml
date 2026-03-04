@@ -19,7 +19,33 @@ redis:
   url: "redis://localhost:6379"
 
 observability:
-  otlp_endpoint: "http://otel-collector.observability:4317"
-  log_level: "info"
-  log_format: "json"
-  metrics_enabled: true
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: true
+    endpoint: "http://otel-collector.observability:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"
+
+# === Production configuration (uncomment as needed) ===
+# database:
+#   host: "localhost"
+#   port: 5432
+#   name: "k1s0_system"
+#   user: "app"
+#   password: ""
+#   ssl_mode: "disable"
+#   max_open_conns: 25
+#   max_idle_conns: 5
+#   conn_max_lifetime: "5m"
+# kafka:
+#   brokers:
+#     - "localhost:9092"
+#   security_protocol: "PLAINTEXT"
+# auth:
+#   jwks_url: "http://auth:8080/jwks"
+#   issuer: "k1s0"
+#   audience: "k1s0-system"

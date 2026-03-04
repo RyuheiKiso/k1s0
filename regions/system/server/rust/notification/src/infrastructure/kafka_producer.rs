@@ -125,7 +125,6 @@ mod tests {
     use super::*;
     use crate::domain::entity::notification_log::NotificationLog;
     use std::sync::Mutex;
-    use uuid::Uuid;
 
     /// テスト用のインメモリプロデューサー。
     struct InMemoryProducer {
@@ -175,8 +174,8 @@ mod tests {
 
     fn make_test_log() -> NotificationLog {
         NotificationLog {
-            id: Uuid::new_v4(),
-            channel_id: Uuid::new_v4(),
+            id: format!("notif_{}", uuid::Uuid::new_v4().simple()),
+            channel_id: format!("ch_{}", uuid::Uuid::new_v4().simple()),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: Some("Test Subject".to_string()),
@@ -263,8 +262,8 @@ mod tests {
     #[test]
     fn test_notification_sent_event_serialization() {
         let event = NotificationSentEvent {
-            notification_id: Uuid::new_v4().to_string(),
-            channel_id: Uuid::new_v4().to_string(),
+            notification_id: format!("notif_{}", uuid::Uuid::new_v4().simple()),
+            channel_id: format!("ch_{}", uuid::Uuid::new_v4().simple()),
             recipient: "user@example.com".to_string(),
             status: "sent".to_string(),
             timestamp: "2026-02-25T00:00:00Z".to_string(),
@@ -278,8 +277,8 @@ mod tests {
     #[test]
     fn test_notification_sent_event_debug_format() {
         let event = NotificationSentEvent {
-            notification_id: Uuid::new_v4().to_string(),
-            channel_id: Uuid::new_v4().to_string(),
+            notification_id: format!("notif_{}", uuid::Uuid::new_v4().simple()),
+            channel_id: format!("ch_{}", uuid::Uuid::new_v4().simple()),
             recipient: "user@example.com".to_string(),
             status: "sent".to_string(),
             timestamp: "2026-02-25T00:00:00Z".to_string(),

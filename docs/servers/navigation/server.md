@@ -1,4 +1,4 @@
-﻿# system-navigation-server 設計
+# system-navigation-server 設計
 
 クライアントアプリのルーティング・ガード設定を提供するナビゲーション管理サービス。gRPC で認証済みユーザーのロールに応じたルート定義とルートガードを返す。
 
@@ -217,6 +217,8 @@ GetNavigationRequest {
 | `navigation_path` | string | ナビゲーション定義 YAML の読み込みパス（デフォルト `config/navigation.yaml`） |
 
 **設定例**
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:
@@ -226,14 +228,14 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8080
+  port: 8095
   grpc_port: 50051
 
 auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
   issuer: "https://auth.k1s0.example.com/realms/system"
   audience: "k1s0-system"
-  jwks_cache_ttl_secs: 300
+  jwks_cache_ttl_secs: 3600
 
 navigation:
   navigation_path: "/etc/k1s0/navigation/navigation.yaml"

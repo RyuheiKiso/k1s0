@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::notification_log::NotificationLog;
 use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
@@ -9,19 +7,19 @@ use crate::domain::service::NotificationDomainService;
 
 #[derive(Debug, Clone)]
 pub struct RetryNotificationInput {
-    pub notification_id: Uuid,
+    pub notification_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum RetryNotificationError {
     #[error("notification not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("notification already sent: {0}")]
-    AlreadySent(Uuid),
+    AlreadySent(String),
 
     #[error("channel not found: {0}")]
-    ChannelNotFound(Uuid),
+    ChannelNotFound(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -52,10 +50,10 @@ impl RetryNotificationUseCase {
             .find_by_id(&input.notification_id)
             .await
             .map_err(|e| RetryNotificationError::Internal(e.to_string()))?
-            .ok_or(RetryNotificationError::NotFound(input.notification_id))?;
+            .ok_or_else(|| RetryNotificationError::NotFound(input.notification_id.clone()))?;
 
         if !NotificationDomainService::is_retryable_status(&log.status) {
-            return Err(RetryNotificationError::AlreadySent(input.notification_id));
+            return Err(RetryNotificationError::AlreadySent(input.notification_id.clone()));
         }
 
         // Verify channel still exists
@@ -63,7 +61,7 @@ impl RetryNotificationUseCase {
             .find_by_id(&log.channel_id)
             .await
             .map_err(|e| RetryNotificationError::Internal(e.to_string()))?
-            .ok_or(RetryNotificationError::ChannelNotFound(log.channel_id))?;
+            .ok_or_else(|| RetryNotificationError::ChannelNotFound(log.channel_id.clone()))?;
 
         // Mark as retried/sent
         log.status = "sent".to_string();
@@ -89,7 +87,7 @@ mod tests {
 
     fn failed_log() -> NotificationLog {
         let mut log = NotificationLog::new(
-            Uuid::new_v4(),
+            "ch_00000000000000000000000000000000".to_string(),
             "user@example.com".to_string(),
             Some("Hello".to_string()),
             "Body".to_string(),
@@ -105,8 +103,8 @@ mod tests {
         let mut channel_mock = MockNotificationChannelRepository::new();
 
         let log = failed_log();
-        let log_id = log.id;
-        let channel_id = log.channel_id;
+        let log_id = log.id.clone();
+        let channel_id = log.channel_id.clone();
         let return_log = log.clone();
 
         log_mock
@@ -121,14 +119,14 @@ mod tests {
             true,
         );
         let mut return_channel = channel.clone();
-        return_channel.id = channel_id;
+        return_channel.id = channel_id.clone();
         channel_mock
             .expect_find_by_id()
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         let uc = RetryNotificationUseCase::new(Arc::new(log_mock), Arc::new(channel_mock));
         let input = RetryNotificationInput {
-            notification_id: log_id,
+            notification_id: log_id.clone(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -147,7 +145,7 @@ mod tests {
 
         let uc = RetryNotificationUseCase::new(Arc::new(log_mock), Arc::new(channel_mock));
         let input = RetryNotificationInput {
-            notification_id: Uuid::new_v4(),
+            notification_id: "notif_missing".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -165,7 +163,7 @@ mod tests {
 
         let mut log = failed_log();
         log.status = "sent".to_string();
-        let log_id = log.id;
+        let log_id = log.id.clone();
         let return_log = log.clone();
 
         log_mock
@@ -174,7 +172,7 @@ mod tests {
 
         let uc = RetryNotificationUseCase::new(Arc::new(log_mock), Arc::new(channel_mock));
         let input = RetryNotificationInput {
-            notification_id: log_id,
+            notification_id: log_id.clone(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

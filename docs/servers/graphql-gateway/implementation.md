@@ -422,10 +422,8 @@ impl TenantQueryResolver {
         &self,
         first: Option<i32>,
         after: Option<String>,
-        last: Option<i32>,
-        before: Option<String>,
     ) -> anyhow::Result<TenantConnection> {
-        self.client.list_tenants(first, after, last, before).await
+        self.client.list_tenants(first, after).await
     }
 }
 ```
@@ -640,12 +638,22 @@ use axum::{
 use crate::adapter::middleware::auth_middleware::{auth_layer, Claims};
 use crate::domain::model::graphql_context::{FeatureFlagLoader, GraphqlContext, TenantLoader};
 use crate::infra::config::GraphQLConfig;
+use crate::infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 use crate::usecase::{
     ConfigQueryResolver, FeatureFlagQueryResolver, SubscriptionResolver,
     TenantMutationResolver, TenantQueryResolver,
 };
 
 pub type AppSchema = Schema<QueryRoot, MutationRoot, SubscriptionRoot>;
+
+#[derive(Clone)]
+pub struct AppState {
+    pub schema: AppSchema,
+    pub query_timeout: std::time::Duration,
+    pub tenant_client: Arc<TenantGrpcClient>,
+    pub feature_flag_client: Arc<FeatureFlagGrpcClient>,
+    pub config_client: Arc<ConfigGrpcClient>,
+}
 
 pub fn router(
     jwks_verifier: Arc<crate::infra::auth::JwksVerifier>,
@@ -678,7 +686,13 @@ pub fn router(
     .limit_complexity(graphql_cfg.max_complexity as usize)
     .finish();
 
-    let query_timeout = std::time::Duration::from_secs(graphql_cfg.query_timeout_seconds as u64);
+    let state = AppState {
+        schema: schema.clone(),
+        query_timeout: std::time::Duration::from_secs(graphql_cfg.query_timeout_seconds as u64),
+        tenant_client,
+        feature_flag_client,
+        config_client,
+    };
 
     let mut router = Router::new()
         .route("/healthz", get(healthz))
@@ -692,7 +706,7 @@ pub fn router(
             "/graphql/ws",
             get(graphql_ws_handler).layer(auth_layer(jwks_verifier)),
         )
-        .with_state(schema.clone());
+        .with_state(state);
 
     // 開発環境のみ Playground を有効化
     if graphql_cfg.playground {
@@ -703,12 +717,12 @@ pub fn router(
 }
 
 async fn graphql_handler(
-    State((schema, timeout)): State<(AppSchema, std::time::Duration)>,
+    State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     req: GraphQLRequest,
 ) -> impl IntoResponse {
     let request = req.into_inner().data(claims);
-    match tokio::time::timeout(timeout, schema.execute(request)).await {
+    match tokio::time::timeout(state.query_timeout, state.schema.execute(request)).await {
         Ok(resp) => GraphQLResponse::from(resp).into_response(),
         Err(_) => (
             StatusCode::OK,
@@ -725,10 +739,11 @@ async fn graphql_handler(
 }
 
 async fn graphql_ws_handler(
-    State(schema): State<AppSchema>,
+    State(state): State<AppState>,
+    Extension(_claims): Extension<Claims>, // JWT は auth_layer で検証済み
     ws: axum::extract::WebSocketUpgrade,
 ) -> impl IntoResponse {
-    GraphQLSubscription::new(schema).on_upgrade(ws)
+    GraphQLSubscription::new(state.schema).on_upgrade(ws)
 }
 
 async fn graphql_playground() -> impl IntoResponse {
@@ -742,9 +757,25 @@ async fn healthz() -> Json<serde_json::Value> {
     Json(serde_json::json!({"status": "ok"}))
 }
 
-async fn readyz() -> Json<serde_json::Value> {
-    // バックエンド gRPC 疎通確認は実装時に追加
-    Json(serde_json::json!({"status": "ready"}))
+async fn readyz(State(state): State<AppState>) -> (StatusCode, Json<serde_json::Value>) {
+    let tenant = state.tenant_client.healthz().await;
+    let feature_flag = state.feature_flag_client.healthz().await;
+    let config = state.config_client.healthz().await;
+
+    let checks = serde_json::json!({
+        "tenant": if tenant.is_ok() { "ok" } else { "error" },
+        "featureflag": if feature_flag.is_ok() { "ok" } else { "error" },
+        "config": if config.is_ok() { "ok" } else { "error" }
+    });
+
+    if tenant.is_ok() && feature_flag.is_ok() && config.is_ok() {
+        (StatusCode::OK, Json(serde_json::json!({"status": "ready", "checks": checks})))
+    } else {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({"status": "not_ready", "checks": checks})),
+        )
+    }
 }
 
 async fn metrics_handler() -> impl IntoResponse {
@@ -770,7 +801,8 @@ use axum::{
 };
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
-use tower::Layer;
+use std::task::{Context, Poll};
+use tower::{Layer, Service};
 
 use crate::infra::auth::JwksVerifier;
 
@@ -798,32 +830,64 @@ pub struct RealmAccess {
     pub roles: Vec<String>,
 }
 
-/// auth_layer は Authorization ヘッダーの Bearer JWT を検証する axum ミドルウェアレイヤーを返す。
-pub fn auth_layer(
+#[derive(Clone)]
+pub struct AuthLayer {
     verifier: Arc<JwksVerifier>,
-) -> axum::middleware::FromFnLayer<
-    impl Fn(Request, Next) -> impl std::future::Future<Output = Response> + Send + Clone,
-    (),
-    (Arc<JwksVerifier>,),
-> {
-    let verifier = verifier.clone();
-    axum::middleware::from_fn(move |req: Request, next: Next| {
-        let verifier = verifier.clone();
-        async move { verify_jwt(verifier, req, next).await }
-    })
 }
 
-async fn verify_jwt(
+pub fn auth_layer(verifier: Arc<JwksVerifier>) -> AuthLayer {
+    AuthLayer { verifier }
+}
+
+impl<S> Layer<S> for AuthLayer {
+    type Service = AuthService<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        AuthService {
+            inner,
+            verifier: self.verifier.clone(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct AuthService<S> {
+    inner: S,
     verifier: Arc<JwksVerifier>,
-    mut req: Request,
-    next: Next,
-) -> Response {
+}
+
+impl<S> Service<Request> for AuthService<S>
+where
+    S: Service<Request, Response = Response> + Clone + Send + 'static,
+    S::Future: Send + 'static,
+{
+    type Response = Response;
+    type Error = S::Error;
+    type Future = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, S::Error>> + Send>>;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: Request) -> Self::Future {
+        let verifier = self.verifier.clone();
+        let mut inner = self.inner.clone();
+        Box::pin(async move {
+            match verify_jwt(verifier, req).await {
+                Ok(req) => inner.call(req).await,
+                Err(response) => Ok(response),
+            }
+        })
+    }
+}
+
+async fn verify_jwt(verifier: Arc<JwksVerifier>, mut req: Request) -> Result<Request, Response> {
     let token = extract_bearer_token(req.headers());
 
     let token = match token {
         Some(t) => t,
         None => {
-            return (
+            return Err((
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({
                     "error": {
@@ -832,14 +896,14 @@ async fn verify_jwt(
                     }
                 })),
             )
-                .into_response();
+                .into_response());
         }
     };
 
     let claims = match verifier.verify_token(&token).await {
         Ok(c) => c,
         Err(_) => {
-            return (
+            return Err((
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({
                     "error": {
@@ -848,12 +912,12 @@ async fn verify_jwt(
                     }
                 })),
             )
-                .into_response();
+                .into_response());
         }
     };
 
     req.extensions_mut().insert(claims);
-    next.run(req).await
+    Ok(req)
 }
 
 fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {

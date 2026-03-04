@@ -96,28 +96,14 @@ impl NotificationKafkaConsumer {
                         }
                     };
 
-                    let channel_id: uuid::Uuid = match event.channel_id.parse() {
-                        Ok(id) => id,
-                        Err(e) => {
-                            tracing::error!(error = %e, channel_id = %event.channel_id, "invalid channel_id");
-                            continue;
-                        }
-                    };
-
-                    let template_id = match event.template_id {
-                        Some(id) => match id.parse::<uuid::Uuid>() {
-                            Ok(parsed) => Some(parsed),
-                            Err(e) => {
-                                tracing::error!(error = %e, template_id = %id, "invalid template_id");
-                                continue;
-                            }
-                        },
-                        None => None,
-                    };
+                    if event.channel_id.trim().is_empty() {
+                        tracing::error!("invalid channel_id");
+                        continue;
+                    }
 
                     let input = SendNotificationInput {
-                        channel_id,
-                        template_id,
+                        channel_id: event.channel_id,
+                        template_id: event.template_id,
                         recipient: event.recipient,
                         subject: event.subject,
                         body: event.body.unwrap_or_default(),

@@ -1,4 +1,4 @@
-﻿# system-auth-server 設計
+# system-auth-server 設計
 
 > **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `auth/read`, `auth/write`, `auth/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
@@ -516,6 +516,8 @@ message AuditLog {
 ---
 
 ## 設定ファイル仕様
+> ※ dev環境では省略可能なセクションがあります。
+
 
 `config/config.yaml` の全フィールド定義。
 
@@ -596,7 +598,7 @@ message AuditLog {
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `token_cache_ttl_secs` | int | Admin API トークンのキャッシュ TTL（秒） |
+| `token_cache_ttl_secs` | int | Admin API トークンのキャッシュ TTL（秒、デフォルト: 300） |
 
 ### user_cache
 

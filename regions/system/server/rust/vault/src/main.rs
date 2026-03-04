@@ -89,41 +89,90 @@ fn default_grpc_port() -> u16 {
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct ObservabilityConfig {
-    #[serde(default = "default_otlp_endpoint")]
-    otlp_endpoint: String,
-    #[serde(default = "default_log_level")]
-    log_level: String,
-    #[serde(default = "default_log_format")]
-    log_format: String,
-    #[serde(default = "default_metrics_enabled")]
-    metrics_enabled: bool,
+    #[serde(default)]
+    log: LogConfig,
+    #[serde(default)]
+    trace: TraceConfig,
+    #[serde(default)]
+    metrics: MetricsConfig,
 }
-
 impl Default for ObservabilityConfig {
     fn default() -> Self {
         Self {
-            otlp_endpoint: default_otlp_endpoint(),
-            log_level: default_log_level(),
-            log_format: default_log_format(),
-            metrics_enabled: default_metrics_enabled(),
+            log: LogConfig::default(),
+            trace: TraceConfig::default(),
+            metrics: MetricsConfig::default(),
         }
     }
 }
-
-fn default_otlp_endpoint() -> String {
+#[derive(Debug, Clone, serde::Deserialize)]
+struct LogConfig {
+    #[serde(default = "default_log_level")]
+    level: String,
+    #[serde(default = "default_log_format")]
+    format: String,
+}
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            level: default_log_level(),
+            format: default_log_format(),
+        }
+    }
+}
+#[derive(Debug, Clone, serde::Deserialize)]
+struct TraceConfig {
+    #[serde(default = "default_trace_enabled")]
+    enabled: bool,
+    #[serde(default = "default_trace_endpoint")]
+    endpoint: String,
+    #[serde(default = "default_trace_sample_rate")]
+    sample_rate: f64,
+}
+impl Default for TraceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_trace_enabled(),
+            endpoint: default_trace_endpoint(),
+            sample_rate: default_trace_sample_rate(),
+        }
+    }
+}
+#[derive(Debug, Clone, serde::Deserialize)]
+struct MetricsConfig {
+    #[serde(default = "default_metrics_enabled")]
+    enabled: bool,
+    #[serde(default = "default_metrics_path")]
+    path: String,
+}
+impl Default for MetricsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_metrics_enabled(),
+            path: default_metrics_path(),
+        }
+    }
+}
+fn default_trace_enabled() -> bool {
+    true
+}
+fn default_trace_endpoint() -> String {
     "http://otel-collector.observability:4317".to_string()
 }
-
+fn default_trace_sample_rate() -> f64 {
+    1.0
+}
 fn default_log_level() -> String {
     "info".to_string()
 }
-
 fn default_log_format() -> String {
     "json".to_string()
 }
-
 fn default_metrics_enabled() -> bool {
     true
+}
+fn default_metrics_path() -> String {
+    "/metrics".to_string()
 }
 
 #[tokio::main]
@@ -139,10 +188,10 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
-        sample_rate: 1.0,
-        log_level: cfg.observability.log_level.clone(),
-        log_format: cfg.observability.log_format.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 

@@ -1,10 +1,9 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NotificationChannel {
-    pub id: Uuid,
+    pub id: String,
     pub name: String,
     pub channel_type: String,
     pub config: serde_json::Value,
@@ -17,7 +16,7 @@ impl NotificationChannel {
     pub fn new(name: String, channel_type: String, config: serde_json::Value, enabled: bool) -> Self {
         let now = Utc::now();
         Self {
-            id: Uuid::new_v4(),
+            id: format!("ch_{}", uuid::Uuid::new_v4().simple()),
             name,
             channel_type,
             config,

@@ -446,6 +446,8 @@ input SetFeatureFlagInput {
 ## 設定ファイル例
 
 ### config.yaml（本番）
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:
@@ -469,13 +471,13 @@ auth:
 
 backends:
   tenant:
-    address: "http://tenant-server.k1s0-system.svc.cluster.local:50051"
+    address: "http://tenant-server.k1s0-system.svc.cluster.local:9090"
     timeout_ms: 3000
   featureflag:
-    address: "http://featureflag-server.k1s0-system.svc.cluster.local:50051"
+    address: "http://featureflag-server.k1s0-system.svc.cluster.local:9090"
     timeout_ms: 3000
   config:
-    address: "http://config-server.k1s0-system.svc.cluster.local:50051"
+    address: "http://config-server.k1s0-system.svc.cluster.local:9090"
     timeout_ms: 3000
 
 observability:

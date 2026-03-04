@@ -81,47 +81,137 @@ fn default_grpc_port() -> u16 {
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct ObservabilityConfig {
-    #[serde(default = "default_otlp_endpoint")]
-    otlp_endpoint: String,
-    #[serde(default = "default_log_level")]
-    log_level: String,
-    #[serde(default = "default_log_format")]
-    log_format: String,
-    #[serde(default = "default_metrics_enabled")]
-    metrics_enabled: bool,
+    #[serde(default)]
+    log: LogConfig,
+    #[serde(default)]
+    trace: TraceConfig,
+    #[serde(default)]
+    metrics: MetricsConfig,
 }
-
 impl Default for ObservabilityConfig {
     fn default() -> Self {
         Self {
-            otlp_endpoint: default_otlp_endpoint(),
-            log_level: default_log_level(),
-            log_format: default_log_format(),
-            metrics_enabled: default_metrics_enabled(),
+            log: LogConfig::default(),
+            trace: TraceConfig::default(),
+            metrics: MetricsConfig::default(),
         }
     }
 }
-
-fn default_otlp_endpoint() -> String {
+#[derive(Debug, Clone, serde::Deserialize)]
+struct LogConfig {
+    #[serde(default = "default_log_level")]
+    level: String,
+    #[serde(default = "default_log_format")]
+    format: String,
+}
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            level: default_log_level(),
+            format: default_log_format(),
+        }
+    }
+}
+#[derive(Debug, Clone, serde::Deserialize)]
+struct TraceConfig {
+    #[serde(default = "default_trace_enabled")]
+    enabled: bool,
+    #[serde(default = "default_trace_endpoint")]
+    endpoint: String,
+    #[serde(default = "default_trace_sample_rate")]
+    sample_rate: f64,
+}
+impl Default for TraceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_trace_enabled(),
+            endpoint: default_trace_endpoint(),
+            sample_rate: default_trace_sample_rate(),
+        }
+    }
+}
+#[derive(Debug, Clone, serde::Deserialize)]
+struct MetricsConfig {
+    #[serde(default = "default_metrics_enabled")]
+    enabled: bool,
+    #[serde(default = "default_metrics_path")]
+    path: String,
+}
+impl Default for MetricsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_metrics_enabled(),
+            path: default_metrics_path(),
+        }
+    }
+}
+fn default_trace_enabled() -> bool {
+    true
+}
+fn default_trace_endpoint() -> String {
     "http://otel-collector.observability:4317".to_string()
 }
-
+fn default_trace_sample_rate() -> f64 {
+    1.0
+}
 fn default_log_level() -> String {
     "info".to_string()
 }
-
 fn default_log_format() -> String {
     "json".to_string()
 }
-
 fn default_metrics_enabled() -> bool {
     true
+}
+fn default_metrics_path() -> String {
+    "/metrics".to_string()
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct DatabaseConfig {
+    #[serde(default = "default_db_host")]
+    host: String,
+    #[serde(default = "default_db_port")]
+    port: u16,
+    #[serde(default = "default_db_name")]
+    name: String,
+    #[serde(default = "default_db_user")]
+    user: String,
+    #[serde(default)]
+    password: String,
+    #[serde(default = "default_db_ssl_mode")]
+    ssl_mode: String,
     #[serde(default = "default_max_connections")]
     max_connections: u32,
+}
+
+impl DatabaseConfig {
+    fn connection_url(&self) -> String {
+        format!(
+            "postgresql://{}:{}@{}:{}/{}?sslmode={}",
+            self.user, self.password, self.host, self.port, self.name, self.ssl_mode
+        )
+    }
+}
+
+fn default_db_host() -> String {
+    "localhost".to_string()
+}
+
+fn default_db_port() -> u16 {
+    5432
+}
+
+fn default_db_name() -> String {
+    "k1s0_system".to_string()
+}
+
+fn default_db_user() -> String {
+    "app".to_string()
+}
+
+fn default_db_ssl_mode() -> String {
+    "disable".to_string()
 }
 
 fn default_max_connections() -> u32 {
@@ -190,10 +280,10 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
-        sample_rate: 1.0,
-        log_level: cfg.observability.log_level.clone(),
-        log_format: cfg.observability.log_format.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
@@ -206,17 +296,37 @@ async fn main() -> anyhow::Result<()> {
         "starting tenant server"
     );
 
-    // Repository: PostgreSQL if DATABASE_URL is set, otherwise InMemory
+    let mut db_pool_for_health: Option<Arc<sqlx::PgPool>> = None;
+
+    // Repository: config.database (DATABASE_URL fallback) -> DATABASE_URL only -> InMemory
     let (tenant_repo, member_repo): (Arc<dyn TenantRepository>, Arc<dyn MemberRepository>) =
-        if let Ok(database_url) = std::env::var("DATABASE_URL") {
+        if let Some(ref db_cfg) = cfg.database {
+            let database_url =
+                std::env::var("DATABASE_URL").unwrap_or_else(|_| db_cfg.connection_url());
             info!("connecting to PostgreSQL...");
-            let max_conns = cfg.database.as_ref().map_or(25, |db| db.max_connections);
             let pool = Arc::new(
                 sqlx::postgres::PgPoolOptions::new()
-                    .max_connections(max_conns)
+                    .max_connections(db_cfg.max_connections)
                     .connect(&database_url)
                     .await?,
             );
+            db_pool_for_health = Some(pool.clone());
+            info!("connected to PostgreSQL");
+            (
+                Arc::new(adapter::repository::tenant_postgres::TenantPostgresRepository::new(
+                    pool.clone(),
+                )),
+                Arc::new(adapter::repository::member_postgres::MemberPostgresRepository::new(pool)),
+            )
+        } else if let Ok(database_url) = std::env::var("DATABASE_URL") {
+            info!("connecting to PostgreSQL with DATABASE_URL fallback...");
+            let pool = Arc::new(
+                sqlx::postgres::PgPoolOptions::new()
+                    .max_connections(default_max_connections())
+                    .connect(&database_url)
+                    .await?,
+            );
+            db_pool_for_health = Some(pool.clone());
             info!("connected to PostgreSQL");
             (
                 Arc::new(adapter::repository::tenant_postgres::TenantPostgresRepository::new(
@@ -225,12 +335,26 @@ async fn main() -> anyhow::Result<()> {
                 Arc::new(adapter::repository::member_postgres::MemberPostgresRepository::new(pool)),
             )
         } else {
-            info!("DATABASE_URL not set, using in-memory repositories");
+            info!("database not configured, using in-memory repositories");
             (
                 Arc::new(InMemoryTenantRepository::new()),
                 Arc::new(InMemoryMemberRepository::new()),
             )
         };
+
+    let kafka_brokers_for_health = cfg
+        .kafka
+        .as_ref()
+        .map(|k| k.brokers.clone())
+        .or_else(|| {
+            std::env::var("KAFKA_BROKERS").ok().map(|brokers| {
+                brokers
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect::<Vec<_>>()
+            })
+        });
 
     // Kafka event publisher: Kafka if config or KAFKA_BROKERS env var is set, otherwise Noop
     let event_publisher: Arc<dyn infrastructure::kafka_producer::TenantEventPublisher> =
@@ -240,10 +364,10 @@ async fn main() -> anyhow::Result<()> {
                 infrastructure::kafka_producer::KafkaTenantEventPublisher::new(kafka_cfg)?;
             info!(topic = %publisher.topic(), "Kafka event publisher initialized");
             Arc::new(publisher)
-        } else if let Ok(brokers) = std::env::var("KAFKA_BROKERS") {
+        } else if let Some(brokers) = kafka_brokers_for_health.clone() {
             info!("initializing Kafka event publisher from KAFKA_BROKERS env...");
             let kafka_cfg = infrastructure::kafka_producer::KafkaConfig {
-                brokers: brokers.split(',').map(|s| s.trim().to_string()).collect(),
+                brokers,
                 consumer_group: String::new(),
                 security_protocol: "PLAINTEXT".to_string(),
                 sasl: Default::default(),
@@ -282,6 +406,11 @@ async fn main() -> anyhow::Result<()> {
             info!("keycloak config not set, using noop keycloak admin client");
             Arc::new(infrastructure::keycloak_admin::NoopKeycloakAdmin)
         };
+
+    let keycloak_health_url = cfg
+        .keycloak
+        .as_ref()
+        .map(|k| format!("{}/realms/{}", k.base_url.trim_end_matches('/'), k.realm));
 
     let create_tenant_uc = Arc::new(
         usecase::CreateTenantUseCase::new(tenant_repo.clone())
@@ -366,6 +495,10 @@ async fn main() -> anyhow::Result<()> {
         remove_member_uc,
         metrics: metrics.clone(),
         auth_state: None,
+        db_pool: db_pool_for_health,
+        kafka_brokers: kafka_brokers_for_health,
+        keycloak_health_url,
+        http_client: reqwest::Client::new(),
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

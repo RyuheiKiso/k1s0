@@ -15,7 +15,7 @@ quota-server へのクライアント SDK ライブラリ。`QuotaClient` トレ
 | `QuotaClient` | トレイト/インターフェース/抽象クラス | クォータ操作の抽象インターフェース（全4言語共通） |
 | `HttpQuotaClient` | 構造体/クラス | quota-server HTTP REST 実装（全4言語） |
 | `CachedQuotaClient` | 構造体/クラス | ポリシーキャッシュ付きラッパー（TTL 設定可、全4言語） |
-| `InMemoryQuotaClient` | 構造体/クラス | テスト用インメモリ実装（Go/TypeScript/Dart） |
+| `InMemoryQuotaClient` | 構造体/クラス | テスト用インメモリ実装（全4言語。Rust は `test-utils` feature） |
 | `MockQuotaClient` | 構造体 | テスト用モック（Rust: feature = "mock" で有効） |
 | `QuotaClientConfig` | 構造体/クラス | サーバー URL・タイムアウト・キャッシュ TTL 設定 |
 | `QuotaStatus` | 構造体/クラス | 許可フラグ・残量・上限・リセット日時 |
@@ -43,6 +43,7 @@ quota-server へのクライアント SDK ライブラリ。`QuotaClient` トレ
 |------|--------------------------|------|
 | Rust | `HttpQuotaClient::new(config)` | `QuotaClientConfig` |
 | Rust | `CachedQuotaClient::new(inner, policy_ttl)` | `impl QuotaClient`, `Duration` |
+| Rust | `InMemoryQuotaClient::new()` | なし（`test-utils` feature） |
 | Go | `NewHttpQuotaClient(baseURL, config)` | `string`, `QuotaClientConfig` |
 | Go | `NewQuotaClientConfig(baseURL)` | `string` |
 | Go | `NewInMemoryQuotaClient()` | なし |
@@ -55,10 +56,11 @@ quota-server へのクライアント SDK ライブラリ。`QuotaClient` トレ
 
 ### InMemoryQuotaClient
 
-テスト用のインメモリ実装。Go/TypeScript/Dart で利用可能。ポリシーを事前に設定してからクォータ操作をテストするために使用する。
+テスト用のインメモリ実装。全4言語で利用可能（Rust は `test-utils` feature 有効時）。ポリシーを事前に設定してからクォータ操作をテストするために使用する。
 
 | メソッド | 言語 | 説明 |
 |---------|------|------|
+| `set_policy(quota_id, policy)` | Rust | クォータ ID に対するポリシーを設定 |
 | `SetPolicy(quotaID, policy)` | Go | クォータ ID に対するポリシーを設定 |
 | `setPolicy(quotaId, policy)` | TypeScript | クォータ ID に対するポリシーを設定 |
 | `setPolicy(quotaId, policy)` | Dart | クォータ ID に対するポリシーを設定 |
@@ -89,6 +91,7 @@ edition = "2021"
 
 [features]
 mock = ["mockall"]
+test-utils = []
 
 [dependencies]
 async-trait = "0.1"
@@ -99,7 +102,6 @@ tokio = { version = "1", features = ["sync", "time"] }
 tracing = "0.1"
 reqwest = { version = "0.12", features = ["json"] }
 chrono = { version = "0.4", features = ["serde"] }
-moka = { version = "0.12", features = ["future"] }
 mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]
@@ -108,6 +110,8 @@ wiremock = "0.6"
 ```
 
 **依存追加**: `k1s0-quota-client = { path = "../../system/library/rust/quota-client" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
+
+`QuotaClientError`（Rust）は次の5 variant を持つ: `ConnectionError`, `QuotaExceeded`, `NotFound`, `InvalidResponse`, `Internal`。
 
 **モジュール構成**:
 

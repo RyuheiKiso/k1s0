@@ -585,6 +585,7 @@ message Session {
 - CreateSessionRequest は optional int32 max_devices と map<string,string> metadata を持つ。
 - CreateSessionResponse は status を含む。
 - Session は token を含む。
-- `GET /readyz` は Redis / PostgreSQL / Kafka の個別チェック結果を返す。
+- `GET /healthz` は `{"status":"ok","service":"session"}` を返す。
+- `GET /readyz` は Redis / PostgreSQL / Kafka の個別チェック結果と `service` を返し、`status` は `ready` / `not_ready` をとる。
 - `max_devices` は作成リクエスト専用フィールドであり、Session ドメインモデルの保持対象ではない。
 

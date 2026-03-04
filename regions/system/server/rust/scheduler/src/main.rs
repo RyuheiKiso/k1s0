@@ -5,7 +5,6 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use tracing::info;
-use uuid::Uuid;
 
 mod adapter;
 mod domain;
@@ -37,10 +36,10 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
-        sample_rate: 1.0,
-        log_level: cfg.observability.log_level.clone(),
-        log_format: cfg.observability.log_format.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
@@ -226,7 +225,7 @@ async fn main() -> anyhow::Result<()> {
 // --- InMemory Repository (fallback) ---
 
 struct InMemorySchedulerExecutionRepository {
-    executions: tokio::sync::RwLock<HashMap<Uuid, SchedulerExecution>>,
+    executions: tokio::sync::RwLock<HashMap<String, SchedulerExecution>>,
 }
 
 impl InMemorySchedulerExecutionRepository {
@@ -241,22 +240,22 @@ impl InMemorySchedulerExecutionRepository {
 impl SchedulerExecutionRepository for InMemorySchedulerExecutionRepository {
     async fn create(&self, execution: &SchedulerExecution) -> anyhow::Result<()> {
         let mut execs = self.executions.write().await;
-        execs.insert(execution.id, execution.clone());
+        execs.insert(execution.id.clone(), execution.clone());
         Ok(())
     }
 
-    async fn find_by_job_id(&self, job_id: &Uuid) -> anyhow::Result<Vec<SchedulerExecution>> {
+    async fn find_by_job_id(&self, job_id: &str) -> anyhow::Result<Vec<SchedulerExecution>> {
         let execs = self.executions.read().await;
         Ok(execs
             .values()
-            .filter(|e| e.job_id == *job_id)
+            .filter(|e| e.job_id == job_id)
             .cloned()
             .collect())
     }
 
     async fn update_status(
         &self,
-        id: &Uuid,
+        id: &str,
         status: String,
         error_message: Option<String>,
     ) -> anyhow::Result<()> {
@@ -269,14 +268,14 @@ impl SchedulerExecutionRepository for InMemorySchedulerExecutionRepository {
         Ok(())
     }
 
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<SchedulerExecution>> {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<SchedulerExecution>> {
         let execs = self.executions.read().await;
         Ok(execs.get(id).cloned())
     }
 }
 
 struct InMemorySchedulerJobRepository {
-    jobs: tokio::sync::RwLock<HashMap<Uuid, SchedulerJob>>,
+    jobs: tokio::sync::RwLock<HashMap<String, SchedulerJob>>,
 }
 
 impl InMemorySchedulerJobRepository {
@@ -289,7 +288,7 @@ impl InMemorySchedulerJobRepository {
 
 #[async_trait::async_trait]
 impl SchedulerJobRepository for InMemorySchedulerJobRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<SchedulerJob>> {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<SchedulerJob>> {
         let jobs = self.jobs.read().await;
         Ok(jobs.get(id).cloned())
     }
@@ -301,17 +300,17 @@ impl SchedulerJobRepository for InMemorySchedulerJobRepository {
 
     async fn create(&self, job: &SchedulerJob) -> anyhow::Result<()> {
         let mut jobs = self.jobs.write().await;
-        jobs.insert(job.id, job.clone());
+        jobs.insert(job.id.clone(), job.clone());
         Ok(())
     }
 
     async fn update(&self, job: &SchedulerJob) -> anyhow::Result<()> {
         let mut jobs = self.jobs.write().await;
-        jobs.insert(job.id, job.clone());
+        jobs.insert(job.id.clone(), job.clone());
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
         let mut jobs = self.jobs.write().await;
         Ok(jobs.remove(id).is_some())
     }

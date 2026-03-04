@@ -65,14 +65,16 @@ impl InMemoryGraphQlClient {
 pub struct GraphQlHttpClient {
     client: reqwest::Client,
     endpoint: String,
+    headers: HashMap<String, String>,
 }
 
 #[cfg(feature = "grpc")]
 impl GraphQlHttpClient {
-    pub fn new(endpoint: impl Into<String>) -> Self {
+    pub fn new(endpoint: impl Into<String>, headers: HashMap<String, String>) -> Self {
         Self {
             client: reqwest::Client::new(),
             endpoint: endpoint.into(),
+            headers,
         }
     }
 
@@ -83,6 +85,19 @@ impl GraphQlHttpClient {
         let response = self
             .client
             .post(&self.endpoint)
+            .headers(
+                self.headers
+                    .iter()
+                    .fold(reqwest::header::HeaderMap::new(), |mut acc, (k, v)| {
+                        if let (Ok(name), Ok(value)) = (
+                            reqwest::header::HeaderName::from_bytes(k.as_bytes()),
+                            reqwest::header::HeaderValue::from_str(v),
+                        ) {
+                            acc.insert(name, value);
+                        }
+                        acc
+                    }),
+            )
             .json(&query)
             .send()
             .await

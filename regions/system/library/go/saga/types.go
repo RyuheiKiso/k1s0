@@ -46,11 +46,14 @@ type SagaState struct {
 
 // StartSagaRequest は Saga 開始リクエスト。
 type StartSagaRequest struct {
-	WorkflowName string `json:"workflow_name"`
-	Payload  any    `json:"payload"`
+	WorkflowName  string  `json:"workflow_name"`
+	Payload       any     `json:"payload"`
+	CorrelationID *string `json:"correlation_id,omitempty"`
+	InitiatedBy   *string `json:"initiated_by,omitempty"`
 }
 
 // StartSagaResponse は Saga 開始レスポンス。
 type StartSagaResponse struct {
 	SagaID string `json:"saga_id"`
+	Status string `json:"status"`
 }
