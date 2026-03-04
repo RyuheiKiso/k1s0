@@ -234,9 +234,9 @@ message SagaStateProto {
   // 各ステップに渡す JSON ペイロード
   google.protobuf.Struct payload = 5;
   // 業務相関 ID
-  string correlation_id = 6;
+  optional string correlation_id = 6;
   // 呼び出し元サービス名
-  string initiated_by = 7;
+  optional string initiated_by = 7;
   // エラーメッセージ（失敗時）
   optional string error_message = 8;
   k1s0.system.common.v1.Timestamp created_at = 9;
@@ -262,7 +262,7 @@ message SagaStepLogProto {
   // レスポンスペイロード
   google.protobuf.Struct response_payload = 8;
   // エラーメッセージ（失敗時）
-  string error_message = 9;
+  optional string error_message = 9;
   k1s0.system.common.v1.Timestamp started_at = 10;
   optional k1s0.system.common.v1.Timestamp completed_at = 11;
 }
@@ -288,9 +288,9 @@ message StartSagaRequest {
   // 各ステップに渡す JSON ペイロード
   google.protobuf.Struct payload = 2;
   // 業務相関 ID（任意）
-  string correlation_id = 3;
+  optional string correlation_id = 3;
   // 呼び出し元サービス名（任意）
-  string initiated_by = 4;
+  optional string initiated_by = 4;
 }
 
 // StartSagaResponse は Saga 開始レスポンス。

@@ -64,7 +64,6 @@ func TestValidatePerPage_Valid(t *testing.T) {
 	assert.NoError(t, pagination.ValidatePerPage(1))
 	assert.NoError(t, pagination.ValidatePerPage(50))
 	assert.NoError(t, pagination.ValidatePerPage(100))
-	assert.NoError(t, pagination.ValidatePerPage(200))
 }
 
 func TestValidatePerPage_Zero(t *testing.T) {
@@ -72,7 +71,7 @@ func TestValidatePerPage_Zero(t *testing.T) {
 }
 
 func TestValidatePerPage_OverMax(t *testing.T) {
-	assert.Error(t, pagination.ValidatePerPage(201))
+	assert.Error(t, pagination.ValidatePerPage(101))
 }
 
 func TestCursorRequest_Fields(t *testing.T) {

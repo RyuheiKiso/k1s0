@@ -620,6 +620,26 @@ CREATE INDEX idx_workflow_tasks_due_at ON workflow.workflow_tasks(due_at)
 }
 ```
 
+### DELETE /api/v1/workflows/:id -- レスポンス例
+
+ワークフローインスタンスを削除する。
+
+**レスポンス（204 No Content）**
+
+ボディなし。削除成功時は 204 を返す。
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_WORKFLOW_NOT_FOUND",
+    "message": "workflow not found: {id}",
+    "request_id": "req_abc123def456"
+  }
+}
+```
+
 ### POST /api/v1/workflows/:id/execute -- リクエスト・レスポンス例
 
 **リクエスト**
