@@ -19,7 +19,7 @@ zeroize クレートによりメモリ上の秘密鍵・平文データを確実
 | `aes_decrypt` | 関数 | Base64 暗号文を AES-256-GCM で復号（Rust: `aes_decrypt(key: &[u8; 32], ciphertext: &str)`）|
 | `hash_password` | 関数 | Argon2id でパスワードをハッシュ化 |
 | `verify_password` | 関数 | パスワードとハッシュ値を検証 |
-| `EncryptionError` | enum | `EncryptFailed(String)`・`DecryptFailed(String)`・`HashFailed(String)`・`RsaKeyGenerationFailed(String)`・`RsaEncryptFailed(String)`・`RsaDecryptFailed(String)` |
+| `EncryptionError` | enum | Rust 実装のエラー型（Go は専用 enum を持たず標準 `error` を返却） |
 | `generate_rsa_key_pair` | 関数 | 2048bit RSA キーペアを PEM 形式で生成（戻り値: `(public_pem, private_pem)`）|
 | `rsa_encrypt` | 関数 | RSA-OAEP-SHA256 で平文を暗号化（引数: `public_key_pem, plaintext`）|
 | `rsa_decrypt` | 関数 | RSA-OAEP-SHA256 で暗号文を復号（引数: `private_key_pem, ciphertext`）|
@@ -114,7 +114,18 @@ func HashPassword(password string) (string, error)
 
 // Argon2id パスワード検証（不一致時は error 返却）
 func VerifyPassword(password, encodedHash string) error
+
+// RSA-OAEP-SHA256 鍵生成（PEM 形式）
+func GenerateRSAKeyPair() (publicKeyPEM string, privateKeyPEM string, err error)
+
+// RSA-OAEP-SHA256 暗号化
+func RSAEncrypt(publicKeyPEM string, plaintext []byte) ([]byte, error)
+
+// RSA-OAEP-SHA256 復号
+func RSADecrypt(privateKeyPEM string, ciphertext []byte) ([]byte, error)
 ```
+
+> Go 実装は `EncryptionError` のような専用 enum を公開せず、各関数が標準 `error` を返す。
 
 ## TypeScript 実装
 

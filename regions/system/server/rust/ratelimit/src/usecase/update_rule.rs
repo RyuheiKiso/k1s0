@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::{Algorithm, RateLimitRule};
 use crate::domain::repository::RateLimitRepository;
+use crate::domain::service::RateLimitDomainService;
 
 /// UpdateRuleError はルール更新に関するエラー。
 #[derive(Debug, thiserror::Error)]
@@ -43,19 +44,13 @@ impl UpdateRuleUseCase {
     }
 
     pub async fn execute(&self, input: &UpdateRuleInput) -> Result<RateLimitRule, UpdateRuleError> {
-        if input.scope.is_empty() {
-            return Err(UpdateRuleError::Validation("scope is required".to_string()));
-        }
-        if input.limit == 0 {
-            return Err(UpdateRuleError::Validation(
-                "limit must be positive".to_string(),
-            ));
-        }
-        if input.window_seconds == 0 {
-            return Err(UpdateRuleError::Validation(
-                "window_seconds must be positive".to_string(),
-            ));
-        }
+        RateLimitDomainService::validate_rule_input(
+            &input.scope,
+            &input.identifier_pattern,
+            input.limit,
+            input.window_seconds,
+        )
+        .map_err(UpdateRuleError::Validation)?;
 
         let id = Uuid::parse_str(&input.id)
             .map_err(|_| UpdateRuleError::NotFound(input.id.clone()))?;
@@ -66,6 +61,7 @@ impl UpdateRuleUseCase {
             .await
             .map_err(|e| UpdateRuleError::NotFound(e.to_string()))?;
 
+        rule.name = input.scope.clone();
         rule.scope = input.scope.clone();
         rule.identifier_pattern = input.identifier_pattern.clone();
         rule.limit = input.limit;

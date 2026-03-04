@@ -88,13 +88,44 @@ fn to_message_response(msg: &crate::domain::entity::DlqMessage) -> DlqMessageRes
 // --- Handlers ---
 
 #[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Health check OK")))]
-pub async fn healthz() -> &'static str {
-    "ok"
+pub async fn healthz() -> Json<serde_json::Value> {
+    Json(serde_json::json!({"status": "ok"}))
 }
 
 #[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready")))]
-pub async fn readyz() -> &'static str {
-    "ok"
+pub async fn readyz(State(state): State<AppState>) -> impl axum::response::IntoResponse {
+    let (db_status, db_ready) = if let Some(pool) = &state.db_pool {
+        let ok = sqlx::query("SELECT 1").execute(pool.as_ref()).await.is_ok();
+        (if ok { "ok" } else { "error" }, ok)
+    } else {
+        ("not_configured", true)
+    };
+
+    let (kafka_status, kafka_ready) = if let Some(publisher) = &state.publisher {
+        let ok = publisher.health_check().await.is_ok();
+        (if ok { "ok" } else { "error" }, ok)
+    } else {
+        ("not_configured", true)
+    };
+
+    let ready = db_ready && kafka_ready;
+    let status_code = if ready {
+        axum::http::StatusCode::OK
+    } else {
+        axum::http::StatusCode::SERVICE_UNAVAILABLE
+    };
+    let status = if ready { "ready" } else { "not_ready" };
+
+    (
+        status_code,
+        Json(serde_json::json!({
+            "status": status,
+            "checks": {
+                "database": db_status,
+                "kafka": kafka_status
+            }
+        })),
+    )
 }
 
 #[utoipa::path(get, path = "/metrics", responses((status = 200, description = "Prometheus metrics")))]
@@ -276,6 +307,8 @@ mod tests {
             delete_message_uc: Arc::new(DeleteMessageUseCase::new(repo.clone())),
             retry_all_uc: Arc::new(RetryAllUseCase::new(repo, None)),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-dlq-manager")),
+            db_pool: None,
+            publisher: None,
             auth_state: None,
         }
     }

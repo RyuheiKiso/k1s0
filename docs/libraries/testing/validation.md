@@ -122,7 +122,15 @@ func (ve *ValidationErrors) Add(err *ValidationError)
 type DefaultValidator struct{}
 
 func NewDefaultValidator() *DefaultValidator
+func (v *DefaultValidator) ValidateEmail(email string) error
+func (v *DefaultValidator) ValidateUUID(id string) error
+func (v *DefaultValidator) ValidateURL(rawURL string) error
+func (v *DefaultValidator) ValidateTenantID(tenantID string) error
+func (v *DefaultValidator) ValidatePagination(page, perPage int) error
+func (v *DefaultValidator) ValidateDateRange(startDate, endDate time.Time) error
 ```
+
+> Go は standalone 関数ではなく `DefaultValidator` メソッドとして API を提供する。
 
 ## TypeScript 実装
 

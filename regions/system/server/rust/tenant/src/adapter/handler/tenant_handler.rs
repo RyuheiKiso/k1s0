@@ -11,6 +11,7 @@ use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
 use crate::adapter::middleware::auth::TenantAuthState;
+use crate::domain::entity::Plan;
 use crate::usecase::{
     ActivateTenantError, ActivateTenantUseCase, AddMemberError, AddMemberInput, AddMemberUseCase,
     CreateTenantError, CreateTenantInput, CreateTenantUseCase, DeleteTenantError,
@@ -22,6 +23,11 @@ use crate::usecase::{
 
 fn not_found_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
     let err = ErrorResponse::new(codes::tenant::not_found(), msg);
+    (StatusCode::NOT_FOUND, Json(serde_json::to_value(&err).unwrap()))
+}
+
+fn member_not_found_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    let err = ErrorResponse::new(codes::tenant::member_not_found(), msg);
     (StatusCode::NOT_FOUND, Json(serde_json::to_value(&err).unwrap()))
 }
 
@@ -71,7 +77,7 @@ pub struct CreateTenantRequest {
     pub display_name: String,
     pub plan: String,
     #[serde(alias = "owner_user_id")]
-    pub owner_id: Option<String>,
+    pub owner_id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -158,7 +164,7 @@ pub async fn list_tenants(
                         name: t.name,
                         display_name: t.display_name,
                         status: t.status.as_str().to_string(),
-                        plan: t.plan,
+                        plan: t.plan.as_str().to_string(),
                         owner_id: t.owner_id,
                         settings: t.settings,
                         keycloak_realm: t.keycloak_realm,
@@ -203,7 +209,7 @@ pub async fn get_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -224,14 +230,32 @@ pub async fn create_tenant(
     State(state): State<AppState>,
     Json(req): Json<CreateTenantRequest>,
 ) -> impl IntoResponse {
-    let owner_id = req
-        .owner_id
-        .and_then(|s| Uuid::parse_str(&s).ok());
+    let owner_id = match Uuid::parse_str(&req.owner_id) {
+        Ok(id) => Some(id),
+        Err(_) => {
+            return bad_request_response(
+                codes::tenant::validation_error(),
+                format!("invalid owner id: {}", req.owner_id),
+            )
+                .into_response()
+        }
+    };
+
+    let plan = match req.plan.parse::<Plan>() {
+        Ok(plan) => plan,
+        Err(_) => {
+            return bad_request_response(
+                codes::tenant::validation_error(),
+                format!("invalid plan: {}", req.plan),
+            )
+                .into_response()
+        }
+    };
 
     let input = CreateTenantInput {
         name: req.name,
         display_name: req.display_name,
-        plan: req.plan,
+        plan,
         owner_id,
     };
 
@@ -242,7 +266,7 @@ pub async fn create_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -284,10 +308,21 @@ pub async fn update_tenant(
         }
     };
 
+    let plan = match req.plan.parse::<Plan>() {
+        Ok(plan) => plan,
+        Err(_) => {
+            return bad_request_response(
+                codes::tenant::validation_error(),
+                format!("invalid plan: {}", req.plan),
+            )
+                .into_response()
+        }
+    };
+
     let input = UpdateTenantInput {
         id: tenant_id,
         display_name: req.display_name,
-        plan: req.plan,
+        plan,
     };
 
     match state.update_tenant_uc.execute(input).await {
@@ -297,7 +332,7 @@ pub async fn update_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -340,7 +375,7 @@ pub async fn delete_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -383,7 +418,7 @@ pub async fn suspend_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -426,7 +461,7 @@ pub async fn activate_tenant(
                 name: t.name,
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
-                plan: t.plan,
+                plan: t.plan.as_str().to_string(),
                 owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
@@ -573,7 +608,7 @@ pub async fn remove_member(
     match state.remove_member_uc.execute(tenant_uuid, user_uuid).await {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
         Err(RemoveMemberError::NotFound) => {
-            not_found_response("member not found").into_response()
+            member_not_found_response("member not found").into_response()
         }
         Err(RemoveMemberError::Internal(msg)) => internal_response(msg).into_response(),
     }

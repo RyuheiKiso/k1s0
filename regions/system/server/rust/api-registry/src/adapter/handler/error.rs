@@ -49,6 +49,14 @@ impl ApiError {
         )
     }
 
+    pub fn already_exists(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+        let err = ErrorResponse::new(codes::api_registry::already_exists(), message);
+        (
+            StatusCode::CONFLICT,
+            Json(serde_json::to_value(&err).unwrap()),
+        )
+    }
+
     pub fn cannot_delete_latest(
         message: impl Into<String>,
     ) -> (StatusCode, Json<serde_json::Value>) {
@@ -63,6 +71,14 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::schema_invalid(), message);
         (
             StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::to_value(&err).unwrap()),
+        )
+    }
+
+    pub fn validator_error(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+        let err = ErrorResponse::new(codes::api_registry::validator_error(), message);
+        (
+            StatusCode::BAD_GATEWAY,
             Json(serde_json::to_value(&err).unwrap()),
         )
     }

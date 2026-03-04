@@ -32,6 +32,44 @@ pub struct FeatureFlagGrpcClient {
 }
 
 impl FeatureFlagGrpcClient {
+    fn rollout_to_variants(
+        rollout_percentage: Option<i32>,
+    ) -> Vec<proto::k1s0::system::featureflag::v1::FlagVariant> {
+        let Some(rollout) = rollout_percentage else {
+            return vec![];
+        };
+        let on_weight = rollout.clamp(0, 100);
+        let off_weight = 100 - on_weight;
+        vec![
+            proto::k1s0::system::featureflag::v1::FlagVariant {
+                name: "on".to_string(),
+                value: "true".to_string(),
+                weight: on_weight,
+            },
+            proto::k1s0::system::featureflag::v1::FlagVariant {
+                name: "off".to_string(),
+                value: "false".to_string(),
+                weight: off_weight,
+            },
+        ]
+    }
+
+    fn target_env_to_rules(
+        target_environments: Option<Vec<String>>,
+    ) -> Vec<proto::k1s0::system::featureflag::v1::FlagRule> {
+        target_environments
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|env| !env.trim().is_empty())
+            .map(|env| proto::k1s0::system::featureflag::v1::FlagRule {
+                attribute: "environment".to_string(),
+                operator: "equals".to_string(),
+                value: env,
+                variant: "on".to_string(),
+            })
+            .collect()
+    }
+
     fn to_domain_flag(
         flag: ProtoFeatureFlag,
         rollout_hint: Option<i32>,
@@ -155,8 +193,8 @@ impl FeatureFlagGrpcClient {
                 flag_key: key.to_owned(),
                 enabled: Some(enabled),
                 description: Some(String::new()),
-                rules: vec![],
-                variants: vec![],
+                rules: Self::target_env_to_rules(target_environments.clone()),
+                variants: Self::rollout_to_variants(rollout_percentage),
             },
         );
 

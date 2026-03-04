@@ -16,11 +16,12 @@ Kafka ベースのイベント送受信を共通化するライブラリ。
 
 | API | 目的 |
 | --- | --- |
-| `EventMetadata` | イベント ID、種別、相関 ID、トレース ID、発行時刻、発行元を保持 |
+| `EventMetadata` | イベント ID、種別、相関 ID、トレース ID、発行時刻、発行元、`schema_version` を保持 |
 | `EventEnvelope` | `topic` / `key` / `payload` / `headers` とメタデータを保持 |
 | `EventProducer.publish` | 単一イベントを発行 |
 | `EventProducer.publishBatch` | 複数イベントをバッチ発行 |
 | `EventConsumer` | イベント受信（言語ごとに pull/push モデルが異なる） |
+| `MessagingError` | メッセージング操作（publish/subscribe/deserialize 等）のラップエラー |
 | `NoOpEventProducer` | テスト向け no-op 実装 |
 
 ## 言語差異
@@ -65,6 +66,23 @@ event := messaging.EventEnvelope{
         "x-tenant-id": "tenant-abc",
         "x-trace-id":  "trace-123",
     },
+}
+```
+
+### Go `EventMetadata.SchemaVersion`
+
+Go 実装の `EventMetadata` は `SchemaVersion int32` を持つ。`NewEventMetadata(...)` で生成した場合のデフォルト値は `1`。
+
+### Go `EventMetadata.WithTraceId`
+
+Go 実装は値レシーバのビルダーメソッド `WithTraceId(traceId string)` を提供する。`TraceId` をセットした新しい `EventMetadata` を返す。
+
+### Go `MessagingError`
+
+```go
+type MessagingError struct {
+    Op  string // 失敗した操作名（publish / subscribe / decode など）
+    Err error  // 元エラー
 }
 ```
 

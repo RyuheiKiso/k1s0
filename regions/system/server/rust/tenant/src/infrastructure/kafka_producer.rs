@@ -32,7 +32,7 @@ impl TenantChangedEvent {
                 "tenant_name": tenant.name.clone(),
                 "display_name": tenant.display_name.clone(),
                 "status": tenant.status.as_str(),
-                "plan": tenant.plan.clone(),
+                "plan": tenant.plan.as_str(),
                 "owner_id": tenant.owner_id.clone(),
                 "updated_at": tenant.updated_at.to_rfc3339(),
             })),
@@ -234,7 +234,7 @@ impl TenantEventPublisher for KafkaTenantEventPublisher {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::TenantStatus;
+    use crate::domain::entity::{Plan, TenantStatus};
     use std::sync::Mutex;
 
     /// テスト用のインメモリプロデューサー。
@@ -316,7 +316,7 @@ mod tests {
             name: "acme-corp".to_string(),
             display_name: "ACME Corporation".to_string(),
             status: TenantStatus::Active,
-            plan: "professional".to_string(),
+            plan: Plan::Professional,
             owner_id: None,
             settings: serde_json::json!({}),
             keycloak_realm: None,

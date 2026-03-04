@@ -104,6 +104,7 @@ pub struct QuotaUsage {
     pub period_start: DateTime<Utc>,
     pub period_end: DateTime<Utc>,
     pub reset_at: DateTime<Utc>,
+    pub retrieved_at: DateTime<Utc>,
 }
 
 impl QuotaUsage {
@@ -127,6 +128,7 @@ impl QuotaUsage {
             period_start,
             period_end,
             reset_at,
+            retrieved_at: Utc::now(),
         }
     }
 }

@@ -97,7 +97,7 @@ let spiffe = client
 
 **配置先**: `regions/system/library/go/serviceauth/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `github.com/lestrrat-go/jwx/v2 v2.1.3`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: `github.com/stretchr/testify v1.11.1`（本体は標準ライブラリ中心）
 
 **主要インターフェース**:
 
@@ -107,6 +107,23 @@ type ServiceAuthClient interface {
     GetCachedToken(ctx context.Context) (string, error)
     ValidateSpiffeId(spiffeId string, expectedNamespace string) (*SpiffeId, error)
 }
+
+type ServiceAuthConfig struct {
+    TokenURL     string
+    ClientID     string
+    ClientSecret string
+    Audience     string
+}
+
+type ServiceToken struct {
+    AccessToken string
+    TokenType   string
+    ExpiresAt   time.Time
+    Scope       string
+}
+
+func NewClient(config *ServiceAuthConfig) ServiceAuthClient
+func NewClientWithHTTPClient(config *ServiceAuthConfig, httpClient *http.Client) ServiceAuthClient
 ```
 
 **Go `ServiceClaims` のフィールド**:
@@ -115,11 +132,15 @@ type ServiceAuthClient interface {
 type ServiceClaims struct {
     Subject          string
     Issuer           string
-    Audience         string
+    Audience         []string
     ServiceAccountId string
-    Scope            string
 }
 ```
+
+> Go 実装では `scope` は `ServiceClaims` ではなく `ServiceToken.Scope` に保持する。
+> 旧ドキュメントにあった jwx 依存は削除済みで、Go 実装は JWT 検証ライブラリを直接依存しない。
+> Go 実装は `ServiceAuthError` 専用型を公開せず、`error`（`fmt.Errorf` ラップ）で返却する。
+> Go の `SpiffeId` は `uri` フィールドを保持せず、`String()` メソッドで URI を動的生成する。
 
 ## TypeScript 実装
 

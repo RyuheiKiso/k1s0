@@ -43,6 +43,7 @@ impl std::fmt::Display for Algorithm {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RateLimitRule {
     pub id: Uuid,
+    pub name: String,
     pub scope: String,
     pub identifier_pattern: String,
     pub limit: u32,
@@ -64,6 +65,7 @@ impl RateLimitRule {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
+            name: scope.clone(),
             scope,
             identifier_pattern,
             limit,
@@ -80,9 +82,13 @@ impl RateLimitRule {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RateLimitDecision {
     pub allowed: bool,
+    pub scope: String,
+    pub identifier: String,
     pub limit: i64,
+    pub used: i64,
     pub remaining: i64,
     pub reset_at: i64,
+    pub rule_id: String,
     pub reason: String,
 }
 
@@ -90,9 +96,13 @@ impl RateLimitDecision {
     pub fn allowed(limit: i64, remaining: i64, reset_at: i64) -> Self {
         Self {
             allowed: true,
+            scope: String::new(),
+            identifier: String::new(),
             limit,
+            used: (limit - remaining).max(0),
             remaining,
             reset_at,
+            rule_id: String::new(),
             reason: String::new(),
         }
     }
@@ -100,9 +110,13 @@ impl RateLimitDecision {
     pub fn denied(limit: i64, remaining: i64, reset_at: i64, reason: String) -> Self {
         Self {
             allowed: false,
+            scope: String::new(),
+            identifier: String::new(),
             limit,
+            used: (limit - remaining).max(0),
             remaining,
             reset_at,
+            rule_id: String::new(),
             reason,
         }
     }
@@ -139,6 +153,7 @@ mod tests {
             Algorithm::TokenBucket,
         );
         assert_eq!(rule.scope, "service");
+        assert_eq!(rule.name, "service");
         assert_eq!(rule.identifier_pattern, "global");
         assert_eq!(rule.limit, 100);
         assert_eq!(rule.window_seconds, 60);
@@ -151,6 +166,7 @@ mod tests {
         let decision = RateLimitDecision::allowed(100, 99, 1700000000);
         assert!(decision.allowed);
         assert_eq!(decision.limit, 100);
+        assert_eq!(decision.used, 1);
         assert_eq!(decision.remaining, 99);
         assert_eq!(decision.reset_at, 1700000000);
         assert!(decision.reason.is_empty());
@@ -162,6 +178,7 @@ mod tests {
             RateLimitDecision::denied(100, 0, 1700000060, "rate limit exceeded".to_string());
         assert!(!decision.allowed);
         assert_eq!(decision.limit, 100);
+        assert_eq!(decision.used, 100);
         assert_eq!(decision.remaining, 0);
         assert_eq!(decision.reason, "rate limit exceeded");
     }

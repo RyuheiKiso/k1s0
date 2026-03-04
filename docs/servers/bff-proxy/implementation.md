@@ -18,13 +18,16 @@ internal/
     auth_handler.go      # /auth/login, /auth/callback, /auth/logout
     proxy_handler.go     # /api/*path
     health_handler.go    # /healthz, /readyz, /metrics
+    error_response.go    # 共通エラーレスポンス
   middleware/
     session.go           # セッション検証
     csrf_middleware.go   # CSRF 検証
     traceid.go           # request_id / trace_id 付与
+    request_id.go        # request_id 取得ヘルパー
+    trace_middleware.go  # トレースミドルウェア
     metrics_middleware.go # Prometheus メトリクス
   oauth/
-    oidc_client.go       # Discovery, token exchange, refresh
+    client.go            # Discovery, token exchange, refresh
     pkce.go              # code_verifier/code_challenge 生成
   session/
     redis_store.go       # セッション保存/取得/削除

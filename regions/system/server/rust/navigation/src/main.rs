@@ -47,7 +47,9 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Navigation config loader
-    let loader = Arc::new(YamlNavigationConfigLoader::new(&cfg.navigation_path));
+    let loader = Arc::new(YamlNavigationConfigLoader::new(
+        &cfg.navigation.navigation_path,
+    ));
 
     // Token verifier (optional)
     let verifier = if let Some(ref auth_cfg) = cfg.auth {

@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::domain::entity::notification_log::NotificationLog;
 use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
+use crate::domain::service::NotificationDomainService;
 
 #[derive(Debug, Clone)]
 pub struct RetryNotificationInput {
@@ -53,7 +54,7 @@ impl RetryNotificationUseCase {
             .map_err(|e| RetryNotificationError::Internal(e.to_string()))?
             .ok_or(RetryNotificationError::NotFound(input.notification_id))?;
 
-        if log.status == "sent" {
+        if !NotificationDomainService::is_retryable_status(&log.status) {
             return Err(RetryNotificationError::AlreadySent(input.notification_id));
         }
 

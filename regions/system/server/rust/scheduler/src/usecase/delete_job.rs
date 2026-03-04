@@ -3,6 +3,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
+use crate::domain::service::SchedulerDomainService;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteJobError {
@@ -45,7 +46,7 @@ impl DeleteJobUseCase {
             .find_by_job_id(id)
             .await
             .map_err(|e| DeleteJobError::Internal(e.to_string()))?;
-        if executions.iter().any(|e| e.status == "running") {
+        if SchedulerDomainService::has_running_execution(&executions) {
             return Err(DeleteJobError::JobRunning(*id));
         }
 

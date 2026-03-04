@@ -51,10 +51,7 @@ func NewProxyHandler(
 func (h *ProxyHandler) Handle(c *gin.Context) {
 	sess, ok := middleware.GetSessionData(c)
 	if !ok {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"error":   "BFF_PROXY_NO_SESSION",
-			"message": "Session not found",
-		})
+		abortErrorWithMessage(c, http.StatusUnauthorized, "BFF_PROXY_NO_SESSION", "Session not found")
 		return
 	}
 
@@ -67,10 +64,7 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 			h.logger.Warn("token refresh failed, session expired",
 				slog.String("error", err.Error()),
 			)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error":   "BFF_PROXY_TOKEN_EXPIRED",
-				"message": "Session expired, please re-authenticate",
-			})
+			abortErrorWithMessage(c, http.StatusUnauthorized, "BFF_PROXY_TOKEN_EXPIRED", "Session expired, please re-authenticate")
 			return
 		}
 

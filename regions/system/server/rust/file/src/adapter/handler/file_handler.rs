@@ -16,17 +16,32 @@ use crate::usecase::generate_upload_url::GenerateUploadUrlInput;
 use crate::usecase::get_file_metadata::GetFileMetadataInput;
 use crate::usecase::list_files::ListFilesInput;
 
+fn is_storage_error_message(msg: &str) -> bool {
+    let lower = msg.to_ascii_lowercase();
+    [
+        "storage",
+        "s3",
+        "bucket",
+        "object store",
+        "presign",
+        "upload url",
+        "download url",
+    ]
+    .iter()
+    .any(|needle| lower.contains(needle))
+}
+
 /// POST /api/v1/files - Generate upload URL (initiate upload)
 pub async fn upload_file(
     State(state): State<AppState>,
     Json(req): Json<UploadFileRequest>,
 ) -> impl IntoResponse {
     let input = GenerateUploadUrlInput {
-        name: req.filename,
+        filename: req.filename,
         size_bytes: req.size_bytes,
-        mime_type: req.content_type,
+        content_type: req.content_type,
         tenant_id: req.tenant_id,
-        owner_id: req.uploaded_by,
+        uploaded_by: req.uploaded_by,
         tags: req.tags.unwrap_or_default(),
         expires_in_seconds: req.expires_in_seconds.unwrap_or(3600),
     };
@@ -53,8 +68,13 @@ pub async fn upload_file(
             (StatusCode::PAYLOAD_TOO_LARGE, Json(err)).into_response()
         }
         Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::Internal(msg)) => {
-            let err = ErrorResponse::new(codes::file::upload_failed(), &msg);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            if is_storage_error_message(&msg) {
+                let err = ErrorResponse::new(codes::file::storage_error(), &msg);
+                (StatusCode::BAD_GATEWAY, Json(err)).into_response()
+            } else {
+                let err = ErrorResponse::new(codes::file::upload_failed(), &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
         }
     }
 }
@@ -126,8 +146,8 @@ pub async fn list_files(
 ) -> impl IntoResponse {
     let input = ListFilesInput {
         tenant_id: params.tenant_id,
-        owner_id: params.owner_id,
-        mime_type: params.mime_type,
+        uploaded_by: params.uploaded_by,
+        content_type: params.content_type,
         tag: params
             .tag
             .as_deref()
@@ -182,7 +202,7 @@ pub async fn delete_file(
 
         if let Some(axum::extract::Extension(claims)) = claims {
             let is_admin = claims.realm_roles().iter().any(|role| role == "sys_admin");
-            if !is_admin && file.owner_id != claims.sub {
+            if !is_admin && file.uploaded_by != claims.sub {
                 let err = ErrorResponse::new(
                     codes::file::access_denied(),
                     "only the file owner or sys_admin can delete this file",
@@ -318,6 +338,9 @@ pub async fn download_url(
             } else if msg.contains("not available") {
                 let err = ErrorResponse::new(codes::file::not_available(), &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
+            } else if is_storage_error_message(&msg) {
+                let err = ErrorResponse::new(codes::file::storage_error(), &msg);
+                (StatusCode::BAD_GATEWAY, Json(err)).into_response()
             } else {
                 let err = ErrorResponse::new(codes::file::download_url_failed(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
@@ -390,11 +413,11 @@ pub async fn update_file_tags(
 fn file_to_rest_summary(file: &crate::domain::entity::file::FileMetadata) -> serde_json::Value {
     serde_json::json!({
         "id": &file.id,
-        "filename": &file.name,
+        "filename": &file.filename,
         "size_bytes": file.size_bytes,
-        "content_type": &file.mime_type,
+        "content_type": &file.content_type,
         "tenant_id": &file.tenant_id,
-        "uploaded_by": &file.owner_id,
+        "uploaded_by": &file.uploaded_by,
         "tags": &file.tags,
         "storage_key": &file.storage_key,
         "status": &file.status,
@@ -406,11 +429,11 @@ fn file_to_rest_summary(file: &crate::domain::entity::file::FileMetadata) -> ser
 fn file_to_rest_detail(file: &crate::domain::entity::file::FileMetadata) -> serde_json::Value {
     serde_json::json!({
         "id": &file.id,
-        "filename": &file.name,
+        "filename": &file.filename,
         "size_bytes": file.size_bytes,
-        "content_type": &file.mime_type,
+        "content_type": &file.content_type,
         "tenant_id": &file.tenant_id,
-        "uploaded_by": &file.owner_id,
+        "uploaded_by": &file.uploaded_by,
         "tags": &file.tags,
         "storage_key": &file.storage_key,
         "checksum_sha256": &file.checksum_sha256,
@@ -448,10 +471,10 @@ pub struct UpdateFileTagsRequest {
 #[derive(Debug, Deserialize)]
 pub struct ListFilesParams {
     pub tenant_id: Option<String>,
-    #[serde(alias = "uploaded_by")]
-    pub owner_id: Option<String>,
-    #[serde(alias = "content_type")]
-    pub mime_type: Option<String>,
+    #[serde(alias = "owner_id", alias = "uploaded_by")]
+    pub uploaded_by: Option<String>,
+    #[serde(alias = "mime_type", alias = "content_type")]
+    pub content_type: Option<String>,
     pub tag: Option<String>,
     pub page: Option<u32>,
     pub page_size: Option<u32>,

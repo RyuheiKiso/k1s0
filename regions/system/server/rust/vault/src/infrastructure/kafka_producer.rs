@@ -12,6 +12,16 @@ pub struct VaultAccessEvent {
     pub timestamp: String, // ISO 8601
 }
 
+/// VaultSecretRotatedEvent はシークレットローテーション通知イベント。
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VaultSecretRotatedEvent {
+    pub key_path: String,
+    pub old_version: i64,
+    pub new_version: i64,
+    pub actor_id: String,
+    pub timestamp: String, // ISO 8601
+}
+
 /// KafkaConfig は Kafka 接続の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
@@ -55,6 +65,7 @@ pub struct TopicsConfig {
 #[async_trait]
 pub trait VaultEventPublisher: Send + Sync {
     async fn publish_secret_accessed(&self, event: &VaultAccessEvent) -> anyhow::Result<()>;
+    async fn publish_secret_rotated(&self, event: &VaultSecretRotatedEvent) -> anyhow::Result<()>;
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -67,6 +78,10 @@ impl VaultEventPublisher for NoopVaultEventPublisher {
         Ok(())
     }
 
+    async fn publish_secret_rotated(&self, _event: &VaultSecretRotatedEvent) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     async fn close(&self) -> anyhow::Result<()> {
         Ok(())
     }
@@ -75,7 +90,8 @@ impl VaultEventPublisher for NoopVaultEventPublisher {
 /// KafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
 pub struct KafkaProducer {
     producer: rdkafka::producer::FutureProducer,
-    topic: String,
+    access_topic: String,
+    rotation_topic: String,
     metrics: Option<std::sync::Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
@@ -84,12 +100,18 @@ impl KafkaProducer {
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
-        let topic = config
+        let access_topic = config
             .topics
             .publish
             .first()
             .cloned()
             .unwrap_or_else(|| "k1s0.system.vault.access.v1".to_string());
+        let rotation_topic = config
+            .topics
+            .publish
+            .get(1)
+            .cloned()
+            .unwrap_or_else(|| "k1s0.system.vault.secret_rotated.v1".to_string());
 
         let mut client_config = ClientConfig::new();
         client_config.set("bootstrap.servers", config.brokers.join(","));
@@ -107,7 +129,8 @@ impl KafkaProducer {
 
         Ok(Self {
             producer,
-            topic,
+            access_topic,
+            rotation_topic,
             metrics: None,
         })
     }
@@ -123,7 +146,11 @@ impl KafkaProducer {
 
     /// 配信先トピック名を返す。
     pub fn topic(&self) -> &str {
-        &self.topic
+        &self.access_topic
+    }
+
+    pub fn rotation_topic(&self) -> &str {
+        &self.rotation_topic
     }
 }
 
@@ -136,7 +163,7 @@ impl VaultEventPublisher for KafkaProducer {
         let payload = serde_json::to_vec(event)?;
         let key = format!("{}:{}", event.key_path, event.action);
 
-        let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
+        let record = FutureRecord::to(&self.access_topic).key(&key).payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
@@ -144,7 +171,28 @@ impl VaultEventPublisher for KafkaProducer {
             .map_err(|(err, _)| anyhow::anyhow!("failed to publish vault access event: {}", err))?;
 
         if let Some(ref m) = self.metrics {
-            m.record_kafka_message_produced(&self.topic);
+            m.record_kafka_message_produced(&self.access_topic);
+        }
+
+        Ok(())
+    }
+
+    async fn publish_secret_rotated(&self, event: &VaultSecretRotatedEvent) -> anyhow::Result<()> {
+        use rdkafka::producer::FutureRecord;
+        use std::time::Duration;
+
+        let payload = serde_json::to_vec(event)?;
+        let key = event.key_path.clone();
+
+        let record = FutureRecord::to(&self.rotation_topic).key(&key).payload(&payload);
+
+        self.producer
+            .send(record, Duration::from_secs(5))
+            .await
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish vault rotation event: {}", err))?;
+
+        if let Some(ref m) = self.metrics {
+            m.record_kafka_message_produced(&self.rotation_topic);
         }
 
         Ok(())
@@ -192,6 +240,16 @@ mod tests {
             }
             let payload = serde_json::to_vec(event)?;
             let key = format!("{}:{}", event.key_path, event.action);
+            self.messages.lock().unwrap().push((key, payload));
+            Ok(())
+        }
+
+        async fn publish_secret_rotated(&self, event: &VaultSecretRotatedEvent) -> anyhow::Result<()> {
+            if self.should_fail {
+                return Err(anyhow::anyhow!("broker connection refused"));
+            }
+            let payload = serde_json::to_vec(event)?;
+            let key = event.key_path.clone();
             self.messages.lock().unwrap().push((key, payload));
             Ok(())
         }
@@ -297,6 +355,14 @@ brokers:
         let event = make_test_event();
 
         assert!(publisher.publish_secret_accessed(&event).await.is_ok());
+        let rotate = VaultSecretRotatedEvent {
+            key_path: "app/db/password".to_string(),
+            old_version: 1,
+            new_version: 2,
+            actor_id: "user-1".to_string(),
+            timestamp: "2026-02-26T00:00:00Z".to_string(),
+        };
+        assert!(publisher.publish_secret_rotated(&rotate).await.is_ok());
         assert!(publisher.close().await.is_ok());
     }
 
@@ -349,10 +415,19 @@ brokers:
     async fn test_mock_vault_event_publisher() {
         let mut mock = MockVaultEventPublisher::new();
         mock.expect_publish_secret_accessed().returning(|_| Ok(()));
+        mock.expect_publish_secret_rotated().returning(|_| Ok(()));
         mock.expect_close().returning(|| Ok(()));
 
         let event = make_test_event();
         assert!(mock.publish_secret_accessed(&event).await.is_ok());
+        let rotate = VaultSecretRotatedEvent {
+            key_path: "app/db/password".to_string(),
+            old_version: 1,
+            new_version: 2,
+            actor_id: "user-1".to_string(),
+            timestamp: "2026-02-26T00:00:00Z".to_string(),
+        };
+        assert!(mock.publish_secret_rotated(&rotate).await.is_ok());
         assert!(mock.close().await.is_ok());
     }
 }

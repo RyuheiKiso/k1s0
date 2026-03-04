@@ -28,6 +28,92 @@ pub struct Config {
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
     pub kafka: Option<KafkaConfig>,
+    #[serde(default)]
+    pub config_server: ConfigServerConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigServerConfig {
+    #[serde(default)]
+    pub cache: ConfigServerCacheConfig,
+    #[serde(default)]
+    pub audit: ConfigServerAuditConfig,
+    #[serde(default)]
+    pub namespace: ConfigServerNamespaceConfig,
+}
+
+impl Default for ConfigServerConfig {
+    fn default() -> Self {
+        Self {
+            cache: ConfigServerCacheConfig::default(),
+            audit: ConfigServerAuditConfig::default(),
+            namespace: ConfigServerNamespaceConfig::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigServerCacheConfig {
+    #[serde(default = "default_cache_max_entries")]
+    pub max_entries: usize,
+    #[serde(default = "default_cache_ttl_seconds")]
+    pub ttl_seconds: u64,
+}
+
+impl Default for ConfigServerCacheConfig {
+    fn default() -> Self {
+        Self {
+            max_entries: default_cache_max_entries(),
+            ttl_seconds: default_cache_ttl_seconds(),
+        }
+    }
+}
+
+fn default_cache_max_entries() -> usize {
+    10_000
+}
+
+fn default_cache_ttl_seconds() -> u64 {
+    300
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigServerAuditConfig {
+    #[serde(default = "default_audit_retention_days")]
+    pub retention_days: u32,
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+impl Default for ConfigServerAuditConfig {
+    fn default() -> Self {
+        Self {
+            retention_days: default_audit_retention_days(),
+            enabled: true,
+        }
+    }
+}
+
+fn default_audit_retention_days() -> u32 {
+    365
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigServerNamespaceConfig {
+    #[serde(default = "default_namespace_default_prefix")]
+    pub default_prefix: String,
+}
+
+impl Default for ConfigServerNamespaceConfig {
+    fn default() -> Self {
+        Self {
+            default_prefix: default_namespace_default_prefix(),
+        }
+    }
+}
+
+fn default_namespace_default_prefix() -> String {
+    "system".to_string()
 }
 
 /// AppConfig はアプリケーション基本設定を表す。

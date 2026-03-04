@@ -16,7 +16,7 @@ pub trait TenantRepository: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::TenantStatus;
+    use crate::domain::entity::{Plan, TenantStatus};
 
     #[tokio::test]
     async fn test_mock_find_by_id() {
@@ -31,7 +31,7 @@ mod tests {
                     name: "acme".to_string(),
                     display_name: "ACME".to_string(),
                     status: TenantStatus::Active,
-                    plan: "professional".to_string(),
+                    plan: Plan::Professional,
                     owner_id: None,
                     settings: serde_json::json!({}),
                     keycloak_realm: None,

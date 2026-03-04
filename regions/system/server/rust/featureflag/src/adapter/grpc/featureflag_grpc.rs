@@ -383,13 +383,34 @@ fn to_pb_rules(rules: &[FlagRule]) -> Vec<PbFlagRule> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::entity::flag_audit_log::FlagAuditLog;
     use crate::domain::entity::feature_flag::FeatureFlag;
+    use crate::domain::repository::FlagAuditLogRepository;
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
     use crate::infrastructure::kafka_producer::NoopFlagEventPublisher;
     use std::collections::HashMap;
 
+    struct NoopAuditRepo;
+
+    #[async_trait::async_trait]
+    impl FlagAuditLogRepository for NoopAuditRepo {
+        async fn create(&self, _log: &FlagAuditLog) -> anyhow::Result<()> {
+            Ok(())
+        }
+
+        async fn list_by_flag_id(
+            &self,
+            _flag_id: &uuid::Uuid,
+            _limit: i64,
+            _offset: i64,
+        ) -> anyhow::Result<Vec<FlagAuditLog>> {
+            Ok(vec![])
+        }
+    }
+
     fn make_service(mock: MockFeatureFlagRepository) -> FeatureFlagGrpcService {
         let repo = Arc::new(mock);
+        let audit_repo = Arc::new(NoopAuditRepo);
         FeatureFlagGrpcService::new(
             Arc::new(ListFlagsUseCase::new(repo.clone())),
             Arc::new(EvaluateFlagUseCase::new(repo.clone())),
@@ -397,12 +418,18 @@ mod tests {
             Arc::new(CreateFlagUseCase::new(
                 repo.clone(),
                 Arc::new(NoopFlagEventPublisher),
+                audit_repo.clone(),
             )),
             Arc::new(UpdateFlagUseCase::new(
                 repo.clone(),
                 Arc::new(NoopFlagEventPublisher),
+                audit_repo.clone(),
             )),
-            Arc::new(DeleteFlagUseCase::new(repo)),
+            Arc::new(DeleteFlagUseCase::new(
+                repo,
+                Arc::new(NoopFlagEventPublisher),
+                audit_repo,
+            )),
         )
     }
 

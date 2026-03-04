@@ -192,6 +192,7 @@ impl UpdateConfigUseCase {
                 new_version: updated_entry.version,
                 change_type: "UPDATED".to_string(),
                 changed_by: updated_entry.updated_by.clone(),
+                trace_id: None,
             },
         );
         if let Err(e) = self.config_repo.record_change_log(&change_log).await {

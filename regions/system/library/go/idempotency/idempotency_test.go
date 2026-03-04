@@ -2,6 +2,7 @@ package idempotency_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -10,12 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInsertAndGet(t *testing.T) {
+func TestSetAndGet(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
 
 	record := idempotency.NewIdempotencyRecord("req-1", nil)
-	err := store.Insert(ctx, record)
+	err := store.Set(ctx, record.Key, record)
 	require.NoError(t, err)
 
 	got, err := store.Get(ctx, "req-1")
@@ -25,19 +26,19 @@ func TestInsertAndGet(t *testing.T) {
 	assert.Equal(t, idempotency.StatusPending, got.Status)
 }
 
-func TestInsert_Duplicate(t *testing.T) {
+func TestSetDuplicate(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
 
 	record := idempotency.NewIdempotencyRecord("req-1", nil)
-	_ = store.Insert(ctx, record)
+	require.NoError(t, store.Set(ctx, record.Key, record))
 
-	err := store.Insert(ctx, idempotency.NewIdempotencyRecord("req-1", nil))
+	err := store.Set(ctx, "req-1", idempotency.NewIdempotencyRecord("req-1", nil))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "DUPLICATE")
 }
 
-func TestGet_NotFound(t *testing.T) {
+func TestGetNotFound(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
 
@@ -46,47 +47,59 @@ func TestGet_NotFound(t *testing.T) {
 	assert.Nil(t, got)
 }
 
-func TestUpdate(t *testing.T) {
+func TestMarkCompleted(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
 
 	record := idempotency.NewIdempotencyRecord("req-1", nil)
-	_ = store.Insert(ctx, record)
+	require.NoError(t, store.Set(ctx, "req-1", record))
 
-	body := `{"result": "ok"}`
-	status := 200
-	err := store.Update(ctx, "req-1", idempotency.StatusCompleted, &body, &status)
+	body := []byte(`{"result":"ok"}`)
+	require.NoError(t, store.MarkCompleted(ctx, "req-1", body, 200))
+
+	got, err := store.Get(ctx, "req-1")
 	require.NoError(t, err)
-
-	got, _ := store.Get(ctx, "req-1")
+	require.NotNil(t, got)
 	assert.Equal(t, idempotency.StatusCompleted, got.Status)
-	assert.Equal(t, &body, got.ResponseBody)
-	assert.Equal(t, &status, got.ResponseStatus)
-	assert.NotNil(t, got.CompletedAt)
+	assert.Equal(t, 200, got.StatusCode)
+	assert.Equal(t, body, got.Response)
+	assert.Empty(t, got.Error)
 }
 
-func TestUpdate_NotFound(t *testing.T) {
+func TestMarkFailed(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
 
-	err := store.Update(ctx, "missing", idempotency.StatusCompleted, nil, nil)
+	record := idempotency.NewIdempotencyRecord("req-1", nil)
+	require.NoError(t, store.Set(ctx, "req-1", record))
+
+	require.NoError(t, store.MarkFailed(ctx, "req-1", errors.New("boom")))
+
+	got, err := store.Get(ctx, "req-1")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, idempotency.StatusFailed, got.Status)
+	assert.Equal(t, "boom", got.Error)
+	assert.Zero(t, got.StatusCode)
+	assert.Nil(t, got.Response)
+}
+
+func TestMarkCompletedNotFound(t *testing.T) {
+	store := idempotency.NewInMemoryIdempotencyStore()
+	ctx := context.Background()
+
+	err := store.MarkCompleted(ctx, "missing", []byte("x"), 200)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "NOT_FOUND")
 }
 
-func TestDelete(t *testing.T) {
+func TestMarkFailedNotFound(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
 
-	_ = store.Insert(ctx, idempotency.NewIdempotencyRecord("req-1", nil))
-
-	deleted, err := store.Delete(ctx, "req-1")
-	require.NoError(t, err)
-	assert.True(t, deleted)
-
-	deleted, err = store.Delete(ctx, "req-1")
-	require.NoError(t, err)
-	assert.False(t, deleted)
+	err := store.MarkFailed(ctx, "missing", errors.New("x"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "NOT_FOUND")
 }
 
 func TestExpiredRecord(t *testing.T) {
@@ -95,30 +108,30 @@ func TestExpiredRecord(t *testing.T) {
 
 	ttl := 50 * time.Millisecond
 	record := idempotency.NewIdempotencyRecord("req-1", &ttl)
-	_ = store.Insert(ctx, record)
+	require.NoError(t, store.Set(ctx, "req-1", record))
 
-	got, _ := store.Get(ctx, "req-1")
+	got, err := store.Get(ctx, "req-1")
+	require.NoError(t, err)
 	require.NotNil(t, got)
 
 	time.Sleep(60 * time.Millisecond)
 
-	got, err := store.Get(ctx, "req-1")
+	got, err = store.Get(ctx, "req-1")
 	require.NoError(t, err)
 	assert.Nil(t, got)
 }
 
-func TestRecord_IsExpired(t *testing.T) {
-	// 期限なし
+func TestRecordIsExpired(t *testing.T) {
 	r1 := idempotency.NewIdempotencyRecord("k1", nil)
 	assert.False(t, r1.IsExpired())
 
-	// 期限あり（未来）
 	ttl := time.Hour
 	r2 := idempotency.NewIdempotencyRecord("k2", &ttl)
 	assert.False(t, r2.IsExpired())
 
-	// 期限あり（過去）
-	past := time.Now().Add(-time.Second)
-	r3 := &idempotency.IdempotencyRecord{Key: "k3", ExpiresAt: &past}
+	r3 := &idempotency.IdempotencyRecord{
+		Key:       "k3",
+		ExpiresAt: time.Now().Add(-time.Second),
+	}
 	assert.True(t, r3.IsExpired())
 }

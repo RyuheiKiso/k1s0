@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::{Algorithm, RateLimitRule};
 use crate::domain::repository::RateLimitRepository;
+use crate::domain::service::RateLimitDomainService;
 
 /// CreateRuleError はルール作成に関するエラー。
 #[derive(Debug, thiserror::Error)]
@@ -41,22 +42,13 @@ impl CreateRuleUseCase {
 
     pub async fn execute(&self, input: &CreateRuleInput) -> Result<RateLimitRule, CreateRuleError> {
         // バリデーション
-        if input.scope.is_empty() {
-            return Err(CreateRuleError::Validation("scope is required".to_string()));
-        }
-        if input.identifier_pattern.is_empty() {
-            return Err(CreateRuleError::Validation("identifier_pattern is required".to_string()));
-        }
-        if input.limit == 0 {
-            return Err(CreateRuleError::Validation(
-                "limit must be positive".to_string(),
-            ));
-        }
-        if input.window_seconds == 0 {
-            return Err(CreateRuleError::Validation(
-                "window_seconds must be positive".to_string(),
-            ));
-        }
+        RateLimitDomainService::validate_rule_input(
+            &input.scope,
+            &input.identifier_pattern,
+            input.limit,
+            input.window_seconds,
+        )
+        .map_err(CreateRuleError::Validation)?;
 
         // 重複チェック（scope+identifier_patternで確認）
         if let Ok(Some(_)) = self.repo.find_by_name(&input.scope).await {

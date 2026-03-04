@@ -27,8 +27,6 @@ impl TenantQueryResolver {
         &self,
         first: Option<i32>,
         after: Option<String>,
-        _last: Option<i32>,
-        _before: Option<String>,
     ) -> anyhow::Result<TenantConnection> {
         let page_size = first.unwrap_or(20);
         let offset = after

@@ -159,8 +159,10 @@ impl TenantService for TenantServiceTonic {
         let inner = request.into_inner();
         let pagination = inner.pagination.unwrap_or_default();
         let req = ListTenantsRequest {
-            page: pagination.page,
-            page_size: pagination.page_size,
+            pagination: Some(super::tenant_grpc::PbPagination {
+                page: pagination.page,
+                page_size: pagination.page_size,
+            }),
         };
         let resp = self
             .inner
@@ -169,15 +171,21 @@ impl TenantService for TenantServiceTonic {
             .map_err(Into::<Status>::into)?;
 
         let tenants = resp.tenants.iter().map(pb_tenant_to_proto).collect();
+        let pagination = resp.pagination.unwrap_or(super::tenant_grpc::PbPaginationResult {
+            total_count: 0,
+            page: 1,
+            page_size: 20,
+            has_next: false,
+        });
 
         Ok(Response::new(ProtoListTenantsResponse {
             tenants,
             pagination: Some(
                 crate::proto::k1s0::system::common::v1::PaginationResult {
-                    total_count: resp.total_count.min(i64::from(i32::MAX)) as i32,
-                    page: resp.page,
-                    page_size: resp.page_size,
-                    has_next: resp.has_next,
+                    total_count: pagination.total_count.min(i64::from(i32::MAX)) as i32,
+                    page: pagination.page,
+                    page_size: pagination.page_size,
+                    has_next: pagination.has_next,
                 },
             ),
         }))

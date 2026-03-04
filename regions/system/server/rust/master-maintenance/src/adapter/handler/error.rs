@@ -90,6 +90,58 @@ impl IntoResponse for AppError {
 
 impl From<anyhow::Error> for AppError {
     fn from(err: anyhow::Error) -> Self {
-        Self::internal("SYS_MM_INTERNAL_ERROR", &err.to_string())
+        let msg = err.to_string();
+        let lower = msg.to_ascii_lowercase();
+
+        if lower.contains("not found") {
+            if lower.contains("table") {
+                return Self::not_found("SYS_MM_TABLE_NOT_FOUND", &msg);
+            }
+            if lower.contains("record") {
+                return Self::not_found("SYS_MM_RECORD_NOT_FOUND", &msg);
+            }
+            if lower.contains("rule") {
+                return Self::not_found("SYS_MM_RULE_NOT_FOUND", &msg);
+            }
+            if lower.contains("display config") {
+                return Self::not_found("SYS_MM_DISPLAY_CONFIG_NOT_FOUND", &msg);
+            }
+            if lower.contains("import job") {
+                return Self::not_found("SYS_MM_IMPORT_JOB_NOT_FOUND", &msg);
+            }
+            if lower.contains("relationship") {
+                return Self::not_found("SYS_MM_RELATIONSHIP_NOT_FOUND", &msg);
+            }
+            return Self::not_found("SYS_MM_NOT_FOUND", &msg);
+        }
+        if lower.contains("delete not allowed")
+            || (lower.contains("delete") && lower.contains("not allowed"))
+        {
+            return Self::forbidden("SYS_MM_DELETE_NOT_ALLOWED", &msg);
+        }
+        if lower.contains("duplicate table")
+            || (lower.contains("table") && lower.contains("already exists"))
+        {
+            return Self::conflict("SYS_MM_DUPLICATE_TABLE", &msg);
+        }
+        if lower.contains("duplicate column")
+            || (lower.contains("column") && lower.contains("already exists"))
+        {
+            return Self::conflict("SYS_MM_DUPLICATE_COLUMN", &msg);
+        }
+        if lower.contains("invalid rule") {
+            return Self::bad_request("SYS_MM_INVALID_RULE", &msg);
+        }
+        if lower.contains("import") && lower.contains("fail") {
+            return Self::bad_request("SYS_MM_IMPORT_FAILED", &msg);
+        }
+        if lower.contains("sql") && lower.contains("build") {
+            return Self::internal("SYS_MM_SQL_BUILD_ERROR", &msg);
+        }
+        if lower.contains("validation") {
+            return Self::bad_request("SYS_MM_VALIDATION_ERROR", &msg);
+        }
+
+        Self::internal("SYS_MM_INTERNAL_ERROR", &msg)
     }
 }

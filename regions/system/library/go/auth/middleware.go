@@ -1,4 +1,4 @@
-package auth
+package authlib
 
 import (
 	"context"
@@ -86,7 +86,7 @@ func RequirePermission(resource, action string) gin.HandlerFunc {
 			return
 		}
 
-		if !HasPermission(claims, resource, action) {
+		if !CheckPermission(claims, resource, action) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"error":   "SYS_AUTH_FORBIDDEN",
 				"message": "この操作を実行する権限がありません",
@@ -165,16 +165,22 @@ func extractBearerToken(r *http.Request) (string, error) {
 
 // エラー定義。
 var (
-	ErrMissingToken      = &AuthError{Code: "SYS_AUTH_MISSING_TOKEN", Message: "Authorization ヘッダーがありません"}
-	ErrInvalidAuthHeader = &AuthError{Code: "SYS_AUTH_INVALID_HEADER", Message: "Authorization ヘッダーの形式が不正です"}
+	ErrMissingToken      = AuthErrorMissingToken
+	ErrInvalidAuthHeader = AuthErrorInvalidHeader
 )
 
-// AuthError は認証エラーを表す。
-type AuthError struct {
-	Code    string
-	Message string
-}
+// AuthError は認証エラー種別を表す enum。
+type AuthError string
 
-func (e *AuthError) Error() string {
-	return e.Message
+const (
+	AuthErrorTokenExpired     AuthError = "TokenExpired"
+	AuthErrorInvalidToken     AuthError = "InvalidToken"
+	AuthErrorJwksFetchFailed  AuthError = "JwksFetchFailed"
+	AuthErrorPermissionDenied AuthError = "PermissionDenied"
+	AuthErrorMissingToken     AuthError = "MissingToken"
+	AuthErrorInvalidHeader    AuthError = "InvalidAuthHeader"
+)
+
+func (e AuthError) Error() string {
+	return string(e)
 }

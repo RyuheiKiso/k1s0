@@ -66,7 +66,7 @@ impl DeleteFileUseCase {
         let payload = serde_json::json!({
             "file_id": file.id,
             "tenant_id": file.tenant_id,
-            "owner_id": file.owner_id,
+            "uploaded_by": file.uploaded_by,
             "storage_key": file.storage_key,
             "deleted_at": chrono::Utc::now().to_rfc3339(),
         });

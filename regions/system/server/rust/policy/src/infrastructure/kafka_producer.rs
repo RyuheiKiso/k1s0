@@ -17,6 +17,15 @@ pub struct PolicyChangedEvent {
 }
 
 impl PolicyChangedEvent {
+    fn snapshot(policy: &Policy) -> serde_json::Value {
+        serde_json::json!({
+            "policy_id": policy.id.to_string(),
+            "policy_name": policy.name.clone(),
+            "version": policy.version,
+            "enabled": policy.enabled,
+        })
+    }
+
     pub fn created(policy: &Policy) -> Self {
         Self {
             event_type: "POLICY_CHANGED".to_string(),
@@ -25,46 +34,36 @@ impl PolicyChangedEvent {
             action: "CREATED".to_string(),
             actor_user_id: None,
             before: None,
-            after: Some(serde_json::json!({
-                "policy_id": policy.id.to_string(),
-                "policy_name": policy.name.clone(),
-                "version": policy.version,
-                "enabled": policy.enabled,
-            })),
+            after: Some(Self::snapshot(policy)),
             version: policy.version,
             timestamp: chrono::Utc::now().to_rfc3339(),
         }
     }
 
-    pub fn updated(policy: &Policy) -> Self {
+    pub fn updated(before: &Policy, after: &Policy) -> Self {
+        Self {
+            event_type: "POLICY_CHANGED".to_string(),
+            policy_id: after.id.to_string(),
+            policy_name: after.name.clone(),
+            action: "UPDATED".to_string(),
+            actor_user_id: None,
+            before: Some(Self::snapshot(before)),
+            after: Some(Self::snapshot(after)),
+            version: after.version,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+        }
+    }
+
+    pub fn deleted(policy: &Policy) -> Self {
         Self {
             event_type: "POLICY_CHANGED".to_string(),
             policy_id: policy.id.to_string(),
             policy_name: policy.name.clone(),
-            action: "UPDATED".to_string(),
-            actor_user_id: None,
-            before: None,
-            after: Some(serde_json::json!({
-                "policy_id": policy.id.to_string(),
-                "policy_name": policy.name.clone(),
-                "version": policy.version,
-                "enabled": policy.enabled,
-            })),
-            version: policy.version,
-            timestamp: chrono::Utc::now().to_rfc3339(),
-        }
-    }
-
-    pub fn deleted(policy_id: &uuid::Uuid) -> Self {
-        Self {
-            event_type: "POLICY_CHANGED".to_string(),
-            policy_id: policy_id.to_string(),
-            policy_name: String::new(),
             action: "DELETED".to_string(),
             actor_user_id: None,
-            before: Some(serde_json::json!({ "policy_id": policy_id })),
+            before: Some(Self::snapshot(policy)),
             after: None,
-            version: 0,
+            version: policy.version,
             timestamp: chrono::Utc::now().to_rfc3339(),
         }
     }
@@ -195,6 +194,29 @@ mod tests {
 
     #[test]
     fn test_policy_changed_event_updated() {
+        let before = Policy {
+            id: uuid::Uuid::new_v4(),
+            name: "allow-read".to_string(),
+            description: "desc".to_string(),
+            rego_content: "package authz".to_string(),
+            package_path: String::new(),
+            bundle_id: None,
+            version: 2,
+            enabled: true,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        let mut after = before.clone();
+        after.version = 3;
+        after.enabled = false;
+        let event = PolicyChangedEvent::updated(&before, &after);
+        assert_eq!(event.action, "UPDATED");
+        assert_eq!(event.version, 3);
+        assert!(event.before.is_some());
+    }
+
+    #[test]
+    fn test_policy_changed_event_deleted() {
         let policy = Policy {
             id: uuid::Uuid::new_v4(),
             name: "allow-read".to_string(),
@@ -202,24 +224,15 @@ mod tests {
             rego_content: "package authz".to_string(),
             package_path: String::new(),
             bundle_id: None,
-            version: 3,
+            version: 4,
             enabled: true,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
-
-        let event = PolicyChangedEvent::updated(&policy);
-        assert_eq!(event.action, "UPDATED");
-        assert_eq!(event.version, 3);
-    }
-
-    #[test]
-    fn test_policy_changed_event_deleted() {
-        let id = uuid::Uuid::new_v4();
-        let event = PolicyChangedEvent::deleted(&id);
+        let event = PolicyChangedEvent::deleted(&policy);
         assert_eq!(event.action, "DELETED");
-        assert_eq!(event.policy_id, id.to_string());
-        assert_eq!(event.version, 0);
+        assert_eq!(event.policy_id, policy.id.to_string());
+        assert_eq!(event.version, 4);
     }
 
     #[test]

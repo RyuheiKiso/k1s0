@@ -121,7 +121,10 @@ async fn main() -> anyhow::Result<()> {
         publisher.clone(),
     ));
     let delete_message_uc = Arc::new(usecase::DeleteMessageUseCase::new(dlq_repo.clone()));
-    let retry_all_uc = Arc::new(usecase::RetryAllUseCase::new(dlq_repo.clone(), publisher));
+    let retry_all_uc = Arc::new(usecase::RetryAllUseCase::new(
+        dlq_repo.clone(),
+        publisher.clone(),
+    ));
 
     // gRPC service
     let dlq_grpc_service = Arc::new(DlqGrpcService::new(
@@ -158,6 +161,8 @@ async fn main() -> anyhow::Result<()> {
         delete_message_uc,
         retry_all_uc,
         metrics: metrics.clone(),
+        db_pool: db_pool.as_ref().map(|pool| Arc::new(pool.clone())),
+        publisher,
         auth_state: None,
     };
     if let Some(auth_st) = auth_state {

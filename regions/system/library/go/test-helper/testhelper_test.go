@@ -2,6 +2,7 @@ package testhelper_test
 
 import (
 	"testing"
+	"time"
 
 	testhelper "github.com/k1s0-platform/system-library-go-test-helper"
 	"github.com/stretchr/testify/assert"
@@ -32,12 +33,12 @@ func TestJwtTestHelper_CreateTokenWithTenant(t *testing.T) {
 		Sub:      "svc",
 		Roles:    []string{"service"},
 		TenantID: "t-1",
-		Iat:      1000,
-		Exp:      2000,
+		Expiry:   30 * time.Minute,
 	})
 	claims, err := h.DecodeClaims(token)
 	require.NoError(t, err)
 	assert.Equal(t, "t-1", claims.TenantID)
+	assert.Greater(t, claims.Exp, claims.Iat)
 }
 
 func TestJwtTestHelper_DecodeInvalidToken(t *testing.T) {
@@ -47,7 +48,8 @@ func TestJwtTestHelper_DecodeInvalidToken(t *testing.T) {
 }
 
 func TestMockServerBuilder_Notification(t *testing.T) {
-	server := testhelper.NewNotificationServerMock().
+	server := testhelper.NewMockServerBuilder().
+		NotificationServer().
 		WithHealthOK().
 		WithSuccessResponse("/send", `{"id":"1","status":"sent"}`).
 		Build()
@@ -62,6 +64,20 @@ func TestMockServerBuilder_Notification(t *testing.T) {
 	assert.Equal(t, 200, status)
 
 	assert.Equal(t, 2, server.RequestCount())
+}
+
+func TestContainerBuilder(t *testing.T) {
+	containers := testhelper.NewContainerBuilder().
+		WithPostgres().
+		WithRedis().
+		WithKafka().
+		WithKeycloak().
+		Build()
+
+	assert.True(t, containers.Postgres)
+	assert.True(t, containers.Redis)
+	assert.True(t, containers.Kafka)
+	assert.True(t, containers.Keycloak)
 }
 
 func TestMockServerBuilder_NotFound(t *testing.T) {

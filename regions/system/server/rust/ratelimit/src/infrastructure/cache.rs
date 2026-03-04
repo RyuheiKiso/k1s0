@@ -71,6 +71,7 @@ mod tests {
     fn make_rule(scope: &str) -> RateLimitRule {
         RateLimitRule {
             id: Uuid::new_v4(),
+            name: scope.to_string(),
             scope: scope.to_string(),
             identifier_pattern: format!("{}-pattern", scope),
             limit: 100,

@@ -44,7 +44,7 @@ fn default_host() -> String {
     "0.0.0.0".to_string()
 }
 fn default_port() -> u16 {
-    8101
+    8080
 }
 fn default_grpc_port() -> u16 {
     50051
@@ -61,6 +61,10 @@ pub struct DatabaseConfig {
     pub ssl_mode: String,
     #[serde(default = "default_max_open_conns")]
     pub max_open_conns: u32,
+    #[serde(default = "default_max_idle_conns")]
+    pub max_idle_conns: u32,
+    #[serde(default = "default_conn_max_lifetime_secs")]
+    pub conn_max_lifetime: u64,
 }
 
 fn default_ssl_mode() -> String {
@@ -68,6 +72,12 @@ fn default_ssl_mode() -> String {
 }
 fn default_max_open_conns() -> u32 {
     25
+}
+fn default_max_idle_conns() -> u32 {
+    5
+}
+fn default_conn_max_lifetime_secs() -> u64 {
+    300
 }
 
 impl DatabaseConfig {
@@ -96,31 +106,41 @@ fn default_jwks_cache_ttl() -> u64 {
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
-    pub schema_updated_topic: String,
+    #[serde(alias = "schema_updated_topic")]
+    pub topic: String,
+    #[serde(default = "default_kafka_security_protocol")]
+    pub security_protocol: String,
+}
+
+fn default_kafka_security_protocol() -> String {
+    "PLAINTEXT".to_string()
 }
 
 impl Default for KafkaConfig {
     fn default() -> Self {
         Self {
             brokers: vec!["localhost:9092".to_string()],
-            schema_updated_topic: "k1s0.system.apiregistry.schema_updated.v1".to_string(),
+            topic: "k1s0.system.apiregistry.schema_updated.v1".to_string(),
+            security_protocol: default_kafka_security_protocol(),
         }
     }
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ValidatorConfig {
-    pub openapi_validator_path: String,
+    #[serde(alias = "openapi_validator_path")]
+    pub openapi_spec_validator_path: String,
     pub buf_path: String,
-    pub timeout_secs: u64,
+    #[serde(alias = "timeout_secs")]
+    pub timeout_seconds: u64,
 }
 
 impl Default for ValidatorConfig {
     fn default() -> Self {
         Self {
-            openapi_validator_path: "openapi-spec-validator".to_string(),
+            openapi_spec_validator_path: "openapi-spec-validator".to_string(),
             buf_path: "buf".to_string(),
-            timeout_secs: 10,
+            timeout_seconds: 10,
         }
     }
 }
@@ -155,6 +175,8 @@ mod tests {
             password: "pass".to_string(),
             ssl_mode: "disable".to_string(),
             max_open_conns: 10,
+            max_idle_conns: 5,
+            conn_max_lifetime: 300,
         };
         assert_eq!(
             db.connection_url(),

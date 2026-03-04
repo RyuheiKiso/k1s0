@@ -1,6 +1,6 @@
 ﻿# system-policy-server 設計
 
-> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `policies/read`, `policies/write`, `policies/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
 
 OPA 連携の動的ポリシー評価サーバー。Rego ポリシー管理・バンドル管理・評価キャッシュを提供。
@@ -113,7 +113,13 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
       "created_at": "2026-02-20T10:00:00.000+00:00",
       "updated_at": "2026-02-20T12:30:00.000+00:00"
     }
-  ]
+  ],
+  "pagination": {
+    "total_count": 42,
+    "page": 1,
+    "page_size": 20,
+    "has_next": true
+  }
 }
 ```
 
@@ -379,6 +385,8 @@ ID 指定でポリシーの詳細を取得する。
 ```json
 {
   "name": "k1s0-system-policies",
+  "description": "system tier policies bundle",
+  "enabled": true,
   "policy_ids": ["policy-001", "policy-002", "policy-003"]
 }
 ```
@@ -579,7 +587,7 @@ message PolicyBundle {
   "event_type": "POLICY_CHANGED",
   "policy_id": "policy-001",
   "policy_name": "k1s0-tenant-access",
-  "action": "UPDATE",
+  "action": "UPDATED",
   "version": 4,
   "before": {
     "enabled": true
@@ -591,6 +599,8 @@ message PolicyBundle {
   "actor_user_id": "admin-001"
 }
 ```
+
+> `action` は `CREATED` / `UPDATED` / `DELETED` の過去分詞形を使用する。
 
 ---
 
@@ -646,9 +656,12 @@ message PolicyBundle {
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
+| `id` | Uuid | 評価結果 ID |
+| `policy_id` | Option\<Uuid\> | 適用されたポリシー ID（該当なしの場合は null） |
 | `package_path` | String | 評価対象 Rego パッケージパス |
 | `input` | serde_json::Value | 評価入力データ |
 | `allowed` | bool | 評価結果（true: 許可 / false: 拒否） |
+| `reason` | Option\<String\> | 判定理由（拒否理由など） |
 | `decision_id` | String | OPA 評価 ID |
 | `cached` | bool | キャッシュヒットフラグ |
 | `evaluated_at` | DateTime\<Utc\> | 評価日時 |

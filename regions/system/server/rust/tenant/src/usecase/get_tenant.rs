@@ -49,7 +49,7 @@ mod tests {
                     name: "acme-corp".to_string(),
                     display_name: "ACME Corporation".to_string(),
                     status: TenantStatus::Active,
-                    plan: Plan::Professional.as_str().to_string(),
+                    plan: Plan::Professional,
                     owner_id: None,
                     settings: serde_json::json!({}),
                     keycloak_realm: None,

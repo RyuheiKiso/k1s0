@@ -1036,14 +1036,26 @@ auth:
 
 backends:
   tenant:
-        address: "http://tenant-server.k1s0-system.svc.cluster.local:50051"
+    address: "http://tenant-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
   featureflag:
-        address: "http://featureflag-server.k1s0-system.svc.cluster.local:50051"
+    address: "http://featureflag-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
   config:
-        address: "http://config-server.k1s0-system.svc.cluster.local:50051"
+    address: "http://config-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
+
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: true
+    endpoint: "http://otel-collector.observability.svc.cluster.local:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"
 ```
 
 ```yaml
@@ -1163,3 +1175,20 @@ mod tests {
 - [GraphQL設計.md](../../architecture/api/GraphQL設計.md) -- GraphQL 設計ガイドライン
 - [テンプレート仕様-サーバー.md](../../templates/server/サーバー.md) -- サーバーテンプレート仕様
 - [コーディング規約.md](../../architecture/conventions/コーディング規約.md) -- コーディング規約
+
+## Doc Sync (2026-03-04)
+
+### 実装方針の反映
+- `GraphqlContext` に `config_loader` を含める。
+- `ConfigLoader` は `GetConfig` 呼び出し時に tenant 文脈を含めて問い合わせる。
+- Loader trait は native async を採用し、エラー型は `Arc<anyhow::Error>` を使用する。
+- Auth middleware は Tower `Layer` / `Service` パターンで統一する。
+- `/readyz` は tenant / featureflag / config の 3 バックエンド疎通を確認する。
+- Subscription は WebSocket 経由で配信し、tenant / featureflag は現状 5 秒ポーリングでバックエンド状態を監視する（イベント駆動ストリーミング化は TODO）。
+- WebSocket 接続時に JWT 検証を実施する。
+- `list_tenants` では `last` / `before` を受け付けない。
+- `create_tenant` は bare payload ではなく GraphQL payload オブジェクトを返す。
+- メトリクス実装は `k1s0_telemetry` に統一する。
+
+### ファイル整理
+- `regions/system/server/rust/graphql-gateway/src/handler/schema.rs` は stale ファイルとして削除済み。

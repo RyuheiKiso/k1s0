@@ -1,4 +1,4 @@
-package auth
+package authlib
 
 import "strings"
 
@@ -26,10 +26,10 @@ func HasResourceRole(claims *Claims, resource, role string) bool {
 	return false
 }
 
-// HasPermission は Claims に指定の権限があるかを判定する。
+// CheckPermission は Claims に指定の権限があるかを判定する。
 // realm_access と resource_access の両方をチェックする。
 // admin ロールを持つ場合は全権限を付与する。
-func HasPermission(claims *Claims, resource, action string) bool {
+func CheckPermission(claims *Claims, resource, action string) bool {
 	// sys_admin は全権限
 	if HasRole(claims, "sys_admin") {
 		return true
@@ -52,6 +52,11 @@ func HasPermission(claims *Claims, resource, action string) bool {
 	return false
 }
 
+// HasPermission is kept for backward compatibility.
+func HasPermission(claims *Claims, resource, action string) bool {
+	return CheckPermission(claims, resource, action)
+}
+
 // HasTierAccess は Claims で指定 Tier へのアクセスが許可されているかを判定する。
 func HasTierAccess(claims *Claims, tier string) bool {
 	for _, t := range claims.TierAccess {
@@ -61,4 +66,3 @@ func HasTierAccess(claims *Claims, tier string) bool {
 	}
 	return false
 }
-

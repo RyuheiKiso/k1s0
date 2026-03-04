@@ -472,7 +472,7 @@ message DeleteFileResponse {}
   "event_type": "file.upload.completed",
   "file_id": "file_01JABCDEF1234567890",
   "tenant_id": "tenant-abc",
-  "owner_id": "user-001",
+  "uploaded_by": "user-001",
   "status": "available",
   "actor_user_id": "user-001",
   "before": null,
@@ -531,11 +531,11 @@ message DeleteFileResponse {}
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `id` | String | ファイルの一意識別子 |
-| `name` | String | ファイル名（元のファイル名） |
+| `filename` | String | ファイル名（元のファイル名） |
 | `size_bytes` | u64 | ファイルサイズ（バイト、`size` は後方互換 alias） |
-| `mime_type` | String | Content-Type（例: `application/pdf`） |
+| `content_type` | String | Content-Type（例: `application/pdf`） |
 | `tenant_id` | String | 所属テナント ID |
-| `owner_id` | String | アップロードしたユーザー ID |
+| `uploaded_by` | String | アップロードしたユーザー ID |
 | `tags` | HashMap\<String, String\> | 任意のタグ（最大 10 件） |
 | `storage_key` | String | ストレージ上のオブジェクトキー |
 | `checksum_sha256` | Option\<String\> | SHA-256 チェックサム（アップロード完了後に記録） |
@@ -645,6 +645,9 @@ kafka:
 
 auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+  issuer: "https://auth.k1s0.example.com/realms/system"
+  audience: "k1s0-system"
+  jwks_cache_ttl_secs: 3600
 ```
 
 ### Helm values

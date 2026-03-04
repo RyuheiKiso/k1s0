@@ -10,7 +10,7 @@ import (
 
 const (
 	MinPerPage uint32 = 1
-	MaxPerPage uint32 = 100
+	MaxPerPage uint32 = 200
 )
 
 // PageRequest はページネーションリクエスト。
@@ -68,7 +68,7 @@ func (r PageRequest) HasNext(total uint64) bool {
 	return uint64(r.Page)*uint64(r.PerPage) < total
 }
 
-// ValidatePerPage は per_page が 1〜100 の範囲であることを検証する。
+// ValidatePerPage は per_page が 1〜200 の範囲であることを検証する。
 func ValidatePerPage(perPage uint32) error {
 	if perPage < MinPerPage || perPage > MaxPerPage {
 		return fmt.Errorf("invalid per_page: %d (must be between %d and %d)", perPage, MinPerPage, MaxPerPage)

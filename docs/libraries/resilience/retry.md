@@ -4,6 +4,8 @@
 
 指数バックオフリトライ + サーキットブレーカーパターン実装ライブラリ。サービス間 gRPC/HTTP 呼び出しで利用する。`RetryConfig` と `CircuitBreaker` を組み合わせた `with_retry` 関数を提供する。OpenTelemetry メトリクス連携によりリトライ回数・サーキットブレーカー状態を計測する。
 
+Rust 実装の `CircuitBreaker` は `k1s0-circuit-breaker` パッケージへ委譲する薄い互換ラッパーであり、閾値型や状態遷移ロジックは `k1s0-circuit-breaker` 側と統一される。
+
 **配置先**: `regions/system/library/rust/retry/`
 
 ## 公開 API
@@ -50,7 +52,7 @@ retry/
 ├── src/
 │   ├── lib.rs              # 公開 API（再エクスポート）
 │   ├── policy.rs           # RetryConfig（指数バックオフ・ジッター設定）
-│   ├── circuit_breaker.rs  # CircuitBreaker・CircuitBreakerState
+│   ├── circuit_breaker.rs  # k1s0-circuit-breaker への互換ラッパー
 │   ├── retry.rs            # with_retry 関数
 │   └── error.rs            # RetryError
 └── Cargo.toml
@@ -101,7 +103,33 @@ type RetryError struct {
     Attempts  int
     LastError error
 }
+
+type CircuitBreakerState int
+
+const (
+    StateClosed CircuitBreakerState = iota
+    StateOpen
+    StateHalfOpen
+)
+
+type CircuitBreakerConfig struct {
+    FailureThreshold int
+    OpenTimeout      time.Duration
+    HalfOpenSuccess  int
+}
+
+func DefaultCircuitBreakerConfig() *CircuitBreakerConfig
+
+type CircuitBreaker struct {}
+
+func NewCircuitBreaker(config *CircuitBreakerConfig) *CircuitBreaker
+func (cb *CircuitBreaker) IsOpen() bool
+func (cb *CircuitBreaker) RecordSuccess()
+func (cb *CircuitBreaker) RecordFailure()
+func (cb *CircuitBreaker) GetState() CircuitBreakerState
 ```
+
+> Go 実装では retry パッケージ内に circuit breaker 実装（`circuit_breaker.go`）を同梱し、`WithRetry` と組み合わせて利用する。
 
 ## TypeScript 実装
 

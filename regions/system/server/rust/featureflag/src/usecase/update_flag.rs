@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use crate::domain::entity::flag_audit_log::FlagAuditLog;
 use crate::domain::entity::feature_flag::FeatureFlag;
 use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
-use crate::domain::repository::FeatureFlagRepository;
+use crate::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
 use crate::domain::service::FeatureFlagDomainService;
 use crate::infrastructure::kafka_producer::FlagEventPublisher;
 
@@ -27,13 +28,19 @@ pub enum UpdateFlagError {
 pub struct UpdateFlagUseCase {
     repo: Arc<dyn FeatureFlagRepository>,
     event_publisher: Arc<dyn FlagEventPublisher>,
+    audit_repo: Arc<dyn FlagAuditLogRepository>,
 }
 
 impl UpdateFlagUseCase {
-    pub fn new(repo: Arc<dyn FeatureFlagRepository>, event_publisher: Arc<dyn FlagEventPublisher>) -> Self {
+    pub fn new(
+        repo: Arc<dyn FeatureFlagRepository>,
+        event_publisher: Arc<dyn FlagEventPublisher>,
+        audit_repo: Arc<dyn FlagAuditLogRepository>,
+    ) -> Self {
         Self {
             repo,
             event_publisher,
+            audit_repo,
         }
     }
 
@@ -75,19 +82,32 @@ impl UpdateFlagUseCase {
             .await
             .map_err(|e| UpdateFlagError::Internal(e.to_string()))?;
 
+        let after = serde_json::json!({
+            "flag_key": flag.flag_key,
+            "description": flag.description,
+            "enabled": flag.enabled,
+            "variants": flag.variants,
+            "rules": flag.rules,
+        });
+        self.audit_repo
+            .create(&FlagAuditLog::new(
+                flag.id,
+                flag.flag_key.clone(),
+                "UPDATED".to_string(),
+                Some(before.clone()),
+                Some(after.clone()),
+                "system".to_string(),
+            ))
+            .await
+            .map_err(|e| UpdateFlagError::Internal(e.to_string()))?;
+
         self.event_publisher
             .publish_flag_changed(
                 &flag.flag_key,
                 flag.enabled,
                 None,
                 Some(before),
-                serde_json::json!({
-                    "flag_key": flag.flag_key,
-                    "description": flag.description,
-                    "enabled": flag.enabled,
-                    "variants": flag.variants,
-                    "rules": flag.rules,
-                }),
+                after,
             )
             .await
             .map_err(|e| UpdateFlagError::Internal(e.to_string()))?;
@@ -100,6 +120,7 @@ impl UpdateFlagUseCase {
 mod tests {
     use super::*;
     use crate::domain::entity::feature_flag::FeatureFlag;
+    use crate::domain::repository::flag_audit_log_repository::MockFlagAuditLogRepository;
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
     use crate::infrastructure::kafka_producer::MockFlagEventPublisher;
 
@@ -113,6 +134,8 @@ mod tests {
             .withf(|key| key == "dark-mode")
             .returning(move |_| Ok(return_flag.clone()));
         mock.expect_update().returning(|_| Ok(()));
+        let mut mock_audit_repo = MockFlagAuditLogRepository::new();
+        mock_audit_repo.expect_create().returning(|_| Ok(()));
         let mut mock_publisher = MockFlagEventPublisher::new();
         mock_publisher
             .expect_publish_flag_changed()
@@ -125,7 +148,11 @@ mod tests {
             })
             .returning(|_, _, _, _, _| Ok(()));
 
-        let uc = UpdateFlagUseCase::new(Arc::new(mock), Arc::new(mock_publisher));
+        let uc = UpdateFlagUseCase::new(
+            Arc::new(mock),
+            Arc::new(mock_publisher),
+            Arc::new(mock_audit_repo),
+        );
         let input = UpdateFlagInput {
             flag_key: "dark-mode".to_string(),
             enabled: Some(false),
@@ -148,9 +175,11 @@ mod tests {
         mock.expect_find_by_key()
             .returning(|_| Err(anyhow::anyhow!("flag not found")));
 
+        let mock_audit_repo = MockFlagAuditLogRepository::new();
         let uc = UpdateFlagUseCase::new(
             Arc::new(mock),
             Arc::new(crate::infrastructure::kafka_producer::NoopFlagEventPublisher),
+            Arc::new(mock_audit_repo),
         );
         let input = UpdateFlagInput {
             flag_key: "nonexistent".to_string(),

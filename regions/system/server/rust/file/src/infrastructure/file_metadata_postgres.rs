@@ -31,11 +31,11 @@ impl FileMetadataPostgresRepository {
 
         Ok(FileMetadata {
             id: row.try_get("id")?,
-            name: row.try_get("name")?,
+            filename: row.try_get("name")?,
             size_bytes,
-            mime_type: row.try_get("mime_type")?,
+            content_type: row.try_get("mime_type")?,
             tenant_id: row.try_get("tenant_id")?,
-            owner_id: row.try_get("owner_id")?,
+            uploaded_by: row.try_get("owner_id")?,
             tags,
             storage_key: row.try_get("storage_key")?,
             checksum_sha256: row.try_get("checksum_sha256")?,
@@ -60,8 +60,8 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
     async fn find_all(
         &self,
         tenant_id: Option<String>,
-        owner_id: Option<String>,
-        mime_type: Option<String>,
+        uploaded_by: Option<String>,
+        content_type: Option<String>,
         tag: Option<(String, String)>,
         page: u32,
         page_size: u32,
@@ -72,14 +72,14 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
 
         let mut count_qb =
             QueryBuilder::<Postgres>::new(format!("SELECT COUNT(*) FROM {} WHERE 1=1", self.table_name));
-        apply_filters(&mut count_qb, &tenant_id, &owner_id, &mime_type, &tag);
+        apply_filters(&mut count_qb, &tenant_id, &uploaded_by, &content_type, &tag);
         let total = count_qb.build_query_scalar::<i64>().fetch_one(&self.pool).await?;
 
         let mut qb = QueryBuilder::<Postgres>::new(format!(
             "SELECT id, name, size_bytes, mime_type, tenant_id, owner_id, tags, storage_key, checksum_sha256, status, created_at, updated_at FROM {} WHERE 1=1",
             self.table_name
         ));
-        apply_filters(&mut qb, &tenant_id, &owner_id, &mime_type, &tag);
+        apply_filters(&mut qb, &tenant_id, &uploaded_by, &content_type, &tag);
         qb.push(" ORDER BY created_at DESC LIMIT ");
         qb.push_bind(i64::from(page_size));
         qb.push(" OFFSET ");
@@ -105,11 +105,11 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
 
         sqlx::query(&sql)
             .bind(&file.id)
-            .bind(&file.name)
+            .bind(&file.filename)
             .bind(size_bytes)
-            .bind(&file.mime_type)
+            .bind(&file.content_type)
             .bind(&file.tenant_id)
-            .bind(&file.owner_id)
+            .bind(&file.uploaded_by)
             .bind(tags)
             .bind(&file.storage_key)
             .bind(&file.checksum_sha256)
@@ -132,11 +132,11 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
 
         sqlx::query(&sql)
             .bind(&file.id)
-            .bind(&file.name)
+            .bind(&file.filename)
             .bind(size_bytes)
-            .bind(&file.mime_type)
+            .bind(&file.content_type)
             .bind(&file.tenant_id)
-            .bind(&file.owner_id)
+            .bind(&file.uploaded_by)
             .bind(tags)
             .bind(&file.storage_key)
             .bind(&file.checksum_sha256)
@@ -173,21 +173,21 @@ fn sanitize_schema(schema: &str) -> anyhow::Result<&str> {
 fn apply_filters(
     qb: &mut QueryBuilder<'_, Postgres>,
     tenant_id: &Option<String>,
-    owner_id: &Option<String>,
-    mime_type: &Option<String>,
+    uploaded_by: &Option<String>,
+    content_type: &Option<String>,
     tag: &Option<(String, String)>,
 ) {
     if let Some(tenant_id) = tenant_id {
         qb.push(" AND tenant_id = ");
         qb.push_bind(tenant_id.clone());
     }
-    if let Some(owner_id) = owner_id {
+    if let Some(uploaded_by) = uploaded_by {
         qb.push(" AND owner_id = ");
-        qb.push_bind(owner_id.clone());
+        qb.push_bind(uploaded_by.clone());
     }
-    if let Some(mime_type) = mime_type {
+    if let Some(content_type) = content_type {
         qb.push(" AND mime_type LIKE ");
-        qb.push_bind(format!("{}%", mime_type));
+        qb.push_bind(format!("{}%", content_type));
     }
     if let Some((tag_key, tag_value)) = tag {
         qb.push(" AND tags ->> ");

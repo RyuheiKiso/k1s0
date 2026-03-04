@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use crate::domain::entity::scheduler_job::{validate_cron, SchedulerJob};
+use crate::domain::entity::scheduler_job::SchedulerJob;
 use crate::domain::repository::SchedulerJobRepository;
+use crate::domain::service::SchedulerDomainService;
 
 #[derive(Debug, Clone)]
 pub struct CreateJobInput {
@@ -33,7 +34,7 @@ impl CreateJobUseCase {
     }
 
     pub async fn execute(&self, input: &CreateJobInput) -> Result<SchedulerJob, CreateJobError> {
-        if !validate_cron(&input.cron_expression) {
+        if !SchedulerDomainService::validate_cron_expression(&input.cron_expression) {
             return Err(CreateJobError::InvalidCron(input.cron_expression.clone()));
         }
 

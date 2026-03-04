@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::notification_template::NotificationTemplate;
 use crate::domain::repository::NotificationTemplateRepository;
+use crate::domain::service::NotificationDomainService;
 
 #[derive(Debug, Clone)]
 pub struct CreateTemplateInput {
@@ -13,6 +14,9 @@ pub struct CreateTemplateInput {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateTemplateError {
+    #[error("validation error: {0}")]
+    Validation(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -30,6 +34,13 @@ impl CreateTemplateUseCase {
         &self,
         input: &CreateTemplateInput,
     ) -> Result<NotificationTemplate, CreateTemplateError> {
+        if let Some(subject_template) = &input.subject_template {
+            NotificationDomainService::validate_template_body(subject_template)
+                .map_err(CreateTemplateError::Validation)?;
+        }
+        NotificationDomainService::validate_template_body(&input.body_template)
+            .map_err(CreateTemplateError::Validation)?;
+
         let template = NotificationTemplate::new(
             input.name.clone(),
             input.channel_type.clone(),

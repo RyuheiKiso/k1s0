@@ -16,11 +16,12 @@ import (
 
 // TestClaims はテスト用 JWT クレーム。
 type TestClaims struct {
-	Sub      string   `json:"sub"`
-	Roles    []string `json:"roles"`
-	TenantID string   `json:"tenant_id,omitempty"`
-	Iat      int64    `json:"iat"`
-	Exp      int64    `json:"exp"`
+	Sub      string        `json:"sub"`
+	Roles    []string      `json:"roles"`
+	TenantID string        `json:"tenant_id,omitempty"`
+	Expiry   time.Duration `json:"-"`
+	Iat      int64         `json:"iat"`
+	Exp      int64         `json:"exp"`
 }
 
 // JwtTestHelper はテスト用 JWT トークン生成ヘルパー。
@@ -59,6 +60,16 @@ func (h *JwtTestHelper) CreateUserToken(userID string, roles []string) string {
 
 // CreateToken はカスタムクレームでトークンを生成する。
 func (h *JwtTestHelper) CreateToken(claims TestClaims) string {
+	if claims.Expiry <= 0 {
+		claims.Expiry = time.Hour
+	}
+	if claims.Iat == 0 {
+		claims.Iat = time.Now().Unix()
+	}
+	if claims.Exp == 0 {
+		claims.Exp = claims.Iat + int64(claims.Expiry.Seconds())
+	}
+
 	header := base64URLEncode([]byte(`{"alg":"HS256","typ":"JWT"}`))
 	payloadBytes, _ := json.Marshal(claims)
 	payload := base64URLEncode(payloadBytes)
@@ -138,19 +149,42 @@ type MockServerBuilder struct {
 	routes     []MockRoute
 }
 
+// NewMockServerBuilder は汎用モックサーバービルダーを構築する。
+func NewMockServerBuilder() *MockServerBuilder {
+	return &MockServerBuilder{}
+}
+
+// NotificationServer は Notification サーバー用のビルダー設定を適用する。
+func (b *MockServerBuilder) NotificationServer() *MockServerBuilder {
+	b.serverType = "notification"
+	return b
+}
+
+// RatelimitServer は Ratelimit サーバー用のビルダー設定を適用する。
+func (b *MockServerBuilder) RatelimitServer() *MockServerBuilder {
+	b.serverType = "ratelimit"
+	return b
+}
+
+// TenantServer は Tenant サーバー用のビルダー設定を適用する。
+func (b *MockServerBuilder) TenantServer() *MockServerBuilder {
+	b.serverType = "tenant"
+	return b
+}
+
 // NewNotificationServerMock は Notification サーバーモックを構築する。
 func NewNotificationServerMock() *MockServerBuilder {
-	return &MockServerBuilder{serverType: "notification"}
+	return NewMockServerBuilder().NotificationServer()
 }
 
 // NewRatelimitServerMock は Ratelimit サーバーモックを構築する。
 func NewRatelimitServerMock() *MockServerBuilder {
-	return &MockServerBuilder{serverType: "ratelimit"}
+	return NewMockServerBuilder().RatelimitServer()
 }
 
 // NewTenantServerMock は Tenant サーバーモックを構築する。
 func NewTenantServerMock() *MockServerBuilder {
-	return &MockServerBuilder{serverType: "tenant"}
+	return NewMockServerBuilder().TenantServer()
 }
 
 // WithHealthOK はヘルスチェック用の成功レスポンスを追加する。
@@ -178,6 +212,56 @@ func (b *MockServerBuilder) WithSuccessResponse(path, body string) *MockServerBu
 // Build はモックサーバーを構築する。
 func (b *MockServerBuilder) Build() *MockServer {
 	return &MockServer{routes: b.routes}
+}
+
+// ContainerBuilder は統合テスト向け依存コンテナの起動対象を組み立てる。
+type ContainerBuilder struct {
+	postgres bool
+	redis    bool
+	kafka    bool
+	keycloak bool
+}
+
+// TestContainers は有効化されたコンテナのスナップショット。
+type TestContainers struct {
+	Postgres bool
+	Redis    bool
+	Kafka    bool
+	Keycloak bool
+}
+
+// NewContainerBuilder はコンテナビルダーを生成する。
+func NewContainerBuilder() *ContainerBuilder {
+	return &ContainerBuilder{}
+}
+
+func (b *ContainerBuilder) WithPostgres() *ContainerBuilder {
+	b.postgres = true
+	return b
+}
+
+func (b *ContainerBuilder) WithRedis() *ContainerBuilder {
+	b.redis = true
+	return b
+}
+
+func (b *ContainerBuilder) WithKafka() *ContainerBuilder {
+	b.kafka = true
+	return b
+}
+
+func (b *ContainerBuilder) WithKeycloak() *ContainerBuilder {
+	b.keycloak = true
+	return b
+}
+
+func (b *ContainerBuilder) Build() *TestContainers {
+	return &TestContainers{
+		Postgres: b.postgres,
+		Redis:    b.redis,
+		Kafka:    b.kafka,
+		Keycloak: b.keycloak,
+	}
 }
 
 // FixtureBuilder はテスト用フィクスチャビルダー。

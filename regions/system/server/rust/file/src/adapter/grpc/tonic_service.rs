@@ -26,11 +26,11 @@ impl FileServiceTonic {
 fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFileMetadata {
     ProtoFileMetadata {
         id: file.id.clone(),
-        filename: file.name.clone(),
-        content_type: file.mime_type.clone(),
+        filename: file.filename.clone(),
+        content_type: file.content_type.clone(),
         size_bytes: file.size_bytes as i64,
         tenant_id: file.tenant_id.clone(),
-        uploaded_by: file.owner_id.clone(),
+        uploaded_by: file.uploaded_by.clone(),
         status: file.status.clone(),
         created_at: file.created_at.to_rfc3339(),
         updated_at: file.updated_at.to_rfc3339(),

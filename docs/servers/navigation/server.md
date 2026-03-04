@@ -12,6 +12,8 @@
 | sys_operator 以上 | navigation/write |
 | sys_admin のみ | navigation/admin |
 
+> 現行実装のルート公開判定は `guard.roles` ベースで行う。上記の resource/action RBAC は管理 API 向けの設計上の表現であり、`GetNavigation` の判定ロジック自体は resource-action 評価を行わない。
+
 
 | 機能 | 説明 |
 | --- | --- |
@@ -177,6 +179,64 @@ GetNavigationRequest {
 GetNavigationRequest {
   bearer_token: "eyJhbGciOiJSUzI1NiJ9..."
 }
+```
+
+---
+
+## 設定
+
+### app
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `name` | string | アプリケーション名 |
+| `version` | string | アプリケーションバージョン（デフォルト `0.1.0`） |
+| `environment` | string | 実行環境（`dev` / `staging` / `production`） |
+
+### auth
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `jwks_url` | string | JWT 検証に利用する JWKS URL |
+| `issuer` | string | JWT `iss` 検証値 |
+| `audience` | string | JWT `aud` 検証値 |
+| `jwks_cache_ttl_secs` | uint64 | JWKS キャッシュ秒数 |
+
+### server
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `host` | string | バインドアドレス（デフォルト `0.0.0.0`） |
+| `port` | uint16 | REST ポート |
+| `grpc_port` | uint16 | gRPC ポート |
+
+### navigation
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `navigation_path` | string | ナビゲーション定義 YAML の読み込みパス（デフォルト `config/navigation.yaml`） |
+
+**設定例**
+
+```yaml
+app:
+  name: "k1s0-navigation-server"
+  version: "0.1.0"
+  environment: "dev"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  grpc_port: 50051
+
+auth:
+  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+  issuer: "https://auth.k1s0.example.com/realms/system"
+  audience: "k1s0-system"
+  jwks_cache_ttl_secs: 300
+
+navigation:
+  navigation_path: "/etc/k1s0/navigation/navigation.yaml"
 ```
 
 ---

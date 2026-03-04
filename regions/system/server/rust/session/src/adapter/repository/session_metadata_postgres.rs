@@ -41,6 +41,9 @@ pub trait SessionMetadataRepository: Send + Sync {
     async fn save_metadata(&self, input: &SaveSessionMetadataInput) -> anyhow::Result<()>;
     async fn list_by_user(&self, user_id: Uuid) -> anyhow::Result<Vec<SessionMetadata>>;
     async fn mark_revoked(&self, session_id: Uuid) -> anyhow::Result<()>;
+    async fn health_check(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 /// SessionMetadataPostgresRepository は PostgreSQL を使ったメタデータリポジトリ。
@@ -135,6 +138,14 @@ impl SessionMetadataRepository for SessionMetadataPostgresRepository {
 
         Ok(())
     }
+
+    async fn health_check(&self) -> anyhow::Result<()> {
+        sqlx::query("SELECT 1")
+            .execute(self.pool.as_ref())
+            .await
+            .map(|_| ())
+            .map_err(|e| anyhow::anyhow!("postgres health check failed: {}", e))
+    }
 }
 
 /// NoopSessionMetadataRepository は何もしないフォールバック実装。
@@ -155,6 +166,10 @@ impl SessionMetadataRepository for NoopSessionMetadataRepository {
 
     async fn mark_revoked(&self, _session_id: Uuid) -> anyhow::Result<()> {
         tracing::debug!("noop: session metadata mark_revoked skipped");
+        Ok(())
+    }
+
+    async fn health_check(&self) -> anyhow::Result<()> {
         Ok(())
     }
 }

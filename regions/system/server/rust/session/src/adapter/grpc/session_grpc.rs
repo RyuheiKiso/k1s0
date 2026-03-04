@@ -281,7 +281,7 @@ impl SessionGrpcService {
                 })
             }
             Err(SessionError::NotFound(msg)) => Err(GrpcError::NotFound(msg)),
-            Err(SessionError::Revoked(msg)) => Err(GrpcError::InvalidArgument(format!(
+            Err(SessionError::Revoked(msg)) | Err(SessionError::AlreadyRevoked(msg)) => Err(GrpcError::InvalidArgument(format!(
                 "session revoked: {}",
                 msg
             ))),
@@ -299,6 +299,7 @@ impl SessionGrpcService {
         match self.revoke_uc.execute(&input).await {
             Ok(()) => Ok(RevokeSessionResponse { success: true }),
             Err(SessionError::NotFound(msg)) => Err(GrpcError::NotFound(msg)),
+            Err(SessionError::AlreadyRevoked(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }

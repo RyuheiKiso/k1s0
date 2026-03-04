@@ -48,13 +48,13 @@ mod tests {
                     Tenant::new(
                         "t1".to_string(),
                         "T1".to_string(),
-                        Plan::Free.as_str().to_string(),
+                        Plan::Free,
                         None,
                     ),
                     Tenant::new(
                         "t2".to_string(),
                         "T2".to_string(),
-                        Plan::Professional.as_str().to_string(),
+                        Plan::Professional,
                         None,
                     ),
                 ],

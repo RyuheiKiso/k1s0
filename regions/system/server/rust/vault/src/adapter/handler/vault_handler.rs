@@ -5,6 +5,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use k1s0_server_common::{ErrorDetail, ErrorResponse};
 use serde::{Deserialize, Serialize};
 
 use crate::adapter::middleware::auth::VaultAuthState;
@@ -96,30 +97,35 @@ pub struct UpdateSecretRequest {
     pub data: HashMap<String, String>,
 }
 
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    pub error: ErrorBody,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ErrorBody {
-    pub code: String,
-    pub message: String,
-    pub request_id: String,
-    pub details: Vec<String>,
-}
-
-impl ErrorResponse {
-    pub fn new(code: &str, message: &str) -> Self {
-        Self {
-            error: ErrorBody {
-                code: code.to_string(),
-                message: message.to_string(),
-                request_id: uuid::Uuid::new_v4().to_string(),
-                details: vec![],
-            },
-        }
+fn classify_vault_internal_error(msg: &str) -> (StatusCode, &'static str) {
+    let lower = msg.to_ascii_lowercase();
+    if lower.contains("denied") || lower.contains("forbidden") || lower.contains("permission") {
+        return (StatusCode::FORBIDDEN, "SYS_VAULT_ACCESS_DENIED");
     }
+    if lower.contains("cache") {
+        return (StatusCode::INTERNAL_SERVER_ERROR, "SYS_VAULT_CACHE_ERROR");
+    }
+    if lower.contains("validation") || lower.contains("invalid") {
+        return (StatusCode::BAD_REQUEST, "SYS_VAULT_VALIDATION_ERROR");
+    }
+    if lower.contains("upstream") || lower.contains("backend") || lower.contains("vault") {
+        return (StatusCode::BAD_GATEWAY, "SYS_VAULT_UPSTREAM_ERROR");
+    }
+    (StatusCode::INTERNAL_SERVER_ERROR, "SYS_VAULT_INTERNAL_ERROR")
+}
+
+fn internal_error_response(msg: &str) -> (StatusCode, Json<serde_json::Value>) {
+    let (status, code) = classify_vault_internal_error(msg);
+    let err = if code == "SYS_VAULT_VALIDATION_ERROR" {
+        ErrorResponse::with_details(
+            code,
+            msg,
+            vec![ErrorDetail::new("request", "invalid request payload")],
+        )
+    } else {
+        ErrorResponse::new(code, msg)
+    };
+    (status, Json(serde_json::to_value(err).unwrap()))
 }
 
 // --- Handlers ---
@@ -147,13 +153,7 @@ pub async fn create_secret(
             )
                 .into_response()
         }
-        Err(SetSecretError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(
-                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
-            ),
-        )
-            .into_response(),
+        Err(SetSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
     }
 }
 
@@ -193,13 +193,7 @@ pub async fn get_secret(
             ),
         )
             .into_response(),
-        Err(GetSecretError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(
-                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
-            ),
-        )
-            .into_response(),
+        Err(GetSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
     }
 }
 
@@ -223,13 +217,7 @@ pub async fn update_secret(
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
-        Err(SetSecretError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(
-                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
-            ),
-        )
-            .into_response(),
+        Err(SetSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
     }
 }
 
@@ -256,13 +244,7 @@ pub async fn delete_secret(
             ),
         )
             .into_response(),
-        Err(DeleteSecretError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(
-                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
-            ),
-        )
-            .into_response(),
+        Err(DeleteSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
     }
 }
 
@@ -279,17 +261,7 @@ pub async fn list_secrets(
             Json(serde_json::json!({ "secrets": paths })),
         )
             .into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(
-                serde_json::to_value(ErrorResponse::new(
-                    "SYS_VAULT_INTERNAL_ERROR",
-                    &e.to_string(),
-                ))
-                .unwrap(),
-            ),
-        )
-            .into_response(),
+        Err(e) => internal_error_response(&e.to_string()).into_response(),
     }
 }
 
@@ -325,13 +297,7 @@ pub async fn get_secret_metadata(
             ),
         )
             .into_response(),
-        Err(GetSecretError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(
-                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
-            ),
-        )
-            .into_response(),
+        Err(GetSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
     }
 }
 
@@ -372,17 +338,7 @@ pub async fn list_audit_logs(
                 .collect();
             (StatusCode::OK, Json(serde_json::json!({ "logs": entries }))).into_response()
         }
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(
-                serde_json::to_value(ErrorResponse::new(
-                    "SYS_VAULT_INTERNAL_ERROR",
-                    &e.to_string(),
-                ))
-                .unwrap(),
-            ),
-        )
-            .into_response(),
+        Err(e) => internal_error_response(&e.to_string()).into_response(),
     }
 }
 
@@ -418,12 +374,6 @@ pub async fn rotate_secret(
             ),
         )
             .into_response(),
-        Err(RotateSecretError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(
-                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
-            ),
-        )
-            .into_response(),
+        Err(RotateSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
     }
 }

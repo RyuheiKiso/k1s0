@@ -65,9 +65,9 @@ impl CompleteUploadUseCase {
         let payload = serde_json::json!({
             "file_id": file.id,
             "tenant_id": file.tenant_id,
-            "owner_id": file.owner_id,
+            "uploaded_by": file.uploaded_by,
             "status": file.status,
-            "actor_user_id": file.owner_id,
+            "actor_user_id": file.uploaded_by,
             "before": serde_json::Value::Null,
             "after": {
                 "file_id": file.id,

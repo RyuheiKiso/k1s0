@@ -130,6 +130,11 @@ pub struct UpdateConfigRequest {
     pub description: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ServiceConfigQuery {
+    pub environment: Option<String>,
+}
+
 #[utoipa::path(
     put,
     path = "/api/v1/config/{namespace}/{key}",
@@ -216,7 +221,10 @@ pub async fn delete_config(
 #[utoipa::path(
     get,
     path = "/api/v1/config/services/{service_name}",
-    params(("service_name" = String, Path, description = "Service name")),
+    params(
+        ("service_name" = String, Path, description = "Service name"),
+        ("environment" = Option<String>, Query, description = "Environment filter"),
+    ),
     responses(
         (status = 200, description = "Service config", body = ServiceConfigResult),
         (status = 404, description = "Service not found"),
@@ -225,9 +233,33 @@ pub async fn delete_config(
 pub async fn get_service_config(
     State(state): State<AppState>,
     Path(service_name): Path<String>,
+    Query(query): Query<ServiceConfigQuery>,
 ) -> impl IntoResponse {
     match state.get_service_config_uc.execute(&service_name).await {
-        Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
+        Ok(mut result) => {
+            if let Some(environment) = query.environment {
+                result.entries = result
+                    .entries
+                    .into_iter()
+                    .filter(|entry| entry.namespace.contains(&environment))
+                    .collect();
+                if result.entries.is_empty() {
+                    return (
+                        StatusCode::NOT_FOUND,
+                        Json(serde_json::to_value(super::ErrorResponse::new(
+                            k1s0_server_common::error::config::service_not_found().as_str(),
+                            &format!(
+                            "service config not found for {} in environment {}",
+                            service_name, environment
+                            ),
+                        ))
+                        .unwrap()),
+                    )
+                    .into_response();
+                }
+            }
+            (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response()
+        }
         Err(e) => e.into_response(),
     }
 }

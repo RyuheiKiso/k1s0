@@ -128,6 +128,8 @@ func (cb *CircuitBreaker) RecordSuccess()
 func (cb *CircuitBreaker) RecordFailure()
 ```
 
+> Go 実装は `CircuitBreakerMetrics` 型を提供しない（N/A）。メトリクス連携は呼び出し側で状態変化を観測して実装する。
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/circuit-breaker/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）

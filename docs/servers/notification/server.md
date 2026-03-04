@@ -47,6 +47,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | Kafka | コンシューマー（`k1s0.system.notification.requested.v1`）+ プロデューサー（`k1s0.system.notification.sent.v1`） |
 | テンプレートエンジン | Handlebars 形式のテンプレートを DB 管理し、送信時にプレースホルダーを置換 |
 | 認証 | JWTによる認可。管理系エンドポイントは `notifications/read`, `notifications/write`, `notifications/admin` を使用 |
+| ポート | REST 8092（デフォルト）/ gRPC 50051 |
 
 ---
 
@@ -104,10 +105,12 @@ system tier の通知管理サーバーは以下の機能を提供する。
       "created_at": "2026-02-20T10:00:00.000+00:00"
     }
   ],
-  "total_count": 5,
-  "page": 1,
-  "page_size": 20,
-  "has_next": false
+  "pagination": {
+    "total_count": 5,
+    "page": 1,
+    "page_size": 20,
+    "has_next": false
+  }
 }
 ```
 
@@ -261,10 +264,12 @@ system tier の通知管理サーバーは以下の機能を提供する。
       "created_at": "2026-02-20T10:00:00.000+00:00"
     }
   ],
-  "total_count": 8,
-  "page": 1,
-  "page_size": 20,
-  "has_next": false
+  "pagination": {
+    "total_count": 8,
+    "page": 1,
+    "page_size": 20,
+    "has_next": false
+  }
 }
 ```
 
@@ -502,6 +507,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
+| `SYS_NOTIFY_VALIDATION_ERROR` | 400 | 入力バリデーションエラー |
 | `SYS_NOTIFY_INVALID_ID` | 400 | 無効な UUID フォーマット |
 | `SYS_NOTIFY_CHANNEL_DISABLED` | 400 | 対象チャネルが無効化されている |
 | `SYS_NOTIFY_NOT_FOUND` | 404 | 指定された通知履歴が見つからない |
@@ -522,6 +528,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | `SYS_NOTIFY_TEMPLATE_GET_FAILED` | 500 | テンプレート取得処理に失敗 |
 | `SYS_NOTIFY_TEMPLATE_UPDATE_FAILED` | 500 | テンプレート更新処理に失敗 |
 | `SYS_NOTIFY_TEMPLATE_DELETE_FAILED` | 500 | テンプレート削除処理に失敗 |
+| `SYS_NOTIFY_INTERNAL_ERROR` | 500 | 予期しない内部エラー |
 
 ### gRPC サービス定義
 
@@ -740,7 +747,7 @@ message DeleteTemplateResponse {
 | domain/entity | `NotificationChannel`, `NotificationTemplate`, `NotificationLog` | エンティティ定義 |
 | domain/repository | `NotificationChannelRepository`, `NotificationTemplateRepository`, `NotificationLogRepository` | リポジトリトレイト |
 | domain/service | `NotificationDomainService` | テンプレート適用・リトライ判定ロジック |
-| usecase | `SendNotificationUsecase`, `RetryNotificationUsecase`, `GetNotificationUsecase`, `ListNotificationsUsecase`, `CreateChannelUsecase`, `UpdateChannelUsecase`, `DeleteChannelUsecase`, `CreateTemplateUsecase`, `UpdateTemplateUsecase`, `DeleteTemplateUsecase` | ユースケース |
+| usecase | `SendNotificationUsecase`, `RetryNotificationUsecase`, `GetNotificationUsecase`, `ListNotificationsUsecase`, `ListChannelsUsecase`, `GetChannelUsecase`, `CreateChannelUsecase`, `UpdateChannelUsecase`, `DeleteChannelUsecase`, `ListTemplatesUsecase`, `GetTemplateUsecase`, `CreateTemplateUsecase`, `UpdateTemplateUsecase`, `DeleteTemplateUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic）, Kafka コンシューマー | プロトコル変換・メッセージ受信 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/persistence | `NotificationChannelPostgresRepository`, `NotificationTemplatePostgresRepository`, `NotificationLogPostgresRepository` | PostgreSQL リポジトリ実装 |

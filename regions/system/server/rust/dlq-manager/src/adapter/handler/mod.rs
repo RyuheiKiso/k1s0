@@ -23,6 +23,8 @@ pub struct AppState {
     pub delete_message_uc: Arc<DeleteMessageUseCase>,
     pub retry_all_uc: Arc<RetryAllUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub db_pool: Option<Arc<sqlx::PgPool>>,
+    pub publisher: Option<Arc<dyn crate::infrastructure::kafka::producer::DlqEventPublisher>>,
     pub auth_state: Option<DlqAuthState>,
 }
 

@@ -1,0 +1,319 @@
+<mxfile>
+  <diagram name="Database Ownership">
+    <mxGraphModel dx="2800" dy="2000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2800" pageHeight="2000">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="&lt;b&gt;k1s0 データベース所有権 &amp;amp; データストアマッピング&lt;/b&gt;" style="text;html=1;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="700" y="10" width="700" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="section1_title" value="&lt;b&gt;Section 1: PostgreSQL データベース所有権マッピング&lt;/b&gt;" style="text;html=1;fontSize=16;fontStyle=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="55" width="500" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pg_central" value="&lt;b&gt;PostgreSQL 17&lt;/b&gt;&lt;br&gt;共通 RDBMS 基盤&lt;br&gt;&lt;i&gt;12 データベース&lt;/i&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#F5F5F5;strokeColor=#666666;fontSize=13;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="310" width="180" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_auth" value="&lt;b&gt;Auth Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: auth_db&lt;br&gt;スキーマ: auth&lt;br&gt;テーブル: users, roles,&lt;br&gt;permissions, user_roles,&lt;br&gt;role_permissions, audit_logs,&lt;br&gt;api_keys&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="190" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_auth" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_auth" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_config" value="&lt;b&gt;Config Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: config_db&lt;br&gt;スキーマ: config&lt;br&gt;テーブル: config_entries,&lt;br&gt;config_change_logs,&lt;br&gt;config_schemas&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="100" width="190" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_config" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_config" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_saga" value="&lt;b&gt;Saga Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: k1s0_system&lt;br&gt;スキーマ: saga&lt;br&gt;テーブル: saga_states,&lt;br&gt;saga_step_logs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="100" width="190" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_saga" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_saga" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_dlq" value="&lt;b&gt;DLQ Manager&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: dlq_db&lt;br&gt;スキーマ: dlq&lt;br&gt;テーブル: dlq_messages,&lt;br&gt;dlq_archives&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="100" width="190" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_dlq" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_dlq" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_featureflag" value="&lt;b&gt;FeatureFlag Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: featureflag_db&lt;br&gt;スキーマ: featureflag&lt;br&gt;テーブル: feature_flags,&lt;br&gt;evaluation_logs,&lt;br&gt;audit_logs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="100" width="190" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_featureflag" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_featureflag" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_ratelimit" value="&lt;b&gt;RateLimit Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: ratelimit_db&lt;br&gt;スキーマ: ratelimit&lt;br&gt;テーブル: rate_limit_rules&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="100" width="190" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ratelimit" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_ratelimit" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_tenant" value="&lt;b&gt;Tenant Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: tenant_db&lt;br&gt;スキーマ: tenant&lt;br&gt;テーブル: tenants, members,&lt;br&gt;provisioning_jobs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="100" width="190" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_tenant" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_tenant" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_vault" value="&lt;b&gt;Vault Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: vault_db&lt;br&gt;スキーマ: vault&lt;br&gt;テーブル: secret_access_logs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1760" y="100" width="190" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_vault" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_vault" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_apiregistry" value="&lt;b&gt;API Registry Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: apiregistry&lt;br&gt;スキーマ: apiregistry&lt;br&gt;テーブル: api_schemas,&lt;br&gt;api_schema_versions&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2000" y="100" width="190" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_apiregistry" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_apiregistry" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_session" value="&lt;b&gt;Session Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: session_metadata&lt;br&gt;（k1s0_system 内）&lt;br&gt;スキーマ: session&lt;br&gt;テーブル: user_sessions&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="500" width="190" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_session" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_session" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_eventstore" value="&lt;b&gt;Event Store Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: k1s0_system&lt;br&gt;スキーマ: event_store&lt;br&gt;テーブル: event_streams,&lt;br&gt;events, snapshots&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="500" width="190" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_eventstore" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_eventstore" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_quota" value="&lt;b&gt;Quota Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: k1s0_system（PostgreSQL）&lt;br&gt;+ Redis（使用量カウンター）&lt;br&gt;テーブル: quota_policies,&lt;br&gt;quota_usage&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="500" width="200" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_quota" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_quota" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc_mastermaint" value="&lt;b&gt;Master Maintenance&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;DB: k1s0&lt;br&gt;スキーマ: master_maintenance&lt;br&gt;テーブル: table_definitions,&lt;br&gt;column_definitions&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="810" y="500" width="190" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_mastermaint" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="svc_mastermaint" target="pg_central">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rule_anno" value="&lt;b&gt;設計原則&lt;/b&gt;&lt;br&gt;Tier間直接DBアクセス禁止、API経由のみ&lt;br&gt;各階層のDBはその階層の server からのみアクセス&lt;br&gt;下位層が上位層のデータを必要とする場合は&lt;br&gt;上位層の server が提供する API（gRPC/REST）を経由" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=18;fillColor=#FFFFCC;strokeColor=#D6B656;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="2240" y="100" width="320" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="db_list_title" value="&lt;b&gt;PostgreSQL データベース一覧（12件）&lt;/b&gt;" style="text;html=1;fontSize=12;fontStyle=1;align=left;verticalAlign=top;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="280" width="300" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="db_list" value="&lt;table style=&quot;font-size:10px;border-collapse:collapse;&quot;&gt;&lt;tr&gt;&lt;th style=&quot;border:1px solid #ccc;padding:2px 6px;background:#eee;&quot;&gt;#&lt;/th&gt;&lt;th style=&quot;border:1px solid #ccc;padding:2px 6px;background:#eee;&quot;&gt;DB名&lt;/th&gt;&lt;th style=&quot;border:1px solid #ccc;padding:2px 6px;background:#eee;&quot;&gt;所有サービス&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;1&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;auth_db&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;Auth Server&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;2&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;config_db&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;Config Server&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;3&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;k1s0_system (saga)&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;Saga Server&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;4&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;dlq_db&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;DLQ Manager&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;5&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;featureflag_db&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;FeatureFlag Server&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;6&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;ratelimit_db&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;RateLimit Server&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;7&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;tenant_db&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;Tenant Server&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;8&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;vault_db&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;Vault Server&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;9&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;apiregistry&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;API Registry Server&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;10&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;k1s0_system (session)&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;Session Server&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;11&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;k1s0_system (event_store)&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;Event Store Server&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;12&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;k1s0 (master_maintenance)&lt;/td&gt;&lt;td style=&quot;border:1px solid #ccc;padding:2px 6px;&quot;&gt;Master Maintenance&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;" style="text;html=1;align=left;verticalAlign=top;strokeColor=#999999;fillColor=#FFFFFF;rounded=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="300" width="350" height="280" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="section2_title" value="&lt;b&gt;Section 2: Redis 利用マッピング&lt;/b&gt;" style="text;html=1;fontSize=16;fontStyle=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="680" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="redis_cache" value="&lt;b&gt;Redis Cache&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;汎用キャッシュインスタンス&lt;br&gt;redis.k1s0-system.svc.cluster.local:6379&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="530" y="750" width="260" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="redis_session" value="&lt;b&gt;Redis Session&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;セッション専用インスタンス（Sentinel対応）&lt;br&gt;redis-sentinel.k1s0-system.svc.cluster.local:26379&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="750" width="280" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rc_ratelimit" value="&lt;b&gt;RateLimit Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;トークンバケット状態管理&lt;br&gt;キー: ratelimit:{rule_key}:{scope}&lt;br&gt;Lua スクリプトでアトミック判定&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="730" width="210" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_rc_ratelimit" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#B85450;dashed=1;" edge="1" parent="1" source="rc_ratelimit" target="redis_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rc_quota" value="&lt;b&gt;Quota Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;使用量カウンター&lt;br&gt;キー: quota:{policy_id}:{period}&lt;br&gt;INCRBY + EXPIRE&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="840" width="210" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_rc_quota" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#B85450;dashed=1;" edge="1" parent="1" source="rc_quota" target="redis_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rc_config" value="&lt;b&gt;Config Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;設定値キャッシュ（moka）&lt;br&gt;キー: {namespace}:{key}&lt;br&gt;TTL: インメモリ&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="330" y="920" width="210" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_rc_config" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#999999;dashed=1;" edge="1" parent="1" source="rc_config" target="redis_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rc_featureflag" value="&lt;b&gt;FeatureFlag Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;フラグ評価キャッシュ（moka）&lt;br&gt;インメモリ TTL キャッシュ&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="920" width="210" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_rc_featureflag" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#999999;dashed=1;" edge="1" parent="1" source="rc_featureflag" target="redis_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rc_idempotency" value="&lt;b&gt;Idempotency Library&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;冪等性キー管理&lt;br&gt;キー: idempotency:{key}&lt;br&gt;TTL: 24h（設定可能）&lt;br&gt;PostgreSQL/Redis 選択可&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="830" y="910" width="210" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_rc_idempotency" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#999999;dashed=1;" edge="1" parent="1" source="rc_idempotency" target="redis_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rc_jwks" value="&lt;b&gt;JWKS キャッシュ&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;auth ライブラリ全サーバー共通&lt;br&gt;インメモリキャッシュ TTL 10分&lt;br&gt;RS256 / 2048-bit RSA&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="330" y="730" width="160" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_rc_jwks" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#999999;dashed=1;" edge="1" parent="1" source="rc_jwks" target="redis_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rs_bff" value="&lt;b&gt;BFF Proxy (Go)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Cookie ベースセッション管理&lt;br&gt;キー: bff:session:{session_id}&lt;br&gt;TTL: 30分（スライディング）&lt;br&gt;アクセストークン・リフレッシュトークン保存&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="720" width="240" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_rs_bff" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#B85450;" edge="1" parent="1" source="rs_bff" target="redis_session">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rs_session" value="&lt;b&gt;Session Server (Rust)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;セッションデータ管理&lt;br&gt;キー: session:{session_id}&lt;br&gt;TTL: 3600秒（1時間、スライディング）&lt;br&gt;最大10デバイス/ユーザー&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="840" width="240" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_rs_session" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#B85450;" edge="1" parent="1" source="rs_session" target="redis_session">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="redis_ttl_note" value="&lt;b&gt;Redis TTL ポリシー&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;BFF セッション: 30分（スライディング延長）&lt;br&gt;Session Server: 3600秒（スライディング）&lt;br&gt;RateLimit バケット: window_secs に連動&lt;br&gt;Quota カウンター: 日次/月次 EXPIRE&lt;br&gt;JWKS キャッシュ: 10分（インメモリ）&lt;br&gt;Config キャッシュ: TTL 設定依存（インメモリ）&lt;br&gt;冪等性キー: 24時間（設定可能）&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=18;fillColor=#FFFFCC;strokeColor=#D6B656;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1760" y="720" width="300" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="section3_title" value="&lt;b&gt;Section 3: その他のデータストア&lt;/b&gt;" style="text;html=1;fontSize=16;fontStyle=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="1040" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="kafka_store" value="&lt;b&gt;Apache Kafka&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;非同期メッセージングブローカー&lt;br&gt;kafka-*.messaging.svc.cluster.local:9092&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1100" width="260" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="kafka_topics" value="&lt;b&gt;Kafka トピック一覧&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;k1s0.system.auth.audit.v1 (6P)&lt;br&gt;k1s0.system.config.changed.v1 (6P)&lt;br&gt;k1s0.system.apiregistry.schema_updated.v1 (6P)&lt;br&gt;k1s0.system.featureflag.changed.v1 (6P)&lt;br&gt;k1s0.system.file.uploaded.v1 (6P)&lt;br&gt;k1s0.system.file.deleted.v1 (6P)&lt;br&gt;k1s0.system.vault.secret_rotated.v1 (6P)&lt;br&gt;k1s0.system.notification.requested.v1 (6P)&lt;br&gt;k1s0.system.quota.exceeded.v1 (6P)&lt;br&gt;k1s0.system.saga.state_changed.v1 (6P)&lt;br&gt;k1s0.system.session.created/revoked.v1&lt;br&gt;k1s0.system.eventstore.event.published.v1&lt;br&gt;k1s0.system.search.index.requested.v1&lt;br&gt;*.dlq.v1（DLQ パターン）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1220" width="310" height="250" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_kafka_topics" style="endArrow=none;strokeWidth=1;strokeColor=#82B366;" edge="1" parent="1" source="kafka_store" target="kafka_topics">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="kafka_producers" value="&lt;b&gt;Kafka プロデューサー&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Auth Server → 監査ログ&lt;br&gt;Config Server → 設定変更通知&lt;br&gt;API Registry → スキーマ更新通知&lt;br&gt;FeatureFlag Server → フラグ変更通知&lt;br&gt;File Server → アップロード/削除通知&lt;br&gt;Vault Server → シークレットローテーション&lt;br&gt;Saga Server → ステート変更イベント&lt;br&gt;Session Server → セッション作成/失効&lt;br&gt;Event Store → イベント転送（at-least-once）&lt;br&gt;Workflow Server → ワークフローイベント/通知リクエスト&lt;br&gt;Notification Server → 通知リクエスト消費&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1100" width="300" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_kafka_prod" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1" source="kafka_producers" target="kafka_store">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="opensearch_store" value="&lt;b&gt;OpenSearch&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;全文検索エンジン&lt;br&gt;opensearch.k1s0-system.svc.cluster.local:9200&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="830" y="1100" width="260" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="os_search" value="&lt;b&gt;Search Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;インデックス管理・全文検索&lt;br&gt;opensearch-rs クライアント&lt;br&gt;Kafka 非同期インデックス&lt;br&gt;moka キャッシュ（TTL 30秒）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="860" y="1240" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_os_search" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1" source="os_search" target="opensearch_store">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3_store" value="&lt;b&gt;S3 互換ストレージ&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Ceph / S3 / GCS 互換&lt;br&gt;オブジェクトストレージ&lt;br&gt;ファイル保存・ログアーカイブ&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="1100" width="260" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3_file" value="&lt;b&gt;File Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;ファイルアップロード/ダウンロード&lt;br&gt;aws-sdk-s3 クライアント&lt;br&gt;プリサインドURL生成&lt;br&gt;テナント分離&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="1240" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_s3_file" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1" source="s3_file" target="s3_store">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="vault_secret_store" value="&lt;b&gt;HashiCorp Vault&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;シークレット管理&lt;br&gt;Vault 1.17&lt;br&gt;secret/data/k1s0/{tier}/{service}/*&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="1490" y="1100" width="260" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="vault_consumers" value="&lt;b&gt;Vault 利用サービス&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;全サーバー: DB パスワード取得&lt;br&gt;Auth Server: JWT 署名鍵&lt;br&gt;Config Server: 暗号化キー&lt;br&gt;File Server: S3 シークレットキー&lt;br&gt;Search Server: OpenSearch パスワード&lt;br&gt;Quota Server: Redis パスワード&lt;br&gt;Vault Agent Injector 経由&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="1240" width="240" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_vault_consumers" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82B366;dashed=1;" edge="1" parent="1" source="vault_consumers" target="vault_secret_store">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="section4_title" value="&lt;b&gt;Section 4: データ分離ルール&lt;/b&gt;" style="text;html=1;fontSize=16;fontStyle=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1830" y="1040" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rules_box" value="&lt;b&gt;データ分離ルール&lt;/b&gt;&lt;hr&gt;&lt;font style=&quot;font-size:11px;&quot;&gt;&lt;b&gt;1. データベース所有権&lt;/b&gt;&lt;br&gt;各 Tier は独立したデータベースを所有する。&lt;br&gt;同一 PostgreSQL インスタンス上でもスキーマで分離。&lt;br&gt;&lt;br&gt;&lt;b&gt;2. Tier 間直接 DB アクセス禁止&lt;/b&gt;&lt;br&gt;下位層が上位層のデータを必要とする場合は、&lt;br&gt;上位層の server が提供する API（gRPC/REST）を経由。&lt;br&gt;直接的な SQL アクセスは一切禁止。&lt;br&gt;&lt;br&gt;&lt;b&gt;3. スキーママイグレーション&lt;/b&gt;&lt;br&gt;各サービスが独自にマイグレーションを管理。&lt;br&gt;Go: golang-migrate / Rust: sqlx-cli&lt;br&gt;マイグレーション配置: regions/system/database/{name}/migrations/&lt;br&gt;&lt;br&gt;&lt;b&gt;4. クレデンシャル管理&lt;/b&gt;&lt;br&gt;HashiCorp Vault による動的クレデンシャル生成。&lt;br&gt;静的パスワード: secret/data/k1s0/{tier}/{service}/database&lt;br&gt;動的RW: database/creds/{tier}-{service}-rw（TTL: 24時間）&lt;br&gt;動的RO: database/creds/{tier}-{service}-ro（TTL: 24時間）&lt;br&gt;&lt;br&gt;&lt;b&gt;5. バックアップポリシー&lt;/b&gt;&lt;br&gt;PostgreSQL: フルバックアップ 毎日（保持30日）+ WAL 継続アーカイブ&lt;br&gt;etcd: 日次バックアップ（保持30日）&lt;br&gt;Ceph: スナップショット 毎日（保持14日）&lt;br&gt;Kafka: トピック retention.ms によるセグメント管理&lt;br&gt;&lt;br&gt;&lt;b&gt;6. 接続設定&lt;/b&gt;&lt;br&gt;dev: ssl_mode=disable, max_conns=10&lt;br&gt;staging: ssl_mode=require, max_conns=25&lt;br&gt;prod: ssl_mode=verify-full, max_conns=50&lt;/font&gt;" style="shape=mxgraph.basic.rect;fillColor=#F5F5F5;strokeColor=#666666;rounded=1;arcSize=8;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=12;spacingTop=8;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="1830" y="1080" width="440" height="580" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_title" value="&lt;b&gt;凡例&lt;/b&gt;" style="text;html=1;fontSize=14;fontStyle=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="2240" y="250" width="100" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="2240" y="275" width="320" height="310" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg_sys" value="&lt;font style=&quot;font-size:10px&quot;&gt;System Tier サービス&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2260" y="290" width="140" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_biz" value="&lt;font style=&quot;font-size:10px&quot;&gt;Business Tier サービス&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2260" y="325" width="140" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_svc" value="&lt;font style=&quot;font-size:10px&quot;&gt;Service Tier サービス&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2260" y="360" width="140" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg_pg" value="&lt;font style=&quot;font-size:10px&quot;&gt;PostgreSQL&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2260" y="395" width="80" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_pg_label" value="&lt;font style=&quot;font-size:10px&quot;&gt;PostgreSQL データストア&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2350" y="398" width="150" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg_redis" value="&lt;font style=&quot;font-size:10px&quot;&gt;Redis&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2260" y="440" width="80" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_redis_label" value="&lt;font style=&quot;font-size:10px&quot;&gt;Redis データストア&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2350" y="443" width="150" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg_other" value="&lt;font style=&quot;font-size:10px&quot;&gt;Other&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2260" y="485" width="80" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_other_label" value="&lt;font style=&quot;font-size:10px&quot;&gt;その他データストア&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2350" y="488" width="150" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg_solid" value="" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2260" y="542" as="sourcePoint"/>
+            <mxPoint x="2340" y="542" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_solid_label" value="&lt;font style=&quot;font-size:10px&quot;&gt;DB 所有権（プライマリ）&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2350" y="530" width="180" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg_dashed" value="" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#999999;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2260" y="567" as="sourcePoint"/>
+            <mxPoint x="2340" y="567" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_dashed_label" value="&lt;font style=&quot;font-size:10px&quot;&gt;キャッシュ / 読取アクセス&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2350" y="555" width="180" height="25" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -8,10 +8,12 @@ struct EventStoreEnvelope {
     event_type: String,
     stream_id: String,
     sequence: u64,
-    actor_user_id: Option<String>,
-    before: Option<serde_json::Value>,
-    after: serde_json::Value,
+    domain_event_type: String,
+    version: i64,
+    payload: serde_json::Value,
+    metadata: crate::domain::entity::event::EventMetadata,
     occurred_at: String,
+    stored_at: String,
 }
 
 /// EventPublisher はイベントストアからの Kafka イベント発行用トレイト。
@@ -84,13 +86,15 @@ impl EventPublisher for EventStoreKafkaProducer {
 
         for event in events {
             let envelope = EventStoreEnvelope {
-                event_type: event.event_type.clone(),
+                event_type: "EVENT_PUBLISHED".to_string(),
                 stream_id: event.stream_id.clone(),
                 sequence: event.sequence,
-                actor_user_id: event.metadata.actor_id.clone(),
-                before: None,
-                after: event.payload.clone(),
+                domain_event_type: event.event_type.clone(),
+                version: event.version,
+                payload: event.payload.clone(),
+                metadata: event.metadata.clone(),
                 occurred_at: event.occurred_at.to_rfc3339(),
+                stored_at: event.stored_at.to_rfc3339(),
             };
             let payload = serde_json::to_vec(&envelope)?;
             let key = stream_id.to_string();

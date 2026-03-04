@@ -205,9 +205,6 @@ async fn main() -> anyhow::Result<()> {
         "infrastructure components initialized"
     );
 
-    // Store metadata_repo for future use by handlers
-    let _metadata_repo = metadata_repo;
-
     // Token verifier (JWKS verifier if auth configured)
     let auth_state = if let Some(ref auth_cfg) = cfg.auth {
         info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for session-server");
@@ -232,6 +229,8 @@ async fn main() -> anyhow::Result<()> {
         revoke_uc,
         list_uc,
         revoke_all_uc,
+        metadata_repo: metadata_repo.clone(),
+        event_publisher: event_publisher.clone(),
         metrics: metrics.clone(),
         auth_state: None,
     };
@@ -270,8 +269,8 @@ async fn main() -> anyhow::Result<()> {
                 "sessions", "read",
             )));
 
-        // POST/refresh -> sessions/write
-        let write_routes = axum::Router::new()
+        // auth only routes (no RBAC)
+        let auth_only_routes = axum::Router::new()
             .route(
                 "/api/v1/sessions",
                 axum::routing::post(adapter::handler::session_handler::create_session),
@@ -280,28 +279,25 @@ async fn main() -> anyhow::Result<()> {
                 "/api/v1/sessions/:session_id/refresh",
                 axum::routing::post(adapter::handler::session_handler::refresh_session),
             )
-            .route_layer(axum::middleware::from_fn(require_permission(
-                "sessions", "write",
-            )));
-
-        // DELETE -> sessions/admin
-        let admin_routes = axum::Router::new()
             .route(
                 "/api/v1/sessions/:session_id",
                 axum::routing::delete(adapter::handler::session_handler::revoke_session),
-            )
+            );
+
+        // DELETE all -> sessions/write
+        let write_routes = axum::Router::new()
             .route(
                 "/api/v1/users/:user_id/sessions",
                 axum::routing::delete(adapter::handler::session_handler::revoke_all_sessions),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "sessions", "admin",
+                "sessions", "write",
             )));
 
         axum::Router::new()
             .merge(read_routes)
+            .merge(auth_only_routes)
             .merge(write_routes)
-            .merge(admin_routes)
             .layer(axum::middleware::from_fn_with_state(
                 auth_st.clone(),
                 auth_middleware,

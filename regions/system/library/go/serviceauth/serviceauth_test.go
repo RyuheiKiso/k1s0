@@ -78,6 +78,18 @@ func TestParseSpiffeId_String(t *testing.T) {
 	assert.Equal(t, "spiffe://k1s0.internal/ns/business/sa/order-service", spiffe.String())
 }
 
+func TestParseSpiffeId_AllowsTierAccess(t *testing.T) {
+	systemSpiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/system/sa/auth-service")
+	require.NoError(t, err)
+	assert.True(t, systemSpiffe.AllowsTierAccess("system"))
+	assert.True(t, systemSpiffe.AllowsTierAccess("business"))
+
+	businessSpiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/business/sa/order-service")
+	require.NoError(t, err)
+	assert.True(t, businessSpiffe.AllowsTierAccess("business"))
+	assert.False(t, businessSpiffe.AllowsTierAccess("system"))
+}
+
 func TestParseSpiffeId_Invalid(t *testing.T) {
 	tests := []string{
 		"",

@@ -103,8 +103,8 @@ func (v *DefaultValidator) ValidatePagination(page, perPage int) error {
 	if page < 1 {
 		return &ValidationError{Field: "page", Message: fmt.Sprintf("pageは1以上である必要があります: %d", page), Code: "INVALID_PAGE"}
 	}
-	if perPage < 1 || perPage > 100 {
-		return &ValidationError{Field: "per_page", Message: fmt.Sprintf("per_pageは1-100の範囲である必要があります: %d", perPage), Code: "INVALID_PER_PAGE"}
+	if perPage < 1 || perPage > 200 {
+		return &ValidationError{Field: "per_page", Message: fmt.Sprintf("per_pageは1-200の範囲である必要があります: %d", perPage), Code: "INVALID_PER_PAGE"}
 	}
 	return nil
 }

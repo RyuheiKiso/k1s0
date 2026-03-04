@@ -148,7 +148,31 @@ pub async fn get_notification(
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match state.log_repo.find_by_id(&id).await {
-        Ok(Some(log)) => (StatusCode::OK, Json(serde_json::to_value(log).unwrap())).into_response(),
+        Ok(Some(log)) => {
+            let channel_type = match state.get_channel_uc.execute(&log.channel_id).await {
+                Ok(channel) => Some(channel.channel_type),
+                Err(_) => None,
+            };
+
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "id": log.id,
+                    "channel_id": log.channel_id,
+                    "channel_type": channel_type,
+                    "template_id": log.template_id,
+                    "recipient": log.recipient,
+                    "subject": log.subject,
+                    "body": log.body,
+                    "status": log.status,
+                    "retry_count": log.retry_count,
+                    "error_message": log.error_message,
+                    "sent_at": log.sent_at,
+                    "created_at": log.created_at,
+                })),
+            )
+                .into_response()
+        }
         Ok(None) => error_response(
             StatusCode::NOT_FOUND,
             codes::notification::not_found(),
@@ -211,6 +235,17 @@ pub async fn create_channel(
 ) -> impl IntoResponse {
     use crate::usecase::create_channel::CreateChannelInput;
 
+    if !is_valid_channel_type(&req.channel_type) {
+        return error_response(
+            StatusCode::BAD_REQUEST,
+            codes::notification::validation_error(),
+            format!(
+                "invalid channel_type: {} (allowed: email, slack, webhook, sms, push)",
+                req.channel_type
+            ),
+        );
+    }
+
     let input = CreateChannelInput {
         name: req.name,
         channel_type: req.channel_type,
@@ -232,6 +267,11 @@ pub async fn create_channel(
             })),
         )
             .into_response(),
+        Err(crate::usecase::create_channel::CreateChannelError::Validation(msg)) => error_response(
+            StatusCode::BAD_REQUEST,
+            codes::notification::validation_error(),
+            msg,
+        ),
         Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
             codes::notification::channel_create_failed(),
@@ -272,10 +312,12 @@ pub async fn list_channels(
                 StatusCode::OK,
                 Json(serde_json::json!({
                     "channels": items,
-                    "total_count": total_count,
-                    "page": page,
-                    "page_size": page_size,
-                    "has_next": has_next
+                    "pagination": {
+                        "total_count": total_count,
+                        "page": page,
+                        "page_size": page_size,
+                        "has_next": has_next
+                    }
                 })),
             )
                 .into_response()
@@ -427,6 +469,11 @@ pub async fn create_template(
             })),
         )
             .into_response(),
+        Err(crate::usecase::create_template::CreateTemplateError::Validation(msg)) => error_response(
+            StatusCode::BAD_REQUEST,
+            codes::notification::validation_error(),
+            msg,
+        ),
         Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
             codes::notification::template_create_failed(),
@@ -465,10 +512,12 @@ pub async fn list_templates(
                 StatusCode::OK,
                 Json(serde_json::json!({
                     "templates": items,
-                    "total_count": total_count,
-                    "page": page,
-                    "page_size": page_size,
-                    "has_next": has_next
+                    "pagination": {
+                        "total_count": total_count,
+                        "page": page,
+                        "page_size": page_size,
+                        "has_next": has_next
+                    }
                 })),
             )
                 .into_response()
@@ -705,4 +754,11 @@ fn strip_sensitive_config(config: &serde_json::Value) -> serde_json::Value {
         }
         _ => config.clone(),
     }
+}
+
+fn is_valid_channel_type(channel_type: &str) -> bool {
+    matches!(
+        channel_type,
+        "email" | "slack" | "webhook" | "sms" | "push"
+    )
 }

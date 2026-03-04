@@ -138,6 +138,9 @@ impl CrudRecordsUseCase {
     pub async fn delete_record(&self, table_name: &str, record_id: &str, deleted_by: &str) -> anyhow::Result<()> {
         let table = self.table_repo.find_by_name(table_name).await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+        if !table.allow_delete {
+            anyhow::bail!("Delete not allowed for table '{}'", table_name);
+        }
         let columns = self.column_repo.find_by_table_id(table.id).await?;
 
         let before = self.record_repo.find_by_id(&table, &columns, record_id).await?;

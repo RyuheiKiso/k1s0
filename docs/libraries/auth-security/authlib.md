@@ -12,9 +12,11 @@
 | 関数・型 | シグネチャ | 説明 |
 |---------|-----------|------|
 | `NewJWKSVerifier` / `JwksVerifier::new` | `(jwksURL, issuer, audience, cacheTTL) -> Verifier` | JWKS 検証器を生成 |
+| `NewJWKSVerifierWithFetcher` | `(jwksURL, issuer, audience, cacheTTL, fetcher) -> Verifier` | Go のみ: JWKS 取得実装を差し替え可能な検証器を生成 |
 | `VerifyToken` / `verify_token` | `(tokenString) -> (Claims, Error)` | JWT トークンを検証 |
 | `Claims` | struct | JWT クレーム（sub, iss, aud, realm_access, resource_access, tier_access 等） |
-| `AuthError` | enum | `TokenExpired` / `InvalidToken` / `JwksFetchFailed` / `PermissionDenied` |
+| `AuthError` | enum | `MissingToken` / `InvalidAuthHeader` / `TokenExpired` / `InvalidToken` / `JwksFetchFailed` / `PermissionDenied` |
+| `JWKSFetcher` | interface | Go のみ: JWKS 取得処理の差し替えインターフェース |
 
 ### RBAC チェック関数
 
@@ -22,7 +24,8 @@
 |------|-----------|------|
 | `HasRole` / `has_role` | `(claims, role) -> bool` | レルムロール保有チェック |
 | `HasResourceRole` / `has_resource_role` | `(claims, resource, role) -> bool` | リソースロール保有チェック |
-| `HasPermission` / `has_permission` | `(claims, resource, action) -> bool` | リソース × アクション権限チェック |
+| `CheckPermission` / `check_permission` | `(claims, resource, action) -> bool` | リソース × アクション権限チェック（推奨） |
+| `HasPermission` / `has_permission` | `(claims, resource, action) -> bool` | 後方互換エイリアス（`CheckPermission` を内部呼び出し） |
 | `HasTierAccess` / `has_tier_access` | `(claims, tier) -> bool` | tier_access チェック |
 
 ### ミドルウェア（HTTP / gRPC 認証ハンドラ）
@@ -35,6 +38,28 @@
 | `RequireTierAccess` / `require_tier_access` | `(tier) -> Middleware` | Tier アクセス必須ミドルウェア |
 | `GetClaims` / `get_claims` | `(ctx) -> Claims?` | コンテキストから Claims を取得 |
 | `GetClaimsFromContext` | `(ctx) -> Claims?` | Go のみ: gin.Context から Claims を取得 |
+| `UnaryServerInterceptor` / `StreamServerInterceptor` | `(verifier) -> grpc interceptor` | Go のみ: gRPC 認証インターセプター |
+
+### Doc Sync 補足（Go 実装差分）
+
+- `CheckPermission` は `sys_admin` を最優先で許可し、その後 `realm_access` / `resource_access` を評価する。
+- `AuthError` には `MissingToken` と `InvalidAuthHeader` を含む。
+- `JWKSFetcher` インターフェースと `NewJWKSVerifierWithFetcher` を提供する（テスト差し替え用途）。
+- `getKeySet` はダブルチェックロックでキャッシュを更新し、取得失敗時は stale cache をフォールバックとして返す。
+- gRPC 向けに `UnaryServerInterceptor` / `StreamServerInterceptor` を公開する。
+- `DeviceCodeResponse` は `VerificationURIComplete` を含む。
+
+```go
+type JWKSFetcher interface {
+    FetchKeys(ctx context.Context, jwksURL string) (jwk.Set, error)
+}
+
+func NewJWKSVerifierWithFetcher(
+    jwksURL, issuer, audience string,
+    cacheTTL time.Duration,
+    fetcher JWKSFetcher,
+) *JWKSVerifier
+```
 
 ## クライアント用 API（TypeScript / Dart）
 
@@ -46,6 +71,7 @@
 | logout | `() -> void` | ログアウト |
 | getAccessToken | `() -> string` | アクセストークン取得（自動リフレッシュ） |
 | isAuthenticated | `() -> bool` | 認証状態確認 |
+| DeviceCodeResponse.VerificationURIComplete | `string?` | Go のみ: ユーザーが直接アクセスできる完全な認証 URL |
 
 ## Go 実装
 
@@ -143,13 +169,22 @@ func (v *JWKSVerifier) getKeySet(ctx context.Context) (jwk.Set, error) {
         defer v.mu.RUnlock()
         return v.keySet, nil
     }
+    stale := v.keySet
     v.mu.RUnlock()
 
     v.mu.Lock()
     defer v.mu.Unlock()
 
+    // double-check
+    if v.keySet != nil && time.Since(v.lastFetch) < v.cacheTTL {
+        return v.keySet, nil
+    }
+
     keySet, err := jwk.Fetch(ctx, v.jwksURL)
     if err != nil {
+        if stale != nil {
+            return stale, nil // stale cache fallback
+        }
         return nil, err
     }
     v.keySet = keySet
@@ -158,15 +193,27 @@ func (v *JWKSVerifier) getKeySet(ctx context.Context) (jwk.Set, error) {
 }
 
 func CheckPermission(claims *Claims, resource, action string) bool {
-    for _, access := range claims.ResourceAccess {
-        for _, role := range access.Roles {
-            if role == action || role == "admin" {
-                return true
-            }
+    // 1) system 管理者は常に許可
+    for _, role := range claims.RealmAccess.Roles {
+        if role == "sys_admin" {
+            return true
         }
     }
+
+    // 2) realm ロールの admin も許可
     for _, role := range claims.RealmAccess.Roles {
         if role == "admin" {
+            return true
+        }
+    }
+
+    // 3) resource_access の対象リソースを評価
+    access, ok := claims.ResourceAccess[resource]
+    if !ok {
+        return false
+    }
+    for _, role := range access.Roles {
+        if role == action || role == "admin" {
             return true
         }
     }

@@ -4,6 +4,9 @@ use uuid::Uuid;
 
 use crate::domain::entity::policy::Policy;
 use crate::domain::repository::PolicyRepository;
+use crate::infrastructure::kafka_producer::{
+    NoopPolicyEventPublisher, PolicyChangedEvent, PolicyEventPublisher,
+};
 
 #[derive(Debug, Clone)]
 pub struct UpdatePolicyInput {
@@ -24,11 +27,25 @@ pub enum UpdatePolicyError {
 
 pub struct UpdatePolicyUseCase {
     repo: Arc<dyn PolicyRepository>,
+    event_publisher: Arc<dyn PolicyEventPublisher>,
 }
 
 impl UpdatePolicyUseCase {
     pub fn new(repo: Arc<dyn PolicyRepository>) -> Self {
-        Self { repo }
+        Self {
+            repo,
+            event_publisher: Arc::new(NoopPolicyEventPublisher),
+        }
+    }
+
+    pub fn with_publisher(
+        repo: Arc<dyn PolicyRepository>,
+        event_publisher: Arc<dyn PolicyEventPublisher>,
+    ) -> Self {
+        Self {
+            repo,
+            event_publisher,
+        }
     }
 
     pub async fn execute(&self, input: &UpdatePolicyInput) -> Result<Policy, UpdatePolicyError> {
@@ -39,6 +56,7 @@ impl UpdatePolicyUseCase {
             .map_err(|e| UpdatePolicyError::Internal(e.to_string()))?
             .ok_or(UpdatePolicyError::NotFound(input.id))?;
 
+        let before = policy.clone();
         let mut updated = policy;
         if let Some(desc) = &input.description {
             updated.description = desc.clone();
@@ -56,6 +74,14 @@ impl UpdatePolicyUseCase {
             .update(&updated)
             .await
             .map_err(|e| UpdatePolicyError::Internal(e.to_string()))?;
+
+        if let Err(e) = self
+            .event_publisher
+            .publish_policy_changed(&PolicyChangedEvent::updated(&before, &updated))
+            .await
+        {
+            tracing::warn!(error = %e, policy_id = %updated.id, "failed to publish policy updated event");
+        }
 
         Ok(updated)
     }

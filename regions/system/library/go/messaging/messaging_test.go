@@ -117,14 +117,22 @@ func TestNoOpEventProducer_RecordsPublishedEvents(t *testing.T) {
 }
 
 func TestEventProducer_InterfaceCompliance(t *testing.T) {
-	// NoOpEventProducer は EventProducer インターフェースを実装していることを確認
+	// NoOpEventProducer 縺ｯ EventProducer 繧､繝ｳ繧ｿ繝ｼ繝輔ぉ繝ｼ繧ｹ繧貞ｮ溯｣・＠縺ｦ縺・ｋ縺薙→繧堤｢ｺ隱・
 	var _ messaging.EventProducer = &messaging.NoOpEventProducer{}
 }
 
 func TestNewEventMetadata_HasTraceId(t *testing.T) {
 	meta := messaging.NewEventMetadata("user.created.v1", "corr-001", "auth-service")
-	// TraceId はデフォルト空（外部から設定）
-	_ = meta.TraceId // フィールドが存在することを確認
+	// TraceId 縺ｯ繝・ヵ繧ｩ繝ｫ繝育ｩｺ・亥､夜Κ縺九ｉ險ｭ螳夲ｼ・
+	_ = meta.TraceId // 繝輔ぅ繝ｼ繝ｫ繝峨′蟄伜惠縺吶ｋ縺薙→繧堤｢ｺ隱・
+}
+
+func TestEventMetadata_WithTraceId(t *testing.T) {
+	meta := messaging.NewEventMetadata("user.created.v1", "corr-001", "auth-service")
+	withTrace := meta.WithTraceId("trace-abc-123")
+
+	assert.Equal(t, "trace-abc-123", withTrace.TraceId)
+	assert.Empty(t, meta.TraceId)
 }
 
 func TestEventEnvelope_Fields(t *testing.T) {
@@ -144,7 +152,7 @@ func TestNoOpEventProducer_PublishAfterClose(t *testing.T) {
 	producer := &messaging.NoOpEventProducer{}
 	require.NoError(t, producer.Close())
 	assert.True(t, producer.IsClosed())
-	// Close 後も Publish は呼べる（エラーしない）
+	// Close 蠕後ｂ Publish 縺ｯ蜻ｼ縺ｹ繧具ｼ医お繝ｩ繝ｼ縺励↑縺・ｼ・
 	err := producer.Publish(context.Background(), messaging.EventEnvelope{})
 	require.NoError(t, err)
 }

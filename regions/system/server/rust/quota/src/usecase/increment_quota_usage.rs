@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::quota::IncrementResult;
 use crate::domain::repository::{CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository};
+use crate::domain::service::QuotaDomainService;
 use crate::infrastructure::kafka_producer::{
     QuotaEventPublisher, QuotaExceededEvent, QuotaThresholdReachedEvent,
 };
@@ -106,16 +107,7 @@ impl IncrementQuotaUsageUseCase {
         }
 
         // 4. 使用率を計算
-        let remaining = if used >= policy.limit {
-            0
-        } else {
-            policy.limit - used
-        };
-        let usage_percent = if policy.limit == 0 {
-            100.0
-        } else {
-            (used as f64 / policy.limit as f64) * 100.0
-        };
+        let (remaining, usage_percent) = QuotaDomainService::usage(policy.limit, used);
 
         // 5. 閾値到達チェック（増分前の使用量で判定）
         if let Some(threshold) = policy.alert_threshold_percent {

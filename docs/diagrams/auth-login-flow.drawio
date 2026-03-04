@@ -1,0 +1,542 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="auth-flow" name="Authentication Flow">
+    <mxGraphModel dx="2000" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2400" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title1" value="認証・認可フロー詳細図" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="20" width="600" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="title2" value="OAuth2 OIDC PKCE + JWT RS256 + RBAC + Istio mTLS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="900" y="60" width="600" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="lane1" value="&lt;b&gt;SECTION 1: Browser OIDC PKCE ログインフロー&lt;/b&gt;" style="shape=swimlane;startSize=30;fillColor=#E8EAF6;strokeColor=#3F51B5;fontSize=14;fontStyle=1;horizontal=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="110" width="2920" height="560" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s1_browser" value="&lt;b&gt;ブラウザ&lt;/b&gt;&lt;br&gt;(SPA クライアント)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;fontStyle=0;verticalAlign=middle;" vertex="1" parent="lane1">
+          <mxGeometry x="60" y="50" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1_bff" value="&lt;b&gt;BFF Proxy&lt;/b&gt;&lt;br&gt;(Go / Gin)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=12;fontStyle=0;verticalAlign=middle;" vertex="1" parent="lane1">
+          <mxGeometry x="560" y="50" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1_keycloak" value="&lt;b&gt;Keycloak&lt;/b&gt;&lt;br&gt;(OIDC Provider)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;fontStyle=0;verticalAlign=middle;" vertex="1" parent="lane1">
+          <mxGeometry x="1060" y="50" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1_redis" value="&lt;b&gt;Redis Session&lt;/b&gt;&lt;br&gt;(セッションストア)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;fontStyle=0;verticalAlign=middle;" vertex="1" parent="lane1">
+          <mxGeometry x="1560" y="50" width="160" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s1_ll_browser" value="" style="endArrow=none;dashed=1;strokeColor=#6C8EBF;dashPattern=5 5;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="100" as="sourcePoint"/>
+            <mxPoint x="140" y="540" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s1_ll_bff" value="" style="endArrow=none;dashed=1;strokeColor=#E65100;dashPattern=5 5;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="640" y="100" as="sourcePoint"/>
+            <mxPoint x="640" y="540" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s1_ll_keycloak" value="" style="endArrow=none;dashed=1;strokeColor=#666666;dashPattern=5 5;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1140" y="100" as="sourcePoint"/>
+            <mxPoint x="1140" y="540" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s1_ll_redis" value="" style="endArrow=none;dashed=1;strokeColor=#B85450;dashPattern=5 5;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1640" y="100" as="sourcePoint"/>
+            <mxPoint x="1640" y="540" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s1_m1" value="① GET /auth/login&lt;br&gt;ログイン開始リクエスト" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/>
+            <mxPoint x="640" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s1_note1" value="② PKCE 生成&lt;br&gt;code_verifier (ランダム) →&lt;br&gt;code_challenge = SHA256(verifier)&lt;br&gt;state パラメータ生成 (CSRF防御)" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="lane1">
+          <mxGeometry x="480" y="135" width="230" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s1_m3" value="③ 302 Redirect → Keycloak /authorize&lt;br&gt;+ Set-Cookie: k1s0_oauth_state, k1s0_pkce_verifier (HttpOnly, 5min TTL)" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;dashed=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="640" y="220" as="sourcePoint"/>
+            <mxPoint x="140" y="220" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s1_m4" value="④ 認可リクエスト&lt;br&gt;response_type=code &amp; code_challenge &amp; code_challenge_method=S256 &amp; state &amp; scope=openid" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="250" as="sourcePoint"/>
+            <mxPoint x="1140" y="250" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s1_note2" value="⑤ ユーザーがログイン画面で&lt;br&gt;認証情報を入力" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="lane1">
+          <mxGeometry x="1060" y="265" width="180" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s1_m6" value="⑥ 302 Redirect → /auth/callback?code=AUTH_CODE&amp;state=STATE&lt;br&gt;認可コードとstate付きでコールバック" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;dashed=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1140" y="325" as="sourcePoint"/>
+            <mxPoint x="140" y="325" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s1_m7" value="⑦ GET /auth/callback?code=X&amp;state=Y&lt;br&gt;+ Cookie: k1s0_oauth_state, k1s0_pkce_verifier" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="350" as="sourcePoint"/>
+            <mxPoint x="640" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s1_note3" value="⑧ state パラメータ検証&lt;br&gt;Cookie state == Query state&lt;br&gt;不一致 → BFF_AUTH_STATE_MISMATCH" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="lane1">
+          <mxGeometry x="480" y="360" width="220" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s1_m9" value="⑨ POST /token (grant_type=authorization_code)&lt;br&gt;code=AUTH_CODE &amp; code_verifier=VERIFIER &amp; redirect_uri" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="640" y="430" as="sourcePoint"/>
+            <mxPoint x="1140" y="430" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s1_m10" value="⑩ access_token + refresh_token + id_token (JWT RS256)&lt;br&gt;Claims: sub, realm_access, resource_access, tier_access" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;dashed=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1140" y="455" as="sourcePoint"/>
+            <mxPoint x="640" y="455" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s1_m11" value="⑪ セッション作成 (SessionData)&lt;br&gt;AccessToken, RefreshToken, IDToken,&lt;br&gt;ExpiresAt, CSRFToken, Subject を保存" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="640" y="480" as="sourcePoint"/>
+            <mxPoint x="1640" y="480" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s1_m12" value="⑫ Set-Cookie: k1s0_session (HttpOnly, Secure, SameSite=Lax)&lt;br&gt;+ JSON: {status: &quot;authenticated&quot;, csrf_token: &quot;...&quot;}&lt;br&gt;OAuth flow Cookie削除 (state, verifier)" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;dashed=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="640" y="515" as="sourcePoint"/>
+            <mxPoint x="140" y="515" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s1_legend" value="&lt;b&gt;トークンはサーバーサイド保持&lt;/b&gt;&lt;br&gt;ブラウザにはセッションIDのみ&lt;br&gt;(BFF Pattern: Token Handler)" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="lane1">
+          <mxGeometry x="1800" y="50" width="200" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="lane2" value="&lt;b&gt;SECTION 2: API リクエスト認証フロー&lt;/b&gt;" style="shape=swimlane;startSize=30;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=14;fontStyle=1;horizontal=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="700" width="2920" height="420" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s2_browser" value="&lt;b&gt;ブラウザ&lt;/b&gt;&lt;br&gt;(リクエスト送信)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane2">
+          <mxGeometry x="60" y="50" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2_nginx" value="&lt;b&gt;Nginx&lt;/b&gt;&lt;br&gt;(TLS 終端)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane2">
+          <mxGeometry x="340" y="50" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2_kong" value="&lt;b&gt;Kong&lt;/b&gt;&lt;br&gt;(API Gateway)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane2">
+          <mxGeometry x="620" y="50" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2_istio" value="&lt;b&gt;Istio Sidecar&lt;/b&gt;&lt;br&gt;(サービスメッシュ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CCFFCC;strokeColor=#00994C;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane2">
+          <mxGeometry x="900" y="50" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2_bff" value="&lt;b&gt;BFF Proxy&lt;/b&gt;&lt;br&gt;(Cookie→Bearer変換)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane2">
+          <mxGeometry x="1220" y="50" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2_backend" value="&lt;b&gt;バックエンドサービス&lt;/b&gt;&lt;br&gt;(Rust / Go)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane2">
+          <mxGeometry x="1560" y="50" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2_redis" value="&lt;b&gt;Redis Session&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane2">
+          <mxGeometry x="1220" y="350" width="160" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s2_ll_browser" value="" style="endArrow=none;dashed=1;strokeColor=#6C8EBF;dashPattern=5 5;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="100" as="sourcePoint"/>
+            <mxPoint x="130" y="340" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2_ll_nginx" value="" style="endArrow=none;dashed=1;strokeColor=#82B366;dashPattern=5 5;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="100" as="sourcePoint"/>
+            <mxPoint x="410" y="340" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2_ll_kong" value="" style="endArrow=none;dashed=1;strokeColor=#82B366;dashPattern=5 5;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="690" y="100" as="sourcePoint"/>
+            <mxPoint x="690" y="340" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2_ll_istio" value="" style="endArrow=none;dashed=1;strokeColor=#00994C;dashPattern=5 5;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="100" as="sourcePoint"/>
+            <mxPoint x="980" y="340" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2_ll_bff" value="" style="endArrow=none;dashed=1;strokeColor=#E65100;dashPattern=5 5;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1300" y="100" as="sourcePoint"/>
+            <mxPoint x="1300" y="340" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2_ll_backend" value="" style="endArrow=none;dashed=1;strokeColor=#D6B656;dashPattern=5 5;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1640" y="100" as="sourcePoint"/>
+            <mxPoint x="1640" y="340" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s2_m1" value="① HTTPS リクエスト&lt;br&gt;Cookie: k1s0_session + X-CSRF-Token ヘッダー" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="120" as="sourcePoint"/>
+            <mxPoint x="410" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s2_m2" value="② HTTP 転送 (TLS 終端済み)&lt;br&gt;SSL/TLS オフロード完了" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="155" as="sourcePoint"/>
+            <mxPoint x="690" y="155" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s2_note1" value="③ Kong JWT プラグイン&lt;br&gt;RS256 署名検証 (JWKS エンドポイント)&lt;br&gt;iss / aud / exp クレーム検証&lt;br&gt;レートリミットチェック" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="lane2">
+          <mxGeometry x="600" y="170" width="210" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s2_m4" value="④ レートリミットチェック通過&lt;br&gt;リクエスト転送" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="690" y="250" as="sourcePoint"/>
+            <mxPoint x="980" y="250" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s2_note2" value="⑤ Istio サイドカー処理&lt;br&gt;mTLS 暗号化 (Pod間通信)&lt;br&gt;AuthorizationPolicy: tier_access クレーム検証&lt;br&gt;サービス間通信の認証" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#CCFFCC;strokeColor=#00994C;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="lane2">
+          <mxGeometry x="880" y="265" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s2_m6" value="⑥ BFF Proxy: Cookie → Bearer 変換&lt;br&gt;Redis からセッション取得 → access_token 抽出" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="290" as="sourcePoint"/>
+            <mxPoint x="1300" y="290" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s2_m_redis" value="セッション取得&lt;br&gt;GET session:{id}" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#B85450;fontSize=10;dashed=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1300" y="310" as="sourcePoint"/>
+            <mxPoint x="1300" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s2_m7" value="⑦ Authorization: Bearer {access_token}&lt;br&gt;バックエンドサービスへ転送" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1300" y="320" as="sourcePoint"/>
+            <mxPoint x="1640" y="320" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s2_legend" value="&lt;b&gt;通信暗号化レイヤー&lt;/b&gt;&lt;br&gt;外部: HTTPS (Nginx TLS終端)&lt;br&gt;Gateway内部: HTTP&lt;br&gt;Pod間: Istio mTLS (自動)" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="lane2">
+          <mxGeometry x="1850" y="50" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="lane3" value="&lt;b&gt;SECTION 3: RBAC 権限解決フロー&lt;/b&gt;" style="shape=swimlane;startSize=30;fillColor=#FFF3E0;strokeColor=#EF6C00;fontSize=14;fontStyle=1;horizontal=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1150" width="2920" height="420" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3_jwt" value="&lt;b&gt;① JWT Claims 抽出&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;access_token から以下を取得:&lt;br&gt;- sub (ユーザーID)&lt;br&gt;- realm_access.roles (レルムロール)&lt;br&gt;- resource_access.{client}.roles (リソースロール)&lt;br&gt;- tier_access (Tierアクセス権)&lt;br&gt;- preferred_username&lt;br&gt;- email&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane3">
+          <mxGeometry x="60" y="50" width="260" height="170" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3_role" value="&lt;b&gt;② ロール解決&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;HasRole(claims, role)&lt;br&gt;→ realm_access.roles にロールが含まれるか&lt;br&gt;&lt;br&gt;HasResourceRole(claims, resource, role)&lt;br&gt;→ resource_access[resource].roles にロールが含まれるか&lt;br&gt;&lt;br&gt;HasTierAccess(claims, tier)&lt;br&gt;→ tier_access に指定Tierが含まれるか&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=12;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane3">
+          <mxGeometry x="380" y="50" width="300" height="170" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3_perm" value="&lt;b&gt;③ 権限チェック&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;CheckPermission(claims, resource, action)&lt;br&gt;&lt;br&gt;1. sys_admin ロール → 全権限 (bypass)&lt;br&gt;2. admin ロール → 全権限 (bypass)&lt;br&gt;3. resource_access[resource] に action or admin →許可&lt;br&gt;4. 上記以外 → 拒否 (deny by default)&lt;br&gt;&lt;br&gt;&lt;b&gt;ホワイトリストモデル: 明示的許可のみ&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane3">
+          <mxGeometry x="740" y="50" width="320" height="170" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3_a1" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" parent="lane3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="320" y="135" as="sourcePoint"/>
+            <mxPoint x="380" y="135" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s3_a2" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" parent="lane3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="135" as="sourcePoint"/>
+            <mxPoint x="740" y="135" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s3_decision" value="権限あり？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="lane3">
+          <mxGeometry x="1120" y="100" width="120" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3_a3" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" parent="lane3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1060" y="135" as="sourcePoint"/>
+            <mxPoint x="1120" y="135" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s3_allow" value="&lt;b&gt;200 OK&lt;/b&gt;&lt;br&gt;リクエスト処理続行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane3">
+          <mxGeometry x="1300" y="60" width="180" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3_a4" value="はい" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#388E3C;fontSize=10;fontColor=#388E3C;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1240" y="115" as="sourcePoint"/>
+            <mxPoint x="1300" y="85" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="1270" y="115"/>
+              <mxPoint x="1270" y="85"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s3_deny" value="&lt;b&gt;403 Forbidden&lt;/b&gt;&lt;br&gt;SYS_AUTH_FORBIDDEN&lt;br&gt;「この操作を実行する権限がありません」" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane3">
+          <mxGeometry x="1300" y="150" width="270" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3_a5" value="いいえ" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#B85450;fontSize=10;fontColor=#B85450;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1240" y="155" as="sourcePoint"/>
+            <mxPoint x="1300" y="180" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="1270" y="155"/>
+              <mxPoint x="1270" y="180"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s3_roles_title" value="&lt;b&gt;⑥ システムロール定義&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="lane3">
+          <mxGeometry x="60" y="240" width="200" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3_r1" value="&lt;b&gt;sys_admin&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;全権限 (スーパーユーザー)&lt;br&gt;全リソース × 全アクション&lt;br&gt;CheckPermission で即時 true&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane3">
+          <mxGeometry x="60" y="270" width="250" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3_r2" value="&lt;b&gt;sys_operator&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;読み書き権限 (運用者)&lt;br&gt;モニタリング・設定変更&lt;br&gt;リソース別にアクション制限&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane3">
+          <mxGeometry x="330" y="270" width="250" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3_r3" value="&lt;b&gt;sys_auditor&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;読み取り専用 (監査者)&lt;br&gt;全リソース参照可能&lt;br&gt;変更操作は不可&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane3">
+          <mxGeometry x="600" y="270" width="250" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3_mw_title" value="&lt;b&gt;Gin ミドルウェアチェーン&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="lane3">
+          <mxGeometry x="960" y="240" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3_mw1" value="AuthMiddleware&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Bearer トークン検証 + Claims 抽出&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3F51B5;fontSize=11;verticalAlign=middle;" vertex="1" parent="lane3">
+          <mxGeometry x="910" y="270" width="200" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3_mw2" value="RequireRole / RequirePermission&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;ロール or リソース権限チェック&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3F51B5;fontSize=11;verticalAlign=middle;" vertex="1" parent="lane3">
+          <mxGeometry x="1130" y="270" width="220" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3_mw3" value="RequireTierAccess&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Tier アクセス権チェック&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3F51B5;fontSize=11;verticalAlign=middle;" vertex="1" parent="lane3">
+          <mxGeometry x="1370" y="270" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3_mw_a1" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#3F51B5;" edge="1" parent="lane3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1110" y="293" as="sourcePoint"/>
+            <mxPoint x="1130" y="293" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s3_mw_a2" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#3F51B5;" edge="1" parent="lane3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1350" y="293" as="sourcePoint"/>
+            <mxPoint x="1370" y="293" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s3_deny_note" value="&lt;b&gt;④ Deny by Default (ホワイトリストモデル)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;明示的に許可されていないアクションは全て拒否&lt;br&gt;CheckPermission が false → 403 Forbidden&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=11;align=left;spacingLeft=5;" vertex="1" parent="lane3">
+          <mxGeometry x="1600" y="50" width="310" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3_super_note" value="&lt;b&gt;⑤ sys_admin = スーパーユーザー&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;CheckPermission の最初のチェックで即時 true を返す&lt;br&gt;全ての権限チェックをバイパス&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;align=left;spacingLeft=5;" vertex="1" parent="lane3">
+          <mxGeometry x="1600" y="130" width="310" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3_errors" value="&lt;b&gt;認証エラーレスポンス&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;401: SYS_AUTH_UNAUTHENTICATED (トークン無し)&lt;br&gt;401: SYS_AUTH_INVALID_TOKEN (トークン無効)&lt;br&gt;403: SYS_AUTH_FORBIDDEN (権限不足)&lt;br&gt;403: SYS_AUTH_TIER_FORBIDDEN (Tier権限不足)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane3">
+          <mxGeometry x="1600" y="260" width="290" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="lane4" value="&lt;b&gt;SECTION 4: JWT JWKS 鍵ローテーション + CLI Device Code Grant&lt;/b&gt;" style="shape=swimlane;startSize=30;fillColor=#EDE7F6;strokeColor=#5E35B1;fontSize=14;fontStyle=1;horizontal=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1600" width="2920" height="440" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4_jwks_title" value="&lt;b&gt;JWT JWKS 鍵ローテーション&lt;/b&gt;&lt;br&gt;RS256 / 2048-bit RSA / Cache TTL 10分 / ローテーション 90日" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=0;" vertex="1" parent="lane4">
+          <mxGeometry x="60" y="40" width="550" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4_d0" value="&lt;b&gt;Day 0: 初期状態&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;署名鍵: Key A&lt;br&gt;JWKS エンドポイント: [Key A]&lt;br&gt;全トークンは Key A で署名&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane4">
+          <mxGeometry x="60" y="90" width="250" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4_d76" value="&lt;b&gt;Day 76: 新鍵生成&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;新署名鍵: Key B を生成&lt;br&gt;JWKS エンドポイント: [Key A, Key B]&lt;br&gt;新トークンは Key B で署名開始&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane4">
+          <mxGeometry x="60" y="190" width="250" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4_transition" value="&lt;b&gt;Day 76 ~ 90: 移行期間&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;新トークン: Key B で署名&lt;br&gt;既存トークン: Key A でも検証可能&lt;br&gt;JWKS: [Key A, Key B] (両方公開)&lt;br&gt;ダウンタイムゼロのローテーション&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane4">
+          <mxGeometry x="60" y="290" width="250" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4_d90" value="&lt;b&gt;Day 90: 旧鍵削除&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Key A を JWKS から削除&lt;br&gt;JWKS エンドポイント: [Key B]&lt;br&gt;Key A 署名のトークンは検証不可&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;spacingTop=5;" vertex="1" parent="lane4">
+          <mxGeometry x="60" y="400" width="250" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s4_a1" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="185" y="170" as="sourcePoint"/>
+            <mxPoint x="185" y="190" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s4_a2" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="185" y="270" as="sourcePoint"/>
+            <mxPoint x="185" y="290" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s4_a3" value="" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="185" y="380" as="sourcePoint"/>
+            <mxPoint x="185" y="400" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s4_cache" value="&lt;b&gt;JWKS キャッシュ戦略&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;JWKSVerifier: cacheTTL (デフォルト10分)&lt;br&gt;ダブルチェックロック (sync.RWMutex)&lt;br&gt;フェッチ失敗時は既存キャッシュにフォールバック&lt;br&gt;InvalidateCache() で手動無効化可能&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;align=left;spacingLeft=5;" vertex="1" parent="lane4">
+          <mxGeometry x="350" y="90" width="280" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4_verify" value="&lt;b&gt;トークン検証パラメータ&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;アルゴリズム: RS256 (RSA-SHA256)&lt;br&gt;鍵長: 2048-bit RSA&lt;br&gt;検証項目: iss (発行者), aud (対象者), exp (有効期限)&lt;br&gt;ライブラリ: lestrrat-go/jwx/v2&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;align=left;spacingLeft=5;" vertex="1" parent="lane4">
+          <mxGeometry x="350" y="200" width="280" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4_sep" value="" style="endArrow=none;dashed=1;strokeColor=#9E9E9E;dashPattern=8 8;strokeWidth=2;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="40" as="sourcePoint"/>
+            <mxPoint x="700" y="430" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s4_cli_title" value="&lt;b&gt;CLI Device Code Grant (RFC 8628)&lt;/b&gt;&lt;br&gt;client_id = k1s0-cli / urn:ietf:params:oauth:grant-type:device_code" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=0;" vertex="1" parent="lane4">
+          <mxGeometry x="760" y="40" width="600" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4_cli" value="&lt;b&gt;k1s0 CLI&lt;/b&gt;&lt;br&gt;(Rust CLI ツール)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane4">
+          <mxGeometry x="780" y="90" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4_kc" value="&lt;b&gt;Keycloak&lt;/b&gt;&lt;br&gt;(OIDC Provider)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane4">
+          <mxGeometry x="1280" y="90" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4_user" value="&lt;b&gt;ユーザー&lt;/b&gt;&lt;br&gt;(ブラウザで認証)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="lane4">
+          <mxGeometry x="1780" y="90" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4_ll_cli" value="" style="endArrow=none;dashed=1;strokeColor=#6C8EBF;dashPattern=5 5;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="855" y="140" as="sourcePoint"/>
+            <mxPoint x="855" y="420" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s4_ll_kc" value="" style="endArrow=none;dashed=1;strokeColor=#666666;dashPattern=5 5;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1355" y="140" as="sourcePoint"/>
+            <mxPoint x="1355" y="420" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s4_ll_user" value="" style="endArrow=none;dashed=1;strokeColor=#6C8EBF;dashPattern=5 5;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1855" y="140" as="sourcePoint"/>
+            <mxPoint x="1855" y="420" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s4_cm1" value="① POST /device (client_id=k1s0-cli, scope=openid)&lt;br&gt;デバイス認可リクエスト送信" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="855" y="160" as="sourcePoint"/>
+            <mxPoint x="1355" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s4_cm2" value="② device_code + user_code + verification_uri + expires_in + interval&lt;br&gt;デバイスコード情報を返却" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;dashed=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1355" y="195" as="sourcePoint"/>
+            <mxPoint x="855" y="195" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s4_cm3" value="③ user_code と verification_uri をターミナルに表示&lt;br&gt;「ブラウザで以下のURLを開き、コードを入力してください」" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="855" y="230" as="sourcePoint"/>
+            <mxPoint x="1855" y="230" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s4_cm4" value="④ ブラウザで verification_uri を開く&lt;br&gt;user_code 入力 → ログイン認証" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1855" y="270" as="sourcePoint"/>
+            <mxPoint x="1355" y="270" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s4_cm5" value="⑤ POST /token (grant_type=urn:ietf:params:oauth:grant-type:device_code)&lt;br&gt;device_code でポーリング (interval秒間隔, slow_down時+5秒)" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="855" y="320" as="sourcePoint"/>
+            <mxPoint x="1355" y="320" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="s4_poll_note" value="ポーリング中の応答:&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;authorization_pending → 待機して再試行&lt;br&gt;slow_down → interval + 5秒&lt;br&gt;expired_token → タイムアウト&lt;br&gt;access_denied → ユーザー拒否&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="lane4">
+          <mxGeometry x="960" y="335" width="210" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4_cm6" value="⑥ access_token + refresh_token (認証完了)&lt;br&gt;CLI がトークンをローカルに保存" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#333333;fontSize=10;dashed=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="lane4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1355" y="390" as="sourcePoint"/>
+            <mxPoint x="855" y="390" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="legend_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2100" y="2060" width="400" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="&lt;b&gt;凡例 (カラーコード)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="2070" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="ブラウザ / クライアント" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2120" y="2100" width="170" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="BFF Proxy (Go)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2120" y="2130" width="170" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="Kong / Nginx (Gateway)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2120" y="2160" width="170" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="Keycloak (OIDC Provider)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2120" y="2190" width="170" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5" value="Auth Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2310" y="2100" width="170" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg6" value="Redis (セッションストア)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2310" y="2130" width="170" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg7" value="Istio (サービスメッシュ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CCFFCC;strokeColor=#00994C;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2310" y="2160" width="170" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg8" value="→ 実線: リクエスト / --→ 破線: レスポンス" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2150" y="2265" width="300" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

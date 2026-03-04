@@ -57,7 +57,7 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/tables/:name/display-configs", get(display_config_handler::list_display_configs))
             .route("/api/v1/tables/:name/display-configs/:id", get(display_config_handler::get_display_config))
             .route_layer(axum::middleware::from_fn(move |req, next| {
-                let perm = require_permission("master_maintenance", "read");
+                let perm = require_permission("master-maintenance", "read");
                 perm(req, next)
             }));
 
@@ -69,6 +69,7 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/tables/:name/columns/:column", put(table_handler::update_column))
             .route("/api/v1/tables/:name/records", post(record_handler::create_record))
             .route("/api/v1/tables/:name/records/:id", put(record_handler::update_record))
+            .route("/api/v1/tables/:name/records/:id", delete(record_handler::delete_record))
             .route("/api/v1/relationships", post(relationship_handler::create_relationship))
             .route("/api/v1/relationships/:id", put(relationship_handler::update_relationship))
             .route("/api/v1/rules", post(rule_handler::create_rule))
@@ -79,7 +80,7 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/tables/:name/display-configs", post(display_config_handler::create_display_config))
             .route("/api/v1/tables/:name/display-configs/:id", put(display_config_handler::update_display_config))
             .route_layer(axum::middleware::from_fn(move |req, next| {
-                let perm = require_permission("master_maintenance", "write");
+                let perm = require_permission("master-maintenance", "write");
                 perm(req, next)
             }));
 
@@ -87,12 +88,11 @@ pub fn router(state: AppState) -> Router {
         let admin_routes = Router::new()
             .route("/api/v1/tables/:name", delete(table_handler::delete_table))
             .route("/api/v1/tables/:name/columns/:column", delete(table_handler::delete_column))
-            .route("/api/v1/tables/:name/records/:id", delete(record_handler::delete_record))
             .route("/api/v1/relationships/:id", delete(relationship_handler::delete_relationship))
             .route("/api/v1/rules/:id", delete(rule_handler::delete_rule))
             .route("/api/v1/tables/:name/display-configs/:id", delete(display_config_handler::delete_display_config))
             .route_layer(axum::middleware::from_fn(move |req, next| {
-                let perm = require_permission("master_maintenance", "admin");
+                let perm = require_permission("master-maintenance", "admin");
                 perm(req, next)
             }));
 

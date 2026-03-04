@@ -1,6 +1,6 @@
 ﻿# system-workflow-server 設計
 
-> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `workflows/read`, `workflows/write`, `workflows/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
 
 人間タスク・承認フロー込みのワークフローオーケストレーションサーバー。
@@ -11,9 +11,9 @@
 
 | ロール名 | リソース/アクション |
 |---------|-----------------|
-| sys_auditor 以上 | workflow/read |
-| sys_operator 以上 | workflow/write |
-| sys_admin のみ | workflow/admin |
+| sys_auditor 以上 | workflows/read |
+| sys_operator 以上 | workflows/write |
+| sys_admin のみ | workflows/admin |
 
 
 system tier のワークフローオーケストレーションサーバーは以下の機能を提供する。
@@ -275,6 +275,24 @@ message RejectTaskResponse {
   string instance_status = 4;
 }
 ```
+
+#### proto メッセージ一覧（完全）
+
+上記抜粋に加えて、`workflow.proto` には以下のメッセージが定義される。
+
+- `WorkflowStep`
+- `WorkflowDefinition`
+- `ListWorkflowsRequest` / `ListWorkflowsResponse`
+- `CreateWorkflowRequest` / `CreateWorkflowResponse`
+- `GetWorkflowRequest` / `GetWorkflowResponse`
+- `WorkflowSteps`
+- `UpdateWorkflowRequest` / `UpdateWorkflowResponse`
+- `DeleteWorkflowRequest` / `DeleteWorkflowResponse`
+- `ListInstancesRequest` / `ListInstancesResponse`
+- `CancelInstanceRequest` / `CancelInstanceResponse`
+- `WorkflowTask`
+- `ListTasksRequest` / `ListTasksResponse`
+- `ReassignTaskRequest` / `ReassignTaskResponse`
 
 ---
 
@@ -1046,6 +1064,8 @@ vault:
 - Cancel/Reassign のエラーコードは `SYS_WORKFLOW_INSTANCE_INVALID_STATUS` / `SYS_WORKFLOW_TASK_REASSIGN_INVALID_STATUS` を使用する。
 - Kafka イベントの実行者フィールドは `actor_user_id`。
 - Cancel/Reassign レスポンスに `message` フィールドを含む。
+
+
 
 
 

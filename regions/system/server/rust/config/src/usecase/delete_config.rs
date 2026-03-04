@@ -64,6 +64,7 @@ impl DeleteConfigUseCase {
                     new_version: entry.version + 1,
                     change_type: "DELETED".to_string(),
                     changed_by: deleted_by.to_string(),
+                    trace_id: None,
                 },
             );
             if let Err(e) = self.config_repo.record_change_log(&change_log).await {

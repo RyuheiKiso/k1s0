@@ -118,8 +118,8 @@ func TestComputeDelay_NoJitter(t *testing.T) {
 func TestCircuitBreaker_OpensAfterThreshold(t *testing.T) {
 	cb := retry.NewCircuitBreaker(&retry.CircuitBreakerConfig{
 		FailureThreshold: 3,
-		SuccessThreshold: 2,
-		Timeout:          30 * time.Second,
+		HalfOpenSuccess:  2,
+		OpenTimeout:      30 * time.Second,
 	})
 
 	assert.False(t, cb.IsOpen())
@@ -133,8 +133,8 @@ func TestCircuitBreaker_OpensAfterThreshold(t *testing.T) {
 func TestCircuitBreaker_TransitionsToHalfOpen(t *testing.T) {
 	cb := retry.NewCircuitBreaker(&retry.CircuitBreakerConfig{
 		FailureThreshold: 2,
-		SuccessThreshold: 1,
-		Timeout:          50 * time.Millisecond,
+		HalfOpenSuccess:  1,
+		OpenTimeout:      50 * time.Millisecond,
 	})
 
 	cb.RecordFailure()
@@ -149,8 +149,8 @@ func TestCircuitBreaker_TransitionsToHalfOpen(t *testing.T) {
 func TestCircuitBreaker_ClosesAfterSuccesses(t *testing.T) {
 	cb := retry.NewCircuitBreaker(&retry.CircuitBreakerConfig{
 		FailureThreshold: 2,
-		SuccessThreshold: 2,
-		Timeout:          50 * time.Millisecond,
+		HalfOpenSuccess:  2,
+		OpenTimeout:      50 * time.Millisecond,
 	})
 
 	cb.RecordFailure()

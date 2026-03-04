@@ -34,8 +34,9 @@ impl ConfigChangeLogRepository for ConfigChangeLogPostgresRepository {
         sqlx::query(
             r#"
             INSERT INTO config_change_logs (
-                id, config_entry_id, namespace, key, old_value_json, new_value_json, change_type, changed_by, created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                id, config_entry_id, namespace, key, old_value_json, new_value_json,
+                old_version, new_version, change_type, changed_by, trace_id, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             "#,
         )
         .bind(log.id)
@@ -44,8 +45,11 @@ impl ConfigChangeLogRepository for ConfigChangeLogPostgresRepository {
         .bind(&log.key)
         .bind(&log.old_value)
         .bind(&log.new_value)
+        .bind(log.old_version)
+        .bind(log.new_version)
         .bind(&log.change_type)
         .bind(&log.changed_by)
+        .bind(&log.trace_id)
         .bind(log.changed_at)
         .execute(self.pool.as_ref())
         .await?;
@@ -70,7 +74,7 @@ impl ConfigChangeLogRepository for ConfigChangeLogPostgresRepository {
         let rows = sqlx::query(
             r#"
             SELECT id, config_entry_id, namespace, key, old_value_json, new_value_json,
-                   change_type, changed_by, created_at
+                   old_version, new_version, change_type, changed_by, trace_id, created_at
             FROM config_change_logs
             WHERE namespace = $1 AND key = $2
             ORDER BY created_at DESC
@@ -99,10 +103,11 @@ impl ConfigChangeLogRepository for ConfigChangeLogPostgresRepository {
                     key: row.try_get("key")?,
                     old_value: row.try_get("old_value_json")?,
                     new_value: row.try_get("new_value_json")?,
-                    old_version: 0,
-                    new_version: 0,
+                    old_version: row.try_get("old_version")?,
+                    new_version: row.try_get("new_version")?,
                     change_type: row.try_get("change_type")?,
                     changed_by: row.try_get("changed_by")?,
+                    trace_id: row.try_get("trace_id")?,
                     changed_at: row.try_get("created_at")?,
                 })
             })

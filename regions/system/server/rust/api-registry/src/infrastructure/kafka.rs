@@ -32,12 +32,21 @@ pub struct KafkaSchemaEventPublisher {
 }
 
 impl KafkaSchemaEventPublisher {
-    pub fn new(brokers: &[String], topic: &str) -> anyhow::Result<Self> {
-        let producer = ClientConfig::new()
-            .set("bootstrap.servers", brokers.join(","))
+    pub fn new(
+        brokers: &[String],
+        topic: &str,
+        security_protocol: Option<&str>,
+    ) -> anyhow::Result<Self> {
+        let mut cfg = ClientConfig::new();
+        cfg.set("bootstrap.servers", brokers.join(","))
             .set("message.timeout.ms", "5000")
-            .set("acks", "all")
-            .create()?;
+            .set("acks", "all");
+        if let Some(protocol) = security_protocol {
+            if !protocol.trim().is_empty() {
+                cfg.set("security.protocol", protocol.trim());
+            }
+        }
+        let producer = cfg.create()?;
         Ok(Self {
             producer,
             topic: topic.to_string(),

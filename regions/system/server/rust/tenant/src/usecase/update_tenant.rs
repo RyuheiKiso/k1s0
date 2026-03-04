@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::domain::entity::Tenant;
+use crate::domain::entity::{Plan, Tenant};
 use crate::domain::repository::TenantRepository;
 use crate::infrastructure::kafka_producer::{NoopTenantEventPublisher, TenantEventPublisher};
 
@@ -18,7 +18,7 @@ pub enum UpdateTenantError {
 pub struct UpdateTenantInput {
     pub id: Uuid,
     pub display_name: String,
-    pub plan: String,
+    pub plan: Plan,
 }
 
 pub struct UpdateTenantUseCase {
@@ -66,7 +66,7 @@ impl UpdateTenantUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::{Plan, TenantStatus};
+    use crate::domain::entity::TenantStatus;
     use crate::domain::repository::tenant_repository::MockTenantRepository;
 
     #[tokio::test]
@@ -82,7 +82,7 @@ mod tests {
                     name: "acme-corp".to_string(),
                     display_name: "ACME Corporation".to_string(),
                     status: TenantStatus::Active,
-                    plan: Plan::Free.as_str().to_string(),
+                    plan: Plan::Free,
                     owner_id: None,
                     settings: serde_json::json!({}),
                     keycloak_realm: None,
@@ -97,12 +97,12 @@ mod tests {
         let input = UpdateTenantInput {
             id: tenant_id,
             display_name: "ACME Corp Updated".to_string(),
-            plan: Plan::Professional.as_str().to_string(),
+            plan: Plan::Professional,
         };
 
         let tenant = uc.execute(input).await.unwrap();
         assert_eq!(tenant.display_name, "ACME Corp Updated");
-        assert_eq!(tenant.plan, "professional");
+        assert_eq!(tenant.plan, Plan::Professional);
     }
 
     #[tokio::test]
@@ -114,7 +114,7 @@ mod tests {
         let input = UpdateTenantInput {
             id: Uuid::new_v4(),
             display_name: "test".to_string(),
-            plan: "free".to_string(),
+            plan: Plan::Free,
         };
 
         let result = uc.execute(input).await;

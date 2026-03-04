@@ -1,4 +1,4 @@
-package auth
+package authlib
 
 import (
 	"context"
@@ -138,11 +138,11 @@ func TestClaims_IsExpired(t *testing.T) {
 
 func TestClaims_String(t *testing.T) {
 	claims := &Claims{
-		Sub:              "user-1",
-		Iss:              testIssuer,
-		Aud:              testAudience,
+		Sub:               "user-1",
+		Iss:               testIssuer,
+		Aud:               testAudience,
 		PreferredUsername: "taro",
-		Email:            "taro@example.com",
+		Email:             "taro@example.com",
 	}
 	s := claims.String()
 	assert.Contains(t, s, "user-1")

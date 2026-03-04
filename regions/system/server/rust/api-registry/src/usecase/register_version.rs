@@ -19,6 +19,8 @@ pub enum RegisterVersionError {
     NotFound(String),
     #[error("validation error: {0}")]
     Validation(String),
+    #[error("validator error: {0}")]
+    ValidatorError(String),
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -81,7 +83,7 @@ impl RegisterVersionUseCase {
                 let errors = validator
                     .validate(&input.content)
                     .await
-                    .map_err(|e| RegisterVersionError::Internal(e.to_string()))?;
+                    .map_err(|e| RegisterVersionError::ValidatorError(e.to_string()))?;
                 if !errors.is_empty() {
                     let msg = errors
                         .iter()
