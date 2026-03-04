@@ -50,7 +50,7 @@ fn default_port() -> u16 {
 }
 
 fn default_grpc_port() -> u16 {
-    50058
+    50051
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -96,6 +96,9 @@ pub struct StorageConfig {
     pub bucket: Option<String>,
     pub region: Option<String>,
     pub endpoint: Option<String>,
+    pub max_file_size_bytes: Option<u64>,
+    pub access_key_id: Option<String>,
+    pub secret_access_key: Option<String>,
 }
 
 fn default_backend() -> String {
@@ -107,15 +110,15 @@ pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
-    #[serde(default = "default_topic")]
-    pub topic: String,
+    #[serde(default = "default_topic_events", alias = "topic")]
+    pub topic_events: String,
 }
 
 fn default_security_protocol() -> String {
     "PLAINTEXT".to_string()
 }
 
-fn default_topic() -> String {
+fn default_topic_events() -> String {
     "k1s0.system.file.events.v1".to_string()
 }
 
@@ -164,7 +167,7 @@ server: {}
         assert_eq!(config.app.environment, "dev");
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 8098);
-        assert_eq!(config.server.grpc_port, 50058);
+        assert_eq!(config.server.grpc_port, 50051);
         assert!(config.database.is_none());
     }
 
@@ -197,12 +200,12 @@ server:
 kafka:
   brokers:
     - "localhost:9092"
-  topic: "k1s0.system.file.events.v1"
+  topic_events: "k1s0.system.file.events.v1"
 "#;
         let config: Config = serde_yaml::from_str(yaml).unwrap();
         assert!(config.kafka.is_some());
         let kafka = config.kafka.unwrap();
         assert_eq!(kafka.brokers.len(), 1);
-        assert_eq!(kafka.topic, "k1s0.system.file.events.v1");
+        assert_eq!(kafka.topic_events, "k1s0.system.file.events.v1");
     }
 }

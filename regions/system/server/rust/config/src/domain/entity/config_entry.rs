@@ -7,6 +7,7 @@ pub struct ConfigEntry {
     pub id: Uuid,
     pub namespace: String,
     pub key: String,
+    #[serde(rename = "value", alias = "value_json")]
     pub value_json: serde_json::Value,
     pub version: i32,
     pub description: String,

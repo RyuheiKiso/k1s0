@@ -65,12 +65,27 @@ pub async fn create_job(
     State(state): State<AppState>,
     Json(req): Json<CreateJobRequest>,
 ) -> impl IntoResponse {
+    if req.target_type.trim().is_empty() {
+        let err = ErrorResponse::new(
+            "SYS_SCHED_VALIDATION_ERROR",
+            "target_type is required",
+        );
+        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+    }
+    if req.payload.is_null() {
+        let err = ErrorResponse::new(
+            "SYS_SCHED_VALIDATION_ERROR",
+            "payload is required",
+        );
+        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+    }
+
     let input = CreateJobInput {
         name: req.name,
         description: req.description,
         cron_expression: req.cron_expression,
         timezone: req.timezone.unwrap_or_else(|| "UTC".to_string()),
-        target_type: req.target_type.unwrap_or_else(|| "kafka".to_string()),
+        target_type: req.target_type,
         target: req.target,
         payload: req.payload,
     };
@@ -170,13 +185,28 @@ pub async fn update_job(
 ) -> impl IntoResponse {
     use crate::usecase::update_job::{UpdateJobError, UpdateJobInput};
 
+    if req.target_type.trim().is_empty() {
+        let err = ErrorResponse::new(
+            "SYS_SCHED_VALIDATION_ERROR",
+            "target_type is required",
+        );
+        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+    }
+    if req.payload.is_null() {
+        let err = ErrorResponse::new(
+            "SYS_SCHED_VALIDATION_ERROR",
+            "payload is required",
+        );
+        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+    }
+
     let input = UpdateJobInput {
         id,
         name: req.name,
         description: req.description,
         cron_expression: req.cron_expression,
         timezone: req.timezone.unwrap_or_else(|| "UTC".to_string()),
-        target_type: req.target_type.unwrap_or_else(|| "kafka".to_string()),
+        target_type: req.target_type,
         target: req.target,
         payload: req.payload,
     };
@@ -374,7 +404,7 @@ pub struct CreateJobRequest {
     pub description: Option<String>,
     pub cron_expression: String,
     pub timezone: Option<String>,
-    pub target_type: Option<String>,
+    pub target_type: String,
     pub target: Option<String>,
     pub payload: serde_json::Value,
 }
@@ -385,7 +415,7 @@ pub struct UpdateJobRequest {
     pub description: Option<String>,
     pub cron_expression: String,
     pub timezone: Option<String>,
-    pub target_type: Option<String>,
+    pub target_type: String,
     pub target: Option<String>,
     pub payload: serde_json::Value,
 }

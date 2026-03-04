@@ -56,9 +56,8 @@ impl CheckRateLimitUseCase {
             .await
             .map_err(|e| CheckRateLimitError::Internal(e.to_string()))?;
 
-        let (limit, effective_window) = rules
-            .iter()
-            .find(|r| r.enabled)
+        let matched_rule = rules.iter().find(|r| r.enabled);
+        let (limit, effective_window) = matched_rule
             .map(|r| (r.limit, r.window_seconds))
             .unwrap_or((100, if window_secs > 0 { window_secs as u32 } else { 60 }));
 
@@ -66,13 +65,11 @@ impl CheckRateLimitUseCase {
         let redis_key = format!("ratelimit:{}:{}", scope, identifier);
 
         // マッチするルールがある場合はそのアルゴリズムを使用、なければトークンバケット
-        let algorithm = rules
-            .iter()
-            .find(|r| r.enabled)
+        let algorithm = matched_rule
             .map(|r| r.algorithm.clone())
             .unwrap_or(Algorithm::TokenBucket);
 
-        let decision = match algorithm {
+        let mut decision = match algorithm {
             Algorithm::TokenBucket => {
                 self.state_store
                     .check_token_bucket(
@@ -111,6 +108,13 @@ impl CheckRateLimitUseCase {
             }
         }
         .map_err(|e| CheckRateLimitError::Internal(e.to_string()))?;
+
+        decision.scope = scope.to_string();
+        decision.identifier = identifier.to_string();
+        decision.used = (decision.limit - decision.remaining).max(0);
+        decision.rule_id = matched_rule
+            .map(|r| r.id.to_string())
+            .unwrap_or_default();
 
         Ok(decision)
     }

@@ -114,6 +114,15 @@ func HashPassword(password string) (string, error)
 
 // Argon2id パスワード検証（不一致時は error 返却）
 func VerifyPassword(password, encodedHash string) error
+
+// RSA-OAEP-SHA256 鍵生成（PEM 形式）
+func GenerateRSAKeyPair() (publicKeyPEM string, privateKeyPEM string, err error)
+
+// RSA-OAEP-SHA256 暗号化
+func RSAEncrypt(publicKeyPEM string, plaintext []byte) ([]byte, error)
+
+// RSA-OAEP-SHA256 復号
+func RSADecrypt(privateKeyPEM string, ciphertext []byte) ([]byte, error)
 ```
 
 ## TypeScript 実装

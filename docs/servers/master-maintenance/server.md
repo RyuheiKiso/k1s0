@@ -1187,6 +1187,8 @@ regions/system/server/rust/master-maintenance/
 │   │   │   ├── table_handler.rs         # テーブル定義 REST ハンドラー
 │   │   │   ├── record_handler.rs        # データ CRUD REST ハンドラー
 │   │   │   ├── rule_handler.rs          # ルール管理 REST ハンドラー
+│   │   │   ├── relationship_handler.rs  # リレーション管理 REST ハンドラー
+│   │   │   ├── display_config_handler.rs # 表示設定 REST ハンドラー
 │   │   │   ├── import_export_handler.rs # インポート・エクスポート
 │   │   │   ├── audit_handler.rs         # 監査ログ
 │   │   │   └── error.rs                 # エラーレスポンス

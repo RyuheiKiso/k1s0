@@ -8,7 +8,6 @@ use crate::infrastructure::config::KafkaConfig;
 pub struct FlagChangedEvent {
     pub event_type: String,
     pub flag_key: String,
-    pub enabled: bool,
     pub actor_user_id: Option<String>,
     pub before: Option<serde_json::Value>,
     pub after: serde_json::Value,
@@ -22,7 +21,7 @@ pub trait FlagEventPublisher: Send + Sync {
     async fn publish_flag_changed(
         &self,
         flag_key: &str,
-        enabled: bool,
+        _enabled: bool,
         actor_user_id: Option<&str>,
         before: Option<serde_json::Value>,
         after: serde_json::Value,
@@ -103,7 +102,7 @@ impl FlagEventPublisher for KafkaFlagProducer {
     async fn publish_flag_changed(
         &self,
         flag_key: &str,
-        enabled: bool,
+        _enabled: bool,
         actor_user_id: Option<&str>,
         before: Option<serde_json::Value>,
         after: serde_json::Value,
@@ -114,7 +113,6 @@ impl FlagEventPublisher for KafkaFlagProducer {
         let event = FlagChangedEvent {
             event_type: "FLAG_CHANGED".to_string(),
             flag_key: flag_key.to_string(),
-            enabled,
             actor_user_id: actor_user_id.map(ToString::to_string),
             before,
             after,
@@ -189,7 +187,7 @@ mod tests {
         async fn publish_flag_changed(
             &self,
             flag_key: &str,
-            enabled: bool,
+            _enabled: bool,
             actor_user_id: Option<&str>,
             before: Option<serde_json::Value>,
             after: serde_json::Value,
@@ -200,7 +198,6 @@ mod tests {
             self.messages.lock().unwrap().push(FlagChangedEvent {
                 event_type: "FLAG_CHANGED".to_string(),
                 flag_key: flag_key.to_string(),
-                enabled,
                 actor_user_id: actor_user_id.map(ToString::to_string),
                 before,
                 after,
@@ -232,7 +229,7 @@ mod tests {
         let messages = producer.messages.lock().unwrap();
         assert_eq!(messages.len(), 1);
         assert_eq!(messages[0].flag_key, "feature.dark-mode");
-        assert!(messages[0].enabled);
+        assert_eq!(messages[0].after["enabled"], true);
         assert_eq!(messages[0].actor_user_id.as_deref(), Some("user-1"));
     }
 
@@ -318,7 +315,6 @@ mod tests {
         let event = FlagChangedEvent {
             event_type: "FLAG_CHANGED".to_string(),
             flag_key: "feature.dark-mode".to_string(),
-            enabled: true,
             actor_user_id: None,
             before: None,
             after: serde_json::json!({"flag_key": "feature.dark-mode", "enabled": true}),
@@ -328,7 +324,7 @@ mod tests {
         let json = serde_json::to_value(&event).unwrap();
         assert_eq!(json["flag_key"], "feature.dark-mode");
         assert_eq!(json["event_type"], "FLAG_CHANGED");
-        assert_eq!(json["enabled"], true);
+        assert_eq!(json["after"]["enabled"], true);
         assert_eq!(json["timestamp"], "2026-02-25T00:00:00Z");
     }
 
@@ -337,7 +333,6 @@ mod tests {
         let event = FlagChangedEvent {
             event_type: "FLAG_CHANGED".to_string(),
             flag_key: "feature.dark-mode".to_string(),
-            enabled: true,
             actor_user_id: None,
             before: None,
             after: serde_json::json!({"flag_key": "feature.dark-mode", "enabled": true}),

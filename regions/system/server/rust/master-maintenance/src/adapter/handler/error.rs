@@ -90,6 +90,32 @@ impl IntoResponse for AppError {
 
 impl From<anyhow::Error> for AppError {
     fn from(err: anyhow::Error) -> Self {
-        Self::internal("SYS_MM_INTERNAL_ERROR", &err.to_string())
+        let msg = err.to_string();
+        let lower = msg.to_ascii_lowercase();
+
+        if lower.contains("duplicate table")
+            || (lower.contains("table") && lower.contains("already exists"))
+        {
+            return Self::conflict("SYS_MM_DUPLICATE_TABLE", &msg);
+        }
+        if lower.contains("duplicate column")
+            || (lower.contains("column") && lower.contains("already exists"))
+        {
+            return Self::conflict("SYS_MM_DUPLICATE_COLUMN", &msg);
+        }
+        if lower.contains("invalid rule") {
+            return Self::bad_request("SYS_MM_INVALID_RULE", &msg);
+        }
+        if lower.contains("import") && lower.contains("fail") {
+            return Self::bad_request("SYS_MM_IMPORT_FAILED", &msg);
+        }
+        if lower.contains("sql") && lower.contains("build") {
+            return Self::internal("SYS_MM_SQL_BUILD_ERROR", &msg);
+        }
+        if lower.contains("validation") {
+            return Self::bad_request("SYS_MM_VALIDATION_ERROR", &msg);
+        }
+
+        Self::internal("SYS_MM_INTERNAL_ERROR", &msg)
     }
 }

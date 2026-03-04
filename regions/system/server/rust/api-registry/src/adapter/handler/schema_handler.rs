@@ -126,7 +126,7 @@ pub async fn register_schema(
         )
             .into_response(),
         Err(RegisterSchemaError::AlreadyExists(_)) => {
-            ApiError::conflict("Schema already exists").into_response()
+            ApiError::already_exists("Schema already exists").into_response()
         }
         Err(RegisterSchemaError::Validation(msg)) => {
             ApiError::unprocessable_entity(msg).into_response()

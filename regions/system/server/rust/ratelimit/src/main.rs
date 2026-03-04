@@ -255,7 +255,7 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         name: &str,
     ) -> anyhow::Result<Option<domain::entity::RateLimitRule>> {
         let rules = self.rules.read().await;
-        Ok(rules.iter().find(|r| r.scope == name).cloned())
+        Ok(rules.iter().find(|r| r.name == name).cloned())
     }
 
     async fn find_by_scope(

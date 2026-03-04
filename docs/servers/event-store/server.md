@@ -215,6 +215,7 @@ message ReadEventsRequest {
   optional int64 to_version = 3;
   uint32 page = 4;
   uint32 page_size = 5;
+  optional string event_type = 6;
 }
 
 message ReadEventsResponse {
@@ -784,6 +785,9 @@ kafka:
 
 auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+  issuer: "https://auth.k1s0.example.com/realms/system"
+  audience: "k1s0-system"
+  jwks_cache_ttl_secs: 300
 
 event_store:
   max_events_per_append: 100
@@ -892,4 +896,6 @@ CREATE INDEX idx_snapshots_stream_id ON event_store.snapshots (stream_id, snapsh
 
 ### Notes
 - ListAllEvents RPC は提供しない。全体走査は用途に応じてストリーム単位 ReadEvents を利用する。
+- `ReadEventsRequest` は `event_type` フィルタをサポートする（tag=6）。
+- `auth` 設定は `jwks_url` に加えて `issuer` / `audience` / `jwks_cache_ttl_secs` を持つ。
 

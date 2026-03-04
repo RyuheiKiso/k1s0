@@ -35,18 +35,18 @@ func (s CircuitBreakerState) String() string {
 type CircuitBreakerConfig struct {
 	// FailureThreshold はオープンに遷移する失敗回数閾値。
 	FailureThreshold int
-	// SuccessThreshold はハーフオープンからクローズに遷移する成功回数閾値。
-	SuccessThreshold int
-	// Timeout はオープンからハーフオープンに遷移するまでの待機時間。
-	Timeout time.Duration
+	// HalfOpenSuccess はハーフオープンからクローズに遷移する成功回数閾値。
+	HalfOpenSuccess int
+	// OpenTimeout はオープンからハーフオープンに遷移するまでの待機時間。
+	OpenTimeout time.Duration
 }
 
 // DefaultCircuitBreakerConfig はデフォルトのサーキットブレーカー設定を返す。
 func DefaultCircuitBreakerConfig() *CircuitBreakerConfig {
 	return &CircuitBreakerConfig{
 		FailureThreshold: 5,
-		SuccessThreshold: 2,
-		Timeout:          30 * time.Second,
+		HalfOpenSuccess:  2,
+		OpenTimeout:      30 * time.Second,
 	}
 }
 
@@ -82,7 +82,7 @@ func (cb *CircuitBreaker) IsOpen() bool {
 	defer cb.mu.Unlock()
 
 	if cb.state == StateOpen {
-		if time.Since(cb.openedAt) >= cb.config.Timeout {
+		if time.Since(cb.openedAt) >= cb.config.OpenTimeout {
 			cb.state = StateHalfOpen
 			cb.successCount = 0
 			return false
@@ -100,7 +100,7 @@ func (cb *CircuitBreaker) RecordSuccess() {
 	switch cb.state {
 	case StateHalfOpen:
 		cb.successCount++
-		if cb.successCount >= cb.config.SuccessThreshold {
+		if cb.successCount >= cb.config.HalfOpenSuccess {
 			cb.state = StateClosed
 			cb.failureCount = 0
 			cb.successCount = 0

@@ -30,7 +30,7 @@ async fn rbac_check(
 
     if !check_system_permission(roles, action) {
         return Err(AppError::forbidden(
-            "SYS_MM_PERMISSION_DENIED",
+            "SYS_AUTH_PERMISSION_DENIED",
             &format!("Insufficient permissions for action: {}", action),
         ));
     }

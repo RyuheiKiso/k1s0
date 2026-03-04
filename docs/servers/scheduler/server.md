@@ -683,6 +683,7 @@ message JobExecution {
 - `ListExecutionsRequest` supports `status`, `from`, `to`.
 - Execution model includes `triggered_by`.
 - Canonical completion timestamp field is `finished_at`.
+- `GetJobExecution` RPC は実装済み（`scheduler_grpc.rs` / `tonic_service.rs` で `get_job_execution` を提供）。
 
 
 

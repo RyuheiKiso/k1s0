@@ -12,6 +12,11 @@ pub trait DlqEventPublisher: Send + Sync {
         topic: &str,
         payload: &serde_json::Value,
     ) -> anyhow::Result<()>;
+
+    /// Kafka 接続のヘルスチェック。
+    async fn health_check(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 /// DlqKafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
@@ -74,6 +79,15 @@ impl DlqEventPublisher for DlqKafkaProducer {
         }
 
         Ok(())
+    }
+
+    async fn health_check(&self) -> anyhow::Result<()> {
+        use rdkafka::producer::Producer;
+        self.producer
+            .client()
+            .fetch_metadata(None, std::time::Duration::from_secs(2))
+            .map(|_| ())
+            .map_err(|e| anyhow::anyhow!("kafka health check failed: {}", e))
     }
 }
 

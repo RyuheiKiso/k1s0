@@ -6,76 +6,61 @@ import (
 	"time"
 )
 
-// IdempotencyStatus はべき等レコードのステータス。
-type IdempotencyStatus int
+// IdempotencyStatus はべき等キーの処理状態。
+type IdempotencyStatus string
 
 const (
-	StatusPending IdempotencyStatus = iota
-	StatusCompleted
-	StatusFailed
+	StatusPending   IdempotencyStatus = "pending"
+	StatusCompleted IdempotencyStatus = "completed"
+	StatusFailed    IdempotencyStatus = "failed"
 )
 
 func (s IdempotencyStatus) String() string {
-	switch s {
-	case StatusPending:
-		return "Pending"
-	case StatusCompleted:
-		return "Completed"
-	case StatusFailed:
-		return "Failed"
-	default:
-		return "Unknown"
-	}
+	return string(s)
 }
 
 // IdempotencyRecord はべき等レコード。
 type IdempotencyRecord struct {
-	Key            string
-	Status         IdempotencyStatus
-	RequestHash    *string
-	ResponseBody   *string
-	ResponseStatus *int
-	CreatedAt      time.Time
-	ExpiresAt      *time.Time
-	CompletedAt    *time.Time
+	Key        string            `json:"key"`
+	Status     IdempotencyStatus `json:"status"`
+	Response   []byte            `json:"response,omitempty"`
+	StatusCode int               `json:"status_code,omitempty"`
+	Error      string            `json:"error,omitempty"`
+	CreatedAt  time.Time         `json:"created_at"`
+	ExpiresAt  time.Time         `json:"expires_at"`
 }
 
-// NewIdempotencyRecord は新しいべき等レコードを作成する。
+// NewIdempotencyRecord は新規レコードを生成する。
 func NewIdempotencyRecord(key string, ttl *time.Duration) *IdempotencyRecord {
-	now := time.Now()
-	r := &IdempotencyRecord{
+	now := time.Now().UTC()
+	record := &IdempotencyRecord{
 		Key:       key,
 		Status:    StatusPending,
 		CreatedAt: now,
 	}
 	if ttl != nil {
-		exp := now.Add(*ttl)
-		r.ExpiresAt = &exp
+		record.ExpiresAt = now.Add(*ttl)
 	}
-	return r
+	return record
 }
 
-// IsExpired はレコードが期限切れかどうかを返す。
+// IsExpired はレコードが期限切れかを返す。
 func (r *IdempotencyRecord) IsExpired() bool {
-	if r.ExpiresAt == nil {
+	if r.ExpiresAt.IsZero() {
 		return false
 	}
-	return time.Now().After(*r.ExpiresAt)
+	return time.Now().After(r.ExpiresAt)
 }
 
 // IdempotencyStore はべき等ストアのインターフェース。
 type IdempotencyStore interface {
-	// Get はレコードを取得する（期限切れの場合は nil を返す）。
 	Get(ctx context.Context, key string) (*IdempotencyRecord, error)
-	// Insert は新規レコードを挿入する（重複キーはエラー）。
-	Insert(ctx context.Context, record *IdempotencyRecord) error
-	// Update はレコードのステータスと結果を更新する。
-	Update(ctx context.Context, key string, status IdempotencyStatus, responseBody *string, responseStatus *int) error
-	// Delete はレコードを削除する。
-	Delete(ctx context.Context, key string) (bool, error)
+	Set(ctx context.Context, key string, record *IdempotencyRecord) error
+	MarkCompleted(ctx context.Context, key string, response []byte, statusCode int) error
+	MarkFailed(ctx context.Context, key string, err error) error
 }
 
-// IdempotencyError はべき等操作のエラー。
+// IdempotencyError はべき等処理エラー。
 type IdempotencyError struct {
 	Code    string
 	Message string
@@ -85,12 +70,26 @@ func (e *IdempotencyError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
-// NewDuplicateError は重複キーエラーを生成する。
+// NewDuplicateError は重複キーエラーを返す。
 func NewDuplicateError(key string) *IdempotencyError {
-	return &IdempotencyError{Code: "DUPLICATE", Message: fmt.Sprintf("重複リクエストです: key=%s", key)}
+	return &IdempotencyError{
+		Code:    "DUPLICATE",
+		Message: fmt.Sprintf("duplicate idempotency key: %s", key),
+	}
 }
 
-// NewNotFoundError はキーが見つからないエラーを生成する。
+// NewNotFoundError はキー未検出エラーを返す。
 func NewNotFoundError(key string) *IdempotencyError {
-	return &IdempotencyError{Code: "NOT_FOUND", Message: fmt.Sprintf("キーが見つかりません: %s", key)}
+	return &IdempotencyError{
+		Code:    "NOT_FOUND",
+		Message: fmt.Sprintf("idempotency key not found: %s", key),
+	}
+}
+
+// NewExpiredError は期限切れエラーを返す。
+func NewExpiredError(key string) *IdempotencyError {
+	return &IdempotencyError{
+		Code:    "EXPIRED",
+		Message: fmt.Sprintf("idempotency key expired: %s", key),
+	}
 }

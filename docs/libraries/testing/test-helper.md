@@ -168,13 +168,19 @@ AssertionHelper::assert_json_contains(response_body, r#"{"id":"123","status":"ok
 ```go
 // コンテナビルダー
 type ContainerBuilder struct{}
+type TestContainers struct {
+    Postgres bool
+    Redis    bool
+    Kafka    bool
+    Keycloak bool
+}
 
 func NewContainerBuilder() *ContainerBuilder
-
-func (b *ContainerBuilder) Postgres(ctx context.Context, opts ...PostgresOption) (*PostgresContainer, error)
-func (b *ContainerBuilder) Redis(ctx context.Context, opts ...RedisOption) (*RedisContainer, error)
-func (b *ContainerBuilder) Kafka(ctx context.Context, opts ...KafkaOption) (*KafkaContainer, error)
-func (b *ContainerBuilder) Keycloak(ctx context.Context, opts ...KeycloakOption) (*KeycloakContainer, error)
+func (b *ContainerBuilder) WithPostgres() *ContainerBuilder
+func (b *ContainerBuilder) WithRedis() *ContainerBuilder
+func (b *ContainerBuilder) WithKafka() *ContainerBuilder
+func (b *ContainerBuilder) WithKeycloak() *ContainerBuilder
+func (b *ContainerBuilder) Build() *TestContainers
 
 // JWT ヘルパー
 type JwtTestHelper struct{}
@@ -183,6 +189,7 @@ func NewJwtTestHelper(secret string) *JwtTestHelper
 func (h *JwtTestHelper) CreateAdminToken() string
 func (h *JwtTestHelper) CreateUserToken(userID string, roles []string) string
 func (h *JwtTestHelper) CreateToken(claims TestClaims) string
+func (h *JwtTestHelper) DecodeClaims(token string) (*TestClaims, error)
 
 type TestClaims struct {
     Sub      string
@@ -195,9 +202,12 @@ type TestClaims struct {
 type MockServerBuilder struct{}
 
 func NewMockServerBuilder() *MockServerBuilder
-func (b *MockServerBuilder) NotificationServer() *MockServer
-func (b *MockServerBuilder) RatelimitServer() *MockServer
-func (b *MockServerBuilder) TenantServer() *MockServer
+func (b *MockServerBuilder) NotificationServer() *MockServerBuilder
+func (b *MockServerBuilder) RatelimitServer() *MockServerBuilder
+func (b *MockServerBuilder) TenantServer() *MockServerBuilder
+func (b *MockServerBuilder) WithHealthOK() *MockServerBuilder
+func (b *MockServerBuilder) WithSuccessResponse(path, body string) *MockServerBuilder
+func (b *MockServerBuilder) Build() *MockServer
 ```
 
 ## TypeScript 実装

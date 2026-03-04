@@ -568,6 +568,10 @@ pub mod session {
         ErrorCode::new("SYS_SESSION_MAX_DEVICES_EXCEEDED")
     }
 
+    pub fn forbidden() -> ErrorCode {
+        ErrorCode::new("SYS_SESSION_FORBIDDEN")
+    }
+
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SYS_SESSION_INTERNAL_ERROR")
     }

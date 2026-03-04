@@ -18,6 +18,20 @@ pub struct PbTimestamp {
 }
 
 #[derive(Debug, Clone)]
+pub struct PbPagination {
+    pub page: i32,
+    pub page_size: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct PbPaginationResult {
+    pub total_count: i64,
+    pub page: i32,
+    pub page_size: i32,
+    pub has_next: bool,
+}
+
+#[derive(Debug, Clone)]
 pub struct PbTenant {
     pub id: String,
     pub name: String,
@@ -77,17 +91,13 @@ pub struct GetTenantResponse {
 
 #[derive(Debug, Clone)]
 pub struct ListTenantsRequest {
-    pub page: i32,
-    pub page_size: i32,
+    pub pagination: Option<PbPagination>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ListTenantsResponse {
     pub tenants: Vec<PbTenant>,
-    pub total_count: i64,
-    pub page: i32,
-    pub page_size: i32,
-    pub has_next: bool,
+    pub pagination: Option<PbPaginationResult>,
 }
 
 #[derive(Debug, Clone)]
@@ -288,8 +298,20 @@ impl TenantGrpcService {
         &self,
         req: ListTenantsRequest,
     ) -> Result<ListTenantsResponse, GrpcError> {
-        let page = if req.page < 1 { 1 } else { req.page };
-        let page_size = if req.page_size < 1 { 20 } else { req.page_size };
+        let pagination = req.pagination.unwrap_or(PbPagination {
+            page: 1,
+            page_size: 20,
+        });
+        let page = if pagination.page < 1 {
+            1
+        } else {
+            pagination.page
+        };
+        let page_size = if pagination.page_size < 1 {
+            20
+        } else {
+            pagination.page_size
+        };
 
         match self.list_tenants_uc.execute(page, page_size).await {
             Ok((tenants, total_count)) => {
@@ -298,10 +320,12 @@ impl TenantGrpcService {
                 let has_next = (page as i64 * page_size as i64) < total_count;
                 Ok(ListTenantsResponse {
                     tenants: pb_tenants,
-                    total_count,
-                    page,
-                    page_size,
-                    has_next,
+                    pagination: Some(PbPaginationResult {
+                        total_count,
+                        page,
+                        page_size,
+                        has_next,
+                    }),
                 })
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
@@ -661,15 +685,18 @@ mod tests {
         let svc = make_grpc_service(tm, mm);
 
         let req = ListTenantsRequest {
-            page: 1,
-            page_size: 10,
+            pagination: Some(PbPagination {
+                page: 1,
+                page_size: 10,
+            }),
         };
 
         let resp = svc.list_tenants(req).await.unwrap();
         assert_eq!(resp.tenants.len(), 1);
-        assert_eq!(resp.total_count, 1);
-        assert_eq!(resp.page, 1);
-        assert_eq!(resp.page_size, 10);
+        let pagination = resp.pagination.expect("pagination should be set");
+        assert_eq!(pagination.total_count, 1);
+        assert_eq!(pagination.page, 1);
+        assert_eq!(pagination.page_size, 10);
     }
 
     #[tokio::test]

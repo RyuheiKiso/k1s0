@@ -84,7 +84,7 @@ impl GetUsageUseCase {
 
         Ok(UsageInfo {
             rule_id: rule.id.to_string(),
-            rule_name: rule.scope.clone(),
+            rule_name: rule.name.clone(),
             limit: i64::from(rule.limit),
             window_seconds: i64::from(rule.window_seconds),
             algorithm: rule.algorithm.as_str().to_string(),

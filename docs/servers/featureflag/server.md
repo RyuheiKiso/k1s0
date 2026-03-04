@@ -562,6 +562,7 @@ message FlagRule {
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `id` | UUID | 監査ログの一意識別子 |
+| `flag_id` | UUID | 対象フラグ ID |
 | `flag_key` | String | 対象フラグキー |
 | `action` | String | 操作種別（CREATE / UPDATE / DELETE） |
 | `changed_by` | String | 操作者のユーザー ID |

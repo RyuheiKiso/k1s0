@@ -60,6 +60,65 @@ system tier の設定管理サーバーは以下の機能を提供する。
 
 > `GET /api/v1/config-schema` は登録済みサービスの設定スキーマ一覧を返す。
 
+#### GET /api/v1/config-schema
+
+登録済みサービスの設定スキーマを一覧で取得する。
+
+**レスポンス（200 OK）**
+
+```json
+[
+  {
+    "service_name": "auth",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "jwt.issuer": { "type": "string" },
+        "jwt.audience": { "type": "string" }
+      }
+    },
+    "updated_at": "2026-03-01T00:00:00Z"
+  },
+  {
+    "service_name": "notification",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "provider": { "type": "string" },
+        "retry.max_attempts": { "type": "integer" }
+      }
+    },
+    "updated_at": "2026-03-02T00:00:00Z"
+  }
+]
+```
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_CONFIG_SCHEMA_NOT_FOUND",
+    "message": "指定されたサービスの設定スキーマが見つかりません",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
+**レスポンス（500 Internal Server Error）**
+
+```json
+{
+  "error": {
+    "code": "SYS_CONFIG_INTERNAL_ERROR",
+    "message": "設定スキーマ取得中に内部エラーが発生しました",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
 #### GET /api/v1/config/:namespace/:key
 
 指定された namespace とキーに対応する設定値を取得する。

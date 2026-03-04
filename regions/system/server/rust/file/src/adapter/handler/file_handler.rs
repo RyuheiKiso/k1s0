@@ -16,6 +16,21 @@ use crate::usecase::generate_upload_url::GenerateUploadUrlInput;
 use crate::usecase::get_file_metadata::GetFileMetadataInput;
 use crate::usecase::list_files::ListFilesInput;
 
+fn is_storage_error_message(msg: &str) -> bool {
+    let lower = msg.to_ascii_lowercase();
+    [
+        "storage",
+        "s3",
+        "bucket",
+        "object store",
+        "presign",
+        "upload url",
+        "download url",
+    ]
+    .iter()
+    .any(|needle| lower.contains(needle))
+}
+
 /// POST /api/v1/files - Generate upload URL (initiate upload)
 pub async fn upload_file(
     State(state): State<AppState>,
@@ -53,8 +68,13 @@ pub async fn upload_file(
             (StatusCode::PAYLOAD_TOO_LARGE, Json(err)).into_response()
         }
         Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::Internal(msg)) => {
-            let err = ErrorResponse::new(codes::file::upload_failed(), &msg);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            if is_storage_error_message(&msg) {
+                let err = ErrorResponse::new(codes::file::storage_error(), &msg);
+                (StatusCode::BAD_GATEWAY, Json(err)).into_response()
+            } else {
+                let err = ErrorResponse::new(codes::file::upload_failed(), &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
         }
     }
 }
@@ -318,6 +338,9 @@ pub async fn download_url(
             } else if msg.contains("not available") {
                 let err = ErrorResponse::new(codes::file::not_available(), &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
+            } else if is_storage_error_message(&msg) {
+                let err = ErrorResponse::new(codes::file::storage_error(), &msg);
+                (StatusCode::BAD_GATEWAY, Json(err)).into_response()
             } else {
                 let err = ErrorResponse::new(codes::file::download_url_failed(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()

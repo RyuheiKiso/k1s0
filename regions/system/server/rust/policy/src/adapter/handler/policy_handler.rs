@@ -26,7 +26,14 @@ pub async fn list_policies(
             Ok(id) => Some(id),
             Err(_) => {
                 let err =
-                    ErrorResponse::new("SYS_POLICY_INVALID_BUNDLE_ID", "invalid bundle_id format");
+                    ErrorResponse::with_details(
+                        "SYS_POLICY_INVALID_BUNDLE_ID",
+                        "invalid bundle_id format",
+                        vec![ErrorDetail {
+                            field: "bundle_id".to_string(),
+                            message: "must be a valid UUID".to_string(),
+                        }],
+                    );
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
         }
@@ -106,7 +113,14 @@ pub async fn create_policy(
             Ok(id) => Some(id),
             Err(_) => {
                 let err =
-                    ErrorResponse::new("SYS_POLICY_INVALID_BUNDLE_ID", "invalid bundle_id format");
+                    ErrorResponse::with_details(
+                        "SYS_POLICY_INVALID_BUNDLE_ID",
+                        "invalid bundle_id format",
+                        vec![ErrorDetail {
+                            field: "bundle_id".to_string(),
+                            message: "must be a valid UUID".to_string(),
+                        }],
+                    );
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
         },
@@ -430,7 +444,13 @@ pub struct ErrorBody {
     pub code: String,
     pub message: String,
     pub request_id: String,
-    pub details: Vec<String>,
+    pub details: Vec<ErrorDetail>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ErrorDetail {
+    pub field: String,
+    pub message: String,
 }
 
 impl ErrorResponse {
@@ -441,6 +461,17 @@ impl ErrorResponse {
                 message: message.to_string(),
                 request_id: uuid::Uuid::new_v4().to_string(),
                 details: vec![],
+            },
+        }
+    }
+
+    pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
+        Self {
+            error: ErrorBody {
+                code: code.to_string(),
+                message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details,
             },
         }
     }

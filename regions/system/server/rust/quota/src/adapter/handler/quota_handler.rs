@@ -14,6 +14,42 @@ use crate::usecase::reset_quota_usage::ResetQuotaUsageInput;
 use crate::usecase::update_quota_policy::UpdateQuotaPolicyInput;
 use crate::usecase::get_quota_usage::GetQuotaUsageError;
 
+fn classify_internal_error(msg: &str) -> (StatusCode, &'static str) {
+    let lower = msg.to_ascii_lowercase();
+    if lower.contains("redis") {
+        return (StatusCode::BAD_GATEWAY, "SYS_QUOTA_REDIS_ERROR");
+    }
+    (StatusCode::INTERNAL_SERVER_ERROR, "SYS_QUOTA_INTERNAL_ERROR")
+}
+
+fn validation_error_response(message: &str) -> ErrorResponse {
+    let mut details = Vec::new();
+    let lower = message.to_ascii_lowercase();
+    if lower.contains("subject_type") {
+        details.push(ErrorDetail {
+            field: "subject_type".to_string(),
+            message: "must be one of: tenant, user, api_key".to_string(),
+        });
+    } else if lower.contains("period") {
+        details.push(ErrorDetail {
+            field: "period".to_string(),
+            message: "must be one of: daily, monthly".to_string(),
+        });
+    } else if lower.contains("limit") {
+        details.push(ErrorDetail {
+            field: "limit".to_string(),
+            message: "must be greater than 0".to_string(),
+        });
+    } else {
+        details.push(ErrorDetail {
+            field: "request".to_string(),
+            message: message.to_string(),
+        });
+    }
+
+    ErrorResponse::with_details("SYS_QUOTA_VALIDATION_ERROR", message, details)
+}
+
 /// GET /api/v1/quotas
 pub async fn list_quotas(
     State(state): State<AppState>,
@@ -42,8 +78,10 @@ pub async fn list_quotas(
         )
             .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &e.to_string());
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            let msg = e.to_string();
+            let (status, code) = classify_internal_error(&msg);
+            let err = ErrorResponse::new(code, &msg);
+            (status, Json(err)).into_response()
         }
     }
 }
@@ -61,8 +99,9 @@ pub async fn get_quota(
                 let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                let (status, code) = classify_internal_error(&msg);
+                let err = ErrorResponse::new(code, &msg);
+                (status, Json(err)).into_response()
             }
         }
     }
@@ -90,11 +129,18 @@ pub async fn create_quota(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("validation") {
-                let err = ErrorResponse::new("SYS_QUOTA_VALIDATION_ERROR", &msg);
+                let err = validation_error_response(&msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
+            } else if msg.contains("duplicate")
+                || msg.contains("already exists")
+                || msg.contains("unique constraint")
+            {
+                let err = ErrorResponse::new("SYS_QUOTA_ALREADY_EXISTS", &msg);
+                (StatusCode::CONFLICT, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                let (status, code) = classify_internal_error(&msg);
+                let err = ErrorResponse::new(code, &msg);
+                (status, Json(err)).into_response()
             }
         }
     }
@@ -106,15 +152,35 @@ pub async fn update_quota(
     Path(id): Path<String>,
     Json(req): Json<UpdateQuotaRequest>,
 ) -> impl IntoResponse {
+    let current = match state.get_policy_uc.execute(&id).await {
+        Ok(policy) => policy,
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &msg);
+                return (StatusCode::NOT_FOUND, Json(err)).into_response();
+            }
+            let (status, code) = classify_internal_error(&msg);
+            let err = ErrorResponse::new(code, &msg);
+            return (status, Json(err)).into_response();
+        }
+    };
+
     let input = UpdateQuotaPolicyInput {
         id,
-        name: req.name,
-        subject_type: req.subject_type,
-        subject_id: req.subject_id,
-        limit: req.limit,
-        period: req.period,
-        enabled: req.enabled,
-        alert_threshold_percent: req.alert_threshold_percent,
+        name: req.name.unwrap_or(current.name),
+        subject_type: req
+            .subject_type
+            .unwrap_or_else(|| current.subject_type.as_str().to_string()),
+        subject_id: req.subject_id.unwrap_or(current.subject_id),
+        limit: req.limit.unwrap_or(current.limit),
+        period: req
+            .period
+            .unwrap_or_else(|| current.period.as_str().to_string()),
+        enabled: req.enabled.unwrap_or(current.enabled),
+        alert_threshold_percent: req
+            .alert_threshold_percent
+            .or(current.alert_threshold_percent),
     };
 
     match state.update_policy_uc.execute(&input).await {
@@ -125,11 +191,12 @@ pub async fn update_quota(
                 let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else if msg.contains("validation") {
-                let err = ErrorResponse::new("SYS_QUOTA_VALIDATION_ERROR", &msg);
+                let err = validation_error_response(&msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                let (status, code) = classify_internal_error(&msg);
+                let err = ErrorResponse::new(code, &msg);
+                (status, Json(err)).into_response()
             }
         }
     }
@@ -141,21 +208,15 @@ pub async fn check_quota(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.get_usage_uc.execute(&id).await {
-        Ok(usage) => (
-            StatusCode::OK,
-            Json(serde_json::json!({
-                "usage": usage,
-                "retrieved_at": chrono::Utc::now().to_rfc3339(),
-            })),
-        )
-            .into_response(),
+        Ok(usage) => (StatusCode::OK, Json(serde_json::to_value(usage).unwrap())).into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
             let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetQuotaUsageError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            let (status, code) = classify_internal_error(&msg);
+            let err = ErrorResponse::new(code, &msg);
+            (status, Json(err)).into_response()
         }
     }
 }
@@ -184,12 +245,12 @@ pub struct CreateQuotaRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateQuotaRequest {
-    pub name: String,
-    pub subject_type: String,
-    pub subject_id: String,
-    pub limit: u64,
-    pub period: String,
-    pub enabled: bool,
+    pub name: Option<String>,
+    pub subject_type: Option<String>,
+    pub subject_id: Option<String>,
+    pub limit: Option<u64>,
+    pub period: Option<String>,
+    pub enabled: Option<bool>,
     pub alert_threshold_percent: Option<u8>,
 }
 
@@ -207,8 +268,9 @@ pub async fn delete_quota(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeleteQuotaPolicyError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            let (status, code) = classify_internal_error(&msg);
+            let err = ErrorResponse::new(code, &msg);
+            (status, Json(err)).into_response()
         }
     }
 }
@@ -221,21 +283,15 @@ pub async fn get_usage(
     use crate::usecase::get_quota_usage::GetQuotaUsageError;
 
     match state.get_usage_uc.execute(&id).await {
-        Ok(usage) => (
-            StatusCode::OK,
-            Json(serde_json::json!({
-                "usage": usage,
-                "retrieved_at": chrono::Utc::now().to_rfc3339(),
-            })),
-        )
-            .into_response(),
+        Ok(usage) => (StatusCode::OK, Json(serde_json::to_value(usage).unwrap())).into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
             let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetQuotaUsageError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            let (status, code) = classify_internal_error(&msg);
+            let err = ErrorResponse::new(code, &msg);
+            (status, Json(err)).into_response()
         }
     }
 }
@@ -263,8 +319,9 @@ pub async fn increment_usage(
                 let err = ErrorResponse::new("SYS_QUOTA_EXCEEDED", &msg);
                 (StatusCode::TOO_MANY_REQUESTS, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                let (status, code) = classify_internal_error(&msg);
+                let err = ErrorResponse::new(code, &msg);
+                (status, Json(err)).into_response()
             }
         }
     }
@@ -293,12 +350,13 @@ pub async fn reset_usage(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(ResetQuotaUsageError::Validation(msg)) => {
-            let err = ErrorResponse::new("SYS_QUOTA_VALIDATION_ERROR", &msg);
+            let err = validation_error_response(&msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(ResetQuotaUsageError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            let (status, code) = classify_internal_error(&msg);
+            let err = ErrorResponse::new(code, &msg);
+            (status, Json(err)).into_response()
         }
     }
 }
@@ -342,6 +400,17 @@ impl ErrorResponse {
                 message: message.to_string(),
                 request_id: uuid::Uuid::new_v4().to_string(),
                 details: vec![],
+            },
+        }
+    }
+
+    pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
+        Self {
+            error: ErrorBody {
+                code: code.to_string(),
+                message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details,
             },
         }
     }

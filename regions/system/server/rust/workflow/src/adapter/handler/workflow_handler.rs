@@ -168,7 +168,7 @@ pub struct ExecuteWorkflowRequest {
 
 #[derive(Debug, Serialize)]
 pub struct ExecuteWorkflowResponse {
-    pub instance_id: String,
+    pub id: String,
     pub workflow_id: String,
     pub workflow_name: String,
     pub title: String,
@@ -232,13 +232,15 @@ pub struct ListTasksQuery {
 
 #[derive(Debug, Deserialize)]
 pub struct ApproveTaskRequest {
-    pub actor_id: String,
+    #[serde(alias = "actor_id")]
+    pub actor_user_id: String,
     pub comment: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct RejectTaskRequest {
-    pub actor_id: String,
+    #[serde(alias = "actor_id")]
+    pub actor_user_id: String,
     pub comment: Option<String>,
 }
 
@@ -246,7 +248,8 @@ pub struct RejectTaskRequest {
 pub struct ReassignTaskRequest {
     pub new_assignee_id: String,
     pub reason: Option<String>,
-    pub actor_id: String,
+    #[serde(alias = "actor_id")]
+    pub actor_user_id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -460,7 +463,7 @@ pub async fn execute_workflow(
     match state.start_instance_uc.execute(&input).await {
         Ok(output) => {
             let resp = ExecuteWorkflowResponse {
-                instance_id: output.instance.id,
+                id: output.instance.id,
                 workflow_id: output.instance.workflow_id,
                 workflow_name: output.instance.workflow_name,
                 title: output.instance.title,
@@ -893,7 +896,7 @@ pub async fn approve_task(
 ) -> impl IntoResponse {
     let input = ApproveTaskInput {
         task_id: id.clone(),
-        actor_id: req.actor_id,
+        actor_id: req.actor_user_id,
         comment: req.comment,
     };
 
@@ -957,7 +960,7 @@ pub async fn reject_task(
 ) -> impl IntoResponse {
     let input = RejectTaskInput {
         task_id: id.clone(),
-        actor_id: req.actor_id,
+        actor_id: req.actor_user_id,
         comment: req.comment,
     };
 
@@ -1023,7 +1026,7 @@ pub async fn reassign_task(
         task_id: id.clone(),
         new_assignee_id: req.new_assignee_id,
         reason: req.reason,
-        actor_id: req.actor_id,
+        actor_id: req.actor_user_id,
     };
 
     match state.reassign_task_uc.execute(&input).await {

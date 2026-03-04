@@ -17,11 +17,11 @@
 | `CursorMeta` | 構造体 | カーソルベースのレスポンスメタ（next_cursor?・has_more） |
 | `encode_cursor(sort_key, id)` | 関数 | sort_key と id を結合して Base64 エンコード |
 | `decode_cursor(cursor)` | 関数 | カーソルを (sort_key, id) のタプルに復元 |
-| `validate_per_page(per_page)` | 関数 | per_page が 1〜100 であることを検証（範囲外はエラー） |
+| `validate_per_page(per_page)` | 関数 | per_page が 1〜200 であることを検証（範囲外はエラー） |
 | `default_page_request()` | 関数 | デフォルト値（page: 1, per_page: 20）の PageRequest を返す |
 | `offset()` | メソッド | ページネーションのオフセット値を返す（`(page - 1) * per_page`） |
 | `has_next(total)` | メソッド | 次のページが存在するかを返す（`page * per_page < total`） |
-| `PaginationError` | enum | `InvalidCursor`・`InvalidPerPage` |
+| `PerPageValidationError` | エラー型 | Rust/TS で使用（Go は標準 `error` を返す） |
 
 > **注意: カーソルの Base64 仕様（統一方針）**
 >
@@ -59,7 +59,7 @@ pagination/
 │   ├── lib.rs          # 公開 API（再エクスポート）
 │   ├── page.rs         # PageRequest・PageResponse
 │   ├── cursor.rs       # encode_cursor・decode_cursor
-│   └── error.rs        # PaginationError
+│   └── error.rs        # PerPageValidationError
 └── Cargo.toml
 ```
 
@@ -68,7 +68,7 @@ pagination/
 ```rust
 use k1s0_pagination::{PageRequest, PageResponse, encode_cursor, decode_cursor, validate_per_page};
 
-// per_page バリデーション（1〜100 の範囲）
+// per_page バリデーション（1〜200 の範囲）
 validate_per_page(20)?;
 
 // オフセットベースページネーション
@@ -137,6 +137,8 @@ func ValidatePerPage(perPage uint32) error
 func EncodeCursor(sortKey, id string) string
 func DecodeCursor(cursor string) (sortKey string, id string, err error)
 ```
+
+> Go 実装は `PaginationError` 専用型を持たず、バリデーション失敗時は標準 `error` を返す。
 
 ```go
 resp := NewPageResponse(users, total, req)

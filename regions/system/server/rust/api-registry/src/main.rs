@@ -80,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Kafka publisher
     let publisher: Arc<dyn SchemaEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
-        match KafkaSchemaEventPublisher::new(&kafka_cfg.brokers, &kafka_cfg.schema_updated_topic) {
+        match KafkaSchemaEventPublisher::new(&kafka_cfg.brokers, &kafka_cfg.topic) {
             Ok(p) => {
                 info!("Kafka schema event publisher enabled");
                 Arc::new(p)
@@ -101,9 +101,9 @@ async fn main() -> anyhow::Result<()> {
     > = if let Some(ref validator_cfg) = cfg.validator {
         Arc::new(
             k1s0_api_registry_server::infrastructure::validator::ConfigurableSchemaValidatorFactory::new(
-                validator_cfg.openapi_validator_path.clone(),
+                validator_cfg.openapi_spec_validator_path.clone(),
                 validator_cfg.buf_path.clone(),
-                validator_cfg.timeout_secs,
+                validator_cfg.timeout_seconds,
             ),
         )
     } else {

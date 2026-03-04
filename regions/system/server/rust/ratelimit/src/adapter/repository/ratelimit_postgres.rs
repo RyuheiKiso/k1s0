@@ -27,7 +27,7 @@ impl RateLimitRepository for RateLimitPostgresRepository {
             "#,
         )
         .bind(rule.id)
-        .bind(&rule.scope)
+        .bind(&rule.name)
         .bind(&rule.identifier_pattern)
         .bind(i64::from(rule.limit))
         .bind(i64::from(rule.window_seconds))
@@ -161,7 +161,7 @@ impl RateLimitRepository for RateLimitPostgresRepository {
             WHERE id = $8
             "#,
         )
-        .bind(&rule.scope)
+        .bind(&rule.name)
         .bind(&rule.identifier_pattern)
         .bind(i64::from(rule.limit))
         .bind(i64::from(rule.window_seconds))
@@ -215,6 +215,7 @@ impl RuleRow {
 
         Ok(RateLimitRule {
             id: self.id,
+            name: self.scope.clone(),
             scope: self.scope,
             identifier_pattern: self.identifier_pattern,
             limit: u32::try_from(self.limit_count)

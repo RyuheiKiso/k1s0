@@ -24,8 +24,9 @@ func SessionMiddleware(store session.Store, cookieName string, ttl time.Duration
 		sessionID, err := c.Cookie(cookieName)
 		if err != nil || sessionID == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error":   "BFF_SESSION_MISSING",
-				"message": "Session cookie not found",
+				"error":      "BFF_SESSION_MISSING",
+				"message":    "Session cookie not found",
+				"request_id": GetRequestID(c),
 			})
 			return
 		}
@@ -33,8 +34,9 @@ func SessionMiddleware(store session.Store, cookieName string, ttl time.Duration
 		sess, err := store.Get(c.Request.Context(), sessionID)
 		if err != nil || sess == nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error":   "BFF_SESSION_INVALID",
-				"message": "Session expired or invalid",
+				"error":      "BFF_SESSION_INVALID",
+				"message":    "Session expired or invalid",
+				"request_id": GetRequestID(c),
 			})
 			return
 		}

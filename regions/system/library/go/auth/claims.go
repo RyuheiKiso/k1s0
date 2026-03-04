@@ -1,4 +1,4 @@
-package auth
+package authlib
 
 import (
 	"fmt"
@@ -12,43 +12,56 @@ type RealmAccess struct {
 	Roles []string `json:"roles"`
 }
 
-// Access はリソースアクセスのロール一覧を表す。
-type Access struct {
+// RoleSet はリソースアクセスのロール一覧を表す。
+type RoleSet struct {
 	Roles []string `json:"roles"`
 }
 
+// Access is kept as an alias for backward compatibility.
+type Access = RoleSet
+
 // Claims は JWT トークンの Claims 構造体（認証認可設計.md 準拠）。
 type Claims struct {
-	Sub              string            `json:"sub"`
-	Iss              string            `json:"iss"`
-	Aud              string            `json:"aud"`
-	Exp              int64             `json:"exp"`
-	Iat              int64             `json:"iat"`
-	Jti              string            `json:"jti"`
-	Typ              string            `json:"typ"`
-	Azp              string            `json:"azp"`
-	Scope            string            `json:"scope"`
-	PreferredUsername string           `json:"preferred_username"`
-	Email            string            `json:"email"`
-	RealmAccess      RealmAccess       `json:"realm_access"`
-	ResourceAccess   map[string]Access `json:"resource_access"`
-	TierAccess       []string          `json:"tier_access"`
+	Sub            string             `json:"sub"`
+	Issuer         string             `json:"iss"`
+	Audience       []string           `json:"aud"`
+	ExpiresAt      time.Time          `json:"exp"`
+	IssuedAt       time.Time          `json:"iat"`
+	Jti            string             `json:"jti"`
+	Typ            string             `json:"typ"`
+	Azp            string             `json:"azp"`
+	Scope          string             `json:"scope"`
+	Username       string             `json:"preferred_username"`
+	Email          string             `json:"email"`
+	RealmAccess    RealmAccess        `json:"realm_access"`
+	ResourceAccess map[string]RoleSet `json:"resource_access"`
+	TierAccess     []string           `json:"tier_access"`
+
+	// Deprecated compatibility fields.
+	Iss               string `json:"-"`
+	Aud               string `json:"-"`
+	Exp               int64  `json:"-"`
+	Iat               int64  `json:"-"`
+	PreferredUsername string `json:"-"`
 }
 
 // extractClaims は jwt.Token から Claims 構造体を生成する。
 func extractClaims(token jwt.Token) (*Claims, error) {
 	claims := &Claims{
-		Sub: token.Subject(),
-		Iss: token.Issuer(),
-		Exp: token.Expiration().Unix(),
-		Iat: token.IssuedAt().Unix(),
-		Jti: token.JwtID(),
+		Sub:       token.Subject(),
+		Issuer:    token.Issuer(),
+		ExpiresAt: token.Expiration(),
+		IssuedAt:  token.IssuedAt(),
+		Jti:       token.JwtID(),
 	}
+	claims.Iss = claims.Issuer
+	claims.Exp = claims.ExpiresAt.Unix()
+	claims.Iat = claims.IssuedAt.Unix()
 
 	// aud
-	auds := token.Audience()
-	if len(auds) > 0 {
-		claims.Aud = auds[0]
+	claims.Audience = token.Audience()
+	if len(claims.Audience) > 0 {
+		claims.Aud = claims.Audience[0]
 	}
 
 	// typ
@@ -75,6 +88,7 @@ func extractClaims(token jwt.Token) (*Claims, error) {
 	// preferred_username
 	if v, ok := token.Get("preferred_username"); ok {
 		if s, ok := v.(string); ok {
+			claims.Username = s
 			claims.PreferredUsername = s
 		}
 	}
@@ -115,15 +129,15 @@ func parseRealmAccess(v interface{}) RealmAccess {
 	return ra
 }
 
-// parseResourceAccess は resource_access の値を map[string]Access に変換する。
-func parseResourceAccess(v interface{}) map[string]Access {
-	result := make(map[string]Access)
+// parseResourceAccess は resource_access の値を map[string]RoleSet に変換する。
+func parseResourceAccess(v interface{}) map[string]RoleSet {
+	result := make(map[string]RoleSet)
 	m, ok := v.(map[string]interface{})
 	if !ok {
 		return result
 	}
 	for key, val := range m {
-		access := Access{}
+		access := RoleSet{}
 		if am, ok := val.(map[string]interface{}); ok {
 			access.Roles = parseStringSlice(am["roles"])
 		}
@@ -150,18 +164,17 @@ func parseStringSlice(v interface{}) []string {
 	return result
 }
 
-// ExpiresAt は Claims の有効期限を time.Time で返す。
-func (c *Claims) ExpiresAt() time.Time {
-	return time.Unix(c.Exp, 0)
-}
-
 // IsExpired はトークンの有効期限が切れているかを返す。
 func (c *Claims) IsExpired() bool {
-	return time.Now().After(c.ExpiresAt())
+	exp := c.ExpiresAt
+	if exp.IsZero() && c.Exp > 0 {
+		exp = time.Unix(c.Exp, 0)
+	}
+	return time.Now().After(exp)
 }
 
 // String は Claims のデバッグ用文字列を返す。
 func (c *Claims) String() string {
-	return fmt.Sprintf("Claims{sub=%s, iss=%s, aud=%s, username=%s, email=%s}",
-		c.Sub, c.Iss, c.Aud, c.PreferredUsername, c.Email)
+	return fmt.Sprintf("Claims{sub=%s, iss=%s, aud=%v, username=%s, email=%s}",
+		c.Sub, c.Issuer, c.Audience, c.Username, c.Email)
 }

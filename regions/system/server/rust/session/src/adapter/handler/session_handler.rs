@@ -4,14 +4,17 @@ use std::sync::Arc;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use axum::Extension;
 use axum::Json;
 
 use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
 use crate::adapter::middleware::auth::SessionAuthState;
+use crate::adapter::repository::session_metadata_postgres::SessionMetadataRepository;
 use crate::domain::entity::session::Session;
 use crate::error::SessionError;
+use crate::infrastructure::kafka_producer::SessionEventPublisher;
 use crate::usecase::create_session::{CreateSessionInput, CreateSessionUseCase};
 use crate::usecase::get_session::{GetSessionInput, GetSessionUseCase};
 use crate::usecase::list_user_sessions::{ListUserSessionsInput, ListUserSessionsUseCase};
@@ -27,6 +30,8 @@ pub struct AppState {
     pub revoke_uc: Arc<RevokeSessionUseCase>,
     pub list_uc: Arc<ListUserSessionsUseCase>,
     pub revoke_all_uc: Arc<RevokeAllSessionsUseCase>,
+    pub metadata_repo: Arc<dyn SessionMetadataRepository>,
+    pub event_publisher: Arc<dyn SessionEventPublisher>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<SessionAuthState>,
 }
@@ -71,10 +76,22 @@ fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
     (status, Json(serde_json::to_value(&resp).unwrap()))
 }
 
+fn forbidden_response(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    let resp = ErrorResponse::new(codes::session::forbidden(), message);
+    (StatusCode::FORBIDDEN, Json(serde_json::to_value(&resp).unwrap()))
+}
+
 pub async fn create_session(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(input): Json<CreateSessionHttpRequest>,
 ) -> impl IntoResponse {
+    if let Some(Extension(claims)) = claims {
+        if claims.sub != input.user_id {
+            return forbidden_response("cannot create session for another user").into_response();
+        }
+    }
+
     let uc_input = CreateSessionInput {
         user_id: input.user_id,
         device_id: input.device_id,
@@ -82,7 +99,7 @@ pub async fn create_session(
         device_type: input.device_type,
         user_agent: input.user_agent,
         ip_address: input.ip_address,
-        ttl_seconds: input.ttl_seconds,
+        ttl_seconds: input.ttl_seconds.map(i64::from),
         max_devices: input.max_devices,
         metadata: input.metadata,
     };
@@ -105,7 +122,7 @@ pub struct CreateSessionHttpRequest {
     pub device_type: Option<String>,
     pub user_agent: Option<String>,
     pub ip_address: Option<String>,
-    pub ttl_seconds: Option<i64>,
+    pub ttl_seconds: Option<u32>,
     pub max_devices: Option<u32>,
     pub metadata: Option<HashMap<String, String>>,
 }
@@ -130,9 +147,26 @@ pub async fn get_session(
 
 pub async fn refresh_session(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(session_id): Path<String>,
     Json(body): Json<serde_json::Value>,
 ) -> impl IntoResponse {
+    if let Some(Extension(claims)) = claims {
+        let lookup = GetSessionInput {
+            id: Some(session_id.clone()),
+            token: None,
+        };
+        match state.get_uc.execute(&lookup).await {
+            Ok(output) => {
+                if output.session.user_id != claims.sub {
+                    return forbidden_response("cannot refresh another user's session")
+                        .into_response();
+                }
+            }
+            Err(e) => return error_response(e).into_response(),
+        }
+    }
+
     let ttl_seconds = body
         .get("ttl_seconds")
         .and_then(|v| v.as_i64())
@@ -153,8 +187,25 @@ pub async fn refresh_session(
 
 pub async fn revoke_session(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(session_id): Path<String>,
 ) -> impl IntoResponse {
+    if let Some(Extension(claims)) = claims {
+        let lookup = GetSessionInput {
+            id: Some(session_id.clone()),
+            token: None,
+        };
+        match state.get_uc.execute(&lookup).await {
+            Ok(output) => {
+                if output.session.user_id != claims.sub {
+                    return forbidden_response("cannot revoke another user's session")
+                        .into_response();
+                }
+            }
+            Err(e) => return error_response(e).into_response(),
+        }
+    }
+
     let input = RevokeSessionInput { id: session_id };
     match state.revoke_uc.execute(&input).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),

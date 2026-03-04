@@ -6,7 +6,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use super::{AppState, ErrorResponse};
+use super::{AppState, ErrorDetail, ErrorResponse};
 
 #[utoipa::path(
     get,
@@ -86,9 +86,13 @@ pub struct CheckRateLimitRequest {
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct CheckRateLimitResponse {
     pub allowed: bool,
+    pub scope: String,
+    pub identifier: String,
     pub remaining: i64,
+    pub used: i64,
     pub reset_at: i64,
     pub limit: i64,
+    pub rule_id: String,
     pub reason: String,
 }
 
@@ -144,16 +148,27 @@ pub async fn check_rate_limit(
                 headers,
                 Json(CheckRateLimitResponse {
                     allowed: decision.allowed,
+                    scope: decision.scope,
+                    identifier: decision.identifier,
                     remaining: decision.remaining,
+                    used: decision.used,
                     reset_at: decision.reset_at,
                     limit,
+                    rule_id: decision.rule_id,
                     reason: decision.reason,
                 }),
             )
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_RATELIMIT_ERROR", &e.to_string());
+            let err = ErrorResponse::with_details(
+                "SYS_RATELIMIT_ERROR",
+                &e.to_string(),
+                vec![ErrorDetail {
+                    field: "scope".to_string(),
+                    message: "invalid check request".to_string(),
+                }],
+            );
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
     }
@@ -217,6 +232,7 @@ pub struct CreateRuleRequest {
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct RuleResponse {
     pub id: String,
+    pub name: String,
     pub scope: String,
     pub identifier_pattern: String,
     pub limit: u32,
@@ -278,6 +294,7 @@ pub async fn create_rule(
             StatusCode::CREATED,
             Json(RuleResponse {
                 id: rule.id.to_string(),
+                name: rule.name,
                 scope: rule.scope,
                 identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,
@@ -324,6 +341,7 @@ pub async fn get_rule(
             StatusCode::OK,
             Json(RuleResponse {
                 id: rule.id.to_string(),
+                name: rule.name,
                 scope: rule.scope,
                 identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,
@@ -411,6 +429,7 @@ pub async fn list_rules(
                 .into_iter()
                 .map(|r| RuleResponse {
                     id: r.id.to_string(),
+                    name: r.name,
                     scope: r.scope,
                     identifier_pattern: r.identifier_pattern,
                     limit: r.limit,
@@ -488,6 +507,7 @@ pub async fn update_rule(
             StatusCode::OK,
             Json(RuleResponse {
                 id: rule.id.to_string(),
+                name: rule.name,
                 scope: rule.scope,
                 identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,

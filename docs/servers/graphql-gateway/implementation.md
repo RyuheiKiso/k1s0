@@ -1163,3 +1163,20 @@ mod tests {
 - [GraphQL設計.md](../../architecture/api/GraphQL設計.md) -- GraphQL 設計ガイドライン
 - [テンプレート仕様-サーバー.md](../../templates/server/サーバー.md) -- サーバーテンプレート仕様
 - [コーディング規約.md](../../architecture/conventions/コーディング規約.md) -- コーディング規約
+
+## Doc Sync (2026-03-04)
+
+### 実装方針の反映
+- `GraphqlContext` に `config_loader` を含める。
+- `ConfigLoader` は `GetConfig` 呼び出し時に tenant 文脈を含めて問い合わせる。
+- Loader trait は native async を採用し、エラー型は `Arc<anyhow::Error>` を使用する。
+- Auth middleware は Tower `Layer` / `Service` パターンで統一する。
+- `/readyz` は tenant / featureflag / config の 3 バックエンド疎通を確認する。
+- Subscription は polling 実装を削除し、WebSocket 経由のストリーム購読のみを提供する。
+- WebSocket 接続時に JWT 検証を実施する。
+- `list_tenants` では `last` / `before` を受け付けない。
+- `create_tenant` は bare payload ではなく GraphQL payload オブジェクトを返す。
+- メトリクス実装は `k1s0_telemetry` に統一する。
+
+### ファイル整理
+- `regions/system/server/rust/graphql-gateway/src/handler/schema.rs` は stale ファイルとして削除済み。

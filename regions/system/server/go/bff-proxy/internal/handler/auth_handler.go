@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/middleware"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
 )
@@ -62,21 +63,21 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	pkce, err := oauth.NewPKCE()
 	if err != nil {
 		h.logger.Error("failed to generate PKCE", slog.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "BFF_AUTH_PKCE_ERROR"})
+		respondError(c, http.StatusInternalServerError, "BFF_AUTH_PKCE_ERROR")
 		return
 	}
 
 	state, err := generateRandomString(32)
 	if err != nil {
 		h.logger.Error("failed to generate state", slog.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "BFF_AUTH_STATE_ERROR"})
+		respondError(c, http.StatusInternalServerError, "BFF_AUTH_STATE_ERROR")
 		return
 	}
 
 	authURL, err := h.oauthClient.AuthCodeURL(state, pkce.CodeChallenge)
 	if err != nil {
 		h.logger.Error("failed to build auth URL", slog.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "BFF_AUTH_URL_ERROR"})
+		respondError(c, http.StatusInternalServerError, "BFF_AUTH_URL_ERROR")
 		return
 	}
 
@@ -94,13 +95,13 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	// Verify state parameter.
 	state, err := c.Cookie(stateCookieName)
 	if err != nil || state == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "BFF_AUTH_STATE_MISSING"})
+		respondBadRequest(c, "BFF_AUTH_STATE_MISSING")
 		return
 	}
 
 	queryState := c.Query("state")
 	if queryState != state {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "BFF_AUTH_STATE_MISMATCH"})
+		respondBadRequest(c, "BFF_AUTH_STATE_MISMATCH")
 		return
 	}
 
@@ -113,20 +114,21 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":       "BFF_AUTH_IDP_ERROR",
 			"description": c.Query("error_description"),
+			"request_id":  middleware.GetRequestID(c),
 		})
 		return
 	}
 
 	code := c.Query("code")
 	if code == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "BFF_AUTH_CODE_MISSING"})
+		respondBadRequest(c, "BFF_AUTH_CODE_MISSING")
 		return
 	}
 
 	// Retrieve PKCE verifier.
 	verifier, err := c.Cookie(verifierCookieName)
 	if err != nil || verifier == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "BFF_AUTH_VERIFIER_MISSING"})
+		respondBadRequest(c, "BFF_AUTH_VERIFIER_MISSING")
 		return
 	}
 
@@ -134,14 +136,14 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	tokenResp, err := h.oauthClient.ExchangeCode(c.Request.Context(), code, verifier)
 	if err != nil {
 		h.logger.Error("token exchange failed", slog.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "BFF_AUTH_TOKEN_EXCHANGE_FAILED"})
+		respondError(c, http.StatusInternalServerError, "BFF_AUTH_TOKEN_EXCHANGE_FAILED")
 		return
 	}
 
 	subject, err := extractSubjectFromIDToken(tokenResp.IDToken)
 	if err != nil {
 		h.logger.Error("failed to extract subject from id_token", slog.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "BFF_AUTH_ID_TOKEN_INVALID"})
+		respondError(c, http.StatusUnauthorized, "BFF_AUTH_ID_TOKEN_INVALID")
 		return
 	}
 
@@ -149,7 +151,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	csrfToken, err := generateRandomString(32)
 	if err != nil {
 		h.logger.Error("failed to generate CSRF token", slog.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "BFF_AUTH_CSRF_ERROR"})
+		respondError(c, http.StatusInternalServerError, "BFF_AUTH_CSRF_ERROR")
 		return
 	}
 
@@ -166,7 +168,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	sessionID, err := h.sessionStore.Create(c.Request.Context(), sessData, h.sessionTTL)
 	if err != nil {
 		h.logger.Error("failed to create session", slog.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "BFF_AUTH_SESSION_CREATE_FAILED"})
+		respondError(c, http.StatusInternalServerError, "BFF_AUTH_SESSION_CREATE_FAILED")
 		return
 	}
 

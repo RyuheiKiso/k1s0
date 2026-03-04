@@ -113,7 +113,13 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
       "created_at": "2026-02-20T10:00:00.000+00:00",
       "updated_at": "2026-02-20T12:30:00.000+00:00"
     }
-  ]
+  ],
+  "pagination": {
+    "total_count": 42,
+    "page": 1,
+    "page_size": 20,
+    "has_next": true
+  }
 }
 ```
 
@@ -379,6 +385,8 @@ ID 指定でポリシーの詳細を取得する。
 ```json
 {
   "name": "k1s0-system-policies",
+  "description": "system tier policies bundle",
+  "enabled": true,
   "policy_ids": ["policy-001", "policy-002", "policy-003"]
 }
 ```
@@ -646,9 +654,12 @@ message PolicyBundle {
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
+| `id` | Uuid | 評価結果 ID |
+| `policy_id` | Option\<Uuid\> | 適用されたポリシー ID（該当なしの場合は null） |
 | `package_path` | String | 評価対象 Rego パッケージパス |
 | `input` | serde_json::Value | 評価入力データ |
 | `allowed` | bool | 評価結果（true: 許可 / false: 拒否） |
+| `reason` | Option\<String\> | 判定理由（拒否理由など） |
 | `decision_id` | String | OPA 評価 ID |
 | `cached` | bool | キャッシュヒットフラグ |
 | `evaluated_at` | DateTime\<Utc\> | 評価日時 |

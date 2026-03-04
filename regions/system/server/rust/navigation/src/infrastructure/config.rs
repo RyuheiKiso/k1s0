@@ -6,9 +6,9 @@ pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
     #[serde(default)]
+    pub navigation: NavigationConfig,
+    #[serde(default)]
     pub auth: Option<AuthConfig>,
-    #[serde(default = "default_navigation_path")]
-    pub navigation_path: String,
 }
 
 impl Config {
@@ -21,6 +21,20 @@ impl Config {
 
 fn default_navigation_path() -> String {
     "config/navigation.yaml".to_string()
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct NavigationConfig {
+    #[serde(default = "default_navigation_path")]
+    pub navigation_path: String,
+}
+
+impl Default for NavigationConfig {
+    fn default() -> Self {
+        Self {
+            navigation_path: default_navigation_path(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -55,7 +69,7 @@ fn default_host() -> String {
 }
 
 fn default_port() -> u16 {
-    8095
+    8080
 }
 
 fn default_grpc_port() -> u16 {
@@ -89,14 +103,14 @@ app:
   environment: dev
 server:
   host: "0.0.0.0"
-  port: 8095
+  port: 8080
   grpc_port: 50051
 "#;
         let cfg: Config = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(cfg.app.name, "k1s0-navigation-server");
-        assert_eq!(cfg.server.port, 8095);
+        assert_eq!(cfg.server.port, 8080);
         assert_eq!(cfg.server.grpc_port, 50051);
-        assert_eq!(cfg.navigation_path, "config/navigation.yaml");
+        assert_eq!(cfg.navigation.navigation_path, "config/navigation.yaml");
     }
 
     #[test]
@@ -108,10 +122,11 @@ server: {}
 "#;
         let cfg: Config = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(cfg.server.host, "0.0.0.0");
-        assert_eq!(cfg.server.port, 8095);
+        assert_eq!(cfg.server.port, 8080);
         assert_eq!(cfg.server.grpc_port, 50051);
         assert_eq!(cfg.app.version, "0.1.0");
         assert_eq!(cfg.app.environment, "dev");
+        assert_eq!(cfg.navigation.navigation_path, "config/navigation.yaml");
         assert!(cfg.auth.is_none());
     }
 }

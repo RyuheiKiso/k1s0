@@ -1,6 +1,7 @@
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
+    response::IntoResponse,
     Json,
 };
 use serde::Deserialize;
@@ -16,17 +17,39 @@ pub struct ListTablesQuery {
     pub page_size: Option<u32>,
 }
 
-pub async fn healthz() -> StatusCode {
-    StatusCode::OK
+pub async fn healthz() -> impl IntoResponse {
+    (StatusCode::OK, Json(serde_json::json!({ "status": "ok" })))
 }
 
-pub async fn readyz(State(_state): State<AppState>) -> StatusCode {
-    StatusCode::OK
+pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
+    let postgres_ok = state
+        .manage_tables_uc
+        .list_tables(None, false)
+        .await
+        .is_ok();
+    let status = if postgres_ok {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+    (
+        status,
+        Json(serde_json::json!({
+            "status": if postgres_ok { "ready" } else { "not_ready" },
+            "checks": {
+                "postgres": if postgres_ok { "ok" } else { "error" }
+            }
+        })),
+    )
 }
 
-pub async fn metrics_handler() -> String {
-    // TODO: Prometheus metrics
-    String::new()
+pub async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let body = state.metrics.gather_metrics();
+    (
+        StatusCode::OK,
+        [("content-type", "text/plain; version=0.0.4; charset=utf-8")],
+        body,
+    )
 }
 
 pub async fn list_tables(

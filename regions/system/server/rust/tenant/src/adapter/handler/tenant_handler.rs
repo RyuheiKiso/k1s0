@@ -25,6 +25,11 @@ fn not_found_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::V
     (StatusCode::NOT_FOUND, Json(serde_json::to_value(&err).unwrap()))
 }
 
+fn member_not_found_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    let err = ErrorResponse::new(codes::tenant::member_not_found(), msg);
+    (StatusCode::NOT_FOUND, Json(serde_json::to_value(&err).unwrap()))
+}
+
 fn bad_request_response(code: k1s0_server_common::ErrorCode, msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
     let err = ErrorResponse::new(code, msg);
     (StatusCode::BAD_REQUEST, Json(serde_json::to_value(&err).unwrap()))
@@ -71,7 +76,7 @@ pub struct CreateTenantRequest {
     pub display_name: String,
     pub plan: String,
     #[serde(alias = "owner_user_id")]
-    pub owner_id: Option<String>,
+    pub owner_id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -224,9 +229,16 @@ pub async fn create_tenant(
     State(state): State<AppState>,
     Json(req): Json<CreateTenantRequest>,
 ) -> impl IntoResponse {
-    let owner_id = req
-        .owner_id
-        .and_then(|s| Uuid::parse_str(&s).ok());
+    let owner_id = match Uuid::parse_str(&req.owner_id) {
+        Ok(id) => Some(id),
+        Err(_) => {
+            return bad_request_response(
+                codes::tenant::validation_error(),
+                format!("invalid owner id: {}", req.owner_id),
+            )
+                .into_response()
+        }
+    };
 
     let input = CreateTenantInput {
         name: req.name,
@@ -573,7 +585,7 @@ pub async fn remove_member(
     match state.remove_member_uc.execute(tenant_uuid, user_uuid).await {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
         Err(RemoveMemberError::NotFound) => {
-            not_found_response("member not found").into_response()
+            member_not_found_response("member not found").into_response()
         }
         Err(RemoveMemberError::Internal(msg)) => internal_response(msg).into_response(),
     }

@@ -276,6 +276,24 @@ message RejectTaskResponse {
 }
 ```
 
+#### proto メッセージ一覧（完全）
+
+上記抜粋に加えて、`workflow.proto` には以下のメッセージが定義される。
+
+- `WorkflowStep`
+- `WorkflowDefinition`
+- `ListWorkflowsRequest` / `ListWorkflowsResponse`
+- `CreateWorkflowRequest` / `CreateWorkflowResponse`
+- `GetWorkflowRequest` / `GetWorkflowResponse`
+- `WorkflowSteps`
+- `UpdateWorkflowRequest` / `UpdateWorkflowResponse`
+- `DeleteWorkflowRequest` / `DeleteWorkflowResponse`
+- `ListInstancesRequest` / `ListInstancesResponse`
+- `CancelInstanceRequest` / `CancelInstanceResponse`
+- `WorkflowTask`
+- `ListTasksRequest` / `ListTasksResponse`
+- `ReassignTaskRequest` / `ReassignTaskResponse`
+
 ---
 
 ## Kafka メッセージング設計

@@ -66,6 +66,7 @@ impl UpdateRuleUseCase {
             .await
             .map_err(|e| UpdateRuleError::NotFound(e.to_string()))?;
 
+        rule.name = input.scope.clone();
         rule.scope = input.scope.clone();
         rule.identifier_pattern = input.identifier_pattern.clone();
         rule.limit = input.limit;

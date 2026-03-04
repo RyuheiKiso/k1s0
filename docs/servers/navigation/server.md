@@ -12,6 +12,8 @@
 | sys_operator 以上 | navigation/write |
 | sys_admin のみ | navigation/admin |
 
+> 現行実装のルート公開判定は `guard.roles` ベースで行う。上記の resource/action RBAC は管理 API 向けの設計上の表現であり、`GetNavigation` の判定ロジック自体は resource-action 評価を行わない。
+
 
 | 機能 | 説明 |
 | --- | --- |
@@ -177,6 +179,49 @@ GetNavigationRequest {
 GetNavigationRequest {
   bearer_token: "eyJhbGciOiJSUzI1NiJ9..."
 }
+```
+
+---
+
+## 設定
+
+### auth
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `jwks_url` | string | JWT 検証に利用する JWKS URL |
+| `issuer` | string | JWT `iss` 検証値 |
+| `audience` | string | JWT `aud` 検証値 |
+| `jwks_cache_ttl_secs` | uint64 | JWKS キャッシュ秒数 |
+
+### server
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `port` | uint16 | REST ポート |
+| `grpc_port` | uint16 | gRPC ポート |
+
+### navigation
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `navigation_path` | string | ナビゲーション定義 JSON の読み込みパス |
+
+**設定例**
+
+```yaml
+server:
+  port: 8080
+  grpc_port: 50051
+
+auth:
+  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+  issuer: "https://auth.k1s0.example.com/realms/system"
+  audience: "k1s0-system"
+  jwks_cache_ttl_secs: 300
+
+navigation:
+  navigation_path: "/etc/k1s0/navigation/navigation.json"
 ```
 
 ---

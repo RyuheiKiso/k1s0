@@ -32,8 +32,9 @@ func CSRFMiddleware(store session.Store, headerName string, sessionCookie string
 		sessionID, err := c.Cookie(sessionCookie)
 		if err != nil || sessionID == "" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error":   "BFF_CSRF_NO_SESSION",
-				"message": "Session not found",
+				"error":      "BFF_CSRF_NO_SESSION",
+				"message":    "Session not found",
+				"request_id": GetRequestID(c),
 			})
 			return
 		}
@@ -41,8 +42,9 @@ func CSRFMiddleware(store session.Store, headerName string, sessionCookie string
 		sess, err := store.Get(c.Request.Context(), sessionID)
 		if err != nil || sess == nil {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error":   "BFF_CSRF_INVALID_SESSION",
-				"message": "Invalid session",
+				"error":      "BFF_CSRF_INVALID_SESSION",
+				"message":    "Invalid session",
+				"request_id": GetRequestID(c),
 			})
 			return
 		}
@@ -50,8 +52,9 @@ func CSRFMiddleware(store session.Store, headerName string, sessionCookie string
 		csrfHeader := c.GetHeader(headerName)
 		if csrfHeader == "" || csrfHeader != sess.CSRFToken {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error":   "BFF_CSRF_MISMATCH",
-				"message": "CSRF token mismatch",
+				"error":      "BFF_CSRF_MISMATCH",
+				"message":    "CSRF token mismatch",
+				"request_id": GetRequestID(c),
 			})
 			return
 		}

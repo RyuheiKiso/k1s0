@@ -34,6 +34,17 @@ func (s *SpiffeId) String() string {
 	return fmt.Sprintf("spiffe://%s/ns/%s/sa/%s", s.TrustDomain, s.Namespace, s.ServiceAccount)
 }
 
+// AllowsTierAccess は SPIFFE ID の namespace に基づいて tier アクセス可否を判定する。
+// system namespace はすべての tier にアクセス可能とみなす。
+func (s *SpiffeId) AllowsTierAccess(requiredTier string) bool {
+	tier := strings.ToLower(strings.TrimSpace(requiredTier))
+	if tier == "" {
+		return false
+	}
+	ns := strings.ToLower(strings.TrimSpace(s.Namespace))
+	return ns == "system" || ns == tier
+}
+
 // ParseSpiffeId は SPIFFE ID 文字列をパースする。
 func ParseSpiffeId(uri string) (*SpiffeId, error) {
 	if !strings.HasPrefix(uri, "spiffe://") {

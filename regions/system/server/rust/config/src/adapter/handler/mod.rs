@@ -134,7 +134,7 @@ pub fn router(state: AppState) -> Router {
                 get(config_schema_handler::get_config_schema),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "config", "read",
+                "configs", "read",
             )));
 
         // PUT/POST -> config/write
@@ -144,7 +144,7 @@ pub fn router(state: AppState) -> Router {
                 put(config_handler::update_config),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "config", "write",
+                "configs", "write",
             )));
 
         // DELETE + schema admin -> config/admin
@@ -158,7 +158,7 @@ pub fn router(state: AppState) -> Router {
                 put(config_schema_handler::upsert_config_schema),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "config", "admin",
+                "configs", "admin",
             )));
 
         // 認証ミドルウェアを全 API ルートに適用

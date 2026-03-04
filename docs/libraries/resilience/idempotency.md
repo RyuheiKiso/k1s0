@@ -111,9 +111,12 @@ type IdempotencyRecord struct {
     Status     IdempotencyStatus
     Response   []byte
     StatusCode int
+    Error      string
     CreatedAt  time.Time
     ExpiresAt  time.Time
 }
+
+func NewIdempotencyRecord(key string, ttl *time.Duration) *IdempotencyRecord
 
 type IdempotencyStatus string
 
@@ -122,6 +125,26 @@ const (
     StatusCompleted IdempotencyStatus = "completed"
     StatusFailed    IdempotencyStatus = "failed"
 )
+
+type IdempotencyError struct {
+    Code    string // DUPLICATE / NOT_FOUND / EXPIRED
+    Message string
+}
+
+func NewDuplicateError(key string) *IdempotencyError
+func NewNotFoundError(key string) *IdempotencyError
+func NewExpiredError(key string) *IdempotencyError
+
+type InMemoryIdempotencyStore struct{}
+func NewInMemoryIdempotencyStore() *InMemoryIdempotencyStore
+
+type RedisStoreOption func(*RedisIdempotencyStore)
+func WithRedisKeyPrefix(prefix string) RedisStoreOption
+func WithRedisDefaultTTL(ttl time.Duration) RedisStoreOption
+
+type RedisIdempotencyStore struct{}
+func NewRedisIdempotencyStore(client redis.Cmdable, opts ...RedisStoreOption) *RedisIdempotencyStore
+func NewRedisIdempotencyStoreFromURL(url string, opts ...RedisStoreOption) (*RedisIdempotencyStore, error)
 ```
 
 ## TypeScript 実装

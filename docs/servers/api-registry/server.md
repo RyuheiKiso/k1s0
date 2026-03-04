@@ -515,9 +515,9 @@ PostgreSQL の `apiregistry` スキーマに以下のテーブルを配置する
 CREATE SCHEMA IF NOT EXISTS apiregistry;
 
 CREATE TABLE apiregistry.api_schemas (
-    name         TEXT PRIMARY KEY,
+    name         VARCHAR(255) PRIMARY KEY,
     description  TEXT NOT NULL DEFAULT '',
-    schema_type  TEXT NOT NULL CHECK (schema_type IN ('openapi', 'protobuf')),
+    schema_type  VARCHAR(50) NOT NULL CHECK (schema_type IN ('openapi', 'protobuf')),
     latest_version INTEGER NOT NULL DEFAULT 0,
     version_count INTEGER NOT NULL DEFAULT 0,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -526,20 +526,19 @@ CREATE TABLE apiregistry.api_schemas (
 
 CREATE TABLE apiregistry.api_schema_versions (
     id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name                    TEXT NOT NULL REFERENCES apiregistry.api_schemas(name) ON DELETE CASCADE,
+    name                    VARCHAR(255) NOT NULL REFERENCES apiregistry.api_schemas(name) ON DELETE CASCADE,
     version                 INTEGER NOT NULL,
-    schema_type             TEXT NOT NULL CHECK (schema_type IN ('openapi', 'protobuf')),
+    schema_type             VARCHAR(50) NOT NULL CHECK (schema_type IN ('openapi', 'protobuf')),
     content                 TEXT NOT NULL,
-    content_hash            TEXT NOT NULL,
+    content_hash            VARCHAR(255) NOT NULL,
     breaking_changes        BOOLEAN NOT NULL DEFAULT false,
     breaking_change_details JSONB NOT NULL DEFAULT '[]',
-    registered_by           TEXT NOT NULL,
+    registered_by           VARCHAR(255) NOT NULL,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (name, version)
 );
 
 CREATE INDEX idx_api_schema_versions_name ON apiregistry.api_schema_versions(name);
-CREATE INDEX idx_api_schema_versions_content_hash ON apiregistry.api_schema_versions(content_hash);
 ```
 
 ---
@@ -807,7 +806,7 @@ paths:
 
 ### DELETE /api/v1/schemas/:name/versions/:version
 
-**レスポンス（400 Bad Request）**
+**レスポンス（409 Conflict）**
 
 ```json
 {
@@ -992,6 +991,25 @@ info:
 
 ## 設定ファイル例
 
+### 設定項目
+
+#### auth
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `jwks_url` | string | JWT 検証用 JWKS URL |
+| `issuer` | string | JWT `iss` 検証値 |
+| `audience` | string | JWT `aud` 検証値 |
+| `jwks_cache_ttl_secs` | uint64 | JWKS キャッシュ秒数 |
+
+#### database
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `max_open_conns` | int | 最大接続数 |
+| `max_idle_conns` | int | 最大アイドル接続数 |
+| `conn_max_lifetime` | string | 接続最大生存時間 |
+
 ### config.yaml（本番）
 
 ```yaml
@@ -1026,6 +1044,12 @@ validator:
   openapi_spec_validator_path: "/usr/local/bin/openapi-spec-validator"
   buf_path: "/usr/local/bin/buf"
   timeout_seconds: 30
+
+auth:
+  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+  issuer: "https://auth.k1s0.example.com/realms/system"
+  audience: "k1s0-system"
+  jwks_cache_ttl_secs: 300
 ```
 
 ---
@@ -1099,6 +1123,7 @@ vault:
 - Timestamp 型は `k1s0.system.common.v1.Timestamp` を使用する。
 - `ApiSchemaVersionProto.breaking_change_details` は `repeated ChangeDetail`。
 - 追加メッセージ: `ChangeDetail`, `SchemaDiffProto`, `DiffEntryProto`, `DiffModifiedEntryProto`。
+- `SYS_APIREG_VALIDATOR_ERROR` は `502 Bad Gateway` を返す実装に統一。
 
 
 ### SQL Alignment

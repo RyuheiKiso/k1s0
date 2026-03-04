@@ -27,6 +27,9 @@ pub enum SessionEvent {
 pub trait SessionEventPublisher: Send + Sync {
     async fn publish_session_created(&self, session: &Session) -> anyhow::Result<()>;
     async fn publish_session_revoked(&self, session_id: &str, user_id: &str) -> anyhow::Result<()>;
+    async fn health_check(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -152,6 +155,15 @@ impl SessionEventPublisher for KafkaSessionProducer {
         }
 
         Ok(())
+    }
+
+    async fn health_check(&self) -> anyhow::Result<()> {
+        use rdkafka::producer::Producer;
+        self.producer
+            .client()
+            .fetch_metadata(None, std::time::Duration::from_secs(2))
+            .map(|_| ())
+            .map_err(|e| anyhow::anyhow!("kafka health check failed: {}", e))
     }
 
     async fn close(&self) -> anyhow::Result<()> {

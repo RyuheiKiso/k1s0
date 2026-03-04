@@ -101,7 +101,33 @@ type RetryError struct {
     Attempts  int
     LastError error
 }
+
+type CircuitBreakerState int
+
+const (
+    StateClosed CircuitBreakerState = iota
+    StateOpen
+    StateHalfOpen
+)
+
+type CircuitBreakerConfig struct {
+    FailureThreshold int
+    OpenTimeout      time.Duration
+    HalfOpenSuccess  int
+}
+
+func DefaultCircuitBreakerConfig() *CircuitBreakerConfig
+
+type CircuitBreaker struct {}
+
+func NewCircuitBreaker(config *CircuitBreakerConfig) *CircuitBreaker
+func (cb *CircuitBreaker) IsOpen() bool
+func (cb *CircuitBreaker) RecordSuccess()
+func (cb *CircuitBreaker) RecordFailure()
+func (cb *CircuitBreaker) GetState() CircuitBreakerState
 ```
+
+> Go 実装では retry パッケージ内に circuit breaker 実装（`circuit_breaker.go`）を同梱し、`WithRetry` と組み合わせて利用する。
 
 ## TypeScript 実装
 

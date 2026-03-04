@@ -56,9 +56,9 @@ func TestValidateTenantID_Valid(t *testing.T) {
 
 func TestValidateTenantID_Invalid(t *testing.T) {
 	v := validation.NewDefaultValidator()
-	assert.Error(t, v.ValidateTenantID("ab"))                          // too short
-	assert.Error(t, v.ValidateTenantID("ABC"))                         // uppercase
-	assert.Error(t, v.ValidateTenantID("a_b"))                         // underscore
+	assert.Error(t, v.ValidateTenantID("ab"))  // too short
+	assert.Error(t, v.ValidateTenantID("ABC")) // uppercase
+	assert.Error(t, v.ValidateTenantID("a_b")) // underscore
 }
 
 func TestValidationError_Message(t *testing.T) {
@@ -76,6 +76,7 @@ func TestValidatePagination_Valid(t *testing.T) {
 	assert.NoError(t, v.ValidatePagination(1, 10))
 	assert.NoError(t, v.ValidatePagination(1, 1))
 	assert.NoError(t, v.ValidatePagination(1, 100))
+	assert.NoError(t, v.ValidatePagination(1, 200))
 	assert.NoError(t, v.ValidatePagination(999, 50))
 }
 
@@ -83,7 +84,7 @@ func TestValidatePagination_Invalid(t *testing.T) {
 	v := validation.NewDefaultValidator()
 	assert.Error(t, v.ValidatePagination(0, 10))  // page < 1
 	assert.Error(t, v.ValidatePagination(1, 0))   // perPage < 1
-	assert.Error(t, v.ValidatePagination(1, 101)) // perPage > 100
+	assert.Error(t, v.ValidatePagination(1, 201)) // perPage > 200
 	assert.Error(t, v.ValidatePagination(-1, 50)) // negative page
 }
 

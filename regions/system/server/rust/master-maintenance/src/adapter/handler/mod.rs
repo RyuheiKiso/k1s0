@@ -57,7 +57,7 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/tables/:name/display-configs", get(display_config_handler::list_display_configs))
             .route("/api/v1/tables/:name/display-configs/:id", get(display_config_handler::get_display_config))
             .route_layer(axum::middleware::from_fn(move |req, next| {
-                let perm = require_permission("master_maintenance", "read");
+                let perm = require_permission("master-maintenance", "read");
                 perm(req, next)
             }));
 
@@ -79,7 +79,7 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/tables/:name/display-configs", post(display_config_handler::create_display_config))
             .route("/api/v1/tables/:name/display-configs/:id", put(display_config_handler::update_display_config))
             .route_layer(axum::middleware::from_fn(move |req, next| {
-                let perm = require_permission("master_maintenance", "write");
+                let perm = require_permission("master-maintenance", "write");
                 perm(req, next)
             }));
 
@@ -92,7 +92,7 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/rules/:id", delete(rule_handler::delete_rule))
             .route("/api/v1/tables/:name/display-configs/:id", delete(display_config_handler::delete_display_config))
             .route_layer(axum::middleware::from_fn(move |req, next| {
-                let perm = require_permission("master_maintenance", "admin");
+                let perm = require_permission("master-maintenance", "admin");
                 perm(req, next)
             }));
 

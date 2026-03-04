@@ -74,11 +74,9 @@ impl QueryRoot {
         _ctx: &Context<'_>,
         first: Option<i32>,
         after: Option<String>,
-        last: Option<i32>,
-        before: Option<String>,
     ) -> FieldResult<TenantConnection> {
         self.tenant_query
-            .list_tenants(first, after, last, before)
+            .list_tenants(first, after)
             .await
             .map_err(|e| async_graphql::Error::new(e.to_string()))
     }

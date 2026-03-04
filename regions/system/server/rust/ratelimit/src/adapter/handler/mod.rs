@@ -90,6 +90,7 @@ impl AppState {
         ratelimit_handler::UsageResponse,
         ErrorResponse,
         ErrorBody,
+        ErrorDetail,
     )),
 )]
 struct ApiDoc;
@@ -208,7 +209,13 @@ pub struct ErrorBody {
     pub code: String,
     pub message: String,
     pub request_id: String,
-    pub details: Vec<String>,
+    pub details: Vec<ErrorDetail>,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ErrorDetail {
+    pub field: String,
+    pub message: String,
 }
 
 impl ErrorResponse {
@@ -219,6 +226,17 @@ impl ErrorResponse {
                 message: message.to_string(),
                 request_id: uuid::Uuid::new_v4().to_string(),
                 details: vec![],
+            },
+        }
+    }
+
+    pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
+        Self {
+            error: ErrorBody {
+                code: code.to_string(),
+                message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details,
             },
         }
     }

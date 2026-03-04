@@ -69,6 +69,7 @@ pub struct SagaDetailResponse {
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct StepLogResponse {
     pub id: String,
+    pub saga_id: String,
     pub step_index: i32,
     pub step_name: String,
     pub action: String,
@@ -283,6 +284,7 @@ pub async fn get_saga(
         .into_iter()
         .map(|l| StepLogResponse {
             id: l.id.to_string(),
+            saga_id: l.saga_id.to_string(),
             step_index: l.step_index,
             step_name: l.step_name,
             action: l.action.to_string(),

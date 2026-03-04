@@ -49,6 +49,14 @@ impl ApiError {
         )
     }
 
+    pub fn already_exists(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+        let err = ErrorResponse::new(codes::api_registry::already_exists(), message);
+        (
+            StatusCode::CONFLICT,
+            Json(serde_json::to_value(&err).unwrap()),
+        )
+    }
+
     pub fn cannot_delete_latest(
         message: impl Into<String>,
     ) -> (StatusCode, Json<serde_json::Value>) {

@@ -71,6 +71,8 @@ system tier の Saga Orchestrator は以下の機能を提供する。
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
+| GET | `/swagger-ui` | Swagger UI | 不要（公開） |
+| GET | `/api-docs/openapi.json` | OpenAPI JSON | 不要（公開） |
 
 #### POST /api/v1/sagas
 

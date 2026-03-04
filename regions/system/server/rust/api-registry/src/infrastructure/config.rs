@@ -44,7 +44,7 @@ fn default_host() -> String {
     "0.0.0.0".to_string()
 }
 fn default_port() -> u16 {
-    8101
+    8080
 }
 fn default_grpc_port() -> u16 {
     50051
@@ -96,31 +96,34 @@ fn default_jwks_cache_ttl() -> u64 {
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
-    pub schema_updated_topic: String,
+    #[serde(alias = "schema_updated_topic")]
+    pub topic: String,
 }
 
 impl Default for KafkaConfig {
     fn default() -> Self {
         Self {
             brokers: vec!["localhost:9092".to_string()],
-            schema_updated_topic: "k1s0.system.apiregistry.schema_updated.v1".to_string(),
+            topic: "k1s0.system.apiregistry.schema_updated.v1".to_string(),
         }
     }
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ValidatorConfig {
-    pub openapi_validator_path: String,
+    #[serde(alias = "openapi_validator_path")]
+    pub openapi_spec_validator_path: String,
     pub buf_path: String,
-    pub timeout_secs: u64,
+    #[serde(alias = "timeout_secs")]
+    pub timeout_seconds: u64,
 }
 
 impl Default for ValidatorConfig {
     fn default() -> Self {
         Self {
-            openapi_validator_path: "openapi-spec-validator".to_string(),
+            openapi_spec_validator_path: "openapi-spec-validator".to_string(),
             buf_path: "buf".to_string(),
-            timeout_secs: 10,
+            timeout_seconds: 10,
         }
     }
 }

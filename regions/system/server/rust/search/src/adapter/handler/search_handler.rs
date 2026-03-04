@@ -57,12 +57,17 @@ fn default_size() -> u32 {
 
 #[derive(Debug, Serialize)]
 pub struct SearchResponse {
+    pub hits: Vec<HitResponse>,
+    pub facets: HashMap<String, HashMap<String, u64>>,
+    pub pagination: PaginationResponse,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PaginationResponse {
     pub total_count: u64,
     pub page: u32,
     pub page_size: u32,
     pub has_next: bool,
-    pub facets: HashMap<String, HashMap<String, u64>>,
-    pub hits: Vec<HitResponse>,
 }
 
 #[derive(Debug, Serialize)]
@@ -143,11 +148,6 @@ pub async fn search(
             let page = (req.from / page_size) + 1;
             let has_next = result.total > (req.from as u64 + result.hits.len() as u64);
             let resp = SearchResponse {
-                total_count: result.total,
-                page,
-                page_size,
-                has_next,
-                facets: result.facets,
                 hits: result
                     .hits
                     .into_iter()
@@ -157,6 +157,13 @@ pub async fn search(
                         document_json: h.content,
                     })
                     .collect(),
+                facets: result.facets,
+                pagination: PaginationResponse {
+                    total_count: result.total,
+                    page,
+                    page_size,
+                    has_next,
+                },
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
@@ -172,7 +179,12 @@ pub async fn search(
             } else {
                 "SYS_SEARCH_INTERNAL_ERROR"
             };
-            error_response(StatusCode::INTERNAL_SERVER_ERROR, code, msg).into_response()
+            let status = if code == "SYS_SEARCH_OPENSEARCH_ERROR" {
+                StatusCode::BAD_GATEWAY
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            };
+            error_response(status, code, msg).into_response()
         }
     }
 }
@@ -230,7 +242,12 @@ pub async fn index_document(
             } else {
                 "SYS_SEARCH_INTERNAL_ERROR"
             };
-            error_response(StatusCode::INTERNAL_SERVER_ERROR, code, msg).into_response()
+            let status = if code == "SYS_SEARCH_OPENSEARCH_ERROR" {
+                StatusCode::BAD_GATEWAY
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            };
+            error_response(status, code, msg).into_response()
         }
     }
 }
@@ -283,7 +300,12 @@ pub async fn create_index(
                 } else {
                     "SYS_SEARCH_INTERNAL_ERROR"
                 };
-                error_response(StatusCode::INTERNAL_SERVER_ERROR, code, msg).into_response()
+                let status = if code == "SYS_SEARCH_OPENSEARCH_ERROR" {
+                    StatusCode::BAD_GATEWAY
+                } else {
+                    StatusCode::INTERNAL_SERVER_ERROR
+                };
+                error_response(status, code, msg).into_response()
             }
         }
     }
@@ -311,7 +333,11 @@ pub async fn list_indices(State(state): State<AppState>) -> impl IntoResponse {
                 .into_response()
         }
         Err(e) => error_response(
-            StatusCode::INTERNAL_SERVER_ERROR,
+            if is_opensearch_error(&e.to_string()) {
+                StatusCode::BAD_GATEWAY
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            },
             if is_opensearch_error(&e.to_string()) {
                 "SYS_SEARCH_OPENSEARCH_ERROR"
             } else {
@@ -347,7 +373,12 @@ pub async fn delete_document_from_index(
             } else {
                 "SYS_SEARCH_INTERNAL_ERROR"
             };
-            error_response(StatusCode::INTERNAL_SERVER_ERROR, code, msg).into_response()
+            let status = if code == "SYS_SEARCH_OPENSEARCH_ERROR" {
+                StatusCode::BAD_GATEWAY
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            };
+            error_response(status, code, msg).into_response()
         }
     }
 }

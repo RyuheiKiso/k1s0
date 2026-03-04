@@ -83,6 +83,29 @@ impl DeleteVersionUseCase {
             });
         }
 
+        // 削除後メタデータ更新
+        let remaining_count = self
+            .version_repo
+            .count_by_name(name)
+            .await
+            .map_err(|e| DeleteVersionError::Internal(e.to_string()))?;
+        let latest = self
+            .version_repo
+            .find_latest_by_name(name)
+            .await
+            .map_err(|e| DeleteVersionError::Internal(e.to_string()))?
+            .ok_or_else(|| DeleteVersionError::Internal("latest version not found".to_string()))?;
+
+        let mut updated_schema = schema.clone();
+        updated_schema.version_count = remaining_count as u32;
+        updated_schema.latest_version = latest.version;
+        updated_schema.updated_at = chrono::Utc::now();
+
+        self.schema_repo
+            .update(&updated_schema)
+            .await
+            .map_err(|e| DeleteVersionError::Internal(e.to_string()))?;
+
         // Kafka イベント発行
         let event = SchemaUpdatedEvent {
             event_type: "SCHEMA_VERSION_DELETED".to_string(),
@@ -121,12 +144,31 @@ mod tests {
                 SchemaType::OpenApi,
             )))
         });
+        schema_mock.expect_update().returning(|_| Ok(()));
 
         let mut version_mock = MockApiSchemaVersionRepository::new();
-        version_mock.expect_count_by_name().returning(|_| Ok(3));
+        let count_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let count_calls_clone = count_calls.clone();
+        version_mock.expect_count_by_name().returning(move |_| {
+            let call = count_calls_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            if call == 0 {
+                Ok(3)
+            } else {
+                Ok(2)
+            }
+        });
         version_mock
             .expect_delete()
             .returning(|_, _| Ok(true));
+        version_mock.expect_find_latest_by_name().returning(|name| {
+            Ok(Some(crate::domain::entity::api_registration::ApiSchemaVersion::new(
+                name.to_string(),
+                2,
+                SchemaType::OpenApi,
+                "{}".to_string(),
+                "tester".to_string(),
+            )))
+        });
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let result = uc.execute("test-api", 1, None).await;

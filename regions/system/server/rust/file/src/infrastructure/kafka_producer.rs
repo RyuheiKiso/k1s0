@@ -40,7 +40,7 @@ impl FileKafkaProducer {
 
         Ok(Self {
             producer,
-            topic: config.topic.clone(),
+            topic: config.topic_events.clone(),
             metrics: None,
         })
     }
