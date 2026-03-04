@@ -70,14 +70,29 @@ impl CheckRateLimitUseCase {
         RateLimitDomainService::validate_identifier(identifier)
             .map_err(CheckRateLimitError::ValidationError)?;
 
-        // scopeでルールを検索し、最初のenabledなルールを使用
+        // scope で候補ルールを検索し、identifier 完全一致 -> "*" の順でマッチさせる
         let rules = self
             .rule_repo
             .find_by_scope(scope)
             .await
             .map_err(|e| CheckRateLimitError::Internal(e.to_string()))?;
 
-        let matched_rule = rules.iter().find(|r| r.enabled);
+        let matched_rule = rules
+            .iter()
+            .filter(|r| r.enabled)
+            .find(|r| r.identifier_pattern == identifier)
+            .or_else(|| {
+                rules
+                    .iter()
+                    .filter(|r| r.enabled)
+                    .find(|r| r.identifier_pattern == "*")
+            })
+            .or_else(|| {
+                rules
+                    .iter()
+                    .filter(|r| r.enabled)
+                    .find(|r| identifier_matches(&r.identifier_pattern, identifier))
+            });
         let (limit, effective_window) = RateLimitDomainService::effective_limit_and_window(
             matched_rule,
             self.default_limit,
@@ -158,6 +173,16 @@ impl CheckRateLimitUseCase {
     }
 }
 
+fn identifier_matches(pattern: &str, identifier: &str) -> bool {
+    if pattern == "*" {
+        return true;
+    }
+    if let Some(prefix) = pattern.strip_suffix('*') {
+        return identifier.starts_with(prefix);
+    }
+    pattern == identifier
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -169,7 +194,7 @@ mod tests {
     fn make_rule() -> RateLimitRule {
         RateLimitRule::new(
             "service".to_string(),
-            "global".to_string(),
+            "*".to_string(),
             100,
             60,
             Algorithm::TokenBucket,

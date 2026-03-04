@@ -1,4 +1,4 @@
-﻿# system-notification-server 設計
+# system-notification-server 設計
 
 system tier の通知管理サーバー設計を定義する。メール・Slack・Webhook・SMS・Push への通知配信を一元管理する。Kafka トピック `k1s0.system.notification.requested.v1` をトリガーに非同期配信を行い、配信結果を PostgreSQL に記録する。
 Rust での実装を定義する。
@@ -405,7 +405,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | パラメータ | 型 | 必須 | デフォルト | 説明 |
 | --- | --- | --- | --- | --- |
 | `channel_id` | string | No | - | チャネル ID でフィルタ |
-| `status` | string | No | - | ステータスでフィルタ（`queued`, `sent`, `failed` など） |
+| `status` | string | No | - | ステータスでフィルタ（`pending`, `sent`, `failed` など） |
 | `page` | int | No | `1` | ページ番号 |
 | `page_size` | int | No | `20` | 1ページ件数 |
 
@@ -790,7 +790,7 @@ message DeleteTemplateResponse {
 | `recipient` | String | 宛先（メールアドレス / Slack チャンネル等） |
 | `subject` | Option\<String\> | 件名（メール用） |
 | `body` | String | 送信本文（テンプレート適用後） |
-| `status` | String | 配信状態（queued / sent / failed） |
+| `status` | String | 配信状態（pending / sent / failed） |
 | `retry_count` | u32 | リトライ回数 |
 | `error_message` | Option\<String\> | エラーメッセージ（失敗時） |
 | `sent_at` | Option\<DateTime\<Utc\>\> | 配信完了日時 |

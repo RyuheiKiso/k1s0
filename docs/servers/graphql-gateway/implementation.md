@@ -290,34 +290,31 @@ pub struct UserError {
 ### src/domain/model/graphql_context.rs
 
 ```rust
+use std::sync::Arc;
+
 use async_graphql::dataloader::DataLoader;
 
 use crate::infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 
-/// GraphQL リクエストコンテキスト。JWT から抽出した認証情報と DataLoader を保持する。
 pub struct GraphqlContext {
-    /// JWT sub クレームから取得したユーザー ID
     pub user_id: String,
-    /// JWT realm_access.roles から取得したロールリスト
     pub roles: Vec<String>,
-    /// リクエスト追跡 ID（X-Request-Id ヘッダーまたは UUID 自動生成）
     pub request_id: String,
-    /// テナントバッチローダー
-    pub tenant_loader: DataLoader<TenantLoader>,
-    /// フィーチャーフラグバッチローダー
-    pub flag_loader: DataLoader<FeatureFlagLoader>,
+    pub tenant_loader: Arc<DataLoader<TenantLoader>>,
+    pub flag_loader: Arc<DataLoader<FeatureFlagLoader>>,
+    pub config_loader: Arc<DataLoader<ConfigLoader>>,
 }
 
 pub struct TenantLoader {
-    pub client: std::sync::Arc<TenantGrpcClient>,
+    pub client: Arc<TenantGrpcClient>,
 }
 
 pub struct FeatureFlagLoader {
-    pub client: std::sync::Arc<FeatureFlagGrpcClient>,
+    pub client: Arc<FeatureFlagGrpcClient>,
 }
 
 pub struct ConfigLoader {
-    pub client: std::sync::Arc<ConfigGrpcClient>,
+    pub client: Arc<ConfigGrpcClient>,
 }
 ```
 
@@ -325,40 +322,69 @@ pub struct ConfigLoader {
 
 ```rust
 use async_graphql::dataloader::Loader;
-use async_trait::async_trait;
 use std::collections::HashMap;
+use std::sync::Arc;
 
-use crate::domain::model::{FeatureFlag, Tenant};
-use crate::domain::model::graphql_context::{FeatureFlagLoader, TenantLoader};
+use crate::domain::model::graphql_context::{ConfigLoader, FeatureFlagLoader, TenantLoader};
+use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant};
 
-/// TenantLoader は ID リストを受け取り、TenantService.BatchGetTenants を呼び出してバッチ取得する。
-#[async_trait]
 impl Loader<String> for TenantLoader {
     type Value = Tenant;
-    type Error = anyhow::Error;
+    type Error = Arc<anyhow::Error>;
 
     async fn load(
         &self,
         keys: &[String],
     ) -> Result<HashMap<String, Self::Value>, Self::Error> {
-        // TenantService.ListTenants を呼び出して ID フィルタリング
-        let tenants = self.client.list_tenants_by_ids(keys).await?;
+        let tenants = self
+            .client
+            .list_tenants_by_ids(keys)
+            .await
+            .map_err(Arc::new)?;
         Ok(tenants.into_iter().map(|t| (t.id.clone(), t)).collect())
     }
 }
 
-/// FeatureFlagLoader はフラグキーリストを受け取り、FeatureFlagService.ListFlags を呼び出してバッチ取得する。
-#[async_trait]
 impl Loader<String> for FeatureFlagLoader {
     type Value = FeatureFlag;
-    type Error = anyhow::Error;
+    type Error = Arc<anyhow::Error>;
 
     async fn load(
         &self,
         keys: &[String],
     ) -> Result<HashMap<String, Self::Value>, Self::Error> {
-        let flags = self.client.list_flags_by_keys(keys).await?;
+        let flags = self
+            .client
+            .list_flags_by_keys(keys)
+            .await
+            .map_err(Arc::new)?;
         Ok(flags.into_iter().map(|f| (f.key.clone(), f)).collect())
+    }
+}
+
+impl Loader<String> for ConfigLoader {
+    type Value = ConfigEntry;
+    type Error = Arc<anyhow::Error>;
+
+    async fn load(
+        &self,
+        keys: &[String],
+    ) -> Result<HashMap<String, Self::Value>, Self::Error> {
+        let mut result = HashMap::new();
+        for key in keys {
+            let parts: Vec<&str> = key.splitn(2, '/').collect();
+            if parts.len() != 2 {
+                continue;
+            }
+            match self.client.get_config(parts[0], parts[1]).await {
+                Ok(Some(entry)) => {
+                    result.insert(key.clone(), entry);
+                }
+                Ok(None) => {}
+                Err(e) => return Err(Arc::new(e)),
+            }
+        }
+        Ok(result)
     }
 }
 ```

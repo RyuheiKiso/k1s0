@@ -42,3 +42,9 @@ services:
 saga:
   max_concurrent: 100
   workflow_dir: "workflows"
+
+observability:
+  otlp_endpoint: "http://otel-collector.observability:4317"
+  log_level: "info"
+  log_format: "json"
+  metrics_enabled: true

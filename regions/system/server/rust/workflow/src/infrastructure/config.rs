@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-/// AuthConfig は認証設定を表す。
+/// AuthConfig 縺ｯ隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -19,6 +19,8 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
     #[serde(default)]
     pub auth: Option<AuthConfig>,
     #[serde(default)]
@@ -78,7 +80,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig はデータベース接続の設定を表す。
+/// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -114,7 +116,7 @@ fn default_conn_max_lifetime() -> String {
 }
 
 impl DatabaseConfig {
-    /// PostgreSQL 接続 URL を生成する。
+    /// PostgreSQL 謗･邯・URL 繧堤函謌舌☆繧九・
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -123,15 +125,15 @@ impl DatabaseConfig {
     }
 }
 
-/// KafkaConfig は Kafka ブローカー接続の設定を表す。
+/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
-    /// Producer topic: ワークフロー・タスク状態変化
+    /// Producer topic: 繝ｯ繝ｼ繧ｯ繝輔Ο繝ｼ繝ｻ繧ｿ繧ｹ繧ｯ迥ｶ諷句､牙喧
     pub state_topic: String,
-    /// Producer topic: 通知依頼
+    /// Producer topic: 騾夂衍萓晞ｼ
     pub notification_topic: String,
 }
 
@@ -139,13 +141,13 @@ fn default_security_protocol() -> String {
     "PLAINTEXT".to_string()
 }
 
-/// SchedulerClientConfig は scheduler-server 連携の設定を表す。
+/// SchedulerClientConfig 縺ｯ scheduler-server 騾｣謳ｺ縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct SchedulerClientConfig {
     pub internal_endpoint: String,
 }
 
-/// OverdueCheckConfig はタスク期日超過チェックの設定を表す。
+/// OverdueCheckConfig 縺ｯ繧ｿ繧ｹ繧ｯ譛滓律雜・℃繝√ぉ繝・け縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct OverdueCheckConfig {
     #[serde(default = "default_cron_expression")]
@@ -171,6 +173,45 @@ fn default_timezone() -> String {
     "UTC".to_string()
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default = "default_otlp_endpoint")]
+    pub otlp_endpoint: String,
+    #[serde(default = "default_log_level")]
+    pub log_level: String,
+    #[serde(default = "default_log_format")]
+    pub log_format: String,
+    #[serde(default = "default_metrics_enabled")]
+    pub metrics_enabled: bool,
+}
+
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            otlp_endpoint: default_otlp_endpoint(),
+            log_level: default_log_level(),
+            log_format: default_log_format(),
+            metrics_enabled: default_metrics_enabled(),
+        }
+    }
+}
+
+fn default_otlp_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_log_format() -> String {
+    "json".to_string()
+}
+
+fn default_metrics_enabled() -> bool {
+    true
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -201,3 +242,5 @@ mod tests {
         );
     }
 }
+
+

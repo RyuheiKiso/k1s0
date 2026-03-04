@@ -101,6 +101,27 @@ func TestVaultError_PermissionDenied(t *testing.T) {
 	assert.Equal(t, "PERMISSION_DENIED", err.Code)
 }
 
+func TestVaultError_ServerTimeoutLeaseFactories(t *testing.T) {
+	serverErr := vaultclient.NewServerError("backend down")
+	timeoutErr := vaultclient.NewTimeoutError("deadline exceeded")
+	leaseErr := vaultclient.NewLeaseExpiredError("system/db")
+
+	assert.Equal(t, "SERVER_ERROR", serverErr.Code)
+	assert.Equal(t, "TIMEOUT", timeoutErr.Code)
+	assert.Equal(t, "LEASE_EXPIRED", leaseErr.Code)
+}
+
+func TestVaultError_IsHelpers(t *testing.T) {
+	assert.True(t, vaultclient.IsServerError(vaultclient.NewServerError("x")))
+	assert.False(t, vaultclient.IsServerError(vaultclient.NewNotFoundError("x")))
+
+	assert.True(t, vaultclient.IsTimeoutError(vaultclient.NewTimeoutError("x")))
+	assert.False(t, vaultclient.IsTimeoutError(vaultclient.NewServerError("x")))
+
+	assert.True(t, vaultclient.IsLeaseExpiredError(vaultclient.NewLeaseExpiredError("x")))
+	assert.False(t, vaultclient.IsLeaseExpiredError(vaultclient.NewPermissionDeniedError("x")))
+}
+
 func TestSecret_Fields(t *testing.T) {
 	s := makeSecret("test/path")
 	assert.Equal(t, "test/path", s.Path)

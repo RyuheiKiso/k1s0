@@ -88,21 +88,22 @@ impl SessionRepository for InMemorySessionRepository {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let cfg = Config::load(&config_path)?;
+
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-session-server".to_string(),
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
         sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
+        log_level: cfg.observability.log_level.clone(),
+        log_format: cfg.observability.log_format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
-    let config_path =
-        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let cfg = Config::load(&config_path)?;
 
     info!(port = cfg.server.port, "starting session server");
 
@@ -238,7 +239,7 @@ async fn main() -> anyhow::Result<()> {
         state = state.with_auth(auth_st);
     }
 
-    // 認証不要のエンドポイント
+    // Public routes that do not require auth.
     let public_routes = axum::Router::new()
         .route(
             "/healthz",
@@ -250,7 +251,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/metrics", axum::routing::get(metrics_handler));
 
-    // 認証が設定されている場合は RBAC 付きルーティング
+    // 隱崎ｨｼ縺瑚ｨｭ螳壹＆繧後※縺・ｋ蝣ｴ蜷医・ RBAC 莉倥″繝ｫ繝ｼ繝・ぅ繝ｳ繧ｰ
     use adapter::middleware::auth::auth_middleware;
     use adapter::middleware::rbac::require_permission;
 
@@ -303,7 +304,7 @@ async fn main() -> anyhow::Result<()> {
                 auth_middleware,
             ))
     } else {
-        // 認証なし（dev モード / テスト）
+        // Development mode routes without auth.
         axum::Router::new()
             .route(
                 "/api/v1/sessions",

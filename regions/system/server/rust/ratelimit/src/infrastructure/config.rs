@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use super::database::DatabaseConfig;
 
-/// RedisConfig は Redis 接続設定。
+/// RedisConfig 縺ｯ Redis 謗･邯夊ｨｭ螳壹・
 #[derive(Debug, Clone, Deserialize)]
 pub struct RedisConfig {
     #[serde(default = "default_redis_url")]
@@ -25,7 +25,7 @@ fn default_redis_timeout_ms() -> u64 {
     2000
 }
 
-/// AuthConfig は JWT 認証設定を表す。
+/// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -44,6 +44,8 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
     #[serde(default)]
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
@@ -125,6 +127,45 @@ fn default_window_seconds() -> u32 {
     60
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default = "default_otlp_endpoint")]
+    pub otlp_endpoint: String,
+    #[serde(default = "default_log_level")]
+    pub log_level: String,
+    #[serde(default = "default_log_format")]
+    pub log_format: String,
+    #[serde(default = "default_metrics_enabled")]
+    pub metrics_enabled: bool,
+}
+
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            otlp_endpoint: default_otlp_endpoint(),
+            log_level: default_log_level(),
+            log_format: default_log_format(),
+            metrics_enabled: default_metrics_enabled(),
+        }
+    }
+}
+
+fn default_otlp_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_log_format() -> String {
+    "json".to_string()
+}
+
+fn default_metrics_enabled() -> bool {
+    true
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,3 +225,5 @@ server:
         assert_eq!(cfg.ratelimit.default_window_seconds, 60);
     }
 }
+
+

@@ -51,12 +51,13 @@ impl SchedulerExecutionRepository for SchedulerExecutionPostgresRepository {
     async fn create(&self, execution: &SchedulerExecution) -> anyhow::Result<()> {
         sqlx::query(
             "INSERT INTO scheduler.job_executions \
-             (id, job_id, status, started_at, completed_at, error_message) \
-             VALUES ($1, $2, $3, $4, $5, $6)",
+             (id, job_id, status, triggered_by, started_at, completed_at, error_message) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7)",
         )
         .bind(execution.id)
         .bind(execution.job_id)
         .bind(&execution.status)
+        .bind(&execution.triggered_by)
         .bind(execution.started_at)
         .bind(execution.finished_at)
         .bind(&execution.error_message)
@@ -67,7 +68,7 @@ impl SchedulerExecutionRepository for SchedulerExecutionPostgresRepository {
 
     async fn find_by_job_id(&self, job_id: &Uuid) -> anyhow::Result<Vec<SchedulerExecution>> {
         let rows: Vec<SchedulerExecutionRow> = sqlx::query_as(
-            "SELECT id, job_id, status, 'scheduler' AS triggered_by, started_at, completed_at, error_message \
+            "SELECT id, job_id, status, triggered_by, started_at, completed_at, error_message \
              FROM scheduler.job_executions \
              WHERE job_id = $1 \
              ORDER BY started_at DESC",
@@ -100,7 +101,7 @@ impl SchedulerExecutionRepository for SchedulerExecutionPostgresRepository {
 
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<SchedulerExecution>> {
         let row: Option<SchedulerExecutionRow> = sqlx::query_as(
-            "SELECT id, job_id, status, 'scheduler' AS triggered_by, started_at, completed_at, error_message \
+            "SELECT id, job_id, status, triggered_by, started_at, completed_at, error_message \
              FROM scheduler.job_executions WHERE id = $1",
         )
         .bind(id)

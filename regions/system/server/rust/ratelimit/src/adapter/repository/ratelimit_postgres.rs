@@ -21,13 +21,15 @@ impl RateLimitRepository for RateLimitPostgresRepository {
     async fn create(&self, rule: &RateLimitRule) -> anyhow::Result<RateLimitRule> {
         let row = sqlx::query_as::<_, RuleRow>(
             r#"
-            INSERT INTO ratelimit.rate_limit_rules (id, name, key, limit_count, window_secs, algorithm, enabled, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            RETURNING id, name, key, limit_count, window_secs, algorithm, enabled, created_at, updated_at
+            INSERT INTO ratelimit.rate_limit_rules
+                (id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, created_at, updated_at
             "#,
         )
         .bind(rule.id)
         .bind(&rule.name)
+        .bind(&rule.scope)
         .bind(&rule.identifier_pattern)
         .bind(i64::from(rule.limit))
         .bind(i64::from(rule.window_seconds))
@@ -44,7 +46,7 @@ impl RateLimitRepository for RateLimitPostgresRepository {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<RateLimitRule> {
         let row = sqlx::query_as::<_, RuleRow>(
             r#"
-            SELECT id, name, key, limit_count, window_secs, algorithm, enabled, created_at, updated_at
+            SELECT id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, created_at, updated_at
             FROM ratelimit.rate_limit_rules
             WHERE id = $1
             "#,
@@ -59,7 +61,7 @@ impl RateLimitRepository for RateLimitPostgresRepository {
     async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<RateLimitRule>> {
         let row = sqlx::query_as::<_, RuleRow>(
             r#"
-            SELECT id, name, key, limit_count, window_secs, algorithm, enabled, created_at, updated_at
+            SELECT id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, created_at, updated_at
             FROM ratelimit.rate_limit_rules
             WHERE name = $1
             "#,
@@ -77,9 +79,9 @@ impl RateLimitRepository for RateLimitPostgresRepository {
     async fn find_by_scope(&self, scope: &str) -> anyhow::Result<Vec<RateLimitRule>> {
         let rows = sqlx::query_as::<_, RuleRow>(
             r#"
-            SELECT id, name, key, limit_count, window_secs, algorithm, enabled, created_at, updated_at
+            SELECT id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, created_at, updated_at
             FROM ratelimit.rate_limit_rules
-            WHERE name = $1
+            WHERE scope = $1
             ORDER BY created_at DESC
             "#,
         )
@@ -93,7 +95,7 @@ impl RateLimitRepository for RateLimitPostgresRepository {
     async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>> {
         let rows = sqlx::query_as::<_, RuleRow>(
             r#"
-            SELECT id, name, key, limit_count, window_secs, algorithm, enabled, created_at, updated_at
+            SELECT id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, created_at, updated_at
             FROM ratelimit.rate_limit_rules
             ORDER BY created_at DESC
             "#,
@@ -108,37 +110,38 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         &self,
         page: u32,
         page_size: u32,
-        scope: Option<&str>,
+        scope: Option<String>,
         enabled_only: bool,
     ) -> anyhow::Result<(Vec<RateLimitRule>, u64)> {
         let page = page.max(1);
         let page_size = page_size.max(1).min(200);
         let offset = ((page - 1) * page_size) as i64;
+        let scope_ref = scope.as_deref();
 
         let total: i64 = sqlx::query_scalar(
             r#"
             SELECT COUNT(*)
             FROM ratelimit.rate_limit_rules
-            WHERE ($1::text IS NULL OR name = $1)
+            WHERE ($1::text IS NULL OR scope = $1)
               AND ($2::bool = FALSE OR enabled = TRUE)
             "#,
         )
-        .bind(scope)
+        .bind(scope_ref)
         .bind(enabled_only)
         .fetch_one(&self.pool)
         .await?;
 
         let rows = sqlx::query_as::<_, RuleRow>(
             r#"
-            SELECT id, name, key, limit_count, window_secs, algorithm, enabled, created_at, updated_at
+            SELECT id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, created_at, updated_at
             FROM ratelimit.rate_limit_rules
-            WHERE ($1::text IS NULL OR name = $1)
+            WHERE ($1::text IS NULL OR scope = $1)
               AND ($2::bool = FALSE OR enabled = TRUE)
             ORDER BY created_at DESC
             LIMIT $3 OFFSET $4
             "#,
         )
-        .bind(scope)
+        .bind(scope_ref)
         .bind(enabled_only)
         .bind(page_size as i64)
         .bind(offset)
@@ -157,11 +160,12 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         sqlx::query(
             r#"
             UPDATE ratelimit.rate_limit_rules
-            SET name = $1, key = $2, limit_count = $3, window_secs = $4, algorithm = $5, enabled = $6, updated_at = $7
-            WHERE id = $8
+            SET name = $1, scope = $2, identifier_pattern = $3, limit_count = $4, window_secs = $5, algorithm = $6, enabled = $7, updated_at = $8
+            WHERE id = $9
             "#,
         )
         .bind(&rule.name)
+        .bind(&rule.scope)
         .bind(&rule.identifier_pattern)
         .bind(i64::from(rule.limit))
         .bind(i64::from(rule.window_seconds))
@@ -195,9 +199,8 @@ impl RateLimitRepository for RateLimitPostgresRepository {
 #[derive(sqlx::FromRow)]
 struct RuleRow {
     id: Uuid,
-    #[sqlx(rename = "name")]
+    name: String,
     scope: String,
-    #[sqlx(rename = "key")]
     identifier_pattern: String,
     limit_count: i64,
     #[sqlx(rename = "window_secs")]
@@ -215,7 +218,7 @@ impl RuleRow {
 
         Ok(RateLimitRule {
             id: self.id,
-            name: self.scope.clone(),
+            name: self.name,
             scope: self.scope,
             identifier_pattern: self.identifier_pattern,
             limit: u32::try_from(self.limit_count)

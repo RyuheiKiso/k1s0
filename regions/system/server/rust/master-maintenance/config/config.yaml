@@ -38,3 +38,9 @@ import:
   max_file_size_mb: 50
   max_rows_per_import: 100000
   batch_size: 500
+
+observability:
+  otlp_endpoint: "http://otel-collector.observability:4317"
+  log_level: "info"
+  log_format: "json"
+  metrics_enabled: true

@@ -29,13 +29,7 @@ backends:
     timeout_ms: 3000
 
 observability:
-  log:
-    level: "info"
-    format: "json"
-  trace:
-    enabled: true
-    endpoint: "jaeger.observability.svc.cluster.local:4317"
-    sample_rate: 1.0
-  metrics:
-    enabled: true
-    path: "/metrics"
+  otlp_endpoint: "http://otel-collector.observability:4317"
+  log_level: "info"
+  log_format: "json"
+  metrics_enabled: true

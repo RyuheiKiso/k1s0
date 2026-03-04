@@ -26,7 +26,7 @@ impl NotificationLog {
             recipient,
             subject,
             body,
-            status: "queued".to_string(),
+            status: "pending".to_string(),
             retry_count: 0,
             error_message: None,
             sent_at: None,

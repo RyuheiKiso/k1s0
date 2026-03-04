@@ -25,21 +25,22 @@ use infrastructure::kafka_producer::{
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let cfg = Config::load(&config_path)?;
+
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-search-server".to_string(),
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
         sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
+        log_level: cfg.observability.log_level.clone(),
+        log_format: cfg.observability.log_format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
-    let config_path =
-        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -48,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
         "starting search server"
     );
 
-    // --- Repository: OpenSearch → PostgreSQL → InMemory fallback ---
+    // --- Repository: OpenSearch 竊・PostgreSQL 竊・InMemory fallback ---
     let base_search_repo: Arc<dyn SearchRepository> = if let Some(ref os_cfg) = cfg.opensearch {
         info!(url = %os_cfg.url, prefix = %os_cfg.index_prefix, "connecting to OpenSearch for search repository");
         let repo = SearchOpenSearchRepository::new(

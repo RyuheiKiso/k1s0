@@ -5,3 +5,9 @@ app:
 server:
   host: "0.0.0.0"
   port: 8096
+
+observability:
+  otlp_endpoint: "http://otel-collector.observability:4317"
+  log_level: "info"
+  log_format: "json"
+  metrics_enabled: true

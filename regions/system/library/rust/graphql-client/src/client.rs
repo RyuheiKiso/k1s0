@@ -61,6 +61,80 @@ impl InMemoryGraphQlClient {
     }
 }
 
+#[cfg(feature = "grpc")]
+pub struct GraphQlHttpClient {
+    client: reqwest::Client,
+    endpoint: String,
+}
+
+#[cfg(feature = "grpc")]
+impl GraphQlHttpClient {
+    pub fn new(endpoint: impl Into<String>) -> Self {
+        Self {
+            client: reqwest::Client::new(),
+            endpoint: endpoint.into(),
+        }
+    }
+
+    async fn send<T: DeserializeOwned + Send>(
+        &self,
+        query: GraphQlQuery,
+    ) -> Result<GraphQlResponse<T>, ClientError> {
+        let response = self
+            .client
+            .post(&self.endpoint)
+            .json(&query)
+            .send()
+            .await
+            .map_err(|e| ClientError::RequestError(e.to_string()))?;
+
+        let status = response.status();
+        let body = response
+            .text()
+            .await
+            .map_err(|e| ClientError::RequestError(e.to_string()))?;
+        if !status.is_success() {
+            return Err(ClientError::RequestError(format!(
+                "status {}: {}",
+                status, body
+            )));
+        }
+
+        serde_json::from_str::<GraphQlResponse<T>>(&body)
+            .map_err(|e| ClientError::DeserializationError(e.to_string()))
+    }
+}
+
+#[cfg(feature = "grpc")]
+#[async_trait]
+impl GraphQlClient for GraphQlHttpClient {
+    async fn execute<T: DeserializeOwned + Send>(
+        &self,
+        query: GraphQlQuery,
+    ) -> Result<GraphQlResponse<T>, ClientError> {
+        self.send(query).await
+    }
+
+    async fn execute_mutation<T: DeserializeOwned + Send>(
+        &self,
+        mutation: GraphQlQuery,
+    ) -> Result<GraphQlResponse<T>, ClientError> {
+        self.send(mutation).await
+    }
+
+    async fn subscribe<T: DeserializeOwned + Send>(
+        &self,
+        _subscription: GraphQlQuery,
+    ) -> Result<
+        Pin<Box<dyn Stream<Item = Result<GraphQlResponse<T>, ClientError>> + Send>>,
+        ClientError,
+    > {
+        Err(ClientError::RequestError(
+            "GraphQlHttpClient does not support subscriptions over HTTP".to_string(),
+        ))
+    }
+}
+
 impl Default for InMemoryGraphQlClient {
     fn default() -> Self {
         Self::new()

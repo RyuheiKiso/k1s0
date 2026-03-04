@@ -21,21 +21,22 @@ use k1s0_api_registry_server::adapter::grpc::{ApiRegistryGrpcService, ApiRegistr
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let cfg = Config::load(&config_path)?;
+
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-api-registry-server".to_string(),
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
         sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
+        log_level: cfg.observability.log_level.clone(),
+        log_format: cfg.observability.log_format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
-    let config_path =
-        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -242,7 +243,7 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     let rest_future = axum::serve(listener, app);
 
-    // REST と gRPC を並行起動
+    // REST 縺ｨ gRPC 繧剃ｸｦ陦瑚ｵｷ蜍・
     tokio::select! {
         result = rest_future => {
             if let Err(e) = result {

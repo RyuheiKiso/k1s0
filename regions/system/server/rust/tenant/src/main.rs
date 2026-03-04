@@ -35,6 +35,8 @@ struct Config {
     app: AppConfig,
     server: ServerConfig,
     #[serde(default)]
+    observability: ObservabilityConfig,
+    #[serde(default)]
     auth: Option<AuthConfig>,
     #[serde(default)]
     database: Option<DatabaseConfig>,
@@ -49,10 +51,16 @@ struct AppConfig {
     name: String,
     #[serde(default = "default_version")]
     version: String,
+    #[serde(default = "default_environment")]
+    environment: String,
 }
 
 fn default_version() -> String {
     "0.1.0".to_string()
+}
+
+fn default_environment() -> String {
+    "dev".to_string()
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -69,6 +77,45 @@ fn default_http_port() -> u16 {
 
 fn default_grpc_port() -> u16 {
     50051
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct ObservabilityConfig {
+    #[serde(default = "default_otlp_endpoint")]
+    otlp_endpoint: String,
+    #[serde(default = "default_log_level")]
+    log_level: String,
+    #[serde(default = "default_log_format")]
+    log_format: String,
+    #[serde(default = "default_metrics_enabled")]
+    metrics_enabled: bool,
+}
+
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            otlp_endpoint: default_otlp_endpoint(),
+            log_level: default_log_level(),
+            log_format: default_log_format(),
+            metrics_enabled: default_metrics_enabled(),
+        }
+    }
+}
+
+fn default_otlp_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_log_format() -> String {
+    "json".to_string()
+}
+
+fn default_metrics_enabled() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -133,22 +180,23 @@ impl TenantRepository for InMemoryTenantRepository {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
-    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
-        service_name: "k1s0-tenant-server".to_string(),
-        version: "0.1.0".to_string(),
-        tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
-    };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
     let config_content = std::fs::read_to_string(&config_path)?;
     let cfg: Config = serde_yaml::from_str(&config_content)?;
+
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-tenant-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
+        sample_rate: 1.0,
+        log_level: cfg.observability.log_level.clone(),
+        log_format: cfg.observability.log_format.clone(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+
 
     info!(
         app_name = %cfg.app.name,

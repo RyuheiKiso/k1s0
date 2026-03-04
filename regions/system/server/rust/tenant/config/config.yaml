@@ -5,3 +5,9 @@ app:
 server:
   http_port: 8089
   grpc_port: 50058
+
+observability:
+  otlp_endpoint: "http://otel-collector.observability:4317"
+  log_level: "info"
+  log_format: "json"
+  metrics_enabled: true

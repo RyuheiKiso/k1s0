@@ -3,11 +3,13 @@ use serde::Deserialize;
 use crate::infrastructure::database::DatabaseConfig;
 use crate::infrastructure::kafka::KafkaConfig;
 
-/// Config はアプリケーション全体の設定。
+/// Config 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ蜈ｨ菴薙・險ｭ螳壹・
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
     #[serde(default)]
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
@@ -16,7 +18,7 @@ pub struct Config {
     pub auth: Option<AuthConfig>,
 }
 
-/// AuthConfig は JWT 認証設定を表す。
+/// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -30,7 +32,7 @@ fn default_jwks_cache_ttl() -> u64 {
     300
 }
 
-/// AppConfig はアプリケーション設定。
+/// AppConfig 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ險ｭ螳壹・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub name: String,
@@ -48,7 +50,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-/// ServerConfig はサーバー設定。
+/// ServerConfig 縺ｯ繧ｵ繝ｼ繝舌・險ｭ螳壹・
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -65,6 +67,45 @@ fn default_port() -> u16 {
     8080
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default = "default_otlp_endpoint")]
+    pub otlp_endpoint: String,
+    #[serde(default = "default_log_level")]
+    pub log_level: String,
+    #[serde(default = "default_log_format")]
+    pub log_format: String,
+    #[serde(default = "default_metrics_enabled")]
+    pub metrics_enabled: bool,
+}
+
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            otlp_endpoint: default_otlp_endpoint(),
+            log_level: default_log_level(),
+            log_format: default_log_format(),
+            metrics_enabled: default_metrics_enabled(),
+        }
+    }
+}
+
+fn default_otlp_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_log_format() -> String {
+    "json".to_string()
+}
+
+fn default_metrics_enabled() -> bool {
+    true
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -142,3 +183,5 @@ kafka:
         assert_eq!(kafka.dlq_topic_pattern, "*.dlq.v1");
     }
 }
+
+

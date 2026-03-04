@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 mock = ["mockall"]
+test-utils = []
 
 [dependencies]
 async-trait = "0.1"

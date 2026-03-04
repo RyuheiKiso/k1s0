@@ -22,6 +22,7 @@ pub struct ListRulesInput {
     pub enabled_only: bool,
 }
 
+#[derive(Debug)]
 pub struct ListRulesOutput {
     pub rules: Vec<RateLimitRule>,
     pub total_count: u64,
@@ -43,7 +44,7 @@ impl ListRulesUseCase {
             .find_page(
                 page,
                 page_size,
-                input.scope.as_deref(),
+                input.scope.clone(),
                 input.enabled_only,
             )
             .await

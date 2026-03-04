@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-/// AuthConfig は JWT 認証設定を表す。
+/// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -19,6 +19,8 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
     #[serde(default)]
     pub opensearch: Option<OpenSearchConfig>,
     #[serde(default)]
@@ -76,7 +78,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// OpenSearchConfig は OpenSearch 接続の設定を表す。
+/// OpenSearchConfig 縺ｯ OpenSearch 謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct OpenSearchConfig {
     pub url: String,
@@ -92,7 +94,7 @@ fn default_index_prefix() -> String {
     "k1s0-".to_string()
 }
 
-/// KafkaConfig は Kafka ブローカー接続の設定を表す。
+/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -100,7 +102,7 @@ pub struct KafkaConfig {
     pub security_protocol: String,
     #[serde(default = "default_consumer_group")]
     pub consumer_group: String,
-    /// Consumer topic: インデックス登録要求
+    /// Consumer topic: 繧､繝ｳ繝・ャ繧ｯ繧ｹ逋ｻ骭ｲ隕∵ｱ・
     pub topic: String,
 }
 
@@ -112,7 +114,7 @@ fn default_consumer_group() -> String {
     "search-server-consumer".to_string()
 }
 
-/// CacheConfig はインメモリキャッシュの設定を表す。
+/// CacheConfig 縺ｯ繧､繝ｳ繝｡繝｢繝ｪ繧ｭ繝｣繝・す繝･縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct CacheConfig {
     #[serde(default = "default_max_entries")]
@@ -138,6 +140,45 @@ fn default_ttl_seconds() -> u64 {
     30
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default = "default_otlp_endpoint")]
+    pub otlp_endpoint: String,
+    #[serde(default = "default_log_level")]
+    pub log_level: String,
+    #[serde(default = "default_log_format")]
+    pub log_format: String,
+    #[serde(default = "default_metrics_enabled")]
+    pub metrics_enabled: bool,
+}
+
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            otlp_endpoint: default_otlp_endpoint(),
+            log_level: default_log_level(),
+            log_format: default_log_format(),
+            metrics_enabled: default_metrics_enabled(),
+        }
+    }
+}
+
+fn default_otlp_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_log_format() -> String {
+    "json".to_string()
+}
+
+fn default_metrics_enabled() -> bool {
+    true
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -162,3 +203,5 @@ index_prefix: "k1s0-"
         assert_eq!(cfg.url, "https://opensearch:9200");
     }
 }
+
+

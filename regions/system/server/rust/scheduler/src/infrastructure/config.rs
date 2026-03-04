@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-/// AuthConfig は JWT 認証設定を表す。
+/// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -19,6 +19,8 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
     #[serde(default)]
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
@@ -76,7 +78,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig はデータベース接続の設定を表す。
+/// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -112,7 +114,7 @@ fn default_conn_max_lifetime() -> String {
 }
 
 impl DatabaseConfig {
-    /// PostgreSQL 接続 URL を生成する。
+    /// PostgreSQL 謗･邯・URL 繧堤函謌舌☆繧九・
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -121,13 +123,13 @@ impl DatabaseConfig {
     }
 }
 
-/// KafkaConfig は Kafka ブローカー接続の設定を表す。
+/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
-    /// Producer topic: ジョブトリガー通知
+    /// Producer topic: 繧ｸ繝ｧ繝悶ヨ繝ｪ繧ｬ繝ｼ騾夂衍
     pub topic_triggered: String,
 }
 
@@ -135,7 +137,7 @@ fn default_security_protocol() -> String {
     "PLAINTEXT".to_string()
 }
 
-/// SchedulerConfig はスケジューラー固有の設定を表す。
+/// SchedulerConfig 縺ｯ繧ｹ繧ｱ繧ｸ繝･繝ｼ繝ｩ繝ｼ蝗ｺ譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct SchedulerConfig {
     #[serde(default = "default_timezone")]
@@ -161,6 +163,45 @@ fn default_lock_timeout_secs() -> u64 {
     30
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default = "default_otlp_endpoint")]
+    pub otlp_endpoint: String,
+    #[serde(default = "default_log_level")]
+    pub log_level: String,
+    #[serde(default = "default_log_format")]
+    pub log_format: String,
+    #[serde(default = "default_metrics_enabled")]
+    pub metrics_enabled: bool,
+}
+
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            otlp_endpoint: default_otlp_endpoint(),
+            log_level: default_log_level(),
+            log_format: default_log_format(),
+            metrics_enabled: default_metrics_enabled(),
+        }
+    }
+}
+
+fn default_otlp_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_log_format() -> String {
+    "json".to_string()
+}
+
+fn default_metrics_enabled() -> bool {
+    true
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -191,3 +232,5 @@ mod tests {
         );
     }
 }
+
+

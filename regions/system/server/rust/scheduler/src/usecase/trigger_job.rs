@@ -86,7 +86,7 @@ impl TriggerJobUseCase {
         // 実行完了のステータスを更新
         let _ = self
             .execution_repo
-            .update_status(&execution.id, "completed".to_string(), None)
+            .update_status(&execution.id, "succeeded".to_string(), None)
             .await;
 
         Ok(execution)

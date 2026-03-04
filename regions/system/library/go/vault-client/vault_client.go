@@ -3,6 +3,7 @@ package vaultclient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -50,6 +51,39 @@ func NewNotFoundError(path string) *VaultError {
 // NewPermissionDeniedError は PermissionDenied エラーを生成する。
 func NewPermissionDeniedError(path string) *VaultError {
 	return &VaultError{Code: "PERMISSION_DENIED", Message: path}
+}
+
+// NewServerError は ServerError エラーを生成する。
+func NewServerError(message string) *VaultError {
+	return &VaultError{Code: "SERVER_ERROR", Message: message}
+}
+
+// NewTimeoutError は Timeout エラーを生成する。
+func NewTimeoutError(message string) *VaultError {
+	return &VaultError{Code: "TIMEOUT", Message: message}
+}
+
+// NewLeaseExpiredError は LeaseExpired エラーを生成する。
+func NewLeaseExpiredError(path string) *VaultError {
+	return &VaultError{Code: "LEASE_EXPIRED", Message: path}
+}
+
+// IsServerError は SERVER_ERROR か判定する。
+func IsServerError(err error) bool {
+	var vErr *VaultError
+	return errors.As(err, &vErr) && vErr.Code == "SERVER_ERROR"
+}
+
+// IsTimeoutError は TIMEOUT か判定する。
+func IsTimeoutError(err error) bool {
+	var vErr *VaultError
+	return errors.As(err, &vErr) && vErr.Code == "TIMEOUT"
+}
+
+// IsLeaseExpiredError は LEASE_EXPIRED か判定する。
+func IsLeaseExpiredError(err error) bool {
+	var vErr *VaultError
+	return errors.As(err, &vErr) && vErr.Code == "LEASE_EXPIRED"
 }
 
 // VaultClient はシークレット操作のインターフェース。
@@ -174,12 +208,15 @@ func (c *HttpVaultClient) GetSecret(ctx context.Context, path string) (Secret, e
 	reqURL := fmt.Sprintf("%s/api/v1/secrets/%s", c.config.ServerURL, path)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
-		return Secret{}, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+		return Secret{}, NewServerError(err.Error())
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return Secret{}, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+		if timeoutErr, ok := err.(interface{ Timeout() bool }); ok && timeoutErr.Timeout() {
+			return Secret{}, NewTimeoutError(err.Error())
+		}
+		return Secret{}, NewServerError(err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -187,7 +224,7 @@ func (c *HttpVaultClient) GetSecret(ctx context.Context, path string) (Secret, e
 	case http.StatusOK:
 		var body httpSecretResponse
 		if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-			return Secret{}, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+			return Secret{}, NewServerError(err.Error())
 		}
 		secret := Secret{
 			Path:      body.Path,
@@ -205,7 +242,7 @@ func (c *HttpVaultClient) GetSecret(ctx context.Context, path string) (Secret, e
 		return Secret{}, NewPermissionDeniedError(path)
 	default:
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return Secret{}, &VaultError{Code: "SERVER_ERROR", Message: fmt.Sprintf("status %d: %s", resp.StatusCode, bodyBytes)}
+		return Secret{}, NewServerError(fmt.Sprintf("status %d: %s", resp.StatusCode, bodyBytes))
 	}
 }
 
@@ -227,22 +264,25 @@ func (c *HttpVaultClient) ListSecrets(ctx context.Context, pathPrefix string) ([
 	reqURL := fmt.Sprintf("%s/api/v1/secrets?prefix=%s", c.config.ServerURL, url.QueryEscape(pathPrefix))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
-		return nil, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+		return nil, NewServerError(err.Error())
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+		if timeoutErr, ok := err.(interface{ Timeout() bool }); ok && timeoutErr.Timeout() {
+			return nil, NewTimeoutError(err.Error())
+		}
+		return nil, NewServerError(err.Error())
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &VaultError{Code: "SERVER_ERROR", Message: fmt.Sprintf("list_secrets failed: %d", resp.StatusCode)}
+		return nil, NewServerError(fmt.Sprintf("list_secrets failed: %d", resp.StatusCode))
 	}
 
 	var paths []string
 	if err := json.NewDecoder(resp.Body).Decode(&paths); err != nil {
-		return nil, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+		return nil, NewServerError(err.Error())
 	}
 	return paths, nil
 }

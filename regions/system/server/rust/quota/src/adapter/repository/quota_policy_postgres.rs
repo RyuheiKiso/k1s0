@@ -26,7 +26,7 @@ struct QuotaPolicyRow {
     quota_limit: i64,
     period: String,
     enabled: bool,
-    alert_threshold_percent: f64,
+    alert_threshold_percent: i16,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -113,7 +113,7 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
         .bind(policy.limit as i64)
         .bind(policy.period.as_str())
         .bind(policy.enabled)
-        .bind(policy.alert_threshold_percent.unwrap_or(80) as f64)
+        .bind(policy.alert_threshold_percent.unwrap_or(80) as i16)
         .bind(policy.created_at)
         .bind(policy.updated_at)
         .execute(self.pool.as_ref())
@@ -139,7 +139,7 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
         .bind(policy.limit as i64)
         .bind(policy.period.as_str())
         .bind(policy.enabled)
-        .bind(policy.alert_threshold_percent.unwrap_or(80) as f64)
+        .bind(policy.alert_threshold_percent.unwrap_or(80) as i16)
         .bind(policy.updated_at)
         .execute(self.pool.as_ref())
         .await?;

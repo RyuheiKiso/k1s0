@@ -1,6 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { InMemoryGraphQlClient } from '../src/index.js';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { GraphQlHttpClient, InMemoryGraphQlClient } from '../src/index.js';
 import type { GraphQlQuery, GraphQlResponse } from '../src/index.js';
+
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
 
 describe('InMemoryGraphQlClient', () => {
   it('execute でセットした応答が返る', async () => {
@@ -72,5 +75,41 @@ describe('InMemoryGraphQlClient', () => {
     }
     expect(results).toHaveLength(2);
     expect(results[0].data).toBeDefined();
+  });
+});
+
+describe('GraphQlHttpClient', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it('execute で GraphQL レスポンスを返す', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { health: 'ok' } }),
+    } as Response);
+
+    const client = new GraphQlHttpClient('http://localhost:8080/graphql');
+    const resp = await client.execute<{ health: string }>({ query: '{ health }' });
+
+    expect(resp.data?.health).toBe('ok');
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://localhost:8080/graphql',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('HTTP エラー時に例外を投げる', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      json: async () => ({}),
+    } as Response);
+
+    const client = new GraphQlHttpClient('http://localhost:8080/graphql');
+    await expect(client.execute({ query: '{ health }' })).rejects.toThrow(
+      'GraphQL request failed: 503',
+    );
   });
 });

@@ -22,23 +22,24 @@ use infrastructure::redis_store::RedisRateLimitStore;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
-    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
-        service_name: "k1s0-ratelimit-server".to_string(),
-        version: "0.1.0".to_string(),
-        tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
-    };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
-    // Config
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
     let config_content = std::fs::read_to_string(&config_path)?;
     let cfg: Config = serde_yaml::from_str(&config_content)?;
+
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-ratelimit-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
+        sample_rate: 1.0,
+        log_level: cfg.observability.log_level.clone(),
+        log_format: cfg.observability.log_format.clone(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+
+    // Config
 
     info!(
         app_name = %cfg.app.name,
@@ -163,7 +164,7 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
-    // AppState (REST handler 用)
+    // AppState (REST handler 逕ｨ)
     let mut state = AppState::new(
         check_uc.clone(),
         create_uc.clone(),
@@ -218,7 +219,7 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     let rest_future = axum::serve(listener, app);
 
-    // REST と gRPC を並行起動
+    // REST 縺ｨ gRPC 繧剃ｸｦ陦瑚ｵｷ蜍・
     tokio::select! {
         result = rest_future => {
             if let Err(e) = result {
@@ -294,10 +295,11 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         &self,
         page: u32,
         page_size: u32,
-        scope: Option<&str>,
+        scope: Option<String>,
         enabled_only: bool,
     ) -> anyhow::Result<(Vec<domain::entity::RateLimitRule>, u64)> {
         let rules = self.rules.read().await;
+        let scope = scope.as_deref();
         let mut filtered: Vec<_> = rules
             .iter()
             .filter(|r| scope.map_or(true, |s| r.scope == s))
@@ -334,7 +336,7 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
     }
 
     async fn reset_state(&self, _key: &str) -> anyhow::Result<()> {
-        // インメモリ実装ではRedis状態のリセットは行わない
+        // 繧､繝ｳ繝｡繝｢繝ｪ螳溯｣・〒縺ｯRedis迥ｶ諷九・繝ｪ繧ｻ繝・ヨ縺ｯ陦後ｏ縺ｪ縺・
         Ok(())
     }
 }
@@ -406,7 +408,7 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
     }
 
     async fn reset(&self, _key: &str) -> anyhow::Result<()> {
-        // インメモリ実装ではリセットは何もしない
+        // 繧､繝ｳ繝｡繝｢繝ｪ螳溯｣・〒縺ｯ繝ｪ繧ｻ繝・ヨ縺ｯ菴輔ｂ縺励↑縺・
         Ok(())
     }
 

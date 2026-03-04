@@ -200,6 +200,17 @@ class RetryError implements Exception {
 
 **カバレッジ目標**: 90%以上
 
+## DefaultRetryConfig デフォルト値
+
+各言語実装のデフォルト設定は以下で統一される（2026-03-04 時点の実装値）。
+
+| 言語 | max_attempts | initial_delay | max_delay | multiplier | jitter |
+| --- | --- | --- | --- | --- | --- |
+| Go (`DefaultRetryConfig()`) | 3 | 100ms | 30s | 2.0 | true |
+| Rust (`RetryConfig::default()`) | 3 | 100ms | 30s | 2.0 | true |
+| TypeScript (`defaultRetryConfig`) | 3 | 100ms | 30s | 2.0 | true |
+| Dart (`const RetryConfig()`) | 3 | 100ms | 30s | 2.0 | true |
+
 ## 関連ドキュメント
 
 - [system-library-概要](../_common/概要.md) — ライブラリ一覧・テスト方針

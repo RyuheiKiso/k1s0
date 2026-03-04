@@ -21,3 +21,9 @@ kafka:
   consumer_group: "dlq-manager.default"
   security_protocol: "PLAINTEXT"
   dlq_topic_pattern: "*.dlq.v1"
+
+observability:
+  otlp_endpoint: "http://otel-collector.observability:4317"
+  log_level: "info"
+  log_format: "json"
+  metrics_enabled: true

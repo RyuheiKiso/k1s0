@@ -27,6 +27,8 @@ use infrastructure::user_cache::UserCache;
 struct Config {
     app: AppConfig,
     server: ServerConfig,
+    #[serde(default)]
+    observability: ObservabilityConfig,
     auth: AuthConfig,
     #[serde(default)]
     database: Option<DatabaseConfig>,
@@ -79,6 +81,45 @@ fn default_port() -> u16 {
 
 fn default_grpc_port() -> u16 {
     50051
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct ObservabilityConfig {
+    #[serde(default = "default_otlp_endpoint")]
+    otlp_endpoint: String,
+    #[serde(default = "default_log_level")]
+    log_level: String,
+    #[serde(default = "default_log_format")]
+    log_format: String,
+    #[serde(default = "default_metrics_enabled")]
+    metrics_enabled: bool,
+}
+
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            otlp_endpoint: default_otlp_endpoint(),
+            log_level: default_log_level(),
+            log_format: default_log_format(),
+            metrics_enabled: default_metrics_enabled(),
+        }
+    }
+}
+
+fn default_otlp_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_log_format() -> String {
+    "json".to_string()
+}
+
+fn default_metrics_enabled() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -211,23 +252,24 @@ fn parse_pool_duration(input: &str) -> Option<std::time::Duration> {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
-    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
-        service_name: "k1s0-auth-server".to_string(),
-        version: "0.1.0".to_string(),
-        tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
-    };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
-    // Config
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
     let config_content = std::fs::read_to_string(&config_path)?;
     let mut cfg: Config = serde_yaml::from_str(&config_content)?;
+
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-auth-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
+        sample_rate: 1.0,
+        log_level: cfg.observability.log_level.clone(),
+        log_format: cfg.observability.log_format.clone(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+
+    // Config
 
     info!(
         app_name = %cfg.app.name,
@@ -396,7 +438,7 @@ async fn main() -> anyhow::Result<()> {
     });
     let search_audit_logs_uc = Arc::new(usecase::SearchAuditLogsUseCase::new(audit_repo.clone()));
 
-    // AppState (REST handler 用)
+    // AppState (REST handler 逕ｨ)
     let mut state = AppState::new(
         token_verifier,
         user_repo,
@@ -458,7 +500,7 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     let rest_future = axum::serve(listener, app);
 
-    // REST と gRPC を並行起動
+    // REST 縺ｨ gRPC 繧剃ｸｦ陦瑚ｵｷ蜍・
     tokio::select! {
         result = rest_future => {
             if let Err(e) = result {
@@ -517,7 +559,7 @@ impl domain::repository::UserRepository for StubUserRepository {
     }
 }
 
-/// InMemoryApiKeyRepository は開発用のインメモリ API キーリポジトリ。
+/// InMemoryApiKeyRepository 縺ｯ髢狗匱逕ｨ縺ｮ繧､繝ｳ繝｡繝｢繝ｪ API 繧ｭ繝ｼ繝ｪ繝昴ず繝医Μ縲・
 struct InMemoryApiKeyRepository {
     keys: tokio::sync::RwLock<Vec<domain::entity::api_key::ApiKey>>,
 }
@@ -586,7 +628,7 @@ impl domain::repository::ApiKeyRepository for InMemoryApiKeyRepository {
     }
 }
 
-/// InMemoryAuditLogRepository は開発用のインメモリ監査ログリポジトリ。
+/// InMemoryAuditLogRepository 縺ｯ髢狗匱逕ｨ縺ｮ繧､繝ｳ繝｡繝｢繝ｪ逶｣譟ｻ繝ｭ繧ｰ繝ｪ繝昴ず繝医Μ縲・
 struct InMemoryAuditLogRepository {
     logs: tokio::sync::RwLock<Vec<domain::entity::audit_log::AuditLog>>,
 }

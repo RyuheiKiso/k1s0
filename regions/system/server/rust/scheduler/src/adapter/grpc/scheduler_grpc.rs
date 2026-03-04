@@ -562,8 +562,5 @@ fn to_execution_data(execution: SchedulerExecution) -> JobExecutionData {
 }
 
 fn normalize_status(status: &str) -> String {
-    match status {
-        "completed" => "succeeded".to_string(),
-        other => other.to_string(),
-    }
+    status.to_string()
 }

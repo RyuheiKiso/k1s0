@@ -63,9 +63,10 @@ impl RateLimitRule {
         algorithm: Algorithm,
     ) -> Self {
         let now = Utc::now();
+        let name = format!("{}:{}", scope, identifier_pattern);
         Self {
             id: Uuid::new_v4(),
-            name: scope.clone(),
+            name,
             scope,
             identifier_pattern,
             limit,
@@ -153,7 +154,7 @@ mod tests {
             Algorithm::TokenBucket,
         );
         assert_eq!(rule.scope, "service");
-        assert_eq!(rule.name, "service");
+        assert_eq!(rule.name, "service:global");
         assert_eq!(rule.identifier_pattern, "global");
         assert_eq!(rule.limit, 100);
         assert_eq!(rule.window_seconds, 60);

@@ -1,4 +1,4 @@
-// proto stubs・未接続の gRPC インフラは将来の proto codegen 後に使用される
+// proto stubs繝ｻ譛ｪ謗･邯壹・ gRPC 繧､繝ｳ繝輔Λ縺ｯ蟆・擂縺ｮ proto codegen 蠕後↓菴ｿ逕ｨ縺輔ｌ繧・
 #![allow(dead_code, unused_imports)]
 
 use std::net::SocketAddr;
@@ -21,22 +21,23 @@ use infrastructure::config::Config;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let cfg = Config::load(&config_path)?;
+
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-config-server".to_string(),
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: Some(cfg.observability.otlp_endpoint.clone()),
         sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
+        log_level: cfg.observability.log_level.clone(),
+        log_format: cfg.observability.log_format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
     // Config
-    let config_path =
-        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -67,7 +68,7 @@ async fn main() -> anyhow::Result<()> {
             pool,
             metrics.clone(),
         ));
-        // キャッシュでラップ（TTL 300秒、最大10000エントリ）
+        // 繧ｭ繝｣繝・す繝･縺ｧ繝ｩ繝・・・・TL 300遘偵∵怙螟ｧ10000繧ｨ繝ｳ繝医Μ・・
         let cache = Arc::new(infrastructure::cache::ConfigCache::new(
             cfg.config_server.cache.max_entries as u64,
             cfg.config_server.cache.ttl_seconds,
@@ -102,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
             pool,
             metrics.clone(),
         ));
-        // キャッシュでラップ（TTL 300秒、最大10000エントリ）
+        // 繧ｭ繝｣繝・す繝･縺ｧ繝ｩ繝・・・・TL 300遘偵∵怙螟ｧ10000繧ｨ繝ｳ繝医Μ・・
         let cache = Arc::new(infrastructure::cache::ConfigCache::new(
             cfg.config_server.cache.max_entries as u64,
             cfg.config_server.cache.ttl_seconds,
@@ -191,7 +192,7 @@ async fn main() -> anyhow::Result<()> {
         .with_schema_usecases(get_config_schema_uc, upsert_config_schema_uc),
     );
 
-    // tonic ラッパー
+    // tonic 繝ｩ繝・ヱ繝ｼ
     let config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);
 
     // Token verifier (JWKS verifier if auth configured)
@@ -211,7 +212,7 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
-    // AppState (REST handler 用) - Kafka通知付きで構築
+    // AppState (REST handler 逕ｨ) - Kafka騾夂衍莉倥″縺ｧ讒狗ｯ・
     let mut state = adapter::handler::AppState {
         get_config_uc: std::sync::Arc::new(usecase::GetConfigUseCase::new(config_repo.clone())),
         list_configs_uc: std::sync::Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone())),
@@ -286,7 +287,7 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     let rest_future = axum::serve(listener, app);
 
-    // REST と gRPC を並行起動
+    // REST 縺ｨ gRPC 繧剃ｸｦ陦瑚ｵｷ蜍・
     tokio::select! {
         result = rest_future => {
             if let Err(e) = result {
@@ -315,7 +316,7 @@ use domain::entity::config_schema::ConfigSchema;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-/// InMemoryConfigRepository は開発用のインメモリ設定リポジトリ。
+/// InMemoryConfigRepository 縺ｯ髢狗匱逕ｨ縺ｮ繧､繝ｳ繝｡繝｢繝ｪ險ｭ螳壹Μ繝昴ず繝医Μ縲・
 struct InMemoryConfigRepository {
     entries: RwLock<Vec<ConfigEntry>>,
 }
@@ -434,9 +435,9 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
         service_name: &str,
     ) -> anyhow::Result<ServiceConfigResult> {
         let entries = self.entries.read().await;
-        // サービス名からキーワードを抽出してマッチング（開発用の簡易実装）
-        // 本番では service_config_mappings テーブルによる明示的マッピングを使用
-        // 例: "auth-server" -> ["auth", "server"] -> namespace に含まれるかチェック
+        // 繧ｵ繝ｼ繝薙せ蜷阪°繧峨く繝ｼ繝ｯ繝ｼ繝峨ｒ謚ｽ蜃ｺ縺励※繝槭ャ繝√Φ繧ｰ・磯幕逋ｺ逕ｨ縺ｮ邁｡譏灘ｮ溯｣・ｼ・
+        // 譛ｬ逡ｪ縺ｧ縺ｯ service_config_mappings 繝・・繝悶Ν縺ｫ繧医ｋ譏守､ｺ逧・・繝・ヴ繝ｳ繧ｰ繧剃ｽｿ逕ｨ
+        // 萓・ "auth-server" -> ["auth", "server"] -> namespace 縺ｫ蜷ｫ縺ｾ繧後ｋ縺九メ繧ｧ繝・け
         let primary_keyword = service_name.split('-').next().unwrap_or(service_name);
         let matched: Vec<ServiceConfigEntry> = entries
             .iter()
@@ -463,7 +464,7 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 
     async fn record_change_log(&self, _log: &ConfigChangeLog) -> anyhow::Result<()> {
-        // In-memory: ログは捨てる（開発用）
+        // In-memory: 繝ｭ繧ｰ縺ｯ謐ｨ縺ｦ繧具ｼ磯幕逋ｺ逕ｨ・・
         Ok(())
     }
 
@@ -472,7 +473,7 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
         _namespace: &str,
         _key: &str,
     ) -> anyhow::Result<Vec<ConfigChangeLog>> {
-        // In-memory: 空リストを返す（開発用）
+        // In-memory: 遨ｺ繝ｪ繧ｹ繝医ｒ霑斐☆・磯幕逋ｺ逕ｨ・・
         Ok(vec![])
     }
 
@@ -482,7 +483,7 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 }
 
-/// InMemoryConfigSchemaRepository は開発用のインメモリ設定スキーマリポジトリ。
+/// InMemoryConfigSchemaRepository 縺ｯ髢狗匱逕ｨ縺ｮ繧､繝ｳ繝｡繝｢繝ｪ險ｭ螳壹せ繧ｭ繝ｼ繝槭Μ繝昴ず繝医Μ縲・
 struct InMemoryConfigSchemaRepository {
     schemas: RwLock<Vec<ConfigSchema>>,
 }

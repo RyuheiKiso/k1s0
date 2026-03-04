@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod tests {
     use crate::claims::{Access, Audience, Claims, RealmAccess};
-    use crate::rbac::{has_permission, has_resource_role, has_role, has_tier_access};
+    use crate::rbac::{check_permission, has_resource_role, has_role, has_tier_access};
     use crate::verifier::{AuthError, JwkKey, JwksFetcher, JwksVerifier};
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
     use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
@@ -504,8 +504,8 @@ mod tests {
         assert!(has_resource_role(&claims, "order-service", "write"));
         assert!(!has_resource_role(&claims, "order-service", "delete"));
 
-        assert!(has_permission(&claims, "order-service", "read"));
-        assert!(!has_permission(&claims, "order-service", "delete"));
+        assert!(check_permission(&claims, "order-service", "read"));
+        assert!(!check_permission(&claims, "order-service", "delete"));
 
         assert!(has_tier_access(&claims, "system"));
         assert!(has_tier_access(&claims, "business"));

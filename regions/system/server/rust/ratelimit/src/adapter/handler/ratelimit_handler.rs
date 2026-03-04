@@ -864,7 +864,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_rule_success() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_by_name().returning(|_| Ok(None));
+        repo.expect_find_by_scope().returning(|_| Ok(vec![]));
         repo.expect_create()
             .returning(|rule| Ok(rule.clone()));
 

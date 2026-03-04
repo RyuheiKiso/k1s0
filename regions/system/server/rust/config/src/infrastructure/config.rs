@@ -3,7 +3,7 @@ use serde::Deserialize;
 use super::database::DatabaseConfig;
 use super::kafka_producer::KafkaConfig;
 
-/// AuthConfig は認証設定を表す。
+/// AuthConfig 縺ｯ隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -17,11 +17,13 @@ fn default_jwks_cache_ttl_secs() -> u64 {
     3600
 }
 
-/// Config はアプリケーション全体の設定を表す。
+/// Config 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ蜈ｨ菴薙・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
     #[serde(default)]
     pub auth: Option<AuthConfig>,
     #[serde(default)]
@@ -116,7 +118,7 @@ fn default_namespace_default_prefix() -> String {
     "system".to_string()
 }
 
-/// AppConfig はアプリケーション基本設定を表す。
+/// AppConfig 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ蝓ｺ譛ｬ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub name: String,
@@ -134,7 +136,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-/// ServerConfig はサーバー設定を表す。
+/// ServerConfig 縺ｯ繧ｵ繝ｼ繝舌・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -158,19 +160,58 @@ fn default_grpc_port() -> u16 {
 }
 
 impl Config {
-    /// YAML ファイルから設定を読み込む。
+    /// YAML 繝輔ぃ繧､繝ｫ縺九ｉ險ｭ螳壹ｒ隱ｭ縺ｿ霎ｼ繧縲・
     pub fn from_yaml(content: &str) -> anyhow::Result<Self> {
         let config: Config = serde_yaml::from_str(content)?;
         Ok(config)
     }
 
-    /// 設定ファイルパスから設定を読み込む。
+    /// 險ｭ螳壹ヵ繧｡繧､繝ｫ繝代せ縺九ｉ險ｭ螳壹ｒ隱ｭ縺ｿ霎ｼ繧縲・
     pub fn load(path: &str) -> anyhow::Result<Self> {
         let content = std::fs::read_to_string(path)?;
         Self::from_yaml(&content)
     }
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default = "default_otlp_endpoint")]
+    pub otlp_endpoint: String,
+    #[serde(default = "default_log_level")]
+    pub log_level: String,
+    #[serde(default = "default_log_format")]
+    pub log_format: String,
+    #[serde(default = "default_metrics_enabled")]
+    pub metrics_enabled: bool,
+}
+
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            otlp_endpoint: default_otlp_endpoint(),
+            log_level: default_log_level(),
+            log_format: default_log_format(),
+            metrics_enabled: default_metrics_enabled(),
+        }
+    }
+}
+
+fn default_otlp_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_log_format() -> String {
+    "json".to_string()
+}
+
+fn default_metrics_enabled() -> bool {
+    true
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -303,3 +344,5 @@ kafka:
         assert_eq!(kafka.sasl.mechanism, "SCRAM-SHA-512");
     }
 }
+
+

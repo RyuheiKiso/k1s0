@@ -42,11 +42,36 @@ export class SagaClient {
 
     const data = (await resp.json()) as { saga: Record<string, unknown> };
     const saga = data.saga ?? data;
+    const stepLogs = ((saga['step_logs'] as Record<string, unknown>[] | undefined) ?? []).map(
+      (log) => ({
+        id: String(log['id'] ?? ''),
+        sagaId: String(log['saga_id'] ?? ''),
+        stepIndex: Number(log['step_index'] ?? 0),
+        stepName: String(log['step_name'] ?? ''),
+        action: String(log['action'] ?? ''),
+        status: String(log['status'] ?? ''),
+        requestPayload: log['request_payload'],
+        responsePayload: log['response_payload'],
+        errorMessage:
+          log['error_message'] == null ? undefined : String(log['error_message']),
+        startedAt: String(log['started_at'] ?? ''),
+        completedAt:
+          log['completed_at'] == null ? undefined : String(log['completed_at']),
+      }),
+    );
     return {
       sagaId: saga['saga_id'] as string,
       workflowName: saga['workflow_name'] as string,
+      currentStep: Number(saga['current_step'] ?? 0),
       status: saga['status'] as import('./types.js').SagaStatus,
-      stepLogs: (saga['step_logs'] as import('./types.js').SagaStepLog[]) ?? [],
+      payload: (saga['payload'] as Record<string, unknown>) ?? {},
+      correlationId:
+        saga['correlation_id'] == null ? undefined : String(saga['correlation_id']),
+      initiatedBy:
+        saga['initiated_by'] == null ? undefined : String(saga['initiated_by']),
+      errorMessage:
+        saga['error_message'] == null ? undefined : String(saga['error_message']),
+      stepLogs,
       createdAt: saga['created_at'] as string,
       updatedAt: saga['updated_at'] as string,
     };

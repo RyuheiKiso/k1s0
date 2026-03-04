@@ -9,17 +9,29 @@ export type SagaStatus =
 
 /** Saga ステップのログ。 */
 export interface SagaStepLog {
+  id: string;
+  sagaId: string;
+  stepIndex: number;
   stepName: string;
+  action: string;
   status: string;
-  message: string;
-  createdAt: string;
+  requestPayload: unknown;
+  responsePayload: unknown;
+  errorMessage?: string;
+  startedAt: string;
+  completedAt?: string;
 }
 
 /** Saga の現在状態。 */
 export interface SagaState {
   sagaId: string;
   workflowName: string;
+  currentStep: number;
   status: SagaStatus;
+  payload: Record<string, unknown>;
+  correlationId?: string;
+  initiatedBy?: string;
+  errorMessage?: string;
   stepLogs: SagaStepLog[];
   createdAt: string;
   updatedAt: string;
