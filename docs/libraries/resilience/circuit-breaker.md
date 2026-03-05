@@ -35,8 +35,7 @@ mock = ["mockall"]
 [dependencies]
 async-trait = "0.1"
 thiserror = "2"
-tokio = { version = "1", features = ["sync", "time"] }
-tracing = "0.1"
+tokio = { version = "1", features = ["sync", "time", "macros"] }
 opentelemetry = { version = "0.27", optional = true }
 mockall = { version = "0.13", optional = true }
 

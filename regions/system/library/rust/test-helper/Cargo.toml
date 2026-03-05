@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-containers = ["dep:testcontainers"]
+containers = ["dep:testcontainers", "dep:testcontainers-modules"]
 jwt = ["dep:jsonwebtoken"]
 mock-server = ["dep:wiremock"]
 fixtures = ["dep:fake"]
@@ -16,6 +16,7 @@ tokio = { version = "1", features = ["sync", "time"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 testcontainers = { version = "0.23", optional = true }
+testcontainers-modules = { version = "0.11", features = ["postgres", "redis", "kafka"], optional = true }
 jsonwebtoken = { version = "9", optional = true }
 wiremock = { version = "0.6", optional = true }
 fake = { version = "2.10", features = ["derive", "chrono"], optional = true }

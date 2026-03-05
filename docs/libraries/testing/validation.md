@@ -4,7 +4,7 @@
 
 共通バリデーションルール実装ライブラリ。メールアドレス・UUID・URL・日時範囲・ページネーション・テナント ID 等のバリデーションを多言語で統一実装する。API 境界でのリクエスト検証に利用する。
 
-`Validator` トレイトにより独自バリデーションルールを拡張可能とし、`ValidationErrors` による複数エラーの一括収集をサポートする。`validate!` マクロによる簡潔な複数フィールド検証と、serde との連携で gRPC / REST リクエスト構造体への直接適用が可能。
+`Validator` トレイトにより独自バリデーションルールを拡張可能とし、`ValidationErrors` による複数エラーの一括収集をサポートする。`validate!` マクロにより複数フィールド検証を簡潔に記述できる。
 
 **配置先**: `regions/system/library/rust/validation/`
 
@@ -34,7 +34,6 @@ edition = "2021"
 
 [dependencies]
 thiserror = "2"
-serde = { version = "1", features = ["derive"] }
 regex = "1"
 url = "2"
 uuid = { version = "1", features = ["v4"] }

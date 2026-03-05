@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 
 use crate::config::CircuitBreakerConfig;
 use crate::error::CircuitBreakerError;
-use crate::metrics::CircuitBreakerMetrics;
+use crate::metrics::{CircuitBreakerMetrics, CircuitBreakerMetricsRecorder};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum CircuitBreakerState {
@@ -24,10 +24,14 @@ struct Inner {
 pub struct CircuitBreaker {
     config: CircuitBreakerConfig,
     inner: Mutex<Inner>,
+    metrics: CircuitBreakerMetricsRecorder,
 }
 
 impl CircuitBreaker {
     pub fn new(config: CircuitBreakerConfig) -> Self {
+        let metrics = CircuitBreakerMetricsRecorder::new();
+        metrics.set_state(CircuitBreakerState::Closed);
+
         Self {
             config,
             inner: Mutex::new(Inner {
@@ -36,6 +40,7 @@ impl CircuitBreaker {
                 success_count: 0,
                 last_failure_time: None,
             }),
+            metrics,
         }
     }
 
@@ -72,6 +77,7 @@ impl CircuitBreaker {
     }
 
     pub async fn record_success(&self) {
+        self.metrics.record_success();
         let mut inner = self.inner.lock().await;
         inner.success_count += 1;
 
@@ -82,10 +88,12 @@ impl CircuitBreaker {
             inner.failure_count = 0;
             inner.success_count = 0;
             inner.last_failure_time = None;
+            self.metrics.set_state(CircuitBreakerState::Closed);
         }
     }
 
     pub async fn record_failure(&self) {
+        self.metrics.record_failure();
         let mut inner = self.inner.lock().await;
         inner.failure_count += 1;
         inner.last_failure_time = Some(Instant::now());
@@ -93,19 +101,16 @@ impl CircuitBreaker {
         if inner.state == CircuitBreakerState::HalfOpen {
             inner.state = CircuitBreakerState::Open;
             inner.success_count = 0;
+            self.metrics.set_state(CircuitBreakerState::Open);
         } else if inner.failure_count >= self.config.failure_threshold {
             inner.state = CircuitBreakerState::Open;
             inner.success_count = 0;
+            self.metrics.set_state(CircuitBreakerState::Open);
         }
     }
 
     pub async fn metrics(&self) -> CircuitBreakerMetrics {
-        let inner = self.inner.lock().await;
-        CircuitBreakerMetrics {
-            failure_count: inner.failure_count,
-            success_count: inner.success_count,
-            state: format!("{:?}", inner.state),
-        }
+        self.metrics.snapshot()
     }
 
     fn maybe_transition_to_half_open(&self, inner: &mut Inner) {
@@ -114,6 +119,7 @@ impl CircuitBreaker {
                 if last_failure.elapsed() >= self.config.timeout {
                     inner.state = CircuitBreakerState::HalfOpen;
                     inner.success_count = 0;
+                    self.metrics.set_state(CircuitBreakerState::HalfOpen);
                 }
             }
         }

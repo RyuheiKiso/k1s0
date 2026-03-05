@@ -30,7 +30,7 @@ impl std::fmt::Display for SagaStatus {
 /// SagaState はSagaの状態DTOを表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SagaState {
-    pub saga_id: Uuid,
+    pub saga_id: String,
     pub workflow_name: String,
     pub current_step: i32,
     pub status: SagaStatus,

@@ -1,10 +1,11 @@
-app:
+﻿app:
   name: k1s0-featureflag-server
   version: "0.1.0"
   environment: dev
 server:
   host: "0.0.0.0"
   port: 8087
+  grpc_port: 50051
 
 observability:
   log:
@@ -18,9 +19,9 @@ observability:
     enabled: true
     path: "/metrics"
 
-# === Production configuration (uncomment as needed) ===
+# --- Production configuration (uncomment as needed) ---
 # database:
-#   host: "localhost"
+#   host: "postgres.k1s0-system.svc.cluster.local"
 #   port: 5432
 #   name: "k1s0_system"
 #   user: "app"
@@ -31,9 +32,9 @@ observability:
 #   conn_max_lifetime: "5m"
 # kafka:
 #   brokers:
-#     - "localhost:9092"
+#     - "kafka-0.messaging.svc.cluster.local:9092"
 #   security_protocol: "PLAINTEXT"
-# auth:
-#   jwks_url: "http://auth:8080/jwks"
-#   issuer: "k1s0"
-#   audience: "k1s0-system"
+#   topic: "k1s0.system.featureflag.changed.v1"
+# cache:
+#   max_entries: 10000
+#   ttl_seconds: 60

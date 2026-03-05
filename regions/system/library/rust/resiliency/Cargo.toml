@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+metrics = ["opentelemetry"]
 hot-reload = ["k1s0-featureflag"]
 
 [dependencies]
@@ -11,6 +12,7 @@ async-trait = "0.1"
 thiserror = "2"
 tokio = { version = "1", features = ["sync", "time", "macros"] }
 tracing = "0.1"
+opentelemetry = { version = "0.27", optional = true }
 k1s0-retry = { path = "../retry" }
 k1s0-circuit-breaker = { path = "../circuit-breaker" }
 k1s0-featureflag = { path = "../featureflag", optional = true }

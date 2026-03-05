@@ -585,7 +585,7 @@ enum ConfigFieldType {
 | フィールド | 型 | デフォルト | 説明 |
 | --- | --- | --- | --- |
 | `host` | string | `0.0.0.0` | バインドアドレス |
-| `port` | int | `8080` | REST API ポート |
+| `port` | int | `8082` | REST API ポート |
 | `grpc_port` | int | `50051` | gRPC ポート |
 | `read_timeout` | string | `10s` | 読み取りタイムアウト |
 | `write_timeout` | string | `10s` | 書き込みタイムアウト |
@@ -615,7 +615,7 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8080
+  port: 8082
   grpc_port: 50051
 
 config_server:

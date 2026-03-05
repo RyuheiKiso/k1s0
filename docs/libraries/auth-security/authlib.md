@@ -16,6 +16,8 @@
 | `VerifyToken` / `verify_token` | `(tokenString) -> (Claims, Error)` | JWT トークンを検証 |
 | `Claims` | struct | JWT クレーム（sub, iss, aud, realm_access, resource_access, tier_access 等） |
 | `AuthError` | enum | `MissingToken` / `InvalidAuthHeader` / `TokenExpired` / `InvalidToken` / `JwksFetchFailed` / `PermissionDenied` / `TierAccessDenied` |
+| `AuthState` | struct | `JwksVerifier` を保持する認証ミドルウェア状態 |
+| `AuthErrorResponse` | struct | 標準化された認証エラーレスポンス（code/message） |
 | `JWKSFetcher` | interface | Go のみ: JWKS 取得処理の差し替えインターフェース |
 
 ### RBAC チェック関数

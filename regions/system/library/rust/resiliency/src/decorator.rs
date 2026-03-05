@@ -31,10 +31,12 @@ impl ResiliencyDecorator {
             .bulkhead
             .as_ref()
             .map(|cfg| Bulkhead::new(cfg.max_concurrent_calls, cfg.max_wait_duration));
+        let metrics = Arc::new(ResiliencyMetrics::new());
+        metrics.set_circuit_closed();
 
         Self {
             policy,
-            metrics: Arc::new(ResiliencyMetrics::new()),
+            metrics,
             bulkhead,
             cb_state: Mutex::new(CircuitState::Closed),
             cb_failure_count: AtomicU32::new(0),
@@ -163,10 +165,11 @@ impl ResiliencyDecorator {
                     if t.elapsed() >= cb_config.timeout {
                         *state = CircuitState::HalfOpen;
                         self.cb_success_count.store(0, Ordering::SeqCst);
+                        self.metrics.set_circuit_half_open();
                         Ok(())
                     } else {
                         let remaining = cb_config.timeout.saturating_sub(t.elapsed());
-                        Err(ResiliencyError::CircuitBreakerOpen {
+                        Err(ResiliencyError::CircuitOpen {
                             remaining_duration: remaining,
                         })
                     }
@@ -187,6 +190,7 @@ impl ResiliencyDecorator {
                     if count >= cb_config.success_threshold {
                         *state = CircuitState::Closed;
                         self.cb_failure_count.store(0, Ordering::SeqCst);
+                        self.metrics.set_circuit_closed();
                     }
                 }
                 CircuitState::Closed => {
@@ -208,6 +212,7 @@ impl ResiliencyDecorator {
                     .lock()
                     .expect("circuit breaker lock poisoned");
                 *last = Some(Instant::now());
+                self.metrics.set_circuit_open();
             }
         }
     }
@@ -328,7 +333,7 @@ mod tests {
             .execute(|| async { Ok::<_, TestError>(42) })
             .await;
 
-        assert!(matches!(result, Err(ResiliencyError::CircuitBreakerOpen { .. })));
+        assert!(matches!(result, Err(ResiliencyError::CircuitOpen { .. })));
     }
 
     #[tokio::test]

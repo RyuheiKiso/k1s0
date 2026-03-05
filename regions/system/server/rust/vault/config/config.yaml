@@ -1,10 +1,11 @@
-app:
+﻿app:
   name: k1s0-vault-server
   version: "0.1.0"
   environment: dev
 server:
   host: "0.0.0.0"
   port: 8090
+  grpc_port: 50051
 
 observability:
   log:
@@ -18,9 +19,9 @@ observability:
     enabled: true
     path: "/metrics"
 
-# === Production configuration (uncomment as needed) ===
+# --- Production configuration (uncomment as needed) ---
 # database:
-#   host: "localhost"
+#   host: "postgres.k1s0-system.svc.cluster.local"
 #   port: 5432
 #   name: "k1s0_system"
 #   user: "app"
@@ -31,9 +32,16 @@ observability:
 #   conn_max_lifetime: "5m"
 # kafka:
 #   brokers:
-#     - "localhost:9092"
+#     - "kafka-0.messaging.svc.cluster.local:9092"
+#   consumer_group: "vault-server.default"
 #   security_protocol: "PLAINTEXT"
+#   topics:
+#     publish:
+#       - "k1s0.system.vault.access.v1"
+#       - "k1s0.system.vault.secret_rotated.v1"
+#     subscribe: []
 # auth:
-#   jwks_url: "http://auth:8080/jwks"
-#   issuer: "k1s0"
+#   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+#   issuer: "https://auth.k1s0.example.com/realms/system"
 #   audience: "k1s0-system"
+#   jwks_cache_ttl_secs: 3600

@@ -31,6 +31,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+mock = ["mockall"]
 grpc = ["tonic"]
 kafka = ["rdkafka"]
 
@@ -39,17 +40,17 @@ async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
-tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 moka = { version = "0.12", features = ["future"] }
 tokio = { version = "1", features = ["sync", "time"] }
-tokio-stream = "0.1"
+reqwest = { version = "0.12", features = ["json"] }
+mockall = { version = "0.13", optional = true }
 tonic = { version = "0.12", optional = true }
-rdkafka = { version = "0.37", optional = true }
+rdkafka = { version = "0.37", optional = true, features = ["cmake-build"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-mockall = "0.13"
+wiremock = "0.6"
 ```
 
 **依存追加**: `k1s0-vault-client = { path = "../../system/library/rust/vault-client" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
@@ -62,6 +63,8 @@ vault-client/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
 │   ├── client.rs       # VaultClient トレイト・InMemoryVaultClient
 │   ├── http.rs         # HttpVaultClient（HTTP/REST 実装）
+│   ├── grpc.rs         # GrpcVaultClient（feature = "grpc"）
+│   ├── kafka.rs        # KafkaVaultEventPublisher（feature = "kafka"）
 │   ├── secret.rs       # Secret・SecretRotatedEvent
 │   ├── config.rs       # VaultClientConfig
 │   └── error.rs        # VaultError

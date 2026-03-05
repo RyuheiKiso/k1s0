@@ -6,7 +6,7 @@ pub enum ResiliencyError {
         attempts: u32,
         last_error: Box<dyn std::error::Error + Send + Sync>,
     },
-    CircuitBreakerOpen {
+    CircuitOpen {
         remaining_duration: std::time::Duration,
     },
     BulkheadFull {
@@ -23,7 +23,7 @@ impl fmt::Display for ResiliencyError {
             Self::MaxRetriesExceeded { attempts, last_error } => {
                 write!(f, "max retries exceeded after {} attempts: {}", attempts, last_error)
             }
-            Self::CircuitBreakerOpen { remaining_duration } => {
+            Self::CircuitOpen { remaining_duration } => {
                 write!(f, "circuit breaker is open, remaining: {:?}", remaining_duration)
             }
             Self::BulkheadFull { max_concurrent } => {

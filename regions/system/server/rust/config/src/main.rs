@@ -276,7 +276,7 @@ async fn main() -> anyhow::Result<()> {
     let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.grpc.port).into();
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
     use proto::k1s0::system::config::v1::config_service_server::ConfigServiceServer;

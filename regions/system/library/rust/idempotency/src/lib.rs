@@ -1,11 +1,11 @@
 pub mod error;
-pub mod layer;
+pub mod middleware;
 pub mod memory;
 pub mod record;
 pub mod store;
 
 pub use error::IdempotencyError;
-pub use layer::{
+pub use middleware::{
     idempotency_middleware, IdempotencyConfig, IdempotencyMiddleware, IdempotencyState,
     IDEMPOTENCY_KEY_HEADER,
 };

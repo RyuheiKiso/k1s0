@@ -34,28 +34,25 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = ["server-mode"]
 mock = ["mockall"]
 server-mode = []      # file-server 経由モード（デフォルト有効）
-direct-mode = ["aws-sdk-s3"]  # 直接 S3 API モード
+direct-mode = ["aws-config", "aws-sdk-s3"]  # 直接 S3 API モード
 
 [dependencies]
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
-tokio = { version = "1", features = ["sync", "time"] }
-tracing = "0.1"
-reqwest = { version = "0.12", features = ["json", "multipart"] }
+tokio = { version = "1", features = ["sync", "time", "macros"] }
+reqwest = { version = "0.12", features = ["json"] }
 aws-sdk-s3 = { version = "1", optional = true }
 aws-config = { version = "1", optional = true }
 chrono = { version = "0.4", features = ["serde"] }
-bytes = "1"
 mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-testcontainers = "0.23"
-wiremock = "0.6"
 ```
 
 **依存追加**: `k1s0-file-client = { path = "../../system/library/rust/file-client" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）

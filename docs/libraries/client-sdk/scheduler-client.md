@@ -36,24 +36,25 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-grpc = ["tonic"]
+mock = ["mockall"]
+grpc = ["tonic", "reqwest", "urlencoding"]
 kafka = ["rdkafka"]
 
 [dependencies]
 async-trait = "0.1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time", "macros"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-thiserror = "2"
-tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
-tokio = { version = "1", features = ["sync"] }
-tokio-stream = "0.1"
+mockall = { version = "0.13", optional = true }
+reqwest = { version = "0.12", features = ["json"], optional = true }
+urlencoding = { version = "2", optional = true }
 tonic = { version = "0.12", optional = true }
-rdkafka = { version = "0.37", optional = true }
+rdkafka = { version = "0.37", optional = true, features = ["cmake-build"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-mockall = "0.13"
 ```
 
 **依存追加**: `k1s0-scheduler-client = { path = "../../system/library/rust/scheduler-client" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）

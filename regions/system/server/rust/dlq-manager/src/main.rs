@@ -180,7 +180,7 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
 
     // gRPC server
-    let grpc_addr: std::net::SocketAddr = ([0, 0, 0, 0], 50051).into();
+    let grpc_addr: std::net::SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     let grpc_future = async move {
         tonic::transport::Server::builder()
             .add_service(DlqServiceServer::new(dlq_tonic))

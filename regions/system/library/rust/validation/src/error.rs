@@ -37,8 +37,12 @@ impl ValidationErrors {
         Self { errors: Vec::new() }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.errors.is_empty()
+    }
+
     pub fn has_errors(&self) -> bool {
-        !self.errors.is_empty()
+        !self.is_empty()
     }
 
     pub fn get_errors(&self) -> &[ValidationError] {

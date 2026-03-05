@@ -542,6 +542,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
+  grpc_port: 50051
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
@@ -595,12 +596,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 50051
+  grpc_port: 50051
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 50051
+  grpc_port: 50051
 
 autoscaling:
   enabled: true

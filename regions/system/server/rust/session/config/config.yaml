@@ -1,6 +1,7 @@
-server:
+﻿server:
   host: "0.0.0.0"
   port: 8102
+  grpc_port: 50051
 session:
   default_ttl_seconds: 3600
   max_ttl_seconds: 86400
@@ -17,9 +18,9 @@ observability:
     enabled: true
     path: "/metrics"
 
-# === Production configuration (uncomment as needed) ===
+# --- Production configuration (uncomment as needed) ---
 # database:
-#   host: "localhost"
+#   host: "postgres.k1s0-system.svc.cluster.local"
 #   port: 5432
 #   name: "k1s0_system"
 #   user: "app"
@@ -28,11 +29,15 @@ observability:
 #   max_open_conns: 25
 #   max_idle_conns: 5
 #   conn_max_lifetime: "5m"
+# redis:
+#   url: "redis://redis.k1s0-system.svc.cluster.local:6379"
+#   pool_size: 10
+#   connect_timeout_seconds: 3
 # kafka:
 #   brokers:
-#     - "localhost:9092"
+#     - "kafka-0.messaging.svc.cluster.local:9092"
+#   consumer_group: "session-server.default"
 #   security_protocol: "PLAINTEXT"
-# auth:
-#   jwks_url: "http://auth:8080/jwks"
-#   issuer: "k1s0"
-#   audience: "k1s0-system"
+#   topic_revoke_all: "k1s0.system.session.revoke_all.v1"
+#   topic_created: "k1s0.system.session.created.v1"
+#   topic_revoked: "k1s0.system.session.revoked.v1"

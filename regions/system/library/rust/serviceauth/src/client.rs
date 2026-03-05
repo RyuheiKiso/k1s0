@@ -51,7 +51,7 @@ pub trait ServiceAuthClient: Send + Sync {
     ///
     /// リフレッシュ閾値（`config.refresh_before_secs`）以内に有効期限が迫っている場合は
     /// 自動的に `get_token` を呼び出してキャッシュを更新する。
-    async fn get_cached_token(&self) -> Result<String, ServiceAuthError>;
+    async fn get_cached_token(&self) -> Result<ServiceToken, ServiceAuthError>;
 
     /// サービストークンを検証して Claims を返す。
     ///
@@ -161,14 +161,14 @@ impl ServiceAuthClient for HttpServiceAuthClient {
         ))
     }
 
-    async fn get_cached_token(&self) -> Result<String, ServiceAuthError> {
+    async fn get_cached_token(&self) -> Result<ServiceToken, ServiceAuthError> {
         // まず Read ロックでキャッシュを確認する
         {
             let cache = self.token_cache.read().await;
             if let Some(ref token) = *cache {
                 if !token.should_refresh(self.config.refresh_before_secs) {
                     debug!("キャッシュ済みトークンを返します");
-                    return Ok(token.bearer_header());
+                    return Ok(token.clone());
                 }
             }
         }
@@ -180,16 +180,15 @@ impl ServiceAuthClient for HttpServiceAuthClient {
         if let Some(ref token) = *cache {
             if !token.should_refresh(self.config.refresh_before_secs) {
                 debug!("ダブルチェック: キャッシュ済みトークンを返します");
-                return Ok(token.bearer_header());
+                return Ok(token.clone());
             }
         }
 
         debug!("トークンをリフレッシュします");
         let new_token = self.get_token().await?;
-        let bearer = new_token.bearer_header();
-        *cache = Some(new_token);
+        *cache = Some(new_token.clone());
 
-        Ok(bearer)
+        Ok(new_token)
     }
 
     async fn verify_token(&self, token: &str) -> Result<ServiceClaims, ServiceAuthError> {

@@ -23,8 +23,6 @@ pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
     #[serde(default)]
-    pub grpc: GrpcConfig,
-    #[serde(default)]
     pub observability: ObservabilityConfig,
     #[serde(default)]
     pub auth: Option<AuthConfig>,
@@ -186,26 +184,14 @@ pub struct ServerConfig {
     pub host: String,
     #[serde(default = "default_port")]
     pub port: u16,
+    #[serde(default = "default_grpc_port")]
+    pub grpc_port: u16,
     #[serde(default = "default_read_timeout")]
     pub read_timeout: String,
     #[serde(default = "default_write_timeout")]
     pub write_timeout: String,
     #[serde(default = "default_shutdown_timeout")]
     pub shutdown_timeout: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct GrpcConfig {
-    #[serde(default = "default_grpc_port")]
-    pub port: u16,
-}
-
-impl Default for GrpcConfig {
-    fn default() -> Self {
-        Self {
-            port: default_grpc_port(),
-        }
-    }
 }
 
 fn default_host() -> String {
@@ -381,7 +367,7 @@ server:
         assert_eq!(config.server.read_timeout, "10s");
         assert_eq!(config.server.write_timeout, "30s");
         assert_eq!(config.server.shutdown_timeout, "15s");
-        assert_eq!(config.grpc.port, 50051);
+        assert_eq!(config.server.grpc_port, 50051);
     }
 
     #[test]
@@ -396,7 +382,7 @@ server: {}
         assert_eq!(config.app.environment, "dev");
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 8082);
-        assert_eq!(config.grpc.port, 50051);
+        assert_eq!(config.server.grpc_port, 50051);
         assert!(config.database.is_none());
         assert!(config.kafka.is_none());
     }

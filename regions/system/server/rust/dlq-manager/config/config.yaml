@@ -1,10 +1,11 @@
-app:
+﻿app:
   name: "dlq-manager"
   version: "0.1.0"
   environment: "production"
 server:
   host: "0.0.0.0"
   port: 8080
+  grpc_port: 50051
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
   port: 5432

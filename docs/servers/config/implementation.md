@@ -823,7 +823,6 @@ use std::fs;
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
-    pub grpc: GrpcConfig,
     pub database: DatabaseConfig,
     pub kafka: KafkaConfig,
     pub observability: ObservabilityConfig,
@@ -834,6 +833,7 @@ pub struct Config {
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
+    pub grpc_port: u16,
     pub read_timeout: String,
     pub write_timeout: String,
     pub shutdown_timeout: String,

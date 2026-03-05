@@ -37,6 +37,7 @@ edition = "2021"
 
 [features]
 grpc = ["tonic"]
+mock = ["mockall"]
 
 [dependencies]
 async-trait = "0.1"
@@ -44,11 +45,12 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 tracing = "0.1"
+tokio = { version = "1", features = ["sync"] }
 tonic = { version = "0.12", optional = true }
+mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-mockall = "0.13"
 ```
 
 **依存追加**: `k1s0-search-client = { path = "../../system/library/rust/search-client" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）

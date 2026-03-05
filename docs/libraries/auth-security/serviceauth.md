@@ -25,6 +25,8 @@
 | --- | --- | --- | --- |
 | `ServiceClaims` | `sub` | string | サービス識別子 |
 | `ServiceClaims` | `client_id` | Option\<string\> | Keycloak client_id |
+| `ServiceClaims` | `scope` | Option\<string\> | 付与されたスコープ |
+| `ServiceClaims` | `iss` | string | トークン発行者 URL |
 | `ServiceClaims` | `exp` | i64 | 有効期限（Unix 秒） |
 | `ServiceClaims` | `iat` | i64 | 発行時刻（Unix 秒） |
 | `ServiceAuthConfig` | `refresh_before_secs` | u64 | 期限切れ前に更新を開始する秒数（デフォルト 120） |

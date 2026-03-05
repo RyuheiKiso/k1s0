@@ -7,7 +7,9 @@ pub mod mock_server;
 
 pub use assertion::AssertionHelper;
 #[cfg(feature = "containers")]
-pub use container::TestContainerBuilder;
+pub use container::{
+    KafkaContainer, KeycloakContainer, PostgresContainer, RedisContainer, TestContainerBuilder,
+};
 pub use fixture::FixtureBuilder;
 pub use jwt::{JwtTestHelper, TestClaims};
 pub use mock_server::{MockRoute, MockServer, MockServerBuilder};

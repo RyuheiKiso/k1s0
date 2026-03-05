@@ -41,7 +41,7 @@ chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
-tokio = { version = "1", features = ["sync", "time"] }
+tokio = { version = "1", features = ["macros", "sync", "time"] }
 tokio-util = { version = "0.7", features = ["sync"] }
 tracing = "0.1"
 uuid = { version = "1", features = ["v4", "serde"] }

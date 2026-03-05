@@ -1,4 +1,4 @@
-app:
+﻿app:
   name: "k1s0-config-server"
   version: "0.1.0"
   environment: "prod"
@@ -6,12 +6,11 @@ app:
 server:
   host: "0.0.0.0"
   port: 8082
+  grpc_port: 50051
   read_timeout: "10s"
   write_timeout: "30s"
   shutdown_timeout: "15s"
 
-grpc:
-  port: 50051
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
