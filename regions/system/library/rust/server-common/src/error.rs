@@ -81,6 +81,26 @@ impl ErrorCode {
         ))
     }
 
+    /// Create a standard "not found" error code for a business tier service.
+    pub fn biz_not_found(service: &str) -> Self {
+        Self(format!("BIZ_{}_NOT_FOUND", service.to_uppercase()))
+    }
+
+    /// Create a standard "validation failed" error code for a business tier service.
+    pub fn biz_validation(service: &str) -> Self {
+        Self(format!("BIZ_{}_VALIDATION_FAILED", service.to_uppercase()))
+    }
+
+    /// Create a standard "not found" error code for a service tier service.
+    pub fn svc_not_found(service: &str) -> Self {
+        Self(format!("SVC_{}_NOT_FOUND", service.to_uppercase()))
+    }
+
+    /// Create a standard "validation failed" error code for a service tier service.
+    pub fn svc_validation(service: &str) -> Self {
+        Self(format!("SVC_{}_VALIDATION_FAILED", service.to_uppercase()))
+    }
+
     /// Return the error code string.
     pub fn as_str(&self) -> &str {
         &self.0
@@ -117,18 +137,24 @@ impl From<String> for ErrorCode {
 /// ErrorDetail provides additional context for an error field.
 ///
 /// Follows the REST-API設計.md D-007 specification:
-/// `{ "field": "quantity", "message": "..." }`
+/// `{ "field": "quantity", "reason": "invalid_type", "message": "..." }`
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct ErrorDetail {
     pub field: String,
+    pub reason: String,
     pub message: String,
 }
 
 impl ErrorDetail {
-    pub fn new(field: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn new(
+        field: impl Into<String>,
+        reason: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
             field: field.into(),
+            reason: reason.into(),
             message: message.into(),
         }
     }
@@ -200,10 +226,7 @@ fn default_request_id() -> String {
 pub enum ServiceError {
     /// 404 Not Found
     #[error("{message}")]
-    NotFound {
-        code: ErrorCode,
-        message: String,
-    },
+    NotFound { code: ErrorCode, message: String },
 
     /// 400 Bad Request
     #[error("{message}")]
@@ -215,17 +238,11 @@ pub enum ServiceError {
 
     /// 401 Unauthorized
     #[error("{message}")]
-    Unauthorized {
-        code: ErrorCode,
-        message: String,
-    },
+    Unauthorized { code: ErrorCode, message: String },
 
     /// 403 Forbidden
     #[error("{message}")]
-    Forbidden {
-        code: ErrorCode,
-        message: String,
-    },
+    Forbidden { code: ErrorCode, message: String },
 
     /// 409 Conflict
     #[error("{message}")]
@@ -245,24 +262,15 @@ pub enum ServiceError {
 
     /// 429 Too Many Requests (rate limit exceeded)
     #[error("{message}")]
-    TooManyRequests {
-        code: ErrorCode,
-        message: String,
-    },
+    TooManyRequests { code: ErrorCode, message: String },
 
     /// 500 Internal Server Error
     #[error("{message}")]
-    Internal {
-        code: ErrorCode,
-        message: String,
-    },
+    Internal { code: ErrorCode, message: String },
 
     /// 503 Service Unavailable
     #[error("{message}")]
-    ServiceUnavailable {
-        code: ErrorCode,
-        message: String,
-    },
+    ServiceUnavailable { code: ErrorCode, message: String },
 }
 
 impl ServiceError {
@@ -400,9 +408,7 @@ impl axum::response::IntoResponse for ServiceError {
             }
             ServiceError::TooManyRequests { .. } => axum::http::StatusCode::TOO_MANY_REQUESTS,
             ServiceError::Internal { .. } => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            ServiceError::ServiceUnavailable { .. } => {
-                axum::http::StatusCode::SERVICE_UNAVAILABLE
-            }
+            ServiceError::ServiceUnavailable { .. } => axum::http::StatusCode::SERVICE_UNAVAILABLE,
         };
 
         let body = self.to_error_response();
@@ -876,6 +882,26 @@ mod tests {
     }
 
     #[test]
+    fn test_error_code_biz_and_svc_helpers() {
+        assert_eq!(
+            ErrorCode::biz_not_found("ORDER").as_str(),
+            "BIZ_ORDER_NOT_FOUND"
+        );
+        assert_eq!(
+            ErrorCode::biz_validation("ORDER").as_str(),
+            "BIZ_ORDER_VALIDATION_FAILED"
+        );
+        assert_eq!(
+            ErrorCode::svc_not_found("PAYMENT").as_str(),
+            "SVC_PAYMENT_NOT_FOUND"
+        );
+        assert_eq!(
+            ErrorCode::svc_validation("PAYMENT").as_str(),
+            "SVC_PAYMENT_VALIDATION_FAILED"
+        );
+    }
+
+    #[test]
     fn test_error_code_from_str() {
         let code = ErrorCode::from("SYS_AUTH_MISSING_CLAIMS");
         assert_eq!(code.as_str(), "SYS_AUTH_MISSING_CLAIMS");
@@ -893,8 +919,8 @@ mod tests {
     #[test]
     fn test_error_response_with_details() {
         let details = vec![
-            ErrorDetail::new("namespace", "must not be empty"),
-            ErrorDetail::new("key", "invalid format"),
+            ErrorDetail::new("namespace", "required", "must not be empty"),
+            ErrorDetail::new("key", "format", "invalid format"),
         ];
         let resp = ErrorResponse::with_details(
             "SYS_CONFIG_VALIDATION_FAILED",
@@ -903,6 +929,7 @@ mod tests {
         );
         assert_eq!(resp.error.details.len(), 2);
         assert_eq!(resp.error.details[0].field, "namespace");
+        assert_eq!(resp.error.details[0].reason, "required");
         assert_eq!(resp.error.details[0].message, "must not be empty");
     }
 
@@ -915,12 +942,12 @@ mod tests {
 
     #[test]
     fn test_service_error_bad_request_with_details() {
-        let details = vec![ErrorDetail::new("page", "must be >= 1")];
-        let err =
-            ServiceError::bad_request_with_details("CONFIG", "validation failed", details);
+        let details = vec![ErrorDetail::new("page", "range", "must be >= 1")];
+        let err = ServiceError::bad_request_with_details("CONFIG", "validation failed", details);
         let resp = err.to_error_response();
         assert_eq!(resp.error.code.as_str(), "SYS_CONFIG_VALIDATION_FAILED");
         assert_eq!(resp.error.details.len(), 1);
+        assert_eq!(resp.error.details[0].reason, "range");
         assert_eq!(resp.error.details[0].message, "must be >= 1");
     }
 
@@ -940,10 +967,7 @@ mod tests {
 
     #[test]
     fn test_well_known_config_codes() {
-        assert_eq!(
-            config::key_not_found().as_str(),
-            "SYS_CONFIG_KEY_NOT_FOUND"
-        );
+        assert_eq!(config::key_not_found().as_str(), "SYS_CONFIG_KEY_NOT_FOUND");
         assert_eq!(
             config::version_conflict().as_str(),
             "SYS_CONFIG_VERSION_CONFLICT"
@@ -979,11 +1003,12 @@ mod tests {
 
     #[test]
     fn test_error_response_with_details_serialization() {
-        let details = vec![ErrorDetail::new("field1", "error1")];
+        let details = vec![ErrorDetail::new("field1", "invalid", "error1")];
         let resp =
             ErrorResponse::with_details("SYS_CONFIG_VALIDATION_FAILED", "validation", details);
         let json = serde_json::to_value(&resp).unwrap();
         assert_eq!(json["error"]["details"][0]["field"], "field1");
+        assert_eq!(json["error"]["details"][0]["reason"], "invalid");
         assert_eq!(json["error"]["details"][0]["message"], "error1");
         assert_eq!(json["error"]["details"][0]["message"], "error1");
     }
@@ -992,10 +1017,7 @@ mod tests {
     fn test_new_service_error_variants() {
         let err = ServiceError::unprocessable_entity("ACCT", "ledger is closed");
         let resp = err.to_error_response();
-        assert_eq!(
-            resp.error.code.as_str(),
-            "SYS_ACCT_BUSINESS_RULE_VIOLATION"
-        );
+        assert_eq!(resp.error.code.as_str(), "SYS_ACCT_BUSINESS_RULE_VIOLATION");
 
         let err = ServiceError::too_many_requests("RATE", "rate limit exceeded");
         let resp = err.to_error_response();
@@ -1003,30 +1025,18 @@ mod tests {
 
         let err = ServiceError::service_unavailable("AUTH", "service unavailable");
         let resp = err.to_error_response();
-        assert_eq!(
-            resp.error.code.as_str(),
-            "SYS_AUTH_SERVICE_UNAVAILABLE"
-        );
+        assert_eq!(resp.error.code.as_str(), "SYS_AUTH_SERVICE_UNAVAILABLE");
     }
 
     #[test]
     fn test_well_known_tenant_codes() {
-        assert_eq!(
-            tenant::not_found().as_str(),
-            "SYS_TENANT_NOT_FOUND"
-        );
-        assert_eq!(
-            tenant::name_conflict().as_str(),
-            "SYS_TENANT_NAME_CONFLICT"
-        );
+        assert_eq!(tenant::not_found().as_str(), "SYS_TENANT_NOT_FOUND");
+        assert_eq!(tenant::name_conflict().as_str(), "SYS_TENANT_NAME_CONFLICT");
     }
 
     #[test]
     fn test_well_known_session_codes() {
-        assert_eq!(
-            session::not_found().as_str(),
-            "SYS_SESSION_NOT_FOUND"
-        );
+        assert_eq!(session::not_found().as_str(), "SYS_SESSION_NOT_FOUND");
         assert_eq!(session::expired().as_str(), "SYS_SESSION_EXPIRED");
         assert_eq!(
             session::max_devices_exceeded().as_str(),

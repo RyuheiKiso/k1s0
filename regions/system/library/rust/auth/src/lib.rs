@@ -31,7 +31,7 @@ pub use middleware::{
     auth_middleware, get_claims, require_permission, require_role, require_tier_access,
 };
 pub use rbac::{check_permission, has_permission, has_resource_role, has_role, has_tier_access};
-pub use verifier::{AuthError, JwksVerifier};
+pub use verifier::{AuthError, DefaultJwksFetcher, JwksFetcher, JwksVerifier};
 
 #[cfg(test)]
 mod tests;

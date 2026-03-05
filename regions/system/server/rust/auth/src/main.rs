@@ -20,6 +20,7 @@ use adapter::repository::user_postgres::UserPostgresRepository;
 use infrastructure::database::DatabaseConfig;
 use infrastructure::kafka_producer::KafkaConfig;
 use infrastructure::keycloak_client::{KeycloakClient, KeycloakConfig};
+use infrastructure::keycloak_role_permission_source::KeycloakRolePermissionSource;
 use infrastructure::user_cache::UserCache;
 
 /// Application configuration.
@@ -248,17 +249,24 @@ fn default_retention_days() -> u32 {
 struct KeycloakAdminConfig {
     #[serde(default = "default_keycloak_admin_token_cache_ttl_secs")]
     token_cache_ttl_secs: u64,
+    #[serde(default = "default_keycloak_admin_refresh_interval_secs")]
+    refresh_interval_secs: u64,
 }
 
 impl Default for KeycloakAdminConfig {
     fn default() -> Self {
         Self {
             token_cache_ttl_secs: default_keycloak_admin_token_cache_ttl_secs(),
+            refresh_interval_secs: default_keycloak_admin_refresh_interval_secs(),
         }
     }
 }
 
 fn default_keycloak_admin_token_cache_ttl_secs() -> u64 {
+    300
+}
+
+fn default_keycloak_admin_refresh_interval_secs() -> u64 {
     300
 }
 
@@ -295,7 +303,10 @@ fn parse_pool_duration(input: &str) -> Option<std::time::Duration> {
             .ok()
             .map(|v| std::time::Duration::from_secs(v * 60 * 60));
     }
-    value.parse::<u64>().ok().map(std::time::Duration::from_secs)
+    value
+        .parse::<u64>()
+        .ok()
+        .map(std::time::Duration::from_secs)
 }
 
 #[tokio::main]
@@ -311,7 +322,11 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
@@ -389,7 +404,10 @@ async fn main() -> anyhow::Result<()> {
             .as_ref()
             .map(|j| j.cache_ttl_secs)
             .unwrap_or(default_cache_ttl_secs());
-        infrastructure::jwks_provider::JwksProvider::new(url, std::time::Duration::from_secs(ttl_secs))
+        infrastructure::jwks_provider::JwksProvider::new(
+            url,
+            std::time::Duration::from_secs(ttl_secs),
+        )
     });
 
     // Metrics (shared across layers and repositories)
@@ -399,19 +417,17 @@ async fn main() -> anyhow::Result<()> {
     let user_cache = Arc::new(UserCache::new(5000, 300));
 
     // User repository (PostgreSQL > Keycloak > Stub)
-    let keycloak_config = cfg.keycloak.take();
+    let keycloak_config = cfg.keycloak.clone();
     let user_repo: Arc<dyn domain::repository::UserRepository> = if let Some(ref pool) = db_pool {
-        let inner: Arc<dyn domain::repository::UserRepository> =
-            Arc::new(UserPostgresRepository::with_metrics(
-                pool.clone(),
-                metrics.clone(),
-            ));
+        let inner: Arc<dyn domain::repository::UserRepository> = Arc::new(
+            UserPostgresRepository::with_metrics(pool.clone(), metrics.clone()),
+        );
         Arc::new(CachedUserRepository::with_metrics(
             inner,
             user_cache,
             metrics.clone(),
         ))
-    } else if let Some(kc_config) = keycloak_config {
+    } else if let Some(kc_config) = keycloak_config.clone() {
         let inner: Arc<dyn domain::repository::UserRepository> =
             Arc::new(KeycloakClient::new(kc_config));
         Arc::new(CachedUserRepository::with_metrics(
@@ -421,6 +437,37 @@ async fn main() -> anyhow::Result<()> {
         ))
     } else {
         Arc::new(StubUserRepository)
+    };
+
+    // Keycloak Admin API role-permission table (cached + periodic refresh)
+    let role_permission_table = if let Some(kc_config) = keycloak_config {
+        let source = Arc::new(KeycloakRolePermissionSource::new(
+            kc_config,
+            cfg.keycloak_admin.token_cache_ttl_secs,
+        ));
+        let table = Arc::new(domain::service::RolePermissionTable::new(
+            source,
+            cfg.permission_cache.ttl_secs,
+            2_048,
+        ));
+
+        if let Err(err) = table.sync_once().await {
+            tracing::warn!(
+                error = %err,
+                "initial keycloak role-permission sync failed; static RBAC fallback will be used"
+            );
+        } else {
+            info!("initial keycloak role-permission table sync completed");
+        }
+
+        table
+            .clone()
+            .start_background_refresh(std::time::Duration::from_secs(
+                cfg.keycloak_admin.refresh_interval_secs,
+            ));
+        Some(table)
+    } else {
+        None
     };
 
     // Audit log repository (PostgreSQL or in-memory)
@@ -477,9 +524,11 @@ async fn main() -> anyhow::Result<()> {
     let get_user_uc = Arc::new(usecase::GetUserUseCase::new(user_repo.clone()));
     let get_user_roles_uc = Arc::new(usecase::GetUserRolesUseCase::new(user_repo.clone()));
     let list_users_uc = Arc::new(usecase::ListUsersUseCase::new(user_repo.clone()));
-    let check_permission_uc = Arc::new(usecase::CheckPermissionUseCase::with_user_repo(
-        user_repo.clone(),
-    ));
+    let check_permission_uc = Arc::new(if let Some(table) = role_permission_table.clone() {
+        usecase::CheckPermissionUseCase::with_user_repo_and_role_table(user_repo.clone(), table)
+    } else {
+        usecase::CheckPermissionUseCase::with_user_repo(user_repo.clone())
+    });
     let record_audit_log_uc = Arc::new(if let Some(ref publisher) = kafka_publisher {
         usecase::RecordAuditLogUseCase::with_publisher(audit_repo.clone(), publisher.clone())
     } else {
@@ -504,6 +553,8 @@ async fn main() -> anyhow::Result<()> {
         10_000,
     );
     state.permission_cache_refresh_on_miss = cfg.permission_cache.refresh_on_miss;
+    state.check_permission_uc = check_permission_uc.clone();
+    state.role_permission_table = role_permission_table;
 
     let auth_grpc_svc = Arc::new(AuthGrpcService::new(
         validate_token_uc,

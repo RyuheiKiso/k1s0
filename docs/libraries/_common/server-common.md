@@ -32,10 +32,12 @@ Go / TypeScript / Dart には同名ライブラリは提供しない。
 | 型 | 説明 |
 | --- | --- |
 | `ErrorCode` | `SYS_{SERVICE}_{ERROR}` 形式のコードラッパー |
-| `ErrorDetail` | バリデーション等の詳細情報（field/reason/value） |
+| `ErrorDetail` | バリデーション等の詳細情報（`field` / `reason` / `message`） |
 | `ErrorBody` | エラー本体（code/message/request_id/details） |
 | `ErrorResponse` | `{ "error": ... }` の共通レスポンスラッパー |
 | `ServiceError` | HTTP ステータスに対応したサービス層エラー |
+| `PaginationResponse` | ページ情報（`total_count` / `page` / `page_size` / `has_next`） |
+| `PaginatedResponse<T>` | `items` と `pagination` を持つ共通ページングレスポンス |
 
 ### well-known エラーコード
 
@@ -47,6 +49,26 @@ Go / TypeScript / Dart には同名ライブラリは提供しない。
 - `error::tenant::*`
 - `error::session::*`
 - `error::api_registry::*`
+
+### ErrorCode ファクトリメソッド
+
+`ErrorCode` は以下のファクトリメソッドを提供する。
+
+| メソッド | 生成コード |
+| --- | --- |
+| `ErrorCode::not_found(service)` | `SYS_{SERVICE}_NOT_FOUND` |
+| `ErrorCode::validation(service)` | `SYS_{SERVICE}_VALIDATION_FAILED` |
+| `ErrorCode::internal(service)` | `SYS_{SERVICE}_INTERNAL_ERROR` |
+| `ErrorCode::unauthorized(service)` | `SYS_{SERVICE}_UNAUTHORIZED` |
+| `ErrorCode::forbidden(service)` | `SYS_{SERVICE}_PERMISSION_DENIED` |
+| `ErrorCode::conflict(service)` | `SYS_{SERVICE}_CONFLICT` |
+| `ErrorCode::unprocessable(service)` | `SYS_{SERVICE}_BUSINESS_RULE_VIOLATION` |
+| `ErrorCode::rate_exceeded(service)` | `SYS_{SERVICE}_RATE_EXCEEDED` |
+| `ErrorCode::service_unavailable(service)` | `SYS_{SERVICE}_SERVICE_UNAVAILABLE` |
+| `ErrorCode::biz_not_found(service)` | `BIZ_{SERVICE}_NOT_FOUND` |
+| `ErrorCode::biz_validation(service)` | `BIZ_{SERVICE}_VALIDATION_FAILED` |
+| `ErrorCode::svc_not_found(service)` | `SVC_{SERVICE}_NOT_FOUND` |
+| `ErrorCode::svc_validation(service)` | `SVC_{SERVICE}_VALIDATION_FAILED` |
 
 ## Cargo 設定
 

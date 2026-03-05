@@ -1,4 +1,4 @@
-use k1s0_dlq_client::{DlqClient, DlqStatus};
+use k1s0_dlq_client::{DlqClient, DlqStatus, ListDlqMessagesRequest};
 use wiremock::matchers::{method, path, path_regex, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -31,7 +31,9 @@ async fn test_list_messages_success() {
         .await;
 
     let client = DlqClient::new(&mock_server.uri());
-    let result = client.list_messages("orders.v1", 1, 20).await;
+    let result = client
+        .list_messages(ListDlqMessagesRequest::new("orders.v1", 1, 20))
+        .await;
     assert!(result.is_ok());
     let resp = result.unwrap();
     assert_eq!(resp.messages.len(), 0);
@@ -54,7 +56,9 @@ async fn test_list_messages_with_data() {
         .await;
 
     let client = DlqClient::new(&mock_server.uri());
-    let result = client.list_messages("orders.v1", 1, 20).await;
+    let result = client
+        .list_messages(ListDlqMessagesRequest::new("orders.v1", 1, 20))
+        .await;
     assert!(result.is_ok());
     let resp = result.unwrap();
     assert_eq!(resp.messages.len(), 2);
@@ -80,7 +84,9 @@ async fn test_list_messages_pagination() {
         .await;
 
     let client = DlqClient::new(&mock_server.uri());
-    let result = client.list_messages("orders.v1", 2, 10).await;
+    let result = client
+        .list_messages(ListDlqMessagesRequest::new("orders.v1", 2, 10))
+        .await;
     assert!(result.is_ok());
     let resp = result.unwrap();
     assert_eq!(resp.page, 2);
@@ -277,7 +283,9 @@ async fn test_list_messages_empty_response() {
         .await;
 
     let client = DlqClient::new(&mock_server.uri());
-    let result = client.list_messages("empty-topic", 1, 20).await;
+    let result = client
+        .list_messages(ListDlqMessagesRequest::new("empty-topic", 1, 20))
+        .await;
     assert!(result.is_ok());
     let resp = result.unwrap();
     assert_eq!(resp.total, 0);
@@ -323,7 +331,9 @@ async fn test_list_messages_multiple_statuses() {
         .await;
 
     let client = DlqClient::new(&mock_server.uri());
-    let result = client.list_messages("orders.v1", 1, 20).await;
+    let result = client
+        .list_messages(ListDlqMessagesRequest::new("orders.v1", 1, 20))
+        .await;
     assert!(result.is_ok());
     let resp = result.unwrap();
     assert_eq!(resp.messages.len(), 2);

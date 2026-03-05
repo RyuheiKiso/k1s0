@@ -157,6 +157,8 @@ message ListOrdersResponse {
 ### Buf による管理
 
 proto ファイルの lint・破壊的変更検出には [Buf](https://buf.build/) を使用する。
+Rust のコード生成は `buf generate` ではなく、各 Rust サーバーの `build.rs` から `tonic-build` を実行してローカル生成する。
+これは Rust 向け buf リモートプラグインがコミュニティ提供であり、生成互換性の安定性を優先して `tonic-build` を標準採用するためである。
 
 ```yaml
 # buf.yaml
@@ -196,16 +198,9 @@ plugins:
     opt:
       - long_type_string
 
-  # --- Rust (prost + tonic) ---
-  - remote: buf.build/community/neoeinstein-prost
-    out: gen/rust
-    opt:
-      - compile_well_known_types
-
-  - remote: buf.build/community/neoeinstein-tonic
-    out: gen/rust
-    opt:
-      - compile_well_known_types
+  # --- Rust ---
+  # Rust は各サーバーの build.rs + tonic-build でローカル生成する。
+  # （buf リモートプラグインは採用しない）
 ```
 
 ---

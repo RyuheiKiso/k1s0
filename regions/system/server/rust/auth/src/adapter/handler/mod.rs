@@ -16,6 +16,7 @@ pub use k1s0_server_common::{ErrorBody, ErrorResponse};
 use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::make_rbac_middleware;
 use crate::domain::repository::{AuditLogRepository, UserRepository};
+use crate::domain::service::RolePermissionTable;
 use crate::infrastructure::permission_cache::PermissionCache;
 use crate::infrastructure::TokenVerifier;
 use crate::usecase::{
@@ -45,6 +46,7 @@ pub struct AppState {
     pub jwks_provider: Option<crate::infrastructure::jwks_provider::JwksProvider>,
     pub permission_cache: PermissionCache,
     pub permission_cache_refresh_on_miss: bool,
+    pub role_permission_table: Option<Arc<RolePermissionTable>>,
 }
 
 impl AppState {
@@ -84,6 +86,7 @@ impl AppState {
             jwks_provider,
             permission_cache: PermissionCache::new(300, 10_000),
             permission_cache_refresh_on_miss: true,
+            role_permission_table: None,
         }
     }
 }

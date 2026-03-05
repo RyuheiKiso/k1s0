@@ -6,6 +6,7 @@ edition = "2021"
 [features]
 mock = ["mockall"]
 kafka = ["rdkafka"]
+protobuf = ["dep:prost"]
 
 [dependencies]
 async-trait = "0.1"
@@ -19,6 +20,7 @@ chrono = { version = "0.4", features = ["serde"] }
 mockall = { version = "0.13", optional = true }
 rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
 futures = "0.3"
+prost = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

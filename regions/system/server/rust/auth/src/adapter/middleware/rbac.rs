@@ -5,11 +5,30 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use k1s0_server_common::ErrorResponse;
 
 use crate::adapter::handler::AppState;
 use crate::domain::entity::claims::Claims;
 use crate::domain::service::AuthDomainService;
 use crate::infrastructure::permission_cache::PermissionCache;
+
+fn error_response(status: StatusCode, code: &str, message: impl Into<String>) -> Response {
+    (status, Json(ErrorResponse::new(code, message.into()))).into_response()
+}
+
+async fn check_permission_with_role_table(
+    state: &AppState,
+    roles: &[String],
+    resource: &str,
+    action: &str,
+) -> bool {
+    if let Some(role_table) = &state.role_permission_table {
+        if let Some(allowed) = role_table.check_permission(roles, resource, action).await {
+            return allowed;
+        }
+    }
+    AuthDomainService::check_permission(roles, resource, action)
+}
 
 /// rbac_middleware は Request extension の Claims からロールを取得し、
 /// AuthDomainService を使って指定リソース・アクションのパーミッションを確認する axum ミドルウェア。
@@ -45,16 +64,11 @@ pub async fn rbac_check(
     let claims = match req.extensions().get::<Claims>() {
         Some(c) => c.clone(),
         None => {
-            return (
+            return error_response(
                 StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({
-                    "error": {
-                        "code": "SYS_AUTH_MISSING_CLAIMS",
-                        "message": "Authentication is required. Please provide a valid Bearer token."
-                    }
-                })),
-            )
-                .into_response();
+                "SYS_AUTH_MISSING_CLAIMS",
+                "Authentication is required. Please provide a valid Bearer token.",
+            );
         }
     };
 
@@ -70,23 +84,18 @@ pub async fn rbac_check(
         return if allowed {
             next.run(req).await
         } else {
-            (
+            error_response(
                 StatusCode::FORBIDDEN,
-                Json(serde_json::json!({
-                    "error": {
-                        "code": "SYS_AUTH_PERMISSION_DENIED",
-                        "message": format!(
-                            "Insufficient permissions: action '{}' on resource '{}' is not allowed for the current roles.",
-                            action, resource
-                        )
-                    }
-                })),
+                "SYS_AUTH_PERMISSION_DENIED",
+                format!(
+                    "Insufficient permissions: action '{}' on resource '{}' is not allowed for the current roles.",
+                    action, resource
+                ),
             )
-                .into_response()
         };
     }
 
-    let allowed = AuthDomainService::check_permission(&roles, resource, action);
+    let allowed = check_permission_with_role_table(&state, &roles, resource, action).await;
     if state.permission_cache_refresh_on_miss {
         state.permission_cache.insert(cache_key, allowed).await;
     }
@@ -94,19 +103,14 @@ pub async fn rbac_check(
     if allowed {
         next.run(req).await
     } else {
-        (
+        error_response(
             StatusCode::FORBIDDEN,
-            Json(serde_json::json!({
-                "error": {
-                    "code": "SYS_AUTH_PERMISSION_DENIED",
-                    "message": format!(
-                        "Insufficient permissions: action '{}' on resource '{}' is not allowed for the current roles.",
-                        action, resource
-                    )
-                }
-            })),
+            "SYS_AUTH_PERMISSION_DENIED",
+            format!(
+                "Insufficient permissions: action '{}' on resource '{}' is not allowed for the current roles.",
+                action, resource
+            ),
         )
-            .into_response()
     }
 }
 
@@ -120,16 +124,11 @@ pub async fn rbac_middleware(
     let claims = match req.extensions().get::<Claims>() {
         Some(c) => c.clone(),
         None => {
-            return (
+            return error_response(
                 StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({
-                    "error": {
-                        "code": "SYS_AUTH_MISSING_CLAIMS",
-                        "message": "Authentication is required. Please provide a valid Bearer token."
-                    }
-                })),
-            )
-                .into_response();
+                "SYS_AUTH_MISSING_CLAIMS",
+                "Authentication is required. Please provide a valid Bearer token.",
+            );
         }
     };
 
@@ -138,16 +137,11 @@ pub async fn rbac_middleware(
     if AuthDomainService::is_auditor_or_above(&roles) {
         next.run(req).await
     } else {
-        (
+        error_response(
             StatusCode::FORBIDDEN,
-            Json(serde_json::json!({
-                "error": {
-                    "code": "SYS_AUTH_PERMISSION_DENIED",
-                    "message": "Insufficient permissions for the requested resource."
-                }
-            })),
+            "SYS_AUTH_PERMISSION_DENIED",
+            "Insufficient permissions for the requested resource.",
         )
-            .into_response()
     }
 }
 
@@ -240,6 +234,7 @@ mod tests {
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["error"]["code"], "SYS_AUTH_MISSING_CLAIMS");
+        assert!(json["error"]["request_id"].is_string());
     }
 
     #[tokio::test]
@@ -326,6 +321,7 @@ mod tests {
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["error"]["code"], "SYS_AUTH_PERMISSION_DENIED");
+        assert!(json["error"]["request_id"].is_string());
     }
 
     #[tokio::test]
@@ -434,5 +430,6 @@ mod tests {
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["error"]["code"], "SYS_AUTH_PERMISSION_DENIED");
+        assert!(json["error"]["request_id"].is_string());
     }
 }

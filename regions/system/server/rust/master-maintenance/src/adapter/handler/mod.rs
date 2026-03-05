@@ -1,20 +1,25 @@
-pub mod table_handler;
-pub mod record_handler;
-pub mod rule_handler;
-pub mod relationship_handler;
-pub mod import_export_handler;
 pub mod audit_handler;
 pub mod display_config_handler;
 pub mod error;
+pub mod import_export_handler;
+pub mod record_handler;
+pub mod relationship_handler;
+pub mod rule_handler;
+pub mod table_handler;
 
-use std::sync::Arc;
-use axum::routing::{get, post, put, delete};
-use axum::Router;
-use axum::middleware::from_fn_with_state;
-use tower_http::trace::TraceLayer;
-use crate::adapter::middleware::auth::{MasterMaintenanceAuthState, auth_middleware};
+use crate::adapter::middleware::auth::{auth_middleware, MasterMaintenanceAuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase;
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
+use axum::middleware::from_fn_with_state;
+use axum::middleware::Next;
+use axum::response::{IntoResponse, Response};
+use axum::routing::{delete, get, post, put};
+use axum::Json;
+use axum::Router;
+use std::sync::Arc;
+use tower_http::trace::TraceLayer;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -25,10 +30,103 @@ pub struct AppState {
     pub check_consistency_uc: Arc<usecase::check_consistency::CheckConsistencyUseCase>,
     pub get_audit_logs_uc: Arc<usecase::get_audit_logs::GetAuditLogsUseCase>,
     pub manage_relationships_uc: Arc<usecase::manage_relationships::ManageRelationshipsUseCase>,
-    pub manage_display_configs_uc: Arc<usecase::manage_display_configs::ManageDisplayConfigsUseCase>,
+    pub manage_display_configs_uc:
+        Arc<usecase::manage_display_configs::ManageDisplayConfigsUseCase>,
     pub import_export_uc: Arc<usecase::import_export::ImportExportUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<MasterMaintenanceAuthState>,
+}
+
+#[derive(Copy, Clone)]
+enum RecordOperation {
+    Create,
+    Update,
+    Delete,
+}
+
+impl RecordOperation {
+    fn is_allowed(self, allow_create: bool, allow_update: bool, allow_delete: bool) -> bool {
+        match self {
+            RecordOperation::Create => allow_create,
+            RecordOperation::Update => allow_update,
+            RecordOperation::Delete => allow_delete,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            RecordOperation::Create => "create",
+            RecordOperation::Update => "update",
+            RecordOperation::Delete => "delete",
+        }
+    }
+}
+
+fn extract_table_name(path: &str) -> Option<&str> {
+    let parts: Vec<&str> = path.trim_matches('/').split('/').collect();
+    if parts.len() >= 4 && parts[0] == "api" && parts[1] == "v1" && parts[2] == "tables" {
+        return Some(parts[3]);
+    }
+    None
+}
+
+fn require_table_operation(
+    state: AppState,
+    operation: RecordOperation,
+) -> impl Fn(
+    Request<Body>,
+    Next,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
+       + Clone {
+    move |req: Request<Body>, next: Next| {
+        let state = state.clone();
+        Box::pin(async move {
+            let Some(table_name) = extract_table_name(req.uri().path()).map(str::to_string) else {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "table name is missing in request path"
+                    })),
+                )
+                    .into_response();
+            };
+
+            let permissions = match state.crud_records_uc.table_permissions(&table_name).await {
+                Ok(flags) => flags,
+                Err(err) => {
+                    let message = err.to_string();
+                    let status = if message.contains("not found") {
+                        StatusCode::NOT_FOUND
+                    } else {
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    };
+                    return (
+                        status,
+                        Json(serde_json::json!({
+                            "error": message
+                        })),
+                    )
+                        .into_response();
+                }
+            };
+
+            if operation.is_allowed(permissions.0, permissions.1, permissions.2) {
+                next.run(req).await
+            } else {
+                (
+                    StatusCode::FORBIDDEN,
+                    Json(serde_json::json!({
+                        "error": format!(
+                            "table '{}' does not allow '{}' operation",
+                            table_name,
+                            operation.as_str()
+                        )
+                    })),
+                )
+                    .into_response()
+            }
+        })
+    }
 }
 
 pub fn router(state: AppState) -> Router {
@@ -42,43 +140,133 @@ pub fn router(state: AppState) -> Router {
         let read_routes = Router::new()
             .route("/api/v1/tables", get(table_handler::list_tables))
             .route("/api/v1/tables/:name", get(table_handler::get_table))
-            .route("/api/v1/tables/:name/schema", get(table_handler::get_table_schema))
-            .route("/api/v1/tables/:name/columns", get(table_handler::list_columns))
-            .route("/api/v1/tables/:name/records", get(record_handler::list_records))
-            .route("/api/v1/tables/:name/records/:id", get(record_handler::get_record))
-            .route("/api/v1/relationships", get(relationship_handler::list_relationships))
-            .route("/api/v1/tables/:name/related-records/:id", get(relationship_handler::get_related_records))
+            .route(
+                "/api/v1/tables/:name/schema",
+                get(table_handler::get_table_schema),
+            )
+            .route(
+                "/api/v1/tables/:name/columns",
+                get(table_handler::list_columns),
+            )
+            .route(
+                "/api/v1/tables/:name/records",
+                get(record_handler::list_records),
+            )
+            .route(
+                "/api/v1/tables/:name/records/:id",
+                get(record_handler::get_record),
+            )
+            .route(
+                "/api/v1/relationships",
+                get(relationship_handler::list_relationships),
+            )
+            .route(
+                "/api/v1/tables/:name/related-records/:id",
+                get(relationship_handler::get_related_records),
+            )
             .route("/api/v1/rules", get(rule_handler::list_rules))
             .route("/api/v1/rules/:id", get(rule_handler::get_rule))
-            .route("/api/v1/tables/:name/export", get(import_export_handler::export_records))
-            .route("/api/v1/import-jobs/:id", get(import_export_handler::get_import_job))
-            .route("/api/v1/tables/:name/audit-logs", get(audit_handler::list_table_audit_logs))
-            .route("/api/v1/tables/:name/records/:id/audit-logs", get(audit_handler::list_record_audit_logs))
-            .route("/api/v1/tables/:name/display-configs", get(display_config_handler::list_display_configs))
-            .route("/api/v1/tables/:name/display-configs/:id", get(display_config_handler::get_display_config))
+            .route(
+                "/api/v1/tables/:name/export",
+                get(import_export_handler::export_records),
+            )
+            .route(
+                "/api/v1/import-jobs/:id",
+                get(import_export_handler::get_import_job),
+            )
+            .route(
+                "/api/v1/tables/:name/audit-logs",
+                get(audit_handler::list_table_audit_logs),
+            )
+            .route(
+                "/api/v1/tables/:name/records/:id/audit-logs",
+                get(audit_handler::list_record_audit_logs),
+            )
+            .route(
+                "/api/v1/tables/:name/display-configs",
+                get(display_config_handler::list_display_configs),
+            )
+            .route(
+                "/api/v1/tables/:name/display-configs/:id",
+                get(display_config_handler::get_display_config),
+            )
             .route_layer(axum::middleware::from_fn(move |req, next| {
                 let perm = require_permission("master-maintenance", "read");
                 perm(req, next)
             }));
 
+        let record_create_routes = Router::new()
+            .route(
+                "/api/v1/tables/:name/records",
+                post(record_handler::create_record),
+            )
+            .route_layer(axum::middleware::from_fn(require_table_operation(
+                state.clone(),
+                RecordOperation::Create,
+            )));
+
+        let record_update_routes = Router::new()
+            .route(
+                "/api/v1/tables/:name/records/:id",
+                put(record_handler::update_record),
+            )
+            .route_layer(axum::middleware::from_fn(require_table_operation(
+                state.clone(),
+                RecordOperation::Update,
+            )));
+
+        let record_delete_routes = Router::new()
+            .route(
+                "/api/v1/tables/:name/records/:id",
+                delete(record_handler::delete_record),
+            )
+            .route_layer(axum::middleware::from_fn(require_table_operation(
+                state.clone(),
+                RecordOperation::Delete,
+            )));
+
         // Write routes (sys_operator 以上)
         let write_routes = Router::new()
             .route("/api/v1/tables", post(table_handler::create_table))
             .route("/api/v1/tables/:name", put(table_handler::update_table))
-            .route("/api/v1/tables/:name/columns", post(table_handler::create_columns))
-            .route("/api/v1/tables/:name/columns/:column", put(table_handler::update_column))
-            .route("/api/v1/tables/:name/records", post(record_handler::create_record))
-            .route("/api/v1/tables/:name/records/:id", put(record_handler::update_record))
-            .route("/api/v1/tables/:name/records/:id", delete(record_handler::delete_record))
-            .route("/api/v1/relationships", post(relationship_handler::create_relationship))
-            .route("/api/v1/relationships/:id", put(relationship_handler::update_relationship))
+            .route(
+                "/api/v1/tables/:name/columns",
+                post(table_handler::create_columns),
+            )
+            .route(
+                "/api/v1/tables/:name/columns/:column",
+                put(table_handler::update_column),
+            )
+            .merge(record_create_routes)
+            .merge(record_update_routes)
+            .merge(record_delete_routes)
+            .route(
+                "/api/v1/relationships",
+                post(relationship_handler::create_relationship),
+            )
+            .route(
+                "/api/v1/relationships/:id",
+                put(relationship_handler::update_relationship),
+            )
             .route("/api/v1/rules", post(rule_handler::create_rule))
             .route("/api/v1/rules/:id", put(rule_handler::update_rule))
-            .route("/api/v1/rules/:id/execute", post(rule_handler::execute_rule))
+            .route(
+                "/api/v1/rules/:id/execute",
+                post(rule_handler::execute_rule),
+            )
             .route("/api/v1/rules/check", post(rule_handler::check_rules))
-            .route("/api/v1/tables/:name/import", post(import_export_handler::import_records))
-            .route("/api/v1/tables/:name/display-configs", post(display_config_handler::create_display_config))
-            .route("/api/v1/tables/:name/display-configs/:id", put(display_config_handler::update_display_config))
+            .route(
+                "/api/v1/tables/:name/import",
+                post(import_export_handler::import_records),
+            )
+            .route(
+                "/api/v1/tables/:name/display-configs",
+                post(display_config_handler::create_display_config),
+            )
+            .route(
+                "/api/v1/tables/:name/display-configs/:id",
+                put(display_config_handler::update_display_config),
+            )
             .route_layer(axum::middleware::from_fn(move |req, next| {
                 let perm = require_permission("master-maintenance", "write");
                 perm(req, next)
@@ -87,10 +275,19 @@ pub fn router(state: AppState) -> Router {
         // Admin routes (sys_admin のみ)
         let admin_routes = Router::new()
             .route("/api/v1/tables/:name", delete(table_handler::delete_table))
-            .route("/api/v1/tables/:name/columns/:column", delete(table_handler::delete_column))
-            .route("/api/v1/relationships/:id", delete(relationship_handler::delete_relationship))
+            .route(
+                "/api/v1/tables/:name/columns/:column",
+                delete(table_handler::delete_column),
+            )
+            .route(
+                "/api/v1/relationships/:id",
+                delete(relationship_handler::delete_relationship),
+            )
             .route("/api/v1/rules/:id", delete(rule_handler::delete_rule))
-            .route("/api/v1/tables/:name/display-configs/:id", delete(display_config_handler::delete_display_config))
+            .route(
+                "/api/v1/tables/:name/display-configs/:id",
+                delete(display_config_handler::delete_display_config),
+            )
             .route_layer(axum::middleware::from_fn(move |req, next| {
                 let perm = require_permission("master-maintenance", "admin");
                 perm(req, next)
@@ -103,27 +300,98 @@ pub fn router(state: AppState) -> Router {
     } else {
         // 認証なし（開発環境用）
         Router::new()
-            .route("/api/v1/tables", get(table_handler::list_tables).post(table_handler::create_table))
-            .route("/api/v1/tables/:name", get(table_handler::get_table).put(table_handler::update_table).delete(table_handler::delete_table))
-            .route("/api/v1/tables/:name/schema", get(table_handler::get_table_schema))
-            .route("/api/v1/tables/:name/columns", get(table_handler::list_columns).post(table_handler::create_columns))
-            .route("/api/v1/tables/:name/columns/:column", put(table_handler::update_column).delete(table_handler::delete_column))
-            .route("/api/v1/tables/:name/records", get(record_handler::list_records).post(record_handler::create_record))
-            .route("/api/v1/tables/:name/records/:id", get(record_handler::get_record).put(record_handler::update_record).delete(record_handler::delete_record))
-            .route("/api/v1/relationships", get(relationship_handler::list_relationships).post(relationship_handler::create_relationship))
-            .route("/api/v1/relationships/:id", put(relationship_handler::update_relationship).delete(relationship_handler::delete_relationship))
-            .route("/api/v1/tables/:name/related-records/:id", get(relationship_handler::get_related_records))
-            .route("/api/v1/rules", get(rule_handler::list_rules).post(rule_handler::create_rule))
-            .route("/api/v1/rules/:id", get(rule_handler::get_rule).put(rule_handler::update_rule).delete(rule_handler::delete_rule))
-            .route("/api/v1/rules/:id/execute", post(rule_handler::execute_rule))
+            .route(
+                "/api/v1/tables",
+                get(table_handler::list_tables).post(table_handler::create_table),
+            )
+            .route(
+                "/api/v1/tables/:name",
+                get(table_handler::get_table)
+                    .put(table_handler::update_table)
+                    .delete(table_handler::delete_table),
+            )
+            .route(
+                "/api/v1/tables/:name/schema",
+                get(table_handler::get_table_schema),
+            )
+            .route(
+                "/api/v1/tables/:name/columns",
+                get(table_handler::list_columns).post(table_handler::create_columns),
+            )
+            .route(
+                "/api/v1/tables/:name/columns/:column",
+                put(table_handler::update_column).delete(table_handler::delete_column),
+            )
+            .route(
+                "/api/v1/tables/:name/records",
+                get(record_handler::list_records).post(record_handler::create_record),
+            )
+            .route(
+                "/api/v1/tables/:name/records/:id",
+                get(record_handler::get_record)
+                    .put(record_handler::update_record)
+                    .delete(record_handler::delete_record),
+            )
+            .route(
+                "/api/v1/relationships",
+                get(relationship_handler::list_relationships)
+                    .post(relationship_handler::create_relationship),
+            )
+            .route(
+                "/api/v1/relationships/:id",
+                put(relationship_handler::update_relationship)
+                    .delete(relationship_handler::delete_relationship),
+            )
+            .route(
+                "/api/v1/tables/:name/related-records/:id",
+                get(relationship_handler::get_related_records),
+            )
+            .route(
+                "/api/v1/rules",
+                get(rule_handler::list_rules).post(rule_handler::create_rule),
+            )
+            .route(
+                "/api/v1/rules/:id",
+                get(rule_handler::get_rule)
+                    .put(rule_handler::update_rule)
+                    .delete(rule_handler::delete_rule),
+            )
+            .route(
+                "/api/v1/rules/:id/execute",
+                post(rule_handler::execute_rule),
+            )
             .route("/api/v1/rules/check", post(rule_handler::check_rules))
-            .route("/api/v1/tables/:name/import", post(import_export_handler::import_records))
-            .route("/api/v1/tables/:name/export", get(import_export_handler::export_records))
-            .route("/api/v1/import-jobs/:id", get(import_export_handler::get_import_job))
-            .route("/api/v1/tables/:name/audit-logs", get(audit_handler::list_table_audit_logs))
-            .route("/api/v1/tables/:name/records/:id/audit-logs", get(audit_handler::list_record_audit_logs))
-            .route("/api/v1/tables/:name/display-configs", get(display_config_handler::list_display_configs).post(display_config_handler::create_display_config))
-            .route("/api/v1/tables/:name/display-configs/:id", get(display_config_handler::get_display_config).put(display_config_handler::update_display_config).delete(display_config_handler::delete_display_config))
+            .route(
+                "/api/v1/tables/:name/import",
+                post(import_export_handler::import_records),
+            )
+            .route(
+                "/api/v1/tables/:name/export",
+                get(import_export_handler::export_records),
+            )
+            .route(
+                "/api/v1/import-jobs/:id",
+                get(import_export_handler::get_import_job),
+            )
+            .route(
+                "/api/v1/tables/:name/audit-logs",
+                get(audit_handler::list_table_audit_logs),
+            )
+            .route(
+                "/api/v1/tables/:name/records/:id/audit-logs",
+                get(audit_handler::list_record_audit_logs),
+            )
+            .route(
+                "/api/v1/tables/:name/display-configs",
+                get(display_config_handler::list_display_configs)
+                    .post(display_config_handler::create_display_config),
+            )
+            .route(
+                "/api/v1/tables/:name/display-configs/:id",
+                get(display_config_handler::get_display_config)
+                    .put(display_config_handler::update_display_config)
+                    .delete(display_config_handler::delete_display_config),
+            )
     };
 
     public_routes

@@ -37,6 +37,24 @@ pub struct DlqMessage {
     pub last_retry_at: Option<DateTime<Utc>>,
 }
 
+/// ListDlqMessagesRequest は DLQ メッセージ一覧取得リクエスト。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListDlqMessagesRequest {
+    pub topic: String,
+    pub page: u32,
+    pub page_size: u32,
+}
+
+impl ListDlqMessagesRequest {
+    pub fn new(topic: impl Into<String>, page: u32, page_size: u32) -> Self {
+        Self {
+            topic: topic.into(),
+            page,
+            page_size,
+        }
+    }
+}
+
 /// ListDlqMessagesResponse は DLQ メッセージ一覧取得レスポンス。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListDlqMessagesResponse {

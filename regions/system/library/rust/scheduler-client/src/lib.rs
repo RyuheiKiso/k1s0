@@ -1,6 +1,7 @@
 pub mod client;
 pub mod error;
 pub mod job;
+pub mod memory;
 
 #[cfg(feature = "grpc")]
 pub mod grpc;
@@ -10,6 +11,7 @@ pub mod kafka;
 pub use client::SchedulerClient;
 pub use error::SchedulerError;
 pub use job::{Job, JobCompletedEvent, JobExecution, JobFilter, JobRequest, JobStatus, Schedule};
+pub use memory::InMemorySchedulerClient;
 
 #[cfg(feature = "mock")]
 pub use client::MockSchedulerClient;

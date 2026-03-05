@@ -15,13 +15,20 @@ mod inner {
 
     impl GrpcRateLimitClient {
         pub async fn new(server_url: impl Into<String>) -> Result<Self, RateLimitError> {
+            Self::with_http_client(server_url, reqwest::Client::new())
+        }
+
+        pub fn with_http_client(
+            server_url: impl Into<String>,
+            http_client: reqwest::Client,
+        ) -> Result<Self, RateLimitError> {
             let mut base = server_url.into();
             if !base.starts_with("http://") && !base.starts_with("https://") {
                 base = format!("http://{}", base);
             }
             let base = base.trim_end_matches('/').to_string();
             Ok(Self {
-                http: reqwest::Client::new(),
+                http: http_client,
                 base_url: base,
             })
         }

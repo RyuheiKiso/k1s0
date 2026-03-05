@@ -30,24 +30,33 @@ pub trait SearchClient: Send + Sync {
     async fn create_index(&self, name: &str, mapping: IndexMapping) -> Result<(), SearchError>;
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 use std::collections::HashMap;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 pub struct InMemorySearchClient {
     documents: tokio::sync::Mutex<HashMap<String, Vec<IndexDocument>>>,
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 impl InMemorySearchClient {
     pub fn new() -> Self {
         Self {
             documents: tokio::sync::Mutex::new(HashMap::new()),
         }
     }
+
+    pub async fn document_count(&self, index: &str) -> usize {
+        self.documents
+            .lock()
+            .await
+            .get(index)
+            .map(|docs| docs.len())
+            .unwrap_or(0)
+    }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 impl Default for InMemorySearchClient {
     fn default() -> Self {
         Self::new()
@@ -55,7 +64,7 @@ impl Default for InMemorySearchClient {
 }
 
 #[async_trait]
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 impl SearchClient for InMemorySearchClient {
     async fn index_document(
         &self,
@@ -187,6 +196,7 @@ mod tests {
         assert_eq!(result.success_count, 2);
         assert_eq!(result.failed_count, 0);
         assert!(result.failures.is_empty());
+        assert_eq!(client.document_count("items").await, 2);
     }
 
     #[tokio::test]
@@ -207,6 +217,7 @@ mod tests {
         let query = SearchQuery::new("").page(0).size(10);
         let result = client.search("products", query).await.unwrap();
         assert_eq!(result.total, 0);
+        assert_eq!(client.document_count("products").await, 0);
     }
 
     #[tokio::test]
