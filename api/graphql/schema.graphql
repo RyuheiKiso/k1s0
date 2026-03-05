@@ -9,7 +9,7 @@ type Query {
 type Mutation {
   createTenant(input: CreateTenantInput!): Tenant!
   updateTenant(id: ID!, input: UpdateTenantInput!): Tenant!
-  setFeatureFlag(key: String!, input: SetFeatureFlagInput!): FeatureFlag!
+  setFeatureFlag(key: String!, input: SetFeatureFlagInput!): SetFeatureFlagPayload!
 }
 
 type Subscription {
@@ -48,6 +48,16 @@ type TenantConnection {
   nodes: [Tenant!]!
   totalCount: Int!
   hasNext: Boolean!
+}
+
+type SetFeatureFlagPayload {
+  featureFlag: FeatureFlag
+  errors: [UserError!]!
+}
+
+type UserError {
+  field: [String!]
+  message: String!
 }
 
 input CreateTenantInput {

@@ -346,14 +346,14 @@ export interface ApiSchemaVersionProto {
      */
     createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: repeated k1s0.system.apiregistry.v1.ChangeDetail breaking_change_details = 9
+     * @generated from protobuf field: repeated k1s0.system.apiregistry.v1.SchemaChange breaking_change_details = 9
      */
-    breakingChangeDetails: ChangeDetail[];
+    breakingChangeDetails: SchemaChange[];
 }
 /**
- * @generated from protobuf message k1s0.system.apiregistry.v1.ChangeDetail
+ * @generated from protobuf message k1s0.system.apiregistry.v1.SchemaChange
  */
-export interface ChangeDetail {
+export interface SchemaChange {
     /**
      * @generated from protobuf field: string change_type = 1
      */
@@ -376,13 +376,13 @@ export interface CompatibilityResultProto {
      */
     compatible: boolean;
     /**
-     * @generated from protobuf field: repeated k1s0.system.apiregistry.v1.ChangeDetail breaking_changes = 2
+     * @generated from protobuf field: repeated k1s0.system.apiregistry.v1.SchemaChange breaking_changes = 2
      */
-    breakingChanges: ChangeDetail[];
+    breakingChanges: SchemaChange[];
     /**
-     * @generated from protobuf field: repeated k1s0.system.apiregistry.v1.ChangeDetail non_breaking_changes = 3
+     * @generated from protobuf field: repeated k1s0.system.apiregistry.v1.SchemaChange non_breaking_changes = 3
      */
-    nonBreakingChanges: ChangeDetail[];
+    nonBreakingChanges: SchemaChange[];
 }
 /**
  * @generated from protobuf message k1s0.system.apiregistry.v1.SchemaDiffProto
@@ -1573,7 +1573,7 @@ class ApiSchemaVersionProto$Type extends MessageType<ApiSchemaVersionProto> {
             { no: 6, name: "breaking_changes", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 7, name: "registered_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 9, name: "breaking_change_details", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ChangeDetail }
+            { no: 9, name: "breaking_change_details", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SchemaChange }
         ]);
     }
     create(value?: PartialMessage<ApiSchemaVersionProto>): ApiSchemaVersionProto {
@@ -1619,8 +1619,8 @@ class ApiSchemaVersionProto$Type extends MessageType<ApiSchemaVersionProto> {
                 case /* k1s0.system.common.v1.Timestamp created_at */ 8:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* repeated k1s0.system.apiregistry.v1.ChangeDetail breaking_change_details */ 9:
-                    message.breakingChangeDetails.push(ChangeDetail.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated k1s0.system.apiregistry.v1.SchemaChange breaking_change_details */ 9:
+                    message.breakingChangeDetails.push(SchemaChange.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1658,9 +1658,9 @@ class ApiSchemaVersionProto$Type extends MessageType<ApiSchemaVersionProto> {
         /* k1s0.system.common.v1.Timestamp created_at = 8; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* repeated k1s0.system.apiregistry.v1.ChangeDetail breaking_change_details = 9; */
+        /* repeated k1s0.system.apiregistry.v1.SchemaChange breaking_change_details = 9; */
         for (let i = 0; i < message.breakingChangeDetails.length; i++)
-            ChangeDetail.internalBinaryWrite(message.breakingChangeDetails[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+            SchemaChange.internalBinaryWrite(message.breakingChangeDetails[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1672,24 +1672,24 @@ class ApiSchemaVersionProto$Type extends MessageType<ApiSchemaVersionProto> {
  */
 export const ApiSchemaVersionProto = new ApiSchemaVersionProto$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ChangeDetail$Type extends MessageType<ChangeDetail> {
+class SchemaChange$Type extends MessageType<SchemaChange> {
     constructor() {
-        super("k1s0.system.apiregistry.v1.ChangeDetail", [
+        super("k1s0.system.apiregistry.v1.SchemaChange", [
             { no: 1, name: "change_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<ChangeDetail>): ChangeDetail {
+    create(value?: PartialMessage<SchemaChange>): SchemaChange {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.changeType = "";
         message.path = "";
         message.description = "";
         if (value !== undefined)
-            reflectionMergePartial<ChangeDetail>(this, message, value);
+            reflectionMergePartial<SchemaChange>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ChangeDetail): ChangeDetail {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SchemaChange): SchemaChange {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -1714,7 +1714,7 @@ class ChangeDetail$Type extends MessageType<ChangeDetail> {
         }
         return message;
     }
-    internalBinaryWrite(message: ChangeDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: SchemaChange, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string change_type = 1; */
         if (message.changeType !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.changeType);
@@ -1731,16 +1731,16 @@ class ChangeDetail$Type extends MessageType<ChangeDetail> {
     }
 }
 /**
- * @generated MessageType for protobuf message k1s0.system.apiregistry.v1.ChangeDetail
+ * @generated MessageType for protobuf message k1s0.system.apiregistry.v1.SchemaChange
  */
-export const ChangeDetail = new ChangeDetail$Type();
+export const SchemaChange = new SchemaChange$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class CompatibilityResultProto$Type extends MessageType<CompatibilityResultProto> {
     constructor() {
         super("k1s0.system.apiregistry.v1.CompatibilityResultProto", [
             { no: 1, name: "compatible", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "breaking_changes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ChangeDetail },
-            { no: 3, name: "non_breaking_changes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ChangeDetail }
+            { no: 2, name: "breaking_changes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SchemaChange },
+            { no: 3, name: "non_breaking_changes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SchemaChange }
         ]);
     }
     create(value?: PartialMessage<CompatibilityResultProto>): CompatibilityResultProto {
@@ -1760,11 +1760,11 @@ class CompatibilityResultProto$Type extends MessageType<CompatibilityResultProto
                 case /* bool compatible */ 1:
                     message.compatible = reader.bool();
                     break;
-                case /* repeated k1s0.system.apiregistry.v1.ChangeDetail breaking_changes */ 2:
-                    message.breakingChanges.push(ChangeDetail.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated k1s0.system.apiregistry.v1.SchemaChange breaking_changes */ 2:
+                    message.breakingChanges.push(SchemaChange.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* repeated k1s0.system.apiregistry.v1.ChangeDetail non_breaking_changes */ 3:
-                    message.nonBreakingChanges.push(ChangeDetail.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated k1s0.system.apiregistry.v1.SchemaChange non_breaking_changes */ 3:
+                    message.nonBreakingChanges.push(SchemaChange.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1781,12 +1781,12 @@ class CompatibilityResultProto$Type extends MessageType<CompatibilityResultProto
         /* bool compatible = 1; */
         if (message.compatible !== false)
             writer.tag(1, WireType.Varint).bool(message.compatible);
-        /* repeated k1s0.system.apiregistry.v1.ChangeDetail breaking_changes = 2; */
+        /* repeated k1s0.system.apiregistry.v1.SchemaChange breaking_changes = 2; */
         for (let i = 0; i < message.breakingChanges.length; i++)
-            ChangeDetail.internalBinaryWrite(message.breakingChanges[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* repeated k1s0.system.apiregistry.v1.ChangeDetail non_breaking_changes = 3; */
+            SchemaChange.internalBinaryWrite(message.breakingChanges[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* repeated k1s0.system.apiregistry.v1.SchemaChange non_breaking_changes = 3; */
         for (let i = 0; i < message.nonBreakingChanges.length; i++)
-            ChangeDetail.internalBinaryWrite(message.nonBreakingChanges[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+            SchemaChange.internalBinaryWrite(message.nonBreakingChanges[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

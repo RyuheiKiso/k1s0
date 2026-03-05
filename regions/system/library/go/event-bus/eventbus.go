@@ -67,7 +67,7 @@ type EventBusConfig struct {
 func DefaultEventBusConfig() EventBusConfig {
 	return EventBusConfig{
 		BufferSize:     1024,
-		HandlerTimeout: 30 * time.Second,
+		HandlerTimeout: 5 * time.Second,
 	}
 }
 

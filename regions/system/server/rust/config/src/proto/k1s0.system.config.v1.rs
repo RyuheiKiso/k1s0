@@ -112,13 +112,19 @@ pub struct GetServiceConfigRequest {
 }
 /// GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ServiceConfigEntry {
+    #[prost(string, tag = "1")]
+    pub namespace: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub value: ::prost::alloc::string::String,
+}
+/// GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetServiceConfigResponse {
-    /// flattened key-value pairs
-    #[prost(map = "string, string", tag = "1")]
-    pub configs: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
+    #[prost(message, repeated, tag = "1")]
+    pub entries: ::prost::alloc::vec::Vec<ServiceConfigEntry>,
 }
 /// WatchConfigRequest は設定変更監視リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]

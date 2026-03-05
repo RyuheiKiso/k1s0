@@ -18,7 +18,7 @@ use crate::domain::model::graphql_context::{
 };
 use crate::domain::model::{
     ConfigEntry, CreateTenantPayload, FeatureFlag, SetFeatureFlagPayload, Tenant, TenantConnection,
-    TenantStatus, UpdateTenantPayload,
+    TenantStatus, UpdateTenantPayload, UserError,
 };
 use crate::infra::auth::JwksVerifier;
 use crate::infra::config::GraphQLConfig;
@@ -229,7 +229,13 @@ impl MutationRoot {
             }),
             Err(e) => {
                 let msg = e.to_string();
-                Err(gql_error(classify_domain_error(&msg), msg))
+                Ok(SetFeatureFlagPayload {
+                    feature_flag: None,
+                    errors: vec![UserError {
+                        field: None,
+                        message: msg,
+                    }],
+                })
             }
         }
     }

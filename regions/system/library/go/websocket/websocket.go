@@ -10,15 +10,15 @@ import (
 type MessageType int
 
 const (
-	MessageText   MessageType = iota
+	MessageText MessageType = iota
 	MessageBinary
 	MessagePing
 	MessagePong
 	MessageClose
 )
 
-// Message はWebSocketメッセージ。
-type Message struct {
+// WsMessage は WebSocket メッセージ。
+type WsMessage struct {
 	Type    MessageType
 	Payload []byte
 }
@@ -27,15 +27,15 @@ type Message struct {
 type ConnectionState int
 
 const (
-	StateDisconnected  ConnectionState = iota
+	StateDisconnected ConnectionState = iota
 	StateConnecting
 	StateConnected
 	StateReconnecting
 	StateClosing
 )
 
-// Config はWebSocket設定。
-type Config struct {
+// WsConfig は WebSocket 設定。
+type WsConfig struct {
 	URL                  string
 	Reconnect            bool
 	MaxReconnectAttempts int
@@ -44,8 +44,8 @@ type Config struct {
 }
 
 // DefaultConfig はデフォルト設定を返す。
-func DefaultConfig() Config {
-	return Config{
+func DefaultConfig() WsConfig {
+	return WsConfig{
 		URL:                  "ws://localhost",
 		Reconnect:            true,
 		MaxReconnectAttempts: 5,
@@ -57,16 +57,16 @@ func DefaultConfig() Config {
 type WsClient interface {
 	Connect(ctx context.Context) error
 	Disconnect(ctx context.Context) error
-	Send(ctx context.Context, msg Message) error
-	Receive(ctx context.Context) (Message, error)
+	Send(ctx context.Context, msg WsMessage) error
+	Receive(ctx context.Context) (WsMessage, error)
 	State() ConnectionState
 }
 
 // InMemoryWsClient はメモリ内のWebSocketクライアント。
 type InMemoryWsClient struct {
 	state   ConnectionState
-	sendBuf chan Message
-	recvBuf chan Message
+	sendBuf chan WsMessage
+	recvBuf chan WsMessage
 	mu      sync.Mutex
 }
 
@@ -74,8 +74,8 @@ type InMemoryWsClient struct {
 func NewInMemoryWsClient() *InMemoryWsClient {
 	return &InMemoryWsClient{
 		state:   StateDisconnected,
-		sendBuf: make(chan Message, 100),
-		recvBuf: make(chan Message, 100),
+		sendBuf: make(chan WsMessage, 100),
+		recvBuf: make(chan WsMessage, 100),
 	}
 }
 
@@ -102,7 +102,7 @@ func (c *InMemoryWsClient) Disconnect(_ context.Context) error {
 }
 
 // Send はメッセージを送信する。
-func (c *InMemoryWsClient) Send(_ context.Context, msg Message) error {
+func (c *InMemoryWsClient) Send(_ context.Context, msg WsMessage) error {
 	c.mu.Lock()
 	state := c.state
 	c.mu.Unlock()
@@ -114,18 +114,18 @@ func (c *InMemoryWsClient) Send(_ context.Context, msg Message) error {
 }
 
 // Receive はメッセージを受信する。
-func (c *InMemoryWsClient) Receive(ctx context.Context) (Message, error) {
+func (c *InMemoryWsClient) Receive(ctx context.Context) (WsMessage, error) {
 	c.mu.Lock()
 	state := c.state
 	c.mu.Unlock()
 	if state != StateConnected {
-		return Message{}, errors.New("not connected")
+		return WsMessage{}, errors.New("not connected")
 	}
 	select {
 	case msg := <-c.recvBuf:
 		return msg, nil
 	case <-ctx.Done():
-		return Message{}, ctx.Err()
+		return WsMessage{}, ctx.Err()
 	}
 }
 
@@ -137,13 +137,13 @@ func (c *InMemoryWsClient) State() ConnectionState {
 }
 
 // InjectMessage はテスト用に受信バッファにメッセージを入れる。
-func (c *InMemoryWsClient) InjectMessage(msg Message) {
+func (c *InMemoryWsClient) InjectMessage(msg WsMessage) {
 	c.recvBuf <- msg
 }
 
 // SentMessages は送信バッファからメッセージを取り出す（テスト用）。
-func (c *InMemoryWsClient) SentMessages() []Message {
-	var msgs []Message
+func (c *InMemoryWsClient) SentMessages() []WsMessage {
+	var msgs []WsMessage
 	for {
 		select {
 		case msg := <-c.sendBuf:

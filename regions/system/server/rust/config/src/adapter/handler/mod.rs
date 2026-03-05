@@ -43,8 +43,7 @@ impl AppState {
             get_config_uc: Arc::new(GetConfigUseCase::new(config_repo.clone())),
             list_configs_uc: Arc::new(ListConfigsUseCase::new(config_repo.clone())),
             update_config_uc: Arc::new(
-                UpdateConfigUseCase::new(config_repo.clone())
-                    .with_schema_repo(schema_repo.clone()),
+                UpdateConfigUseCase::new(config_repo.clone()).with_schema_repo(schema_repo.clone()),
             ),
             delete_config_uc: Arc::new(DeleteConfigUseCase::new(config_repo.clone())),
             get_service_config_uc: Arc::new(GetServiceConfigUseCase::new(config_repo.clone())),
@@ -93,6 +92,8 @@ impl AppState {
         crate::domain::entity::config_schema::ConfigSchema,
         config_handler::UpdateConfigRequest,
         config_schema_handler::UpsertConfigSchemaRequest,
+        config_schema_handler::ConfigCategorySchemaRequest,
+        config_schema_handler::ConfigFieldSchemaRequest,
         ErrorResponse,
         ErrorBody,
         ErrorDetail,

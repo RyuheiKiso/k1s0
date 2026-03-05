@@ -10,9 +10,9 @@ use crate::proto::k1s0::system::auth::v1::{
     ValidateTokenRequest, ValidateTokenResponse,
 };
 use crate::proto::k1s0::system::common::v1::{PaginationResult, Timestamp};
+use crate::usecase::check_permission::{CheckPermissionInput, CheckPermissionUseCase};
 use crate::usecase::get_user::{GetUserError, GetUserUseCase};
 use crate::usecase::get_user_roles::{GetUserRolesError, GetUserRolesUseCase};
-use crate::usecase::check_permission::{CheckPermissionInput, CheckPermissionUseCase};
 use crate::usecase::list_users::{ListUsersParams, ListUsersUseCase};
 use crate::usecase::validate_token::ValidateTokenUseCase;
 
@@ -151,8 +151,7 @@ impl AuthGrpcService {
                             description: r.description.clone(),
                         })
                         .collect();
-                    proto_client_roles
-                        .insert(client_id.clone(), RoleList { roles: pb_roles });
+                    proto_client_roles.insert(client_id.clone(), RoleList { roles: pb_roles });
                 }
 
                 Ok(GetUserRolesResponse {
@@ -214,6 +213,8 @@ fn domain_claims_to_proto(c: &Claims) -> TokenClaims {
         exp: c.exp,
         iat: c.iat,
         jti: c.jti.clone(),
+        typ: Some(c.typ.clone()),
+        azp: Some(c.azp.clone()),
         preferred_username: c.preferred_username.clone(),
         email: c.email.clone(),
         realm_access: Some(RealmAccess {
@@ -251,9 +252,7 @@ fn domain_user_to_proto(u: &User) -> proto_auth::User {
 mod tests {
     use super::*;
     use crate::domain::entity::claims::RealmAccess as DomainRealmAccess;
-    use crate::domain::entity::user::{
-        Pagination, Role, UserListResult, UserRoles,
-    };
+    use crate::domain::entity::user::{Pagination, Role, UserListResult, UserRoles};
     use crate::domain::repository::user_repository::MockUserRepository;
     use crate::infrastructure::MockTokenVerifier;
     use std::collections::HashMap;
@@ -294,7 +293,8 @@ mod tests {
         let get_user_uc = Arc::new(GetUserUseCase::new(user_repo.clone()));
         let get_user_roles_uc = Arc::new(GetUserRolesUseCase::new(user_repo.clone()));
         let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo.clone()));
-        let check_permission_uc = Arc::new(CheckPermissionUseCase::with_user_repo(user_repo.clone()));
+        let check_permission_uc =
+            Arc::new(CheckPermissionUseCase::with_user_repo(user_repo.clone()));
 
         AuthGrpcService::new(
             validate_uc,

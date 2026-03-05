@@ -4,23 +4,23 @@ use chrono::{DateTime, Utc};
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::apiregistry::v1::{
-    api_registry_service_server::ApiRegistryService, ApiSchemaProto,
-    ApiSchemaVersionProto, ChangeDetail as ProtoChangeDetail,
+    api_registry_service_server::ApiRegistryService, ApiSchemaProto, ApiSchemaVersionProto,
     CheckCompatibilityRequest as ProtoCheckCompatibilityRequest,
-    CheckCompatibilityResponse as ProtoCheckCompatibilityResponse,
-    CompatibilityResultProto, DeleteVersionRequest as ProtoDeleteVersionRequest,
-    DeleteVersionResponse as ProtoDeleteVersionResponse, DiffEntryProto,
-    DiffModifiedEntryProto, GetDiffRequest as ProtoGetDiffRequest,
-    GetDiffResponse as ProtoGetDiffResponse, GetSchemaRequest as ProtoGetSchemaRequest,
-    GetSchemaResponse as ProtoGetSchemaResponse,
+    CheckCompatibilityResponse as ProtoCheckCompatibilityResponse, CompatibilityResultProto,
+    DeleteVersionRequest as ProtoDeleteVersionRequest,
+    DeleteVersionResponse as ProtoDeleteVersionResponse, DiffEntryProto, DiffModifiedEntryProto,
+    GetDiffRequest as ProtoGetDiffRequest, GetDiffResponse as ProtoGetDiffResponse,
+    GetSchemaRequest as ProtoGetSchemaRequest, GetSchemaResponse as ProtoGetSchemaResponse,
     GetSchemaVersionRequest as ProtoGetSchemaVersionRequest,
     GetSchemaVersionResponse as ProtoGetSchemaVersionResponse,
     ListSchemasRequest as ProtoListSchemasRequest, ListSchemasResponse as ProtoListSchemasResponse,
-    ListVersionsRequest as ProtoListVersionsRequest, ListVersionsResponse as ProtoListVersionsResponse,
+    ListVersionsRequest as ProtoListVersionsRequest,
+    ListVersionsResponse as ProtoListVersionsResponse,
     RegisterSchemaRequest as ProtoRegisterSchemaRequest,
     RegisterSchemaResponse as ProtoRegisterSchemaResponse,
     RegisterVersionRequest as ProtoRegisterVersionRequest,
-    RegisterVersionResponse as ProtoRegisterVersionResponse, SchemaDiffProto,
+    RegisterVersionResponse as ProtoRegisterVersionResponse, SchemaChange as ProtoSchemaChange,
+    SchemaDiffProto,
 };
 use crate::proto::k1s0::system::common::v1::{
     PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
@@ -64,8 +64,8 @@ fn to_proto_schema(schema: ApiSchemaData) -> ApiSchemaProto {
     }
 }
 
-fn to_proto_change_detail(detail: ChangeDetailData) -> ProtoChangeDetail {
-    ProtoChangeDetail {
+fn to_proto_schema_change(detail: ChangeDetailData) -> ProtoSchemaChange {
+    ProtoSchemaChange {
         change_type: detail.change_type,
         path: detail.path,
         description: detail.description,
@@ -85,7 +85,7 @@ fn to_proto_schema_version(version: ApiSchemaVersionData) -> ApiSchemaVersionPro
         breaking_change_details: version
             .breaking_change_details
             .into_iter()
-            .map(to_proto_change_detail)
+            .map(to_proto_schema_change)
             .collect(),
     }
 }
@@ -139,7 +139,10 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
         request: Request<ProtoListSchemasRequest>,
     ) -> Result<Response<ProtoListSchemasResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner.pagination.map(|p| (p.page, p.page_size)).unwrap_or((1, 20));
+        let (page, page_size) = inner
+            .pagination
+            .map(|p| (p.page, p.page_size))
+            .unwrap_or((1, 20));
         let resp = self
             .inner
             .list_schemas(ListSchemasRequest {
@@ -202,7 +205,10 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
         request: Request<ProtoListVersionsRequest>,
     ) -> Result<Response<ProtoListVersionsResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner.pagination.map(|p| (p.page, p.page_size)).unwrap_or((1, 20));
+        let (page, page_size) = inner
+            .pagination
+            .map(|p| (p.page, p.page_size))
+            .unwrap_or((1, 20));
         let resp = self
             .inner
             .list_versions(ListVersionsRequest {
@@ -307,12 +313,12 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
                 breaking_changes: resp
                     .breaking_changes
                     .into_iter()
-                    .map(to_proto_change_detail)
+                    .map(to_proto_schema_change)
                     .collect(),
                 non_breaking_changes: resp
                     .non_breaking_changes
                     .into_iter()
-                    .map(to_proto_change_detail)
+                    .map(to_proto_schema_change)
                     .collect(),
             }),
         }))

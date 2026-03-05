@@ -16,7 +16,7 @@ DB スキーマ移行ライブラリ。sqlx Migrator（Rust）/ goose（Go）/ n
 | `InMemoryMigrationRunner` | 構造体 | インメモリ実装（テスト・検証用） |
 | `MigrationConfig` | 構造体 | マイグレーションディレクトリ・DB URL・テーブル名設定 |
 | `MigrationReport` | 構造体 | 適用済みマイグレーション数・所要時間・エラー情報 |
-| `MigrationStatus` | 構造体 | バージョン・名前・適用日時・チェックサム |
+| `MigrationStatus` | 構造体 | バージョン・名前・適用日時（`applied_at: Option<DateTime<Utc>>`）・チェックサム |
 | `PendingMigration` | 構造体 | 未適用マイグレーションのバージョン・名前 |
 | `MigrationFile` | 構造体 | マイグレーションファイルの解析・チェックサム計算 |
 | `MigrationError` | enum | `ConnectionFailed`・`MigrationFailed`・`ChecksumMismatch`・`DirectoryNotFound`・`ParseError`・`Io` |
@@ -144,6 +144,8 @@ println!("{} pending migrations", pending.len());
 let report = runner.run_down(2).await.unwrap();
 println!("Rolled back {} migrations", report.applied_count);
 ```
+
+`MigrationStatus.applied_at` は `Option<DateTime<Utc>>` として扱い、タイムゾーンは UTC を前提とする。
 
 ## Go 実装
 

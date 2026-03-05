@@ -12,7 +12,7 @@
 
 | メソッド | 戻り値 | 説明 |
 |---------|--------|------|
-| `get(key)` | `Option<String>` | キーの値を取得。存在しない場合 null/nil/None |
+| `get(key)` | `Result<Option<String>, CacheError>` | キーの値を取得。存在しない場合は `Ok(None)` |
 | `set(key, value, ttl?)` | `void` | 値を格納。TTL 省略時は無期限 |
 | `delete(key)` | `bool` | キーを削除。削除できた場合 true |
 | `exists(key)` | `bool` | キーが存在するか確認 |
@@ -91,7 +91,7 @@ use std::time::Duration;
 client.set("user:123", &serde_json::to_string(&user)?, Some(Duration::from_secs(600))).await?;
 
 // 値の取得
-let value: Option<String> = client.get("user:123").await?;
+let value: Result<Option<String>, CacheError> = client.get("user:123").await;
 
 // キーが存在しない場合のみセット（分散ロック等に利用）
 let acquired = client.set_nx("lock:order:456", "owner-id", Duration::from_secs(30)).await?;

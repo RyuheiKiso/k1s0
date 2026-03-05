@@ -161,10 +161,14 @@ impl ConfigGrpcService {
 
         match self.get_service_config_uc.execute(&req.service_name).await {
             Ok(result) => Ok(pb::GetServiceConfigResponse {
-                configs: result
+                entries: result
                     .entries
                     .into_iter()
-                    .map(|e| (format!("{}.{}", e.namespace, e.key), e.value.to_string()))
+                    .map(|e| pb::ServiceConfigEntry {
+                        namespace: e.namespace,
+                        key: e.key,
+                        value: e.value.to_string(),
+                    })
                     .collect(),
             }),
             Err(GetServiceConfigError::NotFound(name)) => {

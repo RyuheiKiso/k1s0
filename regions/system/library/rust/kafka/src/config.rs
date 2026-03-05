@@ -12,8 +12,7 @@ pub struct KafkaConfig {
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
     /// コンシューマーグループ ID
-    #[serde(default)]
-    pub consumer_group: Option<String>,
+    pub consumer_group: String,
     /// SASL メカニズム（例: PLAIN / SCRAM-SHA-256 / SCRAM-SHA-512）
     #[serde(default)]
     pub sasl_mechanism: Option<String>,
@@ -171,11 +170,15 @@ impl KafkaConfigBuilder {
             security_protocol: self
                 .security_protocol
                 .unwrap_or_else(default_security_protocol),
-            consumer_group: self.consumer_group,
+            consumer_group: self.consumer_group.ok_or_else(|| {
+                KafkaError::ConfigurationError("consumer_group is required".to_string())
+            })?,
             sasl_mechanism: self.sasl_mechanism,
             sasl_username: self.sasl_username,
             sasl_password: self.sasl_password,
-            connection_timeout_ms: self.connection_timeout_ms.unwrap_or_else(default_timeout_ms),
+            connection_timeout_ms: self
+                .connection_timeout_ms
+                .unwrap_or_else(default_timeout_ms),
             request_timeout_ms: self
                 .request_timeout_ms
                 .unwrap_or_else(default_request_timeout_ms),
@@ -194,6 +197,7 @@ mod tests {
     fn test_bootstrap_servers_single() {
         let cfg = KafkaConfig::builder()
             .brokers(vec!["kafka:9092".to_string()])
+            .consumer_group("test-group")
             .build()
             .unwrap();
         assert_eq!(cfg.bootstrap_servers(), "kafka:9092");
@@ -204,7 +208,7 @@ mod tests {
         let cfg = KafkaConfig {
             brokers: vec!["kafka-0:9092".to_string(), "kafka-1:9092".to_string()],
             security_protocol: "PLAINTEXT".to_string(),
-            consumer_group: None,
+            consumer_group: "test-group".to_string(),
             sasl_mechanism: None,
             sasl_username: None,
             sasl_password: None,
@@ -219,6 +223,7 @@ mod tests {
     fn test_uses_tls_plaintext() {
         let cfg = KafkaConfig::builder()
             .brokers(vec!["kafka:9092".to_string()])
+            .consumer_group("test-group")
             .security_protocol("PLAINTEXT")
             .build()
             .unwrap();
@@ -229,6 +234,7 @@ mod tests {
     fn test_uses_tls_ssl() {
         let cfg = KafkaConfig::builder()
             .brokers(vec!["kafka:9093".to_string()])
+            .consumer_group("test-group")
             .security_protocol("SSL")
             .build()
             .unwrap();
@@ -239,6 +245,7 @@ mod tests {
     fn test_uses_tls_sasl_ssl() {
         let cfg = KafkaConfig::builder()
             .brokers(vec!["kafka:9094".to_string()])
+            .consumer_group("test-group")
             .security_protocol("SASL_SSL")
             .build()
             .unwrap();
@@ -249,6 +256,7 @@ mod tests {
     fn test_uses_tls_sasl_plaintext() {
         let cfg = KafkaConfig::builder()
             .brokers(vec!["kafka:9092".to_string()])
+            .consumer_group("test-group")
             .security_protocol("SASL_PLAINTEXT")
             .build()
             .unwrap();
@@ -257,7 +265,7 @@ mod tests {
 
     #[test]
     fn test_deserialize_defaults() {
-        let json = r#"{"brokers": ["kafka:9092"]}"#;
+        let json = r#"{"brokers": ["kafka:9092"], "consumer_group": "test-group"}"#;
         let cfg: KafkaConfig = serde_json::from_str(json).unwrap();
         assert_eq!(cfg.security_protocol, "PLAINTEXT");
         assert_eq!(cfg.connection_timeout_ms, 5000);
@@ -265,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_deserialize_request_timeout_default() {
-        let json = r#"{"brokers": ["kafka:9092"]}"#;
+        let json = r#"{"brokers": ["kafka:9092"], "consumer_group": "test-group"}"#;
         let cfg: KafkaConfig = serde_json::from_str(json).unwrap();
         assert_eq!(cfg.request_timeout_ms, 30000);
         assert_eq!(cfg.max_message_bytes, 1_000_000);
@@ -275,6 +283,7 @@ mod tests {
     fn test_client_properties_with_sasl() {
         let cfg = KafkaConfig::builder()
             .brokers(vec!["kafka:9092".to_string()])
+            .consumer_group("test-group")
             .security_protocol("SASL_SSL")
             .sasl_mechanism("SCRAM-SHA-512")
             .sasl_username("user1")
@@ -283,7 +292,10 @@ mod tests {
             .unwrap();
 
         let props = cfg.client_properties();
-        assert_eq!(props.get("security.protocol"), Some(&"SASL_SSL".to_string()));
+        assert_eq!(
+            props.get("security.protocol"),
+            Some(&"SASL_SSL".to_string())
+        );
         assert_eq!(
             props.get("sasl.mechanism"),
             Some(&"SCRAM-SHA-512".to_string())
@@ -306,7 +318,7 @@ mod tests {
             .security_protocol("SASL_SSL")
             .build()
             .unwrap();
-        assert_eq!(cfg.consumer_group.as_deref(), Some("auth-service-group"));
+        assert_eq!(cfg.consumer_group, "auth-service-group");
         assert!(cfg.uses_tls());
     }
 
@@ -314,11 +326,21 @@ mod tests {
     fn test_builder_custom_timeouts() {
         let cfg = KafkaConfig::builder()
             .brokers(vec!["kafka:9092".to_string()])
+            .consumer_group("test-group")
             .connection_timeout_ms(10000)
             .request_timeout_ms(60000)
             .build()
             .unwrap();
         assert_eq!(cfg.connection_timeout_ms, 10000);
         assert_eq!(cfg.request_timeout_ms, 60000);
+    }
+
+    #[test]
+    fn test_builder_without_consumer_group() {
+        let err = KafkaConfig::builder()
+            .brokers(vec!["kafka:9092".to_string()])
+            .build()
+            .unwrap_err();
+        assert!(matches!(err, KafkaError::ConfigurationError(_)));
     }
 }

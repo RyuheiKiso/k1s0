@@ -56,7 +56,7 @@ type DatabaseConfig struct {
 type KafkaConfig struct {
 	Brokers          []string         `yaml:"brokers" validate:"required,min=1"`
 	ConsumerGroup    string           `yaml:"consumer_group" validate:"required"`
-	SecurityProtocol string           `yaml:"security_protocol" validate:"required,oneof=PLAINTEXT SASL_SSL"`
+	SecurityProtocol string           `yaml:"security_protocol" validate:"required,oneof=PLAINTEXT SSL SASL_PLAINTEXT SASL_SSL"`
 	SASL             *KafkaSASLConfig `yaml:"sasl,omitempty"`
 	TLS              *KafkaTLSConfig  `yaml:"tls,omitempty"`
 	Topics           KafkaTopics      `yaml:"topics"`

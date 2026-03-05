@@ -74,6 +74,12 @@ system tier の Saga Orchestrator は以下の機能を提供する。
 | GET | `/swagger-ui` | Swagger UI | 不要（公開） |
 | GET | `/api-docs/openapi.json` | OpenAPI JSON | 不要（公開） |
 
+### 認証・認可ミドルウェア
+
+- `adapter/middleware/auth.rs`: `Authorization: Bearer <JWT>` を検証し、Claims を request extension に注入する。
+- `adapter/middleware/rbac.rs`: 注入済み Claims のロールから `resource/action` 権限を判定し、拒否時は 403 を返す。
+- ルーターでは `auth_middleware` を先に適用し、その後 `require_permission(...)` を適用する。
+
 #### POST /api/v1/sagas
 
 指定されたワークフローで新しい Saga を開始する。Saga は非同期で実行され、即座に saga_id が返却される。
@@ -1170,6 +1176,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
+  grpc_port: 50051
 
 auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
@@ -1212,6 +1219,18 @@ services:
 saga:
   max_concurrent: 100
   workflow_dir: "workflows"
+
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: true
+    endpoint: "http://otel-collector.observability.svc.cluster.local:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"
 ```
 
 ---
@@ -1273,3 +1292,13 @@ vault:
 ## ObservabilityConfig（log/trace/metrics）
 
 本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `log.level` | string | `info` | ログレベル（`debug` / `info` / `warn` / `error`） |
+| `log.format` | string | `json` | ログフォーマット（`json` / `text`） |
+| `trace.enabled` | bool | `true` | 分散トレーシング有効化 |
+| `trace.endpoint` | string | `http://otel-collector.observability.svc.cluster.local:4317` | OTLP エンドポイント |
+| `trace.sample_rate` | float | `1.0` | トレースサンプリング率 |
+| `metrics.enabled` | bool | `true` | Prometheus メトリクス出力有効化 |
+| `metrics.path` | string | `/metrics` | メトリクス公開パス |

@@ -112,8 +112,8 @@ config-db は system Tier に属する PostgreSQL 17 データベースであり
 | change_type | VARCHAR(20) | NOT NULL | 変更種別（CREATED / UPDATED / DELETED） |
 | old_value_json | JSONB | | 変更前の値（CREATED 時は NULL） |
 | new_value_json | JSONB | | 変更後の値（DELETED 時は NULL） |
-| old_version | INT | NOT NULL DEFAULT 0 | 変更前バージョン |
-| new_version | INT | NOT NULL DEFAULT 0 | 変更後バージョン |
+| old_version | INT | NOT NULL DEFAULT 0 | 変更前バージョン（migration 007 で追加） |
+| new_version | INT | NOT NULL DEFAULT 0 | 変更後バージョン（migration 007 で追加） |
 | changed_by | VARCHAR(255) | NOT NULL | 変更者 |
 | trace_id | VARCHAR(64) | | OpenTelemetry トレース ID |
 | created_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 記録日時 |
@@ -274,7 +274,9 @@ migrations/
 ├── 005_create_service_config_mappings.up.sql    # service_config_mappings テーブル・インデックス
 ├── 005_create_service_config_mappings.down.sql
 ├── 006_create_config_schemas.up.sql             # config_schemas テーブル・インデックス・トリガー
-└── 006_create_config_schemas.down.sql
+├── 006_create_config_schemas.down.sql
+├── 007_add_version_columns_to_change_logs.up.sql   # old_version/new_version 列追加
+└── 007_add_version_columns_to_change_logs.down.sql
 ```
 
 ### マイグレーション一覧
@@ -287,6 +289,7 @@ migrations/
 | 004 | seed_initial_data | system Tier サービスの初期設定値投入（auth / config の DB・サーバー設定） |
 | 005 | create_service_config_mappings | service_config_mappings テーブル・インデックス・ユニーク制約 |
 | 006 | create_config_schemas | config_schemas テーブル・インデックス・updated_at トリガー |
+| 007 | add_version_columns_to_change_logs | config_change_logs に old_version/new_version 列を追加 |
 
 ### 001_create_schema.up.sql
 
@@ -353,8 +356,6 @@ CREATE TABLE IF NOT EXISTS config.config_change_logs (
     change_type      VARCHAR(20)  NOT NULL,
     old_value_json   JSONB,
     new_value_json   JSONB,
-    old_version      INT          NOT NULL DEFAULT 0,
-    new_version      INT          NOT NULL DEFAULT 0,
     changed_by       VARCHAR(255) NOT NULL,
     trace_id         VARCHAR(64),
     created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -373,6 +374,14 @@ CREATE INDEX IF NOT EXISTS idx_config_change_logs_change_type_created_at
 CREATE INDEX IF NOT EXISTS idx_config_change_logs_trace_id
     ON config.config_change_logs (trace_id)
     WHERE trace_id IS NOT NULL;
+```
+
+### 007_add_version_columns_to_change_logs.up.sql
+
+```sql
+ALTER TABLE config.config_change_logs
+ADD COLUMN old_version INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN new_version INTEGER NOT NULL DEFAULT 0;
 ```
 
 ### 004_seed_initial_data.up.sql

@@ -1116,7 +1116,7 @@ type ApiSchemaVersionProto struct {
 	BreakingChanges       bool                   `protobuf:"varint,6,opt,name=breaking_changes,json=breakingChanges,proto3" json:"breaking_changes,omitempty"`
 	RegisteredBy          string                 `protobuf:"bytes,7,opt,name=registered_by,json=registeredBy,proto3" json:"registered_by,omitempty"`
 	CreatedAt             *v1.Timestamp          `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	BreakingChangeDetails []*ChangeDetail        `protobuf:"bytes,9,rep,name=breaking_change_details,json=breakingChangeDetails,proto3" json:"breaking_change_details,omitempty"`
+	BreakingChangeDetails []*SchemaChange        `protobuf:"bytes,9,rep,name=breaking_change_details,json=breakingChangeDetails,proto3" json:"breaking_change_details,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -1207,14 +1207,14 @@ func (x *ApiSchemaVersionProto) GetCreatedAt() *v1.Timestamp {
 	return nil
 }
 
-func (x *ApiSchemaVersionProto) GetBreakingChangeDetails() []*ChangeDetail {
+func (x *ApiSchemaVersionProto) GetBreakingChangeDetails() []*SchemaChange {
 	if x != nil {
 		return x.BreakingChangeDetails
 	}
 	return nil
 }
 
-type ChangeDetail struct {
+type SchemaChange struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ChangeType    string                 `protobuf:"bytes,1,opt,name=change_type,json=changeType,proto3" json:"change_type,omitempty"`
 	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
@@ -1223,20 +1223,20 @@ type ChangeDetail struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ChangeDetail) Reset() {
-	*x = ChangeDetail{}
+func (x *SchemaChange) Reset() {
+	*x = SchemaChange{}
 	mi := &file_k1s0_system_apiregistry_v1_api_registry_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ChangeDetail) String() string {
+func (x *SchemaChange) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ChangeDetail) ProtoMessage() {}
+func (*SchemaChange) ProtoMessage() {}
 
-func (x *ChangeDetail) ProtoReflect() protoreflect.Message {
+func (x *SchemaChange) ProtoReflect() protoreflect.Message {
 	mi := &file_k1s0_system_apiregistry_v1_api_registry_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1248,26 +1248,26 @@ func (x *ChangeDetail) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ChangeDetail.ProtoReflect.Descriptor instead.
-func (*ChangeDetail) Descriptor() ([]byte, []int) {
+// Deprecated: Use SchemaChange.ProtoReflect.Descriptor instead.
+func (*SchemaChange) Descriptor() ([]byte, []int) {
 	return file_k1s0_system_apiregistry_v1_api_registry_proto_rawDescGZIP(), []int{20}
 }
 
-func (x *ChangeDetail) GetChangeType() string {
+func (x *SchemaChange) GetChangeType() string {
 	if x != nil {
 		return x.ChangeType
 	}
 	return ""
 }
 
-func (x *ChangeDetail) GetPath() string {
+func (x *SchemaChange) GetPath() string {
 	if x != nil {
 		return x.Path
 	}
 	return ""
 }
 
-func (x *ChangeDetail) GetDescription() string {
+func (x *SchemaChange) GetDescription() string {
 	if x != nil {
 		return x.Description
 	}
@@ -1277,8 +1277,8 @@ func (x *ChangeDetail) GetDescription() string {
 type CompatibilityResultProto struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Compatible         bool                   `protobuf:"varint,1,opt,name=compatible,proto3" json:"compatible,omitempty"`
-	BreakingChanges    []*ChangeDetail        `protobuf:"bytes,2,rep,name=breaking_changes,json=breakingChanges,proto3" json:"breaking_changes,omitempty"`
-	NonBreakingChanges []*ChangeDetail        `protobuf:"bytes,3,rep,name=non_breaking_changes,json=nonBreakingChanges,proto3" json:"non_breaking_changes,omitempty"`
+	BreakingChanges    []*SchemaChange        `protobuf:"bytes,2,rep,name=breaking_changes,json=breakingChanges,proto3" json:"breaking_changes,omitempty"`
+	NonBreakingChanges []*SchemaChange        `protobuf:"bytes,3,rep,name=non_breaking_changes,json=nonBreakingChanges,proto3" json:"non_breaking_changes,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -1320,14 +1320,14 @@ func (x *CompatibilityResultProto) GetCompatible() bool {
 	return false
 }
 
-func (x *CompatibilityResultProto) GetBreakingChanges() []*ChangeDetail {
+func (x *CompatibilityResultProto) GetBreakingChanges() []*SchemaChange {
 	if x != nil {
 		return x.BreakingChanges
 	}
 	return nil
 }
 
-func (x *CompatibilityResultProto) GetNonBreakingChanges() []*ChangeDetail {
+func (x *CompatibilityResultProto) GetNonBreakingChanges() []*SchemaChange {
 	if x != nil {
 		return x.NonBreakingChanges
 	}
@@ -1617,8 +1617,8 @@ const file_k1s0_system_apiregistry_v1_api_registry_proto_rawDesc = "" +
 	"\rregistered_by\x18\a \x01(\tR\fregisteredBy\x12?\n" +
 	"\n" +
 	"created_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12`\n" +
-	"\x17breaking_change_details\x18\t \x03(\v2(.k1s0.system.apiregistry.v1.ChangeDetailR\x15breakingChangeDetails\"e\n" +
-	"\fChangeDetail\x12\x1f\n" +
+	"\x17breaking_change_details\x18\t \x03(\v2(.k1s0.system.apiregistry.v1.SchemaChangeR\x15breakingChangeDetails\"e\n" +
+	"\fSchemaChange\x12\x1f\n" +
 	"\vchange_type\x18\x01 \x01(\tR\n" +
 	"changeType\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12 \n" +
@@ -1627,8 +1627,8 @@ const file_k1s0_system_apiregistry_v1_api_registry_proto_rawDesc = "" +
 	"\n" +
 	"compatible\x18\x01 \x01(\bR\n" +
 	"compatible\x12S\n" +
-	"\x10breaking_changes\x18\x02 \x03(\v2(.k1s0.system.apiregistry.v1.ChangeDetailR\x0fbreakingChanges\x12Z\n" +
-	"\x14non_breaking_changes\x18\x03 \x03(\v2(.k1s0.system.apiregistry.v1.ChangeDetailR\x12nonBreakingChanges\"\xe9\x01\n" +
+	"\x10breaking_changes\x18\x02 \x03(\v2(.k1s0.system.apiregistry.v1.SchemaChangeR\x0fbreakingChanges\x12Z\n" +
+	"\x14non_breaking_changes\x18\x03 \x03(\v2(.k1s0.system.apiregistry.v1.SchemaChangeR\x12nonBreakingChanges\"\xe9\x01\n" +
 	"\x0fSchemaDiffProto\x12@\n" +
 	"\x05added\x18\x01 \x03(\v2*.k1s0.system.apiregistry.v1.DiffEntryProtoR\x05added\x12N\n" +
 	"\bmodified\x18\x02 \x03(\v22.k1s0.system.apiregistry.v1.DiffModifiedEntryProtoR\bmodified\x12D\n" +
@@ -1686,7 +1686,7 @@ var file_k1s0_system_apiregistry_v1_api_registry_proto_goTypes = []any{
 	(*GetDiffResponse)(nil),            // 17: k1s0.system.apiregistry.v1.GetDiffResponse
 	(*ApiSchemaProto)(nil),             // 18: k1s0.system.apiregistry.v1.ApiSchemaProto
 	(*ApiSchemaVersionProto)(nil),      // 19: k1s0.system.apiregistry.v1.ApiSchemaVersionProto
-	(*ChangeDetail)(nil),               // 20: k1s0.system.apiregistry.v1.ChangeDetail
+	(*SchemaChange)(nil),               // 20: k1s0.system.apiregistry.v1.SchemaChange
 	(*CompatibilityResultProto)(nil),   // 21: k1s0.system.apiregistry.v1.CompatibilityResultProto
 	(*SchemaDiffProto)(nil),            // 22: k1s0.system.apiregistry.v1.SchemaDiffProto
 	(*DiffEntryProto)(nil),             // 23: k1s0.system.apiregistry.v1.DiffEntryProto
@@ -1711,9 +1711,9 @@ var file_k1s0_system_apiregistry_v1_api_registry_proto_depIdxs = []int32{
 	27, // 12: k1s0.system.apiregistry.v1.ApiSchemaProto.created_at:type_name -> k1s0.system.common.v1.Timestamp
 	27, // 13: k1s0.system.apiregistry.v1.ApiSchemaProto.updated_at:type_name -> k1s0.system.common.v1.Timestamp
 	27, // 14: k1s0.system.apiregistry.v1.ApiSchemaVersionProto.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	20, // 15: k1s0.system.apiregistry.v1.ApiSchemaVersionProto.breaking_change_details:type_name -> k1s0.system.apiregistry.v1.ChangeDetail
-	20, // 16: k1s0.system.apiregistry.v1.CompatibilityResultProto.breaking_changes:type_name -> k1s0.system.apiregistry.v1.ChangeDetail
-	20, // 17: k1s0.system.apiregistry.v1.CompatibilityResultProto.non_breaking_changes:type_name -> k1s0.system.apiregistry.v1.ChangeDetail
+	20, // 15: k1s0.system.apiregistry.v1.ApiSchemaVersionProto.breaking_change_details:type_name -> k1s0.system.apiregistry.v1.SchemaChange
+	20, // 16: k1s0.system.apiregistry.v1.CompatibilityResultProto.breaking_changes:type_name -> k1s0.system.apiregistry.v1.SchemaChange
+	20, // 17: k1s0.system.apiregistry.v1.CompatibilityResultProto.non_breaking_changes:type_name -> k1s0.system.apiregistry.v1.SchemaChange
 	23, // 18: k1s0.system.apiregistry.v1.SchemaDiffProto.added:type_name -> k1s0.system.apiregistry.v1.DiffEntryProto
 	24, // 19: k1s0.system.apiregistry.v1.SchemaDiffProto.modified:type_name -> k1s0.system.apiregistry.v1.DiffModifiedEntryProto
 	23, // 20: k1s0.system.apiregistry.v1.SchemaDiffProto.removed:type_name -> k1s0.system.apiregistry.v1.DiffEntryProto

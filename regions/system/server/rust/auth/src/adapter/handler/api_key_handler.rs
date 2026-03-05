@@ -1,4 +1,4 @@
-﻿use axum::{
+use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use super::{AppState, ErrorResponse};
 use crate::domain::entity::api_key::CreateApiKeyRequest;
+use crate::usecase::validate_api_key::ValidateApiKeyError;
 
 /// POST /api/v1/api-keys のリクエストボディ。
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
@@ -24,6 +25,22 @@ pub struct CreateApiKeyHttpRequest {
 #[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct ListApiKeysQuery {
     pub tenant_id: String,
+}
+
+/// POST /api/v1/api-keys/validate のリクエストボディ。
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
+pub struct ValidateApiKeyRequest {
+    pub api_key: String,
+}
+
+/// POST /api/v1/api-keys/validate のレスポンスボディ。
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ValidateApiKeyResponse {
+    pub valid: bool,
+    pub tenant_id: Option<String>,
+    pub name: Option<String>,
+    pub scopes: Vec<String>,
+    pub reason: Option<String>,
 }
 
 #[utoipa::path(
@@ -76,16 +93,11 @@ pub async fn create_api_key(
     ),
     security(("bearer_auth" = []))
 )]
-pub async fn get_api_key(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn get_api_key(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.get_api_key_uc.execute(id).await {
-        Ok(summary) => (
-            StatusCode::OK,
-            Json(serde_json::to_value(summary).unwrap()),
-        )
-            .into_response(),
+        Ok(summary) => {
+            (StatusCode::OK, Json(serde_json::to_value(summary).unwrap())).into_response()
+        }
         Err(crate::usecase::get_api_key::GetApiKeyError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_AUTH_API_KEY_NOT_FOUND",
@@ -159,3 +171,79 @@ pub async fn revoke_api_key(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/api-keys/validate",
+    request_body = ValidateApiKeyRequest,
+    responses(
+        (status = 200, description = "API key validation result", body = ValidateApiKeyResponse),
+        (status = 500, description = "Internal error"),
+    )
+)]
+pub async fn validate_api_key(
+    State(state): State<AppState>,
+    Json(req): Json<ValidateApiKeyRequest>,
+) -> impl IntoResponse {
+    match state.validate_api_key_uc.execute(&req.api_key).await {
+        Ok(result) => (
+            StatusCode::OK,
+            Json(
+                serde_json::to_value(ValidateApiKeyResponse {
+                    valid: true,
+                    tenant_id: Some(result.tenant_id),
+                    name: Some(result.name),
+                    scopes: result.scopes,
+                    reason: None,
+                })
+                .unwrap(),
+            ),
+        )
+            .into_response(),
+        Err(ValidateApiKeyError::Invalid) => (
+            StatusCode::OK,
+            Json(
+                serde_json::to_value(ValidateApiKeyResponse {
+                    valid: false,
+                    tenant_id: None,
+                    name: None,
+                    scopes: vec![],
+                    reason: Some("invalid".to_string()),
+                })
+                .unwrap(),
+            ),
+        )
+            .into_response(),
+        Err(ValidateApiKeyError::Revoked) => (
+            StatusCode::OK,
+            Json(
+                serde_json::to_value(ValidateApiKeyResponse {
+                    valid: false,
+                    tenant_id: None,
+                    name: None,
+                    scopes: vec![],
+                    reason: Some("revoked".to_string()),
+                })
+                .unwrap(),
+            ),
+        )
+            .into_response(),
+        Err(ValidateApiKeyError::Expired) => (
+            StatusCode::OK,
+            Json(
+                serde_json::to_value(ValidateApiKeyResponse {
+                    valid: false,
+                    tenant_id: None,
+                    name: None,
+                    scopes: vec![],
+                    reason: Some("expired".to_string()),
+                })
+                .unwrap(),
+            ),
+        )
+            .into_response(),
+        Err(ValidateApiKeyError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}

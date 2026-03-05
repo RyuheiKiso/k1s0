@@ -140,9 +140,15 @@ message GetServiceConfigRequest {
 }
 
 // GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
+message ServiceConfigEntry {
+  string namespace = 1;
+  string key = 2;
+  string value = 3;
+}
+
+// GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
 message GetServiceConfigResponse {
-  // flattened key-value pairs
-  map<string, string> configs = 1;
+  repeated ServiceConfigEntry entries = 1;
 }
 
 // ============================================================
