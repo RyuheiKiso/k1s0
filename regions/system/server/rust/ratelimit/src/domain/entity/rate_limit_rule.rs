@@ -63,9 +63,10 @@ impl RateLimitRule {
         algorithm: Algorithm,
     ) -> Self {
         let now = Utc::now();
+        let name = format!("{}:{}", scope, identifier_pattern);
         Self {
             id: Uuid::new_v4(),
-            name: scope.clone(),
+            name,
             scope,
             identifier_pattern,
             limit,
@@ -87,13 +88,13 @@ pub struct RateLimitDecision {
     pub limit: i64,
     pub used: i64,
     pub remaining: i64,
-    pub reset_at: i64,
+    pub reset_at: DateTime<Utc>,
     pub rule_id: String,
     pub reason: String,
 }
 
 impl RateLimitDecision {
-    pub fn allowed(limit: i64, remaining: i64, reset_at: i64) -> Self {
+    pub fn allowed(limit: i64, remaining: i64, reset_at: DateTime<Utc>) -> Self {
         Self {
             allowed: true,
             scope: String::new(),
@@ -107,7 +108,7 @@ impl RateLimitDecision {
         }
     }
 
-    pub fn denied(limit: i64, remaining: i64, reset_at: i64, reason: String) -> Self {
+    pub fn denied(limit: i64, remaining: i64, reset_at: DateTime<Utc>, reason: String) -> Self {
         Self {
             allowed: false,
             scope: String::new(),
@@ -125,6 +126,7 @@ impl RateLimitDecision {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeZone;
 
     #[test]
     fn test_algorithm_from_str() {
@@ -153,7 +155,7 @@ mod tests {
             Algorithm::TokenBucket,
         );
         assert_eq!(rule.scope, "service");
-        assert_eq!(rule.name, "service");
+        assert_eq!(rule.name, "service:global");
         assert_eq!(rule.identifier_pattern, "global");
         assert_eq!(rule.limit, 100);
         assert_eq!(rule.window_seconds, 60);
@@ -163,19 +165,20 @@ mod tests {
 
     #[test]
     fn test_rate_limit_decision_allowed() {
-        let decision = RateLimitDecision::allowed(100, 99, 1700000000);
+        let reset_at = Utc.timestamp_opt(1700000000, 0).single().unwrap();
+        let decision = RateLimitDecision::allowed(100, 99, reset_at);
         assert!(decision.allowed);
         assert_eq!(decision.limit, 100);
         assert_eq!(decision.used, 1);
         assert_eq!(decision.remaining, 99);
-        assert_eq!(decision.reset_at, 1700000000);
+        assert_eq!(decision.reset_at.timestamp(), 1700000000);
         assert!(decision.reason.is_empty());
     }
 
     #[test]
     fn test_rate_limit_decision_denied() {
-        let decision =
-            RateLimitDecision::denied(100, 0, 1700000060, "rate limit exceeded".to_string());
+        let reset_at = Utc.timestamp_opt(1700000060, 0).single().unwrap();
+        let decision = RateLimitDecision::denied(100, 0, reset_at, "rate limit exceeded".to_string());
         assert!(!decision.allowed);
         assert_eq!(decision.limit, 100);
         assert_eq!(decision.used, 100);

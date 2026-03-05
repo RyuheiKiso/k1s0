@@ -160,6 +160,10 @@ mod tests {
             remove_member_uc: Arc::new(crate::usecase::RemoveMemberUseCase::new(member_repo)),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-tenant-server-test")),
             auth_state: None,
+            db_pool: None,
+            kafka_brokers: None,
+            keycloak_health_url: None,
+            http_client: reqwest::Client::new(),
         }
     }
 

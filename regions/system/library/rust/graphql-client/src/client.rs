@@ -61,6 +61,95 @@ impl InMemoryGraphQlClient {
     }
 }
 
+#[cfg(feature = "grpc")]
+pub struct GraphQlHttpClient {
+    client: reqwest::Client,
+    endpoint: String,
+    headers: HashMap<String, String>,
+}
+
+#[cfg(feature = "grpc")]
+impl GraphQlHttpClient {
+    pub fn new(endpoint: impl Into<String>, headers: HashMap<String, String>) -> Self {
+        Self {
+            client: reqwest::Client::new(),
+            endpoint: endpoint.into(),
+            headers,
+        }
+    }
+
+    async fn send<T: DeserializeOwned + Send>(
+        &self,
+        query: GraphQlQuery,
+    ) -> Result<GraphQlResponse<T>, ClientError> {
+        let response = self
+            .client
+            .post(&self.endpoint)
+            .headers(
+                self.headers
+                    .iter()
+                    .fold(reqwest::header::HeaderMap::new(), |mut acc, (k, v)| {
+                        if let (Ok(name), Ok(value)) = (
+                            reqwest::header::HeaderName::from_bytes(k.as_bytes()),
+                            reqwest::header::HeaderValue::from_str(v),
+                        ) {
+                            acc.insert(name, value);
+                        }
+                        acc
+                    }),
+            )
+            .json(&query)
+            .send()
+            .await
+            .map_err(|e| ClientError::RequestError(e.to_string()))?;
+
+        let status = response.status();
+        let body = response
+            .text()
+            .await
+            .map_err(|e| ClientError::RequestError(e.to_string()))?;
+        if !status.is_success() {
+            return Err(ClientError::RequestError(format!(
+                "status {}: {}",
+                status, body
+            )));
+        }
+
+        serde_json::from_str::<GraphQlResponse<T>>(&body)
+            .map_err(|e| ClientError::DeserializationError(e.to_string()))
+    }
+}
+
+#[cfg(feature = "grpc")]
+#[async_trait]
+impl GraphQlClient for GraphQlHttpClient {
+    async fn execute<T: DeserializeOwned + Send>(
+        &self,
+        query: GraphQlQuery,
+    ) -> Result<GraphQlResponse<T>, ClientError> {
+        self.send(query).await
+    }
+
+    async fn execute_mutation<T: DeserializeOwned + Send>(
+        &self,
+        mutation: GraphQlQuery,
+    ) -> Result<GraphQlResponse<T>, ClientError> {
+        self.send(mutation).await
+    }
+
+    async fn subscribe<T: DeserializeOwned + Send>(
+        &self,
+        _subscription: GraphQlQuery,
+    ) -> Result<
+        Pin<Box<dyn Stream<Item = Result<GraphQlResponse<T>, ClientError>> + Send>>,
+        ClientError,
+    > {
+        Err(ClientError::RequestError(
+            "GraphQlHttpClient does not support subscriptions over HTTP".to_string(),
+        ))
+    }
+}
+
 impl Default for InMemoryGraphQlClient {
     fn default() -> Self {
         Self::new()

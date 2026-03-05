@@ -144,9 +144,6 @@ pub async fn search(
 
     match state.search_uc.execute(&input).await {
         Ok(result) => {
-            let page_size = req.size.max(1);
-            let page = (req.from / page_size) + 1;
-            let has_next = result.total > (req.from as u64 + result.hits.len() as u64);
             let resp = SearchResponse {
                 hits: result
                     .hits
@@ -159,10 +156,10 @@ pub async fn search(
                     .collect(),
                 facets: result.facets,
                 pagination: PaginationResponse {
-                    total_count: result.total,
-                    page,
-                    page_size,
-                    has_next,
+                    total_count: result.pagination.total_count,
+                    page: result.pagination.page,
+                    page_size: result.pagination.page_size,
+                    has_next: result.pagination.has_next,
                 },
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()

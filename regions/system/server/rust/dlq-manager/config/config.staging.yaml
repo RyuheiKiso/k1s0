@@ -1,14 +1,15 @@
-app:
+﻿app:
   name: "dlq-manager"
   version: "0.1.0"
   environment: "staging"
 server:
   host: "0.0.0.0"
   port: 8080
+  grpc_port: 50051
 database:
   host: "postgres.k1s0-system-staging.svc.cluster.local"
   port: 5432
-  name: "k1s0_dlq"
+  name: "k1s0_system"
   user: "app"
   password: ""
   ssl_mode: "disable"

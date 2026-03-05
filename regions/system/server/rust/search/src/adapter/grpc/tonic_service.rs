@@ -187,7 +187,9 @@ impl SearchService for SearchServiceTonic {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchResult};
+    use crate::domain::entity::search_index::{
+        PaginationResult, SearchDocument, SearchIndex, SearchResult,
+    };
     use crate::domain::repository::search_repository::MockSearchRepository;
     use crate::infrastructure::kafka_producer::NoopSearchEventPublisher;
     use crate::usecase::create_index::CreateIndexUseCase;
@@ -307,8 +309,9 @@ mod tests {
             .withf(|name| name == "products")
             .returning(move |_| Ok(Some(return_index.clone())));
         mock.expect_search().returning(|_| {
+            let total = 1u64;
             Ok(SearchResult {
-                total: 1,
+                total,
                 hits: vec![SearchDocument {
                     id: "doc-1".to_string(),
                     index_name: "products".to_string(),
@@ -317,6 +320,12 @@ mod tests {
                     indexed_at: chrono::Utc::now(),
                 }],
                 facets: std::collections::HashMap::new(),
+                pagination: PaginationResult {
+                    total_count: total,
+                    page: 1,
+                    page_size: 10,
+                    has_next: false,
+                },
             })
         });
 

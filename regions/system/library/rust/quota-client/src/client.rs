@@ -174,6 +174,110 @@ impl<C: QuotaClient> QuotaClient for CachedQuotaClient<C> {
     }
 }
 
+#[cfg(any(test, feature = "test-utils"))]
+#[derive(Default)]
+struct InMemoryState {
+    usages: HashMap<String, QuotaUsage>,
+    policies: HashMap<String, QuotaPolicy>,
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+pub struct InMemoryQuotaClient {
+    state: Mutex<InMemoryState>,
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+impl InMemoryQuotaClient {
+    pub fn new() -> Self {
+        Self {
+            state: Mutex::new(InMemoryState::default()),
+        }
+    }
+
+    pub fn set_policy(&self, quota_id: impl Into<String>, policy: QuotaPolicy) {
+        let mut state = self.state.lock().unwrap();
+        state.policies.insert(quota_id.into(), policy);
+    }
+
+    fn default_policy(quota_id: &str) -> QuotaPolicy {
+        QuotaPolicy {
+            quota_id: quota_id.to_string(),
+            limit: 1000,
+            period: crate::model::QuotaPeriod::Daily,
+            reset_strategy: "fixed".to_string(),
+        }
+    }
+
+    fn get_policy_internal(state: &InMemoryState, quota_id: &str) -> QuotaPolicy {
+        state
+            .policies
+            .get(quota_id)
+            .cloned()
+            .unwrap_or_else(|| Self::default_policy(quota_id))
+    }
+
+    fn get_or_create_usage(state: &mut InMemoryState, quota_id: &str) -> QuotaUsage {
+        if let Some(usage) = state.usages.get(quota_id) {
+            return usage.clone();
+        }
+        let policy = Self::get_policy_internal(state, quota_id);
+        let usage = QuotaUsage {
+            quota_id: quota_id.to_string(),
+            used: 0,
+            limit: policy.limit,
+            period: policy.period,
+            reset_at: chrono::Utc::now() + chrono::Duration::days(1),
+        };
+        state.usages.insert(quota_id.to_string(), usage.clone());
+        usage
+    }
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+impl Default for InMemoryQuotaClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(any(test, feature = "test-utils"))]
+#[async_trait]
+impl QuotaClient for InMemoryQuotaClient {
+    async fn check(&self, quota_id: &str, amount: u64) -> Result<QuotaStatus, QuotaClientError> {
+        let mut state = self.state.lock().unwrap();
+        let usage = Self::get_or_create_usage(&mut state, quota_id);
+        let remaining = usage.limit.saturating_sub(usage.used);
+        Ok(QuotaStatus {
+            allowed: amount <= remaining,
+            remaining,
+            limit: usage.limit,
+            reset_at: usage.reset_at,
+        })
+    }
+
+    async fn increment(
+        &self,
+        quota_id: &str,
+        amount: u64,
+    ) -> Result<QuotaUsage, QuotaClientError> {
+        let mut state = self.state.lock().unwrap();
+        let mut usage = Self::get_or_create_usage(&mut state, quota_id);
+        usage.used = usage.used.saturating_add(amount);
+        state.usages.insert(quota_id.to_string(), usage.clone());
+        Ok(usage)
+    }
+
+    async fn get_usage(&self, quota_id: &str) -> Result<QuotaUsage, QuotaClientError> {
+        let mut state = self.state.lock().unwrap();
+        Ok(Self::get_or_create_usage(&mut state, quota_id))
+    }
+
+    async fn get_policy(&self, quota_id: &str) -> Result<QuotaPolicy, QuotaClientError> {
+        let state = self.state.lock().unwrap();
+        Ok(Self::get_policy_internal(&state, quota_id))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -326,5 +430,20 @@ mod tests {
 
         let count = *cached.inner.call_count.lock().unwrap();
         assert_eq!(count, 2);
+    }
+
+    #[tokio::test]
+    async fn test_inmemory_quota_client_basic_flow() {
+        let client = InMemoryQuotaClient::new();
+
+        let status = client.check("quota-a", 10).await.unwrap();
+        assert!(status.allowed);
+        assert_eq!(status.limit, 1000);
+
+        let usage = client.increment("quota-a", 200).await.unwrap();
+        assert_eq!(usage.used, 200);
+
+        let status_after = client.check("quota-a", 900).await.unwrap();
+        assert!(!status_after.allowed);
     }
 }

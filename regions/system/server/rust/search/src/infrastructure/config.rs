@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-/// AuthConfig は JWT 認証設定を表す。
+/// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -19,6 +19,8 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
     #[serde(default)]
     pub opensearch: Option<OpenSearchConfig>,
     #[serde(default)]
@@ -69,14 +71,14 @@ fn default_host() -> String {
 }
 
 fn default_port() -> u16 {
-    8080
+    8094
 }
 
 fn default_grpc_port() -> u16 {
     50051
 }
 
-/// OpenSearchConfig は OpenSearch 接続の設定を表す。
+/// OpenSearchConfig 縺ｯ OpenSearch 謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct OpenSearchConfig {
     pub url: String,
@@ -92,7 +94,7 @@ fn default_index_prefix() -> String {
     "k1s0-".to_string()
 }
 
-/// KafkaConfig は Kafka ブローカー接続の設定を表す。
+/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -100,7 +102,7 @@ pub struct KafkaConfig {
     pub security_protocol: String,
     #[serde(default = "default_consumer_group")]
     pub consumer_group: String,
-    /// Consumer topic: インデックス登録要求
+    /// Consumer topic: 繧､繝ｳ繝・ャ繧ｯ繧ｹ逋ｻ骭ｲ隕∵ｱ・
     pub topic: String,
 }
 
@@ -112,7 +114,7 @@ fn default_consumer_group() -> String {
     "search-server-consumer".to_string()
 }
 
-/// CacheConfig はインメモリキャッシュの設定を表す。
+/// CacheConfig 縺ｯ繧､繝ｳ繝｡繝｢繝ｪ繧ｭ繝｣繝・す繝･縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct CacheConfig {
     #[serde(default = "default_max_entries")]
@@ -138,6 +140,94 @@ fn default_ttl_seconds() -> u64 {
     30
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default)]
+    pub log: LogConfig,
+    #[serde(default)]
+    pub trace: TraceConfig,
+    #[serde(default)]
+    pub metrics: MetricsConfig,
+}
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            log: LogConfig::default(),
+            trace: TraceConfig::default(),
+            metrics: MetricsConfig::default(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct LogConfig {
+    #[serde(default = "default_log_level")]
+    pub level: String,
+    #[serde(default = "default_log_format")]
+    pub format: String,
+}
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            level: default_log_level(),
+            format: default_log_format(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct TraceConfig {
+    #[serde(default = "default_trace_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_trace_endpoint")]
+    pub endpoint: String,
+    #[serde(default = "default_trace_sample_rate")]
+    pub sample_rate: f64,
+}
+impl Default for TraceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_trace_enabled(),
+            endpoint: default_trace_endpoint(),
+            sample_rate: default_trace_sample_rate(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct MetricsConfig {
+    #[serde(default = "default_metrics_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_metrics_path")]
+    pub path: String,
+}
+impl Default for MetricsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_metrics_enabled(),
+            path: default_metrics_path(),
+        }
+    }
+}
+fn default_trace_enabled() -> bool {
+    true
+}
+fn default_trace_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+fn default_trace_sample_rate() -> f64 {
+    1.0
+}
+fn default_log_level() -> String {
+    "info".to_string()
+}
+fn default_log_format() -> String {
+    "json".to_string()
+}
+fn default_metrics_enabled() -> bool {
+    true
+}
+fn default_metrics_path() -> String {
+    "/metrics".to_string()
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -162,3 +252,5 @@ index_prefix: "k1s0-"
         assert_eq!(cfg.url, "https://opensearch:9200");
     }
 }
+
+

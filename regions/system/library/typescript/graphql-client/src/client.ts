@@ -6,6 +6,54 @@ export interface GraphQlClient {
   subscribe<T = unknown>(subscription: GraphQlQuery): AsyncIterable<GraphQlResponse<T>>;
 }
 
+export class GraphQlHttpClient implements GraphQlClient {
+  private readonly endpoint: string;
+  private readonly init: RequestInit;
+
+  constructor(endpoint: string, headers?: Record<string, string>) {
+    this.endpoint = endpoint;
+    this.init = {
+      headers: headers ? new Headers(headers) : undefined,
+    };
+  }
+
+  async execute<T = unknown>(query: GraphQlQuery): Promise<GraphQlResponse<T>> {
+    return this.send<T>(query);
+  }
+
+  async executeMutation<T = unknown>(mutation: GraphQlQuery): Promise<GraphQlResponse<T>> {
+    return this.send<T>(mutation);
+  }
+
+  async *subscribe<T = unknown>(
+    _subscription: GraphQlQuery,
+  ): AsyncIterable<GraphQlResponse<T>> {
+    throw new Error('GraphQlHttpClient does not support subscriptions over HTTP');
+  }
+
+  private async send<T = unknown>(query: GraphQlQuery): Promise<GraphQlResponse<T>> {
+    const headers = new Headers(this.init.headers);
+    headers.set('content-type', 'application/json');
+
+    const resp = await fetch(this.endpoint, {
+      ...this.init,
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        query: query.query,
+        variables: query.variables,
+        operationName: query.operationName,
+      }),
+    });
+
+    if (!resp.ok) {
+      throw new Error(`GraphQL request failed: ${resp.status}`);
+    }
+
+    return (await resp.json()) as GraphQlResponse<T>;
+  }
+}
+
 export class InMemoryGraphQlClient implements GraphQlClient {
   private responses = new Map<string, unknown>();
   private subscriptionEvents = new Map<string, unknown[]>();

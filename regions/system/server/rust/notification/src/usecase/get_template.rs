@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::notification_template::NotificationTemplate;
 use crate::domain::repository::NotificationTemplateRepository;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetTemplateError {
     #[error("template not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -23,12 +21,12 @@ impl GetTemplateUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, id: &Uuid) -> Result<NotificationTemplate, GetTemplateError> {
+    pub async fn execute(&self, id: &str) -> Result<NotificationTemplate, GetTemplateError> {
         self.repo
             .find_by_id(id)
             .await
             .map_err(|e| GetTemplateError::Internal(e.to_string()))?
-            .ok_or(GetTemplateError::NotFound(*id))
+            .ok_or_else(|| GetTemplateError::NotFound(id.to_string()))
     }
 }
 
@@ -46,11 +44,11 @@ mod tests {
             Some("Welcome".to_string()),
             "Hello!".to_string(),
         );
-        let template_id = template.id;
+        let template_id = template.id.clone();
         let return_template = template.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| *id == template_id)
+            .withf(move |id| id == template_id.as_str())
             .returning(move |_| Ok(Some(return_template.clone())));
 
         let uc = GetTemplateUseCase::new(Arc::new(mock));
@@ -65,7 +63,7 @@ mod tests {
         mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = GetTemplateUseCase::new(Arc::new(mock));
-        let result = uc.execute(&Uuid::new_v4()).await;
+        let result = uc.execute("tpl_missing").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

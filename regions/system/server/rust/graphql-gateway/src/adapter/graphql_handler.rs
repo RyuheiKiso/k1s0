@@ -424,15 +424,25 @@ async fn healthz() -> Json<serde_json::Value> {
 }
 
 async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
-    let tenant_ok = state.tenant_client.list_tenants(1, 1).await.is_ok();
-    let featureflag_ok = state.feature_flag_client.list_flags(None).await.is_ok();
-    let config_ok = state
+    let tenant_status = match state.tenant_client.list_tenants(1, 1).await {
+        Ok(_) => "ok".to_string(),
+        Err(e) => format!("error: {}", e),
+    };
+    let featureflag_status = match state.feature_flag_client.list_flags(None).await {
+        Ok(_) => "ok".to_string(),
+        Err(e) => format!("error: {}", e),
+    };
+    let config_status = match state
         .config_client
         .get_config("__readyz__", "__readyz__")
         .await
-        .is_ok();
+    {
+        Ok(_) => "ok".to_string(),
+        Err(e) => format!("error: {}", e),
+    };
 
-    let ready = tenant_ok && featureflag_ok && config_ok;
+    let ready =
+        tenant_status == "ok" && featureflag_status == "ok" && config_status == "ok";
     let status_code = if ready {
         StatusCode::OK
     } else {
@@ -444,9 +454,9 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         Json(serde_json::json!({
             "status": if ready { "ready" } else { "not_ready" },
             "checks": {
-                "tenant_grpc": if tenant_ok { "ok" } else { "error" },
-                "featureflag_grpc": if featureflag_ok { "ok" } else { "error" },
-                "config_grpc": if config_ok { "ok" } else { "error" },
+                "tenant_grpc": tenant_status,
+                "featureflag_grpc": featureflag_status,
+                "config_grpc": config_status,
             }
         })),
     )

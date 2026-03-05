@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::notification_template::NotificationTemplate;
 use crate::domain::repository::NotificationTemplateRepository;
 
 #[derive(Debug, Clone)]
 pub struct UpdateTemplateInput {
-    pub id: Uuid,
+    pub id: String,
     pub name: Option<String>,
     pub subject_template: Option<String>,
     pub body_template: Option<String>,
@@ -16,7 +14,7 @@ pub struct UpdateTemplateInput {
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateTemplateError {
     #[error("template not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -40,7 +38,7 @@ impl UpdateTemplateUseCase {
             .find_by_id(&input.id)
             .await
             .map_err(|e| UpdateTemplateError::Internal(e.to_string()))?
-            .ok_or(UpdateTemplateError::NotFound(input.id))?;
+            .ok_or_else(|| UpdateTemplateError::NotFound(input.id.clone()))?;
 
         if let Some(ref name) = input.name {
             template.name = name.clone();
@@ -76,17 +74,17 @@ mod tests {
             Some("Welcome".to_string()),
             "Hello!".to_string(),
         );
-        let template_id = template.id;
+        let template_id = template.id.clone();
         let return_template = template.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| *id == template_id)
+            .withf(move |id| id == template_id.as_str())
             .returning(move |_| Ok(Some(return_template.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
         let uc = UpdateTemplateUseCase::new(Arc::new(mock));
         let input = UpdateTemplateInput {
-            id: template_id,
+            id: template_id.clone(),
             name: Some("updated-welcome".to_string()),
             subject_template: None,
             body_template: Some("Updated body".to_string()),
@@ -106,7 +104,7 @@ mod tests {
 
         let uc = UpdateTemplateUseCase::new(Arc::new(mock));
         let input = UpdateTemplateInput {
-            id: Uuid::new_v4(),
+            id: "tpl_missing".to_string(),
             name: None,
             subject_template: None,
             body_template: None,

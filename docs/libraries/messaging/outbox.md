@@ -41,7 +41,8 @@ chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
-tokio = { version = "1", features = ["sync", "time"] }
+tokio = { version = "1", features = ["macros", "sync", "time"] }
+tokio-util = { version = "0.7", features = ["sync"] }
 tracing = "0.1"
 uuid = { version = "1", features = ["v4", "serde"] }
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"], optional = true }
@@ -272,9 +273,9 @@ class OutboxError implements Exception {
 
 ## 設計ノート: OutboxProcessor の run() メソッドに関する言語差異
 
-Rust の `OutboxProcessor` は `process_batch()` のみ提供し、`run()` メソッドは持たない。呼び出し側が `tokio::spawn` + `loop` + `tokio::time::sleep` で定期実行を制御する設計である。Go/TypeScript/Dart は `run()` メソッドで定期実行をサポートする。
+Rust の `OutboxProcessor` も `run(interval, cancellation_token)` を提供する。停止制御は `tokio_util::sync::CancellationToken` を用いる。
 
-- **Rust**: `process_batch()` のみ。定期実行は呼び出し側の責務
+- **Rust**: `process_batch()` + `run(interval, cancellation_token)`
 - **Go**: `ProcessBatch(ctx)` + `Run(ctx, interval)`
 - **TypeScript**: `processBatch()` + `run(intervalMs, signal?)`
 - **Dart**: `processBatch()` + `run(interval, {stopSignal?})`

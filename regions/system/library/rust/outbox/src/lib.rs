@@ -13,7 +13,7 @@ pub mod postgres_store;
 
 pub use error::OutboxError;
 pub use message::{OutboxMessage, OutboxStatus};
-pub use processor::OutboxProcessor;
+pub use processor::{OutboxProcessor, OutboxPublisher};
 pub use store::OutboxStore;
 
 #[cfg(feature = "postgres")]

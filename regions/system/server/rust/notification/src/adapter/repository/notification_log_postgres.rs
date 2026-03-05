@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::domain::entity::notification_log::NotificationLog;
 use crate::domain::repository::NotificationLogRepository;
@@ -20,26 +19,22 @@ impl NotificationLogPostgresRepository {
 
 #[derive(sqlx::FromRow)]
 struct NotificationLogRow {
-    id: Uuid,
-    channel_id: Uuid,
-    template_id: Option<Uuid>,
+    id: String,
+    channel_id: String,
+    template_id: Option<String>,
     recipient: String,
     subject: String,
     body: String,
     status: String,
     retry_count: i32,
     error_message: Option<String>,
+    sent_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
 impl From<NotificationLogRow> for NotificationLog {
     fn from(r: NotificationLogRow) -> Self {
-        let sent_at = if r.status == "sent" {
-            Some(r.updated_at)
-        } else {
-            None
-        };
         NotificationLog {
             id: r.id,
             channel_id: r.channel_id,
@@ -54,7 +49,7 @@ impl From<NotificationLogRow> for NotificationLog {
             status: r.status,
             retry_count: r.retry_count.max(0) as u32,
             error_message: r.error_message,
-            sent_at,
+            sent_at: r.sent_at,
             created_at: r.created_at,
         }
     }
@@ -62,9 +57,9 @@ impl From<NotificationLogRow> for NotificationLog {
 
 #[async_trait]
 impl NotificationLogRepository for NotificationLogPostgresRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<NotificationLog>> {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationLog>> {
         let row: Option<NotificationLogRow> = sqlx::query_as(
-            "SELECT id, channel_id, template_id, recipient, subject, body, status, retry_count, error_message, created_at, updated_at \
+            "SELECT id, channel_id, template_id, recipient, subject, body, status, retry_count, error_message, sent_at, created_at, updated_at \
              FROM notification.notification_logs WHERE id = $1",
         )
         .bind(id)
@@ -75,10 +70,10 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
 
     async fn find_by_channel_id(
         &self,
-        channel_id: &Uuid,
+        channel_id: &str,
     ) -> anyhow::Result<Vec<NotificationLog>> {
         let rows: Vec<NotificationLogRow> = sqlx::query_as(
-            "SELECT id, channel_id, template_id, recipient, subject, body, status, retry_count, error_message, created_at, updated_at \
+            "SELECT id, channel_id, template_id, recipient, subject, body, status, retry_count, error_message, sent_at, created_at, updated_at \
              FROM notification.notification_logs WHERE channel_id = $1 ORDER BY created_at DESC",
         )
         .bind(channel_id)
@@ -91,7 +86,7 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
         &self,
         page: u32,
         page_size: u32,
-        channel_id: Option<Uuid>,
+        channel_id: Option<String>,
         status: Option<String>,
     ) -> anyhow::Result<(Vec<NotificationLog>, u64)> {
         let offset = (page.saturating_sub(1) * page_size) as i64;
@@ -120,7 +115,7 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
             where_clause
         );
         let data_query = format!(
-            "SELECT id, channel_id, template_id, recipient, subject, body, status, retry_count, error_message, created_at, updated_at \
+            "SELECT id, channel_id, template_id, recipient, subject, body, status, retry_count, error_message, sent_at, created_at, updated_at \
              FROM notification.notification_logs {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
             where_clause, bind_index, bind_index + 1
         );
@@ -152,18 +147,19 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
     async fn create(&self, log: &NotificationLog) -> anyhow::Result<()> {
         sqlx::query(
             "INSERT INTO notification.notification_logs \
-             (id, channel_id, template_id, recipient, subject, body, status, retry_count, error_message, created_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+             (id, channel_id, template_id, recipient, subject, body, status, retry_count, error_message, sent_at, created_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
         )
-        .bind(log.id)
-        .bind(log.channel_id)
-        .bind(log.template_id)
+        .bind(&log.id)
+        .bind(&log.channel_id)
+        .bind(&log.template_id)
         .bind(&log.recipient)
         .bind(log.subject.as_deref().unwrap_or(""))
         .bind(&log.body)
         .bind(&log.status)
         .bind(log.retry_count as i32)
         .bind(&log.error_message)
+        .bind(log.sent_at)
         .bind(log.created_at)
         .execute(self.pool.as_ref())
         .await?;
@@ -173,13 +169,14 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
     async fn update(&self, log: &NotificationLog) -> anyhow::Result<()> {
         sqlx::query(
             "UPDATE notification.notification_logs \
-             SET status = $2, retry_count = $3, error_message = $4, updated_at = NOW() \
+             SET status = $2, retry_count = $3, error_message = $4, sent_at = $5, updated_at = NOW() \
              WHERE id = $1",
         )
-        .bind(log.id)
+        .bind(&log.id)
         .bind(&log.status)
         .bind(log.retry_count as i32)
         .bind(&log.error_message)
+        .bind(log.sent_at)
         .execute(self.pool.as_ref())
         .await?;
         Ok(())

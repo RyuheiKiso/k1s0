@@ -34,10 +34,15 @@ pub struct JwtTestHelper {
 }
 
 impl JwtTestHelper {
-    pub fn new(secret: &str) -> Self {
+    pub fn new_hs256(secret: &str) -> Self {
         Self {
             secret: secret.to_string(),
         }
+    }
+
+    /// Backward-compatible alias.
+    pub fn new(secret: &str) -> Self {
+        Self::new_hs256(secret)
     }
 
     /// 管理者トークンを生成する。
@@ -157,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_create_admin_token() {
-        let helper = JwtTestHelper::new("test-secret");
+        let helper = JwtTestHelper::new_hs256("test-secret");
         let token = helper.create_admin_token();
         assert!(token.contains('.'));
         let parts: Vec<&str> = token.split('.').collect();
@@ -166,7 +171,7 @@ mod tests {
 
     #[test]
     fn test_create_user_token() {
-        let helper = JwtTestHelper::new("test-secret");
+        let helper = JwtTestHelper::new_hs256("test-secret");
         let token = helper.create_user_token("user-123", vec!["user".to_string()]);
         let claims = helper.decode_claims(&token).unwrap();
         assert_eq!(claims.sub, "user-123");
@@ -175,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_create_token_with_tenant() {
-        let helper = JwtTestHelper::new("secret");
+        let helper = JwtTestHelper::new_hs256("secret");
         let claims = TestClaims {
             sub: "svc".to_string(),
             roles: vec!["service".to_string()],
@@ -189,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_decode_invalid_token() {
-        let helper = JwtTestHelper::new("s");
+        let helper = JwtTestHelper::new_hs256("s");
         assert!(helper.decode_claims("invalid").is_none());
     }
 

@@ -19,7 +19,7 @@ func TestNewSagaClient_TrimsTrailingSlash(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/sagas", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"saga_id": "test-id"})
+		json.NewEncoder(w).Encode(map[string]string{"saga_id": "test-id", "status": "STARTED"})
 	}))
 	defer server.Close()
 
@@ -41,20 +41,29 @@ func TestStartSaga_Success(t *testing.T) {
 		err := json.NewDecoder(r.Body).Decode(&req)
 		require.NoError(t, err)
 		assert.Equal(t, "order-create", req.WorkflowName)
+		require.NotNil(t, req.CorrelationID)
+		require.NotNil(t, req.InitiatedBy)
+		assert.Equal(t, "corr-1", *req.CorrelationID)
+		assert.Equal(t, "tester", *req.InitiatedBy)
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(saga.StartSagaResponse{SagaID: "saga-123"})
+		json.NewEncoder(w).Encode(saga.StartSagaResponse{SagaID: "saga-123", Status: "STARTED"})
 	}))
 	defer server.Close()
 
 	client := saga.NewSagaClientWithHTTPClient(server.URL, server.Client())
+	correlationID := "corr-1"
+	initiatedBy := "tester"
 	resp, err := client.StartSaga(context.Background(), &saga.StartSagaRequest{
 		WorkflowName: "order-create",
 		Payload:      map[string]string{"order_id": "ord-1"},
+		CorrelationID: &correlationID,
+		InitiatedBy:   &initiatedBy,
 	})
 
 	require.NoError(t, err)
 	assert.Equal(t, "saga-123", resp.SagaID)
+	assert.Equal(t, "STARTED", resp.Status)
 }
 
 func TestStartSaga_ErrorStatus(t *testing.T) {
@@ -86,10 +95,15 @@ func TestGetSaga_Success(t *testing.T) {
 			"saga": map[string]any{
 				"saga_id":       "saga-456",
 				"workflow_name": "order-create",
-				"status":     "RUNNING",
-				"step_logs":  []any{},
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"current_step":  2,
+				"status":        "RUNNING",
+				"payload":       map[string]any{"order_id": "ord-1"},
+				"correlation_id": "corr-123",
+				"initiated_by":  "user-1",
+				"error_message": nil,
+				"step_logs":     []any{},
+				"created_at":    "2024-01-01T00:00:00Z",
+				"updated_at":    "2024-01-01T00:00:00Z",
 			},
 		})
 	}))
@@ -101,6 +115,10 @@ func TestGetSaga_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "saga-456", state.SagaID)
 	assert.Equal(t, "order-create", state.WorkflowName)
+	assert.Equal(t, 2, state.CurrentStep)
+	assert.Equal(t, "ord-1", state.Payload["order_id"])
+	require.NotNil(t, state.CorrelationID)
+	assert.Equal(t, "corr-123", *state.CorrelationID)
 	assert.Equal(t, saga.SagaStatusRunning, state.Status)
 }
 
@@ -195,7 +213,7 @@ func TestStartSaga_WithPayload(t *testing.T) {
 		// payload が送信されていることを確認
 		assert.NotNil(t, req.Payload)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(saga.StartSagaResponse{SagaID: "saga-with-payload"})
+		json.NewEncoder(w).Encode(saga.StartSagaResponse{SagaID: "saga-with-payload", Status: "STARTED"})
 	}))
 	defer server.Close()
 
@@ -206,4 +224,5 @@ func TestStartSaga_WithPayload(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "saga-with-payload", resp.SagaID)
+	assert.Equal(t, "STARTED", resp.Status)
 }

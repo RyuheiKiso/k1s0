@@ -314,7 +314,7 @@ final isValid = verifySignature('my-hmac-secret', '{"event_type":"order.created"
 **ユニットテスト** (`#[cfg(test)]`):
 - `generate_signature` の出力を既知の HMAC-SHA256 ハッシュと照合
 - `verify_signature` で正しいシークレット・不正なシークレット両方を検証
-- `WebhookPayload` に `idempotency_key` が自動付与されることを確認
+- `Idempotency-Key` ヘッダーが自動付与されることを確認
 - リトライ回数が `max_retries` を超えた場合に `MaxRetriesExceeded` エラーが返ることを確認
 
 **統合テスト** (wiremock):

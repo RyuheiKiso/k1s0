@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use uuid::Uuid;
 
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
 
@@ -7,12 +6,12 @@ use crate::domain::entity::scheduler_execution::SchedulerExecution;
 #[async_trait]
 pub trait SchedulerExecutionRepository: Send + Sync {
     async fn create(&self, execution: &SchedulerExecution) -> anyhow::Result<()>;
-    async fn find_by_job_id(&self, job_id: &Uuid) -> anyhow::Result<Vec<SchedulerExecution>>;
+    async fn find_by_job_id(&self, job_id: &str) -> anyhow::Result<Vec<SchedulerExecution>>;
     async fn update_status(
         &self,
-        id: &Uuid,
+        id: &str,
         status: String,
         error_message: Option<String>,
     ) -> anyhow::Result<()>;
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<SchedulerExecution>>;
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<SchedulerExecution>>;
 }

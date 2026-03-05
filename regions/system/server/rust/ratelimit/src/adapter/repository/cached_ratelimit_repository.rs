@@ -114,7 +114,7 @@ impl RateLimitRepository for CachedRateLimitRepository {
         &self,
         page: u32,
         page_size: u32,
-        scope: Option<&str>,
+        scope: Option<String>,
         enabled_only: bool,
     ) -> anyhow::Result<(Vec<RateLimitRule>, u64)> {
         self.inner

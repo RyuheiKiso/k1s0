@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::repository::NotificationTemplateRepository;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteTemplateError {
     #[error("template not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -22,7 +20,7 @@ impl DeleteTemplateUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, id: &Uuid) -> Result<(), DeleteTemplateError> {
+    pub async fn execute(&self, id: &str) -> Result<(), DeleteTemplateError> {
         let deleted = self
             .repo
             .delete(id)
@@ -30,7 +28,7 @@ impl DeleteTemplateUseCase {
             .map_err(|e| DeleteTemplateError::Internal(e.to_string()))?;
 
         if !deleted {
-            return Err(DeleteTemplateError::NotFound(*id));
+            return Err(DeleteTemplateError::NotFound(id.to_string()));
         }
 
         Ok(())
@@ -48,7 +46,7 @@ mod tests {
         mock.expect_delete().returning(|_| Ok(true));
 
         let uc = DeleteTemplateUseCase::new(Arc::new(mock));
-        let result = uc.execute(&Uuid::new_v4()).await;
+        let result = uc.execute("tpl_any").await;
         assert!(result.is_ok());
     }
 
@@ -58,7 +56,7 @@ mod tests {
         mock.expect_delete().returning(|_| Ok(false));
 
         let uc = DeleteTemplateUseCase::new(Arc::new(mock));
-        let result = uc.execute(&Uuid::new_v4()).await;
+        let result = uc.execute("tpl_missing").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

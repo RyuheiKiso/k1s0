@@ -89,9 +89,10 @@ mod testcontainers_db_tests {
 
         repo.create(&rule).await.unwrap();
 
-        let found = repo.find_by_name("named-rule").await.unwrap();
+        let found = repo.find_by_name("named-rule:ip:*").await.unwrap();
         assert!(found.is_some());
         let found = found.unwrap();
+        assert_eq!(found.name, "named-rule:ip:*");
         assert_eq!(found.scope, "named-rule");
         assert_eq!(found.algorithm, Algorithm::SlidingWindow);
     }

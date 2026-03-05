@@ -74,8 +74,27 @@ void main() {
             'saga': {
               'saga_id': 'saga-456',
               'workflow_name': 'order-create',
+              'current_step': 1,
               'status': 'RUNNING',
-              'step_logs': [],
+              'payload': {'order_id': 'ord-1'},
+              'correlation_id': 'corr-123',
+              'initiated_by': 'user-1',
+              'error_message': null,
+              'step_logs': [
+                {
+                  'id': 'log-1',
+                  'saga_id': 'saga-456',
+                  'step_index': 1,
+                  'step_name': 'reserve-stock',
+                  'action': 'reserve',
+                  'status': 'COMPLETED',
+                  'request_payload': {'sku': 'sku-1'},
+                  'response_payload': {'success': true},
+                  'error_message': null,
+                  'started_at': '2024-01-01T00:00:00Z',
+                  'completed_at': '2024-01-01T00:00:01Z',
+                }
+              ],
               'created_at': '2024-01-01T00:00:00Z',
               'updated_at': '2024-01-01T00:00:00Z',
             }
@@ -85,7 +104,12 @@ void main() {
         final state = await client.getSaga('saga-456');
         expect(state.sagaId, equals('saga-456'));
         expect(state.workflowName, equals('order-create'));
+        expect(state.currentStep, equals(1));
+        expect(state.payload['order_id'], equals('ord-1'));
+        expect(state.correlationId, equals('corr-123'));
         expect(state.status, equals(SagaStatus.running));
+        expect(state.stepLogs.first.id, equals('log-1'));
+        expect(state.stepLogs.first.action, equals('reserve'));
       });
 
       test('エラーレスポンスで SagaException を投げる', () async {

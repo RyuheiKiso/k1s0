@@ -170,7 +170,7 @@ impl ServerFileClient {
     /// 新しい `ServerFileClient` を生成する。
     ///
     /// `config.server_url` が未設定の場合は `FileClientError::InvalidConfig` を返す。
-    pub fn new(config: FileClientConfig) -> Result<Self, FileClientError> {
+    pub async fn new(config: FileClientConfig) -> Result<Self, FileClientError> {
         let base_url = config
             .server_url
             .ok_or_else(|| FileClientError::InvalidConfig("server_url が設定されていません".into()))?;

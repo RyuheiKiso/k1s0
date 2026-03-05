@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use tracing::info;
 use uuid::Uuid;
@@ -18,25 +19,49 @@ use domain::entity::feature_flag::FeatureFlag;
 use domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
 use infrastructure::config::Config;
 
+fn parse_pool_duration(raw: &str) -> Option<Duration> {
+    let s = raw.trim().to_ascii_lowercase();
+    if s.is_empty() {
+        return None;
+    }
+    if let Some(v) = s.strip_suffix('s') {
+        return v.parse::<u64>().ok().map(Duration::from_secs);
+    }
+    if let Some(v) = s.strip_suffix('m') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|mins| Duration::from_secs(mins * 60));
+    }
+    if let Some(v) = s.strip_suffix('h') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|hours| Duration::from_secs(hours * 60 * 60));
+    }
+    s.parse::<u64>().ok().map(Duration::from_secs)
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let cfg = Config::load(&config_path)?;
+
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-featureflag-server".to_string(),
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
     // Config
-    let config_path =
-        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -58,8 +83,16 @@ async fn main() -> anyhow::Result<()> {
     ) =
         if let Ok(database_url) = std::env::var("DATABASE_URL") {
             info!("connecting to PostgreSQL...");
+            let max_open_conns = cfg.database.as_ref().map_or(25, |db| db.max_open_conns);
+            let max_idle_conns = cfg.database.as_ref().map_or(5, |db| db.max_idle_conns);
+            let conn_max_lifetime = cfg
+                .database
+                .as_ref()
+                .map_or("5m", |db| db.conn_max_lifetime.as_str());
             let pool = sqlx::postgres::PgPoolOptions::new()
-                .max_connections(cfg.database.as_ref().map_or(25, |db| db.max_open_conns))
+                .max_connections(max_open_conns)
+                .min_connections(max_idle_conns.min(max_open_conns))
+                .max_lifetime(parse_pool_duration(conn_max_lifetime))
                 .connect(&database_url)
                 .await?;
             let pool = Arc::new(pool);
@@ -74,7 +107,7 @@ async fn main() -> anyhow::Result<()> {
                     pool,
                 ),
             );
-            // キャッシュでラップ（設定から TTL と最大エントリ数を読み取り）
+            // Cache for frequently accessed flags.
             let cache = Arc::new(infrastructure::cache::FlagCache::new(
                 cfg.cache.max_entries,
                 cfg.cache.ttl_seconds,
@@ -99,6 +132,8 @@ async fn main() -> anyhow::Result<()> {
             info!("connecting to PostgreSQL via config...");
             let pool = sqlx::postgres::PgPoolOptions::new()
                 .max_connections(db_cfg.max_open_conns)
+                .min_connections(db_cfg.max_idle_conns.min(db_cfg.max_open_conns))
+                .max_lifetime(parse_pool_duration(&db_cfg.conn_max_lifetime))
                 .connect(&db_cfg.connection_url())
                 .await?;
             let pool = Arc::new(pool);
@@ -113,7 +148,7 @@ async fn main() -> anyhow::Result<()> {
                     pool,
                 ),
             );
-            // キャッシュでラップ
+            // 繧ｭ繝｣繝・す繝･縺ｧ繝ｩ繝・・
             let cache = Arc::new(infrastructure::cache::FlagCache::new(
                 cfg.cache.max_entries,
                 cfg.cache.ttl_seconds,
@@ -266,7 +301,7 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     let rest_future = axum::serve(listener, app);
 
-    // REST と gRPC を並行起動
+    // REST 縺ｨ gRPC 繧剃ｸｦ陦瑚ｵｷ蜍・
     tokio::select! {
         result = rest_future => {
             if let Err(e) = result {

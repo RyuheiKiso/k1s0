@@ -226,7 +226,7 @@ export interface EventHandler<T extends DomainEvent = DomainEvent> {
 
 export interface EventSubscription {
   readonly eventType: string;
-  unsubscribe(): void;
+  unsubscribe(): Promise<void>;
 }
 
 export interface EventBusConfig {
@@ -255,7 +255,7 @@ export class EventBus {
 export class InMemoryEventBus {
   constructor(config?: EventBusConfig);
   subscribe(eventType: string, handler: (event: Event) => Promise<void>): void;
-  unsubscribe(eventType: string): void;
+  unsubscribe(eventType: string): Promise<void>;
   publish(event: Event): Promise<void>;
 }
 ```
@@ -323,7 +323,7 @@ class EventBusError implements Exception {
 class EventSubscription {
   final String eventType;
   bool get isActive;
-  void unsubscribe();
+  Future<void> unsubscribe();
 }
 
 // EventBus - DDD パターン対応イベントバス
@@ -341,7 +341,7 @@ class EventBus {
 class InMemoryEventBus {
   InMemoryEventBus([EventBusConfig? config]);
   void subscribe(String eventType, Future<void> Function(Event) handler);
-  void unsubscribe(String eventType);
+  Future<void> unsubscribe(String eventType);
   Future<void> publish(Event event);
 }
 ```

@@ -1,8 +1,7 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
+use moka::future::Cache;
 use reqwest::StatusCode;
 use serde::Deserialize;
 
@@ -19,69 +18,18 @@ struct SecretResponse {
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
-struct CacheEntry {
-    secret: Secret,
-    fetched_at: Instant,
-}
-
-struct Cache {
-    entries: HashMap<String, CacheEntry>,
-    ttl: Duration,
-    max_capacity: usize,
-}
-
-impl Cache {
-    fn new(ttl: Duration, max_capacity: usize) -> Self {
-        Self {
-            entries: HashMap::new(),
-            ttl,
-            max_capacity,
-        }
-    }
-
-    fn get(&self, path: &str) -> Option<&Secret> {
-        self.entries.get(path).and_then(|entry| {
-            if entry.fetched_at.elapsed() < self.ttl {
-                Some(&entry.secret)
-            } else {
-                None
-            }
-        })
-    }
-
-    fn set(&mut self, secret: Secret) {
-        if self.entries.len() >= self.max_capacity {
-            if let Some(oldest) = self
-                .entries
-                .iter()
-                .min_by_key(|(_, e)| e.fetched_at)
-                .map(|(k, _)| k.clone())
-            {
-                self.entries.remove(&oldest);
-            }
-        }
-        self.entries.insert(
-            secret.path.clone(),
-            CacheEntry {
-                secret,
-                fetched_at: Instant::now(),
-            },
-        );
-    }
-}
-
 pub struct HttpVaultClient {
     config: VaultClientConfig,
     http: reqwest::Client,
-    cache: Arc<Mutex<Cache>>,
+    cache: Cache<String, Secret>,
 }
 
 impl HttpVaultClient {
     pub fn new(config: VaultClientConfig) -> Self {
-        let cache = Arc::new(Mutex::new(Cache::new(
-            config.cache_ttl,
-            config.cache_max_capacity,
-        )));
+        let cache = Cache::builder()
+            .max_capacity(config.cache_max_capacity as u64)
+            .time_to_live(config.cache_ttl)
+            .build();
         Self {
             config,
             http: reqwest::Client::new(),
@@ -93,11 +41,8 @@ impl HttpVaultClient {
 #[async_trait]
 impl VaultClient for HttpVaultClient {
     async fn get_secret(&self, path: &str) -> Result<Secret, VaultError> {
-        {
-            let cache = self.cache.lock().unwrap();
-            if let Some(secret) = cache.get(path) {
-                return Ok(secret.clone());
-            }
+        if let Some(secret) = self.cache.get(path).await {
+            return Ok(secret);
         }
 
         let url = format!("{}/api/v1/secrets/{}", self.config.server_url, path);
@@ -120,7 +65,7 @@ impl VaultClient for HttpVaultClient {
                     version: body.version,
                     created_at: body.created_at,
                 };
-                self.cache.lock().unwrap().set(secret.clone());
+                self.cache.insert(path.to_string(), secret.clone()).await;
                 Ok(secret)
             }
             StatusCode::NOT_FOUND => Err(VaultError::NotFound(path.to_string())),
@@ -216,6 +161,7 @@ impl VaultClient for HttpVaultClient {
 mod tests {
     use super::*;
     use chrono::Utc;
+    use std::time::Duration;
     use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 

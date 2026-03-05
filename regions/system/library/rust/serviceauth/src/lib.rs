@@ -18,7 +18,8 @@
 //! let client = HttpServiceAuthClient::new(config).unwrap();
 //!
 //! // キャッシュ付きトークン取得（期限前に自動リフレッシュ）
-//! let bearer = client.get_cached_token().await.unwrap();
+//! let token = client.get_cached_token().await.unwrap();
+//! let bearer = token.bearer_header();
 //!
 //! // SPIFFE ID 検証
 //! let spiffe = client

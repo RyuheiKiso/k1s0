@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use tracing::info;
 
@@ -38,6 +39,8 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 struct Config {
     app: AppConfig,
     server: ServerConfig,
+    #[serde(default)]
+    observability: ObservabilityConfig,
     #[serde(default)]
     auth: Option<AuthConfig>,
     #[serde(default)]
@@ -85,26 +88,138 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
+#[derive(Debug, Clone, serde::Deserialize)]
+struct ObservabilityConfig {
+    #[serde(default)]
+    log: LogConfig,
+    #[serde(default)]
+    trace: TraceConfig,
+    #[serde(default)]
+    metrics: MetricsConfig,
+}
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            log: LogConfig::default(),
+            trace: TraceConfig::default(),
+            metrics: MetricsConfig::default(),
+        }
+    }
+}
+#[derive(Debug, Clone, serde::Deserialize)]
+struct LogConfig {
+    #[serde(default = "default_log_level")]
+    level: String,
+    #[serde(default = "default_log_format")]
+    format: String,
+}
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            level: default_log_level(),
+            format: default_log_format(),
+        }
+    }
+}
+#[derive(Debug, Clone, serde::Deserialize)]
+struct TraceConfig {
+    #[serde(default = "default_trace_enabled")]
+    enabled: bool,
+    #[serde(default = "default_trace_endpoint")]
+    endpoint: String,
+    #[serde(default = "default_trace_sample_rate")]
+    sample_rate: f64,
+}
+impl Default for TraceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_trace_enabled(),
+            endpoint: default_trace_endpoint(),
+            sample_rate: default_trace_sample_rate(),
+        }
+    }
+}
+#[derive(Debug, Clone, serde::Deserialize)]
+struct MetricsConfig {
+    #[serde(default = "default_metrics_enabled")]
+    enabled: bool,
+    #[serde(default = "default_metrics_path")]
+    path: String,
+}
+impl Default for MetricsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_metrics_enabled(),
+            path: default_metrics_path(),
+        }
+    }
+}
+fn default_trace_enabled() -> bool {
+    true
+}
+fn default_trace_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+fn default_trace_sample_rate() -> f64 {
+    1.0
+}
+fn default_log_level() -> String {
+    "info".to_string()
+}
+fn default_log_format() -> String {
+    "json".to_string()
+}
+fn default_metrics_enabled() -> bool {
+    true
+}
+fn default_metrics_path() -> String {
+    "/metrics".to_string()
+}
+
+fn parse_pool_duration(raw: &str) -> Option<Duration> {
+    let s = raw.trim().to_ascii_lowercase();
+    if s.is_empty() {
+        return None;
+    }
+    if let Some(v) = s.strip_suffix('s') {
+        return v.parse::<u64>().ok().map(Duration::from_secs);
+    }
+    if let Some(v) = s.strip_suffix('m') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|mins| Duration::from_secs(mins * 60));
+    }
+    if let Some(v) = s.strip_suffix('h') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|hours| Duration::from_secs(hours * 60 * 60));
+    }
+    s.parse::<u64>().ok().map(Duration::from_secs)
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
-    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
-        service_name: "k1s0-vault-server".to_string(),
-        version: "0.1.0".to_string(),
-        tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
-    };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
-    // Config
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
     let config_content = std::fs::read_to_string(&config_path)?;
     let cfg: Config = serde_yaml::from_str(&config_content)?;
+
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-vault-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+
+    // Config
 
     info!(
         app_name = %cfg.app.name,
@@ -139,7 +254,12 @@ async fn main() -> anyhow::Result<()> {
         (store, audit, None)
     } else if let Some(ref db_config) = cfg.database {
         info!("connecting to PostgreSQL for vault storage");
-        let pool = sqlx::PgPool::connect(&db_config.connection_url()).await?;
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(db_config.max_open_conns)
+            .min_connections(db_config.max_idle_conns.min(db_config.max_open_conns))
+            .max_lifetime(parse_pool_duration(&db_config.conn_max_lifetime))
+            .connect(&db_config.connection_url())
+            .await?;
         let pool = Arc::new(pool);
         info!("PostgreSQL connection pool established");
 

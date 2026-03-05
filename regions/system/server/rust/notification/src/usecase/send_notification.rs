@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use handlebars::Handlebars;
-use uuid::Uuid;
 
 use crate::domain::entity::notification_log::NotificationLog;
 use crate::domain::repository::NotificationChannelRepository;
@@ -18,8 +17,8 @@ use crate::domain::service::DeliveryError;
 
 #[derive(Debug, Clone)]
 pub struct SendNotificationInput {
-    pub channel_id: Uuid,
-    pub template_id: Option<Uuid>,
+    pub channel_id: String,
+    pub template_id: Option<String>,
     pub recipient: String,
     pub subject: Option<String>,
     pub body: String,
@@ -28,7 +27,7 @@ pub struct SendNotificationInput {
 
 #[derive(Debug, Clone)]
 pub struct SendNotificationOutput {
-    pub log_id: Uuid,
+    pub log_id: String,
     pub status: String,
     pub created_at: DateTime<Utc>,
 }
@@ -36,13 +35,13 @@ pub struct SendNotificationOutput {
 #[derive(Debug, thiserror::Error)]
 pub enum SendNotificationError {
     #[error("channel not found: {0}")]
-    ChannelNotFound(Uuid),
+    ChannelNotFound(String),
 
     #[error("channel disabled: {0}")]
-    ChannelDisabled(Uuid),
+    ChannelDisabled(String),
 
     #[error("template not found: {0}")]
-    TemplateNotFound(Uuid),
+    TemplateNotFound(String),
 
     #[error("no delivery client for channel type: {0}")]
     NoDeliveryClient(String),
@@ -142,13 +141,13 @@ impl SendNotificationUseCase {
             .find_by_id(&input.channel_id)
             .await
             .map_err(|e| SendNotificationError::Internal(e.to_string()))?
-            .ok_or(SendNotificationError::ChannelNotFound(input.channel_id))?;
+            .ok_or_else(|| SendNotificationError::ChannelNotFound(input.channel_id.clone()))?;
 
         if !channel.enabled {
-            return Err(SendNotificationError::ChannelDisabled(input.channel_id));
+            return Err(SendNotificationError::ChannelDisabled(input.channel_id.clone()));
         }
 
-        let (resolved_template_id, base_subject, base_body) = if let Some(template_id) = input.template_id {
+        let (resolved_template_id, base_subject, base_body) = if let Some(template_id) = &input.template_id {
             let repo = self
                 .template_repo
                 .as_ref()
@@ -157,8 +156,8 @@ impl SendNotificationUseCase {
                 .find_by_id(&template_id)
                 .await
                 .map_err(|e| SendNotificationError::Internal(e.to_string()))?
-                .ok_or(SendNotificationError::TemplateNotFound(template_id))?;
-            (Some(template_id), template.subject_template, template.body_template)
+                .ok_or_else(|| SendNotificationError::TemplateNotFound(template_id.clone()))?;
+            (Some(template_id.clone()), template.subject_template, template.body_template)
         } else {
             (None, input.subject.clone(), input.body.clone())
         };
@@ -176,7 +175,7 @@ impl SendNotificationUseCase {
         };
 
         let mut log = NotificationLog::new(
-            input.channel_id,
+            input.channel_id.clone(),
             input.recipient.clone(),
             subject.clone(),
             body.clone(),
@@ -223,7 +222,7 @@ impl SendNotificationUseCase {
         }
 
         Ok(SendNotificationOutput {
-            log_id: log.id,
+            log_id: log.id.clone(),
             status: log.status,
             created_at: log.created_at,
         })
@@ -249,19 +248,19 @@ mod tests {
             serde_json::json!({}),
             true,
         );
-        let channel_id = channel.id;
+        let channel_id = channel.id.clone();
         let return_channel = channel.clone();
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| *id == channel_id)
+            .withf(move |id| id == channel_id.as_str())
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         log_mock.expect_create().returning(|_| Ok(()));
 
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
         let input = SendNotificationInput {
-            channel_id,
+            channel_id: channel_id.clone(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: Some("Hello".to_string()),
@@ -279,7 +278,7 @@ mod tests {
     async fn channel_not_found() {
         let mut channel_mock = MockNotificationChannelRepository::new();
         let log_mock = MockNotificationLogRepository::new();
-        let missing_id = Uuid::new_v4();
+        let missing_id = "ch_missing".to_string();
 
         channel_mock
             .expect_find_by_id()
@@ -287,7 +286,7 @@ mod tests {
 
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
         let input = SendNotificationInput {
-            channel_id: missing_id,
+            channel_id: missing_id.clone(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: None,
@@ -314,17 +313,17 @@ mod tests {
             serde_json::json!({}),
             false,
         );
-        let channel_id = channel.id;
+        let channel_id = channel.id.clone();
         let return_channel = channel.clone();
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| *id == channel_id)
+            .withf(move |id| id == channel_id.as_str())
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
         let input = SendNotificationInput {
-            channel_id,
+            channel_id: channel_id.clone(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: None,
@@ -351,12 +350,12 @@ mod tests {
             serde_json::json!({}),
             true,
         );
-        let channel_id = channel.id;
+        let channel_id = channel.id.clone();
         let return_channel = channel.clone();
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| *id == channel_id)
+            .withf(move |id| id == channel_id.as_str())
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         log_mock.expect_create().returning(|_| Ok(()));
@@ -373,7 +372,7 @@ mod tests {
             clients,
         );
         let input = SendNotificationInput {
-            channel_id,
+            channel_id: channel_id.clone(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: Some("Hello".to_string()),
@@ -396,12 +395,12 @@ mod tests {
             serde_json::json!({}),
             true,
         );
-        let channel_id = channel.id;
+        let channel_id = channel.id.clone();
         let return_channel = channel.clone();
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| *id == channel_id)
+            .withf(move |id| id == channel_id.as_str())
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         log_mock
@@ -425,7 +424,7 @@ mod tests {
             clients,
         );
         let input = SendNotificationInput {
-            channel_id,
+            channel_id: channel_id.clone(),
             template_id: None,
             recipient: "#general".to_string(),
             subject: None,
@@ -448,12 +447,12 @@ mod tests {
             serde_json::json!({}),
             true,
         );
-        let channel_id = channel.id;
+        let channel_id = channel.id.clone();
         let return_channel = channel.clone();
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| *id == channel_id)
+            .withf(move |id| id == channel_id.as_str())
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         log_mock
@@ -473,7 +472,7 @@ mod tests {
             clients,
         );
         let input = SendNotificationInput {
-            channel_id,
+            channel_id: channel_id.clone(),
             template_id: None,
             recipient: "+1234567890".to_string(),
             subject: None,

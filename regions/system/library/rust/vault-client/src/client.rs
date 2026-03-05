@@ -24,7 +24,11 @@ pub struct InMemoryVaultClient {
 }
 
 impl InMemoryVaultClient {
-    pub fn new(config: VaultClientConfig) -> Self {
+    pub fn new() -> Self {
+        Self::with_config(VaultClientConfig::default())
+    }
+
+    pub fn with_config(config: VaultClientConfig) -> Self {
         Self {
             config,
             store: Mutex::new(HashMap::new()),
@@ -102,7 +106,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_secret_found() {
-        let client = InMemoryVaultClient::new(make_config());
+        let client = InMemoryVaultClient::with_config(make_config());
         client.put_secret(make_secret("system/database/primary"));
         let secret = client.get_secret("system/database/primary").await.unwrap();
         assert_eq!(secret.path, "system/database/primary");
@@ -111,14 +115,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_secret_not_found() {
-        let client = InMemoryVaultClient::new(make_config());
+        let client = InMemoryVaultClient::with_config(make_config());
         let err = client.get_secret("missing/path").await.unwrap_err();
         assert!(matches!(err, VaultError::NotFound(_)));
     }
 
     #[tokio::test]
     async fn test_get_secret_value() {
-        let client = InMemoryVaultClient::new(make_config());
+        let client = InMemoryVaultClient::with_config(make_config());
         client.put_secret(make_secret("system/db"));
         let value = client
             .get_secret_value("system/db", "password")
@@ -129,7 +133,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_secret_value_key_not_found() {
-        let client = InMemoryVaultClient::new(make_config());
+        let client = InMemoryVaultClient::with_config(make_config());
         client.put_secret(make_secret("system/db"));
         let err = client
             .get_secret_value("system/db", "missing_key")
@@ -140,7 +144,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_secrets() {
-        let client = InMemoryVaultClient::new(make_config());
+        let client = InMemoryVaultClient::with_config(make_config());
         client.put_secret(make_secret("system/db/primary"));
         client.put_secret(make_secret("system/db/replica"));
         client.put_secret(make_secret("business/api/key"));
@@ -152,14 +156,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_secrets_empty() {
-        let client = InMemoryVaultClient::new(make_config());
+        let client = InMemoryVaultClient::with_config(make_config());
         let paths = client.list_secrets("nothing/").await.unwrap();
         assert!(paths.is_empty());
     }
 
     #[tokio::test]
     async fn test_watch_secret_returns_receiver() {
-        let client = InMemoryVaultClient::new(make_config());
+        let client = InMemoryVaultClient::with_config(make_config());
         let rx = client.watch_secret("system/db").await.unwrap();
         drop(rx);
     }

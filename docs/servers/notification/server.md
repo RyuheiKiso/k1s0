@@ -405,7 +405,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | パラメータ | 型 | 必須 | デフォルト | 説明 |
 | --- | --- | --- | --- | --- |
 | `channel_id` | string | No | - | チャネル ID でフィルタ |
-| `status` | string | No | - | ステータスでフィルタ（`queued`, `sent`, `failed` など） |
+| `status` | string | No | - | ステータスでフィルタ（`pending`, `sent`, `failed` など） |
 | `page` | int | No | `1` | ページ番号 |
 | `page_size` | int | No | `20` | 1ページ件数 |
 
@@ -508,7 +508,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
 | `SYS_NOTIFY_VALIDATION_ERROR` | 400 | 入力バリデーションエラー |
-| `SYS_NOTIFY_INVALID_ID` | 400 | 無効な UUID フォーマット |
+| `SYS_NOTIFY_INVALID_ID` | 400 | 無効な ID フォーマット |
 | `SYS_NOTIFY_CHANNEL_DISABLED` | 400 | 対象チャネルが無効化されている |
 | `SYS_NOTIFY_NOT_FOUND` | 404 | 指定された通知履歴が見つからない |
 | `SYS_NOTIFY_CHANNEL_NOT_FOUND` | 404 | 指定されたチャネルが見つからない |
@@ -790,7 +790,7 @@ message DeleteTemplateResponse {
 | `recipient` | String | 宛先（メールアドレス / Slack チャンネル等） |
 | `subject` | Option\<String\> | 件名（メール用） |
 | `body` | String | 送信本文（テンプレート適用後） |
-| `status` | String | 配信状態（queued / sent / failed） |
+| `status` | String | 配信状態（pending / sent / failed） |
 | `retry_count` | u32 | リトライ回数 |
 | `error_message` | Option\<String\> | エラーメッセージ（失敗時） |
 | `sent_at` | Option\<DateTime\<Utc\>\> | 配信完了日時 |
@@ -886,5 +886,12 @@ message DeleteTemplateResponse {
 ### Optional UseCase Parameters
 - Notification create/retry behavior supports optional parameters used by current Rust usecase signatures.
 
+### Config / Kafka Notes (2026-03-04)
+- DB 接続設定は `database.url` ではなく `database.host` / `database.port` / `database.name` / `database.user` / `database.password` / `database.ssl_mode` を使用する。
+- Kafka は `topic_requested` を設定で受け取り、送信完了イベントは `k1s0.system.notification.sent.v1` に publish する（`topic_sent` は現行コードでは固定）。
+---
 
+## ObservabilityConfig（log/trace/metrics）
+
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
 

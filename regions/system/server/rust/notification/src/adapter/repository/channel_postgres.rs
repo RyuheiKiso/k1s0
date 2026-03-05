@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
@@ -20,7 +19,7 @@ impl ChannelPostgresRepository {
 
 #[derive(sqlx::FromRow)]
 struct ChannelRow {
-    id: Uuid,
+    id: String,
     name: String,
     channel_type: String,
     config: serde_json::Value,
@@ -45,7 +44,7 @@ impl From<ChannelRow> for NotificationChannel {
 
 #[async_trait]
 impl NotificationChannelRepository for ChannelPostgresRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
         let row: Option<ChannelRow> = sqlx::query_as(
             "SELECT id, name, channel_type, config, enabled, created_at, updated_at \
              FROM notification.channels WHERE id = $1",
@@ -127,7 +126,7 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
              (id, name, channel_type, config, enabled, created_at, updated_at) \
              VALUES ($1, $2, $3, $4, $5, $6, $7)",
         )
-        .bind(channel.id)
+        .bind(&channel.id)
         .bind(&channel.name)
         .bind(&channel.channel_type)
         .bind(&channel.config)
@@ -145,7 +144,7 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
              SET name = $2, config = $3, enabled = $4, updated_at = $5 \
              WHERE id = $1",
         )
-        .bind(channel.id)
+        .bind(&channel.id)
         .bind(&channel.name)
         .bind(&channel.config)
         .bind(channel.enabled)
@@ -155,7 +154,7 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
         let result = sqlx::query("DELETE FROM notification.channels WHERE id = $1")
             .bind(id)
             .execute(self.pool.as_ref())

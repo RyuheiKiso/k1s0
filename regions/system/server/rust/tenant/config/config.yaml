@@ -1,7 +1,44 @@
-app:
+﻿app:
   name: "tenant-server"
   version: "0.1.0"
 
 server:
   http_port: 8089
-  grpc_port: 50058
+  grpc_port: 50051
+
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: true
+    endpoint: "http://otel-collector.observability:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"
+
+# --- Production configuration (uncomment as needed) ---
+# database:
+#   host: "postgres.k1s0-system.svc.cluster.local"
+#   port: 5432
+#   name: "k1s0_system"
+#   user: "app"
+#   password: ""
+#   ssl_mode: "disable"
+#   max_open_conns: 25
+#   max_idle_conns: 5
+#   conn_max_lifetime: "5m"
+# kafka:
+#   brokers:
+#     - "kafka-0.messaging.svc.cluster.local:9092"
+#   security_protocol: "PLAINTEXT"
+#   topics:
+#     publish:
+#       - "k1s0.system.tenant.events.v1"
+#     subscribe: []
+# keycloak:
+#   base_url: "http://keycloak.k1s0-system.svc.cluster.local:8080"
+#   realm: "master"
+#   client_id: "admin-cli"
+#   client_secret: ""

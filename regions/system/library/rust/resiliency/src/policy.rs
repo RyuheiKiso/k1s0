@@ -1,38 +1,28 @@
 use std::time::Duration;
 
+pub use k1s0_circuit_breaker::CircuitBreakerConfig;
+pub use k1s0_retry::RetryConfig;
+
+use crate::decorator::ResiliencyDecorator;
+
 #[derive(Debug, Clone)]
-pub struct RetryConfig {
-    pub max_attempts: u32,
-    pub base_delay: Duration,
+pub struct ExponentialBackoff {
+    pub initial_delay: Duration,
     pub max_delay: Duration,
-    pub jitter: bool,
 }
 
-impl Default for RetryConfig {
-    fn default() -> Self {
+impl ExponentialBackoff {
+    pub fn new(initial_delay: Duration, max_delay: Duration) -> Self {
         Self {
-            max_attempts: 3,
-            base_delay: Duration::from_millis(100),
-            max_delay: Duration::from_secs(5),
-            jitter: true,
+            initial_delay,
+            max_delay,
         }
     }
-}
 
-#[derive(Debug, Clone)]
-pub struct CircuitBreakerConfig {
-    pub failure_threshold: u32,
-    pub recovery_timeout: Duration,
-    pub half_open_max_calls: u32,
-}
-
-impl Default for CircuitBreakerConfig {
-    fn default() -> Self {
-        Self {
-            failure_threshold: 5,
-            recovery_timeout: Duration::from_secs(30),
-            half_open_max_calls: 2,
-        }
+    pub fn compute_delay(&self, attempt: u32, multiplier: f64) -> Duration {
+        let base = self.initial_delay.as_millis() as f64 * multiplier.powi(attempt as i32);
+        let capped = base.min(self.max_delay.as_millis() as f64);
+        Duration::from_millis(capped as u64)
     }
 }
 
@@ -57,11 +47,17 @@ pub struct ResiliencyPolicy {
     pub circuit_breaker: Option<CircuitBreakerConfig>,
     pub bulkhead: Option<BulkheadConfig>,
     pub timeout: Option<Duration>,
+    pub backoff: Option<ExponentialBackoff>,
+    pub retryable_errors: Vec<String>,
 }
 
 impl ResiliencyPolicy {
     pub fn builder() -> ResiliencyPolicyBuilder {
         ResiliencyPolicyBuilder::default()
+    }
+
+    pub fn decorate(self) -> ResiliencyDecorator {
+        ResiliencyDecorator::new(self)
     }
 }
 
@@ -71,6 +67,8 @@ pub struct ResiliencyPolicyBuilder {
     circuit_breaker: Option<CircuitBreakerConfig>,
     bulkhead: Option<BulkheadConfig>,
     timeout: Option<Duration>,
+    backoff: Option<ExponentialBackoff>,
+    retryable_errors: Vec<String>,
 }
 
 impl ResiliencyPolicyBuilder {
@@ -94,12 +92,28 @@ impl ResiliencyPolicyBuilder {
         self
     }
 
+    pub fn backoff(mut self, backoff: ExponentialBackoff) -> Self {
+        self.backoff = Some(backoff);
+        self
+    }
+
+    pub fn retryable_errors<I, S>(mut self, values: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.retryable_errors = values.into_iter().map(Into::into).collect();
+        self
+    }
+
     pub fn build(self) -> ResiliencyPolicy {
         ResiliencyPolicy {
             retry: self.retry,
             circuit_breaker: self.circuit_breaker,
             bulkhead: self.bulkhead,
             timeout: self.timeout,
+            backoff: self.backoff,
+            retryable_errors: self.retryable_errors,
         }
     }
 }

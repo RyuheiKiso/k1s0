@@ -4,7 +4,7 @@ use base64::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::error::PaginationError;
+use crate::error::PerPageValidationError;
 
 /// Cursor-based pagination request.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,17 +29,17 @@ pub fn encode_cursor(sort_key: &str, id: &str) -> String {
 }
 
 /// Decode a base64 cursor string into (sort_key, id).
-pub fn decode_cursor(cursor: &str) -> Result<(String, String), PaginationError> {
+pub fn decode_cursor(cursor: &str) -> Result<(String, String), PerPageValidationError> {
     let bytes = URL_SAFE_NO_PAD
         .decode(cursor)
         .or_else(|_| URL_SAFE.decode(cursor))
         .or_else(|_| STANDARD.decode(cursor))
-        .map_err(|e| PaginationError::InvalidCursor(e.to_string()))?;
+        .map_err(|e| PerPageValidationError::InvalidCursor(e.to_string()))?;
     let combined =
-        String::from_utf8(bytes).map_err(|e| PaginationError::InvalidCursor(e.to_string()))?;
+        String::from_utf8(bytes).map_err(|e| PerPageValidationError::InvalidCursor(e.to_string()))?;
     let (sort_key, id) = combined
         .split_once(SEPARATOR)
-        .ok_or_else(|| PaginationError::InvalidCursor("missing separator".to_string()))?;
+        .ok_or_else(|| PerPageValidationError::InvalidCursor("missing separator".to_string()))?;
     Ok((sort_key.to_string(), id.to_string()))
 }
 

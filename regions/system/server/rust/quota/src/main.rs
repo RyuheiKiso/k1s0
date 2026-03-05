@@ -20,21 +20,22 @@ use infrastructure::config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let cfg = Config::load(&config_path)?;
+
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-quota-server".to_string(),
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
-    let config_path =
-        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -43,9 +44,9 @@ async fn main() -> anyhow::Result<()> {
         "starting quota server"
     );
 
-    // --- Repository initialization: Redis → PostgreSQL → InMemory fallback ---
+    // --- Repository initialization: Redis 竊・PostgreSQL 竊・InMemory fallback ---
 
-    // Redis ConnectionManager (usage_repo 用、policy_repo は常にDB/InMemory)
+    // Redis ConnectionManager (usage_repo 逕ｨ縲｝olicy_repo 縺ｯ蟶ｸ縺ｫDB/InMemory)
     let redis_conn: Option<redis::aio::ConnectionManager> = if let Some(ref redis_cfg) = cfg.redis
     {
         info!(url = %redis_cfg.url, "connecting to Redis for usage counters");
@@ -81,7 +82,7 @@ async fn main() -> anyhow::Result<()> {
                 let policy_repo = Arc::new(
                     adapter::repository::QuotaPolicyPostgresRepository::new(pool.clone()),
                 );
-                // usage_repo: Redis が使えればRedis、なければPostgreSQL
+                // usage_repo: Redis 縺御ｽｿ縺医ｌ縺ｰRedis縲√↑縺代ｌ縺ｰPostgreSQL
                 let usage_repo: Arc<dyn QuotaUsageRepository> =
                     if let Some(ref cm) = redis_conn {
                         let prefix = cfg
@@ -106,7 +107,7 @@ async fn main() -> anyhow::Result<()> {
                     error = %e,
                     "failed to connect to PostgreSQL, falling back to InMemory"
                 );
-                // usage_repo: Redis が使えればRedis、なければInMemory
+                // usage_repo: Redis 縺御ｽｿ縺医ｌ縺ｰRedis縲√↑縺代ｌ縺ｰInMemory
                 let usage_repo: Arc<dyn QuotaUsageRepository> =
                     if let Some(ref cm) = redis_conn {
                         let prefix = cfg
@@ -129,7 +130,7 @@ async fn main() -> anyhow::Result<()> {
         }
     } else {
         info!("no database config found, using InMemory repositories");
-        // usage_repo: Redis が使えればRedis、なければInMemory
+        // usage_repo: Redis 縺御ｽｿ縺医ｌ縺ｰRedis縲√↑縺代ｌ縺ｰInMemory
         let usage_repo: Arc<dyn QuotaUsageRepository> = if let Some(ref cm) = redis_conn {
             let prefix = cfg
                 .redis
@@ -156,6 +157,7 @@ async fn main() -> anyhow::Result<()> {
                 &kafka_cfg.brokers.join(","),
                 &kafka_cfg.security_protocol,
                 &kafka_cfg.topic_exceeded,
+                &kafka_cfg.topic_threshold,
             ) {
                 Ok(producer) => {
                     info!("Kafka producer initialized for quota exceeded events");

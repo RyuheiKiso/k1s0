@@ -5,7 +5,6 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use uuid::Uuid;
 
 use super::AppState;
 use k1s0_server_common::error as codes;
@@ -18,30 +17,16 @@ pub async fn send_notification(
     State(state): State<AppState>,
     Json(req): Json<SendNotificationRequest>,
 ) -> impl IntoResponse {
-    let channel_id = match Uuid::parse_str(&req.channel_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return error_response(
-                StatusCode::BAD_REQUEST,
-                codes::notification::invalid_id(),
-                "invalid channel_id format",
-            );
-        }
-    };
+    if req.channel_id.trim().is_empty() {
+        return error_response(
+            StatusCode::BAD_REQUEST,
+            codes::notification::invalid_id(),
+            "channel_id is required",
+        );
+    }
 
-    let template_id = match req.template_id {
-        Some(template_id) => match Uuid::parse_str(&template_id) {
-            Ok(id) => Some(id),
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_REQUEST,
-                    codes::notification::invalid_id(),
-                    "invalid template_id format",
-                );
-            }
-        },
-        None => None,
-    };
+    let channel_id = req.channel_id;
+    let template_id = req.template_id;
 
     let input = SendNotificationInput {
         channel_id,
@@ -56,7 +41,7 @@ pub async fn send_notification(
         Ok(output) => (
             StatusCode::CREATED,
             Json(serde_json::json!({
-                "notification_id": output.log_id.to_string(),
+                "notification_id": output.log_id,
                 "status": output.status,
                 "created_at": output.created_at.to_rfc3339()
             })),
@@ -99,19 +84,7 @@ pub async fn list_notifications(
     let page = params.page.unwrap_or(1);
     let page_size = params.page_size.unwrap_or(20);
 
-    let channel_id = match params.channel_id {
-        Some(ref s) => match Uuid::parse_str(s) {
-            Ok(id) => Some(id),
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_REQUEST,
-                    codes::notification::invalid_id(),
-                    "invalid channel_id format",
-                );
-            }
-        },
-        None => None,
-    };
+    let channel_id = params.channel_id;
 
     match state
         .log_repo
@@ -145,7 +118,7 @@ pub async fn list_notifications(
 /// GET /api/v1/notifications/:id - Get a single notification log
 pub async fn get_notification(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.log_repo.find_by_id(&id).await {
         Ok(Some(log)) => {
@@ -189,7 +162,7 @@ pub async fn get_notification(
 /// POST /api/v1/notifications/:id/retry
 pub async fn retry_notification(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
 ) -> impl IntoResponse {
     use crate::usecase::retry_notification::RetryNotificationInput;
 
@@ -201,7 +174,7 @@ pub async fn retry_notification(
         Ok(log) => (
             StatusCode::OK,
             Json(serde_json::json!({
-                "notification_id": log.id.to_string(),
+                "notification_id": log.id,
                 "status": log.status,
                 "message": "notification retried successfully"
             })),
@@ -333,7 +306,7 @@ pub async fn list_channels(
 /// GET /api/v1/channels/:id
 pub async fn get_channel(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.get_channel_uc.execute(&id).await {
         Ok(channel) => (
@@ -371,7 +344,7 @@ pub async fn get_channel(
 /// PUT /api/v1/channels/:id
 pub async fn update_channel(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
     Json(req): Json<UpdateChannelRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::update_channel::UpdateChannelInput;
@@ -417,7 +390,7 @@ pub async fn update_channel(
 /// DELETE /api/v1/channels/:id
 pub async fn delete_channel(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.delete_channel_uc.execute(&id).await {
         Ok(()) => (
@@ -533,7 +506,7 @@ pub async fn list_templates(
 /// GET /api/v1/templates/:id
 pub async fn get_template(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.get_template_uc.execute(&id).await {
         Ok(template) => (
@@ -571,7 +544,7 @@ pub async fn get_template(
 /// PUT /api/v1/templates/:id
 pub async fn update_template(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
     Json(req): Json<UpdateTemplateRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::update_template::UpdateTemplateInput;
@@ -616,7 +589,7 @@ pub async fn update_template(
 /// DELETE /api/v1/templates/:id
 pub async fn delete_template(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.delete_template_uc.execute(&id).await {
         Ok(()) => (

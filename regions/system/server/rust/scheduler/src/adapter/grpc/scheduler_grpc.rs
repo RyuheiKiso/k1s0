@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use uuid::Uuid;
 
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::domain::entity::scheduler_job::SchedulerJob;
@@ -508,9 +507,12 @@ impl SchedulerGrpcService {
     }
 }
 
-fn parse_uuid(value: &str, field: &str) -> Result<Uuid, GrpcError> {
-    Uuid::parse_str(value)
-        .map_err(|_| GrpcError::InvalidArgument(format!("invalid {}: {}", field, value)))
+fn parse_uuid(value: &str, field: &str) -> Result<String, GrpcError> {
+    if value.trim().is_empty() {
+        Err(GrpcError::InvalidArgument(format!("invalid {}: {}", field, value)))
+    } else {
+        Ok(value.to_string())
+    }
 }
 
 fn parse_payload(payload: &[u8]) -> Result<serde_json::Value, GrpcError> {
@@ -562,8 +564,5 @@ fn to_execution_data(execution: SchedulerExecution) -> JobExecutionData {
 }
 
 fn normalize_status(status: &str) -> String {
-    match status {
-        "completed" => "succeeded".to_string(),
-        other => other.to_string(),
-    }
+    status.to_string()
 }

@@ -69,12 +69,12 @@ impl RateLimitDomainService {
         window_seconds: u32,
         rule_id: Option<String>,
     ) -> RateLimitDecision {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now();
         RateLimitDecision {
             allowed: true,
             limit: i64::from(limit),
             remaining: i64::from(limit),
-            reset_at: now + i64::from(window_seconds),
+            reset_at: now + chrono::Duration::seconds(i64::from(window_seconds)),
             reason: "fail-open: backend unavailable".to_string(),
             scope: scope.to_string(),
             identifier: identifier.to_string(),

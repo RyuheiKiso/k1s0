@@ -7,7 +7,7 @@ pub mod error;
 pub mod health;
 pub mod topic;
 
-pub use config::KafkaConfig;
+pub use config::{KafkaConfig, KafkaConfigBuilder};
 pub use error::KafkaError;
-pub use health::KafkaHealthChecker;
+pub use health::{KafkaHealthChecker, KafkaHealthStatus};
 pub use topic::{TopicConfig, TopicPartitionInfo};

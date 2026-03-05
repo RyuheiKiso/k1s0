@@ -30,21 +30,22 @@ use infrastructure::opa_client::OpaClient;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let cfg = Config::load(&config_path)?;
+
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-policy-server".to_string(),
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
-    let config_path =
-        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,

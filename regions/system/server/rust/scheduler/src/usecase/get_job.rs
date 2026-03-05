@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::scheduler_job::SchedulerJob;
 use crate::domain::repository::SchedulerJobRepository;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetJobError {
     #[error("job not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -23,12 +21,12 @@ impl GetJobUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, id: &Uuid) -> Result<SchedulerJob, GetJobError> {
+    pub async fn execute(&self, id: &str) -> Result<SchedulerJob, GetJobError> {
         self.repo
             .find_by_id(id)
             .await
             .map_err(|e| GetJobError::Internal(e.to_string()))?
-            .ok_or(GetJobError::NotFound(*id))
+            .ok_or_else(|| GetJobError::NotFound(id.to_string()))
     }
 }
 
@@ -46,11 +44,11 @@ mod tests {
             "* * * * *".to_string(),
             serde_json::json!({}),
         );
-        let job_id = job.id;
+        let job_id = job.id.clone();
         let return_job = job.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| *id == job_id)
+            .withf(move |id| id == job_id.as_str())
             .returning(move |_| Ok(Some(return_job.clone())));
 
         let uc = GetJobUseCase::new(Arc::new(mock));
@@ -62,7 +60,7 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockSchedulerJobRepository::new();
-        let missing_id = Uuid::new_v4();
+        let missing_id = "job_missing".to_string();
         mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = GetJobUseCase::new(Arc::new(mock));

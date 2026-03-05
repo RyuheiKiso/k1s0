@@ -13,6 +13,10 @@ pub struct DatabaseConfig {
     pub ssl_mode: String,
     #[serde(default = "default_max_open_conns")]
     pub max_open_conns: u32,
+    #[serde(default = "default_max_idle_conns")]
+    pub max_idle_conns: u32,
+    #[serde(default = "default_conn_max_lifetime")]
+    pub conn_max_lifetime: String,
 }
 
 fn default_ssl_mode() -> String {
@@ -21,6 +25,14 @@ fn default_ssl_mode() -> String {
 
 fn default_max_open_conns() -> u32 {
     25
+}
+
+fn default_max_idle_conns() -> u32 {
+    5
+}
+
+fn default_conn_max_lifetime() -> String {
+    "5m".to_string()
 }
 
 impl DatabaseConfig {
@@ -47,6 +59,8 @@ mod tests {
             password: "dev".to_string(),
             ssl_mode: "disable".to_string(),
             max_open_conns: 25,
+            max_idle_conns: 5,
+            conn_max_lifetime: "5m".to_string(),
         };
 
         assert_eq!(
@@ -66,5 +80,7 @@ user: "dev"
         let config: DatabaseConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.ssl_mode, "disable");
         assert_eq!(config.max_open_conns, 25);
+        assert_eq!(config.max_idle_conns, 5);
+        assert_eq!(config.conn_max_lifetime, "5m");
     }
 }

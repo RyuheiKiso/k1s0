@@ -1,4 +1,4 @@
-﻿# system-tenant-server 設計
+# system-tenant-server 設計
 
 > **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `tenants/read`, `tenants/write`, `tenants/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
@@ -173,7 +173,8 @@ system tier の Tenant Server は以下の機能を提供する。
   ],
   "total_count": 42,
   "page": 1,
-  "page_size": 20
+  "page_size": 20,
+  "has_next": true
 }
 ```
 
@@ -673,7 +674,7 @@ Step 4: テナントステータスを active に遷移
 | `status` | TenantStatus | テナントステータス（`provisioning` / `active` / `suspended` / `deleted`） |
 | `plan` | Plan | 契約プラン enum（`free` / `starter` / `professional` / `enterprise`） |
 | `owner_id` | Option\<String\> | テナントオーナーのユーザー ID |
-| `settings` | string (JSON) | proto では string。実際の値は JSON 文字列として扱う |
+| `settings` | serde_json::Value（REST） / string（gRPC） | REST では JSON オブジェクト、gRPC proto では JSON 文字列として扱う |
 | `keycloak_realm` | Option\<String\> | Keycloak realm 名（`k1s0-{name}`） |
 | `db_schema` | Option\<String\> | PostgreSQL スキーマ名（`tenant_{id}`） |
 | `created_at` | DateTime\<Utc\> | 作成日時 |
@@ -765,6 +766,8 @@ Step 4: テナントステータスを active に遷移
 ## 設定ファイル
 
 ### config.yaml（本番）
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:
@@ -773,8 +776,7 @@ app:
   environment: "production"
 
 server:
-  host: "0.0.0.0"
-  http_port: 8080
+  http_port: 8089
   grpc_port: 50051
 
 database:
@@ -792,7 +794,10 @@ kafka:
   brokers:
     - "kafka-0.messaging.svc.cluster.local:9092"
   security_protocol: "PLAINTEXT"
-  topic: "k1s0.system.tenant.events.v1"
+  topics:
+    publish:
+      - "k1s0.system.tenant.events.v1"
+    subscribe: []
 
 keycloak:
   base_url: "http://keycloak.k1s0-system.svc.cluster.local:8080"
@@ -819,7 +824,7 @@ image:
 replicaCount: 2
 
 container:
-  port: 8080
+  port: 8089
   grpcPort: 50051
 
 service:
@@ -889,7 +894,12 @@ vault:
 ### 2026-03-03 追補
 - REST CreateTenant の owner_id は必須。
 - REST レスポンスには owner_id を含める。
+- REST `GET /api/v1/tenants` は `has_next` を返す。
 - gRPC は owner_id が non-optional string である点を明示する。
 - publish_tenant_updated イベントを発行する。
 - healthz/readyz は status フィールドを統一フォーマットで返す。
+---
 
+## ObservabilityConfig（log/trace/metrics）
+
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

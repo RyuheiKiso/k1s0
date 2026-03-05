@@ -16,7 +16,7 @@ pub fn has_resource_role(claims: &Claims, resource: &str, role: &str) -> bool {
 ///
 /// realm_access と resource_access の両方をチェックする。
 /// admin ロール（sys_admin, admin, リソース admin）を持つ場合は全権限を付与する。
-pub fn has_permission(claims: &Claims, resource: &str, action: &str) -> bool {
+pub fn check_permission(claims: &Claims, resource: &str, action: &str) -> bool {
     // sys_admin は全権限
     if has_role(claims, "sys_admin") {
         return true;
@@ -41,6 +41,11 @@ pub fn has_permission(claims: &Claims, resource: &str, action: &str) -> bool {
     false
 }
 
+/// Backward-compatible alias of `check_permission`.
+pub fn has_permission(claims: &Claims, resource: &str, action: &str) -> bool {
+    check_permission(claims, resource, action)
+}
+
 /// Claims で指定 Tier へのアクセスが許可されているかを判定する。
 pub fn has_tier_access(claims: &Claims, tier: &str) -> bool {
     claims
@@ -52,7 +57,7 @@ pub fn has_tier_access(claims: &Claims, tier: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::claims::{Access, Audience, RealmAccess};
+    use crate::claims::{Audience, RealmAccess, RoleSet};
     use std::collections::HashMap;
 
     fn make_claims(
@@ -81,7 +86,7 @@ mod tests {
                     .map(|(k, v)| {
                         (
                             k.to_string(),
-                            Access {
+                            RoleSet {
                                 roles: v.into_iter().map(String::from).collect(),
                             },
                         )
@@ -115,34 +120,43 @@ mod tests {
     }
 
     #[test]
-    fn test_has_permission_basic() {
+    fn test_check_permission_basic() {
         let mut ra = HashMap::new();
         ra.insert("order-service", vec!["read", "write"]);
         let claims = make_claims(vec!["user"], ra, vec![]);
 
-        assert!(has_permission(&claims, "order-service", "read"));
-        assert!(has_permission(&claims, "order-service", "write"));
-        assert!(!has_permission(&claims, "order-service", "delete"));
+        assert!(check_permission(&claims, "order-service", "read"));
+        assert!(check_permission(&claims, "order-service", "write"));
+        assert!(!check_permission(&claims, "order-service", "delete"));
     }
 
     #[test]
-    fn test_has_permission_sys_admin() {
+    fn test_has_permission_alias() {
+        let mut ra = HashMap::new();
+        ra.insert("order-service", vec!["read"]);
+        let claims = make_claims(vec!["user"], ra, vec![]);
+        assert!(has_permission(&claims, "order-service", "read"));
+        assert!(!has_permission(&claims, "order-service", "write"));
+    }
+
+    #[test]
+    fn test_check_permission_sys_admin() {
         let claims = make_claims(vec!["sys_admin"], HashMap::new(), vec![]);
 
-        assert!(has_permission(&claims, "any-resource", "read"));
-        assert!(has_permission(&claims, "any-resource", "write"));
-        assert!(has_permission(&claims, "any-resource", "delete"));
+        assert!(check_permission(&claims, "any-resource", "read"));
+        assert!(check_permission(&claims, "any-resource", "write"));
+        assert!(check_permission(&claims, "any-resource", "delete"));
     }
 
     #[test]
-    fn test_has_permission_resource_admin() {
+    fn test_check_permission_resource_admin() {
         let mut ra = HashMap::new();
         ra.insert("order-service", vec!["admin"]);
         let claims = make_claims(vec!["user"], ra, vec![]);
 
-        assert!(has_permission(&claims, "order-service", "read"));
-        assert!(has_permission(&claims, "order-service", "write"));
-        assert!(has_permission(&claims, "order-service", "delete"));
+        assert!(check_permission(&claims, "order-service", "read"));
+        assert!(check_permission(&claims, "order-service", "write"));
+        assert!(check_permission(&claims, "order-service", "delete"));
     }
 
     #[test]

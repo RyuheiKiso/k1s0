@@ -79,6 +79,7 @@ impl KafkaQuotaProducer {
         brokers: &str,
         security_protocol: &str,
         topic_exceeded: &str,
+        topic_threshold: &str,
     ) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -93,7 +94,7 @@ impl KafkaQuotaProducer {
         Ok(Self {
             producer,
             topic_exceeded: topic_exceeded.to_string(),
-            topic_threshold: "k1s0.system.quota.threshold.reached.v1".to_string(),
+            topic_threshold: topic_threshold.to_string(),
             metrics: None,
         })
     }

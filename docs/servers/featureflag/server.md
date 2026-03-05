@@ -1,4 +1,4 @@
-﻿# system-featureflag-server 設計
+# system-featureflag-server 設計
 
 > **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
@@ -646,6 +646,8 @@ message FlagRule {
 ## 設定ファイル例
 
 ### config.yaml（本番）
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:
@@ -755,6 +757,8 @@ vault:
 - `FeatureFlag.rules` exists as `repeated FlagRule` (field `8`).
 - `EvaluateFlagResponse.variant` is `optional string`.
 - `UpdateFlagRequest.enabled` and `UpdateFlagRequest.description` are optional.
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
-
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

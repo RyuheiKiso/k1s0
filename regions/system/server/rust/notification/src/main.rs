@@ -5,7 +5,6 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use tracing::info;
-use uuid::Uuid;
 
 mod adapter;
 mod domain;
@@ -35,21 +34,22 @@ use infrastructure::kafka_producer::{
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let cfg = Config::load(&config_path)?;
+
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-notification-server".to_string(),
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
-    let config_path =
-        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -309,7 +309,7 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     let rest_future = axum::serve(listener, app);
 
-    // REST と gRPC を並行起動
+    // REST 縺ｨ gRPC 繧剃ｸｦ陦瑚ｵｷ蜍・
     tokio::select! {
         result = rest_future => {
             if let Err(e) = result {
@@ -329,7 +329,7 @@ async fn main() -> anyhow::Result<()> {
 // --- InMemory Repositories ---
 
 struct InMemoryNotificationChannelRepository {
-    channels: tokio::sync::RwLock<HashMap<Uuid, NotificationChannel>>,
+    channels: tokio::sync::RwLock<HashMap<String, NotificationChannel>>,
 }
 
 impl InMemoryNotificationChannelRepository {
@@ -342,7 +342,7 @@ impl InMemoryNotificationChannelRepository {
 
 #[async_trait::async_trait]
 impl NotificationChannelRepository for InMemoryNotificationChannelRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
         let channels = self.channels.read().await;
         Ok(channels.get(id).cloned())
     }
@@ -384,24 +384,24 @@ impl NotificationChannelRepository for InMemoryNotificationChannelRepository {
 
     async fn create(&self, channel: &NotificationChannel) -> anyhow::Result<()> {
         let mut channels = self.channels.write().await;
-        channels.insert(channel.id, channel.clone());
+        channels.insert(channel.id.clone(), channel.clone());
         Ok(())
     }
 
     async fn update(&self, channel: &NotificationChannel) -> anyhow::Result<()> {
         let mut channels = self.channels.write().await;
-        channels.insert(channel.id, channel.clone());
+        channels.insert(channel.id.clone(), channel.clone());
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
         let mut channels = self.channels.write().await;
         Ok(channels.remove(id).is_some())
     }
 }
 
 struct InMemoryNotificationTemplateRepository {
-    templates: tokio::sync::RwLock<HashMap<Uuid, NotificationTemplate>>,
+    templates: tokio::sync::RwLock<HashMap<String, NotificationTemplate>>,
 }
 
 impl InMemoryNotificationTemplateRepository {
@@ -414,7 +414,7 @@ impl InMemoryNotificationTemplateRepository {
 
 #[async_trait::async_trait]
 impl NotificationTemplateRepository for InMemoryNotificationTemplateRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<NotificationTemplate>> {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
         let templates = self.templates.read().await;
         Ok(templates.get(id).cloned())
     }
@@ -452,24 +452,24 @@ impl NotificationTemplateRepository for InMemoryNotificationTemplateRepository {
 
     async fn create(&self, template: &NotificationTemplate) -> anyhow::Result<()> {
         let mut templates = self.templates.write().await;
-        templates.insert(template.id, template.clone());
+        templates.insert(template.id.clone(), template.clone());
         Ok(())
     }
 
     async fn update(&self, template: &NotificationTemplate) -> anyhow::Result<()> {
         let mut templates = self.templates.write().await;
-        templates.insert(template.id, template.clone());
+        templates.insert(template.id.clone(), template.clone());
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
         let mut templates = self.templates.write().await;
         Ok(templates.remove(id).is_some())
     }
 }
 
 struct InMemoryNotificationLogRepository {
-    logs: tokio::sync::RwLock<HashMap<Uuid, NotificationLog>>,
+    logs: tokio::sync::RwLock<HashMap<String, NotificationLog>>,
 }
 
 impl InMemoryNotificationLogRepository {
@@ -482,16 +482,16 @@ impl InMemoryNotificationLogRepository {
 
 #[async_trait::async_trait]
 impl NotificationLogRepository for InMemoryNotificationLogRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<NotificationLog>> {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationLog>> {
         let logs = self.logs.read().await;
         Ok(logs.get(id).cloned())
     }
 
-    async fn find_by_channel_id(&self, channel_id: &Uuid) -> anyhow::Result<Vec<NotificationLog>> {
+    async fn find_by_channel_id(&self, channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
         let logs = self.logs.read().await;
         Ok(logs
             .values()
-            .filter(|l| l.channel_id == *channel_id)
+            .filter(|l| l.channel_id == channel_id)
             .cloned()
             .collect())
     }
@@ -500,7 +500,7 @@ impl NotificationLogRepository for InMemoryNotificationLogRepository {
         &self,
         page: u32,
         page_size: u32,
-        channel_id: Option<Uuid>,
+        channel_id: Option<String>,
         status: Option<String>,
     ) -> anyhow::Result<(Vec<NotificationLog>, u64)> {
         let logs = self.logs.read().await;
@@ -530,13 +530,13 @@ impl NotificationLogRepository for InMemoryNotificationLogRepository {
 
     async fn create(&self, log: &NotificationLog) -> anyhow::Result<()> {
         let mut logs = self.logs.write().await;
-        logs.insert(log.id, log.clone());
+        logs.insert(log.id.clone(), log.clone());
         Ok(())
     }
 
     async fn update(&self, log: &NotificationLog) -> anyhow::Result<()> {
         let mut logs = self.logs.write().await;
-        logs.insert(log.id, log.clone());
+        logs.insert(log.id.clone(), log.clone());
         Ok(())
     }
 }

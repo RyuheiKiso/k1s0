@@ -24,13 +24,15 @@ struct UsageRow {
 #[async_trait]
 impl QuotaUsageRepository for QuotaUsagePostgresRepository {
     async fn get_usage(&self, quota_id: &str) -> anyhow::Result<Option<u64>> {
-        let uuid = uuid::Uuid::parse_str(quota_id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
         let row: Option<UsageRow> = sqlx::query_as(
-            "SELECT current_usage FROM quota.quota_usage WHERE policy_id = $1",
+            "SELECT u.current_usage \
+             FROM quota.quota_usage u \
+             JOIN quota.quota_policies p ON p.id = u.policy_id \
+             WHERE u.policy_id = $1 \
+               AND u.subject_type = p.subject_type \
+               AND u.subject_id = p.subject_id",
         )
-        .bind(uuid)
+        .bind(quota_id)
         .fetch_optional(self.pool.as_ref())
         .await?;
 
@@ -38,19 +40,23 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
     }
 
     async fn increment(&self, quota_id: &str, amount: u64) -> anyhow::Result<u64> {
-        let uuid = uuid::Uuid::parse_str(quota_id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
-        // UPSERT: INSERT する場合は初期値を amount にし、既存の場合は加算する
+        // UPSERT: policy が指す subject_type/subject_id を主キーとして加算する
         let row: (i64,) = sqlx::query_as(
-            "INSERT INTO quota.quota_usage (policy_id, current_usage, last_incremented_at) \
-             VALUES ($1, $2, NOW()) \
-             ON CONFLICT (policy_id, tenant_id) \
+            "WITH policy_subject AS ( \
+                 SELECT subject_type, subject_id \
+                 FROM quota.quota_policies \
+                 WHERE id = $1 \
+             ) \
+             INSERT INTO quota.quota_usage \
+                 (policy_id, subject_type, subject_id, current_usage, last_incremented_at) \
+             SELECT $1, subject_type, subject_id, $2, NOW() \
+             FROM policy_subject \
+             ON CONFLICT (policy_id, subject_type, subject_id) \
              DO UPDATE SET current_usage = quota.quota_usage.current_usage + $2, \
                            last_incremented_at = NOW() \
              RETURNING current_usage",
         )
-        .bind(uuid)
+        .bind(quota_id)
         .bind(amount as i64)
         .fetch_one(self.pool.as_ref())
         .await?;
@@ -59,15 +65,19 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
     }
 
     async fn reset(&self, quota_id: &str) -> anyhow::Result<()> {
-        let uuid = uuid::Uuid::parse_str(quota_id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
         sqlx::query(
             "UPDATE quota.quota_usage \
              SET current_usage = 0, window_start = NOW(), last_incremented_at = NULL \
-             WHERE policy_id = $1",
+             WHERE policy_id = $1 \
+               AND EXISTS ( \
+                   SELECT 1 \
+                   FROM quota.quota_policies p \
+                   WHERE p.id = $1 \
+                     AND p.subject_type = quota.quota_usage.subject_type \
+                     AND p.subject_id = quota.quota_usage.subject_id \
+               )",
         )
-        .bind(uuid)
+        .bind(quota_id)
         .execute(self.pool.as_ref())
         .await?;
 
@@ -80,17 +90,22 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
         amount: u64,
         limit: u64,
     ) -> anyhow::Result<CheckAndIncrementResult> {
-        let uuid = uuid::Uuid::parse_str(quota_id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
         // アトミックに current_usage + amount <= limit の場合のみ UPDATE する
         let row: Option<(i64,)> = sqlx::query_as(
             "UPDATE quota.quota_usage \
              SET current_usage = current_usage + $2, last_incremented_at = NOW() \
-             WHERE policy_id = $1 AND current_usage + $2 <= $3 \
+             WHERE policy_id = $1 \
+               AND current_usage + $2 <= $3 \
+               AND EXISTS ( \
+                   SELECT 1 \
+                   FROM quota.quota_policies p \
+                   WHERE p.id = $1 \
+                     AND p.subject_type = quota.quota_usage.subject_type \
+                     AND p.subject_id = quota.quota_usage.subject_id \
+               ) \
              RETURNING current_usage",
         )
-        .bind(uuid)
+        .bind(quota_id)
         .bind(amount as i64)
         .bind(limit as i64)
         .fetch_optional(self.pool.as_ref())

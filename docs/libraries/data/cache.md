@@ -34,7 +34,7 @@ Rust 公開型:
 | `CacheEntry` | 構造体 | キャッシュエントリ（value・expires_at） |
 | `LockGuard` | 構造体 | ロックガード（key・lock_value） |
 | `MockCacheClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
-| `CacheError` | enum | 接続エラー・シリアライゼーションエラー等 |
+| `CacheError` | enum | `NotFound`, `LockFailed`, `LockExpired`, `SerializationError`, `ConnectionError` |
 
 ## Rust 実装
 

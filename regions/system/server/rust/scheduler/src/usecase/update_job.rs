@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::scheduler_job::SchedulerJob;
 use crate::domain::repository::SchedulerJobRepository;
 use crate::domain::service::SchedulerDomainService;
 
 #[derive(Debug, Clone)]
 pub struct UpdateJobInput {
-    pub id: Uuid,
+    pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub cron_expression: String,
@@ -21,7 +19,7 @@ pub struct UpdateJobInput {
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateJobError {
     #[error("job not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("invalid cron expression: {0}")]
     InvalidCron(String),
@@ -49,7 +47,7 @@ impl UpdateJobUseCase {
             .find_by_id(&input.id)
             .await
             .map_err(|e| UpdateJobError::Internal(e.to_string()))?
-            .ok_or(UpdateJobError::NotFound(input.id))?;
+            .ok_or_else(|| UpdateJobError::NotFound(input.id.clone()))?;
 
         job.name = input.name.clone();
         job.description = input.description.clone();
@@ -82,17 +80,17 @@ mod tests {
             "* * * * *".to_string(),
             serde_json::json!({"task": "original"}),
         );
-        let job_id = job.id;
+        let job_id = job.id.clone();
         let return_job = job.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| *id == job_id)
+            .withf(move |id| id == job_id.as_str())
             .returning(move |_| Ok(Some(return_job.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
         let uc = UpdateJobUseCase::new(Arc::new(mock));
         let input = UpdateJobInput {
-            id: job_id,
+            id: job_id.clone(),
             name: "updated-job".to_string(),
             description: None,
             cron_expression: "0 12 * * *".to_string(),
@@ -112,7 +110,7 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockSchedulerJobRepository::new();
-        let missing_id = Uuid::new_v4();
+        let missing_id = "job_missing".to_string();
         mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = UpdateJobUseCase::new(Arc::new(mock));
@@ -141,7 +139,7 @@ mod tests {
 
         let uc = UpdateJobUseCase::new(Arc::new(mock));
         let input = UpdateJobInput {
-            id: Uuid::new_v4(),
+            id: "job_invalid_cron".to_string(),
             name: "test".to_string(),
             description: None,
             cron_expression: "bad".to_string(),

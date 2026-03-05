@@ -5,7 +5,8 @@ edition = "2021"
 
 [features]
 mock = ["mockall"]
-grpc = ["reqwest", "urlencoding"]
+grpc = ["tonic", "reqwest", "urlencoding"]
+kafka = ["rdkafka"]
 
 [dependencies]
 async-trait = "0.1"
@@ -17,6 +18,8 @@ chrono = { version = "0.4", features = ["serde"] }
 mockall = { version = "0.13", optional = true }
 reqwest = { version = "0.12", features = ["json"], optional = true }
 urlencoding = { version = "2", optional = true }
+tonic = { version = "0.12", optional = true }
+rdkafka = { version = "0.37", optional = true, features = ["cmake-build"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

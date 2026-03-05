@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
 
 #[derive(Debug, Clone)]
 pub struct UpdateChannelInput {
-    pub id: Uuid,
+    pub id: String,
     pub name: Option<String>,
     pub enabled: Option<bool>,
     pub config: Option<serde_json::Value>,
@@ -16,7 +14,7 @@ pub struct UpdateChannelInput {
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateChannelError {
     #[error("channel not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -37,7 +35,7 @@ impl UpdateChannelUseCase {
             .find_by_id(&input.id)
             .await
             .map_err(|e| UpdateChannelError::Internal(e.to_string()))?
-            .ok_or(UpdateChannelError::NotFound(input.id))?;
+            .ok_or_else(|| UpdateChannelError::NotFound(input.id.clone()))?;
 
         if let Some(ref name) = input.name {
             channel.name = name.clone();
@@ -74,17 +72,17 @@ mod tests {
             serde_json::json!({}),
             true,
         );
-        let channel_id = channel.id;
+        let channel_id = channel.id.clone();
         let return_channel = channel.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| *id == channel_id)
+            .withf(move |id| id == channel_id.as_str())
             .returning(move |_| Ok(Some(return_channel.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
         let uc = UpdateChannelUseCase::new(Arc::new(mock));
         let input = UpdateChannelInput {
-            id: channel_id,
+            id: channel_id.clone(),
             name: Some("updated-channel".to_string()),
             enabled: Some(false),
             config: None,
@@ -100,7 +98,7 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockNotificationChannelRepository::new();
-        let missing_id = Uuid::new_v4();
+        let missing_id = "ch_missing".to_string();
         mock.expect_find_by_id()
             .returning(|_| Ok(None));
 

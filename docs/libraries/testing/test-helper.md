@@ -68,11 +68,9 @@ mock-server = ["wiremock"]
 fixtures = ["fake"]
 
 [dependencies]
-async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["sync", "time"] }
-tracing = "0.1"
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 testcontainers = { version = "0.23", optional = true }

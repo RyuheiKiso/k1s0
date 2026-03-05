@@ -33,9 +33,16 @@ type NotificationResponse struct {
 	MessageID string `json:"message_id,omitempty"`
 }
 
+// SendNotificationInput は単一送信入力のエイリアス。
+type SendNotificationInput = NotificationRequest
+
+// SendNotificationOutput は単一送信出力のエイリアス。
+type SendNotificationOutput = NotificationResponse
+
 // NotificationClient は通知クライアントのインターフェース。
 type NotificationClient interface {
 	Send(ctx context.Context, req NotificationRequest) (NotificationResponse, error)
+	SendBatch(ctx context.Context, reqs []SendNotificationInput) ([]SendNotificationOutput, error)
 }
 
 // InMemoryClient はメモリ内の通知クライアント。
@@ -60,6 +67,26 @@ func (c *InMemoryClient) Send(_ context.Context, req NotificationRequest) (Notif
 		Status:    "sent",
 		MessageID: req.ID + "-msg",
 	}, nil
+}
+
+func (c *InMemoryClient) SendBatch(
+	_ context.Context,
+	reqs []SendNotificationInput,
+) ([]SendNotificationOutput, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	results := make([]SendNotificationOutput, 0, len(reqs))
+	for _, req := range reqs {
+		c.sent = append(c.sent, req)
+		c.seq++
+		results = append(results, SendNotificationOutput{
+			ID:        req.ID,
+			Status:    "sent",
+			MessageID: req.ID + "-msg",
+		})
+	}
+	return results, nil
 }
 
 // SentRequests は送信済みリクエストを返す。

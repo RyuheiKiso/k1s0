@@ -47,4 +47,19 @@ describe('InMemoryNotificationClient', () => {
     }
     expect(client.getSent()).toHaveLength(5);
   });
+
+  it('sendBatch で複数通知を送信できる', async () => {
+    const client = new InMemoryNotificationClient();
+    const outputs = await client.sendBatch([
+      makeRequest({ id: 'b1', channel: 'email' }),
+      makeRequest({ id: 'b2', channel: 'sms' }),
+    ]);
+
+    expect(outputs).toHaveLength(2);
+    expect(outputs[0].id).toBe('b1');
+    expect(outputs[1].id).toBe('b2');
+    expect(outputs[0].status).toBe('sent');
+    expect(outputs[1].status).toBe('sent');
+    expect(client.getSent()).toHaveLength(2);
+  });
 });

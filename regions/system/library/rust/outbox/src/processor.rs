@@ -1,8 +1,10 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use crate::error::OutboxError;
 use crate::message::OutboxMessage;
 use crate::store::OutboxStore;
+use tokio_util::sync::CancellationToken;
 
 /// OutboxPublisher はアウトボックスメッセージの発行インターフェース。
 #[async_trait::async_trait]
@@ -56,6 +58,25 @@ impl OutboxProcessor {
         }
 
         Ok(processed)
+    }
+
+    /// process_batch を interval ごとに実行する。
+    /// cancellation_token がキャンセルされたら終了する。
+    pub async fn run(
+        &self,
+        interval: Duration,
+        cancellation_token: CancellationToken,
+    ) -> Result<(), OutboxError> {
+        let mut ticker = tokio::time::interval(interval);
+        loop {
+            tokio::select! {
+                _ = cancellation_token.cancelled() => break,
+                _ = ticker.tick() => {
+                    self.process_batch().await?;
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -148,5 +169,27 @@ mod tests {
         );
         let count = processor.process_batch().await.unwrap();
         assert_eq!(count, 0); // 失敗したので 0
+    }
+
+    #[tokio::test]
+    async fn test_run_stops_when_cancelled() {
+        let mut store = MockOutboxStore::new();
+        store
+            .expect_fetch_pending()
+            .times(0..)
+            .returning(|_| Ok(vec![]));
+
+        let processor = OutboxProcessor::new(
+            Arc::new(store),
+            Arc::new(AlwaysSuccessPublisher),
+            10,
+        );
+        let token = CancellationToken::new();
+        token.cancel();
+
+        let result = processor
+            .run(Duration::from_millis(10), token)
+            .await;
+        assert!(result.is_ok());
     }
 }

@@ -123,7 +123,7 @@ mod tests {
         assert!(result.is_ok());
 
         let info = result.unwrap();
-        assert_eq!(info.rule_name, "service");
+        assert_eq!(info.rule_name, "service:global");
         assert_eq!(info.limit, 100);
         assert!(info.used.is_none());
         assert!(info.remaining.is_none());

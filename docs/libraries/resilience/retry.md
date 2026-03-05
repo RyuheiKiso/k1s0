@@ -16,7 +16,7 @@ Rust 実装の `CircuitBreaker` は `k1s0-circuit-breaker` パッケージへ委
 | `CircuitBreaker` | 構造体 | 失敗閾値・オープン時間・ハーフオープン試行数設定 |
 | `CircuitBreakerState` | enum | `Closed`（正常）/ `Open`（遮断中）/ `HalfOpen`（試行中） |
 | `with_retry` | 関数 | RetryConfig に基づいて非同期クロージャをリトライ実行 |
-| `RetryError` | enum | 最大リトライ超過 |
+| `RetryError<E>` | enum | `ExhaustedRetries { attempts, last_error }` / `CircuitBreakerOpen` / `Timeout` |
 
 ## Rust 実装
 
@@ -29,7 +29,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-metrics = ["opentelemetry"]
+mock = ["mockall"]
 
 [dependencies]
 async-trait = "0.1"
@@ -37,11 +37,14 @@ thiserror = "2"
 tokio = { version = "1", features = ["sync", "time"] }
 tracing = "0.1"
 rand = "0.8"
-opentelemetry = { version = "0.27", optional = true }
+mockall = { version = "0.13", optional = true }
+k1s0-circuit-breaker = { path = "../circuit-breaker" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 ```
+
+`RetryError<E>` は generic error 型で、`E` に呼び出し元操作のエラー型を保持する。
 
 **依存追加**: `k1s0-retry = { path = "../../system/library/rust/retry" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
 
@@ -199,6 +202,17 @@ class RetryError implements Exception {
 ```
 
 **カバレッジ目標**: 90%以上
+
+## DefaultRetryConfig デフォルト値
+
+各言語実装のデフォルト設定は以下で統一される（2026-03-04 時点の実装値）。
+
+| 言語 | max_attempts | initial_delay | max_delay | multiplier | jitter |
+| --- | --- | --- | --- | --- | --- |
+| Go (`DefaultRetryConfig()`) | 3 | 100ms | 30s | 2.0 | true |
+| Rust (`RetryConfig::default()`) | 3 | 100ms | 30s | 2.0 | true |
+| TypeScript (`defaultRetryConfig`) | 3 | 100ms | 30s | 2.0 | true |
+| Dart (`const RetryConfig()`) | 3 | 100ms | 30s | 2.0 | true |
 
 ## 関連ドキュメント
 

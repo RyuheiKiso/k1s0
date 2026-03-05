@@ -17,8 +17,12 @@ export interface NotificationResponse {
   messageId?: string;
 }
 
+export type SendNotificationInput = NotificationRequest;
+export type SendNotificationOutput = NotificationResponse;
+
 export interface NotificationClient {
   send(request: NotificationRequest): Promise<NotificationResponse>;
+  sendBatch(inputs: SendNotificationInput[]): Promise<SendNotificationOutput[]>;
 }
 
 export class InMemoryNotificationClient implements NotificationClient {
@@ -31,6 +35,21 @@ export class InMemoryNotificationClient implements NotificationClient {
       status: 'sent',
       messageId: randomBytes(8).toString('hex'),
     };
+  }
+
+  async sendBatch(
+    inputs: SendNotificationInput[],
+  ): Promise<SendNotificationOutput[]> {
+    const outputs: SendNotificationOutput[] = [];
+    for (const input of inputs) {
+      this.sent.push(input);
+      outputs.push({
+        id: input.id,
+        status: 'sent',
+        messageId: randomBytes(8).toString('hex'),
+      });
+    }
+    return outputs;
   }
 
   getSent(): NotificationRequest[] {

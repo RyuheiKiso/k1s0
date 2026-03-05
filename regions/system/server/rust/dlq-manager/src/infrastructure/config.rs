@@ -3,11 +3,13 @@ use serde::Deserialize;
 use crate::infrastructure::database::DatabaseConfig;
 use crate::infrastructure::kafka::KafkaConfig;
 
-/// Config はアプリケーション全体の設定。
+/// Config 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ蜈ｨ菴薙・險ｭ螳壹・
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
     #[serde(default)]
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
@@ -16,7 +18,7 @@ pub struct Config {
     pub auth: Option<AuthConfig>,
 }
 
-/// AuthConfig は JWT 認証設定を表す。
+/// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -30,7 +32,7 @@ fn default_jwks_cache_ttl() -> u64 {
     300
 }
 
-/// AppConfig はアプリケーション設定。
+/// AppConfig 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ險ｭ螳壹・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub name: String,
@@ -48,13 +50,15 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-/// ServerConfig はサーバー設定。
+/// ServerConfig 縺ｯ繧ｵ繝ｼ繝舌・險ｭ螳壹・
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
     pub host: String,
     #[serde(default = "default_port")]
     pub port: u16,
+    #[serde(default = "default_grpc_port")]
+    pub grpc_port: u16,
 }
 
 fn default_host() -> String {
@@ -65,6 +69,98 @@ fn default_port() -> u16 {
     8080
 }
 
+fn default_grpc_port() -> u16 {
+    50051
+}
+
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default)]
+    pub log: LogConfig,
+    #[serde(default)]
+    pub trace: TraceConfig,
+    #[serde(default)]
+    pub metrics: MetricsConfig,
+}
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            log: LogConfig::default(),
+            trace: TraceConfig::default(),
+            metrics: MetricsConfig::default(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct LogConfig {
+    #[serde(default = "default_log_level")]
+    pub level: String,
+    #[serde(default = "default_log_format")]
+    pub format: String,
+}
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            level: default_log_level(),
+            format: default_log_format(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct TraceConfig {
+    #[serde(default = "default_trace_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_trace_endpoint")]
+    pub endpoint: String,
+    #[serde(default = "default_trace_sample_rate")]
+    pub sample_rate: f64,
+}
+impl Default for TraceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_trace_enabled(),
+            endpoint: default_trace_endpoint(),
+            sample_rate: default_trace_sample_rate(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct MetricsConfig {
+    #[serde(default = "default_metrics_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_metrics_path")]
+    pub path: String,
+}
+impl Default for MetricsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_metrics_enabled(),
+            path: default_metrics_path(),
+        }
+    }
+}
+fn default_trace_enabled() -> bool {
+    true
+}
+fn default_trace_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+fn default_trace_sample_rate() -> f64 {
+    1.0
+}
+fn default_log_level() -> String {
+    "info".to_string()
+}
+fn default_log_format() -> String {
+    "json".to_string()
+}
+fn default_metrics_enabled() -> bool {
+    true
+}
+fn default_metrics_path() -> String {
+    "/metrics".to_string()
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -79,10 +175,12 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
+  grpc_port: 50051
 "#;
         let config: Config = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.app.name, "dlq-manager");
         assert_eq!(config.server.port, 8080);
+        assert_eq!(config.server.grpc_port, 50051);
         assert!(config.database.is_none());
         assert!(config.kafka.is_none());
     }
@@ -99,6 +197,7 @@ server: {}
         assert_eq!(config.app.environment, "dev");
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 8080);
+        assert_eq!(config.server.grpc_port, 50051);
     }
 
     #[test]
@@ -111,7 +210,7 @@ server:
 database:
   host: "localhost"
   port: 5432
-  name: "k1s0_dlq"
+  name: "k1s0_system"
   user: "app"
   password: "secret"
 "#;
@@ -119,7 +218,7 @@ database:
         assert!(config.database.is_some());
         let db = config.database.unwrap();
         assert_eq!(db.host, "localhost");
-        assert_eq!(db.name, "k1s0_dlq");
+        assert_eq!(db.name, "k1s0_system");
     }
 
     #[test]
@@ -142,3 +241,5 @@ kafka:
         assert_eq!(kafka.dlq_topic_pattern, "*.dlq.v1");
     }
 }
+
+

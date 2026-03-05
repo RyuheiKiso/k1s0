@@ -32,9 +32,8 @@ impl JobCache {
 
     /// ジョブ ID に対応するエントリを取得する。
     /// キャッシュミスの場合は None を返す。
-    pub async fn get(&self, job_id: &uuid::Uuid) -> Option<Arc<SchedulerJob>> {
-        let key = job_id.to_string();
-        self.inner.get(&key).await
+    pub async fn get(&self, job_id: &str) -> Option<Arc<SchedulerJob>> {
+        self.inner.get(job_id).await
     }
 
     /// ジョブをキャッシュに追加する。
@@ -45,9 +44,8 @@ impl JobCache {
     }
 
     /// 特定のジョブをキャッシュから削除する。
-    pub async fn invalidate(&self, job_id: &uuid::Uuid) {
-        let key = job_id.to_string();
-        self.inner.invalidate(&key).await;
+    pub async fn invalidate(&self, job_id: &str) {
+        self.inner.invalidate(job_id).await;
     }
 
     /// すべてのキャッシュエントリを削除する。
@@ -60,7 +58,6 @@ impl JobCache {
 mod tests {
     use super::*;
     use chrono::Utc;
-    use uuid::Uuid;
 
     fn make_job(name: &str) -> Arc<SchedulerJob> {
         Arc::new(SchedulerJob::new(
@@ -87,7 +84,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_miss_returns_none() {
         let cache = JobCache::new(100, 60);
-        let missing_id = Uuid::new_v4();
+        let missing_id = "job_missing".to_string();
 
         let result = cache.get(&missing_id).await;
         assert!(result.is_none());
@@ -150,7 +147,7 @@ mod tests {
         let cache = JobCache::new(100, 60);
 
         let job_v1 = Arc::new(SchedulerJob {
-            id: Uuid::new_v4(),
+            id: format!("job_{}", uuid::Uuid::new_v4().simple()),
             name: "overwrite-job".to_string(),
             description: None,
             cron_expression: "* * * * *".to_string(),

@@ -83,3 +83,31 @@ func TestSend_Webhook(t *testing.T) {
 	assert.Equal(t, "sent", resp.Status)
 	assert.Equal(t, notificationclient.ChannelWebhook, c.SentRequests()[0].Channel)
 }
+
+func TestSendBatch_ReturnsResponses(t *testing.T) {
+	c := notificationclient.NewInMemoryClient()
+	ctx := context.Background()
+
+	inputs := []notificationclient.SendNotificationInput{
+		{
+			ID:        "n-b1",
+			Channel:   notificationclient.ChannelEmail,
+			Recipient: "u1@example.com",
+			Body:      "hello",
+		},
+		{
+			ID:        "n-b2",
+			Channel:   notificationclient.ChannelSMS,
+			Recipient: "+819000000000",
+			Body:      "sms",
+		},
+	}
+
+	out, err := c.SendBatch(ctx, inputs)
+	require.NoError(t, err)
+	assert.Len(t, out, 2)
+	assert.Equal(t, "n-b1", out[0].ID)
+	assert.Equal(t, "sent", out[0].Status)
+	assert.Equal(t, "n-b2", out[1].ID)
+	assert.Len(t, c.SentRequests(), 2)
+}

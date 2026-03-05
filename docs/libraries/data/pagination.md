@@ -17,7 +17,7 @@
 | `CursorMeta` | 構造体 | カーソルベースのレスポンスメタ（next_cursor?・has_more） |
 | `encode_cursor(sort_key, id)` | 関数 | sort_key と id を結合して Base64 エンコード |
 | `decode_cursor(cursor)` | 関数 | カーソルを (sort_key, id) のタプルに復元 |
-| `validate_per_page(per_page)` | 関数 | per_page が 1〜200 であることを検証（範囲外はエラー） |
+| `validate_per_page(per_page)` | 関数 | per_page が 1〜100 であることを検証（範囲外はエラー） |
 | `default_page_request()` | 関数 | デフォルト値（page: 1, per_page: 20）の PageRequest を返す |
 | `offset()` | メソッド | ページネーションのオフセット値を返す（`(page - 1) * per_page`） |
 | `has_next(total)` | メソッド | 次のページが存在するかを返す（`page * per_page < total`） |
@@ -68,7 +68,7 @@ pagination/
 ```rust
 use k1s0_pagination::{PageRequest, PageResponse, encode_cursor, decode_cursor, validate_per_page};
 
-// per_page バリデーション（1〜200 の範囲）
+// per_page バリデーション（1〜100 の範囲）
 validate_per_page(20)?;
 
 // オフセットベースページネーション
@@ -293,12 +293,12 @@ mod tests {
     #[test]
     fn test_validate_per_page_valid() {
         assert!(validate_per_page(1).is_ok());
-        assert!(validate_per_page(200).is_ok());
+        assert!(validate_per_page(100).is_ok());
     }
 
     #[test]
     fn test_validate_per_page_over_max() {
-        assert!(validate_per_page(201).is_err()); // 最大 200、超過はバリデーションエラー
+        assert!(validate_per_page(101).is_err()); // 最大 100、超過はバリデーションエラー
     }
 }
 ```

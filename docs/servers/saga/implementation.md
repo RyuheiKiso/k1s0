@@ -27,13 +27,12 @@ regions/system/server/rust/saga/
 │   ├── usecase/
 │   │   ├── mod.rs
 │   │   ├── start_saga.rs                    # Saga 開始
-│   │   ├── execute_saga.rs                  # Saga 実行エンジン（核心ロジック）
+│   │   ├── execute_saga.rs                  # Saga 実行/補償エンジン（核心ロジック）
 │   │   ├── get_saga.rs                      # Saga 詳細取得
 │   │   ├── list_sagas.rs                    # Saga 一覧取得
 │   │   ├── cancel_saga.rs                   # Saga キャンセル
 │   │   ├── register_workflow.rs             # ワークフロー登録
 │   │   ├── list_workflows.rs                # ワークフロー一覧
-│   │   ├── compensate_saga.rs               # Saga 補償トリガー（実装は execute_saga の補償ロジックを利用）
 │   │   └── recover_sagas.rs                 # 起動時リカバリ
 │   ├── adapter/
 │   │   ├── mod.rs
@@ -47,10 +46,12 @@ regions/system/server/rust/saga/
 │   │   │   └── tonic_service.rs             # tonic サービスラッパー
 │   │   ├── middleware/
 │   │   │   ├── mod.rs
-│   │   │   └── rbac.rs                      # RBAC ミドルウェア
+│   │   │   ├── auth.rs                      # JWT 認証ミドルウェア
+│   │   │   └── rbac.rs                      # RBAC 認可ミドルウェア
 │   │   └── repository/
 │   │       ├── mod.rs
 │   │       ├── saga_postgres.rs             # PostgreSQL リポジトリ実装
+│   │       ├── workflow_postgres.rs         # PostgreSQL ワークフローリポジトリ実装
 │   │       └── workflow_in_memory.rs        # InMemory ワークフローリポジトリ
 │   └── infrastructure/
 │       ├── mod.rs
@@ -342,7 +343,7 @@ pub trait SagaRepository: Send + Sync {
     async fn update_status(&self, saga_id: Uuid, status: &SagaStatus, error_message: Option<String>) -> anyhow::Result<()>;
     async fn find_by_id(&self, saga_id: Uuid) -> anyhow::Result<Option<SagaState>>;
     async fn find_step_logs(&self, saga_id: Uuid) -> anyhow::Result<Vec<SagaStepLog>>;
-    async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i64)>;
+    async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i32)>;
     async fn find_incomplete(&self) -> anyhow::Result<Vec<SagaState>>;
 }
 ```
@@ -416,9 +417,9 @@ pub trait WorkflowRepository: Send + Sync {
 | `StartSagaResponse` | `saga_id`, `status` | Saga 開始結果 |
 | `SagaDetailResponse` | `saga`, `step_logs` | Saga 詳細（ステップログ付き） |
 | `SagaResponse` | `saga_id`, `workflow_name`, `current_step`, `status`, `payload`, `correlation_id`, `initiated_by`, `error_message`, `created_at`, `updated_at` | Saga 状態 |
-| `StepLogResponse` | `id`, `step_index`, `step_name`, `action`, `status`, `request_payload`, `response_payload`, `error_message`, `started_at`, `completed_at` | ステップログ |
+| `StepLogResponse` | `id`, `saga_id`, `step_index`, `step_name`, `action`, `status`, `request_payload`, `response_payload`, `error_message`, `started_at`, `completed_at` | ステップログ |
 | `ListSagasResponse` | `sagas`, `pagination` | Saga 一覧 |
-| `PaginationResponse` | `total_count`, `page`, `page_size`, `has_next` | ページネーション |
+| `PaginationResponse` | `total_count(i32)`, `page`, `page_size`, `has_next` | ページネーション |
 | `RegisterWorkflowResponse` | `name`, `step_count` | ワークフロー登録結果 |
 | `ListWorkflowsResponse` | `workflows` | ワークフロー一覧 |
 | `CancelSagaResponse` | `success`, `message` | キャンセル結果 |

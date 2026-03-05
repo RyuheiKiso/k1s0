@@ -94,6 +94,9 @@ mod tests {
 
         match result.unwrap_err() {
             CreateChannelError::Internal(msg) => assert!(msg.contains("db error")),
+            CreateChannelError::Validation(msg) => {
+                panic!("unexpected validation error: {msg}")
+            }
         }
     }
 }

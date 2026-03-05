@@ -1,4 +1,4 @@
-﻿# system-config-server 設計
+# system-config-server 設計
 
 system tier の設定管理サーバー設計を定義する。全サービスに対して REST と gRPC で設定値を提供し、設定変更時の通知・監査ログ記録を行う。
 Rust で実装する。
@@ -578,6 +578,63 @@ enum ConfigFieldType {
 
 ---
 
+## 設定フィールド
+
+### server
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `host` | string | `0.0.0.0` | バインドアドレス |
+| `port` | int | `8082` | REST API ポート |
+| `grpc_port` | int | `50051` | gRPC ポート |
+| `read_timeout` | string | `10s` | 読み取りタイムアウト |
+| `write_timeout` | string | `10s` | 書き込みタイムアウト |
+| `shutdown_timeout` | string | `30s` | graceful shutdown タイムアウト |
+
+### config_server
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `cache.max_entries` | int | `10000` | 設定キャッシュの最大件数 |
+| `cache.ttl` | string | `60s` | 設定キャッシュ TTL |
+| `cache.refresh_on_miss` | bool | `true` | キャッシュミス時の自動リフレッシュ |
+| `audit.enabled` | bool | `true` | 監査ログ記録の有効化 |
+| `audit.kafka_enabled` | bool | `false` | Kafka 監査イベント配信の有効化 |
+| `audit.kafka_topic` | string | `k1s0.system.config.changed.v1` | 監査イベントの配信トピック |
+| `namespace.default_prefix` | string | `system` | namespace のデフォルト接頭辞 |
+| `namespace.allowed_tiers` | string[] | `["system","business","service"]` | namespace で許可する tier |
+| `namespace.max_depth` | int | `4` | namespace の最大階層数 |
+
+### config.yaml（本番）
+
+```yaml
+app:
+  name: "config-server"
+  version: "0.1.0"
+  environment: "production"
+
+server:
+  host: "0.0.0.0"
+  port: 8082
+  grpc_port: 50051
+
+config_server:
+  cache:
+    max_entries: 10000
+    ttl: "60s"
+    refresh_on_miss: true
+  audit:
+    enabled: true
+    kafka_enabled: false
+    kafka_topic: "k1s0.system.config.changed.v1"
+  namespace:
+    default_prefix: "system"
+    allowed_tiers: ["system", "business", "service"]
+    max_depth: 4
+```
+
+---
+
 ## アーキテクチャ
 
 ### クリーンアーキテクチャ レイヤー
@@ -695,4 +752,8 @@ enum ConfigFieldType {
 ### 2026-03-03 追補
 - REST の schema upsert は schema_json（フラット JSON）を受け取る。
 - gRPC の schema upsert は ConfigEditorSchema（構造化メッセージ）を受け取る。
+---
 
+## ObservabilityConfig（log/trace/metrics）
+
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

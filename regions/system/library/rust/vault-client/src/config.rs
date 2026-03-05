@@ -7,6 +7,12 @@ pub struct VaultClientConfig {
     pub cache_max_capacity: usize,
 }
 
+impl Default for VaultClientConfig {
+    fn default() -> Self {
+        Self::new("http://localhost:8080")
+    }
+}
+
 impl VaultClientConfig {
     pub fn new(server_url: impl Into<String>) -> Self {
         Self {

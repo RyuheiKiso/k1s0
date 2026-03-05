@@ -115,8 +115,15 @@ type SagaState struct {
 }
 
 type StartSagaRequest struct {
-    WorkflowName string `json:"workflow_name"`
-    Payload      any    `json:"payload"`
+    WorkflowName  string  `json:"workflow_name"`
+    Payload       any     `json:"payload"`
+    CorrelationID *string `json:"correlation_id,omitempty"`
+    InitiatedBy   *string `json:"initiated_by,omitempty"`
+}
+
+type StartSagaResponse struct {
+    SagaID string `json:"saga_id"`
+    Status string `json:"status"`
 }
 
 type SagaClient struct {
@@ -144,7 +151,12 @@ export type SagaStatus =
 export interface SagaState {
   sagaId: string;
   workflowName: string;  // saga_type → workflow_name に統一
+  currentStep: number;
   status: SagaStatus;
+  payload: Record<string, unknown>;
+  correlationId?: string;
+  initiatedBy?: string;
+  errorMessage?: string;
   stepLogs: SagaStepLog[];
   createdAt: string;
   updatedAt: string;
@@ -153,6 +165,13 @@ export interface SagaState {
 export interface StartSagaRequest {
   workflowName: string;  // saga_type → workflow_name に統一
   payload: unknown;
+  correlationId?: string;
+  initiatedBy?: string;
+}
+
+export interface StartSagaResponse {
+  sagaId: string;
+  status: string;
 }
 
 export class SagaClient {
@@ -166,6 +185,29 @@ export class SagaClient {
 ## Dart 実装
 
 **配置先**: `regions/system/library/dart/saga/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**主要型**:
+
+```dart
+class SagaState {
+  final String sagaId;
+  final String workflowName;
+  final int currentStep;
+  final SagaStatus status;
+  final Map<String, dynamic> payload;
+  final String? correlationId;
+  final String? initiatedBy;
+  final String? errorMessage;
+  final List<SagaStepLog> stepLogs;
+  final String createdAt;
+  final String updatedAt;
+}
+
+class StartSagaResponse {
+  final String sagaId;
+  final String status;
+}
+```
 
 ## 関連ドキュメント
 

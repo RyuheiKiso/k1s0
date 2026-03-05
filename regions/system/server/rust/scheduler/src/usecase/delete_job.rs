@@ -1,17 +1,15 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
 use crate::domain::service::SchedulerDomainService;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteJobError {
     #[error("job not found: {0}")]
-    NotFound(Uuid),
+    NotFound(String),
 
     #[error("job is currently running: {0}")]
-    JobRunning(Uuid),
+    JobRunning(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -33,13 +31,13 @@ impl DeleteJobUseCase {
         }
     }
 
-    pub async fn execute(&self, id: &Uuid) -> Result<(), DeleteJobError> {
+    pub async fn execute(&self, id: &str) -> Result<(), DeleteJobError> {
         let _job = self
             .repo
             .find_by_id(id)
             .await
             .map_err(|e| DeleteJobError::Internal(e.to_string()))?
-            .ok_or(DeleteJobError::NotFound(*id))?;
+            .ok_or_else(|| DeleteJobError::NotFound(id.to_string()))?;
 
         let executions = self
             .execution_repo
@@ -47,7 +45,7 @@ impl DeleteJobUseCase {
             .await
             .map_err(|e| DeleteJobError::Internal(e.to_string()))?;
         if SchedulerDomainService::has_running_execution(&executions) {
-            return Err(DeleteJobError::JobRunning(*id));
+            return Err(DeleteJobError::JobRunning(id.to_string()));
         }
 
         let deleted = self
@@ -57,7 +55,7 @@ impl DeleteJobUseCase {
             .map_err(|e| DeleteJobError::Internal(e.to_string()))?;
 
         if !deleted {
-            return Err(DeleteJobError::NotFound(*id));
+            return Err(DeleteJobError::NotFound(id.to_string()));
         }
 
         Ok(())
@@ -75,12 +73,12 @@ mod tests {
     async fn success() {
         let mut mock = MockSchedulerJobRepository::new();
         let mut mock_exec = MockSchedulerExecutionRepository::new();
-        let id = Uuid::new_v4();
+        let id = "job_test".to_string();
         mock.expect_find_by_id()
-            .withf(move |job_id| *job_id == id)
+            .withf(move |job_id| job_id == id.as_str())
             .returning(|job_id| {
                 Ok(Some(crate::domain::entity::scheduler_job::SchedulerJob {
-                    id: *job_id,
+                    id: job_id.to_string(),
                     name: "job".to_string(),
                     description: None,
                     cron_expression: "* * * * *".to_string(),
@@ -110,7 +108,7 @@ mod tests {
         mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = DeleteJobUseCase::new(Arc::new(mock), Arc::new(mock_exec));
-        let id = Uuid::new_v4();
+        let id = "job_missing".to_string();
         let result = uc.execute(&id).await;
         assert!(result.is_err());
 
@@ -128,7 +126,7 @@ mod tests {
             .returning(|_| Err(anyhow::anyhow!("db error")));
 
         let uc = DeleteJobUseCase::new(Arc::new(mock), Arc::new(mock_exec));
-        let id = Uuid::new_v4();
+        let id = "job_internal".to_string();
         let result = uc.execute(&id).await;
         assert!(result.is_err());
 
@@ -142,10 +140,10 @@ mod tests {
     async fn job_running() {
         let mut mock = MockSchedulerJobRepository::new();
         let mut mock_exec = MockSchedulerExecutionRepository::new();
-        let id = Uuid::new_v4();
+        let id = "job_running".to_string();
         mock.expect_find_by_id().returning(|job_id| {
             Ok(Some(crate::domain::entity::scheduler_job::SchedulerJob {
-                id: *job_id,
+                id: job_id.to_string(),
                 name: "job".to_string(),
                 description: None,
                 cron_expression: "* * * * *".to_string(),
@@ -162,8 +160,8 @@ mod tests {
         });
         mock_exec.expect_find_by_job_id().returning(move |_| {
             Ok(vec![SchedulerExecution {
-                id: Uuid::new_v4(),
-                job_id: id,
+                id: "exec_running".to_string(),
+                job_id: id.clone(),
                 status: "running".to_string(),
                 triggered_by: "scheduler".to_string(),
                 started_at: chrono::Utc::now(),

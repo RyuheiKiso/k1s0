@@ -1,4 +1,4 @@
-﻿# system-api-registry-server 設計
+# system-api-registry-server 設計
 
 system tier の OpenAPI/Protobuf スキーマ集中管理サーバー。スキーマの登録・バージョン管理・破壊的変更検出・差分表示を提供する。Rust 実装。
 
@@ -558,7 +558,7 @@ CREATE INDEX idx_api_schema_versions_name ON apiregistry.api_schema_versions(nam
 | DB | PostgreSQL の `apiregistry` スキーマ（api_schemas, api_schema_versions テーブル） |
 | Kafka | プロデューサー（`k1s0.system.apiregistry.schema_updated.v1`） |
 | 認証 | JWTによる認可。管理系エンドポイントは `sys_operator` / `sys_admin` ロールが必要 |
-| ポート | 8080（REST）/ 50051（gRPC） |
+| ポート | 8101（REST）/ 50051（gRPC） |
 
 ---
 
@@ -1006,11 +1006,20 @@ info:
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
+| `name` | string | DB 名（`apiregistry`） |
 | `max_open_conns` | int | 最大接続数 |
 | `max_idle_conns` | int | 最大アイドル接続数 |
-| `conn_max_lifetime` | string | 接続最大生存時間 |
+| `conn_max_lifetime` | u64 | 接続最大生存時間（秒） |
+
+#### validator
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `timeout_seconds` | u64 | バリデータ subprocess のタイムアウト（秒、デフォルト: 10） |
 
 ### config.yaml（本番）
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:
@@ -1020,30 +1029,30 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8080
+  port: 8101
   grpc_port: 50051
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
   port: 5432
-  name: "k1s0_system"
-  user: "app"
+  name: "apiregistry"
+  user: "apiregistry"
   password: ""
   ssl_mode: "disable"
   max_open_conns: 25
   max_idle_conns: 5
-  conn_max_lifetime: "5m"
+  conn_max_lifetime: 300
 
 kafka:
   brokers:
     - "kafka-0.messaging.svc.cluster.local:9092"
   security_protocol: "PLAINTEXT"
-  topic: "k1s0.system.apiregistry.schema_updated.v1"
+  schema_updated_topic: "k1s0.system.apiregistry.schema_updated.v1"
 
 validator:
   openapi_spec_validator_path: "/usr/local/bin/openapi-spec-validator"
   buf_path: "/usr/local/bin/buf"
-  timeout_seconds: 30
+  timeout_seconds: 10
 
 auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
@@ -1070,7 +1079,7 @@ image:
 replicaCount: 2
 
 container:
-  port: 8080
+  port: 8101
   grpcPort: 50051
 
 service:
@@ -1131,3 +1140,8 @@ vault:
 - `api_schemas.version_count INT NOT NULL DEFAULT 0` を持つ。
 - `api_schema_versions` は `id UUID PRIMARY KEY` を持ち、`(name, version)` は UNIQUE 制約で扱う。
 - `schema_type VARCHAR(50)` と `breaking_change_details JSONB` は `database.md` に合わせる。
+---
+
+## ObservabilityConfig（log/trace/metrics）
+
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

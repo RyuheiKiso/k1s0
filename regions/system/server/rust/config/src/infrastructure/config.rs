@@ -3,7 +3,7 @@ use serde::Deserialize;
 use super::database::DatabaseConfig;
 use super::kafka_producer::KafkaConfig;
 
-/// AuthConfig は認証設定を表す。
+/// AuthConfig 縺ｯ隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -17,11 +17,13 @@ fn default_jwks_cache_ttl_secs() -> u64 {
     3600
 }
 
-/// Config はアプリケーション全体の設定を表す。
+/// Config 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ蜈ｨ菴薙・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
     #[serde(default)]
     pub auth: Option<AuthConfig>,
     #[serde(default)]
@@ -56,15 +58,18 @@ impl Default for ConfigServerConfig {
 pub struct ConfigServerCacheConfig {
     #[serde(default = "default_cache_max_entries")]
     pub max_entries: usize,
-    #[serde(default = "default_cache_ttl_seconds")]
-    pub ttl_seconds: u64,
+    #[serde(default = "default_cache_ttl")]
+    pub ttl: String,
+    #[serde(default = "default_cache_refresh_on_miss")]
+    pub refresh_on_miss: bool,
 }
 
 impl Default for ConfigServerCacheConfig {
     fn default() -> Self {
         Self {
             max_entries: default_cache_max_entries(),
-            ttl_seconds: default_cache_ttl_seconds(),
+            ttl: default_cache_ttl(),
+            refresh_on_miss: default_cache_refresh_on_miss(),
         }
     }
 }
@@ -73,8 +78,18 @@ fn default_cache_max_entries() -> usize {
     10_000
 }
 
-fn default_cache_ttl_seconds() -> u64 {
-    300
+fn default_cache_ttl() -> String {
+    "60s".to_string()
+}
+
+fn default_cache_refresh_on_miss() -> bool {
+    true
+}
+
+impl ConfigServerCacheConfig {
+    pub fn ttl_seconds(&self) -> anyhow::Result<u64> {
+        parse_duration_seconds(&self.ttl)
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -83,6 +98,10 @@ pub struct ConfigServerAuditConfig {
     pub retention_days: u32,
     #[serde(default)]
     pub enabled: bool,
+    #[serde(default)]
+    pub kafka_enabled: bool,
+    #[serde(default = "default_audit_kafka_topic")]
+    pub kafka_topic: String,
 }
 
 impl Default for ConfigServerAuditConfig {
@@ -90,6 +109,8 @@ impl Default for ConfigServerAuditConfig {
         Self {
             retention_days: default_audit_retention_days(),
             enabled: true,
+            kafka_enabled: false,
+            kafka_topic: default_audit_kafka_topic(),
         }
     }
 }
@@ -98,16 +119,26 @@ fn default_audit_retention_days() -> u32 {
     365
 }
 
+fn default_audit_kafka_topic() -> String {
+    "k1s0.system.config.changed.v1".to_string()
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigServerNamespaceConfig {
     #[serde(default = "default_namespace_default_prefix")]
     pub default_prefix: String,
+    #[serde(default = "default_namespace_allowed_tiers")]
+    pub allowed_tiers: Vec<String>,
+    #[serde(default = "default_namespace_max_depth")]
+    pub max_depth: usize,
 }
 
 impl Default for ConfigServerNamespaceConfig {
     fn default() -> Self {
         Self {
             default_prefix: default_namespace_default_prefix(),
+            allowed_tiers: default_namespace_allowed_tiers(),
+            max_depth: default_namespace_max_depth(),
         }
     }
 }
@@ -116,7 +147,19 @@ fn default_namespace_default_prefix() -> String {
     "system".to_string()
 }
 
-/// AppConfig はアプリケーション基本設定を表す。
+fn default_namespace_allowed_tiers() -> Vec<String> {
+    vec![
+        "system".to_string(),
+        "business".to_string(),
+        "service".to_string(),
+    ]
+}
+
+fn default_namespace_max_depth() -> usize {
+    4
+}
+
+/// AppConfig 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ蝓ｺ譛ｬ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub name: String,
@@ -134,7 +177,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-/// ServerConfig はサーバー設定を表す。
+/// ServerConfig 縺ｯ繧ｵ繝ｼ繝舌・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -143,6 +186,12 @@ pub struct ServerConfig {
     pub port: u16,
     #[serde(default = "default_grpc_port")]
     pub grpc_port: u16,
+    #[serde(default = "default_read_timeout")]
+    pub read_timeout: String,
+    #[serde(default = "default_write_timeout")]
+    pub write_timeout: String,
+    #[serde(default = "default_shutdown_timeout")]
+    pub shutdown_timeout: String,
 }
 
 fn default_host() -> String {
@@ -157,20 +206,143 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
+fn default_read_timeout() -> String {
+    "10s".to_string()
+}
+
+fn default_write_timeout() -> String {
+    "30s".to_string()
+}
+
+fn default_shutdown_timeout() -> String {
+    "15s".to_string()
+}
+
 impl Config {
-    /// YAML ファイルから設定を読み込む。
+    /// YAML 繝輔ぃ繧､繝ｫ縺九ｉ險ｭ螳壹ｒ隱ｭ縺ｿ霎ｼ繧縲・
     pub fn from_yaml(content: &str) -> anyhow::Result<Self> {
         let config: Config = serde_yaml::from_str(content)?;
         Ok(config)
     }
 
-    /// 設定ファイルパスから設定を読み込む。
+    /// 險ｭ螳壹ヵ繧｡繧､繝ｫ繝代せ縺九ｉ險ｭ螳壹ｒ隱ｭ縺ｿ霎ｼ繧縲・
     pub fn load(path: &str) -> anyhow::Result<Self> {
         let content = std::fs::read_to_string(path)?;
         Self::from_yaml(&content)
     }
 }
 
+fn parse_duration_seconds(input: &str) -> anyhow::Result<u64> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Err(anyhow::anyhow!("duration must not be empty"));
+    }
+
+    if let Some(raw) = trimmed.strip_suffix("ms") {
+        let millis = raw.trim().parse::<u64>()?;
+        return Ok((millis / 1000).max(1));
+    }
+    if let Some(raw) = trimmed.strip_suffix('s') {
+        return Ok(raw.trim().parse::<u64>()?);
+    }
+    if let Some(raw) = trimmed.strip_suffix('m') {
+        return Ok(raw.trim().parse::<u64>()? * 60);
+    }
+    if let Some(raw) = trimmed.strip_suffix('h') {
+        return Ok(raw.trim().parse::<u64>()? * 60 * 60);
+    }
+
+    Ok(trimmed.parse::<u64>()?)
+}
+
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default)]
+    pub log: LogConfig,
+    #[serde(default)]
+    pub trace: TraceConfig,
+    #[serde(default)]
+    pub metrics: MetricsConfig,
+}
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            log: LogConfig::default(),
+            trace: TraceConfig::default(),
+            metrics: MetricsConfig::default(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct LogConfig {
+    #[serde(default = "default_log_level")]
+    pub level: String,
+    #[serde(default = "default_log_format")]
+    pub format: String,
+}
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            level: default_log_level(),
+            format: default_log_format(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct TraceConfig {
+    #[serde(default = "default_trace_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_trace_endpoint")]
+    pub endpoint: String,
+    #[serde(default = "default_trace_sample_rate")]
+    pub sample_rate: f64,
+}
+impl Default for TraceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_trace_enabled(),
+            endpoint: default_trace_endpoint(),
+            sample_rate: default_trace_sample_rate(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct MetricsConfig {
+    #[serde(default = "default_metrics_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_metrics_path")]
+    pub path: String,
+}
+impl Default for MetricsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_metrics_enabled(),
+            path: default_metrics_path(),
+        }
+    }
+}
+fn default_trace_enabled() -> bool {
+    true
+}
+fn default_trace_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+fn default_trace_sample_rate() -> f64 {
+    1.0
+}
+fn default_log_level() -> String {
+    "info".to_string()
+}
+fn default_log_format() -> String {
+    "json".to_string()
+}
+fn default_metrics_enabled() -> bool {
+    true
+}
+fn default_metrics_path() -> String {
+    "/metrics".to_string()
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -192,6 +364,9 @@ server:
         assert_eq!(config.app.environment, "dev");
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 8082);
+        assert_eq!(config.server.read_timeout, "10s");
+        assert_eq!(config.server.write_timeout, "30s");
+        assert_eq!(config.server.shutdown_timeout, "15s");
         assert_eq!(config.server.grpc_port, 50051);
     }
 
@@ -210,6 +385,23 @@ server: {}
         assert_eq!(config.server.grpc_port, 50051);
         assert!(config.database.is_none());
         assert!(config.kafka.is_none());
+    }
+
+    #[test]
+    fn test_cache_ttl_parse() {
+        let cache = ConfigServerCacheConfig {
+            max_entries: 100,
+            ttl: "60s".to_string(),
+            refresh_on_miss: true,
+        };
+        assert_eq!(cache.ttl_seconds().unwrap(), 60);
+
+        let cache = ConfigServerCacheConfig {
+            max_entries: 100,
+            ttl: "5m".to_string(),
+            refresh_on_miss: true,
+        };
+        assert_eq!(cache.ttl_seconds().unwrap(), 300);
     }
 
     #[test]
@@ -303,3 +495,5 @@ kafka:
         assert_eq!(kafka.sasl.mechanism, "SCRAM-SHA-512");
     }
 }
+
+

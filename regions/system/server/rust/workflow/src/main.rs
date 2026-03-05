@@ -30,21 +30,22 @@ use infrastructure::notification_request_producer::{
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let cfg = Config::load(&config_path)?;
+
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-workflow-server".to_string(),
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
-    let config_path =
-        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -53,8 +54,8 @@ async fn main() -> anyhow::Result<()> {
         "starting workflow server"
     );
 
-    // --- Repository / Event Publisher 初期化 ---
-    // database 設定がある場合は PostgreSQL、なければ InMemory フォールバック
+    // --- Repository / Event Publisher 蛻晄悄蛹・---
+    // database 險ｭ螳壹′縺ゅｋ蝣ｴ蜷医・ PostgreSQL縲√↑縺代ｌ縺ｰ InMemory 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ
     let (def_repo, inst_repo, task_repo): (
         Arc<dyn WorkflowDefinitionRepository>,
         Arc<dyn WorkflowInstanceRepository>,
@@ -64,6 +65,8 @@ async fn main() -> anyhow::Result<()> {
             infrastructure::database::create_pool(
                 &db_cfg.connection_url(),
                 db_cfg.max_open_conns,
+                db_cfg.max_idle_conns,
+                &db_cfg.conn_max_lifetime,
             )
             .await?,
         );
@@ -131,7 +134,10 @@ async fn main() -> anyhow::Result<()> {
         def_repo.clone(),
     ));
     let reassign_task_uc = Arc::new(usecase::ReassignTaskUseCase::new(task_repo.clone()));
-    let check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(task_repo.clone()));
+    let check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(
+        task_repo.clone(),
+        notification_request_publisher.clone(),
+    ));
 
     let grpc_svc = Arc::new(WorkflowGrpcService::new(
         list_wf_uc.clone(),
@@ -186,7 +192,6 @@ async fn main() -> anyhow::Result<()> {
         reject_task_uc,
         reassign_task_uc,
         check_overdue_tasks_uc: check_overdue_uc,
-        notification_request_publisher,
         metrics: metrics.clone(),
         auth_state: None,
     };

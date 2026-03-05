@@ -6,6 +6,8 @@ pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
     #[serde(default)]
+    pub observability: ObservabilityConfig,
+    #[serde(default)]
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
     pub auth: Option<AuthConfig>,
@@ -64,7 +66,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig はデータベース接続の設定を表す。
+/// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -100,7 +102,7 @@ fn default_conn_max_lifetime() -> String {
 }
 
 impl DatabaseConfig {
-    /// PostgreSQL 接続 URL を生成する。
+    /// PostgreSQL 謗･邯・URL 繧堤函謌舌☆繧九・
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -109,7 +111,7 @@ impl DatabaseConfig {
     }
 }
 
-/// AuthConfig は JWT 認証の設定を表す。
+/// AuthConfig 縺ｯ JWT 隱崎ｨｼ縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -123,7 +125,7 @@ fn default_jwks_cache_ttl_secs() -> u64 {
     3600
 }
 
-/// OpaConfig は OPA（Open Policy Agent）接続の設定を表す。
+/// OpaConfig 縺ｯ OPA・・pen Policy Agent・画磁邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct OpaConfig {
     pub url: String,
@@ -135,7 +137,7 @@ fn default_timeout_ms() -> u64 {
     2000
 }
 
-/// KafkaConfig は Kafka ブローカー接続の設定を表す。
+/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -148,7 +150,7 @@ fn default_security_protocol() -> String {
     "PLAINTEXT".to_string()
 }
 
-/// CacheConfig はインメモリキャッシュの設定を表す。
+/// CacheConfig 縺ｯ繧､繝ｳ繝｡繝｢繝ｪ繧ｭ繝｣繝・す繝･縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct CacheConfig {
     #[serde(default = "default_max_entries")]
@@ -174,6 +176,94 @@ fn default_ttl_seconds() -> u64 {
     30
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default)]
+    pub log: LogConfig,
+    #[serde(default)]
+    pub trace: TraceConfig,
+    #[serde(default)]
+    pub metrics: MetricsConfig,
+}
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            log: LogConfig::default(),
+            trace: TraceConfig::default(),
+            metrics: MetricsConfig::default(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct LogConfig {
+    #[serde(default = "default_log_level")]
+    pub level: String,
+    #[serde(default = "default_log_format")]
+    pub format: String,
+}
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            level: default_log_level(),
+            format: default_log_format(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct TraceConfig {
+    #[serde(default = "default_trace_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_trace_endpoint")]
+    pub endpoint: String,
+    #[serde(default = "default_trace_sample_rate")]
+    pub sample_rate: f64,
+}
+impl Default for TraceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_trace_enabled(),
+            endpoint: default_trace_endpoint(),
+            sample_rate: default_trace_sample_rate(),
+        }
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct MetricsConfig {
+    #[serde(default = "default_metrics_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_metrics_path")]
+    pub path: String,
+}
+impl Default for MetricsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_metrics_enabled(),
+            path: default_metrics_path(),
+        }
+    }
+}
+fn default_trace_enabled() -> bool {
+    true
+}
+fn default_trace_endpoint() -> String {
+    "http://otel-collector.observability:4317".to_string()
+}
+fn default_trace_sample_rate() -> f64 {
+    1.0
+}
+fn default_log_level() -> String {
+    "info".to_string()
+}
+fn default_log_format() -> String {
+    "json".to_string()
+}
+fn default_metrics_enabled() -> bool {
+    true
+}
+fn default_metrics_path() -> String {
+    "/metrics".to_string()
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -211,3 +301,5 @@ mod tests {
         assert_eq!(cfg.timeout_ms, 2000);
     }
 }
+
+

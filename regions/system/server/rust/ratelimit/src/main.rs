@@ -19,26 +19,53 @@ use infrastructure::cache::RuleCache;
 use infrastructure::config::Config;
 use infrastructure::redis_store::RedisRateLimitStore;
 
+fn parse_pool_duration(value: &str) -> Option<std::time::Duration> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if let Some(v) = trimmed.strip_suffix("ms") {
+        return v.parse::<u64>().ok().map(std::time::Duration::from_millis);
+    }
+    if let Some(v) = trimmed.strip_suffix('s') {
+        return v.parse::<u64>().ok().map(std::time::Duration::from_secs);
+    }
+    if let Some(v) = trimmed.strip_suffix('m') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|mins| std::time::Duration::from_secs(mins * 60));
+    }
+    if let Some(v) = trimmed.strip_suffix('h') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|hours| std::time::Duration::from_secs(hours * 3600));
+    }
+    trimmed.parse::<u64>().ok().map(std::time::Duration::from_secs)
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
-    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
-        service_name: "k1s0-ratelimit-server".to_string(),
-        version: "0.1.0".to_string(),
-        tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
-    };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
-    // Config
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
     let config_content = std::fs::read_to_string(&config_path)?;
     let cfg: Config = serde_yaml::from_str(&config_content)?;
+
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-ratelimit-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+
+    // Config
 
     info!(
         app_name = %cfg.app.name,
@@ -52,6 +79,8 @@ async fn main() -> anyhow::Result<()> {
         let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_config.connection_url());
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(db_config.max_open_conns)
+            .min_connections(db_config.max_idle_conns.min(db_config.max_open_conns))
+            .max_lifetime(parse_pool_duration(&db_config.conn_max_lifetime))
             .connect(&url)
             .await?;
         info!("database connection pool established");
@@ -59,6 +88,8 @@ async fn main() -> anyhow::Result<()> {
     } else if let Ok(url) = std::env::var("DATABASE_URL") {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(25)
+            .min_connections(5)
+            .max_lifetime(parse_pool_duration("5m"))
             .connect(&url)
             .await?;
         info!("database connection pool established from DATABASE_URL");
@@ -163,7 +194,7 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
-    // AppState (REST handler 用)
+    // AppState (REST handler 逕ｨ)
     let mut state = AppState::new(
         check_uc.clone(),
         create_uc.clone(),
@@ -218,7 +249,7 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     let rest_future = axum::serve(listener, app);
 
-    // REST と gRPC を並行起動
+    // REST 縺ｨ gRPC 繧剃ｸｦ陦瑚ｵｷ蜍・
     tokio::select! {
         result = rest_future => {
             if let Err(e) = result {
@@ -294,10 +325,11 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         &self,
         page: u32,
         page_size: u32,
-        scope: Option<&str>,
+        scope: Option<String>,
         enabled_only: bool,
     ) -> anyhow::Result<(Vec<domain::entity::RateLimitRule>, u64)> {
         let rules = self.rules.read().await;
+        let scope = scope.as_deref();
         let mut filtered: Vec<_> = rules
             .iter()
             .filter(|r| scope.map_or(true, |s| r.scope == s))
@@ -334,7 +366,7 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
     }
 
     async fn reset_state(&self, _key: &str) -> anyhow::Result<()> {
-        // インメモリ実装ではRedis状態のリセットは行わない
+        // 繧､繝ｳ繝｡繝｢繝ｪ螳溯｣・〒縺ｯRedis迥ｶ諷九・繝ｪ繧ｻ繝・ヨ縺ｯ陦後ｏ縺ｪ縺・
         Ok(())
     }
 }
@@ -355,11 +387,11 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
         limit: i64,
         window_secs: i64,
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now();
         Ok(domain::entity::RateLimitDecision::allowed(
             limit,
             limit - 1,
-            now + window_secs,
+            now + chrono::Duration::seconds(window_secs),
         ))
     }
 
@@ -369,11 +401,11 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
         limit: i64,
         window_secs: i64,
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now();
         Ok(domain::entity::RateLimitDecision::allowed(
             limit,
             limit - 1,
-            now + window_secs,
+            now + chrono::Duration::seconds(window_secs),
         ))
     }
 
@@ -383,11 +415,11 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
         limit: i64,
         window_secs: i64,
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now();
         Ok(domain::entity::RateLimitDecision::allowed(
             limit,
             limit - 1,
-            now + window_secs,
+            now + chrono::Duration::seconds(window_secs),
         ))
     }
 
@@ -397,16 +429,16 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
         limit: i64,
         window_secs: i64,
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now();
         Ok(domain::entity::RateLimitDecision::allowed(
             limit,
             limit - 1,
-            now + window_secs,
+            now + chrono::Duration::seconds(window_secs),
         ))
     }
 
     async fn reset(&self, _key: &str) -> anyhow::Result<()> {
-        // インメモリ実装ではリセットは何もしない
+        // 繧､繝ｳ繝｡繝｢繝ｪ螳溯｣・〒縺ｯ繝ｪ繧ｻ繝・ヨ縺ｯ菴輔ｂ縺励↑縺・
         Ok(())
     }
 

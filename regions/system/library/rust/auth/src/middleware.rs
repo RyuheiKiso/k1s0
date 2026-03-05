@@ -82,7 +82,7 @@ pub fn require_permission(
                 .get::<Claims>()
                 .ok_or_else(AuthErrorResponse::unauthenticated)?;
 
-            if !rbac::has_permission(claims, resource, action) {
+            if !rbac::check_permission(claims, resource, action) {
                 return Err(AuthErrorResponse::forbidden(
                     "この操作を実行する権限がありません",
                 ));

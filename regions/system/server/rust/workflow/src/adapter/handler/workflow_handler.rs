@@ -22,7 +22,6 @@ use crate::usecase::approve_task::{ApproveTaskError, ApproveTaskInput};
 use crate::usecase::reject_task::{RejectTaskError, RejectTaskInput};
 use crate::usecase::reassign_task::{ReassignTaskError, ReassignTaskInput};
 use crate::adapter::middleware::auth::WorkflowAuthState;
-use crate::infrastructure::notification_request_producer::NotificationRequestPublisher;
 use crate::usecase::{
     ApproveTaskUseCase, CancelInstanceUseCase, CreateWorkflowUseCase, DeleteWorkflowUseCase,
     GetInstanceUseCase, GetWorkflowUseCase, ListInstancesUseCase, ListTasksUseCase,
@@ -46,7 +45,6 @@ pub struct AppState {
     pub reject_task_uc: Arc<RejectTaskUseCase>,
     pub reassign_task_uc: Arc<ReassignTaskUseCase>,
     pub check_overdue_tasks_uc: Arc<CheckOverdueTasksUseCase>,
-    pub notification_request_publisher: Arc<dyn NotificationRequestPublisher>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<WorkflowAuthState>,
 }
@@ -825,18 +823,6 @@ pub async fn list_tasks(
 pub async fn check_overdue_tasks(State(state): State<AppState>) -> impl IntoResponse {
     match state.check_overdue_tasks_uc.execute().await {
         Ok(output) => {
-            let mut published_count = 0usize;
-            for task in &output.overdue_tasks {
-                if state
-                    .notification_request_publisher
-                    .publish_task_overdue(task)
-                    .await
-                    .is_ok()
-                {
-                    published_count += 1;
-                }
-            }
-
             let tasks: Vec<serde_json::Value> = output
                 .overdue_tasks
                 .into_iter()
@@ -854,7 +840,7 @@ pub async fn check_overdue_tasks(State(state): State<AppState>) -> impl IntoResp
                 StatusCode::OK,
                 Json(serde_json::json!({
                     "overdue_count": output.count,
-                    "published_count": published_count,
+                    "published_count": output.published_count,
                     "tasks": tasks
                 })),
             )

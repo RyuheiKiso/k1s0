@@ -1,4 +1,5 @@
-use async_trait::async_trait;
+﻿use async_trait::async_trait;
+use chrono::{DateTime, TimeZone, Utc};
 use redis::aio::ConnectionManager;
 use redis::Script;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -176,6 +177,12 @@ impl RedisRateLimitStore {
     }
 }
 
+fn unix_seconds_to_utc(seconds: i64) -> anyhow::Result<DateTime<Utc>> {
+    Utc.timestamp_opt(seconds, 0)
+        .single()
+        .ok_or_else(|| anyhow::anyhow!("invalid reset_at unix timestamp: {}", seconds))
+}
+
 #[async_trait]
 impl RateLimitStateStore for RedisRateLimitStore {
     async fn check_token_bucket(
@@ -201,7 +208,7 @@ impl RateLimitStateStore for RedisRateLimitStore {
 
         let allowed = result[0] == 1;
         let remaining = result[1];
-        let reset_at = result[2];
+        let reset_at = unix_seconds_to_utc(result[2])?;
 
         if allowed {
             Ok(RateLimitDecision::allowed(limit, remaining, reset_at))
@@ -238,7 +245,7 @@ impl RateLimitStateStore for RedisRateLimitStore {
 
         let allowed = result[0] == 1;
         let remaining = result[1];
-        let reset_at = result[2];
+        let reset_at = unix_seconds_to_utc(result[2])?;
 
         if allowed {
             Ok(RateLimitDecision::allowed(limit, remaining, reset_at))
@@ -275,7 +282,7 @@ impl RateLimitStateStore for RedisRateLimitStore {
 
         let allowed = result[0] == 1;
         let remaining = result[1];
-        let reset_at = result[2];
+        let reset_at = unix_seconds_to_utc(result[2])?;
 
         if allowed {
             Ok(RateLimitDecision::allowed(limit, remaining, reset_at))
@@ -312,7 +319,7 @@ impl RateLimitStateStore for RedisRateLimitStore {
 
         let allowed = result[0] == 1;
         let remaining = result[1];
-        let reset_at = result[2];
+        let reset_at = unix_seconds_to_utc(result[2])?;
 
         if allowed {
             Ok(RateLimitDecision::allowed(limit, remaining, reset_at))

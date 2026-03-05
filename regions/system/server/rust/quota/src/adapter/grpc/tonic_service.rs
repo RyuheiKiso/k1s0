@@ -470,6 +470,9 @@ mod tests {
         let req = Request::new(ProtoListQuotaPoliciesRequest {
             page: 1,
             page_size: 20,
+            subject_type: None,
+            subject_id: None,
+            enabled_only: None,
         });
         let resp = tonic_svc.list_quota_policies(req).await.unwrap();
         let inner = resp.into_inner();
@@ -566,6 +569,7 @@ mod tests {
         let req = Request::new(ProtoIncrementQuotaUsageRequest {
             quota_id: policy.id.clone(),
             amount: 1,
+            request_id: None,
         });
         let resp = tonic_svc.increment_quota_usage(req).await.unwrap();
         let inner = resp.into_inner();

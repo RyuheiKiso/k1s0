@@ -14,30 +14,35 @@ use infrastructure::config::Config;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // 1. Telemetry
-    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
-        service_name: "k1s0-master-maintenance-server".to_string(),
-        version: "0.1.0".to_string(),
-        tier: "system".to_string(),
-        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
-        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
-    };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
-    // 2. Config
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
     let config_content = std::fs::read_to_string(&config_path)?;
     let cfg: Config = serde_yaml::from_str(&config_content)?;
+
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-master-maintenance-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+
+    // 2. Config
     info!("starting {}", cfg.app.name);
 
     // 3. Database
     let db_pool = if let Some(ref db_cfg) = cfg.database {
         let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_cfg.connection_url());
+        let lifetime = std::time::Duration::from_secs(db_cfg.conn_max_lifetime);
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(db_cfg.max_connections)
+            .min_connections(db_cfg.max_idle_conns.min(db_cfg.max_connections))
+            .idle_timeout(Some(lifetime))
+            .max_lifetime(Some(lifetime))
             .connect(&url)
             .await?;
         info!("database connected");

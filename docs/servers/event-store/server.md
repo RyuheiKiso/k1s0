@@ -1,4 +1,4 @@
-﻿# system-event-store-server 設計
+# system-event-store-server 設計
 
 > **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `events/read`, `events/write`, `events/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
@@ -453,6 +453,7 @@ message Snapshot {
 
 ```json
 {
+  "stream_id": "order-order-001",
   "events": [
     {
       "event_type": "OrderPlaced",
@@ -756,6 +757,8 @@ message Snapshot {
 ## 設定ファイル例
 
 ### config.yaml（本番）
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:
@@ -898,5 +901,8 @@ CREATE INDEX idx_snapshots_stream_id ON event_store.snapshots (stream_id, snapsh
 - ListAllEvents RPC は提供しない。全体走査は用途に応じてストリーム単位 ReadEvents を利用する。
 - `ReadEventsRequest` は `event_type` フィルタをサポートする（tag=6）。
 - `auth` 設定は `jwks_url` に加えて `issuer` / `audience` / `jwks_cache_ttl_secs` を持つ。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

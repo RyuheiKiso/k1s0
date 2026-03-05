@@ -221,7 +221,7 @@ impl RateLimitGrpcService {
             allowed: decision.allowed,
             limit: decision.limit,
             remaining: decision.remaining,
-            reset_at: decision.reset_at,
+            reset_at: decision.reset_at.timestamp(),
             reason: decision.reason,
         })
     }
@@ -484,6 +484,11 @@ mod tests {
     use crate::domain::repository::rate_limit_repository::{
         MockRateLimitRepository, MockRateLimitStateStore,
     };
+    use chrono::TimeZone;
+
+    fn ts(seconds: i64) -> chrono::DateTime<chrono::Utc> {
+        chrono::Utc.timestamp_opt(seconds, 0).single().unwrap()
+    }
 
     fn make_service_with(
         check_uc: Arc<CheckRateLimitUseCase>,
@@ -530,7 +535,7 @@ mod tests {
         let mut state_store = MockRateLimitStateStore::new();
         state_store
             .expect_check_token_bucket()
-            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, 1700000060)));
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, ts(1700000060))));
 
         let check_uc = Arc::new(CheckRateLimitUseCase::new(
             Arc::new(repo),

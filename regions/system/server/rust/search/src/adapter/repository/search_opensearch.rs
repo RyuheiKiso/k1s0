@@ -11,7 +11,9 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchQuery, SearchResult};
+use crate::domain::entity::search_index::{
+    PaginationResult, SearchDocument, SearchIndex, SearchQuery, SearchResult,
+};
 use crate::domain::repository::SearchRepository;
 
 /// SearchOpenSearchRepository は OpenSearch を使った SearchRepository 実装。
@@ -184,7 +186,7 @@ impl SearchRepository for SearchOpenSearchRepository {
             .as_u64()
             .unwrap_or(0);
 
-        let hits = response_body["hits"]["hits"]
+        let hits: Vec<SearchDocument> = response_body["hits"]["hits"]
             .as_array()
             .map(|arr| {
                 arr.iter()
@@ -220,10 +222,20 @@ impl SearchRepository for SearchOpenSearchRepository {
             }
         }
 
+        let page_size = query.size.max(1);
+        let page = (query.from / page_size) + 1;
+        let has_next = total > (query.from as u64 + hits.len() as u64);
+
         Ok(SearchResult {
             total,
             hits,
             facets,
+            pagination: PaginationResult {
+                total_count: total,
+                page,
+                page_size,
+                has_next,
+            },
         })
     }
 

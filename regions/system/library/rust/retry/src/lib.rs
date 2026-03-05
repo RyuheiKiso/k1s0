@@ -8,6 +8,7 @@ pub mod policy;
 pub mod retry;
 
 pub use circuit_breaker::{CircuitBreaker, CircuitBreakerState};
+pub use k1s0_circuit_breaker::CircuitBreakerConfig;
 pub use error::RetryError;
 pub use policy::RetryConfig;
 pub use retry::with_retry;

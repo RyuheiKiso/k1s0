@@ -1,4 +1,4 @@
-﻿# system-saga-server 設計
+# system-saga-server 設計
 
 system tier の Saga Orchestrator 設計を定義する。YAML ベースのワークフロー定義に基づく分散トランザクションオーケストレーション（5 ステップ以上）を担い、Rust で実装する。
 
@@ -234,9 +234,9 @@ message SagaStateProto {
   // 各ステップに渡す JSON ペイロード
   google.protobuf.Struct payload = 5;
   // 業務相関 ID
-  string correlation_id = 6;
+  optional string correlation_id = 6;
   // 呼び出し元サービス名
-  string initiated_by = 7;
+  optional string initiated_by = 7;
   // エラーメッセージ（失敗時）
   optional string error_message = 8;
   k1s0.system.common.v1.Timestamp created_at = 9;
@@ -262,7 +262,7 @@ message SagaStepLogProto {
   // レスポンスペイロード
   google.protobuf.Struct response_payload = 8;
   // エラーメッセージ（失敗時）
-  string error_message = 9;
+  optional string error_message = 9;
   k1s0.system.common.v1.Timestamp started_at = 10;
   optional k1s0.system.common.v1.Timestamp completed_at = 11;
 }
@@ -288,9 +288,9 @@ message StartSagaRequest {
   // 各ステップに渡す JSON ペイロード
   google.protobuf.Struct payload = 2;
   // 業務相関 ID（任意）
-  string correlation_id = 3;
+  optional string correlation_id = 3;
   // 呼び出し元サービス名（任意）
-  string initiated_by = 4;
+  optional string initiated_by = 4;
 }
 
 // StartSagaResponse は Saga 開始レスポンス。
@@ -532,7 +532,7 @@ Exponential backoff の遅延: `delay_ms = initial_interval_ms * 2^attempt`
 | usecase | `StartSagaUseCase`, `ExecuteSagaUseCase`, `GetSagaUseCase`, `ListSagasUseCase`, `CancelSagaUseCase`, `RegisterWorkflowUseCase`, `ListWorkflowsUseCase`, `RecoverSagasUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー | プロトコル変換（axum） |
 | adapter/grpc | gRPC サービス | プロトコル変換（tonic） |
-| adapter/repository | `SagaPostgresRepository`, `InMemoryWorkflowRepository` | リポジトリ実装 |
+| adapter/repository | `SagaPostgresRepository`, `WorkflowPostgresRepository`, `InMemoryWorkflowRepository` | リポジトリ実装 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/database | DatabaseConfig | DB 接続設定 |
 | infrastructure/grpc_caller | `GrpcStepCaller`, `ServiceRegistry`, `TonicGrpcCaller` | gRPC 動的呼び出し |
@@ -634,6 +634,7 @@ regions/system/server/rust/saga/
 │   │   └── repository/
 │   │       ├── mod.rs
 │   │       ├── saga_postgres.rs             # PostgreSQL リポジトリ
+│   │       ├── workflow_postgres.rs         # PostgreSQL ワークフローリポジトリ
 │   │       └── workflow_in_memory.rs        # InMemory ワークフローリポジトリ
 │   └── infrastructure/
 │       ├── mod.rs
@@ -743,6 +744,7 @@ regions/system/library/rust/saga/
 | infrastructure/kafka_producer | 5 | KafkaConfig 解析 |
 | infrastructure/grpc_caller | 5 | サービスレジストリ、エンドポイント解決 |
 | adapter/repository/workflow_in_memory | 4 | 登録・取得・一覧 |
+| adapter/repository/workflow_postgres | 3 | 取得・一覧・exists |
 | usecase/execute_saga | 3 | 正常実行、ステップ失敗→補償、終端状態スキップ |
 | usecase/start_saga | 2 | 正常開始、ワークフロー未登録エラー |
 | usecase/recover_sagas | 2 | 未完了 Saga の自動再開 |
@@ -1156,6 +1158,8 @@ services:
 ## 設定ファイル例
 
 ### config.yaml（本番）
+> ※ dev環境では省略可能なセクションがあります。
+
 
 ```yaml
 app:
@@ -1264,6 +1268,8 @@ vault:
 ### Message/Field Corrections
 - proto 定義の重複セクションは削除し、api/proto/.../saga.proto を正とする。
 - step_count は proto/gRPC では int32、Rust 側では usize との相互変換で扱う。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
-
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

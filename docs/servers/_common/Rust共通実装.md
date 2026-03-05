@@ -68,9 +68,18 @@ tonic-build による proto コンパイル。`{proto_path}` と `{include_paths
 
 ```rust
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let protoc_path = protoc_bin_vendored::protoc_bin_path()
+        .or_else(|_| std::env::var("PROTOC").map(std::path::PathBuf::from).map_err(Into::into));
+    if let Ok(path) = protoc_path {
+        std::env::set_var("PROTOC", path);
+    } else {
+        println!("cargo:warning=protoc not found; relying on system-installed protoc");
+    }
+
     tonic_build::configure()
         .build_server(true)
         .build_client(false)
+        .out_dir("src/proto")
         .compile_protos(
             &["{proto_path}"],
             &["api/proto/", "../../../../../../api/proto/"],
@@ -78,6 +87,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+### build.rs 運用ノート
+
+- `protoc` が未インストールの開発環境では `protoc-bin-vendored` を優先し、取得失敗時は `PROTOC` / システム `protoc` にフォールバックする。
+- 生成先は `.out_dir("src/proto")` に固定し、CI/CD でも生成物パスを揃える。
+- CI では `protobuf-compiler` を明示インストールするか、`PROTOC` 環境変数を設定してビルド再現性を担保する。
 
 ---
 

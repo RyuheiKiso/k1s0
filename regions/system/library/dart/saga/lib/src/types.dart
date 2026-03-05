@@ -24,23 +24,48 @@ enum SagaStatus {
 
 /// Saga ステップのログ。
 class SagaStepLog {
+  final String id;
+  final String sagaId;
+  final int stepIndex;
   final String stepName;
+  final String action;
   final String status;
-  final String message;
-  final String createdAt;
+  final Map<String, dynamic>? requestPayload;
+  final Map<String, dynamic>? responsePayload;
+  final String? errorMessage;
+  final String startedAt;
+  final String? completedAt;
 
   const SagaStepLog({
+    required this.id,
+    required this.sagaId,
+    required this.stepIndex,
     required this.stepName,
+    required this.action,
     required this.status,
-    required this.message,
-    required this.createdAt,
+    this.requestPayload,
+    this.responsePayload,
+    this.errorMessage,
+    required this.startedAt,
+    this.completedAt,
   });
 
   factory SagaStepLog.fromJson(Map<String, dynamic> json) => SagaStepLog(
+        id: json['id'] as String? ?? '',
+        sagaId: json['saga_id'] as String? ?? '',
+        stepIndex: json['step_index'] as int? ?? 0,
         stepName: json['step_name'] as String,
+        action: json['action'] as String? ?? '',
         status: json['status'] as String,
-        message: json['message'] as String,
-        createdAt: json['created_at'] as String,
+        requestPayload: json['request_payload'] == null
+            ? null
+            : Map<String, dynamic>.from(json['request_payload'] as Map),
+        responsePayload: json['response_payload'] == null
+            ? null
+            : Map<String, dynamic>.from(json['response_payload'] as Map),
+        errorMessage: json['error_message'] as String?,
+        startedAt: json['started_at'] as String? ?? '',
+        completedAt: json['completed_at'] as String?,
       );
 }
 
@@ -48,7 +73,12 @@ class SagaStepLog {
 class SagaState {
   final String sagaId;
   final String workflowName;
+  final int currentStep;
   final SagaStatus status;
+  final Map<String, dynamic> payload;
+  final String? correlationId;
+  final String? initiatedBy;
+  final String? errorMessage;
   final List<SagaStepLog> stepLogs;
   final String createdAt;
   final String updatedAt;
@@ -56,7 +86,12 @@ class SagaState {
   const SagaState({
     required this.sagaId,
     required this.workflowName,
+    required this.currentStep,
     required this.status,
+    required this.payload,
+    this.correlationId,
+    this.initiatedBy,
+    this.errorMessage,
     required this.stepLogs,
     required this.createdAt,
     required this.updatedAt,
@@ -65,7 +100,14 @@ class SagaState {
   factory SagaState.fromJson(Map<String, dynamic> json) => SagaState(
         sagaId: json['saga_id'] as String,
         workflowName: json['workflow_name'] as String,
+        currentStep: json['current_step'] as int? ?? 0,
         status: SagaStatus.fromString(json['status'] as String),
+        payload: json['payload'] == null
+            ? const {}
+            : Map<String, dynamic>.from(json['payload'] as Map),
+        correlationId: json['correlation_id'] as String?,
+        initiatedBy: json['initiated_by'] as String?,
+        errorMessage: json['error_message'] as String?,
         stepLogs: (json['step_logs'] as List<dynamic>? ?? [])
             .map((e) => SagaStepLog.fromJson(e as Map<String, dynamic>))
             .toList(),
