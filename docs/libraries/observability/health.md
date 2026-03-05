@@ -38,6 +38,15 @@ sqlx・deadpool-redis・rdkafka はオプショナル feature として切り替
 | `HealthCheck` | インターフェース/トレイト | `name` + `check()` メソッド（成功: void/Ok、失敗: throw/Err） |
 | `HttpHealthCheck` | 構造体/クラス | 外部 HTTP エンドポイントの GET 確認 |
 
+### `HealthzResponse` 返り値型の言語差
+
+| 言語 | 返り値型 | 例 |
+| --- | --- | --- |
+| Rust | `HealthzResponse`（struct） | `HealthzResponse { status: "ok" }` |
+| Go | `map[string]string` | `{"status": "ok"}` |
+| TypeScript | `object` (`{ status: "ok" }`) | `{ status: "ok" }` |
+| Dart | `Map<String, String>` | `{'status': 'ok'}` |
+
 ### Rust 固有
 
 | 型・トレイト | 種別 | 説明 |

@@ -734,6 +734,12 @@ message DeleteTemplateResponse {
 }
 ```
 
+> **REST/gRPC 変換ルール（`config` / `config_json`）**
+>
+> - REST API のチャネル設定は `config` フィールド（JSON object）として入出力する。
+> - gRPC proto のチャネル設定は `config_json` フィールド（string）で JSON 文字列として扱う。
+> - 双方向変換は UTF-8 JSON シリアライズ/デシリアライズで行う。
+
 ---
 
 ## アーキテクチャ
@@ -888,7 +894,8 @@ message DeleteTemplateResponse {
 
 ### Config / Kafka Notes (2026-03-04)
 - DB 接続設定は `database.url` ではなく `database.host` / `database.port` / `database.name` / `database.user` / `database.password` / `database.ssl_mode` を使用する。
-- Kafka は `topic_requested` を設定で受け取り、送信完了イベントは `k1s0.system.notification.sent.v1` に publish する（`topic_sent` は現行コードでは固定）。
+- Kafka は `topic_requested`（受信）と `topic_sent`（送信完了イベント）を設定で受け取る。
+- Kafka 設定が有効な場合は起動時に consumer/producer を初期化し、Kafka 未設定時のみ Noop publisher を使用する。
 ---
 
 ## ObservabilityConfig（log/trace/metrics）

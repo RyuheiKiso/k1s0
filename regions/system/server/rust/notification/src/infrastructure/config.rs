@@ -117,6 +117,8 @@ pub struct KafkaConfig {
     pub security_protocol: String,
     /// Consumer topic: 騾夂衍繝ｪ繧ｯ繧ｨ繧ｹ繝亥女菫｡
     pub topic_requested: String,
+    #[serde(default = "default_topic_sent")]
+    pub topic_sent: String,
     #[serde(default = "default_consumer_group")]
     pub consumer_group: String,
 }
@@ -127,6 +129,10 @@ fn default_security_protocol() -> String {
 
 fn default_consumer_group() -> String {
     "notification-server.default".to_string()
+}
+
+fn default_topic_sent() -> String {
+    "k1s0.system.notification.sent.v1".to_string()
 }
 
 /// AuthConfig 縺ｯ JWT 隱崎ｨｼ縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
@@ -175,7 +181,6 @@ fn default_retry_initial_delay_secs() -> u64 {
 fn default_retry_max_delay_secs() -> u64 {
     60
 }
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
@@ -295,5 +300,3 @@ mod tests {
         );
     }
 }
-
-

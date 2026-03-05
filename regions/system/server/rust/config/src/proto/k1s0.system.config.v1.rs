@@ -194,7 +194,7 @@ pub struct ConfigCategorySchema {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ConfigEditorSchema {
     #[prost(string, tag = "1")]
-    pub service: ::prost::alloc::string::String,
+    pub service_name: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub namespace_prefix: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "3")]

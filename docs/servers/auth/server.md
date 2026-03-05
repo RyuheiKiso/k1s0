@@ -430,7 +430,7 @@ message CheckPermissionRequest {
 }
 ```
 
-> **注**: REST API の `ValidateToken` レスポンスの `claims` には `scope`, `resource_access`, `tier_access` フィールドが含まれる。gRPC の `ValidateTokenResponse.TokenClaims` でも `scope` を返却する。
+> **注**: REST API の `ValidateToken` レスポンスの `claims` には `scope`, `resource_access`, `tier_access`, `typ`, `azp` フィールドが含まれる。gRPC の `ValidateTokenResponse.TokenClaims` でも同等フィールドを返却する。
 
 #### AuditService RPC 詳細
 
@@ -455,6 +455,8 @@ message TokenClaims {
   map<string, ClientRoles> resource_access = 10;
   repeated string tier_access = 11;
   string scope = 12;
+  optional string typ = 13;
+  optional string azp = 14;
 }
 
 message User {
@@ -1185,11 +1187,12 @@ moka を使用したインメモリキャッシュで RBAC 判定結果をキャ
 
 ### Message/Field Corrections
 - `TokenClaims.scope` exists as field `12`.
+- `TokenClaims.typ` / `TokenClaims.azp` は field `13` / `14`。
 - Common type import is `k1s0/system/common/v1/types.proto` and timestamp usage is `k1s0.system.common.v1.Timestamp`.
 
 
 ### 2026-03-03 追補
-- validate_token のレスポンスには JWT claims の typ / azp を含める。
+- validate_token のレスポンスには JWT claims の typ / azp を含める（proto field `13` / `14`）。
 ---
 
 ## ObservabilityConfig（log/trace/metrics）

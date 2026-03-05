@@ -79,6 +79,10 @@ message TokenClaims {
   repeated string tier_access = 11;
   // OAuth2 scope（スペース区切り）
   string scope = 12;
+  // トークン種別（例: Bearer）
+  optional string typ = 13;
+  // 認可されたクライアント ID
+  optional string azp = 14;
 }
 
 // RealmAccess はグローバルロール一覧。

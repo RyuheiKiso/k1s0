@@ -23,6 +23,8 @@
 | `has_next(total)` | メソッド | 次のページが存在するかを返す（`page * per_page < total`） |
 | `PerPageValidationError` | エラー型 | Rust/TS で使用（Go は標準 `error` を返す） |
 
+> `page_size`（`per_page`）の最大値は **100**（全言語共通）とする。
+
 > **注意: カーソルの Base64 仕様（統一方針）**
 >
 > Cursor は URL で安全に扱えるよう、全言語で **base64url（URL-safe Base64, no padding）** を標準とする（`+`/`/` を使わず、`-`/`_` を使用し、末尾の `=` は付与しない）。
