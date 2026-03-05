@@ -901,5 +901,8 @@ CREATE INDEX idx_snapshots_stream_id ON event_store.snapshots (stream_id, snapsh
 - ListAllEvents RPC は提供しない。全体走査は用途に応じてストリーム単位 ReadEvents を利用する。
 - `ReadEventsRequest` は `event_type` フィルタをサポートする（tag=6）。
 - `auth` 設定は `jwks_url` に加えて `issuer` / `audience` / `jwks_cache_ttl_secs` を持つ。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

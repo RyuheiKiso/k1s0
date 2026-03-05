@@ -3,7 +3,7 @@ pub mod document;
 pub mod error;
 pub mod query;
 
-pub use client::{InMemorySearchClient, SearchClient};
+pub use client::SearchClient;
 pub use document::{
     BulkFailure, BulkResult, FieldMapping, IndexDocument, IndexMapping, IndexResult,
 };

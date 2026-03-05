@@ -704,7 +704,7 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8080
+  port: 8097
   grpc_port: 50051
 
 database:
@@ -827,5 +827,8 @@ vault:
 - REST 更新はフル更新（必須項目あり）、gRPC 更新は optional による部分更新。
 - alert_threshold_percent はドメイン u8 と proto uint32 のマッピングを行う。
 - ListQuotaPoliciesResponse の 2 フィールド目は PaginationResult pagination。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

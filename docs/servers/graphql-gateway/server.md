@@ -471,13 +471,13 @@ auth:
 
 backends:
   tenant:
-    address: "http://tenant-server.k1s0-system.svc.cluster.local:9090"
+    address: "http://tenant-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
   featureflag:
-    address: "http://featureflag-server.k1s0-system.svc.cluster.local:9090"
+    address: "http://featureflag-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
   config:
-    address: "http://config-server.k1s0-system.svc.cluster.local:9090"
+    address: "http://config-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
 
 observability:
@@ -553,4 +553,8 @@ vault:
 
 ### Message/Field Corrections
 - GraphqlContext は tenant_loader, flag_loader に加えて config_loader を保持する。
+---
 
+## ObservabilityConfig（log/trace/metrics）
+
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

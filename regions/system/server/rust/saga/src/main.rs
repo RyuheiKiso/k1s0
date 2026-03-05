@@ -207,8 +207,8 @@ async fn main() -> anyhow::Result<()> {
     // Router
     let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
-    // gRPC server (port 50051)
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    // gRPC server (configured via server.grpc_port)
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;

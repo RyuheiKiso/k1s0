@@ -792,6 +792,35 @@ TTL 動作の詳細:
 
 ---
 
+## ObservabilityConfig（log/trace/metrics）
+
+全 Rust サーバーで observability 設定は次の共通構造を採用する。
+
+```yaml
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: true
+    endpoint: "http://otel-collector.observability:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"
+```
+
+```rust
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    pub log: LogConfig,
+    pub trace: TraceConfig,
+    pub metrics: MetricsConfig,
+}
+```
+
+---
+
 ## 関連ドキュメント
 
 - [system-server.md](../auth/server.md) -- 概要・API 定義・アーキテクチャ

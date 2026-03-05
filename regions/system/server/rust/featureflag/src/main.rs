@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use tracing::info;
 use uuid::Uuid;
@@ -17,6 +18,29 @@ use adapter::grpc::FeatureFlagGrpcService;
 use domain::entity::feature_flag::FeatureFlag;
 use domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
 use infrastructure::config::Config;
+
+fn parse_pool_duration(raw: &str) -> Option<Duration> {
+    let s = raw.trim().to_ascii_lowercase();
+    if s.is_empty() {
+        return None;
+    }
+    if let Some(v) = s.strip_suffix('s') {
+        return v.parse::<u64>().ok().map(Duration::from_secs);
+    }
+    if let Some(v) = s.strip_suffix('m') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|mins| Duration::from_secs(mins * 60));
+    }
+    if let Some(v) = s.strip_suffix('h') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|hours| Duration::from_secs(hours * 60 * 60));
+    }
+    s.parse::<u64>().ok().map(Duration::from_secs)
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -59,8 +83,16 @@ async fn main() -> anyhow::Result<()> {
     ) =
         if let Ok(database_url) = std::env::var("DATABASE_URL") {
             info!("connecting to PostgreSQL...");
+            let max_open_conns = cfg.database.as_ref().map_or(25, |db| db.max_open_conns);
+            let max_idle_conns = cfg.database.as_ref().map_or(5, |db| db.max_idle_conns);
+            let conn_max_lifetime = cfg
+                .database
+                .as_ref()
+                .map_or("5m", |db| db.conn_max_lifetime.as_str());
             let pool = sqlx::postgres::PgPoolOptions::new()
-                .max_connections(cfg.database.as_ref().map_or(25, |db| db.max_open_conns))
+                .max_connections(max_open_conns)
+                .min_connections(max_idle_conns.min(max_open_conns))
+                .max_lifetime(parse_pool_duration(conn_max_lifetime))
                 .connect(&database_url)
                 .await?;
             let pool = Arc::new(pool);
@@ -100,6 +132,8 @@ async fn main() -> anyhow::Result<()> {
             info!("connecting to PostgreSQL via config...");
             let pool = sqlx::postgres::PgPoolOptions::new()
                 .max_connections(db_cfg.max_open_conns)
+                .min_connections(db_cfg.max_idle_conns.min(db_cfg.max_open_conns))
+                .max_lifetime(parse_pool_duration(&db_cfg.conn_max_lifetime))
                 .connect(&db_cfg.connection_url())
                 .await?;
             let pool = Arc::new(pool);

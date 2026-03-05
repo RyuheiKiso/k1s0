@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use tracing::info;
 
@@ -175,6 +176,29 @@ fn default_metrics_path() -> String {
     "/metrics".to_string()
 }
 
+fn parse_pool_duration(raw: &str) -> Option<Duration> {
+    let s = raw.trim().to_ascii_lowercase();
+    if s.is_empty() {
+        return None;
+    }
+    if let Some(v) = s.strip_suffix('s') {
+        return v.parse::<u64>().ok().map(Duration::from_secs);
+    }
+    if let Some(v) = s.strip_suffix('m') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|mins| Duration::from_secs(mins * 60));
+    }
+    if let Some(v) = s.strip_suffix('h') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|hours| Duration::from_secs(hours * 60 * 60));
+    }
+    s.parse::<u64>().ok().map(Duration::from_secs)
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
@@ -230,7 +254,12 @@ async fn main() -> anyhow::Result<()> {
         (store, audit, None)
     } else if let Some(ref db_config) = cfg.database {
         info!("connecting to PostgreSQL for vault storage");
-        let pool = sqlx::PgPool::connect(&db_config.connection_url()).await?;
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(db_config.max_open_conns)
+            .min_connections(db_config.max_idle_conns.min(db_config.max_open_conns))
+            .max_lifetime(parse_pool_duration(&db_config.conn_max_lifetime))
+            .connect(&db_config.connection_url())
+            .await?;
         let pool = Arc::new(pool);
         info!("PostgreSQL connection pool established");
 

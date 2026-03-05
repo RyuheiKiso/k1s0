@@ -236,7 +236,7 @@ pub async fn trigger_job(State(state): State<AppState>, Path(id): Path<String>) 
 
     match state.trigger_job_uc.execute(&id).await {
         Ok(execution) => (
-            StatusCode::OK,
+            StatusCode::CREATED,
             Json(serde_json::to_value(execution).unwrap()),
         )
             .into_response(),

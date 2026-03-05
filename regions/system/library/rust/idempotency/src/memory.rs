@@ -40,7 +40,7 @@ impl IdempotencyStore for InMemoryIdempotencyStore {
         Ok(map.get(key).cloned())
     }
 
-    async fn insert(&self, record: IdempotencyRecord) -> Result<(), IdempotencyError> {
+    async fn set(&self, record: IdempotencyRecord) -> Result<(), IdempotencyError> {
         self.cleanup_expired().await;
         let mut map = self.data.write().await;
         if map.contains_key(&record.key) {
@@ -52,10 +52,9 @@ impl IdempotencyStore for InMemoryIdempotencyStore {
         Ok(())
     }
 
-    async fn update(
+    async fn mark_completed(
         &self,
         key: &str,
-        status: IdempotencyStatus,
         response_body: Option<String>,
         response_status: Option<u16>,
     ) -> Result<(), IdempotencyError> {
@@ -63,8 +62,25 @@ impl IdempotencyStore for InMemoryIdempotencyStore {
         let record = map.get_mut(key).ok_or_else(|| IdempotencyError::NotFound {
             key: key.to_string(),
         })?;
-        record.status = status;
+        record.status = IdempotencyStatus::Completed;
         record.response_body = response_body;
+        record.response_status = response_status;
+        record.completed_at = Some(chrono::Utc::now());
+        Ok(())
+    }
+
+    async fn mark_failed(
+        &self,
+        key: &str,
+        error_body: Option<String>,
+        response_status: Option<u16>,
+    ) -> Result<(), IdempotencyError> {
+        let mut map = self.data.write().await;
+        let record = map.get_mut(key).ok_or_else(|| IdempotencyError::NotFound {
+            key: key.to_string(),
+        })?;
+        record.status = IdempotencyStatus::Failed;
+        record.response_body = error_body;
         record.response_status = response_status;
         record.completed_at = Some(chrono::Utc::now());
         Ok(())

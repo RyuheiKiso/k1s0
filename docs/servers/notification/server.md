@@ -1,4 +1,4 @@
-﻿# system-notification-server 設計
+# system-notification-server 設計
 
 system tier の通知管理サーバー設計を定義する。メール・Slack・Webhook・SMS・Push への通知配信を一元管理する。Kafka トピック `k1s0.system.notification.requested.v1` をトリガーに非同期配信を行い、配信結果を PostgreSQL に記録する。
 Rust での実装を定義する。
@@ -889,7 +889,8 @@ message DeleteTemplateResponse {
 ### Config / Kafka Notes (2026-03-04)
 - DB 接続設定は `database.url` ではなく `database.host` / `database.port` / `database.name` / `database.user` / `database.password` / `database.ssl_mode` を使用する。
 - Kafka は `topic_requested` を設定で受け取り、送信完了イベントは `k1s0.system.notification.sent.v1` に publish する（`topic_sent` は現行コードでは固定）。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
-
-
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

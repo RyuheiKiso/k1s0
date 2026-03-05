@@ -201,7 +201,7 @@ server:
 database:
   host: "localhost"
   port: 5432
-  name: "k1s0_dlq"
+  name: "k1s0_system"
   user: "app"
   password: "secret"
 "#;
@@ -209,7 +209,7 @@ database:
         assert!(config.database.is_some());
         let db = config.database.unwrap();
         assert_eq!(db.host, "localhost");
-        assert_eq!(db.name, "k1s0_dlq");
+        assert_eq!(db.name, "k1s0_system");
     }
 
     #[test]

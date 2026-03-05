@@ -61,7 +61,7 @@ mod tests {
         let config = DatabaseConfig {
             host: "localhost".to_string(),
             port: 5432,
-            name: "k1s0_dlq".to_string(),
+            name: "k1s0_system".to_string(),
             user: "app".to_string(),
             password: "secret".to_string(),
             ssl_mode: "disable".to_string(),
@@ -71,7 +71,7 @@ mod tests {
         };
         assert_eq!(
             config.connection_url(),
-            "postgres://app:secret@localhost:5432/k1s0_dlq?sslmode=disable"
+            "postgres://app:secret@localhost:5432/k1s0_system?sslmode=disable"
         );
     }
 
@@ -80,7 +80,7 @@ mod tests {
         let yaml = r#"
 host: "postgres.k1s0-system.svc.cluster.local"
 port: 5432
-name: "k1s0_dlq"
+name: "k1s0_system"
 user: "app"
 password: ""
 "#;

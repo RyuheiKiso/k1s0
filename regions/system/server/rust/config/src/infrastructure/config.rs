@@ -81,7 +81,7 @@ fn default_cache_max_entries() -> usize {
 }
 
 fn default_cache_ttl() -> String {
-    "300s".to_string()
+    "60s".to_string()
 }
 
 fn default_cache_refresh_on_miss() -> bool {
@@ -122,7 +122,7 @@ fn default_audit_retention_days() -> u32 {
 }
 
 fn default_audit_kafka_topic() -> String {
-    "k1s0.system.config.audit.v1".to_string()
+    "k1s0.system.config.changed.v1".to_string()
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -153,7 +153,7 @@ fn default_namespace_allowed_tiers() -> Vec<String> {
     vec![
         "system".to_string(),
         "business".to_string(),
-        "tenant".to_string(),
+        "service".to_string(),
     ]
 }
 
@@ -198,6 +198,14 @@ pub struct ServerConfig {
 pub struct GrpcConfig {
     #[serde(default = "default_grpc_port")]
     pub port: u16,
+}
+
+impl Default for GrpcConfig {
+    fn default() -> Self {
+        Self {
+            port: default_grpc_port(),
+        }
+    }
 }
 
 fn default_host() -> String {

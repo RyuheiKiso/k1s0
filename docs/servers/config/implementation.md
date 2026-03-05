@@ -212,6 +212,13 @@ pub struct ConfigChangeLog {
 }
 ```
 
+実装では `GetConfig / ListConfigs / GetServiceConfig` に加え、以下の RPC も同一 `tonic_service.rs` で提供する。
+
+- `UpdateConfig`
+- `DeleteConfig`
+- `GetConfigSchema`
+- `UpsertConfigSchema`
+
 ---
 
 ## リポジトリトレイト実装（Rust）
@@ -791,11 +798,13 @@ config_server:
     refresh_on_miss: true     # キャッシュミス時にバックグラウンドリフレッシュ
   # 監査ログ
   audit:
-    kafka_enabled: true       # Kafka への非同期配信を有効化
+    enabled: true             # 監査ログ記録を有効化
+    kafka_enabled: false      # Kafka への非同期配信を有効化
     kafka_topic: "k1s0.system.config.changed.v1"  # 設定変更イベントの配信先トピック
     retention_days: 365       # DB 内の保持日数
   # namespace バリデーション
   namespace:
+    default_prefix: "system"
     allowed_tiers:
       - "system"
       - "business"

@@ -63,6 +63,8 @@ pub struct ServerConfig {
     pub host: String,
     #[serde(default = "default_port")]
     pub port: u16,
+    #[serde(default = "default_grpc_port")]
+    pub grpc_port: u16,
 }
 
 fn default_host() -> String {
@@ -71,6 +73,10 @@ fn default_host() -> String {
 
 fn default_port() -> u16 {
     8080
+}
+
+fn default_grpc_port() -> u16 {
+    50051
 }
 
 /// ServiceEndpoint 縺ｯ螟夜Κ繧ｵ繝ｼ繝薙せ縺ｮ繧ｨ繝ｳ繝峨・繧､繝ｳ繝医・
@@ -208,6 +214,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
+  grpc_port: 50051
 services:
   inventory-service:
     host: "localhost"
@@ -219,6 +226,7 @@ saga:
         let config: Config = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.app.name, "saga-server");
         assert_eq!(config.server.port, 8080);
+        assert_eq!(config.server.grpc_port, 50051);
         assert_eq!(config.services.len(), 1);
         assert_eq!(config.saga.max_concurrent, 50);
     }
@@ -235,6 +243,7 @@ server: {}
         assert_eq!(config.app.environment, "dev");
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 8080);
+        assert_eq!(config.server.grpc_port, 50051);
         assert_eq!(config.saga.max_concurrent, 100);
         assert_eq!(config.saga.workflow_dir, "workflows");
     }

@@ -10,12 +10,15 @@ pub struct RealmAccess {
     pub roles: Vec<String>,
 }
 
-/// Access はリソースアクセスのロール一覧を表す。
+/// RoleSet はリソースアクセスのロール一覧を表す。
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct Access {
+pub struct RoleSet {
     #[serde(default)]
     pub roles: Vec<String>,
 }
+
+/// Backward-compatible alias.
+pub type Access = RoleSet;
 
 /// Claims は JWT トークンの Claims 構造体（認証認可設計.md 準拠）。
 #[derive(Debug, Clone, Deserialize)]
@@ -66,7 +69,7 @@ pub struct Claims {
 
     /// サービス固有のロール
     #[serde(default)]
-    pub resource_access: Option<HashMap<String, Access>>,
+    pub resource_access: Option<HashMap<String, RoleSet>>,
 
     /// アクセス可能な Tier の一覧
     #[serde(default)]

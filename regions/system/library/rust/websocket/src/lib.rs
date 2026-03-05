@@ -5,6 +5,8 @@ pub mod message;
 pub mod state;
 
 pub use client::{InMemoryWsClient, WsClient};
+#[cfg(feature = "mock")]
+pub use client::MockWsClient;
 pub use config::WsConfig;
 pub use error::WsError;
 pub use message::{CloseFrame, WsMessage};

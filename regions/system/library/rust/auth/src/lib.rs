@@ -25,10 +25,10 @@ pub mod middleware;
 pub mod rbac;
 pub mod verifier;
 
-pub use claims::Claims;
+pub use claims::{Audience, Claims, RoleSet};
 pub use device_flow::{DeviceAuthClient, DeviceCodeResponse, DeviceFlowError, TokenResult};
 pub use middleware::{auth_middleware, require_permission, require_tier_access};
-pub use rbac::{check_permission, has_resource_role, has_role, has_tier_access};
+pub use rbac::{check_permission, has_permission, has_resource_role, has_role, has_tier_access};
 pub use verifier::{AuthError, JwksVerifier};
 
 #[cfg(test)]

@@ -224,7 +224,6 @@ impl SearchGrpcService {
     pub async fn search(&self, req: SearchRequest) -> Result<SearchResponse, GrpcError> {
         let page_size = if req.size == 0 { 10 } else { req.size };
         let from = req.from;
-        let page = (from / page_size) + 1;
         let filters = if req.filters_json.is_empty() {
             std::collections::HashMap::new()
         } else {
@@ -244,7 +243,6 @@ impl SearchGrpcService {
 
         match self.search_uc.execute(&input).await {
             Ok(result) => {
-                let has_next = result.total > (from as u64 + result.hits.len() as u64);
                 let hits = result
                     .hits
                     .into_iter()
@@ -260,10 +258,10 @@ impl SearchGrpcService {
 
                 Ok(SearchResponse {
                     hits,
-                    total_count: result.total,
-                    page,
-                    page_size,
-                    has_next,
+                    total_count: result.pagination.total_count,
+                    page: result.pagination.page,
+                    page_size: result.pagination.page_size,
+                    has_next: result.pagination.has_next,
                     facets: result.facets,
                 })
             }
@@ -299,7 +297,9 @@ impl SearchGrpcService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchResult};
+    use crate::domain::entity::search_index::{
+        PaginationResult, SearchDocument, SearchIndex, SearchResult,
+    };
     use crate::domain::repository::search_repository::MockSearchRepository;
     use crate::infrastructure::kafka_producer::NoopSearchEventPublisher;
 
@@ -362,8 +362,9 @@ mod tests {
             .returning(move |_| Ok(Some(return_index.clone())));
 
         mock.expect_search().returning(|_| {
+            let total = 1u64;
             Ok(SearchResult {
-                total: 1,
+                total,
                 hits: vec![SearchDocument {
                     id: "doc-1".to_string(),
                     index_name: "products".to_string(),
@@ -372,6 +373,12 @@ mod tests {
                     indexed_at: chrono::Utc::now(),
                 }],
                 facets: std::collections::HashMap::new(),
+                pagination: PaginationResult {
+                    total_count: total,
+                    page: 1,
+                    page_size: 10,
+                    has_next: false,
+                },
             })
         });
 

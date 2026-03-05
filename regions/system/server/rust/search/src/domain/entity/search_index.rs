@@ -46,4 +46,13 @@ pub struct SearchResult {
     pub total: u64,
     pub hits: Vec<SearchDocument>,
     pub facets: HashMap<String, HashMap<String, u64>>,
+    pub pagination: PaginationResult,
+}
+
+#[derive(Debug, Clone)]
+pub struct PaginationResult {
+    pub total_count: u64,
+    pub page: u32,
+    pub page_size: u32,
+    pub has_next: bool,
 }

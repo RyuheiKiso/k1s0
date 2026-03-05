@@ -9,5 +9,5 @@ pub mod topic;
 
 pub use config::KafkaConfig;
 pub use error::KafkaError;
-pub use health::KafkaHealthChecker;
+pub use health::{KafkaHealthChecker, KafkaHealthStatus};
 pub use topic::{TopicConfig, TopicPartitionInfo};

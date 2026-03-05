@@ -65,6 +65,8 @@ async fn main() -> anyhow::Result<()> {
             infrastructure::database::create_pool(
                 &db_cfg.connection_url(),
                 db_cfg.max_open_conns,
+                db_cfg.max_idle_conns,
+                &db_cfg.conn_max_lifetime,
             )
             .await?,
         );
@@ -132,7 +134,10 @@ async fn main() -> anyhow::Result<()> {
         def_repo.clone(),
     ));
     let reassign_task_uc = Arc::new(usecase::ReassignTaskUseCase::new(task_repo.clone()));
-    let check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(task_repo.clone()));
+    let check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(
+        task_repo.clone(),
+        notification_request_publisher.clone(),
+    ));
 
     let grpc_svc = Arc::new(WorkflowGrpcService::new(
         list_wf_uc.clone(),
@@ -187,7 +192,6 @@ async fn main() -> anyhow::Result<()> {
         reject_task_uc,
         reassign_task_uc,
         check_overdue_tasks_uc: check_overdue_uc,
-        notification_request_publisher,
         metrics: metrics.clone(),
         auth_state: None,
     };

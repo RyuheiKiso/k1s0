@@ -6,7 +6,9 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchQuery, SearchResult};
+use crate::domain::entity::search_index::{
+    PaginationResult, SearchDocument, SearchIndex, SearchQuery, SearchResult,
+};
 use crate::domain::repository::SearchRepository;
 
 /// SearchPostgresRepository は PostgreSQL 全文検索を使った SearchRepository 実装。
@@ -173,10 +175,21 @@ impl SearchRepository for SearchPostgresRepository {
             .fetch_one(self.pool.as_ref())
             .await?;
 
+            let total = count.0.max(0) as u64;
+            let hits: Vec<SearchDocument> = rows.into_iter().map(Into::into).collect();
+            let page_size = query.size.max(1);
+            let page = (query.from / page_size) + 1;
+            let has_next = total > (query.from as u64 + hits.len() as u64);
             return Ok(SearchResult {
-                total: count.0 as u64,
-                hits: rows.into_iter().map(Into::into).collect(),
+                total,
+                hits,
                 facets: HashMap::new(),
+                pagination: PaginationResult {
+                    total_count: total,
+                    page,
+                    page_size,
+                    has_next,
+                },
             });
         }
 
@@ -207,10 +220,22 @@ impl SearchRepository for SearchPostgresRepository {
         .fetch_one(self.pool.as_ref())
         .await?;
 
+        let total = count.0.max(0) as u64;
+        let hits: Vec<SearchDocument> = rows.into_iter().map(Into::into).collect();
+        let page_size = query.size.max(1);
+        let page = (query.from / page_size) + 1;
+        let has_next = total > (query.from as u64 + hits.len() as u64);
+
         Ok(SearchResult {
-            total: count.0 as u64,
-            hits: rows.into_iter().map(Into::into).collect(),
+            total,
+            hits,
             facets: HashMap::new(),
+            pagination: PaginationResult {
+                total_count: total,
+                page,
+                page_size,
+                has_next,
+            },
         })
     }
 

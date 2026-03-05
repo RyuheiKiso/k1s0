@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use crate::error::PaginationError;
+use crate::error::PerPageValidationError;
 
 const MIN_PER_PAGE: u32 = 1;
 const MAX_PER_PAGE: u32 = 100;
 
 /// Validate that per_page is between 1 and 100.
-pub fn validate_per_page(per_page: u32) -> Result<u32, PaginationError> {
+pub fn validate_per_page(per_page: u32) -> Result<u32, PerPageValidationError> {
     if !(MIN_PER_PAGE..=MAX_PER_PAGE).contains(&per_page) {
-        return Err(PaginationError::InvalidPerPage {
+        return Err(PerPageValidationError::InvalidPerPage {
             value: per_page,
             min: MIN_PER_PAGE,
             max: MAX_PER_PAGE,
@@ -40,6 +40,11 @@ impl PageRequest {
     pub fn has_next(&self, total: u64) -> bool {
         (self.page as u64) * (self.per_page as u64) < total
     }
+}
+
+/// Returns a default page request (`page = 1`, `per_page = 20`).
+pub fn default_page_request() -> PageRequest {
+    PageRequest::default()
 }
 
 /// Offset pagination metadata.
@@ -164,6 +169,13 @@ mod tests {
     #[test]
     fn test_page_request_default() {
         let req = PageRequest::default();
+        assert_eq!(req.page, 1);
+        assert_eq!(req.per_page, 20);
+    }
+
+    #[test]
+    fn test_default_page_request_function() {
+        let req = default_page_request();
         assert_eq!(req.page, 1);
         assert_eq!(req.per_page, 20);
     }

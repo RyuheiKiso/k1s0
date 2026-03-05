@@ -15,7 +15,9 @@ mod usecase;
 
 use adapter::grpc::SearchGrpcService;
 use adapter::repository::{CachedSearchRepository, SearchOpenSearchRepository, SearchPostgresRepository};
-use domain::entity::search_index::{SearchDocument, SearchIndex, SearchQuery, SearchResult};
+use domain::entity::search_index::{
+    PaginationResult, SearchDocument, SearchIndex, SearchQuery, SearchResult,
+};
 use domain::repository::SearchRepository;
 use infrastructure::cache::IndexCache;
 use infrastructure::config::Config;
@@ -396,11 +398,20 @@ impl SearchRepository for InMemorySearchRepository {
             .skip(query.from as usize)
             .take(query.size as usize)
             .collect();
+        let page_size = query.size.max(1);
+        let page = (query.from / page_size) + 1;
+        let has_next = total > (query.from as u64 + hits.len() as u64);
 
         Ok(SearchResult {
             total,
             hits,
             facets: HashMap::new(),
+            pagination: PaginationResult {
+                total_count: total,
+                page,
+                page_size,
+                has_next,
+            },
         })
     }
 

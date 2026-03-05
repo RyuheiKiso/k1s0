@@ -16,7 +16,7 @@
 | `CircuitBreakerState` | enum | `Closed`（正常）/ `Open`（遮断中）/ `HalfOpen`（試行中） |
 | `CircuitBreakerConfig` | 構造体 | failure_threshold, success_threshold, timeout 設定 |
 | `CircuitBreakerMetrics` | 構造体 | OpenTelemetry メトリクス（状態変化・成功率） |
-| `CircuitBreakerError` | enum | `Open`・`Inner` |
+| `CircuitBreakerError<E>` | enum | ジェネリックエラー型（`Open`・`Inner(E)`） |
 
 ## Rust 実装
 
@@ -55,7 +55,7 @@ circuit-breaker/
 │   ├── breaker.rs      # CircuitBreaker・CircuitBreakerState
 │   ├── config.rs       # CircuitBreakerConfig（failure_threshold, success_threshold, timeout）
 │   ├── metrics.rs      # CircuitBreakerMetrics（OTel メトリクス）
-│   └── error.rs        # CircuitBreakerError
+│   └── error.rs        # CircuitBreakerError<E>
 └── Cargo.toml
 ```
 

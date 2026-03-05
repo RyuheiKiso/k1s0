@@ -240,11 +240,21 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["sync", "time"] }
 thiserror = "2"
+async-trait = "0.1"
+axum = "0.8"
+http = "1"
+base64 = "0.22"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-wiremock = "0.6"
+rsa = { version = "0.9", features = ["pem"] }
+rand = "0.8"
 ```
+
+**Rust 追加公開 API**:
+
+- `JwksFetcher` trait: JWKS 取得処理の抽象化（`JwksVerifier::new_with_fetcher` で差し替え可能）
+- `middleware` module: `auth_middleware`, `require_permission`, `require_tier_access`（axum 向け）
 
 **主要コード**:
 

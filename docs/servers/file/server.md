@@ -732,6 +732,8 @@ vault:
 ### REST/gRPC Response Alignment
 - `CompleteUploadResponse`: REST/gRPC ともに `FileMetadata` 形状。
 - `DeleteFileResponse`: REST は `204 No Content`（ボディなし）、gRPC は空 message `{}`。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
-
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

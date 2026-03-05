@@ -677,6 +677,8 @@ message JobExecution {
 - trigger レスポンスは SchedulerExecution（id, job_id, status, triggered_by, started_at, finished_at, error_message）に合わせる。
 - target_type と payload は必須。
 - 実行単体取得ユースケースは未実装のため記載対象外とする。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
-
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

@@ -4,6 +4,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use super::{AppState, ErrorDetail, ErrorResponse};
@@ -90,7 +91,7 @@ pub struct CheckRateLimitResponse {
     pub identifier: String,
     pub remaining: i64,
     pub used: i64,
-    pub reset_at: i64,
+    pub reset_at: DateTime<Utc>,
     pub limit: i64,
     pub rule_id: String,
     pub reason: String,
@@ -139,7 +140,7 @@ pub async fn check_rate_limit(
             );
             headers.insert(
                 "X-RateLimit-Reset",
-                HeaderValue::from_str(&decision.reset_at.to_string())
+                HeaderValue::from_str(&decision.reset_at.timestamp().to_string())
                     .unwrap_or(HeaderValue::from_static("0")),
             );
 
@@ -629,8 +630,13 @@ mod tests {
     };
     use axum::body::Body;
     use axum::http::Request;
+    use chrono::TimeZone;
     use std::sync::Arc;
     use tower::ServiceExt;
+
+    fn ts(seconds: i64) -> DateTime<Utc> {
+        Utc.timestamp_opt(seconds, 0).single().unwrap()
+    }
 
     fn make_reset_uc(state_store: MockRateLimitStateStore) -> Arc<crate::usecase::ResetRateLimitUseCase> {
         Arc::new(crate::usecase::ResetRateLimitUseCase::new(Arc::new(state_store)))
@@ -739,7 +745,7 @@ mod tests {
         let mut state_store = MockRateLimitStateStore::new();
         state_store
             .expect_check_token_bucket()
-            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, 1700000060)));
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, ts(1700000060))));
 
         let check_uc = Arc::new(crate::usecase::CheckRateLimitUseCase::new(
             Arc::new(repo),
@@ -810,7 +816,7 @@ mod tests {
                 Ok(RateLimitDecision::denied(
                     100,
                     0,
-                    1700000060,
+                    ts(1700000060),
                     "rate limit exceeded".to_string(),
                 ))
             });

@@ -1,10 +1,11 @@
 use std::future::Future;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use crate::bulkhead::Bulkhead;
 use crate::error::ResiliencyError;
+use crate::metrics::ResiliencyMetrics;
 use crate::policy::ResiliencyPolicy;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,6 +17,7 @@ enum CircuitState {
 
 pub struct ResiliencyDecorator {
     policy: ResiliencyPolicy,
+    metrics: Arc<ResiliencyMetrics>,
     bulkhead: Option<Bulkhead>,
     cb_state: Mutex<CircuitState>,
     cb_failure_count: AtomicU32,
@@ -25,11 +27,14 @@ pub struct ResiliencyDecorator {
 
 impl ResiliencyDecorator {
     pub fn new(policy: ResiliencyPolicy) -> Self {
-        let bulkhead = policy.bulkhead.as_ref().map(|cfg| {
-            Bulkhead::new(cfg.max_concurrent_calls, cfg.max_wait_duration)
-        });
+        let bulkhead = policy
+            .bulkhead
+            .as_ref()
+            .map(|cfg| Bulkhead::new(cfg.max_concurrent_calls, cfg.max_wait_duration));
+
         Self {
             policy,
+            metrics: Arc::new(ResiliencyMetrics::new()),
             bulkhead,
             cb_state: Mutex::new(CircuitState::Closed),
             cb_failure_count: AtomicU32::new(0),
@@ -38,36 +43,48 @@ impl ResiliencyDecorator {
         }
     }
 
+    pub fn with_metrics(policy: ResiliencyPolicy, metrics: Arc<ResiliencyMetrics>) -> Self {
+        let mut this = Self::new(policy);
+        this.metrics = metrics;
+        this
+    }
+
+    pub fn metrics(&self) -> Arc<ResiliencyMetrics> {
+        self.metrics.clone()
+    }
+
     pub async fn execute<T, E, Fut, F>(&self, f: F) -> Result<T, ResiliencyError>
     where
         E: std::error::Error + Send + Sync + 'static,
         Fut: Future<Output = Result<T, E>>,
         F: Fn() -> Fut,
     {
-        // Check circuit breaker before starting
         self.check_circuit_breaker()?;
 
-        // Acquire bulkhead permit if configured
         let _permit = match &self.bulkhead {
-            Some(bh) => Some(bh.acquire().await?),
+            Some(bh) => match bh.acquire().await {
+                Ok(permit) => Some(permit),
+                Err(err) => {
+                    self.metrics.record_bulkhead_rejection();
+                    return Err(err);
+                }
+            },
             None => None,
         };
 
-        // Execute with retry logic
         let retry_config = self.policy.retry.clone();
-        let max_attempts = retry_config.as_ref().map_or(1, |r| r.max_attempts);
-
+        let max_attempts = retry_config.as_ref().map_or(1, |r| r.max_attempts.max(1));
         let mut last_error: Option<Box<dyn std::error::Error + Send + Sync>> = None;
 
         for attempt in 0..max_attempts {
-            // Apply timeout if configured
             let result = match self.policy.timeout {
-                Some(timeout_dur) => {
-                    match tokio::time::timeout(timeout_dur, f()).await {
-                        Ok(r) => r.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>),
-                        Err(_) => return Err(ResiliencyError::Timeout { after: timeout_dur }),
+                Some(timeout_dur) => match tokio::time::timeout(timeout_dur, f()).await {
+                    Ok(r) => r.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>),
+                    Err(_) => {
+                        self.metrics.record_timeout();
+                        return Err(ResiliencyError::Timeout { after: timeout_dur });
                     }
-                }
+                },
                 None => f().await.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>),
             };
 
@@ -76,19 +93,30 @@ impl ResiliencyDecorator {
                     self.record_success();
                     return Ok(value);
                 }
-                Err(e) => {
+                Err(err) => {
                     self.record_failure();
-                    last_error = Some(e);
+                    let retryable = self.is_retryable_error(err.as_ref());
+                    last_error = Some(err);
 
-                    // Check if circuit breaker tripped
+                    if !retryable {
+                        break;
+                    }
+
                     if let Err(cb_err) = self.check_circuit_breaker() {
+                        self.metrics.record_circuit_open();
                         return Err(cb_err);
                     }
 
-                    // Apply backoff delay before next retry
                     if attempt + 1 < max_attempts {
                         if let Some(ref retry_cfg) = retry_config {
-                            let delay = calculate_backoff(attempt, retry_cfg.base_delay, retry_cfg.max_delay);
+                            self.metrics.record_retry_attempt();
+
+                            let delay = self
+                                .policy
+                                .backoff
+                                .as_ref()
+                                .map(|b| b.compute_delay(attempt, retry_cfg.multiplier))
+                                .unwrap_or_else(|| retry_cfg.compute_delay(attempt));
                             tokio::time::sleep(delay).await;
                         }
                     }
@@ -98,8 +126,22 @@ impl ResiliencyDecorator {
 
         Err(ResiliencyError::MaxRetriesExceeded {
             attempts: max_attempts,
-            last_error: last_error.unwrap(),
+            last_error: last_error.unwrap_or_else(|| {
+                Box::<dyn std::error::Error + Send + Sync>::from("unknown resiliency error")
+            }),
         })
+    }
+
+    fn is_retryable_error(&self, err: &(dyn std::error::Error + Send + Sync)) -> bool {
+        if self.policy.retryable_errors.is_empty() {
+            return true;
+        }
+
+        let message = err.to_string();
+        self.policy
+            .retryable_errors
+            .iter()
+            .any(|pattern| message.contains(pattern))
     }
 
     fn check_circuit_breaker(&self) -> Result<(), ResiliencyError> {
@@ -108,19 +150,22 @@ impl ResiliencyDecorator {
             None => return Ok(()),
         };
 
-        let mut state = self.cb_state.lock().unwrap();
+        let mut state = self.cb_state.lock().expect("circuit breaker lock poisoned");
 
         match *state {
             CircuitState::Closed => Ok(()),
             CircuitState::Open => {
-                let last_failure = self.cb_last_failure_time.lock().unwrap();
+                let last_failure = self
+                    .cb_last_failure_time
+                    .lock()
+                    .expect("circuit breaker lock poisoned");
                 if let Some(t) = *last_failure {
-                    if t.elapsed() >= cb_config.recovery_timeout {
+                    if t.elapsed() >= cb_config.timeout {
                         *state = CircuitState::HalfOpen;
                         self.cb_success_count.store(0, Ordering::SeqCst);
                         Ok(())
                     } else {
-                        let remaining = cb_config.recovery_timeout - t.elapsed();
+                        let remaining = cb_config.timeout.saturating_sub(t.elapsed());
                         Err(ResiliencyError::CircuitBreakerOpen {
                             remaining_duration: remaining,
                         })
@@ -135,11 +180,11 @@ impl ResiliencyDecorator {
 
     fn record_success(&self) {
         if let Some(ref cb_config) = self.policy.circuit_breaker {
-            let mut state = self.cb_state.lock().unwrap();
+            let mut state = self.cb_state.lock().expect("circuit breaker lock poisoned");
             match *state {
                 CircuitState::HalfOpen => {
                     let count = self.cb_success_count.fetch_add(1, Ordering::SeqCst) + 1;
-                    if count >= cb_config.half_open_max_calls {
+                    if count >= cb_config.success_threshold {
                         *state = CircuitState::Closed;
                         self.cb_failure_count.store(0, Ordering::SeqCst);
                     }
@@ -147,7 +192,7 @@ impl ResiliencyDecorator {
                 CircuitState::Closed => {
                     self.cb_failure_count.store(0, Ordering::SeqCst);
                 }
-                _ => {}
+                CircuitState::Open => {}
             }
         }
     }
@@ -156,26 +201,23 @@ impl ResiliencyDecorator {
         if let Some(ref cb_config) = self.policy.circuit_breaker {
             let count = self.cb_failure_count.fetch_add(1, Ordering::SeqCst) + 1;
             if count >= cb_config.failure_threshold {
-                let mut state = self.cb_state.lock().unwrap();
+                let mut state = self.cb_state.lock().expect("circuit breaker lock poisoned");
                 *state = CircuitState::Open;
-                let mut last = self.cb_last_failure_time.lock().unwrap();
+                let mut last = self
+                    .cb_last_failure_time
+                    .lock()
+                    .expect("circuit breaker lock poisoned");
                 *last = Some(Instant::now());
             }
         }
     }
 }
 
-fn calculate_backoff(attempt: u32, base_delay: Duration, max_delay: Duration) -> Duration {
-    let delay = base_delay.saturating_mul(2u32.saturating_pow(attempt));
-    std::cmp::min(delay, max_delay)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::policy::{BulkheadConfig, CircuitBreakerConfig, RetryConfig};
+    use crate::policy::{BulkheadConfig, CircuitBreakerConfig, ExponentialBackoff, RetryConfig};
     use std::sync::atomic::AtomicU32 as TestAtomicU32;
-    use std::sync::Arc;
 
     #[derive(Debug)]
     struct TestError(String);
@@ -187,27 +229,22 @@ mod tests {
     impl std::error::Error for TestError {}
 
     #[tokio::test]
-    async fn test_successful_execution() {
+    async fn test_policy_decorate() {
         let policy = ResiliencyPolicy::builder().build();
-        let decorator = ResiliencyDecorator::new(policy);
-
-        let result = decorator
-            .execute(|| async { Ok::<_, TestError>(42) })
-            .await;
-
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), 42);
+        let decorator = policy.decorate();
+        let value = decorator.execute(|| async { Ok::<_, TestError>(42) }).await.unwrap();
+        assert_eq!(value, 42);
     }
 
     #[tokio::test]
-    async fn test_retry_on_failure() {
+    async fn test_retry_with_backoff_and_retryable_errors() {
         let policy = ResiliencyPolicy::builder()
-            .retry(RetryConfig {
-                max_attempts: 3,
-                base_delay: Duration::from_millis(10),
-                max_delay: Duration::from_millis(100),
-                jitter: false,
-            })
+            .retry(RetryConfig::new(3).with_jitter(false))
+            .backoff(ExponentialBackoff::new(
+                std::time::Duration::from_millis(1),
+                std::time::Duration::from_millis(10),
+            ))
+            .retryable_errors(["retryable"])
             .build();
         let decorator = ResiliencyDecorator::new(policy);
         let counter = Arc::new(TestAtomicU32::new(0));
@@ -219,7 +256,7 @@ mod tests {
                 async move {
                     let count = c.fetch_add(1, Ordering::SeqCst);
                     if count < 2 {
-                        Err(TestError("fail".into()))
+                        Err(TestError("retryable error".into()))
                     } else {
                         Ok(99)
                     }
@@ -230,52 +267,43 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 99);
         assert_eq!(counter.load(Ordering::SeqCst), 3);
+        assert!(decorator.metrics().retry_attempts() >= 2);
     }
 
     #[tokio::test]
-    async fn test_max_retries_exceeded() {
+    async fn test_non_retryable_error_stops_immediately() {
         let policy = ResiliencyPolicy::builder()
-            .retry(RetryConfig {
-                max_attempts: 2,
-                base_delay: Duration::from_millis(1),
-                max_delay: Duration::from_millis(10),
-                jitter: false,
-            })
+            .retry(RetryConfig::new(5).with_jitter(false))
+            .retryable_errors(["network"])
             .build();
         let decorator = ResiliencyDecorator::new(policy);
 
         let result = decorator
-            .execute(|| async { Err::<i32, _>(TestError("always fail".into())) })
+            .execute(|| async { Err::<i32, _>(TestError("validation".into())) })
             .await;
 
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            ResiliencyError::MaxRetriesExceeded { attempts, .. } => {
-                assert_eq!(attempts, 2);
-            }
-            _ => panic!("expected MaxRetriesExceeded"),
-        }
+        assert!(matches!(
+            result,
+            Err(ResiliencyError::MaxRetriesExceeded { attempts: 5, .. })
+        ));
     }
 
     #[tokio::test]
     async fn test_timeout() {
         let policy = ResiliencyPolicy::builder()
-            .timeout(Duration::from_millis(50))
+            .timeout(std::time::Duration::from_millis(50))
             .build();
         let decorator = ResiliencyDecorator::new(policy);
 
         let result = decorator
             .execute(|| async {
-                tokio::time::sleep(Duration::from_secs(1)).await;
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 Ok::<_, TestError>(42)
             })
             .await;
 
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            ResiliencyError::Timeout { .. } => {}
-            _ => panic!("expected Timeout"),
-        }
+        assert!(matches!(result, Err(ResiliencyError::Timeout { .. })));
+        assert_eq!(decorator.metrics().timeout_events(), 1);
     }
 
     #[tokio::test]
@@ -283,28 +311,24 @@ mod tests {
         let policy = ResiliencyPolicy::builder()
             .circuit_breaker(CircuitBreakerConfig {
                 failure_threshold: 3,
-                recovery_timeout: Duration::from_secs(60),
-                half_open_max_calls: 1,
+                success_threshold: 1,
+                timeout: std::time::Duration::from_secs(60),
             })
+            .retry(RetryConfig::new(1).with_jitter(false))
             .build();
         let decorator = ResiliencyDecorator::new(policy);
 
-        // Trip the circuit breaker
         for _ in 0..3 {
             let _ = decorator
                 .execute(|| async { Err::<i32, _>(TestError("fail".into())) })
                 .await;
         }
 
-        // Next call should fail with CircuitBreakerOpen
         let result = decorator
             .execute(|| async { Ok::<_, TestError>(42) })
             .await;
 
-        match result.unwrap_err() {
-            ResiliencyError::CircuitBreakerOpen { .. } => {}
-            other => panic!("expected CircuitBreakerOpen, got {:?}", other),
-        }
+        assert!(matches!(result, Err(ResiliencyError::CircuitBreakerOpen { .. })));
     }
 
     #[tokio::test]
@@ -312,7 +336,7 @@ mod tests {
         let policy = ResiliencyPolicy::builder()
             .bulkhead(BulkheadConfig {
                 max_concurrent_calls: 1,
-                max_wait_duration: Duration::from_millis(50),
+                max_wait_duration: std::time::Duration::from_millis(50),
             })
             .build();
         let decorator = Arc::new(ResiliencyDecorator::new(policy));
@@ -320,37 +344,19 @@ mod tests {
         let d1 = decorator.clone();
         let handle = tokio::spawn(async move {
             d1.execute(|| async {
-                tokio::time::sleep(Duration::from_millis(200)).await;
+                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
                 Ok::<_, TestError>(1)
             })
             .await
         });
 
-        // Give time for first task to acquire permit
-        tokio::time::sleep(Duration::from_millis(10)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
-        let result = decorator
-            .execute(|| async { Ok::<_, TestError>(2) })
-            .await;
+        let result = decorator.execute(|| async { Ok::<_, TestError>(2) }).await;
 
-        match result.unwrap_err() {
-            ResiliencyError::BulkheadFull { max_concurrent } => {
-                assert_eq!(max_concurrent, 1);
-            }
-            other => panic!("expected BulkheadFull, got {:?}", other),
-        }
+        assert!(matches!(result, Err(ResiliencyError::BulkheadFull { .. })));
+        assert_eq!(decorator.metrics().bulkhead_rejections(), 1);
 
         let _ = handle.await;
-    }
-
-    #[test]
-    fn test_backoff_calculation() {
-        let base = Duration::from_millis(100);
-        let max = Duration::from_secs(5);
-
-        assert_eq!(calculate_backoff(0, base, max), Duration::from_millis(100));
-        assert_eq!(calculate_backoff(1, base, max), Duration::from_millis(200));
-        assert_eq!(calculate_backoff(2, base, max), Duration::from_millis(400));
-        assert_eq!(calculate_backoff(10, base, max), max);
     }
 }

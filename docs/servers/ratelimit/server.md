@@ -867,6 +867,8 @@ vault:
 - `GetUsageResponse.window_seconds` is canonical field name.
 - REST `CreateRule` / `UpdateRule` payloads include `algorithm`.
 - Canonical domain decision model is `RateLimitDecision` (統合済み).
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
-
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

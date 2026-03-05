@@ -8,7 +8,7 @@ server:
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
   port: 5432
-  name: "k1s0_dlq"
+  name: "k1s0_system"
   user: "app"
   password: ""
   ssl_mode: "disable"

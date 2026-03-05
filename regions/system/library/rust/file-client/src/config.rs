@@ -20,6 +20,20 @@ impl FileClientConfig {
         }
     }
 
+    pub fn direct_mode(
+        s3_endpoint: impl Into<String>,
+        bucket: impl Into<String>,
+        region: impl Into<String>,
+    ) -> Self {
+        Self {
+            server_url: None,
+            s3_endpoint: Some(s3_endpoint.into()),
+            bucket: Some(bucket.into()),
+            region: Some(region.into()),
+            timeout: Duration::from_secs(30),
+        }
+    }
+
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self

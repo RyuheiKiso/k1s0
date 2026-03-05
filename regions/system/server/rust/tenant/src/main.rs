@@ -183,6 +183,10 @@ struct DatabaseConfig {
     ssl_mode: String,
     #[serde(default = "default_max_connections")]
     max_connections: u32,
+    #[serde(default = "default_max_idle_conns")]
+    max_idle_conns: u32,
+    #[serde(default = "default_conn_max_lifetime")]
+    conn_max_lifetime: String,
 }
 
 impl DatabaseConfig {
@@ -216,6 +220,40 @@ fn default_db_ssl_mode() -> String {
 
 fn default_max_connections() -> u32 {
     25
+}
+
+fn default_max_idle_conns() -> u32 {
+    5
+}
+
+fn default_conn_max_lifetime() -> String {
+    "5m".to_string()
+}
+
+fn parse_pool_duration(value: &str) -> Option<std::time::Duration> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if let Some(v) = trimmed.strip_suffix("ms") {
+        return v.parse::<u64>().ok().map(std::time::Duration::from_millis);
+    }
+    if let Some(v) = trimmed.strip_suffix('s') {
+        return v.parse::<u64>().ok().map(std::time::Duration::from_secs);
+    }
+    if let Some(v) = trimmed.strip_suffix('m') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|mins| std::time::Duration::from_secs(mins * 60));
+    }
+    if let Some(v) = trimmed.strip_suffix('h') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|hours| std::time::Duration::from_secs(hours * 3600));
+    }
+    trimmed.parse::<u64>().ok().map(std::time::Duration::from_secs)
 }
 
 // --- InMemory Repository ---
@@ -307,6 +345,8 @@ async fn main() -> anyhow::Result<()> {
             let pool = Arc::new(
                 sqlx::postgres::PgPoolOptions::new()
                     .max_connections(db_cfg.max_connections)
+                    .min_connections(db_cfg.max_idle_conns.min(db_cfg.max_connections))
+                    .max_lifetime(parse_pool_duration(&db_cfg.conn_max_lifetime))
                     .connect(&database_url)
                     .await?,
             );
@@ -323,6 +363,8 @@ async fn main() -> anyhow::Result<()> {
             let pool = Arc::new(
                 sqlx::postgres::PgPoolOptions::new()
                     .max_connections(default_max_connections())
+                    .min_connections(default_max_idle_conns())
+                    .max_lifetime(parse_pool_duration(&default_conn_max_lifetime()))
                     .connect(&database_url)
                     .await?,
             );

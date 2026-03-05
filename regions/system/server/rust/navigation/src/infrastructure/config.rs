@@ -71,7 +71,7 @@ fn default_host() -> String {
 }
 
 fn default_port() -> u16 {
-    8080
+    8095
 }
 
 fn default_grpc_port() -> u16 {
@@ -193,12 +193,12 @@ app:
   environment: dev
 server:
   host: "0.0.0.0"
-  port: 8080
+  port: 8095
   grpc_port: 50051
 "#;
         let cfg: Config = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(cfg.app.name, "k1s0-navigation-server");
-        assert_eq!(cfg.server.port, 8080);
+        assert_eq!(cfg.server.port, 8095);
         assert_eq!(cfg.server.grpc_port, 50051);
         assert_eq!(cfg.navigation.navigation_path, "config/navigation.yaml");
     }
@@ -212,7 +212,7 @@ server: {}
 "#;
         let cfg: Config = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(cfg.server.host, "0.0.0.0");
-        assert_eq!(cfg.server.port, 8080);
+        assert_eq!(cfg.server.port, 8095);
         assert_eq!(cfg.server.grpc_port, 50051);
         assert_eq!(cfg.app.version, "0.1.0");
         assert_eq!(cfg.app.environment, "dev");

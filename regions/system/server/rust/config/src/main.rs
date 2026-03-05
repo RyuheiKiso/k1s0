@@ -72,8 +72,8 @@ async fn main() -> anyhow::Result<()> {
             metrics.clone(),
         ));
         let cache_ttl_seconds = cfg.config_server.cache.ttl_seconds().unwrap_or_else(|e| {
-            tracing::warn!(error = %e, ttl = %cfg.config_server.cache.ttl, "invalid cache ttl, fallback to 300s");
-            300
+            tracing::warn!(error = %e, ttl = %cfg.config_server.cache.ttl, "invalid cache ttl, fallback to 60s");
+            60
         });
 
         let cache = Arc::new(infrastructure::cache::ConfigCache::new(
@@ -111,8 +111,8 @@ async fn main() -> anyhow::Result<()> {
             metrics.clone(),
         ));
         let cache_ttl_seconds = cfg.config_server.cache.ttl_seconds().unwrap_or_else(|e| {
-            tracing::warn!(error = %e, ttl = %cfg.config_server.cache.ttl, "invalid cache ttl, fallback to 300s");
-            300
+            tracing::warn!(error = %e, ttl = %cfg.config_server.cache.ttl, "invalid cache ttl, fallback to 60s");
+            60
         });
 
         let cache = Arc::new(infrastructure::cache::ConfigCache::new(

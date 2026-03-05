@@ -18,11 +18,11 @@ fn default_redis_url() -> String {
 }
 
 fn default_redis_pool_size() -> usize {
-    4
+    20
 }
 
 fn default_redis_timeout_ms() -> u64 {
-    2000
+    100
 }
 
 /// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・

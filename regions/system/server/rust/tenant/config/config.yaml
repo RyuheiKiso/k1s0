@@ -4,7 +4,7 @@ app:
 
 server:
   http_port: 8089
-  grpc_port: 50058
+  grpc_port: 50051
 
 observability:
   log:

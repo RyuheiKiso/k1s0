@@ -532,7 +532,7 @@ Exponential backoff の遅延: `delay_ms = initial_interval_ms * 2^attempt`
 | usecase | `StartSagaUseCase`, `ExecuteSagaUseCase`, `GetSagaUseCase`, `ListSagasUseCase`, `CancelSagaUseCase`, `RegisterWorkflowUseCase`, `ListWorkflowsUseCase`, `RecoverSagasUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー | プロトコル変換（axum） |
 | adapter/grpc | gRPC サービス | プロトコル変換（tonic） |
-| adapter/repository | `SagaPostgresRepository`, `InMemoryWorkflowRepository` | リポジトリ実装 |
+| adapter/repository | `SagaPostgresRepository`, `WorkflowPostgresRepository`, `InMemoryWorkflowRepository` | リポジトリ実装 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/database | DatabaseConfig | DB 接続設定 |
 | infrastructure/grpc_caller | `GrpcStepCaller`, `ServiceRegistry`, `TonicGrpcCaller` | gRPC 動的呼び出し |
@@ -634,6 +634,7 @@ regions/system/server/rust/saga/
 │   │   └── repository/
 │   │       ├── mod.rs
 │   │       ├── saga_postgres.rs             # PostgreSQL リポジトリ
+│   │       ├── workflow_postgres.rs         # PostgreSQL ワークフローリポジトリ
 │   │       └── workflow_in_memory.rs        # InMemory ワークフローリポジトリ
 │   └── infrastructure/
 │       ├── mod.rs
@@ -743,6 +744,7 @@ regions/system/library/rust/saga/
 | infrastructure/kafka_producer | 5 | KafkaConfig 解析 |
 | infrastructure/grpc_caller | 5 | サービスレジストリ、エンドポイント解決 |
 | adapter/repository/workflow_in_memory | 4 | 登録・取得・一覧 |
+| adapter/repository/workflow_postgres | 3 | 取得・一覧・exists |
 | usecase/execute_saga | 3 | 正常実行、ステップ失敗→補償、終端状態スキップ |
 | usecase/start_saga | 2 | 正常開始、ワークフロー未登録エラー |
 | usecase/recover_sagas | 2 | 未完了 Saga の自動再開 |
@@ -1266,6 +1268,8 @@ vault:
 ### Message/Field Corrections
 - proto 定義の重複セクションは削除し、api/proto/.../saga.proto を正とする。
 - step_count は proto/gRPC では int32、Rust 側では usize との相互変換で扱う。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
-
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

@@ -649,5 +649,8 @@ vault:
 - SearchDocument は score を保持する。
 - SearchResult は facets を保持する。
 - Kafka プロデューサートピックは k1s0.system.search.indexed.v1。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

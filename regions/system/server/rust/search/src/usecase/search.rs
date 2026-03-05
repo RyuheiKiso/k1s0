@@ -63,7 +63,9 @@ impl SearchUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchResult};
+    use crate::domain::entity::search_index::{
+        PaginationResult, SearchDocument, SearchIndex, SearchResult,
+    };
     use crate::domain::repository::search_repository::MockSearchRepository;
 
     #[tokio::test]
@@ -77,8 +79,11 @@ mod tests {
             .returning(move |_| Ok(Some(return_index.clone())));
 
         mock.expect_search().returning(|_| {
+            let total = 1u64;
+            let page_size = 10u32;
+            let page = 1u32;
             Ok(SearchResult {
-                total: 1,
+                total,
                 hits: vec![SearchDocument {
                     id: "doc-1".to_string(),
                     index_name: "products".to_string(),
@@ -87,6 +92,12 @@ mod tests {
                     indexed_at: chrono::Utc::now(),
                 }],
                 facets: HashMap::new(),
+                pagination: PaginationResult {
+                    total_count: total,
+                    page,
+                    page_size,
+                    has_next: false,
+                },
             })
         });
 

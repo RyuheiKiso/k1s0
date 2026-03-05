@@ -41,6 +41,11 @@ pub fn check_permission(claims: &Claims, resource: &str, action: &str) -> bool {
     false
 }
 
+/// Backward-compatible alias of `check_permission`.
+pub fn has_permission(claims: &Claims, resource: &str, action: &str) -> bool {
+    check_permission(claims, resource, action)
+}
+
 /// Claims で指定 Tier へのアクセスが許可されているかを判定する。
 pub fn has_tier_access(claims: &Claims, tier: &str) -> bool {
     claims
@@ -52,7 +57,7 @@ pub fn has_tier_access(claims: &Claims, tier: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::claims::{Access, Audience, RealmAccess};
+    use crate::claims::{Audience, RealmAccess, RoleSet};
     use std::collections::HashMap;
 
     fn make_claims(
@@ -81,7 +86,7 @@ mod tests {
                     .map(|(k, v)| {
                         (
                             k.to_string(),
-                            Access {
+                            RoleSet {
                                 roles: v.into_iter().map(String::from).collect(),
                             },
                         )
@@ -123,6 +128,15 @@ mod tests {
         assert!(check_permission(&claims, "order-service", "read"));
         assert!(check_permission(&claims, "order-service", "write"));
         assert!(!check_permission(&claims, "order-service", "delete"));
+    }
+
+    #[test]
+    fn test_has_permission_alias() {
+        let mut ra = HashMap::new();
+        ra.insert("order-service", vec!["read"]);
+        let claims = make_claims(vec!["user"], ra, vec![]);
+        assert!(has_permission(&claims, "order-service", "read"));
+        assert!(!has_permission(&claims, "order-service", "write"));
     }
 
     #[test]

@@ -66,8 +66,8 @@ impl KafkaSchedulerProducer {
 
         Ok(Self {
             producer,
-            topic_executed: "k1s0.system.scheduler.executed.v1".to_string(),
-            topic_created: "k1s0.system.scheduler.created.v1".to_string(),
+            topic_executed: config.topics.executed.clone(),
+            topic_created: config.topics.created.clone(),
             metrics: None,
         })
     }

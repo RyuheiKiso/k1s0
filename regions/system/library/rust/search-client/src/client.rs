@@ -30,12 +30,15 @@ pub trait SearchClient: Send + Sync {
     async fn create_index(&self, name: &str, mapping: IndexMapping) -> Result<(), SearchError>;
 }
 
+#[cfg(test)]
 use std::collections::HashMap;
 
+#[cfg(test)]
 pub struct InMemorySearchClient {
     documents: tokio::sync::Mutex<HashMap<String, Vec<IndexDocument>>>,
 }
 
+#[cfg(test)]
 impl InMemorySearchClient {
     pub fn new() -> Self {
         Self {
@@ -44,6 +47,7 @@ impl InMemorySearchClient {
     }
 }
 
+#[cfg(test)]
 impl Default for InMemorySearchClient {
     fn default() -> Self {
         Self::new()
@@ -51,6 +55,7 @@ impl Default for InMemorySearchClient {
 }
 
 #[async_trait]
+#[cfg(test)]
 impl SearchClient for InMemorySearchClient {
     async fn index_document(
         &self,

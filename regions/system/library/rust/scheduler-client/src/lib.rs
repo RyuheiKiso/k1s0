@@ -4,6 +4,8 @@ pub mod job;
 
 #[cfg(feature = "grpc")]
 pub mod grpc;
+#[cfg(feature = "kafka")]
+pub mod kafka;
 
 pub use client::SchedulerClient;
 pub use error::SchedulerError;
@@ -14,6 +16,8 @@ pub use client::MockSchedulerClient;
 
 #[cfg(feature = "grpc")]
 pub use grpc::GrpcSchedulerClient;
+#[cfg(feature = "kafka")]
+pub use kafka::KafkaJobCompletedSubscriber;
 
 #[cfg(test)]
 mod tests {

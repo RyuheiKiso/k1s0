@@ -776,7 +776,6 @@ app:
   environment: "production"
 
 server:
-  host: "0.0.0.0"
   http_port: 8089
   grpc_port: 50051
 
@@ -795,7 +794,10 @@ kafka:
   brokers:
     - "kafka-0.messaging.svc.cluster.local:9092"
   security_protocol: "PLAINTEXT"
-  topic: "k1s0.system.tenant.events.v1"
+  topics:
+    publish:
+      - "k1s0.system.tenant.events.v1"
+    subscribe: []
 
 keycloak:
   base_url: "http://keycloak.k1s0-system.svc.cluster.local:8080"
@@ -896,4 +898,8 @@ vault:
 - gRPC は owner_id が non-optional string である点を明示する。
 - publish_tenant_updated イベントを発行する。
 - healthz/readyz は status フィールドを統一フォーマットで返す。
+---
 
+## ObservabilityConfig（log/trace/metrics）
+
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

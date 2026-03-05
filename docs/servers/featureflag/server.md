@@ -757,6 +757,8 @@ vault:
 - `FeatureFlag.rules` exists as `repeated FlagRule` (field `8`).
 - `EvaluateFlagResponse.variant` is `optional string`.
 - `UpdateFlagRequest.enabled` and `UpdateFlagRequest.description` are optional.
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
-
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

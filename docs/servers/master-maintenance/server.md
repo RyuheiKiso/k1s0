@@ -1,4 +1,4 @@
-﻿# system-master-maintenance-server 設計
+# system-master-maintenance-server 設計
 
 メタデータ駆動型マスタメンテナンスサーバー。テーブル定義・カラム定義・整合性ルール登録のみで CRUD 画面を自動生成する。
 
@@ -1922,5 +1922,8 @@ curl -X POST http://localhost:8110/api/v1/rules \
 - `TableRelationship` includes `id(6)`, `is_cascade_delete(7)`, `created_at(8)`.
 - `AppErrorResponse.request_id` は現行実装では未採番で、常に `None`（JSON では `null`）となる。
 - `rule_engine` / `import` セクションは `config.yaml` で設定可能（`rule_engine.max_rules_per_table` など）。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

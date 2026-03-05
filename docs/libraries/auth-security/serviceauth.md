@@ -19,6 +19,17 @@
 | `SpiffeId` | 構造体 | SPIFFE URI のパース・検証（`spiffe://<trust-domain>/ns/<ns>/sa/<sa>`）。`parse(uri)`, `to_uri()`, `allows_tier_access(tier)` メソッドあり |
 | `ServiceAuthError` | enum | トークン取得・検証・SPIFFE エラー型 |
 
+### Rust `ServiceClaims` / `ServiceAuthConfig` 主要フィールド
+
+| 型 | フィールド | 型 | 説明 |
+| --- | --- | --- | --- |
+| `ServiceClaims` | `sub` | string | サービス識別子 |
+| `ServiceClaims` | `client_id` | Option\<string\> | Keycloak client_id |
+| `ServiceClaims` | `exp` | i64 | 有効期限（Unix 秒） |
+| `ServiceClaims` | `iat` | i64 | 発行時刻（Unix 秒） |
+| `ServiceAuthConfig` | `refresh_before_secs` | u64 | 期限切れ前に更新を開始する秒数（デフォルト 120） |
+| `ServiceAuthConfig` | `timeout_secs` | u64 | トークン取得 HTTP タイムアウト（デフォルト 10） |
+
 ## Rust 実装
 
 **Cargo.toml**:

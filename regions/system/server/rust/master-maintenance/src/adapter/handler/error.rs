@@ -139,7 +139,7 @@ impl From<anyhow::Error> for AppError {
             return Self::internal("SYS_MM_INTERNAL_ERROR", &msg);
         }
         if lower.contains("validation") {
-            return Self::bad_request("SYS_MM_VALIDATION_FAILED", &msg);
+            return Self::bad_request("SYS_MM_VALIDATION_ERROR", &msg);
         }
 
         Self::internal("SYS_MM_INTERNAL_ERROR", &msg)

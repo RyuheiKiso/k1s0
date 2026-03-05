@@ -1090,10 +1090,8 @@ vault:
 - Cancel/Reassign のエラーコードは `SYS_WORKFLOW_INSTANCE_INVALID_STATUS` / `SYS_WORKFLOW_TASK_REASSIGN_INVALID_STATUS` を使用する。
 - Kafka イベントの実行者フィールドは `actor_user_id`。
 - Cancel/Reassign レスポンスに `message` フィールドを含む。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
-
-
-
-
-
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

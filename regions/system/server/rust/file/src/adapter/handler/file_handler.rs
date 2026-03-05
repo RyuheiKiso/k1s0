@@ -229,6 +229,48 @@ pub async fn delete_file(
     }
 }
 
+/// DELETE /api/v1/files/admin/:id
+pub async fn delete_file_admin(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    if let Ok(file) = state
+        .get_file_metadata_uc
+        .execute(&GetFileMetadataInput {
+            file_id: id.clone(),
+        })
+        .await
+    {
+        if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+            if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                &file.tenant_id,
+                request_tenant_id,
+            ) {
+                let err =
+                    ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
+            }
+        }
+    }
+
+    let input = DeleteFileInput { file_id: id };
+
+    match state.delete_file_uc.execute(&input).await {
+        Ok(_) => StatusCode::NO_CONTENT.into_response(),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                let err = ErrorResponse::new(codes::file::not_found(), &msg);
+                (StatusCode::NOT_FOUND, Json(err)).into_response()
+            } else {
+                let err = ErrorResponse::new(codes::file::delete_failed(), &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
+        }
+    }
+}
+
 /// POST /api/v1/files/:id/complete
 pub async fn complete_upload(
     State(state): State<AppState>,

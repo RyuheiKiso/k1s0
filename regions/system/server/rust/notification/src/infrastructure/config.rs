@@ -126,7 +126,7 @@ fn default_security_protocol() -> String {
 }
 
 fn default_consumer_group() -> String {
-    "notification-server-consumer".to_string()
+    "notification-server.default".to_string()
 }
 
 /// AuthConfig 縺ｯ JWT 隱崎ｨｼ縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・

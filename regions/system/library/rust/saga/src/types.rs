@@ -34,6 +34,8 @@ pub struct SagaState {
     pub workflow_name: String,
     pub current_step: i32,
     pub status: SagaStatus,
+    #[serde(default)]
+    pub step_logs: Vec<SagaStepLog>,
     pub payload: serde_json::Value,
     pub correlation_id: Option<String>,
     pub initiated_by: Option<String>,

@@ -129,12 +129,44 @@ pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
-    /// Producer topic: 繧ｸ繝ｧ繝悶ヨ繝ｪ繧ｬ繝ｼ騾夂衍
-    pub topic_triggered: String,
+    #[serde(default)]
+    pub topics: KafkaTopics,
 }
 
 fn default_security_protocol() -> String {
     "PLAINTEXT".to_string()
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct KafkaTopics {
+    #[serde(default = "default_topic_triggered", alias = "topic_triggered")]
+    pub triggered: String,
+    #[serde(default = "default_topic_executed")]
+    pub executed: String,
+    #[serde(default = "default_topic_created")]
+    pub created: String,
+}
+
+impl Default for KafkaTopics {
+    fn default() -> Self {
+        Self {
+            triggered: default_topic_triggered(),
+            executed: default_topic_executed(),
+            created: default_topic_created(),
+        }
+    }
+}
+
+fn default_topic_triggered() -> String {
+    "k1s0.system.scheduler.triggered.v1".to_string()
+}
+
+fn default_topic_executed() -> String {
+    "k1s0.system.scheduler.executed.v1".to_string()
+}
+
+fn default_topic_created() -> String {
+    "k1s0.system.scheduler.created.v1".to_string()
 }
 
 /// SchedulerConfig 縺ｯ繧ｹ繧ｱ繧ｸ繝･繝ｼ繝ｩ繝ｼ蝗ｺ譛峨・險ｭ螳壹ｒ陦ｨ縺吶・

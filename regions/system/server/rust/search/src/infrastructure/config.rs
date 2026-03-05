@@ -71,7 +71,7 @@ fn default_host() -> String {
 }
 
 fn default_port() -> u16 {
-    8080
+    8094
 }
 
 fn default_grpc_port() -> u16 {

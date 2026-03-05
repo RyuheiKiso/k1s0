@@ -1030,7 +1030,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8101
-  grpc_port: 9090
+  grpc_port: 50051
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
@@ -1140,3 +1140,8 @@ vault:
 - `api_schemas.version_count INT NOT NULL DEFAULT 0` を持つ。
 - `api_schema_versions` は `id UUID PRIMARY KEY` を持ち、`(name, version)` は UNIQUE 制約で扱う。
 - `schema_type VARCHAR(50)` と `breaking_change_details JSONB` は `database.md` に合わせる。
+---
+
+## ObservabilityConfig（log/trace/metrics）
+
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

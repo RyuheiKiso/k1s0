@@ -1,4 +1,4 @@
-﻿# system-session-server 設計
+# system-session-server 設計
 
 > **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `sessions/read`, `sessions/write`, `sessions/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
@@ -559,6 +559,44 @@ message Session {
 
 ---
 
+## 設定ファイル例
+
+### session 設定フィールド
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `session.default_ttl_seconds` | int | `3600` | 作成時のデフォルト TTL（秒） |
+| `session.max_ttl_seconds` | int | `86400` | 許可する最大 TTL（秒） |
+
+### config.yaml（本番）
+
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 8102
+  grpc_port: 50051
+
+session:
+  default_ttl_seconds: 3600
+  max_ttl_seconds: 86400
+
+redis:
+  url: "redis://redis.k1s0-system.svc.cluster.local:6379"
+  pool_size: 10
+  connect_timeout_seconds: 3
+
+kafka:
+  brokers:
+    - "kafka-0.messaging.svc.cluster.local:9092"
+  consumer_group: "session-server.default"
+  security_protocol: "PLAINTEXT"
+  topic_revoke_all: "k1s0.system.session.revoke_all.v1"
+  topic_created: "k1s0.system.session.created.v1"
+  topic_revoked: "k1s0.system.session.revoked.v1"
+```
+
+---
+
 ## 詳細設計ドキュメント
 
 - [system-session-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
@@ -588,4 +626,8 @@ message Session {
 - `GET /healthz` は `{"status":"ok","service":"session"}` を返す。
 - `GET /readyz` は Redis / PostgreSQL / Kafka の個別チェック結果と `service` を返し、`status` は `ready` / `not_ready` をとる。
 - `max_devices` は作成リクエスト専用フィールドであり、Session ドメインモデルの保持対象ではない。
+---
 
+## ObservabilityConfig（log/trace/metrics）
+
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

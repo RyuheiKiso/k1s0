@@ -1,59 +1,70 @@
-use thiserror::Error;
+use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Error, PartialEq)]
-pub enum ValidationError {
-    #[error("invalid email: {0}")]
-    InvalidEmail(String),
-    #[error("invalid UUID: {0}")]
-    InvalidUuid(String),
-    #[error("invalid URL: {0}")]
-    InvalidUrl(String),
-    #[error("invalid tenant_id: {0}")]
-    InvalidTenantId(String),
-    #[error("invalid pagination: {0}")]
-    InvalidPagination(String),
-    #[error("invalid date range: {0}")]
-    InvalidDateRange(String),
+/// ValidationError represents a single field-level validation failure.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ValidationError {
+    pub field: String,
+    pub code: String,
+    pub message: String,
 }
 
 impl ValidationError {
-    /// Returns the error code string for this validation error.
-    pub fn code(&self) -> &'static str {
-        match self {
-            ValidationError::InvalidEmail(_) => "INVALID_EMAIL",
-            ValidationError::InvalidUuid(_) => "INVALID_UUID",
-            ValidationError::InvalidUrl(_) => "INVALID_URL",
-            ValidationError::InvalidTenantId(_) => "INVALID_TENANT_ID",
-            ValidationError::InvalidPagination(_) => "INVALID_PAGINATION",
-            ValidationError::InvalidDateRange(_) => "INVALID_DATE_RANGE",
+    pub fn new(field: impl Into<String>, code: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            field: field.into(),
+            code: code.into(),
+            message: message.into(),
         }
     }
 }
 
-/// A collection of `ValidationError` instances.
-#[derive(Debug, Default)]
+impl Display for ValidationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} ({}): {}", self.field, self.code, self.message)
+    }
+}
+
+impl std::error::Error for ValidationError {}
+
+/// ValidationErrors is a collection of field-level validation failures.
+#[derive(Debug, Default, Clone)]
 pub struct ValidationErrors {
     errors: Vec<ValidationError>,
 }
 
 impl ValidationErrors {
-    /// Creates a new empty `ValidationErrors`.
     pub fn new() -> Self {
         Self { errors: Vec::new() }
     }
 
-    /// Returns `true` if there are any errors.
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
     }
 
-    /// Returns a slice of all collected errors.
     pub fn get_errors(&self) -> &[ValidationError] {
         &self.errors
     }
 
-    /// Adds a validation error to the collection.
     pub fn add(&mut self, error: ValidationError) {
         self.errors.push(error);
     }
 }
+
+impl Display for ValidationErrors {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.errors.is_empty() {
+            return f.write_str("no validation errors");
+        }
+
+        let rendered = self
+            .errors
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        write!(f, "{rendered}")
+    }
+}
+
+impl std::error::Error for ValidationErrors {}

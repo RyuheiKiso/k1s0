@@ -260,4 +260,8 @@ navigation:
 - [認証認可設計.md](../../architecture/auth/認証認可設計.md) -- JWT・ロールモデル
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- ロールベースアクセス制御
 - [system-auth/server.md](../auth/server.md) -- 認証サーバー（トークン発行元）
+---
 
+## ObservabilityConfig（log/trace/metrics）
+
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

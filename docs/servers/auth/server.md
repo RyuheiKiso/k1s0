@@ -537,11 +537,11 @@ message AuditLog {
 | `port` | int | `8080` | REST API ポート |
 | `grpc_port` | int | `50051` | gRPC ポート |
 
-### auth.jwks
+### auth.jwks（任意）
 
 | フィールド | 型 | デフォルト | 説明 |
 | --- | --- | --- | --- |
-| `url` | string | - | JWKS エンドポイント URL（例: `http://auth-server:8080/jwks`）。互換として `/.well-known/jwks.json` も利用可能。Keycloak URL から自動導出せず、明示的に指定する |
+| `url` | string | - | JWKS エンドポイント URL（例: `https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-connect/certs`）。通常は Keycloak の certs エンドポイントを指定する |
 | `cache_ttl_secs` | int | `600` | JWKS キャッシュ TTL（秒）。[JWT設計.md](../../architecture/auth/JWT設計.md) の JWKS キャッシュ TTL 10 分と整合 |
 
 ### auth.jwt
@@ -583,7 +583,6 @@ message AuditLog {
 | `k1s0.system.auth.login.v1` | ログインイベント |
 | `k1s0.system.auth.token_validate.v1` | トークン検証イベント |
 | `k1s0.system.auth.permission_denied.v1` | 権限拒否イベント |
-| `k1s0.system.auth.audit.v1` | 監査ログ配信のフォールバックトピック |
 
 ### keycloak
 
@@ -683,7 +682,6 @@ Realm: `k1s0`
 | `k1s0.system.auth.login.v1` | ログイン成功・失敗イベント |
 | `k1s0.system.auth.token_validate.v1` | トークン検証イベント（自動パブリッシュ） |
 | `k1s0.system.auth.permission_denied.v1` | 権限拒否イベント（自動パブリッシュ） |
-| `k1s0.system.auth.audit.v1` | 監査ログイベント（フォールバック） |
 
 接続先: `kafka-0.messaging.svc.cluster.local:9092`
 コンシューマーグループ: `auth-server.default`
@@ -1192,4 +1190,8 @@ moka を使用したインメモリキャッシュで RBAC 判定結果をキャ
 
 ### 2026-03-03 追補
 - validate_token のレスポンスには JWT claims の typ / azp を含める。
+---
 
+## ObservabilityConfig（log/trace/metrics）
+
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

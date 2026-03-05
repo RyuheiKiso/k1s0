@@ -19,6 +19,32 @@ use infrastructure::cache::RuleCache;
 use infrastructure::config::Config;
 use infrastructure::redis_store::RedisRateLimitStore;
 
+fn parse_pool_duration(value: &str) -> Option<std::time::Duration> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if let Some(v) = trimmed.strip_suffix("ms") {
+        return v.parse::<u64>().ok().map(std::time::Duration::from_millis);
+    }
+    if let Some(v) = trimmed.strip_suffix('s') {
+        return v.parse::<u64>().ok().map(std::time::Duration::from_secs);
+    }
+    if let Some(v) = trimmed.strip_suffix('m') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|mins| std::time::Duration::from_secs(mins * 60));
+    }
+    if let Some(v) = trimmed.strip_suffix('h') {
+        return v
+            .parse::<u64>()
+            .ok()
+            .map(|hours| std::time::Duration::from_secs(hours * 3600));
+    }
+    trimmed.parse::<u64>().ok().map(std::time::Duration::from_secs)
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Telemetry
@@ -53,6 +79,8 @@ async fn main() -> anyhow::Result<()> {
         let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_config.connection_url());
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(db_config.max_open_conns)
+            .min_connections(db_config.max_idle_conns.min(db_config.max_open_conns))
+            .max_lifetime(parse_pool_duration(&db_config.conn_max_lifetime))
             .connect(&url)
             .await?;
         info!("database connection pool established");
@@ -60,6 +88,8 @@ async fn main() -> anyhow::Result<()> {
     } else if let Ok(url) = std::env::var("DATABASE_URL") {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(25)
+            .min_connections(5)
+            .max_lifetime(parse_pool_duration("5m"))
             .connect(&url)
             .await?;
         info!("database connection pool established from DATABASE_URL");
@@ -357,11 +387,11 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
         limit: i64,
         window_secs: i64,
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now();
         Ok(domain::entity::RateLimitDecision::allowed(
             limit,
             limit - 1,
-            now + window_secs,
+            now + chrono::Duration::seconds(window_secs),
         ))
     }
 
@@ -371,11 +401,11 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
         limit: i64,
         window_secs: i64,
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now();
         Ok(domain::entity::RateLimitDecision::allowed(
             limit,
             limit - 1,
-            now + window_secs,
+            now + chrono::Duration::seconds(window_secs),
         ))
     }
 
@@ -385,11 +415,11 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
         limit: i64,
         window_secs: i64,
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now();
         Ok(domain::entity::RateLimitDecision::allowed(
             limit,
             limit - 1,
-            now + window_secs,
+            now + chrono::Duration::seconds(window_secs),
         ))
     }
 
@@ -399,11 +429,11 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
         limit: i64,
         window_secs: i64,
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now();
         Ok(domain::entity::RateLimitDecision::allowed(
             limit,
             limit - 1,
-            now + window_secs,
+            now + chrono::Duration::seconds(window_secs),
         ))
     }
 

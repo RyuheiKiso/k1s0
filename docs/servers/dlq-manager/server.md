@@ -664,5 +664,8 @@ vault:
 ### 2026-03-03 追補
 - payload は JSON を UTF-8 でエンコードした bytes として保持・伝送する。
 - 統合テストケース数は最新実装に合わせて 15 件を正とする。
+---
 
+## ObservabilityConfig（log/trace/metrics）
 
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
