@@ -175,10 +175,10 @@ pub struct ApiSchemaVersionProto {
     #[prost(message, optional, tag = "8")]
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, repeated, tag = "9")]
-    pub breaking_change_details: ::prost::alloc::vec::Vec<ChangeDetail>,
+    pub breaking_change_details: ::prost::alloc::vec::Vec<SchemaChange>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ChangeDetail {
+pub struct SchemaChange {
     #[prost(string, tag = "1")]
     pub change_type: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
@@ -191,9 +191,9 @@ pub struct CompatibilityResultProto {
     #[prost(bool, tag = "1")]
     pub compatible: bool,
     #[prost(message, repeated, tag = "2")]
-    pub breaking_changes: ::prost::alloc::vec::Vec<ChangeDetail>,
+    pub breaking_changes: ::prost::alloc::vec::Vec<SchemaChange>,
     #[prost(message, repeated, tag = "3")]
-    pub non_breaking_changes: ::prost::alloc::vec::Vec<ChangeDetail>,
+    pub non_breaking_changes: ::prost::alloc::vec::Vec<SchemaChange>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SchemaDiffProto {

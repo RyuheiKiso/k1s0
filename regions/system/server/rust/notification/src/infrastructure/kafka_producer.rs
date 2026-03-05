@@ -48,7 +48,7 @@ impl KafkaNotificationProducer {
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
-        let topic = "k1s0.system.notification.sent.v1".to_string();
+        let topic = config.topic_sent.clone();
 
         let mut client_config = ClientConfig::new();
         client_config.set("bootstrap.servers", config.brokers.join(","));
@@ -208,8 +208,7 @@ mod tests {
         assert_eq!(messages.len(), 1);
 
         // JSON に正常変換されていることを確認
-        let deserialized: NotificationSentEvent =
-            serde_json::from_slice(&messages[0].1).unwrap();
+        let deserialized: NotificationSentEvent = serde_json::from_slice(&messages[0].1).unwrap();
         assert_eq!(deserialized.recipient, "user@example.com");
         assert_eq!(deserialized.status, "sent");
     }

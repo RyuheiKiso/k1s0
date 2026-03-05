@@ -120,7 +120,11 @@ fn internal_error_response(msg: &str) -> (StatusCode, Json<serde_json::Value>) {
         ErrorResponse::with_details(
             code,
             msg,
-            vec![ErrorDetail::new("request", "invalid request payload")],
+            vec![ErrorDetail::new(
+                "request",
+                "validation_error",
+                "invalid request payload",
+            )],
         )
     } else {
         ErrorResponse::new(code, msg)

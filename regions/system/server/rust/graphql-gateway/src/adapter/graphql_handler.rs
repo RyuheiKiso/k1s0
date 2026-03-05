@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use async_graphql::dataloader::DataLoader;
-use async_graphql::{Context, Data, ErrorExtensions, FieldResult, Object, Schema, Subscription};
 use async_graphql::futures_util::Stream;
+use async_graphql::{Context, Data, ErrorExtensions, FieldResult, Object, Schema, Subscription};
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
     extract::{State, WebSocketUpgrade},
@@ -13,12 +13,12 @@ use axum::{
 };
 
 use crate::adapter::middleware::auth_middleware::{AuthMiddlewareLayer, Claims};
-use crate::domain::model::{
-    ConfigEntry, CreateTenantPayload, FeatureFlag, SetFeatureFlagPayload, Tenant,
-    TenantConnection, TenantStatus, UpdateTenantPayload,
-};
 use crate::domain::model::graphql_context::{
     ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
+};
+use crate::domain::model::{
+    ConfigEntry, CreateTenantPayload, FeatureFlag, SetFeatureFlagPayload, Tenant, TenantConnection,
+    TenantStatus, UpdateTenantPayload, UserError,
 };
 use crate::infra::auth::JwksVerifier;
 use crate::infra::config::GraphQLConfig;
@@ -149,11 +149,7 @@ impl QueryRoot {
             .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
 
-    async fn config(
-        &self,
-        ctx: &Context<'_>,
-        key: String,
-    ) -> FieldResult<Option<ConfigEntry>> {
+    async fn config(&self, ctx: &Context<'_>, key: String) -> FieldResult<Option<ConfigEntry>> {
         if let Ok(gql_ctx) = ctx.data::<GraphqlContext>() {
             return gql_ctx
                 .config_loader
@@ -206,11 +202,7 @@ impl MutationRoot {
         });
         Ok(self
             .tenant_mutation
-            .update_tenant(
-                id.as_str(),
-                input.name.as_deref(),
-                status_str.as_deref(),
-            )
+            .update_tenant(id.as_str(), input.name.as_deref(), status_str.as_deref())
             .await)
     }
 
@@ -237,7 +229,13 @@ impl MutationRoot {
             }),
             Err(e) => {
                 let msg = e.to_string();
-                Err(gql_error(classify_domain_error(&msg), msg))
+                Ok(SetFeatureFlagPayload {
+                    feature_flag: None,
+                    errors: vec![UserError {
+                        field: None,
+                        message: msg,
+                    }],
+                })
             }
         }
     }
@@ -251,6 +249,7 @@ pub struct SubscriptionRoot {
 
 #[Subscription]
 impl SubscriptionRoot {
+    #[graphql(name = "configChanged")]
     async fn config_changed(
         &self,
         _ctx: &Context<'_>,
@@ -261,6 +260,7 @@ impl SubscriptionRoot {
             .await
     }
 
+    #[graphql(name = "tenantUpdated")]
     async fn tenant_updated(
         &self,
         _ctx: &Context<'_>,
@@ -270,13 +270,13 @@ impl SubscriptionRoot {
             .watch_tenant_updated(tenant_id.to_string())
     }
 
+    #[graphql(name = "featureFlagChanged")]
     async fn feature_flag_changed(
         &self,
         _ctx: &Context<'_>,
         key: String,
     ) -> impl Stream<Item = FeatureFlag> {
-        self.subscription
-            .watch_feature_flag_changed(key)
+        self.subscription.watch_feature_flag_changed(key)
     }
 }
 
@@ -331,8 +331,7 @@ pub fn router(
 
     let schema = builder.finish();
 
-    let query_timeout =
-        std::time::Duration::from_secs(graphql_cfg.query_timeout_seconds as u64);
+    let query_timeout = std::time::Duration::from_secs(graphql_cfg.query_timeout_seconds as u64);
     let tenant_loader = Arc::new(DataLoader::new(
         TenantLoader {
             client: tenant_client.clone(),
@@ -388,14 +387,17 @@ async fn graphql_handler(
     Extension(claims): Extension<Claims>,
     req: GraphQLRequest,
 ) -> impl IntoResponse {
-    let request = req.into_inner().data(GraphqlContext {
-        user_id: claims.sub.clone(),
-        roles: claims.roles(),
-        request_id: uuid::Uuid::new_v4().to_string(),
-        tenant_loader: state.tenant_loader.clone(),
-        flag_loader: state.flag_loader.clone(),
-        config_loader: state.config_loader.clone(),
-    }).data(claims);
+    let request = req
+        .into_inner()
+        .data(GraphqlContext {
+            user_id: claims.sub.clone(),
+            roles: claims.roles(),
+            request_id: uuid::Uuid::new_v4().to_string(),
+            tenant_loader: state.tenant_loader.clone(),
+            flag_loader: state.flag_loader.clone(),
+            config_loader: state.config_loader.clone(),
+        })
+        .data(claims);
     match tokio::time::timeout(state.query_timeout, state.schema.execute(request)).await {
         Ok(resp) => GraphQLResponse::from(resp).into_response(),
         Err(_) => (
@@ -441,8 +443,7 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         Err(e) => format!("error: {}", e),
     };
 
-    let ready =
-        tenant_status == "ok" && featureflag_status == "ok" && config_status == "ok";
+    let ready = tenant_status == "ok" && featureflag_status == "ok" && config_status == "ok";
     let status_code = if ready {
         StatusCode::OK
     } else {
@@ -492,12 +493,16 @@ async fn graphql_ws_handler(
                     let config_loader = config_loader.clone();
                     async move {
                         let token = extract_bearer_token_from_connection_init(&payload)
-                            .ok_or_else(|| gql_error(CODE_VALIDATION, "missing bearer token in connection_init payload"))?;
+                            .ok_or_else(|| {
+                                gql_error(
+                                    CODE_VALIDATION,
+                                    "missing bearer token in connection_init payload",
+                                )
+                            })?;
 
-                        let claims = verifier
-                            .verify_token(&token)
-                            .await
-                            .map_err(|_| gql_error(CODE_FORBIDDEN, "invalid or expired JWT token"))?;
+                        let claims = verifier.verify_token(&token).await.map_err(|_| {
+                            gql_error(CODE_FORBIDDEN, "invalid or expired JWT token")
+                        })?;
 
                         let mut data = Data::default();
                         data.insert(GraphqlContext {
@@ -527,7 +532,10 @@ fn extract_bearer_token_from_connection_init(payload: &serde_json::Value) -> Opt
         if token.is_empty() {
             return None;
         }
-        if let Some(bearer) = token.strip_prefix("Bearer ").or_else(|| token.strip_prefix("bearer ")) {
+        if let Some(bearer) = token
+            .strip_prefix("Bearer ")
+            .or_else(|| token.strip_prefix("bearer "))
+        {
             let trimmed = bearer.trim();
             if trimmed.is_empty() {
                 None
@@ -543,8 +551,10 @@ fn extract_bearer_token_from_connection_init(payload: &serde_json::Value) -> Opt
 
     for (key, value) in obj {
         let key_norm = normalize(key);
-        if matches!(key_norm.as_str(), "authorization" | "authtoken" | "token" | "bearer_token")
-        {
+        if matches!(
+            key_norm.as_str(),
+            "authorization" | "authtoken" | "token" | "bearer_token"
+        ) {
             if let Some(token) = pick_token(value) {
                 return Some(token);
             }

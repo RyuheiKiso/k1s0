@@ -14,7 +14,7 @@
 |-------------|------|------|
 | `CircuitBreaker` | 構造体 | 失敗閾値・オープン時間・ハーフオープン試行数の設定と状態管理 |
 | `CircuitBreakerState` | enum | `Closed`（正常）/ `Open`（遮断中）/ `HalfOpen`（試行中） |
-| `CircuitBreakerConfig` | 構造体 | failure_threshold, success_threshold, timeout 設定 |
+| `CircuitBreakerConfig` | 構造体 | failure_threshold, success_threshold, timeout 設定（デフォルト: 5 / 3 / 30s） |
 | `CircuitBreakerMetrics` | 構造体 | OpenTelemetry メトリクス（状態変化・成功率） |
 | `CircuitBreakerError<E>` | enum | ジェネリックエラー型（`Open`・`Inner(E)`） |
 
@@ -42,6 +42,8 @@ mockall = { version = "0.13", optional = true }
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 ```
+
+`metrics` feature はオプトインで有効化する。無効時は OpenTelemetry 依存なしで利用できる。
 
 **依存追加**: `k1s0-circuit-breaker = { path = "../../system/library/rust/circuit-breaker" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
 

@@ -94,8 +94,8 @@ type UserCreatedEvent struct {
 	CreatedAt time.Time
 }
 
-func (e UserCreatedEvent) EventType() string    { return "user.created" }
-func (e UserCreatedEvent) AggregateID() string  { return e.UserID }
+func (e UserCreatedEvent) EventType() string     { return "user.created" }
+func (e UserCreatedEvent) AggregateID() string   { return e.UserID }
 func (e UserCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
 
 type OrderPlacedEvent struct {
@@ -104,8 +104,8 @@ type OrderPlacedEvent struct {
 	CreatedAt time.Time
 }
 
-func (e OrderPlacedEvent) EventType() string    { return "order.placed" }
-func (e OrderPlacedEvent) AggregateID() string  { return e.OrderID }
+func (e OrderPlacedEvent) EventType() string     { return "order.placed" }
+func (e OrderPlacedEvent) AggregateID() string   { return e.OrderID }
 func (e OrderPlacedEvent) OccurredAt() time.Time { return e.CreatedAt }
 
 // --- DDD テスト用ハンドラー ---
@@ -135,7 +135,7 @@ func TestDomainEvent_Interface(t *testing.T) {
 func TestEventBusConfig_Default(t *testing.T) {
 	config := eventbus.DefaultEventBusConfig()
 	assert.Equal(t, 1024, config.BufferSize)
-	assert.Equal(t, 30*time.Second, config.HandlerTimeout)
+	assert.Equal(t, 5*time.Second, config.HandlerTimeout)
 }
 
 func TestNewEventBus(t *testing.T) {

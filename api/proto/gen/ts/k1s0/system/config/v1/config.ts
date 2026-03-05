@@ -241,17 +241,32 @@ export interface GetServiceConfigRequest {
 /**
  * GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
  *
+ * @generated from protobuf message k1s0.system.config.v1.ServiceConfigEntry
+ */
+export interface ServiceConfigEntry {
+    /**
+     * @generated from protobuf field: string namespace = 1
+     */
+    namespace: string;
+    /**
+     * @generated from protobuf field: string key = 2
+     */
+    key: string;
+    /**
+     * @generated from protobuf field: string value = 3
+     */
+    value: string;
+}
+/**
+ * GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
+ *
  * @generated from protobuf message k1s0.system.config.v1.GetServiceConfigResponse
  */
 export interface GetServiceConfigResponse {
     /**
-     * flattened key-value pairs
-     *
-     * @generated from protobuf field: map<string, string> configs = 1
+     * @generated from protobuf field: repeated k1s0.system.config.v1.ServiceConfigEntry entries = 1
      */
-    configs: {
-        [key: string]: string;
-    };
+    entries: ServiceConfigEntry[];
 }
 // ============================================================// WatchConfig（Server-Side Streaming）// ============================================================
 
@@ -398,9 +413,9 @@ export interface ConfigCategorySchema {
  */
 export interface ConfigEditorSchema {
     /**
-     * @generated from protobuf field: string service = 1
+     * @generated from protobuf field: string service_name = 1
      */
-    service: string;
+    serviceName: string;
     /**
      * @generated from protobuf field: string namespace_prefix = 2
      */
@@ -1140,26 +1155,36 @@ class GetServiceConfigRequest$Type extends MessageType<GetServiceConfigRequest> 
  */
 export const GetServiceConfigRequest = new GetServiceConfigRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class GetServiceConfigResponse$Type extends MessageType<GetServiceConfigResponse> {
+class ServiceConfigEntry$Type extends MessageType<ServiceConfigEntry> {
     constructor() {
-        super("k1s0.system.config.v1.GetServiceConfigResponse", [
-            { no: 1, name: "configs", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
+        super("k1s0.system.config.v1.ServiceConfigEntry", [
+            { no: 1, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<GetServiceConfigResponse>): GetServiceConfigResponse {
+    create(value?: PartialMessage<ServiceConfigEntry>): ServiceConfigEntry {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.configs = {};
+        message.namespace = "";
+        message.key = "";
+        message.value = "";
         if (value !== undefined)
-            reflectionMergePartial<GetServiceConfigResponse>(this, message, value);
+            reflectionMergePartial<ServiceConfigEntry>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetServiceConfigResponse): GetServiceConfigResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ServiceConfigEntry): ServiceConfigEntry {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* map<string, string> configs */ 1:
-                    this.binaryReadMap1(message.configs, reader, options);
+                case /* string namespace */ 1:
+                    message.namespace = reader.string();
+                    break;
+                case /* string key */ 2:
+                    message.key = reader.string();
+                    break;
+                case /* string value */ 3:
+                    message.value = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1172,26 +1197,63 @@ class GetServiceConfigResponse$Type extends MessageType<GetServiceConfigResponse
         }
         return message;
     }
-    private binaryReadMap1(map: GetServiceConfigResponse["configs"], reader: IBinaryReader, options: BinaryReadOptions): void {
-        let len = reader.uint32(), end = reader.pos + len, key: keyof GetServiceConfigResponse["configs"] | undefined, val: GetServiceConfigResponse["configs"][any] | undefined;
+    internalBinaryWrite(message: ServiceConfigEntry, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string namespace = 1; */
+        if (message.namespace !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.namespace);
+        /* string key = 2; */
+        if (message.key !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.key);
+        /* string value = 3; */
+        if (message.value !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.value);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.config.v1.ServiceConfigEntry
+ */
+export const ServiceConfigEntry = new ServiceConfigEntry$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetServiceConfigResponse$Type extends MessageType<GetServiceConfigResponse> {
+    constructor() {
+        super("k1s0.system.config.v1.GetServiceConfigResponse", [
+            { no: 1, name: "entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ServiceConfigEntry }
+        ]);
+    }
+    create(value?: PartialMessage<GetServiceConfigResponse>): GetServiceConfigResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.entries = [];
+        if (value !== undefined)
+            reflectionMergePartial<GetServiceConfigResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetServiceConfigResponse): GetServiceConfigResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case 1:
-                    key = reader.string();
+                case /* repeated k1s0.system.config.v1.ServiceConfigEntry entries */ 1:
+                    message.entries.push(ServiceConfigEntry.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case 2:
-                    val = reader.string();
-                    break;
-                default: throw new globalThis.Error("unknown map entry field for k1s0.system.config.v1.GetServiceConfigResponse.configs");
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
             }
         }
-        map[key ?? ""] = val ?? "";
+        return message;
     }
     internalBinaryWrite(message: GetServiceConfigResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* map<string, string> configs = 1; */
-        for (let k of globalThis.Object.keys(message.configs))
-            writer.tag(1, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.configs[k]).join();
+        /* repeated k1s0.system.config.v1.ServiceConfigEntry entries = 1; */
+        for (let i = 0; i < message.entries.length; i++)
+            ServiceConfigEntry.internalBinaryWrite(message.entries[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1561,7 +1623,7 @@ export const ConfigCategorySchema = new ConfigCategorySchema$Type();
 class ConfigEditorSchema$Type extends MessageType<ConfigEditorSchema> {
     constructor() {
         super("k1s0.system.config.v1.ConfigEditorSchema", [
-            { no: 1, name: "service", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "service_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "namespace_prefix", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "categories", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ConfigCategorySchema },
             { no: 4, name: "updated_at", kind: "message", T: () => Timestamp }
@@ -1569,7 +1631,7 @@ class ConfigEditorSchema$Type extends MessageType<ConfigEditorSchema> {
     }
     create(value?: PartialMessage<ConfigEditorSchema>): ConfigEditorSchema {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.service = "";
+        message.serviceName = "";
         message.namespacePrefix = "";
         message.categories = [];
         if (value !== undefined)
@@ -1581,8 +1643,8 @@ class ConfigEditorSchema$Type extends MessageType<ConfigEditorSchema> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string service */ 1:
-                    message.service = reader.string();
+                case /* string service_name */ 1:
+                    message.serviceName = reader.string();
                     break;
                 case /* string namespace_prefix */ 2:
                     message.namespacePrefix = reader.string();
@@ -1605,9 +1667,9 @@ class ConfigEditorSchema$Type extends MessageType<ConfigEditorSchema> {
         return message;
     }
     internalBinaryWrite(message: ConfigEditorSchema, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string service = 1; */
-        if (message.service !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.service);
+        /* string service_name = 1; */
+        if (message.serviceName !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.serviceName);
         /* string namespace_prefix = 2; */
         if (message.namespacePrefix !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.namespacePrefix);

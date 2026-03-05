@@ -55,7 +55,7 @@ mod tests {
         KafkaConfig {
             brokers,
             security_protocol: "PLAINTEXT".to_string(),
-            consumer_group: None,
+            consumer_group: "test-group".to_string(),
             sasl_mechanism: None,
             sasl_username: None,
             sasl_password: None,

@@ -1,7 +1,9 @@
 use reqwest::Client;
 
 use crate::error::DlqError;
-use crate::types::{DlqMessage, ListDlqMessagesResponse, RetryDlqMessageResponse};
+use crate::types::{
+    DlqMessage, ListDlqMessagesRequest, ListDlqMessagesResponse, RetryDlqMessageResponse,
+};
 
 /// DlqClient は DLQ 管理サーバーへの HTTP REST クライアント。
 pub struct DlqClient {
@@ -25,13 +27,11 @@ impl DlqClient {
     /// GET /api/v1/dlq/:topic?page=:page&page_size=:page_size
     pub async fn list_messages(
         &self,
-        topic: &str,
-        page: u32,
-        page_size: u32,
+        req: ListDlqMessagesRequest,
     ) -> Result<ListDlqMessagesResponse, DlqError> {
         let url = format!(
             "{}/api/v1/dlq/{}?page={}&page_size={}",
-            self.endpoint, topic, page, page_size
+            self.endpoint, req.topic, req.page, req.page_size
         );
 
         let resp = self.http_client.get(&url).send().await?;
@@ -51,6 +51,18 @@ impl DlqClient {
             .map_err(|e| DlqError::Deserialize(e.to_string()))?;
 
         Ok(result)
+    }
+
+    /// Deprecated: use `list_messages(ListDlqMessagesRequest)` instead.
+    #[deprecated(since = "0.2.0", note = "use list_messages(ListDlqMessagesRequest)")]
+    pub async fn list_messages_legacy(
+        &self,
+        topic: &str,
+        page: u32,
+        page_size: u32,
+    ) -> Result<ListDlqMessagesResponse, DlqError> {
+        self.list_messages(ListDlqMessagesRequest::new(topic, page, page_size))
+            .await
     }
 
     /// DLQ メッセージの詳細を取得する。
@@ -172,14 +184,20 @@ mod tests {
     #[test]
     fn test_list_messages_url() {
         let client = DlqClient::new("http://dlq-server:8080");
+        let req = ListDlqMessagesRequest::new("orders.dlq.v1", 1, 20);
         let expected = format!(
             "{}/api/v1/dlq/orders.dlq.v1?page=1&page_size=20",
             client.endpoint
+        );
+        let actual = format!(
+            "{}/api/v1/dlq/{}?page={}&page_size={}",
+            client.endpoint, req.topic, req.page, req.page_size
         );
         assert_eq!(
             expected,
             "http://dlq-server:8080/api/v1/dlq/orders.dlq.v1?page=1&page_size=20"
         );
+        assert_eq!(actual, expected);
     }
 
     #[test]

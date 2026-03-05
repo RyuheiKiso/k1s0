@@ -16,7 +16,7 @@
 | `validate_email` | 関数 | RFC 5321 準拠メールアドレス検証 |
 | `validate_uuid` | 関数 | UUID v4 形式検証 |
 | `validate_url` | 関数 | HTTP/HTTPS URL 形式検証 |
-| `validate_pagination` | 関数 | ページ番号・ページサイズの範囲検証（page >= 1, page_size 1-200） |
+| `validate_pagination` | 関数 | ページ番号・ページサイズの範囲検証（page >= 1, page_size 1-100） |
 | `validate_date_range` | 関数 | 日時範囲（from <= to）検証 |
 | `validate_tenant_id` | 関数 | テナント ID 形式検証 |
 | `ValidationError` | 構造体 | フィールド名・エラーコード・メッセージ |

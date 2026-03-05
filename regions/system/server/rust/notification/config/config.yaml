@@ -33,6 +33,9 @@ observability:
 #   brokers:
 #     - "localhost:9092"
 #   security_protocol: "PLAINTEXT"
+#   topic_requested: "k1s0.system.notification.requested.v1"
+#   topic_sent: "k1s0.system.notification.sent.v1"
+#   consumer_group: "notification-server.default"
 # auth:
 #   jwks_url: "http://auth:8080/jwks"
 #   issuer: "k1s0"

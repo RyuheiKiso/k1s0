@@ -20,6 +20,7 @@ HMAC-SHA256 署名付きの HTTP POST 配信、指数バックオフリトライ
 | `WebhookPayload` | 構造体 | イベント種別・タイムスタンプ・データ |
 | `generate_signature` | 関数 | HMAC-SHA256 署名生成 |
 | `verify_signature` | 関数 | HMAC-SHA256 署名検証 |
+| `SIGNATURE_HEADER` / `IDEMPOTENCY_KEY_HEADER` | 定数 | 署名ヘッダー名（`X-K1s0-Signature`）と冪等キーへッダー名（`Idempotency-Key`） |
 | `WebhookError` | enum | Webhook 送信エラー（5バリアント: RequestFailed, SerializationError, SignatureError, Internal, MaxRetriesExceeded） |
 | `WebhookErrorCode` | 型 | エラーコード（TS: type union、Dart: enum）。`SEND_FAILED`、`MAX_RETRIES_EXCEEDED` |
 | `MaxRetriesExceededError` | 構造体 | リトライ上限到達エラー（Go のみ。Rust は WebhookError::MaxRetriesExceeded バリアント） |
@@ -81,7 +82,10 @@ webhook-client/
 **使用例**:
 
 ```rust
-use k1s0_webhook_client::{WebhookClient, WebhookPayload, generate_signature, verify_signature};
+use k1s0_webhook_client::{
+    WebhookClient, WebhookPayload, generate_signature, verify_signature,
+    SIGNATURE_HEADER, IDEMPOTENCY_KEY_HEADER,
+};
 
 // WebhookClient トレイト経由で送信
 let status = client.send("https://example.com/webhooks", &payload).await?;
@@ -96,6 +100,9 @@ let status = client.send_with_signature(
 // 署名生成・検証
 let sig = generate_signature("my-hmac-secret", body_bytes);
 let is_valid = verify_signature("my-hmac-secret", body_bytes, &sig);
+
+assert_eq!(SIGNATURE_HEADER, "X-K1s0-Signature");
+assert_eq!(IDEMPOTENCY_KEY_HEADER, "Idempotency-Key");
 ```
 
 ## Go 実装

@@ -54,7 +54,7 @@ func TestSendReceive(t *testing.T) {
 	_ = c.Connect(ctx)
 
 	// Send a message
-	sendMsg := websocket.Message{Type: websocket.MessageText, Payload: []byte("hello")}
+	sendMsg := websocket.WsMessage{Type: websocket.MessageText, Payload: []byte("hello")}
 	err := c.Send(ctx, sendMsg)
 	require.NoError(t, err)
 
@@ -63,7 +63,7 @@ func TestSendReceive(t *testing.T) {
 	assert.Equal(t, []byte("hello"), sent[0].Payload)
 
 	// Receive via injection
-	injected := websocket.Message{Type: websocket.MessageText, Payload: []byte("world")}
+	injected := websocket.WsMessage{Type: websocket.MessageText, Payload: []byte("world")}
 	c.InjectMessage(injected)
 
 	received, err := c.Receive(ctx)
@@ -75,7 +75,7 @@ func TestSend_NotConnected(t *testing.T) {
 	c := websocket.NewInMemoryWsClient()
 	ctx := context.Background()
 
-	err := c.Send(ctx, websocket.Message{Type: websocket.MessageText, Payload: []byte("hello")})
+	err := c.Send(ctx, websocket.WsMessage{Type: websocket.MessageText, Payload: []byte("hello")})
 	require.Error(t, err)
 }
 

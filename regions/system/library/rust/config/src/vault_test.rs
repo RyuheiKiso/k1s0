@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::vault::merge_vault_secrets;
 use crate::types::*;
+use crate::vault::merge_vault_secrets;
 
 fn minimal_config() -> Config {
     Config {
@@ -80,10 +80,7 @@ fn test_vault_redis_password_merge() {
     });
     let secrets = HashMap::from([("redis.password".into(), "vault-redis-pass".into())]);
     merge_vault_secrets(&mut cfg, &secrets);
-    assert_eq!(
-        cfg.redis.unwrap().password,
-        Some("vault-redis-pass".into())
-    );
+    assert_eq!(cfg.redis.unwrap().password, Some("vault-redis-pass".into()));
 }
 
 #[test]
@@ -144,8 +141,7 @@ fn test_vault_oidc_client_secret_merge() {
         jwks_uri: "http://localhost/jwks".into(),
         jwks_cache_ttl: None,
     });
-    let secrets =
-        HashMap::from([("auth.oidc.client_secret".into(), "vault-oidc-secret".into())]);
+    let secrets = HashMap::from([("auth.oidc.client_secret".into(), "vault-oidc-secret".into())]);
     merge_vault_secrets(&mut cfg, &secrets);
     assert_eq!(
         cfg.auth.oidc.unwrap().client_secret,

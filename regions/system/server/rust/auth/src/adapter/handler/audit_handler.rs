@@ -1,4 +1,4 @@
-﻿use axum::{
+use axum::{
     extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -51,6 +51,9 @@ pub async fn record_audit_log(
     params(
         ("user_id" = Option<String>, Query, description = "Filter by user ID"),
         ("event_type" = Option<String>, Query, description = "Filter by event type"),
+        ("from" = Option<String>, Query, description = "Filter start datetime (RFC3339)"),
+        ("to" = Option<String>, Query, description = "Filter end datetime (RFC3339)"),
+        ("result" = Option<String>, Query, description = "Filter by result (SUCCESS/FAILURE)"),
         ("page" = Option<i32>, Query, description = "Page number"),
         ("page_size" = Option<i32>, Query, description = "Page size"),
     ),
@@ -289,4 +292,3 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 }
-

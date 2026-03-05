@@ -593,6 +593,18 @@ fn merge_yaml(base: &mut serde_yaml::Value, overlay: &serde_yaml::Value) {
 }
 ```
 
+### `merge_yaml` 関数
+
+環境別 YAML をベース設定に重ねるため、`merge_yaml` を再帰的なディープマージ関数として提供する。
+
+```rust
+pub fn merge_yaml(base: &mut serde_yaml::Value, overlay: &serde_yaml::Value)
+```
+
+- `base` に `overlay` を上書きマージする
+- マップ同士はキー単位で再帰マージする
+- スカラー値・配列は `overlay` 側で完全上書きする
+
 **テスト例**:
 
 ```rust

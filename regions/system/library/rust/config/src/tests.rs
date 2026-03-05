@@ -26,6 +26,52 @@ auth:
     audience: "k1s0-api"
 "#;
 
+fn make_base_config() -> Config {
+    Config {
+        app: AppConfig {
+            name: "test".into(),
+            version: "1.0".into(),
+            tier: "system".into(),
+            environment: "dev".into(),
+        },
+        server: ServerConfig {
+            host: "0.0.0.0".into(),
+            port: 8080,
+            read_timeout: None,
+            write_timeout: None,
+            shutdown_timeout: None,
+        },
+        grpc: None,
+        database: None,
+        kafka: None,
+        redis: None,
+        redis_session: None,
+        observability: ObservabilityConfig {
+            log: LogConfig {
+                level: "info".into(),
+                format: "json".into(),
+            },
+            trace: TraceConfig {
+                enabled: false,
+                endpoint: None,
+                sample_rate: None,
+            },
+            metrics: MetricsConfig {
+                enabled: false,
+                path: None,
+            },
+        },
+        auth: AuthConfig {
+            jwt: JwtConfig {
+                issuer: "x".into(),
+                audience: "x".into(),
+                public_key_path: None,
+            },
+            oidc: None,
+        },
+    }
+}
+
 #[test]
 fn test_load() {
     let mut f = NamedTempFile::new().unwrap();
@@ -282,6 +328,78 @@ fn test_validate_zero_port() {
 }
 
 #[test]
+fn test_validate_invalid_log_level() {
+    let mut cfg = make_base_config();
+    cfg.observability.log.level = "verbose".to_string();
+    assert!(validate(&cfg).is_err());
+}
+
+#[test]
+fn test_validate_trace_enabled_requires_endpoint() {
+    let mut cfg = make_base_config();
+    cfg.observability.trace.enabled = true;
+    cfg.observability.trace.endpoint = None;
+    assert!(validate(&cfg).is_err());
+}
+
+#[test]
+fn test_validate_metrics_enabled_requires_path() {
+    let mut cfg = make_base_config();
+    cfg.observability.metrics.enabled = true;
+    cfg.observability.metrics.path = None;
+    assert!(validate(&cfg).is_err());
+}
+
+#[test]
+fn test_validate_kafka_sasl_ssl_requires_sasl() {
+    let mut cfg = make_base_config();
+    cfg.kafka = Some(KafkaConfig {
+        brokers: vec!["localhost:9092".to_string()],
+        consumer_group: "test-group".to_string(),
+        security_protocol: "SASL_SSL".to_string(),
+        sasl: None,
+        tls: None,
+        topics: KafkaTopics {
+            publish: vec!["a".to_string()],
+            subscribe: vec![],
+        },
+    });
+    assert!(validate(&cfg).is_err());
+}
+
+#[test]
+fn test_validate_kafka_topics_required() {
+    let mut cfg = make_base_config();
+    cfg.kafka = Some(KafkaConfig {
+        brokers: vec!["localhost:9092".to_string()],
+        consumer_group: "test-group".to_string(),
+        security_protocol: "PLAINTEXT".to_string(),
+        sasl: None,
+        tls: None,
+        topics: KafkaTopics {
+            publish: vec![],
+            subscribe: vec![],
+        },
+    });
+    assert!(validate(&cfg).is_err());
+}
+
+#[test]
+fn test_validate_oidc_scopes_required() {
+    let mut cfg = make_base_config();
+    cfg.auth.oidc = Some(OidcConfig {
+        discovery_url: "http://localhost/.well-known/openid-configuration".to_string(),
+        client_id: "client".to_string(),
+        client_secret: None,
+        redirect_uri: "http://localhost/callback".to_string(),
+        scopes: vec![],
+        jwks_uri: "http://localhost/jwks".to_string(),
+        jwks_cache_ttl: None,
+    });
+    assert!(validate(&cfg).is_err());
+}
+
+#[test]
 fn test_merge_vault_secrets_database() {
     let mut f = NamedTempFile::new().unwrap();
     write!(
@@ -424,10 +542,7 @@ fn test_merge_vault_secrets_nil_fields() {
     let mut secrets = HashMap::new();
     secrets.insert("database.password".to_string(), "secret".to_string());
     secrets.insert("redis.password".to_string(), "secret".to_string());
-    secrets.insert(
-        "auth.oidc.client_secret".to_string(),
-        "secret".to_string(),
-    );
+    secrets.insert("auth.oidc.client_secret".to_string(), "secret".to_string());
     // Should not panic when optional fields are None
     merge_vault_secrets(&mut cfg, &secrets);
     assert!(cfg.database.is_none());

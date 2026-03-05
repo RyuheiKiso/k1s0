@@ -1,7 +1,7 @@
-﻿use axum::{
+use axum::{
     extract::State,
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     Json,
 };
 
@@ -16,6 +16,22 @@ use super::{AppState, ErrorResponse};
     )
 )]
 pub async fn jwks(State(state): State<AppState>) -> impl IntoResponse {
+    jwks_response(state).await
+}
+
+#[utoipa::path(
+    get,
+    path = "/.well-known/jwks.json",
+    responses(
+        (status = 200, description = "JWKS"),
+        (status = 503, description = "JWKS provider unavailable", body = ErrorResponse)
+    )
+)]
+pub async fn jwks_well_known(State(state): State<AppState>) -> impl IntoResponse {
+    jwks_response(state).await
+}
+
+async fn jwks_response(state: AppState) -> Response {
     let Some(provider) = state.jwks_provider.clone() else {
         let err = ErrorResponse::new(
             "SYS_AUTH_JWKS_UNAVAILABLE",
@@ -33,4 +49,3 @@ pub async fn jwks(State(state): State<AppState>) -> impl IntoResponse {
         }
     }
 }
-

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::domain::repository::UserRepository;
-use crate::domain::service::AuthDomainService;
+use crate::domain::service::{AuthDomainService, RolePermissionTable};
 
 /// CheckPermissionInput はパーミッション確認の入力。
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -25,22 +25,48 @@ pub struct CheckPermissionOutput {
 #[derive(Default)]
 pub struct CheckPermissionUseCase {
     user_repo: Option<Arc<dyn UserRepository>>,
+    role_permission_table: Option<Arc<RolePermissionTable>>,
 }
 
 impl CheckPermissionUseCase {
     pub fn new() -> Self {
-        Self { user_repo: None }
+        Self {
+            user_repo: None,
+            role_permission_table: None,
+        }
     }
 
     pub fn with_user_repo(user_repo: Arc<dyn UserRepository>) -> Self {
         Self {
             user_repo: Some(user_repo),
+            role_permission_table: None,
+        }
+    }
+
+    pub fn with_user_repo_and_role_table(
+        user_repo: Arc<dyn UserRepository>,
+        role_permission_table: Arc<RolePermissionTable>,
+    ) -> Self {
+        Self {
+            user_repo: Some(user_repo),
+            role_permission_table: Some(role_permission_table),
         }
     }
 
     pub async fn execute(&self, input: &CheckPermissionInput) -> CheckPermissionOutput {
         let roles = self.resolve_roles(input).await;
-        if AuthDomainService::check_permission(&roles, &input.resource, &input.permission) {
+        let allowed = if let Some(role_table) = &self.role_permission_table {
+            role_table
+                .check_permission(&roles, &input.resource, &input.permission)
+                .await
+                .unwrap_or_else(|| {
+                    AuthDomainService::check_permission(&roles, &input.resource, &input.permission)
+                })
+        } else {
+            AuthDomainService::check_permission(&roles, &input.resource, &input.permission)
+        };
+
+        if allowed {
             return CheckPermissionOutput {
                 allowed: true,
                 reason: String::new(),

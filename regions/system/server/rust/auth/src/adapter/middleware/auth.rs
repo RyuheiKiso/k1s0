@@ -5,8 +5,13 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use k1s0_server_common::ErrorResponse;
 
 use crate::adapter::handler::AppState;
+
+fn error_response(status: StatusCode, code: &str, message: impl Into<String>) -> Response {
+    (status, Json(ErrorResponse::new(code, message.into()))).into_response()
+}
 
 /// Authorization ヘッダーから Bearer トークンを取り出すヘルパー。
 /// 成功した場合はトークン文字列を返す。ヘッダーがない・形式が違う場合は None を返す。
@@ -37,46 +42,31 @@ pub async fn auth_middleware(
     let token = match extract_bearer_token(&req) {
         Some(t) => t,
         None => {
-            return (
+            return error_response(
                 StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({
-                    "error": {
-                        "code": "SYS_AUTH_MISSING_TOKEN",
-                        "message": "Authorization header with Bearer token is required"
-                    }
-                })),
-            )
-                .into_response();
+                "SYS_AUTH_MISSING_TOKEN",
+                "Authorization header with Bearer token is required",
+            );
         }
     };
 
     match state.validate_token_uc.execute(&token).await {
         Ok(claims) => {
             if !has_tier_access(&claims.tier_access, "system") {
-                return (
+                return error_response(
                     StatusCode::FORBIDDEN,
-                    Json(serde_json::json!({
-                        "error": {
-                            "code": "SYS_AUTH_TIER_FORBIDDEN",
-                            "message": "Token does not include required tier access: system"
-                        }
-                    })),
-                )
-                    .into_response();
+                    "SYS_AUTH_TIER_FORBIDDEN",
+                    "Token does not include required tier access: system",
+                );
             }
             req.extensions_mut().insert(claims);
             next.run(req).await
         }
-        Err(_) => (
+        Err(_) => error_response(
             StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({
-                "error": {
-                    "code": "SYS_AUTH_TOKEN_INVALID",
-                    "message": "Token validation failed"
-                }
-            })),
-        )
-            .into_response(),
+            "SYS_AUTH_TOKEN_INVALID",
+            "Token validation failed",
+        ),
     }
 }
 
@@ -188,6 +178,7 @@ mod tests {
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["error"]["code"], "SYS_AUTH_MISSING_TOKEN");
+        assert!(json["error"]["request_id"].is_string());
     }
 
     #[tokio::test]
@@ -243,6 +234,7 @@ mod tests {
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["error"]["code"], "SYS_AUTH_TOKEN_INVALID");
+        assert!(json["error"]["request_id"].is_string());
     }
 
     #[tokio::test]
@@ -401,5 +393,6 @@ mod tests {
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["error"]["code"], "SYS_AUTH_TIER_FORBIDDEN");
+        assert!(json["error"]["request_id"].is_string());
     }
 }

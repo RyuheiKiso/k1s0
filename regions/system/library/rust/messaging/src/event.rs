@@ -46,6 +46,16 @@ impl EventMetadata {
         self.correlation_id = Some(correlation_id.into());
         self
     }
+
+    /// timestamp を Unix epoch milliseconds に変換する。
+    pub fn to_unix_millis(&self) -> i64 {
+        self.timestamp.timestamp_millis()
+    }
+
+    /// Unix epoch milliseconds から DateTime<Utc> へ変換する。
+    pub fn from_unix_millis(millis: i64) -> Option<DateTime<Utc>> {
+        DateTime::from_timestamp_millis(millis)
+    }
 }
 
 /// EventEnvelope はトピック・キー・ペイロードをラップするメッセージエンベロープ。
@@ -77,6 +87,22 @@ impl EventEnvelope {
             metadata: HashMap::new(),
         })
     }
+
+    /// Protobuf バイナリペイロードで EventEnvelope を生成する。
+    #[cfg(feature = "protobuf")]
+    pub fn protobuf<T: prost::Message>(
+        topic: impl Into<String>,
+        key: impl Into<String>,
+        payload: &T,
+    ) -> Self {
+        Self {
+            topic: topic.into(),
+            key: key.into(),
+            payload: payload.encode_to_vec(),
+            headers: Vec::new(),
+            metadata: HashMap::new(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -103,14 +129,18 @@ mod tests {
     }
 
     #[test]
+    fn test_event_metadata_unix_millis_conversion() {
+        let meta = EventMetadata::new("auth.login", "auth-server");
+        let millis = meta.to_unix_millis();
+        let restored = EventMetadata::from_unix_millis(millis).unwrap();
+        assert_eq!(restored.timestamp_millis(), millis);
+    }
+
+    #[test]
     fn test_event_envelope_json() {
         let payload = serde_json::json!({"user_id": "user-1", "event": "login"});
-        let envelope = EventEnvelope::json(
-            "k1s0.system.auth.login.v1",
-            "user-1",
-            &payload,
-        )
-        .unwrap();
+        let envelope =
+            EventEnvelope::json("k1s0.system.auth.login.v1", "user-1", &payload).unwrap();
         assert_eq!(envelope.topic, "k1s0.system.auth.login.v1");
         assert_eq!(envelope.key, "user-1");
         assert!(!envelope.payload.is_empty());
@@ -123,5 +153,23 @@ mod tests {
         let json = serde_json::to_string(&meta).unwrap();
         let deserialized: EventMetadata = serde_json::from_str(&json).unwrap();
         assert_eq!(meta, deserialized);
+    }
+
+    #[cfg(feature = "protobuf")]
+    #[test]
+    fn test_event_envelope_protobuf() {
+        #[derive(Clone, PartialEq, prost::Message)]
+        struct Sample {
+            #[prost(string, tag = "1")]
+            user_id: String,
+        }
+
+        let payload = Sample {
+            user_id: "user-1".to_string(),
+        };
+        let envelope = EventEnvelope::protobuf("k1s0.system.auth.login.v1", "user-1", &payload);
+        assert_eq!(envelope.topic, "k1s0.system.auth.login.v1");
+        assert_eq!(envelope.key, "user-1");
+        assert!(!envelope.payload.is_empty());
     }
 }

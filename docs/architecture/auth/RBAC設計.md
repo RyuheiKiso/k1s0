@@ -115,6 +115,17 @@ spec:
 3. サービスの Tier が `tier_access` 配列に含まれるかチェックする
 4. 含まれていない場合は `403 Forbidden` を返却する
 
+#### REST / gRPC のロール受け渡し方式
+
+RBAC 判定で使うロール情報は、プロトコルごとに以下の二重方式を採用する。
+
+| プロトコル | ロールの取得方法 | 設計意図 |
+| ---------- | ---------------- | -------- |
+| REST       | 認証ミドルウェアが JWT Claims（`realm_access.roles` / `resource_access`）から自動取得 | HTTP では Bearer JWT が常に付与されるため、サーバー側で一貫して抽出できる |
+| gRPC       | 呼び出し元が `CheckPermissionRequest.roles` に明示的に設定して送信 | gRPC はステートレス呼び出しを前提にし、JWT 伝播方式がサービスごとに異なるため、呼び出し元明示を標準化する |
+
+> gRPC の `CheckPermissionRequest` では `roles` フィールドを必須運用とし、空配列時は deny by default を適用する。
+
 #### 新規サービス追加時のルール
 
 新しいサービスを追加する際は、以下の3ロールを必ず定義する。

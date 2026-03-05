@@ -93,6 +93,8 @@ pub struct NotificationResponse {
 }
 ```
 
+`NotificationRequest` はビルダーパターンを採用しており、`NotificationRequest::new(channel, recipient, body).with_subject("Subject")` の形で任意フィールドを連結して指定できる。
+
 **トレイト**:
 
 ```rust

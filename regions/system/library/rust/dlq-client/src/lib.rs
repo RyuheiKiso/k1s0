@@ -4,4 +4,6 @@ pub mod types;
 
 pub use client::DlqClient;
 pub use error::DlqError;
-pub use types::{DlqMessage, DlqStatus, ListDlqMessagesResponse, RetryDlqMessageResponse};
+pub use types::{
+    DlqMessage, DlqStatus, ListDlqMessagesRequest, ListDlqMessagesResponse, RetryDlqMessageResponse,
+};

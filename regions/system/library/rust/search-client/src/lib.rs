@@ -12,3 +12,6 @@ pub use query::{FacetBucket, Filter, SearchQuery, SearchResult};
 
 #[cfg(feature = "mock")]
 pub use client::MockSearchClient;
+
+#[cfg(feature = "test-utils")]
+pub use client::InMemorySearchClient;

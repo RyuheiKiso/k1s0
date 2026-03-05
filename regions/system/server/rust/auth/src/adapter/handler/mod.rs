@@ -16,12 +16,13 @@ pub use k1s0_server_common::{ErrorBody, ErrorResponse};
 use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::make_rbac_middleware;
 use crate::domain::repository::{AuditLogRepository, UserRepository};
-use crate::infrastructure::TokenVerifier;
+use crate::domain::service::RolePermissionTable;
 use crate::infrastructure::permission_cache::PermissionCache;
+use crate::infrastructure::TokenVerifier;
 use crate::usecase::{
     CheckPermissionUseCase, CreateApiKeyUseCase, GetApiKeyUseCase, GetUserRolesUseCase,
     GetUserUseCase, ListApiKeysUseCase, ListUsersUseCase, RecordAuditLogUseCase,
-    RevokeApiKeyUseCase, SearchAuditLogsUseCase, ValidateTokenUseCase,
+    RevokeApiKeyUseCase, SearchAuditLogsUseCase, ValidateApiKeyUseCase, ValidateTokenUseCase,
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
@@ -38,12 +39,14 @@ pub struct AppState {
     pub get_api_key_uc: Arc<GetApiKeyUseCase>,
     pub list_api_keys_uc: Arc<ListApiKeysUseCase>,
     pub revoke_api_key_uc: Arc<RevokeApiKeyUseCase>,
+    pub validate_api_key_uc: Arc<ValidateApiKeyUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub db_pool: Option<sqlx::PgPool>,
     pub keycloak_url: Option<String>,
     pub jwks_provider: Option<crate::infrastructure::jwks_provider::JwksProvider>,
     pub permission_cache: PermissionCache,
     pub permission_cache_refresh_on_miss: bool,
+    pub role_permission_table: Option<Arc<RolePermissionTable>>,
 }
 
 impl AppState {
@@ -75,6 +78,7 @@ impl AppState {
             create_api_key_uc: Arc::new(CreateApiKeyUseCase::new(api_key_repo.clone())),
             get_api_key_uc: Arc::new(GetApiKeyUseCase::new(api_key_repo.clone())),
             list_api_keys_uc: Arc::new(ListApiKeysUseCase::new(api_key_repo.clone())),
+            validate_api_key_uc: Arc::new(ValidateApiKeyUseCase::new(api_key_repo.clone())),
             revoke_api_key_uc: Arc::new(RevokeApiKeyUseCase::new(api_key_repo)),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server")),
             db_pool,
@@ -82,6 +86,7 @@ impl AppState {
             jwks_provider,
             permission_cache: PermissionCache::new(300, 10_000),
             permission_cache_refresh_on_miss: true,
+            role_permission_table: None,
         }
     }
 }
@@ -93,6 +98,7 @@ impl AppState {
         auth_handler::readyz,
         auth_handler::metrics,
         jwks_handler::jwks,
+        jwks_handler::jwks_well_known,
         auth_handler::validate_token,
         auth_handler::introspect_token,
         auth_handler::get_user,
@@ -105,6 +111,7 @@ impl AppState {
         api_key_handler::get_api_key,
         api_key_handler::list_api_keys,
         api_key_handler::revoke_api_key,
+        api_key_handler::validate_api_key,
     ),
     components(schemas(
         crate::domain::entity::claims::Claims,
@@ -208,7 +215,7 @@ pub fn router(state: AppState) -> Router {
         .route("/metrics", get(auth_handler::metrics))
         // JWKS endpoint (public)
         .route("/jwks", get(jwks_handler::jwks))
-        .route("/.well-known/jwks.json", get(jwks_handler::jwks))
+        .route("/.well-known/jwks.json", get(jwks_handler::jwks_well_known))
         // Token validate/introspect are public (RFC 7662)
         .route(
             "/api/v1/auth/token/validate",
@@ -217,6 +224,10 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/v1/auth/token/introspect",
             post(auth_handler::introspect_token),
+        )
+        .route(
+            "/api/v1/api-keys/validate",
+            post(api_key_handler::validate_api_key),
         );
 
     Router::new()

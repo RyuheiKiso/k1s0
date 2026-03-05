@@ -534,7 +534,7 @@ message UpsertConfigSchemaResponse {
 }
 
 message ConfigEditorSchema {
-  string service = 1;
+  string service_name = 1;
   string namespace_prefix = 2;
   repeated ConfigCategorySchema categories = 3;
   k1s0.system.common.v1.Timestamp updated_at = 4;

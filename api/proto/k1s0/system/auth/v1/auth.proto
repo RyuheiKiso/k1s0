@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package k1s0.system.auth.v1;
 
-option go_package = "github.com/k1s0-platform/system-server-go-auth/gen/go/k1s0/system/auth/v1;authv1";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/auth/v1;authv1";
 
 import "k1s0/system/common/v1/types.proto";
 import "google/protobuf/struct.proto";
@@ -79,6 +79,10 @@ message TokenClaims {
   repeated string tier_access = 11;
   // OAuth2 scope（スペース区切り）
   string scope = 12;
+  // トークン種別（例: Bearer）
+  optional string typ = 13;
+  // 認可されたクライアント ID
+  optional string azp = 14;
 }
 
 // RealmAccess はグローバルロール一覧。

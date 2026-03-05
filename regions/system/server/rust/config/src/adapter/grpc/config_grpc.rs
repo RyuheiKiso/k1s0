@@ -10,8 +10,8 @@ use crate::usecase::get_config::{GetConfigError, GetConfigUseCase};
 use crate::usecase::get_config_schema::{GetConfigSchemaError, GetConfigSchemaUseCase};
 use crate::usecase::get_service_config::{GetServiceConfigError, GetServiceConfigUseCase};
 use crate::usecase::list_configs::{ListConfigsError, ListConfigsParams, ListConfigsUseCase};
-use crate::usecase::upsert_config_schema::{UpsertConfigSchemaInput, UpsertConfigSchemaUseCase};
 use crate::usecase::update_config::{UpdateConfigError, UpdateConfigInput, UpdateConfigUseCase};
+use crate::usecase::upsert_config_schema::{UpsertConfigSchemaInput, UpsertConfigSchemaUseCase};
 use crate::usecase::watch_config::ConfigChangeEvent;
 
 use super::watch_stream::{WatchConfigRequest, WatchConfigStreamHandler};
@@ -161,10 +161,14 @@ impl ConfigGrpcService {
 
         match self.get_service_config_uc.execute(&req.service_name).await {
             Ok(result) => Ok(pb::GetServiceConfigResponse {
-                configs: result
+                entries: result
                     .entries
                     .into_iter()
-                    .map(|e| (format!("{}.{}", e.namespace, e.key), e.value.to_string()))
+                    .map(|e| pb::ServiceConfigEntry {
+                        namespace: e.namespace,
+                        key: e.key,
+                        value: e.value.to_string(),
+                    })
                     .collect(),
             }),
             Err(GetServiceConfigError::NotFound(name)) => {
@@ -269,12 +273,10 @@ impl ConfigGrpcService {
             Ok(schema) => Ok(pb::GetConfigSchemaResponse {
                 schema: Some(domain_schema_to_pb(&schema)),
             }),
-            Err(GetConfigSchemaError::NotFound(service_name)) => {
-                Err(GrpcError::NotFound(format!(
-                    "config schema not found: {}",
-                    service_name
-                )))
-            }
+            Err(GetConfigSchemaError::NotFound(service_name)) => Err(GrpcError::NotFound(format!(
+                "config schema not found: {}",
+                service_name
+            ))),
             Err(GetConfigSchemaError::Internal(msg)) => Err(GrpcError::Internal(msg)),
         }
     }
@@ -289,9 +291,9 @@ impl ConfigGrpcService {
         let Some(schema) = req.schema else {
             return Err(GrpcError::InvalidArgument("schema is required".to_string()));
         };
-        if schema.service.is_empty() {
+        if schema.service_name.is_empty() {
             return Err(GrpcError::InvalidArgument(
-                "schema.service is required".to_string(),
+                "schema.service_name is required".to_string(),
             ));
         }
         if schema.namespace_prefix.is_empty() {
@@ -302,7 +304,7 @@ impl ConfigGrpcService {
 
         let schema_json = pb_schema_to_json(&schema);
         let input = UpsertConfigSchemaInput {
-            service_name: schema.service,
+            service_name: schema.service_name,
             namespace_prefix: schema.namespace_prefix,
             schema_json,
             updated_by: if req.updated_by.is_empty() {
@@ -363,7 +365,9 @@ fn domain_config_to_pb(e: &ConfigEntry) -> pb::ConfigEntry {
     }
 }
 
-fn domain_schema_to_pb(schema: &crate::domain::entity::config_schema::ConfigSchema) -> pb::ConfigEditorSchema {
+fn domain_schema_to_pb(
+    schema: &crate::domain::entity::config_schema::ConfigSchema,
+) -> pb::ConfigEditorSchema {
     let categories = schema
         .schema_json
         .get("categories")
@@ -416,10 +420,8 @@ fn domain_schema_to_pb(schema: &crate::domain::entity::config_schema::ConfigSche
                                         .and_then(|v| v.as_str())
                                         .unwrap_or_default()
                                         .to_string(),
-                                    r#type: f
-                                        .get("type")
-                                        .and_then(|v| v.as_i64())
-                                        .unwrap_or(0) as i32,
+                                    r#type: f.get("type").and_then(|v| v.as_i64()).unwrap_or(0)
+                                        as i32,
                                     min: f.get("min").and_then(|v| v.as_i64()).unwrap_or(0),
                                     max: f.get("max").and_then(|v| v.as_i64()).unwrap_or(0),
                                     options: f
@@ -455,7 +457,7 @@ fn domain_schema_to_pb(schema: &crate::domain::entity::config_schema::ConfigSche
         .unwrap_or_default();
 
     pb::ConfigEditorSchema {
-        service: schema.service_name.clone(),
+        service_name: schema.service_name.clone(),
         namespace_prefix: schema.namespace_prefix.clone(),
         categories,
         updated_at: Some(ProtoTimestamp {
@@ -474,10 +476,9 @@ fn pb_schema_to_json(schema: &pb::ConfigEditorSchema) -> serde_json::Value {
                 .fields
                 .iter()
                 .map(|field| {
-                    let default_value = serde_json::from_slice::<serde_json::Value>(
-                        &field.default_value,
-                    )
-                    .unwrap_or(serde_json::Value::Null);
+                    let default_value =
+                        serde_json::from_slice::<serde_json::Value>(&field.default_value)
+                            .unwrap_or(serde_json::Value::Null);
                     serde_json::json!({
                         "key": field.key,
                         "label": field.label,

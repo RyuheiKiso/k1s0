@@ -97,13 +97,16 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
 
     info!(port = cfg.server.port, "starting session server");
 
@@ -279,26 +282,26 @@ async fn main() -> anyhow::Result<()> {
             .route(
                 "/api/v1/sessions/:session_id/refresh",
                 axum::routing::post(adapter::handler::session_handler::refresh_session),
-            )
+            );
+
+        // DELETE routes -> sessions/admin
+        let admin_routes = axum::Router::new()
             .route(
                 "/api/v1/sessions/:session_id",
                 axum::routing::delete(adapter::handler::session_handler::revoke_session),
-            );
-
-        // DELETE all -> sessions/write
-        let write_routes = axum::Router::new()
+            )
             .route(
                 "/api/v1/users/:user_id/sessions",
                 axum::routing::delete(adapter::handler::session_handler::revoke_all_sessions),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "sessions", "write",
+                "sessions", "admin",
             )));
 
         axum::Router::new()
             .merge(read_routes)
             .merge(auth_only_routes)
-            .merge(write_routes)
+            .merge(admin_routes)
             .layer(axum::middleware::from_fn_with_state(
                 auth_st.clone(),
                 auth_middleware,

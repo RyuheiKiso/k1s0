@@ -255,8 +255,9 @@ rand = "0.8"
 
 **Rust 追加公開 API**:
 
-- `JwksFetcher` trait: JWKS 取得処理の抽象化（`JwksVerifier::new_with_fetcher` で差し替え可能）
+- `JwksFetcher` trait: JWKS 取得処理の抽象化（`JwksVerifier::new(...).with_fetcher(...)` の builder pattern で差し替え可能）
 - `middleware` module: `auth_middleware`, `require_permission`, `require_tier_access`（axum 向け）
+- Rust のコード例は `verify_token` / `get_keys` / `check_permission` など snake_case 命名に統一する。
 
 **主要コード**:
 

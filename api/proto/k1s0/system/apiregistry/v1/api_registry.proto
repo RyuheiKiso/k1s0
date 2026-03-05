@@ -134,10 +134,10 @@ message ApiSchemaVersionProto {
   bool breaking_changes = 6;
   string registered_by = 7;
   k1s0.system.common.v1.Timestamp created_at = 8;
-  repeated ChangeDetail breaking_change_details = 9;
+  repeated SchemaChange breaking_change_details = 9;
 }
 
-message ChangeDetail {
+message SchemaChange {
   string change_type = 1;
   string path = 2;
   string description = 3;
@@ -145,8 +145,8 @@ message ChangeDetail {
 
 message CompatibilityResultProto {
   bool compatible = 1;
-  repeated ChangeDetail breaking_changes = 2;
-  repeated ChangeDetail non_breaking_changes = 3;
+  repeated SchemaChange breaking_changes = 2;
+  repeated SchemaChange non_breaking_changes = 3;
 }
 
 message SchemaDiffProto {
