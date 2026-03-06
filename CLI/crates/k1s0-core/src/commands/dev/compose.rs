@@ -406,9 +406,14 @@ mod tests {
 
         assert!(yaml.contains("redis:"));
         assert!(yaml.contains("redis:7"));
+        assert!(yaml.contains("k1s0-dev-redis"));
         assert!(yaml.contains("6379:6379"));
+        assert!(yaml.contains("timeout: 3s"));
+        assert!(yaml.contains("k1s0_dev_redis_data"));
         assert!(yaml.contains("redis-session:"));
+        assert!(yaml.contains("k1s0-dev-redis-session"));
         assert!(yaml.contains("6380:6379"));
+        assert!(yaml.contains("k1s0_dev_redis_session_data"));
     }
 
     /// Keycloak 認証モードで docker-compose.yaml を生成できる。
