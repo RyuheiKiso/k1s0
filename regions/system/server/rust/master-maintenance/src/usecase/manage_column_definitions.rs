@@ -23,10 +23,14 @@ impl ManageColumnDefinitionsUseCase {
         }
     }
 
-    pub async fn list_columns(&self, table_name: &str) -> anyhow::Result<Vec<ColumnDefinition>> {
+    pub async fn list_columns(
+        &self,
+        table_name: &str,
+        domain_scope: Option<&str>,
+    ) -> anyhow::Result<Vec<ColumnDefinition>> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
         self.column_repo.find_by_table_id(table.id).await
@@ -36,10 +40,11 @@ impl ManageColumnDefinitionsUseCase {
         &self,
         table_name: &str,
         input: &serde_json::Value,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<Vec<ColumnDefinition>> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
         let columns: Vec<crate::domain::entity::column_definition::CreateColumnDefinition> =
@@ -53,10 +58,11 @@ impl ManageColumnDefinitionsUseCase {
         table_name: &str,
         column_name: &str,
         input: &serde_json::Value,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<ColumnDefinition> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
         let existing = self
@@ -74,10 +80,15 @@ impl ManageColumnDefinitionsUseCase {
             .await
     }
 
-    pub async fn delete_column(&self, table_name: &str, column_name: &str) -> anyhow::Result<()> {
+    pub async fn delete_column(
+        &self,
+        table_name: &str,
+        column_name: &str,
+        domain_scope: Option<&str>,
+    ) -> anyhow::Result<()> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
         self.schema_manager

@@ -24,10 +24,11 @@ impl ManageDisplayConfigsUseCase {
     pub async fn list_display_configs(
         &self,
         table_name: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<Vec<DisplayConfig>> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
 
@@ -43,10 +44,11 @@ impl ManageDisplayConfigsUseCase {
         table_name: &str,
         input: &Value,
         created_by: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<DisplayConfig> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
 

@@ -133,6 +133,8 @@ impl DatabaseConfig {
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
     pub topic: String,
+    #[serde(default)]
+    pub domain_topic_pattern: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

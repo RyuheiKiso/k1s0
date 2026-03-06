@@ -1,0 +1,3 @@
+{% for child in children %}
+pub mod {{ child }};
+{% endfor %}

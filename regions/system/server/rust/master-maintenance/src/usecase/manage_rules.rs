@@ -26,11 +26,12 @@ impl ManageRulesUseCase {
         table_name: Option<&str>,
         rule_type: Option<&str>,
         severity: Option<&str>,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<Vec<ConsistencyRule>> {
         let table_id = if let Some(name) = table_name {
             let table = self
                 .table_repo
-                .find_by_name(name)
+                .find_by_name(name, domain_scope)
                 .await?
                 .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", name))?;
             Some(table.id)
@@ -48,12 +49,13 @@ impl ManageRulesUseCase {
         &self,
         input: &serde_json::Value,
         created_by: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<ConsistencyRule> {
         let create_input: CreateConsistencyRule = serde_json::from_value(input.clone())?;
 
         let table = self
             .table_repo
-            .find_by_name(&create_input.source_table)
+            .find_by_name(&create_input.source_table, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", create_input.source_table))?;
 
@@ -80,7 +82,7 @@ impl ManageRulesUseCase {
             let right_table_id = if let Some(right_table_name) = condition.right_table.as_deref() {
                 Some(
                     self.table_repo
-                        .find_by_name(right_table_name)
+                        .find_by_name(right_table_name, domain_scope)
                         .await?
                         .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", right_table_name))?
                         .id,
@@ -111,6 +113,7 @@ impl ManageRulesUseCase {
         &self,
         id: Uuid,
         input: &serde_json::Value,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<ConsistencyRule> {
         let mut rule = self
             .rule_repo
@@ -157,7 +160,7 @@ impl ManageRulesUseCase {
                     if let Some(right_table_name) = condition.right_table.as_deref() {
                         Some(
                             self.table_repo
-                                .find_by_name(right_table_name)
+                                .find_by_name(right_table_name, domain_scope)
                                 .await?
                                 .ok_or_else(|| {
                                     anyhow::anyhow!("Table '{}' not found", right_table_name)

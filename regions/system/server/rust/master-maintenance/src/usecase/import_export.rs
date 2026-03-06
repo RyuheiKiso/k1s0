@@ -42,10 +42,11 @@ impl ImportExportUseCase {
         table_name: &str,
         data: &Value,
         started_by: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<ImportJob> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
 
@@ -81,7 +82,7 @@ impl ImportExportUseCase {
         for (idx, record) in records.iter().enumerate() {
             match self
                 .crud_records_uc
-                .create_record(table_name, record, started_by)
+                .create_record(table_name, record, started_by, domain_scope)
                 .await
             {
                 Ok(output) => {
@@ -128,10 +129,11 @@ impl ImportExportUseCase {
         &self,
         table_name: &str,
         format: Option<&str>,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<Value> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
 
@@ -166,6 +168,7 @@ impl ImportExportUseCase {
         file_name: &str,
         content: &[u8],
         started_by: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<ImportJob> {
         let extension = file_name
             .rsplit('.')
@@ -186,7 +189,7 @@ impl ImportExportUseCase {
             other => anyhow::bail!("unsupported import file extension: {}", other),
         };
 
-        self.import_records(table_name, &data, started_by).await
+        self.import_records(table_name, &data, started_by, domain_scope).await
     }
 
     fn parse_import_records(

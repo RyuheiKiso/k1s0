@@ -115,6 +115,124 @@ fn validate(name: &str) -> Result<(), ServiceError> {
 
 **環境変数**: `ALLOW_INSECURE_NO_AUTH` — `"true"` に設定すると dev/test 環境で認証バイパスを許可する。本番では設定しないこと。
 
+## ミドルウェアスタック (`middleware` feature)
+
+`middleware` feature を有効にすると、`K1s0Stack` ビルダーにより1行でミドルウェアスタック + 標準エンドポイントを構築できる。
+
+### Cargo 設定
+
+```toml
+[dependencies]
+k1s0-server-common = { path = "../../system/library/rust/server-common", features = ["middleware"] }
+```
+
+`middleware` feature は以下を自動有効化する: `axum`, `k1s0-telemetry` (axum-layer), `k1s0-correlation` (tower-layer), `k1s0-health`
+
+### 使用例
+
+```rust
+use std::sync::Arc;
+use k1s0_server_common::middleware::{K1s0Stack, Profile};
+use k1s0_telemetry::metrics::Metrics;
+use k1s0_health::CompositeHealthChecker;
+
+let metrics = Arc::new(Metrics::new("config-server"));
+let health_checker = Arc::new(CompositeHealthChecker::new());
+
+let stack = K1s0Stack::new("config-server")
+    .profile(Profile::from_env("prod"))
+    .metrics(metrics.clone())
+    .health_checker(health_checker);
+
+let app = stack.wrap(handler::router(state));
+```
+
+### K1s0Stack API
+
+| メソッド | 説明 |
+| --- | --- |
+| `K1s0Stack::new(service_name)` | ビルダーを生成（デフォルト: Dev, correlation有効, request_id有効） |
+| `.profile(Profile)` | デプロイ環境を設定 |
+| `.metrics(Arc<Metrics>)` | MetricsLayer 有効化 + `/metrics` エンドポイント追加 |
+| `.health_checker(Arc<CompositeHealthChecker>)` | `/readyz` エンドポイント追加 |
+| `.without_correlation()` | CorrelationLayer を無効化 |
+| `.without_request_id()` | RequestIdLayer を無効化 |
+| `.wrap(Router) -> Router` | ミドルウェアスタック適用 + 標準エンドポイント追加 |
+
+### Profile
+
+| 値 | 入力文字列 |
+| --- | --- |
+| `Profile::Prod` | `"prod"`, `"production"` |
+| `Profile::Staging` | `"staging"`, `"stg"` |
+| `Profile::Dev` | その他すべて |
+
+### レイヤー適用順序（外→内）
+
+1. **MetricsLayer** — 全リクエストの計測（`metrics` 設定時のみ）
+2. **CorrelationLayer** — 相関ID注入・伝播（`x-correlation-id`, `x-trace-id`）
+3. **RequestIdLayer** — リクエスト固有ID生成（`x-request-id`）
+
+### 標準エンドポイント
+
+| パス | 条件 | レスポンス |
+| --- | --- | --- |
+| `GET /healthz` | 常に追加 | `{"status":"ok"}` (200) |
+| `GET /readyz` | `health_checker` 設定時 | HealthChecker結果 (200/503) |
+| `GET /metrics` | `metrics` 設定時 | Prometheus text format |
+
+### K1s0App（上位ビルダー）
+
+`K1s0App` は Config → Telemetry → Metrics → HealthCheck → K1s0Stack の初期化を一括で行う上位ビルダー。新規サーバー作成時のボイラープレートを 50〜80行から 5〜15行に削減する。
+
+```rust
+use k1s0_server_common::middleware::{K1s0App, K1s0AppReady};
+
+let app = K1s0App::new(cfg.to_telemetry_config())
+    .add_health_check(Box::new(db_check))
+    .build()
+    .await?;
+let router = app.wrap(handler::router(state));
+```
+
+#### K1s0App API
+
+| メソッド | 説明 |
+| --- | --- |
+| `K1s0App::new(TelemetryConfig)` | ビルダーを生成 |
+| `.profile(Profile)` | デプロイ環境を明示指定（未指定時は `TelemetryConfig.environment` から自動判定） |
+| `.add_health_check(Box<dyn HealthCheck>)` | HealthCheck を追加 |
+| `.without_correlation()` | CorrelationLayer を無効化 |
+| `.without_request_id()` | RequestIdLayer を無効化 |
+| `.build() -> Result<K1s0AppReady>` | Telemetry初期化 → Metrics生成 → HealthChecker構築 → Ready返却 |
+
+#### K1s0AppReady API
+
+| メソッド | 説明 |
+| --- | --- |
+| `.service_name() -> &str` | サービス名を返す |
+| `.profile() -> &Profile` | 適用されたProfileを返す |
+| `.metrics() -> Arc<Metrics>` | Metricsインスタンスを返す |
+| `.health_checker() -> Arc<CompositeHealthChecker>` | HealthCheckerを返す |
+| `.wrap(Router) -> Router` | K1s0Stackを内部構築してRouterに適用 |
+
+#### K1s0App vs K1s0Stack
+
+- **K1s0App**: Telemetry・Metrics・HealthCheck の生成まで含む。新規サーバーのエントリポイント向け
+- **K1s0Stack**: 既に生成済みの `Arc<Metrics>` 等を受け取る低レベルビルダー。カスタム初期化が必要な場合に使用
+
+### 個別レイヤー
+
+`K1s0Stack` を使わず個別にレイヤーを適用することも可能。
+
+- `k1s0_server_common::middleware::RequestIdLayer` — `x-request-id` ヘッダー付与
+- `k1s0_correlation::layer::CorrelationLayer` — 相関ID注入（`k1s0-correlation` の `tower-layer` feature）
+- `k1s0_telemetry::MetricsLayer` — HTTP メトリクス記録（`k1s0-telemetry` の `axum-layer` feature）
+
+### Auth/RBAC について
+
+認証・認可は K1s0Stack に含まない。ルート毎に異なる権限チェックが必要であり、`/healthz` や `/metrics` は認証不要のため、public/protected の分離は Router 層の責務とする。
+
 ## 関連ドキュメント
 
 - [system-library 概要](./概要.md)

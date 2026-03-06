@@ -1,4 +1,5 @@
 use crate::adapter::handler::error::AppError;
+use crate::adapter::handler::table_handler::DomainScopeQuery;
 use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState};
 use axum::{
     extract::{Extension, Path, Query, State},
@@ -16,6 +17,7 @@ pub struct ListRecordsQuery {
     pub filter: Option<String>,
     pub search: Option<String>,
     pub columns: Option<String>,
+    pub domain_scope: Option<String>,
 }
 
 pub async fn list_records(
@@ -33,6 +35,7 @@ pub async fn list_records(
             query.filter.as_deref(),
             query.search.as_deref(),
             query.columns.as_deref(),
+            query.domain_scope.as_deref(),
         )
         .await?;
     Ok(Json(serde_json::json!({
@@ -53,10 +56,11 @@ pub async fn list_records(
 pub async fn get_record(
     State(state): State<AppState>,
     Path((name, id)): Path<(String, String)>,
+    Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let record = state
         .crud_records_uc
-        .get_record(&name, &id)
+        .get_record(&name, &id, ds_query.domain_scope.as_deref())
         .await?
         .ok_or_else(|| AppError::not_found("SYS_MM_RECORD_NOT_FOUND", "Record not found"))?;
     Ok(Json(record))
@@ -66,12 +70,13 @@ pub async fn create_record(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
+    Query(ds_query): Query<DomainScopeQuery>,
     Json(data): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let result = state
         .crud_records_uc
-        .create_record(&name, &data, &actor)
+        .create_record(&name, &data, &actor, ds_query.domain_scope.as_deref())
         .await?;
     publish_change_event(
         &state,
@@ -100,12 +105,13 @@ pub async fn update_record(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path((name, id)): Path<(String, String)>,
+    Query(ds_query): Query<DomainScopeQuery>,
     Json(data): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let result = state
         .crud_records_uc
-        .update_record(&name, &id, &data, &actor)
+        .update_record(&name, &id, &data, &actor, ds_query.domain_scope.as_deref())
         .await?;
     publish_change_event(
         &state,
@@ -131,11 +137,12 @@ pub async fn delete_record(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path((name, id)): Path<(String, String)>,
+    Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<StatusCode, AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     state
         .crud_records_uc
-        .delete_record(&name, &id, &actor)
+        .delete_record(&name, &id, &actor, ds_query.domain_scope.as_deref())
         .await?;
     publish_change_event(
         &state,

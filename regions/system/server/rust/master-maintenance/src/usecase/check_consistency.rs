@@ -3,6 +3,7 @@ use crate::domain::repository::consistency_rule_repository::ConsistencyRuleRepos
 use crate::domain::repository::dynamic_record_repository::DynamicRecordRepository;
 use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
 use crate::domain::service::rule_engine_service::RuleEngineService;
+use crate::domain::value_object::domain_filter::DomainFilter;
 use crate::domain::value_object::rule_result::RuleResult;
 use crate::usecase::rule_evaluator::RuleEvaluator;
 use std::sync::Arc;
@@ -40,7 +41,11 @@ impl CheckConsistencyUseCase {
         }
     }
 
-    pub async fn execute_rule(&self, rule_id: Uuid) -> anyhow::Result<Vec<RuleResult>> {
+    pub async fn execute_rule(
+        &self,
+        rule_id: Uuid,
+        domain_scope: Option<&str>,
+    ) -> anyhow::Result<Vec<RuleResult>> {
         let rule = self
             .rule_repo
             .find_by_id(rule_id)
@@ -48,7 +53,10 @@ impl CheckConsistencyUseCase {
             .ok_or_else(|| anyhow::anyhow!("Rule not found"))?;
 
         let table_id = rule.source_table_id;
-        let table_defs = self.table_repo.find_all(None, false).await?;
+        let table_defs = self
+            .table_repo
+            .find_all(None, false, &DomainFilter::All)
+            .await?;
         let table = table_defs
             .into_iter()
             .find(|t| t.id == table_id)
@@ -80,8 +88,12 @@ impl CheckConsistencyUseCase {
         Ok(results)
     }
 
-    pub async fn check_all_rules(&self, table_name: &str) -> anyhow::Result<Vec<RuleResult>> {
-        self.check_rules(table_name, &[]).await
+    pub async fn check_all_rules(
+        &self,
+        table_name: &str,
+        domain_scope: Option<&str>,
+    ) -> anyhow::Result<Vec<RuleResult>> {
+        self.check_rules(table_name, &[], domain_scope).await
     }
 
     /// 整合性チェックを実行する。`rule_ids` が空でなければ指定ルールのみ、空なら全ルールを対象とする。
@@ -89,10 +101,11 @@ impl CheckConsistencyUseCase {
         &self,
         table_name: &str,
         rule_ids: &[String],
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<Vec<RuleResult>> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
 

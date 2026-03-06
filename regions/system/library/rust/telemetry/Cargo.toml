@@ -12,6 +12,10 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 tracing-opentelemetry = "0.28"
 prometheus = "0.13"
 
+# Instrumentation support (optional)
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"], optional = true }
+k1s0-telemetry-macros = { path = "../telemetry-macros", optional = true }
+
 # Tower Layer support (optional)
 axum = { version = "0.7", optional = true }
 http = { version = "1", optional = true }
@@ -23,6 +27,9 @@ pin-project-lite = { version = "0.2", optional = true }
 default = []
 axum-layer = ["axum", "http", "tower", "pin-project-lite"]
 grpc-layer = ["tonic", "http", "tower", "pin-project-lite"]
+macros = ["dep:k1s0-telemetry-macros"]
+sqlx-instrument = ["dep:sqlx"]
+kafka-instrument = []
 full = ["axum-layer", "grpc-layer"]
 
 [dev-dependencies]

@@ -1,0 +1,65 @@
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+pub struct Config {
+    pub app: AppConfig,
+    pub server: ServerConfig,
+    {% if has_database %}pub database: DatabaseConfig,
+    {% endif %}pub observability: ObservabilityConfig,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AppConfig {
+    pub name: String,
+    pub version: String,
+    pub environment: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ServerConfig {
+    pub host: String,
+    pub port: u16,
+    {% if has_grpc %}pub grpc_port: u16,
+    {% endif %}
+}
+
+{% if has_database %}
+#[derive(Debug, Deserialize)]
+pub struct DatabaseConfig {
+    pub host: String,
+    pub port: u16,
+    pub name: String,
+    pub user: String,
+    pub password: String,
+    pub ssl_mode: String,
+    pub max_open_conns: u32,
+    pub max_idle_conns: u32,
+    pub conn_max_lifetime: String,
+}
+{% endif %}
+
+#[derive(Debug, Deserialize)]
+pub struct ObservabilityConfig {
+    pub log: LogConfig,
+    pub trace: TraceConfig,
+    pub metrics: MetricsConfig,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LogConfig {
+    pub level: String,
+    pub format: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TraceConfig {
+    pub enabled: bool,
+    pub endpoint: String,
+    pub sample_rate: f64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MetricsConfig {
+    pub enabled: bool,
+    pub path: String,
+}

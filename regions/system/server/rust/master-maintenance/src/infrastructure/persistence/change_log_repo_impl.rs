@@ -19,8 +19,8 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
         let row = sqlx::query_as::<_, ChangeLogRow>(
             r#"INSERT INTO master_maintenance.change_logs
                (id, target_table, target_record_id, operation, before_data, after_data,
-                changed_columns, changed_by, change_reason, trace_id)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                changed_columns, changed_by, change_reason, trace_id, domain_scope)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                RETURNING *"#,
         )
         .bind(log.id)
@@ -33,6 +33,7 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
         .bind(&log.changed_by)
         .bind(&log.change_reason)
         .bind(&log.trace_id)
+        .bind(&log.domain_scope)
         .fetch_one(&self.pool)
         .await?;
         Ok(row.into())
@@ -108,6 +109,7 @@ struct ChangeLogRow {
     changed_by: String,
     change_reason: Option<String>,
     trace_id: Option<String>,
+    domain_scope: Option<String>,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -124,6 +126,7 @@ impl From<ChangeLogRow> for ChangeLog {
             changed_by: row.changed_by,
             change_reason: row.change_reason,
             trace_id: row.trace_id,
+            domain_scope: row.domain_scope,
             created_at: row.created_at,
         }
     }

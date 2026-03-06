@@ -19,6 +19,7 @@ pub struct TableDefinition {
     pub created_by: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub domain_scope: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,6 +34,7 @@ pub struct CreateTableDefinition {
     pub allow_update: Option<bool>,
     pub allow_delete: Option<bool>,
     pub sort_order: Option<i32>,
+    pub domain_scope: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -229,6 +229,7 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/tables/:name/display-configs/:id",
                 get(display_config_handler::get_display_config),
             )
+            .route("/api/v1/domains", get(table_handler::list_domains))
             .route_layer(axum::middleware::from_fn(move |req, next| {
                 let perm = require_permission("master-maintenance", "read");
                 perm(req, next)
@@ -439,6 +440,7 @@ pub fn router(state: AppState) -> Router {
                     .put(display_config_handler::update_display_config)
                     .delete(display_config_handler::delete_display_config),
             )
+            .route("/api/v1/domains", get(table_handler::list_domains))
     };
 
     public_routes
