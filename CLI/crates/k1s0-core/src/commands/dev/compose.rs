@@ -503,7 +503,9 @@ mod tests {
         assert!(config.contains("localhost:9092"));
         assert!(config.contains("redis:"));
         assert!(config.contains("port: 6379"));
-        assert!(config.contains("issuer: \"\""));
+        assert!(config.contains("skip_verification: true"));
+        assert!(config.contains("mock_claims:"));
+        assert!(config.contains("sub: \"dev-user-001\""));
     }
 
     /// Keycloak モードの dev-local 設定ファイルを生成できる。
@@ -564,9 +566,9 @@ mod tests {
         assert!(yaml.contains("keycloak:"));
 
         // 全ボリュームが含まれている
-        assert!(yaml.contains("postgres-data:"));
-        assert!(yaml.contains("kafka-data:"));
-        assert!(yaml.contains("redis-data:"));
-        assert!(yaml.contains("redis-session-data:"));
+        assert!(yaml.contains("k1s0_dev_postgres_data:"));
+        assert!(yaml.contains("k1s0_dev_kafka_data:"));
+        assert!(yaml.contains("k1s0_dev_redis_data:"));
+        assert!(yaml.contains("k1s0_dev_redis_session_data:"));
     }
 }
