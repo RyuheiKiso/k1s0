@@ -12,16 +12,25 @@ export function useWebSocket(url: string) {
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const unmountedRef = useRef(false);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (unmountedRef.current) return;
+    if (
+      wsRef.current?.readyState === WebSocket.OPEN ||
+      wsRef.current?.readyState === WebSocket.CONNECTING
+    )
+      return;
 
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
-    ws.onopen = () => setConnected(true);
+    ws.onopen = () => {
+      if (!unmountedRef.current) setConnected(true);
+    };
 
     ws.onmessage = (event) => {
+      if (unmountedRef.current) return;
       try {
         const entry: LogEntry = JSON.parse(event.data);
         setLogs((prev) => {
@@ -34,18 +43,30 @@ export function useWebSocket(url: string) {
     };
 
     ws.onclose = () => {
-      setConnected(false);
-      reconnectTimer.current = setTimeout(connect, 3000);
+      if (!unmountedRef.current) {
+        setConnected(false);
+        reconnectTimer.current = setTimeout(connect, 3000);
+      }
     };
 
-    ws.onerror = () => ws.close();
+    ws.onerror = () => {
+      if (ws.readyState !== WebSocket.CLOSED) ws.close();
+    };
   }, [url]);
 
   useEffect(() => {
+    unmountedRef.current = false;
     connect();
     return () => {
+      unmountedRef.current = true;
       clearTimeout(reconnectTimer.current);
-      wsRef.current?.close();
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.onerror = null;
+        wsRef.current.onmessage = null;
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
   }, [connect]);
 
