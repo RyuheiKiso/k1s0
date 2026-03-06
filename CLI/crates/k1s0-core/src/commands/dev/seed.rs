@@ -79,7 +79,7 @@ pub fn execute_seed(service_paths: &[String], ports: &PortAssignments) -> Result
 ///
 /// seeds/ ディレクトリ内の .sql ファイルをファイル名順でソートして返す。
 pub fn scan_seed_files(service_path: &Path) -> Vec<PathBuf> {
-    let seeds_dir = service_path.join("seeds");
+    let seeds_dir = service_path.join("seed");
     if !seeds_dir.is_dir() {
         return Vec::new();
     }
@@ -119,7 +119,7 @@ mod tests {
     #[test]
     fn test_scan_seed_files_sorted() {
         let tmp = TempDir::new().unwrap();
-        let seeds_dir = tmp.path().join("seeds");
+        let seeds_dir = tmp.path().join("seed");
         std::fs::create_dir_all(&seeds_dir).unwrap();
 
         std::fs::write(seeds_dir.join("002_users.sql"), "INSERT INTO users;").unwrap();
@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn test_scan_seed_files_no_sql() {
         let tmp = TempDir::new().unwrap();
-        let seeds_dir = tmp.path().join("seeds");
+        let seeds_dir = tmp.path().join("seed");
         std::fs::create_dir_all(&seeds_dir).unwrap();
         std::fs::write(seeds_dir.join("README.md"), "# Seeds").unwrap();
 
