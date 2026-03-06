@@ -14,8 +14,17 @@ impl FlowMatchingService {
             if !flow.enabled {
                 continue;
             }
+            // Fix 1: domain filter - flow.domain must match event.domain
+            if flow.domain != event.domain {
+                continue;
+            }
             for (index, step) in flow.steps.iter().enumerate() {
-                if step.event_type == event.event_type && step.source == event.source {
+                // Fix 5: source_filter - only check source when source_filter is Some
+                let source_matches = match &step.source_filter {
+                    Some(filter) => filter == &event.source,
+                    None => true, // skip source check when no filter specified
+                };
+                if step.event_type == event.event_type && source_matches {
                     return Some((flow.id, index as i32));
                 }
             }
