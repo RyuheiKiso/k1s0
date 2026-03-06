@@ -936,7 +936,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             return Err(Status::invalid_argument("column_name is required"));
         }
         self.manage_columns_uc
-            .delete_column(&req.table_name, &req.column_name)
+            .delete_column(&req.table_name, &req.column_name, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(DeleteColumnResponse { success: true }))
@@ -979,7 +979,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .ok_or_else(|| Status::invalid_argument("data is required"))?;
         let rel = self
             .manage_relationships_uc
-            .create_relationship(&struct_to_json(data), "grpc-user")
+            .create_relationship(&struct_to_json(data), "grpc-user", None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         let target_name = self
@@ -1052,7 +1052,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .ok_or_else(|| Status::invalid_argument("data is required"))?;
         let job = self
             .import_export_uc
-            .import_records(&req.table_name, &struct_to_json(data), "grpc-user")
+            .import_records(&req.table_name, &struct_to_json(data), "grpc-user", None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(ImportRecordsResponse {
@@ -1070,7 +1070,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         }
         let value = self
             .import_export_uc
-            .export_records(&req.table_name, None)
+            .export_records(&req.table_name, None, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         let data = json_to_struct(&value).unwrap_or_else(|| {
@@ -1109,7 +1109,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         }
         let list = self
             .manage_display_configs_uc
-            .list_display_configs(&req.table_name)
+            .list_display_configs(&req.table_name, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(ListDisplayConfigsResponse {
@@ -1152,7 +1152,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .ok_or_else(|| Status::invalid_argument("data is required"))?;
         let cfg = self
             .manage_display_configs_uc
-            .create_display_config(&req.table_name, &struct_to_json(data), "grpc-user")
+            .create_display_config(&req.table_name, &struct_to_json(data), "grpc-user", None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(CreateDisplayConfigResponse {
@@ -1211,7 +1211,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             });
         let (logs, total) = self
             .get_audit_logs_uc
-            .get_table_logs(&req.table_name, p.page, p.page_size)
+            .get_table_logs(&req.table_name, p.page, p.page_size, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(ListTableAuditLogsResponse {
@@ -1244,7 +1244,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             });
         let (logs, total) = self
             .get_audit_logs_uc
-            .get_record_logs(&req.table_name, &req.record_id, p.page, p.page_size)
+            .get_record_logs(&req.table_name, &req.record_id, p.page, p.page_size, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(ListRecordAuditLogsResponse {
