@@ -27,20 +27,6 @@ pub fn print_terminal(result: &DepsResult) {
             .push(&service.name);
     }
 
-    // 違反のソース→ターゲットペアを収集（表示時のマーク用）
-    let violation_pairs: BTreeSet<(String, String)> = result
-        .violations
-        .iter()
-        .filter(|v| v.severity == Severity::Error)
-        .map(|v| (v.source.clone(), v.target.clone()))
-        .collect();
-    let warning_pairs: BTreeSet<(String, String)> = result
-        .violations
-        .iter()
-        .filter(|v| v.severity == Severity::Warning)
-        .map(|v| (v.source.clone(), v.target.clone()))
-        .collect();
-
     println!("=== 依存関係マップ ===");
 
     for tier in &tier_order {

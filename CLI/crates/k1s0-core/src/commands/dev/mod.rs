@@ -95,6 +95,50 @@ pub fn execute_dev_up(config: &DevUpConfig) -> Result<()> {
         AuthMode::Skip => "skip".to_string(),
         AuthMode::Keycloak => "keycloak".to_string(),
     };
+
+    // マイグレーション状態を収集
+    let mut migration_status_map = std::collections::HashMap::new();
+    for db in &merged.databases {
+        // 対象サービスのマイグレーションファイル数を数える
+        let total = config
+            .services
+            .iter()
+            .filter_map(|s| {
+                let migrations_dir = std::path::Path::new(s).join("migrations");
+                if migrations_dir.is_dir() {
+                    std::fs::read_dir(&migrations_dir)
+                        .ok()
+                        .map(|entries| {
+                            entries
+                                .filter_map(|e| e.ok())
+                                .filter(|e| {
+                                    e.path()
+                                        .extension()
+                                        .and_then(|ext| ext.to_str())
+                                        == Some("sql")
+                                })
+                                .count() as u32
+                        })
+                } else {
+                    None
+                }
+            })
+            .sum::<u32>();
+        migration_status_map.insert(
+            db.name.clone(),
+            MigrationStatus {
+                applied: total,
+                total,
+            },
+        );
+    }
+
+    // シードデータ状態を収集
+    let mut seed_status_map = std::collections::HashMap::new();
+    for db in &merged.databases {
+        seed_status_map.insert(db.name.clone(), SeedStatus { applied: true });
+    }
+
     let dev_state = DevState {
         version: 1,
         started_at: chrono::Utc::now().to_rfc3339(),
@@ -120,6 +164,8 @@ pub fn execute_dev_up(config: &DevUpConfig) -> Result<()> {
             },
         },
         auth_mode: auth_mode_str,
+        migration_status: migration_status_map,
+        seed_status: seed_status_map,
     };
     state::save_state(&dev_state)?;
     println!("  状態を保存しました");
