@@ -122,13 +122,27 @@ pub async fn trace_by_correlation(
                 serde_json::Value::Null
             };
 
+            let pending_steps_json: Vec<serde_json::Value> = output
+                .pending_steps
+                .iter()
+                .map(|ps| {
+                    serde_json::json!({
+                        "event_type": ps.event_type,
+                        "source": ps.source,
+                        "step_index": ps.step_index,
+                        "timeout_seconds": ps.timeout_seconds,
+                        "waiting_since_seconds": ps.waiting_since_seconds
+                    })
+                })
+                .collect();
+
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
                     "correlation_id": output.correlation_id,
                     "flow": flow_json,
                     "events": events_json,
-                    "pending_steps": []
+                    "pending_steps": pending_steps_json
                 })),
             )
                 .into_response()
