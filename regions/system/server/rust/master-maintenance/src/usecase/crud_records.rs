@@ -302,10 +302,11 @@ impl CrudRecordsUseCase {
         table_name: &str,
         record_id: &str,
         deleted_by: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<()> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
         if !table.allow_delete {
@@ -330,6 +331,7 @@ impl CrudRecordsUseCase {
             changed_by: deleted_by.to_string(),
             change_reason: None,
             trace_id: None,
+            domain_scope: domain_scope.map(|s| s.to_string()),
             created_at: chrono::Utc::now(),
         };
         let _ = self.change_log_repo.create(&log).await;

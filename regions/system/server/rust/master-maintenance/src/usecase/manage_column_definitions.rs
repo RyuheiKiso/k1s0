@@ -23,10 +23,14 @@ impl ManageColumnDefinitionsUseCase {
         }
     }
 
-    pub async fn list_columns(&self, table_name: &str) -> anyhow::Result<Vec<ColumnDefinition>> {
+    pub async fn list_columns(
+        &self,
+        table_name: &str,
+        domain_scope: Option<&str>,
+    ) -> anyhow::Result<Vec<ColumnDefinition>> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
         self.column_repo.find_by_table_id(table.id).await
