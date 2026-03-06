@@ -16,6 +16,9 @@ const MENU_ITEMS: &[&str] = &[
     "ビルド",
     "テスト実行",
     "デプロイ",
+    "依存関係マップ",
+    "ローカル開発",
+    "マイグレーション管理",
     "終了",
 ];
 
@@ -118,7 +121,22 @@ fn show_main_menu(_cli_config: &config::CliConfig) -> Result<bool> {
                         eprintln!("デプロイエラー: {e}");
                     }
                 }
-                8 => return Ok(true),
+                8 => {
+                    if let Err(e) = commands::deps::run() {
+                        eprintln!("依存関係マップエラー: {e}");
+                    }
+                }
+                9 => {
+                    if let Err(e) = commands::dev::run() {
+                        eprintln!("ローカル開発エラー: {e}");
+                    }
+                }
+                10 => {
+                    if let Err(e) = commands::migrate::run() {
+                        eprintln!("マイグレーション管理エラー: {e}");
+                    }
+                }
+                11 => return Ok(true),
                 _ => unreachable!(),
             }
             Ok(false)

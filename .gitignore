@@ -41,6 +41,10 @@ vendor/
 # Docker
 docker-compose.override.yaml
 
+# k1s0 CLI generated (local dev environment / cache)
+.k1s0-dev/
+.k1s0/
+
 # Helm
 **/charts/*.tgz
 **/charts/*.tar.gz

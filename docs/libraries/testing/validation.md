@@ -16,7 +16,7 @@
 | `validate_email` | 関数 | RFC 5321 準拠メールアドレス検証 |
 | `validate_uuid` | 関数 | UUID v4 形式検証 |
 | `validate_url` | 関数 | HTTP/HTTPS URL 形式検証 |
-| `validate_pagination` | 関数 | ページ番号・ページサイズの範囲検証（page >= 1, page_size 1-100） |
+| `validate_pagination` | 関数 | ページ番号・ページサイズの範囲検証（page >= 1, page_size 1-200）。TS/Dart は 1-100 |
 | `validate_date_range` | 関数 | 日時範囲（from <= to）検証 |
 | `validate_tenant_id` | 関数 | テナント ID 形式検証 |
 | `ValidationError` | 構造体 | フィールド名・エラーコード・メッセージ |
@@ -138,28 +138,25 @@ func (v *DefaultValidator) ValidateDateRange(startDate, endDate time.Time) error
 **主要 API**:
 
 ```typescript
-export interface ValidationError {
-  field: string;
-  code: string;
-  message: string;
+export class ValidationError extends Error {
+  readonly field: string;
+  readonly code: string;        // 未指定時は field 名から自動生成
+  constructor(field: string, message: string, code?: string);
 }
 
-export class ValidationErrors extends Error {
-  constructor(public readonly errors: ValidationError[]);
-  get isEmpty(): boolean;
+export class ValidationErrors {
+  hasErrors(): boolean;
+  getErrors(): ReadonlyArray<ValidationError>;
   add(error: ValidationError): void;
-  throw(): never;
 }
 
-export function validateEmail(field: string, value: string): ValidationError | null;
-export function validateUuid(field: string, value: string): ValidationError | null;
-export function validateUrl(field: string, value: string): ValidationError | null;
-export function validatePagination(field: string, page: number, pageSize: number): ValidationError | null;
-export function validateDateRange(field: string, from: Date, to: Date): ValidationError | null;
-export function validateTenantId(field: string, value: string): ValidationError | null;
-
-// 複数バリデーションの一括実行
-export function collect(...validators: Array<ValidationError | null>): ValidationErrors;
+// 各関数は検証失敗時に ValidationError を throw する（成功時は void）
+export function validateEmail(email: string): void;
+export function validateUUID(id: string): void;
+export function validateURL(url: string): void;
+export function validatePagination(page: number, perPage: number): void;  // perPage: 1-100
+export function validateDateRange(startDate: Date, endDate: Date): void;
+export function validateTenantId(tenantId: string): void;
 ```
 
 **カバレッジ目標**: 90%以上
@@ -176,10 +173,12 @@ export function collect(...validators: Array<ValidationError | null>): Validatio
 |------|-----------|-----|
 | Go | interface + method（`DefaultValidator` 構造体のメソッド） | `v.ValidateEmail(email)` |
 | Rust | standalone 関数 + `Validator` トレイト（拡張用） | `validate_email("email", value)?` |
-| TypeScript | standalone 関数 | `validateEmail("email", value)` |
-| Dart | （TypeScript と同等） | — |
+| TypeScript | standalone 関数（失敗時 throw） | `validateEmail(email)` |
+| Dart | （TypeScript と同等、失敗時 throw） | `validateEmail(email)` |
 
-> Go のみ `Validator` インターフェースのメソッドとして API を提供する（`NewDefaultValidator()` でインスタンスを生成）。Rust・TypeScript・Dart はモジュールレベルの standalone 関数として提供する。Rust の `Validator` トレイトはカスタムルール拡張用であり、組み込みバリデーション関数とは独立している。
+> Go のみ `Validator` インターフェースのメソッドとして API を提供する（`NewDefaultValidator()` でインスタンスを生成）。Rust は `(field, value)` 引数で `Result` を返す standalone 関数。TypeScript・Dart は `(value)` 引数で失敗時に `ValidationError` を throw する standalone 関数。Rust の `Validator` トレイトはカスタムルール拡張用であり、組み込みバリデーション関数とは独立している。
+>
+> **pagination 上限の言語差異**: Go/Rust は `per_page` 上限 200、TypeScript/Dart は上限 100。
 
 ## テスト戦略
 
