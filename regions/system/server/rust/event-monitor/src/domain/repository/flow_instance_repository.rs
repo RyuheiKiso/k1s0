@@ -9,7 +9,7 @@ pub trait FlowInstanceRepository: Send + Sync {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<FlowInstance>>;
     async fn find_by_correlation_id(
         &self,
-        correlation_id: &str,
+        correlation_id: String,
     ) -> anyhow::Result<Option<FlowInstance>>;
     async fn find_by_flow_id_paginated(
         &self,

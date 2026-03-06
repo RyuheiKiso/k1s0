@@ -46,7 +46,7 @@ impl TraceByCorrelationUseCase {
     ) -> Result<TraceOutput, TraceByCorrelationError> {
         let events = self
             .event_repo
-            .find_by_correlation_id(correlation_id)
+            .find_by_correlation_id(correlation_id.to_string())
             .await
             .map_err(|e| TraceByCorrelationError::Internal(e.to_string()))?;
 
@@ -58,7 +58,7 @@ impl TraceByCorrelationUseCase {
 
         let flow_instance = self
             .flow_inst_repo
-            .find_by_correlation_id(correlation_id)
+            .find_by_correlation_id(correlation_id.to_string())
             .await
             .map_err(|e| TraceByCorrelationError::Internal(e.to_string()))?;
 

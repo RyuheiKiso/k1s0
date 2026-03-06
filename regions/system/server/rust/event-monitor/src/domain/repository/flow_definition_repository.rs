@@ -12,15 +12,15 @@ pub trait FlowDefinitionRepository: Send + Sync {
         &self,
         page: u32,
         page_size: u32,
-        domain: Option<&str>,
+        domain: Option<String>,
     ) -> anyhow::Result<(Vec<FlowDefinition>, u64)>;
     async fn find_by_domain_and_event_type(
         &self,
-        domain: &str,
-        event_type: &str,
+        domain: String,
+        event_type: String,
     ) -> anyhow::Result<Vec<FlowDefinition>>;
     async fn create(&self, flow: &FlowDefinition) -> anyhow::Result<()>;
     async fn update(&self, flow: &FlowDefinition) -> anyhow::Result<()>;
     async fn delete(&self, id: &Uuid) -> anyhow::Result<bool>;
-    async fn exists_by_name(&self, name: &str) -> anyhow::Result<bool>;
+    async fn exists_by_name(&self, name: String) -> anyhow::Result<bool>;
 }

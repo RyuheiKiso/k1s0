@@ -22,6 +22,8 @@ pub enum CreateRuleError {
     AlreadyExists(String),
     #[error("validation error: {0}")]
     Validation(String),
+    #[error("invalid condition: {0}")]
+    InvalidCondition(String),
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -60,7 +62,7 @@ impl CreateRuleUseCase {
         }
 
         ConditionParser::parse(&input.when_condition)
-            .map_err(|e| CreateRuleError::Validation(format!("invalid condition: {}", e)))?;
+            .map_err(|e| CreateRuleError::InvalidCondition(e))?;
 
         let exists = self
             .repo
@@ -169,6 +171,6 @@ mod tests {
             then_result: serde_json::json!({}),
         };
         let result = uc.execute(&input).await;
-        assert!(matches!(result, Err(CreateRuleError::Validation(_))));
+        assert!(matches!(result, Err(CreateRuleError::InvalidCondition(_))));
     }
 }

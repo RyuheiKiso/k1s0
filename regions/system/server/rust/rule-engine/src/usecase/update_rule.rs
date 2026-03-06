@@ -24,6 +24,8 @@ pub enum UpdateRuleError {
     NotFound(Uuid),
     #[error("validation error: {0}")]
     Validation(String),
+    #[error("invalid condition: {0}")]
+    InvalidCondition(String),
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -72,7 +74,7 @@ impl UpdateRuleUseCase {
         }
         if let Some(ref when) = input.when_condition {
             ConditionParser::parse(when)
-                .map_err(|e| UpdateRuleError::Validation(format!("invalid condition: {}", e)))?;
+                .map_err(|e| UpdateRuleError::InvalidCondition(e))?;
             rule.when_condition = when.clone();
         }
         if let Some(ref then) = input.then_result {

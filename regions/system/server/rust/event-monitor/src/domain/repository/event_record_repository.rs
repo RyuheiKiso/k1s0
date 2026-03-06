@@ -13,15 +13,15 @@ pub trait EventRecordRepository: Send + Sync {
         &self,
         page: u32,
         page_size: u32,
-        domain: Option<&str>,
-        event_type: Option<&str>,
-        source: Option<&str>,
+        domain: Option<String>,
+        event_type: Option<String>,
+        source: Option<String>,
         from: Option<DateTime<Utc>>,
         to: Option<DateTime<Utc>>,
-        status: Option<&str>,
+        status: Option<String>,
     ) -> anyhow::Result<(Vec<EventRecord>, u64)>;
     async fn find_by_correlation_id(
         &self,
-        correlation_id: &str,
+        correlation_id: String,
     ) -> anyhow::Result<Vec<EventRecord>>;
 }

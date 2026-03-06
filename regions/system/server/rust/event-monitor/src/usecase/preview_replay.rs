@@ -66,7 +66,7 @@ impl PreviewReplayUseCase {
         for corr_id in &input.correlation_ids {
             let events = self
                 .event_repo
-                .find_by_correlation_id(corr_id)
+                .find_by_correlation_id(corr_id.clone())
                 .await
                 .map_err(|e| PreviewReplayError::Internal(e.to_string()))?;
 

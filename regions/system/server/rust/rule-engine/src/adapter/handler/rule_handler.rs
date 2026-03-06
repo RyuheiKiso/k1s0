@@ -112,6 +112,10 @@ pub async fn create_rule(
             let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", &msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
+        Err(crate::usecase::create_rule::CreateRuleError::InvalidCondition(msg)) => {
+            let err = ErrorResponse::new("SYS_RULE_INVALID_CONDITION", &msg);
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
         Err(crate::usecase::create_rule::CreateRuleError::Internal(msg)) => {
             let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
@@ -144,6 +148,10 @@ pub async fn update_rule(
         }
         Err(crate::usecase::update_rule::UpdateRuleError::Validation(msg)) => {
             let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", &msg);
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+        Err(crate::usecase::update_rule::UpdateRuleError::InvalidCondition(msg)) => {
+            let err = ErrorResponse::new("SYS_RULE_INVALID_CONDITION", &msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(crate::usecase::update_rule::UpdateRuleError::Internal(msg)) => {

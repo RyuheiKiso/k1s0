@@ -40,7 +40,7 @@ impl ListFlowsUseCase {
     ) -> Result<ListFlowsOutput, ListFlowsError> {
         let (flows, total_count) = self
             .repo
-            .find_all_paginated(input.page, input.page_size, input.domain.as_deref())
+            .find_all_paginated(input.page, input.page_size, input.domain.clone())
             .await
             .map_err(|e| ListFlowsError::Internal(e.to_string()))?;
 

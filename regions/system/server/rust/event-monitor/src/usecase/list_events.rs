@@ -47,12 +47,12 @@ impl ListEventsUseCase {
             .find_all_paginated(
                 input.page,
                 input.page_size,
-                input.domain.as_deref(),
-                input.event_type.as_deref(),
-                input.source.as_deref(),
+                input.domain.clone(),
+                input.event_type.clone(),
+                input.source.clone(),
                 input.from,
                 input.to,
-                input.status.as_deref(),
+                input.status.clone(),
             )
             .await
             .map_err(|e| ListEventsError::Internal(e.to_string()))?;

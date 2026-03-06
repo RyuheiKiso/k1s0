@@ -201,6 +201,7 @@ impl RuleEngineGrpcService {
                     GrpcError::AlreadyExists(format!("rule already exists: {}", name))
                 }
                 CreateRuleError::Validation(msg) => GrpcError::InvalidArgument(msg),
+                CreateRuleError::InvalidCondition(msg) => GrpcError::InvalidArgument(msg),
                 CreateRuleError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -250,6 +251,7 @@ impl RuleEngineGrpcService {
                     GrpcError::NotFound(format!("rule not found: {}", id))
                 }
                 UpdateRuleError::Validation(msg) => GrpcError::InvalidArgument(msg),
+                UpdateRuleError::InvalidCondition(msg) => GrpcError::InvalidArgument(msg),
                 UpdateRuleError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 

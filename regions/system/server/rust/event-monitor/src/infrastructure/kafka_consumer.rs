@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use rdkafka::config::ClientConfig;
-use rdkafka::consumer::{Consumer, StreamConsumer};
+use rdkafka::consumer::StreamConsumer;
 use rdkafka::message::Message;
-use tokio_stream::StreamExt;
+use futures_util::StreamExt;
 use tracing::{info, warn};
 
 use crate::domain::entity::event_record::EventRecord;
@@ -141,7 +141,7 @@ impl EventKafkaConsumer {
         // Flow matching
         let flow_defs = self
             .flow_def_repo
-            .find_by_domain_and_event_type(&domain, &event_type)
+            .find_by_domain_and_event_type(domain.clone(), event_type.clone())
             .await?;
         let all_flows = self.flow_def_repo.find_all().await?;
 
@@ -154,7 +154,7 @@ impl EventKafkaConsumer {
             // Update or create flow instance
             if let Some(mut instance) = self
                 .flow_inst_repo
-                .find_by_correlation_id(&correlation_id)
+                .find_by_correlation_id(correlation_id.clone())
                 .await?
             {
                 instance.current_step_index = step_index;

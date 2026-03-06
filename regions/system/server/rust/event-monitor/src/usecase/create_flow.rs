@@ -48,7 +48,7 @@ impl CreateFlowUseCase {
 
         let exists = self
             .repo
-            .exists_by_name(&input.name)
+            .exists_by_name(input.name.clone())
             .await
             .map_err(|e| CreateFlowError::Internal(e.to_string()))?;
 
