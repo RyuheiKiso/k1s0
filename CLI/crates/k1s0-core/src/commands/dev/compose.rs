@@ -376,8 +376,14 @@ mod tests {
 
         assert!(yaml.contains("kafka:"));
         assert!(yaml.contains("confluentinc/cp-kafka:7.7.0"));
+        assert!(yaml.contains("k1s0-dev-kafka"));
         assert!(yaml.contains("9092:9092"));
+        assert!(yaml.contains("KAFKA_AUTO_CREATE_TOPICS_ENABLE"));
+        assert!(yaml.contains("\"k1s0-dev-cluster\""));
+        assert!(yaml.contains("k1s0_dev_kafka_data"));
         assert!(yaml.contains("kafka-ui:"));
+        assert!(yaml.contains("k1s0-dev-kafka-ui"));
+        assert!(yaml.contains("kafka:9092"));
         assert!(yaml.contains("8081:8080"));
         assert!(!yaml.contains("postgres:"));
     }
