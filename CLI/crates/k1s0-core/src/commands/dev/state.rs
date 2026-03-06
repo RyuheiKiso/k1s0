@@ -46,7 +46,7 @@ pub fn save_state_to(state: &DevState, path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::dev::types::{DevStateDeps, KafkaDep, PostgresDep, RedisDep};
+    use crate::commands::dev::types::{DevStateDeps, KafkaDep, MigrationStatus, PostgresDep, RedisDep, SeedStatus};
     use tempfile::TempDir;
 
     /// 存在しないファイルからの読み込みは None を返す。
@@ -62,6 +62,14 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let state_path = tmp.path().join("state.json");
 
+        let mut migration_status = std::collections::HashMap::new();
+        migration_status.insert(
+            "k1s0_system".to_string(),
+            MigrationStatus { applied: 3, total: 3 },
+        );
+        let mut seed_status = std::collections::HashMap::new();
+        seed_status.insert("k1s0_system".to_string(), SeedStatus { applied: true });
+
         let state = DevState {
             version: 1,
             started_at: "2026-03-06T00:00:00Z".to_string(),
@@ -75,6 +83,8 @@ mod tests {
                 redis: Some(RedisDep { port: 6379 }),
             },
             auth_mode: "skip".to_string(),
+            migration_status,
+            seed_status,
         };
 
         save_state_to(&state, &state_path).unwrap();
@@ -108,6 +118,8 @@ mod tests {
             services: vec![],
             dependencies: DevStateDeps::default(),
             auth_mode: "keycloak".to_string(),
+            migration_status: std::collections::HashMap::new(),
+            seed_status: std::collections::HashMap::new(),
         };
 
         save_state_to(&state, &state_path).unwrap();
@@ -143,6 +155,8 @@ mod tests {
             services: vec![],
             dependencies: DevStateDeps::default(),
             auth_mode: "skip".to_string(),
+            migration_status: std::collections::HashMap::new(),
+            seed_status: std::collections::HashMap::new(),
         };
 
         save_state_to(&state, &state_path).unwrap();

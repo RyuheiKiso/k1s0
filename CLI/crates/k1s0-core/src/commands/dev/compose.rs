@@ -344,8 +344,14 @@ mod tests {
 
         assert!(yaml.contains("postgres:"));
         assert!(yaml.contains("postgres:17"));
+        assert!(yaml.contains("k1s0-dev-postgres"));
         assert!(yaml.contains("5432:5432"));
+        assert!(yaml.contains("POSTGRES_DB: \"test_db\""));
+        assert!(yaml.contains("k1s0_dev_postgres_data"));
         assert!(yaml.contains("pgadmin:"));
+        assert!(yaml.contains("k1s0-dev-pgadmin"));
+        assert!(yaml.contains("admin@example.com"));
+        assert!(yaml.contains("PGADMIN_CONFIG_SERVER_MODE"));
         assert!(yaml.contains("5050:80"));
         assert!(!yaml.contains("kafka:"));
         assert!(!yaml.contains("redis:"));
