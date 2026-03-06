@@ -94,6 +94,7 @@ mod tests {
             steps: vec![FlowStep {
                 event_type: "OrderCreated".to_string(),
                 source: "order-service".to_string(),
+                source_filter: Some("order-service".to_string()),
                 timeout_seconds: 0,
                 description: String::new(),
             }],
@@ -121,6 +122,7 @@ mod tests {
             steps: vec![FlowStep {
                 event_type: "OrderCreated".to_string(),
                 source: "order-service".to_string(),
+                source_filter: Some("order-service".to_string()),
                 timeout_seconds: 0,
                 description: String::new(),
             }],
