@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -43,13 +41,16 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
 
     info!(
         app_name = %cfg.app.name,
@@ -112,11 +113,15 @@ async fn main() -> anyhow::Result<()> {
             .unwrap_or_else(|_| "587".to_string())
             .parse()
             .unwrap_or(587);
-        let from_address = std::env::var("SMTP_FROM")
-            .unwrap_or_else(|_| "noreply@k1s0.dev".to_string());
-        match EmailDeliveryClient::new(&smtp_host, smtp_port, &smtp_user, &smtp_pass, &from_address) {
+        let from_address =
+            std::env::var("SMTP_FROM").unwrap_or_else(|_| "noreply@k1s0.dev".to_string());
+        match EmailDeliveryClient::new(&smtp_host, smtp_port, &smtp_user, &smtp_pass, &from_address)
+        {
             Ok(client) => {
-                info!("Email delivery client initialized (SMTP: {}:{})", smtp_host, smtp_port);
+                info!(
+                    "Email delivery client initialized (SMTP: {}:{})",
+                    smtp_host, smtp_port
+                );
                 delivery_clients.insert("email".to_string(), Arc::new(client));
             }
             Err(e) => {
@@ -174,23 +179,29 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let send_notification_uc = if delivery_clients.is_empty() {
-        Arc::new(usecase::SendNotificationUseCase::with_template_repo(
-            channel_repo.clone(),
-            log_repo.clone(),
-            template_repo.clone(),
+        Arc::new(
+            usecase::SendNotificationUseCase::with_template_repo(
+                channel_repo.clone(),
+                log_repo.clone(),
+                template_repo.clone(),
+            )
+            .with_event_publisher(event_publisher.clone()),
         )
-        .with_event_publisher(event_publisher.clone()))
     } else {
-        Arc::new(usecase::SendNotificationUseCase::with_delivery_clients_and_template_repo(
-            channel_repo.clone(),
-            log_repo.clone(),
-            template_repo.clone(),
-            delivery_clients,
+        Arc::new(
+            usecase::SendNotificationUseCase::with_delivery_clients_and_template_repo(
+                channel_repo.clone(),
+                log_repo.clone(),
+                template_repo.clone(),
+                delivery_clients,
+            )
+            .with_event_publisher(event_publisher.clone()),
         )
-        .with_event_publisher(event_publisher.clone()))
     };
-    let retry_notification_uc =
-        Arc::new(usecase::RetryNotificationUseCase::new(log_repo.clone(), channel_repo.clone()));
+    let retry_notification_uc = Arc::new(usecase::RetryNotificationUseCase::new(
+        log_repo.clone(),
+        channel_repo.clone(),
+    ));
     let create_template_uc = Arc::new(usecase::CreateTemplateUseCase::new(template_repo.clone()));
     let list_templates_uc = Arc::new(usecase::ListTemplatesUseCase::new(template_repo.clone()));
     let get_template_uc = Arc::new(usecase::GetTemplateUseCase::new(template_repo.clone()));
@@ -204,9 +215,9 @@ async fn main() -> anyhow::Result<()> {
             send_notification_uc.clone(),
         ) {
             Ok(consumer) => {
-                let consumer = consumer.with_metrics(
-                    Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-notification-server")),
-                );
+                let consumer = consumer.with_metrics(Arc::new(
+                    k1s0_telemetry::metrics::Metrics::new("k1s0-notification-server"),
+                ));
                 info!("kafka consumer initialized, starting background ingestion");
                 tokio::spawn(async move {
                     if let Err(e) = consumer.run().await {
@@ -251,7 +262,10 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+    let auth_state = k1s0_server_common::require_auth_state(
+        "notification-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
         info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for notification-server");
         let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
             &auth_cfg.jwks_url,
@@ -259,13 +273,11 @@ async fn main() -> anyhow::Result<()> {
             &auth_cfg.audience,
             std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
         ));
-        Some(adapter::middleware::auth::NotificationAuthState {
+        adapter::middleware::auth::NotificationAuthState {
             verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, notification-server running without authentication");
-        None
-    };
+        }
+        }),
+    )?;
 
     let mut state = adapter::handler::AppState {
         send_notification_uc,
@@ -288,8 +300,8 @@ async fn main() -> anyhow::Result<()> {
         state = state.with_auth(auth_st);
     }
 
-    let app = adapter::handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app =
+        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     let grpc_metrics = metrics;
@@ -378,7 +390,11 @@ impl NotificationChannelRepository for InMemoryNotificationChannelRepository {
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         let total = filtered.len() as u64;
         let start = ((page.saturating_sub(1)) * page_size) as usize;
-        let items: Vec<NotificationChannel> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        let items: Vec<NotificationChannel> = filtered
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((items, total))
     }
 
@@ -446,7 +462,11 @@ impl NotificationTemplateRepository for InMemoryNotificationTemplateRepository {
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         let total = filtered.len() as u64;
         let start = ((page.saturating_sub(1)) * page_size) as usize;
-        let items: Vec<NotificationTemplate> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        let items: Vec<NotificationTemplate> = filtered
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((items, total))
     }
 
@@ -524,7 +544,11 @@ impl NotificationLogRepository for InMemoryNotificationLogRepository {
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         let total = filtered.len() as u64;
         let start = ((page.saturating_sub(1)) * page_size) as usize;
-        let items: Vec<NotificationLog> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        let items: Vec<NotificationLog> = filtered
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((items, total))
     }
 

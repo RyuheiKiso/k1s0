@@ -1,6 +1,4 @@
 // proto stubs繝ｻ譛ｪ謗･邯壹・ gRPC 繧､繝ｳ繝輔Λ縺ｯ蟆・擂縺ｮ proto codegen 蠕後↓菴ｿ逕ｨ縺輔ｌ繧・
-#![allow(dead_code, unused_imports)]
-
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -30,7 +28,11 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
@@ -179,11 +181,8 @@ async fn main() -> anyhow::Result<()> {
         )
     } else {
         Arc::new(
-            usecase::UpdateConfigUseCase::new_with_watch(
-                config_repo.clone(),
-                watch_tx.clone(),
-            )
-            .with_schema_repo(schema_repo.clone()),
+            usecase::UpdateConfigUseCase::new_with_watch(config_repo.clone(), watch_tx.clone())
+                .with_schema_repo(schema_repo.clone()),
         )
     };
     let delete_config_uc = Arc::new(usecase::DeleteConfigUseCase::new(config_repo.clone()));
@@ -207,21 +206,22 @@ async fn main() -> anyhow::Result<()> {
     let config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for config-server");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(adapter::middleware::auth::ConfigAuthState {
-            verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, config-server running without authentication");
-        None
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "config-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for config-server");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            adapter::middleware::auth::ConfigAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
 
     // AppState (REST handler 逕ｨ) - Kafka騾夂衍莉倥″縺ｧ讒狗ｯ・
     let mut state = adapter::handler::AppState {
@@ -238,11 +238,8 @@ async fn main() -> anyhow::Result<()> {
             )
         } else {
             std::sync::Arc::new(
-                usecase::UpdateConfigUseCase::new_with_watch(
-                    config_repo.clone(),
-                    watch_tx.clone(),
-                )
-                .with_schema_repo(schema_repo.clone()),
+                usecase::UpdateConfigUseCase::new_with_watch(config_repo.clone(), watch_tx.clone())
+                    .with_schema_repo(schema_repo.clone()),
             )
         },
         delete_config_uc: std::sync::Arc::new(usecase::DeleteConfigUseCase::new(
@@ -520,10 +517,7 @@ impl domain::repository::ConfigSchemaRepository for InMemoryConfigSchemaReposito
             .cloned())
     }
 
-    async fn find_by_namespace(
-        &self,
-        namespace: &str,
-    ) -> anyhow::Result<Option<ConfigSchema>> {
+    async fn find_by_namespace(&self, namespace: &str) -> anyhow::Result<Option<ConfigSchema>> {
         let schemas = self.schemas.read().await;
         Ok(schemas
             .iter()

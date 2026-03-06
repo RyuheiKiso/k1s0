@@ -1,0 +1,22 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: k1s0-demo
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Kiali dashboard
+      - containerPort: 30001
+        hostPort: 20001
+        protocol: TCP
+      # Jaeger UI
+      - containerPort: 30686
+        hostPort: 16686
+        protocol: TCP
+      # Grafana
+      - containerPort: 30300
+        hostPort: 3000
+        protocol: TCP
+      # Demo UI
+      - containerPort: 30173
+        hostPort: 5173
+        protocol: TCP

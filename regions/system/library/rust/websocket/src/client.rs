@@ -126,7 +126,9 @@ mod tests {
         let mut client = InMemoryWsClient::new();
         client.connect().await.unwrap();
 
-        client.push_receive(WsMessage::Text("hello".to_string())).await;
+        client
+            .push_receive(WsMessage::Text("hello".to_string()))
+            .await;
 
         let msg = client.receive().await.unwrap();
         assert_eq!(msg, WsMessage::Text("hello".to_string()));

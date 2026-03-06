@@ -1,9 +1,11 @@
-﻿use std::collections::HashMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::usecase::create_index::{CreateIndexError, CreateIndexInput, CreateIndexUseCase};
 use crate::usecase::delete_document::{DeleteDocumentError, DeleteDocumentUseCase};
-use crate::usecase::index_document::{IndexDocumentError, IndexDocumentInput, IndexDocumentUseCase};
+use crate::usecase::index_document::{
+    IndexDocumentError, IndexDocumentInput, IndexDocumentUseCase,
+};
 use crate::usecase::list_indices::{ListIndicesError, ListIndicesUseCase};
 use crate::usecase::search::{SearchError, SearchInput, SearchUseCase};
 
@@ -170,13 +172,9 @@ impl SearchGrpcService {
         &self,
         _req: ListIndicesRequest,
     ) -> Result<ListIndicesResponse, GrpcError> {
-        let indices = self
-            .list_indices_uc
-            .execute()
-            .await
-            .map_err(|e| match e {
-                ListIndicesError::Internal(msg) => GrpcError::Internal(msg),
-            })?;
+        let indices = self.list_indices_uc.execute().await.map_err(|e| match e {
+            ListIndicesError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
 
         Ok(ListIndicesResponse {
             indices: indices
@@ -227,9 +225,8 @@ impl SearchGrpcService {
         let filters = if req.filters_json.is_empty() {
             std::collections::HashMap::new()
         } else {
-            serde_json::from_slice(&req.filters_json).map_err(|e| {
-                GrpcError::InvalidArgument(format!("invalid filters_json: {}", e))
-            })?
+            serde_json::from_slice(&req.filters_json)
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid filters_json: {}", e)))?
         };
 
         let input = SearchInput {
@@ -284,11 +281,15 @@ impl SearchGrpcService {
         match self.delete_document_uc.execute(&input).await {
             Ok(_) => Ok(DeleteDocumentResponse {
                 success: true,
-                message: format!("document {} deleted from index {}", req.document_id, req.index),
+                message: format!(
+                    "document {} deleted from index {}",
+                    req.document_id, req.index
+                ),
             }),
-            Err(DeleteDocumentError::NotFound(index, id)) => {
-                Err(GrpcError::NotFound(format!("document not found: {}/{}", index, id)))
-            }
+            Err(DeleteDocumentError::NotFound(index, id)) => Err(GrpcError::NotFound(format!(
+                "document not found: {}/{}",
+                index, id
+            ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -399,5 +400,3 @@ mod tests {
         assert!(!resp.has_next);
     }
 }
-
-

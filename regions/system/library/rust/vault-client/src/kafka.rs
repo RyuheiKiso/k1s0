@@ -10,11 +10,7 @@ pub struct VaultSecretRotationSubscriber {
 }
 
 impl VaultSecretRotationSubscriber {
-    pub fn new(
-        brokers: &str,
-        consumer_group: &str,
-        topic: &str,
-    ) -> Result<Self, VaultError> {
+    pub fn new(brokers: &str, consumer_group: &str, topic: &str) -> Result<Self, VaultError> {
         let consumer: StreamConsumer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
             .set("group.id", consumer_group)

@@ -1,4 +1,5 @@
 import type { GraphQlQuery, GraphQlResponse } from './types.js';
+import { ClientError } from './types.js';
 
 export interface GraphQlClient {
   execute<T = unknown>(query: GraphQlQuery): Promise<GraphQlResponse<T>>;
@@ -28,7 +29,7 @@ export class GraphQlHttpClient implements GraphQlClient {
   async *subscribe<T = unknown>(
     _subscription: GraphQlQuery,
   ): AsyncIterable<GraphQlResponse<T>> {
-    throw new Error('GraphQlHttpClient does not support subscriptions over HTTP');
+    throw ClientError.request('GraphQlHttpClient does not support subscriptions over HTTP');
   }
 
   private async send<T = unknown>(query: GraphQlQuery): Promise<GraphQlResponse<T>> {
@@ -47,7 +48,7 @@ export class GraphQlHttpClient implements GraphQlClient {
     });
 
     if (!resp.ok) {
-      throw new Error(`GraphQL request failed: ${resp.status}`);
+      throw ClientError.request(`GraphQL request failed: ${resp.status}`);
     }
 
     return (await resp.json()) as GraphQlResponse<T>;

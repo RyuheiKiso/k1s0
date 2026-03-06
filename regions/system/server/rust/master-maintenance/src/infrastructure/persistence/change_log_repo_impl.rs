@@ -1,7 +1,7 @@
-use async_trait::async_trait;
-use sqlx::PgPool;
 use crate::domain::entity::change_log::ChangeLog;
 use crate::domain::repository::change_log_repository::ChangeLogRepository;
+use async_trait::async_trait;
+use sqlx::PgPool;
 
 pub struct ChangeLogPostgresRepository {
     pool: PgPool,
@@ -21,7 +21,7 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
                (id, target_table, target_record_id, operation, before_data, after_data,
                 changed_columns, changed_by, change_reason, trace_id)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-               RETURNING *"#
+               RETURNING *"#,
         )
         .bind(log.id)
         .bind(&log.target_table)
@@ -38,11 +38,16 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
         Ok(row.into())
     }
 
-    async fn find_by_table(&self, table_name: &str, page: i32, page_size: i32) -> anyhow::Result<(Vec<ChangeLog>, i64)> {
+    async fn find_by_table(
+        &self,
+        table_name: &str,
+        page: i32,
+        page_size: i32,
+    ) -> anyhow::Result<(Vec<ChangeLog>, i64)> {
         let offset = (page - 1).max(0) * page_size;
 
         let total: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM master_maintenance.change_logs WHERE target_table = $1"
+            "SELECT COUNT(*) FROM master_maintenance.change_logs WHERE target_table = $1",
         )
         .bind(table_name)
         .fetch_one(&self.pool)
@@ -60,7 +65,13 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
         Ok((rows.into_iter().map(|r| r.into()).collect(), total.0))
     }
 
-    async fn find_by_record(&self, table_name: &str, record_id: &str, page: i32, page_size: i32) -> anyhow::Result<(Vec<ChangeLog>, i64)> {
+    async fn find_by_record(
+        &self,
+        table_name: &str,
+        record_id: &str,
+        page: i32,
+        page_size: i32,
+    ) -> anyhow::Result<(Vec<ChangeLog>, i64)> {
         let offset = (page - 1).max(0) * page_size;
 
         let total: (i64,) = sqlx::query_as(

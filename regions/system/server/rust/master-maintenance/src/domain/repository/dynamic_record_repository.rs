@@ -1,7 +1,7 @@
+use crate::domain::entity::column_definition::ColumnDefinition;
+use crate::domain::entity::table_definition::TableDefinition;
 use async_trait::async_trait;
 use serde_json::Value;
-use crate::domain::entity::table_definition::TableDefinition;
-use crate::domain::entity::column_definition::ColumnDefinition;
 
 #[async_trait]
 pub trait DynamicRecordRepository: Send + Sync {
@@ -38,9 +38,5 @@ pub trait DynamicRecordRepository: Send + Sync {
         data: &Value,
     ) -> anyhow::Result<Value>;
 
-    async fn delete(
-        &self,
-        table_def: &TableDefinition,
-        record_id: &str,
-    ) -> anyhow::Result<()>;
+    async fn delete(&self, table_def: &TableDefinition, record_id: &str) -> anyhow::Result<()>;
 }

@@ -176,7 +176,6 @@ fn default_ttl_seconds() -> u64 {
     30
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -301,5 +300,3 @@ mod tests {
         assert_eq!(cfg.timeout_ms, 2000);
     }
 }
-
-

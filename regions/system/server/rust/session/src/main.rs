@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -210,21 +208,22 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for session-server");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(adapter::middleware::auth::SessionAuthState {
-            verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, session-server running without authentication");
-        None
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "session-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for session-server");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            adapter::middleware::auth::SessionAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
 
     let mut state = adapter::handler::session_handler::AppState {
         create_uc,
@@ -259,12 +258,8 @@ async fn main() -> anyhow::Result<()> {
     use adapter::middleware::rbac::require_permission;
 
     let api_routes = if let Some(ref auth_st) = state.auth_state {
-        // GET -> sessions/read
+        // sessions/read: ユーザーセッション一覧（管理者用）
         let read_routes = axum::Router::new()
-            .route(
-                "/api/v1/sessions/:session_id",
-                axum::routing::get(adapter::handler::session_handler::get_session),
-            )
             .route(
                 "/api/v1/users/:user_id/sessions",
                 axum::routing::get(adapter::handler::session_handler::list_user_sessions),
@@ -273,35 +268,36 @@ async fn main() -> anyhow::Result<()> {
                 "sessions", "read",
             )));
 
-        // auth only routes (no RBAC)
+        // sessions/write: ユーザー全セッション失効（管理者用）
+        let write_routes = axum::Router::new()
+            .route(
+                "/api/v1/users/:user_id/sessions",
+                axum::routing::delete(adapter::handler::session_handler::revoke_all_sessions),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "sessions", "write",
+            )));
+
+        // auth only routes (no RBAC) — JWT 認証のみ（ユーザー本人操作）
         let auth_only_routes = axum::Router::new()
             .route(
                 "/api/v1/sessions",
                 axum::routing::post(adapter::handler::session_handler::create_session),
             )
             .route(
+                "/api/v1/sessions/:session_id",
+                axum::routing::get(adapter::handler::session_handler::get_session)
+                    .delete(adapter::handler::session_handler::revoke_session),
+            )
+            .route(
                 "/api/v1/sessions/:session_id/refresh",
                 axum::routing::post(adapter::handler::session_handler::refresh_session),
             );
 
-        // DELETE routes -> sessions/admin
-        let admin_routes = axum::Router::new()
-            .route(
-                "/api/v1/sessions/:session_id",
-                axum::routing::delete(adapter::handler::session_handler::revoke_session),
-            )
-            .route(
-                "/api/v1/users/:user_id/sessions",
-                axum::routing::delete(adapter::handler::session_handler::revoke_all_sessions),
-            )
-            .route_layer(axum::middleware::from_fn(require_permission(
-                "sessions", "admin",
-            )));
-
         axum::Router::new()
             .merge(read_routes)
+            .merge(write_routes)
             .merge(auth_only_routes)
-            .merge(admin_routes)
             .layer(axum::middleware::from_fn_with_state(
                 auth_st.clone(),
                 auth_middleware,

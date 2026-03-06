@@ -195,7 +195,6 @@ fn default_lock_timeout_secs() -> u64 {
     30
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -313,5 +312,3 @@ mod tests {
         );
     }
 }
-
-

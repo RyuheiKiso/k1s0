@@ -9,8 +9,7 @@ impl AssertionHelper {
     /// `actual` が `expected` の全キー・値を含んでいることを検証する。
     /// `actual` に余分なキーがあっても失敗しない。
     pub fn assert_json_contains(actual: &str, expected: &str) {
-        let actual_val: Value =
-            serde_json::from_str(actual).expect("actual is not valid JSON");
+        let actual_val: Value = serde_json::from_str(actual).expect("actual is not valid JSON");
         let expected_val: Value =
             serde_json::from_str(expected).expect("expected is not valid JSON");
         assert!(
@@ -53,9 +52,9 @@ impl AssertionHelper {
 
 fn json_contains(actual: &Value, expected: &Value) -> bool {
     match (actual, expected) {
-        (Value::Object(a), Value::Object(e)) => {
-            e.iter().all(|(k, v)| a.get(k).map(|av| json_contains(av, v)).unwrap_or(false))
-        }
+        (Value::Object(a), Value::Object(e)) => e
+            .iter()
+            .all(|(k, v)| a.get(k).map(|av| json_contains(av, v)).unwrap_or(false)),
         (Value::Array(a), Value::Array(e)) => {
             e.iter().all(|ev| a.iter().any(|av| json_contains(av, ev)))
         }
@@ -95,10 +94,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "JSON partial match failed")]
     fn test_json_contains_mismatch() {
-        AssertionHelper::assert_json_contains(
-            r#"{"id":"1"}"#,
-            r#"{"id":"2"}"#,
-        );
+        AssertionHelper::assert_json_contains(r#"{"id":"1"}"#, r#"{"id":"2"}"#);
     }
 
     #[test]

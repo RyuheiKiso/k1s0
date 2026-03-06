@@ -129,7 +129,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/notifications",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "notifications", "read",
+                "notifications",
+                "read",
             ))),
         );
 
@@ -147,7 +148,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/notifications",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "notifications", "read",
+                "notifications",
+                "read",
             ))),
         );
 
@@ -163,7 +165,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/notifications",
             post(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "notifications", "write",
+                "notifications",
+                "write",
             ))),
         );
 
@@ -179,7 +182,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/notifications",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "notifications", "read",
+                "notifications",
+                "read",
             ))),
         );
 
@@ -195,7 +199,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/notifications",
             post(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "notifications", "write",
+                "notifications",
+                "write",
             ))),
         );
 
@@ -211,7 +216,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/notifications",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "notifications", "read",
+                "notifications",
+                "read",
             ))),
         );
 

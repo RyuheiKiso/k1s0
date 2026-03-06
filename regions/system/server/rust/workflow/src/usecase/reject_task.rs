@@ -1,10 +1,15 @@
 use std::sync::Arc;
 
+use sqlx::PgPool;
+
 use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::domain::repository::WorkflowDefinitionRepository;
 use crate::domain::repository::WorkflowInstanceRepository;
 use crate::domain::repository::WorkflowTaskRepository;
 use crate::domain::service::WorkflowDomainService;
+use crate::infrastructure::kafka_producer::WorkflowEventPublisher;
+use crate::usecase::postgres_support::{insert_task_tx, update_instance_tx, update_task_tx};
+use tracing::warn;
 
 #[derive(Debug, Clone)]
 pub struct RejectTaskInput {
@@ -42,6 +47,8 @@ pub struct RejectTaskUseCase {
     task_repo: Arc<dyn WorkflowTaskRepository>,
     instance_repo: Arc<dyn WorkflowInstanceRepository>,
     definition_repo: Arc<dyn WorkflowDefinitionRepository>,
+    event_publisher: Arc<dyn WorkflowEventPublisher>,
+    pool: Option<Arc<PgPool>>,
 }
 
 impl RejectTaskUseCase {
@@ -49,11 +56,30 @@ impl RejectTaskUseCase {
         task_repo: Arc<dyn WorkflowTaskRepository>,
         instance_repo: Arc<dyn WorkflowInstanceRepository>,
         definition_repo: Arc<dyn WorkflowDefinitionRepository>,
+        event_publisher: Arc<dyn WorkflowEventPublisher>,
     ) -> Self {
         Self {
             task_repo,
             instance_repo,
             definition_repo,
+            event_publisher,
+            pool: None,
+        }
+    }
+
+    pub fn with_pool(
+        task_repo: Arc<dyn WorkflowTaskRepository>,
+        instance_repo: Arc<dyn WorkflowInstanceRepository>,
+        definition_repo: Arc<dyn WorkflowDefinitionRepository>,
+        event_publisher: Arc<dyn WorkflowEventPublisher>,
+        pool: Arc<PgPool>,
+    ) -> Self {
+        Self {
+            task_repo,
+            instance_repo,
+            definition_repo,
+            event_publisher,
+            pool: Some(pool),
         }
     }
 
@@ -74,11 +100,6 @@ impl RejectTaskUseCase {
 
         task.reject(input.actor_id.clone(), input.comment.clone());
 
-        self.task_repo
-            .update(&task)
-            .await
-            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
-
         let mut instance = self
             .instance_repo
             .find_by_id(&task.instance_id)
@@ -91,9 +112,7 @@ impl RejectTaskUseCase {
             .find_by_id(&instance.workflow_id)
             .await
             .map_err(|e| RejectTaskError::Internal(e.to_string()))?
-            .ok_or_else(|| {
-                RejectTaskError::DefinitionNotFound(instance.workflow_id.clone())
-            })?;
+            .ok_or_else(|| RejectTaskError::DefinitionNotFound(instance.workflow_id.clone()))?;
 
         let next_step_id = WorkflowDomainService::next_step_on_reject(&definition, &task.step_id);
 
@@ -101,19 +120,11 @@ impl RejectTaskUseCase {
 
         if WorkflowDomainService::is_terminal_step(next_step_id.as_deref()) {
             instance.fail();
-            self.instance_repo
-                .update(&instance)
-                .await
-                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
         } else {
             match next_step_id.as_deref() {
                 Some(next_id) => {
                     if let Some(next_step) = definition.find_step(next_id) {
                         instance.current_step_id = Some(next_id.to_string());
-                        self.instance_repo
-                            .update(&instance)
-                            .await
-                            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
 
                         let new_task_id = format!("task_{}", uuid::Uuid::new_v4().simple());
                         let due_at = WorkflowDomainService::task_due_at(next_step.timeout_hours);
@@ -125,27 +136,60 @@ impl RejectTaskUseCase {
                             None,
                             due_at,
                         );
-                        self.task_repo
-                            .create(&new_task)
-                            .await
-                            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
                         next_task = Some(new_task);
                     } else {
                         instance.fail();
-                        self.instance_repo
-                            .update(&instance)
-                            .await
-                            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
                     }
                 }
                 None => {
                     instance.fail();
-                    self.instance_repo
-                        .update(&instance)
-                        .await
-                        .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
                 }
             }
+        }
+
+        if let Some(pool) = &self.pool {
+            let mut tx = pool
+                .begin()
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            update_task_tx(&mut tx, &task)
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            update_instance_tx(&mut tx, &instance)
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            if let Some(next_task_ref) = next_task.as_ref() {
+                insert_task_tx(&mut tx, next_task_ref)
+                    .await
+                    .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            }
+            tx.commit()
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+        } else {
+            self.task_repo
+                .update(&task)
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            self.instance_repo
+                .update(&instance)
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            if let Some(next_task_ref) = next_task.as_ref() {
+                self.task_repo
+                    .create(next_task_ref)
+                    .await
+                    .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            }
+        }
+
+        if let Err(err) = self.event_publisher.publish_task_completed(&task).await {
+            warn!(
+                task_id = %task.id,
+                instance_id = %task.instance_id,
+                error = %err,
+                "failed to publish workflow task completed event"
+            );
         }
 
         Ok(RejectTaskOutput {
@@ -165,6 +209,7 @@ mod tests {
     use crate::domain::repository::workflow_definition_repository::MockWorkflowDefinitionRepository;
     use crate::domain::repository::workflow_instance_repository::MockWorkflowInstanceRepository;
     use crate::domain::repository::workflow_task_repository::MockWorkflowTaskRepository;
+    use crate::infrastructure::kafka_producer::MockWorkflowEventPublisher;
 
     fn two_step_definition() -> WorkflowDefinition {
         WorkflowDefinition::new(
@@ -235,11 +280,17 @@ mod tests {
         def_mock
             .expect_find_by_id()
             .returning(|_| Ok(Some(two_step_definition())));
+        let mut publisher = MockWorkflowEventPublisher::new();
+        publisher
+            .expect_publish_task_completed()
+            .times(1)
+            .returning(|_| Ok(()));
 
         let uc = RejectTaskUseCase::new(
             Arc::new(task_mock),
             Arc::new(inst_mock),
             Arc::new(def_mock),
+            Arc::new(publisher),
         );
         let input = RejectTaskInput {
             task_id: "task_001".to_string(),
@@ -279,11 +330,17 @@ mod tests {
         def_mock
             .expect_find_by_id()
             .returning(|_| Ok(Some(two_step_definition())));
+        let mut publisher = MockWorkflowEventPublisher::new();
+        publisher
+            .expect_publish_task_completed()
+            .times(1)
+            .returning(|_| Ok(()));
 
         let uc = RejectTaskUseCase::new(
             Arc::new(task_mock),
             Arc::new(inst_mock),
             Arc::new(def_mock),
+            Arc::new(publisher),
         );
         let input = RejectTaskInput {
             task_id: "task_001".to_string(),
@@ -303,6 +360,7 @@ mod tests {
         let mut task_mock = MockWorkflowTaskRepository::new();
         let inst_mock = MockWorkflowInstanceRepository::new();
         let def_mock = MockWorkflowDefinitionRepository::new();
+        let publisher = MockWorkflowEventPublisher::new();
 
         task_mock.expect_find_by_id().returning(|_| Ok(None));
 
@@ -310,6 +368,7 @@ mod tests {
             Arc::new(task_mock),
             Arc::new(inst_mock),
             Arc::new(def_mock),
+            Arc::new(publisher),
         );
         let input = RejectTaskInput {
             task_id: "task_missing".to_string(),
@@ -328,6 +387,7 @@ mod tests {
         let mut task_mock = MockWorkflowTaskRepository::new();
         let inst_mock = MockWorkflowInstanceRepository::new();
         let def_mock = MockWorkflowDefinitionRepository::new();
+        let publisher = MockWorkflowEventPublisher::new();
 
         let mut task = assigned_task();
         task.approve("prev".to_string(), None);
@@ -339,6 +399,7 @@ mod tests {
             Arc::new(task_mock),
             Arc::new(inst_mock),
             Arc::new(def_mock),
+            Arc::new(publisher),
         );
         let input = RejectTaskInput {
             task_id: "task_001".to_string(),
@@ -350,5 +411,45 @@ mod tests {
             result.unwrap_err(),
             RejectTaskError::InvalidStatus(_)
         ));
+    }
+
+    #[tokio::test]
+    async fn publish_failure_does_not_fail_usecase() {
+        let mut task_mock = MockWorkflowTaskRepository::new();
+        let mut inst_mock = MockWorkflowInstanceRepository::new();
+        let mut def_mock = MockWorkflowDefinitionRepository::new();
+        let mut publisher = MockWorkflowEventPublisher::new();
+
+        task_mock
+            .expect_find_by_id()
+            .returning(|_| Ok(Some(assigned_task())));
+        task_mock.expect_update().returning(|_| Ok(()));
+        inst_mock
+            .expect_find_by_id()
+            .returning(|_| Ok(Some(running_instance())));
+        inst_mock.expect_update().returning(|_| Ok(()));
+        def_mock
+            .expect_find_by_id()
+            .returning(|_| Ok(Some(two_step_definition())));
+        publisher
+            .expect_publish_task_completed()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("kafka unavailable")));
+
+        let uc = RejectTaskUseCase::new(
+            Arc::new(task_mock),
+            Arc::new(inst_mock),
+            Arc::new(def_mock),
+            Arc::new(publisher),
+        );
+        let result = uc
+            .execute(&RejectTaskInput {
+                task_id: "task_001".to_string(),
+                actor_id: "user-002".to_string(),
+                comment: Some("Rejected".to_string()),
+            })
+            .await;
+
+        assert!(result.is_ok());
     }
 }

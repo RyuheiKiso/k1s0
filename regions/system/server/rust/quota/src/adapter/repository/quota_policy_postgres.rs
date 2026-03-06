@@ -36,8 +36,7 @@ impl From<QuotaPolicyRow> for QuotaPolicy {
         QuotaPolicy {
             id: r.id,
             name: r.name,
-            subject_type: SubjectType::from_str(&r.subject_type)
-                .unwrap_or(SubjectType::Tenant),
+            subject_type: SubjectType::from_str(&r.subject_type).unwrap_or(SubjectType::Tenant),
             subject_id: r.subject_id,
             limit: r.quota_limit as u64,
             period: Period::from_str(&r.period).unwrap_or(Period::Daily),
@@ -64,11 +63,7 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
         Ok(row.map(Into::into))
     }
 
-    async fn find_all(
-        &self,
-        page: u32,
-        page_size: u32,
-    ) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
+    async fn find_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
         let offset = (page.saturating_sub(1) * page_size) as i64;
         let limit = page_size as i64;
 
@@ -82,10 +77,9 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
         .fetch_all(self.pool.as_ref())
         .await?;
 
-        let count: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM quota.quota_policies")
-                .fetch_one(self.pool.as_ref())
-                .await?;
+        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM quota.quota_policies")
+            .fetch_one(self.pool.as_ref())
+            .await?;
 
         Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
     }

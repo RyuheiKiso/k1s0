@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use async_graphql::futures_util::Stream;
+use chrono::{DateTime, Utc};
 use tonic::transport::Channel;
 use tracing::instrument;
 
@@ -47,11 +48,10 @@ impl ConfigGrpcClient {
         namespace: &str,
         key: &str,
     ) -> anyhow::Result<Option<ConfigEntry>> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::config::v1::GetConfigRequest {
-                namespace: namespace.to_owned(),
-                key: key.to_owned(),
-            });
+        let request = tonic::Request::new(proto::k1s0::system::config::v1::GetConfigRequest {
+            namespace: namespace.to_owned(),
+            key: key.to_owned(),
+        });
 
         match self.client.clone().get_config(request).await {
             Ok(resp) => {
@@ -63,10 +63,7 @@ impl ConfigGrpcClient {
                 Ok(Some(ConfigEntry {
                     key: format!("{}/{}", entry.namespace, entry.key),
                     value: value_str,
-                    updated_at: entry
-                        .updated_at
-                        .map(|ts| ts.seconds.to_string())
-                        .unwrap_or_default(),
+                    updated_at: timestamp_to_rfc3339(entry.updated_at),
                 }))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
@@ -76,13 +73,9 @@ impl ConfigGrpcClient {
 
     /// WatchConfig Server-Side Streaming を購読し、変更イベントを ConfigEntry として返す。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn watch_config(
-        &self,
-        namespaces: Vec<String>,
-    ) -> impl Stream<Item = ConfigEntry> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::config::v1::WatchConfigRequest { namespaces },
-        );
+    pub async fn watch_config(&self, namespaces: Vec<String>) -> impl Stream<Item = ConfigEntry> {
+        let request =
+            tonic::Request::new(proto::k1s0::system::config::v1::WatchConfigRequest { namespaces });
 
         let stream = self
             .client
@@ -99,10 +92,7 @@ impl ConfigGrpcClient {
                     let entry = ConfigEntry {
                         key: format!("{}/{}", resp.namespace, resp.key),
                         value: value_str,
-                        updated_at: resp
-                            .changed_at
-                            .map(|ts| ts.seconds.to_string())
-                            .unwrap_or_default(),
+                        updated_at: timestamp_to_rfc3339(resp.changed_at),
                     };
                     Some((entry, stream))
                 }
@@ -110,4 +100,10 @@ impl ConfigGrpcClient {
             }
         })
     }
+}
+
+fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+        .map(|dt| dt.to_rfc3339())
+        .unwrap_or_default()
 }

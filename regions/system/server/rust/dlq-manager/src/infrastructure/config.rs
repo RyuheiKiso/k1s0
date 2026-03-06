@@ -73,7 +73,6 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -241,5 +240,3 @@ kafka:
         assert_eq!(kafka.dlq_topic_pattern, "*.dlq.v1");
     }
 }
-
-

@@ -1,4 +1,4 @@
-﻿use axum::http::StatusCode;
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 
@@ -38,8 +38,7 @@ impl IntoResponse for ListConfigsError {
     fn into_response(self) -> axum::response::Response {
         match self {
             ListConfigsError::Validation(msg) => {
-                let err =
-                    ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
+                let err = ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             }
             ListConfigsError::Internal(msg) => {
@@ -73,13 +72,11 @@ impl IntoResponse for UpdateConfigError {
                 (StatusCode::CONFLICT, Json(err)).into_response()
             }
             UpdateConfigError::Validation(msg) => {
-                let err =
-                    ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
+                let err = ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             }
             UpdateConfigError::SchemaValidation(msg) => {
-                let err =
-                    ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
+                let err = ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             }
             UpdateConfigError::Internal(msg) => {
@@ -238,4 +235,3 @@ mod tests {
         assert_eq!(json["error"]["code"], "SYS_CONFIG_VALIDATION_FAILED");
     }
 }
-

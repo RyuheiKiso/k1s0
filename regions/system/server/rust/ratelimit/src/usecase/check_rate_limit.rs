@@ -109,38 +109,22 @@ impl CheckRateLimitUseCase {
         let backend_decision = match algorithm {
             Algorithm::TokenBucket => {
                 self.state_store
-                    .check_token_bucket(
-                        &redis_key,
-                        i64::from(limit),
-                        i64::from(effective_window),
-                    )
+                    .check_token_bucket(&redis_key, i64::from(limit), i64::from(effective_window))
                     .await
             }
             Algorithm::FixedWindow => {
                 self.state_store
-                    .check_fixed_window(
-                        &redis_key,
-                        i64::from(limit),
-                        i64::from(effective_window),
-                    )
+                    .check_fixed_window(&redis_key, i64::from(limit), i64::from(effective_window))
                     .await
             }
             Algorithm::SlidingWindow => {
                 self.state_store
-                    .check_sliding_window(
-                        &redis_key,
-                        i64::from(limit),
-                        i64::from(effective_window),
-                    )
+                    .check_sliding_window(&redis_key, i64::from(limit), i64::from(effective_window))
                     .await
             }
             Algorithm::LeakyBucket => {
                 self.state_store
-                    .check_leaky_bucket(
-                        &redis_key,
-                        i64::from(limit),
-                        i64::from(effective_window),
-                    )
+                    .check_leaky_bucket(&redis_key, i64::from(limit), i64::from(effective_window))
                     .await
             }
         };
@@ -165,9 +149,7 @@ impl CheckRateLimitUseCase {
         decision.scope = scope.to_string();
         decision.identifier = identifier.to_string();
         decision.used = (decision.limit - decision.remaining).max(0);
-        decision.rule_id = matched_rule
-            .map(|r| r.id.to_string())
-            .unwrap_or_default();
+        decision.rule_id = matched_rule.map(|r| r.id.to_string()).unwrap_or_default();
 
         Ok(decision)
     }
@@ -186,11 +168,11 @@ fn identifier_matches(pattern: &str, identifier: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::TimeZone;
     use crate::domain::entity::{Algorithm, RateLimitDecision, RateLimitRule};
     use crate::domain::repository::rate_limit_repository::{
         MockRateLimitRepository, MockRateLimitStateStore,
     };
+    use chrono::TimeZone;
 
     fn ts(seconds: i64) -> chrono::DateTime<chrono::Utc> {
         chrono::Utc.timestamp_opt(seconds, 0).single().unwrap()
@@ -263,8 +245,7 @@ mod tests {
     #[tokio::test]
     async fn test_check_rate_limit_no_rule_uses_default() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_by_scope()
-            .returning(|_| Ok(vec![]));
+        repo.expect_find_by_scope().returning(|_| Ok(vec![]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -288,7 +269,10 @@ mod tests {
         let result = uc.execute("", "user-123", 60).await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), CheckRateLimitError::ValidationError(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            CheckRateLimitError::ValidationError(_)
+        ));
     }
 
     #[tokio::test]

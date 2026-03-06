@@ -239,10 +239,9 @@ impl EventRepository for EventPostgresRepository {
 
             (total, rows)
         } else {
-            let total: i64 =
-                sqlx::query_scalar("SELECT COUNT(*) FROM event_store.stored_events")
-                    .fetch_one(&self.pool)
-                    .await?;
+            let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM event_store.stored_events")
+                .fetch_one(&self.pool)
+                .await?;
 
             let rows = sqlx::query_as::<_, StoredEventRow>(
                 r#"SELECT stream_id, sequence, event_type, version, payload, actor_id, correlation_id, causation_id, occurred_at, stored_at
@@ -283,11 +282,10 @@ impl EventRepository for EventPostgresRepository {
     }
 
     async fn delete_by_stream(&self, stream_id: &str) -> anyhow::Result<u64> {
-        let result =
-            sqlx::query("DELETE FROM event_store.stored_events WHERE stream_id = $1")
-                .bind(stream_id)
-                .execute(&self.pool)
-                .await?;
+        let result = sqlx::query("DELETE FROM event_store.stored_events WHERE stream_id = $1")
+            .bind(stream_id)
+            .execute(&self.pool)
+            .await?;
 
         Ok(result.rows_affected())
     }

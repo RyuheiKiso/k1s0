@@ -1,16 +1,42 @@
 use crate::domain::entity::change_log::ChangeLog;
 use crate::domain::repository::change_log_repository::ChangeLogRepository;
 use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
+use crate::domain::repository::consistency_rule_repository::ConsistencyRuleRepository;
 use crate::domain::repository::dynamic_record_repository::DynamicRecordRepository;
 use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
+use crate::domain::service::rule_engine_service::RuleEngineService;
+use crate::domain::value_object::rule_result::RuleResult;
+use crate::usecase::rule_evaluator::RuleEvaluator;
 use serde_json::Value;
 use std::sync::Arc;
+
+#[derive(Debug, Clone)]
+pub struct RecordMutationOutput {
+    pub record: Value,
+    pub warnings: Vec<RuleResult>,
+}
+
+#[derive(Debug)]
+pub struct RecordValidationError {
+    pub errors: Vec<RuleResult>,
+    pub warnings: Vec<RuleResult>,
+}
+
+impl std::fmt::Display for RecordValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "validation failed")
+    }
+}
+
+impl std::error::Error for RecordValidationError {}
 
 pub struct CrudRecordsUseCase {
     table_repo: Arc<dyn TableDefinitionRepository>,
     column_repo: Arc<dyn ColumnDefinitionRepository>,
+    rule_repo: Arc<dyn ConsistencyRuleRepository>,
     record_repo: Arc<dyn DynamicRecordRepository>,
     change_log_repo: Arc<dyn ChangeLogRepository>,
+    rule_evaluator: RuleEvaluator,
 }
 
 pub struct ListRecordsOutput {
@@ -27,14 +53,71 @@ impl CrudRecordsUseCase {
     pub fn new(
         table_repo: Arc<dyn TableDefinitionRepository>,
         column_repo: Arc<dyn ColumnDefinitionRepository>,
+        rule_repo: Arc<dyn ConsistencyRuleRepository>,
         record_repo: Arc<dyn DynamicRecordRepository>,
         change_log_repo: Arc<dyn ChangeLogRepository>,
+        rule_engine: Arc<dyn RuleEngineService>,
     ) -> Self {
+        let rule_evaluator = RuleEvaluator::new(
+            table_repo.clone(),
+            column_repo.clone(),
+            rule_repo.clone(),
+            record_repo.clone(),
+            rule_engine.clone(),
+        );
         Self {
             table_repo,
             column_repo,
+            rule_repo,
             record_repo,
             change_log_repo,
+            rule_evaluator,
+        }
+    }
+
+    async fn evaluate_before_save_rules(
+        &self,
+        table: &crate::domain::entity::table_definition::TableDefinition,
+        columns: &[crate::domain::entity::column_definition::ColumnDefinition],
+        data: &Value,
+    ) -> anyhow::Result<Vec<RuleResult>> {
+        let rules = self
+            .rule_repo
+            .find_by_table_id(table.id, Some("before_save"))
+            .await?;
+
+        let mut results = Vec::new();
+        for rule in rules.into_iter().filter(|rule| rule.is_active) {
+            let result = self
+                .rule_evaluator
+                .evaluate_rule(&rule, table, columns, data)
+                .await?
+                .with_rule_info(rule.id.to_string(), rule.name.clone());
+            results.push(result);
+        }
+
+        Ok(results)
+    }
+
+    fn fail_on_rule_errors(results: &[RuleResult]) -> anyhow::Result<Vec<RuleResult>> {
+        let errors: Vec<RuleResult> = results
+            .iter()
+            .filter(|result| !result.passed && result.severity == "error")
+            .cloned()
+            .collect();
+        let warnings: Vec<RuleResult> = results
+            .iter()
+            .filter(|result| result.severity == "warning")
+            .cloned()
+            .collect();
+
+        if errors.is_empty() {
+            Ok(warnings)
+        } else {
+            Err(anyhow::Error::new(RecordValidationError {
+                errors,
+                warnings,
+            }))
         }
     }
 
@@ -116,7 +199,7 @@ impl CrudRecordsUseCase {
         table_name: &str,
         data: &Value,
         created_by: &str,
-    ) -> anyhow::Result<Value> {
+    ) -> anyhow::Result<RecordMutationOutput> {
         let table = self
             .table_repo
             .find_by_name(table_name)
@@ -126,6 +209,11 @@ impl CrudRecordsUseCase {
             anyhow::bail!("Create not allowed for table '{}'", table_name);
         }
         let columns = self.column_repo.find_by_table_id(table.id).await?;
+        let warnings = Self::fail_on_rule_errors(
+            &self
+                .evaluate_before_save_rules(&table, &columns, data)
+                .await?,
+        )?;
         let record = self.record_repo.create(&table, &columns, data).await?;
 
         let log = ChangeLog {
@@ -147,7 +235,7 @@ impl CrudRecordsUseCase {
         };
         let _ = self.change_log_repo.create(&log).await;
 
-        Ok(record)
+        Ok(RecordMutationOutput { record, warnings })
     }
 
     pub async fn update_record(
@@ -156,7 +244,7 @@ impl CrudRecordsUseCase {
         record_id: &str,
         data: &Value,
         updated_by: &str,
-    ) -> anyhow::Result<Value> {
+    ) -> anyhow::Result<RecordMutationOutput> {
         let table = self
             .table_repo
             .find_by_name(table_name)
@@ -166,6 +254,11 @@ impl CrudRecordsUseCase {
             anyhow::bail!("Update not allowed for table '{}'", table_name);
         }
         let columns = self.column_repo.find_by_table_id(table.id).await?;
+        let warnings = Self::fail_on_rule_errors(
+            &self
+                .evaluate_before_save_rules(&table, &columns, data)
+                .await?,
+        )?;
 
         let before = self
             .record_repo
@@ -191,7 +284,7 @@ impl CrudRecordsUseCase {
         };
         let _ = self.change_log_repo.create(&log).await;
 
-        Ok(record)
+        Ok(RecordMutationOutput { record, warnings })
     }
 
     pub async fn delete_record(

@@ -1,0 +1,38 @@
+# order-server canary Deployment
+# Same nginx:alpine stub but with version: canary label.
+# Kiali displays stable/canary as separate workload nodes.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-server-canary
+  namespace: k1s0-service
+  labels:
+    app: order-server
+    version: canary
+    tier: service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-server
+      version: canary
+  template:
+    metadata:
+      labels:
+        app: order-server
+        version: canary
+        tier: service
+    spec:
+      containers:
+        - name: stub
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi

@@ -108,8 +108,18 @@ pub struct QuotaUsage {
 }
 
 impl QuotaUsage {
-    pub fn new(policy: &QuotaPolicy, used: u64, period_start: DateTime<Utc>, period_end: DateTime<Utc>, reset_at: DateTime<Utc>) -> Self {
-        let remaining = if used >= policy.limit { 0 } else { policy.limit - used };
+    pub fn new(
+        policy: &QuotaPolicy,
+        used: u64,
+        period_start: DateTime<Utc>,
+        period_end: DateTime<Utc>,
+        reset_at: DateTime<Utc>,
+    ) -> Self {
+        let remaining = if used >= policy.limit {
+            0
+        } else {
+            policy.limit - used
+        };
         let usage_percent = if policy.limit == 0 {
             100.0
         } else {

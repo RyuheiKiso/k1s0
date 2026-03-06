@@ -23,7 +23,10 @@ fn parse_pool_duration(value: &str) -> Option<std::time::Duration> {
             .ok()
             .map(|hours| std::time::Duration::from_secs(hours * 3600));
     }
-    trimmed.parse::<u64>().ok().map(std::time::Duration::from_secs)
+    trimmed
+        .parse::<u64>()
+        .ok()
+        .map(std::time::Duration::from_secs)
 }
 
 pub async fn create_pool(

@@ -246,16 +246,18 @@ pub async fn get_service_config(
                 if result.entries.is_empty() {
                     return (
                         StatusCode::NOT_FOUND,
-                        Json(serde_json::to_value(super::ErrorResponse::new(
-                            k1s0_server_common::error::config::service_not_found().as_str(),
-                            &format!(
-                            "service config not found for {} in environment {}",
-                            service_name, environment
-                            ),
-                        ))
-                        .unwrap()),
+                        Json(
+                            serde_json::to_value(super::ErrorResponse::new(
+                                k1s0_server_common::error::config::service_not_found().as_str(),
+                                &format!(
+                                    "service config not found for {} in environment {}",
+                                    service_name, environment
+                                ),
+                            ))
+                            .unwrap(),
+                        ),
                     )
-                    .into_response();
+                        .into_response();
                 }
             }
             (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response()

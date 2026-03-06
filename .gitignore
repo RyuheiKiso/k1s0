@@ -17,6 +17,7 @@ nul
 # Rust
 **/target/
 **/Cargo.lock
+!CLI/Cargo.lock
 
 # Go (sum is committed, vendor is not)
 vendor/
@@ -47,6 +48,7 @@ docker-compose.override.yaml
 
 
 # Generated proto/grpc code
+/gen/
 **/src/proto/k1s0.*.rs
 **/src/proto/gen/
 

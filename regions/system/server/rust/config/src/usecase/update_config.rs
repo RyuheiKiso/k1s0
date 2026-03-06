@@ -139,11 +139,7 @@ impl UpdateConfigUseCase {
         // スキーマ検証（設定済みの場合のみ）
         if let Some(ref schema_repo) = self.config_schema_repo {
             if let Ok(Some(schema)) = schema_repo.find_by_namespace(&input.namespace).await {
-                validate_value_against_schema(
-                    &input.key,
-                    &input.value,
-                    &schema.schema_json,
-                )?;
+                validate_value_against_schema(&input.key, &input.value, &schema.schema_json)?;
             }
         }
 

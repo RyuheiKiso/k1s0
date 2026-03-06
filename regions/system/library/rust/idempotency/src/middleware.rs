@@ -106,7 +106,8 @@ async fn process_request(state: &IdempotencyState, req: Request<Body>, next: Nex
                     .into_response();
             }
             crate::IdempotencyStatus::Pending => {
-                return (StatusCode::CONFLICT, "request is already being processed").into_response();
+                return (StatusCode::CONFLICT, "request is already being processed")
+                    .into_response();
             }
             crate::IdempotencyStatus::Failed => {
                 let _ = state.store.delete(&key).await;

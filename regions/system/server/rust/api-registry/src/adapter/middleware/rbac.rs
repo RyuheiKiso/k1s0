@@ -236,11 +236,8 @@ mod tests {
         );
 
         let claims = make_claims_with_roles(&["sys_operator"]);
-        let req = make_request_with_claims(
-            "DELETE",
-            "/api/v1/schemas/my-schema/versions/v1",
-            claims,
-        );
+        let req =
+            make_request_with_claims("DELETE", "/api/v1/schemas/my-schema/versions/v1", claims);
 
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::FORBIDDEN);
@@ -256,11 +253,8 @@ mod tests {
         );
 
         let claims = make_claims_with_roles(&["sys_admin"]);
-        let req = make_request_with_claims(
-            "DELETE",
-            "/api/v1/schemas/my-schema/versions/v1",
-            claims,
-        );
+        let req =
+            make_request_with_claims("DELETE", "/api/v1/schemas/my-schema/versions/v1", claims);
 
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::NO_CONTENT);

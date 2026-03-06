@@ -45,18 +45,8 @@ mod tests {
         mock.expect_list().returning(|_, _| {
             Ok((
                 vec![
-                    Tenant::new(
-                        "t1".to_string(),
-                        "T1".to_string(),
-                        Plan::Free,
-                        None,
-                    ),
-                    Tenant::new(
-                        "t2".to_string(),
-                        "T2".to_string(),
-                        Plan::Professional,
-                        None,
-                    ),
+                    Tenant::new("t1".to_string(), "T1".to_string(), Plan::Free, None),
+                    Tenant::new("t2".to_string(), "T2".to_string(), Plan::Professional, None),
                 ],
                 2,
             ))

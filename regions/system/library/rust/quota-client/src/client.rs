@@ -11,11 +11,7 @@ use crate::model::{QuotaPolicy, QuotaStatus, QuotaUsage};
 #[cfg_attr(feature = "mock", mockall::automock)]
 pub trait QuotaClient: Send + Sync {
     async fn check(&self, quota_id: &str, amount: u64) -> Result<QuotaStatus, QuotaClientError>;
-    async fn increment(
-        &self,
-        quota_id: &str,
-        amount: u64,
-    ) -> Result<QuotaUsage, QuotaClientError>;
+    async fn increment(&self, quota_id: &str, amount: u64) -> Result<QuotaUsage, QuotaClientError>;
     async fn get_usage(&self, quota_id: &str) -> Result<QuotaUsage, QuotaClientError>;
     async fn get_policy(&self, quota_id: &str) -> Result<QuotaPolicy, QuotaClientError>;
 }
@@ -57,11 +53,7 @@ impl QuotaClient for HttpQuotaClient {
             .map_err(|e| QuotaClientError::InvalidResponse(e.to_string()))
     }
 
-    async fn increment(
-        &self,
-        quota_id: &str,
-        amount: u64,
-    ) -> Result<QuotaUsage, QuotaClientError> {
+    async fn increment(&self, quota_id: &str, amount: u64) -> Result<QuotaUsage, QuotaClientError> {
         let url = format!("{}/api/v1/quotas/{}/increment", self.base_url, quota_id);
         let resp = self
             .client
@@ -138,11 +130,7 @@ impl<C: QuotaClient> QuotaClient for CachedQuotaClient<C> {
         self.inner.check(quota_id, amount).await
     }
 
-    async fn increment(
-        &self,
-        quota_id: &str,
-        amount: u64,
-    ) -> Result<QuotaUsage, QuotaClientError> {
+    async fn increment(&self, quota_id: &str, amount: u64) -> Result<QuotaUsage, QuotaClientError> {
         self.inner.increment(quota_id, amount).await
     }
 
@@ -255,11 +243,7 @@ impl QuotaClient for InMemoryQuotaClient {
         })
     }
 
-    async fn increment(
-        &self,
-        quota_id: &str,
-        amount: u64,
-    ) -> Result<QuotaUsage, QuotaClientError> {
+    async fn increment(&self, quota_id: &str, amount: u64) -> Result<QuotaUsage, QuotaClientError> {
         let mut state = self.state.lock().unwrap();
         let mut usage = Self::get_or_create_usage(&mut state, quota_id);
         usage.used = usage.used.saturating_add(amount);

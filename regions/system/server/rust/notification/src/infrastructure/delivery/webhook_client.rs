@@ -73,14 +73,9 @@ mod tests {
     fn new_with_headers() {
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), "Bearer token".to_string());
-        let client = WebhookDeliveryClient::new(
-            "https://example.com/webhook".to_string(),
-            Some(headers),
-        );
+        let client =
+            WebhookDeliveryClient::new("https://example.com/webhook".to_string(), Some(headers));
         assert_eq!(client.headers.len(), 1);
-        assert_eq!(
-            client.headers.get("Authorization").unwrap(),
-            "Bearer token"
-        );
+        assert_eq!(client.headers.get("Authorization").unwrap(), "Bearer token");
     }
 }

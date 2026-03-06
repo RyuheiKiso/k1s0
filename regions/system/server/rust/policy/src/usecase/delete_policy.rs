@@ -90,7 +90,8 @@ mod tests {
             updated_at: chrono::Utc::now(),
         };
         let mut mock = MockPolicyRepository::new();
-        mock.expect_find_by_id().returning(move |_| Ok(Some(policy.clone())));
+        mock.expect_find_by_id()
+            .returning(move |_| Ok(Some(policy.clone())));
         mock.expect_delete().returning(|_| Ok(true));
 
         let uc = DeletePolicyUseCase::new(Arc::new(mock));

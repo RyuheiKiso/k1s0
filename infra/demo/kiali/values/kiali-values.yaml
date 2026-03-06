@@ -1,0 +1,41 @@
+# Kiali Helm values for local demo environment
+# Based on infra/terraform/modules/service-mesh/values/kiali.yaml
+
+auth:
+  strategy: anonymous
+
+deployment:
+  accessible_namespaces:
+    - "**"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  service_type: NodePort
+  node_port: 30001
+
+server:
+  web_root: /kiali
+  web_fqdn: localhost
+  web_port: 20001
+  web_schema: http
+  cors:
+    allow_all: true
+
+external_services:
+  prometheus:
+    url: http://prometheus.observability.svc.cluster.local:9090
+  grafana:
+    enabled: true
+    in_cluster_url: http://grafana.observability.svc.cluster.local:3000
+    url: http://localhost:3000
+  tracing:
+    enabled: true
+    in_cluster_url: http://jaeger.observability.svc.cluster.local:16686
+    url: http://localhost:16686
+    use_grpc: false
+  istio:
+    root_namespace: istio-system

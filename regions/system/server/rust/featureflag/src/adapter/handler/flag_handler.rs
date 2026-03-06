@@ -7,11 +7,11 @@ use axum::{
 use serde::{Deserialize, Serialize};
 
 use super::AppState;
-use k1s0_server_common::error as codes;
-use k1s0_server_common::ErrorResponse;
 use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
 use crate::usecase::create_flag::CreateFlagInput;
 use crate::usecase::update_flag::UpdateFlagInput;
+use k1s0_server_common::error as codes;
+use k1s0_server_common::ErrorResponse;
 
 /// GET /api/v1/flags
 pub async fn list_flags(State(state): State<AppState>) -> impl IntoResponse {
@@ -29,10 +29,7 @@ pub async fn list_flags(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// GET /api/v1/flags/:key
-pub async fn get_flag(
-    State(state): State<AppState>,
-    Path(key): Path<String>,
-) -> impl IntoResponse {
+pub async fn get_flag(State(state): State<AppState>, Path(key): Path<String>) -> impl IntoResponse {
     match state.get_flag_uc.execute(&key).await {
         Ok(flag) => {
             let resp = FlagResponse::from(flag);
@@ -68,7 +65,11 @@ pub async fn create_flag(
     match state.create_flag_uc.execute(&input).await {
         Ok(flag) => {
             let resp = FlagResponse::from(flag);
-            (StatusCode::CREATED, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (
+                StatusCode::CREATED,
+                Json(serde_json::to_value(resp).unwrap()),
+            )
+                .into_response()
         }
         Err(e) => {
             let msg = e.to_string();
@@ -135,7 +136,11 @@ pub async fn delete_flag(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                return error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), &msg);
+                return error_response(
+                    StatusCode::NOT_FOUND,
+                    codes::featureflag::not_found(),
+                    &msg,
+                );
             } else {
                 return error_response(
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -152,13 +157,11 @@ pub async fn delete_flag(
             Json(serde_json::json!({"success": true, "message": format!("flag {} deleted", key)})),
         )
             .into_response(),
-        Err(DeleteFlagError::NotFound(_)) => {
-            error_response(
-                StatusCode::NOT_FOUND,
-                codes::featureflag::not_found(),
-                &format!("flag not found: {}", key),
-            )
-        }
+        Err(DeleteFlagError::NotFound(_)) => error_response(
+            StatusCode::NOT_FOUND,
+            codes::featureflag::not_found(),
+            &format!("flag not found: {}", key),
+        ),
         Err(DeleteFlagError::Internal(msg)) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
             codes::featureflag::delete_failed(),
@@ -173,8 +176,8 @@ pub async fn evaluate_flag(
     Path(key): Path<String>,
     Json(req): Json<EvaluateFlagRequest>,
 ) -> impl IntoResponse {
-    use crate::usecase::evaluate_flag::EvaluateFlagInput;
     use crate::domain::entity::evaluation::EvaluationContext;
+    use crate::usecase::evaluate_flag::EvaluateFlagInput;
 
     let input = EvaluateFlagInput {
         flag_key: key,

@@ -4,7 +4,6 @@ package k1s0.system.ratelimit.v1;
 
 option go_package = "github.com/k1s0-platform/system-proto-go/ratelimit/v1;ratelimitv1";
 
-import "google/protobuf/timestamp.proto";
 import "k1s0/system/common/v1/types.proto";
 
 // RateLimitService は API レート制限サービス。
@@ -40,6 +39,10 @@ message CheckRateLimitResponse {
   int64 reset_at = 3;
   string reason = 4;
   int64 limit = 5;
+  string scope = 6;
+  string identifier = 7;
+  int64 used = 8;
+  string rule_id = 9;
 }
 
 message CreateRuleRequest {
@@ -103,8 +106,9 @@ message RateLimitRule {
   int64 window_seconds = 5;
   string algorithm = 6;
   bool enabled = 7;
-  google.protobuf.Timestamp created_at = 8;
-  google.protobuf.Timestamp updated_at = 9;
+  k1s0.system.common.v1.Timestamp created_at = 8;
+  k1s0.system.common.v1.Timestamp updated_at = 9;
+  string name = 10;
 }
 
 message GetUsageRequest {

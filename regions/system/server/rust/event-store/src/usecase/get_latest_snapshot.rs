@@ -116,9 +116,7 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = GetLatestSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
         let input = GetLatestSnapshotInput {
@@ -140,9 +138,7 @@ mod tests {
         stream_repo
             .expect_find_by_id()
             .returning(|_| Ok(Some(make_stream())));
-        snapshot_repo
-            .expect_find_latest()
-            .returning(|_| Ok(None));
+        snapshot_repo.expect_find_latest().returning(|_| Ok(None));
 
         let uc = GetLatestSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
         let input = GetLatestSnapshotInput {

@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::info;
 
 use k1s0_master_maintenance_server::adapter;
@@ -9,22 +10,27 @@ use k1s0_master_maintenance_server::usecase;
 
 use adapter::handler::{self, AppState};
 use adapter::middleware::auth::MasterMaintenanceAuthState;
-use infrastructure::config::Config;
+use adapter::middleware::grpc_auth::GrpcAuthLayer;
+use infrastructure::config::{Config, DatabaseConfig};
+use k1s0_master_maintenance_server::MIGRATOR;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // 1. Telemetry
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let config_content = std::fs::read_to_string(&config_path)?;
-    let cfg: Config = serde_yaml::from_str(&config_content)?;
+    let cfg = Config::load(&config_path)?;
 
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-master-maintenance-server".to_string(),
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
@@ -35,22 +41,17 @@ async fn main() -> anyhow::Result<()> {
     info!("starting {}", cfg.app.name);
 
     // 3. Database
-    let db_pool = if let Some(ref db_cfg) = cfg.database {
-        let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_cfg.connection_url());
-        let lifetime = std::time::Duration::from_secs(db_cfg.conn_max_lifetime);
-        let pool = sqlx::postgres::PgPoolOptions::new()
-            .max_connections(db_cfg.max_connections)
-            .min_connections(db_cfg.max_idle_conns.min(db_cfg.max_connections))
-            .idle_timeout(Some(lifetime))
-            .max_lifetime(Some(lifetime))
-            .connect(&url)
-            .await?;
-        info!("database connected");
-        Some(pool)
-    } else {
-        info!("running without database");
-        None
-    };
+    let db_cfg = cfg
+        .database
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("database configuration is required"))?;
+    let db_pool = connect_database(db_cfg).await?;
+    MIGRATOR.run(&db_pool).await?;
+    info!(
+        schema = %db_cfg.schema,
+        migrations_path = %DatabaseConfig::migrations_path().display(),
+        "database connected and migrations applied"
+    );
 
     // 4. Metrics
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("master_maintenance"));
@@ -58,88 +59,60 @@ async fn main() -> anyhow::Result<()> {
     // 5. Repositories
     let table_repo: Arc<
         dyn domain::repository::table_definition_repository::TableDefinitionRepository,
-    > = if let Some(ref pool) = db_pool {
-        Arc::new(
-            infrastructure::persistence::table_definition_repo_impl::TableDefinitionPostgresRepository::new(pool.clone()),
-        )
-    } else {
-        unimplemented!("in-memory repository not yet implemented")
-    };
+    > = Arc::new(
+        infrastructure::persistence::table_definition_repo_impl::TableDefinitionPostgresRepository::new(db_pool.clone()),
+    );
 
     let column_repo: Arc<
         dyn domain::repository::column_definition_repository::ColumnDefinitionRepository,
-    > = if let Some(ref pool) = db_pool {
-        Arc::new(
-            infrastructure::persistence::column_definition_repo_impl::ColumnDefinitionPostgresRepository::new(pool.clone()),
-        )
-    } else {
-        unimplemented!()
-    };
+    > = Arc::new(
+        infrastructure::persistence::column_definition_repo_impl::ColumnDefinitionPostgresRepository::new(db_pool.clone()),
+    );
 
     let rule_repo: Arc<
         dyn domain::repository::consistency_rule_repository::ConsistencyRuleRepository,
-    > = if let Some(ref pool) = db_pool {
-        Arc::new(
-            infrastructure::persistence::consistency_rule_repo_impl::ConsistencyRulePostgresRepository::new(pool.clone()),
-        )
-    } else {
-        unimplemented!()
-    };
+    > = Arc::new(
+        infrastructure::persistence::consistency_rule_repo_impl::ConsistencyRulePostgresRepository::new(db_pool.clone()),
+    );
 
     let record_repo: Arc<
         dyn domain::repository::dynamic_record_repository::DynamicRecordRepository,
-    > = if let Some(ref pool) = db_pool {
-        Arc::new(
-            infrastructure::persistence::dynamic_record_repo_impl::DynamicRecordPostgresRepository::new(pool.clone()),
-        )
-    } else {
-        unimplemented!()
-    };
+    > = Arc::new(
+        infrastructure::persistence::dynamic_record_repo_impl::DynamicRecordPostgresRepository::new(
+            db_pool.clone(),
+        ),
+    );
 
-    let change_log_repo: Arc<
-        dyn domain::repository::change_log_repository::ChangeLogRepository,
-    > = if let Some(ref pool) = db_pool {
+    let change_log_repo: Arc<dyn domain::repository::change_log_repository::ChangeLogRepository> =
         Arc::new(
             infrastructure::persistence::change_log_repo_impl::ChangeLogPostgresRepository::new(
-                pool.clone(),
+                db_pool.clone(),
             ),
-        )
-    } else {
-        unimplemented!()
-    };
+        );
 
     let relationship_repo: Arc<
         dyn domain::repository::table_relationship_repository::TableRelationshipRepository,
-    > = if let Some(ref pool) = db_pool {
-        Arc::new(
-            infrastructure::persistence::table_relationship_repo_impl::TableRelationshipPostgresRepository::new(pool.clone()),
-        )
-    } else {
-        unimplemented!()
-    };
+    > = Arc::new(
+        infrastructure::persistence::table_relationship_repo_impl::TableRelationshipPostgresRepository::new(db_pool.clone()),
+    );
 
     let display_config_repo: Arc<
         dyn domain::repository::display_config_repository::DisplayConfigRepository,
-    > = if let Some(ref pool) = db_pool {
-        Arc::new(
-            infrastructure::persistence::display_config_repo_impl::DisplayConfigPostgresRepository::new(pool.clone()),
-        )
-    } else {
-        unimplemented!()
-    };
+    > = Arc::new(
+        infrastructure::persistence::display_config_repo_impl::DisplayConfigPostgresRepository::new(
+            db_pool.clone(),
+        ),
+    );
 
-    let import_job_repo: Arc<
-        dyn domain::repository::import_job_repository::ImportJobRepository,
-    > = if let Some(ref pool) = db_pool {
+    let import_job_repo: Arc<dyn domain::repository::import_job_repository::ImportJobRepository> =
         Arc::new(
-            infrastructure::persistence::import_job_repo_impl::ImportJobPostgresRepository::new(pool.clone()),
-        )
-    } else {
-        unimplemented!()
-    };
+            infrastructure::persistence::import_job_repo_impl::ImportJobPostgresRepository::new(
+                db_pool.clone(),
+            ),
+        );
 
     // 6. Kafka Producer (optional)
-    let _kafka_producer = if let Some(ref kafka_cfg) = cfg.kafka {
+    let kafka_producer = if let Some(ref kafka_cfg) = cfg.kafka {
         match infrastructure::messaging::kafka_producer::MasterMaintenanceKafkaProducer::new(
             kafka_cfg,
         ) {
@@ -157,42 +130,46 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // 7. Rule Engine
-    let rule_engine = Arc::new(
-        infrastructure::rule_engine::zen_engine_adapter::ZenEngineAdapter::new(),
-    );
+    let rule_engine =
+        Arc::new(infrastructure::rule_engine::zen_engine_adapter::ZenEngineAdapter::new());
+    let schema_manager = Arc::new(infrastructure::schema::PhysicalSchemaManager::new(
+        db_pool.clone(),
+    ));
 
     // 8. Use Cases
     let manage_tables_uc = Arc::new(
         usecase::manage_table_definitions::ManageTableDefinitionsUseCase::new(
             table_repo.clone(),
             column_repo.clone(),
+            schema_manager.clone(),
         ),
     );
     let manage_columns_uc = Arc::new(
         usecase::manage_column_definitions::ManageColumnDefinitionsUseCase::new(
             table_repo.clone(),
             column_repo.clone(),
+            schema_manager.clone(),
         ),
     );
     let crud_records_uc = Arc::new(usecase::crud_records::CrudRecordsUseCase::new(
         table_repo.clone(),
         column_repo.clone(),
+        rule_repo.clone(),
         record_repo.clone(),
         change_log_repo.clone(),
+        rule_engine.clone(),
     ));
     let manage_rules_uc = Arc::new(usecase::manage_rules::ManageRulesUseCase::new(
         table_repo.clone(),
         rule_repo.clone(),
     ));
-    let check_consistency_uc = Arc::new(
-        usecase::check_consistency::CheckConsistencyUseCase::new(
-            table_repo.clone(),
-            column_repo.clone(),
-            rule_repo.clone(),
-            record_repo.clone(),
-            rule_engine.clone(),
-        ),
-    );
+    let check_consistency_uc = Arc::new(usecase::check_consistency::CheckConsistencyUseCase::new(
+        table_repo.clone(),
+        column_repo.clone(),
+        rule_repo.clone(),
+        record_repo.clone(),
+        rule_engine.clone(),
+    ));
     let get_audit_logs_uc = Arc::new(usecase::get_audit_logs::GetAuditLogsUseCase::new(
         change_log_repo.clone(),
     ));
@@ -202,6 +179,7 @@ async fn main() -> anyhow::Result<()> {
             relationship_repo.clone(),
             record_repo.clone(),
             column_repo.clone(),
+            schema_manager.clone(),
         ),
     );
     let manage_display_configs_uc = Arc::new(
@@ -215,20 +193,21 @@ async fn main() -> anyhow::Result<()> {
         column_repo.clone(),
         record_repo.clone(),
         import_job_repo.clone(),
+        crud_records_uc.clone(),
     ));
 
     // 9. Auth
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(MasterMaintenanceAuthState { verifier })
-    } else {
-        None
-    };
+    let auth_cfg = cfg
+        .auth
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("auth configuration is required"))?;
+    let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+        &auth_cfg.jwks_url,
+        &auth_cfg.issuer,
+        &auth_cfg.audience,
+        std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+    ));
+    let auth_state = Some(MasterMaintenanceAuthState { verifier });
 
     // 10. AppState + Router
     let state = AppState {
@@ -242,6 +221,7 @@ async fn main() -> anyhow::Result<()> {
         manage_display_configs_uc: manage_display_configs_uc.clone(),
         import_export_uc: import_export_uc.clone(),
         metrics: metrics.clone(),
+        kafka_producer: kafka_producer.clone(),
         auth_state: auth_state.clone(),
     };
     let app = handler::router(state);
@@ -264,11 +244,18 @@ async fn main() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
     info!("gRPC server listening on {}", grpc_addr);
     let grpc_metrics = metrics.clone();
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone());
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let mut rest_shutdown_rx = shutdown_rx.clone();
+    let mut grpc_shutdown_rx = shutdown_rx.clone();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(MasterMaintenanceServiceServer::new(grpc_service))
-            .serve(grpc_addr)
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown_rx.changed().await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -277,20 +264,64 @@ async fn main() -> anyhow::Result<()> {
     let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port).parse()?;
     info!("REST server listening on {}", rest_addr);
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    let rest_future = axum::serve(listener, app);
+    let rest_future = axum::serve(listener, app).with_graceful_shutdown(async move {
+        let _ = rest_shutdown_rx.changed().await;
+    });
+
+    let shutdown_future = async move {
+        shutdown_signal().await?;
+        let _ = shutdown_tx.send(true);
+        Ok::<(), anyhow::Error>(())
+    };
 
     tokio::select! {
+        result = shutdown_future => {
+            result?;
+        }
         result = rest_future => {
             if let Err(e) = result {
-                tracing::error!("REST server error: {}", e);
+                return Err(anyhow::anyhow!("REST server error: {}", e));
             }
         }
         result = grpc_future => {
             if let Err(e) = result {
-                tracing::error!("gRPC server error: {}", e);
+                return Err(e);
             }
         }
     }
 
     Ok(())
+}
+
+async fn shutdown_signal() -> anyhow::Result<()> {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+
+        let mut terminate = signal(SignalKind::terminate())?;
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = terminate.recv() => {}
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await?;
+    }
+
+    Ok(())
+}
+
+async fn connect_database(db_cfg: &DatabaseConfig) -> anyhow::Result<sqlx::PgPool> {
+    let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_cfg.connection_url());
+    let lifetime = Duration::from_secs(db_cfg.conn_max_lifetime);
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(db_cfg.max_connections)
+        .min_connections(db_cfg.max_idle_conns.min(db_cfg.max_connections))
+        .idle_timeout(Some(lifetime))
+        .max_lifetime(Some(lifetime))
+        .connect(&url)
+        .await?;
+    Ok(pool)
 }

@@ -26,8 +26,8 @@ impl SearchOpenSearchRepository {
     pub fn new(url: &str, username: &str, password: &str, prefix: &str) -> anyhow::Result<Self> {
         let url = Url::parse(url)?;
         let conn_pool = SingleNodeConnectionPool::new(url);
-        let mut builder = TransportBuilder::new(conn_pool)
-            .cert_validation(CertificateValidation::None);
+        let mut builder =
+            TransportBuilder::new(conn_pool).cert_validation(CertificateValidation::None);
 
         if !username.is_empty() && !password.is_empty() {
             builder = builder.auth(Credentials::Basic(

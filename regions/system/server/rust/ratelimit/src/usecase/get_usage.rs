@@ -137,9 +137,7 @@ mod tests {
             .returning(|_| Err(anyhow::anyhow!("not found")));
 
         let uc = GetUsageUseCase::new(Arc::new(repo));
-        let result = uc
-            .execute("550e8400-e29b-41d4-a716-446655440000")
-            .await;
+        let result = uc.execute("550e8400-e29b-41d4-a716-446655440000").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), GetUsageError::NotFound(_)));
     }

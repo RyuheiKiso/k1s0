@@ -24,7 +24,7 @@ fn main() {
     ctrlc_handler();
 
     // D-09: 起動時に設定ファイルを読み込む
-    let cli_config = match config::load_config("k1s0.yaml") {
+    let cli_config = match config::load_config_with_vault("k1s0.yaml") {
         Ok(config) => config,
         Err(e) => {
             eprintln!("設定ファイルの読み込みに失敗しました: {e}");

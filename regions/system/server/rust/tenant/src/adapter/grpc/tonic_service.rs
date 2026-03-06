@@ -8,8 +8,7 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::tenant::v1::{
-    tenant_service_server::TenantService,
-    ActivateTenantRequest as ProtoActivateTenantRequest,
+    tenant_service_server::TenantService, ActivateTenantRequest as ProtoActivateTenantRequest,
     ActivateTenantResponse as ProtoActivateTenantResponse,
     AddMemberRequest as ProtoAddMemberRequest, AddMemberResponse as ProtoAddMemberResponse,
     CreateTenantRequest as ProtoCreateTenantRequest,
@@ -19,21 +18,21 @@ use crate::proto::k1s0::system::tenant::v1::{
     GetProvisioningStatusRequest as ProtoGetProvisioningStatusRequest,
     GetProvisioningStatusResponse as ProtoGetProvisioningStatusResponse,
     GetTenantRequest as ProtoGetTenantRequest, GetTenantResponse as ProtoGetTenantResponse,
-    ListTenantsRequest as ProtoListTenantsRequest,
-    ListTenantsResponse as ProtoListTenantsResponse, ProvisioningJob as ProtoProvisioningJob,
     ListMembersRequest as ProtoListMembersRequest, ListMembersResponse as ProtoListMembersResponse,
-    RemoveMemberRequest as ProtoRemoveMemberRequest,
-    RemoveMemberResponse as ProtoRemoveMemberResponse, Tenant as ProtoTenant,
-    TenantMember as ProtoTenantMember, SuspendTenantRequest as ProtoSuspendTenantRequest,
-    SuspendTenantResponse as ProtoSuspendTenantResponse,
-    UpdateTenantRequest as ProtoUpdateTenantRequest,
+    ListTenantsRequest as ProtoListTenantsRequest, ListTenantsResponse as ProtoListTenantsResponse,
+    ProvisioningJob as ProtoProvisioningJob, RemoveMemberRequest as ProtoRemoveMemberRequest,
+    RemoveMemberResponse as ProtoRemoveMemberResponse,
+    SuspendTenantRequest as ProtoSuspendTenantRequest,
+    SuspendTenantResponse as ProtoSuspendTenantResponse, Tenant as ProtoTenant,
+    TenantMember as ProtoTenantMember, UpdateTenantRequest as ProtoUpdateTenantRequest,
     UpdateTenantResponse as ProtoUpdateTenantResponse,
 };
 
 use super::tenant_grpc::{
     ActivateTenantRequest, AddMemberRequest, CreateTenantRequest, DeleteTenantRequest,
     GetProvisioningStatusRequest, GetTenantRequest, GrpcError, ListMembersRequest,
-    ListTenantsRequest, RemoveMemberRequest, SuspendTenantRequest, TenantGrpcService, UpdateTenantRequest,
+    ListTenantsRequest, RemoveMemberRequest, SuspendTenantRequest, TenantGrpcService,
+    UpdateTenantRequest,
 };
 
 // --- GrpcError -> tonic::Status 変換 ---
@@ -171,23 +170,23 @@ impl TenantService for TenantServiceTonic {
             .map_err(Into::<Status>::into)?;
 
         let tenants = resp.tenants.iter().map(pb_tenant_to_proto).collect();
-        let pagination = resp.pagination.unwrap_or(super::tenant_grpc::PbPaginationResult {
-            total_count: 0,
-            page: 1,
-            page_size: 20,
-            has_next: false,
-        });
+        let pagination = resp
+            .pagination
+            .unwrap_or(super::tenant_grpc::PbPaginationResult {
+                total_count: 0,
+                page: 1,
+                page_size: 20,
+                has_next: false,
+            });
 
         Ok(Response::new(ProtoListTenantsResponse {
             tenants,
-            pagination: Some(
-                crate::proto::k1s0::system::common::v1::PaginationResult {
-                    total_count: pagination.total_count.min(i64::from(i32::MAX)) as i32,
-                    page: pagination.page,
-                    page_size: pagination.page_size,
-                    has_next: pagination.has_next,
-                },
-            ),
+            pagination: Some(crate::proto::k1s0::system::common::v1::PaginationResult {
+                total_count: pagination.total_count.min(i64::from(i32::MAX)) as i32,
+                page: pagination.page,
+                page_size: pagination.page_size,
+                has_next: pagination.has_next,
+            }),
         }))
     }
 

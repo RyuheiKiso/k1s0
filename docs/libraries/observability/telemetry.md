@@ -8,7 +8,7 @@
 |------|-----------|------|
 | InitTelemetry | `(config) -> Provider` | OpenTelemetry 初期化（トレース + ログ） |
 | Shutdown | `() -> void` | プロバイダーのシャットダウン |
-| NewLogger / createLogger | Go/Rust/TS: `(config) -> Logger`, Dart: `(name) -> Logger` | 構造化ログのロガー生成 |
+| NewLogger / createLogger | `(config) -> Logger` | 構造化ログのロガー生成 |
 | NewMetrics | `(serviceName) -> Metrics` | Prometheus メトリクス（RED メソッド: リクエスト数・エラー率・レイテンシ） |
 | MetricsHandler / gather_metrics / getMetrics / toPrometheusText | `() -> Handler / String` | `/metrics` エンドポイント用ハンドラ / Prometheus テキスト出力 |
 | LogWithTrace | `(ctx, logger) -> Logger` | トレース ID・スパン ID をロガーに付与（Go 明示呼び出し / TS は mixin で自動注入 / Dart は middleware で x-trace-id ヘッダ） |
@@ -330,11 +330,22 @@ pub fn init_logger(env: &str, format: &str)
 pub fn parse_log_level(level: &str) -> tracing::Level
 ```
 
-### 拡張メトリクス（Rust 専用）
+### Rust record_* メソッド一覧
 
-Rust の `Metrics` 構造体は共通 4 メトリクス（HTTP/gRPC）に加え、DB・Kafka・キャッシュの 5 メトリクスを提供する。これらは Rust のみの組み込み機能であり、他言語では利用できない。
+Rust の `Metrics` 構造体は共通 4 メトリクス（HTTP/gRPC）および拡張 5 メトリクス（DB・Kafka・キャッシュ）に対して、型安全な `record_*` ヘルパーメソッドを提供する。Go は Prometheus API を直接使用するため、これらのヘルパーメソッドは Rust 専用。
 
 > アーキテクチャ上の位置づけは [可観測性設計.md](../../architecture/observability/可観測性設計.md) の「カスタムメトリクス」セクションを参照。
+
+**共通メトリクス（HTTP/gRPC）の record メソッド:**
+
+| メトリクス名 | 記録メソッド | 説明 |
+|-------------|-------------|------|
+| `http_requests_total` | `record_http_request(method, path, status)` | HTTP リクエストカウンタをインクリメント |
+| `http_request_duration_seconds` | `record_http_duration(method, path, duration_secs)` | HTTP レイテンシをヒストグラムに記録 |
+| `grpc_server_handled_total` | `record_grpc_request(service, method, code)` | gRPC リクエストカウンタをインクリメント |
+| `grpc_server_handling_seconds` | `record_grpc_duration(service, method, duration_secs)` | gRPC レイテンシをヒストグラムに記録 |
+
+**拡張メトリクス（Rust 専用）:**
 
 | メトリクス名 | 型 | ラベル | 記録メソッド |
 |-------------|-----|--------|-------------|
@@ -561,16 +572,15 @@ void shutdown() {
   Logger.root.clearListeners();
 }
 
-/// createLogger は名前を指定して Logger を生成する。
-/// 注意: Go/Rust/TypeScript と異なり、TelemetryConfig ではなく name のみを受け取る。
-Logger createLogger(String name) => Logger(name);
+/// createLogger は TelemetryConfig から Logger を生成する。
+/// config の serviceName をロガー名として使用する。
+Logger createLogger(TelemetryConfig config) => Logger(config.serviceName);
 ```
 
 **Dart 固有の注意点**:
 - `sampleRate` のデフォルト値は `1.0`（他言語はゼロ値）
 - `logLevel` のデフォルト値は `'info'`（他言語はゼロ値 / required）
 - `logFormat` のデフォルト値は `'json'`（他言語はゼロ値 / optional）
-- `createLogger` は `TelemetryConfig` ではなく `String name` のみを引数に取る
 - OpenTelemetry トレース連携は未実装（ミドルウェアで独自の `x-trace-id` ヘッダを使用）
 
 ## ミドルウェア
@@ -726,7 +736,13 @@ class TelemetryMiddleware {
 使用例:
 
 ```dart
-final logger = createLogger('MyServer');
+final cfg = TelemetryConfig(
+  serviceName: 'MyServer',
+  version: '1.0.0',
+  tier: 'system',
+  environment: 'dev',
+);
+final logger = createLogger(cfg);
 final telemetry = TelemetryMiddleware(logger: logger);
 
 final handler = const Pipeline()

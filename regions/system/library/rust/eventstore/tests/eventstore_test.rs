@@ -84,9 +84,13 @@ async fn test_version_conflict_on_wrong_expected() {
 
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(
-        matches!(err, k1s0_eventstore::EventStoreError::VersionConflict { expected: 0, actual: 1 })
-    );
+    assert!(matches!(
+        err,
+        k1s0_eventstore::EventStoreError::VersionConflict {
+            expected: 0,
+            actual: 1
+        }
+    ));
 }
 
 #[tokio::test]

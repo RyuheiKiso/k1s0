@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use crate::domain::entity::DlqMessage;
 use crate::usecase::{
-    DeleteMessageUseCase, GetMessageUseCase, ListMessagesUseCase,
-    RetryAllUseCase, RetryMessageUseCase,
+    DeleteMessageUseCase, GetMessageUseCase, ListMessagesUseCase, RetryAllUseCase,
+    RetryMessageUseCase,
 };
 
 /// GrpcError は gRPC レイヤーのエラー型。
@@ -59,35 +59,29 @@ impl DlqGrpcService {
     pub async fn get_message(&self, id: &str) -> Result<DlqMessage, GrpcError> {
         let uuid = Uuid::parse_str(id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
-        self.get_message_uc
-            .execute(uuid)
-            .await
-            .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
-                    GrpcError::NotFound(msg)
-                } else {
-                    GrpcError::Internal(msg)
-                }
-            })
+        self.get_message_uc.execute(uuid).await.map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                GrpcError::NotFound(msg)
+            } else {
+                GrpcError::Internal(msg)
+            }
+        })
     }
 
     pub async fn retry_message(&self, id: &str) -> Result<DlqMessage, GrpcError> {
         let uuid = Uuid::parse_str(id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
-        self.retry_message_uc
-            .execute(uuid)
-            .await
-            .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
-                    GrpcError::NotFound(msg)
-                } else if msg.contains("not retryable") {
-                    GrpcError::FailedPrecondition(msg)
-                } else {
-                    GrpcError::Internal(msg)
-                }
-            })
+        self.retry_message_uc.execute(uuid).await.map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                GrpcError::NotFound(msg)
+            } else if msg.contains("not retryable") {
+                GrpcError::FailedPrecondition(msg)
+            } else {
+                GrpcError::Internal(msg)
+            }
+        })
     }
 
     pub async fn delete_message(&self, id: &str) -> Result<(), GrpcError> {

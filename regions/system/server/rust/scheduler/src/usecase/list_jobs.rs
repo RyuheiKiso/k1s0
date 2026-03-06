@@ -5,6 +5,7 @@ use crate::domain::repository::SchedulerJobRepository;
 
 pub struct ListJobsInput {
     pub status: Option<String>,
+    pub name_prefix: Option<String>,
     pub page: u32,
     pub page_size: u32,
 }
@@ -32,10 +33,16 @@ impl ListJobsUseCase {
             .into_iter()
             .filter(|j| {
                 if let Some(ref s) = input.status {
-                    &j.status == s
-                } else {
-                    true
+                    if &j.status != s {
+                        return false;
+                    }
                 }
+                if let Some(ref prefix) = input.name_prefix {
+                    if !j.name.starts_with(prefix) {
+                        return false;
+                    }
+                }
+                true
             })
             .collect();
         let total_count = filtered.len() as u64;
@@ -85,6 +92,7 @@ mod tests {
         let uc = ListJobsUseCase::new(Arc::new(mock));
         let input = ListJobsInput {
             status: None,
+            name_prefix: None,
             page: 1,
             page_size: 20,
         };
@@ -108,6 +116,7 @@ mod tests {
         let uc = ListJobsUseCase::new(Arc::new(mock));
         let input = ListJobsInput {
             status: Some("active".to_string()),
+            name_prefix: None,
             page: 1,
             page_size: 20,
         };
@@ -129,6 +138,7 @@ mod tests {
         let uc = ListJobsUseCase::new(Arc::new(mock));
         let input = ListJobsInput {
             status: None,
+            name_prefix: None,
             page: 1,
             page_size: 3,
         };
@@ -136,5 +146,27 @@ mod tests {
         assert_eq!(output.total_count, 5);
         assert_eq!(output.jobs.len(), 3);
         assert!(output.has_next);
+    }
+
+    #[tokio::test]
+    async fn list_with_name_prefix_filter() {
+        let mut mock = MockSchedulerJobRepository::new();
+        mock.expect_find_all().returning(|| {
+            Ok(vec![
+                make_job("workflow-overdue-check", "active"),
+                make_job("daily-report", "active"),
+            ])
+        });
+
+        let uc = ListJobsUseCase::new(Arc::new(mock));
+        let input = ListJobsInput {
+            status: None,
+            name_prefix: Some("workflow-".to_string()),
+            page: 1,
+            page_size: 20,
+        };
+        let output = uc.execute(&input).await.unwrap();
+        assert_eq!(output.total_count, 1);
+        assert_eq!(output.jobs[0].name, "workflow-overdue-check");
     }
 }

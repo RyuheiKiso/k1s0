@@ -3,30 +3,22 @@ use std::collections::BTreeMap;
 use tonic::{Request, Response, Status};
 
 use crate::adapter::grpc::master_maintenance_grpc::MasterMaintenanceGrpcService;
+use crate::proto::k1s0::system::common::v1::{PaginationResult, Timestamp as ProtoTimestamp};
 use crate::proto::k1s0::system::mastermaintenance::v1::{
     master_maintenance_service_server::MasterMaintenanceService,
     ColumnDefinition as ProtoColumnDefinition, TableRelationship as ProtoTableRelationship, *,
-};
-use crate::proto::k1s0::system::common::v1::{
-    PaginationResult, Timestamp as ProtoTimestamp,
 };
 
 // --- serde_json::Value <-> prost_types 変換ヘルパー ---
 
 fn json_value_to_prost(value: &serde_json::Value) -> prost_types::Value {
     let kind = match value {
-        serde_json::Value::Null => {
-            prost_types::value::Kind::NullValue(0)
-        }
-        serde_json::Value::Bool(b) => {
-            prost_types::value::Kind::BoolValue(*b)
-        }
+        serde_json::Value::Null => prost_types::value::Kind::NullValue(0),
+        serde_json::Value::Bool(b) => prost_types::value::Kind::BoolValue(*b),
         serde_json::Value::Number(n) => {
             prost_types::value::Kind::NumberValue(n.as_f64().unwrap_or(0.0))
         }
-        serde_json::Value::String(s) => {
-            prost_types::value::Kind::StringValue(s.clone())
-        }
+        serde_json::Value::String(s) => prost_types::value::Kind::StringValue(s.clone()),
         serde_json::Value::Array(arr) => {
             let values = arr.iter().map(json_value_to_prost).collect();
             prost_types::value::Kind::ListValue(prost_types::ListValue { values })
@@ -71,12 +63,9 @@ fn prost_value_to_json(value: &prost_types::Value) -> serde_json::Value {
         Some(prost_types::value::Kind::NumberValue(n)) => {
             serde_json::json!(*n)
         }
-        Some(prost_types::value::Kind::StringValue(s)) => {
-            serde_json::Value::String(s.clone())
-        }
+        Some(prost_types::value::Kind::StringValue(s)) => serde_json::Value::String(s.clone()),
         Some(prost_types::value::Kind::ListValue(list)) => {
-            let arr: Vec<serde_json::Value> =
-                list.values.iter().map(prost_value_to_json).collect();
+            let arr: Vec<serde_json::Value> = list.values.iter().map(prost_value_to_json).collect();
             serde_json::Value::Array(arr)
         }
         Some(prost_types::value::Kind::StructValue(s)) => struct_to_json(s),
@@ -195,6 +184,33 @@ fn domain_consistency_rule_to_proto(
     }
 }
 
+fn domain_warning_to_proto(
+    warning: &crate::domain::value_object::rule_result::RuleResult,
+) -> ValidationWarning {
+    ValidationWarning {
+        rule_name: warning.rule_name.clone(),
+        message: warning.message.clone().unwrap_or_default(),
+        severity: warning.severity.clone(),
+    }
+}
+
+fn status_from_anyhow(err: anyhow::Error) -> Status {
+    if let Some(validation) =
+        err.downcast_ref::<crate::usecase::crud_records::RecordValidationError>()
+    {
+        return Status::invalid_argument(
+            serde_json::json!({
+                "message": "validation failed",
+                "errors": validation.errors,
+                "warnings": validation.warnings,
+            })
+            .to_string(),
+        );
+    }
+
+    Status::internal(err.to_string())
+}
+
 // --- MasterMaintenanceService 実装 ---
 
 #[tonic::async_trait]
@@ -261,7 +277,9 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(Response::new(DeleteTableDefinitionResponse { success: true }))
+        Ok(Response::new(DeleteTableDefinitionResponse {
+            success: true,
+        }))
     }
 
     async fn get_table_definition(
@@ -278,9 +296,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_table(&req.table_name)
             .await
             .map_err(|e| Status::internal(e.to_string()))?
-            .ok_or_else(|| {
-                Status::not_found(format!("Table '{}' not found", req.table_name))
-            })?;
+            .ok_or_else(|| Status::not_found(format!("Table '{}' not found", req.table_name)))?;
 
         let columns = self
             .column_repo
@@ -335,12 +351,12 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let pagination = req.pagination.unwrap_or(
-            crate::proto::k1s0::system::common::v1::Pagination {
-                page: 1,
-                page_size: 100,
-            },
-        );
+        let pagination =
+            req.pagination
+                .unwrap_or(crate::proto::k1s0::system::common::v1::Pagination {
+                    page: 1,
+                    page_size: 100,
+                });
 
         let total_count = tables.len() as i32;
         let start = ((pagination.page - 1) * pagination.page_size) as usize;
@@ -438,12 +454,12 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             return Err(Status::invalid_argument("table_name is required"));
         }
 
-        let pagination = req.pagination.unwrap_or(
-            crate::proto::k1s0::system::common::v1::Pagination {
-                page: 1,
-                page_size: 50,
-            },
-        );
+        let pagination =
+            req.pagination
+                .unwrap_or(crate::proto::k1s0::system::common::v1::Pagination {
+                    page: 1,
+                    page_size: 50,
+                });
 
         let sort = if req.sort.is_empty() {
             None
@@ -475,15 +491,11 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_records: Vec<prost_types::Struct> = result
-            .records
-            .iter()
-            .filter_map(json_to_struct)
-            .collect();
+        let proto_records: Vec<prost_types::Struct> =
+            result.records.iter().filter_map(json_to_struct).collect();
 
         let total_count = result.total as i32;
-        let has_next =
-            (pagination.page * pagination.page_size) < total_count;
+        let has_next = (pagination.page * pagination.page_size) < total_count;
 
         Ok(Response::new(ListRecordsResponse {
             records: proto_records,
@@ -518,15 +530,19 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .and_then(|v| v.as_str())
             .unwrap_or("grpc-user");
 
-        let record = self
+        let result = self
             .crud_records_uc
             .create_record(&req.table_name, &json_data, created_by)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(status_from_anyhow)?;
 
         Ok(Response::new(CreateRecordResponse {
-            data: json_to_struct(&record),
-            warnings: vec![],
+            data: json_to_struct(&result.record),
+            warnings: result
+                .warnings
+                .iter()
+                .map(domain_warning_to_proto)
+                .collect(),
         }))
     }
 
@@ -553,15 +569,19 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .and_then(|v| v.as_str())
             .unwrap_or("grpc-user");
 
-        let record = self
+        let result = self
             .crud_records_uc
             .update_record(&req.table_name, &req.record_id, &json_data, updated_by)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(status_from_anyhow)?;
 
         Ok(Response::new(UpdateRecordResponse {
-            data: json_to_struct(&record),
-            warnings: vec![],
+            data: json_to_struct(&result.record),
+            warnings: result
+                .warnings
+                .iter()
+                .map(domain_warning_to_proto)
+                .collect(),
         }))
     }
 
@@ -605,10 +625,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .iter()
             .filter(|r| !r.passed && r.severity == "error")
             .count() as i32;
-        let warning_count = results
-            .iter()
-            .filter(|r| r.severity == "warning")
-            .count() as i32;
+        let warning_count = results.iter().filter(|r| r.severity == "warning").count() as i32;
 
         let proto_results: Vec<ConsistencyResult> = results
             .iter()
@@ -707,12 +724,12 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         request: Request<ListRulesRequest>,
     ) -> Result<Response<ListRulesResponse>, Status> {
         let req = request.into_inner();
-        let pagination = req
-            .pagination
-            .unwrap_or(crate::proto::k1s0::system::common::v1::Pagination {
-                page: 1,
-                page_size: 20,
-            });
+        let pagination =
+            req.pagination
+                .unwrap_or(crate::proto::k1s0::system::common::v1::Pagination {
+                    page: 1,
+                    page_size: 20,
+                });
         let table_name = if req.table_name.is_empty() {
             None
         } else {
@@ -775,10 +792,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .iter()
             .filter(|r| !r.passed && r.severity == "error")
             .count() as i32;
-        let warning_count = results
-            .iter()
-            .filter(|r| r.severity == "warning")
-            .count() as i32;
+        let warning_count = results.iter().filter(|r| r.severity == "warning").count() as i32;
 
         Ok(Response::new(ExecuteRuleResponse {
             results: results
@@ -852,11 +866,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         if req.table_name.is_empty() {
             return Err(Status::invalid_argument("table_name is required"));
         }
-        let columns_json: Vec<serde_json::Value> = req
-            .columns
-            .iter()
-            .map(struct_to_json)
-            .collect();
+        let columns_json: Vec<serde_json::Value> = req.columns.iter().map(struct_to_json).collect();
         let payload = serde_json::json!({ "columns": columns_json });
         let cols = self
             .manage_columns_uc
@@ -932,7 +942,9 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 .unwrap_or_else(|| rel.target_table_id.to_string());
             proto.push(domain_relationship_to_proto(rel, &target_name));
         }
-        Ok(Response::new(ListRelationshipsResponse { relationships: proto }))
+        Ok(Response::new(ListRelationshipsResponse {
+            relationships: proto,
+        }))
     }
 
     async fn create_relationship(
@@ -1037,7 +1049,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         }
         let value = self
             .import_export_uc
-            .export_records(&req.table_name)
+            .export_records(&req.table_name, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         let data = json_to_struct(&value).unwrap_or_else(|| {
@@ -1080,7 +1092,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(ListDisplayConfigsResponse {
-            display_configs: list.into_iter().map(domain_display_config_to_proto).collect(),
+            display_configs: list
+                .into_iter()
+                .map(domain_display_config_to_proto)
+                .collect(),
         }))
     }
 
@@ -1268,8 +1283,16 @@ fn domain_audit_log_to_proto(log: crate::domain::entity::change_log::ChangeLog) 
         target_table: log.target_table,
         target_record_id: log.target_record_id,
         operation: log.operation,
-        before_data_json: log.before_data.as_ref().map(json_to_string).unwrap_or_default(),
-        after_data_json: log.after_data.as_ref().map(json_to_string).unwrap_or_default(),
+        before_data_json: log
+            .before_data
+            .as_ref()
+            .map(json_to_string)
+            .unwrap_or_default(),
+        after_data_json: log
+            .after_data
+            .as_ref()
+            .map(json_to_string)
+            .unwrap_or_default(),
         changed_columns: log.changed_columns.unwrap_or_default(),
         changed_by: log.changed_by,
         change_reason: log.change_reason.unwrap_or_default(),
@@ -1307,7 +1330,9 @@ mod tests {
         let val = serde_json::json!(42.0);
         let prost_val = json_value_to_prost(&val);
         match prost_val.kind {
-            Some(prost_types::value::Kind::NumberValue(n)) => assert!((n - 42.0).abs() < f64::EPSILON),
+            Some(prost_types::value::Kind::NumberValue(n)) => {
+                assert!((n - 42.0).abs() < f64::EPSILON)
+            }
             _ => panic!("expected NumberValue"),
         }
     }

@@ -66,9 +66,13 @@ impl SessionService for SessionServiceTonic {
             user_agent: inner.user_agent,
             ip_address: inner.ip_address,
             ttl_seconds: inner.ttl_seconds,
-            max_devices: inner
-                .max_devices
-                .and_then(|v| if v > 0 { u32::try_from(v).ok() } else { None }),
+            max_devices: inner.max_devices.and_then(|v| {
+                if v > 0 {
+                    u32::try_from(v).ok()
+                } else {
+                    None
+                }
+            }),
             metadata: if inner.metadata.is_empty() {
                 None
             } else {

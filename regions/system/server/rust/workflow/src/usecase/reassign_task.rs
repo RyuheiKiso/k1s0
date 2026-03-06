@@ -102,10 +102,7 @@ mod tests {
         assert!(result.is_ok());
 
         let output = result.unwrap();
-        assert_eq!(
-            output.previous_assignee_id,
-            Some("user-002".to_string())
-        );
+        assert_eq!(output.previous_assignee_id, Some("user-002".to_string()));
         assert_eq!(output.task.assignee_id, Some("user-003".to_string()));
     }
 

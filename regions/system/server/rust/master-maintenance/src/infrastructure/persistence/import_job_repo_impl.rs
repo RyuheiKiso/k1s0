@@ -1,8 +1,8 @@
+use crate::domain::entity::import_job::ImportJob;
+use crate::domain::repository::import_job_repository::ImportJobRepository;
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::domain::entity::import_job::ImportJob;
-use crate::domain::repository::import_job_repository::ImportJobRepository;
 
 pub struct ImportJobPostgresRepository {
     pool: PgPool,
@@ -18,7 +18,7 @@ impl ImportJobPostgresRepository {
 impl ImportJobRepository for ImportJobPostgresRepository {
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<ImportJob>> {
         let row = sqlx::query_as::<_, ImportJobRow>(
-            "SELECT * FROM master_maintenance.import_jobs WHERE id = $1"
+            "SELECT * FROM master_maintenance.import_jobs WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -32,7 +32,7 @@ impl ImportJobRepository for ImportJobPostgresRepository {
                (id, table_id, file_name, status, total_rows, processed_rows, error_rows,
                 error_details, started_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-               RETURNING *"#
+               RETURNING *"#,
         )
         .bind(job.id)
         .bind(job.table_id)
@@ -56,7 +56,7 @@ impl ImportJobRepository for ImportJobPostgresRepository {
                error_rows = $4,
                error_details = $5,
                completed_at = $6
-               WHERE id = $1 RETURNING *"#
+               WHERE id = $1 RETURNING *"#,
         )
         .bind(id)
         .bind(&job.status)

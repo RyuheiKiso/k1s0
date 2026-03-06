@@ -13,6 +13,8 @@ impl SchedulerDomainService {
     }
 
     pub fn has_running_execution(executions: &[SchedulerExecution]) -> bool {
-        executions.iter().any(|execution| execution.status == "running")
+        executions
+            .iter()
+            .any(|execution| execution.status == "running")
     }
 }

@@ -32,7 +32,11 @@ impl SchemaValidator for ProtobufSubprocessValidator {
         let result = tokio::time::timeout(
             std::time::Duration::from_secs(self.timeout_secs),
             Command::new(&self.buf_path)
-                .args(["lint", "--path", proto_file.to_str().unwrap_or("schema.proto")])
+                .args([
+                    "lint",
+                    "--path",
+                    proto_file.to_str().unwrap_or("schema.proto"),
+                ])
                 .current_dir(tmp_dir.path())
                 .output(),
         )
@@ -80,7 +84,8 @@ mod tests {
     #[tokio::test]
     async fn test_validate_valid_proto() {
         let validator = ProtobufSubprocessValidator::new("buf".to_string(), 5);
-        let content = "syntax = \"proto3\";\n\npackage test.v1;\n\nmessage Test {\n  string id = 1;\n}\n";
+        let content =
+            "syntax = \"proto3\";\n\npackage test.v1;\n\nmessage Test {\n  string id = 1;\n}\n";
         let result = validator.validate(content).await;
         assert!(result.is_ok());
     }

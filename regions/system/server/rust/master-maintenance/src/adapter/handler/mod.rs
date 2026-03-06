@@ -2,6 +2,8 @@ pub mod audit_handler;
 pub mod display_config_handler;
 pub mod error;
 pub mod import_export_handler;
+#[cfg(all(test, feature = "db-tests"))]
+mod integration_tests;
 pub mod record_handler;
 pub mod relationship_handler;
 pub mod rule_handler;
@@ -9,6 +11,7 @@ pub mod table_handler;
 
 use crate::adapter::middleware::auth::{auth_middleware, MasterMaintenanceAuthState};
 use crate::adapter::middleware::rbac::require_permission;
+use crate::infrastructure::messaging::kafka_producer::MasterMaintenanceKafkaProducer;
 use crate::usecase;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -18,6 +21,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, get, post, put};
 use axum::Json;
 use axum::Router;
+use k1s0_auth::Claims;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 
@@ -34,7 +38,42 @@ pub struct AppState {
         Arc<usecase::manage_display_configs::ManageDisplayConfigsUseCase>,
     pub import_export_uc: Arc<usecase::import_export::ImportExportUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub kafka_producer: Option<Arc<MasterMaintenanceKafkaProducer>>,
     pub auth_state: Option<MasterMaintenanceAuthState>,
+}
+
+pub fn actor_from_claims(claims: Option<&Claims>) -> String {
+    claims
+        .and_then(|claims| {
+            claims
+                .preferred_username
+                .as_ref()
+                .filter(|value| !value.is_empty())
+                .cloned()
+                .or_else(|| {
+                    claims
+                        .email
+                        .as_ref()
+                        .filter(|value| !value.is_empty())
+                        .cloned()
+                })
+                .or_else(|| (!claims.sub.is_empty()).then(|| claims.sub.clone()))
+        })
+        .unwrap_or_else(|| "system".to_string())
+}
+
+pub async fn publish_change_event(state: &AppState, event: serde_json::Value) {
+    let Some(producer) = &state.kafka_producer else {
+        return;
+    };
+
+    if let Err(err) = producer.publish_data_changed(&event).await {
+        tracing::warn!(
+            error = %err,
+            topic = %producer.topic(),
+            "failed to publish data changed event"
+        );
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -260,6 +299,10 @@ pub fn router(state: AppState) -> Router {
                 post(import_export_handler::import_records),
             )
             .route(
+                "/api/v1/tables/:name/import-file",
+                post(import_export_handler::import_records_file),
+            )
+            .route(
                 "/api/v1/tables/:name/display-configs",
                 post(display_config_handler::create_display_config),
             )
@@ -364,6 +407,10 @@ pub fn router(state: AppState) -> Router {
             .route(
                 "/api/v1/tables/:name/import",
                 post(import_export_handler::import_records),
+            )
+            .route(
+                "/api/v1/tables/:name/import-file",
+                post(import_export_handler::import_records_file),
             )
             .route(
                 "/api/v1/tables/:name/export",

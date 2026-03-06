@@ -15,8 +15,7 @@ use crate::domain::repository::NotificationLogRepository;
 use crate::usecase::{
     CreateChannelUseCase, CreateTemplateUseCase, DeleteChannelUseCase, DeleteTemplateUseCase,
     GetChannelUseCase, GetTemplateUseCase, ListChannelsUseCase, ListTemplatesUseCase,
-    RetryNotificationUseCase, SendNotificationUseCase, UpdateChannelUseCase,
-    UpdateTemplateUseCase,
+    RetryNotificationUseCase, SendNotificationUseCase, UpdateChannelUseCase, UpdateTemplateUseCase,
 };
 
 /// Shared application state for REST handlers.
@@ -64,10 +63,7 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/notifications/:id",
                 get(notification_handler::get_notification),
             )
-            .route(
-                "/api/v1/channels",
-                get(notification_handler::list_channels),
-            )
+            .route("/api/v1/channels", get(notification_handler::list_channels))
             .route(
                 "/api/v1/channels/:id",
                 get(notification_handler::get_channel),
@@ -81,7 +77,8 @@ pub fn router(state: AppState) -> Router {
                 get(notification_handler::get_template),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "notifications", "read",
+                "notifications",
+                "read",
             )));
 
         // POST/PUT/retry/DELETE -> notifications/write
@@ -111,7 +108,8 @@ pub fn router(state: AppState) -> Router {
                 put(notification_handler::update_template),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "notifications", "write",
+                "notifications",
+                "write",
             )));
 
         // DELETE -> notifications/admin
@@ -125,7 +123,8 @@ pub fn router(state: AppState) -> Router {
                 delete(notification_handler::delete_template),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "notifications", "admin",
+                "notifications",
+                "admin",
             )));
 
         Router::new()
@@ -160,10 +159,7 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/channels",
                 post(notification_handler::create_channel),
             )
-            .route(
-                "/api/v1/channels",
-                get(notification_handler::list_channels),
-            )
+            .route("/api/v1/channels", get(notification_handler::list_channels))
             .route(
                 "/api/v1/channels/:id",
                 get(notification_handler::get_channel),

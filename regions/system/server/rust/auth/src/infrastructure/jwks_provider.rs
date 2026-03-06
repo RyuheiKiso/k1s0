@@ -70,9 +70,11 @@ impl JwksProvider {
             anyhow::bail!("JWKS endpoint returned non-success status: {status}");
         }
 
-        response
-            .json::<Value>()
-            .await
-            .with_context(|| format!("failed to parse JWKS response as JSON from {}", self.inner.url))
+        response.json::<Value>().await.with_context(|| {
+            format!(
+                "failed to parse JWKS response as JSON from {}",
+                self.inner.url
+            )
+        })
     }
 }

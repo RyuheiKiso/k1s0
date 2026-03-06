@@ -50,9 +50,7 @@ impl CompleteUploadUseCase {
             .ok_or_else(|| CompleteUploadError::NotFound(input.file_id.clone()))?;
 
         if file.status == "available" {
-            return Err(CompleteUploadError::AlreadyCompleted(
-                input.file_id.clone(),
-            ));
+            return Err(CompleteUploadError::AlreadyCompleted(input.file_id.clone()));
         }
 
         file.mark_available(input.checksum_sha256.clone());

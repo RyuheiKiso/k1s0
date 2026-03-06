@@ -96,24 +96,31 @@ pub fn execute_validate_navigation(path: String) -> Result<usize, String> {
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn execute_generate_config_types(schema_path: String, target: String) -> Result<String, String> {
+pub fn execute_generate_config_types(
+    schema_path: String,
+    target: String,
+) -> Result<String, String> {
     match target.as_str() {
         "typescript" => config_types_cmd::generate_typescript_types_from_file(&schema_path)
             .map_err(|e| e.to_string()),
-        "dart" => config_types_cmd::generate_dart_types_from_file(&schema_path)
-            .map_err(|e| e.to_string()),
+        "dart" => {
+            config_types_cmd::generate_dart_types_from_file(&schema_path).map_err(|e| e.to_string())
+        }
         _ => Err(format!("Unknown target: {target}")),
     }
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn execute_generate_navigation_types(nav_path: String, target: String) -> Result<String, String> {
+pub fn execute_generate_navigation_types(
+    nav_path: String,
+    target: String,
+) -> Result<String, String> {
     match target.as_str() {
-        "typescript" => nav_gen_cmd::generate_typescript_routes_from_file(&nav_path)
-            .map_err(|e| e.to_string()),
-        "dart" => nav_gen_cmd::generate_dart_routes_from_file(&nav_path)
-            .map_err(|e| e.to_string()),
+        "typescript" => {
+            nav_gen_cmd::generate_typescript_routes_from_file(&nav_path).map_err(|e| e.to_string())
+        }
+        "dart" => nav_gen_cmd::generate_dart_routes_from_file(&nav_path).map_err(|e| e.to_string()),
         _ => Err(format!("Unknown target: {target}")),
     }
 }

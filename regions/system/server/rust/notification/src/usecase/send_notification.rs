@@ -9,11 +9,11 @@ use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
 use crate::domain::repository::NotificationTemplateRepository;
 use crate::domain::service::DeliveryClient;
+#[cfg(test)]
+use crate::domain::service::DeliveryError;
 use crate::infrastructure::kafka_producer::{
     NoopNotificationEventPublisher, NotificationEventPublisher,
 };
-#[cfg(test)]
-use crate::domain::service::DeliveryError;
 
 #[derive(Debug, Clone)]
 pub struct SendNotificationInput {
@@ -121,12 +121,18 @@ impl SendNotificationUseCase {
         }
     }
 
-    pub fn with_event_publisher(mut self, event_publisher: Arc<dyn NotificationEventPublisher>) -> Self {
+    pub fn with_event_publisher(
+        mut self,
+        event_publisher: Arc<dyn NotificationEventPublisher>,
+    ) -> Self {
         self.event_publisher = event_publisher;
         self
     }
 
-    fn render_template(template: &str, variables: &HashMap<String, String>) -> Result<String, SendNotificationError> {
+    fn render_template(
+        template: &str,
+        variables: &HashMap<String, String>,
+    ) -> Result<String, SendNotificationError> {
         let mut hbs = Handlebars::new();
         hbs.set_strict_mode(false);
         hbs.register_template_string("t", template)
@@ -135,7 +141,10 @@ impl SendNotificationUseCase {
             .map_err(|e| SendNotificationError::TemplateError(e.to_string()))
     }
 
-    pub async fn execute(&self, input: &SendNotificationInput) -> Result<SendNotificationOutput, SendNotificationError> {
+    pub async fn execute(
+        &self,
+        input: &SendNotificationInput,
+    ) -> Result<SendNotificationOutput, SendNotificationError> {
         let channel = self
             .channel_repo
             .find_by_id(&input.channel_id)
@@ -144,20 +153,27 @@ impl SendNotificationUseCase {
             .ok_or_else(|| SendNotificationError::ChannelNotFound(input.channel_id.clone()))?;
 
         if !channel.enabled {
-            return Err(SendNotificationError::ChannelDisabled(input.channel_id.clone()));
+            return Err(SendNotificationError::ChannelDisabled(
+                input.channel_id.clone(),
+            ));
         }
 
-        let (resolved_template_id, base_subject, base_body) = if let Some(template_id) = &input.template_id {
-            let repo = self
-                .template_repo
-                .as_ref()
-                .ok_or_else(|| SendNotificationError::Internal("template repository is not configured".to_string()))?;
+        let (resolved_template_id, base_subject, base_body) = if let Some(template_id) =
+            &input.template_id
+        {
+            let repo = self.template_repo.as_ref().ok_or_else(|| {
+                SendNotificationError::Internal("template repository is not configured".to_string())
+            })?;
             let template = repo
                 .find_by_id(&template_id)
                 .await
                 .map_err(|e| SendNotificationError::Internal(e.to_string()))?
                 .ok_or_else(|| SendNotificationError::TemplateNotFound(template_id.clone()))?;
-            (Some(template_id.clone()), template.subject_template, template.body_template)
+            (
+                Some(template_id.clone()),
+                template.subject_template,
+                template.body_template,
+            )
         } else {
             (None, input.subject.clone(), input.body.clone())
         };
@@ -280,9 +296,7 @@ mod tests {
         let log_mock = MockNotificationLogRepository::new();
         let missing_id = "ch_missing".to_string();
 
-        channel_mock
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        channel_mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
         let input = SendNotificationInput {
@@ -405,9 +419,7 @@ mod tests {
 
         log_mock
             .expect_create()
-            .withf(|log: &NotificationLog| {
-                log.status == "failed" && log.error_message.is_some()
-            })
+            .withf(|log: &NotificationLog| log.status == "failed" && log.error_message.is_some())
             .returning(|_| Ok(()));
 
         let mut mock_client = MockDeliveryClient::new();

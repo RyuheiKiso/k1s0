@@ -15,11 +15,7 @@ impl TenantMutationResolver {
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn create_tenant(
-        &self,
-        name: &str,
-        owner_user_id: &str,
-    ) -> CreateTenantPayload {
+    pub async fn create_tenant(&self, name: &str, owner_user_id: &str) -> CreateTenantPayload {
         match self.client.create_tenant(name, owner_user_id).await {
             Ok(tenant) => CreateTenantPayload {
                 tenant: Some(tenant),

@@ -5,3 +5,17 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
+  grpc_port: 50051
+
+auth:
+  jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+  issuer: "http://keycloak:8080/realms/k1s0"
+  audience: "k1s0-api"
+  jwks_cache_ttl_secs: 300
+
+scheduler:
+  internal_endpoint: "http://scheduler:8080"
+
+overdue_check:
+  cron_expression: "*/15 * * * *"
+  timezone: "UTC"

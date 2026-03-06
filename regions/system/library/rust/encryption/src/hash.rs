@@ -22,8 +22,7 @@ pub fn hash_password(password: &str) -> Result<String, EncryptionError> {
 }
 
 pub fn verify_password(password: &str, hash: &str) -> Result<bool, EncryptionError> {
-    let parsed =
-        PasswordHash::new(hash).map_err(|e| EncryptionError::HashFailed(e.to_string()))?;
+    let parsed = PasswordHash::new(hash).map_err(|e| EncryptionError::HashFailed(e.to_string()))?;
     let argon2 = argon2_instance();
     Ok(argon2.verify_password(password.as_bytes(), &parsed).is_ok())
 }

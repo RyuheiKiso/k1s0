@@ -85,19 +85,18 @@ impl GraphQlHttpClient {
         let response = self
             .client
             .post(&self.endpoint)
-            .headers(
-                self.headers
-                    .iter()
-                    .fold(reqwest::header::HeaderMap::new(), |mut acc, (k, v)| {
-                        if let (Ok(name), Ok(value)) = (
-                            reqwest::header::HeaderName::from_bytes(k.as_bytes()),
-                            reqwest::header::HeaderValue::from_str(v),
-                        ) {
-                            acc.insert(name, value);
-                        }
-                        acc
-                    }),
-            )
+            .headers(self.headers.iter().fold(
+                reqwest::header::HeaderMap::new(),
+                |mut acc, (k, v)| {
+                    if let (Ok(name), Ok(value)) = (
+                        reqwest::header::HeaderName::from_bytes(k.as_bytes()),
+                        reqwest::header::HeaderValue::from_str(v),
+                    ) {
+                        acc.insert(name, value);
+                    }
+                    acc
+                },
+            ))
             .json(&query)
             .send()
             .await

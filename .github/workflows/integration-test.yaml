@@ -67,7 +67,7 @@ jobs:
           KAFKA_BROKERS: "localhost:9092"
         run: |
           cd regions/system/server/rust/auth
-          cargo test --all -- --ignored 2>&1 || true
+          cargo test --all -- --ignored
 
       - name: Run integration tests (config-server)
         env:
@@ -75,7 +75,7 @@ jobs:
           KAFKA_BROKERS: "localhost:9092"
         run: |
           cd regions/system/server/rust/config
-          cargo test --all -- --ignored 2>&1 || true
+          cargo test --all -- --ignored
 
       - name: Run integration tests (saga-server)
         env:
@@ -83,7 +83,7 @@ jobs:
           KAFKA_BROKERS: "localhost:9092"
         run: |
           cd regions/system/server/rust/saga
-          cargo test --all -- --ignored 2>&1 || true
+          cargo test --all -- --ignored
 
       - name: Run integration tests (dlq-manager)
         env:
@@ -91,4 +91,4 @@ jobs:
           KAFKA_BROKERS: "localhost:9092"
         run: |
           cd regions/system/server/rust/dlq-manager
-          cargo test --all -- --ignored 2>&1 || true
+          cargo test --all -- --ignored

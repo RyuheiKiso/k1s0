@@ -1,13 +1,7 @@
-use axum::{
-    body::Body,
-    extract::State,
-    http::Request,
-    middleware::Next,
-    response::Response,
-};
-use std::sync::Arc;
-use k1s0_auth::JwksVerifier;
 use crate::adapter::handler::error::AppError;
+use axum::{body::Body, extract::State, http::Request, middleware::Next, response::Response};
+use k1s0_auth::JwksVerifier;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct MasterMaintenanceAuthState {
@@ -22,11 +16,9 @@ pub async fn auth_middleware(
     let token = extract_bearer_token(&req)
         .ok_or_else(|| AppError::unauthorized("SYS_AUTH_MISSING_TOKEN", "Missing bearer token"))?;
 
-    let claims = state
-        .verifier
-        .verify_token(&token)
-        .await
-        .map_err(|_| AppError::unauthorized("SYS_AUTH_TOKEN_INVALID", "Invalid or expired token"))?;
+    let claims = state.verifier.verify_token(&token).await.map_err(|_| {
+        AppError::unauthorized("SYS_AUTH_TOKEN_INVALID", "Invalid or expired token")
+    })?;
 
     req.extensions_mut().insert(claims);
     Ok(next.run(req).await)
@@ -54,7 +46,8 @@ mod tests {
     #[test]
     fn test_extract_bearer_token_valid() {
         let mut req = Request::builder().body(Body::empty()).unwrap();
-        req.headers_mut().insert("Authorization", HeaderValue::from_static("Bearer my-token"));
+        req.headers_mut()
+            .insert("Authorization", HeaderValue::from_static("Bearer my-token"));
         assert_eq!(extract_bearer_token(&req), Some("my-token".to_string()));
     }
 
@@ -67,7 +60,8 @@ mod tests {
     #[test]
     fn test_extract_bearer_token_wrong_scheme() {
         let mut req = Request::builder().body(Body::empty()).unwrap();
-        req.headers_mut().insert("Authorization", HeaderValue::from_static("Basic abc123"));
+        req.headers_mut()
+            .insert("Authorization", HeaderValue::from_static("Basic abc123"));
         assert_eq!(extract_bearer_token(&req), None);
     }
 }

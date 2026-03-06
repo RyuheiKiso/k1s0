@@ -21,23 +21,14 @@ pub fn validate_email(field: &str, email: &str) -> Result<(), ValidationError> {
 }
 
 pub fn validate_uuid(field: &str, id: &str) -> Result<(), ValidationError> {
-    uuid::Uuid::parse_str(id).map(|_| ()).map_err(|_| {
-        err(
-            field,
-            "INVALID_UUID",
-            format!("invalid uuid: {id}"),
-        )
-    })
+    uuid::Uuid::parse_str(id)
+        .map(|_| ())
+        .map_err(|_| err(field, "INVALID_UUID", format!("invalid uuid: {id}")))
 }
 
 pub fn validate_url(field: &str, input: &str) -> Result<(), ValidationError> {
-    let parsed = url::Url::parse(input).map_err(|_| {
-        err(
-            field,
-            "INVALID_URL",
-            format!("invalid url: {input}"),
-        )
-    })?;
+    let parsed = url::Url::parse(input)
+        .map_err(|_| err(field, "INVALID_URL", format!("invalid url: {input}")))?;
 
     match parsed.scheme() {
         "http" | "https" => Ok(()),

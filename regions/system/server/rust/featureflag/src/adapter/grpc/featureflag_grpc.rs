@@ -1,4 +1,4 @@
-﻿use std::sync::Arc;
+use std::sync::Arc;
 
 use crate::domain::entity::evaluation::EvaluationContext;
 use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
@@ -214,10 +214,7 @@ impl FeatureFlagGrpcService {
         }
     }
 
-    pub async fn list_flags(
-        &self,
-        _req: ListFlagsRequest,
-    ) -> Result<ListFlagsResponse, GrpcError> {
+    pub async fn list_flags(&self, _req: ListFlagsRequest) -> Result<ListFlagsResponse, GrpcError> {
         let flags = self.list_flags_uc.execute().await.map_err(|e| match e {
             ListFlagsError::Internal(msg) => GrpcError::Internal(msg),
         })?;
@@ -269,9 +266,10 @@ impl FeatureFlagGrpcService {
                 created_at: flag.created_at,
                 updated_at: flag.updated_at,
             }),
-            Err(CreateFlagError::AlreadyExists(key)) => {
-                Err(GrpcError::AlreadyExists(format!("flag already exists: {}", key)))
-            }
+            Err(CreateFlagError::AlreadyExists(key)) => Err(GrpcError::AlreadyExists(format!(
+                "flag already exists: {}",
+                key
+            ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -337,16 +335,24 @@ impl FeatureFlagGrpcService {
         &self,
         req: DeleteFlagRequest,
     ) -> Result<DeleteFlagResponse, GrpcError> {
-        let flag = self.get_flag_uc.execute(&req.flag_key).await.map_err(|e| match e {
-            GetFlagError::NotFound(key) => GrpcError::NotFound(format!("flag not found: {}", key)),
-            _ => GrpcError::Internal(e.to_string()),
-        })?;
+        let flag = self
+            .get_flag_uc
+            .execute(&req.flag_key)
+            .await
+            .map_err(|e| match e {
+                GetFlagError::NotFound(key) => {
+                    GrpcError::NotFound(format!("flag not found: {}", key))
+                }
+                _ => GrpcError::Internal(e.to_string()),
+            })?;
 
         self.delete_flag_uc
             .execute(&flag.id)
             .await
             .map_err(|e| match e {
-                DeleteFlagError::NotFound(id) => GrpcError::NotFound(format!("flag not found: {}", id)),
+                DeleteFlagError::NotFound(id) => {
+                    GrpcError::NotFound(format!("flag not found: {}", id))
+                }
                 DeleteFlagError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -383,10 +389,10 @@ fn to_pb_rules(rules: &[FlagRule]) -> Vec<PbFlagRule> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::flag_audit_log::FlagAuditLog;
     use crate::domain::entity::feature_flag::FeatureFlag;
-    use crate::domain::repository::FlagAuditLogRepository;
+    use crate::domain::entity::flag_audit_log::FlagAuditLog;
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
+    use crate::domain::repository::FlagAuditLogRepository;
     use crate::infrastructure::kafka_producer::NoopFlagEventPublisher;
     use std::collections::HashMap;
 
@@ -437,11 +443,12 @@ mod tests {
     async fn test_evaluate_flag_success() {
         let mut mock = MockFeatureFlagRepository::new();
         let mut flag = FeatureFlag::new("dark-mode".to_string(), "Dark mode".to_string(), true);
-        flag.variants.push(crate::domain::entity::feature_flag::FlagVariant {
-            name: "on".to_string(),
-            value: "true".to_string(),
-            weight: 100,
-        });
+        flag.variants
+            .push(crate::domain::entity::feature_flag::FlagVariant {
+                name: "on".to_string(),
+                value: "true".to_string(),
+                weight: 100,
+            });
         let return_flag = flag.clone();
 
         mock.expect_find_by_key()

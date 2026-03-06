@@ -4,7 +4,8 @@ use crate::domain::entity::event::{EventData, EventMetadata};
 use crate::domain::repository::EventStreamRepository;
 use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::eventstore::v1::{
-    AppendEventsRequest as ProtoAppendEventsRequest, AppendEventsResponse as ProtoAppendEventsResponse,
+    AppendEventsRequest as ProtoAppendEventsRequest,
+    AppendEventsResponse as ProtoAppendEventsResponse,
     CreateSnapshotRequest as ProtoCreateSnapshotRequest,
     CreateSnapshotResponse as ProtoCreateSnapshotResponse,
     DeleteStreamRequest as ProtoDeleteStreamRequest,
@@ -15,10 +16,12 @@ use crate::proto::k1s0::system::eventstore::v1::{
     ReadEventBySequenceRequest as ProtoReadEventBySequenceRequest,
     ReadEventBySequenceResponse as ProtoReadEventBySequenceResponse,
     ReadEventsRequest as ProtoReadEventsRequest, ReadEventsResponse as ProtoReadEventsResponse,
-    Snapshot as ProtoSnapshot, StreamInfo as ProtoStreamInfo, StoredEvent as ProtoStoredEvent,
+    Snapshot as ProtoSnapshot, StoredEvent as ProtoStoredEvent, StreamInfo as ProtoStreamInfo,
 };
 use crate::usecase::append_events::{AppendEventsError, AppendEventsInput, AppendEventsUseCase};
-use crate::usecase::create_snapshot::{CreateSnapshotError, CreateSnapshotInput, CreateSnapshotUseCase};
+use crate::usecase::create_snapshot::{
+    CreateSnapshotError, CreateSnapshotInput, CreateSnapshotUseCase,
+};
 use crate::usecase::delete_stream::{DeleteStreamError, DeleteStreamInput, DeleteStreamUseCase};
 use crate::usecase::get_latest_snapshot::{
     GetLatestSnapshotError, GetLatestSnapshotInput, GetLatestSnapshotUseCase,
@@ -157,15 +160,19 @@ impl EventStoreGrpcService {
         match self.append_events_uc.execute(&input).await {
             Ok(output) => Ok(ProtoAppendEventsResponse {
                 stream_id: output.stream_id,
-                events: output.events.into_iter().map(stored_event_to_proto).collect(),
+                events: output
+                    .events
+                    .into_iter()
+                    .map(stored_event_to_proto)
+                    .collect(),
                 current_version: output.current_version,
             }),
             Err(AppendEventsError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
             }
-            Err(AppendEventsError::StreamAlreadyExists(id)) => {
-                Err(GrpcError::AlreadyExists(format!("stream already exists: {}", id)))
-            }
+            Err(AppendEventsError::StreamAlreadyExists(id)) => Err(GrpcError::AlreadyExists(
+                format!("stream already exists: {}", id),
+            )),
             Err(AppendEventsError::VersionConflict {
                 stream_id,
                 expected,
@@ -195,7 +202,11 @@ impl EventStoreGrpcService {
         match self.read_events_uc.execute(&input).await {
             Ok(output) => Ok(ProtoReadEventsResponse {
                 stream_id: output.stream_id,
-                events: output.events.into_iter().map(stored_event_to_proto).collect(),
+                events: output
+                    .events
+                    .into_iter()
+                    .map(stored_event_to_proto)
+                    .collect(),
                 current_version: output.current_version,
                 pagination: Some(ProtoPaginationResult {
                     total_count: output.pagination.total_count.min(i32::MAX as u64) as i32,
@@ -227,12 +238,13 @@ impl EventStoreGrpcService {
             Err(ReadEventBySequenceError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
             }
-            Err(ReadEventBySequenceError::EventNotFound { stream_id, sequence }) => {
-                Err(GrpcError::NotFound(format!(
-                    "event not found: stream={}, sequence={}",
-                    stream_id, sequence
-                )))
-            }
+            Err(ReadEventBySequenceError::EventNotFound {
+                stream_id,
+                sequence,
+            }) => Err(GrpcError::NotFound(format!(
+                "event not found: stream={}, sequence={}",
+                stream_id, sequence
+            ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -288,9 +300,10 @@ impl EventStoreGrpcService {
             Err(GetLatestSnapshotError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
             }
-            Err(GetLatestSnapshotError::SnapshotNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("snapshot not found for stream: {}", id)))
-            }
+            Err(GetLatestSnapshotError::SnapshotNotFound(id)) => Err(GrpcError::NotFound(format!(
+                "snapshot not found for stream: {}",
+                id
+            ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }

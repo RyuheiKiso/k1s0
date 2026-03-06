@@ -110,8 +110,7 @@ impl OutboxMessage {
             self.status = OutboxStatus::Failed;
             // Exponential backoff: 2^retry_count 秒後に再処理
             let delay_secs = 2u64.pow(self.retry_count);
-            self.process_after = Utc::now()
-                + chrono::Duration::seconds(delay_secs as i64);
+            self.process_after = Utc::now() + chrono::Duration::seconds(delay_secs as i64);
         }
     }
 
@@ -129,11 +128,7 @@ mod tests {
     #[test]
     fn test_new_message() {
         let payload = serde_json::json!({"order_id": "ord-001"});
-        let msg = OutboxMessage::new(
-            "k1s0.service.order.created.v1",
-            "ord-001",
-            payload,
-        );
+        let msg = OutboxMessage::new("k1s0.service.order.created.v1", "ord-001", payload);
         assert_eq!(msg.topic, "k1s0.service.order.created.v1");
         assert_eq!(msg.status, OutboxStatus::Pending);
         assert_eq!(msg.retry_count, 0);

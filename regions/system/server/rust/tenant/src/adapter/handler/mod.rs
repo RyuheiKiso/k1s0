@@ -24,14 +24,8 @@ pub fn router(state: AppState) -> Router {
     let api_routes = if let Some(ref auth_state) = state.auth_state {
         // GET -> tenants/read
         let read_routes = Router::new()
-            .route(
-                "/api/v1/tenants",
-                get(tenant_handler::list_tenants),
-            )
-            .route(
-                "/api/v1/tenants/:id",
-                get(tenant_handler::get_tenant),
-            )
+            .route("/api/v1/tenants", get(tenant_handler::list_tenants))
+            .route("/api/v1/tenants/:id", get(tenant_handler::get_tenant))
             .route(
                 "/api/v1/tenants/:id/members",
                 get(tenant_handler::list_members),
@@ -42,10 +36,7 @@ pub fn router(state: AppState) -> Router {
 
         // POST/PUT/members -> tenants/write
         let write_routes = Router::new()
-            .route(
-                "/api/v1/tenants",
-                post(tenant_handler::create_tenant),
-            )
+            .route("/api/v1/tenants", post(tenant_handler::create_tenant))
             .route(
                 "/api/v1/tenants/:id",
                 axum::routing::put(tenant_handler::update_tenant),
@@ -60,10 +51,7 @@ pub fn router(state: AppState) -> Router {
 
         // DELETE/suspend/activate -> tenants/admin
         let admin_routes = Router::new()
-            .route(
-                "/api/v1/tenants/:id",
-                delete(tenant_handler::delete_tenant),
-            )
+            .route("/api/v1/tenants/:id", delete(tenant_handler::delete_tenant))
             .route(
                 "/api/v1/tenants/:id/suspend",
                 post(tenant_handler::suspend_tenant),
@@ -119,9 +107,7 @@ pub fn router(state: AppState) -> Router {
             )
     };
 
-    public_routes
-        .merge(api_routes)
-        .with_state(state)
+    public_routes.merge(api_routes).with_state(state)
 }
 
 async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
@@ -158,7 +144,9 @@ mod tests {
             list_members_uc: Arc::new(crate::usecase::ListMembersUseCase::new(member_repo.clone())),
             add_member_uc: Arc::new(crate::usecase::AddMemberUseCase::new(member_repo.clone())),
             remove_member_uc: Arc::new(crate::usecase::RemoveMemberUseCase::new(member_repo)),
-            metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-tenant-server-test")),
+            metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new(
+                "k1s0-tenant-server-test",
+            )),
             auth_state: None,
             db_pool: None,
             kafka_brokers: None,

@@ -45,11 +45,7 @@ pub struct KafkaSearchProducer {
 
 impl KafkaSearchProducer {
     /// 新しい KafkaSearchProducer を作成する。
-    pub fn new(
-        brokers: &str,
-        security_protocol: &str,
-        topic: &str,
-    ) -> anyhow::Result<Self> {
+    pub fn new(brokers: &str, security_protocol: &str, topic: &str) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
         let mut client_config = ClientConfig::new();
@@ -182,8 +178,7 @@ mod tests {
         let messages = producer.messages.lock().unwrap();
         assert_eq!(messages.len(), 1);
 
-        let deserialized: DocumentIndexedEvent =
-            serde_json::from_slice(&messages[0].1).unwrap();
+        let deserialized: DocumentIndexedEvent = serde_json::from_slice(&messages[0].1).unwrap();
         assert_eq!(deserialized.index_name, "products");
         assert_eq!(deserialized.document_id, "doc-1");
     }
@@ -248,8 +243,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_search_event_publisher() {
         let mut mock = MockSearchEventPublisher::new();
-        mock.expect_publish_document_indexed()
-            .returning(|_| Ok(()));
+        mock.expect_publish_document_indexed().returning(|_| Ok(()));
         mock.expect_close().returning(|| Ok(()));
 
         let event = make_event();

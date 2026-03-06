@@ -77,10 +77,7 @@ mod tests {
             id: "inst_missing".to_string(),
         };
         let result = uc.execute(&input).await;
-        assert!(matches!(
-            result.unwrap_err(),
-            GetInstanceError::NotFound(_)
-        ));
+        assert!(matches!(result.unwrap_err(), GetInstanceError::NotFound(_)));
     }
 
     #[tokio::test]
@@ -94,9 +91,6 @@ mod tests {
             id: "inst_001".to_string(),
         };
         let result = uc.execute(&input).await;
-        assert!(matches!(
-            result.unwrap_err(),
-            GetInstanceError::Internal(_)
-        ));
+        assert!(matches!(result.unwrap_err(), GetInstanceError::Internal(_)));
     }
 }

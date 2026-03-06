@@ -43,7 +43,10 @@ pub struct EventStoreGrpcAuthState {
 }
 
 impl EventStoreServiceTonic {
-    pub fn new(inner: Arc<EventStoreGrpcService>, auth_state: Option<EventStoreGrpcAuthState>) -> Self {
+    pub fn new(
+        inner: Arc<EventStoreGrpcService>,
+        auth_state: Option<EventStoreGrpcAuthState>,
+    ) -> Self {
         Self { inner, auth_state }
     }
 

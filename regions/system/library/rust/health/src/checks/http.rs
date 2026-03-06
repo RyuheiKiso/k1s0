@@ -1,6 +1,6 @@
-use async_trait::async_trait;
 use crate::checker::HealthCheck;
 use crate::error::HealthError;
+use async_trait::async_trait;
 
 pub struct HttpHealthCheck {
     name: String,
@@ -35,17 +35,13 @@ impl HealthCheck for HttpHealthCheck {
             .build()
             .map_err(|e| HealthError::CheckFailed(e.to_string()))?;
 
-        let response = client
-            .get(&self.url)
-            .send()
-            .await
-            .map_err(|e| {
-                if e.is_timeout() {
-                    HealthError::Timeout(format!("HTTP check timeout: {}", self.url))
-                } else {
-                    HealthError::CheckFailed(format!("HTTP check failed: {}", e))
-                }
-            })?;
+        let response = client.get(&self.url).send().await.map_err(|e| {
+            if e.is_timeout() {
+                HealthError::Timeout(format!("HTTP check timeout: {}", self.url))
+            } else {
+                HealthError::CheckFailed(format!("HTTP check failed: {}", e))
+            }
+        })?;
 
         if response.status().is_success() {
             Ok(())
@@ -72,8 +68,8 @@ mod tests {
 
     #[test]
     fn test_http_health_check_with_timeout() {
-        let check = HttpHealthCheck::new("test", "http://example.com/healthz")
-            .with_timeout_ms(1000);
+        let check =
+            HttpHealthCheck::new("test", "http://example.com/healthz").with_timeout_ms(1000);
         assert_eq!(check.timeout_ms, 1000);
     }
 }

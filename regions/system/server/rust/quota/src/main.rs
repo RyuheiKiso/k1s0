@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -29,13 +27,16 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
 
     info!(
         app_name = %cfg.app.name,
@@ -47,8 +48,7 @@ async fn main() -> anyhow::Result<()> {
     // --- Repository initialization: Redis 竊・PostgreSQL 竊・InMemory fallback ---
 
     // Redis ConnectionManager (usage_repo 逕ｨ縲｝olicy_repo 縺ｯ蟶ｸ縺ｫDB/InMemory)
-    let redis_conn: Option<redis::aio::ConnectionManager> = if let Some(ref redis_cfg) = cfg.redis
-    {
+    let redis_conn: Option<redis::aio::ConnectionManager> = if let Some(ref redis_cfg) = cfg.redis {
         info!(url = %redis_cfg.url, "connecting to Redis for usage counters");
         match redis::Client::open(redis_cfg.url.as_str()) {
             Ok(client) => match redis::aio::ConnectionManager::new(client).await {
@@ -83,23 +83,20 @@ async fn main() -> anyhow::Result<()> {
                     adapter::repository::QuotaPolicyPostgresRepository::new(pool.clone()),
                 );
                 // usage_repo: Redis 縺御ｽｿ縺医ｌ縺ｰRedis縲√↑縺代ｌ縺ｰPostgreSQL
-                let usage_repo: Arc<dyn QuotaUsageRepository> =
-                    if let Some(ref cm) = redis_conn {
-                        let prefix = cfg
-                            .redis
-                            .as_ref()
-                            .map(|r| r.key_prefix.clone())
-                            .unwrap_or_else(|| "quota:".to_string());
-                        info!("using Redis for usage counters (prefix={})", prefix);
-                        Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
-                            cm.clone(),
-                            prefix,
-                        ))
-                    } else {
-                        Arc::new(
-                            adapter::repository::QuotaUsagePostgresRepository::new(pool),
-                        )
-                    };
+                let usage_repo: Arc<dyn QuotaUsageRepository> = if let Some(ref cm) = redis_conn {
+                    let prefix = cfg
+                        .redis
+                        .as_ref()
+                        .map(|r| r.key_prefix.clone())
+                        .unwrap_or_else(|| "quota:".to_string());
+                    info!("using Redis for usage counters (prefix={})", prefix);
+                    Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
+                        cm.clone(),
+                        prefix,
+                    ))
+                } else {
+                    Arc::new(adapter::repository::QuotaUsagePostgresRepository::new(pool))
+                };
                 (policy_repo, usage_repo)
             }
             Err(e) => {
@@ -108,22 +105,22 @@ async fn main() -> anyhow::Result<()> {
                     "failed to connect to PostgreSQL, falling back to InMemory"
                 );
                 // usage_repo: Redis 縺御ｽｿ縺医ｌ縺ｰRedis縲√↑縺代ｌ縺ｰInMemory
-                let usage_repo: Arc<dyn QuotaUsageRepository> =
-                    if let Some(ref cm) = redis_conn {
-                        let prefix = cfg
-                            .redis
-                            .as_ref()
-                            .map(|r| r.key_prefix.clone())
-                            .unwrap_or_else(|| "quota:".to_string());
-                        Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
-                            cm.clone(),
-                            prefix,
-                        ))
-                    } else {
-                        Arc::new(InMemoryQuotaUsageRepository::new())
-                    };
+                let usage_repo: Arc<dyn QuotaUsageRepository> = if let Some(ref cm) = redis_conn {
+                    let prefix = cfg
+                        .redis
+                        .as_ref()
+                        .map(|r| r.key_prefix.clone())
+                        .unwrap_or_else(|| "quota:".to_string());
+                    Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
+                        cm.clone(),
+                        prefix,
+                    ))
+                } else {
+                    Arc::new(InMemoryQuotaUsageRepository::new())
+                };
                 (
-                    Arc::new(InMemoryQuotaPolicyRepository::new()) as Arc<dyn QuotaPolicyRepository>,
+                    Arc::new(InMemoryQuotaPolicyRepository::new())
+                        as Arc<dyn QuotaPolicyRepository>,
                     usage_repo,
                 )
             }
@@ -176,16 +173,11 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(infrastructure::kafka_producer::NoopQuotaEventPublisher)
         };
 
-    let create_policy_uc =
-        Arc::new(usecase::CreateQuotaPolicyUseCase::new(policy_repo.clone()));
-    let get_policy_uc =
-        Arc::new(usecase::GetQuotaPolicyUseCase::new(policy_repo.clone()));
-    let list_policies_uc =
-        Arc::new(usecase::ListQuotaPoliciesUseCase::new(policy_repo.clone()));
-    let update_policy_uc =
-        Arc::new(usecase::UpdateQuotaPolicyUseCase::new(policy_repo.clone()));
-    let delete_policy_uc =
-        Arc::new(usecase::DeleteQuotaPolicyUseCase::new(policy_repo.clone()));
+    let create_policy_uc = Arc::new(usecase::CreateQuotaPolicyUseCase::new(policy_repo.clone()));
+    let get_policy_uc = Arc::new(usecase::GetQuotaPolicyUseCase::new(policy_repo.clone()));
+    let list_policies_uc = Arc::new(usecase::ListQuotaPoliciesUseCase::new(policy_repo.clone()));
+    let update_policy_uc = Arc::new(usecase::UpdateQuotaPolicyUseCase::new(policy_repo.clone()));
+    let delete_policy_uc = Arc::new(usecase::DeleteQuotaPolicyUseCase::new(policy_repo.clone()));
     let get_usage_uc = Arc::new(usecase::GetQuotaUsageUseCase::new(
         policy_repo.clone(),
         usage_repo.clone(),
@@ -212,9 +204,7 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
-        "k1s0-quota-server",
-    ));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-quota-server"));
 
     // Quota usage auto-reset cron
     {
@@ -228,21 +218,22 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for quota-server");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(adapter::middleware::auth::QuotaAuthState {
-            verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, quota-server running without authentication");
-        None
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "quota-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for quota-server");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            adapter::middleware::auth::QuotaAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
 
     let mut state = adapter::handler::AppState {
         create_policy_uc,
@@ -260,8 +251,8 @@ async fn main() -> anyhow::Result<()> {
         state = state.with_auth(auth_st);
     }
 
-    let app = adapter::handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app =
+        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     use proto::k1s0::system::quota::v1::quota_service_server::QuotaServiceServer;
@@ -321,7 +312,11 @@ async fn run_reset_cron(
     .into_iter()
     .filter_map(|(label, expr)| match croner::Cron::from_str(expr) {
         Ok(cron) => {
-            info!(schedule = label, expression = expr, "cron schedule registered");
+            info!(
+                schedule = label,
+                expression = expr,
+                "cron schedule registered"
+            );
             Some((label, cron))
         }
         Err(e) => {
@@ -463,7 +458,11 @@ impl QuotaPolicyRepository for InMemoryQuotaPolicyRepository {
         let all: Vec<QuotaPolicy> = policies.values().cloned().collect();
         let total = all.len() as u64;
         let start = ((page - 1) * page_size) as usize;
-        let items: Vec<QuotaPolicy> = all.into_iter().skip(start).take(page_size as usize).collect();
+        let items: Vec<QuotaPolicy> = all
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((items, total))
     }
 

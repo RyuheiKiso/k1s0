@@ -29,7 +29,10 @@ impl UpdateChannelUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, input: &UpdateChannelInput) -> Result<NotificationChannel, UpdateChannelError> {
+    pub async fn execute(
+        &self,
+        input: &UpdateChannelInput,
+    ) -> Result<NotificationChannel, UpdateChannelError> {
         let mut channel = self
             .repo
             .find_by_id(&input.id)
@@ -99,8 +102,7 @@ mod tests {
     async fn not_found() {
         let mut mock = MockNotificationChannelRepository::new();
         let missing_id = "ch_missing".to_string();
-        mock.expect_find_by_id()
-            .returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = UpdateChannelUseCase::new(Arc::new(mock));
         let input = UpdateChannelInput {

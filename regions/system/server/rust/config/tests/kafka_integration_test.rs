@@ -58,6 +58,7 @@ fn make_change_log(
         new_version: 2,
         change_type: change_type.to_string(),
         changed_by: "admin@example.com".to_string(),
+        trace_id: None,
     })
 }
 
@@ -146,6 +147,7 @@ fn test_kafka_config_topic_names() {
             publish: vec!["k1s0.system.config.changed.v1".to_string()],
             subscribe: vec![],
         },
+        topic_changed: String::new(),
     };
 
     let topic = &config.topics.publish[0];

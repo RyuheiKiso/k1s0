@@ -43,11 +43,20 @@ impl SchemaGeneratorService {
             "jsonb" => "object",
             _ => "string",
         };
-        schema.insert("type".to_string(), serde_json::Value::String(json_type.to_string()));
-        schema.insert("title".to_string(), serde_json::Value::String(col.display_name.clone()));
+        schema.insert(
+            "type".to_string(),
+            serde_json::Value::String(json_type.to_string()),
+        );
+        schema.insert(
+            "title".to_string(),
+            serde_json::Value::String(col.display_name.clone()),
+        );
 
         if let Some(max_len) = col.max_length {
-            schema.insert("maxLength".to_string(), serde_json::Value::Number(max_len.into()));
+            schema.insert(
+                "maxLength".to_string(),
+                serde_json::Value::Number(max_len.into()),
+            );
         }
         if let Some(min) = col.min_value {
             schema.insert("minimum".to_string(), serde_json::json!(min));
@@ -56,12 +65,21 @@ impl SchemaGeneratorService {
             schema.insert("maximum".to_string(), serde_json::json!(max));
         }
         if let Some(ref pattern) = col.regex_pattern {
-            schema.insert("pattern".to_string(), serde_json::Value::String(pattern.clone()));
+            schema.insert(
+                "pattern".to_string(),
+                serde_json::Value::String(pattern.clone()),
+            );
         }
         if col.data_type == "date" {
-            schema.insert("format".to_string(), serde_json::Value::String("date".to_string()));
+            schema.insert(
+                "format".to_string(),
+                serde_json::Value::String("date".to_string()),
+            );
         } else if col.data_type == "datetime" {
-            schema.insert("format".to_string(), serde_json::Value::String("date-time".to_string()));
+            schema.insert(
+                "format".to_string(),
+                serde_json::Value::String("date-time".to_string()),
+            );
         }
 
         serde_json::Value::Object(schema)

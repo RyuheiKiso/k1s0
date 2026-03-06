@@ -1,11 +1,16 @@
 use std::sync::Arc;
 
+use sqlx::PgPool;
+
 use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::domain::repository::WorkflowDefinitionRepository;
 use crate::domain::repository::WorkflowInstanceRepository;
 use crate::domain::repository::WorkflowTaskRepository;
 use crate::domain::service::WorkflowDomainService;
+use crate::infrastructure::kafka_producer::WorkflowEventPublisher;
+use crate::usecase::postgres_support::{insert_instance_tx, insert_task_tx};
+use tracing::warn;
 
 #[derive(Debug, Clone)]
 pub struct StartInstanceInput {
@@ -40,6 +45,8 @@ pub struct StartInstanceUseCase {
     definition_repo: Arc<dyn WorkflowDefinitionRepository>,
     instance_repo: Arc<dyn WorkflowInstanceRepository>,
     task_repo: Arc<dyn WorkflowTaskRepository>,
+    event_publisher: Arc<dyn WorkflowEventPublisher>,
+    pool: Option<Arc<PgPool>>,
 }
 
 impl StartInstanceUseCase {
@@ -47,11 +54,30 @@ impl StartInstanceUseCase {
         definition_repo: Arc<dyn WorkflowDefinitionRepository>,
         instance_repo: Arc<dyn WorkflowInstanceRepository>,
         task_repo: Arc<dyn WorkflowTaskRepository>,
+        event_publisher: Arc<dyn WorkflowEventPublisher>,
     ) -> Self {
         Self {
             definition_repo,
             instance_repo,
             task_repo,
+            event_publisher,
+            pool: None,
+        }
+    }
+
+    pub fn with_pool(
+        definition_repo: Arc<dyn WorkflowDefinitionRepository>,
+        instance_repo: Arc<dyn WorkflowInstanceRepository>,
+        task_repo: Arc<dyn WorkflowTaskRepository>,
+        event_publisher: Arc<dyn WorkflowEventPublisher>,
+        pool: Arc<PgPool>,
+    ) -> Self {
+        Self {
+            definition_repo,
+            instance_repo,
+            task_repo,
+            event_publisher,
+            pool: Some(pool),
         }
     }
 
@@ -87,11 +113,6 @@ impl StartInstanceUseCase {
             input.context.clone(),
         );
 
-        self.instance_repo
-            .create(&instance)
-            .await
-            .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
-
         let task_id = format!("task_{}", uuid::Uuid::new_v4().simple());
         let due_at = WorkflowDomainService::task_due_at(first_step.timeout_hours);
         let task = WorkflowTask::new(
@@ -103,10 +124,44 @@ impl StartInstanceUseCase {
             due_at,
         );
 
-        self.task_repo
-            .create(&task)
+        if let Some(pool) = &self.pool {
+            let mut tx = pool
+                .begin()
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+            insert_instance_tx(&mut tx, &instance)
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+            insert_task_tx(&mut tx, &task)
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+            tx.commit()
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+        } else {
+            self.instance_repo
+                .create(&instance)
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+
+            self.task_repo
+                .create(&task)
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+        }
+
+        if let Err(err) = self
+            .event_publisher
+            .publish_instance_started(&instance)
             .await
-            .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+        {
+            warn!(
+                instance_id = %instance.id,
+                workflow_id = %instance.workflow_id,
+                error = %err,
+                "failed to publish workflow instance started event"
+            );
+        }
 
         Ok(StartInstanceOutput {
             instance,
@@ -123,6 +178,7 @@ mod tests {
     use crate::domain::repository::workflow_definition_repository::MockWorkflowDefinitionRepository;
     use crate::domain::repository::workflow_instance_repository::MockWorkflowInstanceRepository;
     use crate::domain::repository::workflow_task_repository::MockWorkflowTaskRepository;
+    use crate::infrastructure::kafka_producer::MockWorkflowEventPublisher;
 
     fn sample_definition() -> WorkflowDefinition {
         WorkflowDefinition::new(
@@ -153,11 +209,17 @@ mod tests {
             .returning(|_| Ok(Some(sample_definition())));
         inst_mock.expect_create().returning(|_| Ok(()));
         task_mock.expect_create().returning(|_| Ok(()));
+        let mut publisher = MockWorkflowEventPublisher::new();
+        publisher
+            .expect_publish_instance_started()
+            .times(1)
+            .returning(|_| Ok(()));
 
         let uc = StartInstanceUseCase::new(
             Arc::new(def_mock),
             Arc::new(inst_mock),
             Arc::new(task_mock),
+            Arc::new(publisher),
         );
         let input = StartInstanceInput {
             workflow_id: "wf_001".to_string(),
@@ -178,6 +240,7 @@ mod tests {
         let mut def_mock = MockWorkflowDefinitionRepository::new();
         let inst_mock = MockWorkflowInstanceRepository::new();
         let task_mock = MockWorkflowTaskRepository::new();
+        let publisher = MockWorkflowEventPublisher::new();
 
         def_mock.expect_find_by_id().returning(|_| Ok(None));
 
@@ -185,6 +248,7 @@ mod tests {
             Arc::new(def_mock),
             Arc::new(inst_mock),
             Arc::new(task_mock),
+            Arc::new(publisher),
         );
         let input = StartInstanceInput {
             workflow_id: "wf_missing".to_string(),
@@ -204,6 +268,7 @@ mod tests {
         let mut def_mock = MockWorkflowDefinitionRepository::new();
         let inst_mock = MockWorkflowInstanceRepository::new();
         let task_mock = MockWorkflowTaskRepository::new();
+        let publisher = MockWorkflowEventPublisher::new();
 
         let mut def = sample_definition();
         def.enabled = false;
@@ -215,6 +280,7 @@ mod tests {
             Arc::new(def_mock),
             Arc::new(inst_mock),
             Arc::new(task_mock),
+            Arc::new(publisher),
         );
         let input = StartInstanceInput {
             workflow_id: "wf_001".to_string(),
@@ -234,6 +300,7 @@ mod tests {
         let mut def_mock = MockWorkflowDefinitionRepository::new();
         let inst_mock = MockWorkflowInstanceRepository::new();
         let task_mock = MockWorkflowTaskRepository::new();
+        let publisher = MockWorkflowEventPublisher::new();
 
         def_mock
             .expect_find_by_id()
@@ -243,6 +310,7 @@ mod tests {
             Arc::new(def_mock),
             Arc::new(inst_mock),
             Arc::new(task_mock),
+            Arc::new(publisher),
         );
         let input = StartInstanceInput {
             workflow_id: "wf_001".to_string(),
@@ -255,5 +323,40 @@ mod tests {
             result.unwrap_err(),
             StartInstanceError::Internal(_)
         ));
+    }
+
+    #[tokio::test]
+    async fn publish_failure_does_not_fail_usecase() {
+        let mut def_mock = MockWorkflowDefinitionRepository::new();
+        let mut inst_mock = MockWorkflowInstanceRepository::new();
+        let mut task_mock = MockWorkflowTaskRepository::new();
+        let mut publisher = MockWorkflowEventPublisher::new();
+
+        def_mock
+            .expect_find_by_id()
+            .returning(|_| Ok(Some(sample_definition())));
+        inst_mock.expect_create().returning(|_| Ok(()));
+        task_mock.expect_create().returning(|_| Ok(()));
+        publisher
+            .expect_publish_instance_started()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("kafka unavailable")));
+
+        let uc = StartInstanceUseCase::new(
+            Arc::new(def_mock),
+            Arc::new(inst_mock),
+            Arc::new(task_mock),
+            Arc::new(publisher),
+        );
+        let result = uc
+            .execute(&StartInstanceInput {
+                workflow_id: "wf_001".to_string(),
+                title: "PC Purchase".to_string(),
+                initiator_id: "user-001".to_string(),
+                context: serde_json::json!({"item": "laptop"}),
+            })
+            .await;
+
+        assert!(result.is_ok());
     }
 }

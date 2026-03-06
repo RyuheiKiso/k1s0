@@ -8,10 +8,9 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::featureflag::v1::{
-    feature_flag_service_server::FeatureFlagService,
-    CreateFlagRequest as ProtoCreateFlagRequest, CreateFlagResponse as ProtoCreateFlagResponse,
-    DeleteFlagRequest as ProtoDeleteFlagRequest, DeleteFlagResponse as ProtoDeleteFlagResponse,
-    EvaluateFlagRequest as ProtoEvaluateFlagRequest,
+    feature_flag_service_server::FeatureFlagService, CreateFlagRequest as ProtoCreateFlagRequest,
+    CreateFlagResponse as ProtoCreateFlagResponse, DeleteFlagRequest as ProtoDeleteFlagRequest,
+    DeleteFlagResponse as ProtoDeleteFlagResponse, EvaluateFlagRequest as ProtoEvaluateFlagRequest,
     EvaluateFlagResponse as ProtoEvaluateFlagResponse, FeatureFlag as ProtoFeatureFlag,
     FlagRule as ProtoFlagRule, FlagVariant as ProtoFlagVariant,
     GetFlagRequest as ProtoGetFlagRequest, GetFlagResponse as ProtoGetFlagResponse,

@@ -108,9 +108,7 @@ async fn test_start_saga_bad_request_returns_error() {
 
     Mock::given(method("POST"))
         .and(path("/api/v1/sagas"))
-        .respond_with(
-            ResponseTemplate::new(400).set_body_string("invalid workflow_name"),
-        )
+        .respond_with(ResponseTemplate::new(400).set_body_string("invalid workflow_name"))
         .mount(&mock_server)
         .await;
 
@@ -134,9 +132,7 @@ async fn test_get_saga_success() {
 
     Mock::given(method("GET"))
         .and(path(format!("/api/v1/sagas/{}", saga_id)))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(make_saga_state(saga_id)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(make_saga_state(saga_id)))
         .mount(&mock_server)
         .await;
 
@@ -208,9 +204,7 @@ async fn test_get_saga_invalid_json_returns_error() {
 
     Mock::given(method("GET"))
         .and(path(format!("/api/v1/sagas/{}", saga_id)))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_string("this is not valid json{{{"),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_string("this is not valid json{{{"))
         .mount(&mock_server)
         .await;
 
@@ -259,9 +253,7 @@ async fn test_cancel_saga_conflict_returns_error() {
 
     Mock::given(method("POST"))
         .and(path(format!("/api/v1/sagas/{}/cancel", saga_id)))
-        .respond_with(
-            ResponseTemplate::new(409).set_body_string("saga already completed"),
-        )
+        .respond_with(ResponseTemplate::new(409).set_body_string("saga already completed"))
         .mount(&mock_server)
         .await;
 
@@ -297,9 +289,7 @@ async fn test_client_endpoint_normalization() {
 
     Mock::given(method("GET"))
         .and(path(format!("/api/v1/sagas/{}", saga_id)))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(make_saga_state(saga_id)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(make_saga_state(saga_id)))
         .mount(&mock_server)
         .await;
 
@@ -344,26 +334,19 @@ async fn test_concurrent_requests() {
 
     Mock::given(method("GET"))
         .and(path(format!("/api/v1/sagas/{}", saga_id_1)))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(make_saga_state(saga_id_1)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(make_saga_state(saga_id_1)))
         .mount(&mock_server)
         .await;
 
     Mock::given(method("GET"))
         .and(path(format!("/api/v1/sagas/{}", saga_id_2)))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(make_saga_state(saga_id_2)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(make_saga_state(saga_id_2)))
         .mount(&mock_server)
         .await;
 
     let client = SagaClient::new(&mock_server.uri());
 
-    let (result1, result2) = tokio::join!(
-        client.get_saga(saga_id_1),
-        client.get_saga(saga_id_2),
-    );
+    let (result1, result2) = tokio::join!(client.get_saga(saga_id_1), client.get_saga(saga_id_2),);
 
     assert!(result1.is_ok());
     assert!(result2.is_ok());

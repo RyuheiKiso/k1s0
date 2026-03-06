@@ -21,12 +21,7 @@ impl Bulkhead {
     }
 
     pub async fn acquire(&self) -> Result<tokio::sync::OwnedSemaphorePermit, ResiliencyError> {
-        match tokio::time::timeout(
-            self.max_wait,
-            self.semaphore.clone().acquire_owned(),
-        )
-        .await
-        {
+        match tokio::time::timeout(self.max_wait, self.semaphore.clone().acquire_owned()).await {
             Ok(Ok(permit)) => Ok(permit),
             Ok(Err(_)) => Err(ResiliencyError::BulkheadFull {
                 max_concurrent: self.max_concurrent,

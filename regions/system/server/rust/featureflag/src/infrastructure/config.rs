@@ -162,7 +162,6 @@ fn default_ttl_seconds() -> u64 {
     60
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -280,5 +279,3 @@ mod tests {
         assert_eq!(cache.ttl_seconds, 60);
     }
 }
-
-

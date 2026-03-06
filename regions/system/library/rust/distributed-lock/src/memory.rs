@@ -135,7 +135,10 @@ mod tests {
     #[tokio::test]
     async fn test_acquire_after_expiry() {
         let lock = InMemoryDistributedLock::new();
-        let _guard = lock.acquire("key1", Duration::from_millis(1)).await.unwrap();
+        let _guard = lock
+            .acquire("key1", Duration::from_millis(1))
+            .await
+            .unwrap();
         tokio::time::sleep(Duration::from_millis(10)).await;
         assert!(!lock.is_locked("key1").await.unwrap());
         let _guard2 = lock.acquire("key1", Duration::from_secs(10)).await.unwrap();

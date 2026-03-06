@@ -1,24 +1,37 @@
+use crate::domain::entity::table_definition::{
+    CreateTableDefinition, TableDefinition, UpdateTableDefinition,
+};
+use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
+use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
+use crate::domain::service::metadata_service::SchemaGeneratorService;
+use crate::infrastructure::schema::PhysicalSchemaManager;
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::domain::entity::table_definition::{TableDefinition, CreateTableDefinition, UpdateTableDefinition};
-use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
-use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
-use crate::domain::service::metadata_service::SchemaGeneratorService;
 
 pub struct ManageTableDefinitionsUseCase {
     table_repo: Arc<dyn TableDefinitionRepository>,
     column_repo: Arc<dyn ColumnDefinitionRepository>,
+    schema_manager: Arc<PhysicalSchemaManager>,
 }
 
 impl ManageTableDefinitionsUseCase {
     pub fn new(
         table_repo: Arc<dyn TableDefinitionRepository>,
         column_repo: Arc<dyn ColumnDefinitionRepository>,
+        schema_manager: Arc<PhysicalSchemaManager>,
     ) -> Self {
-        Self { table_repo, column_repo }
+        Self {
+            table_repo,
+            column_repo,
+            schema_manager,
+        }
     }
 
-    pub async fn list_tables(&self, category: Option<&str>, active_only: bool) -> anyhow::Result<Vec<TableDefinition>> {
+    pub async fn list_tables(
+        &self,
+        category: Option<&str>,
+        active_only: bool,
+    ) -> anyhow::Result<Vec<TableDefinition>> {
         self.table_repo.find_all(category, active_only).await
     }
 
@@ -30,22 +43,42 @@ impl ManageTableDefinitionsUseCase {
         self.table_repo.find_by_id(id).await
     }
 
-    pub async fn create_table(&self, input: &CreateTableDefinition, created_by: &str) -> anyhow::Result<TableDefinition> {
+    pub async fn create_table(
+        &self,
+        input: &CreateTableDefinition,
+        created_by: &str,
+    ) -> anyhow::Result<TableDefinition> {
+        self.schema_manager.create_table(input).await?;
         self.table_repo.create(input, created_by).await
     }
 
-    pub async fn update_table(&self, name: &str, input: &UpdateTableDefinition) -> anyhow::Result<TableDefinition> {
+    pub async fn update_table(
+        &self,
+        name: &str,
+        input: &UpdateTableDefinition,
+    ) -> anyhow::Result<TableDefinition> {
         self.table_repo.update(name, input).await
     }
 
     pub async fn delete_table(&self, name: &str) -> anyhow::Result<()> {
+        let table = self
+            .table_repo
+            .find_by_name(name)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", name))?;
+        self.schema_manager.delete_table(&table).await?;
         self.table_repo.delete(name).await
     }
 
     pub async fn get_table_schema(&self, name: &str) -> anyhow::Result<serde_json::Value> {
-        let table = self.table_repo.find_by_name(name).await?
+        let table = self
+            .table_repo
+            .find_by_name(name)
+            .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", name))?;
         let columns = self.column_repo.find_by_table_id(table.id).await?;
-        Ok(SchemaGeneratorService::generate_json_schema(&table, &columns))
+        Ok(SchemaGeneratorService::generate_json_schema(
+            &table, &columns,
+        ))
     }
 }

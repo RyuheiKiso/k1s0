@@ -401,7 +401,7 @@ async fn test_update_config_not_found_returns_404() {
 
     let req = Request::builder()
         .method("PUT")
-        .uri("/api/v1/config/nonexistent.namespace/missing_key")
+        .uri("/api/v1/config/system.auth.database/missing_key")
         .header("content-type", "application/json")
         .body(Body::from(r#"{"value":"test","version":1}"#))
         .unwrap();

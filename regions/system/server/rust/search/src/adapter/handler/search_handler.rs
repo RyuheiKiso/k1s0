@@ -1,4 +1,4 @@
-﻿use std::sync::Arc;
+use std::sync::Arc;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -285,12 +285,8 @@ pub async fn create_index(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("already exists") {
-                error_response(
-                    StatusCode::CONFLICT,
-                    "SYS_SEARCH_INDEX_ALREADY_EXISTS",
-                    msg,
-                )
-                .into_response()
+                error_response(StatusCode::CONFLICT, "SYS_SEARCH_INDEX_ALREADY_EXISTS", msg)
+                    .into_response()
             } else {
                 let code = if is_opensearch_error(&msg) {
                     "SYS_SEARCH_OPENSEARCH_ERROR"
@@ -323,11 +319,7 @@ pub async fn list_indices(State(state): State<AppState>) -> impl IntoResponse {
                     })
                 })
                 .collect();
-            (
-                StatusCode::OK,
-                Json(serde_json::json!({"indices": items})),
-            )
-                .into_response()
+            (StatusCode::OK, Json(serde_json::json!({"indices": items}))).into_response()
         }
         Err(e) => error_response(
             if is_opensearch_error(&e.to_string()) {
@@ -351,10 +343,7 @@ pub async fn delete_document_from_index(
     State(state): State<AppState>,
     Path((index_name, doc_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    let input = DeleteDocumentInput {
-        index_name,
-        doc_id,
-    };
+    let input = DeleteDocumentInput { index_name, doc_id };
 
     match state.delete_document_uc.execute(&input).await {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
@@ -440,4 +429,3 @@ fn is_opensearch_error(msg: &str) -> bool {
         || lower.contains("failed to create index")
         || lower.contains("failed to index document")
 }
-

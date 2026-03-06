@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -54,7 +52,11 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
@@ -80,44 +82,41 @@ async fn main() -> anyhow::Result<()> {
         Arc<dyn FeatureFlagRepository>,
         Arc<dyn FlagAuditLogRepository>,
         Option<Arc<infrastructure::cache::FlagCache>>,
-    ) =
-        if let Ok(database_url) = std::env::var("DATABASE_URL") {
-            info!("connecting to PostgreSQL...");
-            let max_open_conns = cfg.database.as_ref().map_or(25, |db| db.max_open_conns);
-            let max_idle_conns = cfg.database.as_ref().map_or(5, |db| db.max_idle_conns);
-            let conn_max_lifetime = cfg
-                .database
-                .as_ref()
-                .map_or("5m", |db| db.conn_max_lifetime.as_str());
-            let pool = sqlx::postgres::PgPoolOptions::new()
-                .max_connections(max_open_conns)
-                .min_connections(max_idle_conns.min(max_open_conns))
-                .max_lifetime(parse_pool_duration(conn_max_lifetime))
-                .connect(&database_url)
-                .await?;
-            let pool = Arc::new(pool);
-            info!("connected to PostgreSQL");
-            let pg_repo = Arc::new(
-                adapter::repository::featureflag_postgres::FeatureFlagPostgresRepository::new(
-                    pool.clone(),
-                ),
-            );
-            let audit_repo: Arc<dyn FlagAuditLogRepository> = Arc::new(
-                adapter::repository::flag_audit_log_postgres::FlagAuditLogPostgresRepository::new(
-                    pool,
-                ),
-            );
-            // Cache for frequently accessed flags.
-            let cache = Arc::new(infrastructure::cache::FlagCache::new(
-                cfg.cache.max_entries,
-                cfg.cache.ttl_seconds,
-            ));
-            info!(
-                max_entries = cfg.cache.max_entries,
-                ttl_seconds = cfg.cache.ttl_seconds,
-                "flag cache initialized"
-            );
-            (
+    ) = if let Ok(database_url) = std::env::var("DATABASE_URL") {
+        info!("connecting to PostgreSQL...");
+        let max_open_conns = cfg.database.as_ref().map_or(25, |db| db.max_open_conns);
+        let max_idle_conns = cfg.database.as_ref().map_or(5, |db| db.max_idle_conns);
+        let conn_max_lifetime = cfg
+            .database
+            .as_ref()
+            .map_or("5m", |db| db.conn_max_lifetime.as_str());
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(max_open_conns)
+            .min_connections(max_idle_conns.min(max_open_conns))
+            .max_lifetime(parse_pool_duration(conn_max_lifetime))
+            .connect(&database_url)
+            .await?;
+        let pool = Arc::new(pool);
+        info!("connected to PostgreSQL");
+        let pg_repo = Arc::new(
+            adapter::repository::featureflag_postgres::FeatureFlagPostgresRepository::new(
+                pool.clone(),
+            ),
+        );
+        let audit_repo: Arc<dyn FlagAuditLogRepository> = Arc::new(
+            adapter::repository::flag_audit_log_postgres::FlagAuditLogPostgresRepository::new(pool),
+        );
+        // Cache for frequently accessed flags.
+        let cache = Arc::new(infrastructure::cache::FlagCache::new(
+            cfg.cache.max_entries,
+            cfg.cache.ttl_seconds,
+        ));
+        info!(
+            max_entries = cfg.cache.max_entries,
+            ttl_seconds = cfg.cache.ttl_seconds,
+            "flag cache initialized"
+        );
+        (
                 Arc::new(
                 adapter::repository::cached_featureflag_repository::CachedFeatureFlagRepository::with_metrics(
                     pg_repo,
@@ -128,37 +127,35 @@ async fn main() -> anyhow::Result<()> {
                 audit_repo,
                 Some(cache),
             )
-        } else if let Some(ref db_cfg) = cfg.database {
-            info!("connecting to PostgreSQL via config...");
-            let pool = sqlx::postgres::PgPoolOptions::new()
-                .max_connections(db_cfg.max_open_conns)
-                .min_connections(db_cfg.max_idle_conns.min(db_cfg.max_open_conns))
-                .max_lifetime(parse_pool_duration(&db_cfg.conn_max_lifetime))
-                .connect(&db_cfg.connection_url())
-                .await?;
-            let pool = Arc::new(pool);
-            info!("connected to PostgreSQL");
-            let pg_repo = Arc::new(
-                adapter::repository::featureflag_postgres::FeatureFlagPostgresRepository::new(
-                    pool.clone(),
-                ),
-            );
-            let audit_repo: Arc<dyn FlagAuditLogRepository> = Arc::new(
-                adapter::repository::flag_audit_log_postgres::FlagAuditLogPostgresRepository::new(
-                    pool,
-                ),
-            );
-            // 繧ｭ繝｣繝・す繝･縺ｧ繝ｩ繝・・
-            let cache = Arc::new(infrastructure::cache::FlagCache::new(
-                cfg.cache.max_entries,
-                cfg.cache.ttl_seconds,
-            ));
-            info!(
-                max_entries = cfg.cache.max_entries,
-                ttl_seconds = cfg.cache.ttl_seconds,
-                "flag cache initialized"
-            );
-            (
+    } else if let Some(ref db_cfg) = cfg.database {
+        info!("connecting to PostgreSQL via config...");
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(db_cfg.max_open_conns)
+            .min_connections(db_cfg.max_idle_conns.min(db_cfg.max_open_conns))
+            .max_lifetime(parse_pool_duration(&db_cfg.conn_max_lifetime))
+            .connect(&db_cfg.connection_url())
+            .await?;
+        let pool = Arc::new(pool);
+        info!("connected to PostgreSQL");
+        let pg_repo = Arc::new(
+            adapter::repository::featureflag_postgres::FeatureFlagPostgresRepository::new(
+                pool.clone(),
+            ),
+        );
+        let audit_repo: Arc<dyn FlagAuditLogRepository> = Arc::new(
+            adapter::repository::flag_audit_log_postgres::FlagAuditLogPostgresRepository::new(pool),
+        );
+        // 繧ｭ繝｣繝・す繝･縺ｧ繝ｩ繝・・
+        let cache = Arc::new(infrastructure::cache::FlagCache::new(
+            cfg.cache.max_entries,
+            cfg.cache.ttl_seconds,
+        ));
+        info!(
+            max_entries = cfg.cache.max_entries,
+            ttl_seconds = cfg.cache.ttl_seconds,
+            "flag cache initialized"
+        );
+        (
                 Arc::new(
                 adapter::repository::cached_featureflag_repository::CachedFeatureFlagRepository::with_metrics(
                     pg_repo,
@@ -169,14 +166,14 @@ async fn main() -> anyhow::Result<()> {
                 audit_repo,
                 Some(cache),
             )
-        } else {
-            info!("no database configured, using in-memory repository");
-            (
-                Arc::new(InMemoryFeatureFlagRepository::new()),
-                Arc::new(NoopFlagAuditLogRepository),
-                None,
-            )
-        };
+    } else {
+        info!("no database configured, using in-memory repository");
+        (
+            Arc::new(InMemoryFeatureFlagRepository::new()),
+            Arc::new(NoopFlagAuditLogRepository),
+            None,
+        )
+    };
 
     // Kafka producer (optional)
     let kafka_producer: Arc<dyn infrastructure::kafka_producer::FlagEventPublisher> =
@@ -205,7 +202,9 @@ async fn main() -> anyhow::Result<()> {
     if let (Some(kafka_cfg), Some(cache)) = (cfg.kafka.clone(), local_cache.clone()) {
         match infrastructure::kafka_consumer::spawn_flag_cache_invalidator(kafka_cfg, cache) {
             Ok(_) => info!("featureflag cache invalidation consumer started"),
-            Err(e) => tracing::warn!(error = %e, "failed to start featureflag cache invalidation consumer"),
+            Err(e) => {
+                tracing::warn!(error = %e, "failed to start featureflag cache invalidation consumer")
+            }
         }
     }
 
@@ -243,7 +242,10 @@ async fn main() -> anyhow::Result<()> {
     let featureflag_tonic = adapter::grpc::FeatureFlagServiceTonic::new(grpc_svc);
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+    let auth_state = k1s0_server_common::require_auth_state(
+        "featureflag-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
         info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for featureflag-server");
         let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
             &auth_cfg.jwks_url,
@@ -251,13 +253,11 @@ async fn main() -> anyhow::Result<()> {
             &auth_cfg.audience,
             std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
         ));
-        Some(adapter::middleware::auth::FeatureflagAuthState {
+        adapter::middleware::auth::FeatureflagAuthState {
             verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, featureflag-server running without authentication");
-        None
-    };
+        }
+        }),
+    )?;
 
     // AppState for REST handlers
     let mut state = adapter::handler::AppState {
@@ -277,8 +277,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // REST router
-    let app = adapter::handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app =
+        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
@@ -328,7 +328,10 @@ struct NoopFlagAuditLogRepository;
 
 #[async_trait::async_trait]
 impl FlagAuditLogRepository for NoopFlagAuditLogRepository {
-    async fn create(&self, _log: &domain::entity::flag_audit_log::FlagAuditLog) -> anyhow::Result<()> {
+    async fn create(
+        &self,
+        _log: &domain::entity::flag_audit_log::FlagAuditLog,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 

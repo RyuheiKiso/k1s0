@@ -25,10 +25,7 @@ impl DeleteWorkflowUseCase {
         Self { repo }
     }
 
-    pub async fn execute(
-        &self,
-        input: &DeleteWorkflowInput,
-    ) -> Result<(), DeleteWorkflowError> {
+    pub async fn execute(&self, input: &DeleteWorkflowInput) -> Result<(), DeleteWorkflowError> {
         let deleted = self
             .repo
             .delete(&input.id)

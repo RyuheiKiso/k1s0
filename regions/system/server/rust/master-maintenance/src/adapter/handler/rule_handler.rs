@@ -1,11 +1,13 @@
-﻿use axum::{
-    extract::{Path, Query, State},
+use axum::{
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     Json,
 };
+use k1s0_auth::Claims;
 use serde::Deserialize;
-use crate::adapter::handler::AppState;
+
 use crate::adapter::handler::error::AppError;
+use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState};
 
 #[derive(Debug, Deserialize)]
 pub struct ListRulesQuery {
@@ -19,7 +21,14 @@ pub async fn list_rules(
     State(state): State<AppState>,
     Query(query): Query<ListRulesQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let rules = state.manage_rules_uc.list_rules(query.table.as_deref(), query.rule_type.as_deref(), query.severity.as_deref()).await?;
+    let rules = state
+        .manage_rules_uc
+        .list_rules(
+            query.table.as_deref(),
+            query.rule_type.as_deref(),
+            query.severity.as_deref(),
+        )
+        .await?;
     Ok(Json(serde_json::to_value(rules).unwrap()))
 }
 
@@ -27,17 +36,39 @@ pub async fn get_rule(
     State(state): State<AppState>,
     Path(id): Path<uuid::Uuid>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let rule = state.manage_rules_uc.get_rule(id).await?
+    let rule = state
+        .manage_rules_uc
+        .get_rule(id)
+        .await?
         .ok_or_else(|| AppError::not_found("SYS_MM_RULE_NOT_FOUND", "Rule not found"))?;
     Ok(Json(serde_json::to_value(rule).unwrap()))
 }
 
 pub async fn create_rule(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
-    let rule = state.manage_rules_uc.create_rule(&input, "system").await?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap())))
+    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    let rule = state.manage_rules_uc.create_rule(&input, &actor).await?;
+    publish_change_event(
+        &state,
+        serde_json::json!({
+            "event_type": "MASTER_MAINTENANCE_DATA_CHANGED",
+            "resource_type": "rule",
+            "resource_id": rule.id,
+            "resource_name": rule.name,
+            "action": "created",
+            "actor": actor,
+            "after": rule.clone(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        }),
+    )
+    .await;
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(rule).unwrap()),
+    ))
 }
 
 pub async fn update_rule(
@@ -69,10 +100,15 @@ pub async fn check_rules(
     State(state): State<AppState>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let table_name = input.get("table_name")
+    let table_name = input
+        .get("table_name")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| AppError::bad_request("SYS_MM_VALIDATION_ERROR", "table_name is required"))?;
-    let result = state.check_consistency_uc.check_all_rules(table_name).await?;
+        .ok_or_else(|| {
+            AppError::bad_request("SYS_MM_VALIDATION_ERROR", "table_name is required")
+        })?;
+    let result = state
+        .check_consistency_uc
+        .check_all_rules(table_name)
+        .await?;
     Ok(Json(serde_json::to_value(result).unwrap()))
 }
-

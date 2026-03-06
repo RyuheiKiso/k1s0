@@ -8,7 +8,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-use k1s0_auth::JwksVerifier;
+use k1s0_auth::{has_tier_access, Claims, JwksVerifier};
 
 /// SchedulerAuthState は scheduler-server の認証ミドルウェアが使用する共有状態。
 #[derive(Clone)]
@@ -40,6 +40,18 @@ pub async fn auth_middleware(
 
     match state.verifier.verify_token(&token).await {
         Ok(claims) => {
+            if !claims_have_system_tier(&claims) {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(serde_json::json!({
+                        "error": {
+                            "code": "SYS_AUTH_TIER_FORBIDDEN",
+                            "message": "Token does not include required tier access: system"
+                        }
+                    })),
+                )
+                    .into_response();
+            }
             req.extensions_mut().insert(claims);
             next.run(req).await
         }
@@ -54,6 +66,10 @@ pub async fn auth_middleware(
         )
             .into_response(),
     }
+}
+
+pub(crate) fn claims_have_system_tier(claims: &Claims) -> bool {
+    has_tier_access(claims, "system")
 }
 
 fn extract_bearer_token(req: &Request<Body>) -> Option<String> {

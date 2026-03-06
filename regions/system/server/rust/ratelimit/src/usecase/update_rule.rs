@@ -52,8 +52,8 @@ impl UpdateRuleUseCase {
         )
         .map_err(UpdateRuleError::Validation)?;
 
-        let id = Uuid::parse_str(&input.id)
-            .map_err(|_| UpdateRuleError::NotFound(input.id.clone()))?;
+        let id =
+            Uuid::parse_str(&input.id).map_err(|_| UpdateRuleError::NotFound(input.id.clone()))?;
 
         let mut rule = self
             .repo
@@ -163,6 +163,9 @@ mod tests {
 
         let result = uc.execute(&input).await;
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), UpdateRuleError::Validation(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            UpdateRuleError::Validation(_)
+        ));
     }
 }

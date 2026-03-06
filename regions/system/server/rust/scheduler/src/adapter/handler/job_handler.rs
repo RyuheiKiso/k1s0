@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use super::AppState;
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
+use crate::usecase::create_job::CreateJobError;
 use crate::usecase::create_job::CreateJobInput;
 
 /// GET /api/v1/jobs
@@ -18,6 +19,7 @@ pub async fn list_jobs(
     use crate::usecase::list_jobs::ListJobsInput;
     let input = ListJobsInput {
         status: params.status,
+        name_prefix: params.name_prefix,
         page: params.page.unwrap_or(1),
         page_size: params.page_size.unwrap_or(20),
     };
@@ -65,17 +67,11 @@ pub async fn create_job(
     Json(req): Json<CreateJobRequest>,
 ) -> impl IntoResponse {
     if req.target_type.trim().is_empty() {
-        let err = ErrorResponse::new(
-            "SYS_SCHED_VALIDATION_ERROR",
-            "target_type is required",
-        );
+        let err = ErrorResponse::new("SYS_SCHED_VALIDATION_ERROR", "target_type is required");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
     if req.payload.is_null() {
-        let err = ErrorResponse::new(
-            "SYS_SCHED_VALIDATION_ERROR",
-            "payload is required",
-        );
+        let err = ErrorResponse::new("SYS_SCHED_VALIDATION_ERROR", "payload is required");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
 
@@ -95,14 +91,24 @@ pub async fn create_job(
             Json(serde_json::to_value(job).unwrap()),
         )
             .into_response(),
-        Err(e) => {
-            let msg = e.to_string();
+        Err(CreateJobError::InvalidCron(expr)) => {
+            let err = ErrorResponse::new(
+                "SYS_SCHED_INVALID_CRON",
+                &format!("invalid cron expression: {}", expr),
+            );
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+        Err(CreateJobError::InvalidTimezone(tz)) => {
+            let err = ErrorResponse::new(
+                "SYS_SCHED_INVALID_TIMEZONE",
+                &format!("invalid timezone: {}", tz),
+            );
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+        Err(CreateJobError::Internal(msg)) => {
             if msg.contains("already exists") || msg.contains("duplicate") {
                 let err = ErrorResponse::new("SYS_SCHED_ALREADY_EXISTS", &msg);
                 (StatusCode::CONFLICT, Json(err)).into_response()
-            } else if msg.contains("invalid cron") {
-                let err = ErrorResponse::new("SYS_SCHED_INVALID_CRON", &msg);
-                (StatusCode::BAD_REQUEST, Json(err)).into_response()
             } else {
                 let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
@@ -112,7 +118,10 @@ pub async fn create_job(
 }
 
 /// DELETE /api/v1/jobs/:id
-pub async fn delete_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn delete_job(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
     use crate::usecase::delete_job::DeleteJobError;
 
     match state.delete_job_uc.execute(&id).await {
@@ -160,7 +169,10 @@ pub async fn pause_job(State(state): State<AppState>, Path(id): Path<String>) ->
 }
 
 /// PUT /api/v1/jobs/:id/resume
-pub async fn resume_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn resume_job(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
     match state.resume_job_uc.execute(&id).await {
         Ok(job) => (StatusCode::OK, Json(serde_json::to_value(job).unwrap())).into_response(),
         Err(e) => {
@@ -185,17 +197,11 @@ pub async fn update_job(
     use crate::usecase::update_job::{UpdateJobError, UpdateJobInput};
 
     if req.target_type.trim().is_empty() {
-        let err = ErrorResponse::new(
-            "SYS_SCHED_VALIDATION_ERROR",
-            "target_type is required",
-        );
+        let err = ErrorResponse::new("SYS_SCHED_VALIDATION_ERROR", "target_type is required");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
     if req.payload.is_null() {
-        let err = ErrorResponse::new(
-            "SYS_SCHED_VALIDATION_ERROR",
-            "payload is required",
-        );
+        let err = ErrorResponse::new("SYS_SCHED_VALIDATION_ERROR", "payload is required");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
 
@@ -223,6 +229,13 @@ pub async fn update_job(
             );
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
+        Err(UpdateJobError::InvalidTimezone(tz)) => {
+            let err = ErrorResponse::new(
+                "SYS_SCHED_INVALID_TIMEZONE",
+                &format!("invalid timezone: {}", tz),
+            );
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
         Err(UpdateJobError::Internal(msg)) => {
             let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
@@ -231,7 +244,10 @@ pub async fn update_job(
 }
 
 /// POST /api/v1/jobs/:id/trigger
-pub async fn trigger_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn trigger_job(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
     use crate::usecase::trigger_job::TriggerJobError;
 
     match state.trigger_job_uc.execute(&id).await {
@@ -381,6 +397,7 @@ fn normalize_status(status: &str) -> String {
 #[derive(Debug, Deserialize)]
 pub struct ListJobsParams {
     pub status: Option<String>,
+    pub name_prefix: Option<String>,
     pub page: Option<u32>,
     pub page_size: Option<u32>,
 }

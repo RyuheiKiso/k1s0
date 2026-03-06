@@ -23,10 +23,7 @@ impl ListApiKeysUseCase {
         Self { repo }
     }
 
-    pub async fn execute(
-        &self,
-        tenant_id: &str,
-    ) -> Result<Vec<ApiKeySummary>, ListApiKeysError> {
+    pub async fn execute(&self, tenant_id: &str) -> Result<Vec<ApiKeySummary>, ListApiKeysError> {
         if tenant_id.is_empty() {
             return Err(ListApiKeysError::Validation(
                 "tenant_id is required".to_string(),

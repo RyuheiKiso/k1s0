@@ -102,12 +102,11 @@ impl SearchRepository for SearchPostgresRepository {
     /// search_vector はトリガーが自動生成するため、INSERT では設定しない。
     async fn index_document(&self, doc: &SearchDocument) -> anyhow::Result<()> {
         // まずインデックスの id を取得
-        let index_row: Option<(Uuid,)> = sqlx::query_as(
-            "SELECT id FROM search.search_indices WHERE name = $1",
-        )
-        .bind(&doc.index_name)
-        .fetch_optional(self.pool.as_ref())
-        .await?;
+        let index_row: Option<(Uuid,)> =
+            sqlx::query_as("SELECT id FROM search.search_indices WHERE name = $1")
+                .bind(&doc.index_name)
+                .fetch_optional(self.pool.as_ref())
+                .await?;
 
         let index_id = index_row
             .ok_or_else(|| anyhow::anyhow!("index not found: {}", doc.index_name))?
@@ -242,12 +241,11 @@ impl SearchRepository for SearchPostgresRepository {
     /// ドキュメントを削除する。
     async fn delete_document(&self, index_name: &str, doc_id: &str) -> anyhow::Result<bool> {
         // インデックス id を取得
-        let index_row: Option<(Uuid,)> = sqlx::query_as(
-            "SELECT id FROM search.search_indices WHERE name = $1",
-        )
-        .bind(index_name)
-        .fetch_optional(self.pool.as_ref())
-        .await?;
+        let index_row: Option<(Uuid,)> =
+            sqlx::query_as("SELECT id FROM search.search_indices WHERE name = $1")
+                .bind(index_name)
+                .fetch_optional(self.pool.as_ref())
+                .await?;
 
         let index_id = match index_row {
             Some(row) => row.0,

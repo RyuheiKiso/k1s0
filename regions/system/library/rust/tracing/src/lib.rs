@@ -39,11 +39,7 @@ mod tests {
 
     #[test]
     fn test_inject_extract_roundtrip() {
-        let ctx = TraceContext::new(
-            "0af7651916cd43dd8448eb211c80319c",
-            "b7ad6b7169203331",
-            1,
-        );
+        let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 1);
         let mut baggage = Baggage::new();
         baggage.set("userId", "alice");
 
@@ -64,11 +60,7 @@ mod tests {
 
     #[test]
     fn test_inject_without_baggage() {
-        let ctx = TraceContext::new(
-            "0af7651916cd43dd8448eb211c80319c",
-            "b7ad6b7169203331",
-            0,
-        );
+        let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 0);
         let mut headers = HashMap::new();
         inject_context(&mut headers, &ctx, None);
 

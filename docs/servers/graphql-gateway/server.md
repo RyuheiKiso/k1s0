@@ -355,7 +355,9 @@ input SetFeatureFlagInput {
 | --- | --- | --- |
 | `TenantLoader` | テナント ID リスト | TenantService.BatchGetTenants |
 | `FeatureFlagLoader` | フラグキーリスト | FeatureFlagService.ListFlags |
-| `ConfigLoader` | 設定キーリスト | ConfigService.BatchGetConfigs |
+| `ConfigLoader` | 設定キーリスト | ConfigService.GetConfig（逐次取得） |
+
+> **注記**: ConfigLoader は現在 `GetConfig` を逐次呼び出しで実装している。将来 `BatchGetConfigs` RPC が ConfigService に実装された時点でバッチ化予定。
 
 ---
 

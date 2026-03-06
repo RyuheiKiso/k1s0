@@ -1,6 +1,5 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let navigation_proto =
-        "../../../../../api/proto/k1s0/system/navigation/v1/navigation.proto";
+    let navigation_proto = "../../../../../api/proto/k1s0/system/navigation/v1/navigation.proto";
     let proto_include = "../../../../../api/proto";
 
     if !std::path::Path::new(navigation_proto).exists() {

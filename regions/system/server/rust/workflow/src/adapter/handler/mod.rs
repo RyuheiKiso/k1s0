@@ -13,12 +13,19 @@ use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::require_permission;
 
 /// REST API router.
-pub fn router(state: AppState) -> Router {
+pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Router {
     // 認証不要のエンドポイント
-    let public_routes = Router::new()
+    let mut public_routes = Router::new()
         .route("/healthz", get(health::healthz))
-        .route("/readyz", get(health::readyz))
-        .route("/metrics", get(metrics_handler));
+        .route("/readyz", get(health::readyz));
+    if metrics_enabled {
+        public_routes = public_routes.route(metrics_path, get(metrics_handler));
+    }
+
+    let internal_routes = Router::new().route(
+        "/internal/tasks/check-overdue",
+        post(workflow_handler::check_overdue_tasks),
+    );
 
     // 認証が設定されている場合は RBAC 付きルーティング
     let api_routes = if let Some(ref auth_state) = state.auth_state {
@@ -26,12 +33,12 @@ pub fn router(state: AppState) -> Router {
         let read_routes = Router::new()
             .route("/api/v1/workflows", get(workflow_handler::list_workflows))
             .route("/api/v1/workflows/:id", get(workflow_handler::get_workflow))
-            .route(
-                "/api/v1/workflows/:id/status",
-                get(workflow_handler::get_workflow_status),
-            )
             .route("/api/v1/instances", get(workflow_handler::list_instances))
             .route("/api/v1/instances/:id", get(workflow_handler::get_instance))
+            .route(
+                "/api/v1/instances/:id/status",
+                get(workflow_handler::get_instance_status),
+            )
             .route("/api/v1/tasks", get(workflow_handler::list_tasks))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "workflows",
@@ -60,10 +67,6 @@ pub fn router(state: AppState) -> Router {
             .route(
                 "/api/v1/tasks/:id/reassign",
                 post(workflow_handler::reassign_task),
-            )
-            .route(
-                "/internal/tasks/check-overdue",
-                post(workflow_handler::check_overdue_tasks),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "workflows",
@@ -110,12 +113,12 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/workflows/:id/execute",
                 post(workflow_handler::execute_workflow),
             )
-            .route(
-                "/api/v1/workflows/:id/status",
-                get(workflow_handler::get_workflow_status),
-            )
             .route("/api/v1/instances", get(workflow_handler::list_instances))
             .route("/api/v1/instances/:id", get(workflow_handler::get_instance))
+            .route(
+                "/api/v1/instances/:id/status",
+                get(workflow_handler::get_instance_status),
+            )
             .route(
                 "/api/v1/instances/:id/cancel",
                 post(workflow_handler::cancel_instance),
@@ -133,13 +136,12 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/tasks/:id/reassign",
                 post(workflow_handler::reassign_task),
             )
-            .route(
-                "/internal/tasks/check-overdue",
-                post(workflow_handler::check_overdue_tasks),
-            )
     };
 
-    public_routes.merge(api_routes).with_state(state)
+    public_routes
+        .merge(internal_routes)
+        .merge(api_routes)
+        .with_state(state)
 }
 
 async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {

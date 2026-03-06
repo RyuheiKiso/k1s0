@@ -73,10 +73,7 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
         }
     }
 
-    async fn find_by_namespace(
-        &self,
-        namespace: &str,
-    ) -> anyhow::Result<Option<ConfigSchema>> {
+    async fn find_by_namespace(&self, namespace: &str) -> anyhow::Result<Option<ConfigSchema>> {
         let start = std::time::Instant::now();
         let row = sqlx::query(
             r#"
@@ -118,11 +115,7 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
         .fetch_all(&self.pool)
         .await?;
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration(
-                "list_all",
-                "config_schemas",
-                start.elapsed().as_secs_f64(),
-            );
+            m.record_db_query_duration("list_all", "config_schemas", start.elapsed().as_secs_f64());
         }
 
         rows.into_iter()
@@ -154,11 +147,7 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
         .fetch_one(&self.pool)
         .await?;
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration(
-                "upsert",
-                "config_schemas",
-                start.elapsed().as_secs_f64(),
-            );
+            m.record_db_query_duration("upsert", "config_schemas", start.elapsed().as_secs_f64());
         }
 
         Ok(row_to_config_schema(row)?)

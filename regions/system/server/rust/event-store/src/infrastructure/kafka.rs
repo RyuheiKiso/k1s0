@@ -21,11 +21,7 @@ struct EventStoreEnvelope {
 #[async_trait]
 pub trait EventPublisher: Send + Sync {
     /// イベントを Kafka トピックに発行する。
-    async fn publish_events(
-        &self,
-        stream_id: &str,
-        events: &[StoredEvent],
-    ) -> anyhow::Result<()>;
+    async fn publish_events(&self, stream_id: &str, events: &[StoredEvent]) -> anyhow::Result<()>;
 
     /// Kafka 接続のヘルスチェック。
     async fn health_check(&self) -> anyhow::Result<()> {
@@ -76,11 +72,7 @@ impl EventStoreKafkaProducer {
 
 #[async_trait]
 impl EventPublisher for EventStoreKafkaProducer {
-    async fn publish_events(
-        &self,
-        stream_id: &str,
-        events: &[StoredEvent],
-    ) -> anyhow::Result<()> {
+    async fn publish_events(&self, stream_id: &str, events: &[StoredEvent]) -> anyhow::Result<()> {
         use rdkafka::producer::FutureRecord;
         use std::time::Duration;
 
@@ -99,19 +91,13 @@ impl EventPublisher for EventStoreKafkaProducer {
             let payload = serde_json::to_vec(&envelope)?;
             let key = stream_id.to_string();
 
-            let record = FutureRecord::to(&self.topic)
-                .key(&key)
-                .payload(&payload);
+            let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
 
             self.producer
                 .send(record, Duration::from_secs(5))
                 .await
                 .map_err(|(err, _)| {
-                    anyhow::anyhow!(
-                        "failed to publish event to topic {}: {}",
-                        self.topic,
-                        err
-                    )
+                    anyhow::anyhow!("failed to publish event to topic {}: {}", self.topic, err)
                 })?;
 
             if let Some(ref m) = self.metrics {
@@ -181,6 +167,9 @@ mod tests {
 
         let result = mock.publish_events("test-stream", &[]).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("broker unavailable"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("broker unavailable"));
     }
 }

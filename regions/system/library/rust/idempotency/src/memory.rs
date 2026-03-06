@@ -4,8 +4,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::RwLock;
 
-use crate::{IdempotencyError, IdempotencyRecord, IdempotencyStatus};
 use crate::store::IdempotencyStore;
+use crate::{IdempotencyError, IdempotencyRecord, IdempotencyStatus};
 
 #[derive(Clone)]
 pub struct InMemoryIdempotencyStore {

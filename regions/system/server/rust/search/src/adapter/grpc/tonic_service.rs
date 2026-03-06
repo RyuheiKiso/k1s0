@@ -7,19 +7,17 @@ use crate::proto::k1s0::system::search::v1::{
     search_service_server::SearchService, CreateIndexRequest as ProtoCreateIndexRequest,
     CreateIndexResponse as ProtoCreateIndexResponse,
     DeleteDocumentRequest as ProtoDeleteDocumentRequest,
-    DeleteDocumentResponse as ProtoDeleteDocumentResponse,
-    FacetCounts as ProtoFacetCounts,
+    DeleteDocumentResponse as ProtoDeleteDocumentResponse, FacetCounts as ProtoFacetCounts,
     IndexDocumentRequest as ProtoIndexDocumentRequest,
     IndexDocumentResponse as ProtoIndexDocumentResponse,
-    ListIndicesRequest as ProtoListIndicesRequest,
-    ListIndicesResponse as ProtoListIndicesResponse, SearchHit as ProtoSearchHit,
-    SearchIndex as ProtoSearchIndex, SearchRequest as ProtoSearchRequest,
-    SearchResponse as ProtoSearchResponse,
+    ListIndicesRequest as ProtoListIndicesRequest, ListIndicesResponse as ProtoListIndicesResponse,
+    SearchHit as ProtoSearchHit, SearchIndex as ProtoSearchIndex,
+    SearchRequest as ProtoSearchRequest, SearchResponse as ProtoSearchResponse,
 };
 
 use super::search_grpc::{
-    CreateIndexRequest, DeleteDocumentRequest, GrpcError, IndexDocumentRequest,
-    ListIndicesRequest, SearchGrpcService, SearchRequest,
+    CreateIndexRequest, DeleteDocumentRequest, GrpcError, IndexDocumentRequest, ListIndicesRequest,
+    SearchGrpcService, SearchRequest,
 };
 
 impl From<GrpcError> for Status {
@@ -130,11 +128,7 @@ impl SearchService for SearchServiceTonic {
             size: inner.size,
             facets: inner.facets,
         };
-        let resp = self
-            .inner
-            .search(req)
-            .await
-            .map_err(Into::<Status>::into)?;
+        let resp = self.inner.search(req).await.map_err(Into::<Status>::into)?;
 
         let proto_hits = resp
             .hits

@@ -231,9 +231,7 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/api/v1/secrets"))
             .and(query_param("prefix", "system/"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(vec!["system/db", "system/api"]),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_json(vec!["system/db", "system/api"]))
             .mount(&server)
             .await;
 

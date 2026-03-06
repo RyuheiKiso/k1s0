@@ -75,10 +75,7 @@ mod tests {
             id: "wf_missing".to_string(),
         };
         let result = uc.execute(&input).await;
-        assert!(matches!(
-            result.unwrap_err(),
-            GetWorkflowError::NotFound(_)
-        ));
+        assert!(matches!(result.unwrap_err(), GetWorkflowError::NotFound(_)));
     }
 
     #[tokio::test]
@@ -92,9 +89,6 @@ mod tests {
             id: "wf_001".to_string(),
         };
         let result = uc.execute(&input).await;
-        assert!(matches!(
-            result.unwrap_err(),
-            GetWorkflowError::Internal(_)
-        ));
+        assert!(matches!(result.unwrap_err(), GetWorkflowError::Internal(_)));
     }
 }

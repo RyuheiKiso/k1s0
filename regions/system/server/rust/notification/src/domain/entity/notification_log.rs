@@ -17,7 +17,12 @@ pub struct NotificationLog {
 }
 
 impl NotificationLog {
-    pub fn new(channel_id: String, recipient: String, subject: Option<String>, body: String) -> Self {
+    pub fn new(
+        channel_id: String,
+        recipient: String,
+        subject: Option<String>,
+        body: String,
+    ) -> Self {
         Self {
             id: format!("notif_{}", uuid::Uuid::new_v4().simple()),
             channel_id,

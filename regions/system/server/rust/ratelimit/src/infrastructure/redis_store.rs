@@ -1,4 +1,4 @@
-﻿use async_trait::async_trait;
+use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 use redis::aio::ConnectionManager;
 use redis::Script;
@@ -342,7 +342,12 @@ impl RateLimitStateStore for RedisRateLimitStore {
         Ok(())
     }
 
-    async fn get_usage(&self, key: &str, limit: i64, window_secs: i64) -> anyhow::Result<Option<UsageSnapshot>> {
+    async fn get_usage(
+        &self,
+        key: &str,
+        limit: i64,
+        window_secs: i64,
+    ) -> anyhow::Result<Option<UsageSnapshot>> {
         let mut conn = self.pick_conn();
         let result: Vec<Option<String>> = redis::cmd("HMGET")
             .arg(key)

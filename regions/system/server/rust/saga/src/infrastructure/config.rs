@@ -112,7 +112,6 @@ impl Default for SagaConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -248,5 +247,3 @@ server: {}
         assert_eq!(config.saga.workflow_dir, "workflows");
     }
 }
-
-

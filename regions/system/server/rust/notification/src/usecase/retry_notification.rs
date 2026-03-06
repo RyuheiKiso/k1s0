@@ -53,7 +53,9 @@ impl RetryNotificationUseCase {
             .ok_or_else(|| RetryNotificationError::NotFound(input.notification_id.clone()))?;
 
         if !NotificationDomainService::is_retryable_status(&log.status) {
-            return Err(RetryNotificationError::AlreadySent(input.notification_id.clone()));
+            return Err(RetryNotificationError::AlreadySent(
+                input.notification_id.clone(),
+            ));
         }
 
         // Verify channel still exists

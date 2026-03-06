@@ -57,4 +57,3 @@ impl SearchRepository for CachedSearchRepository {
         Ok(indices)
     }
 }
-

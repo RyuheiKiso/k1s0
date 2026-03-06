@@ -7,21 +7,29 @@ use crate::proto::k1s0::system::common::v1::{
 };
 use crate::proto::k1s0::system::workflow::v1::{
     workflow_service_server::WorkflowService, ApproveTaskRequest as ProtoApproveTaskRequest,
-    ApproveTaskResponse as ProtoApproveTaskResponse, CancelInstanceRequest as ProtoCancelInstanceRequest,
-    CancelInstanceResponse as ProtoCancelInstanceResponse, CreateWorkflowRequest as ProtoCreateWorkflowRequest,
-    CreateWorkflowResponse as ProtoCreateWorkflowResponse, DeleteWorkflowRequest as ProtoDeleteWorkflowRequest,
-    DeleteWorkflowResponse as ProtoDeleteWorkflowResponse, GetInstanceRequest as ProtoGetInstanceRequest,
-    GetInstanceResponse as ProtoGetInstanceResponse, GetWorkflowRequest as ProtoGetWorkflowRequest,
-    GetWorkflowResponse as ProtoGetWorkflowResponse, ListInstancesRequest as ProtoListInstancesRequest,
+    ApproveTaskResponse as ProtoApproveTaskResponse,
+    CancelInstanceRequest as ProtoCancelInstanceRequest,
+    CancelInstanceResponse as ProtoCancelInstanceResponse,
+    CreateWorkflowRequest as ProtoCreateWorkflowRequest,
+    CreateWorkflowResponse as ProtoCreateWorkflowResponse,
+    DeleteWorkflowRequest as ProtoDeleteWorkflowRequest,
+    DeleteWorkflowResponse as ProtoDeleteWorkflowResponse,
+    GetInstanceRequest as ProtoGetInstanceRequest, GetInstanceResponse as ProtoGetInstanceResponse,
+    GetWorkflowRequest as ProtoGetWorkflowRequest, GetWorkflowResponse as ProtoGetWorkflowResponse,
+    ListInstancesRequest as ProtoListInstancesRequest,
     ListInstancesResponse as ProtoListInstancesResponse, ListTasksRequest as ProtoListTasksRequest,
     ListTasksResponse as ProtoListTasksResponse, ListWorkflowsRequest as ProtoListWorkflowsRequest,
-    ListWorkflowsResponse as ProtoListWorkflowsResponse, ReassignTaskRequest as ProtoReassignTaskRequest,
+    ListWorkflowsResponse as ProtoListWorkflowsResponse,
+    ReassignTaskRequest as ProtoReassignTaskRequest,
     ReassignTaskResponse as ProtoReassignTaskResponse, RejectTaskRequest as ProtoRejectTaskRequest,
-    RejectTaskResponse as ProtoRejectTaskResponse, StartInstanceRequest as ProtoStartInstanceRequest,
-    StartInstanceResponse as ProtoStartInstanceResponse, UpdateWorkflowRequest as ProtoUpdateWorkflowRequest,
-    UpdateWorkflowResponse as ProtoUpdateWorkflowResponse, WorkflowDefinition as ProtoWorkflowDefinition,
-    WorkflowInstance as ProtoWorkflowInstance, WorkflowStep as ProtoWorkflowStep,
-    WorkflowSteps as ProtoWorkflowSteps, WorkflowTask as ProtoWorkflowTask,
+    RejectTaskResponse as ProtoRejectTaskResponse,
+    StartInstanceRequest as ProtoStartInstanceRequest,
+    StartInstanceResponse as ProtoStartInstanceResponse,
+    UpdateWorkflowRequest as ProtoUpdateWorkflowRequest,
+    UpdateWorkflowResponse as ProtoUpdateWorkflowResponse,
+    WorkflowDefinition as ProtoWorkflowDefinition, WorkflowInstance as ProtoWorkflowInstance,
+    WorkflowStep as ProtoWorkflowStep, WorkflowSteps as ProtoWorkflowSteps,
+    WorkflowTask as ProtoWorkflowTask,
 };
 
 use super::workflow_grpc::{
@@ -138,7 +146,10 @@ impl WorkflowService for WorkflowServiceTonic {
         request: Request<ProtoListWorkflowsRequest>,
     ) -> Result<Response<ProtoListWorkflowsResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner.pagination.map(|p| (p.page, p.page_size)).unwrap_or((1, 20));
+        let (page, page_size) = inner
+            .pagination
+            .map(|p| (p.page, p.page_size))
+            .unwrap_or((1, 20));
         let resp = self
             .inner
             .list_workflows(ListWorkflowsRequest {
@@ -149,7 +160,11 @@ impl WorkflowService for WorkflowServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoListWorkflowsResponse {
-            workflows: resp.workflows.into_iter().map(to_proto_definition).collect(),
+            workflows: resp
+                .workflows
+                .into_iter()
+                .map(to_proto_definition)
+                .collect(),
             pagination: Some(ProtoPaginationResult {
                 total_count: resp.total_count.min(i32::MAX as u64) as i32,
                 page: resp.page,
@@ -208,9 +223,9 @@ impl WorkflowService for WorkflowServiceTonic {
                 name: inner.name,
                 description: inner.description,
                 enabled: inner.enabled,
-                steps: inner
-                    .steps
-                    .map(|s: ProtoWorkflowSteps| s.items.into_iter().map(from_proto_step).collect()),
+                steps: inner.steps.map(|s: ProtoWorkflowSteps| {
+                    s.items.into_iter().map(from_proto_step).collect()
+                }),
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -289,7 +304,10 @@ impl WorkflowService for WorkflowServiceTonic {
         request: Request<ProtoListInstancesRequest>,
     ) -> Result<Response<ProtoListInstancesResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner.pagination.map(|p| (p.page, p.page_size)).unwrap_or((1, 20));
+        let (page, page_size) = inner
+            .pagination
+            .map(|p| (p.page, p.page_size))
+            .unwrap_or((1, 20));
         let resp = self
             .inner
             .list_instances(ListInstancesRequest {
@@ -335,7 +353,10 @@ impl WorkflowService for WorkflowServiceTonic {
         request: Request<ProtoListTasksRequest>,
     ) -> Result<Response<ProtoListTasksResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner.pagination.map(|p| (p.page, p.page_size)).unwrap_or((1, 20));
+        let (page, page_size) = inner
+            .pagination
+            .map(|p| (p.page, p.page_size))
+            .unwrap_or((1, 20));
         let resp = self
             .inner
             .list_tasks(ListTasksRequest {

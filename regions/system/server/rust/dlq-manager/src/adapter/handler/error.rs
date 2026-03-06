@@ -29,21 +29,15 @@ pub enum DlqError {
 impl IntoResponse for DlqError {
     fn into_response(self) -> Response {
         let (status, code, message) = match &self {
-            DlqError::NotFound(msg) => (
-                StatusCode::NOT_FOUND,
-                codes::dlq::not_found(),
-                msg.as_str(),
-            ),
+            DlqError::NotFound(msg) => {
+                (StatusCode::NOT_FOUND, codes::dlq::not_found(), msg.as_str())
+            }
             DlqError::Validation(msg) => (
                 StatusCode::BAD_REQUEST,
                 codes::dlq::validation_error(),
                 msg.as_str(),
             ),
-            DlqError::Conflict(msg) => (
-                StatusCode::CONFLICT,
-                codes::dlq::conflict(),
-                msg.as_str(),
-            ),
+            DlqError::Conflict(msg) => (StatusCode::CONFLICT, codes::dlq::conflict(), msg.as_str()),
             DlqError::ProcessFailed(msg) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 codes::dlq::process_failed(),

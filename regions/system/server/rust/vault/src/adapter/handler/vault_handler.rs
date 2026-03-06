@@ -111,7 +111,10 @@ fn classify_vault_internal_error(msg: &str) -> (StatusCode, &'static str) {
     if lower.contains("upstream") || lower.contains("backend") || lower.contains("vault") {
         return (StatusCode::BAD_GATEWAY, "SYS_VAULT_UPSTREAM_ERROR");
     }
-    (StatusCode::INTERNAL_SERVER_ERROR, "SYS_VAULT_INTERNAL_ERROR")
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "SYS_VAULT_INTERNAL_ERROR",
+    )
 }
 
 fn internal_error_response(msg: &str) -> (StatusCode, Json<serde_json::Value>) {

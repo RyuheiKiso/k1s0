@@ -165,7 +165,8 @@ mod tests {
             f.id = target_id;
             Ok(vec![f])
         });
-        mock.expect_delete().returning(|_| Err(anyhow::anyhow!("db error")));
+        mock.expect_delete()
+            .returning(|_| Err(anyhow::anyhow!("db error")));
         let mock_publisher = MockFlagEventPublisher::new();
         let mock_audit_repo = MockFlagAuditLogRepository::new();
 

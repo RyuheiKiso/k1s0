@@ -1,7 +1,7 @@
+use crate::domain::value_object::relationship_type::RelationshipType;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::domain::value_object::relationship_type::RelationshipType;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableRelationship {

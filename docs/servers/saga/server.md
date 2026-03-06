@@ -294,9 +294,9 @@ message StartSagaRequest {
   // 各ステップに渡す JSON ペイロード
   google.protobuf.Struct payload = 2;
   // 業務相関 ID（任意）
-  optional string correlation_id = 3;
+  string correlation_id = 3;
   // 呼び出し元サービス名（任意）
-  optional string initiated_by = 4;
+  string initiated_by = 4;
 }
 
 // StartSagaResponse は Saga 開始レスポンス。
@@ -591,11 +591,9 @@ Exponential backoff の遅延: `delay_ms = initial_interval_ms * 2^attempt`
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `name` | string | ワークフロー名 |
-| `version` | i32 | ワークフロー定義バージョン |
-| `definition` | JSON | ワークフロー定義本体（steps を含む） |
-| `enabled` | bool | 有効/無効フラグ |
-| `created_at` | DateTime\<Utc\> | 作成日時 |
-| `updated_at` | DateTime\<Utc\> | 更新日時 |
+| `version` | i32 | ワークフロー定義バージョン（デフォルト 1） |
+| `enabled` | bool | 有効/無効フラグ（デフォルト true） |
+| `steps` | Vec\<WorkflowStep\> | ステップ定義の配列 |
 
 ### ディレクトリ構成
 
@@ -604,6 +602,7 @@ regions/system/server/rust/saga/
 ├── src/
 │   ├── main.rs                              # エントリポイント + InMemorySagaRepository
 │   ├── lib.rs                               # ライブラリクレート
+│   ├── test_support.rs                      # 統合テスト用ヘルパー
 │   ├── proto/
 │   │   └── mod.rs                           # Proto include（codegen後に有効化）
 │   ├── domain/
@@ -637,6 +636,10 @@ regions/system/server/rust/saga/
 │   │   │   ├── mod.rs
 │   │   │   ├── saga_grpc.rs                 # gRPC サービス実装
 │   │   │   └── tonic_service.rs             # tonic サービスラッパー
+│   │   ├── middleware/
+│   │   │   ├── mod.rs                       # ミドルウェアモジュール
+│   │   │   ├── auth.rs                      # JWT 認証ミドルウェア
+│   │   │   └── rbac.rs                      # RBAC ミドルウェア
 │   │   └── repository/
 │   │       ├── mod.rs
 │   │       ├── saga_postgres.rs             # PostgreSQL リポジトリ
@@ -647,7 +650,8 @@ regions/system/server/rust/saga/
 │       ├── config.rs                        # Config / AppConfig / ServerConfig
 │       ├── database.rs                      # DatabaseConfig
 │       ├── kafka_producer.rs                # SagaEventPublisher / KafkaProducer
-│       └── grpc_caller.rs                   # GrpcStepCaller / ServiceRegistry / TonicGrpcCaller
+│       ├── grpc_caller.rs                   # GrpcStepCaller / ServiceRegistry / TonicGrpcCaller
+│       └── workflow_loader.rs               # YAML ワークフローファイルローダー
 ├── config/
 │   ├── config.yaml                          # 本番設定
 │   └── config.dev.yaml                      # 開発設定
@@ -742,15 +746,19 @@ regions/system/library/rust/saga/
 
 | テスト対象 | テスト数 | 内容 |
 | --- | --- | --- |
-| domain/entity/saga_state | 10 | 状態遷移、ステータス変換、終端判定 |
+| domain/entity/saga_state | 9 | 状態遷移、ステータス変換、終端判定 |
 | domain/entity/saga_step_log | 7 | ログ作成、成功/失敗/タイムアウトマーク |
 | domain/entity/workflow | 6 | YAML 解析、バリデーション、バックオフ計算 |
 | infrastructure/config | 2 | 設定デシリアライズ、デフォルト値 |
 | infrastructure/database | 2 | 接続 URL 生成 |
 | infrastructure/kafka_producer | 5 | KafkaConfig 解析 |
 | infrastructure/grpc_caller | 5 | サービスレジストリ、エンドポイント解決 |
-| adapter/repository/workflow_in_memory | 4 | 登録・取得・一覧 |
-| adapter/repository/workflow_postgres | 3 | 取得・一覧・exists |
+| infrastructure/workflow_loader | 10 | YAML ファイルローダー |
+| adapter/repository/workflow_in_memory | 3 | 登録・取得・一覧 |
+| adapter/repository/workflow_postgres | 4 | 取得・一覧・exists |
+| adapter/grpc/tonic_service | 9 | tonic gRPC サービス変換・RPC テスト |
+| adapter/middleware/auth | 5 | JWT 認証ミドルウェア |
+| adapter/middleware/rbac | 6 | RBAC ミドルウェア |
 | usecase/execute_saga | 3 | 正常実行、ステップ失敗→補償、終端状態スキップ |
 | usecase/start_saga | 2 | 正常開始、ワークフロー未登録エラー |
 | usecase/recover_sagas | 2 | 未完了 Saga の自動再開 |
@@ -759,7 +767,7 @@ regions/system/library/rust/saga/
 | usecase/cancel_saga | 3 | 正常キャンセル、終端状態エラー、未存在エラー |
 | usecase/register_workflow | 2 | 正常登録、無効 YAML |
 | usecase/list_workflows | 1 | 一覧取得 |
-| **合計** | **56** | |
+| **合計** | **89** | |
 
 ### 統合テスト
 
@@ -1081,17 +1089,25 @@ name = "k1s0-saga-server"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "k1s0_saga_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "k1s0-saga-server"
+path = "src/main.rs"
+
 [dependencies]
+# gRPC / Protobuf
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+
 # Web フレームワーク
 axum = { version = "0.7", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
-
-# gRPC
-tonic = "0.12"
-prost = "0.13"
-prost-types = "0.13"
 
 # シリアライゼーション
 serde = { version = "1", features = ["derive"] }
@@ -1099,26 +1115,45 @@ serde_json = "1"
 serde_yaml = "0.9"
 
 # DB
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono", "json"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
 
-# Kafka
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+# gRPC codec
+bytes = "1"
+http = "1"
 
 # 共通
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1"
 thiserror = "2"
+validator = { version = "0.18", features = ["derive"] }
 async-trait = "0.1"
+
+# Logging / Tracing
 tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+
+# Kafka
+rdkafka = { version = "0.36", features = ["cmake-build"] }
 
 # 内部ライブラリ
-k1s0-auth = { path = "../../library/rust/auth" }
-k1s0-telemetry = { path = "../../library/rust/telemetry" }
+k1s0-auth = { path = "../../../library/rust/auth" }
+k1s0-server-common = { path = "../../../library/rust/server-common" }
+k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+
+# OpenAPI
+utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "8", features = ["axum"] }
+
+[build-dependencies]
+tonic-build = "0.12"
 
 [dev-dependencies]
 mockall = "0.13"
 tokio-test = "0.4"
+axum-test = "16"
+tower = { version = "0.5", features = ["util"] }
+tempfile = "3"
 ```
 
 ---

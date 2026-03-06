@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::domain::entity::flag_audit_log::FlagAuditLog;
 use crate::domain::entity::feature_flag::FeatureFlag;
 use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
+use crate::domain::entity::flag_audit_log::FlagAuditLog;
 use crate::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
 use crate::domain::service::FeatureFlagDomainService;
 use crate::infrastructure::kafka_producer::FlagEventPublisher;
@@ -102,13 +102,7 @@ impl UpdateFlagUseCase {
             .map_err(|e| UpdateFlagError::Internal(e.to_string()))?;
 
         self.event_publisher
-            .publish_flag_changed(
-                &flag.flag_key,
-                flag.enabled,
-                None,
-                Some(before),
-                after,
-            )
+            .publish_flag_changed(&flag.flag_key, flag.enabled, None, Some(before), after)
             .await
             .map_err(|e| UpdateFlagError::Internal(e.to_string()))?;
 

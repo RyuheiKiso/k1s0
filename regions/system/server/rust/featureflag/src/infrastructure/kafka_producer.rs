@@ -128,9 +128,7 @@ impl FlagEventPublisher for KafkaFlagProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish flag changed event: {}", err)
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish flag changed event: {}", err))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic);

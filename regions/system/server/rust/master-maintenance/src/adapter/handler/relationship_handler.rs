@@ -1,10 +1,11 @@
+use crate::adapter::handler::error::AppError;
+use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState};
 use axum::{
-    extract::{Path, State},
+    extract::{Extension, Path, State},
     http::StatusCode,
     Json,
 };
-use crate::adapter::handler::AppState;
-use crate::adapter::handler::error::AppError;
+use k1s0_auth::Claims;
 
 pub async fn list_relationships(
     State(state): State<AppState>,
@@ -15,12 +16,27 @@ pub async fn list_relationships(
 
 pub async fn create_relationship(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
+    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let relationship = state
         .manage_relationships_uc
-        .create_relationship(&input, "system")
+        .create_relationship(&input, &actor)
         .await?;
+    publish_change_event(
+        &state,
+        serde_json::json!({
+            "event_type": "MASTER_MAINTENANCE_DATA_CHANGED",
+            "resource_type": "relationship",
+            "resource_id": relationship.id,
+            "action": "created",
+            "actor": actor,
+            "after": relationship.clone(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        }),
+    )
+    .await;
     Ok((
         StatusCode::CREATED,
         Json(serde_json::to_value(relationship).unwrap()),
@@ -43,7 +59,10 @@ pub async fn delete_relationship(
     State(state): State<AppState>,
     Path(id): Path<uuid::Uuid>,
 ) -> Result<StatusCode, AppError> {
-    state.manage_relationships_uc.delete_relationship(id).await?;
+    state
+        .manage_relationships_uc
+        .delete_relationship(id)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

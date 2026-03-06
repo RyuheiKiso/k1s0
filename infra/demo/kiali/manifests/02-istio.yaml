@@ -1,0 +1,161 @@
+# Istio resources for demo environment
+# Based on infra/istio/ configs, adjusted for PERMISSIVE mTLS
+
+##############################################################
+# PeerAuthentication - PERMISSIVE for demo ease
+##############################################################
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  mtls:
+    mode: PERMISSIVE
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: k1s0-system
+spec:
+  mtls:
+    mode: PERMISSIVE
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: k1s0-business
+spec:
+  mtls:
+    mode: PERMISSIVE
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: k1s0-service
+spec:
+  mtls:
+    mode: PERMISSIVE
+
+##############################################################
+# AuthorizationPolicy - Removed for demo (PERMISSIVE mTLS
+# without SPIFFE identity causes ALLOW policies to reject
+# traffic with unknown source). In production, these are
+# defined in infra/istio/authorizationpolicy.yaml.
+##############################################################
+
+##############################################################
+# VirtualService - Tier defaults (timeout/retry)
+##############################################################
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: default-system
+  namespace: k1s0-system
+spec:
+  hosts:
+    - "*.k1s0-system.svc.cluster.local"
+  http:
+    - route:
+        - destination:
+            host: "*.k1s0-system.svc.cluster.local"
+      timeout: 5s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: "5xx,reset,connect-failure"
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: default-business
+  namespace: k1s0-business
+spec:
+  hosts:
+    - "*.k1s0-business.svc.cluster.local"
+  http:
+    - route:
+        - destination:
+            host: "*.k1s0-business.svc.cluster.local"
+      timeout: 10s
+      retries:
+        attempts: 3
+        perTryTimeout: 3s
+        retryOn: "5xx,reset,connect-failure"
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: default-service
+  namespace: k1s0-service
+spec:
+  hosts:
+    - "*.k1s0-service.svc.cluster.local"
+  http:
+    - route:
+        - destination:
+            host: "*.k1s0-service.svc.cluster.local"
+      timeout: 15s
+      retries:
+        attempts: 2
+        perTryTimeout: 5s
+        retryOn: "5xx,reset,connect-failure,retriable-4xx"
+
+##############################################################
+# DestinationRule
+##############################################################
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: auth-server
+  namespace: k1s0-system
+spec:
+  host: auth-server
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+      http:
+        http1MaxPendingRequests: 200
+        http2MaxRequests: 2000
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 30
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: order-server
+  namespace: k1s0-service
+spec:
+  host: order-server
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        h2UpgradePolicy: UPGRADE
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+    loadBalancer:
+      simple: LEAST_REQUEST
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 50
+  subsets:
+    - name: stable
+      labels:
+        version: stable
+    - name: canary
+      labels:
+        version: canary

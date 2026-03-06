@@ -120,10 +120,7 @@ impl HttpSchemaRegistryClient {
             });
         }
 
-        let body = response
-            .text()
-            .await
-            .unwrap_or_else(|_| status.to_string());
+        let body = response.text().await.unwrap_or_else(|_| status.to_string());
         error!("Schema Registry returned error {}: {}", status, body);
         Err(SchemaRegistryError::Unavailable(format!(
             "status={}, body={}",
@@ -151,12 +148,7 @@ impl SchemaRegistryClient for HttpSchemaRegistryClient {
             subject, schema_type
         );
 
-        let response = self
-            .http_client
-            .post(&url)
-            .json(&body)
-            .send()
-            .await?;
+        let response = self.http_client.post(&url).json(&body).send().await?;
 
         let response = Self::check_response(response, Some(subject), None).await?;
         let reg: RegisterSchemaResponse = response.json().await?;
@@ -284,12 +276,7 @@ impl SchemaRegistryClient for HttpSchemaRegistryClient {
             subject, schema_type
         );
 
-        let response = self
-            .http_client
-            .post(&url)
-            .json(&body)
-            .send()
-            .await?;
+        let response = self.http_client.post(&url).json(&body).send().await?;
 
         if response.status() == reqwest::StatusCode::NOT_FOUND {
             // サブジェクトが未登録の場合は互換性チェック不要（登録可能）。
@@ -324,7 +311,11 @@ impl SchemaRegistryClient for HttpSchemaRegistryClient {
         let response = Self::check_response(response, Some(subject), None).await?;
         let versions: Vec<i32> = response.json().await?;
 
-        debug!("Deleted subject {}: {} versions removed", subject, versions.len());
+        debug!(
+            "Deleted subject {}: {} versions removed",
+            subject,
+            versions.len()
+        );
         Ok(versions)
     }
 
@@ -333,15 +324,10 @@ impl SchemaRegistryClient for HttpSchemaRegistryClient {
 
         debug!("Health check: url={}", url);
 
-        let response = self
-            .http_client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| {
-                error!("Schema Registry health check failed: {}", e);
-                SchemaRegistryError::Unavailable(e.to_string())
-            })?;
+        let response = self.http_client.get(&url).send().await.map_err(|e| {
+            error!("Schema Registry health check failed: {}", e);
+            SchemaRegistryError::Unavailable(e.to_string())
+        })?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -455,10 +441,7 @@ mod tests {
         let config = SchemaRegistryConfig::new("http://localhost:8081");
         let client = HttpSchemaRegistryClient::new(config).unwrap();
         let url = format!("{}/subjects/{}", client.base_url(), "stale-topic-value");
-        assert_eq!(
-            url,
-            "http://localhost:8081/subjects/stale-topic-value"
-        );
+        assert_eq!(url, "http://localhost:8081/subjects/stale-topic-value");
     }
 
     #[test]
@@ -482,7 +465,11 @@ mod tests {
             .returning(|_, _, _| Box::pin(async { Ok(99) }));
 
         let id = mock
-            .register_schema("my-topic-value", r#"syntax = "proto3";"#, SchemaType::Protobuf)
+            .register_schema(
+                "my-topic-value",
+                r#"syntax = "proto3";"#,
+                SchemaType::Protobuf,
+            )
             .await
             .unwrap();
         assert_eq!(id, 99);

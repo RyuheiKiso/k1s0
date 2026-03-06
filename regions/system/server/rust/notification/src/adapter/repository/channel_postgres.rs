@@ -99,7 +99,9 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
         let data_query = format!(
             "SELECT id, name, channel_type, config, enabled, created_at, updated_at \
              FROM notification.channels {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
-            where_clause, bind_index, bind_index + 1
+            where_clause,
+            bind_index,
+            bind_index + 1
         );
 
         let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
@@ -117,7 +119,10 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
 
         let rows: Vec<ChannelRow> = data_q.fetch_all(self.pool.as_ref()).await?;
 
-        Ok((rows.into_iter().map(Into::into).collect(), total_count as u64))
+        Ok((
+            rows.into_iter().map(Into::into).collect(),
+            total_count as u64,
+        ))
     }
 
     async fn create(&self, channel: &NotificationChannel) -> anyhow::Result<()> {

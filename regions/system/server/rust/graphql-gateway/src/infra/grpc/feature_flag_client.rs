@@ -113,11 +113,9 @@ impl FeatureFlagGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_flag(&self, key: &str) -> anyhow::Result<Option<FeatureFlag>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::featureflag::v1::GetFlagRequest {
-                flag_key: key.to_owned(),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::featureflag::v1::GetFlagRequest {
+            flag_key: key.to_owned(),
+        });
 
         match self.client.clone().get_flag(request).await {
             Ok(resp) => {
@@ -128,18 +126,12 @@ impl FeatureFlagGrpcClient {
                 Ok(Some(Self::to_domain_flag(flag, None, None)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!(
-                "FeatureFlagService.GetFlag failed: {}",
-                e
-            )),
+            Err(e) => Err(anyhow::anyhow!("FeatureFlagService.GetFlag failed: {}", e)),
         }
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn list_flags(
-        &self,
-        environment: Option<&str>,
-    ) -> anyhow::Result<Vec<FeatureFlag>> {
+    pub async fn list_flags(&self, environment: Option<&str>) -> anyhow::Result<Vec<FeatureFlag>> {
         let resp = self
             .client
             .clone()
@@ -158,8 +150,7 @@ impl FeatureFlagGrpcClient {
 
         if let Some(env) = environment {
             flags.retain(|f| {
-                f.target_environments.is_empty()
-                    || f.target_environments.iter().any(|e| e == env)
+                f.target_environments.is_empty() || f.target_environments.iter().any(|e| e == env)
             });
         }
 
@@ -188,15 +179,14 @@ impl FeatureFlagGrpcClient {
         rollout_percentage: Option<i32>,
         target_environments: Option<Vec<String>>,
     ) -> anyhow::Result<FeatureFlag> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::featureflag::v1::UpdateFlagRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::featureflag::v1::UpdateFlagRequest {
                 flag_key: key.to_owned(),
                 enabled: Some(enabled),
                 description: Some(String::new()),
                 rules: Self::target_env_to_rules(target_environments.clone()),
                 variants: Self::rollout_to_variants(rollout_percentage),
-            },
-        );
+            });
 
         let flag = self
             .client

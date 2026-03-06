@@ -1,9 +1,9 @@
+use crate::adapter::presenter::response::{ErrorDetail, ErrorResponse};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
-use crate::adapter::presenter::response::{ErrorResponse, ErrorDetail};
 
 #[derive(Debug)]
 pub struct AppError {
@@ -90,6 +90,17 @@ impl IntoResponse for AppError {
 
 impl From<anyhow::Error> for AppError {
     fn from(err: anyhow::Error) -> Self {
+        if let Some(validation) =
+            err.downcast_ref::<crate::usecase::crud_records::RecordValidationError>()
+        {
+            return Self::bad_request("SYS_MM_VALIDATION_ERROR", "validation failed").with_details(
+                serde_json::json!({
+                    "errors": validation.errors,
+                    "warnings": validation.warnings,
+                }),
+            );
+        }
+
         let msg = err.to_string();
         let lower = msg.to_ascii_lowercase();
 

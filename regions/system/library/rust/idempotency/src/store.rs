@@ -48,17 +48,22 @@ pub trait IdempotencyStore: Send + Sync {
     ) -> Result<(), IdempotencyError> {
         match status {
             IdempotencyStatus::Pending => {
-                let mut record = self
-                    .get(key)
-                    .await?
-                    .ok_or_else(|| IdempotencyError::NotFound { key: key.to_string() })?;
+                let mut record =
+                    self.get(key)
+                        .await?
+                        .ok_or_else(|| IdempotencyError::NotFound {
+                            key: key.to_string(),
+                        })?;
                 record.status = IdempotencyStatus::Pending;
                 self.set(record).await
             }
             IdempotencyStatus::Completed => {
-                self.mark_completed(key, response_body, response_status).await
+                self.mark_completed(key, response_body, response_status)
+                    .await
             }
-            IdempotencyStatus::Failed => self.mark_failed(key, response_body, response_status).await,
+            IdempotencyStatus::Failed => {
+                self.mark_failed(key, response_body, response_status).await
+            }
         }
     }
 }
@@ -86,16 +91,19 @@ impl RedisIdempotencyStore {
             let cfg = deadpool_redis::Config::from_url(redis_url.clone());
             let pool = cfg
                 .create_pool(Some(deadpool_redis::Runtime::Tokio1))
-                .map_err(|e| IdempotencyError::StorageError(format!("failed to create redis pool: {e}")))?;
+                .map_err(|e| {
+                    IdempotencyError::StorageError(format!("failed to create redis pool: {e}"))
+                })?;
 
-            let mut conn = pool
-                .get()
-                .await
-                .map_err(|e| IdempotencyError::StorageError(format!("failed to get redis connection: {e}")))?;
+            let mut conn = pool.get().await.map_err(|e| {
+                IdempotencyError::StorageError(format!("failed to get redis connection: {e}"))
+            })?;
             let _: String = deadpool_redis::redis::cmd("PING")
                 .query_async(&mut conn)
                 .await
-                .map_err(|e| IdempotencyError::StorageError(format!("failed to ping redis: {e}")))?;
+                .map_err(|e| {
+                    IdempotencyError::StorageError(format!("failed to ping redis: {e}"))
+                })?;
 
             return Ok(Self { redis_url, pool });
         }
@@ -111,10 +119,9 @@ impl RedisIdempotencyStore {
 
     #[cfg(feature = "redis")]
     async fn connection(&self) -> Result<deadpool_redis::Connection, IdempotencyError> {
-        self.pool
-            .get()
-            .await
-            .map_err(|e| IdempotencyError::StorageError(format!("failed to get redis connection: {e}")))
+        self.pool.get().await.map_err(|e| {
+            IdempotencyError::StorageError(format!("failed to get redis connection: {e}"))
+        })
     }
 
     #[cfg(feature = "redis")]
@@ -162,7 +169,10 @@ impl IdempotencyStore for RedisIdempotencyStore {
             let redis_key = Self::redis_key(&record.key);
             let payload = serde_json::to_string(&record)?;
 
-            let inserted: bool = conn.set_nx(&redis_key, payload).await.map_err(redis_error)?;
+            let inserted: bool = conn
+                .set_nx(&redis_key, payload)
+                .await
+                .map_err(redis_error)?;
             if !inserted {
                 return Err(IdempotencyError::Duplicate {
                     key: record.key.clone(),
@@ -195,7 +205,9 @@ impl IdempotencyStore for RedisIdempotencyStore {
             let mut record = self
                 .get(key)
                 .await?
-                .ok_or_else(|| IdempotencyError::NotFound { key: key.to_string() })?;
+                .ok_or_else(|| IdempotencyError::NotFound {
+                    key: key.to_string(),
+                })?;
             record.status = IdempotencyStatus::Completed;
             record.response_body = response_body;
             record.response_status = response_status;
@@ -232,7 +244,9 @@ impl IdempotencyStore for RedisIdempotencyStore {
             let mut record = self
                 .get(key)
                 .await?
-                .ok_or_else(|| IdempotencyError::NotFound { key: key.to_string() })?;
+                .ok_or_else(|| IdempotencyError::NotFound {
+                    key: key.to_string(),
+                })?;
             record.status = IdempotencyStatus::Failed;
             record.response_body = error_body;
             record.response_status = response_status;
@@ -250,7 +264,9 @@ impl IdempotencyStore for RedisIdempotencyStore {
 
         #[cfg(not(feature = "redis"))]
         {
-            self.inner.mark_failed(key, error_body, response_status).await
+            self.inner
+                .mark_failed(key, error_body, response_status)
+                .await
         }
     }
 
@@ -492,7 +508,9 @@ impl IdempotencyStore for PostgresIdempotencyStore {
 
         #[cfg(not(feature = "postgres"))]
         {
-            self.inner.mark_failed(key, error_body, response_status).await
+            self.inner
+                .mark_failed(key, error_body, response_status)
+                .await
         }
     }
 

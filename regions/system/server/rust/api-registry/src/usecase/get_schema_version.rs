@@ -45,16 +45,15 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockApiSchemaVersionRepository::new();
-        mock.expect_find_by_name_and_version()
-            .returning(|_, _| {
-                Ok(Some(ApiSchemaVersion::new(
-                    "test-api".to_string(),
-                    2,
-                    SchemaType::OpenApi,
-                    "openapi: 3.0.3".to_string(),
-                    "user-001".to_string(),
-                )))
-            });
+        mock.expect_find_by_name_and_version().returning(|_, _| {
+            Ok(Some(ApiSchemaVersion::new(
+                "test-api".to_string(),
+                2,
+                SchemaType::OpenApi,
+                "openapi: 3.0.3".to_string(),
+                "user-001".to_string(),
+            )))
+        });
 
         let uc = GetSchemaVersionUseCase::new(Arc::new(mock));
         let result = uc.execute("test-api", 2).await;

@@ -49,36 +49,18 @@ pub fn router(state: AppState) -> Router {
     let api_routes = if let Some(ref auth_state) = state.auth_state {
         // GET/check/usage -> quotas/read
         let read_routes = Router::new()
-            .route(
-                "/api/v1/quotas",
-                get(quota_handler::list_quotas),
-            )
-            .route(
-                "/api/v1/quotas/:id",
-                get(quota_handler::get_quota),
-            )
-            .route(
-                "/api/v1/quotas/:id/check",
-                post(quota_handler::check_quota),
-            )
-            .route(
-                "/api/v1/quotas/:id/usage",
-                get(quota_handler::get_usage),
-            )
+            .route("/api/v1/quotas", get(quota_handler::list_quotas))
+            .route("/api/v1/quotas/:id", get(quota_handler::get_quota))
+            .route("/api/v1/quotas/:id/check", post(quota_handler::check_quota))
+            .route("/api/v1/quotas/:id/usage", get(quota_handler::get_usage))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "quotas", "read",
             )));
 
         // POST/PUT/increment -> quotas/write
         let write_routes = Router::new()
-            .route(
-                "/api/v1/quotas",
-                post(quota_handler::create_quota),
-            )
-            .route(
-                "/api/v1/quotas/:id",
-                put(quota_handler::update_quota),
-            )
+            .route("/api/v1/quotas", post(quota_handler::create_quota))
+            .route("/api/v1/quotas/:id", put(quota_handler::update_quota))
             .route(
                 "/api/v1/quotas/:id/usage/increment",
                 post(quota_handler::increment_usage),
@@ -121,14 +103,8 @@ pub fn router(state: AppState) -> Router {
                     .put(quota_handler::update_quota)
                     .delete(quota_handler::delete_quota),
             )
-            .route(
-                "/api/v1/quotas/:id/check",
-                post(quota_handler::check_quota),
-            )
-            .route(
-                "/api/v1/quotas/:id/usage",
-                get(quota_handler::get_usage),
-            )
+            .route("/api/v1/quotas/:id/check", post(quota_handler::check_quota))
+            .route("/api/v1/quotas/:id/usage", get(quota_handler::get_usage))
             .route(
                 "/api/v1/quotas/:id/usage/increment",
                 post(quota_handler::increment_usage),
@@ -139,9 +115,7 @@ pub fn router(state: AppState) -> Router {
             )
     };
 
-    public_routes
-        .merge(api_routes)
-        .with_state(state)
+    public_routes.merge(api_routes).with_state(state)
 }
 
 async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {

@@ -275,6 +275,9 @@ impl SchedulerGrpcService {
                 CreateJobError::InvalidCron(expr) => {
                     GrpcError::InvalidArgument(format!("invalid cron expression: {}", expr))
                 }
+                CreateJobError::InvalidTimezone(tz) => {
+                    GrpcError::InvalidArgument(format!("invalid timezone: {}", tz))
+                }
                 CreateJobError::Internal(msg) => {
                     if msg.contains("already exists") || msg.contains("duplicate") {
                         GrpcError::AlreadyExists(msg)
@@ -316,6 +319,7 @@ impl SchedulerGrpcService {
                 } else {
                     Some(req.status)
                 },
+                name_prefix: None,
                 page,
                 page_size,
             })
@@ -370,6 +374,9 @@ impl SchedulerGrpcService {
                 }
                 UpdateJobError::InvalidCron(expr) => {
                     GrpcError::InvalidArgument(format!("invalid cron expression: {}", expr))
+                }
+                UpdateJobError::InvalidTimezone(tz) => {
+                    GrpcError::InvalidArgument(format!("invalid timezone: {}", tz))
                 }
                 UpdateJobError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -509,7 +516,10 @@ impl SchedulerGrpcService {
 
 fn parse_uuid(value: &str, field: &str) -> Result<String, GrpcError> {
     if value.trim().is_empty() {
-        Err(GrpcError::InvalidArgument(format!("invalid {}: {}", field, value)))
+        Err(GrpcError::InvalidArgument(format!(
+            "invalid {}: {}",
+            field, value
+        )))
     } else {
         Ok(value.to_string())
     }

@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::domain::entity::api_registration::SchemaType;
 use crate::usecase::{
-    check_compatibility::{CheckCompatibilityInput, CheckCompatibilityError},
+    check_compatibility::{CheckCompatibilityError, CheckCompatibilityInput},
     delete_version::DeleteVersionError,
     get_diff::{GetDiffError, GetDiffInput},
     get_schema::GetSchemaError,
@@ -111,7 +111,9 @@ pub async fn register_schema(
         description: body.description,
         schema_type: SchemaType::from_str(&body.schema_type),
         content: body.content,
-        registered_by: body.registered_by.unwrap_or_else(|| "anonymous".to_string()),
+        registered_by: body
+            .registered_by
+            .unwrap_or_else(|| "anonymous".to_string()),
     };
     match state.register_schema_uc.execute(&input).await {
         Ok(version) => (
@@ -227,7 +229,9 @@ pub async fn register_version(
     let input = RegisterVersionInput {
         name,
         content: body.content,
-        registered_by: body.registered_by.unwrap_or_else(|| "anonymous".to_string()),
+        registered_by: body
+            .registered_by
+            .unwrap_or_else(|| "anonymous".to_string()),
     };
     match state.register_version_uc.execute(&input).await {
         Ok(version) => (

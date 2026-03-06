@@ -7,18 +7,32 @@ use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::entity::workflow_step::WorkflowStep;
 use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::usecase::approve_task::{ApproveTaskError, ApproveTaskInput, ApproveTaskUseCase};
-use crate::usecase::cancel_instance::{CancelInstanceError, CancelInstanceInput, CancelInstanceUseCase};
-use crate::usecase::create_workflow::{CreateWorkflowError, CreateWorkflowInput, CreateWorkflowUseCase};
-use crate::usecase::delete_workflow::{DeleteWorkflowError, DeleteWorkflowInput, DeleteWorkflowUseCase};
+use crate::usecase::cancel_instance::{
+    CancelInstanceError, CancelInstanceInput, CancelInstanceUseCase,
+};
+use crate::usecase::create_workflow::{
+    CreateWorkflowError, CreateWorkflowInput, CreateWorkflowUseCase,
+};
+use crate::usecase::delete_workflow::{
+    DeleteWorkflowError, DeleteWorkflowInput, DeleteWorkflowUseCase,
+};
 use crate::usecase::get_instance::{GetInstanceError, GetInstanceInput, GetInstanceUseCase};
 use crate::usecase::get_workflow::{GetWorkflowError, GetWorkflowInput, GetWorkflowUseCase};
-use crate::usecase::list_instances::{ListInstancesError, ListInstancesInput, ListInstancesUseCase};
+use crate::usecase::list_instances::{
+    ListInstancesError, ListInstancesInput, ListInstancesUseCase,
+};
 use crate::usecase::list_tasks::{ListTasksError, ListTasksInput, ListTasksUseCase};
-use crate::usecase::list_workflows::{ListWorkflowsError, ListWorkflowsInput, ListWorkflowsUseCase};
+use crate::usecase::list_workflows::{
+    ListWorkflowsError, ListWorkflowsInput, ListWorkflowsUseCase,
+};
 use crate::usecase::reassign_task::{ReassignTaskError, ReassignTaskInput, ReassignTaskUseCase};
 use crate::usecase::reject_task::{RejectTaskError, RejectTaskInput, RejectTaskUseCase};
-use crate::usecase::start_instance::{StartInstanceError, StartInstanceInput, StartInstanceUseCase};
-use crate::usecase::update_workflow::{UpdateWorkflowError, UpdateWorkflowInput, UpdateWorkflowUseCase};
+use crate::usecase::start_instance::{
+    StartInstanceError, StartInstanceInput, StartInstanceUseCase,
+};
+use crate::usecase::update_workflow::{
+    UpdateWorkflowError, UpdateWorkflowInput, UpdateWorkflowUseCase,
+};
 
 #[derive(Debug, Clone)]
 pub struct WorkflowStepData {
@@ -351,7 +365,11 @@ impl WorkflowGrpcService {
                 ListWorkflowsError::Internal(msg) => GrpcError::Internal(msg),
             })?;
         Ok(ListWorkflowsResponse {
-            workflows: out.workflows.into_iter().map(to_workflow_definition_data).collect(),
+            workflows: out
+                .workflows
+                .into_iter()
+                .map(to_workflow_definition_data)
+                .collect(),
             total_count: out.total_count,
             page: out.page as i32,
             page_size: out.page_size as i32,
@@ -396,7 +414,9 @@ impl WorkflowGrpcService {
             })
             .await
             .map_err(|e| match e {
-                GetWorkflowError::NotFound(id) => GrpcError::NotFound(format!("workflow not found: {}", id)),
+                GetWorkflowError::NotFound(id) => {
+                    GrpcError::NotFound(format!("workflow not found: {}", id))
+                }
                 GetWorkflowError::Internal(msg) => GrpcError::Internal(msg),
             })?;
         Ok(GetWorkflowResponse {
@@ -421,7 +441,9 @@ impl WorkflowGrpcService {
             })
             .await
             .map_err(|e| match e {
-                UpdateWorkflowError::NotFound(id) => GrpcError::NotFound(format!("workflow not found: {}", id)),
+                UpdateWorkflowError::NotFound(id) => {
+                    GrpcError::NotFound(format!("workflow not found: {}", id))
+                }
                 UpdateWorkflowError::Internal(msg) => GrpcError::Internal(msg),
             })?;
         Ok(UpdateWorkflowResponse {
@@ -439,7 +461,9 @@ impl WorkflowGrpcService {
             })
             .await
             .map_err(|e| match e {
-                DeleteWorkflowError::NotFound(id) => GrpcError::NotFound(format!("workflow not found: {}", id)),
+                DeleteWorkflowError::NotFound(id) => {
+                    GrpcError::NotFound(format!("workflow not found: {}", id))
+                }
                 DeleteWorkflowError::Internal(msg) => GrpcError::Internal(msg),
             })?;
         Ok(DeleteWorkflowResponse {
@@ -500,10 +524,14 @@ impl WorkflowGrpcService {
     ) -> Result<GetInstanceResponse, GrpcError> {
         let instance = self
             .get_instance_uc
-            .execute(&GetInstanceInput { id: req.instance_id })
+            .execute(&GetInstanceInput {
+                id: req.instance_id,
+            })
             .await
             .map_err(|e| match e {
-                GetInstanceError::NotFound(id) => GrpcError::NotFound(format!("instance not found: {}", id)),
+                GetInstanceError::NotFound(id) => {
+                    GrpcError::NotFound(format!("instance not found: {}", id))
+                }
                 GetInstanceError::Internal(msg) => GrpcError::Internal(msg),
             })?;
         Ok(GetInstanceResponse {

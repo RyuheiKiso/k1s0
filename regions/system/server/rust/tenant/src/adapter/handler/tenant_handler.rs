@@ -23,27 +23,48 @@ use crate::usecase::{
 
 fn not_found_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
     let err = ErrorResponse::new(codes::tenant::not_found(), msg);
-    (StatusCode::NOT_FOUND, Json(serde_json::to_value(&err).unwrap()))
+    (
+        StatusCode::NOT_FOUND,
+        Json(serde_json::to_value(&err).unwrap()),
+    )
 }
 
 fn member_not_found_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
     let err = ErrorResponse::new(codes::tenant::member_not_found(), msg);
-    (StatusCode::NOT_FOUND, Json(serde_json::to_value(&err).unwrap()))
+    (
+        StatusCode::NOT_FOUND,
+        Json(serde_json::to_value(&err).unwrap()),
+    )
 }
 
-fn bad_request_response(code: k1s0_server_common::ErrorCode, msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+fn bad_request_response(
+    code: k1s0_server_common::ErrorCode,
+    msg: impl Into<String>,
+) -> (StatusCode, Json<serde_json::Value>) {
     let err = ErrorResponse::new(code, msg);
-    (StatusCode::BAD_REQUEST, Json(serde_json::to_value(&err).unwrap()))
+    (
+        StatusCode::BAD_REQUEST,
+        Json(serde_json::to_value(&err).unwrap()),
+    )
 }
 
-fn conflict_response(code: k1s0_server_common::ErrorCode, msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+fn conflict_response(
+    code: k1s0_server_common::ErrorCode,
+    msg: impl Into<String>,
+) -> (StatusCode, Json<serde_json::Value>) {
     let err = ErrorResponse::new(code, msg);
-    (StatusCode::CONFLICT, Json(serde_json::to_value(&err).unwrap()))
+    (
+        StatusCode::CONFLICT,
+        Json(serde_json::to_value(&err).unwrap()),
+    )
 }
 
 fn internal_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
     let err = ErrorResponse::new(codes::tenant::internal_error(), msg);
-    (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::to_value(&err).unwrap()))
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(serde_json::to_value(&err).unwrap()),
+    )
 }
 
 #[derive(Clone)]
@@ -239,7 +260,11 @@ pub async fn list_tenants(
     State(state): State<AppState>,
     Query(query): Query<ListTenantsQuery>,
 ) -> impl IntoResponse {
-    match state.list_tenants_uc.execute(query.page, query.page_size).await {
+    match state
+        .list_tenants_uc
+        .execute(query.page, query.page_size)
+        .await
+    {
         Ok((tenants, total)) => {
             let has_next = i64::from(query.page) * i64::from(query.page_size) < total;
             let resp = ListTenantsResponse {
@@ -266,11 +291,9 @@ pub async fn list_tenants(
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
-        Err(ListTenantsError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            internal_response(msg),
-        )
-            .into_response(),
+        Err(ListTenantsError::Internal(msg)) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, internal_response(msg)).into_response()
+        }
     }
 }
 
@@ -285,7 +308,7 @@ pub async fn get_tenant(
                 codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -324,7 +347,7 @@ pub async fn create_tenant(
                 codes::tenant::validation_error(),
                 format!("invalid owner id: {}", req.owner_id),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -335,7 +358,7 @@ pub async fn create_tenant(
                 codes::tenant::validation_error(),
                 format!("invalid plan: {}", req.plan),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -367,13 +390,11 @@ pub async fn create_tenant(
             )
                 .into_response()
         }
-        Err(CreateTenantError::NameConflict(name)) => {
-            conflict_response(
-                codes::tenant::name_conflict(),
-                format!("tenant name already exists: {}", name),
-            )
-            .into_response()
-        }
+        Err(CreateTenantError::NameConflict(name)) => conflict_response(
+            codes::tenant::name_conflict(),
+            format!("tenant name already exists: {}", name),
+        )
+        .into_response(),
         Err(CreateTenantError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }
@@ -391,7 +412,7 @@ pub async fn update_tenant(
                 codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -402,7 +423,7 @@ pub async fn update_tenant(
                 codes::tenant::validation_error(),
                 format!("invalid plan: {}", req.plan),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -451,7 +472,7 @@ pub async fn delete_tenant(
                 codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -494,7 +515,7 @@ pub async fn suspend_tenant(
                 codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -537,7 +558,7 @@ pub async fn activate_tenant(
                 codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -580,7 +601,7 @@ pub async fn list_members(
                 codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -618,7 +639,7 @@ pub async fn add_member(
                 codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -629,7 +650,7 @@ pub async fn add_member(
                 codes::tenant::validation_error(),
                 format!("invalid user id: {}", req.user_id),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -655,11 +676,8 @@ pub async fn add_member(
                 .into_response()
         }
         Err(AddMemberError::AlreadyMember) => {
-            conflict_response(
-                codes::tenant::member_conflict(),
-                "member already exists",
-            )
-            .into_response()
+            conflict_response(codes::tenant::member_conflict(), "member already exists")
+                .into_response()
         }
         Err(AddMemberError::Internal(msg)) => internal_response(msg).into_response(),
     }
@@ -677,7 +695,7 @@ pub async fn remove_member(
                 codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", tenant_id),
             )
-                .into_response()
+            .into_response()
         }
     };
 
@@ -688,7 +706,7 @@ pub async fn remove_member(
                 codes::tenant::validation_error(),
                 format!("invalid user id: {}", user_id),
             )
-                .into_response()
+            .into_response()
         }
     };
 

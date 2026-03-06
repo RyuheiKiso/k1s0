@@ -1,0 +1,181 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Service Topology",
+      "description": "Live service-to-service communication graph from Istio metrics",
+      "type": "nodeGraph",
+      "gridPos": { "h": 18, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "nodes",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:3100/api/grafana/nodes",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "",
+          "columns": [
+            { "selector": "id", "text": "id", "type": "string" },
+            { "selector": "title", "text": "title", "type": "string" },
+            { "selector": "subtitle", "text": "subtitle", "type": "string" },
+            { "selector": "mainStat", "text": "mainStat", "type": "number" }
+          ]
+        },
+        {
+          "refId": "edges",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:3100/api/grafana/edges",
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "",
+          "columns": [
+            { "selector": "id", "text": "id", "type": "string" },
+            { "selector": "source", "text": "source", "type": "string" },
+            { "selector": "target", "text": "target", "type": "string" },
+            { "selector": "mainStat", "text": "mainStat", "type": "number" }
+          ]
+        }
+      ],
+      "options": {
+        "nodes": {
+          "mainStatUnit": "reqps"
+        },
+        "edges": {
+          "mainStatUnit": "reqps"
+        }
+      }
+    },
+    {
+      "title": "Service Communication Map",
+      "description": "All source-to-destination request flows ranked by rate",
+      "type": "barchart",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sort_desc(sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload) > 0)",
+          "legendFormat": "{{source_workload}} -> {{destination_workload}}",
+          "format": "time_series",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "fillOpacity": 80,
+            "gradientMode": "scheme"
+          }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always",
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "xTickLabelSpacing": 100,
+        "legend": { "displayMode": "hidden" }
+      }
+    },
+    {
+      "title": "Request Rate by Path",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        {
+          "expr": "sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload) > 0",
+          "legendFormat": "{{source_workload}} -> {{destination_workload}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "title": "Error Rate by Communication Path",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        {
+          "expr": "sum(rate(istio_requests_total{reporter=\"destination\",response_code!~\"2..\"}[5m])) by (source_workload, destination_workload) / sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload) * 100",
+          "legendFormat": "{{source_workload}} -> {{destination_workload}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Latency P95 by Communication Path",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 38 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{reporter=\"destination\"}[5m])) by (le, source_workload, destination_workload))",
+          "legendFormat": "{{source_workload}} -> {{destination_workload}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "title": "TCP Bytes by Communication Path",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 38 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        {
+          "expr": "sum(rate(istio_tcp_sent_bytes_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload)",
+          "legendFormat": "{{source_workload}} -> {{destination_workload}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 }
+        }
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["k1s0", "istio", "topology"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "k1s0 Service Topology",
+  "uid": "k1s0-service-topology",
+  "version": 7
+}

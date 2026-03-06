@@ -69,25 +69,43 @@ system tier の設定管理サーバーは以下の機能を提供する。
 ```json
 [
   {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
     "service_name": "auth",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "jwt.issuer": { "type": "string" },
-        "jwt.audience": { "type": "string" }
-      }
+    "namespace_prefix": "system.auth",
+    "schema_json": {
+      "categories": [
+        {
+          "id": "jwt",
+          "label": "JWT Settings",
+          "fields": [
+            { "key": "jwt.issuer", "label": "Issuer", "type": "string" },
+            { "key": "jwt.audience", "label": "Audience", "type": "string" }
+          ]
+        }
+      ]
     },
+    "updated_by": "admin@example.com",
+    "created_at": "2026-03-01T00:00:00Z",
     "updated_at": "2026-03-01T00:00:00Z"
   },
   {
+    "id": "660e8400-e29b-41d4-a716-446655440111",
     "service_name": "notification",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "provider": { "type": "string" },
-        "retry.max_attempts": { "type": "integer" }
-      }
+    "namespace_prefix": "system.notification",
+    "schema_json": {
+      "categories": [
+        {
+          "id": "general",
+          "label": "General",
+          "fields": [
+            { "key": "provider", "label": "Provider", "type": "string" },
+            { "key": "retry.max_attempts", "label": "Max Retry Attempts", "type": "integer" }
+          ]
+        }
+      ]
     },
+    "updated_by": "admin@example.com",
+    "created_at": "2026-03-02T00:00:00Z",
     "updated_at": "2026-03-02T00:00:00Z"
   }
 ]
@@ -417,6 +435,9 @@ service ConfigService {
   // 設定スキーマ取得
   rpc GetConfigSchema(GetConfigSchemaRequest) returns (GetConfigSchemaResponse);
 
+  // 設定スキーマ一覧取得
+  rpc ListConfigSchemas(ListConfigSchemasRequest) returns (ListConfigSchemasResponse);
+
   // 設定スキーマ作成・更新
   rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaResponse);
 }
@@ -492,8 +513,14 @@ message GetServiceConfigRequest {
   string environment = 2;  // dev | staging | prod
 }
 
+message ServiceConfigEntry {
+  string namespace = 1;
+  string key = 2;
+  string value = 3;
+}
+
 message GetServiceConfigResponse {
-  map<string, string> configs = 1;  // flattened key-value pairs
+  repeated ServiceConfigEntry entries = 1;
 }
 
 // --- Watch Config ---
@@ -522,6 +549,14 @@ message GetConfigSchemaRequest {
 
 message GetConfigSchemaResponse {
   ConfigEditorSchema schema = 1;
+}
+
+// --- List Config Schemas ---
+
+message ListConfigSchemasRequest {}
+
+message ListConfigSchemasResponse {
+  repeated ConfigEditorSchema schemas = 1;
 }
 
 message UpsertConfigSchemaRequest {
@@ -643,10 +678,10 @@ config_server:
 
 | レイヤー | パッケージ / モジュール | 責務 |
 | --- | --- | --- |
-| domain/entity | `ConfigEntry`, `ConfigChangeLog` | エンティティ定義 |
-| domain/repository | `ConfigRepository`, `ConfigChangeLogRepository` | リポジトリインターフェース / トレイト |
+| domain/entity | `ConfigEntry`, `ConfigChangeLog`, `ConfigSchema` | エンティティ定義 |
+| domain/repository | `ConfigRepository`, `ConfigChangeLogRepository`, `ConfigSchemaRepository` | リポジトリインターフェース / トレイト |
 | domain/service | `ConfigDomainService` | ドメインサービス（namespace バリデーション・バージョン検証ロジック） |
-| usecase | `GetConfigUsecase`, `ListConfigsUsecase`, `UpdateConfigUsecase`, `DeleteConfigUsecase`, `GetServiceConfigUsecase` | ユースケース |
+| usecase | `GetConfigUsecase`, `ListConfigsUsecase`, `UpdateConfigUsecase`, `DeleteConfigUsecase`, `GetServiceConfigUsecase`, `GetConfigSchemaUsecase`, `ListConfigSchemasUsecase`, `UpsertConfigSchemaUsecase`, `WatchConfigUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー, gRPC ハンドラー | プロトコル変換 |
 | adapter/presenter | レスポンスフォーマット | ドメインモデル → API レスポンス変換 |
 | adapter/gateway | （外部サービスなし） | - |
@@ -668,6 +703,18 @@ config_server:
 | `version` | int | バージョン番号（楽観的排他制御用。更新のたびにインクリメント） |
 | `description` | string | 設定の説明文 |
 | `created_by` | string | 作成者 |
+| `updated_by` | string | 最終更新者 |
+| `created_at` | timestamp | 作成日時 |
+| `updated_at` | timestamp | 最終更新日時 |
+
+#### ConfigSchema
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `id` | string (UUID) | 設定スキーマの一意識別子 |
+| `service_name` | string | サービス名（例: `auth-server`） |
+| `namespace_prefix` | string | namespace の接頭辞（例: `system.auth`） |
+| `schema_json` | JSON | 設定エディタスキーマ（カテゴリ・フィールド定義を含む JSON） |
 | `updated_by` | string | 最終更新者 |
 | `created_at` | timestamp | 作成日時 |
 | `updated_at` | timestamp | 最終更新日時 |

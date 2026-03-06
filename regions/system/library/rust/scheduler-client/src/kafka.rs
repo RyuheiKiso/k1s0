@@ -10,18 +10,16 @@ pub struct KafkaJobCompletedSubscriber {
 }
 
 impl KafkaJobCompletedSubscriber {
-    pub fn new(
-        brokers: &str,
-        consumer_group: &str,
-        topic: &str,
-    ) -> Result<Self, SchedulerError> {
+    pub fn new(brokers: &str, consumer_group: &str, topic: &str) -> Result<Self, SchedulerError> {
         let consumer: StreamConsumer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
             .set("group.id", consumer_group)
             .set("enable.auto.commit", "true")
             .set("auto.offset.reset", "earliest")
             .create()
-            .map_err(|e| SchedulerError::ServerError(format!("kafka create consumer failed: {e}")))?;
+            .map_err(|e| {
+                SchedulerError::ServerError(format!("kafka create consumer failed: {e}"))
+            })?;
 
         consumer
             .subscribe(&[topic])
@@ -41,8 +39,7 @@ impl KafkaJobCompletedSubscriber {
             .payload()
             .ok_or_else(|| SchedulerError::ServerError("kafka payload is empty".to_string()))?;
 
-        serde_json::from_slice::<JobCompletedEvent>(payload).map_err(|e| {
-            SchedulerError::ServerError(format!("kafka payload decode failed: {e}"))
-        })
+        serde_json::from_slice::<JobCompletedEvent>(payload)
+            .map_err(|e| SchedulerError::ServerError(format!("kafka payload decode failed: {e}")))
     }
 }

@@ -182,44 +182,65 @@ mod tests {
 
     #[test]
     fn test_page_request_offset_first_page() {
-        let req = PageRequest { page: 1, per_page: 20 };
+        let req = PageRequest {
+            page: 1,
+            per_page: 20,
+        };
         assert_eq!(req.offset(), 0);
     }
 
     #[test]
     fn test_page_request_offset_second_page() {
-        let req = PageRequest { page: 2, per_page: 20 };
+        let req = PageRequest {
+            page: 2,
+            per_page: 20,
+        };
         assert_eq!(req.offset(), 20);
     }
 
     #[test]
     fn test_page_request_offset_third_page() {
-        let req = PageRequest { page: 3, per_page: 10 };
+        let req = PageRequest {
+            page: 3,
+            per_page: 10,
+        };
         assert_eq!(req.offset(), 20);
     }
 
     #[test]
     fn test_has_next_true() {
-        let req = PageRequest { page: 1, per_page: 10 };
+        let req = PageRequest {
+            page: 1,
+            per_page: 10,
+        };
         assert!(req.has_next(25));
     }
 
     #[test]
     fn test_has_next_false_exact() {
-        let req = PageRequest { page: 2, per_page: 10 };
+        let req = PageRequest {
+            page: 2,
+            per_page: 10,
+        };
         // page 2 * per_page 10 = 20, total = 20 → no next
         assert!(!req.has_next(20));
     }
 
     #[test]
     fn test_has_next_false_last_page() {
-        let req = PageRequest { page: 3, per_page: 10 };
+        let req = PageRequest {
+            page: 3,
+            per_page: 10,
+        };
         assert!(!req.has_next(25));
     }
 
     #[test]
     fn test_has_next_more_items_remaining() {
-        let req = PageRequest { page: 2, per_page: 10 };
+        let req = PageRequest {
+            page: 2,
+            per_page: 10,
+        };
         assert!(req.has_next(25));
     }
 }

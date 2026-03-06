@@ -121,9 +121,7 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let event_repo = MockEventRepository::new();
 
-        stream_repo
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = ReadEventBySequenceUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = ReadEventBySequenceInput {

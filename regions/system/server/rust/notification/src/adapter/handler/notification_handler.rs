@@ -7,10 +7,10 @@ use axum::{
 use serde::Deserialize;
 
 use super::AppState;
-use k1s0_server_common::error as codes;
-use k1s0_server_common::ErrorResponse;
 use crate::usecase::send_notification::SendNotificationError;
 use crate::usecase::send_notification::SendNotificationInput;
+use k1s0_server_common::error as codes;
+use k1s0_server_common::ErrorResponse;
 
 /// POST /api/v1/notifications - Send a notification
 pub async fn send_notification(
@@ -47,27 +47,21 @@ pub async fn send_notification(
             })),
         )
             .into_response(),
-        Err(SendNotificationError::ChannelNotFound(id)) => {
-            error_response(
-                StatusCode::NOT_FOUND,
-                codes::notification::channel_not_found(),
-                &format!("channel not found: {}", id),
-            )
-        }
-        Err(SendNotificationError::TemplateNotFound(id)) => {
-            error_response(
-                StatusCode::NOT_FOUND,
-                codes::notification::template_not_found(),
-                &format!("template not found: {}", id),
-            )
-        }
-        Err(SendNotificationError::ChannelDisabled(id)) => {
-            error_response(
-                StatusCode::BAD_REQUEST,
-                codes::notification::channel_disabled(),
-                &format!("channel disabled: {}", id),
-            )
-        }
+        Err(SendNotificationError::ChannelNotFound(id)) => error_response(
+            StatusCode::NOT_FOUND,
+            codes::notification::channel_not_found(),
+            &format!("channel not found: {}", id),
+        ),
+        Err(SendNotificationError::TemplateNotFound(id)) => error_response(
+            StatusCode::NOT_FOUND,
+            codes::notification::template_not_found(),
+            &format!("template not found: {}", id),
+        ),
+        Err(SendNotificationError::ChannelDisabled(id)) => error_response(
+            StatusCode::BAD_REQUEST,
+            codes::notification::channel_disabled(),
+            &format!("channel disabled: {}", id),
+        ),
         Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
             codes::notification::send_failed(),
@@ -183,7 +177,11 @@ pub async fn retry_notification(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                error_response(StatusCode::NOT_FOUND, codes::notification::not_found(), &msg)
+                error_response(
+                    StatusCode::NOT_FOUND,
+                    codes::notification::not_found(),
+                    &msg,
+                )
             } else if msg.contains("already sent") {
                 error_response(
                     StatusCode::CONFLICT,
@@ -395,7 +393,9 @@ pub async fn delete_channel(
     match state.delete_channel_uc.execute(&id).await {
         Ok(()) => (
             StatusCode::OK,
-            Json(serde_json::json!({"success": true, "message": format!("channel {} deleted", id)})),
+            Json(
+                serde_json::json!({"success": true, "message": format!("channel {} deleted", id)}),
+            ),
         )
             .into_response(),
         Err(e) => {
@@ -442,11 +442,13 @@ pub async fn create_template(
             })),
         )
             .into_response(),
-        Err(crate::usecase::create_template::CreateTemplateError::Validation(msg)) => error_response(
-            StatusCode::BAD_REQUEST,
-            codes::notification::validation_error(),
-            msg,
-        ),
+        Err(crate::usecase::create_template::CreateTemplateError::Validation(msg)) => {
+            error_response(
+                StatusCode::BAD_REQUEST,
+                codes::notification::validation_error(),
+                msg,
+            )
+        }
         Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
             codes::notification::template_create_failed(),
@@ -594,7 +596,9 @@ pub async fn delete_template(
     match state.delete_template_uc.execute(&id).await {
         Ok(()) => (
             StatusCode::OK,
-            Json(serde_json::json!({"success": true, "message": format!("template {} deleted", id)})),
+            Json(
+                serde_json::json!({"success": true, "message": format!("template {} deleted", id)}),
+            ),
         )
             .into_response(),
         Err(e) => {
@@ -730,8 +734,5 @@ fn strip_sensitive_config(config: &serde_json::Value) -> serde_json::Value {
 }
 
 fn is_valid_channel_type(channel_type: &str) -> bool {
-    matches!(
-        channel_type,
-        "email" | "slack" | "webhook" | "sms" | "push"
-    )
+    matches!(channel_type, "email" | "slack" | "webhook" | "sms" | "push")
 }

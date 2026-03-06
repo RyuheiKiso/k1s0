@@ -91,7 +91,7 @@ impl AppState {
         ErrorResponse,
         ErrorBody,
         ErrorDetail,
-    )),
+    ))
 )]
 struct ApiDoc;
 
@@ -119,12 +119,10 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/ratelimit/rules/:id",
                 get(ratelimit_handler::get_rule),
             )
-            .route(
-                "/api/v1/ratelimit/usage",
-                get(ratelimit_handler::get_usage),
-            )
+            .route("/api/v1/ratelimit/usage", get(ratelimit_handler::get_usage))
             .route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimits", "read",
+                "ratelimits",
+                "read",
             )));
 
         // POST rules/PUT rules -> ratelimits/write
@@ -138,7 +136,8 @@ pub fn router(state: AppState) -> Router {
                 axum::routing::put(ratelimit_handler::update_rule),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimits", "write",
+                "ratelimits",
+                "write",
             )));
 
         // DELETE rules/reset -> ratelimits/admin
@@ -152,20 +151,20 @@ pub fn router(state: AppState) -> Router {
                 post(ratelimit_handler::reset_rate_limit),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimits", "admin",
+                "ratelimits",
+                "admin",
             )));
 
-        public_api_routes
-            .merge(
-                Router::new()
-                    .merge(read_routes)
-                    .merge(write_routes)
-                    .merge(admin_routes)
-                    .layer(axum::middleware::from_fn_with_state(
-                        auth_state.clone(),
-                        auth_middleware,
-                    )),
-            )
+        public_api_routes.merge(
+            Router::new()
+                .merge(read_routes)
+                .merge(write_routes)
+                .merge(admin_routes)
+                .layer(axum::middleware::from_fn_with_state(
+                    auth_state.clone(),
+                    auth_middleware,
+                )),
+        )
     } else {
         Router::new()
             .route(
@@ -186,10 +185,7 @@ pub fn router(state: AppState) -> Router {
                     .put(ratelimit_handler::update_rule)
                     .delete(ratelimit_handler::delete_rule),
             )
-            .route(
-                "/api/v1/ratelimit/usage",
-                get(ratelimit_handler::get_usage),
-            )
+            .route("/api/v1/ratelimit/usage", get(ratelimit_handler::get_usage))
     };
 
     public_routes

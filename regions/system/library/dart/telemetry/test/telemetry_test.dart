@@ -123,29 +123,53 @@ void main() {
 
       initTelemetry(cfg);
 
-      final logger = createLogger('TestLogger');
+      final logger = createLogger(cfg);
       logger.info('Test message');
 
       expect(logEntries, isNotEmpty);
       expect(logEntries.last.message, 'Test message');
-      expect(logEntries.last.loggerName, 'TestLogger');
+      expect(logEntries.last.loggerName, 'test-service');
     });
   });
 
   group('createLogger', () {
-    test('should create a Logger with the given name', () {
-      final logger = createLogger('MyService');
+    test('should create a Logger with serviceName from config', () {
+      final cfg = TelemetryConfig(
+        serviceName: 'MyService',
+        version: '1.0.0',
+        tier: 'system',
+        environment: 'dev',
+      );
+      final logger = createLogger(cfg);
       expect(logger.name, 'MyService');
     });
 
-    test('should create different loggers with different names', () {
-      final logger1 = createLogger('ServiceA');
-      final logger2 = createLogger('ServiceB');
+    test('should create different loggers with different configs', () {
+      final cfg1 = TelemetryConfig(
+        serviceName: 'ServiceA',
+        version: '1.0.0',
+        tier: 'system',
+        environment: 'dev',
+      );
+      final cfg2 = TelemetryConfig(
+        serviceName: 'ServiceB',
+        version: '1.0.0',
+        tier: 'system',
+        environment: 'dev',
+      );
+      final logger1 = createLogger(cfg1);
+      final logger2 = createLogger(cfg2);
       expect(logger1.name, isNot(logger2.name));
     });
 
     test('should return a functional logger', () {
-      final logger = createLogger('FunctionalTest');
+      final cfg = TelemetryConfig(
+        serviceName: 'FunctionalTest',
+        version: '1.0.0',
+        tier: 'system',
+        environment: 'dev',
+      );
+      final logger = createLogger(cfg);
       expect(logger, isA<Logger>());
     });
   });

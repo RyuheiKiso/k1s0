@@ -6,17 +6,12 @@ use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::dlq::v1::{
-    dlq_service_server::DlqService,
-    DlqMessage as ProtoDlqMessage,
-    DeleteMessageRequest as ProtoDeleteMessageRequest,
-    DeleteMessageResponse as ProtoDeleteMessageResponse,
-    GetMessageRequest as ProtoGetMessageRequest,
-    GetMessageResponse as ProtoGetMessageResponse,
+    dlq_service_server::DlqService, DeleteMessageRequest as ProtoDeleteMessageRequest,
+    DeleteMessageResponse as ProtoDeleteMessageResponse, DlqMessage as ProtoDlqMessage,
+    GetMessageRequest as ProtoGetMessageRequest, GetMessageResponse as ProtoGetMessageResponse,
     ListMessagesRequest as ProtoListMessagesRequest,
-    ListMessagesResponse as ProtoListMessagesResponse,
-    RetryAllRequest as ProtoRetryAllRequest,
-    RetryAllResponse as ProtoRetryAllResponse,
-    RetryMessageRequest as ProtoRetryMessageRequest,
+    ListMessagesResponse as ProtoListMessagesResponse, RetryAllRequest as ProtoRetryAllRequest,
+    RetryAllResponse as ProtoRetryAllResponse, RetryMessageRequest as ProtoRetryMessageRequest,
     RetryMessageResponse as ProtoRetryMessageResponse,
 };
 
@@ -83,7 +78,11 @@ impl DlqService for DlqServiceTonic {
     ) -> Result<Response<ProtoListMessagesResponse>, Status> {
         let inner = request.into_inner();
         let page = if inner.page < 1 { 1 } else { inner.page };
-        let page_size = if inner.page_size < 1 { 20 } else { inner.page_size };
+        let page_size = if inner.page_size < 1 {
+            20
+        } else {
+            inner.page_size
+        };
         let (messages, total) = self
             .inner
             .list_messages(&inner.topic, page, page_size)
@@ -145,9 +144,7 @@ impl DlqService for DlqServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
 
-        Ok(Response::new(ProtoDeleteMessageResponse {
-            id,
-        }))
+        Ok(Response::new(ProtoDeleteMessageResponse { id }))
     }
 
     async fn retry_all(
@@ -163,7 +160,10 @@ impl DlqService for DlqServiceTonic {
 
         Ok(Response::new(ProtoRetryAllResponse {
             retried_count: retried_count as i32,
-            message: format!("{} messages retried in topic {}", retried_count, inner.topic),
+            message: format!(
+                "{} messages retried in topic {}",
+                retried_count, inner.topic
+            ),
         }))
     }
 }

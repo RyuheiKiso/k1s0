@@ -21,10 +21,7 @@ impl ListMembersUseCase {
         Self { member_repo }
     }
 
-    pub async fn execute(
-        &self,
-        tenant_id: Uuid,
-    ) -> Result<Vec<TenantMember>, ListMembersError> {
+    pub async fn execute(&self, tenant_id: Uuid) -> Result<Vec<TenantMember>, ListMembersError> {
         self.member_repo
             .find_by_tenant(&tenant_id)
             .await
@@ -35,7 +32,7 @@ impl ListMembersUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::MemberRole;
+    use crate::domain::entity::tenant_member::MemberRole;
     use crate::domain::repository::member_repository::MockMemberRepository;
 
     #[tokio::test]

@@ -130,10 +130,22 @@ mod tests {
 
     #[test]
     fn test_algorithm_from_str() {
-        assert_eq!(Algorithm::from_str("token_bucket").unwrap(), Algorithm::TokenBucket);
-        assert_eq!(Algorithm::from_str("fixed_window").unwrap(), Algorithm::FixedWindow);
-        assert_eq!(Algorithm::from_str("sliding_window").unwrap(), Algorithm::SlidingWindow);
-        assert_eq!(Algorithm::from_str("leaky_bucket").unwrap(), Algorithm::LeakyBucket);
+        assert_eq!(
+            Algorithm::from_str("token_bucket").unwrap(),
+            Algorithm::TokenBucket
+        );
+        assert_eq!(
+            Algorithm::from_str("fixed_window").unwrap(),
+            Algorithm::FixedWindow
+        );
+        assert_eq!(
+            Algorithm::from_str("sliding_window").unwrap(),
+            Algorithm::SlidingWindow
+        );
+        assert_eq!(
+            Algorithm::from_str("leaky_bucket").unwrap(),
+            Algorithm::LeakyBucket
+        );
         assert!(Algorithm::from_str("unknown").is_err());
     }
 
@@ -178,7 +190,8 @@ mod tests {
     #[test]
     fn test_rate_limit_decision_denied() {
         let reset_at = Utc.timestamp_opt(1700000060, 0).single().unwrap();
-        let decision = RateLimitDecision::denied(100, 0, reset_at, "rate limit exceeded".to_string());
+        let decision =
+            RateLimitDecision::denied(100, 0, reset_at, "rate limit exceeded".to_string());
         assert!(!decision.allowed);
         assert_eq!(decision.limit, 100);
         assert_eq!(decision.used, 100);

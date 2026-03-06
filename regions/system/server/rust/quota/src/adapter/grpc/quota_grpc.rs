@@ -2,11 +2,7 @@
 
 use std::sync::Arc;
 
-use crate::usecase::{
-    CreateQuotaPolicyUseCase, DeleteQuotaPolicyUseCase, GetQuotaPolicyUseCase,
-    GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase, ResetQuotaUsageUseCase,
-    UpdateQuotaPolicyUseCase,
-};
+use crate::domain::entity::quota::{IncrementResult, QuotaPolicy, QuotaUsage};
 use crate::usecase::create_quota_policy::{CreateQuotaPolicyError, CreateQuotaPolicyInput};
 use crate::usecase::delete_quota_policy::DeleteQuotaPolicyError;
 use crate::usecase::get_quota_policy::GetQuotaPolicyError;
@@ -15,7 +11,11 @@ use crate::usecase::increment_quota_usage::{IncrementQuotaUsageError, IncrementQ
 use crate::usecase::list_quota_policies::ListQuotaPoliciesInput;
 use crate::usecase::reset_quota_usage::{ResetQuotaUsageError, ResetQuotaUsageInput};
 use crate::usecase::update_quota_policy::{UpdateQuotaPolicyError, UpdateQuotaPolicyInput};
-use crate::domain::entity::quota::{QuotaPolicy, QuotaUsage, IncrementResult};
+use crate::usecase::{
+    CreateQuotaPolicyUseCase, DeleteQuotaPolicyUseCase, GetQuotaPolicyUseCase,
+    GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase,
+    ResetQuotaUsageUseCase, UpdateQuotaPolicyUseCase,
+};
 
 /// GrpcError は gRPC レイヤーのエラー型。
 #[derive(Debug)]
@@ -180,10 +180,7 @@ impl QuotaGrpcService {
         }
     }
 
-    pub async fn create_policy(
-        &self,
-        req: CreatePolicyRequest,
-    ) -> Result<QuotaPolicy, GrpcError> {
+    pub async fn create_policy(&self, req: CreatePolicyRequest) -> Result<QuotaPolicy, GrpcError> {
         let input = CreateQuotaPolicyInput {
             name: req.name,
             subject_type: req.subject_type,
@@ -233,12 +230,10 @@ impl QuotaGrpcService {
         })
     }
 
-    pub async fn update_policy(
-        &self,
-        req: UpdatePolicyRequest,
-    ) -> Result<QuotaPolicy, GrpcError> {
+    pub async fn update_policy(&self, req: UpdatePolicyRequest) -> Result<QuotaPolicy, GrpcError> {
         // 部分更新: まず現在のポリシーを取得してから更新
-        let current = self.get_policy_uc
+        let current = self
+            .get_policy_uc
             .execute(&req.id)
             .await
             .map_err(GrpcError::from)?;

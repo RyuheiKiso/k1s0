@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use k1s0_outbox::{OutboxMessage, OutboxStatus, OutboxProcessor, OutboxStore, OutboxError};
 use k1s0_outbox::processor::OutboxPublisher;
+use k1s0_outbox::{OutboxError, OutboxMessage, OutboxProcessor, OutboxStatus, OutboxStore};
 
 #[test]
 fn test_outbox_message_serialization_roundtrip() {
@@ -157,11 +157,7 @@ async fn test_processor_batch_size_respected() {
         .withf(|&limit| limit == 5)
         .returning(|_| Ok(vec![]));
 
-    let processor = OutboxProcessor::new(
-        Arc::new(store),
-        Arc::new(AlwaysSuccessPublisher),
-        5,
-    );
+    let processor = OutboxProcessor::new(Arc::new(store), Arc::new(AlwaysSuccessPublisher), 5);
 
     let count = processor.process_batch().await.unwrap();
     assert_eq!(count, 0);
@@ -187,17 +183,10 @@ async fn test_processor_partial_success_batch() {
 
     // 各メッセージで processing + (delivered or failed) = 2回ずつ update が呼ばれる
     // 5メッセージ * 2回 = 10回
-    store
-        .expect_update()
-        .times(10)
-        .returning(|_| Ok(()));
+    store.expect_update().times(10).returning(|_| Ok(()));
 
     let publisher = SelectivePublisher::new(vec![1, 3]);
-    let processor = OutboxProcessor::new(
-        Arc::new(store),
-        Arc::new(publisher),
-        10,
-    );
+    let processor = OutboxProcessor::new(Arc::new(store), Arc::new(publisher), 10);
 
     let count = processor.process_batch().await.unwrap();
     // "ok-1", "ok-2", "ok-3" の3件が成功

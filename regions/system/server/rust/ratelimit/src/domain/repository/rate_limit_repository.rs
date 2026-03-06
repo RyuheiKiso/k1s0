@@ -89,5 +89,10 @@ pub trait RateLimitStateStore: Send + Sync {
     async fn reset(&self, key: &str) -> anyhow::Result<()>;
 
     /// 指定キーの現在の使用状況を取得する。
-    async fn get_usage(&self, key: &str, limit: i64, window_secs: i64) -> anyhow::Result<Option<UsageSnapshot>>;
+    async fn get_usage(
+        &self,
+        key: &str,
+        limit: i64,
+        window_secs: i64,
+    ) -> anyhow::Result<Option<UsageSnapshot>>;
 }

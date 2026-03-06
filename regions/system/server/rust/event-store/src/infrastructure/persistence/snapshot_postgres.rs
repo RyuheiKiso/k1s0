@@ -78,11 +78,10 @@ impl SnapshotRepository for SnapshotPostgresRepository {
     }
 
     async fn delete_by_stream(&self, stream_id: &str) -> anyhow::Result<u64> {
-        let result =
-            sqlx::query("DELETE FROM event_store.snapshots WHERE stream_id = $1")
-                .bind(stream_id)
-                .execute(&self.pool)
-                .await?;
+        let result = sqlx::query("DELETE FROM event_store.snapshots WHERE stream_id = $1")
+            .bind(stream_id)
+            .execute(&self.pool)
+            .await?;
 
         Ok(result.rows_affected())
     }

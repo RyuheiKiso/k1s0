@@ -4,10 +4,13 @@ use std::sync::Arc;
 use tracing::info;
 
 use k1s0_api_registry_server::adapter;
+use k1s0_api_registry_server::adapter::grpc::{ApiRegistryGrpcService, ApiRegistryServiceTonic};
 use k1s0_api_registry_server::adapter::repository::cached_schema_repository::CachedSchemaRepository;
 use k1s0_api_registry_server::adapter::repository::schema_postgres::SchemaPostgresRepository;
 use k1s0_api_registry_server::adapter::repository::version_postgres::VersionPostgresRepository;
-use k1s0_api_registry_server::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
+use k1s0_api_registry_server::domain::repository::{
+    ApiSchemaRepository, ApiSchemaVersionRepository,
+};
 use k1s0_api_registry_server::infrastructure::cache::SchemaCache;
 use k1s0_api_registry_server::infrastructure::config::Config;
 use k1s0_api_registry_server::infrastructure::database::create_pool;
@@ -16,7 +19,6 @@ use k1s0_api_registry_server::infrastructure::kafka::{
 };
 use k1s0_api_registry_server::proto::k1s0::system::apiregistry::v1::api_registry_service_server::ApiRegistryServiceServer;
 use k1s0_api_registry_server::usecase;
-use k1s0_api_registry_server::adapter::grpc::{ApiRegistryGrpcService, ApiRegistryServiceTonic};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -30,13 +32,16 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
 
     info!(
         app_name = %cfg.app.name,
@@ -82,7 +87,9 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(VersionPostgresRepository::new(pool.clone())),
         )
     } else {
-        anyhow::bail!("Database is required. Set DATABASE_URL or configure [database] in config.yaml");
+        anyhow::bail!(
+            "Database is required. Set DATABASE_URL or configure [database] in config.yaml"
+        );
     };
 
     // Kafka publisher
@@ -147,9 +154,8 @@ async fn main() -> anyhow::Result<()> {
         )
         .with_validator(validator_factory.clone()),
     );
-    let get_schema_version_uc = Arc::new(usecase::GetSchemaVersionUseCase::new(
-        version_repo.clone(),
-    ));
+    let get_schema_version_uc =
+        Arc::new(usecase::GetSchemaVersionUseCase::new(version_repo.clone()));
     let delete_version_uc = Arc::new(usecase::DeleteVersionUseCase::with_publisher(
         schema_repo.clone(),
         version_repo.clone(),
@@ -170,21 +176,22 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for api-registry");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(k1s0_api_registry_server::adapter::middleware::auth::ApiRegistryAuthState {
-            verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, api-registry running without authentication");
-        None
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "api-registry",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for api-registry");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            k1s0_api_registry_server::adapter::middleware::auth::ApiRegistryAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
 
     // REST app state
     let mut state = adapter::handler::AppState {
@@ -204,8 +211,8 @@ async fn main() -> anyhow::Result<()> {
         state = state.with_auth(auth_st);
     }
 
-    let app = adapter::handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app =
+        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC service
     let grpc_svc = Arc::new(ApiRegistryGrpcService::new(

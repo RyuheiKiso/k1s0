@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::path::Path;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -16,6 +17,63 @@ pub struct Config {
     pub rule_engine: Option<RuleEngineConfig>,
     #[serde(default)]
     pub import: Option<ImportConfig>,
+}
+
+impl Config {
+    pub fn load(path: &str) -> anyhow::Result<Self> {
+        let content = std::fs::read_to_string(path)?;
+        let cfg: Self = serde_yaml::from_str(&content)?;
+        cfg.validate()?;
+        Ok(cfg)
+    }
+
+    pub fn validate(&self) -> anyhow::Result<()> {
+        if self.app.name.trim().is_empty() {
+            anyhow::bail!("app.name must not be empty");
+        }
+        if self.server.host.trim().is_empty() {
+            anyhow::bail!("server.host must not be empty");
+        }
+        if self.server.port == 0 {
+            anyhow::bail!("server.port must be greater than zero");
+        }
+        if self.server.grpc_port == 0 {
+            anyhow::bail!("server.grpc_port must be greater than zero");
+        }
+
+        let db = self
+            .database
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("database configuration is required"))?;
+        if db.host.trim().is_empty() {
+            anyhow::bail!("database.host must not be empty");
+        }
+        if db.name.trim().is_empty() {
+            anyhow::bail!("database.name must not be empty");
+        }
+        if db.schema.trim().is_empty() {
+            anyhow::bail!("database.schema must not be empty");
+        }
+        if db.user.trim().is_empty() {
+            anyhow::bail!("database.user must not be empty");
+        }
+
+        let auth = self
+            .auth
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("auth configuration is required"))?;
+        if auth.jwks_url.trim().is_empty() {
+            anyhow::bail!("auth.jwks_url must not be empty");
+        }
+        if auth.issuer.trim().is_empty() {
+            anyhow::bail!("auth.issuer must not be empty");
+        }
+        if auth.audience.trim().is_empty() {
+            anyhow::bail!("auth.audience must not be empty");
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -65,6 +123,10 @@ impl DatabaseConfig {
             self.user, self.password, self.host, self.port, self.name, self.ssl_mode
         )
     }
+
+    pub fn migrations_path() -> &'static Path {
+        Path::new("../../../database/master-maintenance-db/migrations")
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -102,25 +164,60 @@ pub struct ImportConfig {
     pub batch_size: usize,
 }
 
-fn default_version() -> String { "0.1.0".to_string() }
-fn default_environment() -> String { "development".to_string() }
-fn default_host() -> String { "0.0.0.0".to_string() }
-fn default_port() -> u16 { 8110 }
-fn default_grpc_port() -> u16 { 50051 }
-fn default_db_port() -> u16 { 5432 }
-fn default_schema() -> String { "master_maintenance".to_string() }
-fn default_ssl_mode() -> String { "disable".to_string() }
-fn default_max_connections() -> u32 { 25 }
-fn default_max_idle_conns() -> u32 { 5 }
-fn default_conn_max_lifetime() -> u64 { 300 }
-fn default_jwks_cache_ttl() -> u64 { 300 }
-fn default_max_rules() -> usize { 100 }
-fn default_eval_timeout() -> u64 { 5000 }
-fn default_cache_ttl() -> u64 { 300 }
-fn default_max_file_size() -> usize { 50 }
-fn default_max_rows() -> usize { 100000 }
-fn default_batch_size() -> usize { 500 }
-
+fn default_version() -> String {
+    "0.1.0".to_string()
+}
+fn default_environment() -> String {
+    "development".to_string()
+}
+fn default_host() -> String {
+    "0.0.0.0".to_string()
+}
+fn default_port() -> u16 {
+    8110
+}
+fn default_grpc_port() -> u16 {
+    50051
+}
+fn default_db_port() -> u16 {
+    5432
+}
+fn default_schema() -> String {
+    "master_maintenance".to_string()
+}
+fn default_ssl_mode() -> String {
+    "disable".to_string()
+}
+fn default_max_connections() -> u32 {
+    25
+}
+fn default_max_idle_conns() -> u32 {
+    5
+}
+fn default_conn_max_lifetime() -> u64 {
+    300
+}
+fn default_jwks_cache_ttl() -> u64 {
+    300
+}
+fn default_max_rules() -> usize {
+    100
+}
+fn default_eval_timeout() -> u64 {
+    5000
+}
+fn default_cache_ttl() -> u64 {
+    300
+}
+fn default_max_file_size() -> usize {
+    50
+}
+fn default_max_rows() -> usize {
+    100000
+}
+fn default_batch_size() -> usize {
+    500
+}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
@@ -248,5 +345,3 @@ server:
         );
     }
 }
-
-

@@ -20,5 +20,5 @@ jobs:
         run: buf lint api/proto
       - name: Breaking change detection
         run: buf breaking api/proto --against '.git#branch=main'
-      - name: Generate (dry-run)
-        run: buf generate api/proto --template buf.gen.yaml
+      - name: Verify generated artifacts
+        run: bash scripts/check-proto-generated.sh

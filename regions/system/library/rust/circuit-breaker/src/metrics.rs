@@ -41,13 +41,9 @@ impl CircuitBreakerMetricsRecorder {
             success_count: AtomicU64::new(0),
             state_code: AtomicI64::new(state_to_code(CircuitBreakerState::Closed)),
             #[cfg(feature = "metrics")]
-            otel_failure_counter: meter
-                .u64_counter("circuit_breaker_failures_total")
-                .build(),
+            otel_failure_counter: meter.u64_counter("circuit_breaker_failures_total").build(),
             #[cfg(feature = "metrics")]
-            otel_success_counter: meter
-                .u64_counter("circuit_breaker_successes_total")
-                .build(),
+            otel_success_counter: meter.u64_counter("circuit_breaker_successes_total").build(),
             #[cfg(feature = "metrics")]
             otel_state_gauge: meter.i64_up_down_counter("circuit_breaker_state").build(),
         }

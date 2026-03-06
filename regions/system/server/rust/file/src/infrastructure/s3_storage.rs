@@ -21,8 +21,7 @@ impl S3StorageRepository {
             config_loader = config_loader.region(aws_config::Region::new(r.clone()));
         }
         if let Some(ref ep) = endpoint {
-            config_loader =
-                config_loader.endpoint_url(ep);
+            config_loader = config_loader.endpoint_url(ep);
         }
         let sdk_config = config_loader.load().await;
         let client = aws_sdk_s3::Client::new(&sdk_config);

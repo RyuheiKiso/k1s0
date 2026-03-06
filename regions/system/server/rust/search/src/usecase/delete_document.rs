@@ -69,8 +69,7 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockSearchRepository::new();
-        mock.expect_delete_document()
-            .returning(|_, _| Ok(false));
+        mock.expect_delete_document().returning(|_, _| Ok(false));
 
         let uc = DeleteDocumentUseCase::new(Arc::new(mock));
         let input = DeleteDocumentInput {

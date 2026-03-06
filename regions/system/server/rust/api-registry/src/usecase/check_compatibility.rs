@@ -156,7 +156,8 @@ mod tests {
         let uc = CheckCompatibilityUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = CheckCompatibilityInput {
             name: "test-api".to_string(),
-            content: "openapi: 3.0.3\npaths:\n  /api/v1/users:\n    get:\n      summary: Users\n".to_string(),
+            content: "openapi: 3.0.3\npaths:\n  /api/v1/users:\n    get:\n      summary: Users\n"
+                .to_string(),
             base_version: None,
         };
         let result = uc.execute(&input).await;
@@ -164,15 +165,16 @@ mod tests {
         let output = result.unwrap();
         assert!(!output.result.compatible);
         assert!(!output.result.breaking_changes.is_empty());
-        assert_eq!(output.result.breaking_changes[0].change_type, "path_removed");
+        assert_eq!(
+            output.result.breaking_changes[0].change_type,
+            "path_removed"
+        );
     }
 
     #[tokio::test]
     async fn not_found() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock
-            .expect_find_by_name()
-            .returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_| Ok(None));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 

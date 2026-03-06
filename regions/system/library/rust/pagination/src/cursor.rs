@@ -35,8 +35,8 @@ pub fn decode_cursor(cursor: &str) -> Result<(String, String), PerPageValidation
         .or_else(|_| URL_SAFE.decode(cursor))
         .or_else(|_| STANDARD.decode(cursor))
         .map_err(|e| PerPageValidationError::InvalidCursor(e.to_string()))?;
-    let combined =
-        String::from_utf8(bytes).map_err(|e| PerPageValidationError::InvalidCursor(e.to_string()))?;
+    let combined = String::from_utf8(bytes)
+        .map_err(|e| PerPageValidationError::InvalidCursor(e.to_string()))?;
     let (sort_key, id) = combined
         .split_once(SEPARATOR)
         .ok_or_else(|| PerPageValidationError::InvalidCursor("missing separator".to_string()))?;

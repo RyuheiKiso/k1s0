@@ -1,6 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
-use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -14,9 +11,11 @@ mod usecase;
 
 use adapter::grpc::EventStoreGrpcService;
 use adapter::handler::{self, AppState};
-use domain::entity::event::{EventStream, Snapshot, StoredEvent};
 use domain::repository::{EventRepository, EventStreamRepository, SnapshotRepository};
 use infrastructure::config::Config;
+use infrastructure::in_memory::{
+    InMemoryEventRepository, InMemoryEventStreamRepository, InMemorySnapshotRepository,
+};
 use infrastructure::kafka::EventPublisher;
 use infrastructure::persistence::{
     EventPostgresRepository, SnapshotPostgresRepository, StreamPostgresRepository,
@@ -33,13 +32,16 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
 
     info!(
         app_name = %cfg.app.name,
@@ -151,21 +153,22 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for event-store");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(adapter::middleware::auth::EventStoreAuthState {
-            verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, event-store running without authentication");
-        None
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "event-store",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for event-store");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            adapter::middleware::auth::EventStoreAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
     let grpc_auth_state = auth_state
         .as_ref()
         .map(|s| adapter::grpc::EventStoreGrpcAuthState {
@@ -192,12 +195,10 @@ async fn main() -> anyhow::Result<()> {
 
     // tonic wrapper
     use proto::k1s0::system::eventstore::v1::event_store_service_server::EventStoreServiceServer;
-    let event_store_tonic =
-        adapter::grpc::EventStoreServiceTonic::new(grpc_svc, grpc_auth_state);
+    let event_store_tonic = adapter::grpc::EventStoreServiceTonic::new(grpc_svc, grpc_auth_state);
 
     // Router
-    let app = handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     let grpc_metrics = metrics;
@@ -232,193 +233,4 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
-}
-
-// --- InMemory Repositories ---
-
-struct InMemoryEventStreamRepository {
-    streams: tokio::sync::RwLock<HashMap<String, EventStream>>,
-}
-
-impl InMemoryEventStreamRepository {
-    fn new() -> Self {
-        Self {
-            streams: tokio::sync::RwLock::new(HashMap::new()),
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl EventStreamRepository for InMemoryEventStreamRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<EventStream>> {
-        let streams = self.streams.read().await;
-        Ok(streams.get(id).cloned())
-    }
-
-    async fn list_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<EventStream>, u64)> {
-        let streams = self.streams.read().await;
-        let all: Vec<EventStream> = streams.values().cloned().collect();
-        let total = all.len() as u64;
-        let page = page.max(1);
-        let page_size = page_size.max(1).min(200);
-        let offset = ((page - 1) * page_size) as usize;
-        let paged: Vec<EventStream> = all.into_iter().skip(offset).take(page_size as usize).collect();
-        Ok((paged, total))
-    }
-
-    async fn create(&self, stream: &EventStream) -> anyhow::Result<()> {
-        let mut streams = self.streams.write().await;
-        streams.insert(stream.id.clone(), stream.clone());
-        Ok(())
-    }
-
-    async fn update_version(&self, id: &str, new_version: i64) -> anyhow::Result<()> {
-        let mut streams = self.streams.write().await;
-        if let Some(stream) = streams.get_mut(id) {
-            stream.current_version = new_version;
-            stream.updated_at = chrono::Utc::now();
-        }
-        Ok(())
-    }
-
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
-        let mut streams = self.streams.write().await;
-        Ok(streams.remove(id).is_some())
-    }
-}
-
-struct InMemoryEventRepository {
-    events: tokio::sync::RwLock<Vec<StoredEvent>>,
-    sequence_counter: tokio::sync::RwLock<u64>,
-}
-
-impl InMemoryEventRepository {
-    fn new() -> Self {
-        Self {
-            events: tokio::sync::RwLock::new(Vec::new()),
-            sequence_counter: tokio::sync::RwLock::new(0),
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl EventRepository for InMemoryEventRepository {
-    async fn append(
-        &self,
-        _stream_id: &str,
-        events: Vec<StoredEvent>,
-    ) -> anyhow::Result<Vec<StoredEvent>> {
-        let mut all_events = self.events.write().await;
-        let mut counter = self.sequence_counter.write().await;
-        let mut result = Vec::new();
-        for mut event in events {
-            *counter += 1;
-            event.sequence = *counter;
-            result.push(event.clone());
-            all_events.push(event);
-        }
-        Ok(result)
-    }
-
-    async fn find_by_stream(
-        &self,
-        stream_id: &str,
-        from_version: i64,
-        to_version: Option<i64>,
-        event_type: Option<String>,
-        page: u32,
-        page_size: u32,
-    ) -> anyhow::Result<(Vec<StoredEvent>, u64)> {
-        let all_events = self.events.read().await;
-        let filtered: Vec<_> = all_events
-            .iter()
-            .filter(|e| {
-                e.stream_id == stream_id
-                    && e.version >= from_version
-                    && to_version.map_or(true, |tv| e.version <= tv)
-                    && event_type.as_ref().map_or(true, |et| e.event_type == *et)
-            })
-            .cloned()
-            .collect();
-        let total = filtered.len() as u64;
-        let offset = ((page - 1) * page_size) as usize;
-        let paged: Vec<_> = filtered.into_iter().skip(offset).take(page_size as usize).collect();
-        Ok((paged, total))
-    }
-
-    async fn find_all(
-        &self,
-        event_type: Option<String>,
-        page: u32,
-        page_size: u32,
-    ) -> anyhow::Result<(Vec<StoredEvent>, u64)> {
-        let all_events = self.events.read().await;
-        let filtered: Vec<_> = all_events
-            .iter()
-            .filter(|e| event_type.as_ref().map_or(true, |et| e.event_type == *et))
-            .cloned()
-            .collect();
-        let total = filtered.len() as u64;
-        let page = page.max(1);
-        let page_size = page_size.max(1).min(200);
-        let offset = ((page - 1) * page_size) as usize;
-        let paged: Vec<_> = filtered.into_iter().skip(offset).take(page_size as usize).collect();
-        Ok((paged, total))
-    }
-
-    async fn find_by_sequence(
-        &self,
-        stream_id: &str,
-        sequence: u64,
-    ) -> anyhow::Result<Option<StoredEvent>> {
-        let all_events = self.events.read().await;
-        Ok(all_events
-            .iter()
-            .find(|e| e.stream_id == stream_id && e.sequence == sequence)
-            .cloned())
-    }
-
-    async fn delete_by_stream(&self, stream_id: &str) -> anyhow::Result<u64> {
-        let mut all_events = self.events.write().await;
-        let before = all_events.len();
-        all_events.retain(|e| e.stream_id != stream_id);
-        Ok((before - all_events.len()) as u64)
-    }
-}
-
-struct InMemorySnapshotRepository {
-    snapshots: tokio::sync::RwLock<Vec<Snapshot>>,
-}
-
-impl InMemorySnapshotRepository {
-    fn new() -> Self {
-        Self {
-            snapshots: tokio::sync::RwLock::new(Vec::new()),
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl SnapshotRepository for InMemorySnapshotRepository {
-    async fn create(&self, snapshot: &Snapshot) -> anyhow::Result<()> {
-        let mut snapshots = self.snapshots.write().await;
-        snapshots.push(snapshot.clone());
-        Ok(())
-    }
-
-    async fn find_latest(&self, stream_id: &str) -> anyhow::Result<Option<Snapshot>> {
-        let snapshots = self.snapshots.read().await;
-        Ok(snapshots
-            .iter()
-            .filter(|s| s.stream_id == stream_id)
-            .max_by_key(|s| s.snapshot_version)
-            .cloned())
-    }
-
-    async fn delete_by_stream(&self, stream_id: &str) -> anyhow::Result<u64> {
-        let mut snapshots = self.snapshots.write().await;
-        let before = snapshots.len();
-        snapshots.retain(|s| s.stream_id != stream_id);
-        Ok((before - snapshots.len()) as u64)
-    }
 }

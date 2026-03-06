@@ -249,7 +249,9 @@ mod tests {
         let result = client.consume("test-key", 10).await;
         assert!(matches!(
             result,
-            Err(RateLimitError::LimitExceeded { retry_after_secs: 60 })
+            Err(RateLimitError::LimitExceeded {
+                retry_after_secs: 60
+            })
         ));
     }
 

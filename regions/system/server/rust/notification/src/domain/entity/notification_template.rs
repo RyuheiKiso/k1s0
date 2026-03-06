@@ -13,7 +13,12 @@ pub struct NotificationTemplate {
 }
 
 impl NotificationTemplate {
-    pub fn new(name: String, channel_type: String, subject_template: Option<String>, body_template: String) -> Self {
+    pub fn new(
+        name: String,
+        channel_type: String,
+        subject_template: Option<String>,
+        body_template: String,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: format!("tpl_{}", uuid::Uuid::new_v4().simple()),

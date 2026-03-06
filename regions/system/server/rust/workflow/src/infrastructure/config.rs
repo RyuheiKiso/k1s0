@@ -173,7 +173,6 @@ fn default_timezone() -> String {
     "UTC".to_string()
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -291,5 +290,3 @@ mod tests {
         );
     }
 }
-
-

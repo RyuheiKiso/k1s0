@@ -20,7 +20,7 @@ impl DefinitionPostgresRepository {
 
 #[derive(sqlx::FromRow)]
 struct DefinitionRow {
-    id: uuid::Uuid,
+    id: String,
     name: String,
     description: String,
     steps: serde_json::Value,
@@ -52,14 +52,11 @@ impl TryFrom<DefinitionRow> for WorkflowDefinition {
 #[async_trait]
 impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
-        let uuid = uuid::Uuid::parse_str(id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
         let row: Option<DefinitionRow> = sqlx::query_as(
             "SELECT id, name, description, steps, enabled, version, created_at, updated_at \
              FROM workflow.workflow_definitions WHERE id = $1",
         )
-        .bind(uuid)
+        .bind(id)
         .fetch_optional(self.pool.as_ref())
         .await?;
 
@@ -136,8 +133,6 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
     }
 
     async fn create(&self, definition: &WorkflowDefinition) -> anyhow::Result<()> {
-        let uuid = uuid::Uuid::parse_str(&definition.id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
         let steps_json = serde_json::to_value(&definition.steps)?;
 
         sqlx::query(
@@ -145,7 +140,7 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
              (id, name, description, steps, enabled, version, created_at, updated_at) \
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
         )
-        .bind(uuid)
+        .bind(&definition.id)
         .bind(&definition.name)
         .bind(&definition.description)
         .bind(&steps_json)
@@ -160,8 +155,6 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
     }
 
     async fn update(&self, definition: &WorkflowDefinition) -> anyhow::Result<()> {
-        let uuid = uuid::Uuid::parse_str(&definition.id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
         let steps_json = serde_json::to_value(&definition.steps)?;
 
         sqlx::query(
@@ -169,7 +162,7 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
              SET name = $2, description = $3, steps = $4, enabled = $5, version = $6 \
              WHERE id = $1",
         )
-        .bind(uuid)
+        .bind(&definition.id)
         .bind(&definition.name)
         .bind(&definition.description)
         .bind(&steps_json)
@@ -182,15 +175,10 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
     }
 
     async fn delete(&self, id: &str) -> anyhow::Result<bool> {
-        let uuid = uuid::Uuid::parse_str(id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
-        let result = sqlx::query(
-            "DELETE FROM workflow.workflow_definitions WHERE id = $1",
-        )
-        .bind(uuid)
-        .execute(self.pool.as_ref())
-        .await?;
+        let result = sqlx::query("DELETE FROM workflow.workflow_definitions WHERE id = $1")
+            .bind(id)
+            .execute(self.pool.as_ref())
+            .await?;
 
         Ok(result.rows_affected() > 0)
     }

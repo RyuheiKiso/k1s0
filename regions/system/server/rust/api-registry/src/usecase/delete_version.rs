@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
-use crate::infrastructure::kafka::{NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent};
+use crate::infrastructure::kafka::{
+    NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteVersionError {
@@ -65,9 +67,7 @@ impl DeleteVersionUseCase {
             .map_err(|e| DeleteVersionError::Internal(e.to_string()))?;
 
         if count <= 1 {
-            return Err(DeleteVersionError::CannotDeleteLatest(
-                schema.name.clone(),
-            ));
+            return Err(DeleteVersionError::CannotDeleteLatest(schema.name.clone()));
         }
 
         let deleted = self
@@ -157,17 +157,17 @@ mod tests {
                 Ok(2)
             }
         });
-        version_mock
-            .expect_delete()
-            .returning(|_, _| Ok(true));
+        version_mock.expect_delete().returning(|_, _| Ok(true));
         version_mock.expect_find_latest_by_name().returning(|name| {
-            Ok(Some(crate::domain::entity::api_registration::ApiSchemaVersion::new(
-                name.to_string(),
-                2,
-                SchemaType::OpenApi,
-                "{}".to_string(),
-                "tester".to_string(),
-            )))
+            Ok(Some(
+                crate::domain::entity::api_registration::ApiSchemaVersion::new(
+                    name.to_string(),
+                    2,
+                    SchemaType::OpenApi,
+                    "{}".to_string(),
+                    "tester".to_string(),
+                ),
+            ))
         });
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
@@ -178,9 +178,7 @@ mod tests {
     #[tokio::test]
     async fn not_found_schema() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock
-            .expect_find_by_name()
-            .returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_| Ok(None));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
@@ -229,9 +227,7 @@ mod tests {
 
         let mut version_mock = MockApiSchemaVersionRepository::new();
         version_mock.expect_count_by_name().returning(|_| Ok(3));
-        version_mock
-            .expect_delete()
-            .returning(|_, _| Ok(false));
+        version_mock.expect_delete().returning(|_, _| Ok(false));
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let result = uc.execute("test-api", 99, None).await;

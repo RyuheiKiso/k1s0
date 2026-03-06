@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -21,6 +19,7 @@ use domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
 use infrastructure::cache::JobCache;
 use infrastructure::config::Config;
 use infrastructure::cron_engine::CronSchedulerEngine;
+use infrastructure::job_executor::TargetJobExecutor;
 use infrastructure::kafka_producer::{
     KafkaSchedulerProducer, NoopSchedulerEventPublisher, SchedulerEventPublisher,
 };
@@ -36,13 +35,16 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
 
     info!(
         app_name = %cfg.app.name,
@@ -92,16 +94,22 @@ async fn main() -> anyhow::Result<()> {
     let _job_cache = Arc::new(JobCache::default_config());
     info!("job cache initialized (max=1000, TTL=120s)");
 
+    let job_executor = Arc::new(TargetJobExecutor::new(cfg.kafka.as_ref())?);
+
     let list_jobs_uc = Arc::new(usecase::ListJobsUseCase::new(job_repo.clone()));
-    let create_job_uc = Arc::new(usecase::CreateJobUseCase::new(job_repo.clone()));
+    let create_job_uc = Arc::new(usecase::CreateJobUseCase::new(
+        job_repo.clone(),
+        event_publisher.clone(),
+    ));
     let get_job_uc = Arc::new(usecase::GetJobUseCase::new(job_repo.clone()));
     let delete_job_uc = Arc::new(usecase::DeleteJobUseCase::new(
         job_repo.clone(),
         execution_repo.clone(),
     ));
-    let trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::with_publisher(
+    let trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::with_dependencies(
         job_repo.clone(),
         execution_repo.clone(),
+        job_executor.clone(),
         event_publisher.clone(),
     ));
     let pause_job_uc = Arc::new(usecase::PauseJobUseCase::new(job_repo.clone()));
@@ -131,21 +139,22 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for scheduler-server");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(adapter::middleware::auth::SchedulerAuthState {
-            verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, scheduler-server running without authentication");
-        None
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "scheduler-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for scheduler-server");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            adapter::middleware::auth::SchedulerAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
 
     let mut state = adapter::handler::AppState {
         list_jobs_uc,
@@ -163,13 +172,18 @@ async fn main() -> anyhow::Result<()> {
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);
     }
+    let grpc_auth_state = state.auth_state.clone();
 
     let app =
         adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // --- Cron Scheduler Engine ---
-    let cron_engine =
-        CronSchedulerEngine::new(job_repo.clone(), execution_repo.clone(), distributed_lock);
+    let cron_engine = CronSchedulerEngine::new(
+        job_repo.clone(),
+        execution_repo.clone(),
+        job_executor,
+        distributed_lock,
+    );
     let _cron_handle = cron_engine.start();
     info!("cron scheduler engine started");
 
@@ -182,8 +196,10 @@ async fn main() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;
+    let grpc_auth_layer = adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SchedulerServiceServer::new(scheduler_tonic))
             .serve(grpc_addr)

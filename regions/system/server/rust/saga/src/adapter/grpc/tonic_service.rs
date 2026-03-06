@@ -126,6 +126,14 @@ fn json_bytes_to_prost_struct(bytes: &[u8]) -> Option<prost_types::Struct> {
     Some(json_to_prost_struct(&value))
 }
 
+fn empty_string_to_none(value: String) -> Option<String> {
+    if value.is_empty() {
+        None
+    } else {
+        Some(value)
+    }
+}
+
 // --- SagaService tonic ラッパー ---
 
 /// SagaServiceTonic は tonic の SagaService として SagaGrpcService をラップする。
@@ -194,13 +202,9 @@ impl SagaService for SagaServiceTonic {
             current_step: resp.saga.current_step,
             status: resp.saga.status,
             payload: json_bytes_to_prost_struct(&resp.saga.payload),
-            correlation_id: resp.saga.correlation_id,
-            initiated_by: resp.saga.initiated_by,
-            error_message: if resp.saga.error_message.is_empty() {
-                None
-            } else {
-                Some(resp.saga.error_message)
-            },
+            correlation_id: empty_string_to_none(resp.saga.correlation_id),
+            initiated_by: empty_string_to_none(resp.saga.initiated_by),
+            error_message: empty_string_to_none(resp.saga.error_message),
             created_at: rfc3339_to_proto_timestamp(&resp.saga.created_at),
             updated_at: rfc3339_to_proto_timestamp(&resp.saga.updated_at),
         };
@@ -217,7 +221,7 @@ impl SagaService for SagaServiceTonic {
                 status: log.status,
                 request_payload: json_bytes_to_prost_struct(&log.request_payload),
                 response_payload: json_bytes_to_prost_struct(&log.response_payload),
-                error_message: log.error_message,
+                error_message: empty_string_to_none(log.error_message),
                 started_at: rfc3339_to_proto_timestamp(&log.started_at),
                 completed_at: if log.completed_at.is_empty() {
                     None
@@ -264,13 +268,9 @@ impl SagaService for SagaServiceTonic {
                 current_step: saga.current_step,
                 status: saga.status,
                 payload: json_bytes_to_prost_struct(&saga.payload),
-                correlation_id: saga.correlation_id,
-                initiated_by: saga.initiated_by,
-                error_message: if saga.error_message.is_empty() {
-                    None
-                } else {
-                    Some(saga.error_message)
-                },
+                correlation_id: empty_string_to_none(saga.correlation_id),
+                initiated_by: empty_string_to_none(saga.initiated_by),
+                error_message: empty_string_to_none(saga.error_message),
                 created_at: rfc3339_to_proto_timestamp(&saga.created_at),
                 updated_at: rfc3339_to_proto_timestamp(&saga.updated_at),
             })

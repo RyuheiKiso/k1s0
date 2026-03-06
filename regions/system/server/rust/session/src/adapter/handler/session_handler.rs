@@ -78,7 +78,10 @@ fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
 
 fn forbidden_response(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
     let resp = ErrorResponse::new(codes::session::forbidden(), message);
-    (StatusCode::FORBIDDEN, Json(serde_json::to_value(&resp).unwrap()))
+    (
+        StatusCode::FORBIDDEN,
+        Json(serde_json::to_value(&resp).unwrap()),
+    )
 }
 
 pub async fn create_session(

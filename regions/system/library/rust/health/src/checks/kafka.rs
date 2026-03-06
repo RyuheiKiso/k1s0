@@ -1,8 +1,8 @@
+use crate::checker::HealthCheck;
+use crate::error::HealthError;
 use async_trait::async_trait;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{BaseConsumer, Consumer};
-use crate::checker::HealthCheck;
-use crate::error::HealthError;
 
 pub struct KafkaHealthCheck {
     name: String,
@@ -41,7 +41,9 @@ impl HealthCheck for KafkaHealthCheck {
                 .set("bootstrap.servers", &brokers)
                 .set("socket.timeout.ms", timeout_ms.to_string())
                 .create()
-                .map_err(|e| HealthError::CheckFailed(format!("Kafka client creation failed: {}", e)))?;
+                .map_err(|e| {
+                    HealthError::CheckFailed(format!("Kafka client creation failed: {}", e))
+                })?;
 
             consumer
                 .fetch_metadata(None, std::time::Duration::from_millis(timeout_ms))

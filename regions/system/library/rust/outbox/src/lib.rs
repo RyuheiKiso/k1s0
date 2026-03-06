@@ -3,10 +3,10 @@
 //! データベーストランザクションと Kafka メッセージ発行の
 //! 原子性を保証するアウトボックスパターンを提供する。
 
+pub mod error;
 pub mod message;
 pub mod processor;
 pub mod store;
-pub mod error;
 
 #[cfg(feature = "postgres")]
 pub mod postgres_store;

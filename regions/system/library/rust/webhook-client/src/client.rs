@@ -445,7 +445,10 @@ mod tests {
         Mock::given(method("POST"))
             .respond_with(move |req: &wiremock::Request| {
                 if let Some(val) = req.headers.get(IDEMPOTENCY_KEY_HEADER) {
-                    keys_clone.lock().unwrap().push(val.to_str().unwrap().to_string());
+                    keys_clone
+                        .lock()
+                        .unwrap()
+                        .push(val.to_str().unwrap().to_string());
                 }
                 let count = call_count_clone.fetch_add(1, Ordering::SeqCst) + 1;
                 if count <= 2 {

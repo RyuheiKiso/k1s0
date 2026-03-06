@@ -26,14 +26,20 @@ pub struct IndexDocumentUseCase {
 }
 
 impl IndexDocumentUseCase {
-    pub fn new(repo: Arc<dyn SearchRepository>, event_publisher: Arc<dyn SearchEventPublisher>) -> Self {
+    pub fn new(
+        repo: Arc<dyn SearchRepository>,
+        event_publisher: Arc<dyn SearchEventPublisher>,
+    ) -> Self {
         Self {
             repo,
             event_publisher,
         }
     }
 
-    pub async fn execute(&self, input: &IndexDocumentInput) -> Result<SearchDocument, IndexDocumentError> {
+    pub async fn execute(
+        &self,
+        input: &IndexDocumentInput,
+    ) -> Result<SearchDocument, IndexDocumentError> {
         let index = self
             .repo
             .find_index(&input.index_name)

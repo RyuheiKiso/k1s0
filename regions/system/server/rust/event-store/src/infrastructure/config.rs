@@ -159,7 +159,6 @@ fn default_max_page_size() -> u32 {
     200
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -272,5 +271,3 @@ connect_timeout_seconds: 5
         assert_eq!(cfg.max_connections, 20);
     }
 }
-
-

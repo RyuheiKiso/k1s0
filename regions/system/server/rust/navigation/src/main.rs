@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -26,7 +24,11 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
@@ -53,26 +55,25 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Token verifier (optional)
-    let verifier = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier");
-        Some(Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        )))
-    } else {
-        info!("no auth configured, navigation server running without token verification");
-        None
-    };
+    let verifier = k1s0_server_common::require_auth_state(
+        "navigation-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier");
+            Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ))
+        }),
+    )?;
 
     // Use case
     let get_navigation_uc = Arc::new(usecase::GetNavigationUseCase::new(loader, verifier));
 
     // gRPC service
-    let grpc_svc = Arc::new(adapter::grpc::NavigationGrpcService::new(
-        get_navigation_uc,
-    ));
+    let grpc_svc = Arc::new(adapter::grpc::NavigationGrpcService::new(get_navigation_uc));
     let navigation_tonic = adapter::grpc::NavigationServiceTonic::new(grpc_svc);
 
     use proto::k1s0::system::navigation::v1::navigation_service_server::NavigationServiceServer;
@@ -81,8 +82,8 @@ async fn main() -> anyhow::Result<()> {
     let rest_state = adapter::handler::AppState {
         metrics: metrics.clone(),
     };
-    let app =
-        adapter::handler::router(rest_state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = adapter::handler::router(rest_state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();

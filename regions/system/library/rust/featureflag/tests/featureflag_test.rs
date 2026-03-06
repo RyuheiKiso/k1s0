@@ -37,9 +37,7 @@ async fn test_evaluate_enabled_flag() {
 #[tokio::test]
 async fn test_evaluate_disabled_flag() {
     let client = InMemoryFeatureFlagClient::new();
-    client
-        .set_flag(make_flag("feature-b", false, vec![]))
-        .await;
+    client.set_flag(make_flag("feature-b", false, vec![])).await;
 
     let ctx = EvaluationContext::new();
     let result = client.evaluate("feature-b", &ctx).await.unwrap();
@@ -153,9 +151,7 @@ async fn test_variant_in_evaluation_result() {
         make_variant("control", "off", 50),
         make_variant("treatment", "on", 50),
     ];
-    client
-        .set_flag(make_flag("ab-test", true, variants))
-        .await;
+    client.set_flag(make_flag("ab-test", true, variants)).await;
 
     let ctx = EvaluationContext::new();
     let result = client.evaluate("ab-test", &ctx).await.unwrap();

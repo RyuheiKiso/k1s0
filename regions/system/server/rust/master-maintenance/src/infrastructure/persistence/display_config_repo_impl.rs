@@ -1,8 +1,8 @@
+use crate::domain::entity::display_config::DisplayConfig;
+use crate::domain::repository::display_config_repository::DisplayConfigRepository;
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::domain::entity::display_config::DisplayConfig;
-use crate::domain::repository::display_config_repository::DisplayConfigRepository;
 
 pub struct DisplayConfigPostgresRepository {
     pool: PgPool,
@@ -28,7 +28,7 @@ impl DisplayConfigRepository for DisplayConfigPostgresRepository {
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<DisplayConfig>> {
         let row = sqlx::query_as::<_, DisplayConfigRow>(
-            "SELECT * FROM master_maintenance.display_configs WHERE id = $1"
+            "SELECT * FROM master_maintenance.display_configs WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -41,7 +41,7 @@ impl DisplayConfigRepository for DisplayConfigPostgresRepository {
             r#"INSERT INTO master_maintenance.display_configs
                (id, table_id, config_type, config_json, is_default, created_by)
                VALUES ($1, $2, $3, $4, $5, $6)
-               RETURNING *"#
+               RETURNING *"#,
         )
         .bind(config.id)
         .bind(config.table_id)
@@ -61,7 +61,7 @@ impl DisplayConfigRepository for DisplayConfigPostgresRepository {
                config_json = $3,
                is_default = $4,
                updated_at = now()
-               WHERE id = $1 RETURNING *"#
+               WHERE id = $1 RETURNING *"#,
         )
         .bind(id)
         .bind(&config.config_type)

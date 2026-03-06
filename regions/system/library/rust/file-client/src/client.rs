@@ -171,9 +171,9 @@ impl ServerFileClient {
     ///
     /// `config.server_url` が未設定の場合は `FileClientError::InvalidConfig` を返す。
     pub async fn new(config: FileClientConfig) -> Result<Self, FileClientError> {
-        let base_url = config
-            .server_url
-            .ok_or_else(|| FileClientError::InvalidConfig("server_url が設定されていません".into()))?;
+        let base_url = config.server_url.ok_or_else(|| {
+            FileClientError::InvalidConfig("server_url が設定されていません".into())
+        })?;
 
         let http = reqwest::Client::builder()
             .timeout(config.timeout)
@@ -196,7 +196,10 @@ impl ServerFileClient {
         match status.as_u16() {
             401 | 403 => Err(FileClientError::Unauthorized(body)),
             404 => Err(FileClientError::NotFound(body)),
-            _ => Err(FileClientError::Internal(format!("HTTP {}: {}", status, body))),
+            _ => Err(FileClientError::Internal(format!(
+                "HTTP {}: {}",
+                status, body
+            ))),
         }
     }
 }
@@ -328,7 +331,8 @@ fn urlencoding_simple(path: &str) -> String {
         .map(|seg| {
             seg.bytes()
                 .flat_map(|b| {
-                    if b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b'.' || b == b'~' {
+                    if b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b'.' || b == b'~'
+                    {
                         vec![b as char]
                     } else {
                         format!("%{:02X}", b).chars().collect::<Vec<_>>()

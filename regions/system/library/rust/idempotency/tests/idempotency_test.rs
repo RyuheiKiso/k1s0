@@ -1,5 +1,5 @@
 use k1s0_idempotency::{
-    IdempotencyRecord, IdempotencyStatus, InMemoryIdempotencyStore, IdempotencyStore,
+    IdempotencyRecord, IdempotencyStatus, IdempotencyStore, InMemoryIdempotencyStore,
 };
 
 #[tokio::test]

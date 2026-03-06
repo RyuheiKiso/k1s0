@@ -86,14 +86,12 @@ impl SpiffeId {
     ///
     /// フォーマットが不正な場合は `ServiceAuthError::SpiffeValidationFailed` を返す。
     pub fn parse(spiffe_uri: &str) -> Result<Self, ServiceAuthError> {
-        let path = spiffe_uri
-            .strip_prefix("spiffe://")
-            .ok_or_else(|| {
-                ServiceAuthError::SpiffeValidationFailed(format!(
-                    "SPIFFE URI は 'spiffe://' で始まる必要があります: {}",
-                    spiffe_uri
-                ))
-            })?;
+        let path = spiffe_uri.strip_prefix("spiffe://").ok_or_else(|| {
+            ServiceAuthError::SpiffeValidationFailed(format!(
+                "SPIFFE URI は 'spiffe://' で始まる必要があります: {}",
+                spiffe_uri
+            ))
+        })?;
 
         // trust_domain と残りのパスを分離する
         let (trust_domain, rest) = path.split_once('/').ok_or_else(|| {
@@ -264,44 +262,65 @@ mod tests {
     #[test]
     fn test_parse_missing_spiffe_prefix() {
         let result = SpiffeId::parse("https://k1s0.internal/ns/system/sa/svc");
-        assert!(matches!(result, Err(ServiceAuthError::SpiffeValidationFailed(_))));
+        assert!(matches!(
+            result,
+            Err(ServiceAuthError::SpiffeValidationFailed(_))
+        ));
     }
 
     #[test]
     fn test_parse_empty_string() {
         let result = SpiffeId::parse("");
-        assert!(matches!(result, Err(ServiceAuthError::SpiffeValidationFailed(_))));
+        assert!(matches!(
+            result,
+            Err(ServiceAuthError::SpiffeValidationFailed(_))
+        ));
     }
 
     #[test]
     fn test_parse_missing_path() {
         let result = SpiffeId::parse("spiffe://k1s0.internal");
-        assert!(matches!(result, Err(ServiceAuthError::SpiffeValidationFailed(_))));
+        assert!(matches!(
+            result,
+            Err(ServiceAuthError::SpiffeValidationFailed(_))
+        ));
     }
 
     #[test]
     fn test_parse_wrong_path_format() {
         // /ns/{ns}/sa/{sa} 形式でない場合
         let result = SpiffeId::parse("spiffe://k1s0.internal/system/auth-service");
-        assert!(matches!(result, Err(ServiceAuthError::SpiffeValidationFailed(_))));
+        assert!(matches!(
+            result,
+            Err(ServiceAuthError::SpiffeValidationFailed(_))
+        ));
     }
 
     #[test]
     fn test_parse_empty_namespace() {
         let result = SpiffeId::parse("spiffe://k1s0.internal/ns//sa/auth-service");
-        assert!(matches!(result, Err(ServiceAuthError::SpiffeValidationFailed(_))));
+        assert!(matches!(
+            result,
+            Err(ServiceAuthError::SpiffeValidationFailed(_))
+        ));
     }
 
     #[test]
     fn test_parse_empty_service_account() {
         let result = SpiffeId::parse("spiffe://k1s0.internal/ns/system/sa/");
-        assert!(matches!(result, Err(ServiceAuthError::SpiffeValidationFailed(_))));
+        assert!(matches!(
+            result,
+            Err(ServiceAuthError::SpiffeValidationFailed(_))
+        ));
     }
 
     #[test]
     fn test_parse_empty_trust_domain() {
         let result = SpiffeId::parse("spiffe:///ns/system/sa/auth-service");
-        assert!(matches!(result, Err(ServiceAuthError::SpiffeValidationFailed(_))));
+        assert!(matches!(
+            result,
+            Err(ServiceAuthError::SpiffeValidationFailed(_))
+        ));
     }
 
     #[test]

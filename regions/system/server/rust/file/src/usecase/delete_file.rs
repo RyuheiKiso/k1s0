@@ -70,11 +70,7 @@ impl DeleteFileUseCase {
             "storage_key": file.storage_key,
             "deleted_at": chrono::Utc::now().to_rfc3339(),
         });
-        if let Err(e) = self
-            .event_publisher
-            .publish("file.deleted", &payload)
-            .await
-        {
+        if let Err(e) = self.event_publisher.publish("file.deleted", &payload).await {
             tracing::warn!(error = %e, "failed to publish file.deleted event");
         }
 
@@ -120,9 +116,7 @@ mod tests {
             .expect_find_by_id()
             .withf(|id| id == "file_001")
             .returning(move |_| Ok(Some(return_file.clone())));
-        storage_mock
-            .expect_delete_object()
-            .returning(|_| Ok(()));
+        storage_mock.expect_delete_object().returning(|_| Ok(()));
         metadata_mock
             .expect_delete()
             .withf(|id| id == "file_001")
@@ -151,9 +145,7 @@ mod tests {
         let mut metadata_mock = MockFileMetadataRepository::new();
         let storage_mock = MockFileStorageRepository::new();
 
-        metadata_mock
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        metadata_mock.expect_find_by_id().returning(|_| Ok(None));
         let event_publisher = MockFileEventPublisher::new();
 
         let uc = DeleteFileUseCase::new(

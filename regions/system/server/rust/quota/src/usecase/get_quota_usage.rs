@@ -60,8 +60,7 @@ impl GetQuotaUsageUseCase {
                     .with_ymd_and_hms(now.year(), now.month(), 1, 0, 0, 0)
                     .unwrap();
                 let next_month = if now.month() == 12 {
-                    Utc.with_ymd_and_hms(now.year() + 1, 1, 1, 0, 0, 0)
-                        .unwrap()
+                    Utc.with_ymd_and_hms(now.year() + 1, 1, 1, 0, 0, 0).unwrap()
                 } else {
                     Utc.with_ymd_and_hms(now.year(), now.month() + 1, 1, 0, 0, 0)
                         .unwrap()
@@ -71,7 +70,13 @@ impl GetQuotaUsageUseCase {
             }
         };
 
-        Ok(QuotaUsage::new(&policy, used, period_start, period_end, reset_at))
+        Ok(QuotaUsage::new(
+            &policy,
+            used,
+            period_start,
+            period_end,
+            reset_at,
+        ))
     }
 }
 
@@ -109,9 +114,7 @@ mod tests {
             .withf(move |id| id == policy_id)
             .returning(move |_| Ok(Some(return_policy.clone())));
 
-        usage_mock
-            .expect_get_usage()
-            .returning(|_| Ok(Some(7500)));
+        usage_mock.expect_get_usage().returning(|_| Ok(Some(7500)));
 
         let uc = GetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
         let result = uc.execute(&policy.id).await;
@@ -128,9 +131,7 @@ mod tests {
         let mut policy_mock = MockQuotaPolicyRepository::new();
         let usage_mock = MockQuotaUsageRepository::new();
 
-        policy_mock
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        policy_mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = GetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
         let result = uc.execute("nonexistent").await;
@@ -173,9 +174,7 @@ mod tests {
             .withf(move |id| id == policy_id)
             .returning(move |_| Ok(Some(return_policy.clone())));
 
-        usage_mock
-            .expect_get_usage()
-            .returning(|_| Ok(None));
+        usage_mock.expect_get_usage().returning(|_| Ok(None));
 
         let uc = GetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
         let result = uc.execute(&policy.id).await;

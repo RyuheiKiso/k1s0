@@ -190,9 +190,7 @@ impl KafkaTenantEventPublisher {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish tenant event: {}", err)
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish tenant event: {}", err))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic);
@@ -412,8 +410,7 @@ brokers:
         let messages = publisher.messages.lock().unwrap();
         assert_eq!(messages.len(), 1);
 
-        let deserialized: TenantChangedEvent =
-            serde_json::from_slice(&messages[0].1).unwrap();
+        let deserialized: TenantChangedEvent = serde_json::from_slice(&messages[0].1).unwrap();
         assert_eq!(deserialized.action, "created");
         assert_eq!(deserialized.tenant_name, "acme-corp");
     }
@@ -429,8 +426,7 @@ brokers:
         let messages = publisher.messages.lock().unwrap();
         assert_eq!(messages.len(), 1);
 
-        let deserialized: TenantChangedEvent =
-            serde_json::from_slice(&messages[0].1).unwrap();
+        let deserialized: TenantChangedEvent = serde_json::from_slice(&messages[0].1).unwrap();
         assert_eq!(deserialized.action, "updated");
     }
 
@@ -444,8 +440,7 @@ brokers:
 
         let messages = publisher.messages.lock().unwrap();
         assert_eq!(messages.len(), 1);
-        let deserialized: TenantChangedEvent =
-            serde_json::from_slice(&messages[0].1).unwrap();
+        let deserialized: TenantChangedEvent = serde_json::from_slice(&messages[0].1).unwrap();
         assert_eq!(deserialized.action, "suspended");
     }
 
@@ -459,8 +454,7 @@ brokers:
 
         let messages = publisher.messages.lock().unwrap();
         assert_eq!(messages.len(), 1);
-        let deserialized: TenantChangedEvent =
-            serde_json::from_slice(&messages[0].1).unwrap();
+        let deserialized: TenantChangedEvent = serde_json::from_slice(&messages[0].1).unwrap();
         assert_eq!(deserialized.action, "deleted");
     }
 

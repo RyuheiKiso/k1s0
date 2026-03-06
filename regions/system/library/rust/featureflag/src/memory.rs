@@ -4,7 +4,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::RwLock;
 
-use crate::{EvaluationContext, EvaluationResult, FeatureFlag, FeatureFlagClient, FeatureFlagError};
+use crate::{
+    EvaluationContext, EvaluationResult, FeatureFlag, FeatureFlagClient, FeatureFlagError,
+};
 
 #[derive(Clone)]
 pub struct InMemoryFeatureFlagClient {
