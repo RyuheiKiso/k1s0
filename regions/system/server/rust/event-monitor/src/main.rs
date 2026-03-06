@@ -116,10 +116,13 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(usecase::GetFlowInstancesUseCase::new(flow_inst_repo.clone()));
     let get_flow_instance_uc =
         Arc::new(usecase::GetFlowInstanceUseCase::new(flow_inst_repo.clone()));
-    let get_flow_kpi_uc = Arc::new(usecase::GetFlowKpiUseCase::new(
-        flow_def_repo.clone(),
-        flow_inst_repo.clone(),
-    ));
+    let get_flow_kpi_uc = Arc::new(
+        usecase::GetFlowKpiUseCase::new(
+            flow_def_repo.clone(),
+            flow_inst_repo.clone(),
+        )
+        .with_cache(kpi_cache.clone()),
+    );
     let get_kpi_summary_uc = Arc::new(usecase::GetKpiSummaryUseCase::new(
         flow_def_repo.clone(),
         flow_inst_repo.clone(),
