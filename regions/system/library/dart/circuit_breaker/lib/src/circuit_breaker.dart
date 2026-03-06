@@ -55,6 +55,13 @@ class CircuitBreaker {
   }
 
   void recordFailure() {
+    if (_state == CircuitState.halfOpen) {
+      _state = CircuitState.open;
+      _openedAt = DateTime.now();
+      _failureCount = 0;
+      _successCount = 0;
+      return;
+    }
     _failureCount++;
     _successCount = 0;
     if (_failureCount >= config.failureThreshold) {

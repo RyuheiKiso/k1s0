@@ -2,9 +2,13 @@
 
 ## 概要
 
-キャッシュ抽象化ライブラリ。`CacheClient` トレイト（インターフェース）により `get`/`set`/`delete`/`exists` の統一インターフェースを提供する。全 4 言語で InMemory（テスト用）バックエンドをサポートし、Go・Rust では Redis（本番用）バックエンドもサポートする。
+キャッシュ抽象化ライブラリ。`CacheClient` トレイト（インターフェース）により `get`/`set`/`delete`/`exists` の統一インターフェースを提供する。全 4 言語で InMemory（テスト用）バックエンドをサポートし、全 4 言語（Go・Rust・TypeScript・Dart）で Redis（本番用）バックエンドもサポートする。
 
-**配置先**: `regions/system/library/rust/cache/`
+**配置先**:
+- Rust: `regions/system/library/rust/cache/`
+- Go: `regions/system/library/go/cache/`
+- TypeScript: `regions/system/library/typescript/cache/`
+- Dart: `regions/system/library/dart/cache/`
 
 ## 公開 API
 
@@ -12,11 +16,11 @@
 
 | メソッド | 戻り値 | 説明 |
 |---------|--------|------|
-| `get(key)` | `Result<Option<String>, CacheError>` | キーの値を取得。存在しない場合は `Ok(None)` |
-| `set(key, value, ttl?)` | `void` | 値を格納。TTL 省略時は無期限 |
-| `delete(key)` | `bool` | キーを削除。削除できた場合 true |
-| `exists(key)` | `bool` | キーが存在するか確認 |
-| `setNX(key, value, ttl)` | `bool` | キーが存在しない場合のみセット |
+| `get(key)` | 文字列 or null（見つからない場合）。エラー時は言語固有のエラーを返す | キーの値を取得 |
+| `set(key, value, ttl?)` | 成功 or エラー | 値を格納。TTL 省略時は無期限 |
+| `delete(key)` | bool + エラー | キーを削除。削除できた場合 true |
+| `exists(key)` | bool + エラー | キーが存在するか確認 |
+| `setNX(key, value, ttl)` | bool + エラー | キーが存在しない場合のみセット |
 
 Go・Rust 追加 API:
 
@@ -36,7 +40,7 @@ Rust 公開型:
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `CacheClient` | トレイト | キャッシュ操作の抽象インターフェース |
-| `InMemoryCacheClient` | 構造体 | テスト用インメモリ実装 |
+| `InMemoryCacheClient` | 構造体 | テスト用インメモリ実装。`Default` トレイトも実装 |
 | `RedisCacheClient` | 構造体 | Redis バックエンド実装（feature = "redis" で有効） |
 | `CacheEntry` | 構造体 | キャッシュエントリ（value・expires_at） |
 | `LockGuard` | 構造体 | ロックガード（key・lock_value） |
@@ -107,6 +111,17 @@ let acquired = client.set_nx("lock:order:456", "owner-id", Duration::from_secs(3
 client.expire("user:123", Duration::from_secs(900)).await?;
 ```
 
+**コンストラクタ・ファクトリメソッド**:
+
+| メソッド | 説明 |
+|---------|------|
+| `RedisCacheClient::new(url: &str) -> Result<Self, CacheError>` | URL から Redis に接続 |
+| `RedisCacheClient::from_connection(conn: MultiplexedConnection) -> Self` | 既存の接続から生成 |
+| `RedisCacheClient::with_prefix(self, prefix: &str) -> Self` | キープレフィックスを設定 |
+| `InMemoryCacheClient::new() -> Self` | 新規インメモリクライアントを生成 |
+
+`InMemoryCacheClient` は `Default` トレイトも実装しているため、`InMemoryCacheClient::default()` でも生成可能。
+
 ## Go 実装
 
 **配置先**: `regions/system/library/go/cache/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -139,11 +154,17 @@ type RedisCacheOption func(*RedisCacheClient)
 func WithKeyPrefix(prefix string) RedisCacheOption
 func NewRedisCacheClient(client redis.Cmdable, opts ...RedisCacheOption) *RedisCacheClient
 func NewRedisCacheClientFromURL(url string, opts ...RedisCacheOption) (*RedisCacheClient, error)
+
+// エラーコンストラクタ
+func NewNotFoundError(key string) *CacheError
+func NewConnectionError(msg string) *CacheError
 ```
 
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/cache/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**依存関係**: `ioredis: ^5.7.0`
 
 **主要 API**:
 
@@ -192,6 +213,8 @@ const value = await cache2.get("user:1");
 ## Dart 実装
 
 **配置先**: `regions/system/library/dart/cache/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**依存関係**: `redis: ^4.0.0`
 
 **主要インターフェース**:
 

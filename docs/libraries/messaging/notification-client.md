@@ -35,7 +35,8 @@ async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
-uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 mockall = { version = "0.13", optional = true }
 ```
 
@@ -180,6 +181,10 @@ type NotificationClient interface {
 type InMemoryClient struct{ /* ... */ }
 func NewInMemoryClient() *InMemoryClient
 func (c *InMemoryClient) SentRequests() []NotificationRequest
+
+// SendBatch シグネチャ向けセマンティックエイリアス
+type SendNotificationInput = NotificationRequest
+type SendNotificationOutput = NotificationResponse
 ```
 
 > **注**: Go / TypeScript / Dart は `SendBatch`（`sendBatch`）を提供する。Rust は `send_batch` を提供する。
@@ -218,6 +223,10 @@ export class InMemoryNotificationClient implements NotificationClient {
   async sendBatch(requests: NotificationRequest[]): Promise<NotificationResponse[]>;
   getSent(): NotificationRequest[];
 }
+
+// SendBatch シグネチャ向けセマンティックエイリアス
+export type SendNotificationInput = NotificationRequest;
+export type SendNotificationOutput = NotificationResponse;
 ```
 
 **カバレッジ目標**: 90%以上
@@ -260,7 +269,7 @@ abstract class NotificationClient {
 }
 
 class InMemoryNotificationClient implements NotificationClient {
-  final List<NotificationRequest> sent = [];
+  List<NotificationRequest> get sent;
   @override
   Future<NotificationResponse> send(NotificationRequest request);
   @override

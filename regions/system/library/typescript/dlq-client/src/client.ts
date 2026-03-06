@@ -33,6 +33,7 @@ export class DlqClient {
         payload: unknown;
         status: import('./types.js').DlqStatus;
         created_at: string;
+        updated_at: string | null;
         last_retry_at: string | null;
       }>;
       total: number;
@@ -49,6 +50,7 @@ export class DlqClient {
         payload: m.payload,
         status: m.status,
         createdAt: m.created_at,
+        updatedAt: m.updated_at,
         lastRetryAt: m.last_retry_at,
       })),
       total: data.total,
@@ -74,6 +76,7 @@ export class DlqClient {
       payload: unknown;
       status: import('./types.js').DlqStatus;
       created_at: string;
+      updated_at: string | null;
       last_retry_at: string | null;
     };
 
@@ -86,6 +89,7 @@ export class DlqClient {
       payload: m.payload,
       status: m.status,
       createdAt: m.created_at,
+      updatedAt: m.updated_at,
       lastRetryAt: m.last_retry_at,
     };
   }

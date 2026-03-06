@@ -6,6 +6,7 @@ class NotificationRequest {
   final String recipient;
   final String? subject;
   final String body;
+  final Map<String, dynamic>? metadata;
 
   const NotificationRequest({
     required this.id,
@@ -13,6 +14,7 @@ class NotificationRequest {
     required this.recipient,
     this.subject,
     required this.body,
+    this.metadata,
   });
 }
 

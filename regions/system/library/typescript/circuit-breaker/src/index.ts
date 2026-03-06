@@ -51,6 +51,13 @@ export class CircuitBreaker {
 
   recordFailure(): void {
     this.checkTimeout();
+    if (this._state === 'half-open') {
+      this._state = 'open';
+      this.openedAt = Date.now();
+      this.failureCount = 0;
+      this.successCount = 0;
+      return;
+    }
     this.failureCount++;
     if (this.failureCount >= this.config.failureThreshold) {
       this._state = 'open';

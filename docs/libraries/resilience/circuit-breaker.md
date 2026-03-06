@@ -6,6 +6,8 @@
 
 失敗閾値を超えた呼び出し先を一定期間遮断し、HalfOpen 状態でプローブ呼び出しを行い自動復旧を判定する。スレッドセーフな状態遷移を `tokio::sync::Mutex` で保証し、全状態変化を OpenTelemetry メトリクスとして記録する。
 
+> **HalfOpen→Open 遷移**: 全言語共通で、HalfOpen 状態での単一の失敗は即座に Open 状態へ戻る（failure_threshold は参照しない）。これにより、回復途中のサービスへの過負荷を防ぐ。
+
 **配置先**: `regions/system/library/rust/circuit-breaker/`
 
 ## 公開 API
@@ -15,8 +17,11 @@
 | `CircuitBreaker` | 構造体 | 失敗閾値・オープン時間・ハーフオープン試行数の設定と状態管理 |
 | `CircuitBreakerState` | enum | `Closed`（正常）/ `Open`（遮断中）/ `HalfOpen`（試行中） |
 | `CircuitBreakerConfig` | 構造体 | failure_threshold, success_threshold, timeout 設定（デフォルト: 5 / 3 / 30s） |
-| `CircuitBreakerMetrics` | 構造体 | OpenTelemetry メトリクス（状態変化・成功率） |
+| `CircuitBreakerMetrics` | 構造体（Rust のみ） | OpenTelemetry メトリクス（状態変化・成功率） |
 | `CircuitBreakerError<E>` | enum | ジェネリックエラー型（`Open`・`Inner(E)`） |
+| `CircuitBreaker::record_success()` | メソッド | 成功を記録し、HalfOpen 状態での復旧判定を行う |
+| `CircuitBreaker::record_failure()` | メソッド | 失敗を記録し、閾値超過で Open 遷移。HalfOpen 状態では即座に Open へ戻る |
+| `CircuitBreaker::metrics()` | メソッド（Rust のみ） | 現在の failure_count / success_count / state を返す |
 
 ## Rust 実装
 
@@ -127,6 +132,9 @@ func (cb *CircuitBreaker) IsOpen() bool
 func (cb *CircuitBreaker) RecordSuccess()
 
 func (cb *CircuitBreaker) RecordFailure()
+
+// センチネルエラー: Open 状態で Call() を呼んだ場合に返される
+var ErrOpen = errors.New("circuit breaker is open")
 ```
 
 > Go 実装は `CircuitBreakerMetrics` 型を提供しない（N/A）。メトリクス連携は呼び出し側で状態変化を観測して実装する。
@@ -162,11 +170,48 @@ export class CircuitBreaker {
 
 **カバレッジ目標**: 90%以上
 
+> TypeScript 実装は `CircuitBreakerMetrics` 型を提供しない（N/A）。メトリクス連携は呼び出し側で状態変化を観測して実装する。
+
 ## Dart 実装
 
-**配置先**: `regions/system/library/dart/circuit-breaker/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/dart/circuit_breaker/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**主要 API**:
+
+```dart
+enum CircuitState { closed, open, halfOpen }
+
+class CircuitBreakerConfig {
+  final int failureThreshold;
+  final int successThreshold;
+  final Duration timeout;
+
+  const CircuitBreakerConfig({
+    required this.failureThreshold,
+    required this.successThreshold,
+    required this.timeout,
+  });
+}
+
+class CircuitBreakerException implements Exception {
+  const CircuitBreakerException();
+}
+
+class CircuitBreaker {
+  CircuitBreaker(CircuitBreakerConfig config);
+
+  CircuitState get state;
+  bool get isOpen;
+
+  void recordSuccess();
+  void recordFailure();
+  Future<T> call<T>(Future<T> Function() fn);
+}
+```
 
 **カバレッジ目標**: 90%以上
+
+> Dart 実装は `CircuitBreakerMetrics` 型を提供しない（N/A）。メトリクス連携は呼び出し側で状態変化を観測して実装する。
 
 ## テスト戦略
 
