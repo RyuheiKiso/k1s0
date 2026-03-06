@@ -35,6 +35,10 @@ pub struct CheckRateLimitResponse {
     pub remaining: i64,
     pub reset_at: i64,
     pub reason: String,
+    pub scope: String,
+    pub identifier: String,
+    pub used: i64,
+    pub rule_id: String,
 }
 
 pub struct CreateRuleRequest {
@@ -135,6 +139,7 @@ pub struct ResetLimitResponse {
 #[derive(Debug)]
 pub struct RuleResponse {
     pub id: String,
+    pub name: String,
     pub scope: String,
     pub identifier_pattern: String,
     pub limit: i64,
@@ -224,6 +229,10 @@ impl RateLimitGrpcService {
             remaining: decision.remaining,
             reset_at: decision.reset_at.timestamp(),
             reason: decision.reason,
+            scope: decision.scope,
+            identifier: decision.identifier,
+            used: decision.used,
+            rule_id: decision.rule_id,
         })
     }
 
@@ -260,6 +269,7 @@ impl RateLimitGrpcService {
         Ok(CreateRuleResponse {
             rule: RuleResponse {
                 id: rule.id.to_string(),
+                name: rule.name.clone(),
                 scope: rule.scope,
                 identifier_pattern: rule.identifier_pattern,
                 limit: i64::from(rule.limit),
@@ -300,6 +310,7 @@ impl RateLimitGrpcService {
         Ok(GetRuleResponse {
             rule: RuleResponse {
                 id: rule.id.to_string(),
+                name: rule.name.clone(),
                 scope: rule.scope,
                 identifier_pattern: rule.identifier_pattern,
                 limit: i64::from(rule.limit),
@@ -382,6 +393,7 @@ impl RateLimitGrpcService {
         Ok(UpdateRuleResponse {
             rule: RuleResponse {
                 id: rule.id.to_string(),
+                name: rule.name.clone(),
                 scope: rule.scope,
                 identifier_pattern: rule.identifier_pattern,
                 limit: i64::from(rule.limit),
@@ -454,6 +466,7 @@ impl RateLimitGrpcService {
                 .into_iter()
                 .map(|rule| RuleResponse {
                     id: rule.id.to_string(),
+                    name: rule.name.clone(),
                     scope: rule.scope,
                     identifier_pattern: rule.identifier_pattern,
                     limit: i64::from(rule.limit),

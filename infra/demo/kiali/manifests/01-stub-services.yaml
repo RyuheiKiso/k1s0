@@ -1,0 +1,361 @@
+# Stub services using nginx:alpine as lightweight HTTP responder.
+# Each service returns 200 OK on any path, which is sufficient for
+# Istio sidecar to generate metrics that Kiali visualizes.
+
+##############################################################
+# system Tier
+##############################################################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-server
+  namespace: k1s0-system
+  labels:
+    app: auth-server
+    version: stable
+    tier: system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-server
+  template:
+    metadata:
+      labels:
+        app: auth-server
+        version: stable
+        tier: system
+    spec:
+      containers:
+        - name: stub
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-server
+  namespace: k1s0-system
+  labels:
+    app: auth-server
+spec:
+  selector:
+    app: auth-server
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-server
+  namespace: k1s0-system
+  labels:
+    app: config-server
+    version: stable
+    tier: system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-server
+  template:
+    metadata:
+      labels:
+        app: config-server
+        version: stable
+        tier: system
+    spec:
+      containers:
+        - name: stub
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-server
+  namespace: k1s0-system
+  labels:
+    app: config-server
+spec:
+  selector:
+    app: config-server
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphql-gateway
+  namespace: k1s0-system
+  labels:
+    app: graphql-gateway
+    version: stable
+    tier: system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: graphql-gateway
+  template:
+    metadata:
+      labels:
+        app: graphql-gateway
+        version: stable
+        tier: system
+    spec:
+      containers:
+        - name: stub
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphql-gateway
+  namespace: k1s0-system
+  labels:
+    app: graphql-gateway
+spec:
+  selector:
+    app: graphql-gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saga-server
+  namespace: k1s0-system
+  labels:
+    app: saga-server
+    version: stable
+    tier: system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: saga-server
+  template:
+    metadata:
+      labels:
+        app: saga-server
+        version: stable
+        tier: system
+    spec:
+      containers:
+        - name: stub
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: saga-server
+  namespace: k1s0-system
+  labels:
+    app: saga-server
+spec:
+  selector:
+    app: saga-server
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+
+##############################################################
+# business Tier
+##############################################################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accounting-server
+  namespace: k1s0-business
+  labels:
+    app: accounting-server
+    version: stable
+    tier: business
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: accounting-server
+  template:
+    metadata:
+      labels:
+        app: accounting-server
+        version: stable
+        tier: business
+    spec:
+      containers:
+        - name: stub
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: accounting-server
+  namespace: k1s0-business
+  labels:
+    app: accounting-server
+spec:
+  selector:
+    app: accounting-server
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+
+##############################################################
+# service Tier
+##############################################################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-bff
+  namespace: k1s0-service
+  labels:
+    app: order-bff
+    version: stable
+    tier: service
+    app.kubernetes.io/component: bff
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-bff
+  template:
+    metadata:
+      labels:
+        app: order-bff
+        version: stable
+        tier: service
+        app.kubernetes.io/component: bff
+    spec:
+      containers:
+        - name: stub
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-bff
+  namespace: k1s0-service
+  labels:
+    app: order-bff
+spec:
+  selector:
+    app: order-bff
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-server
+  namespace: k1s0-service
+  labels:
+    app: order-server
+    version: stable
+    tier: service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-server
+      version: stable
+  template:
+    metadata:
+      labels:
+        app: order-server
+        version: stable
+        tier: service
+    spec:
+      containers:
+        - name: stub
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-server
+  namespace: k1s0-service
+  labels:
+    app: order-server
+spec:
+  selector:
+    app: order-server
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart' as http_testing;
 import 'package:test/test.dart';
 import 'package:k1s0_graphql_client/graphql_client.dart';
 
@@ -70,6 +74,39 @@ void main() {
       );
       expect(err.locations, hasLength(1));
       expect(err.path, hasLength(3));
+    });
+  });
+
+  group('ClientError', () {
+    test('request variant', () {
+      final err = ClientError.request('connection refused');
+      expect(err.kind, equals(ClientErrorKind.request));
+      expect(err.message, equals('connection refused'));
+      expect(err.toString(), equals('RequestError: connection refused'));
+    });
+
+    test('deserialization variant', () {
+      final err = ClientError.deserialization('invalid json');
+      expect(err.kind, equals(ClientErrorKind.deserialization));
+      expect(
+          err.toString(), equals('DeserializationError: invalid json'));
+    });
+
+    test('graphQl variant', () {
+      final err = ClientError.graphQl('field not found');
+      expect(err.kind, equals(ClientErrorKind.graphQl));
+      expect(err.toString(), equals('GraphQlError: field not found'));
+    });
+
+    test('notFound variant', () {
+      final err = ClientError.notFound('user 123');
+      expect(err.kind, equals(ClientErrorKind.notFound));
+      expect(err.toString(), equals('NotFoundError: user 123'));
+    });
+
+    test('is an Exception', () {
+      final err = ClientError.request('test');
+      expect(err, isA<Exception>());
     });
   });
 
@@ -155,6 +192,265 @@ void main() {
       expect(results, hasLength(2));
       expect(results[0].data, isNotNull);
       expect(results[1].data, isNotNull);
+    });
+  });
+
+  group('GraphQlHttpClient', () {
+    http_testing.MockClient mockClient(
+      Future<http.Response> Function(http.Request) handler,
+    ) {
+      return http_testing.MockClient(handler);
+    }
+
+    test('execute sends POST and parses response', () async {
+      final mock = mockClient((request) async {
+        expect(request.method, equals('POST'));
+        expect(request.headers['Content-Type'], equals('application/json'));
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['query'], equals('{ users { id } }'));
+        return http.Response(
+          jsonEncode({
+            'data': {'id': '1', 'name': 'Alice'},
+          }),
+          200,
+        );
+      });
+
+      final httpClient = GraphQlHttpClient(
+        'http://localhost:8080/graphql',
+        httpClient: mock,
+      );
+
+      final result = await httpClient.execute(
+        const GraphQlQuery(query: '{ users { id } }'),
+        (json) => json,
+      );
+
+      expect(result.hasErrors, isFalse);
+      expect(result.data?['name'], equals('Alice'));
+    });
+
+    test('execute sends variables and operationName', () async {
+      final mock = mockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['variables'], equals({'id': '1'}));
+        expect(body['operationName'], equals('GetUser'));
+        return http.Response(
+          jsonEncode({
+            'data': {'id': '1'},
+          }),
+          200,
+        );
+      });
+
+      final httpClient = GraphQlHttpClient(
+        'http://localhost:8080/graphql',
+        httpClient: mock,
+      );
+
+      await httpClient.execute(
+        const GraphQlQuery(
+          query: 'query GetUser(\$id: ID!) { user(id: \$id) { id } }',
+          variables: {'id': '1'},
+          operationName: 'GetUser',
+        ),
+        (json) => json,
+      );
+    });
+
+    test('execute passes custom headers', () async {
+      final mock = mockClient((request) async {
+        expect(request.headers['Authorization'], equals('Bearer token'));
+        return http.Response(
+          jsonEncode({
+            'data': {'ok': true},
+          }),
+          200,
+        );
+      });
+
+      final httpClient = GraphQlHttpClient(
+        'http://localhost:8080/graphql',
+        headers: {'Authorization': 'Bearer token'},
+        httpClient: mock,
+      );
+
+      await httpClient.execute(
+        const GraphQlQuery(query: '{ me { id } }'),
+        (json) => json,
+      );
+    });
+
+    test('execute throws ClientError.notFound on 404', () async {
+      final mock = mockClient((request) async {
+        return http.Response('Not Found', 404);
+      });
+
+      final httpClient = GraphQlHttpClient(
+        'http://localhost:8080/graphql',
+        httpClient: mock,
+      );
+
+      expect(
+        () => httpClient.execute(
+          const GraphQlQuery(query: '{ users { id } }'),
+          (json) => json,
+        ),
+        throwsA(isA<ClientError>().having(
+          (e) => e.kind,
+          'kind',
+          ClientErrorKind.notFound,
+        )),
+      );
+    });
+
+    test('execute throws ClientError.request on 500', () async {
+      final mock = mockClient((request) async {
+        return http.Response('Internal Server Error', 500);
+      });
+
+      final httpClient = GraphQlHttpClient(
+        'http://localhost:8080/graphql',
+        httpClient: mock,
+      );
+
+      expect(
+        () => httpClient.execute(
+          const GraphQlQuery(query: '{ users { id } }'),
+          (json) => json,
+        ),
+        throwsA(isA<ClientError>().having(
+          (e) => e.kind,
+          'kind',
+          ClientErrorKind.request,
+        )),
+      );
+    });
+
+    test('execute throws ClientError.deserialization on invalid JSON',
+        () async {
+      final mock = mockClient((request) async {
+        return http.Response('not json', 200);
+      });
+
+      final httpClient = GraphQlHttpClient(
+        'http://localhost:8080/graphql',
+        httpClient: mock,
+      );
+
+      expect(
+        () => httpClient.execute(
+          const GraphQlQuery(query: '{ users { id } }'),
+          (json) => json,
+        ),
+        throwsA(isA<ClientError>().having(
+          (e) => e.kind,
+          'kind',
+          ClientErrorKind.deserialization,
+        )),
+      );
+    });
+
+    test('execute returns GraphQL errors from response', () async {
+      final mock = mockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'errors': [
+              {
+                'message': 'Unauthorized',
+                'locations': [
+                  {'line': 1, 'column': 3}
+                ],
+                'path': ['user'],
+              }
+            ],
+          }),
+          200,
+        );
+      });
+
+      final httpClient = GraphQlHttpClient(
+        'http://localhost:8080/graphql',
+        httpClient: mock,
+      );
+
+      final result = await httpClient.execute(
+        const GraphQlQuery(query: '{ user { id } }'),
+        (json) => json,
+      );
+
+      expect(result.hasErrors, isTrue);
+      expect(result.errors!.first.message, equals('Unauthorized'));
+      expect(result.errors!.first.locations, hasLength(1));
+      expect(result.errors!.first.locations!.first.line, equals(1));
+      expect(result.errors!.first.path, equals(['user']));
+    });
+
+    test('executeMutation works the same as execute', () async {
+      final mock = mockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'data': {'id': '2'},
+          }),
+          200,
+        );
+      });
+
+      final httpClient = GraphQlHttpClient(
+        'http://localhost:8080/graphql',
+        httpClient: mock,
+      );
+
+      final result = await httpClient.executeMutation(
+        const GraphQlQuery(
+          query: 'mutation { createUser { id } }',
+          operationName: 'CreateUser',
+        ),
+        (json) => json,
+      );
+
+      expect(result.hasErrors, isFalse);
+      expect(result.data?['id'], equals('2'));
+    });
+
+    test('subscribe throws ClientError.request', () {
+      final httpClient = GraphQlHttpClient('http://localhost:8080/graphql');
+
+      expect(
+        () => httpClient.subscribe(
+          const GraphQlQuery(query: 'subscription { onEvent { id } }'),
+          (json) => json,
+        ),
+        throwsA(isA<ClientError>().having(
+          (e) => e.kind,
+          'kind',
+          ClientErrorKind.request,
+        )),
+      );
+    });
+
+    test('execute throws ClientError.deserialization when data is null',
+        () async {
+      final mock = mockClient((request) async {
+        return http.Response(jsonEncode({}), 200);
+      });
+
+      final httpClient = GraphQlHttpClient(
+        'http://localhost:8080/graphql',
+        httpClient: mock,
+      );
+
+      expect(
+        () => httpClient.execute(
+          const GraphQlQuery(query: '{ users { id } }'),
+          (json) => json,
+        ),
+        throwsA(isA<ClientError>().having(
+          (e) => e.kind,
+          'kind',
+          ClientErrorKind.deserialization,
+        )),
+      );
     });
   });
 }

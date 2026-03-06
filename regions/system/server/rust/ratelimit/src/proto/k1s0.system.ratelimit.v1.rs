@@ -20,6 +20,14 @@ pub struct CheckRateLimitResponse {
     pub reason: ::prost::alloc::string::String,
     #[prost(int64, tag = "5")]
     pub limit: i64,
+    #[prost(string, tag = "6")]
+    pub scope: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub identifier: ::prost::alloc::string::String,
+    #[prost(int64, tag = "8")]
+    pub used: i64,
+    #[prost(string, tag = "9")]
+    pub rule_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateRuleRequest {
@@ -114,9 +122,11 @@ pub struct RateLimitRule {
     #[prost(bool, tag = "7")]
     pub enabled: bool,
     #[prost(message, optional, tag = "8")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "9")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "10")]
+    pub name: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetUsageRequest {

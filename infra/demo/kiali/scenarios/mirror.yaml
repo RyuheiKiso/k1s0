@@ -1,0 +1,20 @@
+# Traffic mirroring: copy 10% of stable traffic to canary
+# Based on infra/istio/virtualservices/mirror.yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-server-mirror
+  namespace: k1s0-service
+spec:
+  hosts:
+    - order-server
+  http:
+    - route:
+        - destination:
+            host: order-server
+            subset: stable
+      mirror:
+        host: order-server
+        subset: canary
+      mirrorPercentage:
+        value: 10.0

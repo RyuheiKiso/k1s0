@@ -33,8 +33,10 @@ impl From<GrpcError> for Status {
     }
 }
 
-fn pb_timestamp(ts: &super::ratelimit_grpc::PbTimestamp) -> prost_types::Timestamp {
-    prost_types::Timestamp {
+use crate::proto::k1s0::system::common::v1::Timestamp as ProtoTimestamp;
+
+fn pb_timestamp(ts: &super::ratelimit_grpc::PbTimestamp) -> ProtoTimestamp {
+    ProtoTimestamp {
         seconds: ts.seconds,
         nanos: ts.nanos,
     }
@@ -75,6 +77,10 @@ impl RateLimitService for RateLimitServiceTonic {
             reset_at: resp.reset_at,
             reason: resp.reason,
             limit: resp.limit,
+            scope: resp.scope,
+            identifier: resp.identifier,
+            used: resp.used,
+            rule_id: resp.rule_id,
         }))
     }
 
@@ -100,6 +106,7 @@ impl RateLimitService for RateLimitServiceTonic {
 
         let proto_rule = ProtoRateLimitRule {
             id: resp.rule.id,
+            name: resp.rule.name,
             scope: resp.rule.scope,
             identifier_pattern: resp.rule.identifier_pattern,
             limit: resp.rule.limit,
@@ -132,6 +139,7 @@ impl RateLimitService for RateLimitServiceTonic {
 
         let proto_rule = ProtoRateLimitRule {
             id: resp.rule.id,
+            name: resp.rule.name,
             scope: resp.rule.scope,
             identifier_pattern: resp.rule.identifier_pattern,
             limit: resp.rule.limit,
@@ -198,6 +206,7 @@ impl RateLimitService for RateLimitServiceTonic {
 
         let proto_rule = ProtoRateLimitRule {
             id: resp.rule.id,
+            name: resp.rule.name,
             scope: resp.rule.scope,
             identifier_pattern: resp.rule.identifier_pattern,
             limit: resp.rule.limit,
@@ -251,6 +260,7 @@ impl RateLimitService for RateLimitServiceTonic {
             .into_iter()
             .map(|rule| ProtoRateLimitRule {
                 id: rule.id,
+                name: rule.name,
                 scope: rule.scope,
                 identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,

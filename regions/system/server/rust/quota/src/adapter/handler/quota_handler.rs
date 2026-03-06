@@ -162,7 +162,7 @@ pub async fn update_quota(
         limit: req.limit,
         period: req.period,
         enabled: req.enabled,
-        alert_threshold_percent: Some(req.alert_threshold_percent),
+        alert_threshold_percent: req.alert_threshold_percent,
     };
 
     match state.update_policy_uc.execute(&input).await {
@@ -234,7 +234,7 @@ pub struct UpdateQuotaRequest {
     pub limit: u64,
     pub period: String,
     pub enabled: bool,
-    pub alert_threshold_percent: u8,
+    pub alert_threshold_percent: Option<u8>,
 }
 
 /// DELETE /api/v1/quotas/:id

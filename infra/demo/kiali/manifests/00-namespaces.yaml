@@ -1,0 +1,28 @@
+# Namespaces with Istio sidecar injection enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k1s0-system
+  labels:
+    tier: system
+    app.kubernetes.io/part-of: k1s0
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k1s0-business
+  labels:
+    tier: business
+    app.kubernetes.io/part-of: k1s0
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k1s0-service
+  labels:
+    tier: service
+    app.kubernetes.io/part-of: k1s0
+    istio-injection: enabled

@@ -253,11 +253,9 @@ impl SubscriptionRoot {
     async fn config_changed(
         &self,
         _ctx: &Context<'_>,
-        namespaces: Option<Vec<String>>,
+        #[graphql(default)] namespaces: Vec<String>,
     ) -> impl Stream<Item = ConfigEntry> {
-        self.subscription
-            .watch_config(namespaces.unwrap_or_default())
-            .await
+        self.subscription.watch_config(namespaces).await
     }
 
     #[graphql(name = "tenantUpdated")]

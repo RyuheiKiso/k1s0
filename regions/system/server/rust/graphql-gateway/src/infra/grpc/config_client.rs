@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use async_graphql::futures_util::Stream;
+use chrono::{DateTime, Utc};
 use tonic::transport::Channel;
 use tracing::instrument;
 
@@ -62,10 +63,7 @@ impl ConfigGrpcClient {
                 Ok(Some(ConfigEntry {
                     key: format!("{}/{}", entry.namespace, entry.key),
                     value: value_str,
-                    updated_at: entry
-                        .updated_at
-                        .map(|ts| ts.seconds.to_string())
-                        .unwrap_or_default(),
+                    updated_at: timestamp_to_rfc3339(entry.updated_at),
                 }))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
@@ -94,10 +92,7 @@ impl ConfigGrpcClient {
                     let entry = ConfigEntry {
                         key: format!("{}/{}", resp.namespace, resp.key),
                         value: value_str,
-                        updated_at: resp
-                            .changed_at
-                            .map(|ts| ts.seconds.to_string())
-                            .unwrap_or_default(),
+                        updated_at: timestamp_to_rfc3339(resp.changed_at),
                     };
                     Some((entry, stream))
                 }
@@ -105,4 +100,10 @@ impl ConfigGrpcClient {
             }
         })
     }
+}
+
+fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+        .map(|dt| dt.to_rfc3339())
+        .unwrap_or_default()
 }

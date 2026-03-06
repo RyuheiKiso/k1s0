@@ -480,19 +480,6 @@ pub async fn evaluate_custom_rule(
 }
 ```
 
-### ルール自体の CRUD 管理
-
-整合性ルールはそれ自体がマスタデータであり、REST API / 管理画面から CRUD 管理できる。
-
-| 操作 | API | 説明 |
-| --- | --- | --- |
-| ルール一覧 | `GET /api/v1/rules` | フィルタ: table, type, severity, timing |
-| ルール作成 | `POST /api/v1/rules` | ルール + 条件を一括登録 |
-| ルール更新 | `PUT /api/v1/rules/{id}` | ルール定義の変更（即時反映） |
-| ルール削除 | `DELETE /api/v1/rules/{id}` | `sys_admin` のみ |
-| ルール実行（オンデマンド） | `POST /api/v1/rules/{id}/execute` | 指定テーブルの全レコードに対してルール評価 |
-| 一括チェック | `POST /api/v1/rules/check` | 指定テーブルの全ルールを一括評価 |
-
 ---
 
 ## API 設計
@@ -597,7 +584,8 @@ pub async fn evaluate_custom_rule(
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| POST | `/api/v1/tables/{name}/import` | CSV/Excel インポート | `sys_operator` 以上 |
+| POST | `/api/v1/tables/{name}/import` | CSV/Excel インポート（JSON body） | `sys_operator` 以上 |
+| POST | `/api/v1/tables/{name}/import-file` | ファイルアップロードによるインポート（multipart/form-data） | `sys_operator` 以上 |
 | GET | `/api/v1/tables/{name}/export` | CSV/Excel エクスポート | `sys_auditor` 以上 |
 | GET | `/api/v1/import-jobs/{id}` | インポートジョブ状態取得 | `sys_auditor` 以上 |
 
@@ -682,6 +670,12 @@ service MasterMaintenanceService {
 
   // 整合性チェック
   rpc CheckConsistency(CheckConsistencyRequest) returns (CheckConsistencyResponse);
+  rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
+  rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+  rpc UpdateRule(UpdateRuleRequest) returns (UpdateRuleResponse);
+  rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse);
+  rpc ListRules(ListRulesRequest) returns (ListRulesResponse);
+  rpc ExecuteRule(ExecuteRuleRequest) returns (ExecuteRuleResponse);
 
   // JSON Schema
   rpc GetTableSchema(GetTableSchemaRequest) returns (GetTableSchemaResponse);
@@ -884,6 +878,62 @@ message CheckConsistencyResponse {
   int32 warning_count = 4;
 }
 
+message CreateRuleRequest {
+  google.protobuf.Struct data = 1;
+}
+
+message CreateRuleResponse {
+  ConsistencyRule rule = 1;
+}
+
+message GetRuleRequest {
+  string rule_id = 1;
+}
+
+message GetRuleResponse {
+  ConsistencyRule rule = 1;
+}
+
+message UpdateRuleRequest {
+  string rule_id = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message UpdateRuleResponse {
+  ConsistencyRule rule = 1;
+}
+
+message DeleteRuleRequest {
+  string rule_id = 1;
+}
+
+message DeleteRuleResponse {
+  bool success = 1;
+}
+
+message ListRulesRequest {
+  string table_name = 1;
+  string rule_type = 2;
+  string severity = 3;
+  k1s0.system.common.v1.Pagination pagination = 4;
+}
+
+message ListRulesResponse {
+  repeated ConsistencyRule rules = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message ExecuteRuleRequest {
+  string rule_id = 1;
+}
+
+message ExecuteRuleResponse {
+  repeated ConsistencyResult results = 1;
+  int32 total_checked = 2;
+  int32 error_count = 3;
+  int32 warning_count = 4;
+}
+
 // 整合性チェック結果
 message ConsistencyResult {
   string rule_id = 1;
@@ -892,6 +942,22 @@ message ConsistencyResult {
   bool passed = 4;
   string message = 5;
   repeated string affected_record_ids = 6;
+}
+
+message ConsistencyRule {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string rule_type = 4;
+  string severity = 5;
+  bool is_active = 6;
+  string source_table_id = 7;
+  string evaluation_timing = 8;
+  string error_message_template = 9;
+  string zen_rule_json = 10;
+  string created_by = 11;
+  k1s0.system.common.v1.Timestamp created_at = 12;
+  k1s0.system.common.v1.Timestamp updated_at = 13;
 }
 
 // バリデーション警告

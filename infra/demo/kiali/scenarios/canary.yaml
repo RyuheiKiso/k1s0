@@ -1,0 +1,28 @@
+# Canary VirtualService: 90:10 weight split + header-based routing
+# Based on infra/istio/virtualservices/canary.yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-server-canary
+  namespace: k1s0-service
+spec:
+  hosts:
+    - order-server
+  http:
+    - match:
+        - headers:
+            x-canary:
+              exact: "true"
+      route:
+        - destination:
+            host: order-server
+            subset: canary
+    - route:
+        - destination:
+            host: order-server
+            subset: stable
+          weight: 90
+        - destination:
+            host: order-server
+            subset: canary
+          weight: 10

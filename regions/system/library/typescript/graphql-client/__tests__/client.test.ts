@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { GraphQlHttpClient, InMemoryGraphQlClient } from '../src/index.js';
+import { GraphQlHttpClient, InMemoryGraphQlClient, ClientError, ClientErrorKind } from '../src/index.js';
 import type { GraphQlQuery, GraphQlResponse } from '../src/index.js';
 
 const mockFetch = vi.fn();
@@ -100,7 +100,7 @@ describe('GraphQlHttpClient', () => {
     );
   });
 
-  it('HTTP エラー時に例外を投げる', async () => {
+  it('HTTP エラー時に ClientError を投げる', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 503,
@@ -111,5 +111,51 @@ describe('GraphQlHttpClient', () => {
     await expect(client.execute({ query: '{ health }' })).rejects.toThrow(
       'GraphQL request failed: 503',
     );
+    await mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    } as Response);
+    try {
+      await client.execute({ query: '{ health }' });
+    } catch (e) {
+      expect(e).toBeInstanceOf(ClientError);
+      expect((e as ClientError).kind).toBe(ClientErrorKind.Request);
+    }
+  });
+});
+
+describe('ClientError', () => {
+  it('request ファクトリメソッドで kind が request になる', () => {
+    const err = ClientError.request('connection failed');
+    expect(err).toBeInstanceOf(ClientError);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.kind).toBe(ClientErrorKind.Request);
+    expect(err.message).toBe('connection failed');
+    expect(err.name).toBe('ClientError');
+  });
+
+  it('deserialization ファクトリメソッドで kind が deserialization になる', () => {
+    const err = ClientError.deserialization('invalid JSON');
+    expect(err.kind).toBe(ClientErrorKind.Deserialization);
+    expect(err.message).toBe('invalid JSON');
+  });
+
+  it('graphQl ファクトリメソッドで kind が graphql になる', () => {
+    const err = ClientError.graphQl('field not found');
+    expect(err.kind).toBe(ClientErrorKind.GraphQl);
+    expect(err.message).toBe('field not found');
+  });
+
+  it('notFound ファクトリメソッドで kind が not_found になる', () => {
+    const err = ClientError.notFound('user not found');
+    expect(err.kind).toBe(ClientErrorKind.NotFound);
+    expect(err.message).toBe('user not found');
+  });
+
+  it('コンストラクタで直接生成できる', () => {
+    const err = new ClientError(ClientErrorKind.Request, 'test');
+    expect(err.kind).toBe('request');
+    expect(err.message).toBe('test');
   });
 });

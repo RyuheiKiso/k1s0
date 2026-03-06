@@ -258,12 +258,8 @@ async fn main() -> anyhow::Result<()> {
     use adapter::middleware::rbac::require_permission;
 
     let api_routes = if let Some(ref auth_st) = state.auth_state {
-        // GET -> sessions/read
+        // sessions/read: ユーザーセッション一覧（管理者用）
         let read_routes = axum::Router::new()
-            .route(
-                "/api/v1/sessions/:session_id",
-                axum::routing::get(adapter::handler::session_handler::get_session),
-            )
             .route(
                 "/api/v1/users/:user_id/sessions",
                 axum::routing::get(adapter::handler::session_handler::list_user_sessions),
@@ -272,35 +268,36 @@ async fn main() -> anyhow::Result<()> {
                 "sessions", "read",
             )));
 
-        // auth only routes (no RBAC)
+        // sessions/write: ユーザー全セッション失効（管理者用）
+        let write_routes = axum::Router::new()
+            .route(
+                "/api/v1/users/:user_id/sessions",
+                axum::routing::delete(adapter::handler::session_handler::revoke_all_sessions),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "sessions", "write",
+            )));
+
+        // auth only routes (no RBAC) — JWT 認証のみ（ユーザー本人操作）
         let auth_only_routes = axum::Router::new()
             .route(
                 "/api/v1/sessions",
                 axum::routing::post(adapter::handler::session_handler::create_session),
             )
             .route(
+                "/api/v1/sessions/:session_id",
+                axum::routing::get(adapter::handler::session_handler::get_session)
+                    .delete(adapter::handler::session_handler::revoke_session),
+            )
+            .route(
                 "/api/v1/sessions/:session_id/refresh",
                 axum::routing::post(adapter::handler::session_handler::refresh_session),
             );
 
-        // DELETE routes -> sessions/admin
-        let admin_routes = axum::Router::new()
-            .route(
-                "/api/v1/sessions/:session_id",
-                axum::routing::delete(adapter::handler::session_handler::revoke_session),
-            )
-            .route(
-                "/api/v1/users/:user_id/sessions",
-                axum::routing::delete(adapter::handler::session_handler::revoke_all_sessions),
-            )
-            .route_layer(axum::middleware::from_fn(require_permission(
-                "sessions", "admin",
-            )));
-
         axum::Router::new()
             .merge(read_routes)
+            .merge(write_routes)
             .merge(auth_only_routes)
-            .merge(admin_routes)
             .layer(axum::middleware::from_fn_with_state(
                 auth_st.clone(),
                 auth_middleware,
