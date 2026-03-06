@@ -58,7 +58,7 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "1"
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ env.REGISTRY }}/k1s0-system/dlq-manager:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           severity: HIGH,CRITICAL

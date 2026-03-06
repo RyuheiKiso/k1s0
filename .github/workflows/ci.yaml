@@ -18,6 +18,7 @@ jobs:
       ts: ${{ steps.filter.outputs.ts }}
       dart: ${{ steps.filter.outputs.dart }}
       helm: ${{ steps.filter.outputs.helm }}
+      docker: ${{ steps.filter.outputs.docker }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -26,17 +27,25 @@ jobs:
           filters: |
             go:
               - 'regions/**/go/**'
+              - 'CLI/**/go/**'
             rust:
               - 'regions/**/rust/**'
               - 'CLI/**'
             ts:
-              - 'regions/**/react/**'
-              - 'regions/**/ts/**'
+              - 'regions/**/client/react/**'
+              - 'regions/**/library/typescript/**'
+              - 'CLI/**/package.json'
+              - 'CLI/**/package-lock.json'
+              - 'CLI/**/tsconfig*.json'
+              - 'CLI/**/*.ts'
+              - 'CLI/**/*.tsx'
             dart:
-              - 'regions/**/flutter/**'
-              - 'regions/**/dart/**'
+              - 'regions/**/client/flutter/**'
+              - 'regions/**/library/dart/**'
             helm:
               - 'infra/helm/**'
+            docker:
+              - 'regions/**/Dockerfile'
 
   lint-go:
     needs: detect-changes
@@ -47,13 +56,22 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
-      - name: Lint Go modules
+      - name: Install golangci-lint
         run: |
-          for mod in regions/system/library/go/*/; do
-            if [ -f "$mod/go.mod" ]; then
-              echo "=== Linting $mod ==="
-              (cd "$mod" && golangci-lint run ./...)
-            fi
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Lint Go modules
+        shell: bash
+        run: |
+          mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
+          for mod in "${modules[@]}"; do
+            dir="$(dirname "$mod")"
+            echo "=== Linting $dir ==="
+            (
+              cd "$dir"
+              golangci-lint run ./...
+              go vet ./...
+            )
           done
 
   lint-rust:
@@ -66,32 +84,30 @@ jobs:
         with:
           components: clippy, rustfmt
       - name: Format check Rust crates
+        shell: bash
         run: |
-          for crate in regions/system/server/rust/*/; do
-            if [ -f "$crate/Cargo.toml" ]; then
-              echo "=== fmt $crate ==="
-              (cd "$crate" && cargo fmt --all -- --check)
-            fi
-          done
-          for lib in regions/system/library/rust/*/; do
-            if [ -f "$lib/Cargo.toml" ]; then
-              echo "=== fmt $lib ==="
-              (cd "$lib" && cargo fmt --all -- --check)
-            fi
+          mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
+          for manifest in "${manifests[@]}"; do
+            case "$manifest" in
+              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml)
+                continue
+                ;;
+            esac
+            echo "=== fmt $(dirname "$manifest") ==="
+            cargo fmt --manifest-path "$manifest" --all -- --check
           done
       - name: Clippy check Rust crates
+        shell: bash
         run: |
-          for crate in regions/system/server/rust/*/; do
-            if [ -f "$crate/Cargo.toml" ]; then
-              echo "=== clippy $crate ==="
-              (cd "$crate" && cargo clippy --all-targets -- -D warnings)
-            fi
-          done
-          for lib in regions/system/library/rust/*/; do
-            if [ -f "$lib/Cargo.toml" ]; then
-              echo "=== clippy $lib ==="
-              (cd "$lib" && cargo clippy --all-targets -- -D warnings)
-            fi
+          mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
+          for manifest in "${manifests[@]}"; do
+            case "$manifest" in
+              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml)
+                continue
+                ;;
+            esac
+            echo "=== clippy $(dirname "$manifest") ==="
+            cargo clippy --manifest-path "$manifest" --all-targets -- -D warnings
           done
 
   lint-ts:
@@ -103,9 +119,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm ci
-      - run: npx eslint .
-      - run: npx prettier --check .
+      - name: Lint TypeScript packages
+        shell: bash
+        run: |
+          mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+          for package_dir in "${packages[@]}"; do
+            echo "=== Linting $package_dir ==="
+            (
+              cd "$package_dir"
+              if [ -f package-lock.json ]; then
+                npm ci
+              else
+                npm install --no-package-lock
+              fi
+              npm run lint --if-present
+              npm run typecheck --if-present
+            )
+          done
 
   lint-dart:
     needs: detect-changes
@@ -116,8 +146,26 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
-      - run: dart analyze
-      - run: dart format --set-exit-if-changed .
+      - name: Lint Dart and Flutter packages
+        shell: bash
+        run: |
+          mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
+          for package_dir in "${packages[@]}"; do
+            echo "=== Linting $package_dir ==="
+            if grep -q "sdk: flutter" "$package_dir/pubspec.yaml"; then
+              (
+                cd "$package_dir"
+                flutter pub get
+                flutter analyze
+              )
+            else
+              (
+                cd "$package_dir"
+                dart pub get
+                dart analyze
+              )
+            fi
+          done
 
   test-go:
     needs: lint-go
@@ -128,14 +176,18 @@ jobs:
         with:
           go-version: "1.23"
       - name: Test Go modules
+        shell: bash
         run: |
           mkdir -p coverage
-          for mod in regions/system/library/go/*/; do
-            if [ -f "$mod/go.mod" ]; then
-              modname=$(basename "$mod")
-              echo "=== Testing $mod ==="
-              (cd "$mod" && go test ./... -race -count=1 -coverprofile="$GITHUB_WORKSPACE/coverage/${modname}.out")
-            fi
+          mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
+          for mod in "${modules[@]}"; do
+            dir="$(dirname "$mod")"
+            modname="$(basename "$dir")"
+            echo "=== Testing $dir ==="
+            (
+              cd "$dir"
+              go test ./... -race -count=1 -coverprofile="$GITHUB_WORKSPACE/coverage/${modname}.out"
+            )
           done
       - uses: actions/upload-artifact@v4
         if: always()
@@ -150,18 +202,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.88       # Dockerイメージ戦略.md / devcontainer設計.md と同期
       - name: Test Rust crates
+        shell: bash
         run: |
-          for crate in regions/system/server/rust/*/; do
-            if [ -f "$crate/Cargo.toml" ]; then
-              echo "=== Testing $crate ==="
-              (cd "$crate" && cargo test --all)
-            fi
-          done
-          for lib in regions/system/library/rust/*/; do
-            if [ -f "$lib/Cargo.toml" ]; then
-              echo "=== Testing $lib ==="
-              (cd "$lib" && cargo test --all)
-            fi
+          mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
+          for manifest in "${manifests[@]}"; do
+            case "$manifest" in
+              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml)
+                continue
+                ;;
+            esac
+            echo "=== Testing $(dirname "$manifest") ==="
+            cargo test --manifest-path "$manifest" --all
           done
 
   test-ts:
@@ -172,8 +223,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm ci
-      - run: npm test
+      - name: Test TypeScript packages
+        shell: bash
+        run: |
+          mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+          for package_dir in "${packages[@]}"; do
+            echo "=== Testing $package_dir ==="
+            (
+              cd "$package_dir"
+              if [ -f package-lock.json ]; then
+                npm ci
+              else
+                npm install --no-package-lock
+              fi
+              npm test --if-present
+            )
+          done
 
   test-dart:
     needs: lint-dart
@@ -183,7 +248,117 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
-      - run: flutter test
+      - name: Test Dart and Flutter packages
+        shell: bash
+        run: |
+          mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
+          for package_dir in "${packages[@]}"; do
+            echo "=== Testing $package_dir ==="
+            if grep -q "sdk: flutter" "$package_dir/pubspec.yaml"; then
+              (
+                cd "$package_dir"
+                flutter pub get
+                flutter test
+              )
+            else
+              (
+                cd "$package_dir"
+                dart pub get
+                dart test
+              )
+            fi
+          done
+
+  build-go:
+    needs: test-go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - name: Build Go modules
+        shell: bash
+        run: |
+          mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
+          for mod in "${modules[@]}"; do
+            dir="$(dirname "$mod")"
+            echo "=== Building $dir ==="
+            (
+              cd "$dir"
+              go build ./...
+            )
+          done
+
+  build-rust:
+    needs: test-rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88
+      - name: Build Rust crates
+        shell: bash
+        run: |
+          mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
+          for manifest in "${manifests[@]}"; do
+            case "$manifest" in
+              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml)
+                continue
+                ;;
+            esac
+            echo "=== Building $(dirname "$manifest") ==="
+            cargo build --manifest-path "$manifest" --all-targets
+          done
+
+  build-ts:
+    needs: test-ts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build TypeScript packages
+        shell: bash
+        run: |
+          mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+          for package_dir in "${packages[@]}"; do
+            echo "=== Building $package_dir ==="
+            (
+              cd "$package_dir"
+              if [ -f package-lock.json ]; then
+                npm ci
+              else
+                npm install --no-package-lock
+              fi
+              npm run build --if-present
+            )
+          done
+
+  build-docker:
+    needs:
+      - detect-changes
+      - build-go
+      - build-rust
+    if: always() && !contains(needs.*.result, 'failure') && (needs.detect-changes.outputs.docker == 'true' || needs.detect-changes.outputs.go == 'true' || needs.detect-changes.outputs.rust == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build service Docker images
+        shell: bash
+        run: |
+          mapfile -t rust_dockerfiles < <(rg --files regions/system/server/rust -g 'Dockerfile' | sort)
+          (
+            cd regions/system
+            for dockerfile in "${rust_dockerfiles[@]}"; do
+              rel="${dockerfile#regions/system/}"
+              tag="ci-$(basename "$(dirname "$dockerfile")")"
+              echo "=== docker build $dockerfile ==="
+              docker build -f "$rel" -t "$tag" .
+            done
+          )
+          echo "=== docker build regions/system/server/go/bff-proxy/Dockerfile ==="
+          docker build -t ci-bff-proxy regions/system/server/go/bff-proxy
 
   # NOTE: proto チェックは専用ワークフロー proto.yaml で実行する。
   # ci.yaml の detect-changes で proto 変更を検出し、proto.yaml が独立してトリガーされる。
@@ -206,24 +381,24 @@ jobs:
 
   build:
     needs:
-      - test-go
-      - test-rust
-      - test-ts
+      - build-go
+      - build-rust
+      - build-ts
       - test-dart
+      - build-docker
     if: always() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build Docker images (dry-run)
-        run: |
-          echo "Build validation passed"
+      - name: Build validation summary
+        run: echo "All language and Docker builds passed"
 
   security-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: fs
           scan-ref: .

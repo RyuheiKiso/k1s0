@@ -48,6 +48,7 @@ docker-compose.override.yaml
 
 
 # Generated proto/grpc code
+/gen/
 **/src/proto/k1s0.*.rs
 **/src/proto/gen/
 

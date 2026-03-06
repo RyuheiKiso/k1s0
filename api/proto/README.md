@@ -20,3 +20,4 @@ Policy:
 - Update generated code in the same change as any `.proto` or Buf template change.
 - Do not hand-edit files under `api/proto/gen`.
 - CI treats diffs under `api/proto/gen` after regeneration as a failure.
+- The repository root `gen/` directory is not used and should remain absent.
