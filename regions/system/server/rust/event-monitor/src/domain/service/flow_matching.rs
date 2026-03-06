@@ -137,4 +137,54 @@ mod tests {
         assert!(result.is_some());
         assert_eq!(result.unwrap().0, flow1.id);
     }
+
+    #[test]
+    fn test_match_event_domain_mismatch_skipped() {
+        let flow = make_flow(
+            "order_fulfillment",
+            vec![("OrderCreated", "order-service")],
+            true,
+        );
+        // Event with different domain
+        let event = EventRecord::new(
+            "corr-1".to_string(),
+            "OrderCreated".to_string(),
+            "order-service".to_string(),
+            "service.payment".to_string(), // different domain
+            "trace-1".to_string(),
+            Utc::now(),
+        );
+        let result = FlowMatchingService::match_event(&event, &[flow]);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_match_event_source_filter_none_matches_any_source() {
+        let now = Utc::now();
+        let flow = FlowDefinition {
+            id: Uuid::new_v4(),
+            name: "any_source_flow".to_string(),
+            description: String::new(),
+            domain: "service.order".to_string(),
+            steps: vec![FlowStep {
+                event_type: "OrderCreated".to_string(),
+                source: String::new(),
+                source_filter: None, // no source filter
+                timeout_seconds: 30,
+                description: String::new(),
+            }],
+            slo: FlowSlo {
+                target_completion_seconds: 120,
+                target_success_rate: 0.995,
+                alert_on_violation: true,
+            },
+            enabled: true,
+            created_at: now,
+            updated_at: now,
+        };
+        let event = make_event("OrderCreated", "any-random-service");
+        let result = FlowMatchingService::match_event(&event, &[flow.clone()]);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().0, flow.id);
+    }
 }
