@@ -3,6 +3,9 @@ use uuid::Uuid;
 
 use crate::domain::entity::rule::{EvaluationMode, RuleSet};
 use crate::domain::repository::RuleSetRepository;
+use crate::infrastructure::kafka_producer::{
+    NoopRuleEventPublisher, RuleChangedEvent, RuleEventPublisher,
+};
 
 #[derive(Debug, Clone)]
 pub struct UpdateRuleSetInput {
@@ -26,11 +29,25 @@ pub enum UpdateRuleSetError {
 
 pub struct UpdateRuleSetUseCase {
     repo: Arc<dyn RuleSetRepository>,
+    event_publisher: Arc<dyn RuleEventPublisher>,
 }
 
 impl UpdateRuleSetUseCase {
     pub fn new(repo: Arc<dyn RuleSetRepository>) -> Self {
-        Self { repo }
+        Self {
+            repo,
+            event_publisher: Arc::new(NoopRuleEventPublisher),
+        }
+    }
+
+    pub fn with_publisher(
+        repo: Arc<dyn RuleSetRepository>,
+        event_publisher: Arc<dyn RuleEventPublisher>,
+    ) -> Self {
+        Self {
+            repo,
+            event_publisher,
+        }
     }
 
     pub async fn execute(

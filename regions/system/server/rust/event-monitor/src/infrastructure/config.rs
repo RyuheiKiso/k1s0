@@ -327,6 +327,22 @@ mod tests {
     }
 
     #[test]
+    fn test_scheduler_config_defaults() {
+        let yaml = "timeout_check_interval_seconds: 120\ncleanup_interval_seconds: 7200";
+        let cfg: SchedulerConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(cfg.timeout_check_interval_seconds, 120);
+        assert_eq!(cfg.cleanup_interval_seconds, 7200);
+    }
+
+    #[test]
+    fn test_notification_config() {
+        let yaml = "endpoint: http://notification:8080\ntimeout_seconds: 5";
+        let cfg: NotificationConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(cfg.endpoint, "http://notification:8080");
+        assert_eq!(cfg.timeout_seconds, 5);
+    }
+
+    #[test]
     fn test_database_connection_url() {
         let cfg = DatabaseConfig {
             host: "localhost".to_string(),
