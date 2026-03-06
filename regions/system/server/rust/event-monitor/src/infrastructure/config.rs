@@ -16,6 +16,10 @@ pub struct Config {
     pub dlq_manager: Option<DlqManagerConfig>,
     #[serde(default)]
     pub cache: CacheConfig,
+    #[serde(default)]
+    pub scheduler: Option<SchedulerConfig>,
+    #[serde(default)]
+    pub notification: Option<NotificationConfig>,
 }
 
 impl Config {
