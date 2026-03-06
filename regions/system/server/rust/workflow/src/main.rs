@@ -28,6 +28,33 @@ use infrastructure::notification_request_producer::{
     NotificationRequestPublisher,
 };
 
+async fn resolve_bind_addr(host: &str, port: u16) -> anyhow::Result<SocketAddr> {
+    tokio::net::lookup_host((host, port))
+        .await?
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("failed to resolve bind address {host}:{port}"))
+}
+
+async fn shutdown_signal() -> anyhow::Result<()> {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+
+        let mut terminate = signal(SignalKind::terminate())?;
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = terminate.recv() => {}
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await?;
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config_path =
@@ -87,7 +114,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Kafka event publisher
-    let _event_publisher: Arc<dyn WorkflowEventPublisher> =
+    let event_publisher: Arc<dyn WorkflowEventPublisher> =
         if let Some(ref kafka_cfg) = cfg.kafka {
             let publisher = KafkaWorkflowEventPublisher::new(kafka_cfg)?;
             info!(topic = %publisher.topic(), "Kafka event publisher initialized");
@@ -118,6 +145,7 @@ async fn main() -> anyhow::Result<()> {
         def_repo.clone(),
         inst_repo.clone(),
         task_repo.clone(),
+        event_publisher.clone(),
     ));
     let get_inst_uc = Arc::new(usecase::GetInstanceUseCase::new(inst_repo.clone()));
     let list_inst_uc = Arc::new(usecase::ListInstancesUseCase::new(inst_repo.clone()));
@@ -127,11 +155,13 @@ async fn main() -> anyhow::Result<()> {
         task_repo.clone(),
         inst_repo.clone(),
         def_repo.clone(),
+        event_publisher.clone(),
     ));
     let reject_task_uc = Arc::new(usecase::RejectTaskUseCase::new(
         task_repo.clone(),
         inst_repo.clone(),
         def_repo.clone(),
+        event_publisher.clone(),
     ));
     let reassign_task_uc = Arc::new(usecase::ReassignTaskUseCase::new(task_repo.clone()));
     let check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(
@@ -199,10 +229,14 @@ async fn main() -> anyhow::Result<()> {
         handler_state = handler_state.with_auth(auth_st);
     }
 
-    let app = adapter::handler::router(handler_state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = adapter::handler::router(
+        handler_state,
+        cfg.observability.metrics.enabled,
+        &cfg.observability.metrics.path,
+    )
+    .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
-    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    let rest_addr = resolve_bind_addr(&cfg.server.host, cfg.server.port).await?;
     info!("REST server starting on {}", rest_addr);
 
     // gRPC service
@@ -210,21 +244,26 @@ async fn main() -> anyhow::Result<()> {
 
     let workflow_tonic = adapter::grpc::WorkflowServiceTonic::new(grpc_svc);
 
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
+    let grpc_addr = resolve_bind_addr(&cfg.server.host, cfg.server.grpc_port).await?;
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;
+    let grpc_shutdown = shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(WorkflowServiceServer::new(workflow_tonic))
-            .serve(grpc_addr)
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    let rest_future = axum::serve(listener, app);
+    let rest_future = axum::serve(listener, app).with_graceful_shutdown(async {
+        let _ = shutdown_signal().await;
+    });
 
     tokio::select! {
         result = rest_future => {
@@ -238,6 +277,9 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     }
+
+    event_publisher.close().await?;
+    notification_request_publisher.close().await?;
 
     Ok(())
 }

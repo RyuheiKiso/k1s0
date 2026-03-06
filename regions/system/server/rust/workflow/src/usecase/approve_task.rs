@@ -5,6 +5,8 @@ use crate::domain::repository::WorkflowDefinitionRepository;
 use crate::domain::repository::WorkflowInstanceRepository;
 use crate::domain::repository::WorkflowTaskRepository;
 use crate::domain::service::WorkflowDomainService;
+use crate::infrastructure::kafka_producer::WorkflowEventPublisher;
+use tracing::warn;
 
 #[derive(Debug, Clone)]
 pub struct ApproveTaskInput {
@@ -42,6 +44,7 @@ pub struct ApproveTaskUseCase {
     task_repo: Arc<dyn WorkflowTaskRepository>,
     instance_repo: Arc<dyn WorkflowInstanceRepository>,
     definition_repo: Arc<dyn WorkflowDefinitionRepository>,
+    event_publisher: Arc<dyn WorkflowEventPublisher>,
 }
 
 impl ApproveTaskUseCase {
@@ -49,11 +52,13 @@ impl ApproveTaskUseCase {
         task_repo: Arc<dyn WorkflowTaskRepository>,
         instance_repo: Arc<dyn WorkflowInstanceRepository>,
         definition_repo: Arc<dyn WorkflowDefinitionRepository>,
+        event_publisher: Arc<dyn WorkflowEventPublisher>,
     ) -> Self {
         Self {
             task_repo,
             instance_repo,
             definition_repo,
+            event_publisher,
         }
     }
 
@@ -148,6 +153,15 @@ impl ApproveTaskUseCase {
             }
         }
 
+        if let Err(err) = self.event_publisher.publish_task_completed(&task).await {
+            warn!(
+                task_id = %task.id,
+                instance_id = %task.instance_id,
+                error = %err,
+                "failed to publish workflow task completed event"
+            );
+        }
+
         Ok(ApproveTaskOutput {
             task,
             next_task,
@@ -165,6 +179,7 @@ mod tests {
     use crate::domain::repository::workflow_definition_repository::MockWorkflowDefinitionRepository;
     use crate::domain::repository::workflow_instance_repository::MockWorkflowInstanceRepository;
     use crate::domain::repository::workflow_task_repository::MockWorkflowTaskRepository;
+    use crate::infrastructure::kafka_producer::MockWorkflowEventPublisher;
 
     fn two_step_definition() -> WorkflowDefinition {
         WorkflowDefinition::new(
@@ -236,11 +251,17 @@ mod tests {
         def_mock
             .expect_find_by_id()
             .returning(|_| Ok(Some(two_step_definition())));
+        let mut publisher = MockWorkflowEventPublisher::new();
+        publisher
+            .expect_publish_task_completed()
+            .times(1)
+            .returning(|_| Ok(()));
 
         let uc = ApproveTaskUseCase::new(
             Arc::new(task_mock),
             Arc::new(inst_mock),
             Arc::new(def_mock),
+            Arc::new(publisher),
         );
         let input = ApproveTaskInput {
             task_id: "task_001".to_string(),
@@ -279,11 +300,17 @@ mod tests {
         def_mock
             .expect_find_by_id()
             .returning(|_| Ok(Some(two_step_definition())));
+        let mut publisher = MockWorkflowEventPublisher::new();
+        publisher
+            .expect_publish_task_completed()
+            .times(1)
+            .returning(|_| Ok(()));
 
         let uc = ApproveTaskUseCase::new(
             Arc::new(task_mock),
             Arc::new(inst_mock),
             Arc::new(def_mock),
+            Arc::new(publisher),
         );
         let input = ApproveTaskInput {
             task_id: "task_001".to_string(),
@@ -303,6 +330,7 @@ mod tests {
         let mut task_mock = MockWorkflowTaskRepository::new();
         let inst_mock = MockWorkflowInstanceRepository::new();
         let def_mock = MockWorkflowDefinitionRepository::new();
+        let publisher = MockWorkflowEventPublisher::new();
 
         task_mock.expect_find_by_id().returning(|_| Ok(None));
 
@@ -310,6 +338,7 @@ mod tests {
             Arc::new(task_mock),
             Arc::new(inst_mock),
             Arc::new(def_mock),
+            Arc::new(publisher),
         );
         let input = ApproveTaskInput {
             task_id: "task_missing".to_string(),
@@ -328,6 +357,7 @@ mod tests {
         let mut task_mock = MockWorkflowTaskRepository::new();
         let inst_mock = MockWorkflowInstanceRepository::new();
         let def_mock = MockWorkflowDefinitionRepository::new();
+        let publisher = MockWorkflowEventPublisher::new();
 
         let mut task = pending_task();
         task.approve("prev-actor".to_string(), None);
@@ -339,6 +369,7 @@ mod tests {
             Arc::new(task_mock),
             Arc::new(inst_mock),
             Arc::new(def_mock),
+            Arc::new(publisher),
         );
         let input = ApproveTaskInput {
             task_id: "task_001".to_string(),
@@ -350,5 +381,46 @@ mod tests {
             result.unwrap_err(),
             ApproveTaskError::InvalidStatus(_)
         ));
+    }
+
+    #[tokio::test]
+    async fn publish_failure_does_not_fail_usecase() {
+        let mut task_mock = MockWorkflowTaskRepository::new();
+        let mut inst_mock = MockWorkflowInstanceRepository::new();
+        let mut def_mock = MockWorkflowDefinitionRepository::new();
+        let mut publisher = MockWorkflowEventPublisher::new();
+
+        task_mock
+            .expect_find_by_id()
+            .returning(|_| Ok(Some(pending_task())));
+        task_mock.expect_update().returning(|_| Ok(()));
+        task_mock.expect_create().returning(|_| Ok(()));
+        inst_mock
+            .expect_find_by_id()
+            .returning(|_| Ok(Some(running_instance())));
+        inst_mock.expect_update().returning(|_| Ok(()));
+        def_mock
+            .expect_find_by_id()
+            .returning(|_| Ok(Some(two_step_definition())));
+        publisher
+            .expect_publish_task_completed()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("kafka unavailable")));
+
+        let uc = ApproveTaskUseCase::new(
+            Arc::new(task_mock),
+            Arc::new(inst_mock),
+            Arc::new(def_mock),
+            Arc::new(publisher),
+        );
+        let result = uc
+            .execute(&ApproveTaskInput {
+                task_id: "task_001".to_string(),
+                actor_id: "user-002".to_string(),
+                comment: Some("Approved".to_string()),
+            })
+            .await;
+
+        assert!(result.is_ok());
     }
 }

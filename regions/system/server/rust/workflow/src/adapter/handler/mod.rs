@@ -13,12 +13,14 @@ use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::require_permission;
 
 /// REST API router.
-pub fn router(state: AppState) -> Router {
+pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Router {
     // 認証不要のエンドポイント
-    let public_routes = Router::new()
+    let mut public_routes = Router::new()
         .route("/healthz", get(health::healthz))
-        .route("/readyz", get(health::readyz))
-        .route("/metrics", get(metrics_handler));
+        .route("/readyz", get(health::readyz));
+    if metrics_enabled {
+        public_routes = public_routes.route(metrics_path, get(metrics_handler));
+    }
 
     // 認証が設定されている場合は RBAC 付きルーティング
     let api_routes = if let Some(ref auth_state) = state.auth_state {

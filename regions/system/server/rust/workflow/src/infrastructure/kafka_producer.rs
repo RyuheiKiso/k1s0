@@ -5,6 +5,7 @@ use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::entity::workflow_task::WorkflowTask;
 
 /// ワークフローイベントの Kafka 発行用トレイト。
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait WorkflowEventPublisher: Send + Sync {
     async fn publish_instance_started(&self, instance: &WorkflowInstance) -> anyhow::Result<()>;
