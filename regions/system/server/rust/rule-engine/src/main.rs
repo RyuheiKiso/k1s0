@@ -113,10 +113,19 @@ async fn main() -> anyhow::Result<()> {
     ));
     let list_rules_uc = Arc::new(usecase::ListRulesUseCase::new(rule_repo.clone()));
 
-    let create_rule_set_uc = Arc::new(usecase::CreateRuleSetUseCase::new(rule_set_repo.clone()));
+    let create_rule_set_uc = Arc::new(usecase::CreateRuleSetUseCase::with_publisher(
+        rule_set_repo.clone(),
+        event_publisher.clone(),
+    ));
     let get_rule_set_uc = Arc::new(usecase::GetRuleSetUseCase::new(rule_set_repo.clone()));
-    let update_rule_set_uc = Arc::new(usecase::UpdateRuleSetUseCase::new(rule_set_repo.clone()));
-    let delete_rule_set_uc = Arc::new(usecase::DeleteRuleSetUseCase::new(rule_set_repo.clone()));
+    let update_rule_set_uc = Arc::new(usecase::UpdateRuleSetUseCase::with_publisher(
+        rule_set_repo.clone(),
+        event_publisher.clone(),
+    ));
+    let delete_rule_set_uc = Arc::new(usecase::DeleteRuleSetUseCase::with_publisher(
+        rule_set_repo.clone(),
+        event_publisher.clone(),
+    ));
     let list_rule_sets_uc = Arc::new(usecase::ListRuleSetsUseCase::new(rule_set_repo.clone()));
 
     let publish_rule_set_uc = Arc::new(usecase::PublishRuleSetUseCase::with_publisher(
