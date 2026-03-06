@@ -40,10 +40,11 @@ impl ManageColumnDefinitionsUseCase {
         &self,
         table_name: &str,
         input: &serde_json::Value,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<Vec<ColumnDefinition>> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
         let columns: Vec<crate::domain::entity::column_definition::CreateColumnDefinition> =
