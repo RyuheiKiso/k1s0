@@ -7,7 +7,7 @@ import StatusBar from "./components/StatusBar";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useScenario } from "./hooks/useScenario";
 
-const WS_URL = `ws://${window.location.hostname}:${window.location.port || "5173"}/ws/logs`;
+const WS_URL = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws/logs`;
 
 export default function App() {
   const { logs, connected, clearLogs } = useWebSocket(WS_URL);
