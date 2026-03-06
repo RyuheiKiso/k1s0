@@ -187,6 +187,33 @@ fn default_ttl_seconds() -> u64 {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct SchedulerConfig {
+    #[serde(default = "default_timeout_check_interval")]
+    pub timeout_check_interval_seconds: u64,
+    #[serde(default = "default_cleanup_interval")]
+    pub cleanup_interval_seconds: u64,
+}
+
+fn default_timeout_check_interval() -> u64 {
+    60
+}
+
+fn default_cleanup_interval() -> u64 {
+    3600
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct NotificationConfig {
+    pub endpoint: String,
+    #[serde(default = "default_notification_timeout")]
+    pub timeout_seconds: u64,
+}
+
+fn default_notification_timeout() -> u64 {
+    10
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
