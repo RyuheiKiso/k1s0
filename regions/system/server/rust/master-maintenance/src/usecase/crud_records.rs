@@ -130,10 +130,11 @@ impl CrudRecordsUseCase {
         filter: Option<&str>,
         search: Option<&str>,
         selected_columns: Option<&str>,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<ListRecordsOutput> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
         let column_defs = self.column_repo.find_by_table_id(table.id).await?;
@@ -173,10 +174,11 @@ impl CrudRecordsUseCase {
         &self,
         table_name: &str,
         record_id: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<Option<Value>> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
         let columns = self.column_repo.find_by_table_id(table.id).await?;
@@ -185,10 +187,14 @@ impl CrudRecordsUseCase {
             .await
     }
 
-    pub async fn table_permissions(&self, table_name: &str) -> anyhow::Result<(bool, bool, bool)> {
+    pub async fn table_permissions(
+        &self,
+        table_name: &str,
+        domain_scope: Option<&str>,
+    ) -> anyhow::Result<(bool, bool, bool)> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
         Ok((table.allow_create, table.allow_update, table.allow_delete))
@@ -199,10 +205,11 @@ impl CrudRecordsUseCase {
         table_name: &str,
         data: &Value,
         created_by: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<RecordMutationOutput> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
         if !table.allow_create {
@@ -231,6 +238,7 @@ impl CrudRecordsUseCase {
             changed_by: created_by.to_string(),
             change_reason: None,
             trace_id: None,
+            domain_scope: domain_scope.map(|s| s.to_string()),
             created_at: chrono::Utc::now(),
         };
         let _ = self.change_log_repo.create(&log).await;
@@ -244,10 +252,11 @@ impl CrudRecordsUseCase {
         record_id: &str,
         data: &Value,
         updated_by: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<RecordMutationOutput> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
         if !table.allow_update {
@@ -280,6 +289,7 @@ impl CrudRecordsUseCase {
             changed_by: updated_by.to_string(),
             change_reason: None,
             trace_id: None,
+            domain_scope: domain_scope.map(|s| s.to_string()),
             created_at: chrono::Utc::now(),
         };
         let _ = self.change_log_repo.create(&log).await;

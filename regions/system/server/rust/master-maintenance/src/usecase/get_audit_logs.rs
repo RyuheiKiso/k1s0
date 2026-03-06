@@ -16,6 +16,7 @@ impl GetAuditLogsUseCase {
         table_name: &str,
         page: i32,
         page_size: i32,
+        _domain_scope: Option<&str>,
     ) -> anyhow::Result<(Vec<ChangeLog>, i64)> {
         self.change_log_repo
             .find_by_table(table_name, page, page_size)
@@ -28,6 +29,7 @@ impl GetAuditLogsUseCase {
         record_id: &str,
         page: i32,
         page_size: i32,
+        _domain_scope: Option<&str>,
     ) -> anyhow::Result<(Vec<ChangeLog>, i64)> {
         self.change_log_repo
             .find_by_record(table_name, record_id, page, page_size)

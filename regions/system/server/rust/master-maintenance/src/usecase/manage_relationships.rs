@@ -41,13 +41,14 @@ impl ManageRelationshipsUseCase {
         &self,
         input: &Value,
         _created_by: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<TableRelationship> {
         let create_input: CreateTableRelationship = serde_json::from_value(input.clone())?;
 
         // Verify source table exists
         let source_table = self
             .table_repo
-            .find_by_name(&create_input.source_table)
+            .find_by_name(&create_input.source_table, domain_scope)
             .await?
             .ok_or_else(|| {
                 anyhow::anyhow!("Source table '{}' not found", create_input.source_table)
@@ -56,7 +57,7 @@ impl ManageRelationshipsUseCase {
         // Verify target table exists
         let target_table = self
             .table_repo
-            .find_by_name(&create_input.target_table)
+            .find_by_name(&create_input.target_table, domain_scope)
             .await?
             .ok_or_else(|| {
                 anyhow::anyhow!("Target table '{}' not found", create_input.target_table)
@@ -154,11 +155,12 @@ impl ManageRelationshipsUseCase {
         &self,
         table_name: &str,
         record_id: &str,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<Value> {
         // Get table definition
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
         let table_columns = self.column_repo.find_by_table_id(table.id).await?;

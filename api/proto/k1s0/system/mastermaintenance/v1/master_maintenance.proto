@@ -62,6 +62,9 @@ service MasterMaintenanceService {
   // Audit Logs
   rpc ListTableAuditLogs(ListTableAuditLogsRequest) returns (ListTableAuditLogsResponse);
   rpc ListRecordAuditLogs(ListRecordAuditLogsRequest) returns (ListRecordAuditLogsResponse);
+
+  // Domain Management
+  rpc ListDomains(ListDomainsRequest) returns (ListDomainsResponse);
 }
 
 message CreateTableDefinitionRequest {
@@ -75,6 +78,7 @@ message CreateTableDefinitionResponse {
 message UpdateTableDefinitionRequest {
   string table_name = 1;
   google.protobuf.Struct data = 2;
+  string domain_scope = 3;
 }
 
 message UpdateTableDefinitionResponse {
@@ -83,6 +87,7 @@ message UpdateTableDefinitionResponse {
 
 message DeleteTableDefinitionRequest {
   string table_name = 1;
+  string domain_scope = 2;
 }
 
 message DeleteTableDefinitionResponse {
@@ -92,6 +97,7 @@ message DeleteTableDefinitionResponse {
 // テーブル定義取得リクエスト
 message GetTableDefinitionRequest {
   string table_name = 1;
+  string domain_scope = 2;
 }
 
 // テーブル定義レスポンス
@@ -113,6 +119,7 @@ message GetTableDefinitionResponse {
   string created_by = 15;
   k1s0.system.common.v1.Timestamp created_at = 16;
   k1s0.system.common.v1.Timestamp updated_at = 17;
+  string domain_scope = 18;
 }
 
 // カラム定義
@@ -156,6 +163,7 @@ message ListTableDefinitionsRequest {
   string category = 1;
   bool active_only = 2;
   k1s0.system.common.v1.Pagination pagination = 3;
+  string domain_scope = 4;
 }
 
 // テーブル定義一覧レスポンス
@@ -168,6 +176,7 @@ message ListTableDefinitionsResponse {
 message GetRecordRequest {
   string table_name = 1;
   string record_id = 2;
+  string domain_scope = 3;
 }
 
 // レコードレスポンス
@@ -193,6 +202,7 @@ message ListRecordsRequest {
   string sort = 3;
   string filter = 4;
   string search = 5;
+  string domain_scope = 6;
 }
 
 // レコード一覧レスポンス
@@ -205,6 +215,7 @@ message ListRecordsResponse {
 message CreateRecordRequest {
   string table_name = 1;
   google.protobuf.Struct data = 2;
+  string domain_scope = 3;
 }
 
 // レコード更新リクエスト
@@ -212,12 +223,14 @@ message UpdateRecordRequest {
   string table_name = 1;
   string record_id = 2;
   google.protobuf.Struct data = 3;
+  string domain_scope = 4;
 }
 
 // レコード削除リクエスト
 message DeleteRecordRequest {
   string table_name = 1;
   string record_id = 2;
+  string domain_scope = 3;
 }
 
 // レコード削除レスポンス
@@ -229,6 +242,7 @@ message DeleteRecordResponse {
 message CheckConsistencyRequest {
   string table_name = 1;
   repeated string rule_ids = 2;
+  string domain_scope = 3;
 }
 
 // 整合性チェックレスポンス
@@ -503,6 +517,7 @@ message DisplayConfig {
 message ListTableAuditLogsRequest {
   string table_name = 1;
   k1s0.system.common.v1.Pagination pagination = 2;
+  string domain_scope = 3;
 }
 
 message ListTableAuditLogsResponse {
@@ -514,6 +529,7 @@ message ListRecordAuditLogsRequest {
   string table_name = 1;
   string record_id = 2;
   k1s0.system.common.v1.Pagination pagination = 3;
+  string domain_scope = 4;
 }
 
 message ListRecordAuditLogsResponse {
@@ -533,4 +549,19 @@ message AuditLogEntry {
   string change_reason = 9;
   string trace_id = 10;
   string created_at = 11;
+  string domain_scope = 12;
+}
+
+// ドメイン一覧リクエスト
+message ListDomainsRequest {}
+
+// ドメイン一覧レスポンス
+message ListDomainsResponse {
+  repeated DomainInfo domains = 1;
+}
+
+// ドメイン情報
+message DomainInfo {
+  string domain_scope = 1;
+  int32 table_count = 2;
 }

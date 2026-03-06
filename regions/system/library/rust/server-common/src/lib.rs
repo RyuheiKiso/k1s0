@@ -5,6 +5,8 @@
 
 pub mod auth;
 pub mod error;
+#[cfg(any(feature = "middleware", test))]
+pub mod middleware;
 pub mod pagination;
 
 pub use auth::{allow_insecure_no_auth, require_auth_state};

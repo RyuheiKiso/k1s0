@@ -14,5 +14,6 @@ pub struct ChangeLog {
     pub changed_by: String,
     pub change_reason: Option<String>,
     pub trace_id: Option<String>,
+    pub domain_scope: Option<String>,
     pub created_at: DateTime<Utc>,
 }

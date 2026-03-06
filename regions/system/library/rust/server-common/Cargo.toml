@@ -8,6 +8,7 @@ description = "Shared server infrastructure: structured error codes, error respo
 default = []
 axum = ["dep:axum"]
 utoipa = ["dep:utoipa"]
+middleware = ["axum", "dep:tower", "dep:http", "dep:pin-project-lite", "dep:k1s0-telemetry", "dep:k1s0-correlation", "dep:k1s0-health"]
 
 [dependencies]
 anyhow = "1"
@@ -18,6 +19,19 @@ tracing = "0.1"
 uuid = { version = "1", features = ["v4"] }
 axum = { version = "0.7", optional = true }
 utoipa = { version = "5", optional = true }
+tower = { version = "0.5", features = ["util"], optional = true }
+http = { version = "1", optional = true }
+pin-project-lite = { version = "0.2", optional = true }
+k1s0-telemetry = { path = "../telemetry", features = ["axum-layer"], optional = true }
+k1s0-correlation = { path = "../correlation", features = ["tower-layer"], optional = true }
+k1s0-health = { path = "../health", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros"] }
+tower = { version = "0.5", features = ["util"] }
+http = "1"
+pin-project-lite = "0.2"
+k1s0-telemetry = { path = "../telemetry", features = ["axum-layer"] }
+k1s0-correlation = { path = "../correlation", features = ["tower-layer"] }
+k1s0-health = { path = "../health" }
+axum = "0.7"

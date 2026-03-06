@@ -6,5 +6,8 @@
 pub mod context;
 pub mod id;
 
+#[cfg(any(feature = "tower-layer", test))]
+pub mod layer;
+
 pub use context::{CorrelationContext, CorrelationHeaders};
 pub use id::{CorrelationId, TraceId};
