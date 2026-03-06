@@ -24,6 +24,13 @@ Go・Rust 追加 API:
 |---------|------|
 | `expire(key, ttl)` | キーの TTL を更新（Go・Rust のみ） |
 
+**`expire()` の言語別シグネチャ:**
+
+| 言語 | シグネチャ | 戻り値の意味 |
+|------|-----------|-------------|
+| Go | `Expire(ctx, key, ttl) (bool, error)` | bool: キーが存在し TTL を設定できた場合 true |
+| Rust | `expire(key, ttl) -> Result<bool, CacheError>` | bool: 同上（Go と同一セマンティクス） |
+
 Rust 公開型:
 
 | 型・トレイト | 種別 | 説明 |

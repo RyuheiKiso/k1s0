@@ -330,11 +330,22 @@ pub fn init_logger(env: &str, format: &str)
 pub fn parse_log_level(level: &str) -> tracing::Level
 ```
 
-### 拡張メトリクス（Rust 専用）
+### Rust record_* メソッド一覧
 
-Rust の `Metrics` 構造体は共通 4 メトリクス（HTTP/gRPC）に加え、DB・Kafka・キャッシュの 5 メトリクスを提供する。これらは Rust のみの組み込み機能であり、他言語では利用できない。
+Rust の `Metrics` 構造体は共通 4 メトリクス（HTTP/gRPC）および拡張 5 メトリクス（DB・Kafka・キャッシュ）に対して、型安全な `record_*` ヘルパーメソッドを提供する。Go は Prometheus API を直接使用するため、これらのヘルパーメソッドは Rust 専用。
 
 > アーキテクチャ上の位置づけは [可観測性設計.md](../../architecture/observability/可観測性設計.md) の「カスタムメトリクス」セクションを参照。
+
+**共通メトリクス（HTTP/gRPC）の record メソッド:**
+
+| メトリクス名 | 記録メソッド | 説明 |
+|-------------|-------------|------|
+| `http_requests_total` | `record_http_request(method, path, status)` | HTTP リクエストカウンタをインクリメント |
+| `http_request_duration_seconds` | `record_http_duration(method, path, duration_secs)` | HTTP レイテンシをヒストグラムに記録 |
+| `grpc_server_handled_total` | `record_grpc_request(service, method, code)` | gRPC リクエストカウンタをインクリメント |
+| `grpc_server_handling_seconds` | `record_grpc_duration(service, method, duration_secs)` | gRPC レイテンシをヒストグラムに記録 |
+
+**拡張メトリクス（Rust 専用）:**
 
 | メトリクス名 | 型 | ラベル | 記録メソッド |
 |-------------|-----|--------|-------------|

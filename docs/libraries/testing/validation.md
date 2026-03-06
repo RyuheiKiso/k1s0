@@ -170,6 +170,17 @@ export function collect(...validators: Array<ValidationError | null>): Validatio
 
 **カバレッジ目標**: 90%以上
 
+## 言語別 API パラダイムの差異
+
+| 言語 | パラダイム | 例 |
+|------|-----------|-----|
+| Go | interface + method（`DefaultValidator` 構造体のメソッド） | `v.ValidateEmail(email)` |
+| Rust | standalone 関数 + `Validator` トレイト（拡張用） | `validate_email("email", value)?` |
+| TypeScript | standalone 関数 | `validateEmail("email", value)` |
+| Dart | （TypeScript と同等） | — |
+
+> Go のみ `Validator` インターフェースのメソッドとして API を提供する（`NewDefaultValidator()` でインスタンスを生成）。Rust・TypeScript・Dart はモジュールレベルの standalone 関数として提供する。Rust の `Validator` トレイトはカスタムルール拡張用であり、組み込みバリデーション関数とは独立している。
+
 ## テスト戦略
 
 | テスト種別 | 対象 | ツール |
