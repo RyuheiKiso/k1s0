@@ -27,6 +27,7 @@ k1s0-correlation = { path = "../correlation", features = ["tower-layer"], option
 k1s0-health = { path = "../health", optional = true }
 
 [dev-dependencies]
+async-trait = "0.1"
 tokio = { version = "1", features = ["macros"] }
 tower = { version = "0.5", features = ["util"] }
 http = "1"

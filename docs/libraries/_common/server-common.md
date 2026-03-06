@@ -181,6 +181,46 @@ let app = stack.wrap(handler::router(state));
 | `GET /readyz` | `health_checker` 設定時 | HealthChecker結果 (200/503) |
 | `GET /metrics` | `metrics` 設定時 | Prometheus text format |
 
+### K1s0App（上位ビルダー）
+
+`K1s0App` は Config → Telemetry → Metrics → HealthCheck → K1s0Stack の初期化を一括で行う上位ビルダー。新規サーバー作成時のボイラープレートを 50〜80行から 5〜15行に削減する。
+
+```rust
+use k1s0_server_common::middleware::{K1s0App, K1s0AppReady};
+
+let app = K1s0App::new(cfg.to_telemetry_config())
+    .add_health_check(Box::new(db_check))
+    .build()
+    .await?;
+let router = app.wrap(handler::router(state));
+```
+
+#### K1s0App API
+
+| メソッド | 説明 |
+| --- | --- |
+| `K1s0App::new(TelemetryConfig)` | ビルダーを生成 |
+| `.profile(Profile)` | デプロイ環境を明示指定（未指定時は `TelemetryConfig.environment` から自動判定） |
+| `.add_health_check(Box<dyn HealthCheck>)` | HealthCheck を追加 |
+| `.without_correlation()` | CorrelationLayer を無効化 |
+| `.without_request_id()` | RequestIdLayer を無効化 |
+| `.build() -> Result<K1s0AppReady>` | Telemetry初期化 → Metrics生成 → HealthChecker構築 → Ready返却 |
+
+#### K1s0AppReady API
+
+| メソッド | 説明 |
+| --- | --- |
+| `.service_name() -> &str` | サービス名を返す |
+| `.profile() -> &Profile` | 適用されたProfileを返す |
+| `.metrics() -> Arc<Metrics>` | Metricsインスタンスを返す |
+| `.health_checker() -> Arc<CompositeHealthChecker>` | HealthCheckerを返す |
+| `.wrap(Router) -> Router` | K1s0Stackを内部構築してRouterに適用 |
+
+#### K1s0App vs K1s0Stack
+
+- **K1s0App**: Telemetry・Metrics・HealthCheck の生成まで含む。新規サーバーのエントリポイント向け
+- **K1s0Stack**: 既に生成済みの `Arc<Metrics>` 等を受け取る低レベルビルダー。カスタム初期化が必要な場合に使用
+
 ### 個別レイヤー
 
 `K1s0Stack` を使わず個別にレイヤーを適用することも可能。
