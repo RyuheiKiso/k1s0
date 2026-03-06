@@ -228,6 +228,7 @@ async fn main() -> anyhow::Result<()> {
     if let Some(auth_st) = auth_state {
         handler_state = handler_state.with_auth(auth_st);
     }
+    let grpc_auth_state = handler_state.auth_state.clone();
 
     let app = adapter::handler::router(
         handler_state,
@@ -248,9 +249,11 @@ async fn main() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;
+    let grpc_auth_layer = adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
     let grpc_shutdown = shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(WorkflowServiceServer::new(workflow_tonic))
             .serve_with_shutdown(grpc_addr, async move {
