@@ -89,6 +89,14 @@ impl UpdateRuleSetUseCase {
             .await
             .map_err(|e| UpdateRuleSetError::Internal(e.to_string()))?;
 
+        if let Err(e) = self
+            .event_publisher
+            .publish_rule_changed(&RuleChangedEvent::rule_set_updated(&rule_set))
+            .await
+        {
+            tracing::warn!(error = %e, rule_set_id = %rule_set.id, "failed to publish rule set updated event");
+        }
+
         Ok(rule_set)
     }
 }

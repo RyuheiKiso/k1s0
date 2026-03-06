@@ -6,6 +6,7 @@ use crate::domain::entity::flow_kpi::{FlowKpi, SloStatus};
 use crate::domain::repository::{FlowDefinitionRepository, FlowInstanceRepository};
 use crate::domain::service::kpi_aggregation::KpiAggregationService;
 use crate::domain::service::slo_calculation::SloCalculationService;
+use crate::infrastructure::cache::KpiCache;
 
 #[derive(Debug)]
 pub struct GetFlowKpiOutput {
