@@ -51,6 +51,7 @@ mod tests {
                 .map(|(et, src)| FlowStep {
                     event_type: et.to_string(),
                     source: src.to_string(),
+                    source_filter: Some(src.to_string()),
                     timeout_seconds: 30,
                     description: String::new(),
                 })
