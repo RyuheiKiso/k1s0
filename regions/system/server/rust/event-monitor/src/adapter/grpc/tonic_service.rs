@@ -309,7 +309,8 @@ impl EventMonitorService for EventMonitorServiceTonic {
                         .into_iter()
                         .map(|s| crate::domain::entity::flow_definition::FlowStep {
                             event_type: s.event_type,
-                            source: s.source,
+                            source: s.source.clone(),
+                            source_filter: if s.source.is_empty() { None } else { Some(s.source) },
                             timeout_seconds: s.timeout_seconds,
                             description: s.description,
                         })
