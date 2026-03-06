@@ -1,5 +1,6 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let proto_file = "../../../../../api/proto/k1s0/system/mastermaintenance/v1/master_maintenance.proto";
+    let proto_file =
+        "../../../../../api/proto/k1s0/system/mastermaintenance/v1/master_maintenance.proto";
     let proto_include = "../../../../../api/proto";
 
     if !std::path::Path::new(proto_file).exists() {

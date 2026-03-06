@@ -1,9 +1,9 @@
-use async_trait::async_trait;
-use sqlx::{PgPool, Row, postgres::PgRow};
-use serde_json::Value;
-use crate::domain::entity::table_definition::TableDefinition;
 use crate::domain::entity::column_definition::ColumnDefinition;
+use crate::domain::entity::table_definition::TableDefinition;
 use crate::domain::repository::dynamic_record_repository::DynamicRecordRepository;
+use async_trait::async_trait;
+use serde_json::Value;
+use sqlx::{postgres::PgRow, PgPool, Row};
 
 pub struct DynamicRecordPostgresRepository {
     pool: PgPool,
@@ -36,12 +36,17 @@ fn validate_identifier(name: &str) -> anyhow::Result<()> {
 fn build_table_name(table_def: &TableDefinition) -> anyhow::Result<String> {
     validate_identifier(&table_def.schema_name)?;
     validate_identifier(&table_def.name)?;
-    Ok(format!("{}.{}", quote_identifier(&table_def.schema_name), quote_identifier(&table_def.name)))
+    Ok(format!(
+        "{}.{}",
+        quote_identifier(&table_def.schema_name),
+        quote_identifier(&table_def.name)
+    ))
 }
 
 /// Find the primary key column from column definitions.
 fn find_primary_key_column(columns: &[ColumnDefinition]) -> anyhow::Result<&ColumnDefinition> {
-    columns.iter()
+    columns
+        .iter()
         .find(|c| c.is_primary_key)
         .ok_or_else(|| anyhow::anyhow!("No primary key column found"))
 }
@@ -53,37 +58,56 @@ fn row_to_json(row: &PgRow, columns: &[ColumnDefinition]) -> Value {
         let col_name = col.column_name.as_str();
         // Try to get the value based on data type
         let value = match col.data_type.to_lowercase().as_str() {
-            "uuid" => row.try_get::<uuid::Uuid, _>(col_name)
+            "uuid" => row
+                .try_get::<uuid::Uuid, _>(col_name)
                 .map(|v| Value::String(v.to_string()))
                 .unwrap_or(Value::Null),
-            "integer" | "int" | "int4" | "serial" => row.try_get::<i32, _>(col_name)
+            "integer" | "int" | "int4" | "serial" => row
+                .try_get::<i32, _>(col_name)
                 .map(|v| Value::Number(v.into()))
                 .unwrap_or(Value::Null),
-            "bigint" | "int8" | "bigserial" => row.try_get::<i64, _>(col_name)
+            "bigint" | "int8" | "bigserial" => row
+                .try_get::<i64, _>(col_name)
                 .map(|v| Value::Number(v.into()))
                 .unwrap_or(Value::Null),
-            "smallint" | "int2" => row.try_get::<i16, _>(col_name)
+            "smallint" | "int2" => row
+                .try_get::<i16, _>(col_name)
                 .map(|v| Value::Number(v.into()))
                 .unwrap_or(Value::Null),
-            "boolean" | "bool" => row.try_get::<bool, _>(col_name)
+            "boolean" | "bool" => row
+                .try_get::<bool, _>(col_name)
                 .map(Value::Bool)
                 .unwrap_or(Value::Null),
-            "real" | "float4" => row.try_get::<f32, _>(col_name)
-                .map(|v| serde_json::Number::from_f64(v as f64).map(Value::Number).unwrap_or(Value::Null))
+            "real" | "float4" => row
+                .try_get::<f32, _>(col_name)
+                .map(|v| {
+                    serde_json::Number::from_f64(v as f64)
+                        .map(Value::Number)
+                        .unwrap_or(Value::Null)
+                })
                 .unwrap_or(Value::Null),
-            "double precision" | "float8" | "numeric" | "decimal" => row.try_get::<f64, _>(col_name)
-                .map(|v| serde_json::Number::from_f64(v).map(Value::Number).unwrap_or(Value::Null))
+            "double precision" | "float8" | "numeric" | "decimal" => row
+                .try_get::<f64, _>(col_name)
+                .map(|v| {
+                    serde_json::Number::from_f64(v)
+                        .map(Value::Number)
+                        .unwrap_or(Value::Null)
+                })
                 .unwrap_or(Value::Null),
-            "json" | "jsonb" => row.try_get::<Value, _>(col_name)
+            "json" | "jsonb" => row.try_get::<Value, _>(col_name).unwrap_or(Value::Null),
+            "timestamp"
+            | "timestamptz"
+            | "timestamp with time zone"
+            | "timestamp without time zone" => row
+                .try_get::<chrono::DateTime<chrono::Utc>, _>(col_name)
+                .map(|v| Value::String(v.to_rfc3339()))
+                .or_else(|_| {
+                    row.try_get::<chrono::NaiveDateTime, _>(col_name)
+                        .map(|v| Value::String(v.to_string()))
+                })
                 .unwrap_or(Value::Null),
-            "timestamp" | "timestamptz" | "timestamp with time zone" | "timestamp without time zone" => {
-                row.try_get::<chrono::DateTime<chrono::Utc>, _>(col_name)
-                    .map(|v| Value::String(v.to_rfc3339()))
-                    .or_else(|_| row.try_get::<chrono::NaiveDateTime, _>(col_name)
-                        .map(|v| Value::String(v.to_string())))
-                    .unwrap_or(Value::Null)
-            }
-            "date" => row.try_get::<chrono::NaiveDate, _>(col_name)
+            "date" => row
+                .try_get::<chrono::NaiveDate, _>(col_name)
                 .map(|v| Value::String(v.to_string()))
                 .unwrap_or(Value::Null),
             _ => {
@@ -101,14 +125,21 @@ fn row_to_json(row: &PgRow, columns: &[ColumnDefinition]) -> Value {
 #[async_trait]
 impl DynamicRecordRepository for DynamicRecordPostgresRepository {
     async fn find_all(
-        &self, table_def: &TableDefinition, columns: &[ColumnDefinition],
-        page: i32, page_size: i32, sort: Option<&str>, filter: Option<&str>, search: Option<&str>,
+        &self,
+        table_def: &TableDefinition,
+        columns: &[ColumnDefinition],
+        page: i32,
+        page_size: i32,
+        sort: Option<&str>,
+        filter: Option<&str>,
+        search: Option<&str>,
     ) -> anyhow::Result<(Vec<Value>, i64)> {
         let table_name = build_table_name(table_def)?;
         let offset = (page - 1).max(0) * page_size;
 
         // Build column list
-        let col_list: Vec<String> = columns.iter()
+        let col_list: Vec<String> = columns
+            .iter()
             .map(|c| quote_identifier(&c.column_name))
             .collect();
         let select_cols = col_list.join(", ");
@@ -127,7 +158,11 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                     // Verify column exists in definitions
                     if columns.iter().any(|c| c.column_name == col_name) {
                         validate_identifier(col_name)?;
-                        where_clauses.push(format!("{} = ${}", quote_identifier(col_name), param_idx));
+                        where_clauses.push(format!(
+                            "{} = ${}",
+                            quote_identifier(col_name),
+                            param_idx
+                        ));
                         bind_values.push(val.to_string());
                         param_idx += 1;
                     }
@@ -138,9 +173,16 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         // Search: ILIKE on searchable columns
         if let Some(s) = search {
             if !s.is_empty() {
-                let searchable: Vec<String> = columns.iter()
+                let searchable: Vec<String> = columns
+                    .iter()
                     .filter(|c| c.is_searchable)
-                    .map(|c| format!("{}::text ILIKE ${}", quote_identifier(&c.column_name), param_idx))
+                    .map(|c| {
+                        format!(
+                            "{}::text ILIKE ${}",
+                            quote_identifier(&c.column_name),
+                            param_idx
+                        )
+                    })
                     .collect();
                 if !searchable.is_empty() {
                     where_clauses.push(format!("({})", searchable.join(" OR ")));
@@ -165,7 +207,10 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                 } else {
                     (item, "ASC")
                 };
-                if columns.iter().any(|c| c.column_name == col_name && c.is_sortable) {
+                if columns
+                    .iter()
+                    .any(|c| c.column_name == col_name && c.is_sortable)
+                {
                     validate_identifier(col_name)?;
                     parts.push(format!("{} {}", quote_identifier(col_name), direction));
                 }
@@ -202,19 +247,27 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         Ok((results, total))
     }
 
-    async fn find_by_id(&self, table_def: &TableDefinition, columns: &[ColumnDefinition], record_id: &str) -> anyhow::Result<Option<Value>> {
+    async fn find_by_id(
+        &self,
+        table_def: &TableDefinition,
+        columns: &[ColumnDefinition],
+        record_id: &str,
+    ) -> anyhow::Result<Option<Value>> {
         let table_name = build_table_name(table_def)?;
         let pk_col = find_primary_key_column(columns)?;
         validate_identifier(&pk_col.column_name)?;
 
-        let col_list: Vec<String> = columns.iter()
+        let col_list: Vec<String> = columns
+            .iter()
             .map(|c| quote_identifier(&c.column_name))
             .collect();
         let select_cols = col_list.join(", ");
 
         let sql = format!(
             "SELECT {} FROM {} WHERE {} = $1",
-            select_cols, table_name, quote_identifier(&pk_col.column_name)
+            select_cols,
+            table_name,
+            quote_identifier(&pk_col.column_name)
         );
 
         let row = sqlx::query(&sql)
@@ -225,9 +278,15 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         Ok(row.as_ref().map(|r| row_to_json(r, columns)))
     }
 
-    async fn create(&self, table_def: &TableDefinition, columns: &[ColumnDefinition], data: &Value) -> anyhow::Result<Value> {
+    async fn create(
+        &self,
+        table_def: &TableDefinition,
+        columns: &[ColumnDefinition],
+        data: &Value,
+    ) -> anyhow::Result<Value> {
         let table_name = build_table_name(table_def)?;
-        let obj = data.as_object()
+        let obj = data
+            .as_object()
             .ok_or_else(|| anyhow::anyhow!("Data must be a JSON object"))?;
 
         let mut col_names: Vec<String> = Vec::new();
@@ -254,7 +313,8 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
             anyhow::bail!("No valid columns provided for insert");
         }
 
-        let returning_cols: Vec<String> = columns.iter()
+        let returning_cols: Vec<String> = columns
+            .iter()
             .map(|c| quote_identifier(&c.column_name))
             .collect();
 
@@ -275,12 +335,19 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         Ok(row_to_json(&row, columns))
     }
 
-    async fn update(&self, table_def: &TableDefinition, columns: &[ColumnDefinition], record_id: &str, data: &Value) -> anyhow::Result<Value> {
+    async fn update(
+        &self,
+        table_def: &TableDefinition,
+        columns: &[ColumnDefinition],
+        record_id: &str,
+        data: &Value,
+    ) -> anyhow::Result<Value> {
         let table_name = build_table_name(table_def)?;
         let pk_col = find_primary_key_column(columns)?;
         validate_identifier(&pk_col.column_name)?;
 
-        let obj = data.as_object()
+        let obj = data
+            .as_object()
             .ok_or_else(|| anyhow::anyhow!("Data must be a JSON object"))?;
 
         let mut set_clauses: Vec<String> = Vec::new();
@@ -293,7 +360,11 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
             }
             if let Some(val) = obj.get(&col.column_name) {
                 validate_identifier(&col.column_name)?;
-                set_clauses.push(format!("{} = ${}", quote_identifier(&col.column_name), param_idx));
+                set_clauses.push(format!(
+                    "{} = ${}",
+                    quote_identifier(&col.column_name),
+                    param_idx
+                ));
                 values.push(json_value_to_string(val));
                 param_idx += 1;
             }
@@ -303,7 +374,8 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
             anyhow::bail!("No valid columns provided for update");
         }
 
-        let returning_cols: Vec<String> = columns.iter()
+        let returning_cols: Vec<String> = columns
+            .iter()
             .map(|c| quote_identifier(&c.column_name))
             .collect();
 
@@ -338,11 +410,16 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         .fetch_optional(&self.pool)
         .await?;
 
-        let pk_col = pk_col_name
-            .ok_or_else(|| anyhow::anyhow!("No primary key column found for table {}", table_def.name))?;
+        let pk_col = pk_col_name.ok_or_else(|| {
+            anyhow::anyhow!("No primary key column found for table {}", table_def.name)
+        })?;
         validate_identifier(&pk_col)?;
 
-        let sql = format!("DELETE FROM {} WHERE {} = $1", table_name, quote_identifier(&pk_col));
+        let sql = format!(
+            "DELETE FROM {} WHERE {} = $1",
+            table_name,
+            quote_identifier(&pk_col)
+        );
         sqlx::query(&sql)
             .bind(record_id)
             .execute(&self.pool)

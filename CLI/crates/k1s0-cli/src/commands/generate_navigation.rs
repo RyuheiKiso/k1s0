@@ -22,8 +22,8 @@ pub fn run() -> Result<()> {
         .default("navigation.yaml".to_string())
         .interact_text()?;
 
-    let content = fs::read_to_string(&nav_path)
-        .map_err(|e| anyhow::anyhow!("{}: {e}", nav_path))?;
+    let content =
+        fs::read_to_string(&nav_path).map_err(|e| anyhow::anyhow!("{}: {e}", nav_path))?;
     let nav: NavigationYaml = serde_yaml::from_str(&content)
         .map_err(|e| anyhow::anyhow!("navigation.yaml のパースエラー: {e}"))?;
 
@@ -41,7 +41,11 @@ pub fn run() -> Result<()> {
 
     // 確認
     println!("\n[確認] 以下の内容で実行します。よろしいですか？");
-    println!("  ナビゲーション: {} ({} ルート)", nav_path, nav.routes.len());
+    println!(
+        "  ナビゲーション: {} ({} ルート)",
+        nav_path,
+        nav.routes.len()
+    );
     if gen_react {
         println!("  React  → src/navigation/__generated__/route-types.ts");
     }

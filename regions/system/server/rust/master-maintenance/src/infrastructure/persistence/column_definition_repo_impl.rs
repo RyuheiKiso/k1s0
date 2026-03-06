@@ -1,8 +1,8 @@
+use crate::domain::entity::column_definition::{ColumnDefinition, CreateColumnDefinition};
+use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::domain::entity::column_definition::{ColumnDefinition, CreateColumnDefinition};
-use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
 
 pub struct ColumnDefinitionPostgresRepository {
     pool: PgPool,
@@ -26,7 +26,11 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
 
-    async fn find_by_table_and_column(&self, table_id: Uuid, column_name: &str) -> anyhow::Result<Option<ColumnDefinition>> {
+    async fn find_by_table_and_column(
+        &self,
+        table_id: Uuid,
+        column_name: &str,
+    ) -> anyhow::Result<Option<ColumnDefinition>> {
         let row = sqlx::query_as::<_, ColumnDefinitionRow>(
             "SELECT * FROM master_maintenance.column_definitions WHERE table_id = $1 AND column_name = $2"
         )
@@ -37,7 +41,11 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
         Ok(row.map(|r| r.into()))
     }
 
-    async fn create_batch(&self, table_id: Uuid, columns: &[CreateColumnDefinition]) -> anyhow::Result<Vec<ColumnDefinition>> {
+    async fn create_batch(
+        &self,
+        table_id: Uuid,
+        columns: &[CreateColumnDefinition],
+    ) -> anyhow::Result<Vec<ColumnDefinition>> {
         let mut tx = self.pool.begin().await?;
         let mut results = Vec::with_capacity(columns.len());
 
@@ -81,7 +89,12 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
         Ok(results)
     }
 
-    async fn update(&self, table_id: Uuid, column_name: &str, input: &CreateColumnDefinition) -> anyhow::Result<ColumnDefinition> {
+    async fn update(
+        &self,
+        table_id: Uuid,
+        column_name: &str,
+        input: &CreateColumnDefinition,
+    ) -> anyhow::Result<ColumnDefinition> {
         let row = sqlx::query_as::<_, ColumnDefinitionRow>(
             r#"UPDATE master_maintenance.column_definitions SET
                display_name = $3,
@@ -104,7 +117,7 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
                input_type = COALESCE($20, input_type),
                select_options = $21,
                updated_at = now()
-               WHERE table_id = $1 AND column_name = $2 RETURNING *"#
+               WHERE table_id = $1 AND column_name = $2 RETURNING *"#,
         )
         .bind(table_id)
         .bind(column_name)

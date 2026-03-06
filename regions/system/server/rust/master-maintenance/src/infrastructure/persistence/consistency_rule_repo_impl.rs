@@ -1,9 +1,9 @@
-use async_trait::async_trait;
-use sqlx::PgPool;
-use uuid::Uuid;
 use crate::domain::entity::consistency_rule::ConsistencyRule;
 use crate::domain::entity::rule_condition::RuleCondition;
 use crate::domain::repository::consistency_rule_repository::ConsistencyRuleRepository;
+use async_trait::async_trait;
+use sqlx::PgPool;
+use uuid::Uuid;
 
 pub struct ConsistencyRulePostgresRepository {
     pool: PgPool,
@@ -17,8 +17,14 @@ impl ConsistencyRulePostgresRepository {
 
 #[async_trait]
 impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
-    async fn find_all(&self, table_id: Option<Uuid>, rule_type: Option<&str>, severity: Option<&str>) -> anyhow::Result<Vec<ConsistencyRule>> {
-        let mut query = String::from("SELECT * FROM master_maintenance.consistency_rules WHERE 1=1");
+    async fn find_all(
+        &self,
+        table_id: Option<Uuid>,
+        rule_type: Option<&str>,
+        severity: Option<&str>,
+    ) -> anyhow::Result<Vec<ConsistencyRule>> {
+        let mut query =
+            String::from("SELECT * FROM master_maintenance.consistency_rules WHERE 1=1");
         let mut param_idx = 1u32;
         let mut bind_values: Vec<String> = Vec::new();
 
@@ -54,7 +60,7 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<ConsistencyRule>> {
         let row = sqlx::query_as::<_, ConsistencyRuleRow>(
-            "SELECT * FROM master_maintenance.consistency_rules WHERE id = $1"
+            "SELECT * FROM master_maintenance.consistency_rules WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -62,7 +68,11 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         Ok(row.map(|r| r.into()))
     }
 
-    async fn find_by_table_id(&self, table_id: Uuid, timing: Option<&str>) -> anyhow::Result<Vec<ConsistencyRule>> {
+    async fn find_by_table_id(
+        &self,
+        table_id: Uuid,
+        timing: Option<&str>,
+    ) -> anyhow::Result<Vec<ConsistencyRule>> {
         let rows = if let Some(t) = timing {
             sqlx::query_as::<_, ConsistencyRuleRow>(
                 "SELECT * FROM master_maintenance.consistency_rules WHERE source_table_id = $1 AND evaluation_timing = $2 AND is_active = true ORDER BY name"
@@ -82,7 +92,11 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
 
-    async fn create(&self, rule: &ConsistencyRule, conditions: &[RuleCondition]) -> anyhow::Result<ConsistencyRule> {
+    async fn create(
+        &self,
+        rule: &ConsistencyRule,
+        conditions: &[RuleCondition],
+    ) -> anyhow::Result<ConsistencyRule> {
         let mut tx = self.pool.begin().await?;
 
         let rule_row = sqlx::query_as::<_, ConsistencyRuleRow>(
@@ -90,7 +104,7 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
                (id, name, description, rule_type, severity, is_active, source_table_id,
                 evaluation_timing, error_message_template, zen_rule_json, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-               RETURNING *"#
+               RETURNING *"#,
         )
         .bind(rule.id)
         .bind(&rule.name)
@@ -111,7 +125,7 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
                 r#"INSERT INTO master_maintenance.rule_conditions
                    (id, rule_id, condition_order, left_table_id, left_column, operator,
                     right_table_id, right_column, right_value, logical_connector)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
             )
             .bind(cond.id)
             .bind(cond.rule_id)
@@ -143,7 +157,7 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
                error_message_template = $8,
                zen_rule_json = $9,
                updated_at = now()
-               WHERE id = $1 RETURNING *"#
+               WHERE id = $1 RETURNING *"#,
         )
         .bind(id)
         .bind(&rule.name)
@@ -176,7 +190,10 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         Ok(())
     }
 
-    async fn find_conditions_by_rule_id(&self, rule_id: Uuid) -> anyhow::Result<Vec<RuleCondition>> {
+    async fn find_conditions_by_rule_id(
+        &self,
+        rule_id: Uuid,
+    ) -> anyhow::Result<Vec<RuleCondition>> {
         let rows = sqlx::query_as::<_, RuleConditionRow>(
             "SELECT * FROM master_maintenance.rule_conditions WHERE rule_id = $1 ORDER BY condition_order"
         )

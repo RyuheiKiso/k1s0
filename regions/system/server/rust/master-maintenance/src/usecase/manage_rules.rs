@@ -1,9 +1,9 @@
-use std::sync::Arc;
-use uuid::Uuid;
 use crate::domain::entity::consistency_rule::{ConsistencyRule, CreateConsistencyRule};
 use crate::domain::entity::rule_condition::RuleCondition;
-use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
 use crate::domain::repository::consistency_rule_repository::ConsistencyRuleRepository;
+use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct ManageRulesUseCase {
     table_repo: Arc<dyn TableDefinitionRepository>,
@@ -15,7 +15,10 @@ impl ManageRulesUseCase {
         table_repo: Arc<dyn TableDefinitionRepository>,
         rule_repo: Arc<dyn ConsistencyRuleRepository>,
     ) -> Self {
-        Self { table_repo, rule_repo }
+        Self {
+            table_repo,
+            rule_repo,
+        }
     }
 
     pub async fn list_rules(
@@ -25,7 +28,10 @@ impl ManageRulesUseCase {
         severity: Option<&str>,
     ) -> anyhow::Result<Vec<ConsistencyRule>> {
         let table_id = if let Some(name) = table_name {
-            let table = self.table_repo.find_by_name(name).await?
+            let table = self
+                .table_repo
+                .find_by_name(name)
+                .await?
                 .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", name))?;
             Some(table.id)
         } else {
@@ -38,10 +44,17 @@ impl ManageRulesUseCase {
         self.rule_repo.find_by_id(id).await
     }
 
-    pub async fn create_rule(&self, input: &serde_json::Value, created_by: &str) -> anyhow::Result<ConsistencyRule> {
+    pub async fn create_rule(
+        &self,
+        input: &serde_json::Value,
+        created_by: &str,
+    ) -> anyhow::Result<ConsistencyRule> {
         let create_input: CreateConsistencyRule = serde_json::from_value(input.clone())?;
 
-        let table = self.table_repo.find_by_name(&create_input.source_table).await?
+        let table = self
+            .table_repo
+            .find_by_name(&create_input.source_table)
+            .await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", create_input.source_table))?;
 
         let rule = ConsistencyRule {
@@ -52,7 +65,9 @@ impl ManageRulesUseCase {
             severity: create_input.severity.unwrap_or_else(|| "error".to_string()),
             is_active: true,
             source_table_id: table.id,
-            evaluation_timing: create_input.evaluation_timing.unwrap_or_else(|| "on_save".to_string()),
+            evaluation_timing: create_input
+                .evaluation_timing
+                .unwrap_or_else(|| "on_save".to_string()),
             error_message_template: create_input.error_message_template,
             zen_rule_json: create_input.zen_rule_json,
             created_by: created_by.to_string(),
@@ -60,7 +75,8 @@ impl ManageRulesUseCase {
             updated_at: chrono::Utc::now(),
         };
 
-        let conditions: Vec<RuleCondition> = create_input.conditions
+        let conditions: Vec<RuleCondition> = create_input
+            .conditions
             .unwrap_or_default()
             .iter()
             .map(|c| RuleCondition {
@@ -81,8 +97,15 @@ impl ManageRulesUseCase {
         self.rule_repo.create(&rule, &conditions).await
     }
 
-    pub async fn update_rule(&self, id: Uuid, input: &serde_json::Value) -> anyhow::Result<ConsistencyRule> {
-        let mut rule = self.rule_repo.find_by_id(id).await?
+    pub async fn update_rule(
+        &self,
+        id: Uuid,
+        input: &serde_json::Value,
+    ) -> anyhow::Result<ConsistencyRule> {
+        let mut rule = self
+            .rule_repo
+            .find_by_id(id)
+            .await?
             .ok_or_else(|| anyhow::anyhow!("Rule not found"))?;
 
         if let Some(name) = input.get("name").and_then(|v| v.as_str()) {

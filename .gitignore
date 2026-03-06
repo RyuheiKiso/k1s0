@@ -17,6 +17,7 @@ nul
 # Rust
 **/target/
 **/Cargo.lock
+!CLI/Cargo.lock
 
 # Go (sum is committed, vendor is not)
 vendor/

@@ -1,8 +1,10 @@
+use crate::domain::entity::table_definition::{
+    CreateTableDefinition, TableDefinition, UpdateTableDefinition,
+};
+use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::domain::entity::table_definition::{TableDefinition, CreateTableDefinition, UpdateTableDefinition};
-use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
 
 pub struct TableDefinitionPostgresRepository {
     pool: PgPool,
@@ -16,8 +18,13 @@ impl TableDefinitionPostgresRepository {
 
 #[async_trait]
 impl TableDefinitionRepository for TableDefinitionPostgresRepository {
-    async fn find_all(&self, category: Option<&str>, active_only: bool) -> anyhow::Result<Vec<TableDefinition>> {
-        let mut query = String::from("SELECT * FROM master_maintenance.table_definitions WHERE 1=1");
+    async fn find_all(
+        &self,
+        category: Option<&str>,
+        active_only: bool,
+    ) -> anyhow::Result<Vec<TableDefinition>> {
+        let mut query =
+            String::from("SELECT * FROM master_maintenance.table_definitions WHERE 1=1");
         if active_only {
             query.push_str(" AND is_active = true");
         }
@@ -34,7 +41,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
 
     async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<TableDefinition>> {
         let row = sqlx::query_as::<_, TableDefinitionRow>(
-            "SELECT * FROM master_maintenance.table_definitions WHERE name = $1"
+            "SELECT * FROM master_maintenance.table_definitions WHERE name = $1",
         )
         .bind(name)
         .fetch_optional(&self.pool)
@@ -44,7 +51,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<TableDefinition>> {
         let row = sqlx::query_as::<_, TableDefinitionRow>(
-            "SELECT * FROM master_maintenance.table_definitions WHERE id = $1"
+            "SELECT * FROM master_maintenance.table_definitions WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -52,13 +59,17 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
         Ok(row.map(|r| r.into()))
     }
 
-    async fn create(&self, input: &CreateTableDefinition, created_by: &str) -> anyhow::Result<TableDefinition> {
+    async fn create(
+        &self,
+        input: &CreateTableDefinition,
+        created_by: &str,
+    ) -> anyhow::Result<TableDefinition> {
         let row = sqlx::query_as::<_, TableDefinitionRow>(
             r#"INSERT INTO master_maintenance.table_definitions
                (name, schema_name, database_name, display_name, description, category,
                 allow_create, allow_update, allow_delete, sort_order, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-               RETURNING *"#
+               RETURNING *"#,
         )
         .bind(&input.name)
         .bind(&input.schema_name)
@@ -76,7 +87,11 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
         Ok(row.into())
     }
 
-    async fn update(&self, name: &str, input: &UpdateTableDefinition) -> anyhow::Result<TableDefinition> {
+    async fn update(
+        &self,
+        name: &str,
+        input: &UpdateTableDefinition,
+    ) -> anyhow::Result<TableDefinition> {
         // Dynamic update - only set fields that are Some
         let row = sqlx::query_as::<_, TableDefinitionRow>(
             r#"UPDATE master_maintenance.table_definitions SET
@@ -89,7 +104,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
                allow_delete = COALESCE($8, allow_delete),
                sort_order = COALESCE($9, sort_order),
                updated_at = now()
-               WHERE name = $1 RETURNING *"#
+               WHERE name = $1 RETURNING *"#,
         )
         .bind(name)
         .bind(&input.display_name)

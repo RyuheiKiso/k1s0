@@ -477,10 +477,7 @@ impl TemplateContext {
         ctx.insert("server_port", &self.server_port);
         ctx.insert("grpc_port", &self.grpc_port);
         ctx.insert("server_language", &self.server_language);
-        ctx.insert(
-            "system_library_rust_path",
-            &self.system_library_rust_path,
-        );
+        ctx.insert("system_library_rust_path", &self.system_library_rust_path);
         ctx.insert(
             "system_library_go_local_path",
             &self.system_library_go_local_path,

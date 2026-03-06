@@ -1,10 +1,12 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Extension, Path, State},
     http::StatusCode,
     Json,
 };
-use crate::adapter::handler::AppState;
+use k1s0_auth::Claims;
+
 use crate::adapter::handler::error::AppError;
+use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState};
 
 pub async fn list_display_configs(
     State(state): State<AppState>,
@@ -26,20 +28,39 @@ pub async fn get_display_config(
         .get_display_config(id)
         .await?
         .ok_or_else(|| {
-            AppError::not_found("SYS_MM_DISPLAY_CONFIG_NOT_FOUND", "Display config not found")
+            AppError::not_found(
+                "SYS_MM_DISPLAY_CONFIG_NOT_FOUND",
+                "Display config not found",
+            )
         })?;
     Ok(Json(serde_json::to_value(config).unwrap()))
 }
 
 pub async fn create_display_config(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
+    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let config = state
         .manage_display_configs_uc
-        .create_display_config(&name, &input, "system")
+        .create_display_config(&name, &input, &actor)
         .await?;
+    publish_change_event(
+        &state,
+        serde_json::json!({
+            "event_type": "MASTER_MAINTENANCE_DATA_CHANGED",
+            "resource_type": "display_config",
+            "resource_id": config.id,
+            "resource_name": name,
+            "action": "created",
+            "actor": actor,
+            "after": config.clone(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        }),
+    )
+    .await;
     Ok((
         StatusCode::CREATED,
         Json(serde_json::to_value(config).unwrap()),

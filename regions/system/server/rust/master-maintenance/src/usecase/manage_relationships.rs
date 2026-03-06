@@ -1,11 +1,11 @@
-use std::sync::Arc;
-use serde_json::Value;
-use uuid::Uuid;
-use crate::domain::entity::table_relationship::{TableRelationship, CreateTableRelationship};
+use crate::domain::entity::table_relationship::{CreateTableRelationship, TableRelationship};
+use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
+use crate::domain::repository::dynamic_record_repository::DynamicRecordRepository;
 use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
 use crate::domain::repository::table_relationship_repository::TableRelationshipRepository;
-use crate::domain::repository::dynamic_record_repository::DynamicRecordRepository;
-use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
+use serde_json::Value;
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct ManageRelationshipsUseCase {
     table_repo: Arc<dyn TableDefinitionRepository>,
@@ -120,31 +120,30 @@ impl ManageRelationshipsUseCase {
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
 
         // Find relationships where this table is the source
-        let relationships = self
-            .relationship_repo
-            .find_by_table_id(table.id)
-            .await?;
+        let relationships = self.relationship_repo.find_by_table_id(table.id).await?;
 
         let mut related_data = serde_json::Map::new();
 
         for rel in &relationships {
             // Get the target table definition
-            let target_table = self
-                .table_repo
-                .find_by_id(rel.target_table_id)
-                .await?;
+            let target_table = self.table_repo.find_by_id(rel.target_table_id).await?;
 
             if let Some(target_table) = target_table {
-                let target_columns = self
-                    .column_repo
-                    .find_by_table_id(target_table.id)
-                    .await?;
+                let target_columns = self.column_repo.find_by_table_id(target_table.id).await?;
 
                 // Fetch related records using a filter on the target column
                 let filter = format!("{}={}", rel.target_column, record_id);
                 let (records, _total) = self
                     .record_repo
-                    .find_all(&target_table, &target_columns, 1, 100, None, Some(&filter), None)
+                    .find_all(
+                        &target_table,
+                        &target_columns,
+                        1,
+                        100,
+                        None,
+                        Some(&filter),
+                        None,
+                    )
                     .await?;
 
                 related_data.insert(

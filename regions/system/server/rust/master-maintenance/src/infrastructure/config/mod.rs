@@ -102,25 +102,60 @@ pub struct ImportConfig {
     pub batch_size: usize,
 }
 
-fn default_version() -> String { "0.1.0".to_string() }
-fn default_environment() -> String { "development".to_string() }
-fn default_host() -> String { "0.0.0.0".to_string() }
-fn default_port() -> u16 { 8110 }
-fn default_grpc_port() -> u16 { 50051 }
-fn default_db_port() -> u16 { 5432 }
-fn default_schema() -> String { "master_maintenance".to_string() }
-fn default_ssl_mode() -> String { "disable".to_string() }
-fn default_max_connections() -> u32 { 25 }
-fn default_max_idle_conns() -> u32 { 5 }
-fn default_conn_max_lifetime() -> u64 { 300 }
-fn default_jwks_cache_ttl() -> u64 { 300 }
-fn default_max_rules() -> usize { 100 }
-fn default_eval_timeout() -> u64 { 5000 }
-fn default_cache_ttl() -> u64 { 300 }
-fn default_max_file_size() -> usize { 50 }
-fn default_max_rows() -> usize { 100000 }
-fn default_batch_size() -> usize { 500 }
-
+fn default_version() -> String {
+    "0.1.0".to_string()
+}
+fn default_environment() -> String {
+    "development".to_string()
+}
+fn default_host() -> String {
+    "0.0.0.0".to_string()
+}
+fn default_port() -> u16 {
+    8110
+}
+fn default_grpc_port() -> u16 {
+    50051
+}
+fn default_db_port() -> u16 {
+    5432
+}
+fn default_schema() -> String {
+    "master_maintenance".to_string()
+}
+fn default_ssl_mode() -> String {
+    "disable".to_string()
+}
+fn default_max_connections() -> u32 {
+    25
+}
+fn default_max_idle_conns() -> u32 {
+    5
+}
+fn default_conn_max_lifetime() -> u64 {
+    300
+}
+fn default_jwks_cache_ttl() -> u64 {
+    300
+}
+fn default_max_rules() -> usize {
+    100
+}
+fn default_eval_timeout() -> u64 {
+    5000
+}
+fn default_cache_ttl() -> u64 {
+    300
+}
+fn default_max_file_size() -> usize {
+    50
+}
+fn default_max_rows() -> usize {
+    100000
+}
+fn default_batch_size() -> usize {
+    500
+}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
@@ -248,5 +283,3 @@ server:
         );
     }
 }
-
-

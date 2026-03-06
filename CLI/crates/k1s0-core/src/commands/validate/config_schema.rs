@@ -128,10 +128,7 @@ pub fn validate_config_schema(path: &str) -> Result<usize, Box<dyn std::error::E
     for cat in &schema.categories {
         for field in &cat.fields {
             if field.field_type.as_deref() == Some("enum") {
-                let has_options = field
-                    .options
-                    .as_ref()
-                    .is_some_and(|opts| !opts.is_empty());
+                let has_options = field.options.as_ref().is_some_and(|opts| !opts.is_empty());
                 if !has_options {
                     println!(
                         "  \u{274c} category '{}' の field '{}' は type=enum ですが options が空です",

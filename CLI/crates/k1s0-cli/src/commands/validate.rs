@@ -28,10 +28,9 @@ pub fn run() -> Result<()> {
                 .with_prompt("config-schema.yaml のパス")
                 .default("config-schema.yaml".to_string())
                 .interact_text()?;
-            let errors = k1s0_core::commands::validate::config_schema::validate_config_schema(
-                &path,
-            )
-            .map_err(|e| anyhow::anyhow!("{e}"))?;
+            let errors =
+                k1s0_core::commands::validate::config_schema::validate_config_schema(&path)
+                    .map_err(|e| anyhow::anyhow!("{e}"))?;
             if errors == 0 {
                 println!("\nバリデーション完了: エラーなし");
             } else {
@@ -43,9 +42,8 @@ pub fn run() -> Result<()> {
                 .with_prompt("navigation.yaml のパス")
                 .default("navigation.yaml".to_string())
                 .interact_text()?;
-            let errors =
-                k1s0_core::commands::validate::navigation::validate_navigation(&path)
-                    .map_err(|e| anyhow::anyhow!("{e}"))?;
+            let errors = k1s0_core::commands::validate::navigation::validate_navigation(&path)
+                .map_err(|e| anyhow::anyhow!("{e}"))?;
             if errors == 0 {
                 println!("\nバリデーション完了: エラーなし");
             } else {

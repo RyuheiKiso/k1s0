@@ -1,13 +1,14 @@
+use crate::adapter::handler::error::AppError;
+use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState};
+use crate::domain::entity::table_definition::{CreateTableDefinition, UpdateTableDefinition};
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
+use k1s0_auth::Claims;
 use serde::Deserialize;
-use crate::adapter::handler::AppState;
-use crate::adapter::handler::error::AppError;
-use crate::domain::entity::table_definition::{CreateTableDefinition, UpdateTableDefinition};
 
 #[derive(Debug, Deserialize)]
 pub struct ListTablesQuery {
@@ -56,8 +57,12 @@ pub async fn list_tables(
     State(state): State<AppState>,
     Query(query): Query<ListTablesQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let tables = state.manage_tables_uc
-        .list_tables(query.category.as_deref(), query.active_only.unwrap_or(false))
+    let tables = state
+        .manage_tables_uc
+        .list_tables(
+            query.category.as_deref(),
+            query.active_only.unwrap_or(false),
+        )
         .await?;
     let page = query.page.unwrap_or(1).max(1);
     let page_size = query.page_size.unwrap_or(20).clamp(1, 100);
@@ -85,21 +90,44 @@ pub async fn get_table(
     State(state): State<AppState>,
     Path(name): Path<String>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let table = state.manage_tables_uc
+    let table = state
+        .manage_tables_uc
         .get_table(&name)
         .await?
-        .ok_or_else(|| AppError::not_found("SYS_MM_TABLE_NOT_FOUND", &format!("Table '{}' not found", name)))?;
+        .ok_or_else(|| {
+            AppError::not_found(
+                "SYS_MM_TABLE_NOT_FOUND",
+                &format!("Table '{}' not found", name),
+            )
+        })?;
     Ok(Json(serde_json::to_value(table).unwrap()))
 }
 
 pub async fn create_table(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(input): Json<CreateTableDefinition>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
-    let table = state.manage_tables_uc
-        .create_table(&input, "system") // TODO: extract user from claims
-        .await?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(table).unwrap())))
+    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    let table = state.manage_tables_uc.create_table(&input, &actor).await?;
+    publish_change_event(
+        &state,
+        serde_json::json!({
+            "event_type": "MASTER_MAINTENANCE_DATA_CHANGED",
+            "resource_type": "table_definition",
+            "resource_id": table.id,
+            "resource_name": table.name,
+            "action": "created",
+            "actor": actor,
+            "after": table.clone(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        }),
+    )
+    .await;
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(table).unwrap()),
+    ))
 }
 
 pub async fn update_table(
@@ -107,9 +135,7 @@ pub async fn update_table(
     Path(name): Path<String>,
     Json(input): Json<UpdateTableDefinition>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let table = state.manage_tables_uc
-        .update_table(&name, &input)
-        .await?;
+    let table = state.manage_tables_uc.update_table(&name, &input).await?;
     Ok(Json(serde_json::to_value(table).unwrap()))
 }
 
@@ -142,8 +168,14 @@ pub async fn create_columns(
     Path(name): Path<String>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
-    let columns = state.manage_columns_uc.create_columns(&name, &input).await?;
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(columns).unwrap())))
+    let columns = state
+        .manage_columns_uc
+        .create_columns(&name, &input)
+        .await?;
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(columns).unwrap()),
+    ))
 }
 
 pub async fn update_column(
@@ -151,7 +183,10 @@ pub async fn update_column(
     Path((name, column)): Path<(String, String)>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let col = state.manage_columns_uc.update_column(&name, &column, &input).await?;
+    let col = state
+        .manage_columns_uc
+        .update_column(&name, &column, &input)
+        .await?;
     Ok(Json(serde_json::to_value(col).unwrap()))
 }
 
@@ -159,6 +194,9 @@ pub async fn delete_column(
     State(state): State<AppState>,
     Path((name, column)): Path<(String, String)>,
 ) -> Result<StatusCode, AppError> {
-    state.manage_columns_uc.delete_column(&name, &column).await?;
+    state
+        .manage_columns_uc
+        .delete_column(&name, &column)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }

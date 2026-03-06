@@ -25,10 +25,7 @@ pub fn generate_typescript_routes(nav: &NavigationYaml) -> String {
     out.push_str("export type RouteParams = {\n");
     for route in &all_routes {
         if route.params.is_empty() {
-            out.push_str(&format!(
-                "  {}: Record<string, never>;\n",
-                route.id
-            ));
+            out.push_str(&format!("  {}: Record<string, never>;\n", route.id));
         } else {
             out.push_str(&format!("  {}: {{ ", route.id));
             let params: Vec<String> = route
@@ -77,10 +74,7 @@ pub fn generate_dart_routes(nav: &NavigationYaml) -> String {
     out.push_str("\n  String get path => switch (this) {\n");
     for route in &all_routes {
         let camel = to_camel_case(&route.id);
-        out.push_str(&format!(
-            "    RouteId.{camel} => '{}',\n",
-            route.full_path
-        ));
+        out.push_str(&format!("    RouteId.{camel} => '{}',\n", route.full_path));
     }
     out.push_str("  };\n");
     out.push_str("}\n");
@@ -100,7 +94,9 @@ struct FlatParam {
     param_type: String,
 }
 
-fn collect_all_routes_flat(routes: &[super::super::validate::navigation::RouteYaml]) -> Vec<FlatRoute> {
+fn collect_all_routes_flat(
+    routes: &[super::super::validate::navigation::RouteYaml],
+) -> Vec<FlatRoute> {
     let mut result = Vec::new();
     collect_routes_recursive(routes, "", &mut result);
     result
@@ -152,7 +148,9 @@ fn to_camel_case(snake: &str) -> String {
 }
 
 /// ファイルパスから TypeScript ルート定義を生成する
-pub fn generate_typescript_routes_from_file(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub fn generate_typescript_routes_from_file(
+    path: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
     let content = std::fs::read_to_string(path)?;
     let nav: NavigationYaml = serde_yaml::from_str(&content)?;
     Ok(generate_typescript_routes(&nav))
@@ -172,9 +170,7 @@ pub fn generate_dart_routes_from_file(path: &str) -> Result<String, Box<dyn std:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::validate::navigation::{
-        GuardYaml, NavigationYaml, ParamYaml, RouteYaml,
-    };
+    use crate::commands::validate::navigation::{GuardYaml, NavigationYaml, ParamYaml, RouteYaml};
 
     fn sample_navigation() -> NavigationYaml {
         NavigationYaml {

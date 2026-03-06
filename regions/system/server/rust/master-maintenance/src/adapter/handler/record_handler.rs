@@ -1,11 +1,12 @@
+use crate::adapter::handler::error::AppError;
+use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState};
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     Json,
 };
+use k1s0_auth::Claims;
 use serde::Deserialize;
-use crate::adapter::handler::AppState;
-use crate::adapter::handler::error::AppError;
 
 #[derive(Debug, Deserialize)]
 pub struct ListRecordsQuery {
@@ -22,7 +23,8 @@ pub async fn list_records(
     Path(name): Path<String>,
     Query(query): Query<ListRecordsQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let result = state.crud_records_uc
+    let result = state
+        .crud_records_uc
         .list_records(
             &name,
             query.page.unwrap_or(1),
@@ -52,7 +54,8 @@ pub async fn get_record(
     State(state): State<AppState>,
     Path((name, id)): Path<(String, String)>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let record = state.crud_records_uc
+    let record = state
+        .crud_records_uc
         .get_record(&name, &id)
         .await?
         .ok_or_else(|| AppError::not_found("SYS_MM_RECORD_NOT_FOUND", "Record not found"))?;
@@ -61,30 +64,82 @@ pub async fn get_record(
 
 pub async fn create_record(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Json(data): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
-    let record = state.crud_records_uc
-        .create_record(&name, &data, "system") // TODO: extract from claims
+    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    let record = state
+        .crud_records_uc
+        .create_record(&name, &data, &actor)
         .await?;
+    publish_change_event(
+        &state,
+        serde_json::json!({
+            "event_type": "MASTER_MAINTENANCE_DATA_CHANGED",
+            "resource_type": "record",
+            "resource_id": record.get("id").and_then(|value| value.as_str()),
+            "resource_name": name,
+            "action": "created",
+            "actor": actor,
+            "after": record.clone(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        }),
+    )
+    .await;
     Ok((StatusCode::CREATED, Json(record)))
 }
 
 pub async fn update_record(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path((name, id)): Path<(String, String)>,
     Json(data): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let record = state.crud_records_uc
-        .update_record(&name, &id, &data, "system")
+    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    let record = state
+        .crud_records_uc
+        .update_record(&name, &id, &data, &actor)
         .await?;
+    publish_change_event(
+        &state,
+        serde_json::json!({
+            "event_type": "MASTER_MAINTENANCE_DATA_CHANGED",
+            "resource_type": "record",
+            "resource_id": id,
+            "resource_name": name,
+            "action": "updated",
+            "actor": actor,
+            "after": record.clone(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        }),
+    )
+    .await;
     Ok(Json(record))
 }
 
 pub async fn delete_record(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path((name, id)): Path<(String, String)>,
 ) -> Result<StatusCode, AppError> {
-    state.crud_records_uc.delete_record(&name, &id, "system").await?;
+    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    state
+        .crud_records_uc
+        .delete_record(&name, &id, &actor)
+        .await?;
+    publish_change_event(
+        &state,
+        serde_json::json!({
+            "event_type": "MASTER_MAINTENANCE_DATA_CHANGED",
+            "resource_type": "record",
+            "resource_id": id,
+            "resource_name": name,
+            "action": "deleted",
+            "actor": actor,
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+        }),
+    )
+    .await;
     Ok(StatusCode::NO_CONTENT)
 }

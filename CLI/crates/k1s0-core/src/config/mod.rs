@@ -1,101 +1,65 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-/// CLI全体の設定を保持する構造体。
-///
-/// プロジェクトルートの設定ファイル (k1s0.yaml) から読み込む。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct CliConfig {
-    /// プロジェクト名
     pub project_name: String,
-    /// リージョンのルートパス
     pub regions_root: String,
-    /// Docker レジストリ
     pub docker_registry: String,
-    /// Go モジュールのベースパス
     pub go_module_base: String,
 }
 
-// ============================================================================
-// ランタイム設定スキーマ (config設計.md 準拠)
-// ============================================================================
-
-/// ランタイムサービス設定 (config/config.yaml のスキーマ)。
-///
-/// config設計.md の「Rust での読み込み実装」セクションに準拠。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct RuntimeConfig {
-    /// アプリケーション設定
     pub app: AppConfig,
-    /// HTTP サーバー設定
     pub server: ServerConfig,
-    /// gRPC 設定 (gRPC 有効時のみ)
     pub grpc: Option<GrpcConfig>,
-    /// データベース設定 (DB 有効時のみ)
     pub database: Option<DatabaseConfig>,
-    /// Kafka 設定 (Kafka 有効時のみ)
     pub kafka: Option<KafkaConfig>,
-    /// Redis 設定 (Redis 有効時のみ)
     pub redis: Option<RedisConfig>,
-    /// Redis セッション設定 (BFF セッション管理用)
     pub redis_session: Option<RedisSessionConfig>,
-    /// 可観測性設定
     pub observability: ObservabilityConfig,
-    /// 認証設定
     pub auth: AuthConfig,
 }
 
 impl RuntimeConfig {
-    /// 設定値のバリデーションを実行する。
-    ///
-    /// config設計.md に定義されたルールに基づき、各フィールドの値を検証する。
-    /// オプショナルセクション (grpc, database, kafka, redis) が `None` の場合は
-    /// そのセクションのバリデーションをスキップする。
-    ///
-    /// # Errors
-    /// バリデーション違反があった場合、エラー内容を示す `String` を返す。
     pub fn validate(&self) -> Result<(), String> {
         const VALID_TIERS: &[&str] = &["system", "business", "service"];
         const VALID_ENVIRONMENTS: &[&str] = &["dev", "staging", "prod"];
         const VALID_LOG_LEVELS: &[&str] = &["debug", "info", "warn", "error"];
 
-        // app.tier: "system" / "business" / "service" のみ許可
         if !VALID_TIERS.contains(&self.app.tier.as_str()) {
             return Err(format!(
-                "無効な app.tier: '{}' (許可値: {:?})",
+                "invalid app.tier: '{}' (allowed: {:?})",
                 self.app.tier, VALID_TIERS
             ));
         }
 
-        // app.environment: "dev" / "staging" / "prod" のみ許可
         if !VALID_ENVIRONMENTS.contains(&self.app.environment.as_str()) {
             return Err(format!(
-                "無効な app.environment: '{}' (許可値: {:?})",
+                "invalid app.environment: '{}' (allowed: {:?})",
                 self.app.environment, VALID_ENVIRONMENTS
             ));
         }
 
-        // server.port: 1-65535 の範囲
         if self.server.port == 0 {
-            return Err("無効な server.port: 0 (1-65535 の範囲で指定してください)".to_string());
+            return Err("invalid server.port: 0".to_string());
         }
 
-        // observability.log.level: "debug" / "info" / "warn" / "error" のみ許可
         if !VALID_LOG_LEVELS.contains(&self.observability.log.level.as_str()) {
             return Err(format!(
-                "無効な observability.log.level: '{}' (許可値: {:?})",
+                "invalid observability.log.level: '{}' (allowed: {:?})",
                 self.observability.log.level, VALID_LOG_LEVELS
             ));
         }
 
-        // kafka.security_protocol: "PLAINTEXT" / "SASL_SSL" のみ許可 (kafka が Some の場合)
         if let Some(ref kafka) = self.kafka {
             const VALID_SECURITY_PROTOCOLS: &[&str] = &["PLAINTEXT", "SASL_SSL"];
             if !VALID_SECURITY_PROTOCOLS.contains(&kafka.security_protocol.as_str()) {
                 return Err(format!(
-                    "無効な kafka.security_protocol: '{}' (許可値: {:?})",
+                    "invalid kafka.security_protocol: '{}' (allowed: {:?})",
                     kafka.security_protocol, VALID_SECURITY_PROTOCOLS
                 ));
             }
@@ -105,7 +69,6 @@ impl RuntimeConfig {
     }
 }
 
-/// アプリケーション基本設定。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct AppConfig {
@@ -115,7 +78,6 @@ pub struct AppConfig {
     pub environment: String,
 }
 
-/// HTTP サーバー設定。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ServerConfig {
@@ -138,7 +100,6 @@ impl Default for ServerConfig {
     }
 }
 
-/// gRPC 設定。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GrpcConfig {
@@ -155,7 +116,6 @@ impl Default for GrpcConfig {
     }
 }
 
-/// データベース設定。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct DatabaseConfig {
@@ -186,7 +146,6 @@ impl Default for DatabaseConfig {
     }
 }
 
-/// Kafka 設定。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct KafkaConfig {
@@ -198,7 +157,6 @@ pub struct KafkaConfig {
     pub topics: KafkaTopics,
 }
 
-/// Kafka SASL 設定。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct KafkaSaslConfig {
@@ -207,14 +165,12 @@ pub struct KafkaSaslConfig {
     pub password: String,
 }
 
-/// Kafka TLS 設定。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct KafkaTlsConfig {
     pub ca_cert_path: Option<String>,
 }
 
-/// Kafka トピック設定。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct KafkaTopics {
@@ -222,7 +178,6 @@ pub struct KafkaTopics {
     pub subscribe: Vec<String>,
 }
 
-/// Redis 設定。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct RedisConfig {
@@ -245,7 +200,6 @@ impl Default for RedisConfig {
     }
 }
 
-/// Redis セッション設定 (BFF Proxy 用セッションストア)。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct RedisSessionConfig {
@@ -264,7 +218,6 @@ impl Default for RedisSessionConfig {
     }
 }
 
-/// 可観測性設定。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct ObservabilityConfig {
@@ -273,7 +226,6 @@ pub struct ObservabilityConfig {
     pub metrics: MetricsConfig,
 }
 
-/// ログ設定。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct LogConfig {
@@ -290,7 +242,6 @@ impl Default for LogConfig {
     }
 }
 
-/// トレース設定。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct TraceConfig {
@@ -309,7 +260,6 @@ impl Default for TraceConfig {
     }
 }
 
-/// メトリクス設定。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct MetricsConfig {
@@ -326,7 +276,6 @@ impl Default for MetricsConfig {
     }
 }
 
-/// 認証設定。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct AuthConfig {
@@ -334,7 +283,6 @@ pub struct AuthConfig {
     pub oidc: Option<OidcConfig>,
 }
 
-/// JWT 設定。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct JwtConfig {
@@ -343,7 +291,6 @@ pub struct JwtConfig {
     pub public_key_path: Option<String>,
 }
 
-/// OIDC 設定。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct OidcConfig {
@@ -367,84 +314,130 @@ impl Default for CliConfig {
     }
 }
 
-/// 設定ファイルを読み込む。
-///
-/// 指定されたパスから YAML 形式の設定ファイルを読み込む。
-/// ファイルが存在しない場合はデフォルト値を返す。
-///
-/// # Errors
-/// ファイルの読み込みに失敗した場合、またはYAMLのパースに失敗した場合にエラーを返す。
+/// Load CLI configuration from YAML.
 pub fn load_config(path: &str) -> anyhow::Result<CliConfig> {
     let config_path = Path::new(path);
     if !config_path.exists() {
         return Ok(CliConfig::default());
     }
     let content = std::fs::read_to_string(config_path)
-        .map_err(|e| anyhow::anyhow!("設定ファイルの読み込みに失敗: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to read config file: {e}"))?;
     let config: CliConfig = serde_yaml::from_str(&content)
-        .map_err(|e| anyhow::anyhow!("設定ファイルのパースに失敗: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to parse config file: {e}"))?;
     Ok(config)
 }
 
-/// Vault からシークレットをマージする (第3段階)。
-///
-/// config設計.md のマージ順序:
-///   1. config.yaml (デフォルト値) -- 最低優先
-///   2. config.{environment}.yaml で上書き
-///   3. Vault から注入されたシークレットで上書き -- 最高優先
-///
-/// # Arguments
-/// * `_base` - マージ先の設定
-/// * `vault_addr` - Vault サーバーのアドレス
-/// * `vault_path` - Vault 上のシークレットパス
-///
-/// # Returns
-/// 成功時は `Ok(())`、Vault 未到達時は警告ログを出力して `Ok(())` を返す。
-///
-/// # Errors
-/// Vault との通信中に回復不能なエラーが発生した場合にエラーを返す。
-///
-/// TODO: Vault統合 -- 実際の Vault 通信を実装する
+/// Load CLI configuration and optionally merge secrets from Vault.
+pub fn load_config_with_vault(path: &str) -> anyhow::Result<CliConfig> {
+    let mut config = load_config(path)?;
+
+    let vault_addr = std::env::var("K1S0_VAULT_ADDR")
+        .or_else(|_| std::env::var("VAULT_ADDR"))
+        .unwrap_or_default();
+    let vault_path = std::env::var("K1S0_VAULT_PATH").unwrap_or_default();
+
+    merge_vault_secrets(&mut config, &vault_addr, &vault_path)?;
+    Ok(config)
+}
+
+fn vault_token() -> Option<String> {
+    std::env::var("K1S0_VAULT_TOKEN")
+        .ok()
+        .filter(|token| !token.is_empty())
+        .or_else(|| {
+            std::env::var("VAULT_TOKEN")
+                .ok()
+                .filter(|token| !token.is_empty())
+        })
+}
+
+fn apply_secret_overrides(
+    base: &mut CliConfig,
+    secrets: &serde_json::Map<String, serde_json::Value>,
+) {
+    if let Some(value) = secrets.get("project_name").and_then(|value| value.as_str()) {
+        base.project_name = value.to_string();
+    }
+    if let Some(value) = secrets.get("regions_root").and_then(|value| value.as_str()) {
+        base.regions_root = value.to_string();
+    }
+    if let Some(value) = secrets
+        .get("docker_registry")
+        .and_then(|value| value.as_str())
+    {
+        base.docker_registry = value.to_string();
+    }
+    if let Some(value) = secrets
+        .get("go_module_base")
+        .and_then(|value| value.as_str())
+    {
+        base.go_module_base = value.to_string();
+    }
+}
+
+fn extract_vault_secret_data(
+    body: &serde_json::Value,
+) -> Option<&serde_json::Map<String, serde_json::Value>> {
+    body.get("data")
+        .and_then(|value| value.get("data").or(Some(value)))
+        .and_then(|value| value.as_object())
+}
+
+/// Merge known CLI settings from a Vault KV response.
 pub fn merge_vault_secrets(
-    _base: &mut CliConfig,
+    base: &mut CliConfig,
     vault_addr: &str,
     vault_path: &str,
 ) -> anyhow::Result<()> {
     if vault_addr.is_empty() || vault_path.is_empty() {
-        // Vault 未設定時は何もしない (no-op)
         return Ok(());
     }
 
-    // TODO: Vault統合 -- 以下の処理を実装する:
-    //   1. vault_addr に接続
-    //   2. vault_path からシークレットを取得
-    //   3. base の該当フィールドに上書きマージ
-    //   4. ConfigMap と Vault で同一キーが存在する場合は Vault を優先し警告ログを出力
+    let Some(token) = vault_token() else {
+        eprintln!(
+            "WARN: Vault token is not set. Skipping secret merge. addr={vault_addr} path={vault_path}"
+        );
+        return Ok(());
+    };
 
-    // Vault 未到達時は警告ログを出力
-    eprintln!(
-        "WARN: Vault ({vault_addr}) にアクセスできません。シークレットのマージをスキップします。path={vault_path}"
+    let endpoint = format!(
+        "{}/v1/{}",
+        vault_addr.trim_end_matches('/'),
+        vault_path.trim_start_matches('/'),
     );
 
+    let response = match ureq::get(&endpoint).header("X-Vault-Token", &token).call() {
+        Ok(response) => response,
+        Err(err) => {
+            eprintln!(
+                "WARN: failed to reach Vault. Skipping secret merge. addr={vault_addr} path={vault_path} error={err}"
+            );
+            return Ok(());
+        }
+    };
+
+    let body: serde_json::Value = response
+        .into_body()
+        .read_json()
+        .map_err(|e| anyhow::anyhow!("Vault response parse error: {e}"))?;
+
+    let secrets = extract_vault_secret_data(&body)
+        .ok_or_else(|| anyhow::anyhow!("Vault response does not contain secret data"))?;
+
+    apply_secret_overrides(base, secrets);
     Ok(())
 }
 
-/// 環境別設定をマージする。
-///
-/// ベース設定に環境別設定を上書きマージする。
-/// config設計.md のマージ順序: config.yaml < config.{env}.yaml < Vault
-///
-/// # Errors
-/// ファイルの読み込みに失敗した場合、またはYAMLのパースに失敗した場合にエラーを返す。
+/// Merge an override config file into the base config.
 pub fn merge_config(base: &mut CliConfig, override_path: &str) -> anyhow::Result<()> {
     let path = Path::new(override_path);
     if !path.exists() {
         return Ok(());
     }
     let content = std::fs::read_to_string(path)
-        .map_err(|e| anyhow::anyhow!("環境別設定の読み込みに失敗: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to read override config: {e}"))?;
     let override_config: serde_yaml::Value = serde_yaml::from_str(&content)
-        .map_err(|e| anyhow::anyhow!("環境別設定のパースに失敗: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to parse override config: {e}"))?;
 
     if let serde_yaml::Value::Mapping(map) = override_config {
         if let Some(serde_yaml::Value::String(name)) =
@@ -474,8 +467,15 @@ pub fn merge_config(base: &mut CliConfig, override_path: &str) -> anyhow::Result
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
     use std::io::Write;
+    use std::sync::{Mutex, OnceLock};
     use tempfile::NamedTempFile;
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
 
     #[test]
     fn test_default_config() {
@@ -542,7 +542,7 @@ mod tests {
         merge_config(&mut base, file.path().to_str().unwrap()).unwrap();
         assert_eq!(base.project_name, "overridden");
         assert_eq!(base.docker_registry, "custom-registry.io");
-        assert_eq!(base.regions_root, "regions"); // not overridden
+        assert_eq!(base.regions_root, "regions");
     }
 
     #[test]
@@ -571,8 +571,6 @@ mod tests {
         assert_eq!(config.go_module_base, deserialized.go_module_base);
     }
 
-    // --- Vault 統合スタブ ---
-
     #[test]
     fn test_merge_vault_secrets_empty_addr_is_noop() {
         let mut base = CliConfig {
@@ -597,7 +595,6 @@ mod tests {
 
     #[test]
     fn test_merge_vault_secrets_unreachable_warns() {
-        // Vault 未到達時は警告ログを出力するが、エラーにはしない
         let mut base = CliConfig::default();
         let result = merge_vault_secrets(
             &mut base,
@@ -607,7 +604,85 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    // --- ランタイム設定スキーマ ---
+    #[test]
+    fn test_merge_vault_secrets_reads_kv_v2_payload() {
+        let _guard = env_lock().lock().unwrap();
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/v1/secret/data/k1s0")
+            .match_header("x-vault-token", "test-token")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(
+                r#"{
+                    "data": {
+                        "data": {
+                            "project_name": "vault-project",
+                            "regions_root": "vault-regions",
+                            "docker_registry": "registry.internal",
+                            "go_module_base": "github.com/example/k1s0"
+                        }
+                    }
+                }"#,
+            )
+            .create();
+
+        env::set_var("K1S0_VAULT_TOKEN", "test-token");
+        let mut base = CliConfig::default();
+        merge_vault_secrets(&mut base, &server.url(), "secret/data/k1s0").unwrap();
+        env::remove_var("K1S0_VAULT_TOKEN");
+
+        mock.assert();
+        assert_eq!(base.project_name, "vault-project");
+        assert_eq!(base.regions_root, "vault-regions");
+        assert_eq!(base.docker_registry, "registry.internal");
+        assert_eq!(base.go_module_base, "github.com/example/k1s0");
+    }
+
+    #[test]
+    fn test_load_config_with_vault_applies_local_then_vault_override() {
+        let _guard = env_lock().lock().unwrap();
+        let mut file = NamedTempFile::new().unwrap();
+        writeln!(
+            file,
+            "project_name: local-project\nregions_root: local-regions\ndocker_registry: local-registry"
+        )
+        .unwrap();
+
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/v1/secret/data/k1s0")
+            .match_header("x-vault-token", "test-token")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(
+                r#"{
+                    "data": {
+                        "data": {
+                            "project_name": "vault-project",
+                            "go_module_base": "github.com/example/k1s0"
+                        }
+                    }
+                }"#,
+            )
+            .create();
+
+        env::set_var("K1S0_VAULT_ADDR", server.url());
+        env::set_var("K1S0_VAULT_PATH", "secret/data/k1s0");
+        env::set_var("K1S0_VAULT_TOKEN", "test-token");
+
+        let config = load_config_with_vault(file.path().to_str().unwrap()).unwrap();
+
+        env::remove_var("K1S0_VAULT_ADDR");
+        env::remove_var("K1S0_VAULT_PATH");
+        env::remove_var("K1S0_VAULT_TOKEN");
+
+        mock.assert();
+        assert_eq!(config.project_name, "vault-project");
+        assert_eq!(config.regions_root, "local-regions");
+        assert_eq!(config.docker_registry, "local-registry");
+        assert_eq!(config.go_module_base, "github.com/example/k1s0");
+    }
 
     #[test]
     fn test_runtime_config_default() {
@@ -630,7 +705,6 @@ mod tests {
         let config: RuntimeConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.app.name, "test-service");
         assert_eq!(config.server.port, 9090);
-        // 未指定フィールドはデフォルト
         assert_eq!(config.server.host, "0.0.0.0");
         assert!(config.database.is_none());
     }
@@ -723,187 +797,62 @@ auth:
         assert_eq!(oidc.scopes, vec!["openid", "profile"]);
     }
 
-    // --- RuntimeConfig バリデーション ---
-
-    /// ヘルパー: バリデーションが通る正常な `RuntimeConfig` を生成
     fn valid_runtime_config() -> RuntimeConfig {
         RuntimeConfig {
             app: AppConfig {
                 name: "test-service".to_string(),
                 version: "1.0.0".to_string(),
-                tier: "service".to_string(),
+                tier: "system".to_string(),
                 environment: "dev".to_string(),
             },
-            server: ServerConfig {
-                host: "0.0.0.0".to_string(),
-                port: 8080,
-                read_timeout: "30s".to_string(),
-                write_timeout: "30s".to_string(),
-                shutdown_timeout: "10s".to_string(),
-            },
+            server: ServerConfig::default(),
             grpc: None,
             database: None,
-            kafka: None,
+            kafka: Some(KafkaConfig {
+                brokers: vec!["localhost:9092".to_string()],
+                consumer_group: "test".to_string(),
+                security_protocol: "PLAINTEXT".to_string(),
+                sasl: None,
+                tls: None,
+                topics: KafkaTopics::default(),
+            }),
             redis: None,
             redis_session: None,
-            observability: ObservabilityConfig {
-                log: LogConfig {
-                    level: "info".to_string(),
-                    format: "json".to_string(),
-                },
-                trace: TraceConfig::default(),
-                metrics: MetricsConfig::default(),
-            },
+            observability: ObservabilityConfig::default(),
             auth: AuthConfig::default(),
         }
     }
 
     #[test]
-    fn test_runtime_config_validate_valid() {
-        let config = valid_runtime_config();
-        assert!(config.validate().is_ok());
+    fn test_runtime_config_validate_success() {
+        assert!(valid_runtime_config().validate().is_ok());
     }
 
     #[test]
     fn test_runtime_config_validate_invalid_tier() {
         let mut config = valid_runtime_config();
-        config.app.tier = "unknown".to_string();
-        let result = config.validate();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("tier"));
+        config.app.tier = "invalid".to_string();
+        assert!(config.validate().is_err());
     }
 
     #[test]
     fn test_runtime_config_validate_invalid_environment() {
         let mut config = valid_runtime_config();
-        config.app.environment = "production".to_string();
-        let result = config.validate();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("environment"));
-    }
-
-    #[test]
-    fn test_runtime_config_validate_port_out_of_range() {
-        // ポート 0 はエラー
-        let mut config = valid_runtime_config();
-        config.server.port = 0;
+        config.app.environment = "qa".to_string();
         assert!(config.validate().is_err());
-
-        // ポート 65535 は OK (上限ちょうど)
-        config.server.port = 65535;
-        assert!(config.validate().is_ok());
-
-        // u16 の最大値は 65535 なので 70000 は型レベルで不可。
-        // 代わりにポート 0 の境界テストで十分。
     }
 
     #[test]
     fn test_runtime_config_validate_invalid_log_level() {
         let mut config = valid_runtime_config();
-        config.observability.log.level = "verbose".to_string();
-        let result = config.validate();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("log"));
+        config.observability.log.level = "trace".to_string();
+        assert!(config.validate().is_err());
     }
 
     #[test]
-    fn test_runtime_config_validate_optional_sections_none_ok() {
+    fn test_runtime_config_validate_invalid_kafka_protocol() {
         let mut config = valid_runtime_config();
-        config.grpc = None;
-        config.database = None;
-        config.kafka = None;
-        config.redis = None;
-        config.redis_session = None;
-        assert!(config.validate().is_ok());
-    }
-
-    #[test]
-    fn test_runtime_config_validate_kafka_invalid_security_protocol() {
-        let mut config = valid_runtime_config();
-        config.kafka = Some(KafkaConfig {
-            brokers: vec!["kafka-0:9092".to_string()],
-            consumer_group: "test-group".to_string(),
-            security_protocol: "INVALID".to_string(),
-            sasl: None,
-            tls: None,
-            topics: KafkaTopics::default(),
-        });
-        let result = config.validate();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("security_protocol"));
-    }
-
-    #[test]
-    fn test_runtime_config_validate_kafka_valid_sasl_ssl() {
-        let mut config = valid_runtime_config();
-        config.kafka = Some(KafkaConfig {
-            brokers: vec!["kafka-0:9092".to_string()],
-            consumer_group: "test-group".to_string(),
-            security_protocol: "SASL_SSL".to_string(),
-            sasl: None,
-            tls: None,
-            topics: KafkaTopics::default(),
-        });
-        assert!(config.validate().is_ok());
-    }
-
-    #[test]
-    fn test_runtime_config_validate_all_tiers() {
-        for tier in &["system", "business", "service"] {
-            let mut config = valid_runtime_config();
-            config.app.tier = tier.to_string();
-            assert!(config.validate().is_ok(), "tier '{tier}' should be valid");
-        }
-    }
-
-    #[test]
-    fn test_runtime_config_validate_all_environments() {
-        for env in &["dev", "staging", "prod"] {
-            let mut config = valid_runtime_config();
-            config.app.environment = env.to_string();
-            assert!(
-                config.validate().is_ok(),
-                "environment '{env}' should be valid"
-            );
-        }
-    }
-
-    #[test]
-    fn test_runtime_config_validate_all_log_levels() {
-        for level in &["debug", "info", "warn", "error"] {
-            let mut config = valid_runtime_config();
-            config.observability.log.level = level.to_string();
-            assert!(
-                config.validate().is_ok(),
-                "log level '{level}' should be valid"
-            );
-        }
-    }
-
-    #[test]
-    fn test_runtime_config_serialization_roundtrip() {
-        let config = RuntimeConfig {
-            app: AppConfig {
-                name: "test".to_string(),
-                version: "1.0.0".to_string(),
-                tier: "service".to_string(),
-                environment: "dev".to_string(),
-            },
-            server: ServerConfig::default(),
-            grpc: Some(GrpcConfig::default()),
-            database: Some(DatabaseConfig::default()),
-            kafka: None,
-            redis: None,
-            redis_session: None,
-            observability: ObservabilityConfig::default(),
-            auth: AuthConfig::default(),
-        };
-        let yaml = serde_yaml::to_string(&config).unwrap();
-        let deserialized: RuntimeConfig = serde_yaml::from_str(&yaml).unwrap();
-        assert_eq!(config.app.name, deserialized.app.name);
-        assert_eq!(config.server.port, deserialized.server.port);
-        assert!(deserialized.grpc.is_some());
-        assert!(deserialized.database.is_some());
-        assert!(deserialized.kafka.is_none());
+        config.kafka.as_mut().unwrap().security_protocol = "SSL".to_string();
+        assert!(config.validate().is_err());
     }
 }

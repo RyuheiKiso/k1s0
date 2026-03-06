@@ -1,17 +1,15 @@
-use axum::{
-    body::Body,
-    http::Request,
-    middleware::Next,
-    response::Response,
-};
 use crate::adapter::handler::error::AppError;
+use axum::{body::Body, http::Request, middleware::Next, response::Response};
 
 pub fn require_permission(
     resource: &'static str,
     action: &'static str,
-) -> impl Fn(Request<Body>, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, AppError>> + Send>>
-       + Clone
-{
+) -> impl Fn(
+    Request<Body>,
+    Next,
+)
+    -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, AppError>> + Send>>
+       + Clone {
     move |req, next| Box::pin(rbac_check(req, next, resource, action))
 }
 
@@ -21,10 +19,9 @@ async fn rbac_check(
     _resource: &str,
     action: &str,
 ) -> Result<Response, AppError> {
-    let claims = req
-        .extensions()
-        .get::<k1s0_auth::Claims>()
-        .ok_or_else(|| AppError::unauthorized("SYS_MM_MISSING_CLAIMS", "Missing authentication claims"))?;
+    let claims = req.extensions().get::<k1s0_auth::Claims>().ok_or_else(|| {
+        AppError::unauthorized("SYS_MM_MISSING_CLAIMS", "Missing authentication claims")
+    })?;
 
     let roles = claims.realm_roles();
 

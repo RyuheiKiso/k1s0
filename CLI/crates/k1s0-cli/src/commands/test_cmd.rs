@@ -7,11 +7,7 @@ pub use k1s0_core::commands::test_cmd::{
 };
 
 const TEST_KIND_LABELS: &[&str] = &["ユニットテスト", "統合テスト", "すべて"];
-const ALL_TEST_KINDS: &[TestKind] = &[
-    TestKind::Unit,
-    TestKind::Integration,
-    TestKind::All,
-];
+const ALL_TEST_KINDS: &[TestKind] = &[TestKind::Unit, TestKind::Integration, TestKind::All];
 
 /// テスト実行フローのステップ。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

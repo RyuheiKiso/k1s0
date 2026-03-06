@@ -1,9 +1,9 @@
-pub mod manage_table_definitions;
-pub mod manage_column_definitions;
-pub mod crud_records;
-pub mod manage_rules;
 pub mod check_consistency;
+pub mod crud_records;
 pub mod get_audit_logs;
-pub mod manage_relationships;
-pub mod manage_display_configs;
 pub mod import_export;
+pub mod manage_column_definitions;
+pub mod manage_display_configs;
+pub mod manage_relationships;
+pub mod manage_rules;
+pub mod manage_table_definitions;

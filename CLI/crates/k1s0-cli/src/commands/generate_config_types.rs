@@ -25,8 +25,8 @@ pub fn run() -> Result<()> {
         .default("config-schema.yaml".to_string())
         .interact_text()?;
 
-    let content = fs::read_to_string(&schema_path)
-        .map_err(|e| anyhow::anyhow!("{}: {e}", schema_path))?;
+    let content =
+        fs::read_to_string(&schema_path).map_err(|e| anyhow::anyhow!("{}: {e}", schema_path))?;
     let schema: ConfigSchemaYaml = serde_yaml::from_str(&content)
         .map_err(|e| anyhow::anyhow!("config-schema.yaml のパースエラー: {e}"))?;
 
@@ -106,7 +106,9 @@ pub fn run() -> Result<()> {
         let (method, req_url, _, _) =
             build_push_request(&schema, url, &token).map_err(|e| anyhow::anyhow!("{e}"))?;
         println!("  {method} {req_url}");
-        println!("  ⚠️  スキーマ push には K1S0_TOKEN 環境変数と HTTP クライアントの実装が必要です");
+        println!(
+            "  ⚠️  スキーマ push には K1S0_TOKEN 環境変数と HTTP クライアントの実装が必要です"
+        );
     }
 
     println!("\n設定スキーマ型ファイルの生成が完了しました。");

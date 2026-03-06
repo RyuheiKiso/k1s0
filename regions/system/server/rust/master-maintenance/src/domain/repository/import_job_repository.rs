@@ -1,6 +1,6 @@
+use crate::domain::entity::import_job::ImportJob;
 use async_trait::async_trait;
 use uuid::Uuid;
-use crate::domain::entity::import_job::ImportJob;
 
 #[async_trait]
 pub trait ImportJobRepository: Send + Sync {

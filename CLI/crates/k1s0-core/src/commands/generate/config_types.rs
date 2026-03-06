@@ -152,7 +152,9 @@ fn to_camel_case(snake: &str) -> String {
 }
 
 /// ファイルパスから TypeScript 型定義を生成する
-pub fn generate_typescript_types_from_file(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub fn generate_typescript_types_from_file(
+    path: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
     let content = std::fs::read_to_string(path)?;
     let schema: ConfigSchemaYaml = serde_yaml::from_str(&content)?;
     Ok(generate_typescript_types(&schema))

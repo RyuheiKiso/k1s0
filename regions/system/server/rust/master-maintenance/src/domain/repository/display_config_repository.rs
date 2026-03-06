@@ -1,6 +1,6 @@
+use crate::domain::entity::display_config::DisplayConfig;
 use async_trait::async_trait;
 use uuid::Uuid;
-use crate::domain::entity::display_config::DisplayConfig;
 
 #[async_trait]
 pub trait DisplayConfigRepository: Send + Sync {

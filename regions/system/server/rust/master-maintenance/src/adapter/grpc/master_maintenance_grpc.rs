@@ -1,7 +1,7 @@
-use std::sync::Arc;
 use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
 use crate::domain::repository::table_relationship_repository::TableRelationshipRepository;
 use crate::usecase;
+use std::sync::Arc;
 
 pub struct MasterMaintenanceGrpcService {
     pub manage_tables_uc: Arc<usecase::manage_table_definitions::ManageTableDefinitionsUseCase>,
@@ -11,7 +11,8 @@ pub struct MasterMaintenanceGrpcService {
     pub check_consistency_uc: Arc<usecase::check_consistency::CheckConsistencyUseCase>,
     pub get_audit_logs_uc: Arc<usecase::get_audit_logs::GetAuditLogsUseCase>,
     pub manage_relationships_uc: Arc<usecase::manage_relationships::ManageRelationshipsUseCase>,
-    pub manage_display_configs_uc: Arc<usecase::manage_display_configs::ManageDisplayConfigsUseCase>,
+    pub manage_display_configs_uc:
+        Arc<usecase::manage_display_configs::ManageDisplayConfigsUseCase>,
     pub import_export_uc: Arc<usecase::import_export::ImportExportUseCase>,
     pub column_repo: Arc<dyn ColumnDefinitionRepository>,
     pub relationship_repo: Arc<dyn TableRelationshipRepository>,
@@ -26,7 +27,9 @@ impl MasterMaintenanceGrpcService {
         check_consistency_uc: Arc<usecase::check_consistency::CheckConsistencyUseCase>,
         get_audit_logs_uc: Arc<usecase::get_audit_logs::GetAuditLogsUseCase>,
         manage_relationships_uc: Arc<usecase::manage_relationships::ManageRelationshipsUseCase>,
-        manage_display_configs_uc: Arc<usecase::manage_display_configs::ManageDisplayConfigsUseCase>,
+        manage_display_configs_uc: Arc<
+            usecase::manage_display_configs::ManageDisplayConfigsUseCase,
+        >,
         import_export_uc: Arc<usecase::import_export::ImportExportUseCase>,
         column_repo: Arc<dyn ColumnDefinitionRepository>,
         relationship_repo: Arc<dyn TableRelationshipRepository>,

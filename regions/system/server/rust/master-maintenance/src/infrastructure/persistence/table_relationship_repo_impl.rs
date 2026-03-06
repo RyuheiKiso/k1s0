@@ -1,9 +1,9 @@
-use async_trait::async_trait;
-use sqlx::PgPool;
-use uuid::Uuid;
 use crate::domain::entity::table_relationship::TableRelationship;
 use crate::domain::repository::table_relationship_repository::TableRelationshipRepository;
 use crate::domain::value_object::relationship_type::RelationshipType;
+use async_trait::async_trait;
+use sqlx::PgPool;
+use uuid::Uuid;
 
 pub struct TableRelationshipPostgresRepository {
     pool: PgPool,
@@ -19,7 +19,7 @@ impl TableRelationshipPostgresRepository {
 impl TableRelationshipRepository for TableRelationshipPostgresRepository {
     async fn find_all(&self) -> anyhow::Result<Vec<TableRelationship>> {
         let rows = sqlx::query_as::<_, TableRelationshipRow>(
-            "SELECT * FROM master_maintenance.table_relationships ORDER BY created_at"
+            "SELECT * FROM master_maintenance.table_relationships ORDER BY created_at",
         )
         .fetch_all(&self.pool)
         .await?;
@@ -28,7 +28,7 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<TableRelationship>> {
         let row = sqlx::query_as::<_, TableRelationshipRow>(
-            "SELECT * FROM master_maintenance.table_relationships WHERE id = $1"
+            "SELECT * FROM master_maintenance.table_relationships WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -52,7 +52,7 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
                (id, source_table_id, source_column, target_table_id, target_column,
                 relationship_type, display_name, is_cascade_delete)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-               RETURNING *"#
+               RETURNING *"#,
         )
         .bind(relationship.id)
         .bind(relationship.source_table_id)
@@ -67,7 +67,11 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
         Ok(row.into())
     }
 
-    async fn update(&self, id: Uuid, relationship: &TableRelationship) -> anyhow::Result<TableRelationship> {
+    async fn update(
+        &self,
+        id: Uuid,
+        relationship: &TableRelationship,
+    ) -> anyhow::Result<TableRelationship> {
         let row = sqlx::query_as::<_, TableRelationshipRow>(
             r#"UPDATE master_maintenance.table_relationships SET
                source_column = $2,
@@ -75,7 +79,7 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
                relationship_type = $4,
                display_name = $5,
                is_cascade_delete = $6
-               WHERE id = $1 RETURNING *"#
+               WHERE id = $1 RETURNING *"#,
         )
         .bind(id)
         .bind(&relationship.source_column)

@@ -24,7 +24,11 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
@@ -96,17 +100,16 @@ async fn main() -> anyhow::Result<()> {
         unimplemented!()
     };
 
-    let change_log_repo: Arc<
-        dyn domain::repository::change_log_repository::ChangeLogRepository,
-    > = if let Some(ref pool) = db_pool {
-        Arc::new(
-            infrastructure::persistence::change_log_repo_impl::ChangeLogPostgresRepository::new(
-                pool.clone(),
-            ),
-        )
-    } else {
-        unimplemented!()
-    };
+    let change_log_repo: Arc<dyn domain::repository::change_log_repository::ChangeLogRepository> =
+        if let Some(ref pool) = db_pool {
+            Arc::new(
+                infrastructure::persistence::change_log_repo_impl::ChangeLogPostgresRepository::new(
+                    pool.clone(),
+                ),
+            )
+        } else {
+            unimplemented!()
+        };
 
     let relationship_repo: Arc<
         dyn domain::repository::table_relationship_repository::TableRelationshipRepository,
@@ -128,18 +131,19 @@ async fn main() -> anyhow::Result<()> {
         unimplemented!()
     };
 
-    let import_job_repo: Arc<
-        dyn domain::repository::import_job_repository::ImportJobRepository,
-    > = if let Some(ref pool) = db_pool {
-        Arc::new(
-            infrastructure::persistence::import_job_repo_impl::ImportJobPostgresRepository::new(pool.clone()),
-        )
-    } else {
-        unimplemented!()
-    };
+    let import_job_repo: Arc<dyn domain::repository::import_job_repository::ImportJobRepository> =
+        if let Some(ref pool) = db_pool {
+            Arc::new(
+                infrastructure::persistence::import_job_repo_impl::ImportJobPostgresRepository::new(
+                    pool.clone(),
+                ),
+            )
+        } else {
+            unimplemented!()
+        };
 
     // 6. Kafka Producer (optional)
-    let _kafka_producer = if let Some(ref kafka_cfg) = cfg.kafka {
+    let kafka_producer = if let Some(ref kafka_cfg) = cfg.kafka {
         match infrastructure::messaging::kafka_producer::MasterMaintenanceKafkaProducer::new(
             kafka_cfg,
         ) {
@@ -157,9 +161,8 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // 7. Rule Engine
-    let rule_engine = Arc::new(
-        infrastructure::rule_engine::zen_engine_adapter::ZenEngineAdapter::new(),
-    );
+    let rule_engine =
+        Arc::new(infrastructure::rule_engine::zen_engine_adapter::ZenEngineAdapter::new());
 
     // 8. Use Cases
     let manage_tables_uc = Arc::new(
@@ -184,15 +187,13 @@ async fn main() -> anyhow::Result<()> {
         table_repo.clone(),
         rule_repo.clone(),
     ));
-    let check_consistency_uc = Arc::new(
-        usecase::check_consistency::CheckConsistencyUseCase::new(
-            table_repo.clone(),
-            column_repo.clone(),
-            rule_repo.clone(),
-            record_repo.clone(),
-            rule_engine.clone(),
-        ),
-    );
+    let check_consistency_uc = Arc::new(usecase::check_consistency::CheckConsistencyUseCase::new(
+        table_repo.clone(),
+        column_repo.clone(),
+        rule_repo.clone(),
+        record_repo.clone(),
+        rule_engine.clone(),
+    ));
     let get_audit_logs_uc = Arc::new(usecase::get_audit_logs::GetAuditLogsUseCase::new(
         change_log_repo.clone(),
     ));
@@ -242,6 +243,7 @@ async fn main() -> anyhow::Result<()> {
         manage_display_configs_uc: manage_display_configs_uc.clone(),
         import_export_uc: import_export_uc.clone(),
         metrics: metrics.clone(),
+        kafka_producer: kafka_producer.clone(),
         auth_state: auth_state.clone(),
     };
     let app = handler::router(state);

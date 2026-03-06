@@ -1,9 +1,9 @@
+use crate::adapter::presenter::response::{ErrorDetail, ErrorResponse};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
-use crate::adapter::presenter::response::{ErrorResponse, ErrorDetail};
 
 #[derive(Debug)]
 pub struct AppError {

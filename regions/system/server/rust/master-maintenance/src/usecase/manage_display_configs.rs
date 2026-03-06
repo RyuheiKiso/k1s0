@@ -1,9 +1,9 @@
-use std::sync::Arc;
-use serde_json::Value;
-use uuid::Uuid;
-use crate::domain::entity::display_config::{DisplayConfig, CreateDisplayConfig};
-use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
+use crate::domain::entity::display_config::{CreateDisplayConfig, DisplayConfig};
 use crate::domain::repository::display_config_repository::DisplayConfigRepository;
+use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
+use serde_json::Value;
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct ManageDisplayConfigsUseCase {
     table_repo: Arc<dyn TableDefinitionRepository>,
