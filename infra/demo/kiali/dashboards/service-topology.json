@@ -8,14 +8,20 @@
   "panels": [
     {
       "title": "Service Topology (Node Graph)",
-      "description": "Service-to-service communication topology. Nodes auto-generated from edges.",
+      "description": "Nodes = workloads (id+title from label_replace), Edges = request flow (source+target).",
       "type": "nodeGraph",
       "gridPos": { "h": 18, "w": 24, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "" },
       "targets": [
         {
+          "refId": "nodes",
+          "expr": "label_replace(label_replace(sum(label_replace(rate(istio_requests_total{reporter=\"destination\"}[5m]), \"workload\", \"$1\", \"destination_workload\", \"(.*)\")) by (workload) or sum(label_replace(rate(istio_requests_total{reporter=\"destination\"}[5m]), \"workload\", \"$1\", \"source_workload\", \"(.*)\")) by (workload), \"id\", \"$1\", \"workload\", \"(.*)\"), \"title\", \"$1\", \"workload\", \"(.*)\") > 0",
+          "format": "table",
+          "instant": true
+        },
+        {
           "refId": "edges",
-          "expr": "sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload) > 0",
+          "expr": "label_replace(label_replace(sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload), \"source\", \"$1\", \"source_workload\", \"(.*)\"), \"target\", \"$1\", \"destination_workload\", \"(.*)\") > 0",
           "format": "table",
           "instant": true
         }
@@ -26,16 +32,15 @@
           "options": {}
         },
         {
-          "id": "merge",
-          "options": {}
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": { "Time": true },
+            "excludeByName": {
+              "Time": true,
+              "workload": true,
+              "source_workload": true,
+              "destination_workload": true
+            },
             "renameByName": {
-              "source_workload": "source",
-              "destination_workload": "target",
               "Value": "mainStat"
             }
           }
@@ -214,7 +219,6 @@
     },
     {
       "title": "Error Rate by Communication Path",
-      "description": "Error rate (non-2xx) for each source-destination pair",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
       "datasource": { "type": "prometheus", "uid": "" },
@@ -241,7 +245,6 @@
     },
     {
       "title": "Latency P95 by Communication Path",
-      "description": "P95 latency for each source-destination pair",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
       "datasource": { "type": "prometheus", "uid": "" },
@@ -259,8 +262,7 @@
       }
     },
     {
-      "title": "Request Rate by Path (Time Series)",
-      "description": "Request rate over time for each communication path",
+      "title": "Request Rate by Path",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
       "datasource": { "type": "prometheus", "uid": "" },
@@ -273,16 +275,12 @@
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
-          "custom": {
-            "drawStyle": "line",
-            "fillOpacity": 10
-          }
+          "custom": { "drawStyle": "line", "fillOpacity": 10 }
         }
       }
     },
     {
       "title": "TCP Bytes by Communication Path",
-      "description": "TCP bytes sent between services",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
       "datasource": { "type": "prometheus", "uid": "" },
@@ -308,5 +306,5 @@
   "timezone": "browser",
   "title": "k1s0 Service Topology",
   "uid": "k1s0-service-topology",
-  "version": 4
+  "version": 5
 }
