@@ -43,6 +43,37 @@ fn build_table_name(table_def: &TableDefinition) -> anyhow::Result<String> {
     ))
 }
 
+fn postgres_cast_type(data_type: &str) -> anyhow::Result<&'static str> {
+    match data_type.to_lowercase().as_str() {
+        "uuid" => Ok("uuid"),
+        "integer" | "int" | "int4" | "serial" => Ok("integer"),
+        "bigint" | "int8" | "bigserial" => Ok("bigint"),
+        "smallint" | "int2" => Ok("smallint"),
+        "boolean" | "bool" => Ok("boolean"),
+        "real" | "float4" => Ok("real"),
+        "double precision" | "float8" => Ok("double precision"),
+        "numeric" | "decimal" => Ok("numeric"),
+        "json" => Ok("json"),
+        "jsonb" => Ok("jsonb"),
+        "date" => Ok("date"),
+        "timestamp"
+        | "timestamptz"
+        | "timestamp with time zone"
+        | "timestamp without time zone"
+        | "datetime" => Ok("timestamptz"),
+        "text" => Ok("text"),
+        other => anyhow::bail!("unsupported column data type for SQL casting: {}", other),
+    }
+}
+
+fn typed_placeholder(column: &ColumnDefinition, param_idx: u32) -> anyhow::Result<String> {
+    Ok(format!(
+        "CAST(${} AS {})",
+        param_idx,
+        postgres_cast_type(&column.data_type)?
+    ))
+}
+
 /// Find the primary key column from column definitions.
 fn find_primary_key_column(columns: &[ColumnDefinition]) -> anyhow::Result<&ColumnDefinition> {
     columns
@@ -157,11 +188,15 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                     let val = val.trim();
                     // Verify column exists in definitions
                     if columns.iter().any(|c| c.column_name == col_name) {
+                        let column = columns
+                            .iter()
+                            .find(|c| c.column_name == col_name)
+                            .expect("column existence checked");
                         validate_identifier(col_name)?;
                         where_clauses.push(format!(
-                            "{} = ${}",
+                            "{} = {}",
                             quote_identifier(col_name),
-                            param_idx
+                            typed_placeholder(column, param_idx)?
                         ));
                         bind_values.push(val.to_string());
                         param_idx += 1;
@@ -264,10 +299,11 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         let select_cols = col_list.join(", ");
 
         let sql = format!(
-            "SELECT {} FROM {} WHERE {} = $1",
+            "SELECT {} FROM {} WHERE {} = CAST($1 AS {})",
             select_cols,
             table_name,
-            quote_identifier(&pk_col.column_name)
+            quote_identifier(&pk_col.column_name),
+            postgres_cast_type(&pk_col.data_type)?
         );
 
         let row = sqlx::query(&sql)
@@ -302,7 +338,7 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                 if !val.is_null() {
                     validate_identifier(&col.column_name)?;
                     col_names.push(quote_identifier(&col.column_name));
-                    placeholders.push(format!("${}", param_idx));
+                    placeholders.push(typed_placeholder(col, param_idx)?);
                     values.push(json_value_to_string(val));
                     param_idx += 1;
                 }
@@ -361,9 +397,9 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
             if let Some(val) = obj.get(&col.column_name) {
                 validate_identifier(&col.column_name)?;
                 set_clauses.push(format!(
-                    "{} = ${}",
+                    "{} = {}",
                     quote_identifier(&col.column_name),
-                    param_idx
+                    typed_placeholder(col, param_idx)?
                 ));
                 values.push(json_value_to_string(val));
                 param_idx += 1;
@@ -380,11 +416,12 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
             .collect();
 
         let sql = format!(
-            "UPDATE {} SET {} WHERE {} = ${} RETURNING {}",
+            "UPDATE {} SET {} WHERE {} = CAST(${} AS {}) RETURNING {}",
             table_name,
             set_clauses.join(", "),
             quote_identifier(&pk_col.column_name),
             param_idx,
+            postgres_cast_type(&pk_col.data_type)?,
             returning_cols.join(", ")
         );
         values.push(record_id.to_string());
@@ -416,9 +453,18 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         validate_identifier(&pk_col)?;
 
         let sql = format!(
-            "DELETE FROM {} WHERE {} = $1",
+            "DELETE FROM {} WHERE {} = CAST($1 AS {})",
             table_name,
-            quote_identifier(&pk_col)
+            quote_identifier(&pk_col),
+            postgres_cast_type(
+                &sqlx::query_scalar::<_, String>(
+                    "SELECT data_type FROM master_maintenance.column_definitions WHERE table_id = $1 AND column_name = $2 LIMIT 1"
+                )
+                .bind(table_def.id)
+                .bind(&pk_col)
+                .fetch_one(&self.pool)
+                .await?
+            )?
         );
         sqlx::query(&sql)
             .bind(record_id)

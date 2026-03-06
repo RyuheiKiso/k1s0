@@ -69,7 +69,7 @@ pub async fn create_record(
     Json(data): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
-    let record = state
+    let result = state
         .crud_records_uc
         .create_record(&name, &data, &actor)
         .await?;
@@ -78,16 +78,22 @@ pub async fn create_record(
         serde_json::json!({
             "event_type": "MASTER_MAINTENANCE_DATA_CHANGED",
             "resource_type": "record",
-            "resource_id": record.get("id").and_then(|value| value.as_str()),
+            "resource_id": result.record.get("id").and_then(|value| value.as_str()),
             "resource_name": name,
             "action": "created",
             "actor": actor,
-            "after": record.clone(),
+            "after": result.record.clone(),
             "timestamp": chrono::Utc::now().to_rfc3339(),
         }),
     )
     .await;
-    Ok((StatusCode::CREATED, Json(record)))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::json!({
+            "data": result.record,
+            "warnings": result.warnings,
+        })),
+    ))
 }
 
 pub async fn update_record(
@@ -97,7 +103,7 @@ pub async fn update_record(
     Json(data): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
-    let record = state
+    let result = state
         .crud_records_uc
         .update_record(&name, &id, &data, &actor)
         .await?;
@@ -110,12 +116,15 @@ pub async fn update_record(
             "resource_name": name,
             "action": "updated",
             "actor": actor,
-            "after": record.clone(),
+            "after": result.record.clone(),
             "timestamp": chrono::Utc::now().to_rfc3339(),
         }),
     )
     .await;
-    Ok(Json(record))
+    Ok(Json(serde_json::json!({
+        "data": result.record,
+        "warnings": result.warnings,
+    })))
 }
 
 pub async fn delete_record(

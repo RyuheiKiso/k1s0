@@ -184,6 +184,33 @@ fn domain_consistency_rule_to_proto(
     }
 }
 
+fn domain_warning_to_proto(
+    warning: &crate::domain::value_object::rule_result::RuleResult,
+) -> ValidationWarning {
+    ValidationWarning {
+        rule_name: warning.rule_name.clone(),
+        message: warning.message.clone().unwrap_or_default(),
+        severity: warning.severity.clone(),
+    }
+}
+
+fn status_from_anyhow(err: anyhow::Error) -> Status {
+    if let Some(validation) =
+        err.downcast_ref::<crate::usecase::crud_records::RecordValidationError>()
+    {
+        return Status::invalid_argument(
+            serde_json::json!({
+                "message": "validation failed",
+                "errors": validation.errors,
+                "warnings": validation.warnings,
+            })
+            .to_string(),
+        );
+    }
+
+    Status::internal(err.to_string())
+}
+
 // --- MasterMaintenanceService 実装 ---
 
 #[tonic::async_trait]
@@ -503,15 +530,19 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .and_then(|v| v.as_str())
             .unwrap_or("grpc-user");
 
-        let record = self
+        let result = self
             .crud_records_uc
             .create_record(&req.table_name, &json_data, created_by)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(status_from_anyhow)?;
 
         Ok(Response::new(CreateRecordResponse {
-            data: json_to_struct(&record),
-            warnings: vec![],
+            data: json_to_struct(&result.record),
+            warnings: result
+                .warnings
+                .iter()
+                .map(domain_warning_to_proto)
+                .collect(),
         }))
     }
 
@@ -538,15 +569,19 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .and_then(|v| v.as_str())
             .unwrap_or("grpc-user");
 
-        let record = self
+        let result = self
             .crud_records_uc
             .update_record(&req.table_name, &req.record_id, &json_data, updated_by)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(status_from_anyhow)?;
 
         Ok(Response::new(UpdateRecordResponse {
-            data: json_to_struct(&record),
-            warnings: vec![],
+            data: json_to_struct(&result.record),
+            warnings: result
+                .warnings
+                .iter()
+                .map(domain_warning_to_proto)
+                .collect(),
         }))
     }
 
@@ -1014,7 +1049,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         }
         let value = self
             .import_export_uc
-            .export_records(&req.table_name)
+            .export_records(&req.table_name, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         let data = json_to_struct(&value).unwrap_or_else(|| {

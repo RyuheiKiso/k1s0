@@ -67,7 +67,7 @@ impl ManageRulesUseCase {
             source_table_id: table.id,
             evaluation_timing: create_input
                 .evaluation_timing
-                .unwrap_or_else(|| "on_save".to_string()),
+                .unwrap_or_else(|| "before_save".to_string()),
             error_message_template: create_input.error_message_template,
             zen_rule_json: create_input.zen_rule_json,
             created_by: created_by.to_string(),
@@ -75,24 +75,34 @@ impl ManageRulesUseCase {
             updated_at: chrono::Utc::now(),
         };
 
-        let conditions: Vec<RuleCondition> = create_input
-            .conditions
-            .unwrap_or_default()
-            .iter()
-            .map(|c| RuleCondition {
+        let mut conditions = Vec::new();
+        for condition in create_input.conditions.unwrap_or_default() {
+            let right_table_id = if let Some(right_table_name) = condition.right_table.as_deref() {
+                Some(
+                    self.table_repo
+                        .find_by_name(right_table_name)
+                        .await?
+                        .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", right_table_name))?
+                        .id,
+                )
+            } else {
+                None
+            };
+
+            conditions.push(RuleCondition {
                 id: Uuid::new_v4(),
                 rule_id: rule.id,
-                condition_order: c.condition_order,
+                condition_order: condition.condition_order,
                 left_table_id: table.id,
-                left_column: c.left_column.clone(),
-                operator: c.operator.clone(),
-                right_table_id: None,
-                right_column: c.right_column.clone(),
-                right_value: c.right_value.clone(),
-                logical_connector: c.logical_connector.clone(),
+                left_column: condition.left_column,
+                operator: condition.operator,
+                right_table_id,
+                right_column: condition.right_column,
+                right_value: condition.right_value,
+                logical_connector: condition.logical_connector,
                 created_at: chrono::Utc::now(),
-            })
-            .collect();
+            });
+        }
 
         self.rule_repo.create(&rule, &conditions).await
     }
@@ -131,7 +141,53 @@ impl ManageRulesUseCase {
         }
         rule.updated_at = chrono::Utc::now();
 
-        self.rule_repo.update(id, &rule).await
+        let updated = self.rule_repo.update(id, &rule).await?;
+
+        if let Some(conditions_value) = input.get("conditions") {
+            let source_table = self
+                .table_repo
+                .find_by_id(rule.source_table_id)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("Source table not found"))?;
+            let inputs: Vec<crate::domain::entity::consistency_rule::CreateRuleConditionInput> =
+                serde_json::from_value(conditions_value.clone())?;
+            let mut conditions = Vec::with_capacity(inputs.len());
+            for condition in inputs {
+                let right_table_id =
+                    if let Some(right_table_name) = condition.right_table.as_deref() {
+                        Some(
+                            self.table_repo
+                                .find_by_name(right_table_name)
+                                .await?
+                                .ok_or_else(|| {
+                                    anyhow::anyhow!("Table '{}' not found", right_table_name)
+                                })?
+                                .id,
+                        )
+                    } else {
+                        None
+                    };
+
+                conditions.push(RuleCondition {
+                    id: Uuid::new_v4(),
+                    rule_id: updated.id,
+                    condition_order: condition.condition_order,
+                    left_table_id: source_table.id,
+                    left_column: condition.left_column,
+                    operator: condition.operator,
+                    right_table_id,
+                    right_column: condition.right_column,
+                    right_value: condition.right_value,
+                    logical_connector: condition.logical_connector,
+                    created_at: chrono::Utc::now(),
+                });
+            }
+            self.rule_repo
+                .replace_conditions(updated.id, &conditions)
+                .await?;
+        }
+
+        Ok(updated)
     }
 
     pub async fn delete_rule(&self, id: Uuid) -> anyhow::Result<()> {

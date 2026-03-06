@@ -23,6 +23,11 @@ pub trait ConsistencyRuleRepository: Send + Sync {
         conditions: &[RuleCondition],
     ) -> anyhow::Result<ConsistencyRule>;
     async fn update(&self, id: Uuid, rule: &ConsistencyRule) -> anyhow::Result<ConsistencyRule>;
+    async fn replace_conditions(
+        &self,
+        rule_id: Uuid,
+        conditions: &[RuleCondition],
+    ) -> anyhow::Result<()>;
     async fn delete(&self, id: Uuid) -> anyhow::Result<()>;
     async fn find_conditions_by_rule_id(&self, rule_id: Uuid)
         -> anyhow::Result<Vec<RuleCondition>>;

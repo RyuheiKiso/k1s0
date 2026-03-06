@@ -1,21 +1,25 @@
 use crate::domain::entity::column_definition::ColumnDefinition;
 use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
 use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
+use crate::infrastructure::schema::PhysicalSchemaManager;
 use std::sync::Arc;
 
 pub struct ManageColumnDefinitionsUseCase {
     table_repo: Arc<dyn TableDefinitionRepository>,
     column_repo: Arc<dyn ColumnDefinitionRepository>,
+    schema_manager: Arc<PhysicalSchemaManager>,
 }
 
 impl ManageColumnDefinitionsUseCase {
     pub fn new(
         table_repo: Arc<dyn TableDefinitionRepository>,
         column_repo: Arc<dyn ColumnDefinitionRepository>,
+        schema_manager: Arc<PhysicalSchemaManager>,
     ) -> Self {
         Self {
             table_repo,
             column_repo,
+            schema_manager,
         }
     }
 
@@ -40,6 +44,7 @@ impl ManageColumnDefinitionsUseCase {
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
         let columns: Vec<crate::domain::entity::column_definition::CreateColumnDefinition> =
             serde_json::from_value(input.get("columns").cloned().unwrap_or_default())?;
+        self.schema_manager.add_columns(&table, &columns).await?;
         self.column_repo.create_batch(table.id, &columns).await
     }
 
@@ -54,8 +59,16 @@ impl ManageColumnDefinitionsUseCase {
             .find_by_name(table_name)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
+        let existing = self
+            .column_repo
+            .find_by_table_and_column(table.id, column_name)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Column not found"))?;
         let col_def: crate::domain::entity::column_definition::CreateColumnDefinition =
             serde_json::from_value(input.clone())?;
+        self.schema_manager
+            .update_column(&table, &existing, &col_def)
+            .await?;
         self.column_repo
             .update(table.id, column_name, &col_def)
             .await
@@ -67,6 +80,9 @@ impl ManageColumnDefinitionsUseCase {
             .find_by_name(table_name)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
+        self.schema_manager
+            .delete_column(&table, column_name)
+            .await?;
         self.column_repo.delete(table.id, column_name).await
     }
 }

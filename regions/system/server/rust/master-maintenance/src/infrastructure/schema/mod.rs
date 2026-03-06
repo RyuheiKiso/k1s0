@@ -1,0 +1,295 @@
+use crate::domain::entity::column_definition::{ColumnDefinition, CreateColumnDefinition};
+use crate::domain::entity::table_definition::{CreateTableDefinition, TableDefinition};
+use crate::domain::entity::table_relationship::TableRelationship;
+use sqlx::PgPool;
+
+pub struct PhysicalSchemaManager {
+    pool: PgPool,
+}
+
+impl PhysicalSchemaManager {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
+    pub async fn create_table(&self, input: &CreateTableDefinition) -> anyhow::Result<()> {
+        validate_identifier(&input.schema_name)?;
+        validate_identifier(&input.name)?;
+
+        let create_schema_sql = format!(
+            "CREATE SCHEMA IF NOT EXISTS {}",
+            quote_identifier(&input.schema_name)
+        );
+        sqlx::query(&create_schema_sql).execute(&self.pool).await?;
+
+        let create_table_sql = format!(
+            "CREATE TABLE IF NOT EXISTS {}.{} ()",
+            quote_identifier(&input.schema_name),
+            quote_identifier(&input.name)
+        );
+        sqlx::query(&create_table_sql).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn delete_table(&self, table: &TableDefinition) -> anyhow::Result<()> {
+        let qualified_table = qualified_table_name(table)?;
+        let sql = format!("DROP TABLE IF EXISTS {} CASCADE", qualified_table);
+        sqlx::query(&sql).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn add_columns(
+        &self,
+        table: &TableDefinition,
+        columns: &[CreateColumnDefinition],
+    ) -> anyhow::Result<()> {
+        let qualified_table = qualified_table_name(table)?;
+
+        for column in columns {
+            validate_identifier(&column.column_name)?;
+            let data_type = postgres_type(&column.data_type)?;
+
+            let mut sql = format!(
+                "ALTER TABLE {} ADD COLUMN IF NOT EXISTS {} {}",
+                qualified_table,
+                quote_identifier(&column.column_name),
+                data_type
+            );
+
+            if let Some(default_sql) = default_value_sql(column)? {
+                sql.push_str(" DEFAULT ");
+                sql.push_str(&default_sql);
+            }
+
+            if !column.is_nullable.unwrap_or(true) || column.is_primary_key.unwrap_or(false) {
+                sql.push_str(" NOT NULL");
+            }
+
+            sqlx::query(&sql).execute(&self.pool).await?;
+
+            if column.is_unique.unwrap_or(false) {
+                let unique_constraint =
+                    format!("{}_{}_unique", table.name, column.column_name).replace('-', "_");
+                let unique_sql = format!(
+                    "ALTER TABLE {} ADD CONSTRAINT {} UNIQUE ({})",
+                    qualified_table,
+                    quote_identifier(&unique_constraint),
+                    quote_identifier(&column.column_name)
+                );
+                let _ = sqlx::query(&unique_sql).execute(&self.pool).await;
+            }
+
+            if column.is_primary_key.unwrap_or(false) {
+                let pk_constraint =
+                    format!("{}_{}_pk", table.name, column.column_name).replace('-', "_");
+                let pk_sql = format!(
+                    "ALTER TABLE {} ADD CONSTRAINT {} PRIMARY KEY ({})",
+                    qualified_table,
+                    quote_identifier(&pk_constraint),
+                    quote_identifier(&column.column_name)
+                );
+                let _ = sqlx::query(&pk_sql).execute(&self.pool).await;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn update_column(
+        &self,
+        table: &TableDefinition,
+        existing: &ColumnDefinition,
+        input: &CreateColumnDefinition,
+    ) -> anyhow::Result<()> {
+        let qualified_table = qualified_table_name(table)?;
+        validate_identifier(&existing.column_name)?;
+        let quoted_column = quote_identifier(&existing.column_name);
+
+        if existing.data_type != input.data_type {
+            let sql = format!(
+                "ALTER TABLE {} ALTER COLUMN {} TYPE {} USING {}::{}",
+                qualified_table,
+                quoted_column,
+                postgres_type(&input.data_type)?,
+                quoted_column,
+                postgres_type(&input.data_type)?
+            );
+            sqlx::query(&sql).execute(&self.pool).await?;
+        }
+
+        if existing.default_value != input.default_value {
+            let sql = if let Some(default_sql) = default_value_sql(input)? {
+                format!(
+                    "ALTER TABLE {} ALTER COLUMN {} SET DEFAULT {}",
+                    qualified_table, quoted_column, default_sql
+                )
+            } else {
+                format!(
+                    "ALTER TABLE {} ALTER COLUMN {} DROP DEFAULT",
+                    qualified_table, quoted_column
+                )
+            };
+            sqlx::query(&sql).execute(&self.pool).await?;
+        }
+
+        if existing.is_nullable != input.is_nullable.unwrap_or(existing.is_nullable) {
+            let sql = if input.is_nullable.unwrap_or(existing.is_nullable) {
+                format!(
+                    "ALTER TABLE {} ALTER COLUMN {} DROP NOT NULL",
+                    qualified_table, quoted_column
+                )
+            } else {
+                format!(
+                    "ALTER TABLE {} ALTER COLUMN {} SET NOT NULL",
+                    qualified_table, quoted_column
+                )
+            };
+            sqlx::query(&sql).execute(&self.pool).await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_column(
+        &self,
+        table: &TableDefinition,
+        column_name: &str,
+    ) -> anyhow::Result<()> {
+        let qualified_table = qualified_table_name(table)?;
+        validate_identifier(column_name)?;
+        let sql = format!(
+            "ALTER TABLE {} DROP COLUMN IF EXISTS {}",
+            qualified_table,
+            quote_identifier(column_name)
+        );
+        sqlx::query(&sql).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn create_relationship(
+        &self,
+        source_table: &TableDefinition,
+        target_table: &TableDefinition,
+        relationship: &TableRelationship,
+    ) -> anyhow::Result<()> {
+        let source_table_name = qualified_table_name(source_table)?;
+        validate_identifier(&relationship.source_column)?;
+        validate_identifier(&relationship.target_column)?;
+        let target_table_name = qualified_table_name(target_table)?;
+        let constraint_name = relationship_constraint_name(relationship.id);
+        let on_delete = if relationship.is_cascade_delete {
+            "CASCADE"
+        } else {
+            "RESTRICT"
+        };
+        let sql = format!(
+            "ALTER TABLE {} ADD CONSTRAINT {} FOREIGN KEY ({}) REFERENCES {} ({}) ON DELETE {}",
+            source_table_name,
+            quote_identifier(&constraint_name),
+            quote_identifier(&relationship.source_column),
+            target_table_name,
+            quote_identifier(&relationship.target_column),
+            on_delete
+        );
+        sqlx::query(&sql).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn update_relationship(
+        &self,
+        source_table: &TableDefinition,
+        target_table: &TableDefinition,
+        relationship: &TableRelationship,
+    ) -> anyhow::Result<()> {
+        self.delete_relationship(source_table, relationship.id)
+            .await?;
+        self.create_relationship(source_table, target_table, relationship)
+            .await
+    }
+
+    pub async fn delete_relationship(
+        &self,
+        source_table: &TableDefinition,
+        relationship_id: uuid::Uuid,
+    ) -> anyhow::Result<()> {
+        let source_table_name = qualified_table_name(source_table)?;
+        let constraint_name = relationship_constraint_name(relationship_id);
+        let sql = format!(
+            "ALTER TABLE {} DROP CONSTRAINT IF EXISTS {}",
+            source_table_name,
+            quote_identifier(&constraint_name)
+        );
+        sqlx::query(&sql).execute(&self.pool).await?;
+        Ok(())
+    }
+}
+
+fn qualified_table_name(table: &TableDefinition) -> anyhow::Result<String> {
+    validate_identifier(&table.schema_name)?;
+    validate_identifier(&table.name)?;
+    Ok(format!(
+        "{}.{}",
+        quote_identifier(&table.schema_name),
+        quote_identifier(&table.name)
+    ))
+}
+
+fn quote_identifier(name: &str) -> String {
+    format!("\"{}\"", name.replace('"', "\"\""))
+}
+
+fn validate_identifier(name: &str) -> anyhow::Result<()> {
+    if name.is_empty() {
+        anyhow::bail!("identifier cannot be empty");
+    }
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        anyhow::bail!("invalid identifier: {}", name);
+    }
+    Ok(())
+}
+
+fn postgres_type(data_type: &str) -> anyhow::Result<&'static str> {
+    match data_type {
+        "text" => Ok("TEXT"),
+        "integer" => Ok("INTEGER"),
+        "decimal" => Ok("NUMERIC"),
+        "boolean" => Ok("BOOLEAN"),
+        "date" => Ok("DATE"),
+        "datetime" => Ok("TIMESTAMPTZ"),
+        "uuid" => Ok("UUID"),
+        "jsonb" => Ok("JSONB"),
+        other => anyhow::bail!("unsupported data type: {}", other),
+    }
+}
+
+fn default_value_sql(column: &CreateColumnDefinition) -> anyhow::Result<Option<String>> {
+    let Some(default_value) = column.default_value.as_deref() else {
+        return Ok(None);
+    };
+
+    let sql = match column.data_type.as_str() {
+        "integer" | "decimal" => default_value.to_string(),
+        "boolean" => match default_value {
+            "true" | "false" => default_value.to_string(),
+            _ => anyhow::bail!("invalid boolean default: {}", default_value),
+        },
+        "uuid" if default_value.eq_ignore_ascii_case("gen_random_uuid()") => {
+            "gen_random_uuid()".to_string()
+        }
+        "uuid" => format!("'{}'::uuid", escape_literal(default_value)),
+        "date" => format!("'{}'::date", escape_literal(default_value)),
+        "datetime" => format!("'{}'::timestamptz", escape_literal(default_value)),
+        "jsonb" => format!("'{}'::jsonb", escape_literal(default_value)),
+        _ => format!("'{}'", escape_literal(default_value)),
+    };
+
+    Ok(Some(sql))
+}
+
+fn escape_literal(value: &str) -> String {
+    value.replace('\'', "''")
+}
+
+fn relationship_constraint_name(id: uuid::Uuid) -> String {
+    format!("mm_rel_{}", id.simple())
+}

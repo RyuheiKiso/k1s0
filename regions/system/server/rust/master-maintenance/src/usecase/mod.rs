@@ -7,3 +7,4 @@ pub mod manage_display_configs;
 pub mod manage_relationships;
 pub mod manage_rules;
 pub mod manage_table_definitions;
+pub mod rule_evaluator;

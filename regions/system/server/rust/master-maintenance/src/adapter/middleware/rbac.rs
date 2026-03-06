@@ -35,7 +35,7 @@ async fn rbac_check(
     Ok(next.run(req).await)
 }
 
-fn check_system_permission(roles: &[String], action: &str) -> bool {
+pub fn check_system_permission(roles: &[String], action: &str) -> bool {
     for role in roles {
         match role.as_str() {
             "sys_admin" => return true,

@@ -2,6 +2,8 @@ pub mod audit_handler;
 pub mod display_config_handler;
 pub mod error;
 pub mod import_export_handler;
+#[cfg(all(test, feature = "db-tests"))]
+mod integration_tests;
 pub mod record_handler;
 pub mod relationship_handler;
 pub mod rule_handler;
@@ -297,6 +299,10 @@ pub fn router(state: AppState) -> Router {
                 post(import_export_handler::import_records),
             )
             .route(
+                "/api/v1/tables/:name/import-file",
+                post(import_export_handler::import_records_file),
+            )
+            .route(
                 "/api/v1/tables/:name/display-configs",
                 post(display_config_handler::create_display_config),
             )
@@ -401,6 +407,10 @@ pub fn router(state: AppState) -> Router {
             .route(
                 "/api/v1/tables/:name/import",
                 post(import_export_handler::import_records),
+            )
+            .route(
+                "/api/v1/tables/:name/import-file",
+                post(import_export_handler::import_records_file),
             )
             .route(
                 "/api/v1/tables/:name/export",

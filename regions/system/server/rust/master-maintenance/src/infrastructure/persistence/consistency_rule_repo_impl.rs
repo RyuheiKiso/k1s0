@@ -173,6 +173,43 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         Ok(row.into())
     }
 
+    async fn replace_conditions(
+        &self,
+        rule_id: Uuid,
+        conditions: &[RuleCondition],
+    ) -> anyhow::Result<()> {
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query("DELETE FROM master_maintenance.rule_conditions WHERE rule_id = $1")
+            .bind(rule_id)
+            .execute(&mut *tx)
+            .await?;
+
+        for cond in conditions {
+            sqlx::query(
+                r#"INSERT INTO master_maintenance.rule_conditions
+                   (id, rule_id, condition_order, left_table_id, left_column, operator,
+                    right_table_id, right_column, right_value, logical_connector)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
+            )
+            .bind(cond.id)
+            .bind(cond.rule_id)
+            .bind(cond.condition_order)
+            .bind(cond.left_table_id)
+            .bind(&cond.left_column)
+            .bind(&cond.operator)
+            .bind(cond.right_table_id)
+            .bind(&cond.right_column)
+            .bind(&cond.right_value)
+            .bind(&cond.logical_connector)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        tx.commit().await?;
+        Ok(())
+    }
+
     async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
         let mut tx = self.pool.begin().await?;
 

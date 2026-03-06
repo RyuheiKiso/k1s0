@@ -4,6 +4,7 @@ use crate::domain::repository::dynamic_record_repository::DynamicRecordRepositor
 use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
 use crate::domain::service::rule_engine_service::RuleEngineService;
 use crate::domain::value_object::rule_result::RuleResult;
+use crate::usecase::rule_evaluator::RuleEvaluator;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -12,7 +13,7 @@ pub struct CheckConsistencyUseCase {
     column_repo: Arc<dyn ColumnDefinitionRepository>,
     rule_repo: Arc<dyn ConsistencyRuleRepository>,
     record_repo: Arc<dyn DynamicRecordRepository>,
-    rule_engine: Arc<dyn RuleEngineService>,
+    rule_evaluator: RuleEvaluator,
 }
 
 impl CheckConsistencyUseCase {
@@ -23,12 +24,19 @@ impl CheckConsistencyUseCase {
         record_repo: Arc<dyn DynamicRecordRepository>,
         rule_engine: Arc<dyn RuleEngineService>,
     ) -> Self {
+        let rule_evaluator = RuleEvaluator::new(
+            table_repo.clone(),
+            column_repo.clone(),
+            rule_repo.clone(),
+            record_repo.clone(),
+            rule_engine,
+        );
         Self {
             table_repo,
             column_repo,
             rule_repo,
             record_repo,
-            rule_engine,
+            rule_evaluator,
         }
     }
 
@@ -56,7 +64,10 @@ impl CheckConsistencyUseCase {
         let rule_name_str = rule.name.clone();
         let mut results = Vec::new();
         for record in &records {
-            let result = self.rule_engine.evaluate_rule(&rule, record).await?;
+            let result = self
+                .rule_evaluator
+                .evaluate_rule(&rule, &table, &columns, record)
+                .await?;
             if !result.passed {
                 results.push(result.with_rule_info(rule_id_str.clone(), rule_name_str.clone()));
             }
@@ -104,7 +115,10 @@ impl CheckConsistencyUseCase {
             let rule_id_str = rule.id.to_string();
             let rule_name_str = rule.name.clone();
             for record in &records {
-                let result = self.rule_engine.evaluate_rule(rule, record).await?;
+                let result = self
+                    .rule_evaluator
+                    .evaluate_rule(rule, &table, &columns, record)
+                    .await?;
                 if !result.passed {
                     all_results
                         .push(result.with_rule_info(rule_id_str.clone(), rule_name_str.clone()));
