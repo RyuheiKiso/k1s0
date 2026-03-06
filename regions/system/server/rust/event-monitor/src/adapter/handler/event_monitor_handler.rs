@@ -676,6 +676,13 @@ pub async fn execute_replay(
             })),
         )
             .into_response(),
+        Err(crate::usecase::execute_replay::ExecuteReplayError::ReplayInProgress(ids)) => {
+            let err = ErrorResponse::new(
+                "SYS_EVMON_REPLAY_IN_PROGRESS",
+                &format!("replay already in progress for: {}", ids),
+            );
+            (StatusCode::CONFLICT, Json(err)).into_response()
+        }
         Err(e) => {
             let err = ErrorResponse::new("SYS_EVMON_REPLAY_FAILED", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
