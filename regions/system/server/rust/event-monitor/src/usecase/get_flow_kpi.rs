@@ -29,6 +29,7 @@ pub enum GetFlowKpiError {
 pub struct GetFlowKpiUseCase {
     flow_def_repo: Arc<dyn FlowDefinitionRepository>,
     flow_inst_repo: Arc<dyn FlowInstanceRepository>,
+    kpi_cache: Option<Arc<KpiCache>>,
 }
 
 impl GetFlowKpiUseCase {
@@ -39,7 +40,13 @@ impl GetFlowKpiUseCase {
         Self {
             flow_def_repo,
             flow_inst_repo,
+            kpi_cache: None,
         }
+    }
+
+    pub fn with_cache(mut self, cache: Arc<KpiCache>) -> Self {
+        self.kpi_cache = Some(cache);
+        self
     }
 
     pub async fn execute(
@@ -47,6 +54,29 @@ impl GetFlowKpiUseCase {
         flow_id: &Uuid,
         period: &str,
     ) -> Result<GetFlowKpiOutput, GetFlowKpiError> {
+        // Check cache first
+        let cache_key = format!("flow_kpi:{}:{}", flow_id, period);
+        if let Some(ref cache) = self.kpi_cache {
+            if let Some(cached_kpi) = cache.get(&cache_key).await {
+                let flow = self
+                    .flow_def_repo
+                    .find_by_id(flow_id)
+                    .await
+                    .map_err(|e| GetFlowKpiError::Internal(e.to_string()))?
+                    .ok_or_else(|| GetFlowKpiError::NotFound(flow_id.to_string()))?;
+
+                let slo_status = SloCalculationService::calculate_from_kpi(&flow, &cached_kpi);
+
+                return Ok(GetFlowKpiOutput {
+                    flow_id: flow.id,
+                    flow_name: flow.name,
+                    period: period.to_string(),
+                    kpi: (*cached_kpi).clone(),
+                    slo_status,
+                });
+            }
+        }
+
         let flow = self
             .flow_def_repo
             .find_by_id(flow_id)
@@ -62,6 +92,12 @@ impl GetFlowKpiUseCase {
             .map_err(|e| GetFlowKpiError::Internal(e.to_string()))?;
 
         let kpi = KpiAggregationService::aggregate(&instances);
+
+        // Store in cache
+        if let Some(ref cache) = self.kpi_cache {
+            cache.insert(cache_key, Arc::new(kpi.clone())).await;
+        }
+
         let slo_status = SloCalculationService::calculate(&flow, &instances);
 
         Ok(GetFlowKpiOutput {
