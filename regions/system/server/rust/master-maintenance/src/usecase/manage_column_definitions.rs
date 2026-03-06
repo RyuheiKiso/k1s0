@@ -58,10 +58,11 @@ impl ManageColumnDefinitionsUseCase {
         table_name: &str,
         column_name: &str,
         input: &serde_json::Value,
+        domain_scope: Option<&str>,
     ) -> anyhow::Result<ColumnDefinition> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
         let existing = self
@@ -79,10 +80,15 @@ impl ManageColumnDefinitionsUseCase {
             .await
     }
 
-    pub async fn delete_column(&self, table_name: &str, column_name: &str) -> anyhow::Result<()> {
+    pub async fn delete_column(
+        &self,
+        table_name: &str,
+        column_name: &str,
+        domain_scope: Option<&str>,
+    ) -> anyhow::Result<()> {
         let table = self
             .table_repo
-            .find_by_name(table_name)
+            .find_by_name(table_name, domain_scope)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Table not found"))?;
         self.schema_manager
