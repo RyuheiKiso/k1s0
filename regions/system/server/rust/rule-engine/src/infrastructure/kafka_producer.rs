@@ -64,6 +64,54 @@ impl RuleChangedEvent {
         }
     }
 
+    pub fn rule_set_created(rs: &crate::domain::entity::rule::RuleSet) -> Self {
+        Self {
+            event_type: "RULE_SET_CHANGED".to_string(),
+            rule_set_id: Some(rs.id.to_string()),
+            rule_set_name: Some(rs.name.clone()),
+            rule_id: None,
+            rule_name: None,
+            domain: Some(rs.domain.clone()),
+            action: "CREATED".to_string(),
+            version: Some(rs.current_version),
+            previous_version: None,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            actor_user_id: None,
+        }
+    }
+
+    pub fn rule_set_updated(rs: &crate::domain::entity::rule::RuleSet) -> Self {
+        Self {
+            event_type: "RULE_SET_CHANGED".to_string(),
+            rule_set_id: Some(rs.id.to_string()),
+            rule_set_name: Some(rs.name.clone()),
+            rule_id: None,
+            rule_name: None,
+            domain: Some(rs.domain.clone()),
+            action: "UPDATED".to_string(),
+            version: Some(rs.current_version),
+            previous_version: None,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            actor_user_id: None,
+        }
+    }
+
+    pub fn rule_set_deleted(rs: &crate::domain::entity::rule::RuleSet) -> Self {
+        Self {
+            event_type: "RULE_SET_CHANGED".to_string(),
+            rule_set_id: Some(rs.id.to_string()),
+            rule_set_name: Some(rs.name.clone()),
+            rule_id: None,
+            rule_name: None,
+            domain: Some(rs.domain.clone()),
+            action: "DELETED".to_string(),
+            version: Some(rs.current_version),
+            previous_version: None,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            actor_user_id: None,
+        }
+    }
+
     pub fn rule_set_published(
         rs: &crate::domain::entity::rule::RuleSet,
         new_version: u32,
