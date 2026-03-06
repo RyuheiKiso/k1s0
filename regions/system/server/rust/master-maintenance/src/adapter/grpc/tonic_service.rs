@@ -891,7 +891,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         let payload = serde_json::json!({ "columns": columns_json });
         let cols = self
             .manage_columns_uc
-            .create_columns(&req.table_name, &payload)
+            .create_columns(&req.table_name, &payload, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(CreateColumnsResponse {
@@ -916,7 +916,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .ok_or_else(|| Status::invalid_argument("data is required"))?;
         let updated = self
             .manage_columns_uc
-            .update_column(&req.table_name, &req.column_name, &struct_to_json(data))
+            .update_column(&req.table_name, &req.column_name, &struct_to_json(data), None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(UpdateColumnResponse {
