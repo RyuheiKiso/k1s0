@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use tonic::{Request, Response, Status};
 
 use crate::adapter::grpc::master_maintenance_grpc::MasterMaintenanceGrpcService;
+use crate::domain::value_object::domain_filter::DomainFilter;
 use crate::proto::k1s0::system::common::v1::{PaginationResult, Timestamp as ProtoTimestamp};
 use crate::proto::k1s0::system::mastermaintenance::v1::{
     master_maintenance_service_server::MasterMaintenanceService,
@@ -151,7 +152,12 @@ fn domain_table_to_proto(
             seconds: table.updated_at.timestamp(),
             nanos: table.updated_at.timestamp_subsec_nanos() as i32,
         }),
+        domain_scope: table.domain_scope.clone().unwrap_or_default(),
     }
+}
+
+fn optional_str(s: &str) -> Option<&str> {
+    if s.is_empty() { None } else { Some(s) }
 }
 
 fn domain_consistency_rule_to_proto(
@@ -253,9 +259,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             serde_json::from_value(struct_to_json(&data))
                 .map_err(|e| Status::invalid_argument(format!("invalid data: {}", e)))?;
 
+        let ds = optional_str(&req.domain_scope);
         let table = self
             .manage_tables_uc
-            .update_table(&req.table_name, &input)
+            .update_table(&req.table_name, &input, ds)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
@@ -272,8 +279,9 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         if req.table_name.is_empty() {
             return Err(Status::invalid_argument("table_name is required"));
         }
+        let ds = optional_str(&req.domain_scope);
         self.manage_tables_uc
-            .delete_table(&req.table_name)
+            .delete_table(&req.table_name, ds)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
@@ -291,9 +299,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             return Err(Status::invalid_argument("table_name is required"));
         }
 
+        let ds = optional_str(&req.domain_scope);
         let table = self
             .manage_tables_uc
-            .get_table(&req.table_name)
+            .get_table(&req.table_name, ds)
             .await
             .map_err(|e| Status::internal(e.to_string()))?
             .ok_or_else(|| Status::not_found(format!("Table '{}' not found", req.table_name)))?;
@@ -345,9 +354,14 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             Some(req.category.as_str())
         };
 
+        let domain_filter = match optional_str(&req.domain_scope) {
+            Some(ds) => DomainFilter::Domain(ds.to_string()),
+            None => DomainFilter::All,
+        };
+
         let tables = self
             .manage_tables_uc
-            .list_tables(category, req.active_only)
+            .list_tables(category, req.active_only, &domain_filter)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
@@ -427,9 +441,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             return Err(Status::invalid_argument("record_id is required"));
         }
 
+        let ds = optional_str(&req.domain_scope);
         let record = self
             .crud_records_uc
-            .get_record(&req.table_name, &req.record_id)
+            .get_record(&req.table_name, &req.record_id, ds)
             .await
             .map_err(|e| Status::internal(e.to_string()))?
             .ok_or_else(|| {
@@ -477,6 +492,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             Some(req.search.as_str())
         };
 
+        let ds = optional_str(&req.domain_scope);
         let result = self
             .crud_records_uc
             .list_records(
@@ -487,6 +503,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 filter,
                 search,
                 None,
+                ds,
             )
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
@@ -530,9 +547,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .and_then(|v| v.as_str())
             .unwrap_or("grpc-user");
 
+        let ds = optional_str(&req.domain_scope);
         let result = self
             .crud_records_uc
-            .create_record(&req.table_name, &json_data, created_by)
+            .create_record(&req.table_name, &json_data, created_by, ds)
             .await
             .map_err(status_from_anyhow)?;
 
@@ -569,9 +587,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .and_then(|v| v.as_str())
             .unwrap_or("grpc-user");
 
+        let ds = optional_str(&req.domain_scope);
         let result = self
             .crud_records_uc
-            .update_record(&req.table_name, &req.record_id, &json_data, updated_by)
+            .update_record(&req.table_name, &req.record_id, &json_data, updated_by, ds)
             .await
             .map_err(status_from_anyhow)?;
 
@@ -597,8 +616,9 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             return Err(Status::invalid_argument("record_id is required"));
         }
 
+        let ds = optional_str(&req.domain_scope);
         self.crud_records_uc
-            .delete_record(&req.table_name, &req.record_id, "grpc-user")
+            .delete_record(&req.table_name, &req.record_id, "grpc-user", ds)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
@@ -614,9 +634,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             return Err(Status::invalid_argument("table_name is required"));
         }
 
+        let ds = optional_str(&req.domain_scope);
         let results = self
             .check_consistency_uc
-            .check_rules(&req.table_name, &req.rule_ids)
+            .check_rules(&req.table_name, &req.rule_ids, ds)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
@@ -658,7 +679,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .ok_or_else(|| Status::invalid_argument("data is required"))?;
         let rule = self
             .manage_rules_uc
-            .create_rule(&struct_to_json(data), "grpc-user")
+            .create_rule(&struct_to_json(data), "grpc-user", None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(CreateRuleResponse {
@@ -697,7 +718,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .ok_or_else(|| Status::invalid_argument("data is required"))?;
         let rule = self
             .manage_rules_uc
-            .update_rule(rule_id, &struct_to_json(data))
+            .update_rule(rule_id, &struct_to_json(data), None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(UpdateRuleResponse {
@@ -748,7 +769,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
 
         let rules = self
             .manage_rules_uc
-            .list_rules(table_name, rule_type, severity)
+            .list_rules(table_name, rule_type, severity, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         let total_count = rules.len() as i32;
@@ -850,7 +871,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         }
         let cols = self
             .manage_columns_uc
-            .list_columns(&req.table_name)
+            .list_columns(&req.table_name, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(ListColumnsResponse {

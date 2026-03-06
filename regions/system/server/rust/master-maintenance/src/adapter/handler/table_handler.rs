@@ -1,6 +1,7 @@
 use crate::adapter::handler::error::AppError;
 use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState};
 use crate::domain::entity::table_definition::{CreateTableDefinition, UpdateTableDefinition};
+use crate::domain::value_object::domain_filter::DomainFilter;
 use axum::{
     extract::{Extension, Path, Query, State},
     http::StatusCode,
@@ -16,6 +17,12 @@ pub struct ListTablesQuery {
     pub active_only: Option<bool>,
     pub page: Option<u32>,
     pub page_size: Option<u32>,
+    pub domain_scope: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DomainScopeQuery {
+    pub domain_scope: Option<String>,
 }
 
 pub async fn healthz() -> impl IntoResponse {
@@ -25,7 +32,7 @@ pub async fn healthz() -> impl IntoResponse {
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let postgres_ok = state
         .manage_tables_uc
-        .list_tables(None, false)
+        .list_tables(None, false, &DomainFilter::All)
         .await
         .is_ok();
     let status = if postgres_ok {
@@ -57,11 +64,16 @@ pub async fn list_tables(
     State(state): State<AppState>,
     Query(query): Query<ListTablesQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
+    let domain_filter = match &query.domain_scope {
+        Some(ds) => DomainFilter::Domain(ds.clone()),
+        None => DomainFilter::All,
+    };
     let tables = state
         .manage_tables_uc
         .list_tables(
             query.category.as_deref(),
             query.active_only.unwrap_or(false),
+            &domain_filter,
         )
         .await?;
     let page = query.page.unwrap_or(1).max(1);
@@ -89,10 +101,11 @@ pub async fn list_tables(
 pub async fn get_table(
     State(state): State<AppState>,
     Path(name): Path<String>,
+    Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let table = state
         .manage_tables_uc
-        .get_table(&name)
+        .get_table(&name, ds_query.domain_scope.as_deref())
         .await?
         .ok_or_else(|| {
             AppError::not_found(
@@ -133,44 +146,49 @@ pub async fn create_table(
 pub async fn update_table(
     State(state): State<AppState>,
     Path(name): Path<String>,
+    Query(ds_query): Query<DomainScopeQuery>,
     Json(input): Json<UpdateTableDefinition>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let table = state.manage_tables_uc.update_table(&name, &input).await?;
+    let table = state.manage_tables_uc.update_table(&name, &input, ds_query.domain_scope.as_deref()).await?;
     Ok(Json(serde_json::to_value(table).unwrap()))
 }
 
 pub async fn delete_table(
     State(state): State<AppState>,
     Path(name): Path<String>,
+    Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<StatusCode, AppError> {
-    state.manage_tables_uc.delete_table(&name).await?;
+    state.manage_tables_uc.delete_table(&name, ds_query.domain_scope.as_deref()).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn get_table_schema(
     State(state): State<AppState>,
     Path(name): Path<String>,
+    Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let schema = state.manage_tables_uc.get_table_schema(&name).await?;
+    let schema = state.manage_tables_uc.get_table_schema(&name, ds_query.domain_scope.as_deref()).await?;
     Ok(Json(schema))
 }
 
 pub async fn list_columns(
     State(state): State<AppState>,
     Path(name): Path<String>,
+    Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let columns = state.manage_columns_uc.list_columns(&name).await?;
+    let columns = state.manage_columns_uc.list_columns(&name, ds_query.domain_scope.as_deref()).await?;
     Ok(Json(serde_json::to_value(columns).unwrap()))
 }
 
 pub async fn create_columns(
     State(state): State<AppState>,
     Path(name): Path<String>,
+    Query(ds_query): Query<DomainScopeQuery>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
     let columns = state
         .manage_columns_uc
-        .create_columns(&name, &input)
+        .create_columns(&name, &input, ds_query.domain_scope.as_deref())
         .await?;
     Ok((
         StatusCode::CREATED,
@@ -181,11 +199,12 @@ pub async fn create_columns(
 pub async fn update_column(
     State(state): State<AppState>,
     Path((name, column)): Path<(String, String)>,
+    Query(ds_query): Query<DomainScopeQuery>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let col = state
         .manage_columns_uc
-        .update_column(&name, &column, &input)
+        .update_column(&name, &column, &input, ds_query.domain_scope.as_deref())
         .await?;
     Ok(Json(serde_json::to_value(col).unwrap()))
 }
@@ -193,10 +212,27 @@ pub async fn update_column(
 pub async fn delete_column(
     State(state): State<AppState>,
     Path((name, column)): Path<(String, String)>,
+    Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<StatusCode, AppError> {
     state
         .manage_columns_uc
-        .delete_column(&name, &column)
+        .delete_column(&name, &column, ds_query.domain_scope.as_deref())
         .await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn list_domains(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let domains = state.manage_tables_uc.list_domains().await?;
+    let domain_list: Vec<serde_json::Value> = domains
+        .into_iter()
+        .map(|(domain_scope, table_count)| {
+            serde_json::json!({
+                "domain_scope": domain_scope,
+                "table_count": table_count
+            })
+        })
+        .collect();
+    Ok(Json(serde_json::json!({ "domains": domain_list })))
 }

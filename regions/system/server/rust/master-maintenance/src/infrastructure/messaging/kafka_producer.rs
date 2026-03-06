@@ -48,4 +48,35 @@ impl MasterMaintenanceKafkaProducer {
 
         Ok(())
     }
+
+    pub async fn publish_domain_data_changed(
+        &self,
+        domain: &str,
+        event: &Value,
+    ) -> anyhow::Result<()> {
+        let domain_topic = format!(
+            "k1s0.business.{}.mastermaintenance.data_changed.v1",
+            domain
+        );
+        let payload = serde_json::to_vec(event)?;
+        let key = event
+            .get("resource_id")
+            .and_then(Value::as_str)
+            .or_else(|| event.get("resource_name").and_then(Value::as_str))
+            .unwrap_or("master-maintenance");
+
+        tracing::info!(topic = %domain_topic, key, domain, "publishing domain data changed event");
+
+        self.producer
+            .send(
+                FutureRecord::to(&domain_topic).key(key).payload(&payload),
+                Duration::from_secs(5),
+            )
+            .await
+            .map_err(|(err, _)| {
+                anyhow::anyhow!("failed to publish domain data changed event: {err}")
+            })?;
+
+        Ok(())
+    }
 }

@@ -55,6 +55,31 @@ pub fn check_system_permission(roles: &[String], action: &str) -> bool {
     false
 }
 
+pub fn check_domain_permission(roles: &[String], domain: &str, action: &str) -> bool {
+    for role in roles {
+        // sys_admin は全ドメインアクセス可
+        if role == "sys_admin" {
+            return true;
+        }
+        // ドメイン固有ロール: {domain}_admin, {domain}_operator, {domain}_auditor
+        match role.as_str() {
+            r if r == format!("{}_admin", domain) => return true,
+            r if r == format!("{}_operator", domain) => {
+                if matches!(action, "read" | "write") {
+                    return true;
+                }
+            }
+            r if r == format!("{}_auditor", domain) => {
+                if action == "read" {
+                    return true;
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -87,5 +112,39 @@ mod tests {
     fn test_unknown_role() {
         let roles = vec!["user".to_string()];
         assert!(!check_system_permission(&roles, "read"));
+    }
+
+    #[test]
+    fn test_domain_admin_all_allowed() {
+        let roles = vec!["accounting_admin".to_string()];
+        assert!(check_domain_permission(&roles, "accounting", "read"));
+        assert!(check_domain_permission(&roles, "accounting", "write"));
+        assert!(check_domain_permission(&roles, "accounting", "admin"));
+        assert!(!check_domain_permission(&roles, "fa", "read"));
+    }
+
+    #[test]
+    fn test_domain_operator_read_write() {
+        let roles = vec!["fa_operator".to_string()];
+        assert!(check_domain_permission(&roles, "fa", "read"));
+        assert!(check_domain_permission(&roles, "fa", "write"));
+        assert!(!check_domain_permission(&roles, "fa", "admin"));
+        assert!(!check_domain_permission(&roles, "accounting", "read"));
+    }
+
+    #[test]
+    fn test_domain_auditor_read_only() {
+        let roles = vec!["accounting_auditor".to_string()];
+        assert!(check_domain_permission(&roles, "accounting", "read"));
+        assert!(!check_domain_permission(&roles, "accounting", "write"));
+        assert!(!check_domain_permission(&roles, "accounting", "admin"));
+    }
+
+    #[test]
+    fn test_sys_admin_accesses_all_domains() {
+        let roles = vec!["sys_admin".to_string()];
+        assert!(check_domain_permission(&roles, "accounting", "read"));
+        assert!(check_domain_permission(&roles, "fa", "admin"));
+        assert!(check_domain_permission(&roles, "any_domain", "write"));
     }
 }
