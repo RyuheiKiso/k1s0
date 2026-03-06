@@ -88,6 +88,12 @@ async fn main() -> anyhow::Result<()> {
         (event_repo, flow_def_repo, flow_inst_repo)
     };
 
+    // KPI Cache
+    let kpi_cache = Arc::new(infrastructure::cache::KpiCache::new(
+        cfg.cache.kpi_max_entries,
+        cfg.cache.kpi_ttl_seconds,
+    ));
+
     // DLQ Manager client
     let dlq_client: Arc<dyn DlqManagerClient> = {
         info!("using no-op DLQ manager client");

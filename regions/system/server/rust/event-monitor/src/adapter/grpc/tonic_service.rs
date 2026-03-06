@@ -23,6 +23,7 @@ use crate::proto::k1s0::system::event_monitor::v1::{
     GetSloStatusResponse as ProtoGetSloStatusResponse,
     ListEventsRequest as ProtoListEventsRequest, ListEventsResponse as ProtoListEventsResponse,
     ListFlowsRequest as ProtoListFlowsRequest, ListFlowsResponse as ProtoListFlowsResponse,
+    PendingStep as ProtoPendingStep,
     PreviewReplayRequest as ProtoPreviewReplayRequest,
     PreviewReplayResponse as ProtoPreviewReplayResponse,
     TraceByCorrelationRequest as ProtoTraceByCorrelationRequest,
@@ -180,11 +181,23 @@ impl EventMonitorService for EventMonitorServiceTonic {
             })
             .collect();
 
+        let pending_steps: Vec<ProtoPendingStep> = output
+            .pending_steps
+            .iter()
+            .map(|ps| ProtoPendingStep {
+                event_type: ps.event_type.clone(),
+                source: ps.source.clone(),
+                step_index: ps.step_index,
+                timeout_seconds: ps.timeout_seconds,
+                waiting_since_seconds: ps.waiting_since_seconds,
+            })
+            .collect();
+
         Ok(Response::new(ProtoTraceByCorrelationResponse {
             correlation_id: output.correlation_id,
             flow,
             events,
-            pending_steps: vec![],
+            pending_steps,
         }))
     }
 
