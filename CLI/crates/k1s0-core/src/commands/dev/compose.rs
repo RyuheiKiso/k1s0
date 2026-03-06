@@ -437,8 +437,12 @@ mod tests {
 
         assert!(yaml.contains("keycloak:"));
         assert!(yaml.contains("quay.io/keycloak/keycloak:26.0"));
+        assert!(yaml.contains("k1s0-dev-keycloak"));
+        assert!(yaml.contains("start-dev --import-realm"));
+        assert!(yaml.contains("KC_DB: dev-file"));
         assert!(yaml.contains("8180:8080"));
-        assert!(yaml.contains("KC_DB: postgres"));
+        assert!(yaml.contains("realm-export.json"));
+        assert!(yaml.contains("healthcheck:"));
     }
 
     /// init-db SQL を正しく生成できる。
