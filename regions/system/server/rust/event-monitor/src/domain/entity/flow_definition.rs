@@ -6,6 +6,8 @@ use uuid::Uuid;
 pub struct FlowStep {
     pub event_type: String,
     pub source: String,
+    #[serde(default)]
+    pub source_filter: Option<String>,
     pub timeout_seconds: i32,
     pub description: String,
 }
