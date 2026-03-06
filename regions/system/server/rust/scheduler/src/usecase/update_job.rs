@@ -24,6 +24,9 @@ pub enum UpdateJobError {
     #[error("invalid cron expression: {0}")]
     InvalidCron(String),
 
+    #[error("invalid timezone: {0}")]
+    InvalidTimezone(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -41,6 +44,9 @@ impl UpdateJobUseCase {
         if !SchedulerDomainService::validate_cron_expression(&input.cron_expression) {
             return Err(UpdateJobError::InvalidCron(input.cron_expression.clone()));
         }
+        if !crate::domain::entity::scheduler_job::validate_timezone(&input.timezone) {
+            return Err(UpdateJobError::InvalidTimezone(input.timezone.clone()));
+        }
 
         let mut job = self
             .repo
@@ -56,6 +62,7 @@ impl UpdateJobUseCase {
         job.target_type = input.target_type.clone();
         job.target = input.target.clone();
         job.payload = input.payload.clone();
+        job.next_run_at = job.next_run_at();
         job.updated_at = chrono::Utc::now();
 
         self.repo
@@ -82,9 +89,10 @@ mod tests {
         );
         let job_id = job.id.clone();
         let return_job = job.clone();
+        let expected_id = job_id.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| id == job_id.as_str())
+            .withf(move |id| id == expected_id.as_str())
             .returning(move |_| Ok(Some(return_job.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
@@ -114,6 +122,7 @@ mod tests {
         mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = UpdateJobUseCase::new(Arc::new(mock));
+        let expected_missing_id = missing_id.clone();
         let input = UpdateJobInput {
             id: missing_id,
             name: "test".to_string(),
@@ -128,7 +137,7 @@ mod tests {
         assert!(result.is_err());
 
         match result.unwrap_err() {
-            UpdateJobError::NotFound(id) => assert_eq!(id, missing_id),
+            UpdateJobError::NotFound(id) => assert_eq!(id, expected_missing_id),
             e => unreachable!("unexpected error: {:?}", e),
         }
     }

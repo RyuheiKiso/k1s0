@@ -58,9 +58,10 @@ mod tests {
         job.status = "paused".to_string();
         let job_id = job.id.clone();
         let return_job = job.clone();
+        let expected_id = job_id.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| id == job_id.as_str())
+            .withf(move |id| id == expected_id.as_str())
             .returning(move |_| Ok(Some(return_job.clone())));
         mock.expect_update().returning(|_| Ok(()));
 

@@ -1,6 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
-use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -14,7 +11,7 @@ mod proto;
 mod usecase;
 
 use adapter::handler::{self, AppState};
-use domain::entity::{ProvisioningJob, Tenant, TenantMember, TenantStatus};
+use domain::entity::{ProvisioningJob, Tenant, TenantMember};
 use domain::repository::{MemberRepository, TenantRepository};
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -517,21 +514,22 @@ async fn main() -> anyhow::Result<()> {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-tenant-server"));
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for tenant-server");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(adapter::middleware::auth::TenantAuthState {
-            verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, tenant-server running without authentication");
-        None
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "tenant-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for tenant-server");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            adapter::middleware::auth::TenantAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
 
     let mut state = AppState {
         create_tenant_uc,

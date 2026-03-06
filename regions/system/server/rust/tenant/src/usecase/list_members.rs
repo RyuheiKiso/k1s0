@@ -32,7 +32,7 @@ impl ListMembersUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::MemberRole;
+    use crate::domain::entity::tenant_member::MemberRole;
     use crate::domain::repository::member_repository::MockMemberRepository;
 
     #[tokio::test]

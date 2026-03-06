@@ -484,12 +484,11 @@ pub async fn execute_workflow(
     }
 }
 
-/// GET /api/v1/workflows/:id/status
-pub async fn get_workflow_status(
+/// GET /api/v1/instances/:id/status
+pub async fn get_instance_status(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    // This returns instance status. The :id here is the instance id.
     let input = GetInstanceInput { id: id.clone() };
 
     match state.get_instance_uc.execute(&input).await {
@@ -523,6 +522,11 @@ pub async fn get_workflow_status(
         )
             .into_response(),
     }
+}
+
+/// GET /api/v1/workflows/:id/status
+pub async fn get_workflow_status(state: State<AppState>, path: Path<String>) -> impl IntoResponse {
+    get_instance_status(state, path).await
 }
 
 /// PUT /api/v1/workflows/:id
@@ -727,7 +731,7 @@ pub async fn cancel_instance(
             Json(serde_json::json!({
                 "id": inst.id,
                 "status": inst.status,
-                "cancelled_at": chrono::Utc::now().to_rfc3339(),
+                "cancelled_at": inst.completed_at.map(|t| t.to_rfc3339()),
                 "message": "instance cancelled"
             })),
         )
@@ -872,7 +876,7 @@ pub async fn approve_task(
             Json(serde_json::json!({
                 "task_id": output.task.id,
                 "status": output.task.status,
-                "decided_at": chrono::Utc::now().to_rfc3339(),
+                "decided_at": output.task.decided_at.map(|t| t.to_rfc3339()),
                 "instance_status": output.instance_status,
                 "next_task_id": output.next_task.map(|t| t.id)
             })),
@@ -936,7 +940,7 @@ pub async fn reject_task(
             Json(serde_json::json!({
                 "task_id": output.task.id,
                 "status": output.task.status,
-                "decided_at": chrono::Utc::now().to_rfc3339(),
+                "decided_at": output.task.decided_at.map(|t| t.to_rfc3339()),
                 "instance_status": output.instance_status,
                 "next_task_id": output.next_task.map(|t| t.id)
             })),
@@ -1002,7 +1006,7 @@ pub async fn reassign_task(
                 "task_id": output.task.id,
                 "new_assignee_id": output.task.assignee_id,
                 "previous_assignee_id": output.previous_assignee_id,
-                "reassigned_at": chrono::Utc::now().to_rfc3339(),
+                "reassigned_at": output.task.updated_at.to_rfc3339(),
                 "message": "task reassigned"
             })),
         )

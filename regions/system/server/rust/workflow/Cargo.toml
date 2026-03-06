@@ -34,6 +34,7 @@ k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"]
 k1s0-auth = { path = "../../../library/rust/auth" }
 k1s0-server-common = { path = "../../../library/rust/server-common" }
 tower = { version = "0.5", features = ["util"] }
+reqwest = { version = "0.12", features = ["json"] }
 
 [build-dependencies]
 tonic-build = "0.12"

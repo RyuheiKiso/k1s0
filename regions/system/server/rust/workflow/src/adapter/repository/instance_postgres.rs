@@ -19,8 +19,8 @@ impl InstancePostgresRepository {
 
 #[derive(sqlx::FromRow)]
 struct InstanceRow {
-    id: uuid::Uuid,
-    definition_id: uuid::Uuid,
+    id: String,
+    definition_id: String,
     workflow_name: String,
     title: String,
     initiator_id: String,
@@ -58,14 +58,12 @@ impl From<InstanceRow> for WorkflowInstance {
 #[async_trait]
 impl WorkflowInstanceRepository for InstancePostgresRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
-        let uuid = uuid::Uuid::parse_str(id).map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
         let row: Option<InstanceRow> = sqlx::query_as(
             "SELECT id, definition_id, workflow_name, title, initiator_id, current_step_id, \
                     status, context, started_at, completed_at, created_at \
              FROM workflow.workflow_instances WHERE id = $1",
         )
-        .bind(uuid)
+        .bind(id)
         .fetch_optional(self.pool.as_ref())
         .await?;
 
@@ -129,10 +127,8 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
             count_query = count_query.bind(s.clone());
         }
         if let Some(ref w) = workflow_id {
-            let wf_uuid = uuid::Uuid::parse_str(w)
-                .map_err(|e| anyhow::anyhow!("invalid workflow UUID: {}", e))?;
-            query = query.bind(wf_uuid);
-            count_query = count_query.bind(wf_uuid);
+            query = query.bind(w.clone());
+            count_query = count_query.bind(w.clone());
         }
         if let Some(ref i) = initiator_id {
             query = query.bind(i.clone());
@@ -148,10 +144,6 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
     }
 
     async fn create(&self, instance: &WorkflowInstance) -> anyhow::Result<()> {
-        let uuid = uuid::Uuid::parse_str(&instance.id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-        let def_uuid = uuid::Uuid::parse_str(&instance.workflow_id)
-            .map_err(|e| anyhow::anyhow!("invalid definition UUID: {}", e))?;
         let current_step = instance
             .current_step_id
             .as_deref()
@@ -164,8 +156,8 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
               status, context, started_at, completed_at, created_at) \
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
         )
-        .bind(uuid)
-        .bind(def_uuid)
+        .bind(&instance.id)
+        .bind(&instance.workflow_id)
         .bind(&instance.workflow_name)
         .bind(&instance.title)
         .bind(&instance.initiator_id)
@@ -182,8 +174,6 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
     }
 
     async fn update(&self, instance: &WorkflowInstance) -> anyhow::Result<()> {
-        let uuid = uuid::Uuid::parse_str(&instance.id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
         let current_step = instance
             .current_step_id
             .as_deref()
@@ -195,7 +185,7 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
              SET current_step_id = $2, status = $3, context = $4, completed_at = $5 \
              WHERE id = $1",
         )
-        .bind(uuid)
+        .bind(&instance.id)
         .bind(&current_step)
         .bind(&instance.status)
         .bind(&instance.context)

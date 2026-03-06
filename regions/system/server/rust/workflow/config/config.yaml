@@ -34,6 +34,11 @@ observability:
 #   brokers:
 #     - "localhost:9092"
 #   security_protocol: "PLAINTEXT"
+# scheduler:
+#   internal_endpoint: "http://scheduler-server:8080"
+# overdue_check:
+#   cron_expression: "*/15 * * * *"
+#   timezone: "UTC"
 # auth:
 #   jwks_url: "http://localhost:8180/realms/k1s0/protocol/openid-connect/certs"
 #   issuer: "http://localhost:8180/realms/k1s0"

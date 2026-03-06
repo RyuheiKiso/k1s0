@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,10 +42,12 @@ impl SchedulerJob {
     /// cron 式から次回実行時刻を計算する。
     pub fn next_run_at(&self) -> Option<DateTime<Utc>> {
         let cron_6field = to_6field_cron(&self.cron_expression);
+        let tz = parse_timezone(&self.timezone)?;
         cron::Schedule::from_str(&cron_6field)
             .ok()?
-            .upcoming(Utc)
+            .upcoming(tz)
             .next()
+            .map(|dt| dt.with_timezone(&Utc))
     }
 }
 
@@ -63,6 +66,14 @@ fn to_6field_cron(expr: &str) -> String {
 pub fn validate_cron(expr: &str) -> bool {
     let cron_6field = to_6field_cron(expr);
     cron::Schedule::from_str(&cron_6field).is_ok()
+}
+
+pub fn validate_timezone(timezone: &str) -> bool {
+    parse_timezone(timezone).is_some()
+}
+
+pub fn parse_timezone(timezone: &str) -> Option<Tz> {
+    timezone.parse::<Tz>().ok()
 }
 
 use std::str::FromStr;

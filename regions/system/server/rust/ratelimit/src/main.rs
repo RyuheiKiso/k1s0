@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -188,21 +186,22 @@ async fn main() -> anyhow::Result<()> {
     let reset_uc = Arc::new(usecase::ResetRateLimitUseCase::new(state_store));
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for ratelimit-server");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(adapter::middleware::auth::RatelimitAuthState {
-            verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, ratelimit-server running without authentication");
-        None
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "ratelimit-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for ratelimit-server");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            adapter::middleware::auth::RatelimitAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
 
     // AppState (REST handler 逕ｨ)
     let mut state = AppState::new(

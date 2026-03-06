@@ -1,6 +1,4 @@
 // proto stubs繝ｻ譛ｪ謗･邯壹・ gRPC 繧､繝ｳ繝輔Λ縺ｯ蟆・擂縺ｮ proto codegen 蠕後↓菴ｿ逕ｨ縺輔ｌ繧・
-#![allow(dead_code, unused_imports)]
-
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -208,21 +206,22 @@ async fn main() -> anyhow::Result<()> {
     let config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for config-server");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(adapter::middleware::auth::ConfigAuthState {
-            verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, config-server running without authentication");
-        None
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "config-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for config-server");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            adapter::middleware::auth::ConfigAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
 
     // AppState (REST handler 逕ｨ) - Kafka騾夂衍莉倥″縺ｧ讒狗ｯ・
     let mut state = adapter::handler::AppState {

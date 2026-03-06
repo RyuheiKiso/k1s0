@@ -94,7 +94,7 @@ mod tests {
     async fn test_invalidate_removes_job() {
         let cache = JobCache::new(100, 60);
         let job = make_job("invalidate-test");
-        let job_id = job.id;
+        let job_id = job.id.clone();
         cache.insert(job).await;
 
         // 削除前は取得できる
@@ -111,8 +111,8 @@ mod tests {
         let cache = JobCache::new(100, 60);
         let job1 = make_job("job-1");
         let job2 = make_job("job-2");
-        let id1 = job1.id;
-        let id2 = job2.id;
+        let id1 = job1.id.clone();
+        let id2 = job2.id.clone();
 
         cache.insert(job1).await;
         cache.insert(job2).await;
@@ -130,8 +130,8 @@ mod tests {
         let cache = JobCache::new(100, 60);
         let job1 = make_job("all-1");
         let job2 = make_job("all-2");
-        let id1 = job1.id;
-        let id2 = job2.id;
+        let id1 = job1.id.clone();
+        let id2 = job2.id.clone();
 
         cache.insert(job1).await;
         cache.insert(job2).await;
@@ -163,7 +163,7 @@ mod tests {
         });
 
         let job_v2 = Arc::new(SchedulerJob {
-            id: job_v1.id,
+            id: job_v1.id.clone(),
             name: "overwrite-job".to_string(),
             description: None,
             cron_expression: "0 12 * * *".to_string(),
@@ -190,7 +190,7 @@ mod tests {
     async fn test_default_config() {
         let cache = JobCache::default_config();
         let job = make_job("default-config-test");
-        let job_id = job.id;
+        let job_id = job.id.clone();
 
         cache.insert(job).await;
         assert!(cache.get(&job_id).await.is_some());
@@ -201,7 +201,7 @@ mod tests {
         // TTL 1秒のキャッシュで、1秒以上待機後にエントリが消えることを確認
         let cache = JobCache::new(100, 1);
         let job = make_job("ttl-test");
-        let job_id = job.id;
+        let job_id = job.id.clone();
         cache.insert(job).await;
 
         // TTL 内は取得できる

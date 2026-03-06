@@ -11,7 +11,7 @@ pub use check_rate_limit::CheckRateLimitUseCase;
 pub use create_rule::CreateRuleUseCase;
 pub use delete_rule::DeleteRuleUseCase;
 pub use get_rule::GetRuleUseCase;
-pub use get_usage::{GetUsageUseCase, UsageInfo};
+pub use get_usage::GetUsageUseCase;
 pub use list_rules::ListRulesUseCase;
 pub use reset_rate_limit::{ResetRateLimitInput, ResetRateLimitUseCase};
 pub use update_rule::UpdateRuleUseCase;

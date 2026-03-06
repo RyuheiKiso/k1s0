@@ -19,8 +19,8 @@ impl TaskPostgresRepository {
 
 #[derive(sqlx::FromRow)]
 struct TaskRow {
-    id: uuid::Uuid,
-    instance_id: uuid::Uuid,
+    id: String,
+    instance_id: String,
     step_id: String,
     step_name: String,
     assignee_id: String,
@@ -60,14 +60,12 @@ impl From<TaskRow> for WorkflowTask {
 #[async_trait]
 impl WorkflowTaskRepository for TaskPostgresRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowTask>> {
-        let uuid = uuid::Uuid::parse_str(id).map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-
         let row: Option<TaskRow> = sqlx::query_as(
             "SELECT id, instance_id, step_id, step_name, assignee_id, status, \
                     comment, actor_id, due_at, decided_at, created_at, updated_at \
              FROM workflow.workflow_tasks WHERE id = $1",
         )
-        .bind(uuid)
+        .bind(id)
         .fetch_optional(self.pool.as_ref())
         .await?;
 
@@ -138,10 +136,8 @@ impl WorkflowTaskRepository for TaskPostgresRepository {
             count_query = count_query.bind(s.clone());
         }
         if let Some(ref i) = instance_id {
-            let inst_uuid = uuid::Uuid::parse_str(i)
-                .map_err(|e| anyhow::anyhow!("invalid instance UUID: {}", e))?;
-            query = query.bind(inst_uuid);
-            count_query = count_query.bind(inst_uuid);
+            query = query.bind(i.clone());
+            count_query = count_query.bind(i.clone());
         }
 
         query = query.bind(limit).bind(offset);
@@ -167,10 +163,6 @@ impl WorkflowTaskRepository for TaskPostgresRepository {
     }
 
     async fn create(&self, task: &WorkflowTask) -> anyhow::Result<()> {
-        let uuid =
-            uuid::Uuid::parse_str(&task.id).map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
-        let inst_uuid = uuid::Uuid::parse_str(&task.instance_id)
-            .map_err(|e| anyhow::anyhow!("invalid instance UUID: {}", e))?;
         let assignee = task.assignee_id.as_deref().unwrap_or("").to_string();
 
         sqlx::query(
@@ -179,8 +171,8 @@ impl WorkflowTaskRepository for TaskPostgresRepository {
               comment, actor_id, due_at, decided_at, created_at, updated_at) \
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
         )
-        .bind(uuid)
-        .bind(inst_uuid)
+        .bind(&task.id)
+        .bind(&task.instance_id)
         .bind(&task.step_id)
         .bind(&task.step_name)
         .bind(&assignee)
@@ -198,8 +190,6 @@ impl WorkflowTaskRepository for TaskPostgresRepository {
     }
 
     async fn update(&self, task: &WorkflowTask) -> anyhow::Result<()> {
-        let uuid =
-            uuid::Uuid::parse_str(&task.id).map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
         let assignee = task.assignee_id.as_deref().unwrap_or("").to_string();
 
         sqlx::query(
@@ -208,7 +198,7 @@ impl WorkflowTaskRepository for TaskPostgresRepository {
                  decided_at = $6 \
              WHERE id = $1",
         )
-        .bind(uuid)
+        .bind(&task.id)
         .bind(&assignee)
         .bind(&task.status)
         .bind(&task.comment)

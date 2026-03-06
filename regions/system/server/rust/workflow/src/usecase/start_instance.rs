@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use sqlx::PgPool;
+
 use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::domain::repository::WorkflowDefinitionRepository;
@@ -7,6 +9,7 @@ use crate::domain::repository::WorkflowInstanceRepository;
 use crate::domain::repository::WorkflowTaskRepository;
 use crate::domain::service::WorkflowDomainService;
 use crate::infrastructure::kafka_producer::WorkflowEventPublisher;
+use crate::usecase::postgres_support::{insert_instance_tx, insert_task_tx};
 use tracing::warn;
 
 #[derive(Debug, Clone)]
@@ -43,6 +46,7 @@ pub struct StartInstanceUseCase {
     instance_repo: Arc<dyn WorkflowInstanceRepository>,
     task_repo: Arc<dyn WorkflowTaskRepository>,
     event_publisher: Arc<dyn WorkflowEventPublisher>,
+    pool: Option<Arc<PgPool>>,
 }
 
 impl StartInstanceUseCase {
@@ -57,6 +61,23 @@ impl StartInstanceUseCase {
             instance_repo,
             task_repo,
             event_publisher,
+            pool: None,
+        }
+    }
+
+    pub fn with_pool(
+        definition_repo: Arc<dyn WorkflowDefinitionRepository>,
+        instance_repo: Arc<dyn WorkflowInstanceRepository>,
+        task_repo: Arc<dyn WorkflowTaskRepository>,
+        event_publisher: Arc<dyn WorkflowEventPublisher>,
+        pool: Arc<PgPool>,
+    ) -> Self {
+        Self {
+            definition_repo,
+            instance_repo,
+            task_repo,
+            event_publisher,
+            pool: Some(pool),
         }
     }
 
@@ -92,11 +113,6 @@ impl StartInstanceUseCase {
             input.context.clone(),
         );
 
-        self.instance_repo
-            .create(&instance)
-            .await
-            .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
-
         let task_id = format!("task_{}", uuid::Uuid::new_v4().simple());
         let due_at = WorkflowDomainService::task_due_at(first_step.timeout_hours);
         let task = WorkflowTask::new(
@@ -108,10 +124,31 @@ impl StartInstanceUseCase {
             due_at,
         );
 
-        self.task_repo
-            .create(&task)
-            .await
-            .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+        if let Some(pool) = &self.pool {
+            let mut tx = pool
+                .begin()
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+            insert_instance_tx(&mut tx, &instance)
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+            insert_task_tx(&mut tx, &task)
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+            tx.commit()
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+        } else {
+            self.instance_repo
+                .create(&instance)
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+
+            self.task_repo
+                .create(&task)
+                .await
+                .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
+        }
 
         if let Err(err) = self
             .event_publisher

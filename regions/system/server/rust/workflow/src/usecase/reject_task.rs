@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
+use sqlx::PgPool;
+
 use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::domain::repository::WorkflowDefinitionRepository;
 use crate::domain::repository::WorkflowInstanceRepository;
 use crate::domain::repository::WorkflowTaskRepository;
 use crate::domain::service::WorkflowDomainService;
 use crate::infrastructure::kafka_producer::WorkflowEventPublisher;
+use crate::usecase::postgres_support::{insert_task_tx, update_instance_tx, update_task_tx};
 use tracing::warn;
 
 #[derive(Debug, Clone)]
@@ -45,6 +48,7 @@ pub struct RejectTaskUseCase {
     instance_repo: Arc<dyn WorkflowInstanceRepository>,
     definition_repo: Arc<dyn WorkflowDefinitionRepository>,
     event_publisher: Arc<dyn WorkflowEventPublisher>,
+    pool: Option<Arc<PgPool>>,
 }
 
 impl RejectTaskUseCase {
@@ -59,6 +63,23 @@ impl RejectTaskUseCase {
             instance_repo,
             definition_repo,
             event_publisher,
+            pool: None,
+        }
+    }
+
+    pub fn with_pool(
+        task_repo: Arc<dyn WorkflowTaskRepository>,
+        instance_repo: Arc<dyn WorkflowInstanceRepository>,
+        definition_repo: Arc<dyn WorkflowDefinitionRepository>,
+        event_publisher: Arc<dyn WorkflowEventPublisher>,
+        pool: Arc<PgPool>,
+    ) -> Self {
+        Self {
+            task_repo,
+            instance_repo,
+            definition_repo,
+            event_publisher,
+            pool: Some(pool),
         }
     }
 
@@ -78,11 +99,6 @@ impl RejectTaskUseCase {
         }
 
         task.reject(input.actor_id.clone(), input.comment.clone());
-
-        self.task_repo
-            .update(&task)
-            .await
-            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
 
         let mut instance = self
             .instance_repo
@@ -104,19 +120,11 @@ impl RejectTaskUseCase {
 
         if WorkflowDomainService::is_terminal_step(next_step_id.as_deref()) {
             instance.fail();
-            self.instance_repo
-                .update(&instance)
-                .await
-                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
         } else {
             match next_step_id.as_deref() {
                 Some(next_id) => {
                     if let Some(next_step) = definition.find_step(next_id) {
                         instance.current_step_id = Some(next_id.to_string());
-                        self.instance_repo
-                            .update(&instance)
-                            .await
-                            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
 
                         let new_task_id = format!("task_{}", uuid::Uuid::new_v4().simple());
                         let due_at = WorkflowDomainService::task_due_at(next_step.timeout_hours);
@@ -128,26 +136,50 @@ impl RejectTaskUseCase {
                             None,
                             due_at,
                         );
-                        self.task_repo
-                            .create(&new_task)
-                            .await
-                            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
                         next_task = Some(new_task);
                     } else {
                         instance.fail();
-                        self.instance_repo
-                            .update(&instance)
-                            .await
-                            .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
                     }
                 }
                 None => {
                     instance.fail();
-                    self.instance_repo
-                        .update(&instance)
-                        .await
-                        .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
                 }
+            }
+        }
+
+        if let Some(pool) = &self.pool {
+            let mut tx = pool
+                .begin()
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            update_task_tx(&mut tx, &task)
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            update_instance_tx(&mut tx, &instance)
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            if let Some(next_task_ref) = next_task.as_ref() {
+                insert_task_tx(&mut tx, next_task_ref)
+                    .await
+                    .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            }
+            tx.commit()
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+        } else {
+            self.task_repo
+                .update(&task)
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            self.instance_repo
+                .update(&instance)
+                .await
+                .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
+            if let Some(next_task_ref) = next_task.as_ref() {
+                self.task_repo
+                    .create(next_task_ref)
+                    .await
+                    .map_err(|e| RejectTaskError::Internal(e.to_string()))?;
             }
         }
 

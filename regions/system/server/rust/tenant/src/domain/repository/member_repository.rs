@@ -20,7 +20,7 @@ pub trait MemberRepository: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::MemberRole;
+    use crate::domain::entity::tenant_member::MemberRole;
 
     #[tokio::test]
     async fn test_mock_find_by_tenant() {

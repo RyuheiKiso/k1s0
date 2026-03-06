@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -343,21 +341,22 @@ async fn main() -> anyhow::Result<()> {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-vault-server"));
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for vault-server");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(adapter::middleware::auth::VaultAuthState {
-            verifier: jwks_verifier,
-        })
-    } else {
-        info!("no auth configured, vault-server running without authentication");
-        None
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "vault-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for vault-server");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            adapter::middleware::auth::VaultAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
 
     // SPIFFE access policies (empty = permissive mode; loaded from DB in production)
     let spiffe_state = adapter::middleware::spiffe::SpiffeAuthState {

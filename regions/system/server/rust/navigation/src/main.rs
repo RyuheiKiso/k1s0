@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -57,18 +55,19 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Token verifier (optional)
-    let verifier = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier");
-        Some(Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        )))
-    } else {
-        info!("no auth configured, navigation server running without token verification");
-        None
-    };
+    let verifier = k1s0_server_common::require_auth_state(
+        "navigation-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier");
+            Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ))
+        }),
+    )?;
 
     // Use case
     let get_navigation_uc = Arc::new(usecase::GetNavigationUseCase::new(loader, verifier));

@@ -1,0 +1,117 @@
+use crate::domain::entity::workflow_instance::WorkflowInstance;
+use crate::domain::entity::workflow_task::WorkflowTask;
+use sqlx::{Postgres, Transaction};
+
+pub async fn insert_instance_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    instance: &WorkflowInstance,
+) -> anyhow::Result<()> {
+    let current_step = instance
+        .current_step_id
+        .as_deref()
+        .unwrap_or("")
+        .to_string();
+
+    sqlx::query(
+        "INSERT INTO workflow.workflow_instances \
+         (id, definition_id, workflow_name, title, initiator_id, current_step_id, \
+          status, context, started_at, completed_at, created_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+    )
+    .bind(&instance.id)
+    .bind(&instance.workflow_id)
+    .bind(&instance.workflow_name)
+    .bind(&instance.title)
+    .bind(&instance.initiator_id)
+    .bind(&current_step)
+    .bind(&instance.status)
+    .bind(&instance.context)
+    .bind(instance.started_at)
+    .bind(instance.completed_at)
+    .bind(instance.created_at)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn update_instance_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    instance: &WorkflowInstance,
+) -> anyhow::Result<()> {
+    let current_step = instance
+        .current_step_id
+        .as_deref()
+        .unwrap_or("")
+        .to_string();
+
+    sqlx::query(
+        "UPDATE workflow.workflow_instances \
+         SET current_step_id = $2, status = $3, context = $4, completed_at = $5 \
+         WHERE id = $1",
+    )
+    .bind(&instance.id)
+    .bind(&current_step)
+    .bind(&instance.status)
+    .bind(&instance.context)
+    .bind(instance.completed_at)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn insert_task_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    task: &WorkflowTask,
+) -> anyhow::Result<()> {
+    let assignee = task.assignee_id.as_deref().unwrap_or("").to_string();
+
+    sqlx::query(
+        "INSERT INTO workflow.workflow_tasks \
+         (id, instance_id, step_id, step_name, assignee_id, status, \
+          comment, actor_id, due_at, decided_at, created_at, updated_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+    )
+    .bind(&task.id)
+    .bind(&task.instance_id)
+    .bind(&task.step_id)
+    .bind(&task.step_name)
+    .bind(&assignee)
+    .bind(&task.status)
+    .bind(&task.comment)
+    .bind(&task.actor_id)
+    .bind(task.due_at)
+    .bind(task.decided_at)
+    .bind(task.created_at)
+    .bind(task.updated_at)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn update_task_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    task: &WorkflowTask,
+) -> anyhow::Result<()> {
+    let assignee = task.assignee_id.as_deref().unwrap_or("").to_string();
+
+    sqlx::query(
+        "UPDATE workflow.workflow_tasks \
+         SET assignee_id = $2, status = $3, comment = $4, actor_id = $5, \
+             decided_at = $6, updated_at = $7 \
+         WHERE id = $1",
+    )
+    .bind(&task.id)
+    .bind(&assignee)
+    .bind(&task.status)
+    .bind(&task.comment)
+    .bind(&task.actor_id)
+    .bind(task.decided_at)
+    .bind(task.updated_at)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}

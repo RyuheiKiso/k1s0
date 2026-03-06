@@ -1,6 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
-use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -13,13 +10,14 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::WorkflowGrpcService;
-use domain::entity::workflow_definition::WorkflowDefinition;
-use domain::entity::workflow_instance::WorkflowInstance;
-use domain::entity::workflow_task::WorkflowTask;
 use domain::repository::WorkflowDefinitionRepository;
 use domain::repository::WorkflowInstanceRepository;
 use domain::repository::WorkflowTaskRepository;
 use infrastructure::config::Config;
+use infrastructure::in_memory::{
+    InMemoryWorkflowDefinitionRepository, InMemoryWorkflowInstanceRepository,
+    InMemoryWorkflowTaskRepository,
+};
 use infrastructure::kafka_producer::{
     KafkaWorkflowEventPublisher, NoopWorkflowEventPublisher, WorkflowEventPublisher,
 };
@@ -27,6 +25,7 @@ use infrastructure::notification_request_producer::{
     KafkaNotificationRequestPublisher, NoopNotificationRequestPublisher,
     NotificationRequestPublisher,
 };
+use infrastructure::scheduler_registration::register_overdue_check_job;
 
 async fn resolve_bind_addr(host: &str, port: u16) -> anyhow::Result<SocketAddr> {
     tokio::net::lookup_host((host, port))
@@ -53,13 +52,6 @@ async fn shutdown_signal() -> anyhow::Result<()> {
     }
 
     Ok(())
-}
-
-fn allow_insecure_no_auth(environment: &str) -> bool {
-    matches!(environment, "dev" | "test")
-        && std::env::var("ALLOW_INSECURE_NO_AUTH")
-            .map(|value| value.eq_ignore_ascii_case("true"))
-            .unwrap_or(false)
 }
 
 #[tokio::main]
@@ -93,10 +85,11 @@ async fn main() -> anyhow::Result<()> {
 
     // --- Repository / Event Publisher 蛻晄悄蛹・---
     // database 險ｭ螳壹′縺ゅｋ蝣ｴ蜷医・ PostgreSQL縲√↑縺代ｌ縺ｰ InMemory 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ
-    let (def_repo, inst_repo, task_repo): (
+    let (def_repo, inst_repo, task_repo, workflow_pool): (
         Arc<dyn WorkflowDefinitionRepository>,
         Arc<dyn WorkflowInstanceRepository>,
         Arc<dyn WorkflowTaskRepository>,
+        Option<Arc<sqlx::PgPool>>,
     ) = if let Some(ref db_cfg) = cfg.database {
         let pool = Arc::new(
             infrastructure::database::create_pool(
@@ -116,7 +109,10 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(adapter::repository::InstancePostgresRepository::new(
                 pool.clone(),
             )),
-            Arc::new(adapter::repository::TaskPostgresRepository::new(pool)),
+            Arc::new(adapter::repository::TaskPostgresRepository::new(
+                pool.clone(),
+            )),
+            Some(pool),
         )
     } else {
         info!("no database config found, using in-memory repositories");
@@ -124,6 +120,7 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(InMemoryWorkflowDefinitionRepository::new()),
             Arc::new(InMemoryWorkflowInstanceRepository::new()),
             Arc::new(InMemoryWorkflowTaskRepository::new()),
+            None,
         )
     };
 
@@ -149,33 +146,67 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(NoopNotificationRequestPublisher)
         };
 
+    if cfg.scheduler.is_some() {
+        register_overdue_check_job(&cfg).await?;
+    }
+
     let create_wf_uc = Arc::new(usecase::CreateWorkflowUseCase::new(def_repo.clone()));
     let update_wf_uc = Arc::new(usecase::UpdateWorkflowUseCase::new(def_repo.clone()));
     let delete_wf_uc = Arc::new(usecase::DeleteWorkflowUseCase::new(def_repo.clone()));
     let get_wf_uc = Arc::new(usecase::GetWorkflowUseCase::new(def_repo.clone()));
     let list_wf_uc = Arc::new(usecase::ListWorkflowsUseCase::new(def_repo.clone()));
-    let start_inst_uc = Arc::new(usecase::StartInstanceUseCase::new(
-        def_repo.clone(),
-        inst_repo.clone(),
-        task_repo.clone(),
-        event_publisher.clone(),
-    ));
+    let start_inst_uc = Arc::new(if let Some(pool) = workflow_pool.clone() {
+        usecase::StartInstanceUseCase::with_pool(
+            def_repo.clone(),
+            inst_repo.clone(),
+            task_repo.clone(),
+            event_publisher.clone(),
+            pool,
+        )
+    } else {
+        usecase::StartInstanceUseCase::new(
+            def_repo.clone(),
+            inst_repo.clone(),
+            task_repo.clone(),
+            event_publisher.clone(),
+        )
+    });
     let get_inst_uc = Arc::new(usecase::GetInstanceUseCase::new(inst_repo.clone()));
     let list_inst_uc = Arc::new(usecase::ListInstancesUseCase::new(inst_repo.clone()));
     let cancel_inst_uc = Arc::new(usecase::CancelInstanceUseCase::new(inst_repo.clone()));
     let list_tasks_uc = Arc::new(usecase::ListTasksUseCase::new(task_repo.clone()));
-    let approve_task_uc = Arc::new(usecase::ApproveTaskUseCase::new(
-        task_repo.clone(),
-        inst_repo.clone(),
-        def_repo.clone(),
-        event_publisher.clone(),
-    ));
-    let reject_task_uc = Arc::new(usecase::RejectTaskUseCase::new(
-        task_repo.clone(),
-        inst_repo.clone(),
-        def_repo.clone(),
-        event_publisher.clone(),
-    ));
+    let approve_task_uc = Arc::new(if let Some(pool) = workflow_pool.clone() {
+        usecase::ApproveTaskUseCase::with_pool(
+            task_repo.clone(),
+            inst_repo.clone(),
+            def_repo.clone(),
+            event_publisher.clone(),
+            pool,
+        )
+    } else {
+        usecase::ApproveTaskUseCase::new(
+            task_repo.clone(),
+            inst_repo.clone(),
+            def_repo.clone(),
+            event_publisher.clone(),
+        )
+    });
+    let reject_task_uc = Arc::new(if let Some(pool) = workflow_pool {
+        usecase::RejectTaskUseCase::with_pool(
+            task_repo.clone(),
+            inst_repo.clone(),
+            def_repo.clone(),
+            event_publisher.clone(),
+            pool,
+        )
+    } else {
+        usecase::RejectTaskUseCase::new(
+            task_repo.clone(),
+            inst_repo.clone(),
+            def_repo.clone(),
+            event_publisher.clone(),
+        )
+    });
     let reassign_task_uc = Arc::new(usecase::ReassignTaskUseCase::new(task_repo.clone()));
     let check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(
         task_repo.clone(),
@@ -204,30 +235,22 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Token verifier (JWKS verifier if auth configured)
-    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for workflow-server");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
-        Some(adapter::middleware::auth::WorkflowAuthState {
-            verifier: jwks_verifier,
-        })
-    } else if allow_insecure_no_auth(&cfg.app.environment) {
-        tracing::warn!(
-            environment = %cfg.app.environment,
-            "workflow-server is running without authentication because ALLOW_INSECURE_NO_AUTH=true"
-        );
-        None
-    } else {
-        anyhow::bail!(
-            "auth configuration is required for workflow-server (environment: {}). \
-Set auth.* in the config, or use ALLOW_INSECURE_NO_AUTH=true only for dev/test.",
-            cfg.app.environment
-        );
-    };
+    let auth_state = k1s0_server_common::require_auth_state(
+        "workflow-server",
+        &cfg.app.environment,
+        cfg.auth.as_ref().map(|auth_cfg| {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for workflow-server");
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            ));
+            adapter::middleware::auth::WorkflowAuthState {
+                verifier: jwks_verifier,
+            }
+        }),
+    )?;
 
     let mut handler_state = adapter::handler::AppState {
         create_workflow_uc: create_wf_uc,
@@ -307,183 +330,4 @@ Set auth.* in the config, or use ALLOW_INSECURE_NO_AUTH=true only for dev/test."
     notification_request_publisher.close().await?;
 
     Ok(())
-}
-
-// --- InMemory Repositories ---
-
-struct InMemoryWorkflowDefinitionRepository {
-    definitions: tokio::sync::RwLock<HashMap<String, WorkflowDefinition>>,
-}
-
-impl InMemoryWorkflowDefinitionRepository {
-    fn new() -> Self {
-        Self {
-            definitions: tokio::sync::RwLock::new(HashMap::new()),
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl WorkflowDefinitionRepository for InMemoryWorkflowDefinitionRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
-        let defs = self.definitions.read().await;
-        Ok(defs.get(id).cloned())
-    }
-
-    async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
-        let defs = self.definitions.read().await;
-        Ok(defs.values().find(|d| d.name == name).cloned())
-    }
-
-    async fn find_all(
-        &self,
-        enabled_only: bool,
-        _page: u32,
-        _page_size: u32,
-    ) -> anyhow::Result<(Vec<WorkflowDefinition>, u64)> {
-        let defs = self.definitions.read().await;
-        let results: Vec<_> = if enabled_only {
-            defs.values().filter(|d| d.enabled).cloned().collect()
-        } else {
-            defs.values().cloned().collect()
-        };
-        let total = results.len() as u64;
-        Ok((results, total))
-    }
-
-    async fn create(&self, definition: &WorkflowDefinition) -> anyhow::Result<()> {
-        let mut defs = self.definitions.write().await;
-        defs.insert(definition.id.clone(), definition.clone());
-        Ok(())
-    }
-
-    async fn update(&self, definition: &WorkflowDefinition) -> anyhow::Result<()> {
-        let mut defs = self.definitions.write().await;
-        defs.insert(definition.id.clone(), definition.clone());
-        Ok(())
-    }
-
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
-        let mut defs = self.definitions.write().await;
-        Ok(defs.remove(id).is_some())
-    }
-}
-
-struct InMemoryWorkflowInstanceRepository {
-    instances: tokio::sync::RwLock<HashMap<String, WorkflowInstance>>,
-}
-
-impl InMemoryWorkflowInstanceRepository {
-    fn new() -> Self {
-        Self {
-            instances: tokio::sync::RwLock::new(HashMap::new()),
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl WorkflowInstanceRepository for InMemoryWorkflowInstanceRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
-        let instances = self.instances.read().await;
-        Ok(instances.get(id).cloned())
-    }
-
-    async fn find_all(
-        &self,
-        status: Option<String>,
-        workflow_id: Option<String>,
-        initiator_id: Option<String>,
-        _page: u32,
-        _page_size: u32,
-    ) -> anyhow::Result<(Vec<WorkflowInstance>, u64)> {
-        let instances = self.instances.read().await;
-        let results: Vec<_> = instances
-            .values()
-            .filter(|i| {
-                status.as_deref().map_or(true, |s| i.status == s)
-                    && workflow_id.as_deref().map_or(true, |w| i.workflow_id == w)
-                    && initiator_id
-                        .as_deref()
-                        .map_or(true, |init| i.initiator_id == init)
-            })
-            .cloned()
-            .collect();
-        let total = results.len() as u64;
-        Ok((results, total))
-    }
-
-    async fn create(&self, instance: &WorkflowInstance) -> anyhow::Result<()> {
-        let mut instances = self.instances.write().await;
-        instances.insert(instance.id.clone(), instance.clone());
-        Ok(())
-    }
-
-    async fn update(&self, instance: &WorkflowInstance) -> anyhow::Result<()> {
-        let mut instances = self.instances.write().await;
-        instances.insert(instance.id.clone(), instance.clone());
-        Ok(())
-    }
-}
-
-struct InMemoryWorkflowTaskRepository {
-    tasks: tokio::sync::RwLock<HashMap<String, WorkflowTask>>,
-}
-
-impl InMemoryWorkflowTaskRepository {
-    fn new() -> Self {
-        Self {
-            tasks: tokio::sync::RwLock::new(HashMap::new()),
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl WorkflowTaskRepository for InMemoryWorkflowTaskRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowTask>> {
-        let tasks = self.tasks.read().await;
-        Ok(tasks.get(id).cloned())
-    }
-
-    async fn find_all(
-        &self,
-        assignee_id: Option<String>,
-        status: Option<String>,
-        instance_id: Option<String>,
-        overdue_only: bool,
-        _page: u32,
-        _page_size: u32,
-    ) -> anyhow::Result<(Vec<WorkflowTask>, u64)> {
-        let tasks = self.tasks.read().await;
-        let results: Vec<_> = tasks
-            .values()
-            .filter(|t| {
-                assignee_id
-                    .as_deref()
-                    .map_or(true, |a| t.assignee_id.as_deref() == Some(a))
-                    && status.as_deref().map_or(true, |s| t.status == s)
-                    && instance_id.as_deref().map_or(true, |i| t.instance_id == i)
-                    && (!overdue_only || t.is_overdue())
-            })
-            .cloned()
-            .collect();
-        let total = results.len() as u64;
-        Ok((results, total))
-    }
-
-    async fn find_overdue(&self) -> anyhow::Result<Vec<WorkflowTask>> {
-        let tasks = self.tasks.read().await;
-        Ok(tasks.values().filter(|t| t.is_overdue()).cloned().collect())
-    }
-
-    async fn create(&self, task: &WorkflowTask) -> anyhow::Result<()> {
-        let mut tasks = self.tasks.write().await;
-        tasks.insert(task.id.clone(), task.clone());
-        Ok(())
-    }
-
-    async fn update(&self, task: &WorkflowTask) -> anyhow::Result<()> {
-        let mut tasks = self.tasks.write().await;
-        tasks.insert(task.id.clone(), task.clone());
-        Ok(())
-    }
 }

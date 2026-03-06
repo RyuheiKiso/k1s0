@@ -247,7 +247,7 @@ mod tests {
     async fn test_publish_job_executed() {
         let producer = InMemorySchedulerProducer::new();
         let job = make_test_job();
-        let execution = make_test_execution(job.id);
+        let execution = make_test_execution(job.id.clone());
 
         let result = producer.publish_job_executed(&job, &execution).await;
         assert!(result.is_ok());
@@ -281,7 +281,7 @@ mod tests {
     async fn test_publish_connection_error() {
         let producer = InMemorySchedulerProducer::with_error();
         let job = make_test_job();
-        let execution = make_test_execution(job.id);
+        let execution = make_test_execution(job.id.clone());
 
         let result = producer.publish_job_executed(&job, &execution).await;
         assert!(result.is_err());
@@ -295,7 +295,7 @@ mod tests {
     async fn test_noop_publisher() {
         let publisher = NoopSchedulerEventPublisher;
         let job = make_test_job();
-        let execution = make_test_execution(job.id);
+        let execution = make_test_execution(job.id.clone());
 
         assert!(publisher
             .publish_job_executed(&job, &execution)
@@ -313,7 +313,7 @@ mod tests {
         mock.expect_close().returning(|| Ok(()));
 
         let job = make_test_job();
-        let execution = make_test_execution(job.id);
+        let execution = make_test_execution(job.id.clone());
 
         assert!(mock.publish_job_executed(&job, &execution).await.is_ok());
         assert!(mock.publish_job_created(&job).await.is_ok());

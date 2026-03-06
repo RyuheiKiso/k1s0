@@ -74,8 +74,9 @@ mod tests {
         let mut mock = MockSchedulerJobRepository::new();
         let mut mock_exec = MockSchedulerExecutionRepository::new();
         let id = "job_test".to_string();
+        let expected_id = id.clone();
         mock.expect_find_by_id()
-            .withf(move |job_id| job_id == id.as_str())
+            .withf(move |job_id| job_id == expected_id.as_str())
             .returning(|job_id| {
                 Ok(Some(crate::domain::entity::scheduler_job::SchedulerJob {
                     id: job_id.to_string(),
@@ -141,6 +142,7 @@ mod tests {
         let mut mock = MockSchedulerJobRepository::new();
         let mut mock_exec = MockSchedulerExecutionRepository::new();
         let id = "job_running".to_string();
+        let running_id = id.clone();
         mock.expect_find_by_id().returning(|job_id| {
             Ok(Some(crate::domain::entity::scheduler_job::SchedulerJob {
                 id: job_id.to_string(),
@@ -161,7 +163,7 @@ mod tests {
         mock_exec.expect_find_by_job_id().returning(move |_| {
             Ok(vec![SchedulerExecution {
                 id: "exec_running".to_string(),
-                job_id: id.clone(),
+                job_id: running_id.clone(),
                 status: "running".to_string(),
                 triggered_by: "scheduler".to_string(),
                 started_at: chrono::Utc::now(),

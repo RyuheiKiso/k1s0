@@ -26,7 +26,7 @@ pub fn require_permission(
     move |req: Request<Body>, next: Next| Box::pin(rbac_check(req, next, resource, action))
 }
 
-fn check_system_permission(roles: &[String], _resource: &str, action: &str) -> bool {
+pub(crate) fn check_system_permission(roles: &[String], _resource: &str, action: &str) -> bool {
     for role in roles {
         match role.as_str() {
             "sys_admin" => return true,
