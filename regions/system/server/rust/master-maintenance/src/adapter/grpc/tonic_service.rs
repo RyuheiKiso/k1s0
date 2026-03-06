@@ -844,7 +844,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
 
         let schema = self
             .manage_tables_uc
-            .get_table_schema(&req.table_name)
+            .get_table_schema(&req.table_name, None)
             .await
             .map_err(|e| {
                 let msg = e.to_string();
