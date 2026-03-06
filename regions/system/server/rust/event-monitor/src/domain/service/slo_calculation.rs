@@ -50,6 +50,50 @@ impl SloCalculationService {
         }
     }
 
+    /// Calculate SLO status from a pre-computed FlowKpi (used with cached KPI data).
+    pub fn calculate_from_kpi(
+        flow: &FlowDefinition,
+        kpi: &crate::domain::entity::flow_kpi::FlowKpi,
+    ) -> SloStatus {
+        let total = kpi.total_started as f64;
+        if total == 0.0 {
+            return SloStatus {
+                target_completion_seconds: flow.slo.target_completion_seconds,
+                target_success_rate: flow.slo.target_success_rate,
+                current_success_rate: 1.0,
+                is_violated: false,
+                burn_rate: 0.0,
+                estimated_budget_exhaustion_hours: f64::INFINITY,
+            };
+        }
+
+        let current_success_rate = kpi.completion_rate;
+        let is_violated = current_success_rate < flow.slo.target_success_rate;
+
+        let error_budget = 1.0 - flow.slo.target_success_rate;
+        let actual_error_rate = 1.0 - current_success_rate;
+        let burn_rate = if error_budget > 0.0 {
+            actual_error_rate / error_budget
+        } else {
+            0.0
+        };
+
+        let estimated_budget_exhaustion_hours = if burn_rate > 0.0 {
+            (30.0 * 24.0) / burn_rate
+        } else {
+            f64::INFINITY
+        };
+
+        SloStatus {
+            target_completion_seconds: flow.slo.target_completion_seconds,
+            target_success_rate: flow.slo.target_success_rate,
+            current_success_rate,
+            is_violated,
+            burn_rate,
+            estimated_budget_exhaustion_hours,
+        }
+    }
+
     pub fn calculate_burn_rate(
         flow: &FlowDefinition,
         instances_by_window: &[(&str, &[FlowInstance])],
@@ -111,6 +155,7 @@ mod tests {
             steps: vec![FlowStep {
                 event_type: "OrderCreated".to_string(),
                 source: "order-service".to_string(),
+                source_filter: Some("order-service".to_string()),
                 timeout_seconds: 30,
                 description: String::new(),
             }],
