@@ -52,7 +52,9 @@ impl ResiliencyMetrics {
             #[cfg(feature = "metrics")]
             otel_timeout_events: meter.u64_counter("resiliency_timeout_events_total").build(),
             #[cfg(feature = "metrics")]
-            otel_circuit_state: meter.i64_up_down_counter("resiliency_circuit_state").build(),
+            otel_circuit_state: meter
+                .i64_up_down_counter("resiliency_circuit_state")
+                .build(),
         }
     }
 

@@ -42,7 +42,10 @@ fn parse_pool_duration(value: &str) -> Option<std::time::Duration> {
             .ok()
             .map(|hours| std::time::Duration::from_secs(hours * 3600));
     }
-    trimmed.parse::<u64>().ok().map(std::time::Duration::from_secs)
+    trimmed
+        .parse::<u64>()
+        .ok()
+        .map(std::time::Duration::from_secs)
 }
 
 #[tokio::main]
@@ -58,7 +61,11 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
@@ -174,7 +181,10 @@ async fn main() -> anyhow::Result<()> {
     let list_uc = Arc::new(usecase::ListRulesUseCase::new(rule_repo.clone()));
     let update_uc = Arc::new(usecase::UpdateRuleUseCase::new(rule_repo.clone()));
     let delete_uc = Arc::new(usecase::DeleteRuleUseCase::new(rule_repo.clone()));
-    let get_usage_uc = Arc::new(usecase::GetUsageUseCase::with_state_store(rule_repo, state_store.clone()));
+    let get_usage_uc = Arc::new(usecase::GetUsageUseCase::with_state_store(
+        rule_repo,
+        state_store.clone(),
+    ));
     let reset_uc = Arc::new(usecase::ResetRateLimitUseCase::new(state_store));
 
     // Token verifier (JWKS verifier if auth configured)
@@ -442,7 +452,12 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
         Ok(())
     }
 
-    async fn get_usage(&self, _key: &str, _limit: i64, _window_secs: i64) -> anyhow::Result<Option<domain::repository::UsageSnapshot>> {
+    async fn get_usage(
+        &self,
+        _key: &str,
+        _limit: i64,
+        _window_secs: i64,
+    ) -> anyhow::Result<Option<domain::repository::UsageSnapshot>> {
         Ok(None)
     }
 }

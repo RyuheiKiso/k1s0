@@ -28,10 +28,7 @@ impl QuotaUsageRepository for RedisQuotaUsageRepository {
     async fn get_usage(&self, quota_id: &str) -> anyhow::Result<Option<u64>> {
         let key = self.make_key(quota_id);
         let mut conn = self.conn.clone();
-        let result: Option<u64> = redis::cmd("GET")
-            .arg(&key)
-            .query_async(&mut conn)
-            .await?;
+        let result: Option<u64> = redis::cmd("GET").arg(&key).query_async(&mut conn).await?;
         Ok(result)
     }
 

@@ -55,7 +55,8 @@ impl ReadEventsUseCase {
             .await
             .map_err(|e| ReadEventsError::Internal(e.to_string()))?;
 
-        let stream = stream.ok_or_else(|| ReadEventsError::StreamNotFound(input.stream_id.clone()))?;
+        let stream =
+            stream.ok_or_else(|| ReadEventsError::StreamNotFound(input.stream_id.clone()))?;
 
         let page_size = input.page_size.min(200).max(1);
         let page = input.page.max(1);
@@ -154,9 +155,7 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let event_repo = MockEventRepository::new();
 
-        stream_repo
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = ReadEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = ReadEventsInput {

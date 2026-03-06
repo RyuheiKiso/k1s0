@@ -10,10 +10,7 @@ impl Loader<String> for TenantLoader {
     type Value = Tenant;
     type Error = Arc<anyhow::Error>;
 
-    async fn load(
-        &self,
-        keys: &[String],
-    ) -> Result<HashMap<String, Self::Value>, Self::Error> {
+    async fn load(&self, keys: &[String]) -> Result<HashMap<String, Self::Value>, Self::Error> {
         // TenantService.ListTenants を呼び出して ID フィルタリング
         let tenants = self
             .client
@@ -29,10 +26,7 @@ impl Loader<String> for FeatureFlagLoader {
     type Value = FeatureFlag;
     type Error = Arc<anyhow::Error>;
 
-    async fn load(
-        &self,
-        keys: &[String],
-    ) -> Result<HashMap<String, Self::Value>, Self::Error> {
+    async fn load(&self, keys: &[String]) -> Result<HashMap<String, Self::Value>, Self::Error> {
         let flags = self
             .client
             .list_flags_by_keys(keys)
@@ -48,10 +42,7 @@ impl Loader<String> for ConfigLoader {
     type Value = ConfigEntry;
     type Error = Arc<anyhow::Error>;
 
-    async fn load(
-        &self,
-        keys: &[String],
-    ) -> Result<HashMap<String, Self::Value>, Self::Error> {
+    async fn load(&self, keys: &[String]) -> Result<HashMap<String, Self::Value>, Self::Error> {
         let mut result = HashMap::new();
         for key in keys {
             let parts: Vec<&str> = key.splitn(2, '/').collect();

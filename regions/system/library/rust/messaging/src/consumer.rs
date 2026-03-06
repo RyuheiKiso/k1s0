@@ -40,9 +40,7 @@ pub struct ConsumedMessage {
 
 impl ConsumedMessage {
     /// ペイロードを JSON としてデシリアライズする。
-    pub fn deserialize_json<T: for<'de> Deserialize<'de>>(
-        &self,
-    ) -> Result<T, serde_json::Error> {
+    pub fn deserialize_json<T: for<'de> Deserialize<'de>>(&self) -> Result<T, serde_json::Error> {
         serde_json::from_slice(&self.payload)
     }
 }

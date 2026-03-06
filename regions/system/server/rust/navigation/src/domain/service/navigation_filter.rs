@@ -53,8 +53,7 @@ fn is_route_accessible(route: &Route, guards: &[Guard], user_ctx: &UserContext) 
             match guard.guard_type {
                 GuardType::AuthRequired => user_ctx.authenticated,
                 GuardType::RoleRequired => {
-                    user_ctx.authenticated
-                        && guard.roles.iter().any(|r| user_ctx.roles.contains(r))
+                    user_ctx.authenticated && guard.roles.iter().any(|r| user_ctx.roles.contains(r))
                 }
                 GuardType::RedirectIfAuthenticated => !user_ctx.authenticated,
             }
@@ -141,10 +140,7 @@ mod tests {
                     id: "admin".to_string(),
                     path: "/admin".to_string(),
                     component_id: Some("AdminPage".to_string()),
-                    guards: vec![
-                        "auth_required".to_string(),
-                        "admin_only".to_string(),
-                    ],
+                    guards: vec!["auth_required".to_string(), "admin_only".to_string()],
                     transition: None,
                     transition_duration_ms: 300,
                     redirect_to: None,
@@ -152,10 +148,7 @@ mod tests {
                         id: "admin_users".to_string(),
                         path: "/admin/users".to_string(),
                         component_id: Some("AdminUsersPage".to_string()),
-                        guards: vec![
-                            "auth_required".to_string(),
-                            "admin_only".to_string(),
-                        ],
+                        guards: vec!["auth_required".to_string(), "admin_only".to_string()],
                         transition: None,
                         transition_duration_ms: 300,
                         redirect_to: None,

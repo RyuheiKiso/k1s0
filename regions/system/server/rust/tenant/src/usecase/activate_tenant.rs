@@ -33,12 +33,10 @@ impl ActivateTenantUseCase {
             .ok_or_else(|| ActivateTenantError::NotFound(tenant_id.to_string()))?;
 
         if !TenantDomainService::can_activate(&tenant.status) {
-            return Err(ActivateTenantError::InvalidStatus(
-                format!(
-                    "tenant must be suspended to activate, current status: {}",
-                    tenant.status.as_str()
-                ),
-            ));
+            return Err(ActivateTenantError::InvalidStatus(format!(
+                "tenant must be suspended to activate, current status: {}",
+                tenant.status.as_str()
+            )));
         }
 
         tenant.status = TenantStatus::Active;

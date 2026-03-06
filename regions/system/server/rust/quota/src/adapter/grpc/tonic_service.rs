@@ -9,8 +9,8 @@ use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::quota::v1::{
-    quota_service_server::QuotaService,
-    CheckQuotaRequest as ProtoCheckQuotaRequest, CheckQuotaResponse as ProtoCheckQuotaResponse,
+    quota_service_server::QuotaService, CheckQuotaRequest as ProtoCheckQuotaRequest,
+    CheckQuotaResponse as ProtoCheckQuotaResponse,
     CreateQuotaPolicyRequest as ProtoCreateQuotaPolicyRequest,
     CreateQuotaPolicyResponse as ProtoCreateQuotaPolicyResponse,
     DeleteQuotaPolicyRequest as ProtoDeleteQuotaPolicyRequest,
@@ -22,9 +22,8 @@ use crate::proto::k1s0::system::quota::v1::{
     IncrementQuotaUsageRequest as ProtoIncrementQuotaUsageRequest,
     IncrementQuotaUsageResponse as ProtoIncrementQuotaUsageResponse,
     ListQuotaPoliciesRequest as ProtoListQuotaPoliciesRequest,
-    ListQuotaPoliciesResponse as ProtoListQuotaPoliciesResponse,
-    QuotaPolicy as ProtoQuotaPolicy, QuotaUsage as ProtoQuotaUsage,
-    ResetQuotaUsageRequest as ProtoResetQuotaUsageRequest,
+    ListQuotaPoliciesResponse as ProtoListQuotaPoliciesResponse, QuotaPolicy as ProtoQuotaPolicy,
+    QuotaUsage as ProtoQuotaUsage, ResetQuotaUsageRequest as ProtoResetQuotaUsageRequest,
     ResetQuotaUsageResponse as ProtoResetQuotaUsageResponse,
     UpdateQuotaPolicyRequest as ProtoUpdateQuotaPolicyRequest,
     UpdateQuotaPolicyResponse as ProtoUpdateQuotaPolicyResponse,
@@ -187,9 +186,8 @@ impl QuotaService for QuotaServiceTonic {
         let alert_threshold_percent = inner
             .alert_threshold_percent
             .map(|v| {
-                u8::try_from(v).map_err(|_| {
-                    Status::invalid_argument("alert_threshold_percent must be <= 255")
-                })
+                u8::try_from(v)
+                    .map_err(|_| Status::invalid_argument("alert_threshold_percent must be <= 255"))
             })
             .transpose()?;
         let req = UpdatePolicyRequest {
@@ -309,8 +307,8 @@ mod tests {
     };
     use crate::usecase::{
         CreateQuotaPolicyUseCase, DeleteQuotaPolicyUseCase, GetQuotaPolicyUseCase,
-        GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase, ResetQuotaUsageUseCase,
-        UpdateQuotaPolicyUseCase,
+        GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase,
+        ResetQuotaUsageUseCase, UpdateQuotaPolicyUseCase,
     };
 
     fn sample_policy() -> QuotaPolicy {
@@ -337,7 +335,10 @@ mod tests {
             Arc::new(ListQuotaPoliciesUseCase::new(policy_repo.clone())),
             Arc::new(UpdateQuotaPolicyUseCase::new(policy_repo.clone())),
             Arc::new(DeleteQuotaPolicyUseCase::new(policy_repo.clone())),
-            Arc::new(GetQuotaUsageUseCase::new(policy_repo.clone(), usage_repo.clone())),
+            Arc::new(GetQuotaUsageUseCase::new(
+                policy_repo.clone(),
+                usage_repo.clone(),
+            )),
             Arc::new(IncrementQuotaUsageUseCase::new_without_publisher(
                 policy_repo.clone(),
                 usage_repo.clone(),
@@ -504,9 +505,7 @@ mod tests {
     async fn test_delete_quota_policy_not_found() {
         let mut policy_mock = MockQuotaPolicyRepository::new();
         let usage_mock = MockQuotaUsageRepository::new();
-        policy_mock
-            .expect_delete()
-            .returning(|_| Ok(false));
+        policy_mock.expect_delete().returning(|_| Ok(false));
 
         let tonic_svc = make_tonic_service(policy_mock, usage_mock);
         let req = Request::new(ProtoDeleteQuotaPolicyRequest {

@@ -67,8 +67,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_config_schema_not_found() {
         let mut mock = MockConfigSchemaRepository::new();
-        mock.expect_find_by_service_name()
-            .returning(|_| Ok(None));
+        mock.expect_find_by_service_name().returning(|_| Ok(None));
 
         let uc = GetConfigSchemaUseCase::new(Arc::new(mock));
         let result = uc.execute("nonexistent").await;

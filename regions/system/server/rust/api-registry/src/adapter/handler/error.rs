@@ -67,7 +67,9 @@ impl ApiError {
         )
     }
 
-    pub fn unprocessable_entity(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    pub fn unprocessable_entity(
+        message: impl Into<String>,
+    ) -> (StatusCode, Json<serde_json::Value>) {
         let err = ErrorResponse::new(codes::api_registry::schema_invalid(), message);
         (
             StatusCode::UNPROCESSABLE_ENTITY,

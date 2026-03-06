@@ -255,7 +255,6 @@ fn parse_duration_seconds(input: &str) -> anyhow::Result<u64> {
     Ok(trimmed.parse::<u64>()?)
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -495,5 +494,3 @@ kafka:
         assert_eq!(kafka.sasl.mechanism, "SCRAM-SHA-512");
     }
 }
-
-

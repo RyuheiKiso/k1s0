@@ -30,7 +30,10 @@ impl CreateChannelUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, input: &CreateChannelInput) -> Result<NotificationChannel, CreateChannelError> {
+    pub async fn execute(
+        &self,
+        input: &CreateChannelInput,
+    ) -> Result<NotificationChannel, CreateChannelError> {
         NotificationDomainService::validate_channel_type(&input.channel_type)
             .map_err(CreateChannelError::Validation)?;
 

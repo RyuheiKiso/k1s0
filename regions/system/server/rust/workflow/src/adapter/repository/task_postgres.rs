@@ -60,8 +60,7 @@ impl From<TaskRow> for WorkflowTask {
 #[async_trait]
 impl WorkflowTaskRepository for TaskPostgresRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowTask>> {
-        let uuid = uuid::Uuid::parse_str(id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
+        let uuid = uuid::Uuid::parse_str(id).map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
 
         let row: Option<TaskRow> = sqlx::query_as(
             "SELECT id, instance_id, step_id, step_name, assignee_id, status, \
@@ -117,7 +116,9 @@ impl WorkflowTaskRepository for TaskPostgresRepository {
                     comment, actor_id, due_at, decided_at, created_at, updated_at \
              FROM workflow.workflow_tasks {} \
              ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
-            where_clause, param_idx, param_idx + 1
+            where_clause,
+            param_idx,
+            param_idx + 1
         );
 
         let count_str = format!(
@@ -166,8 +167,8 @@ impl WorkflowTaskRepository for TaskPostgresRepository {
     }
 
     async fn create(&self, task: &WorkflowTask) -> anyhow::Result<()> {
-        let uuid = uuid::Uuid::parse_str(&task.id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
+        let uuid =
+            uuid::Uuid::parse_str(&task.id).map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
         let inst_uuid = uuid::Uuid::parse_str(&task.instance_id)
             .map_err(|e| anyhow::anyhow!("invalid instance UUID: {}", e))?;
         let assignee = task.assignee_id.as_deref().unwrap_or("").to_string();
@@ -197,8 +198,8 @@ impl WorkflowTaskRepository for TaskPostgresRepository {
     }
 
     async fn update(&self, task: &WorkflowTask) -> anyhow::Result<()> {
-        let uuid = uuid::Uuid::parse_str(&task.id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
+        let uuid =
+            uuid::Uuid::parse_str(&task.id).map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
         let assignee = task.assignee_id.as_deref().unwrap_or("").to_string();
 
         sqlx::query(

@@ -204,11 +204,7 @@ impl KeycloakContainer {
         self
     }
 
-    pub fn with_admin(
-        mut self,
-        username: impl Into<String>,
-        password: impl Into<String>,
-    ) -> Self {
+    pub fn with_admin(mut self, username: impl Into<String>, password: impl Into<String>) -> Self {
         self.admin_user = username.into();
         self.admin_password = password.into();
         self

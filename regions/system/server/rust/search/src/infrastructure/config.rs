@@ -140,7 +140,6 @@ fn default_ttl_seconds() -> u64 {
     30
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -252,5 +251,3 @@ index_prefix: "k1s0-"
         assert_eq!(cfg.url, "https://opensearch:9200");
     }
 }
-
-

@@ -130,7 +130,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/workflows/:id",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "workflows", "read",
+                "workflows",
+                "read",
             ))),
         );
 
@@ -154,7 +155,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/workflows/:id",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "workflows", "read",
+                "workflows",
+                "read",
             ))),
         );
 
@@ -170,7 +172,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/workflows",
             post(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "workflows", "write",
+                "workflows",
+                "write",
             ))),
         );
 
@@ -186,7 +189,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/workflows/:id",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "workflows", "read",
+                "workflows",
+                "read",
             ))),
         );
 
@@ -202,7 +206,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/workflows",
             post(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "workflows", "write",
+                "workflows",
+                "write",
             ))),
         );
 
@@ -256,7 +261,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/workflows/:id",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "workflows", "read",
+                "workflows",
+                "read",
             ))),
         );
 

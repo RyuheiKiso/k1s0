@@ -57,10 +57,7 @@ mod tests {
         let mut mock = MockMemberRepository::new();
         mock.expect_remove().returning(|_, _| Ok(true));
 
-        let result = mock
-            .remove(&Uuid::new_v4(), &Uuid::new_v4())
-            .await
-            .unwrap();
+        let result = mock.remove(&Uuid::new_v4(), &Uuid::new_v4()).await.unwrap();
         assert!(result);
     }
 

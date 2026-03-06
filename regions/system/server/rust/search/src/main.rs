@@ -14,7 +14,9 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::SearchGrpcService;
-use adapter::repository::{CachedSearchRepository, SearchOpenSearchRepository, SearchPostgresRepository};
+use adapter::repository::{
+    CachedSearchRepository, SearchOpenSearchRepository, SearchPostgresRepository,
+};
 use domain::entity::search_index::{
     PaginationResult, SearchDocument, SearchIndex, SearchQuery, SearchResult,
 };
@@ -36,13 +38,16 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
 
     info!(
         app_name = %cfg.app.name,
@@ -94,11 +99,7 @@ async fn main() -> anyhow::Result<()> {
         let brokers = kafka_cfg.brokers.join(",");
         let topic = "k1s0.system.search.indexed.v1".to_string();
         info!(brokers = %brokers, topic = %topic, "connecting to Kafka");
-        let producer = KafkaSearchProducer::new(
-            &brokers,
-            &kafka_cfg.security_protocol,
-            &topic,
-        )?;
+        let producer = KafkaSearchProducer::new(&brokers, &kafka_cfg.security_protocol, &topic)?;
         Arc::new(producer)
     } else {
         info!("using noop event publisher (kafka not configured)");
@@ -122,9 +123,9 @@ async fn main() -> anyhow::Result<()> {
             delete_document_uc.clone(),
         ) {
             Ok(consumer) => {
-                let consumer = consumer.with_metrics(
-                    Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-search-server")),
-                );
+                let consumer = consumer.with_metrics(Arc::new(
+                    k1s0_telemetry::metrics::Metrics::new("k1s0-search-server"),
+                ));
                 info!("kafka consumer initialized, starting background ingestion");
                 tokio::spawn(async move {
                     if let Err(e) = consumer.run().await {
@@ -147,9 +148,7 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
-        "k1s0-search-server",
-    ));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-search-server"));
 
     // Token verifier (JWKS verifier if auth configured)
     let auth_state = if let Some(ref auth_cfg) = cfg.auth {
@@ -182,8 +181,14 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let public_routes = axum::Router::new()
-        .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
-        .route("/readyz", axum::routing::get(adapter::handler::health::readyz))
+        .route(
+            "/healthz",
+            axum::routing::get(adapter::handler::health::healthz),
+        )
+        .route(
+            "/readyz",
+            axum::routing::get(adapter::handler::health::readyz),
+        )
         .route("/metrics", axum::routing::get(metrics_handler));
 
     let api_routes = if let Some(ref auth_st) = handler_state.auth_state {
@@ -371,26 +376,28 @@ impl SearchRepository for InMemorySearchRepository {
 
     async fn search(&self, query: &SearchQuery) -> anyhow::Result<SearchResult> {
         let documents = self.documents.read().await;
-        let docs = documents.get(&query.index_name).cloned().unwrap_or_default();
+        let docs = documents
+            .get(&query.index_name)
+            .cloned()
+            .unwrap_or_default();
 
-        let matched: Vec<SearchDocument> = docs
-            .into_iter()
-            .filter(|doc| {
-                let content_str = doc.content.to_string();
-                let query_ok = query.query.is_empty() || content_str.contains(&query.query);
-                if !query_ok {
-                    return false;
-                }
-                query
-                    .filters
-                    .iter()
-                    .all(|(k, v)| doc.content.get(k).and_then(|x| x.as_str()) == Some(v.as_str()))
-            })
-            .map(|mut doc| {
-                doc.score = 1.0;
-                doc
-            })
-            .collect();
+        let matched: Vec<SearchDocument> =
+            docs.into_iter()
+                .filter(|doc| {
+                    let content_str = doc.content.to_string();
+                    let query_ok = query.query.is_empty() || content_str.contains(&query.query);
+                    if !query_ok {
+                        return false;
+                    }
+                    query.filters.iter().all(|(k, v)| {
+                        doc.content.get(k).and_then(|x| x.as_str()) == Some(v.as_str())
+                    })
+                })
+                .map(|mut doc| {
+                    doc.score = 1.0;
+                    doc
+                })
+                .collect();
 
         let total = matched.len() as u64;
         let hits: Vec<SearchDocument> = matched

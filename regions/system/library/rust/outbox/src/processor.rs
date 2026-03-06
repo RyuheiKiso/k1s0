@@ -108,11 +108,7 @@ mod tests {
         let mut store = MockOutboxStore::new();
         store.expect_fetch_pending().returning(|_| Ok(vec![]));
 
-        let processor = OutboxProcessor::new(
-            Arc::new(store),
-            Arc::new(AlwaysSuccessPublisher),
-            10,
-        );
+        let processor = OutboxProcessor::new(Arc::new(store), Arc::new(AlwaysSuccessPublisher), 10);
         let count = processor.process_batch().await.unwrap();
         assert_eq!(count, 0);
     }
@@ -135,11 +131,7 @@ mod tests {
             .times(2) // processing + delivered
             .returning(|_| Ok(()));
 
-        let processor = OutboxProcessor::new(
-            Arc::new(store),
-            Arc::new(AlwaysSuccessPublisher),
-            10,
-        );
+        let processor = OutboxProcessor::new(Arc::new(store), Arc::new(AlwaysSuccessPublisher), 10);
         let count = processor.process_batch().await.unwrap();
         assert_eq!(count, 1);
     }
@@ -162,11 +154,7 @@ mod tests {
             .times(2) // processing + failed
             .returning(|_| Ok(()));
 
-        let processor = OutboxProcessor::new(
-            Arc::new(store),
-            Arc::new(AlwaysFailPublisher),
-            10,
-        );
+        let processor = OutboxProcessor::new(Arc::new(store), Arc::new(AlwaysFailPublisher), 10);
         let count = processor.process_batch().await.unwrap();
         assert_eq!(count, 0); // 失敗したので 0
     }
@@ -179,17 +167,11 @@ mod tests {
             .times(0..)
             .returning(|_| Ok(vec![]));
 
-        let processor = OutboxProcessor::new(
-            Arc::new(store),
-            Arc::new(AlwaysSuccessPublisher),
-            10,
-        );
+        let processor = OutboxProcessor::new(Arc::new(store), Arc::new(AlwaysSuccessPublisher), 10);
         let token = CancellationToken::new();
         token.cancel();
 
-        let result = processor
-            .run(Duration::from_millis(10), token)
-            .await;
+        let result = processor.run(Duration::from_millis(10), token).await;
         assert!(result.is_ok());
     }
 }

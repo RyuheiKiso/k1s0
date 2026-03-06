@@ -44,9 +44,7 @@ impl RuleCache {
         self.inner
             .insert(rule.scope.clone(), arc_rule.clone())
             .await;
-        self.inner
-            .insert(format!("id:{}", rule.id), arc_rule)
-            .await;
+        self.inner.insert(format!("id:{}", rule.id), arc_rule).await;
     }
 
     /// 特定の scope のルールをキャッシュから削除する。

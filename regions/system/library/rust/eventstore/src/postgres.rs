@@ -189,25 +189,23 @@ impl EventStore for PostgresEventStore {
     }
 
     async fn exists(&self, stream_id: &StreamId) -> Result<bool, EventStoreError> {
-        let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM events WHERE stream_id = $1 LIMIT 1",
-        )
-        .bind(stream_id.as_str())
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| EventStoreError::StorageError(e.to_string()))?;
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM events WHERE stream_id = $1 LIMIT 1")
+                .bind(stream_id.as_str())
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| EventStoreError::StorageError(e.to_string()))?;
 
         Ok(count > 0)
     }
 
     async fn current_version(&self, stream_id: &StreamId) -> Result<u64, EventStoreError> {
-        let version: i64 = sqlx::query_scalar(
-            "SELECT COALESCE(MAX(version), 0) FROM events WHERE stream_id = $1",
-        )
-        .bind(stream_id.as_str())
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| EventStoreError::StorageError(e.to_string()))?;
+        let version: i64 =
+            sqlx::query_scalar("SELECT COALESCE(MAX(version), 0) FROM events WHERE stream_id = $1")
+                .bind(stream_id.as_str())
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| EventStoreError::StorageError(e.to_string()))?;
 
         Ok(version as u64)
     }

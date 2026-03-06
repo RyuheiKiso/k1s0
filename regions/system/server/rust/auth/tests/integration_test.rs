@@ -45,19 +45,31 @@ struct TestApiKeyRepository;
 
 #[async_trait::async_trait]
 impl ApiKeyRepository for TestApiKeyRepository {
-    async fn create(&self, _api_key: &k1s0_auth_server::domain::entity::api_key::ApiKey) -> anyhow::Result<()> {
+    async fn create(
+        &self,
+        _api_key: &k1s0_auth_server::domain::entity::api_key::ApiKey,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 
-    async fn find_by_id(&self, _id: uuid::Uuid) -> anyhow::Result<Option<k1s0_auth_server::domain::entity::api_key::ApiKey>> {
+    async fn find_by_id(
+        &self,
+        _id: uuid::Uuid,
+    ) -> anyhow::Result<Option<k1s0_auth_server::domain::entity::api_key::ApiKey>> {
         Ok(None)
     }
 
-    async fn find_by_prefix(&self, _prefix: &str) -> anyhow::Result<Option<k1s0_auth_server::domain::entity::api_key::ApiKey>> {
+    async fn find_by_prefix(
+        &self,
+        _prefix: &str,
+    ) -> anyhow::Result<Option<k1s0_auth_server::domain::entity::api_key::ApiKey>> {
         Ok(None)
     }
 
-    async fn list_by_tenant(&self, _tenant_id: &str) -> anyhow::Result<Vec<k1s0_auth_server::domain::entity::api_key::ApiKey>> {
+    async fn list_by_tenant(
+        &self,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Vec<k1s0_auth_server::domain::entity::api_key::ApiKey>> {
         Ok(vec![])
     }
 

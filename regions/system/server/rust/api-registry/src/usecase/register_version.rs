@@ -3,7 +3,9 @@ use std::sync::Arc;
 use crate::domain::entity::api_registration::{ApiSchemaVersion, BreakingChange};
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
 use crate::domain::service::api_registry_service::ApiRegistryDomainService;
-use crate::infrastructure::kafka::{NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent};
+use crate::infrastructure::kafka::{
+    NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent,
+};
 use crate::infrastructure::validator::SchemaValidatorFactory;
 
 #[derive(Debug, Clone)]
@@ -206,9 +208,7 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock
-            .expect_find_by_name()
-            .returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_| Ok(None));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 

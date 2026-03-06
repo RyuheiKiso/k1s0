@@ -8,11 +8,11 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::auth::v1::{
-    audit_service_server::AuditService, auth_service_server::AuthService,
-    CheckPermissionRequest, CheckPermissionResponse, GetUserRequest, GetUserResponse,
-    GetUserRolesRequest, GetUserRolesResponse, ListUsersRequest, ListUsersResponse,
-    RecordAuditLogRequest, RecordAuditLogResponse, SearchAuditLogsRequest,
-    SearchAuditLogsResponse, ValidateTokenRequest, ValidateTokenResponse,
+    audit_service_server::AuditService, auth_service_server::AuthService, CheckPermissionRequest,
+    CheckPermissionResponse, GetUserRequest, GetUserResponse, GetUserRolesRequest,
+    GetUserRolesResponse, ListUsersRequest, ListUsersResponse, RecordAuditLogRequest,
+    RecordAuditLogResponse, SearchAuditLogsRequest, SearchAuditLogsResponse, ValidateTokenRequest,
+    ValidateTokenResponse,
 };
 
 use super::audit_grpc::AuditGrpcService;
@@ -153,9 +153,9 @@ mod tests {
     use crate::domain::entity::claims::{Claims, RealmAccess};
     use crate::domain::repository::user_repository::MockUserRepository;
     use crate::infrastructure::MockTokenVerifier;
+    use crate::usecase::check_permission::CheckPermissionUseCase;
     use crate::usecase::get_user::GetUserUseCase;
     use crate::usecase::get_user_roles::GetUserRolesUseCase;
-    use crate::usecase::check_permission::CheckPermissionUseCase;
     use crate::usecase::list_users::ListUsersUseCase;
     use crate::usecase::validate_token::ValidateTokenUseCase;
     use std::collections::HashMap;

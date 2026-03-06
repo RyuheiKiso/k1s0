@@ -117,7 +117,10 @@ impl NotificationTemplateRepository for TemplatePostgresRepository {
 
         let rows: Vec<TemplateRow> = data_q.fetch_all(self.pool.as_ref()).await?;
 
-        Ok((rows.into_iter().map(Into::into).collect(), total_count as u64))
+        Ok((
+            rows.into_iter().map(Into::into).collect(),
+            total_count as u64,
+        ))
     }
 
     async fn create(&self, template: &NotificationTemplate) -> anyhow::Result<()> {

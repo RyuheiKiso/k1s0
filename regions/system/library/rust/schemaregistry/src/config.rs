@@ -97,10 +97,7 @@ mod tests {
     fn test_subject_name_business_topic() {
         let subject =
             SchemaRegistryConfig::subject_name("k1s0.business.accounting.invoice-issued.v2");
-        assert_eq!(
-            subject,
-            "k1s0.business.accounting.invoice-issued.v2-value"
-        );
+        assert_eq!(subject, "k1s0.business.accounting.invoice-issued.v2-value");
     }
 
     #[test]
@@ -113,7 +110,8 @@ mod tests {
 
     #[test]
     fn test_deserialize_custom_compatibility() {
-        let json = r#"{"url": "http://localhost:8081", "compatibility": "FULL", "timeout_secs": 60}"#;
+        let json =
+            r#"{"url": "http://localhost:8081", "compatibility": "FULL", "timeout_secs": 60}"#;
         let cfg: SchemaRegistryConfig = serde_json::from_str(json).unwrap();
         assert_eq!(cfg.compatibility, CompatibilityMode::Full);
         assert_eq!(cfg.timeout_secs, 60);
@@ -149,9 +147,8 @@ mod tests {
 
     #[test]
     fn test_kubernetes_url() {
-        let cfg = SchemaRegistryConfig::new(
-            "http://schema-registry.k1s0-system.svc.cluster.local:8081",
-        );
+        let cfg =
+            SchemaRegistryConfig::new("http://schema-registry.k1s0-system.svc.cluster.local:8081");
         assert!(cfg.url.contains("cluster.local"));
     }
 }

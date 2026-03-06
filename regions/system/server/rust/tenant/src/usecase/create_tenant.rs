@@ -3,8 +3,8 @@ use uuid::Uuid;
 
 use crate::domain::entity::{Plan, Tenant};
 use crate::domain::repository::TenantRepository;
-use crate::infrastructure::keycloak_admin::{KeycloakAdmin, NoopKeycloakAdmin};
 use crate::infrastructure::kafka_producer::{NoopTenantEventPublisher, TenantEventPublisher};
+use crate::infrastructure::keycloak_admin::{KeycloakAdmin, NoopKeycloakAdmin};
 use crate::infrastructure::saga_client::{NoopSagaClient, SagaClient};
 
 #[derive(Debug, thiserror::Error)]

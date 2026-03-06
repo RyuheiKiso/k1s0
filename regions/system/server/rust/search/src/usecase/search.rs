@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::domain::entity::search_index::SearchResult;
 use crate::domain::repository::SearchRepository;

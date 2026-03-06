@@ -55,6 +55,13 @@ async fn shutdown_signal() -> anyhow::Result<()> {
     Ok(())
 }
 
+fn allow_insecure_no_auth(environment: &str) -> bool {
+    matches!(environment, "dev" | "test")
+        && std::env::var("ALLOW_INSECURE_NO_AUTH")
+            .map(|value| value.eq_ignore_ascii_case("true"))
+            .unwrap_or(false)
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config_path =
@@ -66,13 +73,16 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
 
     info!(
         app_name = %cfg.app.name,
@@ -100,8 +110,12 @@ async fn main() -> anyhow::Result<()> {
         info!("connected to PostgreSQL database");
 
         (
-            Arc::new(adapter::repository::DefinitionPostgresRepository::new(pool.clone())),
-            Arc::new(adapter::repository::InstancePostgresRepository::new(pool.clone())),
+            Arc::new(adapter::repository::DefinitionPostgresRepository::new(
+                pool.clone(),
+            )),
+            Arc::new(adapter::repository::InstancePostgresRepository::new(
+                pool.clone(),
+            )),
             Arc::new(adapter::repository::TaskPostgresRepository::new(pool)),
         )
     } else {
@@ -114,15 +128,14 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Kafka event publisher
-    let event_publisher: Arc<dyn WorkflowEventPublisher> =
-        if let Some(ref kafka_cfg) = cfg.kafka {
-            let publisher = KafkaWorkflowEventPublisher::new(kafka_cfg)?;
-            info!(topic = %publisher.topic(), "Kafka event publisher initialized");
-            Arc::new(publisher)
-        } else {
-            info!("no Kafka config found, using noop event publisher");
-            Arc::new(NoopWorkflowEventPublisher)
-        };
+    let event_publisher: Arc<dyn WorkflowEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
+        let publisher = KafkaWorkflowEventPublisher::new(kafka_cfg)?;
+        info!(topic = %publisher.topic(), "Kafka event publisher initialized");
+        Arc::new(publisher)
+    } else {
+        info!("no Kafka config found, using noop event publisher");
+        Arc::new(NoopWorkflowEventPublisher)
+    };
 
     let notification_request_publisher: Arc<dyn NotificationRequestPublisher> =
         if let Some(ref kafka_cfg) = cfg.kafka {
@@ -202,9 +215,18 @@ async fn main() -> anyhow::Result<()> {
         Some(adapter::middleware::auth::WorkflowAuthState {
             verifier: jwks_verifier,
         })
-    } else {
-        info!("no auth configured, workflow-server running without authentication");
+    } else if allow_insecure_no_auth(&cfg.app.environment) {
+        tracing::warn!(
+            environment = %cfg.app.environment,
+            "workflow-server is running without authentication because ALLOW_INSECURE_NO_AUTH=true"
+        );
         None
+    } else {
+        anyhow::bail!(
+            "auth configuration is required for workflow-server (environment: {}). \
+Set auth.* in the config, or use ALLOW_INSECURE_NO_AUTH=true only for dev/test.",
+            cfg.app.environment
+        );
     };
 
     let mut handler_state = adapter::handler::AppState {
@@ -380,7 +402,9 @@ impl WorkflowInstanceRepository for InMemoryWorkflowInstanceRepository {
             .filter(|i| {
                 status.as_deref().map_or(true, |s| i.status == s)
                     && workflow_id.as_deref().map_or(true, |w| i.workflow_id == w)
-                    && initiator_id.as_deref().map_or(true, |init| i.initiator_id == init)
+                    && initiator_id
+                        .as_deref()
+                        .map_or(true, |init| i.initiator_id == init)
             })
             .cloned()
             .collect();
@@ -433,7 +457,9 @@ impl WorkflowTaskRepository for InMemoryWorkflowTaskRepository {
         let results: Vec<_> = tasks
             .values()
             .filter(|t| {
-                assignee_id.as_deref().map_or(true, |a| t.assignee_id.as_deref() == Some(a))
+                assignee_id
+                    .as_deref()
+                    .map_or(true, |a| t.assignee_id.as_deref() == Some(a))
                     && status.as_deref().map_or(true, |s| t.status == s)
                     && instance_id.as_deref().map_or(true, |i| t.instance_id == i)
                     && (!overdue_only || t.is_overdue())

@@ -73,8 +73,7 @@ impl SagaClient {
             .map_err(|e| SagaError::DeserializeError(e.to_string()))?;
 
         let state_value = json.get("saga").cloned().unwrap_or(json);
-        serde_json::from_value(state_value)
-            .map_err(|e| SagaError::DeserializeError(e.to_string()))
+        serde_json::from_value(state_value).map_err(|e| SagaError::DeserializeError(e.to_string()))
     }
 
     /// Saga をキャンセルする。

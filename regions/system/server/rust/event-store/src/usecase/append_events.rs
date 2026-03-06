@@ -76,7 +76,9 @@ impl AppendEventsUseCase {
         ) {
             Ok(()) => {}
             Err(EventStoreDomainError::StreamAlreadyExists) => {
-                return Err(AppendEventsError::StreamAlreadyExists(input.stream_id.clone()));
+                return Err(AppendEventsError::StreamAlreadyExists(
+                    input.stream_id.clone(),
+                ));
             }
             Err(EventStoreDomainError::StreamNotFound) => {
                 return Err(AppendEventsError::StreamNotFound(input.stream_id.clone()));
@@ -173,13 +175,9 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let mut event_repo = MockEventRepository::new();
 
-        stream_repo
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_| Ok(None));
         stream_repo.expect_create().returning(|_| Ok(()));
-        stream_repo
-            .expect_update_version()
-            .returning(|_, _| Ok(()));
+        stream_repo.expect_update_version().returning(|_, _| Ok(()));
 
         event_repo.expect_append().returning(|stream_id, events| {
             Ok(events
@@ -217,9 +215,7 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             }))
         });
-        stream_repo
-            .expect_update_version()
-            .returning(|_, _| Ok(()));
+        stream_repo.expect_update_version().returning(|_, _| Ok(()));
 
         event_repo.expect_append().returning(|stream_id, events| {
             Ok(events
@@ -276,9 +272,7 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let event_repo = MockEventRepository::new();
 
-        stream_repo
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = make_input("order-999", 0);

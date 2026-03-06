@@ -55,8 +55,8 @@ impl JwksVerifier {
     pub async fn verify_token(&self, token: &str) -> anyhow::Result<Claims> {
         let keys = self.get_jwks().await?;
 
-        let header = decode_header(token)
-            .map_err(|e| anyhow::anyhow!("invalid JWT header: {}", e))?;
+        let header =
+            decode_header(token).map_err(|e| anyhow::anyhow!("invalid JWT header: {}", e))?;
 
         // kid でマッチする鍵を選択。kid が無い場合は最初の RSA 鍵を使用
         let jwk = match &header.kid {

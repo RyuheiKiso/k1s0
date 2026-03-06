@@ -25,15 +25,14 @@ pub async fn list_policies(
         match Uuid::parse_str(&bundle_id) {
             Ok(id) => Some(id),
             Err(_) => {
-                let err =
-                    ErrorResponse::with_details(
-                        "SYS_POLICY_INVALID_BUNDLE_ID",
-                        "invalid bundle_id format",
-                        vec![ErrorDetail {
-                            field: "bundle_id".to_string(),
-                            message: "must be a valid UUID".to_string(),
-                        }],
-                    );
+                let err = ErrorResponse::with_details(
+                    "SYS_POLICY_INVALID_BUNDLE_ID",
+                    "invalid bundle_id format",
+                    vec![ErrorDetail {
+                        field: "bundle_id".to_string(),
+                        message: "must be a valid UUID".to_string(),
+                    }],
+                );
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
         }
@@ -112,15 +111,14 @@ pub async fn create_policy(
         Some(bundle_id) => match Uuid::parse_str(&bundle_id) {
             Ok(id) => Some(id),
             Err(_) => {
-                let err =
-                    ErrorResponse::with_details(
-                        "SYS_POLICY_INVALID_BUNDLE_ID",
-                        "invalid bundle_id format",
-                        vec![ErrorDetail {
-                            field: "bundle_id".to_string(),
-                            message: "must be a valid UUID".to_string(),
-                        }],
-                    );
+                let err = ErrorResponse::with_details(
+                    "SYS_POLICY_INVALID_BUNDLE_ID",
+                    "invalid bundle_id format",
+                    vec![ErrorDetail {
+                        field: "bundle_id".to_string(),
+                        message: "must be a valid UUID".to_string(),
+                    }],
+                );
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
         },

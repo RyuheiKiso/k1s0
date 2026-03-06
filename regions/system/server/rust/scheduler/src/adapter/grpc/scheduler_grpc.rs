@@ -509,7 +509,10 @@ impl SchedulerGrpcService {
 
 fn parse_uuid(value: &str, field: &str) -> Result<String, GrpcError> {
     if value.trim().is_empty() {
-        Err(GrpcError::InvalidArgument(format!("invalid {}: {}", field, value)))
+        Err(GrpcError::InvalidArgument(format!(
+            "invalid {}: {}",
+            field, value
+        )))
     } else {
         Ok(value.to_string())
     }

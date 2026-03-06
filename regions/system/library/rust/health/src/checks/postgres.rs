@@ -1,7 +1,7 @@
-use async_trait::async_trait;
-use sqlx::PgPool;
 use crate::checker::HealthCheck;
 use crate::error::HealthError;
+use async_trait::async_trait;
+use sqlx::PgPool;
 
 pub struct PostgresHealthCheck {
     name: String,

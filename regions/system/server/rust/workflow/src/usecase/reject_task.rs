@@ -96,9 +96,7 @@ impl RejectTaskUseCase {
             .find_by_id(&instance.workflow_id)
             .await
             .map_err(|e| RejectTaskError::Internal(e.to_string()))?
-            .ok_or_else(|| {
-                RejectTaskError::DefinitionNotFound(instance.workflow_id.clone())
-            })?;
+            .ok_or_else(|| RejectTaskError::DefinitionNotFound(instance.workflow_id.clone()))?;
 
         let next_step_id = WorkflowDomainService::next_step_on_reject(&definition, &task.step_id);
 

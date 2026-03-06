@@ -32,7 +32,10 @@ impl FeatureFlagDomainService {
         Ok(())
     }
 
-    pub fn evaluate(flag: &FeatureFlag, context: &EvaluationContext) -> (bool, Option<String>, String) {
+    pub fn evaluate(
+        flag: &FeatureFlag,
+        context: &EvaluationContext,
+    ) -> (bool, Option<String>, String) {
         if !flag.enabled {
             return (false, None, "flag is disabled".to_string());
         }
@@ -54,7 +57,8 @@ impl FeatureFlagDomainService {
             let Some(actual_value) = Self::resolve_attribute(context, &rule.attribute) else {
                 continue;
             };
-            if Self::matches(rule, actual_value) && variants.iter().any(|v| v.name == rule.variant) {
+            if Self::matches(rule, actual_value) && variants.iter().any(|v| v.name == rule.variant)
+            {
                 return Some(rule.variant.clone());
             }
         }

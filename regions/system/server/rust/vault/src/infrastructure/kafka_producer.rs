@@ -163,7 +163,9 @@ impl VaultEventPublisher for KafkaProducer {
         let payload = serde_json::to_vec(event)?;
         let key = format!("{}:{}", event.key_path, event.action);
 
-        let record = FutureRecord::to(&self.access_topic).key(&key).payload(&payload);
+        let record = FutureRecord::to(&self.access_topic)
+            .key(&key)
+            .payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
@@ -184,12 +186,16 @@ impl VaultEventPublisher for KafkaProducer {
         let payload = serde_json::to_vec(event)?;
         let key = event.key_path.clone();
 
-        let record = FutureRecord::to(&self.rotation_topic).key(&key).payload(&payload);
+        let record = FutureRecord::to(&self.rotation_topic)
+            .key(&key)
+            .payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| anyhow::anyhow!("failed to publish vault rotation event: {}", err))?;
+            .map_err(|(err, _)| {
+                anyhow::anyhow!("failed to publish vault rotation event: {}", err)
+            })?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.rotation_topic);
@@ -244,7 +250,10 @@ mod tests {
             Ok(())
         }
 
-        async fn publish_secret_rotated(&self, event: &VaultSecretRotatedEvent) -> anyhow::Result<()> {
+        async fn publish_secret_rotated(
+            &self,
+            event: &VaultSecretRotatedEvent,
+        ) -> anyhow::Result<()> {
             if self.should_fail {
                 return Err(anyhow::anyhow!("broker connection refused"));
             }

@@ -136,9 +136,8 @@ mod tests {
     async fn test_rbac_missing_claims_returns_401() {
         let app = Router::new().route(
             "/api/v1/dlq/:topic",
-            get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "dlq", "read",
-            ))),
+            get(|| async { "ok" })
+                .route_layer(axum::middleware::from_fn(require_permission("dlq", "read"))),
         );
 
         let req = Request::builder()
@@ -160,9 +159,8 @@ mod tests {
     async fn test_rbac_sys_admin_read_allowed() {
         let app = Router::new().route(
             "/api/v1/dlq/:topic",
-            get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "dlq", "read",
-            ))),
+            get(|| async { "ok" })
+                .route_layer(axum::middleware::from_fn(require_permission("dlq", "read"))),
         );
 
         let claims = make_claims_with_roles(&["sys_admin"]);
@@ -192,9 +190,8 @@ mod tests {
     async fn test_rbac_sys_auditor_read_allowed() {
         let app = Router::new().route(
             "/api/v1/dlq/:topic",
-            get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "dlq", "read",
-            ))),
+            get(|| async { "ok" })
+                .route_layer(axum::middleware::from_fn(require_permission("dlq", "read"))),
         );
 
         let claims = make_claims_with_roles(&["sys_auditor"]);
@@ -262,9 +259,8 @@ mod tests {
     async fn test_rbac_unknown_role_denied() {
         let app = Router::new().route(
             "/api/v1/dlq/:topic",
-            get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "dlq", "read",
-            ))),
+            get(|| async { "ok" })
+                .route_layer(axum::middleware::from_fn(require_permission("dlq", "read"))),
         );
 
         let claims = make_claims_with_roles(&["viewer"]);

@@ -197,8 +197,7 @@ mod tests {
     async fn test_call_success() {
         let cb = CircuitBreaker::new(test_config());
 
-        let result: Result<i32, CircuitBreakerError<String>> =
-            cb.call(|| async { Ok(42) }).await;
+        let result: Result<i32, CircuitBreakerError<String>> = cb.call(|| async { Ok(42) }).await;
         assert_eq!(result.unwrap(), 42);
     }
 
@@ -210,8 +209,7 @@ mod tests {
             cb.record_failure().await;
         }
 
-        let result: Result<i32, CircuitBreakerError<String>> =
-            cb.call(|| async { Ok(42) }).await;
+        let result: Result<i32, CircuitBreakerError<String>> = cb.call(|| async { Ok(42) }).await;
         assert!(matches!(result, Err(CircuitBreakerError::Open)));
     }
 

@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::notification::v1::{
     notification_service_server::NotificationService, Channel as ProtoChannel,
     CreateChannelRequest as ProtoCreateChannelRequest,
@@ -18,17 +19,17 @@ use crate::proto::k1s0::system::notification::v1::{
     DeleteTemplateRequest as ProtoDeleteTemplateRequest,
     DeleteTemplateResponse as ProtoDeleteTemplateResponse,
     GetChannelRequest as ProtoGetChannelRequest, GetChannelResponse as ProtoGetChannelResponse,
-    ListNotificationsRequest as ProtoListNotificationsRequest,
-    ListNotificationsResponse as ProtoListNotificationsResponse,
     GetNotificationRequest as ProtoGetNotificationRequest,
     GetNotificationResponse as ProtoGetNotificationResponse,
     GetTemplateRequest as ProtoGetTemplateRequest, GetTemplateResponse as ProtoGetTemplateResponse,
     ListChannelsRequest as ProtoListChannelsRequest,
     ListChannelsResponse as ProtoListChannelsResponse,
-    RetryNotificationRequest as ProtoRetryNotificationRequest,
-    RetryNotificationResponse as ProtoRetryNotificationResponse,
+    ListNotificationsRequest as ProtoListNotificationsRequest,
+    ListNotificationsResponse as ProtoListNotificationsResponse,
     ListTemplatesRequest as ProtoListTemplatesRequest,
     ListTemplatesResponse as ProtoListTemplatesResponse, NotificationLog as ProtoNotificationLog,
+    RetryNotificationRequest as ProtoRetryNotificationRequest,
+    RetryNotificationResponse as ProtoRetryNotificationResponse,
     SendNotificationRequest as ProtoSendNotificationRequest,
     SendNotificationResponse as ProtoSendNotificationResponse, Template as ProtoTemplate,
     UpdateChannelRequest as ProtoUpdateChannelRequest,
@@ -36,7 +37,6 @@ use crate::proto::k1s0::system::notification::v1::{
     UpdateTemplateRequest as ProtoUpdateTemplateRequest,
     UpdateTemplateResponse as ProtoUpdateTemplateResponse,
 };
-use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 
 use super::notification_grpc::{
     CreateChannelRequest, CreateTemplateRequest, DeleteChannelRequest, DeleteTemplateRequest,

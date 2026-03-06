@@ -184,9 +184,7 @@ mod tests {
         let flag = make_flag("feature.dark-mode", true);
 
         let mut mock = MockFeatureFlagRepository::new();
-        mock.expect_update()
-            .once()
-            .returning(|_| Ok(()));
+        mock.expect_update().once().returning(|_| Ok(()));
 
         let cache = make_cache();
         // 事前にキャッシュにフラグを挿入
@@ -213,9 +211,7 @@ mod tests {
         let flag_id = flag.id;
 
         let mut mock = MockFeatureFlagRepository::new();
-        mock.expect_delete()
-            .once()
-            .returning(|_| Ok(true));
+        mock.expect_delete().once().returning(|_| Ok(true));
 
         let cache = make_cache();
         cache.insert(Arc::new(flag)).await;
@@ -239,9 +235,7 @@ mod tests {
         let flag = make_flag("feature.dark-mode", true);
 
         let mut mock = MockFeatureFlagRepository::new();
-        mock.expect_delete()
-            .once()
-            .returning(|_| Ok(false)); // 対象なし
+        mock.expect_delete().once().returning(|_| Ok(false)); // 対象なし
 
         let cache = make_cache();
         cache.insert(Arc::new(flag)).await;

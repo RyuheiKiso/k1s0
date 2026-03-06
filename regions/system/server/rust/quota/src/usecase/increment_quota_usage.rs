@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::domain::entity::quota::IncrementResult;
-use crate::domain::repository::{CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository};
+use crate::domain::repository::{
+    CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository,
+};
 use crate::domain::service::QuotaDomainService;
 use crate::infrastructure::kafka_producer::{
     QuotaEventPublisher, QuotaExceededEvent, QuotaThresholdReachedEvent,
@@ -242,9 +244,7 @@ mod tests {
         assert!(result.is_err());
 
         match result.unwrap_err() {
-            IncrementQuotaUsageError::Exceeded {
-                used, limit, ..
-            } => {
+            IncrementQuotaUsageError::Exceeded { used, limit, .. } => {
                 assert_eq!(used, 10000);
                 assert_eq!(limit, 10000);
             }
@@ -257,9 +257,7 @@ mod tests {
         let mut policy_mock = MockQuotaPolicyRepository::new();
         let usage_mock = MockQuotaUsageRepository::new();
 
-        policy_mock
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        policy_mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = IncrementQuotaUsageUseCase::new_without_publisher(
             Arc::new(policy_mock),

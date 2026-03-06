@@ -3,7 +3,9 @@
 #[cfg(test)]
 mod tests {
     use crate::claims::{Audience, Claims, RealmAccess, RoleSet};
-    use crate::rbac::{check_permission, has_permission, has_resource_role, has_role, has_tier_access};
+    use crate::rbac::{
+        check_permission, has_permission, has_resource_role, has_role, has_tier_access,
+    };
     use crate::verifier::{AuthError, JwkKey, JwksFetcher, JwksVerifier};
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
     use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};

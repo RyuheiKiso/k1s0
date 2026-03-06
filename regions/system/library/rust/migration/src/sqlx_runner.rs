@@ -6,7 +6,9 @@ use tracing::info;
 
 use crate::config::MigrationConfig;
 use crate::error::MigrationError;
-use crate::model::{MigrationDirection, MigrationFile, MigrationReport, MigrationStatus, PendingMigration};
+use crate::model::{
+    MigrationDirection, MigrationFile, MigrationReport, MigrationStatus, PendingMigration,
+};
 use crate::runner::MigrationRunner;
 
 const CREATE_MIGRATIONS_TABLE: &str = r#"
@@ -30,9 +32,7 @@ impl SqlxMigrationRunner {
     pub async fn new(pool: PgPool, config: MigrationConfig) -> Result<Self, MigrationError> {
         let dir = &config.migrations_dir;
         if !dir.exists() {
-            return Err(MigrationError::DirectoryNotFound(
-                dir.display().to_string(),
-            ));
+            return Err(MigrationError::DirectoryNotFound(dir.display().to_string()));
         }
 
         let mut up_migrations = BTreeMap::new();
@@ -140,10 +140,7 @@ impl SqlxMigrationRunner {
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         version: &str,
     ) -> Result<(), MigrationError> {
-        let query = format!(
-            "DELETE FROM {} WHERE version = $1",
-            self.config.table_name
-        );
+        let query = format!("DELETE FROM {} WHERE version = $1", self.config.table_name);
         sqlx::query(&query)
             .bind(version)
             .execute(&mut **tx)
@@ -181,13 +178,12 @@ impl MigrationRunner for SqlxMigrationRunner {
                 .await
                 .map_err(|e| MigrationError::ConnectionFailed(e.to_string()))?;
 
-            sqlx::query(content)
-                .execute(&mut *tx)
-                .await
-                .map_err(|e| MigrationError::MigrationFailed {
+            sqlx::query(content).execute(&mut *tx).await.map_err(|e| {
+                MigrationError::MigrationFailed {
                     version: version.clone(),
                     message: e.to_string(),
-                })?;
+                }
+            })?;
 
             self.insert_migration(&mut tx, version, name, &checksum)
                 .await?;
@@ -333,7 +329,8 @@ mod tests {
     fn test_from_pool_creates_empty_runner() {
         use std::path::PathBuf;
         // We can't actually create a PgPool without a live DB, but we can verify the config
-        let config = MigrationConfig::new(PathBuf::from("."), "postgres://localhost/test".to_string());
+        let config =
+            MigrationConfig::new(PathBuf::from("."), "postgres://localhost/test".to_string());
         assert_eq!(config.table_name, "_migrations");
     }
 
@@ -343,17 +340,24 @@ mod tests {
         let up_migrations: BTreeMap<String, (String, String)> = [
             (
                 "20240101000001".to_string(),
-                ("create_users".to_string(), "CREATE TABLE users (id INT);".to_string()),
+                (
+                    "create_users".to_string(),
+                    "CREATE TABLE users (id INT);".to_string(),
+                ),
             ),
             (
                 "20240101000002".to_string(),
-                ("add_email".to_string(), "ALTER TABLE users ADD COLUMN email TEXT;".to_string()),
+                (
+                    "add_email".to_string(),
+                    "ALTER TABLE users ADD COLUMN email TEXT;".to_string(),
+                ),
             ),
         ]
         .into_iter()
         .collect();
 
-        let applied_map: std::collections::HashMap<String, MigrationStatus> = std::collections::HashMap::new();
+        let applied_map: std::collections::HashMap<String, MigrationStatus> =
+            std::collections::HashMap::new();
 
         let mut statuses = Vec::new();
         for (version, (name, content)) in &up_migrations {
@@ -385,17 +389,19 @@ mod tests {
     fn test_status_logic_with_all_applied() {
         use chrono::Utc;
 
-        let up_migrations: BTreeMap<String, (String, String)> = [
+        let up_migrations: BTreeMap<String, (String, String)> = [(
+            "20240101000001".to_string(),
             (
-                "20240101000001".to_string(),
-                ("create_users".to_string(), "CREATE TABLE users (id INT);".to_string()),
+                "create_users".to_string(),
+                "CREATE TABLE users (id INT);".to_string(),
             ),
-        ]
+        )]
         .into_iter()
         .collect();
 
         let applied_at = Utc::now();
-        let mut applied_map: std::collections::HashMap<String, MigrationStatus> = std::collections::HashMap::new();
+        let mut applied_map: std::collections::HashMap<String, MigrationStatus> =
+            std::collections::HashMap::new();
         applied_map.insert(
             "20240101000001".to_string(),
             MigrationStatus {
@@ -433,8 +439,14 @@ mod tests {
     #[test]
     fn test_pending_logic() {
         let up_migrations: BTreeMap<String, (String, String)> = [
-            ("20240101000001".to_string(), ("create_users".to_string(), "SQL1".to_string())),
-            ("20240101000002".to_string(), ("add_email".to_string(), "SQL2".to_string())),
+            (
+                "20240101000001".to_string(),
+                ("create_users".to_string(), "SQL1".to_string()),
+            ),
+            (
+                "20240101000002".to_string(),
+                ("add_email".to_string(), "SQL2".to_string()),
+            ),
         ]
         .into_iter()
         .collect();

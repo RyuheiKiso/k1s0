@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use crate::domain::entity::api_registration::{ApiSchema, ApiSchemaVersion, SchemaType};
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
-use crate::infrastructure::kafka::{NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent};
+use crate::infrastructure::kafka::{
+    NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent,
+};
 use crate::infrastructure::validator::SchemaValidatorFactory;
 
 #[derive(Debug, Clone)]
@@ -150,9 +152,7 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock
-            .expect_find_by_name()
-            .returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_| Ok(None));
         schema_mock.expect_create().returning(|_| Ok(()));
 
         let mut version_mock = MockApiSchemaVersionRepository::new();

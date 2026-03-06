@@ -56,9 +56,7 @@ mod tests {
         repo.expect_delete().returning(|_| Ok(true));
 
         let uc = DeleteRuleUseCase::new(Arc::new(repo));
-        let result = uc
-            .execute("550e8400-e29b-41d4-a716-446655440000")
-            .await;
+        let result = uc.execute("550e8400-e29b-41d4-a716-446655440000").await;
         assert!(result.is_ok());
     }
 
@@ -68,9 +66,7 @@ mod tests {
         repo.expect_delete().returning(|_| Ok(false));
 
         let uc = DeleteRuleUseCase::new(Arc::new(repo));
-        let result = uc
-            .execute("550e8400-e29b-41d4-a716-446655440000")
-            .await;
+        let result = uc.execute("550e8400-e29b-41d4-a716-446655440000").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), DeleteRuleError::NotFound(_)));
     }

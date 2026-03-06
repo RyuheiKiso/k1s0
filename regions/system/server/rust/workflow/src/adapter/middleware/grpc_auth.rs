@@ -46,7 +46,8 @@ where
 {
     type Response = Response<BoxBody>;
     type Error = S::Error;
-    type Future = Pin<Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+    type Future =
+        Pin<Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
@@ -129,15 +130,20 @@ fn unauthenticated_response(code: &str, message: &str) -> Response<BoxBody> {
     let mut response = Response::new(empty_body());
     *response.status_mut() = http::StatusCode::OK;
     let headers = response.headers_mut();
-    headers.insert(http::header::CONTENT_TYPE, http::HeaderValue::from_static("application/grpc"));
+    headers.insert(
+        http::header::CONTENT_TYPE,
+        http::HeaderValue::from_static("application/grpc"),
+    );
     headers.insert("grpc-status", http::HeaderValue::from_static("16"));
     headers.insert(
         "grpc-message",
-        http::HeaderValue::from_str(message).unwrap_or_else(|_| http::HeaderValue::from_static("Unauthenticated")),
+        http::HeaderValue::from_str(message)
+            .unwrap_or_else(|_| http::HeaderValue::from_static("Unauthenticated")),
     );
     headers.insert(
         "x-error-code",
-        http::HeaderValue::from_str(code).unwrap_or_else(|_| http::HeaderValue::from_static("SYS_AUTH_TOKEN_INVALID")),
+        http::HeaderValue::from_str(code)
+            .unwrap_or_else(|_| http::HeaderValue::from_static("SYS_AUTH_TOKEN_INVALID")),
     );
     response
 }
@@ -146,15 +152,20 @@ fn permission_denied_response(code: &str, message: &str) -> Response<BoxBody> {
     let mut response = Response::new(empty_body());
     *response.status_mut() = http::StatusCode::OK;
     let headers = response.headers_mut();
-    headers.insert(http::header::CONTENT_TYPE, http::HeaderValue::from_static("application/grpc"));
+    headers.insert(
+        http::header::CONTENT_TYPE,
+        http::HeaderValue::from_static("application/grpc"),
+    );
     headers.insert("grpc-status", http::HeaderValue::from_static("7"));
     headers.insert(
         "grpc-message",
-        http::HeaderValue::from_str(message).unwrap_or_else(|_| http::HeaderValue::from_static("Permission denied")),
+        http::HeaderValue::from_str(message)
+            .unwrap_or_else(|_| http::HeaderValue::from_static("Permission denied")),
     );
     headers.insert(
         "x-error-code",
-        http::HeaderValue::from_str(code).unwrap_or_else(|_| http::HeaderValue::from_static("SYS_AUTH_PERMISSION_DENIED")),
+        http::HeaderValue::from_str(code)
+            .unwrap_or_else(|_| http::HeaderValue::from_static("SYS_AUTH_PERMISSION_DENIED")),
     );
     response
 }

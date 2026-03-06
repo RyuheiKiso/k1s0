@@ -96,12 +96,11 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
         .bind(offset)
         .fetch_all(self.pool.as_ref())
         .await?;
-        let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM apiregistry.api_schema_versions WHERE name = $1",
-        )
-        .bind(name)
-        .fetch_one(self.pool.as_ref())
-        .await?;
+        let count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM apiregistry.api_schema_versions WHERE name = $1")
+                .bind(name)
+                .fetch_one(self.pool.as_ref())
+                .await?;
         Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
     }
 
@@ -139,12 +138,11 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
     }
 
     async fn count_by_name(&self, name: &str) -> anyhow::Result<u64> {
-        let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM apiregistry.api_schema_versions WHERE name = $1",
-        )
-        .bind(name)
-        .fetch_one(self.pool.as_ref())
-        .await?;
+        let count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM apiregistry.api_schema_versions WHERE name = $1")
+                .bind(name)
+                .fetch_one(self.pool.as_ref())
+                .await?;
         Ok(count.0 as u64)
     }
 }

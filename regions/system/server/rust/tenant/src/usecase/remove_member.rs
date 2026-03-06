@@ -20,11 +20,7 @@ impl RemoveMemberUseCase {
         Self { member_repo }
     }
 
-    pub async fn execute(
-        &self,
-        tenant_id: Uuid,
-        user_id: Uuid,
-    ) -> Result<bool, RemoveMemberError> {
+    pub async fn execute(&self, tenant_id: Uuid, user_id: Uuid) -> Result<bool, RemoveMemberError> {
         let removed = self
             .member_repo
             .remove(&tenant_id, &user_id)
@@ -50,10 +46,7 @@ mod tests {
         mock.expect_remove().returning(|_, _| Ok(true));
 
         let uc = RemoveMemberUseCase::new(Arc::new(mock));
-        let result = uc
-            .execute(Uuid::new_v4(), Uuid::new_v4())
-            .await
-            .unwrap();
+        let result = uc.execute(Uuid::new_v4(), Uuid::new_v4()).await.unwrap();
         assert!(result);
     }
 

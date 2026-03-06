@@ -41,12 +41,7 @@ impl ListRulesUseCase {
         let page_size = input.page_size.max(1).min(200);
         let (rules, total_count) = self
             .repo
-            .find_page(
-                page,
-                page_size,
-                input.scope.clone(),
-                input.enabled_only,
-            )
+            .find_page(page, page_size, input.scope.clone(), input.enabled_only)
             .await
             .map_err(|e| ListRulesError::Internal(e.to_string()))?;
         let has_next = (page as u64 * page_size as u64) < total_count;
@@ -107,7 +102,8 @@ mod tests {
     #[tokio::test]
     async fn test_list_rules_empty() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_page().returning(|_, _, _, _| Ok((vec![], 0)));
+        repo.expect_find_page()
+            .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let uc = ListRulesUseCase::new(Arc::new(repo));
         let result = uc

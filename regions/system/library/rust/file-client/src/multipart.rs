@@ -17,7 +17,11 @@ pub struct MultipartUploadSession {
 }
 
 impl MultipartUploadSession {
-    pub fn new(upload_id: impl Into<String>, bucket: impl Into<String>, key: impl Into<String>) -> Self {
+    pub fn new(
+        upload_id: impl Into<String>,
+        bucket: impl Into<String>,
+        key: impl Into<String>,
+    ) -> Self {
         Self {
             upload_id: upload_id.into(),
             bucket: bucket.into(),

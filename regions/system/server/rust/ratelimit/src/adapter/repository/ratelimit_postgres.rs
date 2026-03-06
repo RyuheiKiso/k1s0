@@ -180,12 +180,10 @@ impl RateLimitRepository for RateLimitPostgresRepository {
     }
 
     async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
-        let result = sqlx::query(
-            r#"DELETE FROM ratelimit.rate_limit_rules WHERE id = $1"#,
-        )
-        .bind(id)
-        .execute(&self.pool)
-        .await?;
+        let result = sqlx::query(r#"DELETE FROM ratelimit.rate_limit_rules WHERE id = $1"#)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
 
         Ok(result.rows_affected() > 0)
     }

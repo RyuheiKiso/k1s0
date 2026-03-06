@@ -2,7 +2,10 @@ use crate::error::RetryError;
 use crate::policy::RetryConfig;
 use std::future::Future;
 
-pub async fn with_retry<F, Fut, T, E>(config: &RetryConfig, mut operation: F) -> Result<T, RetryError<E>>
+pub async fn with_retry<F, Fut, T, E>(
+    config: &RetryConfig,
+    mut operation: F,
+) -> Result<T, RetryError<E>>
 where
     F: FnMut() -> Fut,
     Fut: Future<Output = Result<T, E>>,

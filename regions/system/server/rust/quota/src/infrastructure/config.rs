@@ -184,7 +184,6 @@ fn default_monthly_cron() -> String {
     "0 0 1 * *".to_string()
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -296,5 +295,3 @@ connect_timeout_seconds: 3
         assert_eq!(cfg.key_prefix, "quota:");
     }
 }
-
-

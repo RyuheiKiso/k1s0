@@ -133,9 +133,7 @@ mod tests {
         let mut metadata_mock = MockFileMetadataRepository::new();
         let storage_mock = MockFileStorageRepository::new();
 
-        metadata_mock
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        metadata_mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = GenerateDownloadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
         let input = GenerateDownloadUrlInput {

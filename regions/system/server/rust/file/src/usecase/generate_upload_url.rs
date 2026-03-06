@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::domain::service::FileDomainService;
 use crate::domain::entity::file::FileMetadata;
 use crate::domain::repository::{FileMetadataRepository, FileStorageRepository};
+use crate::domain::service::FileDomainService;
 
 #[derive(Debug, Clone)]
 pub struct GenerateUploadUrlInput {
@@ -140,8 +140,7 @@ mod tests {
             .expect_generate_upload_url()
             .returning(|_, _, _| Ok("https://storage.example.com/upload?sig=abc".to_string()));
 
-        let uc =
-            GenerateUploadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
+        let uc = GenerateUploadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
         let result = uc.execute(&valid_input()).await;
         assert!(result.is_ok());
 
@@ -156,8 +155,7 @@ mod tests {
         let metadata_mock = MockFileMetadataRepository::new();
         let storage_mock = MockFileStorageRepository::new();
 
-        let uc =
-            GenerateUploadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
+        let uc = GenerateUploadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
         let mut input = valid_input();
         input.filename = "".to_string();
 
@@ -175,8 +173,7 @@ mod tests {
         let metadata_mock = MockFileMetadataRepository::new();
         let storage_mock = MockFileStorageRepository::new();
 
-        let uc =
-            GenerateUploadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
+        let uc = GenerateUploadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
         let mut input = valid_input();
         input.size_bytes = 0;
 
@@ -198,8 +195,7 @@ mod tests {
             .expect_create()
             .returning(|_| Err(anyhow::anyhow!("db error")));
 
-        let uc =
-            GenerateUploadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
+        let uc = GenerateUploadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
         let result = uc.execute(&valid_input()).await;
         assert!(result.is_err());
 

@@ -52,8 +52,7 @@ impl TryFrom<DefinitionRow> for WorkflowDefinition {
 #[async_trait]
 impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
-        let uuid = uuid::Uuid::parse_str(id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
+        let uuid = uuid::Uuid::parse_str(id).map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
 
         let row: Option<DefinitionRow> = sqlx::query_as(
             "SELECT id, name, description, steps, enabled, version, created_at, updated_at \
@@ -182,15 +181,12 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
     }
 
     async fn delete(&self, id: &str) -> anyhow::Result<bool> {
-        let uuid = uuid::Uuid::parse_str(id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
+        let uuid = uuid::Uuid::parse_str(id).map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
 
-        let result = sqlx::query(
-            "DELETE FROM workflow.workflow_definitions WHERE id = $1",
-        )
-        .bind(uuid)
-        .execute(self.pool.as_ref())
-        .await?;
+        let result = sqlx::query("DELETE FROM workflow.workflow_definitions WHERE id = $1")
+            .bind(uuid)
+            .execute(self.pool.as_ref())
+            .await?;
 
         Ok(result.rows_affected() > 0)
     }

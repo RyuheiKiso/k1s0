@@ -158,7 +158,11 @@ mod tests {
 
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
         let result = uc
-            .execute("system.auth.database", "max_connections", "admin@example.com")
+            .execute(
+                "system.auth.database",
+                "max_connections",
+                "admin@example.com",
+            )
             .await;
         assert!(result.is_err());
 

@@ -281,10 +281,9 @@ impl SessionGrpcService {
                 })
             }
             Err(SessionError::NotFound(msg)) => Err(GrpcError::NotFound(msg)),
-            Err(SessionError::Revoked(msg)) | Err(SessionError::AlreadyRevoked(msg)) => Err(GrpcError::InvalidArgument(format!(
-                "session revoked: {}",
-                msg
-            ))),
+            Err(SessionError::Revoked(msg)) | Err(SessionError::AlreadyRevoked(msg)) => Err(
+                GrpcError::InvalidArgument(format!("session revoked: {}", msg)),
+            ),
             Err(SessionError::InvalidInput(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }

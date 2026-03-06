@@ -80,11 +80,7 @@ impl TenantGrpcClient {
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn list_tenants(
-        &self,
-        page: i32,
-        page_size: i32,
-    ) -> anyhow::Result<TenantPage> {
+    pub async fn list_tenants(&self, page: i32, page_size: i32) -> anyhow::Result<TenantPage> {
         let request = tonic::Request::new(proto::k1s0::system::tenant::v1::ListTenantsRequest {
             pagination: Some(proto::k1s0::system::common::v1::Pagination { page, page_size }),
         });
@@ -143,18 +139,13 @@ impl TenantGrpcClient {
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn create_tenant(
-        &self,
-        name: &str,
-        owner_user_id: &str,
-    ) -> anyhow::Result<Tenant> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::tenant::v1::CreateTenantRequest {
-                name: name.to_owned(),
-                display_name: name.to_owned(),
-                owner_id: owner_user_id.to_owned(),
-                plan: "standard".to_owned(),
-            });
+    pub async fn create_tenant(&self, name: &str, owner_user_id: &str) -> anyhow::Result<Tenant> {
+        let request = tonic::Request::new(proto::k1s0::system::tenant::v1::CreateTenantRequest {
+            name: name.to_owned(),
+            display_name: name.to_owned(),
+            owner_id: owner_user_id.to_owned(),
+            plan: "standard".to_owned(),
+        });
 
         let t = self
             .client
@@ -267,9 +258,7 @@ impl TenantGrpcClient {
     }
 }
 
-fn timestamp_to_rfc3339(
-    ts: Option<proto::k1s0::system::common::v1::Timestamp>,
-) -> String {
+fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
     ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()

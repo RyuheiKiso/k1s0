@@ -130,7 +130,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/ratelimit/rules",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimit", "read",
+                "ratelimit",
+                "read",
             ))),
         );
 
@@ -154,7 +155,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/ratelimit/rules",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimit", "read",
+                "ratelimit",
+                "read",
             ))),
         );
 
@@ -170,7 +172,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/ratelimit/rules",
             put(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimit", "write",
+                "ratelimit",
+                "write",
             ))),
         );
 
@@ -186,7 +189,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/ratelimit/rules",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimit", "read",
+                "ratelimit",
+                "read",
             ))),
         );
 
@@ -202,7 +206,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/ratelimit/rules",
             put(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimit", "write",
+                "ratelimit",
+                "write",
             ))),
         );
 
@@ -256,7 +261,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/ratelimit/rules",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "ratelimit", "read",
+                "ratelimit",
+                "read",
             ))),
         );
 

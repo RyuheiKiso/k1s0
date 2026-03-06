@@ -73,9 +73,7 @@ impl JwtTestHelper {
         let payload_json = serde_json::to_string(claims).expect("claims serialization");
         let payload = base64url_encode(payload_json.as_bytes());
         let signing_input = format!("{}.{}", header, payload);
-        let signature = base64url_encode(
-            format!("{}:{}", signing_input, self.secret).as_bytes(),
-        );
+        let signature = base64url_encode(format!("{}:{}", signing_input, self.secret).as_bytes());
         format!("{}.{}", signing_input, signature)
     }
 
@@ -93,8 +91,7 @@ impl JwtTestHelper {
 fn base64url_encode(data: &[u8]) -> String {
     use std::fmt::Write;
     let mut result = String::new();
-    static TABLE: &[u8; 64] =
-        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    static TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     let mut i = 0;
     while i + 2 < data.len() {
         let n = ((data[i] as u32) << 16) | ((data[i + 1] as u32) << 8) | (data[i + 2] as u32);

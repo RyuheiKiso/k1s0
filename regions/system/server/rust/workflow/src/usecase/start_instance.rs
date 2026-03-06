@@ -113,7 +113,11 @@ impl StartInstanceUseCase {
             .await
             .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
 
-        if let Err(err) = self.event_publisher.publish_instance_started(&instance).await {
+        if let Err(err) = self
+            .event_publisher
+            .publish_instance_started(&instance)
+            .await
+        {
             warn!(
                 instance_id = %instance.id,
                 workflow_id = %instance.workflow_id,

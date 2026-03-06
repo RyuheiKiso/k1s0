@@ -140,9 +140,7 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = CreateSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
         let result = uc.execute(&make_input()).await;

@@ -54,10 +54,7 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/schemas/:name/versions/:version",
                 get(schema_handler::get_schema_version),
             )
-            .route(
-                "/api/v1/schemas/:name/diff",
-                get(schema_handler::get_diff),
-            )
+            .route("/api/v1/schemas/:name/diff", get(schema_handler::get_diff))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "schemas", "read",
             )));
@@ -100,10 +97,7 @@ pub fn router(state: AppState) -> Router {
         // 認証なし（dev モード / テスト）: 従来どおり
         Router::new()
             .route("/api/v1/schemas", get(schema_handler::list_schemas))
-            .route(
-                "/api/v1/schemas",
-                post(schema_handler::register_schema),
-            )
+            .route("/api/v1/schemas", post(schema_handler::register_schema))
             .route("/api/v1/schemas/:name", get(schema_handler::get_schema))
             .route(
                 "/api/v1/schemas/:name/versions",
@@ -125,10 +119,7 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/schemas/:name/compatibility",
                 post(schema_handler::check_compatibility),
             )
-            .route(
-                "/api/v1/schemas/:name/diff",
-                get(schema_handler::get_diff),
-            )
+            .route("/api/v1/schemas/:name/diff", get(schema_handler::get_diff))
     };
 
     Router::new()

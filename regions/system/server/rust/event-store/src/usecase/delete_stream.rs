@@ -51,9 +51,7 @@ impl DeleteStreamUseCase {
             .map_err(|e| DeleteStreamError::Internal(e.to_string()))?;
 
         if stream.is_none() {
-            return Err(DeleteStreamError::StreamNotFound(
-                input.stream_id.clone(),
-            ));
+            return Err(DeleteStreamError::StreamNotFound(input.stream_id.clone()));
         }
 
         // Delete snapshots first, then events, then the stream
@@ -74,10 +72,7 @@ impl DeleteStreamUseCase {
 
         Ok(DeleteStreamOutput {
             success: true,
-            message: format!(
-                "stream {} and all related data deleted",
-                input.stream_id
-            ),
+            message: format!("stream {} and all related data deleted", input.stream_id),
         })
     }
 }
@@ -109,12 +104,8 @@ mod tests {
         stream_repo
             .expect_find_by_id()
             .returning(|_| Ok(Some(make_stream())));
-        snapshot_repo
-            .expect_delete_by_stream()
-            .returning(|_| Ok(2));
-        event_repo
-            .expect_delete_by_stream()
-            .returning(|_| Ok(5));
+        snapshot_repo.expect_delete_by_stream().returning(|_| Ok(2));
+        event_repo.expect_delete_by_stream().returning(|_| Ok(5));
         stream_repo.expect_delete().returning(|_| Ok(true));
 
         let uc = DeleteStreamUseCase::new(
@@ -138,9 +129,7 @@ mod tests {
         let event_repo = MockEventRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = DeleteStreamUseCase::new(
             Arc::new(stream_repo),

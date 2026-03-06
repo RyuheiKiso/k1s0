@@ -33,13 +33,16 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
 
     info!(
         app_name = %cfg.app.name,
@@ -192,12 +195,10 @@ async fn main() -> anyhow::Result<()> {
 
     // tonic wrapper
     use proto::k1s0::system::eventstore::v1::event_store_service_server::EventStoreServiceServer;
-    let event_store_tonic =
-        adapter::grpc::EventStoreServiceTonic::new(grpc_svc, grpc_auth_state);
+    let event_store_tonic = adapter::grpc::EventStoreServiceTonic::new(grpc_svc, grpc_auth_state);
 
     // Router
-    let app = handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     let grpc_metrics = metrics;
@@ -262,7 +263,11 @@ impl EventStreamRepository for InMemoryEventStreamRepository {
         let page = page.max(1);
         let page_size = page_size.max(1).min(200);
         let offset = ((page - 1) * page_size) as usize;
-        let paged: Vec<EventStream> = all.into_iter().skip(offset).take(page_size as usize).collect();
+        let paged: Vec<EventStream> = all
+            .into_iter()
+            .skip(offset)
+            .take(page_size as usize)
+            .collect();
         Ok((paged, total))
     }
 
@@ -342,7 +347,11 @@ impl EventRepository for InMemoryEventRepository {
             .collect();
         let total = filtered.len() as u64;
         let offset = ((page - 1) * page_size) as usize;
-        let paged: Vec<_> = filtered.into_iter().skip(offset).take(page_size as usize).collect();
+        let paged: Vec<_> = filtered
+            .into_iter()
+            .skip(offset)
+            .take(page_size as usize)
+            .collect();
         Ok((paged, total))
     }
 
@@ -362,7 +371,11 @@ impl EventRepository for InMemoryEventRepository {
         let page = page.max(1);
         let page_size = page_size.max(1).min(200);
         let offset = ((page - 1) * page_size) as usize;
-        let paged: Vec<_> = filtered.into_iter().skip(offset).take(page_size as usize).collect();
+        let paged: Vec<_> = filtered
+            .into_iter()
+            .skip(offset)
+            .take(page_size as usize)
+            .collect();
         Ok((paged, total))
     }
 

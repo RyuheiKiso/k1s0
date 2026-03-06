@@ -168,7 +168,6 @@ fn default_max_devices_per_user() -> u32 {
     10
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -280,5 +279,3 @@ connect_timeout_seconds: 3
         assert_eq!(cfg.connect_timeout_seconds, 3);
     }
 }
-
-

@@ -140,7 +140,6 @@ impl Config {
     }
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -305,5 +304,3 @@ kafka:
         assert_eq!(kafka.topic_events, "k1s0.system.file.events.v1");
     }
 }
-
-

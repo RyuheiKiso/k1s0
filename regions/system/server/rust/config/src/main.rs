@@ -30,7 +30,11 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
@@ -179,11 +183,8 @@ async fn main() -> anyhow::Result<()> {
         )
     } else {
         Arc::new(
-            usecase::UpdateConfigUseCase::new_with_watch(
-                config_repo.clone(),
-                watch_tx.clone(),
-            )
-            .with_schema_repo(schema_repo.clone()),
+            usecase::UpdateConfigUseCase::new_with_watch(config_repo.clone(), watch_tx.clone())
+                .with_schema_repo(schema_repo.clone()),
         )
     };
     let delete_config_uc = Arc::new(usecase::DeleteConfigUseCase::new(config_repo.clone()));
@@ -238,11 +239,8 @@ async fn main() -> anyhow::Result<()> {
             )
         } else {
             std::sync::Arc::new(
-                usecase::UpdateConfigUseCase::new_with_watch(
-                    config_repo.clone(),
-                    watch_tx.clone(),
-                )
-                .with_schema_repo(schema_repo.clone()),
+                usecase::UpdateConfigUseCase::new_with_watch(config_repo.clone(), watch_tx.clone())
+                    .with_schema_repo(schema_repo.clone()),
             )
         },
         delete_config_uc: std::sync::Arc::new(usecase::DeleteConfigUseCase::new(
@@ -520,10 +518,7 @@ impl domain::repository::ConfigSchemaRepository for InMemoryConfigSchemaReposito
             .cloned())
     }
 
-    async fn find_by_namespace(
-        &self,
-        namespace: &str,
-    ) -> anyhow::Result<Option<ConfigSchema>> {
+    async fn find_by_namespace(&self, namespace: &str) -> anyhow::Result<Option<ConfigSchema>> {
         let schemas = self.schemas.read().await;
         Ok(schemas
             .iter()

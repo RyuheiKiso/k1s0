@@ -118,13 +118,12 @@ impl MemberRepository for MemberPostgresRepository {
     }
 
     async fn remove(&self, tenant_id: &Uuid, user_id: &Uuid) -> anyhow::Result<bool> {
-        let result = sqlx::query(
-            "DELETE FROM tenant.tenant_members WHERE tenant_id = $1 AND user_id = $2",
-        )
-        .bind(tenant_id)
-        .bind(user_id)
-        .execute(self.pool.as_ref())
-        .await?;
+        let result =
+            sqlx::query("DELETE FROM tenant.tenant_members WHERE tenant_id = $1 AND user_id = $2")
+                .bind(tenant_id)
+                .bind(user_id)
+                .execute(self.pool.as_ref())
+                .await?;
         Ok(result.rows_affected() > 0)
     }
 

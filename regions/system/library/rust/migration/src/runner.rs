@@ -29,9 +29,7 @@ impl InMemoryMigrationRunner {
     pub fn new(config: MigrationConfig) -> Result<Self, MigrationError> {
         let dir = &config.migrations_dir;
         if !dir.exists() {
-            return Err(MigrationError::DirectoryNotFound(
-                dir.display().to_string(),
-            ));
+            return Err(MigrationError::DirectoryNotFound(dir.display().to_string()));
         }
 
         let mut up_migrations = BTreeMap::new();
@@ -332,10 +330,8 @@ mod tests {
 
     #[test]
     fn test_directory_not_found() {
-        let config = MigrationConfig::new(
-            PathBuf::from("/nonexistent/path"),
-            "memory://".to_string(),
-        );
+        let config =
+            MigrationConfig::new(PathBuf::from("/nonexistent/path"), "memory://".to_string());
         let result = InMemoryMigrationRunner::new(config);
         assert!(result.is_err());
         match result.unwrap_err() {

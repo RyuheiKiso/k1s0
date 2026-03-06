@@ -47,9 +47,11 @@ impl DeliveryClient for EmailDeliveryClient {
                         DeliveryError::Other(format!("invalid from address: {}", e))
                     })?,
             )
-            .to(recipient.parse().map_err(|e: lettre::address::AddressError| {
-                DeliveryError::Other(format!("invalid recipient address: {}", e))
-            })?)
+            .to(recipient
+                .parse()
+                .map_err(|e: lettre::address::AddressError| {
+                    DeliveryError::Other(format!("invalid recipient address: {}", e))
+                })?)
             .subject(subject)
             .header(ContentType::TEXT_PLAIN)
             .body(body.to_string())

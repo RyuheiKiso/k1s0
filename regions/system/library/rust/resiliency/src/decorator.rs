@@ -87,7 +87,9 @@ impl ResiliencyDecorator {
                         return Err(ResiliencyError::Timeout { after: timeout_dur });
                     }
                 },
-                None => f().await.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>),
+                None => f()
+                    .await
+                    .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>),
             };
 
             match result {
@@ -237,7 +239,10 @@ mod tests {
     async fn test_policy_decorate() {
         let policy = ResiliencyPolicy::builder().build();
         let decorator = policy.decorate();
-        let value = decorator.execute(|| async { Ok::<_, TestError>(42) }).await.unwrap();
+        let value = decorator
+            .execute(|| async { Ok::<_, TestError>(42) })
+            .await
+            .unwrap();
         assert_eq!(value, 42);
     }
 
@@ -329,9 +334,7 @@ mod tests {
                 .await;
         }
 
-        let result = decorator
-            .execute(|| async { Ok::<_, TestError>(42) })
-            .await;
+        let result = decorator.execute(|| async { Ok::<_, TestError>(42) }).await;
 
         assert!(matches!(result, Err(ResiliencyError::CircuitOpen { .. })));
     }

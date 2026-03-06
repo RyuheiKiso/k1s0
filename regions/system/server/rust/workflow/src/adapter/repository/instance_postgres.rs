@@ -58,8 +58,7 @@ impl From<InstanceRow> for WorkflowInstance {
 #[async_trait]
 impl WorkflowInstanceRepository for InstancePostgresRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
-        let uuid = uuid::Uuid::parse_str(id)
-            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
+        let uuid = uuid::Uuid::parse_str(id).map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
 
         let row: Option<InstanceRow> = sqlx::query_as(
             "SELECT id, definition_id, workflow_name, title, initiator_id, current_step_id, \
@@ -112,7 +111,9 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
                     status, context, started_at, completed_at, created_at \
              FROM workflow.workflow_instances {} \
              ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
-            where_clause, param_idx, param_idx + 1
+            where_clause,
+            param_idx,
+            param_idx + 1
         );
 
         let count_str = format!(

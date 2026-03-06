@@ -35,10 +35,8 @@ struct FeatureFlagRow {
 
 impl From<FeatureFlagRow> for FeatureFlag {
     fn from(row: FeatureFlagRow) -> Self {
-        let variants: Vec<FlagVariant> =
-            serde_json::from_value(row.variants).unwrap_or_default();
-        let rules: Vec<FlagRule> =
-            serde_json::from_value(row.rules).unwrap_or_default();
+        let variants: Vec<FlagVariant> = serde_json::from_value(row.variants).unwrap_or_default();
+        let rules: Vec<FlagRule> = serde_json::from_value(row.rules).unwrap_or_default();
         FeatureFlag {
             id: row.id,
             flag_key: row.flag_key,
@@ -135,12 +133,11 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
     }
 
     async fn exists_by_key(&self, flag_key: &str) -> anyhow::Result<bool> {
-        let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM featureflag.feature_flags WHERE flag_key = $1",
-        )
-        .bind(flag_key)
-        .fetch_one(self.pool.as_ref())
-        .await?;
+        let count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM featureflag.feature_flags WHERE flag_key = $1")
+                .bind(flag_key)
+                .fetch_one(self.pool.as_ref())
+                .await?;
 
         Ok(count.0 > 0)
     }

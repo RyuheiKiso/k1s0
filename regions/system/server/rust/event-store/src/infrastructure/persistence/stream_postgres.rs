@@ -54,10 +54,9 @@ impl EventStreamRepository for StreamPostgresRepository {
     }
 
     async fn list_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<EventStream>, u64)> {
-        let total: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM event_store.event_streams")
-                .fetch_one(&self.pool)
-                .await?;
+        let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM event_store.event_streams")
+            .fetch_one(&self.pool)
+            .await?;
 
         let page = page.max(1);
         let page_size = page_size.max(1).min(200);

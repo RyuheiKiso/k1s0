@@ -17,10 +17,9 @@ pub struct S3FileClient {
 
 impl S3FileClient {
     pub async fn new(config: FileClientConfig) -> Result<Self, FileClientError> {
-        let bucket = config
-            .bucket
-            .clone()
-            .ok_or_else(|| FileClientError::InvalidConfig("bucket が設定されていません".to_string()))?;
+        let bucket = config.bucket.clone().ok_or_else(|| {
+            FileClientError::InvalidConfig("bucket が設定されていません".to_string())
+        })?;
 
         let aws_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
             .load()

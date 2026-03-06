@@ -1,13 +1,13 @@
-﻿use axum::{
+use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
-use serde::Deserialize;
-use std::collections::HashMap;
 use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
+use serde::Deserialize;
+use std::collections::HashMap;
 
 use super::AppState;
 use crate::usecase::delete_file::DeleteFileInput;
@@ -60,7 +60,10 @@ pub async fn upload_file(
             let err = ErrorResponse::new(codes::file::validation(), &msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
-        Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::SizeExceeded { actual, max }) => {
+        Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::SizeExceeded {
+            actual,
+            max,
+        }) => {
             let err = ErrorResponse::new(
                 codes::file::size_exceeded(),
                 &format!("file size exceeds limit: {} > {}", actual, max),
@@ -96,8 +99,10 @@ pub async fn get_file(
                     &file.tenant_id,
                     request_tenant_id,
                 ) {
-                    let err =
-                        ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
+                    let err = ErrorResponse::new(
+                        codes::file::access_denied(),
+                        "access denied for tenant",
+                    );
                     return (StatusCode::FORBIDDEN, Json(err)).into_response();
                 }
             }
@@ -148,10 +153,7 @@ pub async fn list_files(
         tenant_id: params.tenant_id,
         uploaded_by: params.uploaded_by,
         content_type: params.content_type,
-        tag: params
-            .tag
-            .as_deref()
-            .and_then(parse_tag_query),
+        tag: params.tag.as_deref().and_then(parse_tag_query),
         page: params.page.unwrap_or(1),
         page_size: params.page_size.unwrap_or(20),
     };
@@ -293,8 +295,10 @@ pub async fn complete_upload(
                     &file.tenant_id,
                     request_tenant_id,
                 ) {
-                    let err =
-                        ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
+                    let err = ErrorResponse::new(
+                        codes::file::access_denied(),
+                        "access denied for tenant",
+                    );
                     return (StatusCode::FORBIDDEN, Json(err)).into_response();
                 }
             }
@@ -308,11 +312,7 @@ pub async fn complete_upload(
     };
 
     match state.complete_upload_uc.execute(&input).await {
-        Ok(file) => (
-            StatusCode::OK,
-            Json(file_to_rest_detail(&file)),
-        )
-            .into_response(),
+        Ok(file) => (StatusCode::OK, Json(file_to_rest_detail(&file))).into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
@@ -348,8 +348,10 @@ pub async fn download_url(
                     &file.tenant_id,
                     request_tenant_id,
                 ) {
-                    let err =
-                        ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
+                    let err = ErrorResponse::new(
+                        codes::file::access_denied(),
+                        "access denied for tenant",
+                    );
                     return (StatusCode::FORBIDDEN, Json(err)).into_response();
                 }
             }
@@ -413,8 +415,10 @@ pub async fn update_file_tags(
                     &file.tenant_id,
                     request_tenant_id,
                 ) {
-                    let err =
-                        ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
+                    let err = ErrorResponse::new(
+                        codes::file::access_denied(),
+                        "access denied for tenant",
+                    );
                     return (StatusCode::FORBIDDEN, Json(err)).into_response();
                 }
             }
@@ -523,9 +527,7 @@ pub struct ListFilesParams {
 }
 
 fn parse_tag_query(raw: &str) -> Option<(String, String)> {
-    let (key, value) = raw
-        .split_once(':')
-        .or_else(|| raw.split_once('='))?;
+    let (key, value) = raw.split_once(':').or_else(|| raw.split_once('='))?;
     let key = key.trim();
     let value = value.trim();
     if key.is_empty() || value.is_empty() {
@@ -538,4 +540,3 @@ fn parse_tag_query(raw: &str) -> Option<(String, String)> {
 fn tenant_id_from_headers(headers: &HeaderMap) -> Option<&str> {
     headers.get("x-tenant-id").and_then(|h| h.to_str().ok())
 }
-

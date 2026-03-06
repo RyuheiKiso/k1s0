@@ -92,7 +92,6 @@ fn default_jwks_cache_ttl_secs() -> u64 {
     3600
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -220,5 +219,3 @@ server: {}
         assert!(cfg.auth.is_none());
     }
 }
-
-

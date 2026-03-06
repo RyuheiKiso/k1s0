@@ -14,8 +14,7 @@ struct Entry {
 
 impl Entry {
     fn is_expired(&self) -> bool {
-        self.expires_at
-            .map_or(false, |exp| exp <= Instant::now())
+        self.expires_at.map_or(false, |exp| exp <= Instant::now())
     }
 }
 

@@ -14,8 +14,12 @@ use crate::usecase::get_schema::{GetSchemaError, GetSchemaUseCase};
 use crate::usecase::get_schema_version::{GetSchemaVersionError, GetSchemaVersionUseCase};
 use crate::usecase::list_schemas::{ListSchemasError, ListSchemasInput, ListSchemasUseCase};
 use crate::usecase::list_versions::{ListVersionsError, ListVersionsInput, ListVersionsUseCase};
-use crate::usecase::register_schema::{RegisterSchemaError, RegisterSchemaInput, RegisterSchemaUseCase};
-use crate::usecase::register_version::{RegisterVersionError, RegisterVersionInput, RegisterVersionUseCase};
+use crate::usecase::register_schema::{
+    RegisterSchemaError, RegisterSchemaInput, RegisterSchemaUseCase,
+};
+use crate::usecase::register_version::{
+    RegisterVersionError, RegisterVersionInput, RegisterVersionUseCase,
+};
 
 #[derive(Debug, Clone)]
 pub struct ApiSchemaData {
@@ -249,7 +253,11 @@ impl ApiRegistryGrpcService {
         &self,
         request: ListSchemasRequest,
     ) -> Result<ListSchemasResponse, GrpcError> {
-        let page = if request.page <= 0 { 1 } else { request.page as u32 };
+        let page = if request.page <= 0 {
+            1
+        } else {
+            request.page as u32
+        };
         let page_size = if request.page_size <= 0 {
             20
         } else {
@@ -316,10 +324,16 @@ impl ApiRegistryGrpcService {
         if request.name.is_empty() {
             return Err(GrpcError::InvalidArgument("name is required".to_string()));
         }
-        let output = self.get_schema_uc.execute(&request.name).await.map_err(|e| match e {
-            GetSchemaError::NotFound(n) => GrpcError::NotFound(format!("schema not found: {}", n)),
-            GetSchemaError::Internal(msg) => GrpcError::Internal(msg),
-        })?;
+        let output = self
+            .get_schema_uc
+            .execute(&request.name)
+            .await
+            .map_err(|e| match e {
+                GetSchemaError::NotFound(n) => {
+                    GrpcError::NotFound(format!("schema not found: {}", n))
+                }
+                GetSchemaError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
         Ok(GetSchemaResponse {
             schema: to_schema_data(output.schema),
             latest_content: output.latest_content.map(|v| v.content).unwrap_or_default(),
@@ -330,7 +344,11 @@ impl ApiRegistryGrpcService {
         &self,
         request: ListVersionsRequest,
     ) -> Result<ListVersionsResponse, GrpcError> {
-        let page = if request.page <= 0 { 1 } else { request.page as u32 };
+        let page = if request.page <= 0 {
+            1
+        } else {
+            request.page as u32
+        };
         let page_size = if request.page_size <= 0 {
             20
         } else {
@@ -353,7 +371,11 @@ impl ApiRegistryGrpcService {
 
         Ok(ListVersionsResponse {
             name: output.name,
-            versions: output.versions.into_iter().map(to_schema_version_data).collect(),
+            versions: output
+                .versions
+                .into_iter()
+                .map(to_schema_version_data)
+                .collect(),
             total_count: output.total_count,
             page: output.page as i32,
             page_size: output.page_size as i32,
@@ -434,7 +456,10 @@ impl ApiRegistryGrpcService {
 
         Ok(DeleteVersionResponse {
             success: true,
-            message: format!("deleted schema version {}@{}", request.name, request.version),
+            message: format!(
+                "deleted schema version {}@{}",
+                request.name, request.version
+            ),
         })
     }
 
@@ -446,7 +471,9 @@ impl ApiRegistryGrpcService {
             return Err(GrpcError::InvalidArgument("name is required".to_string()));
         }
         if request.content.is_empty() {
-            return Err(GrpcError::InvalidArgument("content is required".to_string()));
+            return Err(GrpcError::InvalidArgument(
+                "content is required".to_string(),
+            ));
         }
         let input = CheckCompatibilityInput {
             name: request.name,
@@ -564,7 +591,11 @@ fn to_change_detail_data(detail: ChangeDetail) -> ChangeDetailData {
 fn to_schema_diff_data(diff: SchemaDiff) -> SchemaDiffData {
     SchemaDiffData {
         added: diff.added.into_iter().map(to_diff_entry_data).collect(),
-        modified: diff.modified.into_iter().map(to_diff_modified_entry_data).collect(),
+        modified: diff
+            .modified
+            .into_iter()
+            .map(to_diff_modified_entry_data)
+            .collect(),
         removed: diff.removed.into_iter().map(to_diff_entry_data).collect(),
     }
 }

@@ -77,10 +77,7 @@ mod tests {
     #[tokio::test]
     async fn already_exists() {
         let mut mock = MockSearchRepository::new();
-        let existing = SearchIndex::new(
-            "products".to_string(),
-            serde_json::json!({}),
-        );
+        let existing = SearchIndex::new("products".to_string(), serde_json::json!({}));
         let return_index = existing.clone();
         mock.expect_find_index()
             .withf(|name| name == "products")

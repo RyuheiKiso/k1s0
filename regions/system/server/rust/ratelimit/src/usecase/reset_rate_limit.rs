@@ -30,10 +30,14 @@ impl ResetRateLimitUseCase {
 
     pub async fn execute(&self, input: &ResetRateLimitInput) -> Result<(), ResetRateLimitError> {
         if input.scope.is_empty() {
-            return Err(ResetRateLimitError::ValidationError("scope is required".to_string()));
+            return Err(ResetRateLimitError::ValidationError(
+                "scope is required".to_string(),
+            ));
         }
         if input.identifier.is_empty() {
-            return Err(ResetRateLimitError::ValidationError("identifier is required".to_string()));
+            return Err(ResetRateLimitError::ValidationError(
+                "identifier is required".to_string(),
+            ));
         }
 
         let key = format!("ratelimit:{}:{}", input.scope, input.identifier);
@@ -83,6 +87,9 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ResetRateLimitError::ValidationError(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            ResetRateLimitError::ValidationError(_)
+        ));
     }
 }

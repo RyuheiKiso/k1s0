@@ -1,7 +1,7 @@
-use async_trait::async_trait;
-use deadpool_redis::{Pool, redis::cmd};
 use crate::checker::HealthCheck;
 use crate::error::HealthError;
+use async_trait::async_trait;
+use deadpool_redis::{redis::cmd, Pool};
 
 pub struct RedisHealthCheck {
     name: String,
@@ -24,7 +24,8 @@ impl HealthCheck for RedisHealthCheck {
     }
 
     async fn check(&self) -> Result<(), HealthError> {
-        let mut conn = self.pool
+        let mut conn = self
+            .pool
             .get()
             .await
             .map_err(|e| HealthError::CheckFailed(format!("Redis pool error: {}", e)))?;

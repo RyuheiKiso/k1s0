@@ -133,9 +133,7 @@ mod tests {
         let mut policy_mock = MockQuotaPolicyRepository::new();
         let usage_mock = MockQuotaUsageRepository::new();
 
-        policy_mock
-            .expect_find_by_id()
-            .returning(|_| Ok(None));
+        policy_mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = ResetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
         let input = ResetQuotaUsageInput {

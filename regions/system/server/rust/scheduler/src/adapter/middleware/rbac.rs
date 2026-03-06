@@ -130,7 +130,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "scheduler", "read",
+                "scheduler",
+                "read",
             ))),
         );
 
@@ -154,7 +155,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "scheduler", "read",
+                "scheduler",
+                "read",
             ))),
         );
 
@@ -170,7 +172,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             put(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "scheduler", "write",
+                "scheduler",
+                "write",
             ))),
         );
 
@@ -186,7 +189,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "scheduler", "read",
+                "scheduler",
+                "read",
             ))),
         );
 
@@ -202,7 +206,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             put(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "scheduler", "write",
+                "scheduler",
+                "write",
             ))),
         );
 
@@ -256,7 +261,8 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "scheduler", "read",
+                "scheduler",
+                "read",
             ))),
         );
 

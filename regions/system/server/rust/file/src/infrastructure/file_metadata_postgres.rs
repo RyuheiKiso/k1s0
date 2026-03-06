@@ -53,7 +53,10 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
             "SELECT id, name, size_bytes, mime_type, tenant_id, owner_id, tags, storage_key, checksum_sha256, status, created_at, updated_at FROM {} WHERE id = $1",
             self.table_name
         );
-        let row = sqlx::query(&sql).bind(id).fetch_optional(&self.pool).await?;
+        let row = sqlx::query(&sql)
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         row.map(Self::map_row).transpose()
     }
 
@@ -70,10 +73,15 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
         let page_size = page_size.max(1).min(200);
         let offset = i64::from((page - 1) * page_size);
 
-        let mut count_qb =
-            QueryBuilder::<Postgres>::new(format!("SELECT COUNT(*) FROM {} WHERE 1=1", self.table_name));
+        let mut count_qb = QueryBuilder::<Postgres>::new(format!(
+            "SELECT COUNT(*) FROM {} WHERE 1=1",
+            self.table_name
+        ));
         apply_filters(&mut count_qb, &tenant_id, &uploaded_by, &content_type, &tag);
-        let total = count_qb.build_query_scalar::<i64>().fetch_one(&self.pool).await?;
+        let total = count_qb
+            .build_query_scalar::<i64>()
+            .fetch_one(&self.pool)
+            .await?;
 
         let mut qb = QueryBuilder::<Postgres>::new(format!(
             "SELECT id, name, size_bytes, mime_type, tenant_id, owner_id, tags, storage_key, checksum_sha256, status, created_at, updated_at FROM {} WHERE 1=1",

@@ -74,7 +74,10 @@ pub trait KeycloakAdmin: Send + Sync {
 impl KeycloakAdmin for KeycloakAdminClient {
     async fn create_realm(&self, realm_name: &str) -> Result<()> {
         let token = self.admin_token().await?;
-        let url = format!("{}/admin/realms", self.config.base_url.trim_end_matches('/'));
+        let url = format!(
+            "{}/admin/realms",
+            self.config.base_url.trim_end_matches('/')
+        );
         let response = self
             .http_client
             .post(&url)
@@ -92,7 +95,12 @@ impl KeycloakAdmin for KeycloakAdminClient {
 
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        anyhow::bail!("failed to create keycloak realm '{}': {} {}", realm_name, status, body);
+        anyhow::bail!(
+            "failed to create keycloak realm '{}': {} {}",
+            realm_name,
+            status,
+            body
+        );
     }
 
     async fn delete_realm(&self, realm_name: &str) -> Result<()> {
@@ -115,7 +123,12 @@ impl KeycloakAdmin for KeycloakAdminClient {
 
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        anyhow::bail!("failed to delete keycloak realm '{}': {} {}", realm_name, status, body);
+        anyhow::bail!(
+            "failed to delete keycloak realm '{}': {} {}",
+            realm_name,
+            status,
+            body
+        );
     }
 
     async fn add_user(&self, realm_name: &str, user_id: &str) -> Result<()> {

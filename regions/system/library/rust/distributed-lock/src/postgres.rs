@@ -46,12 +46,11 @@ impl DistributedLock for PostgresDistributedLock {
 
         // pg_try_advisory_lock は非ブロッキングでロックを試み、成功すれば true を返す。
         // hashtext() でキー文字列を bigint にハッシュする。
-        let row: (bool,) =
-            sqlx::query_as("SELECT pg_try_advisory_lock(hashtext($1))")
-                .bind(&full_key)
-                .fetch_one(&self.pool)
-                .await
-                .map_err(|e| LockError::Internal(e.to_string()))?;
+        let row: (bool,) = sqlx::query_as("SELECT pg_try_advisory_lock(hashtext($1))")
+            .bind(&full_key)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| LockError::Internal(e.to_string()))?;
 
         if row.0 {
             Ok(LockGuard {
@@ -66,12 +65,11 @@ impl DistributedLock for PostgresDistributedLock {
     async fn release(&self, guard: LockGuard) -> Result<(), LockError> {
         let full_key = self.full_key(&guard.key);
 
-        let row: (bool,) =
-            sqlx::query_as("SELECT pg_advisory_unlock(hashtext($1))")
-                .bind(&full_key)
-                .fetch_one(&self.pool)
-                .await
-                .map_err(|e| LockError::Internal(e.to_string()))?;
+        let row: (bool,) = sqlx::query_as("SELECT pg_advisory_unlock(hashtext($1))")
+            .bind(&full_key)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| LockError::Internal(e.to_string()))?;
 
         if row.0 {
             Ok(())

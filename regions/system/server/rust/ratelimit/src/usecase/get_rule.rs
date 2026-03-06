@@ -80,9 +80,7 @@ mod tests {
             .returning(|_| Err(anyhow::anyhow!("not found")));
 
         let uc = GetRuleUseCase::new(Arc::new(repo));
-        let result = uc
-            .execute("550e8400-e29b-41d4-a716-446655440000")
-            .await;
+        let result = uc.execute("550e8400-e29b-41d4-a716-446655440000").await;
 
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), GetRuleError::NotFound(_)));
@@ -95,6 +93,9 @@ mod tests {
         let result = uc.execute("invalid-uuid").await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), GetRuleError::InvalidRuleId(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            GetRuleError::InvalidRuleId(_)
+        ));
     }
 }

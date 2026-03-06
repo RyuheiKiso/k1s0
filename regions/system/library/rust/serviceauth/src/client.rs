@@ -225,9 +225,9 @@ impl ServiceAuthClient for HttpServiceAuthClient {
         })?;
 
         // 対応する鍵を JWKS から検索する
-        let keys = jwks_resp["keys"]
-            .as_array()
-            .ok_or_else(|| ServiceAuthError::InvalidToken("JWKS に keys フィールドがありません".to_string()))?;
+        let keys = jwks_resp["keys"].as_array().ok_or_else(|| {
+            ServiceAuthError::InvalidToken("JWKS に keys フィールドがありません".to_string())
+        })?;
 
         let jwk = keys
             .iter()
@@ -251,12 +251,11 @@ impl ServiceAuthClient for HttpServiceAuthClient {
         // サービストークンはオーディエンス検証を緩める（issuer のみ確認）
         validation.validate_aud = false;
 
-        let token_data = decode::<ServiceClaims>(token, &decoding_key, &validation).map_err(
-            |e| {
+        let token_data =
+            decode::<ServiceClaims>(token, &decoding_key, &validation).map_err(|e| {
                 error!(error = %e, "JWT 検証に失敗しました");
                 ServiceAuthError::InvalidToken(e.to_string())
-            },
-        )?;
+            })?;
 
         debug!(sub = %token_data.claims.sub, "トークン検証に成功しました");
 
@@ -313,8 +312,8 @@ mod tests {
     #[test]
     fn test_validate_spiffe_id_success() {
         let client = make_client("https://auth.example.com/token");
-        let result = client
-            .validate_spiffe_id("spiffe://k1s0.internal/ns/system/sa/auth-service", "system");
+        let result =
+            client.validate_spiffe_id("spiffe://k1s0.internal/ns/system/sa/auth-service", "system");
         assert!(result.is_ok());
         let spiffe = result.unwrap();
         assert_eq!(spiffe.namespace, "system");

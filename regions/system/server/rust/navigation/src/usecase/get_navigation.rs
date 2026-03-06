@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::domain::service::navigation_filter::{filter_navigation, FilteredNavigation, UserContext};
+use crate::domain::service::navigation_filter::{
+    filter_navigation, FilteredNavigation, UserContext,
+};
 use crate::infrastructure::navigation_loader::NavigationConfigLoader;
 
 #[derive(Debug, thiserror::Error)]
@@ -121,7 +123,10 @@ mod tests {
         let uc = GetNavigationUseCase::new(Arc::new(mock), None);
         let result = uc.execute("").await;
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), NavigationError::ConfigLoad(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            NavigationError::ConfigLoad(_)
+        ));
     }
 
     #[tokio::test]

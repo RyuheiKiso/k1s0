@@ -35,6 +35,9 @@ observability:
 #     - "localhost:9092"
 #   security_protocol: "PLAINTEXT"
 # auth:
-#   jwks_url: "http://auth:8080/jwks"
-#   issuer: "k1s0"
-#   audience: "k1s0-system"
+#   jwks_url: "http://localhost:8180/realms/k1s0/protocol/openid-connect/certs"
+#   issuer: "http://localhost:8180/realms/k1s0"
+#   audience: "k1s0-api"
+#
+# If you intentionally run without auth in local dev/test, set:
+#   ALLOW_INSECURE_NO_AUTH=true

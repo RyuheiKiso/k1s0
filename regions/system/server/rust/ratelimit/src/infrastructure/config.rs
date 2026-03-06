@@ -127,7 +127,6 @@ fn default_window_seconds() -> u32 {
     60
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -274,5 +273,3 @@ server:
         assert_eq!(cfg.ratelimit.default_window_seconds, 60);
     }
 }
-
-

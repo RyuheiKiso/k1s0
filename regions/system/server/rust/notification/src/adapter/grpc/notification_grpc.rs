@@ -339,9 +339,8 @@ impl NotificationGrpcService {
     }
 
     fn require<T>(opt: &Option<Arc<T>>, name: &str) -> Result<Arc<T>, GrpcError> {
-        opt.clone().ok_or_else(|| {
-            GrpcError::Internal(format!("{} usecase is not configured", name))
-        })
+        opt.clone()
+            .ok_or_else(|| GrpcError::Internal(format!("{} usecase is not configured", name)))
     }
 
     pub async fn send_notification(
@@ -349,7 +348,9 @@ impl NotificationGrpcService {
         req: SendNotificationRequest,
     ) -> Result<SendNotificationResponse, GrpcError> {
         if req.channel_id.trim().is_empty() {
-            return Err(GrpcError::InvalidArgument("channel_id is required".to_string()));
+            return Err(GrpcError::InvalidArgument(
+                "channel_id is required".to_string(),
+            ));
         }
 
         let body = req.body.unwrap_or_default();
@@ -381,9 +382,9 @@ impl NotificationGrpcService {
             Err(SendNotificationError::TemplateNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("template not found: {}", id)))
             }
-            Err(SendNotificationError::ChannelDisabled(id)) => {
-                Err(GrpcError::ChannelDisabled(format!("channel disabled: {}", id)))
-            }
+            Err(SendNotificationError::ChannelDisabled(id)) => Err(GrpcError::ChannelDisabled(
+                format!("channel disabled: {}", id),
+            )),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -458,7 +459,11 @@ impl NotificationGrpcService {
         req: ListNotificationsRequest,
     ) -> Result<ListNotificationsResponse, GrpcError> {
         let page = if req.page == 0 { 1 } else { req.page };
-        let page_size = if req.page_size == 0 { 20 } else { req.page_size };
+        let page_size = if req.page_size == 0 {
+            20
+        } else {
+            req.page_size
+        };
 
         let (logs, total) = self
             .log_repo
@@ -494,7 +499,11 @@ impl NotificationGrpcService {
     ) -> Result<ListChannelsResponse, GrpcError> {
         let uc = Self::require(&self.list_channels_uc, "list_channels")?;
         let page = if req.page == 0 { 1 } else { req.page };
-        let page_size = if req.page_size == 0 { 20 } else { req.page_size };
+        let page_size = if req.page_size == 0 {
+            20
+        } else {
+            req.page_size
+        };
         let (channels, total) = uc
             .execute_paginated(page, page_size, req.channel_type, req.enabled_only)
             .await
@@ -556,13 +565,13 @@ impl NotificationGrpcService {
         req: UpdateChannelRequest,
     ) -> Result<UpdateChannelResponse, GrpcError> {
         let uc = Self::require(&self.update_channel_uc, "update_channel")?;
-        let config = match req.config_json {
-            Some(raw) => Some(
-                serde_json::from_str::<serde_json::Value>(&raw)
-                    .map_err(|e| GrpcError::InvalidArgument(format!("invalid config_json: {}", e)))?,
-            ),
-            None => None,
-        };
+        let config =
+            match req.config_json {
+                Some(raw) => Some(serde_json::from_str::<serde_json::Value>(&raw).map_err(
+                    |e| GrpcError::InvalidArgument(format!("invalid config_json: {}", e)),
+                )?),
+                None => None,
+            };
         let input = UpdateChannelInput {
             id: req.id,
             name: req.name,
@@ -607,7 +616,11 @@ impl NotificationGrpcService {
     ) -> Result<ListTemplatesResponse, GrpcError> {
         let uc = Self::require(&self.list_templates_uc, "list_templates")?;
         let page = if req.page == 0 { 1 } else { req.page };
-        let page_size = if req.page_size == 0 { 20 } else { req.page_size };
+        let page_size = if req.page_size == 0 {
+            20
+        } else {
+            req.page_size
+        };
         let (templates, total) = uc
             .execute_paginated(page, page_size, req.channel_type)
             .await
@@ -703,7 +716,9 @@ impl NotificationGrpcService {
     }
 }
 
-fn channel_to_pb(channel: &crate::domain::entity::notification_channel::NotificationChannel) -> PbChannel {
+fn channel_to_pb(
+    channel: &crate::domain::entity::notification_channel::NotificationChannel,
+) -> PbChannel {
     PbChannel {
         id: channel.id.to_string(),
         name: channel.name.clone(),
@@ -715,7 +730,9 @@ fn channel_to_pb(channel: &crate::domain::entity::notification_channel::Notifica
     }
 }
 
-fn template_to_pb(template: &crate::domain::entity::notification_template::NotificationTemplate) -> PbTemplate {
+fn template_to_pb(
+    template: &crate::domain::entity::notification_template::NotificationTemplate,
+) -> PbTemplate {
     PbTemplate {
         id: template.id.to_string(),
         name: template.name.clone(),
@@ -727,7 +744,10 @@ fn template_to_pb(template: &crate::domain::entity::notification_template::Notif
     }
 }
 
-fn log_to_pb(log: crate::domain::entity::notification_log::NotificationLog, channel_type: String) -> PbNotificationLog {
+fn log_to_pb(
+    log: crate::domain::entity::notification_log::NotificationLog,
+    channel_type: String,
+) -> PbNotificationLog {
     PbNotificationLog {
         id: log.id,
         channel_id: log.channel_id,
@@ -926,7 +946,9 @@ mod tests {
         let log_mock_for_uc = MockNotificationLogRepository::new();
         let mut log_mock_for_repo = MockNotificationLogRepository::new();
 
-        log_mock_for_repo.expect_find_by_id().returning(|_| Ok(None));
+        log_mock_for_repo
+            .expect_find_by_id()
+            .returning(|_| Ok(None));
 
         let channel_mock_for_repo = MockNotificationChannelRepository::new();
 

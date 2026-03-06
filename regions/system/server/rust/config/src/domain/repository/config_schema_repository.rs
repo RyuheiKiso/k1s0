@@ -7,7 +7,10 @@ use crate::domain::entity::config_schema::ConfigSchema;
 #[async_trait]
 pub trait ConfigSchemaRepository: Send + Sync {
     /// service_name で設定スキーマを取得する。
-    async fn find_by_service_name(&self, service_name: &str) -> anyhow::Result<Option<ConfigSchema>>;
+    async fn find_by_service_name(
+        &self,
+        service_name: &str,
+    ) -> anyhow::Result<Option<ConfigSchema>>;
 
     /// namespace プレフィックスに一致するスキーマを取得する。
     /// 指定された namespace がスキーマの namespace_prefix で始まるものを返す。
@@ -51,8 +54,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_find_by_service_name_not_found() {
         let mut mock = MockConfigSchemaRepository::new();
-        mock.expect_find_by_service_name()
-            .returning(|_| Ok(None));
+        mock.expect_find_by_service_name().returning(|_| Ok(None));
 
         let result = mock.find_by_service_name("nonexistent").await.unwrap();
         assert!(result.is_none());

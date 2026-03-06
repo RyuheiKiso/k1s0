@@ -23,8 +23,12 @@ mod tests {
 
     #[test]
     fn test_error_messages() {
-        assert!(KafkaError::ConnectionFailed("test".to_string()).to_string().contains("test"));
-        assert!(KafkaError::TopicNotFound("my-topic".to_string()).to_string().contains("my-topic"));
+        assert!(KafkaError::ConnectionFailed("test".to_string())
+            .to_string()
+            .contains("test"));
+        assert!(KafkaError::TopicNotFound("my-topic".to_string())
+            .to_string()
+            .contains("my-topic"));
     }
 
     #[test]

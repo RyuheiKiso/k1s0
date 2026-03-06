@@ -100,11 +100,7 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         .await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration(
-                "find_by_prefix",
-                "api_keys",
-                start.elapsed().as_secs_f64(),
-            );
+            m.record_db_query_duration("find_by_prefix", "api_keys", start.elapsed().as_secs_f64());
         }
         Ok(row.map(Into::into))
     }
@@ -126,11 +122,7 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         .await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration(
-                "list_by_tenant",
-                "api_keys",
-                start.elapsed().as_secs_f64(),
-            );
+            m.record_db_query_duration("list_by_tenant", "api_keys", start.elapsed().as_secs_f64());
         }
         Ok(rows.into_iter().map(Into::into).collect())
     }

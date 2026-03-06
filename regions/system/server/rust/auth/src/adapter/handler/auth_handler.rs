@@ -1,4 +1,4 @@
-﻿use axum::{
+use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -709,4 +709,3 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::OK);
     }
 }
-

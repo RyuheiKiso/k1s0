@@ -205,9 +205,7 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock
-            .expect_find_by_name()
-            .returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_| Ok(None));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 

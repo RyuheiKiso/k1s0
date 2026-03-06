@@ -1,4 +1,4 @@
-﻿pub mod dlq_handler;
+pub mod dlq_handler;
 pub mod error;
 
 use std::sync::Arc;
@@ -78,7 +78,9 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/dlq/messages/:id/retry",
                 post(dlq_handler::retry_message),
             )
-            .route_layer(axum::middleware::from_fn(require_permission("dlq", "write")));
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "dlq", "write",
+            )));
 
         // DELETE / retry-all -> dlq/admin
         let admin_routes = Router::new()
@@ -87,7 +89,9 @@ pub fn router(state: AppState) -> Router {
                 axum::routing::delete(dlq_handler::delete_message),
             )
             .route("/api/v1/dlq/:topic/retry-all", post(dlq_handler::retry_all))
-            .route_layer(axum::middleware::from_fn(require_permission("dlq", "admin")));
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "dlq", "admin",
+            )));
 
         Router::new()
             .merge(read_routes)

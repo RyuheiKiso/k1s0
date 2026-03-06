@@ -28,7 +28,10 @@ impl EvaluateFlagUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, input: &EvaluateFlagInput) -> Result<EvaluationResult, EvaluateFlagError> {
+    pub async fn execute(
+        &self,
+        input: &EvaluateFlagInput,
+    ) -> Result<EvaluationResult, EvaluateFlagError> {
         let flag = self.repo.find_by_key(&input.flag_key).await.map_err(|e| {
             let msg = e.to_string();
             if msg.contains("not found") {

@@ -10,8 +10,8 @@ use crate::proto::k1s0::system::navigation::v1::{
     GetNavigationRequest as ProtoGetNavigationRequest,
     GetNavigationResponse as ProtoGetNavigationResponse, Guard as ProtoGuard,
     GuardType as ProtoGuardType, Param as ProtoParam, ParamType as ProtoParamType,
-    Route as ProtoRoute,
-    TransitionConfig as ProtoTransitionConfig, TransitionType as ProtoTransitionType,
+    Route as ProtoRoute, TransitionConfig as ProtoTransitionConfig,
+    TransitionType as ProtoTransitionType,
 };
 
 use super::navigation_grpc::{GrpcError, NavigationGrpcService};

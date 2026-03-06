@@ -253,7 +253,10 @@ fn parse_pool_duration(value: &str) -> Option<std::time::Duration> {
             .ok()
             .map(|hours| std::time::Duration::from_secs(hours * 3600));
     }
-    trimmed.parse::<u64>().ok().map(std::time::Duration::from_secs)
+    trimmed
+        .parse::<u64>()
+        .ok()
+        .map(std::time::Duration::from_secs)
 }
 
 // --- InMemory Repository ---
@@ -286,7 +289,12 @@ impl TenantRepository for InMemoryTenantRepository {
         let tenants = self.tenants.read().await;
         let total = tenants.len() as i64;
         let offset = ((page - 1) * page_size) as usize;
-        let result: Vec<_> = tenants.iter().skip(offset).take(page_size as usize).cloned().collect();
+        let result: Vec<_> = tenants
+            .iter()
+            .skip(offset)
+            .take(page_size as usize)
+            .cloned()
+            .collect();
         Ok((result, total))
     }
 
@@ -318,13 +326,16 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
-
 
     info!(
         app_name = %cfg.app.name,
@@ -353,9 +364,11 @@ async fn main() -> anyhow::Result<()> {
             db_pool_for_health = Some(pool.clone());
             info!("connected to PostgreSQL");
             (
-                Arc::new(adapter::repository::tenant_postgres::TenantPostgresRepository::new(
-                    pool.clone(),
-                )),
+                Arc::new(
+                    adapter::repository::tenant_postgres::TenantPostgresRepository::new(
+                        pool.clone(),
+                    ),
+                ),
                 Arc::new(adapter::repository::member_postgres::MemberPostgresRepository::new(pool)),
             )
         } else if let Ok(database_url) = std::env::var("DATABASE_URL") {
@@ -371,9 +384,11 @@ async fn main() -> anyhow::Result<()> {
             db_pool_for_health = Some(pool.clone());
             info!("connected to PostgreSQL");
             (
-                Arc::new(adapter::repository::tenant_postgres::TenantPostgresRepository::new(
-                    pool.clone(),
-                )),
+                Arc::new(
+                    adapter::repository::tenant_postgres::TenantPostgresRepository::new(
+                        pool.clone(),
+                    ),
+                ),
                 Arc::new(adapter::repository::member_postgres::MemberPostgresRepository::new(pool)),
             )
         } else {
@@ -384,19 +399,15 @@ async fn main() -> anyhow::Result<()> {
             )
         };
 
-    let kafka_brokers_for_health = cfg
-        .kafka
-        .as_ref()
-        .map(|k| k.brokers.clone())
-        .or_else(|| {
-            std::env::var("KAFKA_BROKERS").ok().map(|brokers| {
-                brokers
-                    .split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect::<Vec<_>>()
-            })
-        });
+    let kafka_brokers_for_health = cfg.kafka.as_ref().map(|k| k.brokers.clone()).or_else(|| {
+        std::env::var("KAFKA_BROKERS").ok().map(|brokers| {
+            brokers
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<_>>()
+        })
+    });
 
     // Kafka event publisher: Kafka if config or KAFKA_BROKERS env var is set, otherwise Noop
     let event_publisher: Arc<dyn infrastructure::kafka_producer::TenantEventPublisher> =
@@ -503,9 +514,7 @@ async fn main() -> anyhow::Result<()> {
     let tenant_tonic = adapter::grpc::TenantServiceTonic::new(tenant_grpc_svc);
 
     // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
-        "k1s0-tenant-server",
-    ));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-tenant-server"));
 
     // Token verifier (JWKS verifier if auth configured)
     let auth_state = if let Some(ref auth_cfg) = cfg.auth {
@@ -545,8 +554,7 @@ async fn main() -> anyhow::Result<()> {
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);
     }
-    let app = handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);

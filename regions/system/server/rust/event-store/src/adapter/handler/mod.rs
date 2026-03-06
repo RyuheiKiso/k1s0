@@ -4,9 +4,9 @@ pub mod health;
 
 use std::sync::Arc;
 
+use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::extract::State;
 use axum::routing::{delete, get, post};
 use axum::Router;
 use utoipa::OpenApi;
@@ -68,7 +68,7 @@ impl AppState {
         event_handler::PaginationResponse,
         ErrorResponse,
         ErrorBody,
-    )),
+    ))
 )]
 struct ApiDoc;
 
@@ -84,14 +84,8 @@ pub fn router(state: AppState) -> Router {
     let api_routes = if let Some(ref auth_state) = state.auth_state {
         // GET -> events/read
         let read_routes = Router::new()
-            .route(
-                "/api/v1/events",
-                get(event_handler::list_events),
-            )
-            .route(
-                "/api/v1/events/:stream_id",
-                get(event_handler::read_events),
-            )
+            .route("/api/v1/events", get(event_handler::list_events))
+            .route("/api/v1/events/:stream_id", get(event_handler::read_events))
             .route(
                 "/api/v1/streams/:stream_id/events/:sequence",
                 get(event_handler::read_event_by_sequence),
@@ -107,10 +101,7 @@ pub fn router(state: AppState) -> Router {
 
         // POST events/snapshot -> events/write
         let write_routes = Router::new()
-            .route(
-                "/api/v1/events",
-                post(event_handler::append_events),
-            )
+            .route("/api/v1/events", post(event_handler::append_events))
             .route(
                 "/api/v1/streams/:stream_id/snapshot",
                 post(event_handler::create_snapshot),
@@ -145,10 +136,7 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/events",
                 post(event_handler::append_events).get(event_handler::list_events),
             )
-            .route(
-                "/api/v1/events/:stream_id",
-                get(event_handler::read_events),
-            )
+            .route("/api/v1/events/:stream_id", get(event_handler::read_events))
             .route(
                 "/api/v1/streams/:stream_id/events/:sequence",
                 get(event_handler::read_event_by_sequence),

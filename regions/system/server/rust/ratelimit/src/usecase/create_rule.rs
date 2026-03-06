@@ -66,13 +66,8 @@ impl CreateRuleUseCase {
             )));
         }
 
-        let algorithm = Algorithm::from_str(
-            input
-                .algorithm
-                .as_deref()
-                .unwrap_or("token_bucket"),
-        )
-        .map_err(CreateRuleError::InvalidAlgorithm)?;
+        let algorithm = Algorithm::from_str(input.algorithm.as_deref().unwrap_or("token_bucket"))
+            .map_err(CreateRuleError::InvalidAlgorithm)?;
 
         let mut rule = RateLimitRule::new(
             input.scope.clone(),
@@ -102,8 +97,7 @@ mod tests {
     async fn test_create_rule_success() {
         let mut repo = MockRateLimitRepository::new();
         repo.expect_find_by_scope().returning(|_| Ok(vec![]));
-        repo.expect_create()
-            .returning(|rule| Ok(rule.clone()));
+        repo.expect_create().returning(|rule| Ok(rule.clone()));
 
         let uc = CreateRuleUseCase::new(Arc::new(repo));
         let result = uc
@@ -153,7 +147,10 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), CreateRuleError::AlreadyExists(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            CreateRuleError::AlreadyExists(_)
+        ));
     }
 
     #[tokio::test]
@@ -172,7 +169,10 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), CreateRuleError::Validation(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            CreateRuleError::Validation(_)
+        ));
     }
 
     #[tokio::test]
@@ -191,7 +191,10 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), CreateRuleError::Validation(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            CreateRuleError::Validation(_)
+        ));
     }
 
     #[tokio::test]
@@ -210,6 +213,9 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), CreateRuleError::Validation(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            CreateRuleError::Validation(_)
+        ));
     }
 }

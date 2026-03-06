@@ -7,4 +7,3 @@ impl TenantDomainService {
         matches!(status, TenantStatus::Suspended)
     }
 }
-

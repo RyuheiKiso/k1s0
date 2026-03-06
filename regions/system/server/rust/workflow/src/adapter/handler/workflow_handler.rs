@@ -1,4 +1,4 @@
-﻿use std::sync::Arc;
+use std::sync::Arc;
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -7,21 +7,21 @@ use axum::Json;
 use k1s0_server_common::ErrorResponse;
 use serde::{Deserialize, Serialize};
 
-use crate::usecase::create_workflow::{CreateWorkflowError, CreateWorkflowInput};
-use crate::usecase::update_workflow::{UpdateWorkflowError, UpdateWorkflowInput};
-use crate::usecase::delete_workflow::{DeleteWorkflowError, DeleteWorkflowInput};
-use crate::usecase::get_workflow::{GetWorkflowError, GetWorkflowInput};
-use crate::usecase::list_workflows::{ListWorkflowsError, ListWorkflowsInput};
-use crate::usecase::start_instance::{StartInstanceError, StartInstanceInput};
-use crate::usecase::get_instance::{GetInstanceError, GetInstanceInput};
-use crate::usecase::list_instances::{ListInstancesError, ListInstancesInput};
-use crate::usecase::cancel_instance::{CancelInstanceError, CancelInstanceInput};
-use crate::usecase::list_tasks::{ListTasksError, ListTasksInput};
-use crate::usecase::check_overdue_tasks::{CheckOverdueTasksError, CheckOverdueTasksUseCase};
-use crate::usecase::approve_task::{ApproveTaskError, ApproveTaskInput};
-use crate::usecase::reject_task::{RejectTaskError, RejectTaskInput};
-use crate::usecase::reassign_task::{ReassignTaskError, ReassignTaskInput};
 use crate::adapter::middleware::auth::WorkflowAuthState;
+use crate::usecase::approve_task::{ApproveTaskError, ApproveTaskInput};
+use crate::usecase::cancel_instance::{CancelInstanceError, CancelInstanceInput};
+use crate::usecase::check_overdue_tasks::{CheckOverdueTasksError, CheckOverdueTasksUseCase};
+use crate::usecase::create_workflow::{CreateWorkflowError, CreateWorkflowInput};
+use crate::usecase::delete_workflow::{DeleteWorkflowError, DeleteWorkflowInput};
+use crate::usecase::get_instance::{GetInstanceError, GetInstanceInput};
+use crate::usecase::get_workflow::{GetWorkflowError, GetWorkflowInput};
+use crate::usecase::list_instances::{ListInstancesError, ListInstancesInput};
+use crate::usecase::list_tasks::{ListTasksError, ListTasksInput};
+use crate::usecase::list_workflows::{ListWorkflowsError, ListWorkflowsInput};
+use crate::usecase::reassign_task::{ReassignTaskError, ReassignTaskInput};
+use crate::usecase::reject_task::{RejectTaskError, RejectTaskInput};
+use crate::usecase::start_instance::{StartInstanceError, StartInstanceInput};
+use crate::usecase::update_workflow::{UpdateWorkflowError, UpdateWorkflowInput};
 use crate::usecase::{
     ApproveTaskUseCase, CancelInstanceUseCase, CreateWorkflowUseCase, DeleteWorkflowUseCase,
     GetInstanceUseCase, GetWorkflowUseCase, ListInstancesUseCase, ListTasksUseCase,
@@ -107,9 +107,7 @@ pub struct StepResponse {
     pub on_reject: Option<String>,
 }
 
-fn to_step_response(
-    step: &crate::domain::entity::workflow_step::WorkflowStep,
-) -> StepResponse {
+fn to_step_response(step: &crate::domain::entity::workflow_step::WorkflowStep) -> StepResponse {
     StepResponse {
         step_id: step.step_id.clone(),
         name: step.name.clone(),
@@ -271,15 +269,17 @@ pub async fn create_workflow(
     let steps: Vec<WorkflowStep> = req
         .steps
         .into_iter()
-        .map(|s| WorkflowStep::new(
-            s.step_id,
-            s.name,
-            s.step_type,
-            s.assignee_role,
-            s.timeout_hours,
-            s.on_approve,
-            s.on_reject,
-        ))
+        .map(|s| {
+            WorkflowStep::new(
+                s.step_id,
+                s.name,
+                s.step_type,
+                s.assignee_role,
+                s.timeout_hours,
+                s.on_approve,
+                s.on_reject,
+            )
+        })
         .collect();
 
     let input = CreateWorkflowInput {
@@ -1030,4 +1030,3 @@ pub async fn reassign_task(
             .into_response(),
     }
 }
-

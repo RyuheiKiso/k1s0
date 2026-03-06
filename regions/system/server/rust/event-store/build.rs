@@ -1,6 +1,5 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let event_store_proto =
-        "../../../../../api/proto/k1s0/system/eventstore/v1/event_store.proto";
+    let event_store_proto = "../../../../../api/proto/k1s0/system/eventstore/v1/event_store.proto";
     let proto_include = "../../../../../api/proto";
 
     if !std::path::Path::new(event_store_proto).exists() {

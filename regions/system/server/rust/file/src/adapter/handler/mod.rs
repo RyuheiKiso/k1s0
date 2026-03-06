@@ -12,8 +12,8 @@ use axum::Router;
 use crate::adapter::middleware::auth::{auth_middleware, FileAuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
-    CompleteUploadUseCase, DeleteFileUseCase, GenerateDownloadUrlUseCase,
-    GenerateUploadUrlUseCase, GetFileMetadataUseCase, ListFilesUseCase, UpdateFileTagsUseCase,
+    CompleteUploadUseCase, DeleteFileUseCase, GenerateDownloadUrlUseCase, GenerateUploadUrlUseCase,
+    GetFileMetadataUseCase, ListFilesUseCase, UpdateFileTagsUseCase,
 };
 
 /// Shared application state for REST handlers.
@@ -118,9 +118,7 @@ pub fn router(state: AppState) -> Router {
             )
     };
 
-    public_routes
-        .merge(api_routes)
-        .with_state(state)
+    public_routes.merge(api_routes).with_state(state)
 }
 
 async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {

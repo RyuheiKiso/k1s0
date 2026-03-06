@@ -26,7 +26,11 @@ async fn main() -> anyhow::Result<()> {
         version: "0.1.0".to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg.observability.trace.enabled.then(|| cfg.observability.trace.endpoint.clone()),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
         sample_rate: cfg.observability.trace.sample_rate,
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
@@ -70,9 +74,7 @@ async fn main() -> anyhow::Result<()> {
     let get_navigation_uc = Arc::new(usecase::GetNavigationUseCase::new(loader, verifier));
 
     // gRPC service
-    let grpc_svc = Arc::new(adapter::grpc::NavigationGrpcService::new(
-        get_navigation_uc,
-    ));
+    let grpc_svc = Arc::new(adapter::grpc::NavigationGrpcService::new(get_navigation_uc));
     let navigation_tonic = adapter::grpc::NavigationServiceTonic::new(grpc_svc);
 
     use proto::k1s0::system::navigation::v1::navigation_service_server::NavigationServiceServer;
@@ -81,8 +83,8 @@ async fn main() -> anyhow::Result<()> {
     let rest_state = adapter::handler::AppState {
         metrics: metrics.clone(),
     };
-    let app =
-        adapter::handler::router(rest_state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = adapter::handler::router(rest_state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();

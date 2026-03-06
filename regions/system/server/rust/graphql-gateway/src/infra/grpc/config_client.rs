@@ -47,11 +47,10 @@ impl ConfigGrpcClient {
         namespace: &str,
         key: &str,
     ) -> anyhow::Result<Option<ConfigEntry>> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::config::v1::GetConfigRequest {
-                namespace: namespace.to_owned(),
-                key: key.to_owned(),
-            });
+        let request = tonic::Request::new(proto::k1s0::system::config::v1::GetConfigRequest {
+            namespace: namespace.to_owned(),
+            key: key.to_owned(),
+        });
 
         match self.client.clone().get_config(request).await {
             Ok(resp) => {
@@ -76,13 +75,9 @@ impl ConfigGrpcClient {
 
     /// WatchConfig Server-Side Streaming を購読し、変更イベントを ConfigEntry として返す。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn watch_config(
-        &self,
-        namespaces: Vec<String>,
-    ) -> impl Stream<Item = ConfigEntry> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::config::v1::WatchConfigRequest { namespaces },
-        );
+    pub async fn watch_config(&self, namespaces: Vec<String>) -> impl Stream<Item = ConfigEntry> {
+        let request =
+            tonic::Request::new(proto::k1s0::system::config::v1::WatchConfigRequest { namespaces });
 
         let stream = self
             .client

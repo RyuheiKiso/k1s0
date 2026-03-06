@@ -158,7 +158,10 @@ mod tests {
         assert_eq!(deserialized.client_id, original.client_id);
         assert_eq!(deserialized.client_secret, original.client_secret);
         assert_eq!(deserialized.jwks_uri, original.jwks_uri);
-        assert_eq!(deserialized.refresh_before_secs, original.refresh_before_secs);
+        assert_eq!(
+            deserialized.refresh_before_secs,
+            original.refresh_before_secs
+        );
         assert_eq!(deserialized.timeout_secs, original.timeout_secs);
     }
 }

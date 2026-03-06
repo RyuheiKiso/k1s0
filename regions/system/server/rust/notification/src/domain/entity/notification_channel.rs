@@ -13,7 +13,12 @@ pub struct NotificationChannel {
 }
 
 impl NotificationChannel {
-    pub fn new(name: String, channel_type: String, config: serde_json::Value, enabled: bool) -> Self {
+    pub fn new(
+        name: String,
+        channel_type: String,
+        config: serde_json::Value,
+        enabled: bool,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: format!("ch_{}", uuid::Uuid::new_v4().simple()),

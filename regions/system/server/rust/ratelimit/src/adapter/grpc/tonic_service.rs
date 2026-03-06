@@ -12,9 +12,9 @@ use crate::proto::k1s0::system::ratelimit::v1::{
     GetRuleRequest as ProtoGetRuleRequest, GetRuleResponse as ProtoGetRuleResponse,
     GetUsageRequest as ProtoGetUsageRequest, GetUsageResponse as ProtoGetUsageResponse,
     ListRulesRequest as ProtoListRulesRequest, ListRulesResponse as ProtoListRulesResponse,
-    RateLimitRule as ProtoRateLimitRule,
-    ResetLimitRequest as ProtoResetLimitRequest, ResetLimitResponse as ProtoResetLimitResponse,
-    UpdateRuleRequest as ProtoUpdateRuleRequest, UpdateRuleResponse as ProtoUpdateRuleResponse,
+    RateLimitRule as ProtoRateLimitRule, ResetLimitRequest as ProtoResetLimitRequest,
+    ResetLimitResponse as ProtoResetLimitResponse, UpdateRuleRequest as ProtoUpdateRuleRequest,
+    UpdateRuleResponse as ProtoUpdateRuleResponse,
 };
 
 use super::ratelimit_grpc::{

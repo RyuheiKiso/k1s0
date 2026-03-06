@@ -68,10 +68,7 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
         Ok(row.map(Into::into))
     }
 
-    async fn find_by_channel_id(
-        &self,
-        channel_id: &str,
-    ) -> anyhow::Result<Vec<NotificationLog>> {
+    async fn find_by_channel_id(&self, channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
         let rows: Vec<NotificationLogRow> = sqlx::query_as(
             "SELECT id, channel_id, template_id, recipient, subject, body, status, retry_count, error_message, sent_at, created_at, updated_at \
              FROM notification.notification_logs WHERE channel_id = $1 ORDER BY created_at DESC",
@@ -141,7 +138,10 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
 
         let rows: Vec<NotificationLogRow> = data_q.fetch_all(self.pool.as_ref()).await?;
 
-        Ok((rows.into_iter().map(Into::into).collect(), total_count as u64))
+        Ok((
+            rows.into_iter().map(Into::into).collect(),
+            total_count as u64,
+        ))
     }
 
     async fn create(&self, log: &NotificationLog) -> anyhow::Result<()> {

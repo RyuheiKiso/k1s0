@@ -17,11 +17,7 @@ pub struct KafkaEventConsumer {
 
 impl KafkaEventConsumer {
     /// 新しい KafkaEventConsumer を生成する。
-    pub fn new(
-        brokers: &str,
-        group_id: &str,
-        topics: &[&str],
-    ) -> Result<Self, MessagingError> {
+    pub fn new(brokers: &str, group_id: &str, topics: &[&str]) -> Result<Self, MessagingError> {
         let consumer: StreamConsumer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
             .set("group.id", group_id)

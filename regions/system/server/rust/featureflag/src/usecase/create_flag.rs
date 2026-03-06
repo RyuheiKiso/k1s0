@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::domain::entity::flag_audit_log::FlagAuditLog;
 use crate::domain::entity::feature_flag::{FeatureFlag, FlagVariant};
+use crate::domain::entity::flag_audit_log::FlagAuditLog;
 use crate::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
 use crate::domain::service::FeatureFlagDomainService;
 use crate::infrastructure::kafka_producer::FlagEventPublisher;
@@ -90,13 +90,7 @@ impl CreateFlagUseCase {
             .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
 
         self.event_publisher
-            .publish_flag_changed(
-                &flag.flag_key,
-                flag.enabled,
-                None,
-                None,
-                after,
-            )
+            .publish_flag_changed(&flag.flag_key, flag.enabled, None, None, after)
             .await
             .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
 

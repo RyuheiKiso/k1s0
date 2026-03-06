@@ -37,10 +37,7 @@ impl ListTasksUseCase {
         Self { repo }
     }
 
-    pub async fn execute(
-        &self,
-        input: &ListTasksInput,
-    ) -> Result<ListTasksOutput, ListTasksError> {
+    pub async fn execute(&self, input: &ListTasksInput) -> Result<ListTasksOutput, ListTasksError> {
         let (tasks, total_count) = self
             .repo
             .find_all(
@@ -129,9 +126,6 @@ mod tests {
             page_size: 20,
         };
         let result = uc.execute(&input).await;
-        assert!(matches!(
-            result.unwrap_err(),
-            ListTasksError::Internal(_)
-        ));
+        assert!(matches!(result.unwrap_err(), ListTasksError::Internal(_)));
     }
 }

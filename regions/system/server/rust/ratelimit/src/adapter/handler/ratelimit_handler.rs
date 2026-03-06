@@ -78,8 +78,8 @@ pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
 /// POST /api/v1/ratelimit/check のリクエストボディ。
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CheckRateLimitRequest {
-    pub scope: String,       // "service" | "user" | "endpoint"
-    pub identifier: String,  // "user-001" など
+    pub scope: String,          // "service" | "user" | "endpoint"
+    pub identifier: String,     // "user-001" など
     pub window: Option<String>, // "60s" など（省略時は60秒）
 }
 
@@ -124,7 +124,11 @@ pub async fn check_rate_limit(
 ) -> impl IntoResponse {
     let window_secs = parse_window_secs(&req.window);
 
-    match state.check_uc.execute(&req.scope, &req.identifier, window_secs).await {
+    match state
+        .check_uc
+        .execute(&req.scope, &req.identifier, window_secs)
+        .await
+    {
         Ok(decision) => {
             let limit = decision.limit;
 
@@ -310,13 +314,16 @@ pub async fn create_rule(
         Err(e) => {
             use crate::usecase::create_rule::CreateRuleError;
             let (status, code) = match &e {
-                CreateRuleError::AlreadyExists(_) => (StatusCode::CONFLICT, "SYS_RATELIMIT_RULE_EXISTS"),
+                CreateRuleError::AlreadyExists(_) => {
+                    (StatusCode::CONFLICT, "SYS_RATELIMIT_RULE_EXISTS")
+                }
                 CreateRuleError::InvalidAlgorithm(_) | CreateRuleError::Validation(_) => {
                     (StatusCode::BAD_REQUEST, "SYS_RATELIMIT_VALIDATION_ERROR")
                 }
-                CreateRuleError::Internal(_) => {
-                    (StatusCode::INTERNAL_SERVER_ERROR, "SYS_RATELIMIT_INTERNAL_ERROR")
-                }
+                CreateRuleError::Internal(_) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "SYS_RATELIMIT_INTERNAL_ERROR",
+                ),
             };
             let err = ErrorResponse::new(code, &e.to_string());
             (status, Json(err)).into_response()
@@ -333,10 +340,7 @@ pub async fn create_rule(
         (status = 404, description = "Rule not found"),
     )
 )]
-pub async fn get_rule(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
+pub async fn get_rule(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     match state.get_uc.execute(&id).await {
         Ok(rule) => (
             StatusCode::OK,
@@ -522,13 +526,16 @@ pub async fn update_rule(
             .into_response(),
         Err(e) => {
             let (status, code) = match &e {
-                UpdateRuleError::NotFound(_) => (StatusCode::NOT_FOUND, "SYS_RATELIMIT_RULE_NOT_FOUND"),
+                UpdateRuleError::NotFound(_) => {
+                    (StatusCode::NOT_FOUND, "SYS_RATELIMIT_RULE_NOT_FOUND")
+                }
                 UpdateRuleError::InvalidAlgorithm(_) | UpdateRuleError::Validation(_) => {
                     (StatusCode::BAD_REQUEST, "SYS_RATELIMIT_VALIDATION_ERROR")
                 }
-                UpdateRuleError::Internal(_) => {
-                    (StatusCode::INTERNAL_SERVER_ERROR, "SYS_RATELIMIT_INTERNAL_ERROR")
-                }
+                UpdateRuleError::Internal(_) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "SYS_RATELIMIT_INTERNAL_ERROR",
+                ),
             };
             let err = ErrorResponse::new(code, &e.to_string());
             (status, Json(err)).into_response()
@@ -638,8 +645,12 @@ mod tests {
         Utc.timestamp_opt(seconds, 0).single().unwrap()
     }
 
-    fn make_reset_uc(state_store: MockRateLimitStateStore) -> Arc<crate::usecase::ResetRateLimitUseCase> {
-        Arc::new(crate::usecase::ResetRateLimitUseCase::new(Arc::new(state_store)))
+    fn make_reset_uc(
+        state_store: MockRateLimitStateStore,
+    ) -> Arc<crate::usecase::ResetRateLimitUseCase> {
+        Arc::new(crate::usecase::ResetRateLimitUseCase::new(Arc::new(
+            state_store,
+        )))
     }
 
     fn make_app_state(
@@ -670,12 +681,25 @@ mod tests {
         )));
         let reset_uc = make_reset_uc(MockRateLimitStateStore::new());
 
-        AppState::new(check_uc, create_uc, get_uc, list_uc, update_uc, delete_uc, get_usage_uc, reset_uc, None)
+        AppState::new(
+            check_uc,
+            create_uc,
+            get_uc,
+            list_uc,
+            update_uc,
+            delete_uc,
+            get_usage_uc,
+            reset_uc,
+            None,
+        )
     }
 
     #[tokio::test]
     async fn test_healthz() {
-        let state = make_app_state(MockRateLimitRepository::new(), MockRateLimitStateStore::new());
+        let state = make_app_state(
+            MockRateLimitRepository::new(),
+            MockRateLimitStateStore::new(),
+        );
         let app = router(state);
 
         let req = Request::builder()
@@ -695,7 +719,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_readyz_no_db() {
-        let state = make_app_state(MockRateLimitRepository::new(), MockRateLimitStateStore::new());
+        let state = make_app_state(
+            MockRateLimitRepository::new(),
+            MockRateLimitStateStore::new(),
+        );
         let app = router(state);
 
         let req = Request::builder()
@@ -715,7 +742,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_metrics_endpoint() {
-        let state = make_app_state(MockRateLimitRepository::new(), MockRateLimitStateStore::new());
+        let state = make_app_state(
+            MockRateLimitRepository::new(),
+            MockRateLimitStateStore::new(),
+        );
         let app = router(state);
 
         let req = Request::builder()
@@ -762,10 +792,18 @@ mod tests {
             check_uc,
             create_uc,
             get_uc,
-            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
             make_reset_uc(MockRateLimitStateStore::new()),
             None,
         );
@@ -836,10 +874,18 @@ mod tests {
             check_uc,
             create_uc,
             get_uc,
-            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
             make_reset_uc(MockRateLimitStateStore::new()),
             None,
         );
@@ -871,8 +917,7 @@ mod tests {
     async fn test_create_rule_success() {
         let mut repo = MockRateLimitRepository::new();
         repo.expect_find_by_scope().returning(|_| Ok(vec![]));
-        repo.expect_create()
-            .returning(|rule| Ok(rule.clone()));
+        repo.expect_create().returning(|rule| Ok(rule.clone()));
 
         let check_uc = Arc::new(crate::usecase::CheckRateLimitUseCase::new(
             Arc::new(MockRateLimitRepository::new()),
@@ -887,10 +932,18 @@ mod tests {
             check_uc,
             create_uc,
             get_uc,
-            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
             make_reset_uc(MockRateLimitStateStore::new()),
             None,
         );
@@ -941,10 +994,18 @@ mod tests {
             check_uc,
             create_uc,
             get_uc,
-            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
             make_reset_uc(MockRateLimitStateStore::new()),
             None,
         );
@@ -962,9 +1023,7 @@ mod tests {
     #[tokio::test]
     async fn test_reset_rate_limit_success() {
         let mut state_store = MockRateLimitStateStore::new();
-        state_store
-            .expect_reset()
-            .returning(|_| Ok(()));
+        state_store.expect_reset().returning(|_| Ok(()));
 
         let check_uc = Arc::new(crate::usecase::CheckRateLimitUseCase::new(
             Arc::new(MockRateLimitRepository::new()),
@@ -974,12 +1033,24 @@ mod tests {
 
         let state = AppState::new(
             check_uc,
-            Arc::new(crate::usecase::CreateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::GetRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::CreateRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::GetRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
+            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(
+                MockRateLimitRepository::new(),
+            ))),
             reset_uc,
             None,
         );

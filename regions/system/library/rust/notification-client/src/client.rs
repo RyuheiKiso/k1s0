@@ -33,25 +33,20 @@ mod tests {
         };
         let resp_clone = expected_response.clone();
 
-        mock.expect_send()
-            .times(1)
-            .returning(move |_req| {
-                Box::pin({
-                    let resp = NotificationResponse {
-                        id: resp_clone.id,
-                        status: resp_clone.status.clone(),
-                        message_id: resp_clone.message_id.clone(),
-                    };
-                    async move { Ok(resp) }
-                })
-            });
+        mock.expect_send().times(1).returning(move |_req| {
+            Box::pin({
+                let resp = NotificationResponse {
+                    id: resp_clone.id,
+                    status: resp_clone.status.clone(),
+                    message_id: resp_clone.message_id.clone(),
+                };
+                async move { Ok(resp) }
+            })
+        });
 
-        let request = NotificationRequest::new(
-            NotificationChannel::Email,
-            "user@example.com",
-            "Hello!",
-        )
-        .with_subject("Test Subject");
+        let request =
+            NotificationRequest::new(NotificationChannel::Email, "user@example.com", "Hello!")
+                .with_subject("Test Subject");
 
         let result = mock.send(request).await.unwrap();
         assert_eq!(result.id, expected_id);
@@ -70,24 +65,19 @@ mod tests {
         };
         let resp_clone = expected_response.clone();
 
-        mock.expect_send()
-            .times(1)
-            .returning(move |_req| {
-                Box::pin({
-                    let resp = NotificationResponse {
-                        id: resp_clone.id,
-                        status: resp_clone.status.clone(),
-                        message_id: resp_clone.message_id.clone(),
-                    };
-                    async move { Ok(resp) }
-                })
-            });
+        mock.expect_send().times(1).returning(move |_req| {
+            Box::pin({
+                let resp = NotificationResponse {
+                    id: resp_clone.id,
+                    status: resp_clone.status.clone(),
+                    message_id: resp_clone.message_id.clone(),
+                };
+                async move { Ok(resp) }
+            })
+        });
 
-        let request = NotificationRequest::new(
-            NotificationChannel::Slack,
-            "#general",
-            "Slack notification",
-        );
+        let request =
+            NotificationRequest::new(NotificationChannel::Slack, "#general", "Slack notification");
 
         let result = mock.send(request).await.unwrap();
         assert_eq!(result.id, expected_id);

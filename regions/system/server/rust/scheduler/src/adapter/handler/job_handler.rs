@@ -65,17 +65,11 @@ pub async fn create_job(
     Json(req): Json<CreateJobRequest>,
 ) -> impl IntoResponse {
     if req.target_type.trim().is_empty() {
-        let err = ErrorResponse::new(
-            "SYS_SCHED_VALIDATION_ERROR",
-            "target_type is required",
-        );
+        let err = ErrorResponse::new("SYS_SCHED_VALIDATION_ERROR", "target_type is required");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
     if req.payload.is_null() {
-        let err = ErrorResponse::new(
-            "SYS_SCHED_VALIDATION_ERROR",
-            "payload is required",
-        );
+        let err = ErrorResponse::new("SYS_SCHED_VALIDATION_ERROR", "payload is required");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
 
@@ -112,7 +106,10 @@ pub async fn create_job(
 }
 
 /// DELETE /api/v1/jobs/:id
-pub async fn delete_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn delete_job(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
     use crate::usecase::delete_job::DeleteJobError;
 
     match state.delete_job_uc.execute(&id).await {
@@ -160,7 +157,10 @@ pub async fn pause_job(State(state): State<AppState>, Path(id): Path<String>) ->
 }
 
 /// PUT /api/v1/jobs/:id/resume
-pub async fn resume_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn resume_job(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
     match state.resume_job_uc.execute(&id).await {
         Ok(job) => (StatusCode::OK, Json(serde_json::to_value(job).unwrap())).into_response(),
         Err(e) => {
@@ -185,17 +185,11 @@ pub async fn update_job(
     use crate::usecase::update_job::{UpdateJobError, UpdateJobInput};
 
     if req.target_type.trim().is_empty() {
-        let err = ErrorResponse::new(
-            "SYS_SCHED_VALIDATION_ERROR",
-            "target_type is required",
-        );
+        let err = ErrorResponse::new("SYS_SCHED_VALIDATION_ERROR", "target_type is required");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
     if req.payload.is_null() {
-        let err = ErrorResponse::new(
-            "SYS_SCHED_VALIDATION_ERROR",
-            "payload is required",
-        );
+        let err = ErrorResponse::new("SYS_SCHED_VALIDATION_ERROR", "payload is required");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
 
@@ -231,7 +225,10 @@ pub async fn update_job(
 }
 
 /// POST /api/v1/jobs/:id/trigger
-pub async fn trigger_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn trigger_job(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
     use crate::usecase::trigger_job::TriggerJobError;
 
     match state.trigger_job_uc.execute(&id).await {

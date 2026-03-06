@@ -104,7 +104,6 @@ fn default_jwks_cache_ttl() -> u64 {
     300
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -156,7 +155,6 @@ impl Config {
         Ok(config)
     }
 }
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
@@ -274,5 +272,3 @@ mod tests {
         );
     }
 }
-
-

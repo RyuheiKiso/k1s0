@@ -17,10 +17,7 @@ impl TraceContext {
     }
 
     pub fn to_traceparent(&self) -> String {
-        format!(
-            "00-{}-{}-{:02x}",
-            self.trace_id, self.parent_id, self.flags
-        )
+        format!("00-{}-{}-{:02x}", self.trace_id, self.parent_id, self.flags)
     }
 
     pub fn from_traceparent(s: &str) -> Option<TraceContext> {
@@ -68,11 +65,7 @@ mod tests {
 
     #[test]
     fn test_to_traceparent() {
-        let ctx = TraceContext::new(
-            "0af7651916cd43dd8448eb211c80319c",
-            "b7ad6b7169203331",
-            1,
-        );
+        let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 1);
         assert_eq!(
             ctx.to_traceparent(),
             "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
@@ -90,11 +83,7 @@ mod tests {
 
     #[test]
     fn test_roundtrip() {
-        let original = TraceContext::new(
-            "abcdef1234567890abcdef1234567890",
-            "1234567890abcdef",
-            0,
-        );
+        let original = TraceContext::new("abcdef1234567890abcdef1234567890", "1234567890abcdef", 0);
         let s = original.to_traceparent();
         let parsed = TraceContext::from_traceparent(&s).unwrap();
         assert_eq!(original, parsed);
@@ -121,11 +110,7 @@ mod tests {
 
     #[test]
     fn test_inject_context() {
-        let ctx = TraceContext::new(
-            "0af7651916cd43dd8448eb211c80319c",
-            "b7ad6b7169203331",
-            1,
-        );
+        let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 1);
         let mut headers = HashMap::new();
         inject_context(&ctx, &mut headers);
         assert!(headers.contains_key("traceparent"));
@@ -154,11 +139,7 @@ mod tests {
 
     #[test]
     fn test_flags_zero() {
-        let ctx = TraceContext::new(
-            "0af7651916cd43dd8448eb211c80319c",
-            "b7ad6b7169203331",
-            0,
-        );
+        let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 0);
         assert!(ctx.to_traceparent().ends_with("-00"));
     }
 }

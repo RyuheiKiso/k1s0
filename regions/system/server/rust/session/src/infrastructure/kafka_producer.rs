@@ -112,7 +112,9 @@ impl SessionEventPublisher for KafkaSessionProducer {
         let payload = serde_json::to_vec(&event)?;
         let key = format!("session:{}", session.id);
 
-        let record = FutureRecord::to(&self.topic_created).key(&key).payload(&payload);
+        let record = FutureRecord::to(&self.topic_created)
+            .key(&key)
+            .payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
@@ -141,7 +143,9 @@ impl SessionEventPublisher for KafkaSessionProducer {
         let payload = serde_json::to_vec(&event)?;
         let key = format!("session:{}", session_id);
 
-        let record = FutureRecord::to(&self.topic_revoked).key(&key).payload(&payload);
+        let record = FutureRecord::to(&self.topic_revoked)
+            .key(&key)
+            .payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))

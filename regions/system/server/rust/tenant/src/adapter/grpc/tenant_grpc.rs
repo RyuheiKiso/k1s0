@@ -279,10 +279,7 @@ impl TenantGrpcService {
         }
     }
 
-    pub async fn get_tenant(
-        &self,
-        req: GetTenantRequest,
-    ) -> Result<GetTenantResponse, GrpcError> {
+    pub async fn get_tenant(&self, req: GetTenantRequest) -> Result<GetTenantResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
             .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
 
@@ -318,8 +315,7 @@ impl TenantGrpcService {
 
         match self.list_tenants_uc.execute(page, page_size).await {
             Ok((tenants, total_count)) => {
-                let pb_tenants: Vec<PbTenant> =
-                    tenants.iter().map(domain_tenant_to_pb).collect();
+                let pb_tenants: Vec<PbTenant> = tenants.iter().map(domain_tenant_to_pb).collect();
                 let has_next = (page as i64 * page_size as i64) < total_count;
                 Ok(ListTenantsResponse {
                     tenants: pb_tenants,
@@ -417,10 +413,7 @@ impl TenantGrpcService {
         }
     }
 
-    pub async fn add_member(
-        &self,
-        req: AddMemberRequest,
-    ) -> Result<AddMemberResponse, GrpcError> {
+    pub async fn add_member(&self, req: AddMemberRequest) -> Result<AddMemberResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
             .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
         let user_id = uuid::Uuid::parse_str(&req.user_id)
@@ -437,9 +430,9 @@ impl TenantGrpcService {
             Ok(member) => Ok(AddMemberResponse {
                 member: Some(domain_member_to_pb(&member)),
             }),
-            Err(crate::usecase::AddMemberError::AlreadyMember) => {
-                Err(GrpcError::AlreadyExists("member already exists".to_string()))
-            }
+            Err(crate::usecase::AddMemberError::AlreadyMember) => Err(GrpcError::AlreadyExists(
+                "member already exists".to_string(),
+            )),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -574,10 +567,7 @@ mod tests {
         let mut tenant_mock = MockTenantRepository::new();
         tenant_mock.expect_find_by_name().returning(|_| Ok(None));
         tenant_mock.expect_create().returning(|_| Ok(()));
-        tenant_mock
-            .expect_update()
-            .times(0..)
-            .returning(|_| Ok(()));
+        tenant_mock.expect_update().times(0..).returning(|_| Ok(()));
         tenant_mock.expect_find_by_id().returning(|id| {
             Ok(Some(Tenant {
                 id: *id,
