@@ -1257,6 +1257,29 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             }),
         }))
     }
+
+    async fn list_domains(
+        &self,
+        _request: Request<ListDomainsRequest>,
+    ) -> Result<Response<ListDomainsResponse>, Status> {
+        let domains = self
+            .manage_tables_uc
+            .list_domains()
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        let domain_infos: Vec<DomainInfo> = domains
+            .into_iter()
+            .map(|(domain_scope, table_count)| DomainInfo {
+                domain_scope,
+                table_count: table_count as i32,
+            })
+            .collect();
+
+        Ok(Response::new(ListDomainsResponse {
+            domains: domain_infos,
+        }))
+    }
 }
 
 fn json_to_string(value: &serde_json::Value) -> String {
