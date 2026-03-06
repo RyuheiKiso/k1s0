@@ -15,6 +15,8 @@ pub struct UpdateTableDefinitionRequest {
     pub table_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
     pub data: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "3")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateTableDefinitionResponse {
@@ -25,6 +27,8 @@ pub struct UpdateTableDefinitionResponse {
 pub struct DeleteTableDefinitionRequest {
     #[prost(string, tag = "1")]
     pub table_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct DeleteTableDefinitionResponse {
@@ -36,6 +40,8 @@ pub struct DeleteTableDefinitionResponse {
 pub struct GetTableDefinitionRequest {
     #[prost(string, tag = "1")]
     pub table_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 /// テーブル定義レスポンス
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -74,6 +80,8 @@ pub struct GetTableDefinitionResponse {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "17")]
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "18")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 /// カラム定義
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -148,6 +156,8 @@ pub struct ListTableDefinitionsRequest {
     pub active_only: bool,
     #[prost(message, optional, tag = "3")]
     pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
+    #[prost(string, tag = "4")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 /// テーブル定義一覧レスポンス
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -164,6 +174,8 @@ pub struct GetRecordRequest {
     pub table_name: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 /// レコードレスポンス
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -200,6 +212,8 @@ pub struct ListRecordsRequest {
     pub filter: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
     pub search: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 /// レコード一覧レスポンス
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -216,6 +230,8 @@ pub struct CreateRecordRequest {
     pub table_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
     pub data: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "3")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 /// レコード更新リクエスト
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -226,6 +242,8 @@ pub struct UpdateRecordRequest {
     pub record_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
     pub data: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "4")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 /// レコード削除リクエスト
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -234,6 +252,8 @@ pub struct DeleteRecordRequest {
     pub table_name: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 /// レコード削除レスポンス
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
@@ -248,6 +268,8 @@ pub struct CheckConsistencyRequest {
     pub table_name: ::prost::alloc::string::String,
     #[prost(string, repeated, tag = "2")]
     pub rule_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "3")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 /// 整合性チェックレスポンス
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -633,6 +655,8 @@ pub struct ListTableAuditLogsRequest {
     pub table_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
     pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
+    #[prost(string, tag = "3")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTableAuditLogsResponse {
@@ -649,6 +673,8 @@ pub struct ListRecordAuditLogsRequest {
     pub record_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
     pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
+    #[prost(string, tag = "4")]
+    pub domain_scope: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListRecordAuditLogsResponse {
@@ -681,6 +707,25 @@ pub struct AuditLogEntry {
     pub trace_id: ::prost::alloc::string::String,
     #[prost(string, tag = "11")]
     pub created_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub domain_scope: ::prost::alloc::string::String,
+}
+/// ドメイン一覧リクエスト
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ListDomainsRequest {}
+/// ドメイン一覧レスポンス
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListDomainsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub domains: ::prost::alloc::vec::Vec<DomainInfo>,
+}
+/// ドメイン情報
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DomainInfo {
+    #[prost(string, tag = "1")]
+    pub domain_scope: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub table_count: i32,
 }
 /// Generated server implementations.
 pub mod master_maintenance_service_server {
@@ -950,6 +995,14 @@ pub mod master_maintenance_service_server {
             request: tonic::Request<super::ListRecordAuditLogsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ListRecordAuditLogsResponse>,
+            tonic::Status,
+        >;
+        /// Domain Management
+        async fn list_domains(
+            &self,
+            request: tonic::Request<super::ListDomainsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListDomainsResponse>,
             tonic::Status,
         >;
     }
@@ -2798,6 +2851,55 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListRecordAuditLogsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListDomains" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListDomainsSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::ListDomainsRequest>
+                    for ListDomainsSvc<T> {
+                        type Response = super::ListDomainsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListDomainsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::list_domains(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListDomainsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

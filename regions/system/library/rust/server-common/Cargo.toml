@@ -8,7 +8,12 @@ description = "Shared server infrastructure: structured error codes, error respo
 default = []
 axum = ["dep:axum"]
 utoipa = ["dep:utoipa"]
-middleware = ["axum", "dep:tower", "dep:http", "dep:pin-project-lite", "dep:k1s0-telemetry", "dep:k1s0-correlation", "dep:k1s0-health"]
+middleware = ["axum", "dep:tower", "dep:http", "dep:pin-project-lite", "dep:k1s0-telemetry", "dep:k1s0-correlation", "dep:k1s0-health", "dep:tokio"]
+database = ["middleware", "dep:sqlx", "dep:k1s0-migration"]
+auth = ["middleware", "dep:k1s0-auth"]
+grpc-auth = ["auth", "dep:tonic"]
+kafka-setup = ["middleware", "dep:k1s0-kafka"]
+config-loader = ["dep:serde_yaml"]
 
 [dependencies]
 anyhow = "1"
@@ -25,6 +30,13 @@ pin-project-lite = { version = "0.2", optional = true }
 k1s0-telemetry = { path = "../telemetry", features = ["axum-layer"], optional = true }
 k1s0-correlation = { path = "../correlation", features = ["tower-layer"], optional = true }
 k1s0-health = { path = "../health", optional = true }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"], optional = true }
+k1s0-migration = { path = "../migration", features = ["postgres"], optional = true }
+k1s0-auth = { path = "../auth", optional = true }
+k1s0-kafka = { path = "../kafka", optional = true }
+serde_yaml = { version = "0.9", optional = true }
+tonic = { version = "0.12", optional = true }
+tokio = { version = "1", features = ["signal"], optional = true }
 
 [dev-dependencies]
 async-trait = "0.1"

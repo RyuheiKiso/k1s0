@@ -1,0 +1,5 @@
+-- {{ name }} initial schema
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- TODO: Add tables

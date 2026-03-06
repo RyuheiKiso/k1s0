@@ -6,7 +6,35 @@ use k1s0_health::{CompositeHealthChecker, HealthCheck};
 use k1s0_telemetry::metrics::Metrics;
 use k1s0_telemetry::TelemetryConfig;
 
+#[cfg(feature = "config-loader")]
+use super::config_loader::{self, ConfigError};
+#[cfg(feature = "database")]
+use super::database::{DatabaseConfig, DatabaseSetup};
+#[cfg(feature = "kafka-setup")]
+use super::kafka_setup::{KafkaConfig, KafkaSetup};
 use super::stack::{K1s0Stack, Profile};
+
+/// AuthConfig は認証設定を保持する。
+#[cfg(feature = "auth")]
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct AuthConfig {
+    pub jwks_url: String,
+    pub issuer: String,
+    pub audience: String,
+    pub cache_ttl_secs: u64,
+}
+
+#[cfg(feature = "auth")]
+impl Default for AuthConfig {
+    fn default() -> Self {
+        Self {
+            jwks_url: String::new(),
+            issuer: String::new(),
+            audience: String::new(),
+            cache_ttl_secs: 600,
+        }
+    }
+}
 
 /// K1s0App はサーバー初期化のボイラープレートを削減する上位ビルダー。
 ///
@@ -18,6 +46,12 @@ pub struct K1s0App {
     health_checks: Vec<Box<dyn HealthCheck>>,
     skip_correlation: bool,
     skip_request_id: bool,
+    #[cfg(feature = "database")]
+    database_setup: Option<DatabaseSetup>,
+    #[cfg(feature = "auth")]
+    auth_config: Option<AuthConfig>,
+    #[cfg(feature = "kafka-setup")]
+    kafka_setup: Option<KafkaSetup>,
 }
 
 impl K1s0App {
@@ -28,6 +62,12 @@ impl K1s0App {
             health_checks: Vec::new(),
             skip_correlation: false,
             skip_request_id: false,
+            #[cfg(feature = "database")]
+            database_setup: None,
+            #[cfg(feature = "auth")]
+            auth_config: None,
+            #[cfg(feature = "kafka-setup")]
+            kafka_setup: None,
         }
     }
 
@@ -49,6 +89,35 @@ impl K1s0App {
     pub fn without_request_id(mut self) -> Self {
         self.skip_request_id = true;
         self
+    }
+
+    #[cfg(feature = "database")]
+    pub fn with_database(mut self, config: DatabaseConfig) -> Self {
+        self.database_setup = Some(DatabaseSetup::new(config));
+        self
+    }
+
+    #[cfg(feature = "database")]
+    pub fn with_database_no_migrate(mut self, config: DatabaseConfig) -> Self {
+        self.database_setup = Some(DatabaseSetup::new(config).without_migrations());
+        self
+    }
+
+    #[cfg(feature = "auth")]
+    pub fn with_auth(mut self, auth_config: AuthConfig) -> Self {
+        self.auth_config = Some(auth_config);
+        self
+    }
+
+    #[cfg(feature = "kafka-setup")]
+    pub fn with_kafka(mut self, config: KafkaConfig) -> Self {
+        self.kafka_setup = Some(KafkaSetup::new(config));
+        self
+    }
+
+    #[cfg(feature = "config-loader")]
+    pub fn load_config<T: serde::de::DeserializeOwned>(path: &str) -> Result<T, ConfigError> {
+        config_loader::load_config(path)
     }
 
     /// Telemetry初期化 → Metrics生成 → HealthChecker構築 → K1s0AppReady返却。
@@ -84,6 +153,12 @@ impl K1s0App {
             health_checker,
             skip_correlation: self.skip_correlation,
             skip_request_id: self.skip_request_id,
+            #[cfg(feature = "database")]
+            database_setup: self.database_setup,
+            #[cfg(feature = "auth")]
+            auth_config: self.auth_config,
+            #[cfg(feature = "kafka-setup")]
+            kafka_setup: self.kafka_setup,
         })
     }
 }
@@ -96,6 +171,12 @@ pub struct K1s0AppReady {
     health_checker: Arc<CompositeHealthChecker>,
     skip_correlation: bool,
     skip_request_id: bool,
+    #[cfg(feature = "database")]
+    database_setup: Option<DatabaseSetup>,
+    #[cfg(feature = "auth")]
+    auth_config: Option<AuthConfig>,
+    #[cfg(feature = "kafka-setup")]
+    kafka_setup: Option<KafkaSetup>,
 }
 
 impl K1s0AppReady {
@@ -113,6 +194,21 @@ impl K1s0AppReady {
 
     pub fn health_checker(&self) -> Arc<CompositeHealthChecker> {
         self.health_checker.clone()
+    }
+
+    #[cfg(feature = "database")]
+    pub fn database_setup(&self) -> Option<&DatabaseSetup> {
+        self.database_setup.as_ref()
+    }
+
+    #[cfg(feature = "auth")]
+    pub fn auth_config(&self) -> Option<&AuthConfig> {
+        self.auth_config.as_ref()
+    }
+
+    #[cfg(feature = "kafka-setup")]
+    pub fn kafka_setup(&self) -> Option<&KafkaSetup> {
+        self.kafka_setup.as_ref()
     }
 
     /// K1s0Stackを内部構築し、Routerにミドルウェアスタック + 標準エンドポイントを適用する。

@@ -7,6 +7,7 @@ edition = "2021"
 sqlite = ["sqlx/sqlite"]
 postgres = ["sqlx/postgres"]
 cli = ["clap"]
+schema-evolution = ["dep:sqlparser", "dep:toml"]
 
 [dependencies]
 async-trait = "0.1"
@@ -18,6 +19,8 @@ sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "migra
 chrono = { version = "0.4", features = ["serde"] }
 sha2 = "0.10"
 clap = { version = "4", features = ["derive"], optional = true }
+sqlparser = { version = "0.53", optional = true }
+toml = { version = "0.8", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

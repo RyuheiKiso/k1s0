@@ -2,6 +2,14 @@ pub mod logger;
 pub mod metrics;
 pub mod middleware;
 
+pub mod error_classifier;
+
+#[cfg(feature = "macros")]
+pub use k1s0_telemetry_macros::k1s0_trace;
+
+#[cfg(any(feature = "sqlx-instrument", feature = "kafka-instrument"))]
+pub mod instrument;
+
 #[cfg(any(feature = "grpc-layer", test))]
 pub use middleware::GrpcMetricsLayer;
 #[cfg(any(feature = "axum-layer", test))]

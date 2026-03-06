@@ -1,0 +1,167 @@
+use axum::{body::Body, http::Request, middleware::Next, response::Response};
+
+use crate::ServiceError;
+
+/// Tier はロールチェックのスコープを表現する。
+#[derive(Debug, Clone, Copy)]
+pub enum Tier {
+    /// System tier: sys_admin / sys_operator / sys_auditor
+    System,
+    /// Business tier: biz_admin / biz_operator / biz_auditor + sys_admin fallback
+    Business,
+}
+
+/// RBAC ミドルウェアを返す。axum の from_fn で使用する。
+pub fn require_permission(
+    tier: Tier,
+    _resource: &'static str,
+    action: &'static str,
+) -> impl Fn(
+    Request<Body>,
+    Next,
+) -> std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<Response, ServiceError>> + Send>,
+> + Clone {
+    move |req, next| Box::pin(rbac_check(req, next, tier, action))
+}
+
+async fn rbac_check(
+    req: Request<Body>,
+    next: Next,
+    tier: Tier,
+    action: &str,
+) -> Result<Response, ServiceError> {
+    let claims = req
+        .extensions()
+        .get::<k1s0_auth::Claims>()
+        .ok_or_else(|| {
+            ServiceError::unauthorized("AUTH", "Missing authentication claims")
+        })?;
+
+    let roles = claims.realm_roles();
+
+    if !check_permission(tier, roles, action) {
+        return Err(ServiceError::forbidden(
+            "AUTH",
+            &format!("Insufficient permissions for action: {}", action),
+        ));
+    }
+
+    Ok(next.run(req).await)
+}
+
+/// ロールベースの権限チェック。Tier に応じてロールプレフィックスを切り替える。
+pub fn check_permission(tier: Tier, roles: &[String], action: &str) -> bool {
+    for role in roles {
+        match tier {
+            Tier::System => match role.as_str() {
+                "sys_admin" => return true,
+                "sys_operator" => {
+                    if matches!(action, "read" | "write") {
+                        return true;
+                    }
+                }
+                "sys_auditor" => {
+                    if action == "read" {
+                        return true;
+                    }
+                }
+                _ => {}
+            },
+            Tier::Business => match role.as_str() {
+                "sys_admin" | "biz_admin" => return true,
+                "biz_operator" => {
+                    if matches!(action, "read" | "write") {
+                        return true;
+                    }
+                }
+                "biz_auditor" => {
+                    if action == "read" {
+                        return true;
+                    }
+                }
+                _ => {}
+            },
+        }
+    }
+    false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- System tier tests ---
+
+    #[test]
+    fn test_sys_admin_all_allowed() {
+        let roles = vec!["sys_admin".to_string()];
+        assert!(check_permission(Tier::System, &roles, "read"));
+        assert!(check_permission(Tier::System, &roles, "write"));
+        assert!(check_permission(Tier::System, &roles, "admin"));
+    }
+
+    #[test]
+    fn test_sys_operator_read_write() {
+        let roles = vec!["sys_operator".to_string()];
+        assert!(check_permission(Tier::System, &roles, "read"));
+        assert!(check_permission(Tier::System, &roles, "write"));
+        assert!(!check_permission(Tier::System, &roles, "admin"));
+    }
+
+    #[test]
+    fn test_sys_auditor_read_only() {
+        let roles = vec!["sys_auditor".to_string()];
+        assert!(check_permission(Tier::System, &roles, "read"));
+        assert!(!check_permission(Tier::System, &roles, "write"));
+        assert!(!check_permission(Tier::System, &roles, "admin"));
+    }
+
+    // --- Business tier tests ---
+
+    #[test]
+    fn test_biz_admin_all_allowed() {
+        let roles = vec!["biz_admin".to_string()];
+        assert!(check_permission(Tier::Business, &roles, "read"));
+        assert!(check_permission(Tier::Business, &roles, "write"));
+        assert!(check_permission(Tier::Business, &roles, "admin"));
+    }
+
+    #[test]
+    fn test_biz_operator_read_write() {
+        let roles = vec!["biz_operator".to_string()];
+        assert!(check_permission(Tier::Business, &roles, "read"));
+        assert!(check_permission(Tier::Business, &roles, "write"));
+        assert!(!check_permission(Tier::Business, &roles, "admin"));
+    }
+
+    #[test]
+    fn test_biz_auditor_read_only() {
+        let roles = vec!["biz_auditor".to_string()];
+        assert!(check_permission(Tier::Business, &roles, "read"));
+        assert!(!check_permission(Tier::Business, &roles, "write"));
+        assert!(!check_permission(Tier::Business, &roles, "admin"));
+    }
+
+    #[test]
+    fn test_sys_admin_fallback_in_business_tier() {
+        let roles = vec!["sys_admin".to_string()];
+        assert!(check_permission(Tier::Business, &roles, "read"));
+        assert!(check_permission(Tier::Business, &roles, "write"));
+        assert!(check_permission(Tier::Business, &roles, "admin"));
+    }
+
+    #[test]
+    fn test_unknown_role() {
+        let roles = vec!["user".to_string()];
+        assert!(!check_permission(Tier::System, &roles, "read"));
+        assert!(!check_permission(Tier::Business, &roles, "read"));
+    }
+
+    #[test]
+    fn test_empty_roles() {
+        let roles: Vec<String> = vec![];
+        assert!(!check_permission(Tier::System, &roles, "read"));
+        assert!(!check_permission(Tier::Business, &roles, "read"));
+    }
+}
