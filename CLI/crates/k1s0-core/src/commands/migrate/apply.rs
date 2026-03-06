@@ -81,7 +81,7 @@ fn read_local_dev_port() -> Option<u16> {
         .get("dependencies")
         .and_then(|d| d.get("postgres"))
         .and_then(|p| p.get("port"))
-        .and_then(|v| v.as_u64())
+        .and_then(tera::Value::as_u64)
         .map(|p| p as u16)
 }
 

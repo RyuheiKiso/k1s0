@@ -20,7 +20,7 @@ use super::types::MigrateCreateConfig;
 pub fn create_migration(config: &MigrateCreateConfig) -> Result<(PathBuf, PathBuf)> {
     // 名前のバリデーション
     validate_migration_name(&config.migration_name)
-        .map_err(|e| anyhow::anyhow!("マイグレーション名が不正です: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("マイグレーション名が不正です: {e}"))?;
 
     // migrations/ ディレクトリが存在しない場合は作成
     if !config.target.migrations_dir.exists() {

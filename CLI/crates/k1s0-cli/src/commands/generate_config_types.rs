@@ -26,7 +26,7 @@ pub fn run() -> Result<()> {
         .interact_text()?;
 
     let content =
-        fs::read_to_string(&schema_path).map_err(|e| anyhow::anyhow!("{}: {e}", schema_path))?;
+        fs::read_to_string(&schema_path).map_err(|e| anyhow::anyhow!("{schema_path}: {e}"))?;
     let schema: ConfigSchemaYaml = serde_yaml::from_str(&content)
         .map_err(|e| anyhow::anyhow!("config-schema.yaml のパースエラー: {e}"))?;
 
@@ -75,12 +75,9 @@ pub fn run() -> Result<()> {
         println!("  Flutter → lib/config/__generated__/config_types.dart");
     }
 
-    match prompt::confirm_prompt()? {
-        prompt::ConfirmResult::Yes => {}
-        _ => {
-            println!("キャンセルしました。");
-            return Ok(());
-        }
+    if prompt::confirm_prompt()? == prompt::ConfirmResult::Yes {} else {
+        println!("キャンセルしました。");
+        return Ok(());
     }
 
     // 型定義生成

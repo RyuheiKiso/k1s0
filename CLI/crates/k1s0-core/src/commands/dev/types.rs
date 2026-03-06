@@ -113,7 +113,7 @@ pub struct SeedStatus {
 /// 状態ファイルの依存情報。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DevStateDeps {
-    /// PostgreSQL 依存
+    /// `PostgreSQL` 依存
     pub postgres: Option<PostgresDep>,
     /// Kafka 依存
     pub kafka: Option<KafkaDep>,
@@ -121,7 +121,7 @@ pub struct DevStateDeps {
     pub redis: Option<RedisDep>,
 }
 
-/// PostgreSQL 依存情報。
+/// `PostgreSQL` 依存情報。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PostgresDep {
     /// ポート番号
@@ -147,7 +147,7 @@ pub struct RedisDep {
 /// ポート割り当て。
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct PortAssignments {
-    /// PostgreSQL ポート
+    /// `PostgreSQL` ポート
     pub postgres: u16,
     /// Kafka ポート
     pub kafka: u16,

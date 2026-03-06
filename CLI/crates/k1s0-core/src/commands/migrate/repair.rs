@@ -39,13 +39,12 @@ fn execute_sqlx_repair(
         }
         RepairOperation::ForceVersion(version) => {
             format!(
-                "DELETE FROM _sqlx_migrations WHERE version > {};",
-                version
+                "DELETE FROM _sqlx_migrations WHERE version > {version};"
             )
         }
     };
 
-    println!("修復SQL: {}", sql);
+    println!("修復SQL: {sql}");
     println!("対象: {} ({})", target.service_name, conn_str);
 
     let dir_str = target

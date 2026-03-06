@@ -115,14 +115,13 @@ pub fn validate_navigation(path: &str) -> Result<usize, Box<dyn std::error::Erro
         })
         .collect();
     let mut cycle_ok = true;
-    for (start_path, _) in &redirect_map {
+    for start_path in redirect_map.keys() {
         let mut visited = HashSet::new();
         let mut current = *start_path;
         while let Some(&next) = redirect_map.get(current) {
             if !visited.insert(current) {
                 println!(
-                    "  \u{274c} 循環リダイレクトを検出: '{}' から始まるチェーンが循環しています",
-                    start_path
+                    "  \u{274c} 循環リダイレクトを検出: '{start_path}' から始まるチェーンが循環しています"
                 );
                 errors += 1;
                 cycle_ok = false;
@@ -144,7 +143,7 @@ pub fn validate_navigation(path: &str) -> Result<usize, Box<dyn std::error::Erro
     Ok(errors)
 }
 
-fn collect_route_ids<'a>(routes: &'a [RouteYaml], ids: &mut HashSet<String>) -> usize {
+fn collect_route_ids(routes: &[RouteYaml], ids: &mut HashSet<String>) -> usize {
     let mut duplicates = 0;
     for route in routes {
         if !ids.insert(route.id.clone()) {

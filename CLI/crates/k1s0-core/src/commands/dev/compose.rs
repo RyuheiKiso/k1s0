@@ -64,7 +64,7 @@ pub fn generate_compose(
     yaml
 }
 
-/// PostgreSQL サービス定義を生成する。
+/// `PostgreSQL` サービス定義を生成する。
 fn generate_postgres_service(ports: &PortAssignments, first_db_name: &str) -> String {
     format!(
         r#"  postgres:
@@ -218,7 +218,7 @@ fn generate_keycloak_service(ports: &PortAssignments, _has_postgres: bool) -> St
 
 /// 複数データベース初期化用 SQL を生成する。
 ///
-/// PostgreSQL の docker-entrypoint-initdb.d で実行される SQL。
+/// `PostgreSQL` の docker-entrypoint-initdb.d で実行される SQL。
 pub fn generate_init_db_sql(databases: &[DatabaseDep]) -> String {
     let mut sql = String::new();
     sql.push_str("-- 自動生成: k1s0 dev up\n");

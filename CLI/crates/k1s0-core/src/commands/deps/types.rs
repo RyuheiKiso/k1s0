@@ -62,7 +62,7 @@ pub enum DependencyType {
     Kafka,
     /// REST API依存
     Rest,
-    /// GraphQL依存
+    /// `GraphQL依存`
     GraphQL,
     /// ライブラリ依存
     Library,

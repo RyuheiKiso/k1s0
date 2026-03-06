@@ -18,7 +18,7 @@ pub fn check_migration_integrity(target: &MigrateTarget) -> MigrateCiResult {
         Err(e) => {
             result
                 .errors
-                .push(format!("ファイル走査に失敗しました: {}", e));
+                .push(format!("ファイル走査に失敗しました: {e}"));
             return result;
         }
     };
@@ -47,8 +47,7 @@ pub fn check_migration_integrity(target: &MigrateTarget) -> MigrateCiResult {
     for (num, desc) in &up_numbers {
         if !down_numbers.contains_key(num) {
             result.errors.push(format!(
-                "down.sql が見つかりません: {:03}_{}.down.sql",
-                num, desc
+                "down.sql が見つかりません: {num:03}_{desc}.down.sql"
             ));
         }
     }
@@ -56,15 +55,14 @@ pub fn check_migration_integrity(target: &MigrateTarget) -> MigrateCiResult {
     for (num, desc) in &down_numbers {
         if !up_numbers.contains_key(num) {
             result.errors.push(format!(
-                "up.sql が見つかりません: {:03}_{}.up.sql",
-                num, desc
+                "up.sql が見つかりません: {num:03}_{desc}.up.sql"
             ));
         }
     }
 
     // 2. 連番整合性チェック（ギャップや重複がないか）
     let mut all_numbers: Vec<u32> = up_numbers.keys().copied().collect();
-    all_numbers.sort();
+    all_numbers.sort_unstable();
 
     if !all_numbers.is_empty() {
         // 1から始まるか確認

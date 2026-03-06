@@ -23,7 +23,7 @@ pub fn run() -> Result<()> {
         .interact_text()?;
 
     let content =
-        fs::read_to_string(&nav_path).map_err(|e| anyhow::anyhow!("{}: {e}", nav_path))?;
+        fs::read_to_string(&nav_path).map_err(|e| anyhow::anyhow!("{nav_path}: {e}"))?;
     let nav: NavigationYaml = serde_yaml::from_str(&content)
         .map_err(|e| anyhow::anyhow!("navigation.yaml のパースエラー: {e}"))?;
 
@@ -53,12 +53,9 @@ pub fn run() -> Result<()> {
         println!("  Flutter → lib/navigation/__generated__/route_ids.dart");
     }
 
-    match prompt::confirm_prompt()? {
-        prompt::ConfirmResult::Yes => {}
-        _ => {
-            println!("キャンセルしました。");
-            return Ok(());
-        }
+    if prompt::confirm_prompt()? == prompt::ConfirmResult::Yes {} else {
+        println!("キャンセルしました。");
+        return Ok(());
     }
 
     // 生成

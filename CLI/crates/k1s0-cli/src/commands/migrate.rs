@@ -164,12 +164,9 @@ pub fn run() -> Result<()> {
                                 "\n{} がインストールされていません。",
                                 tool_name(&target.language)
                             );
-                            match prompt::yes_no_prompt("インストールしますか？")? {
-                                Some(true) => install_tool(&target.language)?,
-                                _ => {
-                                    println!("キャンセルしました。");
-                                    return Ok(());
-                                }
+                            if let Some(true) = prompt::yes_no_prompt("インストールしますか？")? { install_tool(&target.language)? } else {
+                                println!("キャンセルしました。");
+                                return Ok(());
                             }
                         }
                         let config = MigrateUpConfig {
@@ -230,12 +227,9 @@ pub fn run() -> Result<()> {
                                 "\n{} がインストールされていません。",
                                 tool_name(&target.language)
                             );
-                            match prompt::yes_no_prompt("インストールしますか？")? {
-                                Some(true) => install_tool(&target.language)?,
-                                _ => {
-                                    println!("キャンセルしました。");
-                                    return Ok(());
-                                }
+                            if let Some(true) = prompt::yes_no_prompt("インストールしますか？")? { install_tool(&target.language)? } else {
+                                println!("キャンセルしました。");
+                                return Ok(());
                             }
                         }
                         let config = MigrateDownConfig {
@@ -350,8 +344,8 @@ fn step_select_target(targets: &[MigrateTarget]) -> Result<Option<usize>> {
         return Ok(None);
     }
 
-    let labels: Vec<String> = targets.iter().map(|t| t.display_label()).collect();
-    let label_refs: Vec<&str> = labels.iter().map(|s| s.as_str()).collect();
+    let labels: Vec<String> = targets.iter().map(k1s0_core::commands::migrate::MigrateTarget::display_label).collect();
+    let label_refs: Vec<&str> = labels.iter().map(std::string::String::as_str).collect();
     prompt::select_prompt("サービスを選択してください", &label_refs)
 }
 
@@ -369,7 +363,7 @@ fn step_select_target_or_all(
     for t in targets {
         labels.push(t.display_label());
     }
-    let label_refs: Vec<&str> = labels.iter().map(|s| s.as_str()).collect();
+    let label_refs: Vec<&str> = labels.iter().map(std::string::String::as_str).collect();
 
     match prompt::select_prompt("サービスを選択してください", &label_refs)? {
         None => Ok(None),
@@ -467,7 +461,7 @@ fn step_select_repair_operation() -> Result<Option<RepairOperation>> {
 fn print_create_confirmation(target: &MigrateTarget, migration_name: &str) {
     println!("\n[確認] 以下の内容でマイグレーションファイルを作成します。よろしいですか？");
     println!("    サービス: {}", target.display_label());
-    println!("    名前:     {}", migration_name);
+    println!("    名前:     {migration_name}");
     println!(
         "    保存先:   {}/",
         target.migrations_dir.display()
@@ -509,14 +503,14 @@ fn print_repair_confirmation(target: &MigrateTarget, operation: &RepairOperation
 fn format_range(range: &MigrateRange) -> String {
     match range {
         MigrateRange::All => "すべて".to_string(),
-        MigrateRange::UpTo(n) => format!("バージョン {} まで", n),
+        MigrateRange::UpTo(n) => format!("バージョン {n} まで"),
     }
 }
 
 /// 接続先の表示文字列を返す。
 fn format_connection(connection: &DbConnection, db_name: &str) -> String {
     match connection {
-        DbConnection::LocalDev => format!("ローカル開発環境 ({})", db_name),
+        DbConnection::LocalDev => format!("ローカル開発環境 ({db_name})"),
         DbConnection::Custom(url) => url.clone(),
     }
 }
@@ -525,6 +519,6 @@ fn format_connection(connection: &DbConnection, db_name: &str) -> String {
 fn format_repair_operation(operation: &RepairOperation) -> String {
     match operation {
         RepairOperation::ClearDirty => "ダーティフラグのクリア".to_string(),
-        RepairOperation::ForceVersion(v) => format!("バージョン {} に強制設定", v),
+        RepairOperation::ForceVersion(v) => format!("バージョン {v} に強制設定"),
     }
 }

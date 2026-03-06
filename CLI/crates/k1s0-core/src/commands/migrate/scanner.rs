@@ -37,7 +37,7 @@ fn scan_targets_recursive(path: &Path, targets: &mut Vec<MigrateTarget>) {
         if let Some(language) = detect_language(path) {
             let service_name = extract_service_name(path);
             let tier = extract_tier(path);
-            let db_name = detect_db_name(path).unwrap_or_else(|| format!("{}_db", service_name));
+            let db_name = detect_db_name(path).unwrap_or_else(|| format!("{service_name}_db"));
 
             targets.push(MigrateTarget {
                 service_name,

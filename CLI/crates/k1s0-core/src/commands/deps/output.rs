@@ -37,10 +37,10 @@ pub fn print_terminal(result: &DepsResult) {
                 // このサービスが source の依存関係を表示
                 for dep in &result.dependencies {
                     if dep.source == *service_name {
-                        let tier_label = if dep.target_tier != *tier {
-                            format!(" [{}]", dep.target_tier)
-                        } else {
+                        let tier_label = if dep.target_tier == *tier {
                             String::new()
+                        } else {
+                            format!(" [{}]", dep.target_tier)
                         };
                         let detail = dep
                             .detail
@@ -114,8 +114,8 @@ pub fn print_terminal(result: &DepsResult) {
     println!("\n=== サマリー ===");
     println!("  解析対象: {} サービス", result.services.len());
     println!("  依存関係: {} 件", result.dependencies.len());
-    println!("  違反:     {} 件", error_count);
-    println!("  警告:     {} 件", warning_count);
+    println!("  違反:     {error_count} 件");
+    println!("  警告:     {warning_count} 件");
     println!();
 }
 
@@ -265,7 +265,7 @@ pub fn write_mermaid(result: &DepsResult, path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Mermaid用のノードIDをサニタイズする。
+/// `Mermaid用のノードIDをサニタイズする`。
 /// ハイフンをアンダースコアに変換する。
 fn sanitize_mermaid_id(name: &str) -> String {
     name.replace('-', "_")

@@ -10,7 +10,7 @@ use super::types::PortAssignments;
 /// dev up 時のマイグレーションを実行する。
 ///
 /// 各サービスの migrations/ ディレクトリを検出し、
-/// SQL ファイルを PostgreSQL に対して実行する。
+/// SQL ファイルを `PostgreSQL` に対して実行する。
 ///
 /// # Errors
 ///
@@ -108,7 +108,7 @@ pub fn has_migrations(service_path: &Path) -> bool {
     std::fs::read_dir(&migrations_dir)
         .map(|entries| {
             entries
-                .filter_map(|e| e.ok())
+                .filter_map(std::result::Result::ok)
                 .any(|e| {
                     e.path()
                         .extension()

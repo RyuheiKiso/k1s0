@@ -38,9 +38,7 @@ pub fn detect_dependencies_at(service_dir: &Path) -> Result<DetectedDependencies
             // サービスディレクトリ名からDB名を推定
             service_dir
                 .file_name()
-                .and_then(|n| n.to_str())
-                .map(|n| format!("{}_db", n.replace('-', "_")))
-                .unwrap_or_else(|| "default_db".to_string())
+                .and_then(|n| n.to_str()).map_or_else(|| "default_db".to_string(), |n| format!("{}_db", n.replace('-', "_")))
         } else {
             db.name.clone()
         };

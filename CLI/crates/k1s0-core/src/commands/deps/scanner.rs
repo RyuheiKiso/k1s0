@@ -100,10 +100,10 @@ fn read_dir_sorted(dir: &Path) -> Vec<fs::DirEntry> {
     let mut entries: Vec<fs::DirEntry> = fs::read_dir(dir)
         .ok()
         .into_iter()
-        .flat_map(|rd| rd.flatten())
+        .flat_map(std::iter::Iterator::flatten)
         .filter(|e| e.path().is_dir())
         .collect();
-    entries.sort_by_key(|e| e.file_name());
+    entries.sort_by_key(std::fs::DirEntry::file_name);
     entries
 }
 
@@ -436,9 +436,9 @@ pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
 pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
 
-    let cargo_re = Regex::new(r#"k1s0-([\w-]+)"#).unwrap();
+    let cargo_re = Regex::new(r"k1s0-([\w-]+)").unwrap();
     let gomod_re = Regex::new(r"k1s0/regions/system/library/go/([\w-]+)").unwrap();
-    let npm_re = Regex::new(r#"@k1s0/([\w-]+)"#).unwrap();
+    let npm_re = Regex::new(r"@k1s0/([\w-]+)").unwrap();
     let dart_re = Regex::new(r"k1s0_([\w]+)").unwrap();
 
     for service in services {

@@ -110,7 +110,7 @@ pub fn execute_dev_up(config: &DevUpConfig) -> Result<()> {
                         .ok()
                         .map(|entries| {
                             entries
-                                .filter_map(|e| e.ok())
+                                .filter_map(std::result::Result::ok)
                                 .filter(|e| {
                                     e.path()
                                         .extension()

@@ -255,7 +255,7 @@ fn step_logs_target() -> Result<Option<Option<String>>> {
             std::path::Path::new(s)
                 .file_name()
                 .and_then(|n| n.to_str())
-                .map(|n| n.to_string())
+                .map(std::string::ToString::to_string)
         }).collect()
     } else {
         // docker compose のサービス名を静的に提示
@@ -266,7 +266,7 @@ fn step_logs_target() -> Result<Option<Option<String>>> {
         ]
     };
 
-    let name_refs: Vec<&str> = service_names.iter().map(|s| s.as_str()).collect();
+    let name_refs: Vec<&str> = service_names.iter().map(std::string::String::as_str).collect();
     for name in &name_refs {
         items.push(name);
     }
