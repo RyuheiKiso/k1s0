@@ -34,7 +34,7 @@ Go / TypeScript / Dart には同名ライブラリは提供しない。
 | `ErrorCode` | `SYS_{SERVICE}_{ERROR}` 形式のコードラッパー |
 | `ErrorDetail` | バリデーション等の詳細情報（`field` / `reason` / `message`） |
 | `ErrorBody` | エラー本体（code/message/request_id/details） |
-| `ErrorResponse` | `{ "error": ... }` の共通レスポンスラッパー |
+| `ErrorResponse` | `{ "error": ... }` の共通レスポンスラッパー。ビルダーメソッド `with_request_id(request_id)` でリクエスト ID を付与可能 |
 | `ServiceError` | HTTP ステータスに対応したサービス層エラー |
 | `PaginationResponse` | ページ情報（`total_count` / `page` / `page_size` / `has_next`） |
 | `PaginatedResponse<T>` | `items` と `pagination` を持つ共通ページングレスポンス |
@@ -49,6 +49,11 @@ Go / TypeScript / Dart には同名ライブラリは提供しない。
 - `error::tenant::*`
 - `error::session::*`
 - `error::api_registry::*`
+- `error::event_store::*`
+- `error::file::*`
+- `error::scheduler::*`
+- `error::notification::*`
+- `error::featureflag::*`
 
 ### ErrorCode ファクトリメソッド
 
@@ -79,7 +84,7 @@ k1s0-server-common = { path = "../../system/library/rust/server-common", feature
 
 `features`:
 
-- `axum`: `ServiceError` / `ErrorResponse` の HTTP レスポンス変換を有効化
+- `axum`: `ServiceError` および `ErrorResponse` の `IntoResponse` 実装を有効化（HTTP レスポンス変換）
 - `utoipa`: OpenAPI スキーマ生成向け derive を有効化
 
 ## 利用ガイド
@@ -98,6 +103,17 @@ fn validate(name: &str) -> Result<(), ServiceError> {
     Ok(())
 }
 ```
+
+## Auth ユーティリティ
+
+`auth` モジュールは、開発・テスト環境で認証を安全にバイパスするためのユーティリティ関数を提供する。クレートルートから再エクスポートされる。
+
+| 関数 | シグネチャ | 説明 |
+| --- | --- | --- |
+| `allow_insecure_no_auth` | `(environment: &str) -> bool` | 環境変数 `ALLOW_INSECURE_NO_AUTH=true` が設定されており、かつ `environment` が `"dev"` または `"test"` の場合のみ `true` を返す。本番環境では常に `false`。 |
+| `require_auth_state` | `<T>(service_name: &str, environment: &str, auth_state: Option<T>) -> Result<Option<T>>` | 認証設定（`auth_state`）の存在を検証する。`auth_state` が `None` の場合、`allow_insecure_no_auth` が `true` なら `Ok(None)` を返してバイパスし、`false` なら `ServiceError::unauthorized` を返す。 |
+
+**環境変数**: `ALLOW_INSECURE_NO_AUTH` — `"true"` に設定すると dev/test 環境で認証バイパスを許可する。本番では設定しないこと。
 
 ## 関連ドキュメント
 

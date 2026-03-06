@@ -332,7 +332,7 @@ pub fn parse_log_level(level: &str) -> tracing::Level
 
 ### Rust record_* メソッド一覧
 
-Rust の `Metrics` 構造体は共通 4 メトリクス（HTTP/gRPC）および拡張 5 メトリクス（DB・Kafka・キャッシュ）に対して、型安全な `record_*` ヘルパーメソッドを提供する。Go は Prometheus API を直接使用するため、これらのヘルパーメソッドは Rust 専用。
+Rust の `Metrics` 構造体は共通 4 メトリクス（HTTP/gRPC）および拡張 5 メトリクス（DB・Kafka・キャッシュ）に対して、型安全な `record_*` ヘルパーメソッドを提供する。TypeScript と Dart も共通 4 メトリクス（HTTP/gRPC）の `record*` ヘルパーメソッドを持つ（後述）。Go は Prometheus API を直接使用するため、`record*` ヘルパーメソッドを持たない。
 
 > アーキテクチャ上の位置づけは [可観測性設計.md](../../architecture/observability/可観測性設計.md) の「カスタムメトリクス」セクションを参照。
 
@@ -392,9 +392,11 @@ telemetry/src/
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-node": "^0.56.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.56.0",
-    "pino": "^9.5.0"
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
   }
@@ -477,6 +479,17 @@ export function createLogger(cfg: TelemetryConfig): pino.Logger {
 ```
 
 **トレース相関の注意**: TypeScript の `createLogger` は pino の `mixin()` オプションを使用して、アクティブな OpenTelemetry スパンから `trace_id` / `span_id` を自動注入する。Go のように明示的に `LogWithTrace` を呼ぶ必要はない。
+
+### TypeScript Metrics record メソッド
+
+TypeScript の `Metrics` クラスは共通 4 メトリクス（HTTP/gRPC）に対して以下の record ヘルパーメソッドを提供する:
+
+| メソッド | 説明 |
+|---------|------|
+| `recordHTTPRequest(method, path, status)` | HTTP リクエストカウンタをインクリメント |
+| `recordHTTPDuration(method, path, durationSeconds)` | HTTP レイテンシをヒストグラムに記録 |
+| `recordGRPCRequest(grpcService, grpcMethod, grpcCode)` | gRPC リクエストカウンタをインクリメント |
+| `recordGRPCDuration(grpcService, grpcMethod, durationSeconds)` | gRPC レイテンシをヒストグラムに記録 |
 
 ## Dart 実装
 
@@ -576,6 +589,26 @@ void shutdown() {
 /// config の serviceName をロガー名として使用する。
 Logger createLogger(TelemetryConfig config) => Logger(config.serviceName);
 ```
+
+### Dart Metrics record メソッド
+
+Dart の `Metrics` クラスは共通 4 メトリクス（HTTP/gRPC）に対して以下の record ヘルパーメソッドを提供する:
+
+| メソッド | 説明 |
+|---------|------|
+| `recordHttpRequest(method, path, status)` | HTTP リクエストカウンタをインクリメント |
+| `recordHttpDuration(method, path, durationSeconds)` | HTTP レイテンシをヒストグラムに記録 |
+| `recordGrpcRequest(service, method, code)` | gRPC リクエストカウンタをインクリメント |
+| `recordGrpcDuration(service, method, durationSeconds)` | gRPC レイテンシをヒストグラムに記録 |
+
+### Dart 公開ヘルパー型
+
+| 型 | 説明 |
+|-----|------|
+| `MetricsKey` | HTTP メトリクスのキー（method, path, status をまとめる） |
+| `GrpcMetricsKey` | gRPC メトリクスのキー（service, method, code をまとめる） |
+| `HistogramKey` | ヒストグラムのキー |
+| `HistogramData` | ヒストグラムデータ。`observe(value)` でデータポイントを追加し、`buckets`・`sum`・`count` を保持する |
 
 **Dart 固有の注意点**:
 - `sampleRate` のデフォルト値は `1.0`（他言語はゼロ値）

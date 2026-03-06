@@ -147,6 +147,82 @@ abstract class EventProducer {
 typedef EventHandler = Future<void> Function(EventEnvelope event);
 ```
 
+## Rust 固有の型
+
+### ConsumerConfig
+
+```rust
+pub struct ConsumerConfig {
+    pub group_id: String,
+    pub topics: Vec<String>,
+    pub auto_commit: bool,
+    pub session_timeout_ms: u64,
+}
+```
+
+### MessagingConfig
+
+```rust
+pub struct MessagingConfig {
+    pub brokers: Vec<String>,
+    pub security_protocol: Option<String>,
+    pub timeout_ms: u64,
+    pub batch_size: usize,
+}
+
+impl MessagingConfig {
+    /// brokers を `,` 区切りの単一文字列として返す。
+    pub fn brokers_string(&self) -> String
+}
+```
+
+### MessagingError バリアント
+
+Rust の `MessagingError` は 9 バリアントの enum として定義される:
+
+| バリアント | 説明 |
+|-----------|------|
+| `ProducerError` | プロデューサー操作の失敗 |
+| `ConsumerError` | コンシューマー操作の失敗 |
+| `SerializationError` | シリアライズ失敗 |
+| `DeserializationError` | デシリアライズ失敗 |
+| `ConnectionError` | ブローカー接続失敗 |
+| `TimeoutError` | 操作タイムアウト |
+| `PublishError` | メッセージ発行失敗 |
+| `ConsumeError` | メッセージ受信失敗 |
+| `CommitError` | オフセットコミット失敗 |
+
+### EventMetadata 追加メソッド
+
+```rust
+impl EventMetadata {
+    /// タイムスタンプを Unix ミリ秒に変換する。
+    pub fn to_unix_millis(&self) -> i64
+
+    /// Unix ミリ秒から DateTime<Utc> を生成する。
+    pub fn from_unix_millis(millis: i64) -> DateTime<Utc>
+}
+```
+
+### EventEnvelope::json コンストラクタ
+
+```rust
+impl EventEnvelope {
+    /// payload を JSON シリアライズして EventEnvelope を生成する。
+    pub fn json(topic: &str, key: &str, payload: &impl Serialize) -> Result<Self, MessagingError>
+}
+```
+
+### Cargo features
+
+Rust 実装では以下の Cargo features が利用可能:
+
+| Feature | 説明 |
+|---------|------|
+| `kafka` | Kafka バックエンド（rdkafka ベースの `KafkaEventProducer` / `KafkaEventConsumer`） |
+| `mock` | テスト用モック実装（`NoOpEventProducer` 等） |
+| `protobuf` | Protocol Buffers シリアライズサポート |
+
 ## 関連ドキュメント
 
 - [system-library 概要](../_common/概要.md)

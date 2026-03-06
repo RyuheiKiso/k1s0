@@ -2,10 +2,13 @@ use std::path::Path;
 
 use k1s0_core::commands::build::{self as build_cmd, BuildConfig};
 use k1s0_core::commands::deploy::{self as deploy_cmd, DeployConfig};
+use k1s0_core::commands::deps::{self as deps_cmd, DepsConfig, DepsResult};
+use k1s0_core::commands::dev::{self as dev_cmd, DevDownConfig, DevUpConfig};
 use k1s0_core::commands::generate::config_types as config_types_cmd;
 use k1s0_core::commands::generate::navigation as nav_gen_cmd;
 use k1s0_core::commands::generate::{self as gen_cmd, GenerateConfig};
 use k1s0_core::commands::init::{self as init_cmd, InitConfig};
+use k1s0_core::commands::migrate::{self as migrate_cmd, MigrateCreateConfig};
 use k1s0_core::commands::test_cmd::{self as test_cmd, TestConfig};
 use k1s0_core::commands::validate::config_schema as config_schema_validate;
 use k1s0_core::commands::validate::navigation as nav_validate;
@@ -159,6 +162,72 @@ pub fn execute_deploy_with_progress(
         let _ = on_event.send(event);
     })
     .map_err(|e| e.to_string())
+}
+
+// ============================================================================
+// 依存関係マップ (deps)
+// ============================================================================
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_deps(config: DepsConfig) -> Result<DepsResult, String> {
+    deps_cmd::execute_deps(&config).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn scan_services(base_dir: String) -> Vec<deps_cmd::ServiceInfo> {
+    deps_cmd::scan_services_at(Path::new(&base_dir))
+}
+
+// ============================================================================
+// ローカル開発環境 (dev)
+// ============================================================================
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_dev_up(config: DevUpConfig) -> Result<(), String> {
+    dev_cmd::execute_dev_up(&config).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_dev_down(config: DevDownConfig) -> Result<(), String> {
+    dev_cmd::execute_dev_down(&config).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn execute_dev_status() -> Result<(), String> {
+    dev_cmd::execute_dev_status().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn scan_dev_targets(base_dir: String) -> Vec<(String, String)> {
+    dev_cmd::scan_dev_targets(Path::new(&base_dir))
+}
+
+// ============================================================================
+// マイグレーション管理 (migrate)
+// ============================================================================
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_migrate_create(config: MigrateCreateConfig) -> Result<(String, String), String> {
+    migrate_cmd::create_migration(&config)
+        .map(|(up, down)| {
+            (
+                up.to_string_lossy().to_string(),
+                down.to_string_lossy().to_string(),
+            )
+        })
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn scan_migrate_targets(base_dir: String) -> Vec<migrate_cmd::MigrateTarget> {
+    migrate_cmd::scan_migrate_targets(Path::new(&base_dir))
 }
 
 #[cfg(test)]

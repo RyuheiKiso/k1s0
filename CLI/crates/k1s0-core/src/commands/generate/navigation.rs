@@ -49,7 +49,7 @@ pub fn generate_typescript_routes(nav: &NavigationYaml) -> String {
     out
 }
 
-/// Dart の route_ids.dart を生成する
+/// Dart の `route_ids.dart` を生成する
 pub fn generate_dart_routes(nav: &NavigationYaml) -> String {
     let mut out = String::new();
     out.push_str(

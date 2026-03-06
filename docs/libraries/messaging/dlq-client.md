@@ -91,6 +91,8 @@ type DlqClient struct {
 }
 
 func NewDlqClient(endpoint string) *DlqClient
+// テスト用にカスタム HTTP クライアントを注入するための追加コンストラクタ
+func NewDlqClientWithHTTPClient(endpoint string, httpClient *http.Client) *DlqClient
 func (c *DlqClient) ListMessages(ctx context.Context, req *ListDlqMessagesRequest) (*ListDlqMessagesResponse, error)
 func (c *DlqClient) GetMessage(ctx context.Context, messageID string) (*DlqMessage, error)
 func (c *DlqClient) RetryMessage(ctx context.Context, messageID string) (*RetryDlqMessageResponse, error)
@@ -119,11 +121,15 @@ pub struct DlqClient { ... }
 
 impl DlqClient {
     pub fn new(endpoint: &str) -> Self
-    pub async fn list_messages(&self, topic: &str, page: u32, page_size: u32) -> Result<ListDlqMessagesResponse>
+    pub async fn list_messages(&self, req: ListDlqMessagesRequest) -> Result<ListDlqMessagesResponse, DlqError>
     pub async fn get_message(&self, message_id: &str) -> Result<DlqMessage>
     pub async fn retry_message(&self, message_id: &str) -> Result<RetryDlqMessageResponse>
     pub async fn delete_message(&self, message_id: &str) -> Result<()>
     pub async fn retry_all(&self, topic: &str) -> Result<()>
+}
+
+impl ListDlqMessagesRequest {
+    pub fn new(topic: &str, page: u32, page_size: u32) -> Self
 }
 ```
 

@@ -13,7 +13,7 @@ Kafka 接続設定・管理・ヘルスチェックライブラリ。`KafkaConfi
 | `KafkaConfig` | 構造体 | ブローカーアドレス・セキュリティプロトコル・コンシューマーグループ・タイムアウト・メッセージサイズ設定 |
 | `KafkaConfigBuilder` | 構造体 | `KafkaConfig` のビルダー |
 | `KafkaHealthChecker` | 構造体（Rust）/ インターフェース（Go/TS）/ 抽象クラス（Dart） | Kafka クラスター設定妥当性確認・ヘルスチェック |
-| `KafkaHealthStatus` | 構造体 | ヘルス状態（`healthy: bool`, `message: String`, `broker_count: Option<i32>`） |
+| `KafkaHealthStatus` | enum（Rust）/ 構造体（Go/TS/Dart） | ヘルス状態。Rust: `Healthy` / `Unhealthy(String)` の2バリアント enum。Go/TS/Dart: `healthy: bool`, `message: String`, `broker_count` フィールド |
 | `TopicConfig` | 構造体 | トピック名・パーティション数・レプリケーションファクター・保持期間の設定 |
 | `TopicPartitionInfo` | 構造体 | トピックのパーティション情報（リーダー・レプリカ・ISR）。Rust/Go のみ実装 [^1] |
 | `KafkaError` | enum | 接続失敗・トピック未検出・パーティション・設定・タイムアウトエラー型 |
@@ -77,7 +77,10 @@ let config = KafkaConfig::builder()
 // ヘルスチェック（設定の妥当性確認）
 let checker = KafkaHealthChecker::new(config.clone());
 let status = checker.check().await?;
-assert!(status.healthy);
+match status {
+    KafkaHealthStatus::Healthy => println!("Kafka is healthy"),
+    KafkaHealthStatus::Unhealthy(msg) => eprintln!("Kafka is unhealthy: {}", msg),
+}
 // 同期チェックも利用可能
 checker.check_config()?;
 

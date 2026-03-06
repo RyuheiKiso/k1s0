@@ -15,6 +15,10 @@ pub enum ResiliencyError {
     Timeout {
         after: std::time::Duration,
     },
+    #[cfg(feature = "hot-reload")]
+    Config {
+        message: String,
+    },
 }
 
 impl fmt::Display for ResiliencyError {
@@ -42,6 +46,10 @@ impl fmt::Display for ResiliencyError {
             }
             Self::Timeout { after } => {
                 write!(f, "operation timed out after {:?}", after)
+            }
+            #[cfg(feature = "hot-reload")]
+            Self::Config { message } => {
+                write!(f, "configuration error: {}", message)
             }
         }
     }

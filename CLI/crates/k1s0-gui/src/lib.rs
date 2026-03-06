@@ -129,6 +129,17 @@ pub fn run() {
             commands::execute_validate_navigation,
             commands::execute_generate_config_types,
             commands::execute_generate_navigation_types,
+            // deps
+            commands::execute_deps,
+            commands::scan_services,
+            // dev
+            commands::execute_dev_up,
+            commands::execute_dev_down,
+            commands::execute_dev_status,
+            commands::scan_dev_targets,
+            // migrate
+            commands::execute_migrate_create,
+            commands::scan_migrate_targets,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

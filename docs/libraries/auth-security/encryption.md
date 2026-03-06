@@ -94,7 +94,7 @@ assert_eq!(decrypted, b"sensitive data");
 
 **配置先**: `regions/system/library/go/encryption/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `golang.org/x/crypto v0.31.0`
+**依存関係**: `golang.org/x/crypto v0.36.0`
 
 **主要関数**:
 
@@ -160,9 +160,31 @@ export function rsaDecrypt(privateKeyPem: string, ciphertext: Buffer): Buffer;
 
 ```yaml
 dependencies:
+  crypto: ^3.0.0
+  encrypt: ^5.0.3
+  hashlib: ^2.3.0
   pointycastle: ^3.9.1
-  convert: ^3.1.2
 ```
+
+**主要 API**:
+
+```dart
+// AES-256-GCM 対称暗号化（同期）
+Uint8List generateKey();
+String encrypt(Uint8List key, String plaintext);
+String decrypt(Uint8List key, String ciphertext);
+
+// Argon2id パスワードハッシュ化（同期）
+String hashPassword(String password);
+bool verifyPassword(String password, String hash);
+
+// RSA-OAEP-SHA256 非対称暗号化（2048bit、PEM形式）
+Map<String, String> generateRsaKeyPair();
+Uint8List rsaEncrypt(String publicKeyPem, Uint8List plaintext);
+Uint8List rsaDecrypt(String privateKeyPem, Uint8List ciphertext);
+```
+
+> Dart 実装の `hashPassword` / `verifyPassword` は同期関数である点に注意。TypeScript 版は非同期（`Promise`）だが、Dart 版は `Future` を返さない。
 
 **使用例**:
 
@@ -174,9 +196,9 @@ final key = Uint8List(32); // Vault から取得したキー
 final ciphertext = encrypt(key, 'sensitive data');
 final decrypted = decrypt(key, ciphertext);
 
-// パスワードハッシュ化
-final hash = await hashPassword('user-password');
-final valid = await verifyPassword('user-password', hash);
+// パスワードハッシュ化（同期）
+final hash = hashPassword('user-password');
+final valid = verifyPassword('user-password', hash);
 ```
 
 **カバレッジ目標**: 90%以上

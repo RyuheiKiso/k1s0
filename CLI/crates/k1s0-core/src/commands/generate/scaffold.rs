@@ -260,7 +260,7 @@ fn generate_config_schema_stub(output_path: &Path, app_name: &str, framework: &s
     fs::write(
         output_path.join("config-schema.yaml"),
         format!(
-            r#"# $schema: ./config-schema-schema.json
+            r"# $schema: ./config-schema-schema.json
 version: 1
 
 service: {app_name}
@@ -278,7 +278,7 @@ categories:
         description: この設定はサンプルです。削除して独自の設定を追加してください
         type: boolean
         default: false
-"#
+"
         ),
     )?;
 
@@ -536,8 +536,7 @@ rdbms: {}
 /// navigation.yaml スタブとフレームワーク別のプレースホルダーを生成する。
 fn generate_navigation_stub(output_path: &Path, _app_name: &str, framework: &str) -> Result<()> {
     // navigation.yaml (React: public/, Flutter: assets/)
-    let nav_yaml = format!(
-        r#"# $schema: ./navigation-schema.json
+    let nav_yaml = r"# $schema: ./navigation-schema.json
 version: 1
 
 guards:
@@ -560,8 +559,7 @@ routes:
     component_id: DashboardPage
     guards: [auth_required]
     transition: fade
-"#
-    );
+".to_string();
 
     match framework {
         "react" => {

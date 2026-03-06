@@ -1,6 +1,6 @@
 use super::super::validate::config_schema::ConfigSchemaYaml;
 
-/// TypeScript型定義を生成
+/// `TypeScript型定義を生成`
 pub fn generate_typescript_types(schema: &ConfigSchemaYaml) -> String {
     let mut out = String::new();
     out.push_str(
@@ -74,7 +74,7 @@ pub fn generate_dart_types(schema: &ConfigSchemaYaml) -> String {
                 out.push_str(&format!("  {camel};\n"));
             }
         }
-        out.push_str(&format!("\n  String get key => switch (this) {{\n"));
+        out.push_str("\n  String get key => switch (this) {\n");
         for field in &cat.fields {
             let camel = to_camel_case(&field.key);
             out.push_str(&format!(
