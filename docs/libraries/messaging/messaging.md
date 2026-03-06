@@ -89,7 +89,7 @@ type MessagingError struct {
 ### metadata 生成 API の `correlationId` 必須性
 
 - Go: `NewEventMetadata(eventType, correlationId, source)` で必須
-- TypeScript: `createEventMetadata(eventType, source, correlationId, traceId)` で必須（`traceId` も必須）
+- TypeScript: `createEventMetadata(eventType, source, correlationId, traceId?)` で `correlationId` は必須、`traceId` はオプション（未指定時は UUID 自動生成）
 - Dart: `EventMetadata.create(eventType, source, {required correlationId, traceId?})` で必須
 - Rust: `EventMetadata::new(...).with_correlation_id(...)` のビルダーパターン（任意）
 

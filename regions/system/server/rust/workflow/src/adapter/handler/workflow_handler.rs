@@ -524,11 +524,6 @@ pub async fn get_instance_status(
     }
 }
 
-/// GET /api/v1/workflows/:id/status
-pub async fn get_workflow_status(state: State<AppState>, path: Path<String>) -> impl IntoResponse {
-    get_instance_status(state, path).await
-}
-
 /// PUT /api/v1/workflows/:id
 pub async fn update_workflow(
     State(state): State<AppState>,

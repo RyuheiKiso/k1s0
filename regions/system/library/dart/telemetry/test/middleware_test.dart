@@ -13,7 +13,12 @@ void main() {
   late StreamSubscription<LogRecord> subscription;
 
   setUp(() {
-    logger = createLogger('MiddlewareTest');
+    logger = createLogger(TelemetryConfig(
+      serviceName: 'MiddlewareTest',
+      version: '1.0.0',
+      tier: 'system',
+      environment: 'test',
+    ));
     logEntries = [];
     Logger.root.level = Level.ALL;
     subscription = Logger.root.onRecord.listen((record) {

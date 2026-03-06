@@ -8,7 +8,7 @@
 |------|-----------|------|
 | InitTelemetry | `(config) -> Provider` | OpenTelemetry 初期化（トレース + ログ） |
 | Shutdown | `() -> void` | プロバイダーのシャットダウン |
-| NewLogger / createLogger | Go/Rust/TS: `(config) -> Logger`, Dart: `(name) -> Logger` | 構造化ログのロガー生成 |
+| NewLogger / createLogger | `(config) -> Logger` | 構造化ログのロガー生成 |
 | NewMetrics | `(serviceName) -> Metrics` | Prometheus メトリクス（RED メソッド: リクエスト数・エラー率・レイテンシ） |
 | MetricsHandler / gather_metrics / getMetrics / toPrometheusText | `() -> Handler / String` | `/metrics` エンドポイント用ハンドラ / Prometheus テキスト出力 |
 | LogWithTrace | `(ctx, logger) -> Logger` | トレース ID・スパン ID をロガーに付与（Go 明示呼び出し / TS は mixin で自動注入 / Dart は middleware で x-trace-id ヘッダ） |
@@ -561,16 +561,15 @@ void shutdown() {
   Logger.root.clearListeners();
 }
 
-/// createLogger は名前を指定して Logger を生成する。
-/// 注意: Go/Rust/TypeScript と異なり、TelemetryConfig ではなく name のみを受け取る。
-Logger createLogger(String name) => Logger(name);
+/// createLogger は TelemetryConfig から Logger を生成する。
+/// config の serviceName をロガー名として使用する。
+Logger createLogger(TelemetryConfig config) => Logger(config.serviceName);
 ```
 
 **Dart 固有の注意点**:
 - `sampleRate` のデフォルト値は `1.0`（他言語はゼロ値）
 - `logLevel` のデフォルト値は `'info'`（他言語はゼロ値 / required）
 - `logFormat` のデフォルト値は `'json'`（他言語はゼロ値 / optional）
-- `createLogger` は `TelemetryConfig` ではなく `String name` のみを引数に取る
 - OpenTelemetry トレース連携は未実装（ミドルウェアで独自の `x-trace-id` ヘッダを使用）
 
 ## ミドルウェア
@@ -726,7 +725,13 @@ class TelemetryMiddleware {
 使用例:
 
 ```dart
-final logger = createLogger('MyServer');
+final cfg = TelemetryConfig(
+  serviceName: 'MyServer',
+  version: '1.0.0',
+  tier: 'system',
+  environment: 'dev',
+);
+final logger = createLogger(cfg);
 final telemetry = TelemetryMiddleware(logger: logger);
 
 final handler = const Pipeline()

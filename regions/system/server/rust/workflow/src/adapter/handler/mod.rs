@@ -33,10 +33,6 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         let read_routes = Router::new()
             .route("/api/v1/workflows", get(workflow_handler::list_workflows))
             .route("/api/v1/workflows/:id", get(workflow_handler::get_workflow))
-            .route(
-                "/api/v1/workflows/:id/status",
-                get(workflow_handler::get_workflow_status),
-            )
             .route("/api/v1/instances", get(workflow_handler::list_instances))
             .route("/api/v1/instances/:id", get(workflow_handler::get_instance))
             .route(
@@ -116,10 +112,6 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
             .route(
                 "/api/v1/workflows/:id/execute",
                 post(workflow_handler::execute_workflow),
-            )
-            .route(
-                "/api/v1/workflows/:id/status",
-                get(workflow_handler::get_workflow_status),
             )
             .route("/api/v1/instances", get(workflow_handler::list_instances))
             .route("/api/v1/instances/:id", get(workflow_handler::get_instance))
