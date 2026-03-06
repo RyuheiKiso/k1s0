@@ -380,8 +380,8 @@ graphql-client/
 ├── lib/
 │   ├── graphql_client.dart       # 公開 API（再エクスポート）
 │   └── src/
-│       ├── graphql_client.dart   # GraphQlClient abstract class・InMemoryGraphQlClient
-│       └── graphql_query.dart    # GraphQlQuery・GraphQlResponse・GraphQlError・ErrorLocation
+│       ├── graphql_client.dart   # GraphQlClient abstract class・InMemoryGraphQlClient・GraphQlHttpClient
+│       └── graphql_query.dart    # GraphQlQuery・GraphQlResponse・GraphQlError・ErrorLocation・ClientError
 └── pubspec.yaml
 ```
 
