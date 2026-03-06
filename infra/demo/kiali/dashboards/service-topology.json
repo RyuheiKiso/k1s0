@@ -7,43 +7,42 @@
   "links": [],
   "panels": [
     {
-      "title": "Service Topology (Node Graph)",
-      "description": "Nodes = workloads (id+title from label_replace), Edges = request flow (source+target).",
+      "title": "Service Topology",
+      "description": "Live service-to-service communication graph from Istio metrics",
       "type": "nodeGraph",
       "gridPos": { "h": 18, "w": 24, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "" },
       "targets": [
         {
           "refId": "nodes",
-          "expr": "label_replace(label_replace(sum(label_replace(rate(istio_requests_total{reporter=\"destination\"}[5m]), \"workload\", \"$1\", \"destination_workload\", \"(.*)\")) by (workload) or sum(label_replace(rate(istio_requests_total{reporter=\"destination\"}[5m]), \"workload\", \"$1\", \"source_workload\", \"(.*)\")) by (workload), \"id\", \"$1\", \"workload\", \"(.*)\"), \"title\", \"$1\", \"workload\", \"(.*)\") > 0",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:3100/api/grafana/nodes",
           "format": "table",
-          "instant": true
+          "parser": "backend",
+          "root_selector": "",
+          "columns": [
+            { "selector": "id", "text": "id", "type": "string" },
+            { "selector": "title", "text": "title", "type": "string" },
+            { "selector": "subtitle", "text": "subtitle", "type": "string" },
+            { "selector": "mainStat", "text": "mainStat", "type": "number" }
+          ]
         },
         {
           "refId": "edges",
-          "expr": "label_replace(label_replace(sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload), \"source\", \"$1\", \"source_workload\", \"(.*)\"), \"target\", \"$1\", \"destination_workload\", \"(.*)\") > 0",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:3100/api/grafana/edges",
           "format": "table",
-          "instant": true
-        }
-      ],
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {}
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "workload": true,
-              "source_workload": true,
-              "destination_workload": true
-            },
-            "renameByName": {
-              "Value": "mainStat"
-            }
-          }
+          "parser": "backend",
+          "root_selector": "",
+          "columns": [
+            { "selector": "id", "text": "id", "type": "string" },
+            { "selector": "source", "text": "source", "type": "string" },
+            { "selector": "target", "text": "target", "type": "string" },
+            { "selector": "mainStat", "text": "mainStat", "type": "number" }
+          ]
         }
       ],
       "options": {
@@ -57,7 +56,7 @@
     },
     {
       "title": "Service Communication Map",
-      "description": "All source-to-destination request flows with rate",
+      "description": "All source-to-destination request flows ranked by rate",
       "type": "barchart",
       "gridPos": { "h": 12, "w": 24, "x": 0, "y": 18 },
       "datasource": { "type": "prometheus", "uid": "" },
@@ -65,52 +64,9 @@
         {
           "refId": "A",
           "expr": "sort_desc(sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload) > 0)",
-          "format": "table",
+          "legendFormat": "{{source_workload}} -> {{destination_workload}}",
+          "format": "time_series",
           "instant": true
-        }
-      ],
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {}
-        },
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "mode": "binary",
-            "alias": "path",
-            "binary": {
-              "left": "source_workload",
-              "operator": "+",
-              "right": "destination_workload"
-            },
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "source_workload": true,
-              "destination_workload": true
-            },
-            "renameByName": {
-              "path": "Communication Path",
-              "Value": "Req/s"
-            }
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [{ "field": "Req/s", "desc": true }]
-          }
         }
       ],
       "fieldConfig": {
@@ -128,99 +84,32 @@
         "showValue": "always",
         "barWidth": 0.7,
         "groupWidth": 0.7,
-        "xTickLabelSpacing": 100
+        "xTickLabelSpacing": 100,
+        "legend": { "displayMode": "hidden" }
       }
     },
     {
-      "title": "Service-to-Service Traffic Matrix",
-      "description": "Request rate between each source and destination pair",
-      "type": "table",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 30 },
+      "title": "Request Rate by Path",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
       "datasource": { "type": "prometheus", "uid": "" },
       "targets": [
         {
-          "expr": "sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, source_workload_namespace, destination_workload, destination_workload_namespace) > 0",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true
-        }
-      ],
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {}
-        },
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": { "Time": true },
-            "renameByName": {
-              "source_workload": "Source",
-              "source_workload_namespace": "Source NS",
-              "destination_workload": "Destination",
-              "destination_workload_namespace": "Dest NS",
-              "Value": "Req/s"
-            },
-            "indexByName": {
-              "source_workload_namespace": 0,
-              "source_workload": 1,
-              "destination_workload_namespace": 2,
-              "destination_workload": 3,
-              "Value": 4
-            }
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [{ "field": "Req/s", "desc": true }]
-          }
+          "expr": "sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload) > 0",
+          "legendFormat": "{{source_workload}} -> {{destination_workload}}"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto" }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Req/s" },
-            "properties": [
-              { "id": "unit", "value": "reqps" },
-              { "id": "decimals", "value": 3 },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    { "color": "transparent", "value": null },
-                    { "color": "blue", "value": 0.01 },
-                    { "color": "green", "value": 0.1 },
-                    { "color": "yellow", "value": 1 }
-                  ]
-                }
-              },
-              { "id": "color", "value": { "mode": "thresholds" } }
-            ]
-          }
-        ]
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 }
+        }
       }
     },
     {
       "title": "Error Rate by Communication Path",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
       "datasource": { "type": "prometheus", "uid": "" },
       "targets": [
         {
@@ -246,7 +135,7 @@
     {
       "title": "Latency P95 by Communication Path",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 38 },
       "datasource": { "type": "prometheus", "uid": "" },
       "targets": [
         {
@@ -262,27 +151,9 @@
       }
     },
     {
-      "title": "Request Rate by Path",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
-      "datasource": { "type": "prometheus", "uid": "" },
-      "targets": [
-        {
-          "expr": "sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload) > 0",
-          "legendFormat": "{{source_workload}} -> {{destination_workload}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": { "drawStyle": "line", "fillOpacity": 10 }
-        }
-      }
-    },
-    {
       "title": "TCP Bytes by Communication Path",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 38 },
       "datasource": { "type": "prometheus", "uid": "" },
       "targets": [
         {
@@ -306,5 +177,5 @@
   "timezone": "browser",
   "title": "k1s0 Service Topology",
   "uid": "k1s0-service-topology",
-  "version": 5
+  "version": 7
 }

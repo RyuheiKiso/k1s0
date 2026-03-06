@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import type { RecommendedTab } from "./ScenarioPanel";
+import TopologyView from "./TopologyView";
 
 interface DashboardViewerProps {
   recommendedTab: RecommendedTab;
 }
 
-const tabs = [
+const iframeTabs = [
   {
     id: "kiali" as const,
     label: "Kiali",
@@ -21,13 +22,17 @@ const tabs = [
   {
     id: "grafana" as const,
     label: "Grafana",
-    url: "http://localhost:3000/d/k1s0-mesh-overview?orgId=1&refresh=10s",
+    url: "http://localhost:3000/d/k1s0-mesh-overview/k1s0-service-mesh-overview?orgId=1&refresh=10s",
     color: "text-orange-400 border-orange-400",
   },
+];
+
+const allTabs = [
+  ...iframeTabs,
   {
     id: "topology" as const,
     label: "Topology",
-    url: "http://localhost:3000/d/k1s0-service-topology?orgId=1&refresh=10s",
+    url: "",
     color: "text-purple-400 border-purple-400",
   },
 ];
@@ -41,12 +46,13 @@ export default function DashboardViewer({
     setActiveTab(recommendedTab);
   }, [recommendedTab]);
 
-  const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[0];
+  const currentTab = allTabs.find((t) => t.id === activeTab) ?? allTabs[0];
+  const isTopology = activeTab === "topology";
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex border-b border-slate-700">
-        {tabs.map((tab) => (
+        {allTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -59,17 +65,20 @@ export default function DashboardViewer({
             {tab.label}
           </button>
         ))}
-        <a
-          href={currentTab.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ml-auto px-3 py-2 text-xs text-slate-500 hover:text-slate-300 transition-colors self-center"
-        >
-          Open in new tab
-        </a>
+        {!isTopology && currentTab.url && (
+          <a
+            href={currentTab.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto px-3 py-2 text-xs text-slate-500 hover:text-slate-300 transition-colors self-center"
+          >
+            Open in new tab
+          </a>
+        )}
       </div>
       <div className="flex-1 relative">
-        {tabs.map((tab) => (
+        {/* Iframe tabs */}
+        {iframeTabs.map((tab) => (
           <iframe
             key={tab.id}
             src={tab.url}
@@ -79,6 +88,8 @@ export default function DashboardViewer({
             }`}
           />
         ))}
+        {/* Topology tab (React component) */}
+        {isTopology && <TopologyView />}
       </div>
     </div>
   );
