@@ -1,26 +1,27 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:k1s0_circuit_breaker/circuit_breaker.dart' as standalone;
+
 import 'bulkhead.dart';
 import 'error.dart';
 import 'policy.dart';
 
-enum _CircuitState { closed, open, halfOpen }
-
 class ResiliencyDecorator {
   final ResiliencyPolicy policy;
   final Bulkhead? _bulkhead;
-  _CircuitState _cbState = _CircuitState.closed;
-  int _cbFailureCount = 0;
-  int _cbSuccessCount = 0;
-  DateTime? _cbLastFailureTime;
+  final standalone.CircuitBreaker? _cb;
 
   ResiliencyDecorator(this.policy)
       : _bulkhead = policy.bulkhead != null
-            ? Bulkhead(
-                maxConcurrent: policy.bulkhead!.maxConcurrentCalls,
-                maxWait: policy.bulkhead!.maxWaitDuration,
-              )
+            ? Bulkhead.fromConfig(policy.bulkhead!)
+            : null,
+        _cb = policy.circuitBreaker != null
+            ? standalone.CircuitBreaker(standalone.CircuitBreakerConfig(
+                failureThreshold: policy.circuitBreaker!.failureThreshold,
+                successThreshold: policy.circuitBreaker!.halfOpenMaxCalls,
+                timeout: policy.circuitBreaker!.recoveryTimeout,
+              ))
             : null;
 
   Future<T> execute<T>(Future<T> Function() fn) async {
@@ -44,12 +45,12 @@ class ResiliencyDecorator {
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         final result = await _executeWithTimeout(fn);
-        _recordSuccess();
+        _cb?.recordSuccess();
         return result;
       } on ResiliencyError {
         rethrow;
       } catch (e) {
-        _recordFailure();
+        _cb?.recordFailure();
         lastError = e;
 
         _checkCircuitBreaker();
@@ -81,48 +82,13 @@ class ResiliencyDecorator {
   }
 
   void _checkCircuitBreaker() {
-    if (policy.circuitBreaker == null) return;
+    if (_cb == null) return;
 
-    final cfg = policy.circuitBreaker!;
-    switch (_cbState) {
-      case _CircuitState.closed:
-        return;
-      case _CircuitState.open:
-        if (_cbLastFailureTime != null) {
-          final elapsed = DateTime.now().difference(_cbLastFailureTime!);
-          if (elapsed >= cfg.recoveryTimeout) {
-            _cbState = _CircuitState.halfOpen;
-            _cbSuccessCount = 0;
-            return;
-          }
-          throw CircuitBreakerOpenError(cfg.recoveryTimeout - elapsed);
-        }
-      case _CircuitState.halfOpen:
-        return;
-    }
-  }
-
-  void _recordSuccess() {
-    if (policy.circuitBreaker == null) return;
-
-    if (_cbState == _CircuitState.halfOpen) {
-      _cbSuccessCount++;
-      if (_cbSuccessCount >= policy.circuitBreaker!.halfOpenMaxCalls) {
-        _cbState = _CircuitState.closed;
-        _cbFailureCount = 0;
-      }
-    } else if (_cbState == _CircuitState.closed) {
-      _cbFailureCount = 0;
-    }
-  }
-
-  void _recordFailure() {
-    if (policy.circuitBreaker == null) return;
-
-    _cbFailureCount++;
-    if (_cbFailureCount >= policy.circuitBreaker!.failureThreshold) {
-      _cbState = _CircuitState.open;
-      _cbLastFailureTime = DateTime.now();
+    if (_cb.isOpen) {
+      final elapsed = _cb.state == standalone.CircuitState.open
+          ? policy.circuitBreaker!.recoveryTimeout
+          : Duration.zero;
+      throw CircuitBreakerOpenError(elapsed);
     }
   }
 

@@ -1,47 +1,32 @@
-import 'dart:async';
+import 'package:k1s0_bulkhead/bulkhead.dart' as standalone;
+
 import 'error.dart';
+import 'policy.dart';
 
 class Bulkhead {
+  final standalone.Bulkhead _inner;
   final int maxConcurrent;
-  final Duration maxWait;
-  int _current = 0;
-  final List<Completer<void>> _waiters = [];
 
-  Bulkhead({required this.maxConcurrent, required this.maxWait});
+  Bulkhead({required this.maxConcurrent, required Duration maxWait})
+      : _inner = standalone.Bulkhead(standalone.BulkheadConfig(
+          maxConcurrentCalls: maxConcurrent,
+          maxWaitDuration: maxWait,
+        ));
+
+  factory Bulkhead.fromConfig(BulkheadConfig config) => Bulkhead(
+        maxConcurrent: config.maxConcurrentCalls,
+        maxWait: config.maxWaitDuration,
+      );
 
   Future<void> acquire() async {
-    if (_current < maxConcurrent) {
-      _current++;
-      return;
-    }
-
-    final completer = Completer<void>();
-    _waiters.add(completer);
-
-    final timer = Timer(maxWait, () {
-      if (!completer.isCompleted) {
-        _waiters.remove(completer);
-        completer.completeError(BulkheadFullError(maxConcurrent));
-      }
-    });
-
     try {
-      await completer.future;
-      timer.cancel();
-    } catch (_) {
-      timer.cancel();
-      rethrow;
+      await _inner.acquire();
+    } on standalone.BulkheadFullException {
+      throw BulkheadFullError(maxConcurrent);
     }
   }
 
   void release() {
-    if (_waiters.isNotEmpty) {
-      final waiter = _waiters.removeAt(0);
-      if (!waiter.isCompleted) {
-        waiter.complete();
-      }
-    } else {
-      _current--;
-    }
+    _inner.release();
   }
 }

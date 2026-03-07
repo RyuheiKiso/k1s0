@@ -13,6 +13,7 @@ thiserror = "2"
 tokio = { version = "1", features = ["sync", "time", "macros"] }
 tracing = "0.1"
 opentelemetry = { version = "0.27", optional = true }
+k1s0-bulkhead = { path = "../bulkhead" }
 k1s0-retry = { path = "../retry" }
 k1s0-circuit-breaker = { path = "../circuit-breaker" }
 serde = { version = "1", features = ["derive"], optional = true }

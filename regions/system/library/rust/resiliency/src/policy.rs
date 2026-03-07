@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+pub use k1s0_bulkhead::BulkheadConfig;
 pub use k1s0_circuit_breaker::CircuitBreakerConfig;
 pub use k1s0_retry::RetryConfig;
 
@@ -23,21 +24,6 @@ impl ExponentialBackoff {
         let base = self.initial_delay.as_millis() as f64 * multiplier.powi(attempt as i32);
         let capped = base.min(self.max_delay.as_millis() as f64);
         Duration::from_millis(capped as u64)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BulkheadConfig {
-    pub max_concurrent_calls: usize,
-    pub max_wait_duration: Duration,
-}
-
-impl Default for BulkheadConfig {
-    fn default() -> Self {
-        Self {
-            max_concurrent_calls: 20,
-            max_wait_duration: Duration::from_millis(500),
-        }
     }
 }
 

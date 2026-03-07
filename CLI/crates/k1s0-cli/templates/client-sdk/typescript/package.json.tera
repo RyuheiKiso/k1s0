@@ -1,5 +1,5 @@
 {
-  "name": "@k1s0/resiliency",
+  "name": "@k1s0/{{ service_name }}-client",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -7,10 +7,6 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run"
-  },
-  "dependencies": {
-    "@k1s0/circuit-breaker": "file:../circuit-breaker",
-    "@k1s0/bulkhead": "file:../bulkhead"
   },
   "devDependencies": {
     "vitest": "^2.0.0",
