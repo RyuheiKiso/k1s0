@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"sync"
-	"sync/atomic"
 	"time"
+
+	"github.com/k1s0-platform/system-library-go-bulkhead"
+	"github.com/k1s0-platform/system-library-go-circuit-breaker"
 )
 
 // Error types
@@ -65,23 +66,11 @@ type ResiliencyPolicy struct {
 	Timeout        time.Duration
 }
 
-type circuitState int
-
-const (
-	circuitClosed circuitState = iota
-	circuitOpen
-	circuitHalfOpen
-)
-
 // ResiliencyDecorator applies a ResiliencyPolicy to function executions.
 type ResiliencyDecorator struct {
-	policy          ResiliencyPolicy
-	bulkheadCh      chan struct{}
-	cbState         circuitState
-	cbMu            sync.Mutex
-	cbFailureCount  atomic.Int32
-	cbSuccessCount  atomic.Int32
-	cbLastFailureAt time.Time
+	policy ResiliencyPolicy
+	bh     *bulkhead.Bulkhead
+	cb     *circuitbreaker.CircuitBreaker
 }
 
 // NewResiliencyDecorator creates a new decorator from the given policy.
@@ -90,10 +79,17 @@ func NewResiliencyDecorator(policy ResiliencyPolicy) *ResiliencyDecorator {
 		policy: policy,
 	}
 	if policy.Bulkhead != nil {
-		d.bulkheadCh = make(chan struct{}, policy.Bulkhead.MaxConcurrentCalls)
-		for i := 0; i < policy.Bulkhead.MaxConcurrentCalls; i++ {
-			d.bulkheadCh <- struct{}{}
-		}
+		d.bh = bulkhead.New(bulkhead.Config{
+			MaxConcurrentCalls: policy.Bulkhead.MaxConcurrentCalls,
+			MaxWaitDuration:    policy.Bulkhead.MaxWaitDuration,
+		})
+	}
+	if policy.CircuitBreaker != nil {
+		d.cb = circuitbreaker.New(circuitbreaker.Config{
+			FailureThreshold: uint32(policy.CircuitBreaker.FailureThreshold),
+			SuccessThreshold: uint32(policy.CircuitBreaker.HalfOpenMaxCalls),
+			Timeout:          policy.CircuitBreaker.RecoveryTimeout,
+		})
 	}
 	return d
 }
@@ -108,20 +104,19 @@ func Execute[T any](ctx context.Context, d *ResiliencyDecorator, fn func() (T, e
 	}
 
 	// Acquire bulkhead permit
-	if d.bulkheadCh != nil {
-		cfg := d.policy.Bulkhead
-		select {
-		case <-d.bulkheadCh:
-			defer func() { d.bulkheadCh <- struct{}{} }()
-		case <-time.After(cfg.MaxWaitDuration):
-			return zero, &ResiliencyError{
-				Kind:    "bulkhead_full",
-				Message: fmt.Sprintf("max concurrent calls: %d", cfg.MaxConcurrentCalls),
-				Cause:   ErrBulkheadFull,
+	if d.bh != nil {
+		err := d.bh.Acquire(ctx)
+		if err != nil {
+			if errors.Is(err, bulkhead.ErrFull) {
+				return zero, &ResiliencyError{
+					Kind:    "bulkhead_full",
+					Message: fmt.Sprintf("max concurrent calls: %d", d.policy.Bulkhead.MaxConcurrentCalls),
+					Cause:   ErrBulkheadFull,
+				}
 			}
-		case <-ctx.Done():
-			return zero, ctx.Err()
+			return zero, err
 		}
+		defer d.bh.Release()
 	}
 
 	maxAttempts := 1
@@ -201,65 +196,30 @@ func executeWithTimeout[T any](ctx context.Context, d *ResiliencyDecorator, fn f
 }
 
 func (d *ResiliencyDecorator) checkCircuitBreaker() error {
-	if d.policy.CircuitBreaker == nil {
+	if d.cb == nil {
 		return nil
 	}
 
-	d.cbMu.Lock()
-	defer d.cbMu.Unlock()
-
-	switch d.cbState {
-	case circuitClosed:
-		return nil
-	case circuitOpen:
-		if time.Since(d.cbLastFailureAt) >= d.policy.CircuitBreaker.RecoveryTimeout {
-			d.cbState = circuitHalfOpen
-			d.cbSuccessCount.Store(0)
-			return nil
-		}
-		remaining := d.policy.CircuitBreaker.RecoveryTimeout - time.Since(d.cbLastFailureAt)
+	state := d.cb.State()
+	if state == circuitbreaker.StateOpen {
 		return &ResiliencyError{
 			Kind:    "circuit_open",
-			Message: fmt.Sprintf("circuit breaker open, remaining: %v", remaining),
+			Message: "circuit breaker open",
 			Cause:   ErrCircuitBreakerOpen,
 		}
-	case circuitHalfOpen:
-		return nil
 	}
 	return nil
 }
 
 func (d *ResiliencyDecorator) recordSuccess() {
-	if d.policy.CircuitBreaker == nil {
-		return
-	}
-
-	d.cbMu.Lock()
-	defer d.cbMu.Unlock()
-
-	switch d.cbState {
-	case circuitHalfOpen:
-		count := d.cbSuccessCount.Add(1)
-		if int(count) >= d.policy.CircuitBreaker.HalfOpenMaxCalls {
-			d.cbState = circuitClosed
-			d.cbFailureCount.Store(0)
-		}
-	case circuitClosed:
-		d.cbFailureCount.Store(0)
+	if d.cb != nil {
+		d.cb.RecordSuccess()
 	}
 }
 
 func (d *ResiliencyDecorator) recordFailure() {
-	if d.policy.CircuitBreaker == nil {
-		return
-	}
-
-	count := d.cbFailureCount.Add(1)
-	if int(count) >= d.policy.CircuitBreaker.FailureThreshold {
-		d.cbMu.Lock()
-		d.cbState = circuitOpen
-		d.cbLastFailureAt = time.Now()
-		d.cbMu.Unlock()
+	if d.cb != nil {
+		d.cb.RecordFailure()
 	}
 }
 

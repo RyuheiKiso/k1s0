@@ -216,6 +216,10 @@ build-ts:
 proto:
     ./scripts/generate-proto.sh
 
+# Client SDK 生成
+gen-sdk service proto="api/proto":
+    ./scripts/generate-client-sdk.sh --service {{service}} --proto {{proto}}
+
 # --- CI ---
 
 # CI 全実行（lint + test + build）

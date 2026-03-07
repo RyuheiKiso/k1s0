@@ -1,3 +1,9 @@
+import {
+  CircuitBreaker,
+  CircuitBreakerError,
+} from '@k1s0/circuit-breaker';
+import { Bulkhead, BulkheadFullError } from '@k1s0/bulkhead';
+
 export interface RetryConfig {
   maxAttempts: number;
   baseDelayMs: number;
@@ -40,36 +46,52 @@ export class ResiliencyError extends Error {
   }
 }
 
-type CircuitState = 'closed' | 'open' | 'half_open';
-
 export class ResiliencyDecorator {
   private readonly policy: ResiliencyPolicy;
-  private bulkheadCurrent = 0;
-  private bulkheadWaiters: Array<{
-    resolve: () => void;
-    timer: ReturnType<typeof setTimeout>;
-  }> = [];
-  private cbState: CircuitState = 'closed';
-  private cbFailureCount = 0;
-  private cbSuccessCount = 0;
-  private cbLastFailureTime = 0;
+  private readonly bulkhead?: Bulkhead;
+  private readonly cb?: CircuitBreaker;
 
   constructor(policy: ResiliencyPolicy) {
     this.policy = policy;
+
+    if (policy.bulkhead) {
+      this.bulkhead = new Bulkhead({
+        maxConcurrentCalls: policy.bulkhead.maxConcurrentCalls,
+        maxWaitDurationMs: policy.bulkhead.maxWaitDurationMs,
+      });
+    }
+
+    if (policy.circuitBreaker) {
+      this.cb = new CircuitBreaker({
+        failureThreshold: policy.circuitBreaker.failureThreshold,
+        successThreshold: policy.circuitBreaker.halfOpenMaxCalls ?? 1,
+        timeoutMs: policy.circuitBreaker.recoveryTimeoutMs,
+      });
+    }
   }
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     this.checkCircuitBreaker();
 
-    if (this.policy.bulkhead) {
-      await this.acquireBulkhead();
+    if (this.bulkhead) {
+      try {
+        await this.bulkhead.acquire();
+      } catch (err) {
+        if (err instanceof BulkheadFullError) {
+          throw new ResiliencyError(
+            `bulkhead full, max concurrent: ${this.policy.bulkhead!.maxConcurrentCalls}`,
+            'bulkhead_full',
+          );
+        }
+        throw err;
+      }
     }
 
     try {
       return await this.executeWithRetry(fn);
     } finally {
-      if (this.policy.bulkhead) {
-        this.releaseBulkhead();
+      if (this.bulkhead) {
+        this.bulkhead.release();
       }
     }
   }
@@ -139,85 +161,25 @@ export class ResiliencyDecorator {
   }
 
   private checkCircuitBreaker(): void {
-    if (!this.policy.circuitBreaker) return;
+    if (!this.cb) return;
 
-    const cfg = this.policy.circuitBreaker;
-
-    switch (this.cbState) {
-      case 'closed':
-        return;
-      case 'open': {
-        const elapsed = Date.now() - this.cbLastFailureTime;
-        if (elapsed >= cfg.recoveryTimeoutMs) {
-          this.cbState = 'half_open';
-          this.cbSuccessCount = 0;
-          return;
-        }
-        throw new ResiliencyError(
-          `circuit breaker open, remaining: ${cfg.recoveryTimeoutMs - elapsed}ms`,
-          'circuit_open',
-        );
-      }
-      case 'half_open':
-        return;
+    if (this.cb.isOpen()) {
+      throw new ResiliencyError(
+        'circuit breaker open',
+        'circuit_open',
+      );
     }
   }
 
   private recordSuccess(): void {
-    if (!this.policy.circuitBreaker) return;
-
-    if (this.cbState === 'half_open') {
-      this.cbSuccessCount++;
-      const maxCalls = this.policy.circuitBreaker.halfOpenMaxCalls ?? 1;
-      if (this.cbSuccessCount >= maxCalls) {
-        this.cbState = 'closed';
-        this.cbFailureCount = 0;
-      }
-    } else if (this.cbState === 'closed') {
-      this.cbFailureCount = 0;
+    if (this.cb) {
+      this.cb.recordSuccess();
     }
   }
 
   private recordFailure(): void {
-    if (!this.policy.circuitBreaker) return;
-
-    this.cbFailureCount++;
-    if (this.cbFailureCount >= this.policy.circuitBreaker.failureThreshold) {
-      this.cbState = 'open';
-      this.cbLastFailureTime = Date.now();
-    }
-  }
-
-  private acquireBulkhead(): Promise<void> {
-    const cfg = this.policy.bulkhead!;
-    if (this.bulkheadCurrent < cfg.maxConcurrentCalls) {
-      this.bulkheadCurrent++;
-      return Promise.resolve();
-    }
-
-    return new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        const idx = this.bulkheadWaiters.findIndex((w) => w.resolve === resolve);
-        if (idx >= 0) this.bulkheadWaiters.splice(idx, 1);
-        reject(
-          new ResiliencyError(
-            `bulkhead full, max concurrent: ${cfg.maxConcurrentCalls}`,
-            'bulkhead_full',
-          ),
-        );
-      }, cfg.maxWaitDurationMs);
-
-      this.bulkheadWaiters.push({ resolve, timer });
-    });
-  }
-
-  private releaseBulkhead(): void {
-    if (this.bulkheadWaiters.length > 0) {
-      const waiter = this.bulkheadWaiters.shift()!;
-      clearTimeout(waiter.timer);
-      waiter.resolve();
-    } else {
-      this.bulkheadCurrent--;
+    if (this.cb) {
+      this.cb.recordFailure();
     }
   }
 }

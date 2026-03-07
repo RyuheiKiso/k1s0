@@ -1,0 +1,10 @@
+name: k1s0_{{ service_snake }}_client
+description: {{ service_pascal }} service client SDK
+version: 0.1.0
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  grpc: ^4.0.0
+  protobuf: ^3.0.0

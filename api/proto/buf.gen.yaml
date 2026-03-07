@@ -28,3 +28,9 @@ plugins:
     out: gen/rust
     opt:
       - compile_well_known_types
+
+  # --- Dart (protoc-gen-dart) ---
+  - local: protoc-gen-dart
+    out: gen/dart
+    opt:
+      - grpc
