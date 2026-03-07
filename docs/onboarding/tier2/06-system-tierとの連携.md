@@ -187,15 +187,7 @@ async fn main() -> Result<()> {
 
 ### JWT 検証フロー
 
-```
-クライアント → API Gateway → business server
-                               ↓
-                          JWT 検証（authlib）
-                               ↓
-                          RBAC チェック（authlib）
-                               ↓
-                          ビジネスロジック実行
-```
+<img src="../img/jwt-verification.svg" width="600" />
 
 1. クライアントが Keycloak から JWT を取得
 2. API Gateway がリクエストをルーティング

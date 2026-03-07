@@ -12,9 +12,7 @@ k1s0 プロジェクトへの参加者向けオンボーディング資料。Tie
 
 ## 依存方向
 
-```
-service (tier3) → business (tier2) → system (tier1)
-```
+<img src="./img/tier-dependency.svg" width="800" />
 
 下位層は上位層に依存する。逆方向の依存は禁止。
 

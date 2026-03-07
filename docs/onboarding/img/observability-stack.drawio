@@ -1,0 +1,101 @@
+<mxfile host="draw.io" modified="2026-03-07" agent="draw.io" version="24.0.0" type="device">
+  <diagram id="observability-stack" name="可観測性スタック">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="850" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- タイトル -->
+        <mxCell id="title" value="可観測性スタック（Observability Stack）" style="text;html=1;fontSize=18;fontStyle=1;fontFamily=Helvetica;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Application (OTel SDK) -->
+        <mxCell id="app" value="&lt;b&gt;Application&lt;/b&gt;&lt;br&gt;(OTel SDK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;fontColor=#FFFFFF;strokeColor=#3A70B0;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="250" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- OTel Collector -->
+        <mxCell id="collector" value="&lt;b&gt;OTel Collector&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#808080;fontColor=#FFFFFF;strokeColor=#606060;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="250" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Jaeger (トレース) -->
+        <mxCell id="jaeger" value="&lt;b&gt;Jaeger&lt;/b&gt;&lt;br&gt;(トレース)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7B68EE;fontColor=#FFFFFF;strokeColor=#5B48CE;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="120" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Prometheus (メトリクス) -->
+        <mxCell id="prometheus" value="&lt;b&gt;Prometheus&lt;/b&gt;&lt;br&gt;(メトリクス)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF8C00;fontColor=#FFFFFF;strokeColor=#CC7000;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="250" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Loki (ログ) -->
+        <mxCell id="loki" value="&lt;b&gt;Loki&lt;/b&gt;&lt;br&gt;(ログ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E8B57;fontColor=#FFFFFF;strokeColor=#1E6B3F;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="380" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Grafana -->
+        <mxCell id="grafana" value="&lt;b&gt;Grafana&lt;/b&gt;&lt;br&gt;(ダッシュボード)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DC3545;fontColor=#FFFFFF;strokeColor=#B02A37;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="540" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- App → Collector -->
+        <mxCell id="e1" value="traces, metrics, logs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333333;fontFamily=Helvetica;fontSize=11;fontColor=#333333;" edge="1" source="app" target="collector" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Collector → Jaeger -->
+        <mxCell id="e2" value="traces" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#7B68EE;fontFamily=Helvetica;fontSize=11;fontColor=#7B68EE;" edge="1" source="collector" target="jaeger" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Collector → Prometheus -->
+        <mxCell id="e3" value="metrics" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#FF8C00;fontFamily=Helvetica;fontSize=11;fontColor=#FF8C00;" edge="1" source="collector" target="prometheus" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Collector → Loki -->
+        <mxCell id="e4" value="logs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#2E8B57;fontFamily=Helvetica;fontSize=11;fontColor=#2E8B57;" edge="1" source="collector" target="loki" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Jaeger → Grafana -->
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#999999;dashed=1;" edge="1" source="jaeger" target="grafana" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1020" y="155" />
+              <mxPoint x="1020" y="575" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Prometheus → Grafana -->
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#999999;dashed=1;" edge="1" source="prometheus" target="grafana" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="285" />
+              <mxPoint x="1040" y="575" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Loki → Grafana -->
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#999999;dashed=1;" edge="1" source="loki" target="grafana" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="415" />
+              <mxPoint x="1060" y="575" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- データソースラベル -->
+        <mxCell id="ds_label" value="データソース" style="text;html=1;fontSize=11;fontFamily=Helvetica;fontColor=#999999;align=center;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="1010" y="360" width="80" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
