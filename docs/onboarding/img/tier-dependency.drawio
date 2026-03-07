@@ -1,0 +1,34 @@
+<mxfile host="draw.io">
+  <diagram name="Tier依存関係" id="tier-dependency">
+    <mxGraphModel dx="1200" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="500" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <!-- service (tier3) -->
+        <mxCell id="2" value="&lt;b&gt;service&lt;/b&gt;&lt;br&gt;(tier3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontFamily=Helvetica;arcSize=20;verticalAlign=middle;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="200" height="80" as="geometry" />
+        </mxCell>
+        <!-- business (tier2) -->
+        <mxCell id="3" value="&lt;b&gt;business&lt;/b&gt;&lt;br&gt;(tier2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontFamily=Helvetica;arcSize=20;verticalAlign=middle;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="430" y="120" width="200" height="80" as="geometry" />
+        </mxCell>
+        <!-- system (tier1) -->
+        <mxCell id="4" value="&lt;b&gt;system&lt;/b&gt;&lt;br&gt;(tier1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontFamily=Helvetica;arcSize=20;verticalAlign=middle;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="780" y="120" width="200" height="80" as="geometry" />
+        </mxCell>
+        <!-- 矢印: service → business -->
+        <mxCell id="5" value="依存" style="endArrow=block;endFill=1;html=1;fontSize=12;fontFamily=Helvetica;strokeWidth=2;strokeColor=#333333;" edge="1" source="2" target="3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 矢印: business → system -->
+        <mxCell id="6" value="依存" style="endArrow=block;endFill=1;html=1;fontSize=12;fontFamily=Helvetica;strokeWidth=2;strokeColor=#333333;" edge="1" source="3" target="4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 注釈: systemの下 -->
+        <mxCell id="7" value="依存の終端（外部依存なし）" style="text;html=1;align=center;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontFamily=Helvetica;fontStyle=2;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="790" y="220" width="180" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

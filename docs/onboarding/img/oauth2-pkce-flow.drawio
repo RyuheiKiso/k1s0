@@ -1,0 +1,87 @@
+<mxfile host="draw.io">
+  <diagram name="OAuth 2.0 PKCE フロー" id="oauth2-pkce-flow">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <!-- 参加者ボックス -->
+        <mxCell id="2" value="&lt;b&gt;Client&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontFamily=Helvetica;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="100" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="&lt;b&gt;Keycloak&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontFamily=Helvetica;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="440" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="&lt;b&gt;API Server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontFamily=Helvetica;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="780" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+        <!-- ライフライン -->
+        <mxCell id="5" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#AAAAAA;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="170" y="90" as="sourcePoint" />
+            <mxPoint x="170" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#AAAAAA;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="510" y="90" as="sourcePoint" />
+            <mxPoint x="510" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#AAAAAA;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="850" y="90" as="sourcePoint" />
+            <mxPoint x="850" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Step 1: Client → Keycloak -->
+        <mxCell id="10" value="1. 認証リクエスト (code_challenge)" style="endArrow=block;endFill=1;html=1;fontSize=11;fontFamily=Helvetica;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry x="0.0" y="10" relative="1" as="geometry">
+            <mxPoint x="170" y="150" as="sourcePoint" />
+            <mxPoint x="510" y="150" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Step 2: Keycloak → Client -->
+        <mxCell id="11" value="2. 認可コード" style="endArrow=block;endFill=1;html=1;fontSize=11;fontFamily=Helvetica;strokeWidth=2;strokeColor=#b85450;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="0.0" y="10" relative="1" as="geometry">
+            <mxPoint x="510" y="250" as="sourcePoint" />
+            <mxPoint x="170" y="250" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Step 3: Client → Keycloak -->
+        <mxCell id="12" value="3. トークンリクエスト (code_verifier)" style="endArrow=block;endFill=1;html=1;fontSize=11;fontFamily=Helvetica;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry x="0.0" y="10" relative="1" as="geometry">
+            <mxPoint x="170" y="350" as="sourcePoint" />
+            <mxPoint x="510" y="350" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Step 4: Keycloak → Client -->
+        <mxCell id="13" value="4. JWT (access + refresh token)" style="endArrow=block;endFill=1;html=1;fontSize=11;fontFamily=Helvetica;strokeWidth=2;strokeColor=#b85450;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="0.0" y="10" relative="1" as="geometry">
+            <mxPoint x="510" y="450" as="sourcePoint" />
+            <mxPoint x="170" y="450" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Step 5: Client → API Server -->
+        <mxCell id="14" value="5. APIリクエスト (Authorization: Bearer)" style="endArrow=block;endFill=1;html=1;fontSize=11;fontFamily=Helvetica;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry x="0.0" y="10" relative="1" as="geometry">
+            <mxPoint x="170" y="560" as="sourcePoint" />
+            <mxPoint x="850" y="560" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Step 6: API Server → Client -->
+        <mxCell id="15" value="6. レスポンス" style="endArrow=block;endFill=1;html=1;fontSize=11;fontFamily=Helvetica;strokeWidth=2;strokeColor=#82b366;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="0.0" y="10" relative="1" as="geometry">
+            <mxPoint x="850" y="660" as="sourcePoint" />
+            <mxPoint x="170" y="660" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -28,6 +28,7 @@ members = [
     # Libraries (39)
     "library/rust/audit-client",
     "library/rust/auth",
+    "library/rust/bulkhead",
     "library/rust/cache",
     "library/rust/circuit-breaker",
     "library/rust/codegen",
