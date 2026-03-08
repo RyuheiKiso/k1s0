@@ -106,6 +106,7 @@ impl EvaluationMode {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct RuleSetVersion {
     pub id: Uuid,
     pub rule_set_id: Uuid,

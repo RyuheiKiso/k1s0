@@ -11,6 +11,7 @@ pub enum UpdateTenantError {
     #[error("tenant not found: {0}")]
     NotFound(String),
     #[error("invalid status: {0}")]
+    #[allow(dead_code)]
     InvalidStatus(String),
     #[error("internal error: {0}")]
     Internal(String),

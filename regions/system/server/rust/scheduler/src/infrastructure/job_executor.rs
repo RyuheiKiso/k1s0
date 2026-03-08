@@ -15,6 +15,7 @@ pub trait JobExecutor: Send + Sync {
     async fn execute(&self, job: &SchedulerJob) -> anyhow::Result<()>;
 }
 
+#[allow(dead_code)]
 pub struct NoopJobExecutor;
 
 #[async_trait]

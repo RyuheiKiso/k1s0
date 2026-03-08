@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
 /// Application configuration for notification server.
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
@@ -66,6 +67,7 @@ fn default_grpc_port() -> u16 {
 
 /// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct DatabaseConfig {
     pub host: String,
     pub port: u16,
@@ -151,6 +153,7 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 
 /// NotificationConfig 縺ｯ騾夂衍繧ｵ繝ｼ繝薙せ蝗ｺ譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct NotificationConfig {
     #[serde(default = "default_retry_max_attempts")]
     pub retry_max_attempts: u32,
@@ -183,6 +186,7 @@ fn default_retry_max_delay_secs() -> u64 {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -234,6 +238,7 @@ impl Default for TraceConfig {
     }
 }
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]
     pub enabled: bool,

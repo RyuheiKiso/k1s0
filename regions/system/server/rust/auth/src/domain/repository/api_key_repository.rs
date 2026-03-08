@@ -23,6 +23,7 @@ pub trait ApiKeyRepository: Send + Sync {
     async fn revoke(&self, id: Uuid) -> anyhow::Result<()>;
 
     /// API キーを削除する。
+    #[allow(dead_code)]
     async fn delete(&self, id: Uuid) -> anyhow::Result<()>;
 }
 

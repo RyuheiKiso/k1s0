@@ -4,6 +4,7 @@ use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::repository::WorkflowInstanceRepository;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CancelInstanceInput {
     pub id: String,
     pub reason: Option<String>,

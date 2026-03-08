@@ -18,6 +18,7 @@ pub struct DocumentIndexedEvent {
 #[async_trait]
 pub trait SearchEventPublisher: Send + Sync {
     async fn publish_document_indexed(&self, event: &DocumentIndexedEvent) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -31,6 +32,7 @@ impl SearchEventPublisher for NoopSearchEventPublisher {
         Ok(())
     }
 
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()> {
         Ok(())
     }
@@ -64,6 +66,7 @@ impl KafkaSearchProducer {
     }
 
     /// メトリクスを設定する。
+    #[allow(dead_code)]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -98,6 +101,7 @@ impl SearchEventPublisher for KafkaSearchProducer {
         Ok(())
     }
 
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()> {
         use rdkafka::producer::Producer;
         self.producer.flush(std::time::Duration::from_secs(5))?;
@@ -147,6 +151,7 @@ mod tests {
             Ok(())
         }
 
+        #[allow(dead_code)]
         async fn close(&self) -> anyhow::Result<()> {
             Ok(())
         }

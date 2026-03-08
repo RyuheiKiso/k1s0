@@ -6,6 +6,7 @@ use crate::domain::entity::notification_log::NotificationLog;
 #[async_trait]
 pub trait NotificationLogRepository: Send + Sync {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationLog>>;
+    #[allow(dead_code)]
     async fn find_by_channel_id(&self, channel_id: &str) -> anyhow::Result<Vec<NotificationLog>>;
     async fn find_all_paginated(
         &self,

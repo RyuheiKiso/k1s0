@@ -74,6 +74,7 @@ fn default_grpc_port() -> u16 {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -125,6 +126,7 @@ impl Default for TraceConfig {
     }
 }
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]
     pub enabled: bool,

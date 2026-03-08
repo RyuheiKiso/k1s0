@@ -42,6 +42,7 @@ impl KeycloakClient {
     }
 
     /// Keycloak のヘルスチェックを行う。
+    #[allow(dead_code)]
     pub async fn healthy(&self) -> anyhow::Result<()> {
         let url = format!("{}/realms/{}", self.config.base_url, self.config.realm);
         let resp = self.http_client.get(&url).send().await?;

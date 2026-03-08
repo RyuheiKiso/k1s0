@@ -42,6 +42,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -162,6 +163,7 @@ fn default_ttl_seconds() -> u64 {
     60
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -213,6 +215,7 @@ impl Default for TraceConfig {
         }
     }
 }
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]

@@ -56,6 +56,7 @@ impl FileMetadata {
         self.updated_at = Utc::now();
     }
 
+    #[allow(dead_code)]
     pub fn mark_deleted(&mut self) {
         self.status = "deleted".to_string();
         self.updated_at = Utc::now();

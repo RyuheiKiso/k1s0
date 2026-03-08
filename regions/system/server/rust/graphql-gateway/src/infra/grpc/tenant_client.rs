@@ -16,6 +16,7 @@ pub struct TenantPage {
     pub has_next: bool,
 }
 
+#[allow(dead_code)]
 pub mod proto {
     pub mod k1s0 {
         pub mod system {

@@ -79,6 +79,7 @@ impl RolePermissionTable {
         Some(false)
     }
 
+    #[allow(dead_code)]
     pub async fn last_refresh_at(&self) -> Option<DateTime<Utc>> {
         *self.last_refresh_at.read().await
     }

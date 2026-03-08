@@ -33,6 +33,7 @@ pub struct CreateRuleSetUseCase {
 }
 
 impl CreateRuleSetUseCase {
+    #[allow(dead_code)]
     pub fn new(repo: Arc<dyn RuleSetRepository>) -> Self {
         Self {
             repo,

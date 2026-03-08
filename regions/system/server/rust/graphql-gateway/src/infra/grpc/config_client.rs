@@ -8,6 +8,7 @@ use tracing::instrument;
 use crate::domain::model::ConfigEntry;
 use crate::infra::config::BackendConfig;
 
+#[allow(dead_code)]
 pub mod proto {
     pub mod k1s0 {
         pub mod system {

@@ -29,6 +29,7 @@ pub enum ExecuteReplayError {
     #[error("replay failed: {0}")]
     Failed(String),
 
+    #[allow(dead_code)]
     #[error("internal error: {0}")]
     Internal(String),
 }

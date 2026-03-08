@@ -27,6 +27,7 @@ impl RuleCache {
 
     /// scope（name相当）に対応するルールを取得する。
     /// キャッシュミスの場合は None を返す。
+    #[allow(dead_code)]
     pub async fn get_by_name(&self, name: &str) -> Option<Arc<RateLimitRule>> {
         self.inner.get(name).await
     }
@@ -48,6 +49,7 @@ impl RuleCache {
     }
 
     /// 特定の scope のルールをキャッシュから削除する。
+    #[allow(dead_code)]
     pub async fn invalidate_by_name(&self, name: &str) {
         self.inner.invalidate(name).await;
     }

@@ -11,6 +11,7 @@ pub trait RuleSetVersionRepository: Send + Sync {
         rule_set_id: &Uuid,
         version: u32,
     ) -> anyhow::Result<Option<RuleSetVersion>>;
+    #[allow(dead_code)]
     async fn find_latest_by_rule_set_id(
         &self,
         rule_set_id: &Uuid,

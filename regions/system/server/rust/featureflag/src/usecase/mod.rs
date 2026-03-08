@@ -12,4 +12,4 @@ pub use evaluate_flag::EvaluateFlagUseCase;
 pub use get_flag::GetFlagUseCase;
 pub use list_flags::ListFlagsUseCase;
 pub use update_flag::UpdateFlagUseCase;
-pub use watch_feature_flag::{FeatureFlagChangeEvent, WatchFeatureFlagUseCase};
+pub use watch_feature_flag::WatchFeatureFlagUseCase;

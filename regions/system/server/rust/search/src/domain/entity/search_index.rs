@@ -42,6 +42,7 @@ pub struct SearchQuery {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SearchResult {
     pub total: u64,
     pub hits: Vec<SearchDocument>,

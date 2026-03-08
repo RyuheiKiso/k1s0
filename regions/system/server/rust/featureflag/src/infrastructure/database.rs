@@ -3,6 +3,7 @@ use sqlx::PgPool;
 use super::config::DatabaseConfig;
 
 /// PostgreSQL 接続プールを作成する。
+#[allow(dead_code)]
 pub async fn connect(cfg: &DatabaseConfig) -> anyhow::Result<PgPool> {
     let url = cfg.connection_url();
     let pool = sqlx::postgres::PgPoolOptions::new()

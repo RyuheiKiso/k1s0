@@ -14,6 +14,7 @@ pub enum GetUsageError {
     InvalidRuleId(String),
 
     #[error("internal error: {0}")]
+    #[allow(dead_code)]
     Internal(String),
 }
 
@@ -38,6 +39,7 @@ pub struct GetUsageUseCase {
 }
 
 impl GetUsageUseCase {
+    #[allow(dead_code)]
     pub fn new(rule_repo: Arc<dyn RateLimitRepository>) -> Self {
         Self {
             rule_repo,

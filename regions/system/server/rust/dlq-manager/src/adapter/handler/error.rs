@@ -20,6 +20,7 @@ pub enum DlqError {
     Conflict(String),
 
     #[error("retry processing failed: {0}")]
+    #[allow(dead_code)]
     ProcessFailed(String),
 
     #[error("internal error: {0}")]

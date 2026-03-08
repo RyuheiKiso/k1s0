@@ -25,10 +25,12 @@ impl KpiCache {
         self.inner.insert(key, kpi).await;
     }
 
+    #[allow(dead_code)]
     pub async fn invalidate(&self, key: &str) {
         self.inner.invalidate(key).await;
     }
 
+    #[allow(dead_code)]
     pub async fn invalidate_all(&self) {
         self.inner.invalidate_all();
         self.inner.run_pending_tasks().await;

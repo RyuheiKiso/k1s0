@@ -2,6 +2,7 @@ use sqlx::PgPool;
 
 use super::config::DatabaseConfig;
 
+#[allow(dead_code)]
 pub async fn connect(cfg: &DatabaseConfig) -> anyhow::Result<PgPool> {
     let url = cfg.connection_url();
     let pool = sqlx::postgres::PgPoolOptions::new()

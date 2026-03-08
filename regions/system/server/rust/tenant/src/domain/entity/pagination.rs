@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Pagination {
     pub total_count: i64,

@@ -157,6 +157,7 @@ impl RuleChangedEvent {
 #[async_trait]
 pub trait RuleEventPublisher: Send + Sync {
     async fn publish_rule_changed(&self, event: &RuleChangedEvent) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 

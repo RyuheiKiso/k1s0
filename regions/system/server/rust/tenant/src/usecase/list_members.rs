@@ -7,6 +7,7 @@ use crate::domain::repository::MemberRepository;
 #[derive(Debug, thiserror::Error)]
 pub enum ListMembersError {
     #[error("tenant not found: {0}")]
+    #[allow(dead_code)]
     NotFound(String),
     #[error("internal error: {0}")]
     Internal(String),

@@ -61,6 +61,7 @@ impl EventStoreKafkaProducer {
     }
 
     /// メトリクスを設定する。
+    #[allow(dead_code)]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,

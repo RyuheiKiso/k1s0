@@ -23,6 +23,7 @@ pub struct VaultSecretRotatedEvent {
 }
 
 /// KafkaConfig は Kafka 接続の設定を表す。
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -52,6 +53,7 @@ pub struct SaslConfig {
 }
 
 /// TopicsConfig はトピック設定を表す。
+#[allow(dead_code)]
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TopicsConfig {
     #[serde(default)]
@@ -66,6 +68,7 @@ pub struct TopicsConfig {
 pub trait VaultEventPublisher: Send + Sync {
     async fn publish_secret_accessed(&self, event: &VaultAccessEvent) -> anyhow::Result<()>;
     async fn publish_secret_rotated(&self, event: &VaultSecretRotatedEvent) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -136,6 +139,7 @@ impl KafkaProducer {
     }
 
     /// メトリクスを設定する。
+    #[allow(dead_code)]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -149,6 +153,7 @@ impl KafkaProducer {
         &self.access_topic
     }
 
+    #[allow(dead_code)]
     pub fn rotation_topic(&self) -> &str {
         &self.rotation_topic
     }

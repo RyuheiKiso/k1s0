@@ -280,6 +280,7 @@ pub struct NotificationGrpcService {
 }
 
 impl NotificationGrpcService {
+    #[allow(dead_code)]
     pub fn new(
         send_notification_uc: Arc<SendNotificationUseCase>,
         log_repo: Arc<dyn NotificationLogRepository>,

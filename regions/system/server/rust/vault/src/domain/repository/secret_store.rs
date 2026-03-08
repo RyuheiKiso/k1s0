@@ -11,5 +11,6 @@ pub trait SecretStore: Send + Sync {
     async fn set(&self, path: &str, data: HashMap<String, String>) -> anyhow::Result<i64>;
     async fn delete(&self, path: &str, versions: Vec<i64>) -> anyhow::Result<()>;
     async fn list(&self, path_prefix: &str) -> anyhow::Result<Vec<String>>;
+    #[allow(dead_code)]
     async fn exists(&self, path: &str) -> anyhow::Result<bool>;
 }

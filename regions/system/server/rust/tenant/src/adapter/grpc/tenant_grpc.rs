@@ -220,6 +220,7 @@ pub struct TenantGrpcService {
 }
 
 impl TenantGrpcService {
+    #[allow(dead_code)]
     pub fn new(
         create_tenant_uc: Arc<CreateTenantUseCase>,
         get_tenant_uc: Arc<GetTenantUseCase>,

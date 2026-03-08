@@ -9,6 +9,7 @@ pub enum AccessAction {
     List,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct SecretAccessLog {
     pub id: Uuid,

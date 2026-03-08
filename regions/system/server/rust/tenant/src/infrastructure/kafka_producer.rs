@@ -42,6 +42,7 @@ impl TenantChangedEvent {
 }
 
 /// KafkaConfig は Kafka 接続の設定を表す。
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -71,6 +72,7 @@ pub struct SaslConfig {
 }
 
 /// TopicsConfig はトピック設定を表す。
+#[allow(dead_code)]
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TopicsConfig {
     #[serde(default)]
@@ -89,6 +91,7 @@ pub trait TenantEventPublisher: Send + Sync {
     async fn publish_tenant_updated(&self, tenant: &Tenant) -> anyhow::Result<()>;
     async fn publish_tenant_suspended(&self, tenant: &Tenant) -> anyhow::Result<()>;
     async fn publish_tenant_deleted(&self, tenant: &Tenant) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -164,6 +167,7 @@ impl KafkaTenantEventPublisher {
     }
 
     /// メトリクスを設定する。
+    #[allow(dead_code)]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,

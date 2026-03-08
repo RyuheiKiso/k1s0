@@ -1,4 +1,5 @@
 /// Action は RBAC で使用するアクションを表す。
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Action {
     Read,
@@ -11,6 +12,7 @@ impl Action {
     /// 文字列から Action を生成する。
     /// "read" / "write" / "delete" / "admin" を受け付ける。
     #[allow(clippy::should_implement_trait)]
+    #[allow(dead_code)]
     pub fn from_str(s: &str) -> anyhow::Result<Self> {
         match s.to_lowercase().as_str() {
             "read" => Ok(Action::Read),
@@ -22,6 +24,7 @@ impl Action {
     }
 
     /// Action を文字列スライスに変換する。
+    #[allow(dead_code)]
     pub fn as_str(&self) -> &'static str {
         match self {
             Action::Read => "read",
@@ -34,6 +37,7 @@ impl Action {
 
 /// Permission は RBAC パーミッション定義を表す。
 /// リソース x アクション のマトリクスをロールにマッピングする。
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Permission {
     pub resource: String,
@@ -43,6 +47,7 @@ pub struct Permission {
 
 impl Permission {
     /// 新しい Permission を生成する。
+    #[allow(dead_code)]
     pub fn new(resource: impl Into<String>, action: Action, allowed_roles: Vec<String>) -> Self {
         Self {
             resource: resource.into(),
@@ -52,11 +57,13 @@ impl Permission {
     }
 
     /// 指定されたロールがこのパーミッションを持つかを判定する。
+    #[allow(dead_code)]
     pub fn is_allowed_for_role(&self, role: &str) -> bool {
         self.allowed_roles.iter().any(|r| r == role)
     }
 
     /// 指定されたロールのいずれかがこのパーミッションを持つかを判定する。
+    #[allow(dead_code)]
     pub fn is_allowed_for_any_role(&self, roles: &[String]) -> bool {
         roles.iter().any(|role| self.is_allowed_for_role(role))
     }

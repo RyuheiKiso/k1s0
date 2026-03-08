@@ -27,16 +27,19 @@ impl AuthDomainService {
         }
     }
 
+    #[allow(dead_code)]
     pub fn is_admin(roles: &[String]) -> bool {
         roles.iter().any(|r| r == "sys_admin")
     }
 
+    #[allow(dead_code)]
     pub fn is_operator_or_above(roles: &[String]) -> bool {
         roles
             .iter()
             .any(|r| r == "sys_admin" || r == "sys_operator")
     }
 
+    #[allow(dead_code)]
     pub fn is_auditor_or_above(roles: &[String]) -> bool {
         roles
             .iter()

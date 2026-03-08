@@ -13,6 +13,7 @@ pub struct AuditLogPostgresRepository {
 }
 
 impl AuditLogPostgresRepository {
+    #[allow(dead_code)]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,

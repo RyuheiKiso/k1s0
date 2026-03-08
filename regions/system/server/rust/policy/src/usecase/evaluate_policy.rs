@@ -14,6 +14,7 @@ pub struct EvaluatePolicyInput {
     pub input: serde_json::Value,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct EvaluatePolicyOutput {
     pub allowed: bool,

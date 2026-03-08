@@ -44,12 +44,14 @@ pub enum SendNotificationError {
     TemplateNotFound(String),
 
     #[error("no delivery client for channel type: {0}")]
+    #[allow(dead_code)]
     NoDeliveryClient(String),
 
     #[error("template rendering failed: {0}")]
     TemplateError(String),
 
     #[error("delivery failed: {0}")]
+    #[allow(dead_code)]
     DeliveryFailed(String),
 
     #[error("internal error: {0}")]
@@ -65,6 +67,7 @@ pub struct SendNotificationUseCase {
 }
 
 impl SendNotificationUseCase {
+    #[allow(dead_code)]
     pub fn new(
         channel_repo: Arc<dyn NotificationChannelRepository>,
         log_repo: Arc<dyn NotificationLogRepository>,
@@ -92,6 +95,7 @@ impl SendNotificationUseCase {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_delivery_clients(
         channel_repo: Arc<dyn NotificationChannelRepository>,
         log_repo: Arc<dyn NotificationLogRepository>,

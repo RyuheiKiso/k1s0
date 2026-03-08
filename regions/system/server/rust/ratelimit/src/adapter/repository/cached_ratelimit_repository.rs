@@ -18,6 +18,7 @@ pub struct CachedRateLimitRepository {
 
 impl CachedRateLimitRepository {
     /// 新しい CachedRateLimitRepository を作成する。
+    #[allow(dead_code)]
     pub fn new(inner: Arc<dyn RateLimitRepository>, cache: Arc<RuleCache>) -> Self {
         Self {
             inner,

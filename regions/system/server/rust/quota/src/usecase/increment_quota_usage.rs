@@ -9,6 +9,7 @@ use crate::infrastructure::kafka_producer::{
     QuotaEventPublisher, QuotaExceededEvent, QuotaThresholdReachedEvent,
 };
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct IncrementQuotaUsageInput {
     pub quota_id: String,
@@ -53,6 +54,7 @@ impl IncrementQuotaUsageUseCase {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new_without_publisher(
         policy_repo: Arc<dyn QuotaPolicyRepository>,
         usage_repo: Arc<dyn QuotaUsageRepository>,

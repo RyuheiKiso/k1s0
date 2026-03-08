@@ -93,6 +93,7 @@ impl WorkflowDefinition {
     }
 
     /// 指定ステップのタイムアウト期間を返す。
+    #[allow(dead_code)]
     pub fn timeout_duration(&self, step_idx: usize) -> Duration {
         self.steps
             .get(step_idx)

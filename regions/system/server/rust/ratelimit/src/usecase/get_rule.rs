@@ -15,6 +15,7 @@ pub enum GetRuleError {
     InvalidRuleId(String),
 
     #[error("internal error: {0}")]
+    #[allow(dead_code)]
     Internal(String),
 }
 

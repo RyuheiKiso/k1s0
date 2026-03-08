@@ -15,7 +15,7 @@ pub use check_permission::CheckPermissionUseCase;
 pub use create_api_key::CreateApiKeyUseCase;
 pub use get_api_key::GetApiKeyUseCase;
 pub use get_user::GetUserUseCase;
-pub use get_user_roles::{GetUserRolesError, GetUserRolesUseCase};
+pub use get_user_roles::GetUserRolesUseCase;
 pub use list_api_keys::ListApiKeysUseCase;
 pub use list_users::ListUsersUseCase;
 pub use record_audit_log::RecordAuditLogUseCase;

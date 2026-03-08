@@ -8,6 +8,7 @@ use crate::domain::entity::flag_audit_log::FlagAuditLog;
 pub trait FlagAuditLogRepository: Send + Sync {
     async fn create(&self, log: &FlagAuditLog) -> anyhow::Result<()>;
 
+    #[allow(dead_code)]
     async fn list_by_flag_id(
         &self,
         flag_id: &Uuid,

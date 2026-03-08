@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ReplayRequest {
     pub correlation_ids: Vec<String>,
@@ -16,6 +17,7 @@ pub struct ReplayResponse {
     pub replayed_events: i32,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ReplayPreviewResponse {
     pub total_events_to_replay: i32,

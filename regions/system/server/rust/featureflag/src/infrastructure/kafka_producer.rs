@@ -29,6 +29,7 @@ pub trait FlagEventPublisher: Send + Sync {
     async fn health_check(&self) -> anyhow::Result<()> {
         Ok(())
     }
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -92,6 +93,7 @@ impl KafkaFlagProducer {
     }
 
     /// 配信先トピック名を返す。
+    #[allow(dead_code)]
     pub fn topic(&self) -> &str {
         &self.topic
     }

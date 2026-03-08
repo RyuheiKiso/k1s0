@@ -4,6 +4,7 @@ use serde::Deserialize;
 use crate::domain::entity::audit_log::AuditLog;
 
 /// KafkaConfig は Kafka 接続の設定を表す。
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -33,6 +34,7 @@ pub struct SaslConfig {
 }
 
 /// TopicsConfig はトピック設定を表す。
+#[allow(dead_code)]
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TopicsConfig {
     #[serde(default)]
@@ -46,6 +48,7 @@ pub struct TopicsConfig {
 #[async_trait]
 pub trait AuditEventPublisher: Send + Sync {
     async fn publish(&self, event: &AuditLog) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -92,6 +95,7 @@ impl KafkaProducer {
     }
 
     /// Return the default topic name.
+    #[allow(dead_code)]
     pub fn topic(&self) -> &str {
         &self.topic
     }

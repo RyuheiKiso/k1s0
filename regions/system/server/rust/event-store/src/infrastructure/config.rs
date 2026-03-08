@@ -2,6 +2,7 @@ use serde::Deserialize;
 
 /// Application configuration for event-store server.
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
@@ -66,6 +67,7 @@ fn default_grpc_port() -> u16 {
 
 /// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺呻ｼ・RL蠖｢蠑擾ｼ峨・
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct DatabaseConfig {
     pub url: String,
     #[serde(default = "default_schema")]
@@ -135,6 +137,7 @@ fn default_jwks_cache_ttl() -> u64 {
 
 /// EventStoreConfig 縺ｯ繧､繝吶Φ繝医せ繝医い蝗ｺ譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct EventStoreConfig {
     #[serde(default = "default_max_events_per_append")]
     pub max_events_per_append: u32,
@@ -160,6 +163,7 @@ fn default_max_page_size() -> u32 {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -211,6 +215,7 @@ impl Default for TraceConfig {
     }
 }
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]
     pub enabled: bool,

@@ -17,6 +17,7 @@ pub trait FlowInstanceRepository: Send + Sync {
         page: u32,
         page_size: u32,
     ) -> anyhow::Result<(Vec<FlowInstance>, u64)>;
+    #[allow(dead_code)]
     async fn find_in_progress(&self) -> anyhow::Result<Vec<FlowInstance>>;
     async fn create(&self, instance: &FlowInstance) -> anyhow::Result<()>;
     async fn update(&self, instance: &FlowInstance) -> anyhow::Result<()>;

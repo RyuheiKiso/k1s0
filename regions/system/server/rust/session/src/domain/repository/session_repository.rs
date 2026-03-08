@@ -10,5 +10,6 @@ pub trait SessionRepository: Send + Sync {
     async fn find_by_id(&self, id: &str) -> Result<Option<Session>, SessionError>;
     async fn find_by_token(&self, token: &str) -> Result<Option<Session>, SessionError>;
     async fn find_by_user_id(&self, user_id: &str) -> Result<Vec<Session>, SessionError>;
+    #[allow(dead_code)]
     async fn delete(&self, id: &str) -> Result<(), SessionError>;
 }

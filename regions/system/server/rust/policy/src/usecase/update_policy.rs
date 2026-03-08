@@ -31,6 +31,7 @@ pub struct UpdatePolicyUseCase {
 }
 
 impl UpdatePolicyUseCase {
+    #[allow(dead_code)]
     pub fn new(repo: Arc<dyn PolicyRepository>) -> Self {
         Self {
             repo,
