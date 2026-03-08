@@ -9,6 +9,8 @@ pub enum Tier {
     System,
     /// Business tier: biz_admin / biz_operator / biz_auditor + sys_admin fallback
     Business,
+    /// Service tier: svc_admin / svc_operator / svc_viewer + sys_admin fallback
+    Service,
 }
 
 /// RBAC ミドルウェアを返す。axum の from_fn で使用する。
@@ -76,6 +78,20 @@ pub fn check_permission(tier: Tier, roles: &[String], action: &str) -> bool {
                     }
                 }
                 "biz_auditor" => {
+                    if action == "read" {
+                        return true;
+                    }
+                }
+                _ => {}
+            },
+            Tier::Service => match role.as_str() {
+                "sys_admin" | "svc_admin" => return true,
+                "svc_operator" => {
+                    if matches!(action, "read" | "write") {
+                        return true;
+                    }
+                }
+                "svc_viewer" => {
                     if action == "read" {
                         return true;
                     }
@@ -151,11 +167,46 @@ mod tests {
         assert!(check_permission(Tier::Business, &roles, "admin"));
     }
 
+    // --- Service tier tests ---
+
+    #[test]
+    fn test_svc_admin_all_allowed() {
+        let roles = vec!["svc_admin".to_string()];
+        assert!(check_permission(Tier::Service, &roles, "read"));
+        assert!(check_permission(Tier::Service, &roles, "write"));
+        assert!(check_permission(Tier::Service, &roles, "admin"));
+    }
+
+    #[test]
+    fn test_svc_operator_read_write() {
+        let roles = vec!["svc_operator".to_string()];
+        assert!(check_permission(Tier::Service, &roles, "read"));
+        assert!(check_permission(Tier::Service, &roles, "write"));
+        assert!(!check_permission(Tier::Service, &roles, "admin"));
+    }
+
+    #[test]
+    fn test_svc_viewer_read_only() {
+        let roles = vec!["svc_viewer".to_string()];
+        assert!(check_permission(Tier::Service, &roles, "read"));
+        assert!(!check_permission(Tier::Service, &roles, "write"));
+        assert!(!check_permission(Tier::Service, &roles, "admin"));
+    }
+
+    #[test]
+    fn test_sys_admin_fallback_in_service_tier() {
+        let roles = vec!["sys_admin".to_string()];
+        assert!(check_permission(Tier::Service, &roles, "read"));
+        assert!(check_permission(Tier::Service, &roles, "write"));
+        assert!(check_permission(Tier::Service, &roles, "admin"));
+    }
+
     #[test]
     fn test_unknown_role() {
         let roles = vec!["user".to_string()];
         assert!(!check_permission(Tier::System, &roles, "read"));
         assert!(!check_permission(Tier::Business, &roles, "read"));
+        assert!(!check_permission(Tier::Service, &roles, "read"));
     }
 
     #[test]
@@ -163,5 +214,6 @@ mod tests {
         let roles: Vec<String> = vec![];
         assert!(!check_permission(Tier::System, &roles, "read"));
         assert!(!check_permission(Tier::Business, &roles, "read"));
+        assert!(!check_permission(Tier::Service, &roles, "read"));
     }
 }

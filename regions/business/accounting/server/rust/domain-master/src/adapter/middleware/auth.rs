@@ -47,7 +47,7 @@ pub async fn jwt_auth_middleware(
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({
-                    "code": "BIZ_AUTH_TOKEN_MISSING",
+                    "code": "SYS_AUTH_TOKEN_MISSING",
                     "message": "Authorization header with Bearer token is required"
                 })),
             )
@@ -64,7 +64,7 @@ pub async fn jwt_auth_middleware(
         Err(e) => (
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({
-                "code": "BIZ_AUTH_TOKEN_INVALID",
+                "code": "SYS_AUTH_TOKEN_INVALID",
                 "message": format!("JWT verification failed: {}", e)
             })),
         )

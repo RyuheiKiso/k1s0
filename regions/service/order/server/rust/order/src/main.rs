@@ -60,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
         infrastructure::database::order_repository::OrderPostgresRepository::new(db_pool.clone()),
     );
 
-    // 6. Kafka Producer (optional)
+    // 6. Kafka Producer (optional) — now used only by the OutboxPoller
     let event_publisher: Arc<dyn usecase::event_publisher::OrderEventPublisher> =
         if let Some(ref kafka_cfg) = cfg.kafka {
             match infrastructure::kafka::order_producer::OrderKafkaProducer::new(kafka_cfg) {
@@ -77,10 +77,23 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(usecase::event_publisher::NoopOrderEventPublisher)
         };
 
-    // 7. Use Cases
-    let create_order_uc = Arc::new(usecase::create_order::CreateOrderUseCase::new(
+    // 7. Outbox Poller — バックグラウンドタスクとして起動
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let outbox_poller = Arc::new(infrastructure::outbox_poller::OutboxPoller::new(
         order_repo.clone(),
         event_publisher.clone(),
+        Duration::from_secs(5),
+        100,
+    ));
+    let outbox_poller_clone = outbox_poller.clone();
+    let outbox_handle = tokio::spawn(async move {
+        outbox_poller_clone.run(shutdown_rx).await;
+    });
+    info!("outbox poller started");
+
+    // 8. Use Cases
+    let create_order_uc = Arc::new(usecase::create_order::CreateOrderUseCase::new(
+        order_repo.clone(),
     ));
     let get_order_uc = Arc::new(usecase::get_order::GetOrderUseCase::new(
         order_repo.clone(),
@@ -88,13 +101,12 @@ async fn main() -> anyhow::Result<()> {
     let update_order_status_uc =
         Arc::new(usecase::update_order_status::UpdateOrderStatusUseCase::new(
             order_repo.clone(),
-            event_publisher.clone(),
         ));
     let list_orders_uc = Arc::new(usecase::list_orders::ListOrdersUseCase::new(
         order_repo.clone(),
     ));
 
-    // 8. Auth
+    // 9. Auth
     let auth_state = if let Some(ref auth_cfg) = cfg.auth {
         let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
             &auth_cfg.jwks_url,
@@ -107,7 +119,7 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
-    // 9. AppState + Router
+    // 10. AppState + Router
     let state = AppState {
         create_order_uc,
         get_order_uc,
@@ -118,7 +130,7 @@ async fn main() -> anyhow::Result<()> {
     };
     let app = handler::router(state);
 
-    // 10. Start REST server
+    // 11. Start REST server
     let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port).parse()?;
     info!("REST server listening on {}", rest_addr);
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
@@ -128,6 +140,11 @@ async fn main() -> anyhow::Result<()> {
             let _ = shutdown_signal().await;
         })
         .await?;
+
+    // 12. Graceful shutdown — Outbox Poller を停止
+    info!("shutting down outbox poller");
+    let _ = shutdown_tx.send(true);
+    let _ = outbox_handle.await;
 
     Ok(())
 }

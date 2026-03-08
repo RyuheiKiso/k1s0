@@ -27,15 +27,8 @@ impl OrderStatus {
     }
 
     pub fn from_str(s: &str) -> anyhow::Result<Self> {
-        match s {
-            "pending" => Ok(Self::Pending),
-            "confirmed" => Ok(Self::Confirmed),
-            "processing" => Ok(Self::Processing),
-            "shipped" => Ok(Self::Shipped),
-            "delivered" => Ok(Self::Delivered),
-            "cancelled" => Ok(Self::Cancelled),
-            _ => anyhow::bail!("invalid order status: '{}'", s),
-        }
+        s.parse::<Self>()
+            .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     /// ステータス遷移が有効かどうかを検証する。
@@ -50,6 +43,22 @@ impl OrderStatus {
                 | (Self::Processing, Self::Cancelled)
                 | (Self::Shipped, Self::Delivered)
         )
+    }
+}
+
+impl std::str::FromStr for OrderStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "pending" => Ok(Self::Pending),
+            "confirmed" => Ok(Self::Confirmed),
+            "processing" => Ok(Self::Processing),
+            "shipped" => Ok(Self::Shipped),
+            "delivered" => Ok(Self::Delivered),
+            "cancelled" => Ok(Self::Cancelled),
+            _ => Err(format!("invalid order status: '{}'", s)),
+        }
     }
 }
 
@@ -69,6 +78,8 @@ pub struct Order {
     pub currency: String,
     pub notes: Option<String>,
     pub created_by: String,
+    pub updated_by: Option<String>,
+    pub version: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

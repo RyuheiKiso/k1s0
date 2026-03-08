@@ -1,4 +1,5 @@
 use crate::domain::entity::order::{Order, OrderItem};
+use crate::domain::error::OrderError;
 use crate::domain::repository::order_repository::OrderRepository;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -17,7 +18,7 @@ impl GetOrderUseCase {
             .order_repo
             .find_by_id(order_id)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Order '{}' not found", order_id))?;
+            .ok_or_else(|| OrderError::NotFound(order_id.to_string()))?;
 
         let items = self.order_repo.find_items_by_order_id(order_id).await?;
 
@@ -43,6 +44,8 @@ mod tests {
             currency: "JPY".to_string(),
             notes: None,
             created_by: "admin".to_string(),
+            updated_by: None,
+            version: 1,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };

@@ -6,9 +6,9 @@
 //!
 //! | ロール | read | write | admin |
 //! |--------|------|-------|-------|
-//! | biz_auditor | YES | - | - |
-//! | biz_operator | YES | YES | - |
-//! | biz_admin | YES | YES | YES |
+//! | biz_accounting_viewer | YES | - | - |
+//! | biz_accounting_manager | YES | YES | - |
+//! | biz_accounting_admin | YES | YES | YES |
 //!
 //! 上位ロールは下位の権限を包含する。
 
@@ -25,20 +25,20 @@ use k1s0_auth::Claims;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BusinessRole {
     /// 読み取り専用。
-    BizAuditor = 0,
+    BizAccountingViewer = 0,
     /// 読み書き。
-    BizOperator = 1,
+    BizAccountingManager = 1,
     /// 全権限（削除含む）。
-    BizAdmin = 2,
+    BizAccountingAdmin = 2,
 }
 
 impl BusinessRole {
     /// ロール文字列からパースする。不明なロールは `None` を返す。
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
-            "biz_auditor" => Some(Self::BizAuditor),
-            "biz_operator" => Some(Self::BizOperator),
-            "biz_admin" => Some(Self::BizAdmin),
+            "biz_accounting_viewer" => Some(Self::BizAccountingViewer),
+            "biz_accounting_manager" => Some(Self::BizAccountingManager),
+            "biz_accounting_admin" => Some(Self::BizAccountingAdmin),
             _ => None,
         }
     }
@@ -46,9 +46,9 @@ impl BusinessRole {
     /// ロール名を返す。
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::BizAuditor => "biz_auditor",
-            Self::BizOperator => "biz_operator",
-            Self::BizAdmin => "biz_admin",
+            Self::BizAccountingViewer => "biz_accounting_viewer",
+            Self::BizAccountingManager => "biz_accounting_manager",
+            Self::BizAccountingAdmin => "biz_accounting_admin",
         }
     }
 }
@@ -56,11 +56,11 @@ impl BusinessRole {
 /// API アクション種別。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
-    /// 読み取り操作（GET）。biz_auditor 以上が必要。
+    /// 読み取り操作（GET）。biz_accounting_viewer 以上が必要。
     Read,
-    /// 書き込み操作（POST / PUT）。biz_operator 以上が必要。
+    /// 書き込み操作（POST / PUT）。biz_accounting_manager 以上が必要。
     Write,
-    /// 管理操作（DELETE）。biz_admin のみ。
+    /// 管理操作（DELETE）。biz_accounting_admin のみ。
     Admin,
 }
 
@@ -68,9 +68,9 @@ impl Action {
     /// アクションに必要な最低ロールを返す。
     pub fn minimum_role(&self) -> BusinessRole {
         match self {
-            Action::Read => BusinessRole::BizAuditor,
-            Action::Write => BusinessRole::BizOperator,
-            Action::Admin => BusinessRole::BizAdmin,
+            Action::Read => BusinessRole::BizAccountingViewer,
+            Action::Write => BusinessRole::BizAccountingManager,
+            Action::Admin => BusinessRole::BizAccountingAdmin,
         }
     }
 }
@@ -109,7 +109,7 @@ pub async fn rbac_middleware(req: Request, next: Next, action: Action) -> Respon
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({
-                    "code": "BIZ_AUTH_UNAUTHENTICATED",
+                    "code": "SYS_AUTH_UNAUTHENTICATED",
                     "message": "Authentication required"
                 })),
             )
@@ -122,7 +122,7 @@ pub async fn rbac_middleware(req: Request, next: Next, action: Action) -> Respon
         return (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({
-                "code": "BIZ_AUTH_PERMISSION_DENIED",
+                "code": "SYS_AUTH_PERMISSION_DENIED",
                 "message": format!(
                     "Permission denied: '{}' role or higher is required for this operation",
                     required.as_str()
@@ -162,37 +162,37 @@ mod tests {
 
     #[test]
     fn test_business_role_ordering() {
-        assert!(BusinessRole::BizAdmin > BusinessRole::BizOperator);
-        assert!(BusinessRole::BizOperator > BusinessRole::BizAuditor);
+        assert!(BusinessRole::BizAccountingAdmin > BusinessRole::BizAccountingManager);
+        assert!(BusinessRole::BizAccountingManager > BusinessRole::BizAccountingViewer);
     }
 
     #[test]
     fn test_business_role_from_str() {
         assert_eq!(
-            BusinessRole::from_str("biz_auditor"),
-            Some(BusinessRole::BizAuditor)
+            BusinessRole::from_str("biz_accounting_viewer"),
+            Some(BusinessRole::BizAccountingViewer)
         );
         assert_eq!(
-            BusinessRole::from_str("biz_operator"),
-            Some(BusinessRole::BizOperator)
+            BusinessRole::from_str("biz_accounting_manager"),
+            Some(BusinessRole::BizAccountingManager)
         );
         assert_eq!(
-            BusinessRole::from_str("biz_admin"),
-            Some(BusinessRole::BizAdmin)
+            BusinessRole::from_str("biz_accounting_admin"),
+            Some(BusinessRole::BizAccountingAdmin)
         );
         assert_eq!(BusinessRole::from_str("unknown"), None);
     }
 
     #[test]
     fn test_highest_role_picks_max() {
-        let claims = make_claims_with_roles(vec!["biz_auditor", "biz_operator"]);
-        assert_eq!(highest_role(&claims), Some(BusinessRole::BizOperator));
+        let claims = make_claims_with_roles(vec!["biz_accounting_viewer", "biz_accounting_manager"]);
+        assert_eq!(highest_role(&claims), Some(BusinessRole::BizAccountingManager));
     }
 
     #[test]
     fn test_highest_role_admin() {
-        let claims = make_claims_with_roles(vec!["biz_admin", "biz_auditor"]);
-        assert_eq!(highest_role(&claims), Some(BusinessRole::BizAdmin));
+        let claims = make_claims_with_roles(vec!["biz_accounting_admin", "biz_accounting_viewer"]);
+        assert_eq!(highest_role(&claims), Some(BusinessRole::BizAccountingAdmin));
     }
 
     #[test]
@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_has_permission_auditor_read() {
-        let claims = make_claims_with_roles(vec!["biz_auditor"]);
+        let claims = make_claims_with_roles(vec!["biz_accounting_viewer"]);
         assert!(has_permission(&claims, Action::Read));
         assert!(!has_permission(&claims, Action::Write));
         assert!(!has_permission(&claims, Action::Admin));
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_has_permission_operator_read_write() {
-        let claims = make_claims_with_roles(vec!["biz_operator"]);
+        let claims = make_claims_with_roles(vec!["biz_accounting_manager"]);
         assert!(has_permission(&claims, Action::Read));
         assert!(has_permission(&claims, Action::Write));
         assert!(!has_permission(&claims, Action::Admin));
@@ -219,7 +219,7 @@ mod tests {
 
     #[test]
     fn test_has_permission_admin_all() {
-        let claims = make_claims_with_roles(vec!["biz_admin"]);
+        let claims = make_claims_with_roles(vec!["biz_accounting_admin"]);
         assert!(has_permission(&claims, Action::Read));
         assert!(has_permission(&claims, Action::Write));
         assert!(has_permission(&claims, Action::Admin));
@@ -233,8 +233,8 @@ mod tests {
 
     #[test]
     fn test_action_minimum_role() {
-        assert_eq!(Action::Read.minimum_role(), BusinessRole::BizAuditor);
-        assert_eq!(Action::Write.minimum_role(), BusinessRole::BizOperator);
-        assert_eq!(Action::Admin.minimum_role(), BusinessRole::BizAdmin);
+        assert_eq!(Action::Read.minimum_role(), BusinessRole::BizAccountingViewer);
+        assert_eq!(Action::Write.minimum_role(), BusinessRole::BizAccountingManager);
+        assert_eq!(Action::Admin.minimum_role(), BusinessRole::BizAccountingAdmin);
     }
 }

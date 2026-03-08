@@ -3,15 +3,15 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Extension;
 use axum::Json;
-use k1s0_auth::Claims;
+use k1s0_auth::{actor_from_claims, Claims};
+use k1s0_server_common::error::ServiceError;
 use serde::Deserialize;
 use uuid::Uuid;
 
 use super::AppState;
 use crate::adapter::presenter::order_presenter::{OrderDetailResponse, OrderListResponse};
 use crate::domain::entity::order::{CreateOrder, OrderFilter, OrderStatus};
-
-use super::actor_from_claims;
+use crate::domain::error::OrderError;
 
 /// 注文作成リクエストボディ。
 #[derive(Debug, Deserialize)]
@@ -49,7 +49,7 @@ pub async fn create_order(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Json(body): Json<CreateOrderRequest>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, ServiceError> {
     let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
 
     let input = CreateOrder {
@@ -68,37 +68,30 @@ pub async fn create_order(
             .collect(),
     };
 
-    match state.create_order_uc.execute(&input, &actor).await {
-        Ok((order, items)) => {
-            let response = OrderDetailResponse::from_entities(&order, &items);
-            (StatusCode::CREATED, Json(serde_json::to_value(response).unwrap())).into_response()
-        }
-        Err(err) => from_anyhow(err).into_response(),
-    }
+    let (order, items) = state
+        .create_order_uc
+        .execute(&input, &actor)
+        .await
+        .map_err(map_order_error)?;
+
+    let response = OrderDetailResponse::from_entities(&order, &items);
+    Ok((StatusCode::CREATED, Json(response)))
 }
 
 pub async fn get_order(
     State(state): State<AppState>,
     Path(order_id): Path<String>,
-) -> impl IntoResponse {
-    let id = match Uuid::parse_str(&order_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "invalid order_id format"})),
-            )
-                .into_response();
-        }
-    };
+) -> Result<impl IntoResponse, ServiceError> {
+    let id = parse_uuid(&order_id)?;
 
-    match state.get_order_uc.execute(id).await {
-        Ok((order, items)) => {
-            let response = OrderDetailResponse::from_entities(&order, &items);
-            (StatusCode::OK, Json(serde_json::to_value(response).unwrap())).into_response()
-        }
-        Err(err) => from_anyhow(err).into_response(),
-    }
+    let (order, items) = state
+        .get_order_uc
+        .execute(id)
+        .await
+        .map_err(map_order_error)?;
+
+    let response = OrderDetailResponse::from_entities(&order, &items);
+    Ok(Json(response))
 }
 
 pub async fn update_order_status(
@@ -106,65 +99,51 @@ pub async fn update_order_status(
     claims: Option<Extension<Claims>>,
     Path(order_id): Path<String>,
     Json(body): Json<UpdateOrderStatusRequest>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, ServiceError> {
     let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    let id = parse_uuid(&order_id)?;
 
-    let id = match Uuid::parse_str(&order_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "invalid order_id format"})),
-            )
-                .into_response();
+    let new_status = OrderStatus::from_str(&body.status).map_err(|_| {
+        ServiceError::BadRequest {
+            code: k1s0_server_common::error::ErrorCode::new("SVC_ORDER_VALIDATION_FAILED"),
+            message: format!("invalid order status: '{}'", body.status),
+            details: vec![],
         }
-    };
+    })?;
 
-    let new_status = match OrderStatus::from_str(&body.status) {
-        Ok(s) => s,
-        Err(err) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": err.to_string()})),
-            )
-                .into_response();
-        }
-    };
-
-    match state
+    let order = state
         .update_order_status_uc
         .execute(id, &new_status, &actor)
         .await
-    {
-        Ok(order) => {
-            let items = state
-                .get_order_uc
-                .execute(order.id)
-                .await
-                .map(|(_, items)| items)
-                .unwrap_or_default();
-            let response = OrderDetailResponse::from_entities(&order, &items);
-            (StatusCode::OK, Json(serde_json::to_value(response).unwrap())).into_response()
-        }
-        Err(err) => from_anyhow(err).into_response(),
-    }
+        .map_err(map_order_error)?;
+
+    let items = state
+        .get_order_uc
+        .execute(order.id)
+        .await
+        .map(|(_, items)| items)
+        .map_err(|err| {
+            tracing::error!(error = %err, order_id = %order.id, "failed to fetch items after status update");
+            ServiceError::Internal {
+                code: k1s0_server_common::error::ErrorCode::new("SVC_ORDER_INTERNAL_ERROR"),
+                message: "failed to fetch order items".to_string(),
+            }
+        })?;
+
+    let response = OrderDetailResponse::from_entities(&order, &items);
+    Ok(Json(response))
 }
 
 pub async fn list_orders(
     State(state): State<AppState>,
     Query(query): Query<ListOrdersQuery>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, ServiceError> {
     let status = match &query.status {
-        Some(s) => match OrderStatus::from_str(s) {
-            Ok(status) => Some(status),
-            Err(err) => {
-                return (
-                    StatusCode::BAD_REQUEST,
-                    Json(serde_json::json!({"error": err.to_string()})),
-                )
-                    .into_response();
-            }
-        },
+        Some(s) => Some(OrderStatus::from_str(s).map_err(|_| ServiceError::BadRequest {
+            code: k1s0_server_common::error::ErrorCode::new("SVC_ORDER_VALIDATION_FAILED"),
+            message: format!("invalid order status: '{}'", s),
+            details: vec![],
+        })?),
         None => None,
     };
 
@@ -175,57 +154,39 @@ pub async fn list_orders(
         offset: query.offset.or(Some(0)),
     };
 
-    match state.list_orders_uc.execute(&filter).await {
-        Ok((orders, total)) => {
-            let response = OrderListResponse::from_entities(&orders, total);
-            (StatusCode::OK, Json(serde_json::to_value(response).unwrap())).into_response()
-        }
-        Err(err) => from_anyhow(err).into_response(),
-    }
+    let (orders, total) = state
+        .list_orders_uc
+        .execute(&filter)
+        .await
+        .map_err(map_order_error)?;
+
+    let response = OrderListResponse::from_entities(&orders, total);
+    Ok(Json(response))
 }
 
-/// anyhow::Error を HTTP レスポンスに変換するヘルパー。
-fn from_anyhow(err: anyhow::Error) -> impl IntoResponse {
-    let msg = err.to_string();
-    let lower = msg.to_ascii_lowercase();
+/// UUID パースヘルパー。
+fn parse_uuid(s: &str) -> Result<Uuid, ServiceError> {
+    Uuid::parse_str(s).map_err(|_| ServiceError::BadRequest {
+        code: k1s0_server_common::error::ErrorCode::new("SVC_ORDER_VALIDATION_FAILED"),
+        message: format!("invalid order_id format: '{}'", s),
+        details: vec![k1s0_server_common::error::ErrorDetail::new(
+            "order_id",
+            "invalid_format",
+            "must be a valid UUID",
+        )],
+    })
+}
 
-    if lower.contains("not found") {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({
-                "code": "SVC_ORDER_NOT_FOUND",
-                "message": msg,
-            })),
-        );
+/// anyhow::Error を ServiceError に変換する。
+///
+/// OrderError がダウンキャスト可能な場合は型安全に変換し、
+/// それ以外は Internal エラーとして扱う。
+fn map_order_error(err: anyhow::Error) -> ServiceError {
+    match err.downcast::<OrderError>() {
+        Ok(order_err) => order_err.into(),
+        Err(other) => ServiceError::Internal {
+            code: k1s0_server_common::error::ErrorCode::new("SVC_ORDER_INTERNAL_ERROR"),
+            message: other.to_string(),
+        },
     }
-    if lower.contains("invalid status transition") {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "code": "SVC_ORDER_INVALID_STATUS_TRANSITION",
-                "message": msg,
-            })),
-        );
-    }
-    if lower.contains("must not be empty")
-        || lower.contains("must be greater")
-        || lower.contains("must not be negative")
-        || lower.contains("at least one item")
-    {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "code": "SVC_ORDER_VALIDATION_ERROR",
-                "message": msg,
-            })),
-        );
-    }
-
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(serde_json::json!({
-            "code": "SVC_ORDER_INTERNAL_ERROR",
-            "message": msg,
-        })),
-    )
 }

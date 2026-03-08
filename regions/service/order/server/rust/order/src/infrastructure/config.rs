@@ -107,6 +107,12 @@ pub struct KafkaConfig {
     pub order_created_topic: String,
     pub order_updated_topic: String,
     pub order_cancelled_topic: String,
+    #[serde(default = "default_security_protocol")]
+    pub security_protocol: String,
+}
+
+fn default_security_protocol() -> String {
+    "PLAINTEXT".to_string()
 }
 
 #[derive(Debug, Clone, Deserialize)]

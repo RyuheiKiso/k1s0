@@ -824,6 +824,31 @@ pub mod notification {
     }
 }
 
+/// Well-known error codes for the Order service (service tier).
+pub mod order {
+    use super::ErrorCode;
+
+    pub fn not_found() -> ErrorCode {
+        ErrorCode::new("SVC_ORDER_NOT_FOUND")
+    }
+
+    pub fn validation_failed() -> ErrorCode {
+        ErrorCode::new("SVC_ORDER_VALIDATION_FAILED")
+    }
+
+    pub fn invalid_status_transition() -> ErrorCode {
+        ErrorCode::new("SVC_ORDER_INVALID_STATUS_TRANSITION")
+    }
+
+    pub fn version_conflict() -> ErrorCode {
+        ErrorCode::new("SVC_ORDER_VERSION_CONFLICT")
+    }
+
+    pub fn internal_error() -> ErrorCode {
+        ErrorCode::new("SVC_ORDER_INTERNAL_ERROR")
+    }
+}
+
 /// Well-known error codes for Feature Flag service.
 pub mod featureflag {
     use super::ErrorCode;

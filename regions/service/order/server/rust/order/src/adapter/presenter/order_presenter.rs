@@ -15,6 +15,9 @@ pub struct OrderDetailResponse {
     pub notes: Option<String>,
     pub items: Vec<OrderItemResponse>,
     pub created_by: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_by: Option<String>,
+    pub version: i32,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -60,6 +63,8 @@ impl OrderDetailResponse {
             notes: order.notes.clone(),
             items: items.iter().map(OrderItemResponse::from).collect(),
             created_by: order.created_by.clone(),
+            updated_by: order.updated_by.clone(),
+            version: order.version,
             created_at: order.created_at.to_rfc3339(),
             updated_at: order.updated_at.to_rfc3339(),
         }
@@ -118,6 +123,8 @@ mod tests {
             currency: "JPY".to_string(),
             notes: Some("rush delivery".to_string()),
             created_by: "admin".to_string(),
+            updated_by: None,
+            version: 1,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

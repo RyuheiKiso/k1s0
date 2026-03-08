@@ -1,6 +1,7 @@
 use crate::domain::entity::order::{
     CreateOrder, Order, OrderFilter, OrderItem, OrderStatus,
 };
+use crate::domain::entity::outbox::OutboxEvent;
 use crate::domain::repository::order_repository::OrderRepository;
 use crate::domain::service::order_service::OrderDomainService;
 use async_trait::async_trait;
@@ -25,7 +26,7 @@ impl OrderRepository for OrderPostgresRepository {
             OrderRow,
             r#"
             SELECT id, customer_id, status, total_amount, currency, notes,
-                   created_by, created_at, updated_at
+                   created_by, updated_by, version, created_at, updated_at
             FROM orders
             WHERE id = $1
             "#,
@@ -64,7 +65,7 @@ impl OrderRepository for OrderPostgresRepository {
             OrderRow,
             r#"
             SELECT id, customer_id, status, total_amount, currency, notes,
-                   created_by, created_at, updated_at
+                   created_by, updated_by, version, created_at, updated_at
             FROM orders
             WHERE ($1::text IS NULL OR customer_id = $1)
               AND ($2::text IS NULL OR status = $2)
@@ -115,9 +116,9 @@ impl OrderRepository for OrderPostgresRepository {
         let order_row = sqlx::query_as!(
             OrderRow,
             r#"
-            INSERT INTO orders (id, customer_id, status, total_amount, currency, notes, created_by, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            RETURNING id, customer_id, status, total_amount, currency, notes, created_by, created_at, updated_at
+            INSERT INTO orders (id, customer_id, status, total_amount, currency, notes, created_by, version, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, $9)
+            RETURNING id, customer_id, status, total_amount, currency, notes, created_by, updated_by, version, created_at, updated_at
             "#,
             order_id,
             input.customer_id,
@@ -156,31 +157,183 @@ impl OrderRepository for OrderPostgresRepository {
             items.push(OrderItem::from(item_row));
         }
 
+        // Outbox イベントを同一トランザクション内に挿入
+        let items_json: Vec<serde_json::Value> = items
+            .iter()
+            .map(|item| {
+                serde_json::json!({
+                    "product_id": item.product_id,
+                    "quantity": item.quantity,
+                    "unit_price": item.unit_price,
+                })
+            })
+            .collect();
+
+        let outbox_payload = serde_json::json!({
+            "metadata": {
+                "event_id": Uuid::new_v4().to_string(),
+                "event_type": "order.created",
+                "source": "order-server",
+                "timestamp": now.timestamp_millis(),
+                "trace_id": "",
+                "correlation_id": order_id.to_string(),
+                "schema_version": 1
+            },
+            "order_id": order_id.to_string(),
+            "customer_id": input.customer_id,
+            "items": items_json,
+            "total_amount": total_amount,
+            "currency": input.currency,
+        });
+
+        sqlx::query!(
+            r#"
+            INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            "#,
+            Uuid::new_v4(),
+            "Order",
+            order_id.to_string(),
+            "order.created",
+            outbox_payload,
+            now
+        )
+        .execute(&mut *tx)
+        .await?;
+
         tx.commit().await?;
 
         let order: Order = order_row.try_into()?;
         Ok((order, items))
     }
 
-    async fn update_status(&self, id: Uuid, status: &OrderStatus) -> anyhow::Result<Order> {
+    async fn update_status(
+        &self,
+        id: Uuid,
+        status: &OrderStatus,
+        updated_by: &str,
+        expected_version: i32,
+    ) -> anyhow::Result<Order> {
+        let mut tx = self.pool.begin().await?;
         let now = Utc::now();
+
         let row = sqlx::query_as!(
             OrderRow,
             r#"
             UPDATE orders
-            SET status = $2, updated_at = $3
-            WHERE id = $1
-            RETURNING id, customer_id, status, total_amount, currency, notes, created_by, created_at, updated_at
+            SET status = $2, updated_by = $3, version = version + 1, updated_at = $4
+            WHERE id = $1 AND version = $5
+            RETURNING id, customer_id, status, total_amount, currency, notes, created_by, updated_by, version, created_at, updated_at
             "#,
             id,
             status.as_str(),
+            updated_by,
+            now,
+            expected_version
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("Order '{}' not found or version conflict", id))?;
+
+        // Outbox イベントを同一トランザクション内に挿入
+        let event_type = if *status == OrderStatus::Cancelled {
+            "order.cancelled"
+        } else {
+            "order.updated"
+        };
+
+        let outbox_payload = serde_json::json!({
+            "metadata": {
+                "event_id": Uuid::new_v4().to_string(),
+                "event_type": event_type,
+                "source": "order-server",
+                "timestamp": now.timestamp_millis(),
+                "trace_id": "",
+                "correlation_id": id.to_string(),
+                "schema_version": 1
+            },
+            "order_id": id.to_string(),
+            "user_id": updated_by,
+            "status": status.as_str(),
+            "total_amount": row.total_amount,
+        });
+
+        sqlx::query!(
+            r#"
+            INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            "#,
+            Uuid::new_v4(),
+            "Order",
+            id.to_string(),
+            event_type,
+            outbox_payload,
             now
         )
-        .fetch_optional(&self.pool)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("Order '{}' not found", id))?;
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
 
         row.try_into()
+    }
+
+    async fn insert_outbox_event(
+        &self,
+        aggregate_type: &str,
+        aggregate_id: &str,
+        event_type: &str,
+        payload: &serde_json::Value,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"
+            INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
+            VALUES ($1, $2, $3, $4, $5, NOW())
+            "#,
+            Uuid::new_v4(),
+            aggregate_type,
+            aggregate_id,
+            event_type,
+            payload
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
+        let rows = sqlx::query_as!(
+            OutboxEventRow,
+            r#"
+            SELECT id, aggregate_type, aggregate_id, event_type, payload,
+                   created_at, published_at
+            FROM outbox_events
+            WHERE published_at IS NULL
+            ORDER BY created_at ASC
+            LIMIT $1
+            "#,
+            limit
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows.into_iter().map(OutboxEvent::from).collect())
+    }
+
+    async fn mark_event_published(&self, event_id: Uuid) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"
+            UPDATE outbox_events
+            SET published_at = NOW()
+            WHERE id = $1
+            "#,
+            event_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 
     async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
@@ -213,6 +366,8 @@ struct OrderRow {
     currency: String,
     notes: Option<String>,
     created_by: String,
+    updated_by: Option<String>,
+    version: i32,
     created_at: chrono::DateTime<Utc>,
     updated_at: chrono::DateTime<Utc>,
 }
@@ -229,6 +384,8 @@ impl TryFrom<OrderRow> for Order {
             currency: row.currency,
             notes: row.notes,
             created_by: row.created_by,
+            updated_by: row.updated_by,
+            version: row.version,
             created_at: row.created_at,
             updated_at: row.updated_at,
         })
@@ -257,6 +414,30 @@ impl From<OrderItemRow> for OrderItem {
             unit_price: row.unit_price,
             subtotal: row.subtotal,
             created_at: row.created_at,
+        }
+    }
+}
+
+struct OutboxEventRow {
+    id: Uuid,
+    aggregate_type: String,
+    aggregate_id: String,
+    event_type: String,
+    payload: serde_json::Value,
+    created_at: chrono::DateTime<Utc>,
+    published_at: Option<chrono::DateTime<Utc>>,
+}
+
+impl From<OutboxEventRow> for OutboxEvent {
+    fn from(row: OutboxEventRow) -> Self {
+        Self {
+            id: row.id,
+            aggregate_type: row.aggregate_type,
+            aggregate_id: row.aggregate_id,
+            event_type: row.event_type,
+            payload: row.payload,
+            created_at: row.created_at,
+            published_at: row.published_at,
         }
     }
 }

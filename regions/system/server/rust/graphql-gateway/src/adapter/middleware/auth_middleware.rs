@@ -105,7 +105,7 @@ where
                         StatusCode::UNAUTHORIZED,
                         Json(serde_json::json!({
                             "error": {
-                                "code": "UNAUTHORIZED",
+                                "code": "SYS_AUTH_TOKEN_MISSING",
                                 "message": "missing Authorization header",
                                 "request_id": request_id
                             }
@@ -123,7 +123,7 @@ where
                         StatusCode::UNAUTHORIZED,
                         Json(serde_json::json!({
                             "error": {
-                                "code": "UNAUTHORIZED",
+                                "code": "SYS_AUTH_TOKEN_INVALID",
                                 "message": "invalid or expired JWT token",
                                 "request_id": request_id
                             }

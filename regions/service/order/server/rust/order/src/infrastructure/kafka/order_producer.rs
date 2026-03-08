@@ -6,6 +6,12 @@ use rdkafka::producer::{FutureProducer, FutureRecord};
 use serde_json::Value;
 use std::time::Duration;
 
+// TODO(NCR-006): Protobuf シリアライズ完全移行
+// 現在は outbox JSONB → JSON publish だが、
+// api/proto/k1s0/event/service/order/v1/order_events.proto の
+// Rust 生成型を使って prost::Message::encode_to_vec() でシリアライズすべき。
+// build.rs で tonic_build を設定し、生成コードを src/proto/ に出力する。
+
 pub struct OrderKafkaProducer {
     producer: FutureProducer,
     order_created_topic: String,
@@ -17,6 +23,7 @@ impl OrderKafkaProducer {
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         let mut client_config = ClientConfig::new();
         client_config.set("bootstrap.servers", config.brokers.join(","));
+        client_config.set("security.protocol", &config.security_protocol);
         client_config.set("acks", "all");
         client_config.set("message.timeout.ms", "5000");
 

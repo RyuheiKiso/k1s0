@@ -1,25 +1,17 @@
 use crate::domain::entity::order::{Order, OrderStatus};
+use crate::domain::error::OrderError;
 use crate::domain::repository::order_repository::OrderRepository;
 use crate::domain::service::order_service::OrderDomainService;
-use crate::usecase::event_publisher::OrderEventPublisher;
-use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct UpdateOrderStatusUseCase {
     order_repo: Arc<dyn OrderRepository>,
-    event_publisher: Arc<dyn OrderEventPublisher>,
 }
 
 impl UpdateOrderStatusUseCase {
-    pub fn new(
-        order_repo: Arc<dyn OrderRepository>,
-        event_publisher: Arc<dyn OrderEventPublisher>,
-    ) -> Self {
-        Self {
-            order_repo,
-            event_publisher,
-        }
+    pub fn new(order_repo: Arc<dyn OrderRepository>) -> Self {
+        Self { order_repo }
     }
 
     pub async fn execute(
@@ -32,60 +24,18 @@ impl UpdateOrderStatusUseCase {
             .order_repo
             .find_by_id(order_id)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Order '{}' not found", order_id))?;
+            .ok_or_else(|| OrderError::NotFound(order_id.to_string()))?;
 
         // ステータス遷移バリデーション
         OrderDomainService::validate_status_transition(&existing.status, new_status)?;
 
-        let updated = self.order_repo.update_status(order_id, new_status).await?;
-
-        // イベント発行
-        if *new_status == OrderStatus::Cancelled {
-            self.publish_cancelled_event(&updated, actor).await;
-        } else {
-            self.publish_updated_event(&updated, actor).await;
-        }
+        // ステータス更新（Outbox イベントも同一トランザクション内で挿入される）
+        let updated = self
+            .order_repo
+            .update_status(order_id, new_status, actor, existing.version)
+            .await?;
 
         Ok(updated)
-    }
-
-    async fn publish_updated_event(&self, order: &Order, actor: &str) {
-        let event = serde_json::json!({
-            "event_id": Uuid::new_v4().to_string(),
-            "event_type": "order.updated",
-            "order_id": order.id.to_string(),
-            "user_id": actor,
-            "status": order.status.as_str(),
-            "total_amount": order.total_amount,
-            "timestamp": Utc::now().to_rfc3339(),
-        });
-
-        if let Err(err) = self.event_publisher.publish_order_updated(&event).await {
-            tracing::warn!(
-                error = %err,
-                order_id = %order.id,
-                "failed to publish order updated event"
-            );
-        }
-    }
-
-    async fn publish_cancelled_event(&self, order: &Order, actor: &str) {
-        let event = serde_json::json!({
-            "event_id": Uuid::new_v4().to_string(),
-            "event_type": "order.cancelled",
-            "order_id": order.id.to_string(),
-            "user_id": actor,
-            "reason": "status changed to cancelled",
-            "timestamp": Utc::now().to_rfc3339(),
-        });
-
-        if let Err(err) = self.event_publisher.publish_order_cancelled(&event).await {
-            tracing::warn!(
-                error = %err,
-                order_id = %order.id,
-                "failed to publish order cancelled event"
-            );
-        }
     }
 }
 
@@ -93,7 +43,6 @@ impl UpdateOrderStatusUseCase {
 mod tests {
     use super::*;
     use crate::domain::repository::order_repository::MockOrderRepository;
-    use crate::usecase::event_publisher::MockOrderEventPublisher;
     use chrono::Utc;
 
     fn sample_order(status: OrderStatus) -> Order {
@@ -105,6 +54,8 @@ mod tests {
             currency: "JPY".to_string(),
             notes: None,
             created_by: "admin".to_string(),
+            updated_by: None,
+            version: 1,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }
@@ -120,7 +71,6 @@ mod tests {
         let confirmed_clone = confirmed_order.clone();
 
         let mut mock_repo = MockOrderRepository::new();
-        let mut mock_publisher = MockOrderEventPublisher::new();
 
         mock_repo
             .expect_find_by_id()
@@ -131,14 +81,9 @@ mod tests {
         mock_repo
             .expect_update_status()
             .times(1)
-            .returning(move |_, _| Ok(confirmed_clone.clone()));
+            .returning(move |_, _, _, _| Ok(confirmed_clone.clone()));
 
-        mock_publisher
-            .expect_publish_order_updated()
-            .times(1)
-            .returning(|_| Ok(()));
-
-        let uc = UpdateOrderStatusUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
+        let uc = UpdateOrderStatusUseCase::new(Arc::new(mock_repo));
         let result = uc
             .execute(order_id, &OrderStatus::Confirmed, "admin")
             .await;
@@ -153,14 +98,13 @@ mod tests {
         let order_clone = order.clone();
 
         let mut mock_repo = MockOrderRepository::new();
-        let mock_publisher = MockOrderEventPublisher::new();
 
         mock_repo
             .expect_find_by_id()
             .times(1)
             .returning(move |_| Ok(Some(order_clone.clone())));
 
-        let uc = UpdateOrderStatusUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
+        let uc = UpdateOrderStatusUseCase::new(Arc::new(mock_repo));
         let result = uc
             .execute(order_id, &OrderStatus::Pending, "admin")
             .await;
@@ -181,7 +125,6 @@ mod tests {
         let cancelled_clone = cancelled_order.clone();
 
         let mut mock_repo = MockOrderRepository::new();
-        let mut mock_publisher = MockOrderEventPublisher::new();
 
         mock_repo
             .expect_find_by_id()
@@ -190,13 +133,9 @@ mod tests {
         mock_repo
             .expect_update_status()
             .times(1)
-            .returning(move |_, _| Ok(cancelled_clone.clone()));
-        mock_publisher
-            .expect_publish_order_cancelled()
-            .times(1)
-            .returning(|_| Ok(()));
+            .returning(move |_, _, _, _| Ok(cancelled_clone.clone()));
 
-        let uc = UpdateOrderStatusUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
+        let uc = UpdateOrderStatusUseCase::new(Arc::new(mock_repo));
         let result = uc
             .execute(order_id, &OrderStatus::Cancelled, "admin")
             .await;

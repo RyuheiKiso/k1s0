@@ -16,7 +16,7 @@ pub async fn readyz() -> impl IntoResponse {
 pub async fn metrics_handler(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    let output = state.metrics.gather_text();
+    let output = state.metrics.gather_metrics();
     (
         StatusCode::OK,
         [(

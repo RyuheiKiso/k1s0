@@ -1,4 +1,4 @@
-use crate::adapter::handler::actor_from_claims;
+use k1s0_auth::actor_from_claims;
 use crate::domain::entity::master_category::{
     CreateMasterCategory, MasterCategory as DomainMasterCategory, UpdateMasterCategory,
 };

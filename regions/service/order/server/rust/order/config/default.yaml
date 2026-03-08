@@ -22,9 +22,10 @@ database:
 kafka:
   brokers:
     - "localhost:9092"
-  order_created_topic: "k1s0.service.order.order_created.v1"
-  order_updated_topic: "k1s0.service.order.order_updated.v1"
-  order_cancelled_topic: "k1s0.service.order.order_cancelled.v1"
+  order_created_topic: "k1s0.service.order.created.v1"
+  order_updated_topic: "k1s0.service.order.updated.v1"
+  order_cancelled_topic: "k1s0.service.order.cancelled.v1"
+  security_protocol: "PLAINTEXT"
 
 auth:
   jwks_url: "http://localhost:8080/realms/k1s0/protocol/openid-connect/certs"

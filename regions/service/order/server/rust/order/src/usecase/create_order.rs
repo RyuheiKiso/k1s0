@@ -1,25 +1,15 @@
 use crate::domain::entity::order::{CreateOrder, Order, OrderItem};
 use crate::domain::repository::order_repository::OrderRepository;
 use crate::domain::service::order_service::OrderDomainService;
-use crate::usecase::event_publisher::OrderEventPublisher;
-use chrono::Utc;
 use std::sync::Arc;
-use uuid::Uuid;
 
 pub struct CreateOrderUseCase {
     order_repo: Arc<dyn OrderRepository>,
-    event_publisher: Arc<dyn OrderEventPublisher>,
 }
 
 impl CreateOrderUseCase {
-    pub fn new(
-        order_repo: Arc<dyn OrderRepository>,
-        event_publisher: Arc<dyn OrderEventPublisher>,
-    ) -> Self {
-        Self {
-            order_repo,
-            event_publisher,
-        }
+    pub fn new(order_repo: Arc<dyn OrderRepository>) -> Self {
+        Self { order_repo }
     }
 
     pub async fn execute(
@@ -27,48 +17,13 @@ impl CreateOrderUseCase {
         input: &CreateOrder,
         created_by: &str,
     ) -> anyhow::Result<(Order, Vec<OrderItem>)> {
-        // ドメインバリデーション
+        // ドメインバリデーション（OrderError を返す）
         OrderDomainService::validate_create_order(input)?;
 
-        // 永続化
+        // 永続化（Outbox イベントも同一トランザクション内で挿入される）
         let (order, items) = self.order_repo.create(input, created_by).await?;
 
-        // イベント発行
-        self.publish_created_event(&order, &items).await;
-
         Ok((order, items))
-    }
-
-    async fn publish_created_event(&self, order: &Order, items: &[OrderItem]) {
-        let items_json: Vec<serde_json::Value> = items
-            .iter()
-            .map(|item| {
-                serde_json::json!({
-                    "product_id": item.product_id,
-                    "quantity": item.quantity,
-                    "unit_price": item.unit_price,
-                })
-            })
-            .collect();
-
-        let event = serde_json::json!({
-            "event_id": Uuid::new_v4().to_string(),
-            "event_type": "order.created",
-            "order_id": order.id.to_string(),
-            "customer_id": order.customer_id,
-            "items": items_json,
-            "total_amount": order.total_amount,
-            "currency": order.currency,
-            "timestamp": Utc::now().to_rfc3339(),
-        });
-
-        if let Err(err) = self.event_publisher.publish_order_created(&event).await {
-            tracing::warn!(
-                error = %err,
-                order_id = %order.id,
-                "failed to publish order created event"
-            );
-        }
     }
 }
 
@@ -77,8 +32,8 @@ mod tests {
     use super::*;
     use crate::domain::entity::order::{CreateOrderItem, OrderStatus};
     use crate::domain::repository::order_repository::MockOrderRepository;
-    use crate::usecase::event_publisher::MockOrderEventPublisher;
     use chrono::Utc;
+    use uuid::Uuid;
 
     fn sample_create_order() -> CreateOrder {
         CreateOrder {
@@ -103,6 +58,8 @@ mod tests {
             currency: "JPY".to_string(),
             notes: None,
             created_by: "admin".to_string(),
+            updated_by: None,
+            version: 1,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }
@@ -130,19 +87,13 @@ mod tests {
         let items_clone = items.clone();
 
         let mut mock_repo = MockOrderRepository::new();
-        let mut mock_publisher = MockOrderEventPublisher::new();
 
         mock_repo
             .expect_create()
             .times(1)
             .returning(move |_, _| Ok((order_clone.clone(), items_clone.clone())));
 
-        mock_publisher
-            .expect_publish_order_created()
-            .times(1)
-            .returning(|_| Ok(()));
-
-        let uc = CreateOrderUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
+        let uc = CreateOrderUseCase::new(Arc::new(mock_repo));
         let input = sample_create_order();
         let result = uc.execute(&input, "admin").await;
         assert!(result.is_ok());
@@ -154,9 +105,8 @@ mod tests {
     #[tokio::test]
     async fn test_create_order_validation_failure() {
         let mock_repo = MockOrderRepository::new();
-        let mock_publisher = MockOrderEventPublisher::new();
 
-        let uc = CreateOrderUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
+        let uc = CreateOrderUseCase::new(Arc::new(mock_repo));
         let input = CreateOrder {
             customer_id: "".to_string(),
             currency: "JPY".to_string(),

@@ -36,6 +36,8 @@ mod tests {
             currency: "JPY".to_string(),
             notes: None,
             created_by: "admin".to_string(),
+            updated_by: None,
+            version: 1,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }];

@@ -49,10 +49,37 @@ fn classify_domain_error(message: &str) -> &'static str {
     }
 }
 
-fn has_write_role(roles: &[String]) -> bool {
-    roles
-        .iter()
-        .any(|r| r == "sys_admin" || r == "sys_operator")
+/// Tier はロールチェックのスコープを表現する。
+/// k1s0_server_common::middleware::rbac::Tier と同等だが、axum バージョン差異のため
+/// GraphQL Gateway 内で再定義している。
+#[derive(Debug, Clone, Copy)]
+enum Tier {
+    /// System tier: sys_admin / sys_operator / sys_auditor
+    System,
+}
+
+/// ロールベースの権限チェック。Tier に応じてロールプレフィックスを切り替える。
+/// k1s0_server_common::middleware::rbac::check_permission と同等のロジック。
+fn check_permission(tier: Tier, roles: &[String], action: &str) -> bool {
+    for role in roles {
+        match tier {
+            Tier::System => match role.as_str() {
+                "sys_admin" => return true,
+                "sys_operator" => {
+                    if matches!(action, "read" | "write") {
+                        return true;
+                    }
+                }
+                "sys_auditor" => {
+                    if action == "read" {
+                        return true;
+                    }
+                }
+                _ => {}
+            },
+        }
+    }
+    false
 }
 
 fn ensure_write_permission(ctx: &Context<'_>) -> FieldResult<()> {
@@ -64,7 +91,7 @@ fn ensure_write_permission(ctx: &Context<'_>) -> FieldResult<()> {
         vec![]
     };
 
-    if has_write_role(&roles) {
+    if check_permission(Tier::System, &roles, "write") {
         Ok(())
     } else {
         Err(gql_error(
