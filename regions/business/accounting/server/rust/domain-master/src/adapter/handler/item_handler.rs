@@ -94,14 +94,3 @@ pub async fn delete_item(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub async fn list_versions(
-    State(state): State<AppState>,
-    Path((category_code, item_code)): Path<(String, String)>,
-) -> Result<Json<serde_json::Value>, ServiceError> {
-    let versions = state
-        .get_item_versions_uc
-        .list_versions(&category_code, &item_code)
-        .await
-        .map_err(from_anyhow)?;
-    Ok(Json(serde_json::json!({ "versions": versions })))
-}

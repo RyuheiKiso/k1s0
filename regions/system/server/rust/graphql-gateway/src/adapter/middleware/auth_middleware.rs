@@ -9,7 +9,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::infra::auth::JwksVerifier;
+use crate::infrastructure::auth::JwksVerifier;
 
 /// JWT Claims（async-graphql の Extension として GraphQL Context に注入）
 #[derive(Debug, Clone, Serialize, Deserialize)]

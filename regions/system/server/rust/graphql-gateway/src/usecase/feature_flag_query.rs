@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tracing::instrument;
 
 use crate::domain::model::FeatureFlag;
-use crate::infra::grpc::FeatureFlagGrpcClient;
+use crate::infrastructure::grpc::FeatureFlagGrpcClient;
 
 pub struct FeatureFlagQueryResolver {
     client: Arc<FeatureFlagGrpcClient>,

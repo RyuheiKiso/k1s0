@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tracing::instrument;
 
 use crate::domain::model::{CreateTenantPayload, UpdateTenantPayload, UserError};
-use crate::infra::grpc::TenantGrpcClient;
+use crate::infrastructure::grpc::TenantGrpcClient;
 
 pub struct TenantMutationResolver {
     client: Arc<TenantGrpcClient>,

@@ -2,6 +2,7 @@ pub mod category_handler;
 pub mod error;
 pub mod item_handler;
 pub mod tenant_handler;
+pub mod version_handler;
 
 use crate::usecase;
 use axum::middleware::from_fn_with_state;
@@ -67,7 +68,7 @@ pub fn router(state: AppState) -> Router {
             )
             .route(
                 "/api/v1/categories/:code/items/:item_code/versions",
-                get(item_handler::list_versions),
+                get(version_handler::list_versions),
             )
             .route(
                 "/api/v1/tenants/:tenant_id/items/:item_id",
@@ -154,7 +155,7 @@ pub fn router(state: AppState) -> Router {
             )
             .route(
                 "/api/v1/categories/:code/items/:item_code/versions",
-                get(item_handler::list_versions),
+                get(version_handler::list_versions),
             )
             .route(
                 "/api/v1/tenants/:tenant_id/items/:item_id",

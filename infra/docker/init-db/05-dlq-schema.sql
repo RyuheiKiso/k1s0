@@ -1,5 +1,5 @@
 -- infra/docker/init-db/05-dlq-schema.sql
--- dlq-manager 用スキーマ（dlq-db/migrations/001+002+003 を統合）
+-- dlq-manager 用スキーマ（dlq-manager-db/migrations/001+002+003 を統合）
 
 \connect dlq_db;
 

@@ -39,7 +39,7 @@
 
 | 種別 | パス |
 | --- | --- |
-| React クライアント | `regions/system/client/react/master-maintenance/` |
+| React クライアント | `regions/system/server/rust/master-maintenance/client/react/app/` |
 | Proto 定義 | `api/proto/k1s0/system/mastermaintenance/v1/master_maintenance.proto` |
 | DB マイグレーション | `regions/system/database/master-maintenance-db/migrations/` |
 

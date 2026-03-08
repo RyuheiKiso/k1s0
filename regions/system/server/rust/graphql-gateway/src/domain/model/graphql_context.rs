@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_graphql::dataloader::DataLoader;
 
-use crate::infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+use crate::infrastructure::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 
 /// GraphQL リクエストコンテキスト。JWT から抽出した認証情報と DataLoader を保持する。
 #[allow(dead_code)]

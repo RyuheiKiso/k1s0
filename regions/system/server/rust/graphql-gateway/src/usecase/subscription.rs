@@ -4,7 +4,7 @@ use async_graphql::futures_util::Stream;
 use tracing::instrument;
 
 use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant};
-use crate::infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+use crate::infrastructure::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 
 pub struct SubscriptionResolver {
     config_client: Arc<ConfigGrpcClient>,

@@ -20,9 +20,9 @@ use crate::domain::model::{
     ConfigEntry, CreateTenantPayload, FeatureFlag, SetFeatureFlagPayload, Tenant, TenantConnection,
     TenantStatus, UpdateTenantPayload, UserError,
 };
-use crate::infra::auth::JwksVerifier;
-use crate::infra::config::GraphQLConfig;
-use crate::infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+use crate::infrastructure::auth::JwksVerifier;
+use crate::infrastructure::config::GraphQLConfig;
+use crate::infrastructure::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 use crate::usecase::{
     ConfigQueryResolver, FeatureFlagQueryResolver, SubscriptionResolver, TenantMutationResolver,
     TenantQueryResolver,
