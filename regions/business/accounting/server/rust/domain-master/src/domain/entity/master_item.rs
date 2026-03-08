@@ -29,6 +29,7 @@ pub struct CreateMasterItem {
     pub parent_item_id: Option<Uuid>,
     pub effective_from: Option<DateTime<Utc>>,
     pub effective_until: Option<DateTime<Utc>>,
+    pub is_active: Option<bool>,
     pub sort_order: Option<i32>,
 }
 

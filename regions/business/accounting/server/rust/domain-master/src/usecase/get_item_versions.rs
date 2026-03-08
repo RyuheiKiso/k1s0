@@ -3,6 +3,7 @@ use crate::domain::repository::category_repository::CategoryRepository;
 use crate::domain::repository::item_repository::ItemRepository;
 use crate::domain::repository::version_repository::VersionRepository;
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct GetItemVersionsUseCase {
     category_repo: Arc<dyn CategoryRepository>,
@@ -47,5 +48,16 @@ impl GetItemVersionsUseCase {
             })?;
 
         self.version_repo.find_by_item(item.id).await
+    }
+
+    pub async fn list_versions_by_item_id(
+        &self,
+        item_id: Uuid,
+    ) -> anyhow::Result<Vec<MasterItemVersion>> {
+        self.item_repo
+            .find_by_id(item_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Item '{}' not found", item_id))?;
+        self.version_repo.find_by_item(item_id).await
     }
 }

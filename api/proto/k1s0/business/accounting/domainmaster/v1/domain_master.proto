@@ -124,10 +124,10 @@ message GetCategoryResponse {
 message CreateCategoryRequest {
   string code = 1;
   string display_name = 2;
-  string description = 3;
+  optional string description = 3;
   google.protobuf.Struct validation_schema = 4;
-  bool is_active = 5;
-  int32 sort_order = 6;
+  optional bool is_active = 5;
+  optional int32 sort_order = 6;
 }
 
 message CreateCategoryResponse {
@@ -136,11 +136,11 @@ message CreateCategoryResponse {
 
 message UpdateCategoryRequest {
   string category_id = 1;
-  string display_name = 2;
-  string description = 3;
+  optional string display_name = 2;
+  optional string description = 3;
   google.protobuf.Struct validation_schema = 4;
-  bool is_active = 5;
-  int32 sort_order = 6;
+  optional bool is_active = 5;
+  optional int32 sort_order = 6;
 }
 
 message UpdateCategoryResponse {
@@ -180,13 +180,13 @@ message CreateItemRequest {
   string category_id = 1;
   string code = 2;
   string display_name = 3;
-  string description = 4;
+  optional string description = 4;
   google.protobuf.Struct attributes = 5;
   optional string parent_item_id = 6;
-  google.protobuf.Timestamp effective_from = 7;
+  optional google.protobuf.Timestamp effective_from = 7;
   optional google.protobuf.Timestamp effective_until = 8;
-  bool is_active = 9;
-  int32 sort_order = 10;
+  optional bool is_active = 9;
+  optional int32 sort_order = 10;
 }
 
 message CreateItemResponse {
@@ -195,14 +195,14 @@ message CreateItemResponse {
 
 message UpdateItemRequest {
   string item_id = 1;
-  string display_name = 2;
-  string description = 3;
+  optional string display_name = 2;
+  optional string description = 3;
   google.protobuf.Struct attributes = 4;
   optional string parent_item_id = 5;
-  google.protobuf.Timestamp effective_from = 6;
+  optional google.protobuf.Timestamp effective_from = 6;
   optional google.protobuf.Timestamp effective_until = 7;
-  bool is_active = 8;
-  int32 sort_order = 9;
+  optional bool is_active = 8;
+  optional int32 sort_order = 9;
 }
 
 message UpdateItemResponse {
@@ -245,7 +245,7 @@ message UpsertTenantExtensionRequest {
   string item_id = 2;
   optional string display_name_override = 3;
   google.protobuf.Struct attributes_override = 4;
-  bool is_enabled = 5;
+  optional bool is_enabled = 5;
 }
 
 message UpsertTenantExtensionResponse {

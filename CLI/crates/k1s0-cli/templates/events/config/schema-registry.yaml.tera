@@ -1,0 +1,20 @@
+# このファイルは k1s0 CLI が自動生成しました。直接編集しないでください。
+# k1s0 generate-events で再生成できます。
+#
+# Schema Registry 設定: {{ domain }}.{{ service_name }}
+
+schema_registry:
+  # Schema Registry の接続先
+  url: ${SCHEMA_REGISTRY_URL:-http://localhost:8081}
+
+  # スキーマ互換性レベル
+  compatibility: BACKWARD
+
+  # 登録するスキーマ一覧
+  subjects:
+{% for event in events %}
+    - name: "{{ event.topic }}-value"
+      schema_type: PROTOBUF
+      file: "proto/{{ domain }}/events/v{{ event.version }}/{{ event.name_snake }}.proto"
+      compatibility: BACKWARD
+{% endfor %}

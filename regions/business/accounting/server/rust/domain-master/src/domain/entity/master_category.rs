@@ -22,6 +22,7 @@ pub struct CreateMasterCategory {
     pub display_name: String,
     pub description: Option<String>,
     pub validation_schema: Option<serde_json::Value>,
+    pub is_active: Option<bool>,
     pub sort_order: Option<i32>,
 }
 

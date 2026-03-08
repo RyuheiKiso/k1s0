@@ -1,0 +1,9 @@
+// src/events/mod.rs
+// このファイルは k1s0 CLI が自動生成しました。直接編集しないでください。
+// k1s0 generate-events で再生成できます。
+
+pub mod producer;
+pub mod types;
+{% if has_consumers %}
+pub mod consumers;
+{% endif %}

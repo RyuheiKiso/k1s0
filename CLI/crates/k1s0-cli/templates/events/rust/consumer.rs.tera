@@ -1,0 +1,25 @@
+// src/events/consumers/{{ consumer.handler }}.rs
+// このファイルは k1s0 CLI が自動生成しました。直接編集しないでください。
+// k1s0 generate-events で再生成できます。
+
+use anyhow::Result;
+use messaging::ConsumedMessage;
+
+use crate::events::types::{{ event.name_pascal }}Event;
+
+/// {{ event.description }}
+///
+/// トピック: {{ event.topic }}
+/// Consumer Group: {{ consumer.consumer_group }}
+pub async fn {{ consumer.handler }}(msg: &ConsumedMessage) -> Result<()> {
+    let event = msg.deserialize_json::<{{ event.name_pascal }}Event>()?;
+
+    // TODO: イベントハンドリングロジックを実装してください
+    tracing::info!(
+        event_type = "{{ event.name }}",
+        {{ event.partition_key }} = %event.{{ event.partition_key }},
+        "イベントを受信しました"
+    );
+
+    Ok(())
+}

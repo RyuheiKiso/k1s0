@@ -19,6 +19,7 @@ const MENU_ITEMS: &[&str] = &[
     "依存関係マップ",
     "ローカル開発",
     "マイグレーション管理",
+    "イベントコード生成",
     "終了",
 ];
 
@@ -136,7 +137,12 @@ fn show_main_menu(_cli_config: &config::CliConfig) -> Result<bool> {
                         eprintln!("マイグレーション管理エラー: {e}");
                     }
                 }
-                11 => return Ok(true),
+                11 => {
+                    if let Err(e) = commands::generate_events::run() {
+                        eprintln!("イベントコード生成エラー: {e}");
+                    }
+                }
+                12 => return Ok(true),
                 _ => unreachable!(),
             }
             Ok(false)

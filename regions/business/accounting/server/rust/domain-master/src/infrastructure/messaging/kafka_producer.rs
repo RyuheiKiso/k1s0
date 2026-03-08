@@ -1,4 +1,6 @@
 use crate::infrastructure::config::KafkaConfig;
+use crate::usecase::event_publisher::DomainMasterEventPublisher;
+use async_trait::async_trait;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use serde_json::Value;
@@ -71,5 +73,20 @@ impl DomainMasterKafkaProducer {
             .map_err(|(err, _)| anyhow::anyhow!("failed to publish change event: {err}"))?;
 
         Ok(())
+    }
+}
+
+#[async_trait]
+impl DomainMasterEventPublisher for DomainMasterKafkaProducer {
+    async fn publish_category_changed(&self, event: &Value) -> anyhow::Result<()> {
+        DomainMasterKafkaProducer::publish_category_changed(self, event).await
+    }
+
+    async fn publish_item_changed(&self, event: &Value) -> anyhow::Result<()> {
+        DomainMasterKafkaProducer::publish_item_changed(self, event).await
+    }
+
+    async fn publish_tenant_extension_changed(&self, event: &Value) -> anyhow::Result<()> {
+        DomainMasterKafkaProducer::publish_tenant_extension_changed(self, event).await
     }
 }

@@ -15,6 +15,7 @@ use k1s0_server_common::middleware::auth_middleware::AuthState;
 use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
 use k1s0_server_common::middleware::rbac::Tier;
 use k1s0_server_common::middleware::shutdown::shutdown_signal;
+use tonic::transport::Server;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -84,29 +85,32 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // 6. Kafka Producer (optional)
-    let kafka_producer = if let Some(ref kafka_cfg) = cfg.kafka {
+    let event_publisher: Arc<dyn usecase::event_publisher::DomainMasterEventPublisher> =
+        if let Some(ref kafka_cfg) = cfg.kafka {
         match infrastructure::messaging::kafka_producer::DomainMasterKafkaProducer::new(kafka_cfg) {
             Ok(producer) => {
                 info!("kafka producer initialized");
-                Some(Arc::new(producer))
+                Arc::new(producer)
             }
             Err(e) => {
                 tracing::warn!("failed to initialize kafka producer: {}", e);
-                None
+                Arc::new(usecase::event_publisher::NoopDomainMasterEventPublisher)
             }
         }
     } else {
-        None
+        Arc::new(usecase::event_publisher::NoopDomainMasterEventPublisher)
     };
 
     // 7. Use Cases
-    let manage_categories_uc = Arc::new(
-        usecase::manage_categories::ManageCategoriesUseCase::new(category_repo.clone()),
-    );
+    let manage_categories_uc = Arc::new(usecase::manage_categories::ManageCategoriesUseCase::new(
+        category_repo.clone(),
+        event_publisher.clone(),
+    ));
     let manage_items_uc = Arc::new(usecase::manage_items::ManageItemsUseCase::new(
         category_repo.clone(),
         item_repo.clone(),
         version_repo.clone(),
+        event_publisher.clone(),
     ));
     let get_item_versions_uc = Arc::new(
         usecase::get_item_versions::GetItemVersionsUseCase::new(
@@ -120,6 +124,7 @@ async fn main() -> anyhow::Result<()> {
             category_repo.clone(),
             item_repo.clone(),
             tenant_ext_repo.clone(),
+            event_publisher.clone(),
         ),
     );
 
@@ -143,7 +148,6 @@ async fn main() -> anyhow::Result<()> {
         get_item_versions_uc: get_item_versions_uc.clone(),
         manage_tenant_extensions_uc: manage_tenant_extensions_uc.clone(),
         metrics: metrics.clone(),
-        kafka_producer: kafka_producer.clone(),
         auth_state: auth_state.clone(),
     };
     let app = handler::router(state);
@@ -156,8 +160,6 @@ async fn main() -> anyhow::Result<()> {
             get_item_versions_uc,
             manage_tenant_extensions_uc,
         );
-    let _ = grpc_service; // gRPC service struct created; tonic trait impl requires generated code
-
     let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
     info!("gRPC server listening on {}", grpc_addr);
     let grpc_metrics = metrics.clone();
@@ -165,19 +167,18 @@ async fn main() -> anyhow::Result<()> {
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let mut rest_shutdown_rx = shutdown_rx.clone();
     let mut grpc_shutdown_rx = shutdown_rx.clone();
-    // NOTE: gRPC service registration requires generated proto code (protoc).
-    // Once tonic-build generates the service trait, uncomment:
-    //   use crate::proto::k1s0::business::accounting::domainmaster::v1::domain_master_service_server::DomainMasterServiceServer;
-    //   let grpc_router = grpc_router.add_service(DomainMasterServiceServer::new(grpc_service));
-    let _grpc_auth_layer = grpc_auth_layer;
-    let _grpc_metrics = grpc_metrics;
     let grpc_future = async move {
-        // Placeholder: listen on gRPC port for graceful shutdown support
-        let listener = tokio::net::TcpListener::bind(grpc_addr).await?;
-        info!("gRPC server placeholder listening on {}", grpc_addr);
-        let _ = grpc_shutdown_rx.changed().await;
-        drop(listener);
-        Ok::<(), anyhow::Error>(())
+        use k1s0_domain_master_server::proto::k1s0::business::accounting::domainmaster::v1::domain_master_service_server::DomainMasterServiceServer;
+
+        Server::builder()
+            .layer(grpc_auth_layer)
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
+            .add_service(DomainMasterServiceServer::new(grpc_service))
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown_rx.changed().await;
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
 
     // 11. Start REST server
