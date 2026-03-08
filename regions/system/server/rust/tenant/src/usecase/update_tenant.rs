@@ -4,6 +4,7 @@ use uuid::Uuid;
 use crate::domain::entity::{Plan, Tenant};
 use crate::domain::repository::TenantRepository;
 use crate::infrastructure::kafka_producer::{NoopTenantEventPublisher, TenantEventPublisher};
+use crate::usecase::watch_tenant::TenantChangeEvent;
 
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateTenantError {
@@ -24,6 +25,7 @@ pub struct UpdateTenantInput {
 pub struct UpdateTenantUseCase {
     tenant_repo: Arc<dyn TenantRepository>,
     event_publisher: Arc<dyn TenantEventPublisher>,
+    watch_sender: Option<tokio::sync::broadcast::Sender<TenantChangeEvent>>,
 }
 
 impl UpdateTenantUseCase {
@@ -31,11 +33,17 @@ impl UpdateTenantUseCase {
         Self {
             tenant_repo,
             event_publisher: Arc::new(NoopTenantEventPublisher),
+            watch_sender: None,
         }
     }
 
     pub fn with_event_publisher(mut self, event_publisher: Arc<dyn TenantEventPublisher>) -> Self {
         self.event_publisher = event_publisher;
+        self
+    }
+
+    pub fn with_watch_sender(mut self, sender: tokio::sync::broadcast::Sender<TenantChangeEvent>) -> Self {
+        self.watch_sender = Some(sender);
         self
     }
 
@@ -57,6 +65,17 @@ impl UpdateTenantUseCase {
 
         if let Err(e) = self.event_publisher.publish_tenant_updated(&tenant).await {
             tracing::warn!(tenant_id = %tenant.id, error = %e, "failed to publish tenant.updated event");
+        }
+
+        if let Some(sender) = &self.watch_sender {
+            let _ = sender.send(TenantChangeEvent {
+                tenant_id: tenant.id.to_string(),
+                change_type: "UPDATED".to_string(),
+                tenant_name: tenant.name.clone(),
+                tenant_display_name: tenant.display_name.clone(),
+                tenant_status: tenant.status.as_str().to_string(),
+                tenant_plan: tenant.plan.as_str().to_string(),
+            });
         }
 
         Ok(tenant)

@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::time::Duration;
 
+use async_graphql::futures_util::Stream;
 use chrono::{DateTime, Utc};
 use tonic::transport::Channel;
 use tracing::instrument;
@@ -255,6 +256,39 @@ impl TenantGrpcClient {
         }
 
         Ok(Self::tenant_from_proto(latest))
+    }
+
+    /// WatchTenant Server-Side Streaming を購読し、変更イベントを Tenant として返す。
+    #[instrument(skip(self), fields(service = "graphql-gateway"))]
+    pub async fn watch_tenant(&self, tenant_id: &str) -> impl Stream<Item = Tenant> {
+        let request =
+            tonic::Request::new(proto::k1s0::system::tenant::v1::WatchTenantRequest {
+                tenant_id: tenant_id.to_owned(),
+            });
+
+        let stream = self
+            .client
+            .clone()
+            .watch_tenant(request)
+            .await
+            .expect("WatchTenant stream failed")
+            .into_inner();
+
+        async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
+            match stream.message().await {
+                Ok(Some(resp)) => {
+                    let tenant = resp.tenant.map(Self::tenant_from_proto).unwrap_or(Tenant {
+                        id: resp.tenant_id,
+                        name: String::new(),
+                        status: TenantStatus::from(String::new()),
+                        created_at: String::new(),
+                        updated_at: String::new(),
+                    });
+                    Some((tenant, stream))
+                }
+                _ => None,
+            }
+        })
     }
 }
 

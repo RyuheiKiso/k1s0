@@ -5,6 +5,7 @@ use crate::domain::entity::flag_audit_log::FlagAuditLog;
 use crate::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
 use crate::domain::service::FeatureFlagDomainService;
 use crate::infrastructure::kafka_producer::FlagEventPublisher;
+use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
 
 #[derive(Debug, Clone)]
 pub struct CreateFlagInput {
@@ -27,6 +28,7 @@ pub struct CreateFlagUseCase {
     repo: Arc<dyn FeatureFlagRepository>,
     event_publisher: Arc<dyn FlagEventPublisher>,
     audit_repo: Arc<dyn FlagAuditLogRepository>,
+    watch_sender: Option<tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>>,
 }
 
 impl CreateFlagUseCase {
@@ -39,7 +41,13 @@ impl CreateFlagUseCase {
             repo,
             event_publisher,
             audit_repo,
+            watch_sender: None,
         }
+    }
+
+    pub fn with_watch_sender(mut self, sender: tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>) -> Self {
+        self.watch_sender = Some(sender);
+        self
     }
 
     pub async fn execute(&self, input: &CreateFlagInput) -> Result<FeatureFlag, CreateFlagError> {
@@ -93,6 +101,15 @@ impl CreateFlagUseCase {
             .publish_flag_changed(&flag.flag_key, flag.enabled, None, None, after)
             .await
             .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
+
+        if let Some(sender) = &self.watch_sender {
+            let _ = sender.send(FeatureFlagChangeEvent {
+                flag_key: flag.flag_key.clone(),
+                change_type: "CREATED".to_string(),
+                enabled: flag.enabled,
+                description: flag.description.clone(),
+            });
+        }
 
         Ok(flag)
     }

@@ -182,6 +182,26 @@ pub struct ProvisioningJob {
     #[prost(message, optional, tag = "7")]
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
+/// WatchTenantRequest はテナント変更監視リクエスト。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchTenantRequest {
+    /// 監視対象のテナント ID（空の場合は全テナントの変更を受け取る）
+    #[prost(string, tag = "1")]
+    pub tenant_id: ::prost::alloc::string::String,
+}
+/// WatchTenantResponse はテナント変更の監視レスポンス（ストリーミング）。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchTenantResponse {
+    #[prost(string, tag = "1")]
+    pub tenant_id: ::prost::alloc::string::String,
+    /// CREATED, UPDATED, SUSPENDED, ACTIVATED, DELETED
+    #[prost(string, tag = "2")]
+    pub change_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub tenant: ::core::option::Option<Tenant>,
+    #[prost(message, optional, tag = "4")]
+    pub changed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+}
 /// Generated server implementations.
 pub mod tenant_service_server {
     #![allow(
@@ -281,6 +301,20 @@ pub mod tenant_service_server {
             request: tonic::Request<super::GetProvisioningStatusRequest>,
         ) -> std::result::Result<
             tonic::Response<super::GetProvisioningStatusResponse>,
+            tonic::Status,
+        >;
+        /// Server streaming response type for the WatchTenant method.
+        type WatchTenantStream: tonic::codegen::tokio_stream::Stream<
+                Item = std::result::Result<super::WatchTenantResponse, tonic::Status>,
+            >
+            + std::marker::Send
+            + 'static;
+        /// WatchTenant はテナント変更の監視（Server-Side Streaming）。
+        async fn watch_tenant(
+            &self,
+            request: tonic::Request<super::WatchTenantRequest>,
+        ) -> std::result::Result<
+            tonic::Response<Self::WatchTenantStream>,
             tonic::Status,
         >;
     }
@@ -857,6 +891,52 @@ pub mod tenant_service_server {
                                 max_encoding_message_size,
                             );
                         let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.tenant.v1.TenantService/WatchTenant" => {
+                    #[allow(non_camel_case_types)]
+                    struct WatchTenantSvc<T: TenantService>(pub Arc<T>);
+                    impl<
+                        T: TenantService,
+                    > tonic::server::ServerStreamingService<super::WatchTenantRequest>
+                    for WatchTenantSvc<T> {
+                        type Response = super::WatchTenantResponse;
+                        type ResponseStream = T::WatchTenantStream;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::ResponseStream>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::WatchTenantRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TenantService>::watch_tenant(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = WatchTenantSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.server_streaming(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)

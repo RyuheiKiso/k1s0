@@ -4,6 +4,7 @@ use uuid::Uuid;
 use crate::domain::entity::{Plan, Tenant};
 use crate::domain::repository::TenantRepository;
 use crate::infrastructure::kafka_producer::{NoopTenantEventPublisher, TenantEventPublisher};
+use crate::usecase::watch_tenant::TenantChangeEvent;
 use crate::infrastructure::keycloak_admin::{KeycloakAdmin, NoopKeycloakAdmin};
 use crate::infrastructure::saga_client::{NoopSagaClient, SagaClient};
 
@@ -27,6 +28,7 @@ pub struct CreateTenantUseCase {
     saga_client: Arc<dyn SagaClient>,
     event_publisher: Arc<dyn TenantEventPublisher>,
     keycloak_admin: Arc<dyn KeycloakAdmin>,
+    watch_sender: Option<tokio::sync::broadcast::Sender<TenantChangeEvent>>,
 }
 
 impl CreateTenantUseCase {
@@ -36,6 +38,7 @@ impl CreateTenantUseCase {
             saga_client: Arc::new(NoopSagaClient),
             event_publisher: Arc::new(NoopTenantEventPublisher),
             keycloak_admin: Arc::new(NoopKeycloakAdmin),
+            watch_sender: None,
         }
     }
 
@@ -51,6 +54,11 @@ impl CreateTenantUseCase {
 
     pub fn with_keycloak_admin(mut self, keycloak_admin: Arc<dyn KeycloakAdmin>) -> Self {
         self.keycloak_admin = keycloak_admin;
+        self
+    }
+
+    pub fn with_watch_sender(mut self, sender: tokio::sync::broadcast::Sender<TenantChangeEvent>) -> Self {
+        self.watch_sender = Some(sender);
         self
     }
 
@@ -93,6 +101,17 @@ impl CreateTenantUseCase {
 
         if let Err(e) = self.event_publisher.publish_tenant_created(&tenant).await {
             tracing::warn!(tenant_id = %tenant.id, error = %e, "failed to publish tenant.created event");
+        }
+
+        if let Some(sender) = &self.watch_sender {
+            let _ = sender.send(TenantChangeEvent {
+                tenant_id: tenant.id.to_string(),
+                change_type: "CREATED".to_string(),
+                tenant_name: tenant.name.clone(),
+                tenant_display_name: tenant.display_name.clone(),
+                tenant_status: tenant.status.as_str().to_string(),
+                tenant_plan: tenant.plan.as_str().to_string(),
+            });
         }
 
         // Start provisioning saga (failure is non-fatal)

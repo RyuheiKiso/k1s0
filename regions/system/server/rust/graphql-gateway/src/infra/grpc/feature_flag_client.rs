@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::time::Duration;
 
+use async_graphql::futures_util::Stream;
 use tonic::transport::Channel;
 use tracing::instrument;
 
@@ -203,5 +204,42 @@ impl FeatureFlagGrpcClient {
             rollout_percentage,
             target_environments,
         ))
+    }
+
+    /// WatchFeatureFlag Server-Side Streaming を購読し、変更イベントを FeatureFlag として返す。
+    #[instrument(skip(self), fields(service = "graphql-gateway"))]
+    pub async fn watch_feature_flag(&self, key: &str) -> impl Stream<Item = FeatureFlag> {
+        let request = tonic::Request::new(
+            proto::k1s0::system::featureflag::v1::WatchFeatureFlagRequest {
+                flag_key: key.to_owned(),
+            },
+        );
+
+        let stream = self
+            .client
+            .clone()
+            .watch_feature_flag(request)
+            .await
+            .expect("WatchFeatureFlag stream failed")
+            .into_inner();
+
+        async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
+            match stream.message().await {
+                Ok(Some(resp)) => {
+                    let flag = resp
+                        .flag
+                        .map(|f| Self::to_domain_flag(f, None, None))
+                        .unwrap_or(FeatureFlag {
+                            key: resp.flag_key,
+                            name: String::new(),
+                            enabled: false,
+                            rollout_percentage: 0,
+                            target_environments: vec![],
+                        });
+                    Some((flag, stream))
+                }
+                _ => None,
+            }
+        })
     }
 }

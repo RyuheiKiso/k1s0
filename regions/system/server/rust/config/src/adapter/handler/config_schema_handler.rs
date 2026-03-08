@@ -4,64 +4,38 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use serde::Deserialize;
 
+use crate::adapter::presentation::{
+    ConfigEditorSchemaDto, ConfigFieldType, UpsertConfigSchemaRequestDto,
+};
 use super::{AppState, ErrorDetail, ErrorResponse};
-use crate::domain::entity::config_schema::ConfigSchema;
-
-/// PUT /api/v1/config-schema/:service_name のリクエストボディ。
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
-pub struct UpsertConfigSchemaRequest {
-    pub namespace_prefix: String,
-    pub categories: Vec<ConfigCategorySchemaRequest>,
-}
-
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
-pub struct ConfigCategorySchemaRequest {
-    pub id: String,
-    pub label: String,
-    #[serde(default)]
-    pub icon: String,
-    #[serde(default)]
-    pub namespaces: Vec<String>,
-    #[serde(default)]
-    pub fields: Vec<ConfigFieldSchemaRequest>,
-}
-
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
-pub struct ConfigFieldSchemaRequest {
-    pub key: String,
-    pub label: String,
-    #[serde(default)]
-    pub description: String,
-    #[serde(rename = "type")]
-    pub field_type: i32,
-    #[serde(default)]
-    pub min: i64,
-    #[serde(default)]
-    pub max: i64,
-    #[serde(default)]
-    pub options: Vec<String>,
-    #[serde(default)]
-    pub pattern: String,
-    #[serde(default)]
-    pub unit: String,
-    #[serde(default)]
-    pub default_value: serde_json::Value,
-}
 
 #[utoipa::path(
     get,
     path = "/api/v1/config-schema",
     responses(
-        (status = 200, description = "All config schemas", body = Vec<ConfigSchema>),
+        (status = 200, description = "All config schemas", body = Vec<ConfigEditorSchemaDto>),
     )
 )]
 pub async fn list_config_schemas(State(state): State<AppState>) -> impl IntoResponse {
     match state.list_config_schemas_uc.execute().await {
-        Ok(schemas) => {
-            (StatusCode::OK, Json(serde_json::to_value(schemas).unwrap())).into_response()
-        }
+        Ok(schemas) => match schemas
+            .iter()
+            .map(ConfigEditorSchemaDto::try_from)
+            .collect::<Result<Vec<_>, _>>()
+        {
+            Ok(response) => (StatusCode::OK, Json(serde_json::to_value(response).unwrap()))
+                .into_response(),
+            Err(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::to_value(ErrorResponse::new(
+                    "SYS_CONFIG_SCHEMA_INVALID",
+                    &format!("invalid persisted config schema: {}", err),
+                ))
+                .unwrap()),
+            )
+                .into_response(),
+        },
         Err(e) => e.into_response(),
     }
 }
@@ -71,7 +45,7 @@ pub async fn list_config_schemas(State(state): State<AppState>) -> impl IntoResp
     path = "/api/v1/config-schema/{service_name}",
     params(("service_name" = String, Path, description = "Service name")),
     responses(
-        (status = 200, description = "Config schema found", body = ConfigSchema),
+        (status = 200, description = "Config schema found", body = ConfigEditorSchemaDto),
         (status = 404, description = "Schema not found"),
     )
 )]
@@ -80,7 +54,20 @@ pub async fn get_config_schema(
     Path(service_name): Path<String>,
 ) -> impl IntoResponse {
     match state.get_config_schema_uc.execute(&service_name).await {
-        Ok(schema) => (StatusCode::OK, Json(serde_json::to_value(schema).unwrap())).into_response(),
+        Ok(schema) => match ConfigEditorSchemaDto::try_from(&schema) {
+            Ok(response) => {
+                (StatusCode::OK, Json(serde_json::to_value(response).unwrap())).into_response()
+            }
+            Err(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::to_value(ErrorResponse::new(
+                    "SYS_CONFIG_SCHEMA_INVALID",
+                    &format!("invalid persisted config schema: {}", err),
+                ))
+                .unwrap()),
+            )
+                .into_response(),
+        },
         Err(e) => e.into_response(),
     }
 }
@@ -89,9 +76,9 @@ pub async fn get_config_schema(
     put,
     path = "/api/v1/config-schema/{service_name}",
     params(("service_name" = String, Path, description = "Service name")),
-    request_body = UpsertConfigSchemaRequest,
+    request_body = UpsertConfigSchemaRequestDto,
     responses(
-        (status = 200, description = "Config schema upserted", body = ConfigSchema),
+        (status = 200, description = "Config schema upserted", body = ConfigEditorSchemaDto),
         (status = 500, description = "Internal error"),
     ),
     security(("bearer_auth" = []))
@@ -100,7 +87,7 @@ pub async fn upsert_config_schema(
     State(state): State<AppState>,
     claims: Option<Extension<k1s0_auth::Claims>>,
     Path(service_name): Path<String>,
-    Json(req): Json<UpsertConfigSchemaRequest>,
+    Json(req): Json<UpsertConfigSchemaRequestDto>,
 ) -> impl IntoResponse {
     let details = validate_upsert_request(&req);
     if !details.is_empty() {
@@ -120,7 +107,7 @@ pub async fn upsert_config_schema(
         .and_then(|Extension(c)| c.preferred_username.clone())
         .unwrap_or_else(|| "api-user".to_string());
 
-    let schema_json = request_to_schema_json(&req);
+    let schema_json = req.clone().into_schema_json();
     let input = crate::usecase::upsert_config_schema::UpsertConfigSchemaInput {
         service_name,
         namespace_prefix: req.namespace_prefix,
@@ -129,12 +116,25 @@ pub async fn upsert_config_schema(
     };
 
     match state.upsert_config_schema_uc.execute(&input).await {
-        Ok(schema) => (StatusCode::OK, Json(serde_json::to_value(schema).unwrap())).into_response(),
+        Ok(schema) => match ConfigEditorSchemaDto::try_from(&schema) {
+            Ok(response) => {
+                (StatusCode::OK, Json(serde_json::to_value(response).unwrap())).into_response()
+            }
+            Err(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::to_value(ErrorResponse::new(
+                    "SYS_CONFIG_SCHEMA_INVALID",
+                    &format!("invalid persisted config schema: {}", err),
+                ))
+                .unwrap()),
+            )
+                .into_response(),
+        },
         Err(e) => e.into_response(),
     }
 }
 
-fn validate_upsert_request(req: &UpsertConfigSchemaRequest) -> Vec<ErrorDetail> {
+fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetail> {
     let mut details = Vec::new();
 
     if req.namespace_prefix.trim().is_empty() {
@@ -191,13 +191,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequest) -> Vec<ErrorDetail> 
                     message: "field label is required".to_string(),
                 });
             }
-            if !(1..=7).contains(&field.field_type) {
-                details.push(ErrorDetail {
-                    field: format!("categories[{}].fields[{}].type", cat_idx, field_idx),
-                    message: "field type must be in range 1..=7".to_string(),
-                });
-            }
-            if field.field_type == 5 && field.options.is_empty() {
+            if field.field_type == ConfigFieldType::Enum && field.options.is_empty() {
                 details.push(ErrorDetail {
                     field: format!("categories[{}].fields[{}].options", cat_idx, field_idx),
                     message: "enum field requires at least one option".to_string(),
@@ -209,39 +203,122 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequest) -> Vec<ErrorDetail> 
     details
 }
 
-fn request_to_schema_json(req: &UpsertConfigSchemaRequest) -> serde_json::Value {
-    let categories: Vec<serde_json::Value> = req
-        .categories
-        .iter()
-        .map(|category| {
-            let fields: Vec<serde_json::Value> = category
-                .fields
-                .iter()
-                .map(|field| {
-                    serde_json::json!({
-                        "key": field.key,
-                        "label": field.label,
-                        "description": field.description,
-                        "type": field.field_type,
-                        "min": field.min,
-                        "max": field.max,
-                        "options": field.options,
-                        "pattern": field.pattern,
-                        "unit": field.unit,
-                        "default_value": field.default_value,
-                    })
-                })
-                .collect();
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
 
-            serde_json::json!({
-                "id": category.id,
-                "label": category.label,
-                "icon": category.icon,
-                "namespaces": category.namespaces,
-                "fields": fields,
-            })
-        })
-        .collect();
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use tower::ServiceExt;
 
-    serde_json::json!({ "categories": categories })
+    use crate::adapter::handler::{router, AppState};
+    use crate::domain::entity::config_schema::ConfigSchema;
+    use crate::domain::repository::config_repository::MockConfigRepository;
+    use crate::domain::repository::config_schema_repository::MockConfigSchemaRepository;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    fn make_schema() -> ConfigSchema {
+        ConfigSchema {
+            id: Uuid::new_v4(),
+            service_name: "order-service".to_string(),
+            namespace_prefix: "service.order".to_string(),
+            schema_json: serde_json::json!({
+                "categories": [{
+                    "id": "database",
+                    "label": "Database",
+                    "namespaces": ["service.order.database"],
+                    "fields": [{
+                        "key": "timeout",
+                        "label": "Timeout",
+                        "type": 2,
+                        "default_value": 30
+                    }]
+                }]
+            }),
+            updated_by: "tester".to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_config_schema_returns_rest_dto_shape() {
+        let config_repo = Arc::new(MockConfigRepository::new());
+        let mut schema_repo = MockConfigSchemaRepository::new();
+        let schema = make_schema();
+        schema_repo
+            .expect_find_by_service_name()
+            .withf(|service| service == "order-service")
+            .return_once(move |_| Ok(Some(schema)));
+
+        let app = router(AppState::new(config_repo, Arc::new(schema_repo)));
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/config-schema/order-service")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["service"], "order-service");
+        assert_eq!(json["categories"][0]["fields"][0]["type"], "integer");
+        assert_eq!(json["categories"][0]["fields"][0]["default"], 30);
+        assert!(json.get("schema_json").is_none());
+        assert!(json.get("updated_by").is_none());
+    }
+
+    #[tokio::test]
+    async fn upsert_config_schema_accepts_legacy_numeric_type_and_normalizes_response() {
+        let config_repo = Arc::new(MockConfigRepository::new());
+        let mut schema_repo = MockConfigSchemaRepository::new();
+        schema_repo
+            .expect_upsert()
+            .returning(|schema| Ok(schema.clone()));
+
+        let app = router(AppState::new(config_repo, Arc::new(schema_repo)));
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri("/api/v1/config-schema/order-service")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({
+                            "namespace_prefix": "service.order",
+                            "categories": [{
+                                "id": "database",
+                                "label": "Database",
+                                "namespaces": ["service.order.database"],
+                                "fields": [{
+                                    "key": "timeout",
+                                    "label": "Timeout",
+                                    "type": 2,
+                                    "default_value": 30
+                                }]
+                            }]
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["service"], "order-service");
+        assert_eq!(json["categories"][0]["fields"][0]["type"], "integer");
+        assert_eq!(json["categories"][0]["fields"][0]["default"], 30);
+    }
 }

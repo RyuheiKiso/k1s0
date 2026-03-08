@@ -1274,7 +1274,7 @@ mod tests {
 - Loader trait は native async を採用し、エラー型は `Arc<anyhow::Error>` を使用する。
 - Auth middleware は Tower `Layer` / `Service` パターンで統一する。
 - `/readyz` は tenant / featureflag / config の 3 バックエンド疎通を確認する。
-- Subscription は WebSocket 経由で配信し、tenant / featureflag は現状 5 秒ポーリングでバックエンド状態を監視する（イベント駆動ストリーミング化は TODO）。
+- Subscription は WebSocket 経由で配信し、tenant / featureflag / config の全 3 サブスクリプションで gRPC Server-Side Streaming（`WatchTenant` / `WatchFeatureFlag` / `WatchConfig`）を使用したイベント駆動方式を採用する。
 - WebSocket 接続時に JWT 検証を実施する。
 - `list_tenants` では `last` / `before` を受け付けない。
 - `create_tenant` は bare payload ではなく GraphQL payload オブジェクトを返す。

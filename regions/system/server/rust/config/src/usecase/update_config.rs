@@ -250,7 +250,7 @@ impl UpdateConfigUseCase {
 ///     "id": "...",
 ///     "fields": [{
 ///       "key": "max_connections",
-///       "type": "integer" | "string" | "boolean" | "number"
+///       "type": "integer" | "string" | "boolean" | "float"
 ///     }]
 ///   }]
 /// }
@@ -278,7 +278,7 @@ fn validate_value_against_schema(
             let field_type = field.get("type").and_then(|t| t.as_str()).unwrap_or("");
             let type_ok = match field_type {
                 "integer" => value.is_i64() || value.is_u64(),
-                "number" => value.is_number(),
+                "float" | "number" => value.is_number(),
                 "string" => value.is_string(),
                 "boolean" => value.is_boolean(),
                 _ => true, // 不明な型はスキップ

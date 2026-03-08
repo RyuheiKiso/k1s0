@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::adapter::presentation::ConfigFieldType;
 use crate::domain::entity::config_entry::ConfigEntry;
 use crate::proto::k1s0::system::common::v1::{
     PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
@@ -420,8 +421,11 @@ fn domain_schema_to_pb(
                                         .and_then(|v| v.as_str())
                                         .unwrap_or_default()
                                         .to_string(),
-                                    r#type: f.get("type").and_then(|v| v.as_i64()).unwrap_or(0)
-                                        as i32,
+                                    r#type: f
+                                        .get("type")
+                                        .and_then(ConfigFieldType::from_schema_value)
+                                        .map(ConfigFieldType::to_legacy_number)
+                                        .unwrap_or(0),
                                     min: f.get("min").and_then(|v| v.as_i64()).unwrap_or(0),
                                     max: f.get("max").and_then(|v| v.as_i64()).unwrap_or(0),
                                     options: f
@@ -444,7 +448,8 @@ fn domain_schema_to_pb(
                                         .unwrap_or_default()
                                         .to_string(),
                                     default_value: f
-                                        .get("default_value")
+                                        .get("default")
+                                        .or_else(|| f.get("default_value"))
                                         .map(|v| serde_json::to_vec(v).unwrap_or_default())
                                         .unwrap_or_default(),
                                 })
@@ -483,13 +488,14 @@ fn pb_schema_to_json(schema: &pb::ConfigEditorSchema) -> serde_json::Value {
                         "key": field.key,
                         "label": field.label,
                         "description": field.description,
-                        "type": field.r#type,
+                        "type": ConfigFieldType::from_legacy_number(field.r#type as i64)
+                            .unwrap_or(ConfigFieldType::String),
                         "min": field.min,
                         "max": field.max,
                         "options": field.options,
                         "pattern": field.pattern,
                         "unit": field.unit,
-                        "default_value": default_value
+                        "default": default_value
                     })
                 })
                 .collect();

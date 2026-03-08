@@ -208,33 +208,47 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    // Watch broadcast channel for feature flag change streaming
+    let (_watch_uc, watch_tx) = usecase::WatchFeatureFlagUseCase::new();
+    info!("watch feature flag broadcast channel initialized");
+
     // Use cases
     let list_flags_uc = Arc::new(usecase::ListFlagsUseCase::new(flag_repo.clone()));
     let evaluate_flag_uc = Arc::new(usecase::EvaluateFlagUseCase::new(flag_repo.clone()));
     let get_flag_uc = Arc::new(usecase::GetFlagUseCase::new(flag_repo.clone()));
-    let create_flag_uc = Arc::new(usecase::CreateFlagUseCase::new(
-        flag_repo.clone(),
-        kafka_producer.clone(),
-        audit_log_repo.clone(),
-    ));
-    let update_flag_uc = Arc::new(usecase::UpdateFlagUseCase::new(
-        flag_repo.clone(),
-        kafka_producer.clone(),
-        audit_log_repo.clone(),
-    ));
-    let delete_flag_uc = Arc::new(usecase::DeleteFlagUseCase::new(
-        flag_repo.clone(),
-        kafka_producer.clone(),
-        audit_log_repo,
-    ));
+    let create_flag_uc = Arc::new(
+        usecase::CreateFlagUseCase::new(
+            flag_repo.clone(),
+            kafka_producer.clone(),
+            audit_log_repo.clone(),
+        )
+        .with_watch_sender(watch_tx.clone()),
+    );
+    let update_flag_uc = Arc::new(
+        usecase::UpdateFlagUseCase::new(
+            flag_repo.clone(),
+            kafka_producer.clone(),
+            audit_log_repo.clone(),
+        )
+        .with_watch_sender(watch_tx.clone()),
+    );
+    let delete_flag_uc = Arc::new(
+        usecase::DeleteFlagUseCase::new(
+            flag_repo.clone(),
+            kafka_producer.clone(),
+            audit_log_repo,
+        )
+        .with_watch_sender(watch_tx.clone()),
+    );
 
-    let grpc_svc = Arc::new(FeatureFlagGrpcService::new(
+    let grpc_svc = Arc::new(FeatureFlagGrpcService::new_with_watch(
         list_flags_uc.clone(),
         evaluate_flag_uc.clone(),
         get_flag_uc.clone(),
         create_flag_uc.clone(),
         update_flag_uc.clone(),
         delete_flag_uc.clone(),
+        watch_tx,
     ));
 
     // tonic wrapper

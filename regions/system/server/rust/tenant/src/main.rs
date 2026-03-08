@@ -462,29 +462,40 @@ async fn main() -> anyhow::Result<()> {
         .as_ref()
         .map(|k| format!("{}/realms/{}", k.base_url.trim_end_matches('/'), k.realm));
 
+    // Watch broadcast channel for tenant change streaming
+    let (_watch_uc, watch_tx) = usecase::WatchTenantUseCase::new();
+    info!("watch tenant broadcast channel initialized");
+
     let create_tenant_uc = Arc::new(
         usecase::CreateTenantUseCase::new(tenant_repo.clone())
             .with_saga_client(saga_client.clone())
             .with_event_publisher(event_publisher.clone())
-            .with_keycloak_admin(keycloak_admin.clone()),
+            .with_keycloak_admin(keycloak_admin.clone())
+            .with_watch_sender(watch_tx.clone()),
     );
     let get_tenant_uc = Arc::new(usecase::GetTenantUseCase::new(tenant_repo.clone()));
     let list_tenants_uc = Arc::new(usecase::ListTenantsUseCase::new(tenant_repo.clone()));
     let update_tenant_uc = Arc::new(
         usecase::UpdateTenantUseCase::new(tenant_repo.clone())
-            .with_event_publisher(event_publisher.clone()),
+            .with_event_publisher(event_publisher.clone())
+            .with_watch_sender(watch_tx.clone()),
     );
     let delete_tenant_uc = Arc::new(
         usecase::DeleteTenantUseCase::new(tenant_repo.clone())
             .with_saga_client(saga_client)
             .with_keycloak_admin(keycloak_admin)
-            .with_event_publisher(event_publisher.clone()),
+            .with_event_publisher(event_publisher.clone())
+            .with_watch_sender(watch_tx.clone()),
     );
     let suspend_tenant_uc = Arc::new(
         usecase::SuspendTenantUseCase::new(tenant_repo.clone())
-            .with_event_publisher(event_publisher),
+            .with_event_publisher(event_publisher)
+            .with_watch_sender(watch_tx.clone()),
     );
-    let activate_tenant_uc = Arc::new(usecase::ActivateTenantUseCase::new(tenant_repo));
+    let activate_tenant_uc = Arc::new(
+        usecase::ActivateTenantUseCase::new(tenant_repo)
+            .with_watch_sender(watch_tx.clone()),
+    );
     let add_member_uc = Arc::new(usecase::AddMemberUseCase::new(member_repo.clone()));
     let remove_member_uc = Arc::new(usecase::RemoveMemberUseCase::new(member_repo.clone()));
     let list_members_uc = Arc::new(usecase::ListMembersUseCase::new(member_repo.clone()));
@@ -495,7 +506,7 @@ async fn main() -> anyhow::Result<()> {
     use adapter::grpc::TenantGrpcService;
     use proto::k1s0::system::tenant::v1::tenant_service_server::TenantServiceServer;
 
-    let tenant_grpc_svc = Arc::new(TenantGrpcService::new(
+    let tenant_grpc_svc = Arc::new(TenantGrpcService::new_with_watch(
         create_tenant_uc.clone(),
         get_tenant_uc.clone(),
         list_tenants_uc.clone(),
@@ -507,6 +518,7 @@ async fn main() -> anyhow::Result<()> {
         list_members_uc.clone(),
         remove_member_uc.clone(),
         get_provisioning_status_uc,
+        watch_tx,
     ));
     let tenant_tonic = adapter::grpc::TenantServiceTonic::new(tenant_grpc_svc);
 
