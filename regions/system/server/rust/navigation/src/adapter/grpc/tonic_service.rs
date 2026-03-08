@@ -2,16 +2,10 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
-use crate::domain::entity::navigation::{
-    Guard, GuardType, Param, ParamType, Route, TransitionType,
-};
 use crate::proto::k1s0::system::navigation::v1::{
     navigation_service_server::NavigationService,
     GetNavigationRequest as ProtoGetNavigationRequest,
-    GetNavigationResponse as ProtoGetNavigationResponse, Guard as ProtoGuard,
-    GuardType as ProtoGuardType, Param as ProtoParam, ParamType as ProtoParamType,
-    Route as ProtoRoute, TransitionConfig as ProtoTransitionConfig,
-    TransitionType as ProtoTransitionType,
+    GetNavigationResponse as ProtoGetNavigationResponse,
 };
 
 use super::navigation_grpc::{GrpcError, NavigationGrpcService};
@@ -20,6 +14,7 @@ impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
         match e {
             GrpcError::ConfigLoad(msg) => Status::internal(msg),
+            GrpcError::Unauthenticated(msg) => Status::unauthenticated(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
     }
@@ -48,78 +43,14 @@ impl NavigationService for NavigationServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
 
-        Ok(Response::new(ProtoGetNavigationResponse {
-            routes: result.routes.into_iter().map(route_to_proto).collect(),
-            guards: result.guards.into_iter().map(guard_to_proto).collect(),
-        }))
-    }
-}
-
-fn route_to_proto(route: Route) -> ProtoRoute {
-    ProtoRoute {
-        id: route.id,
-        path: route.path,
-        component_id: route.component_id,
-        guard_ids: route.guards,
-        children: route.children.into_iter().map(route_to_proto).collect(),
-        transition: route
-            .transition
-            .map(|t| transition_to_proto(t, route.transition_duration_ms)),
-        params: route.params.into_iter().map(param_to_proto).collect(),
-        redirect_to: route.redirect_to.unwrap_or_default(),
-    }
-}
-
-fn guard_to_proto(guard: Guard) -> ProtoGuard {
-    ProtoGuard {
-        id: guard.id,
-        r#type: guard_type_to_proto(&guard.guard_type) as i32,
-        redirect_to: guard.redirect_to,
-        roles: guard.roles,
-    }
-}
-
-fn transition_to_proto(t: TransitionType, duration_ms: u32) -> ProtoTransitionConfig {
-    ProtoTransitionConfig {
-        r#type: transition_type_to_proto(&t) as i32,
-        duration_ms,
-    }
-}
-
-fn param_to_proto(p: Param) -> ProtoParam {
-    ProtoParam {
-        name: p.name,
-        r#type: param_type_to_proto(&p.param_type) as i32,
-    }
-}
-
-fn guard_type_to_proto(gt: &GuardType) -> ProtoGuardType {
-    match gt {
-        GuardType::AuthRequired => ProtoGuardType::AuthRequired,
-        GuardType::RoleRequired => ProtoGuardType::RoleRequired,
-        GuardType::RedirectIfAuthenticated => ProtoGuardType::RedirectIfAuthenticated,
-    }
-}
-
-fn transition_type_to_proto(tt: &TransitionType) -> ProtoTransitionType {
-    match tt {
-        TransitionType::Fade => ProtoTransitionType::Fade,
-        TransitionType::Slide => ProtoTransitionType::Slide,
-        TransitionType::Modal => ProtoTransitionType::Modal,
-    }
-}
-
-fn param_type_to_proto(pt: &ParamType) -> ProtoParamType {
-    match pt {
-        ParamType::String => ProtoParamType::String,
-        ParamType::Int => ProtoParamType::Int,
-        ParamType::Uuid => ProtoParamType::Uuid,
+        Ok(Response::new(ProtoGetNavigationResponse::from(result)))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adapter::presentation::NavigationResponseBody;
 
     #[test]
     fn test_grpc_error_config_load_to_status() {
@@ -137,31 +68,18 @@ mod tests {
     }
 
     #[test]
-    fn test_route_to_proto_conversion() {
-        let route = Route {
-            id: "test".to_string(),
-            path: "/test".to_string(),
-            component_id: Some("TestPage".to_string()),
-            guards: vec!["auth".to_string()],
-            transition: Some(TransitionType::Fade),
-            transition_duration_ms: 450,
-            redirect_to: None,
-            children: vec![],
-            params: vec![Param {
-                name: "id".to_string(),
-                param_type: ParamType::Uuid,
-            }],
+    fn test_grpc_error_unauthenticated_to_status() {
+        let err = GrpcError::Unauthenticated("invalid token".to_string());
+        let status: Status = err.into();
+        assert_eq!(status.code(), tonic::Code::Unauthenticated);
+    }
+
+    #[test]
+    fn filtered_navigation_maps_to_rest_body() {
+        let body = NavigationResponseBody {
+            routes: vec![],
+            guards: vec![],
         };
-        let proto = route_to_proto(route);
-        assert_eq!(proto.id, "test");
-        assert_eq!(proto.component_id.as_deref(), Some("TestPage"));
-        assert_eq!(proto.guard_ids, vec!["auth"]);
-        assert!(proto.transition.is_some());
-        let t = proto.transition.unwrap();
-        assert_eq!(t.r#type, ProtoTransitionType::Fade as i32);
-        assert_eq!(t.duration_ms, 450);
-        assert_eq!(proto.params.len(), 1);
-        assert_eq!(proto.params[0].r#type, ProtoParamType::Uuid as i32);
-        assert_eq!(proto.redirect_to, "");
+        assert!(body.routes.is_empty());
     }
 }

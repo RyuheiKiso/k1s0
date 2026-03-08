@@ -8,6 +8,9 @@ pub enum GrpcError {
     #[error("config load failed: {0}")]
     ConfigLoad(String),
 
+    #[error("unauthenticated: {0}")]
+    Unauthenticated(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -34,7 +37,7 @@ impl NavigationGrpcService {
                     GrpcError::ConfigLoad(msg)
                 }
                 crate::usecase::get_navigation::NavigationError::TokenVerification(msg) => {
-                    GrpcError::Internal(msg)
+                    GrpcError::Unauthenticated(msg)
                 }
             })
     }

@@ -1,4 +1,5 @@
 pub mod health;
+pub mod navigation_handler;
 
 use std::sync::Arc;
 
@@ -11,14 +12,20 @@ use axum::Router;
 #[derive(Clone)]
 pub struct AppState {
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub get_navigation_uc: Arc<crate::usecase::GetNavigationUseCase>,
 }
 
-pub fn router(state: AppState) -> Router {
-    Router::new()
+pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Router {
+    let mut router = Router::new()
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
-        .route("/metrics", get(metrics_handler))
-        .with_state(state)
+        .route("/api/v1/navigation", get(navigation_handler::get_navigation));
+
+    if metrics_enabled {
+        router = router.route(metrics_path, get(metrics_handler));
+    }
+
+    router.with_state(state)
 }
 
 async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {

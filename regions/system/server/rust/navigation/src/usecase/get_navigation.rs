@@ -5,6 +5,30 @@ use crate::domain::service::navigation_filter::{
 };
 use crate::infrastructure::navigation_loader::NavigationConfigLoader;
 
+#[cfg_attr(test, mockall::automock)]
+#[async_trait::async_trait]
+pub trait NavigationTokenVerifier: Send + Sync {
+    async fn verify_roles(&self, bearer_token: &str) -> anyhow::Result<Vec<String>>;
+}
+
+pub struct JwksNavigationTokenVerifier {
+    inner: Arc<k1s0_auth::JwksVerifier>,
+}
+
+impl JwksNavigationTokenVerifier {
+    pub fn new(inner: Arc<k1s0_auth::JwksVerifier>) -> Self {
+        Self { inner }
+    }
+}
+
+#[async_trait::async_trait]
+impl NavigationTokenVerifier for JwksNavigationTokenVerifier {
+    async fn verify_roles(&self, bearer_token: &str) -> anyhow::Result<Vec<String>> {
+        let claims = self.inner.verify_token(bearer_token).await?;
+        Ok(claims.realm_roles().to_vec())
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum NavigationError {
     #[error("failed to load navigation config: {0}")]
@@ -16,13 +40,13 @@ pub enum NavigationError {
 
 pub struct GetNavigationUseCase {
     loader: Arc<dyn NavigationConfigLoader>,
-    verifier: Option<Arc<k1s0_auth::JwksVerifier>>,
+    verifier: Option<Arc<dyn NavigationTokenVerifier>>,
 }
 
 impl GetNavigationUseCase {
     pub fn new(
         loader: Arc<dyn NavigationConfigLoader>,
-        verifier: Option<Arc<k1s0_auth::JwksVerifier>>,
+        verifier: Option<Arc<dyn NavigationTokenVerifier>>,
     ) -> Self {
         Self { loader, verifier }
     }
@@ -39,15 +63,12 @@ impl GetNavigationUseCase {
                 roles: vec![],
             }
         } else if let Some(ref verifier) = self.verifier {
-            match verifier.verify_token(bearer_token).await {
-                Ok(claims) => UserContext {
+            match verifier.verify_roles(bearer_token).await {
+                Ok(roles) => UserContext {
                     authenticated: true,
-                    roles: claims.realm_roles().to_vec(),
+                    roles,
                 },
-                Err(_) => UserContext {
-                    authenticated: false,
-                    roles: vec![],
-                },
+                Err(err) => return Err(NavigationError::TokenVerification(err.to_string())),
             }
         } else {
             UserContext {
@@ -139,5 +160,25 @@ mod tests {
         let ids: Vec<&str> = result.routes.iter().map(|r| r.id.as_str()).collect();
         assert!(ids.contains(&"public"));
         assert!(!ids.contains(&"protected"));
+    }
+
+    #[tokio::test]
+    async fn invalid_token_returns_verification_error() {
+        let mut mock_loader = MockNavigationConfigLoader::new();
+        mock_loader.expect_load().returning(|| Ok(make_config()));
+
+        let mut mock_verifier = MockNavigationTokenVerifier::new();
+        mock_verifier
+            .expect_verify_roles()
+            .withf(|token| token == "bad-token")
+            .returning(|_| Err(anyhow::anyhow!("signature mismatch")));
+
+        let uc = GetNavigationUseCase::new(Arc::new(mock_loader), Some(Arc::new(mock_verifier)));
+        let result = uc.execute("bad-token").await;
+
+        assert!(matches!(
+            result,
+            Err(NavigationError::TokenVerification(msg)) if msg.contains("signature mismatch")
+        ));
     }
 }

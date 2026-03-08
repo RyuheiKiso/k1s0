@@ -128,7 +128,7 @@ routes:
 
 | コンポーネント | 状態 |
 |---|---|
-| auth-server: GET /api/v1/navigation | 実装済み |
+| navigation-server: GET /api/v1/navigation | 実装済み |
 | Flutter: NavigationInterpreter | 実装済み |
 | React: NavigationInterpreter | 実装済み |
 | navigation.yaml 仕様 | 定義済み |
@@ -136,13 +136,13 @@ routes:
 
 ---
 
-## system server エンドポイント
+## navigation-server エンドポイント
 
-`regions/system/server/rust/` の auth-server に Navigation エンドポイントを追加する。
+`regions/system/server/rust/` の navigation-server に Navigation エンドポイントを追加する。
 
 ```
 GET /api/v1/navigation
-Authorization: Bearer <token>  （省略時は公開ルートのみ返す）
+Authorization: Bearer <token>  （省略時は公開ルートのみ返す。無効トークンは 401）
 
 Response: 200 OK
 Content-Type: application/json
@@ -268,7 +268,7 @@ enum NavigationMode { remote, local }
   navigation.yaml を直接読む → サーバー不要
 
 本番時（NODE_ENV=production）:
-  GET /api/v1/navigation → system server 経由
+  GET /api/v1/navigation → navigation-server 経由
 ```
 
 | フレームワーク | ローカルファイルの配置場所 |
@@ -466,7 +466,7 @@ regions/system/
 │   │           └── navigation_interpreter_test.dart
 └── server/
     └── rust/
-        └── auth-server/               # Navigation エンドポイントを追加
+        └── navigation/                # Navigation エンドポイントを追加
             └── src/
                 └── adapter/
                     └── handler/
@@ -479,7 +479,7 @@ regions/system/
 
 | Phase | 内容 | 優先度 | 状態 |
 | ----- | ---- | ------ | ---- |
-| 1 | system server に `GET /api/v1/navigation` を追加 | 高 | 実装済み |
+| 1 | navigation-server に `GET /api/v1/navigation` を追加 | 高 | 実装済み |
 | 2 | React `NavigationInterpreter` + Local-first モード | 高 | 実装済み |
 | 3 | Flutter `NavigationInterpreter` + Local-first モード | 高 | 実装済み |
 | 4 | CLI `generate navigation` コマンド（route-types 生成） | 高 | 未実装（仕様定義済み） |
@@ -495,7 +495,7 @@ regions/system/
 - **後方互換性** — `navigation.yaml` のスキーマ変更は `version` フィールドで管理する。`component_id` を削除する場合は deprecated 扱いとし、1バージョン猶予を設ける
 - **キャッシュ戦略** — クライアントは `NavigationResponse` をローカルストレージにキャッシュし、サーバーが落ちていても最後の定義で動作する
 - **A/B テスト** — サーバーがユーザーセグメントに応じて異なる `NavigationResponse` を返すことで、クライアント変更なしに遷移を実験できる（Phase 10 以降）
-- **navigation.yaml の配置** — `regions/system/server/rust/auth-server/config/navigation.yaml` に配置し、`config.yaml` と同様に環境別オーバーライドを許容する
+- **navigation.yaml の配置** — `regions/system/server/rust/navigation/config/navigation.yaml` に配置し、`config.yaml` と同様に環境別オーバーライドを許容する
 
 ---
 

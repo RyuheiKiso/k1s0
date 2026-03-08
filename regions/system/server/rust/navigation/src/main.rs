@@ -11,6 +11,7 @@ mod usecase;
 
 use infrastructure::config::Config;
 use infrastructure::navigation_loader::YamlNavigationConfigLoader;
+use usecase::get_navigation::JwksNavigationTokenVerifier;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -55,17 +56,18 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Token verifier (optional)
-    let verifier = k1s0_server_common::require_auth_state(
+    let verifier: Option<Arc<dyn usecase::get_navigation::NavigationTokenVerifier>> =
+        k1s0_server_common::require_auth_state(
         "navigation-server",
         &cfg.app.environment,
         cfg.auth.as_ref().map(|auth_cfg| {
             info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier");
-            Arc::new(k1s0_auth::JwksVerifier::new(
+            Arc::new(JwksNavigationTokenVerifier::new(Arc::new(k1s0_auth::JwksVerifier::new(
                 &auth_cfg.jwks_url,
                 &auth_cfg.issuer,
                 &auth_cfg.audience,
                 std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-            ))
+            )))) as Arc<dyn usecase::get_navigation::NavigationTokenVerifier>
         }),
     )?;
 
@@ -73,7 +75,9 @@ async fn main() -> anyhow::Result<()> {
     let get_navigation_uc = Arc::new(usecase::GetNavigationUseCase::new(loader, verifier));
 
     // gRPC service
-    let grpc_svc = Arc::new(adapter::grpc::NavigationGrpcService::new(get_navigation_uc));
+    let grpc_svc = Arc::new(adapter::grpc::NavigationGrpcService::new(
+        get_navigation_uc.clone(),
+    ));
     let navigation_tonic = adapter::grpc::NavigationServiceTonic::new(grpc_svc);
 
     use proto::k1s0::system::navigation::v1::navigation_service_server::NavigationServiceServer;
@@ -81,8 +85,13 @@ async fn main() -> anyhow::Result<()> {
     // REST (health/readyz/metrics only)
     let rest_state = adapter::handler::AppState {
         metrics: metrics.clone(),
+        get_navigation_uc: get_navigation_uc.clone(),
     };
-    let app = adapter::handler::router(rest_state)
+    let app = adapter::handler::router(
+        rest_state,
+        cfg.observability.metrics.enabled,
+        &cfg.observability.metrics.path,
+    )
         .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server

@@ -9,7 +9,7 @@ interface NavigationDevToolsProps {
 export function NavigationDevTools({ router, currentPath }: NavigationDevToolsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  if (process.env.NODE_ENV === 'production') {
+  if (import.meta.env.PROD) {
     return null;
   }
 
