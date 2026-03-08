@@ -450,6 +450,35 @@ services:
       - ./regions/system/server/go/bff-proxy/config:/app/config
 
   # ============================================================
+  # Business プロファイル
+  # ============================================================
+  domain-master-rust:
+    build:
+      context: .
+      dockerfile: ./regions/business/accounting/server/rust/domain-master/Dockerfile
+    profiles: [business]
+    ports:
+      - "${DOMAIN_MASTER_REST_HOST_PORT:-8210}:8080"
+      - "${DOMAIN_MASTER_GRPC_HOST_PORT:-9210}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      auth-rust:
+        condition: service_healthy
+    volumes:
+      - ./regions/business/accounting/server/rust/domain-master/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
   # Kafka トピック自動作成
   # ============================================================
   kafka-init:

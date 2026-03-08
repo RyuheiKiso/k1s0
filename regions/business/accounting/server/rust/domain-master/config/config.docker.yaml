@@ -1,0 +1,46 @@
+app:
+  name: "k1s0-domain-master-server"
+  version: "0.1.0"
+  environment: "dev"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  grpc_port: 50051
+
+database:
+  host: postgres
+  port: 5432
+  name: "k1s0_business"
+  schema: "domain_master"
+  user: dev
+  password: dev
+  ssl_mode: disable
+  max_connections: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  category_topic: "k1s0.business.accounting.domainmaster.category_changed.v1"
+  item_topic: "k1s0.business.accounting.domainmaster.item_changed.v1"
+  tenant_extension_topic: "k1s0.business.accounting.domainmaster.tenant_extension_changed.v1"
+
+auth:
+  jwks_url: "http://auth-rust:8080/jwks"
+  issuer: "http://localhost:8180/realms/k1s0"
+  audience: "k1s0-api"
+  jwks_cache_ttl_secs: 300
+
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: false
+    endpoint: "http://jaeger:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"
