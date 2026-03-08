@@ -41,6 +41,7 @@ async fn main() {
             .then(|| config.observability.trace.endpoint.clone()),
         sample_rate: config.observability.trace.sample_rate,
         log_level: config.observability.log.level.clone(),
+        log_format: config.observability.log.format.clone(),
     })
     .expect("Failed to init telemetry");
 
@@ -55,14 +56,18 @@ async fn main() {
 
 {% if has_database %}
     // --- Database ---
-    let pool = infra::persistence::create_pool(&config.database)
+    let db_config = config.database.as_ref()
+        .expect("database config is required");
+    let pool = infra::persistence::create_pool(db_config)
         .await
         .expect("Failed to connect to database");
 {% endif %}
 
 {% if has_kafka %}
     // --- Kafka ---
-    let producer = infra::messaging::Producer::new(&config.kafka);
+    let kafka_config = config.kafka.as_ref()
+        .expect("kafka config is required");
+    let producer = infra::messaging::Producer::new(kafka_config);
 {% endif %}
 
     // --- DI: Repository → UseCase → Handler ---

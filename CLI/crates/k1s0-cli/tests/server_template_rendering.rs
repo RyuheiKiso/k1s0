@@ -748,7 +748,7 @@ fn test_rust_server_rest_cargo_toml() {
     );
     assert!(content.contains("utoipa = { version = \"5\", features = [\"axum_extras\"] }"));
     assert!(content.contains(
-        "sqlx = { version = \"0.8\", features = [\"runtime-tokio-rustls\", \"postgresql\"] }"
+        "sqlx = { version = \"0.8\", features = [\"runtime-tokio-rustls\", \"postgres\"] }"
     ));
     assert!(content.contains("rdkafka = { version = \"0.36\", features = [\"cmake-build\"] }"));
     assert!(content.contains("redis = { version = \"0.27\", features = [\"tokio-comp\"] }"));
@@ -775,11 +775,13 @@ fn test_rust_server_rest_main_rs() {
     assert!(content.contains("use infra::config::Config;"));
 
     // DB
-    assert!(content.contains("infra::persistence::create_pool(&config.database)"));
+    assert!(content.contains("config.database.as_ref()"));
+    assert!(content.contains("infra::persistence::create_pool(db_config)"));
     assert!(content.contains("infra::persistence::Repository::new(pool.clone())"));
 
     // Kafka
-    assert!(content.contains("infra::messaging::Producer::new(&config.kafka)"));
+    assert!(content.contains("config.kafka.as_ref()"));
+    assert!(content.contains("infra::messaging::Producer::new(kafka_config)"));
 
     // DI
     assert!(content.contains("usecase::OrderApiUseCase::new("));
