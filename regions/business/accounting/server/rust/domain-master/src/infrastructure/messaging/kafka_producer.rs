@@ -56,10 +56,12 @@ impl DomainMasterKafkaProducer {
 
     async fn publish(&self, topic: &str, event: &Value) -> anyhow::Result<()> {
         let payload = serde_json::to_vec(event)?;
+        // イベントタイプに応じたキー選択: item → item_code, tenant → tenant_id, category → category_code
         let key = event
-            .get("resource_id")
+            .get("item_code")
             .and_then(Value::as_str)
-            .or_else(|| event.get("resource_code").and_then(Value::as_str))
+            .or_else(|| event.get("tenant_id").and_then(Value::as_str))
+            .or_else(|| event.get("category_code").and_then(Value::as_str))
             .unwrap_or("domain-master");
 
         tracing::info!(topic = %topic, key, "publishing change event");

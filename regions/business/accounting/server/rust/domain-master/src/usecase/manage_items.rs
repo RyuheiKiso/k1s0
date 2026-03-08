@@ -124,7 +124,7 @@ impl ManageItemsUseCase {
             )
             .await?;
 
-        self.publish_item_event("created", created_by, None, Some(&item))
+        self.publish_item_event("created", created_by, category_code, None, Some(&item))
             .await;
         Ok(item)
     }
@@ -197,7 +197,7 @@ impl ManageItemsUseCase {
             )
             .await?;
 
-        self.publish_item_event("updated", actor, Some(&existing), Some(&updated))
+        self.publish_item_event("updated", actor, category_code, Some(&existing), Some(&updated))
             .await;
         Ok(updated)
     }
@@ -246,7 +246,7 @@ impl ManageItemsUseCase {
                 )
             })?;
         self.item_repo.delete(item.id).await?;
-        self.publish_item_event("deleted", actor, Some(&item), None)
+        self.publish_item_event("deleted", actor, category_code, Some(&item), None)
             .await;
         Ok(())
     }
@@ -257,16 +257,22 @@ impl ManageItemsUseCase {
             .find_by_id(item_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Item '{}' not found", item_id))?;
+        let category = self
+            .category_repo
+            .find_by_id(item.category_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Category '{}' not found", item.category_id))?;
         self.item_repo.delete(item.id).await?;
-        self.publish_item_event("deleted", actor, Some(&item), None)
+        self.publish_item_event("deleted", actor, &category.code, Some(&item), None)
             .await;
         Ok(())
     }
 
     async fn publish_item_event(
         &self,
-        action: &str,
-        actor: &str,
+        operation: &str,
+        changed_by: &str,
+        category_code: &str,
         before: Option<&MasterItem>,
         after: Option<&MasterItem>,
     ) {
@@ -275,23 +281,25 @@ impl ManageItemsUseCase {
             return;
         };
 
+        let event_type = format!("item.{}", operation);
         let event = serde_json::json!({
-            "event_type": "DOMAIN_MASTER_ITEM_CHANGED",
-            "resource_type": "master_item",
-            "resource_id": item.id,
-            "resource_code": item.code,
-            "action": action,
-            "actor": actor,
+            "event_id": Uuid::new_v4().to_string(),
+            "event_type": event_type,
+            "category_code": category_code,
+            "item_code": item.code,
+            "operation": operation.to_uppercase(),
             "before": before,
             "after": after,
+            "changed_by": changed_by,
+            "trace_id": Uuid::new_v4().to_string(),
             "timestamp": Utc::now().to_rfc3339(),
         });
 
         if let Err(err) = self.event_publisher.publish_item_changed(&event).await {
             tracing::warn!(
                 error = %err,
-                action,
-                resource_code = %item.code,
+                operation,
+                item_code = %item.code,
                 "failed to publish item changed event"
             );
         }

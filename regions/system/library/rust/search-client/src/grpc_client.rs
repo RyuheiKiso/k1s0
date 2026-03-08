@@ -45,6 +45,17 @@ fn normalize_endpoint(addr: &str) -> String {
     endpoint.trim_end_matches('/').to_string()
 }
 
+/// reqwest エラーをタイムアウト・接続エラー・その他に分類して SearchError に変換する。
+fn map_reqwest_error(op: &str, e: reqwest::Error) -> SearchError {
+    if e.is_timeout() {
+        SearchError::Timeout
+    } else if e.is_connect() {
+        SearchError::ServerError(format!("{} 接続エラー: {}", op, e))
+    } else {
+        SearchError::ServerError(format!("{} リクエスト失敗: {}", op, e))
+    }
+}
+
 /// HTTP ステータスコードとレスポンスボディから SearchError を生成する。
 fn parse_search_error(status: u16, body: &str) -> SearchError {
     match status {
@@ -72,7 +83,7 @@ impl SearchClient for GrpcSearchClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| SearchError::ServerError(format!("create_index リクエスト失敗: {}", e)))?;
+            .map_err(|e| map_reqwest_error("create_index", e))?;
 
         let status = resp.status().as_u16();
         if status == 200 || status == 201 || status == 204 {
@@ -100,9 +111,7 @@ impl SearchClient for GrpcSearchClient {
             .json(&doc)
             .send()
             .await
-            .map_err(|e| {
-                SearchError::ServerError(format!("index_document リクエスト失敗: {}", e))
-            })?;
+            .map_err(|e| map_reqwest_error("index_document", e))?;
 
         let status = resp.status().as_u16();
         let resp_body = resp
@@ -138,9 +147,7 @@ impl SearchClient for GrpcSearchClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| {
-                SearchError::ServerError(format!("bulk_index リクエスト失敗: {}", e))
-            })?;
+            .map_err(|e| map_reqwest_error("bulk_index", e))?;
 
         let status = resp.status().as_u16();
         let resp_body = resp
@@ -171,9 +178,7 @@ impl SearchClient for GrpcSearchClient {
             .json(&query)
             .send()
             .await
-            .map_err(|e| {
-                SearchError::ServerError(format!("search リクエスト失敗: {}", e))
-            })?;
+            .map_err(|e| map_reqwest_error("search", e))?;
 
         let status = resp.status().as_u16();
         let resp_body = resp
@@ -202,9 +207,7 @@ impl SearchClient for GrpcSearchClient {
             .delete(&url)
             .send()
             .await
-            .map_err(|e| {
-                SearchError::ServerError(format!("delete_document リクエスト失敗: {}", e))
-            })?;
+            .map_err(|e| map_reqwest_error("delete_document", e))?;
 
         let status = resp.status().as_u16();
         if status == 200 || status == 204 {

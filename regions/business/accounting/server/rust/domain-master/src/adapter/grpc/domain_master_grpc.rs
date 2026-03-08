@@ -372,6 +372,7 @@ impl DomainMasterService for DomainMasterGrpcService {
     }
 }
 
+#[allow(clippy::result_large_err)]
 fn parse_uuid(raw: &str, field_name: &str) -> Result<Uuid, Status> {
     Uuid::parse_str(raw)
         .map_err(|_| Status::invalid_argument(format!("invalid {}: '{}'", field_name, raw)))

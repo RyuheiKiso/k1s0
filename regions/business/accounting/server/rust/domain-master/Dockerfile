@@ -15,7 +15,7 @@ WORKDIR /app
 # Copy the entire regions directory to resolve path dependencies
 COPY . .
 
-RUN cargo build --release -p k1s0-domain-master-server
+RUN cargo build --release --manifest-path business/accounting/server/rust/domain-master/Cargo.toml
 
 # Runtime stage
 FROM gcr.io/distroless/cc-debian12:nonroot

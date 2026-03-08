@@ -107,8 +107,8 @@ impl ManageCategoriesUseCase {
 
     async fn publish_category_event(
         &self,
-        action: &str,
-        actor: &str,
+        operation: &str,
+        changed_by: &str,
         before: Option<&MasterCategory>,
         after: Option<&MasterCategory>,
     ) {
@@ -117,23 +117,24 @@ impl ManageCategoriesUseCase {
             return;
         };
 
+        let event_type = format!("category.{}", operation);
         let event = serde_json::json!({
-            "event_type": "DOMAIN_MASTER_CATEGORY_CHANGED",
-            "resource_type": "master_category",
-            "resource_id": category.id,
-            "resource_code": category.code,
-            "action": action,
-            "actor": actor,
+            "event_id": Uuid::new_v4().to_string(),
+            "event_type": event_type,
+            "category_code": category.code,
+            "operation": operation.to_uppercase(),
             "before": before,
             "after": after,
+            "changed_by": changed_by,
+            "trace_id": Uuid::new_v4().to_string(),
             "timestamp": Utc::now().to_rfc3339(),
         });
 
         if let Err(err) = self.event_publisher.publish_category_changed(&event).await {
             tracing::warn!(
                 error = %err,
-                action,
-                resource_code = %category.code,
+                operation,
+                category_code = %category.code,
                 "failed to publish category changed event"
             );
         }

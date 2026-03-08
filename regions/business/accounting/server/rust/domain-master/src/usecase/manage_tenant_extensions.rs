@@ -157,27 +157,24 @@ impl ManageTenantExtensionsUseCase {
 
     async fn publish_tenant_extension_event(
         &self,
-        action: &str,
-        actor: &str,
+        operation: &str,
+        changed_by: &str,
         tenant_id: &str,
         item_id: Uuid,
         before: Option<&TenantMasterExtension>,
         after: Option<&TenantMasterExtension>,
     ) {
-        let resource_id = after
-            .map(|extension| extension.id)
-            .or_else(|| before.map(|extension| extension.id));
-
+        let event_type = format!("tenant_extension.{}", operation);
         let event = serde_json::json!({
-            "event_type": "DOMAIN_MASTER_TENANT_EXTENSION_CHANGED",
-            "resource_type": "tenant_master_extension",
-            "resource_id": resource_id,
+            "event_id": Uuid::new_v4().to_string(),
+            "event_type": event_type,
             "tenant_id": tenant_id,
             "item_id": item_id,
-            "action": action,
-            "actor": actor,
+            "operation": operation.to_uppercase(),
             "before": before,
             "after": after,
+            "changed_by": changed_by,
+            "trace_id": Uuid::new_v4().to_string(),
             "timestamp": Utc::now().to_rfc3339(),
         });
 
@@ -188,7 +185,7 @@ impl ManageTenantExtensionsUseCase {
         {
             tracing::warn!(
                 error = %err,
-                action,
+                operation,
                 tenant_id,
                 item_id = %item_id,
                 "failed to publish tenant extension changed event"

@@ -205,9 +205,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         result = grpc_future => {
-            if let Err(e) = result {
-                return Err(e);
-            }
+            result?;
         }
     }
 
