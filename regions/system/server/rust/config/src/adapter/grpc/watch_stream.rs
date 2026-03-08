@@ -106,11 +106,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_next_returns_notification() {
-        let (uc, _tx) = WatchConfigUseCase::new();
+        let uc = WatchConfigUseCase::new();
         let rx = uc.subscribe();
         let mut handler = WatchConfigStreamHandler::new(rx, vec![]);
 
-        uc.notify(make_event("system.auth", "timeout", 1));
+        let _ = uc.sender().send(make_event("system.auth", "timeout", 1));
 
         let notif = handler.next().await.unwrap();
         assert_eq!(notif.namespace, "system.auth");
@@ -121,11 +121,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_namespace_filter_passes_matching() {
-        let (uc, _tx) = WatchConfigUseCase::new();
+        let uc = WatchConfigUseCase::new();
         let rx = uc.subscribe();
         let mut handler = WatchConfigStreamHandler::new(rx, vec!["system.auth".to_string()]);
 
-        uc.notify(make_event("system.auth.database", "max_connections", 3));
+        let _ = uc
+            .sender()
+            .send(make_event("system.auth.database", "max_connections", 3));
 
         let notif = handler.next().await.unwrap();
         assert_eq!(notif.namespace, "system.auth.database");
@@ -134,14 +136,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_namespace_filter_skips_non_matching_and_returns_next() {
-        let (uc, _tx) = WatchConfigUseCase::new();
+        let uc = WatchConfigUseCase::new();
         let rx = uc.subscribe();
         let mut handler = WatchConfigStreamHandler::new(rx, vec!["system.auth".to_string()]);
 
         // 最初の通知はフィルタ対象外（スキップされる）
-        uc.notify(make_event("business.billing", "rate", 1));
+        let _ = uc.sender().send(make_event("business.billing", "rate", 1));
         // 2 番目の通知がフィルタに一致する
-        uc.notify(make_event("system.auth.jwt", "issuer", 2));
+        let _ = uc.sender().send(make_event("system.auth.jwt", "issuer", 2));
 
         let notif = handler.next().await.unwrap();
         assert_eq!(notif.namespace, "system.auth.jwt");
@@ -150,11 +152,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_no_filter_receives_all_namespaces() {
-        let (uc, _tx) = WatchConfigUseCase::new();
+        let uc = WatchConfigUseCase::new();
         let rx = uc.subscribe();
         let mut handler = WatchConfigStreamHandler::new(rx, vec![]);
 
-        uc.notify(make_event("business.billing", "rate", 10));
+        let _ = uc.sender().send(make_event("business.billing", "rate", 10));
 
         let notif = handler.next().await.unwrap();
         assert_eq!(notif.namespace, "business.billing");
@@ -191,7 +193,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_value_json_serialized_to_string() {
-        let (uc, _tx) = WatchConfigUseCase::new();
+        let uc = WatchConfigUseCase::new();
         let rx = uc.subscribe();
         let mut handler = WatchConfigStreamHandler::new(rx, vec![]);
 
@@ -202,7 +204,7 @@ mod tests {
             updated_by: "admin".to_string(),
             version: 1,
         };
-        uc.notify(event);
+        let _ = uc.sender().send(event);
 
         let notif = handler.next().await.unwrap();
         // value_json は JSON 文字列として格納される
@@ -212,7 +214,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_multiple_namespace_filters() {
-        let (uc, _tx) = WatchConfigUseCase::new();
+        let uc = WatchConfigUseCase::new();
         let rx = uc.subscribe();
         let mut handler = WatchConfigStreamHandler::new(
             rx,
@@ -220,9 +222,9 @@ mod tests {
         );
 
         // フィルタ対象外（スキップ）
-        uc.notify(make_event("system.config", "key", 1));
+        let _ = uc.sender().send(make_event("system.config", "key", 1));
         // system.auth にマッチ
-        uc.notify(make_event("system.auth.jwt", "issuer", 2));
+        let _ = uc.sender().send(make_event("system.auth.jwt", "issuer", 2));
 
         let notif = handler.next().await.unwrap();
         assert_eq!(notif.namespace, "system.auth.jwt");

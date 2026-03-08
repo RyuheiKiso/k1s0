@@ -31,6 +31,13 @@ pub fn from_anyhow(err: anyhow::Error) -> ServiceError {
             details: vec![],
         };
     }
+    if lower.contains("circular parent") {
+        return ServiceError::BadRequest {
+            code: k1s0_server_common::ErrorCode::new("BIZ_DOMAINMASTER_CIRCULAR_PARENT"),
+            message: msg,
+            details: vec![],
+        };
+    }
     if lower.contains("validation error") {
         return ServiceError::BadRequest {
             code: k1s0_server_common::ErrorCode::new("BIZ_DOMAINMASTER_VALIDATION_ERROR"),

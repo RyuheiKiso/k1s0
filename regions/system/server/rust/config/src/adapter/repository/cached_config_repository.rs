@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use uuid::Uuid;
-
 use crate::domain::entity::config_change_log::ConfigChangeLog;
 use crate::domain::entity::config_entry::{ConfigEntry, ConfigListResult, ServiceConfigResult};
 use crate::domain::repository::ConfigRepository;
@@ -19,6 +17,7 @@ pub struct CachedConfigRepository {
 
 impl CachedConfigRepository {
     /// 新しい CachedConfigRepository を作成する。
+    #[cfg(test)]
     pub fn new(inner: Arc<dyn ConfigRepository>, cache: Arc<ConfigCache>) -> Self {
         Self {
             inner,
@@ -86,11 +85,6 @@ impl ConfigRepository for CachedConfigRepository {
             .await
     }
 
-    /// create はキャッシュを使わず inner に委譲する。
-    async fn create(&self, entry: &ConfigEntry) -> anyhow::Result<ConfigEntry> {
-        self.inner.create(entry).await
-    }
-
     /// update は inner に委譲し、成功時にキャッシュを invalidate する。
     async fn update(
         &self,
@@ -144,24 +138,12 @@ impl ConfigRepository for CachedConfigRepository {
         self.inner.record_change_log(log).await
     }
 
-    /// list_change_logs はキャッシュを使わず inner に委譲する。
-    async fn list_change_logs(
-        &self,
-        namespace: &str,
-        key: &str,
-    ) -> anyhow::Result<Vec<ConfigChangeLog>> {
-        self.inner.list_change_logs(namespace, key).await
-    }
-
-    /// find_by_id はキャッシュを使わず inner に委譲する。
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>> {
-        self.inner.find_by_id(id).await
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::repository::ConfigRepository;
     use crate::domain::repository::config_repository::MockConfigRepository;
     use chrono::Utc;
     use uuid::Uuid;

@@ -25,3 +25,32 @@ impl DomainMasterEventPublisher for NoopDomainMasterEventPublisher {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_noop_publisher_category_changed() {
+        let publisher = NoopDomainMasterEventPublisher;
+        let event = serde_json::json!({"event_type": "test"});
+        let result = publisher.publish_category_changed(&event).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_noop_publisher_item_changed() {
+        let publisher = NoopDomainMasterEventPublisher;
+        let event = serde_json::json!({"event_type": "test"});
+        let result = publisher.publish_item_changed(&event).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_noop_publisher_tenant_extension_changed() {
+        let publisher = NoopDomainMasterEventPublisher;
+        let event = serde_json::json!({"event_type": "test"});
+        let result = publisher.publish_tenant_extension_changed(&event).await;
+        assert!(result.is_ok());
+    }
+}

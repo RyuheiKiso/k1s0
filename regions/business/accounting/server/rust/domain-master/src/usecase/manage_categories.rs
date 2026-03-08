@@ -139,3 +139,254 @@ impl ManageCategoriesUseCase {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::repository::category_repository::MockCategoryRepository;
+    use crate::usecase::event_publisher::MockDomainMasterEventPublisher;
+    use chrono::Utc;
+    use mockall::predicate::*;
+
+    fn sample_category() -> MasterCategory {
+        MasterCategory {
+            id: Uuid::new_v4(),
+            code: "CURRENCY".to_string(),
+            display_name: "Currency".to_string(),
+            description: None,
+            validation_schema: None,
+            is_active: true,
+            sort_order: 1,
+            created_by: "admin".to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_create_category_success() {
+        let mut mock_repo = MockCategoryRepository::new();
+        let mut mock_publisher = MockDomainMasterEventPublisher::new();
+
+        let expected = sample_category();
+        let expected_clone = expected.clone();
+
+        mock_repo
+            .expect_find_by_code()
+            .with(eq("CURRENCY"))
+            .times(1)
+            .returning(|_| Ok(None));
+
+        mock_repo
+            .expect_create()
+            .times(1)
+            .returning(move |_, _| Ok(expected_clone.clone()));
+
+        mock_publisher
+            .expect_publish_category_changed()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let uc = ManageCategoriesUseCase::new(
+            Arc::new(mock_repo),
+            Arc::new(mock_publisher),
+        );
+
+        let input = CreateMasterCategory {
+            code: "CURRENCY".to_string(),
+            display_name: "Currency".to_string(),
+            description: None,
+            validation_schema: None,
+            is_active: Some(true),
+            sort_order: Some(1),
+        };
+
+        let result = uc.create_category(&input, "admin").await;
+        assert!(result.is_ok());
+        let cat = result.unwrap();
+        assert_eq!(cat.code, "CURRENCY");
+    }
+
+    #[tokio::test]
+    async fn test_create_category_duplicate_code() {
+        let mut mock_repo = MockCategoryRepository::new();
+        let mock_publisher = MockDomainMasterEventPublisher::new();
+
+        let existing = sample_category();
+
+        mock_repo
+            .expect_find_by_code()
+            .with(eq("CURRENCY"))
+            .times(1)
+            .returning(move |_| Ok(Some(existing.clone())));
+
+        let uc = ManageCategoriesUseCase::new(
+            Arc::new(mock_repo),
+            Arc::new(mock_publisher),
+        );
+
+        let input = CreateMasterCategory {
+            code: "CURRENCY".to_string(),
+            display_name: "Currency".to_string(),
+            description: None,
+            validation_schema: None,
+            is_active: None,
+            sort_order: None,
+        };
+
+        let result = uc.create_category(&input, "admin").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Duplicate code"));
+    }
+
+    #[tokio::test]
+    async fn test_delete_category_success() {
+        let mut mock_repo = MockCategoryRepository::new();
+        let mut mock_publisher = MockDomainMasterEventPublisher::new();
+
+        let existing = sample_category();
+        let existing_clone = existing.clone();
+
+        mock_repo
+            .expect_find_by_code()
+            .with(eq("CURRENCY"))
+            .times(1)
+            .returning(move |_| Ok(Some(existing_clone.clone())));
+
+        mock_repo
+            .expect_delete()
+            .with(eq("CURRENCY"))
+            .times(1)
+            .returning(|_| Ok(()));
+
+        mock_publisher
+            .expect_publish_category_changed()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let uc = ManageCategoriesUseCase::new(
+            Arc::new(mock_repo),
+            Arc::new(mock_publisher),
+        );
+
+        let result = uc.delete_category("CURRENCY", "admin").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_delete_category_not_found() {
+        let mut mock_repo = MockCategoryRepository::new();
+        let mock_publisher = MockDomainMasterEventPublisher::new();
+
+        mock_repo
+            .expect_find_by_code()
+            .with(eq("NONEXIST"))
+            .times(1)
+            .returning(|_| Ok(None));
+
+        let uc = ManageCategoriesUseCase::new(
+            Arc::new(mock_repo),
+            Arc::new(mock_publisher),
+        );
+
+        let result = uc.delete_category("NONEXIST", "admin").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+    }
+
+    #[tokio::test]
+    async fn test_list_categories() {
+        let mut mock_repo = MockCategoryRepository::new();
+        let mock_publisher = MockDomainMasterEventPublisher::new();
+
+        let cat1 = sample_category();
+        let categories = vec![cat1];
+
+        mock_repo
+            .expect_find_all()
+            .with(eq(true))
+            .times(1)
+            .returning(move |_| Ok(categories.clone()));
+
+        let uc = ManageCategoriesUseCase::new(
+            Arc::new(mock_repo),
+            Arc::new(mock_publisher),
+        );
+
+        let result = uc.list_categories(true).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_category() {
+        let mut mock_repo = MockCategoryRepository::new();
+        let mock_publisher = MockDomainMasterEventPublisher::new();
+
+        let cat = sample_category();
+        let cat_clone = cat.clone();
+
+        mock_repo
+            .expect_find_by_code()
+            .with(eq("CURRENCY"))
+            .times(1)
+            .returning(move |_| Ok(Some(cat_clone.clone())));
+
+        let uc = ManageCategoriesUseCase::new(
+            Arc::new(mock_repo),
+            Arc::new(mock_publisher),
+        );
+
+        let result = uc.get_category("CURRENCY").await;
+        assert!(result.is_ok());
+        let cat = result.unwrap();
+        assert!(cat.is_some());
+        assert_eq!(cat.unwrap().code, "CURRENCY");
+    }
+
+    #[tokio::test]
+    async fn test_update_category_success() {
+        let mut mock_repo = MockCategoryRepository::new();
+        let mut mock_publisher = MockDomainMasterEventPublisher::new();
+
+        let existing = sample_category();
+        let existing_clone = existing.clone();
+        let mut updated = existing.clone();
+        updated.display_name = "Updated Currency".to_string();
+        let updated_clone = updated.clone();
+
+        mock_repo
+            .expect_find_by_code()
+            .with(eq("CURRENCY"))
+            .times(1)
+            .returning(move |_| Ok(Some(existing_clone.clone())));
+
+        mock_repo
+            .expect_update()
+            .with(eq("CURRENCY"), always())
+            .times(1)
+            .returning(move |_, _| Ok(updated_clone.clone()));
+
+        mock_publisher
+            .expect_publish_category_changed()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let uc = ManageCategoriesUseCase::new(
+            Arc::new(mock_repo),
+            Arc::new(mock_publisher),
+        );
+
+        let input = UpdateMasterCategory {
+            display_name: Some("Updated Currency".to_string()),
+            description: None,
+            validation_schema: None,
+            is_active: None,
+            sort_order: None,
+        };
+
+        let result = uc.update_category("CURRENCY", "admin", &input).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().display_name, "Updated Currency");
+    }
+}

@@ -19,11 +19,14 @@ pub struct WatchConfigUseCase {
 }
 
 impl WatchConfigUseCase {
-    /// 新しい WatchConfigUseCase を生成し、外部から notify() するための
-    /// broadcast::Sender もあわせて返す。
-    pub fn new() -> (Self, broadcast::Sender<ConfigChangeEvent>) {
+    /// 新しい WatchConfigUseCase を生成する。
+    pub fn new() -> Self {
         let (tx, _) = broadcast::channel(256);
-        (Self { sender: tx.clone() }, tx)
+        Self { sender: tx }
+    }
+
+    pub fn sender(&self) -> broadcast::Sender<ConfigChangeEvent> {
+        self.sender.clone()
     }
 
     /// 変更通知を受け取る Receiver を購読する。
@@ -31,11 +34,6 @@ impl WatchConfigUseCase {
         self.sender.subscribe()
     }
 
-    /// 変更イベントをすべての購読者に送信する。
-    /// 受信者がいない場合のエラーはベストエフォートとして無視する。
-    pub fn notify(&self, event: ConfigChangeEvent) {
-        let _ = self.sender.send(event);
-    }
 }
 
 #[cfg(test)]
@@ -44,7 +42,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_subscribe_and_notify() {
-        let (uc, _tx) = WatchConfigUseCase::new();
+        let uc = WatchConfigUseCase::new();
         let mut rx = uc.subscribe();
 
         let event = ConfigChangeEvent {
@@ -55,7 +53,7 @@ mod tests {
             version: 4,
         };
 
-        uc.notify(event.clone());
+        let _ = uc.sender().send(event.clone());
 
         let received = rx.recv().await.unwrap();
         assert_eq!(received.namespace, "system.auth.database");
@@ -67,7 +65,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_notify_multiple_subscribers() {
-        let (uc, _tx) = WatchConfigUseCase::new();
+        let uc = WatchConfigUseCase::new();
         let mut rx1 = uc.subscribe();
         let mut rx2 = uc.subscribe();
 
@@ -79,7 +77,7 @@ mod tests {
             version: 2,
         };
 
-        uc.notify(event);
+        let _ = uc.sender().send(event);
 
         let r1 = rx1.recv().await.unwrap();
         let r2 = rx2.recv().await.unwrap();
@@ -93,7 +91,7 @@ mod tests {
     #[tokio::test]
     async fn test_notify_no_receivers_is_ok() {
         // 受信者がいない状態で notify() してもパニックしない
-        let (uc, _tx) = WatchConfigUseCase::new();
+        let uc = WatchConfigUseCase::new();
         let event = ConfigChangeEvent {
             namespace: "system.test".to_string(),
             key: "key".to_string(),
@@ -102,7 +100,7 @@ mod tests {
             version: 1,
         };
         // drop _tx が先に走っても大丈夫であることを確認
-        uc.notify(event); // should not panic
+        let _ = uc.sender().send(event); // should not panic
     }
 
     #[tokio::test]
@@ -113,14 +111,14 @@ mod tests {
         let mut rx = uc.subscribe();
 
         // 2 件送信して受信者をラグさせる
-        uc.notify(ConfigChangeEvent {
+        let _ = uc.sender().send(ConfigChangeEvent {
             namespace: "a".to_string(),
             key: "k".to_string(),
             value_json: serde_json::json!(1),
             updated_by: "u".to_string(),
             version: 1,
         });
-        uc.notify(ConfigChangeEvent {
+        let _ = uc.sender().send(ConfigChangeEvent {
             namespace: "b".to_string(),
             key: "k".to_string(),
             value_json: serde_json::json!(2),
@@ -137,7 +135,8 @@ mod tests {
     #[tokio::test]
     async fn test_sender_returned_by_new_can_also_send() {
         // new() が返す Sender から直接送信しても受信できる
-        let (uc, tx) = WatchConfigUseCase::new();
+        let uc = WatchConfigUseCase::new();
+        let tx = uc.sender();
         let mut rx = uc.subscribe();
 
         let event = ConfigChangeEvent {

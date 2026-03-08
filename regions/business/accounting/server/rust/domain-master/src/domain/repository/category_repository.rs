@@ -4,6 +4,7 @@ use crate::domain::entity::master_category::{
 use async_trait::async_trait;
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait CategoryRepository: Send + Sync {
     async fn find_all(&self, active_only: bool) -> anyhow::Result<Vec<MasterCategory>>;

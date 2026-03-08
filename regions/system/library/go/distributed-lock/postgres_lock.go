@@ -19,7 +19,7 @@ import (
 type PostgresLock struct {
 	db        *sql.DB
 	keyPrefix string
-	mu          sync.Mutex
+	mu        sync.Mutex
 	// activeLocks は Acquire で取得したコネクションとトークンをキー別に保持する。
 	// Release 時に同一コネクションで pg_advisory_unlock を実行し、トークンを検証するために必要。
 	activeLocks map[string]activeLock

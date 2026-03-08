@@ -53,6 +53,7 @@ impl ConfigCache {
     /// 指定した namespace に属するすべてのエントリをキャッシュから削除する。
     /// moka v0.12 の `invalidate_entries_if` は `invalidation_closures` feature が
     /// 必要なため、iter() でキーを収集してから個別に invalidate する。
+    #[cfg(test)]
     pub async fn invalidate_namespace(&self, namespace: &str) {
         let prefix = format!("{}:", namespace);
         // キャッシュの全キーをイテレートして対象を収集

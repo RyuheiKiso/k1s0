@@ -91,12 +91,6 @@ impl ConfigRepository for TestConfigRepository {
         })
     }
 
-    async fn create(&self, entry: &ConfigEntry) -> anyhow::Result<ConfigEntry> {
-        let mut entries = self.entries.write().await;
-        entries.push(entry.clone());
-        Ok(entry.clone())
-    }
-
     async fn update(
         &self,
         namespace: &str,
@@ -172,18 +166,6 @@ impl ConfigRepository for TestConfigRepository {
         Ok(())
     }
 
-    async fn list_change_logs(
-        &self,
-        _namespace: &str,
-        _key: &str,
-    ) -> anyhow::Result<Vec<ConfigChangeLog>> {
-        Ok(vec![])
-    }
-
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>> {
-        let entries = self.entries.read().await;
-        Ok(entries.iter().find(|e| e.id == *id).cloned())
-    }
 }
 
 fn make_test_entry(

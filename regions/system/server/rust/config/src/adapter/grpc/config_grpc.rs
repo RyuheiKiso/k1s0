@@ -13,7 +13,7 @@ use crate::usecase::get_service_config::{GetServiceConfigError, GetServiceConfig
 use crate::usecase::list_configs::{ListConfigsError, ListConfigsParams, ListConfigsUseCase};
 use crate::usecase::update_config::{UpdateConfigError, UpdateConfigInput, UpdateConfigUseCase};
 use crate::usecase::upsert_config_schema::{UpsertConfigSchemaInput, UpsertConfigSchemaUseCase};
-use crate::usecase::watch_config::ConfigChangeEvent;
+use crate::usecase::watch_config::WatchConfigUseCase;
 
 use super::watch_stream::{WatchConfigRequest, WatchConfigStreamHandler};
 
@@ -40,37 +40,17 @@ pub struct ConfigGrpcService {
     delete_config_uc: Arc<DeleteConfigUseCase>,
     get_config_schema_uc: Option<Arc<GetConfigSchemaUseCase>>,
     upsert_config_schema_uc: Option<Arc<UpsertConfigSchemaUseCase>>,
-    watch_sender: Option<tokio::sync::broadcast::Sender<ConfigChangeEvent>>,
+    watch_uc: Option<Arc<WatchConfigUseCase>>,
 }
 
 impl ConfigGrpcService {
-    #[allow(dead_code)]
-    pub fn new(
-        get_config_uc: Arc<GetConfigUseCase>,
-        list_configs_uc: Arc<ListConfigsUseCase>,
-        get_service_config_uc: Arc<GetServiceConfigUseCase>,
-        update_config_uc: Arc<UpdateConfigUseCase>,
-        delete_config_uc: Arc<DeleteConfigUseCase>,
-    ) -> Self {
-        Self {
-            get_config_uc,
-            list_configs_uc,
-            get_service_config_uc,
-            update_config_uc,
-            delete_config_uc,
-            get_config_schema_uc: None,
-            upsert_config_schema_uc: None,
-            watch_sender: None,
-        }
-    }
-
     pub fn new_with_watch(
         get_config_uc: Arc<GetConfigUseCase>,
         list_configs_uc: Arc<ListConfigsUseCase>,
         get_service_config_uc: Arc<GetServiceConfigUseCase>,
         update_config_uc: Arc<UpdateConfigUseCase>,
         delete_config_uc: Arc<DeleteConfigUseCase>,
-        watch_sender: tokio::sync::broadcast::Sender<ConfigChangeEvent>,
+        watch_uc: Arc<WatchConfigUseCase>,
     ) -> Self {
         Self {
             get_config_uc,
@@ -80,7 +60,7 @@ impl ConfigGrpcService {
             delete_config_uc,
             get_config_schema_uc: None,
             upsert_config_schema_uc: None,
-            watch_sender: Some(watch_sender),
+            watch_uc: Some(watch_uc),
         }
     }
 
@@ -329,9 +309,9 @@ impl ConfigGrpcService {
         &self,
         req: WatchConfigRequest,
     ) -> Result<WatchConfigStreamHandler, GrpcError> {
-        match &self.watch_sender {
-            Some(sender) => {
-                let receiver = sender.subscribe();
+        match &self.watch_uc {
+            Some(watch_uc) => {
+                let receiver = watch_uc.subscribe();
                 let namespace_filters: Vec<String> = req
                     .namespaces
                     .into_iter()

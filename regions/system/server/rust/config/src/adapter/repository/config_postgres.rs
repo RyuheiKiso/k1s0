@@ -2,13 +2,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use sqlx::{PgPool, Row};
+#[cfg(feature = "db-tests")]
 use uuid::Uuid;
 
 use crate::domain::entity::config_change_log::ConfigChangeLog;
 use crate::domain::entity::config_entry::{
     ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
 };
-use crate::domain::repository::{ConfigChangeLogRepository, ConfigRepository};
+use crate::domain::repository::ConfigRepository;
 
 /// ConfigPostgresRepository は ConfigRepository の PostgreSQL 実装。
 pub struct ConfigPostgresRepository {
@@ -17,6 +18,7 @@ pub struct ConfigPostgresRepository {
 }
 
 impl ConfigPostgresRepository {
+    #[cfg(feature = "db-tests")]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -32,9 +34,117 @@ impl ConfigPostgresRepository {
     }
 
     /// テストやマイグレーション用にプールへの参照を返す。
-    #[allow(dead_code)]
+    #[cfg(feature = "db-tests")]
     pub fn pool(&self) -> &PgPool {
         &self.pool
+    }
+
+    #[cfg(feature = "db-tests")]
+    pub async fn create(&self, entry: &ConfigEntry) -> anyhow::Result<ConfigEntry> {
+        let start = std::time::Instant::now();
+        let row = sqlx::query(
+            r#"
+            INSERT INTO config_entries (id, namespace, key, value_json, version, description, created_by, updated_by, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id, namespace, key, value_json, version, description, created_by, updated_by, created_at, updated_at
+            "#,
+        )
+        .bind(entry.id)
+        .bind(&entry.namespace)
+        .bind(&entry.key)
+        .bind(&entry.value_json)
+        .bind(entry.version)
+        .bind(&entry.description)
+        .bind(&entry.created_by)
+        .bind(&entry.updated_by)
+        .bind(entry.created_at)
+        .bind(entry.updated_at)
+        .fetch_one(&self.pool)
+        .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("create", "config_entries", start.elapsed().as_secs_f64());
+        }
+
+        Ok(row_to_config_entry(row)?)
+    }
+
+    #[cfg(feature = "db-tests")]
+    pub async fn list_change_logs(
+        &self,
+        namespace: &str,
+        key: &str,
+    ) -> anyhow::Result<Vec<ConfigChangeLog>> {
+        let start = std::time::Instant::now();
+        let rows = sqlx::query(
+            r#"
+            SELECT id, config_entry_id, namespace, key, old_value_json, new_value_json,
+                   old_version, new_version, change_type, changed_by, trace_id, created_at
+            FROM config_change_logs
+            WHERE namespace = $1 AND key = $2
+            ORDER BY created_at DESC
+            "#,
+        )
+        .bind(namespace)
+        .bind(key)
+        .fetch_all(&self.pool)
+        .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration(
+                "list_change_logs",
+                "config_change_logs",
+                start.elapsed().as_secs_f64(),
+            );
+        }
+
+        let logs = rows
+            .into_iter()
+            .map(|row| {
+                Ok(ConfigChangeLog {
+                    id: row.try_get("id")?,
+                    config_entry_id: row.try_get("config_entry_id")?,
+                    namespace: row.try_get("namespace")?,
+                    key: row.try_get("key")?,
+                    old_value: row.try_get("old_value_json")?,
+                    new_value: row.try_get("new_value_json")?,
+                    old_version: row.try_get("old_version")?,
+                    new_version: row.try_get("new_version")?,
+                    change_type: row.try_get("change_type")?,
+                    changed_by: row.try_get("changed_by")?,
+                    trace_id: row.try_get("trace_id")?,
+                    changed_at: row.try_get("created_at")?,
+                })
+            })
+            .collect::<Result<Vec<_>, sqlx::Error>>()?;
+
+        Ok(logs)
+    }
+
+    #[cfg(feature = "db-tests")]
+    pub async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>> {
+        let start = std::time::Instant::now();
+        let row = sqlx::query(
+            r#"
+            SELECT id, namespace, key, value_json, version, description,
+                   created_by, updated_by, created_at, updated_at
+            FROM config_entries
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration(
+                "find_by_id",
+                "config_entries",
+                start.elapsed().as_secs_f64(),
+            );
+        }
+
+        match row {
+            Some(row) => Ok(Some(row_to_config_entry(row)?)),
+            None => Ok(None),
+        }
     }
 }
 
@@ -218,34 +328,6 @@ impl ConfigRepository for ConfigPostgresRepository {
         })
     }
 
-    async fn create(&self, entry: &ConfigEntry) -> anyhow::Result<ConfigEntry> {
-        let start = std::time::Instant::now();
-        let row = sqlx::query(
-            r#"
-            INSERT INTO config_entries (id, namespace, key, value_json, version, description, created_by, updated_by, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING id, namespace, key, value_json, version, description, created_by, updated_by, created_at, updated_at
-            "#,
-        )
-        .bind(entry.id)
-        .bind(&entry.namespace)
-        .bind(&entry.key)
-        .bind(&entry.value_json)
-        .bind(entry.version)
-        .bind(&entry.description)
-        .bind(&entry.created_by)
-        .bind(&entry.updated_by)
-        .bind(entry.created_at)
-        .bind(entry.updated_at)
-        .fetch_one(&self.pool)
-        .await?;
-        if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("create", "config_entries", start.elapsed().as_secs_f64());
-        }
-
-        Ok(row_to_config_entry(row)?)
-    }
-
     async fn update(
         &self,
         namespace: &str,
@@ -427,95 +509,4 @@ impl ConfigRepository for ConfigPostgresRepository {
         Ok(())
     }
 
-    async fn list_change_logs(
-        &self,
-        namespace: &str,
-        key: &str,
-    ) -> anyhow::Result<Vec<ConfigChangeLog>> {
-        let start = std::time::Instant::now();
-        let rows = sqlx::query(
-            r#"
-            SELECT id, config_entry_id, namespace, key, old_value_json, new_value_json,
-                   old_version, new_version, change_type, changed_by, trace_id, created_at
-            FROM config_change_logs
-            WHERE namespace = $1 AND key = $2
-            ORDER BY created_at DESC
-            "#,
-        )
-        .bind(namespace)
-        .bind(key)
-        .fetch_all(&self.pool)
-        .await?;
-        if let Some(ref m) = self.metrics {
-            m.record_db_query_duration(
-                "list_change_logs",
-                "config_change_logs",
-                start.elapsed().as_secs_f64(),
-            );
-        }
-
-        let logs = rows
-            .into_iter()
-            .map(|row| {
-                Ok(ConfigChangeLog {
-                    id: row.try_get("id")?,
-                    config_entry_id: row.try_get("config_entry_id")?,
-                    namespace: row.try_get("namespace")?,
-                    key: row.try_get("key")?,
-                    old_value: row.try_get("old_value_json")?,
-                    new_value: row.try_get("new_value_json")?,
-                    old_version: row.try_get("old_version")?,
-                    new_version: row.try_get("new_version")?,
-                    change_type: row.try_get("change_type")?,
-                    changed_by: row.try_get("changed_by")?,
-                    trace_id: row.try_get("trace_id")?,
-                    changed_at: row.try_get("created_at")?,
-                })
-            })
-            .collect::<Result<Vec<_>, sqlx::Error>>()?;
-
-        Ok(logs)
-    }
-
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>> {
-        let start = std::time::Instant::now();
-        let row = sqlx::query(
-            r#"
-            SELECT id, namespace, key, value_json, version, description,
-                   created_by, updated_by, created_at, updated_at
-            FROM config_entries
-            WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
-        if let Some(ref m) = self.metrics {
-            m.record_db_query_duration(
-                "find_by_id",
-                "config_entries",
-                start.elapsed().as_secs_f64(),
-            );
-        }
-
-        match row {
-            Some(row) => Ok(Some(row_to_config_entry(row)?)),
-            None => Ok(None),
-        }
-    }
-}
-
-#[async_trait]
-impl ConfigChangeLogRepository for ConfigPostgresRepository {
-    async fn record_change_log(&self, log: &ConfigChangeLog) -> anyhow::Result<()> {
-        <Self as ConfigRepository>::record_change_log(self, log).await
-    }
-
-    async fn list_change_logs(
-        &self,
-        namespace: &str,
-        key: &str,
-    ) -> anyhow::Result<Vec<ConfigChangeLog>> {
-        <Self as ConfigRepository>::list_change_logs(self, namespace, key).await
-    }
 }
