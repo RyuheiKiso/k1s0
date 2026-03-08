@@ -21,6 +21,7 @@ pub struct StartInstanceInput {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct StartInstanceOutput {
     pub instance: WorkflowInstance,
     pub first_task: Option<WorkflowTask>,

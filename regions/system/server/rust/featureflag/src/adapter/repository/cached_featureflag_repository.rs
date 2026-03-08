@@ -18,6 +18,7 @@ pub struct CachedFeatureFlagRepository {
 
 impl CachedFeatureFlagRepository {
     /// 新しい CachedFeatureFlagRepository を作成する。
+    #[allow(dead_code)]
     pub fn new(inner: Arc<dyn FeatureFlagRepository>, cache: Arc<FlagCache>) -> Self {
         Self {
             inner,

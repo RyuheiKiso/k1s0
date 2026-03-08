@@ -45,6 +45,7 @@ fn default_environment() -> String {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
     pub host: String,
@@ -68,6 +69,7 @@ fn default_grpc_port() -> u16 {
 
 /// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺呻ｼ・RL蠖｢蠑擾ｼ峨・
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct DatabaseConfig {
     pub url: String,
     #[serde(default = "default_schema")]
@@ -98,6 +100,7 @@ fn default_connect_timeout_seconds() -> u64 {
 
 /// RedisConfig 縺ｯ Redis 謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct RedisConfig {
     pub url: String,
     #[serde(default = "default_pool_size")]
@@ -185,6 +188,7 @@ fn default_monthly_cron() -> String {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -236,6 +240,7 @@ impl Default for TraceConfig {
     }
 }
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]
     pub enabled: bool,

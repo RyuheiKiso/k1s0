@@ -86,6 +86,7 @@ impl Tenant {
         }
     }
 
+    #[allow(dead_code)]
     pub fn activate(mut self) -> Self {
         self.status = TenantStatus::Active;
         self

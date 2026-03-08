@@ -41,6 +41,7 @@ impl Config {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub name: String,
@@ -58,6 +59,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -93,6 +95,7 @@ fn default_max_connections() -> u32 {
 }
 
 /// RedisConfig 縺ｯ Redis 謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct RedisConfig {
     pub url: String,
@@ -136,6 +139,7 @@ fn default_consumer_group() -> String {
 
 /// SessionConfig 縺ｯ繧ｻ繝・す繝ｧ繝ｳ邂｡逅・崋譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
 /// 繝輔ぅ繝ｼ繝ｫ繝牙錐縺ｯ譌｢蟄倥・ main.rs 縺ｮ蜿ら・繝代ち繝ｼ繝ｳ縺ｫ蜷医ｏ縺帙※縺・ｋ縲・
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct SessionConfig {
     #[serde(default = "default_ttl")]
@@ -168,6 +172,7 @@ fn default_max_devices_per_user() -> u32 {
     10
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -219,6 +224,7 @@ impl Default for TraceConfig {
         }
     }
 }
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]

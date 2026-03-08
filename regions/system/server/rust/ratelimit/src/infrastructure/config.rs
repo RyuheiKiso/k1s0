@@ -74,6 +74,7 @@ fn default_environment() -> String {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
     pub host: String,
@@ -128,6 +129,7 @@ fn default_window_seconds() -> u32 {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -179,6 +181,7 @@ impl Default for TraceConfig {
     }
 }
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]
     pub enabled: bool,

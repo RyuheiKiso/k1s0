@@ -18,6 +18,7 @@ impl ListChannelsUseCase {
         Self { repo }
     }
 
+    #[allow(dead_code)]
     pub async fn execute(&self) -> Result<Vec<NotificationChannel>, ListChannelsError> {
         self.repo
             .find_all()

@@ -57,6 +57,7 @@ fn default_environment() -> String {
 }
 
 /// ServerConfig 縺ｯ繧ｵ繝ｼ繝舌・險ｭ螳壹・
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -87,6 +88,7 @@ pub struct ServiceEndpoint {
 }
 
 /// SagaConfig 縺ｯSaga蝗ｺ譛峨・險ｭ螳壹・
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct SagaConfig {
     #[serde(default = "default_max_concurrent")]
@@ -112,6 +114,7 @@ impl Default for SagaConfig {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -163,6 +166,7 @@ impl Default for TraceConfig {
         }
     }
 }
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]

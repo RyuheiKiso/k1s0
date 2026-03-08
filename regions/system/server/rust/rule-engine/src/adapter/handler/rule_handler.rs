@@ -743,6 +743,7 @@ impl ErrorResponse {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
         Self {
             error: ErrorBody {

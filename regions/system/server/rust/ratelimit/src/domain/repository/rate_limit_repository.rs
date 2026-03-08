@@ -14,12 +14,14 @@ pub trait RateLimitRepository: Send + Sync {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<RateLimitRule>;
 
     /// name でルールを取得する。
+    #[allow(dead_code)]
     async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<RateLimitRule>>;
 
     /// scope でルールを取得する。
     async fn find_by_scope(&self, scope: &str) -> anyhow::Result<Vec<RateLimitRule>>;
 
     /// 全ルールを取得する。
+    #[allow(dead_code)]
     async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>>;
 
     /// 条件付きのページネーションでルールを取得する。
@@ -38,6 +40,7 @@ pub trait RateLimitRepository: Send + Sync {
     async fn delete(&self, id: &Uuid) -> anyhow::Result<bool>;
 
     /// レートリミット状態をリセットする。
+    #[allow(dead_code)]
     async fn reset_state(&self, key: &str) -> anyhow::Result<()>;
 }
 

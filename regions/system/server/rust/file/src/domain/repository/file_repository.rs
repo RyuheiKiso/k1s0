@@ -37,6 +37,7 @@ pub trait FileStorageRepository: Send + Sync {
         expires_in_seconds: u32,
     ) -> anyhow::Result<String>;
     async fn delete_object(&self, storage_key: &str) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn get_object_metadata(
         &self,
         storage_key: &str,

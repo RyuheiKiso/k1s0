@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
@@ -47,6 +48,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -69,6 +71,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -125,6 +128,7 @@ fn default_jwks_cache_ttl_secs() -> u64 {
     3600
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -150,6 +154,7 @@ fn default_event_topic_pattern() -> String {
     "k1s0.*.*.*.v1".to_string()
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct DlqManagerConfig {
     pub grpc_endpoint: String,
@@ -186,6 +191,7 @@ fn default_ttl_seconds() -> u64 {
     30
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct SchedulerConfig {
     #[serde(default = "default_timeout_check_interval")]
@@ -202,6 +208,7 @@ fn default_cleanup_interval() -> u64 {
     3600
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct NotificationConfig {
     pub endpoint: String,
@@ -213,6 +220,7 @@ fn default_notification_timeout() -> u64 {
     10
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -270,6 +278,7 @@ impl Default for TraceConfig {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]

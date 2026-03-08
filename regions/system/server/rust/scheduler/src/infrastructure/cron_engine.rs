@@ -98,10 +98,12 @@ impl CronSchedulerEngine {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn next_run_time(cron_expr: &str) -> Option<chrono::DateTime<Utc>> {
         Self::next_run_time_in_timezone(cron_expr, "UTC")
     }
 
+    #[allow(dead_code)]
     fn next_run_time_in_timezone(cron_expr: &str, timezone: &str) -> Option<chrono::DateTime<Utc>> {
         // cron crate expects 6-field (with seconds) or 7-field expressions
         // Standard 5-field cron: prepend "0 " for seconds

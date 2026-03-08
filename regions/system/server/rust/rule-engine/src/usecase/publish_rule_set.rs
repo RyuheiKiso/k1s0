@@ -31,6 +31,7 @@ pub struct PublishRuleSetUseCase {
 }
 
 impl PublishRuleSetUseCase {
+    #[allow(dead_code)]
     pub fn new(
         rule_set_repo: Arc<dyn RuleSetRepository>,
         version_repo: Arc<dyn RuleSetVersionRepository>,

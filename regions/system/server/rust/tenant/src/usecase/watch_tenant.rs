@@ -12,6 +12,7 @@ pub struct TenantChangeEvent {
 }
 
 /// WatchTenantUseCase はテナント変更の publish/subscribe を管理するユースケース。
+#[allow(dead_code)]
 pub struct WatchTenantUseCase {
     sender: broadcast::Sender<TenantChangeEvent>,
 }
@@ -26,11 +27,13 @@ impl WatchTenantUseCase {
     }
 
     /// 新しい Receiver を返す。各ストリーミング接続が個別に subscribe する。
+    #[allow(dead_code)]
     pub fn subscribe(&self) -> broadcast::Receiver<TenantChangeEvent> {
         self.sender.subscribe()
     }
 
     /// 変更イベントをブロードキャストする。
+    #[allow(dead_code)]
     pub fn notify(&self, event: TenantChangeEvent) {
         let _ = self.sender.send(event);
     }

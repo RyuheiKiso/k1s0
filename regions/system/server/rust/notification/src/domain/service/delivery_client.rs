@@ -6,6 +6,7 @@ pub enum DeliveryError {
     ConnectionFailed(String),
 
     #[error("authentication failed: {0}")]
+    #[allow(dead_code)]
     AuthenticationFailed(String),
 
     #[error("delivery rejected: {0}")]

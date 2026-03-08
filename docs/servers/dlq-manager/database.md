@@ -1,13 +1,13 @@
 # system-dlq-database設計
 
-system Tier のデッドレターキュー管理データベース（dlq-db）の設計を定義する。
-配置先: `regions/system/database/dlq-db/`
+system Tier のデッドレターキュー管理データベース（dlq-manager-db）の設計を定義する。
+配置先: `regions/system/database/dlq-manager-db/`
 
 ## 概要
 
-dlq-db は system Tier に属する PostgreSQL 17 データベースであり、Kafka メッセージ処理に失敗したメッセージ（デッドレター）の管理・リトライ・アーカイブを担う。
+dlq-manager-db は system Tier に属する PostgreSQL 17 データベースであり、Kafka メッセージ処理に失敗したメッセージ（デッドレター）の管理・リトライ・アーカイブを担う。
 
-[tier-architecture.md](../../architecture/overview/tier-architecture.md) の設計原則に従い、dlq-db へのアクセスは **system Tier の dlq-manager サーバーからのみ** 許可する。
+[tier-architecture.md](../../architecture/overview/tier-architecture.md) の設計原則に従い、dlq-manager-db へのアクセスは **system Tier の dlq-manager サーバーからのみ** 許可する。
 
 ### 技術スタック
 
@@ -90,7 +90,7 @@ dlq_messages と同一スキーマを持つアーカイブテーブル。RESOLVE
 
 ## マイグレーションファイル
 
-配置先: `regions/system/database/dlq-db/migrations/`
+配置先: `regions/system/database/dlq-manager-db/migrations/`
 
 命名規則は [テンプレート仕様-データベース](../../templates/data/データベース.md) に準拠する。
 
@@ -143,7 +143,7 @@ dlq_messages と同一スキーマを持つアーカイブテーブル。RESOLVE
 ### 001_create_schema.up.sql
 
 ```sql
--- dlq-db: スキーマ・拡張機能・共通関数の作成 (PostgreSQL 17)
+-- dlq-manager-db: スキーマ・拡張機能・共通関数の作成 (PostgreSQL 17)
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE SCHEMA IF NOT EXISTS dlq;
@@ -168,7 +168,7 @@ DROP EXTENSION IF EXISTS "pgcrypto";
 ### 002_create_dlq_messages.up.sql
 
 ```sql
--- dlq-db: dlq_messages テーブル作成
+-- dlq-manager-db: dlq_messages テーブル作成
 
 CREATE TABLE IF NOT EXISTS dlq.dlq_messages (
     id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -207,7 +207,7 @@ DROP TABLE IF EXISTS dlq.dlq_messages;
 ### 003_add_partition_management.up.sql
 
 ```sql
--- dlq-db: 古い DLQ メッセージのアーカイブ管理
+-- dlq-manager-db: 古い DLQ メッセージのアーカイブ管理
 
 -- アーカイブ用テーブル
 CREATE TABLE IF NOT EXISTS dlq.dlq_messages_archive (

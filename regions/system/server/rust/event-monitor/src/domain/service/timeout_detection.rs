@@ -3,10 +3,12 @@ use chrono::Utc;
 use crate::domain::entity::flow_definition::FlowDefinition;
 use crate::domain::entity::flow_instance::{FlowInstance, FlowInstanceStatus};
 
+#[allow(dead_code)]
 pub struct TimeoutDetectionService;
 
 /// Represents a detected timeout for a flow instance.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TimeoutResult {
     pub instance: FlowInstance,
     pub flow_name: String,
@@ -18,6 +20,7 @@ pub struct TimeoutResult {
 impl TimeoutDetectionService {
     /// Check in-progress flow instances against their flow definitions and detect timeouts.
     /// Returns a list of instances that have exceeded the timeout for their current step.
+    #[allow(dead_code)]
     pub fn detect_timeouts(
         instances: &[FlowInstance],
         flow_definitions: &[FlowDefinition],

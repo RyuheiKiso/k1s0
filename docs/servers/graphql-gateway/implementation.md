@@ -34,7 +34,7 @@ regions/system/server/rust/graphql-gateway/
 │   │   └── middleware/
 │   │       ├── mod.rs
 │   │       └── auth_middleware.rs  # JWT 検証 axum layer
-│   └── infra/
+│   └── infrastructure/
 │       ├── mod.rs
 │       ├── config/
 │       │   └── mod.rs             # Config struct
@@ -87,8 +87,8 @@ gRPC クライアント側のため `build_server(false)` / `build_client(true)`
 | usecase | 単体テスト（モック） | `mockall` |
 | adapter/graphql_handler | 統合テスト（HTTP） | `axum-test` + `tokio::test` |
 | adapter/middleware | 単体テスト | `tokio::test` + モック JWT |
-| infra/auth | 単体テスト | `tokio::test` + `wiremock` |
-| infra/grpc | 統合テスト | `tonic` mock + `tokio::test` |
+| infrastructure/auth | 単体テスト | `tokio::test` + `wiremock` |
+| infrastructure/grpc | 統合テスト | `tonic` mock + `tokio::test` |
 
 ---
 
@@ -294,7 +294,7 @@ use std::sync::Arc;
 
 use async_graphql::dataloader::DataLoader;
 
-use crate::infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+use crate::infrastructure::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 
 pub struct GraphqlContext {
     pub user_id: String,
@@ -401,7 +401,7 @@ use std::sync::Arc;
 use tracing::instrument;
 
 use crate::domain::model::{Tenant, TenantConnection};
-use crate::infra::grpc::TenantGrpcClient;
+use crate::infrastructure::grpc::TenantGrpcClient;
 
 pub struct TenantQueryResolver {
     client: Arc<TenantGrpcClient>,
@@ -436,7 +436,7 @@ use std::sync::Arc;
 use tracing::instrument;
 
 use crate::domain::model::FeatureFlag;
-use crate::infra::grpc::FeatureFlagGrpcClient;
+use crate::infrastructure::grpc::FeatureFlagGrpcClient;
 
 pub struct FeatureFlagQueryResolver {
     client: Arc<FeatureFlagGrpcClient>,
@@ -470,7 +470,7 @@ use std::sync::Arc;
 use tracing::instrument;
 
 use crate::domain::model::ConfigEntry;
-use crate::infra::grpc::ConfigGrpcClient;
+use crate::infrastructure::grpc::ConfigGrpcClient;
 
 pub struct ConfigQueryResolver {
     client: Arc<ConfigGrpcClient>,
@@ -501,7 +501,7 @@ use std::sync::Arc;
 use tracing::instrument;
 
 use crate::domain::model::Tenant;
-use crate::infra::grpc::TenantGrpcClient;
+use crate::infrastructure::grpc::TenantGrpcClient;
 
 pub struct TenantMutationResolver {
     client: Arc<TenantGrpcClient>,
@@ -566,7 +566,7 @@ use async_graphql::futures_util::Stream;
 use tracing::instrument;
 
 use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant};
-use crate::infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+use crate::infrastructure::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 
 pub struct SubscriptionResolver {
     config_client: Arc<ConfigGrpcClient>,
@@ -637,8 +637,8 @@ use axum::{
 
 use crate::adapter::middleware::auth_middleware::{auth_layer, Claims};
 use crate::domain::model::graphql_context::{FeatureFlagLoader, GraphqlContext, TenantLoader};
-use crate::infra::config::GraphQLConfig;
-use crate::infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+use crate::infrastructure::config::GraphQLConfig;
+use crate::infrastructure::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 use crate::usecase::{
     ConfigQueryResolver, FeatureFlagQueryResolver, SubscriptionResolver,
     TenantMutationResolver, TenantQueryResolver,
@@ -656,7 +656,7 @@ pub struct AppState {
 }
 
 pub fn router(
-    jwks_verifier: Arc<crate::infra::auth::JwksVerifier>,
+    jwks_verifier: Arc<crate::infrastructure::auth::JwksVerifier>,
     tenant_query: Arc<TenantQueryResolver>,
     feature_flag_query: Arc<FeatureFlagQueryResolver>,
     config_query: Arc<ConfigQueryResolver>,
@@ -804,7 +804,7 @@ use serde::{Deserialize, Serialize};
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
 
-use crate::infra::auth::JwksVerifier;
+use crate::infrastructure::auth::JwksVerifier;
 
 /// JWT Claims（async-graphql の Extension として GraphQL Context に注入）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -933,7 +933,7 @@ fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
 
 ## インフラ実装
 
-### src/infra/config/mod.rs
+### src/infrastructure/config/mod.rs
 
 ```rust
 use serde::Deserialize;
@@ -1046,7 +1046,7 @@ impl Config {
 
 > `ConfigLoader` で解決できない場合（`GraphqlContext` がない等）は `ConfigQueryResolver` へのフォールバックで単体取得を行う。
 
-### src/infra/auth/jwks.rs
+### src/infrastructure/auth/jwks.rs
 
 ```rust
 use std::sync::Arc;
@@ -1103,7 +1103,7 @@ impl JwksVerifier {
 }
 ```
 
-### src/infra/grpc/tenant_client.rs
+### src/infrastructure/grpc/tenant_client.rs
 
 gRPC クライアント実装（TenantService、FeatureFlagService、ConfigService）の詳細は guide から統合済み。各クライアントは `tonic::transport::Channel` で接続し、Domain モデルに変換する。
 

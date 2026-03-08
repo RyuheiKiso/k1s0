@@ -25,6 +25,7 @@ impl KeycloakAdminClient {
         }
     }
 
+    #[allow(dead_code)]
     pub fn config(&self) -> &KeycloakAdminConfig {
         &self.config
     }
@@ -66,7 +67,9 @@ impl KeycloakAdminClient {
 pub trait KeycloakAdmin: Send + Sync {
     async fn create_realm(&self, realm_name: &str) -> Result<()>;
     async fn delete_realm(&self, realm_name: &str) -> Result<()>;
+    #[allow(dead_code)]
     async fn add_user(&self, realm_name: &str, user_id: &str) -> Result<()>;
+    #[allow(dead_code)]
     async fn remove_user(&self, realm_name: &str, user_id: &str) -> Result<()>;
 }
 

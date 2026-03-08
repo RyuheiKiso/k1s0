@@ -6,6 +6,7 @@ use crate::domain::entity::notification_channel::NotificationChannel;
 #[async_trait]
 pub trait NotificationChannelRepository: Send + Sync {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>>;
+    #[allow(dead_code)]
     async fn find_all(&self) -> anyhow::Result<Vec<NotificationChannel>>;
     async fn find_all_paginated(
         &self,

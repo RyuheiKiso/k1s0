@@ -147,6 +147,7 @@ impl SagaServiceTonic {
     }
 
     /// 内部サービスへの参照を返す。
+    #[allow(dead_code)]
     pub fn inner(&self) -> &SagaGrpcService {
         &self.inner
     }

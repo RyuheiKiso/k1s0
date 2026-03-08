@@ -146,6 +146,7 @@ pub struct FeatureFlagGrpcService {
 }
 
 impl FeatureFlagGrpcService {
+    #[allow(dead_code)]
     pub fn new(
         list_flags_uc: Arc<ListFlagsUseCase>,
         evaluate_flag_uc: Arc<EvaluateFlagUseCase>,

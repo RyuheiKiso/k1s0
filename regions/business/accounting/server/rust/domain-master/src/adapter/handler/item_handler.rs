@@ -1,5 +1,6 @@
 use crate::adapter::handler::error::from_anyhow;
-use crate::adapter::handler::{actor_from_claims, AppState};
+use crate::adapter::handler::AppState;
+use k1s0_auth::actor_from_claims;
 use crate::domain::entity::master_item::{CreateMasterItem, UpdateMasterItem};
 use axum::{
     extract::{Extension, Path, Query, State},
@@ -94,14 +95,3 @@ pub async fn delete_item(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub async fn list_versions(
-    State(state): State<AppState>,
-    Path((category_code, item_code)): Path<(String, String)>,
-) -> Result<Json<serde_json::Value>, ServiceError> {
-    let versions = state
-        .get_item_versions_uc
-        .list_versions(&category_code, &item_code)
-        .await
-        .map_err(from_anyhow)?;
-    Ok(Json(serde_json::json!({ "versions": versions })))
-}

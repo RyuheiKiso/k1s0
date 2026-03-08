@@ -5,7 +5,7 @@ use tracing::instrument;
 use crate::domain::model::{
     decode_cursor, encode_cursor, PageInfo, Tenant, TenantConnection, TenantEdge,
 };
-use crate::infra::grpc::TenantGrpcClient;
+use crate::infrastructure::grpc::TenantGrpcClient;
 
 pub struct TenantQueryResolver {
     client: Arc<TenantGrpcClient>,

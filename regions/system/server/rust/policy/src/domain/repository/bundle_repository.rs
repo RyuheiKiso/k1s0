@@ -9,5 +9,6 @@ pub trait PolicyBundleRepository: Send + Sync {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<PolicyBundle>>;
     async fn find_all(&self) -> anyhow::Result<Vec<PolicyBundle>>;
     async fn create(&self, bundle: &PolicyBundle) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn delete(&self, id: &Uuid) -> anyhow::Result<bool>;
 }

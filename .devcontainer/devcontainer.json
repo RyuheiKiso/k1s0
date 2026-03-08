@@ -10,7 +10,7 @@
       "version": "1.23"
     },
     "ghcr.io/devcontainers/features/rust:1": {
-      "version": "1.88"
+      "version": "1.93"
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22"

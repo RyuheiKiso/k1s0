@@ -42,6 +42,7 @@ impl PolicyCache {
     }
 
     /// すべてのキャッシュエントリを削除する。
+    #[allow(dead_code)]
     pub async fn invalidate_all(&self) {
         self.inner.invalidate_all();
         // run_pending_tasks は moka 内部のクリーンアップをトリガーする

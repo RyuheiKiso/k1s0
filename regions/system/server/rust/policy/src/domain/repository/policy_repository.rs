@@ -7,6 +7,7 @@ use crate::domain::entity::policy::Policy;
 #[async_trait]
 pub trait PolicyRepository: Send + Sync {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Policy>>;
+    #[allow(dead_code)]
     async fn find_all(&self) -> anyhow::Result<Vec<Policy>>;
     async fn find_all_paginated(
         &self,

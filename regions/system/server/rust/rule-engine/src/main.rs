@@ -13,7 +13,7 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::RuleEngineGrpcService;
-use domain::entity::rule::{EvaluationLog, EvaluationMode, Rule, RuleSet, RuleSetVersion};
+use domain::entity::rule::{EvaluationLog, Rule, RuleSet, RuleSetVersion};
 use domain::repository::{
     EvaluationLogRepository, RuleRepository, RuleSetRepository, RuleSetVersionRepository,
 };

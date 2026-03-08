@@ -8,9 +8,11 @@ use crate::domain::service::RateLimitDomainService;
 #[derive(Debug, thiserror::Error)]
 pub enum CheckRateLimitError {
     #[error("rule not found: {0}")]
+    #[allow(dead_code)]
     RuleNotFound(String),
 
     #[error("rule disabled: {0}")]
+    #[allow(dead_code)]
     RuleDisabled(String),
 
     #[error("validation error: {0}")]
@@ -30,6 +32,7 @@ pub struct CheckRateLimitUseCase {
 }
 
 impl CheckRateLimitUseCase {
+    #[allow(dead_code)]
     pub fn new(
         rule_repo: Arc<dyn RateLimitRepository>,
         state_store: Arc<dyn RateLimitStateStore>,

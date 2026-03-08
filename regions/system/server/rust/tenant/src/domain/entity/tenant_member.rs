@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum MemberRole {
     Owner,
@@ -10,6 +11,7 @@ pub enum MemberRole {
 }
 
 impl MemberRole {
+    #[allow(dead_code)]
     pub fn as_str(&self) -> &str {
         match self {
             MemberRole::Owner => "owner",

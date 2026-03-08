@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tracing::instrument;
 
 use crate::domain::model::ConfigEntry;
-use crate::infra::grpc::ConfigGrpcClient;
+use crate::infrastructure::grpc::ConfigGrpcClient;
 
 pub struct ConfigQueryResolver {
     client: Arc<ConfigGrpcClient>,

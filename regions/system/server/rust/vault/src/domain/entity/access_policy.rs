@@ -1,5 +1,6 @@
 /// SPIFFE ID ベースのアクセスポリシー。
 /// シークレットパスに対してどの SPIFFE ID がアクセス可能かを定義する。
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct SpiffeAccessPolicy {
     pub id: uuid::Uuid,

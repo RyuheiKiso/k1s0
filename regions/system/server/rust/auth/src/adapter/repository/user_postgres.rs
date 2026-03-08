@@ -15,6 +15,7 @@ pub struct UserPostgresRepository {
 }
 
 impl UserPostgresRepository {
+    #[allow(dead_code)]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -30,6 +31,7 @@ impl UserPostgresRepository {
     }
 
     /// User ドメインモデルから DB 用パラメータへの変換ヘルパー。
+    #[allow(dead_code)]
     fn extract_keycloak_sub(user: &User) -> String {
         user.attributes
             .get("keycloak_sub")
@@ -38,6 +40,7 @@ impl UserPostgresRepository {
             .unwrap_or_default()
     }
 
+    #[allow(dead_code)]
     fn build_display_name(user: &User) -> String {
         if user.last_name.is_empty() {
             user.first_name.clone()
@@ -46,6 +49,7 @@ impl UserPostgresRepository {
         }
     }
 
+    #[allow(dead_code)]
     fn status_from_enabled(enabled: bool) -> &'static str {
         if enabled {
             "active"
@@ -56,6 +60,7 @@ impl UserPostgresRepository {
 }
 
 /// UserRow は auth.users テーブルの行を表す中間構造体。
+#[allow(dead_code)]
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct UserRow {
     pub id: Uuid,
@@ -224,6 +229,7 @@ impl UserRepository for UserPostgresRepository {
 /// UserRepository トレイトにない DB 固有の操作。
 impl UserPostgresRepository {
     /// keycloak_sub でユーザーを検索する。
+    #[allow(dead_code)]
     pub async fn find_by_keycloak_sub(&self, sub: &str) -> anyhow::Result<Option<User>> {
         let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
@@ -248,6 +254,7 @@ impl UserPostgresRepository {
     }
 
     /// ユーザーを作成する。
+    #[allow(dead_code)]
     pub async fn create(&self, user: &User) -> anyhow::Result<User> {
         let keycloak_sub = Self::extract_keycloak_sub(user);
         let display_name = Self::build_display_name(user);
@@ -276,6 +283,7 @@ impl UserPostgresRepository {
     }
 
     /// ユーザーを更新する。
+    #[allow(dead_code)]
     pub async fn update(&self, user: &User) -> anyhow::Result<User> {
         let uuid = Uuid::parse_str(&user.id)
             .map_err(|e| anyhow::anyhow!("invalid user ID format: {}", e))?;

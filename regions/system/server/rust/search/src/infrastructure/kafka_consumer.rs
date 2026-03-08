@@ -6,6 +6,7 @@ use crate::usecase::index_document::{IndexDocumentInput, IndexDocumentUseCase};
 
 /// IndexRequestEvent は Kafka から受信するインデックス登録リクエストイベント。
 #[derive(Debug, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct IndexRequestEvent {
     #[serde(default)]
     pub event_type: Option<String>,

@@ -39,6 +39,7 @@ pub trait QuotaEventPublisher: Send + Sync {
         &self,
         event: &QuotaThresholdReachedEvent,
     ) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -60,6 +61,7 @@ impl QuotaEventPublisher for NoopQuotaEventPublisher {
         Ok(())
     }
 
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()> {
         Ok(())
     }
@@ -100,6 +102,7 @@ impl KafkaQuotaProducer {
     }
 
     /// メトリクスを設定する。
+    #[allow(dead_code)]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -164,6 +167,7 @@ impl QuotaEventPublisher for KafkaQuotaProducer {
         Ok(())
     }
 
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()> {
         use rdkafka::producer::Producer;
         self.producer.flush(std::time::Duration::from_secs(5))?;
@@ -223,6 +227,7 @@ mod tests {
             Ok(())
         }
 
+        #[allow(dead_code)]
         async fn close(&self) -> anyhow::Result<()> {
             Ok(())
         }

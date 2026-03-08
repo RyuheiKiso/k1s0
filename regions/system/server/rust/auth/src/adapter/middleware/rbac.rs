@@ -116,6 +116,7 @@ pub async fn rbac_check(
 
 /// rbac_middleware は resource・action を受け取り、Claims からパーミッションを確認する。
 /// State から AppState を受け取る axum middleware::from_fn_with_state 向けの関数。
+#[allow(dead_code)]
 pub async fn rbac_middleware(
     State(_state): State<AppState>,
     req: Request<axum::body::Body>,

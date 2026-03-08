@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 /// SessionMetadata はセッションのメタデータ（デバイス情報、IP、UA）を表す。
 /// 監査ログ・セッション一覧表示用に PostgreSQL に永続化される。
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SessionMetadata {
     pub id: Uuid,
@@ -23,6 +24,7 @@ pub struct SessionMetadata {
 }
 
 /// SaveSessionMetadataInput はメタデータ保存用の入力パラメータ。
+#[allow(dead_code)]
 pub struct SaveSessionMetadataInput {
     pub session_id: Uuid,
     pub user_id: Uuid,
@@ -38,8 +40,11 @@ pub struct SaveSessionMetadataInput {
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait SessionMetadataRepository: Send + Sync {
+    #[allow(dead_code)]
     async fn save_metadata(&self, input: &SaveSessionMetadataInput) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn list_by_user(&self, user_id: Uuid) -> anyhow::Result<Vec<SessionMetadata>>;
+    #[allow(dead_code)]
     async fn mark_revoked(&self, session_id: Uuid) -> anyhow::Result<()>;
     async fn health_check(&self) -> anyhow::Result<()> {
         Ok(())
@@ -57,6 +62,7 @@ impl SessionMetadataPostgresRepository {
     }
 }
 
+#[allow(dead_code)]
 #[derive(sqlx::FromRow)]
 struct SessionMetadataRow {
     id: Uuid,

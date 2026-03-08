@@ -20,6 +20,7 @@ pub struct DeleteRuleUseCase {
 }
 
 impl DeleteRuleUseCase {
+    #[allow(dead_code)]
     pub fn new(repo: Arc<dyn RuleRepository>) -> Self {
         Self {
             repo,

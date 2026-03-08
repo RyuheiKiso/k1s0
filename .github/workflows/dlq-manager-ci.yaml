@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/dlq-manager-ci.yaml
+# Per-service CI pipeline for dlq-manager server
+name: dlq-manager-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'regions/system/server/rust/dlq-manager/**'
+
+concurrency:
+  group: dlq-manager-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: regions/system
+      - name: Format check
+        run: cargo fmt --manifest-path regions/system/server/rust/dlq-manager/Cargo.toml --all -- --check
+      - name: Clippy
+        run: cargo clippy --manifest-path regions/system/Cargo.toml -p k1s0-dlq-manager --all-targets -- -D warnings
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.93
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: regions/system
+      - name: Run tests
+        run: cargo test --manifest-path regions/system/Cargo.toml -p k1s0-dlq-manager --all
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.93
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: regions/system
+      - name: Build
+        run: cargo build --manifest-path regions/system/Cargo.toml -p k1s0-dlq-manager --all-targets

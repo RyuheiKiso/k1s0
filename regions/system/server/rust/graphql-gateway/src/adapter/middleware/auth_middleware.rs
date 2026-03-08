@@ -9,7 +9,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::infra::auth::JwksVerifier;
+use crate::infrastructure::auth::JwksVerifier;
 
 /// JWT Claims（async-graphql の Extension として GraphQL Context に注入）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -105,7 +105,7 @@ where
                         StatusCode::UNAUTHORIZED,
                         Json(serde_json::json!({
                             "error": {
-                                "code": "UNAUTHORIZED",
+                                "code": "SYS_AUTH_TOKEN_MISSING",
                                 "message": "missing Authorization header",
                                 "request_id": request_id
                             }
@@ -123,7 +123,7 @@ where
                         StatusCode::UNAUTHORIZED,
                         Json(serde_json::json!({
                             "error": {
-                                "code": "UNAUTHORIZED",
+                                "code": "SYS_AUTH_TOKEN_INVALID",
                                 "message": "invalid or expired JWT token",
                                 "request_id": request_id
                             }

@@ -116,6 +116,7 @@ impl SagaStepLog {
     }
 
     /// タイムアウトにマークする。
+    #[allow(dead_code)]
     pub fn mark_timeout(&mut self) {
         self.status = StepStatus::Timeout;
         self.error_message = Some("step timed out".to_string());

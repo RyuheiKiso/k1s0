@@ -7,6 +7,7 @@ use std::time::Duration;
 use crate::domain::entity::scheduler_job::SchedulerJob;
 
 /// キャッシュキーはジョブ ID (UUID) の文字列表現。
+#[allow(dead_code)]
 pub struct JobCache {
     inner: Cache<String, Arc<SchedulerJob>>,
 }
@@ -32,23 +33,27 @@ impl JobCache {
 
     /// ジョブ ID に対応するエントリを取得する。
     /// キャッシュミスの場合は None を返す。
+    #[allow(dead_code)]
     pub async fn get(&self, job_id: &str) -> Option<Arc<SchedulerJob>> {
         self.inner.get(job_id).await
     }
 
     /// ジョブをキャッシュに追加する。
     /// キーはジョブの ID から自動生成する。
+    #[allow(dead_code)]
     pub async fn insert(&self, job: Arc<SchedulerJob>) {
         let key = job.id.to_string();
         self.inner.insert(key, job).await;
     }
 
     /// 特定のジョブをキャッシュから削除する。
+    #[allow(dead_code)]
     pub async fn invalidate(&self, job_id: &str) {
         self.inner.invalidate(job_id).await;
     }
 
     /// すべてのキャッシュエントリを削除する。
+    #[allow(dead_code)]
     pub async fn invalidate_all(&self) {
         self.inner.invalidate_all();
     }

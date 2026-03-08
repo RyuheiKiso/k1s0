@@ -29,6 +29,7 @@ pub struct CheckPermissionUseCase {
 }
 
 impl CheckPermissionUseCase {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             user_repo: None,

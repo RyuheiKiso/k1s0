@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
@@ -42,6 +43,7 @@ fn default_environment() -> String {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
     pub host: String,
@@ -64,6 +66,7 @@ fn default_grpc_port() -> u16 {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct DatabaseConfig {
     pub host: String,
     pub port: u16,
@@ -98,6 +101,7 @@ fn default_conn_max_lifetime() -> String {
 }
 
 impl DatabaseConfig {
+    #[allow(dead_code)]
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -157,6 +161,7 @@ fn default_ttl_seconds() -> u64 {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -214,6 +219,7 @@ impl Default for TraceConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]
     pub enabled: bool,

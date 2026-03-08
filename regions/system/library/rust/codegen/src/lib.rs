@@ -7,6 +7,9 @@ pub mod path;
 mod templates;
 pub mod validator;
 
+#[cfg(feature = "event-codegen")]
+pub mod event_codegen;
+
 #[cfg(feature = "client-sdk")]
 pub mod client_sdk;
 
@@ -22,3 +25,5 @@ pub use path::build_output_path;
 pub use validator::ValidationResult;
 #[cfg(feature = "proto")]
 pub use proto_parser::ProtoService;
+#[cfg(feature = "event-codegen")]
+pub use event_codegen::{EventConfig, EventGenerateResult, generate_events};

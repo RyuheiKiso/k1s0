@@ -44,7 +44,7 @@ impl CheckConsistencyUseCase {
     pub async fn execute_rule(
         &self,
         rule_id: Uuid,
-        domain_scope: Option<&str>,
+        _domain_scope: Option<&str>,
     ) -> anyhow::Result<Vec<RuleResult>> {
         let rule = self
             .rule_repo

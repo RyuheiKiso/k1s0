@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
 /// DatabaseConfig はデータベース接続設定。
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,

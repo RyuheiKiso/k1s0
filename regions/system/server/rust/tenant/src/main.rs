@@ -76,6 +76,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Deserialize)]
 struct ObservabilityConfig {
     #[serde(default)]
@@ -127,6 +128,7 @@ impl Default for TraceConfig {
         }
     }
 }
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Deserialize)]
 struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]

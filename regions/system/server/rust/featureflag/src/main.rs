@@ -9,6 +9,7 @@ use uuid::Uuid;
 mod adapter;
 mod domain;
 mod infrastructure;
+#[allow(dead_code)]
 mod proto;
 mod usecase;
 

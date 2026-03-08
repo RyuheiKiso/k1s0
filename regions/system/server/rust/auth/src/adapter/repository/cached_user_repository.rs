@@ -17,6 +17,7 @@ pub struct CachedUserRepository {
 
 impl CachedUserRepository {
     /// 新しい CachedUserRepository を作成する。
+    #[allow(dead_code)]
     pub fn new(inner: Arc<dyn UserRepository>, cache: Arc<UserCache>) -> Self {
         Self {
             inner,

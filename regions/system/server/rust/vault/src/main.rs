@@ -8,6 +8,7 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod infrastructure;
+#[allow(dead_code)]
 mod proto;
 mod usecase;
 
@@ -64,6 +65,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Deserialize)]
 struct ServerConfig {
     #[serde(default = "default_host")]
@@ -86,6 +88,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Deserialize)]
 struct ObservabilityConfig {
     #[serde(default)]
@@ -137,6 +140,7 @@ impl Default for TraceConfig {
         }
     }
 }
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Deserialize)]
 struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]

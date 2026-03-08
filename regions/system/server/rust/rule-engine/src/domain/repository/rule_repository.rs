@@ -7,6 +7,7 @@ use crate::domain::entity::rule::Rule;
 #[async_trait]
 pub trait RuleRepository: Send + Sync {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Rule>>;
+    #[allow(dead_code)]
     async fn find_all(&self) -> anyhow::Result<Vec<Rule>>;
     async fn find_all_paginated(
         &self,

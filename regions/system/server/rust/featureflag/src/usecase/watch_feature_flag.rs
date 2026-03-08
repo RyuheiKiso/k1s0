@@ -10,6 +10,7 @@ pub struct FeatureFlagChangeEvent {
 }
 
 /// WatchFeatureFlagUseCase はフラグ変更の publish/subscribe を管理するユースケース。
+#[allow(dead_code)]
 pub struct WatchFeatureFlagUseCase {
     sender: broadcast::Sender<FeatureFlagChangeEvent>,
 }
@@ -24,11 +25,13 @@ impl WatchFeatureFlagUseCase {
     }
 
     /// 新しい Receiver を返す。
+    #[allow(dead_code)]
     pub fn subscribe(&self) -> broadcast::Receiver<FeatureFlagChangeEvent> {
         self.sender.subscribe()
     }
 
     /// 変更イベントをブロードキャストする。
+    #[allow(dead_code)]
     pub fn notify(&self, event: FeatureFlagChangeEvent) {
         let _ = self.sender.send(event);
     }

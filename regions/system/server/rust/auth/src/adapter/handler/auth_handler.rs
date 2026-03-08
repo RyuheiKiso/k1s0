@@ -130,6 +130,7 @@ pub async fn validate_token(
 }
 
 /// POST /api/v1/auth/token/introspect のリクエストボディ。
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct IntrospectTokenRequest {
     pub token: String,

@@ -2,12 +2,12 @@ pub mod category_handler;
 pub mod error;
 pub mod item_handler;
 pub mod tenant_handler;
+pub mod version_handler;
 
 use crate::usecase;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
 use axum::Router;
-use k1s0_auth::Claims;
 use k1s0_server_common::middleware::auth_middleware::{auth_middleware, AuthState};
 use k1s0_server_common::middleware::rbac::{require_permission, Tier};
 use std::sync::Arc;
@@ -22,26 +22,6 @@ pub struct AppState {
         Arc<usecase::manage_tenant_extensions::ManageTenantExtensionsUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
-}
-
-pub fn actor_from_claims(claims: Option<&Claims>) -> String {
-    claims
-        .and_then(|claims| {
-            claims
-                .preferred_username
-                .as_ref()
-                .filter(|value| !value.is_empty())
-                .cloned()
-                .or_else(|| {
-                    claims
-                        .email
-                        .as_ref()
-                        .filter(|value| !value.is_empty())
-                        .cloned()
-                })
-                .or_else(|| (!claims.sub.is_empty()).then(|| claims.sub.clone()))
-        })
-        .unwrap_or_else(|| "system".to_string())
 }
 
 pub fn router(state: AppState) -> Router {
@@ -67,7 +47,7 @@ pub fn router(state: AppState) -> Router {
             )
             .route(
                 "/api/v1/categories/:code/items/:item_code/versions",
-                get(item_handler::list_versions),
+                get(version_handler::list_versions),
             )
             .route(
                 "/api/v1/tenants/:tenant_id/items/:item_id",
@@ -154,7 +134,7 @@ pub fn router(state: AppState) -> Router {
             )
             .route(
                 "/api/v1/categories/:code/items/:item_code/versions",
-                get(item_handler::list_versions),
+                get(version_handler::list_versions),
             )
             .route(
                 "/api/v1/tenants/:tenant_id/items/:item_id",

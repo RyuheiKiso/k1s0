@@ -25,6 +25,7 @@ pub trait QuotaPolicyRepository: Send + Sync {
 #[async_trait]
 pub trait QuotaUsageRepository: Send + Sync {
     async fn get_usage(&self, quota_id: &str) -> anyhow::Result<Option<u64>>;
+    #[allow(dead_code)]
     async fn increment(&self, quota_id: &str, amount: u64) -> anyhow::Result<u64>;
     async fn reset(&self, quota_id: &str) -> anyhow::Result<()>;
 

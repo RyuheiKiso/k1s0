@@ -1,0 +1,408 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use crate::error::CodegenError;
+
+use super::config::EventConfig;
+use super::migration_generator;
+use super::proto_generator;
+use super::rust_generator;
+use super::validator::validate_event_config;
+
+/// Result of an event code generation run.
+#[derive(Debug)]
+pub struct EventGenerateResult {
+    /// Files that were created.
+    pub created: Vec<PathBuf>,
+    /// Files that were skipped (already existed).
+    pub skipped: Vec<PathBuf>,
+}
+
+/// Generate all event-related code from an `EventConfig`.
+///
+/// The `output_dir` is the root of the target project (e.g. the server directory).
+/// Files that already exist are skipped (idempotent).
+pub fn generate_events(
+    config: &EventConfig,
+    output_dir: &Path,
+) -> Result<EventGenerateResult, CodegenError> {
+    validate_event_config(config)?;
+
+    let mut result = EventGenerateResult {
+        created: Vec::new(),
+        skipped: Vec::new(),
+    };
+
+    // 1. Proto files
+    for event in &config.events {
+        let rel_path = proto_generator::proto_rel_path(config, event);
+        let content = proto_generator::generate_proto(config, event);
+        write_file(output_dir, &rel_path, &content, &mut result)?;
+    }
+
+    // Language-specific generation
+    match config.language.as_str() {
+        "rust" => generate_rust_files(config, output_dir, &mut result)?,
+        "go" => generate_go_stubs(config, output_dir, &mut result)?,
+        _ => {
+            return Err(CodegenError::Validation(format!(
+                "unsupported language: {}",
+                config.language
+            )));
+        }
+    }
+
+    // Migration files (if any event has outbox enabled)
+    let has_outbox = config.events.iter().any(|e| e.outbox);
+    if has_outbox {
+        let up_sql = migration_generator::generate_outbox_up_migration();
+        let down_sql = migration_generator::generate_outbox_down_migration();
+        write_file(
+            output_dir,
+            "migrations/001_create_outbox.up.sql",
+            &up_sql,
+            &mut result,
+        )?;
+        write_file(
+            output_dir,
+            "migrations/001_create_outbox.down.sql",
+            &down_sql,
+            &mut result,
+        )?;
+    }
+
+    // Schema registry config
+    let schema_registry = rust_generator::generate_schema_registry_config(config);
+    write_file(
+        output_dir,
+        "config/schema-registry.yaml",
+        &schema_registry,
+        &mut result,
+    )?;
+
+    Ok(result)
+}
+
+/// Generate Rust-specific files.
+fn generate_rust_files(
+    config: &EventConfig,
+    output_dir: &Path,
+    result: &mut EventGenerateResult,
+) -> Result<(), CodegenError> {
+    // src/events/mod.rs
+    let mod_rs = rust_generator::generate_events_mod(config);
+    write_file(output_dir, "src/events/mod.rs", &mod_rs, result)?;
+
+    // src/events/types.rs
+    let types = rust_generator::generate_types(config);
+    write_file(output_dir, "src/events/types.rs", &types, result)?;
+
+    // src/events/producer.rs
+    let producer = rust_generator::generate_producer(config);
+    write_file(output_dir, "src/events/producer.rs", &producer, result)?;
+
+    // Consumer handler stubs
+    let has_consumers = config.events.iter().any(|e| !e.consumers.is_empty());
+    if has_consumers {
+        let consumers_mod = rust_generator::generate_consumers_mod(config);
+        write_file(
+            output_dir,
+            "src/events/consumers/mod.rs",
+            &consumers_mod,
+            result,
+        )?;
+
+        for event in &config.events {
+            for consumer in &event.consumers {
+                let handler_content =
+                    rust_generator::generate_consumer_handler(config, event, &consumer.handler);
+                let rel_path = format!("src/events/consumers/{}.rs", consumer.handler);
+                write_file(output_dir, &rel_path, &handler_content, result)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Generate Go-specific stub files (minimal placeholders).
+fn generate_go_stubs(
+    config: &EventConfig,
+    output_dir: &Path,
+    result: &mut EventGenerateResult,
+) -> Result<(), CodegenError> {
+    // internal/events/producer.go
+    let producer = generate_go_producer_stub(config);
+    write_file(
+        output_dir,
+        "internal/events/producer.go",
+        &producer,
+        result,
+    )?;
+
+    // Consumer handler stubs
+    for event in &config.events {
+        for consumer in &event.consumers {
+            let handler = generate_go_consumer_stub(config, event, &consumer.handler);
+            let rel_path = format!("internal/events/consumers/{}.go", consumer.handler);
+            write_file(output_dir, &rel_path, &handler, result)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn generate_go_producer_stub(config: &EventConfig) -> String {
+    let mut lines = Vec::new();
+    lines.push("package events".to_string());
+    lines.push(String::new());
+    lines.push("// Auto-generated by k1s0-codegen event-codegen".to_string());
+    lines.push("// TODO: implement Go producer".to_string());
+    lines.push(String::new());
+
+    for event in &config.events {
+        let topic = config.topic_name(event);
+        let fn_name = event_to_go_func(&event.name);
+        lines.push(format!("// Publish{fn_name} publishes an event to {topic}"));
+        lines.push(format!("func Publish{fn_name}() error {{"));
+        lines.push("	// TODO: implement".to_string());
+        lines.push("	return nil".to_string());
+        lines.push("}".to_string());
+        lines.push(String::new());
+    }
+
+    lines.join("\n")
+}
+
+fn generate_go_consumer_stub(
+    _config: &EventConfig,
+    _event: &super::config::EventDef,
+    handler: &str,
+) -> String {
+    let fn_name = snake_to_go_func(handler);
+    format!(
+        r#"package consumers
+
+// Auto-generated by k1s0-codegen event-codegen
+
+// {fn_name} handles a consumed event.
+func {fn_name}(payload []byte) error {{
+	// TODO: implement handler logic
+	return nil
+}}
+"#
+    )
+}
+
+/// Convert dot-separated kebab-case to Go PascalCase function name.
+fn event_to_go_func(name: &str) -> String {
+    use crate::naming;
+    name.split('.')
+        .map(|seg| naming::to_pascal(seg))
+        .collect::<String>()
+}
+
+/// Convert snake_case to Go PascalCase function name.
+fn snake_to_go_func(name: &str) -> String {
+    name.split('_')
+        .map(|seg| {
+            let mut chars = seg.chars();
+            match chars.next() {
+                Some(c) => {
+                    let upper: String = c.to_uppercase().collect();
+                    upper + chars.as_str()
+                }
+                None => String::new(),
+            }
+        })
+        .collect::<String>()
+}
+
+/// Write a file to `output_dir/rel_path`, skipping if it already exists.
+fn write_file(
+    output_dir: &Path,
+    rel_path: &str,
+    content: &str,
+    result: &mut EventGenerateResult,
+) -> Result<(), CodegenError> {
+    let full_path = output_dir.join(rel_path);
+
+    if full_path.exists() {
+        result.skipped.push(full_path);
+        return Ok(());
+    }
+
+    ensure_parent(&full_path)?;
+    fs::write(&full_path, content).map_err(|e| CodegenError::Io {
+        path: full_path.clone(),
+        source: e,
+    })?;
+
+    result.created.push(full_path);
+    Ok(())
+}
+
+fn ensure_parent(path: &Path) -> Result<(), CodegenError> {
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent).map_err(|e| CodegenError::Io {
+                path: parent.to_path_buf(),
+                source: e,
+            })?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::event_codegen::parser::parse_event_config_str;
+
+    fn sample_config() -> EventConfig {
+        parse_event_config_str(
+            r#"
+domain: accounting
+tier: business
+service_name: domain-master
+language: rust
+events:
+  - name: master-item.created
+    version: 1
+    description: "マスタアイテムが作成された時に発行されるイベント"
+    partition_key: item_id
+    outbox: true
+    schema:
+      fields:
+        - name: item_id
+          type: string
+          number: 1
+          description: "アイテムID"
+    consumers:
+      - domain: fa
+        service_name: asset-manager
+        handler: on_accounting_master_item_created
+"#,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn generate_creates_all_rust_files() {
+        let config = sample_config();
+        let tmp = tempfile::tempdir().unwrap();
+        let result = generate_events(&config, tmp.path()).unwrap();
+
+        let created_names: Vec<String> = result
+            .created
+            .iter()
+            .map(|p| {
+                p.strip_prefix(tmp.path())
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/")
+            })
+            .collect();
+
+        assert!(created_names.contains(&"proto/accounting/events/v1/master_item_created.proto".to_string()));
+        assert!(created_names.contains(&"src/events/mod.rs".to_string()));
+        assert!(created_names.contains(&"src/events/types.rs".to_string()));
+        assert!(created_names.contains(&"src/events/producer.rs".to_string()));
+        assert!(created_names.contains(&"src/events/consumers/mod.rs".to_string()));
+        assert!(created_names.contains(&"src/events/consumers/on_accounting_master_item_created.rs".to_string()));
+        assert!(created_names.contains(&"migrations/001_create_outbox.up.sql".to_string()));
+        assert!(created_names.contains(&"migrations/001_create_outbox.down.sql".to_string()));
+        assert!(created_names.contains(&"config/schema-registry.yaml".to_string()));
+    }
+
+    #[test]
+    fn generate_is_idempotent() {
+        let config = sample_config();
+        let tmp = tempfile::tempdir().unwrap();
+
+        let first = generate_events(&config, tmp.path()).unwrap();
+        assert!(!first.created.is_empty());
+        assert!(first.skipped.is_empty());
+
+        let second = generate_events(&config, tmp.path()).unwrap();
+        assert!(second.created.is_empty());
+        assert_eq!(second.skipped.len(), first.created.len());
+    }
+
+    #[test]
+    fn generate_go_project() {
+        let yaml = r#"
+domain: accounting
+tier: business
+service_name: domain-master
+language: go
+events:
+  - name: master-item.created
+    version: 1
+    partition_key: item_id
+    outbox: true
+    schema:
+      fields:
+        - name: item_id
+          type: string
+          number: 1
+    consumers:
+      - domain: fa
+        service_name: asset-manager
+        handler: on_accounting_master_item_created
+"#;
+        let config = parse_event_config_str(yaml).unwrap();
+        let tmp = tempfile::tempdir().unwrap();
+        let result = generate_events(&config, tmp.path()).unwrap();
+
+        let created_names: Vec<String> = result
+            .created
+            .iter()
+            .map(|p| {
+                p.strip_prefix(tmp.path())
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/")
+            })
+            .collect();
+
+        assert!(created_names.contains(&"internal/events/producer.go".to_string()));
+        assert!(created_names.contains(&"internal/events/consumers/on_accounting_master_item_created.go".to_string()));
+    }
+
+    #[test]
+    fn no_outbox_migration_when_disabled() {
+        let yaml = r#"
+domain: accounting
+tier: business
+service_name: domain-master
+language: rust
+events:
+  - name: item.created
+    version: 1
+    partition_key: id
+    outbox: false
+    schema:
+      fields:
+        - name: id
+          type: string
+          number: 1
+"#;
+        let config = parse_event_config_str(yaml).unwrap();
+        let tmp = tempfile::tempdir().unwrap();
+        let result = generate_events(&config, tmp.path()).unwrap();
+
+        let created_names: Vec<String> = result
+            .created
+            .iter()
+            .map(|p| {
+                p.strip_prefix(tmp.path())
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/")
+            })
+            .collect();
+
+        assert!(!created_names.iter().any(|n| n.contains("migration")));
+    }
+}

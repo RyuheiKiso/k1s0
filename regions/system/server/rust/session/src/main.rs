@@ -8,6 +8,7 @@ mod adapter;
 mod domain;
 mod error;
 mod infrastructure;
+#[allow(dead_code)]
 mod proto;
 mod usecase;
 

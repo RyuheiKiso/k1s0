@@ -29,6 +29,7 @@ pub struct PreviewReplayOutput {
 
 #[derive(Debug, thiserror::Error)]
 pub enum PreviewReplayError {
+    #[allow(dead_code)]
     #[error("correlation not found: {0}")]
     NotFound(String),
 

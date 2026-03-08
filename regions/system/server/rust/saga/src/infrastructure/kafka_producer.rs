@@ -3,6 +3,7 @@ use serde::Deserialize;
 
 /// KafkaConfig は Kafka 接続の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(default)]
@@ -32,6 +33,7 @@ pub struct SaslConfig {
 
 /// TopicsConfig はトピック設定を表す。
 #[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
 pub struct TopicsConfig {
     #[serde(default)]
     pub publish: Vec<String>,
@@ -49,6 +51,7 @@ pub trait SagaEventPublisher: Send + Sync {
         event_type: &str,
         payload: &serde_json::Value,
     ) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 

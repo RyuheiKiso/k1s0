@@ -1,5 +1,6 @@
 use crate::adapter::handler::error::from_anyhow;
-use crate::adapter::handler::{actor_from_claims, AppState};
+use crate::adapter::handler::AppState;
+use k1s0_auth::actor_from_claims;
 use crate::domain::entity::tenant_master_extension::UpsertTenantMasterExtension;
 use axum::{
     extract::{Extension, Path, State},

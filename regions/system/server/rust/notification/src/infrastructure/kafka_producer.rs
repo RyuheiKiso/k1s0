@@ -18,6 +18,7 @@ pub struct NotificationSentEvent {
 #[async_trait]
 pub trait NotificationEventPublisher: Send + Sync {
     async fn publish_notification_sent(&self, log: &NotificationLog) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -66,6 +67,7 @@ impl KafkaNotificationProducer {
     }
 
     /// メトリクスを設定する。
+    #[allow(dead_code)]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,

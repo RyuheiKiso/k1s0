@@ -17,6 +17,7 @@ impl NotificationLogPostgresRepository {
     }
 }
 
+#[allow(dead_code)]
 #[derive(sqlx::FromRow)]
 struct NotificationLogRow {
     id: String,

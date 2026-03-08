@@ -60,6 +60,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Deserialize)]
 struct ServerConfig {
     #[serde(default = "default_host")]
@@ -82,6 +83,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Deserialize)]
 struct ObservabilityConfig {
     #[serde(default)]
@@ -133,6 +135,7 @@ impl Default for TraceConfig {
         }
     }
 }
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Deserialize)]
 struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]
@@ -221,6 +224,7 @@ fn default_refresh_on_miss() -> bool {
 }
 
 /// Audit configuration.
+#[allow(dead_code)]
 #[derive(Debug, Clone, serde::Deserialize)]
 struct AuditConfig {
     #[serde(default)]
@@ -313,7 +317,7 @@ async fn main() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
     let config_content = std::fs::read_to_string(&config_path)?;
-    let mut cfg: Config = serde_yaml::from_str(&config_content)?;
+    let cfg: Config = serde_yaml::from_str(&config_content)?;
 
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-auth-server".to_string(),

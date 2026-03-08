@@ -4,6 +4,7 @@ use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::domain::repository::WorkflowTaskRepository;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ReassignTaskInput {
     pub task_id: String,
     pub new_assignee_id: String,

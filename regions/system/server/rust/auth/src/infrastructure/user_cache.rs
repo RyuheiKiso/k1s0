@@ -38,6 +38,7 @@ impl UserCache {
     }
 
     /// 特定のユーザーをキャッシュから削除する。
+    #[allow(dead_code)]
     pub async fn invalidate(&self, user_id: &str) {
         self.inner.invalidate(user_id).await;
     }

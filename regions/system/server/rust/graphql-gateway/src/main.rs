@@ -5,13 +5,13 @@ use tracing::info;
 
 mod adapter;
 mod domain;
-mod infra;
+mod infrastructure;
 mod usecase;
 
 use adapter::graphql_handler;
-use infra::auth::JwksVerifier;
-use infra::config::Config;
-use infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+use infrastructure::auth::JwksVerifier;
+use infrastructure::config::Config;
+use infrastructure::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 use usecase::{
     ConfigQueryResolver, FeatureFlagQueryResolver, SubscriptionResolver, TenantMutationResolver,
     TenantQueryResolver,

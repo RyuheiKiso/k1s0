@@ -62,6 +62,7 @@ impl SecretCache {
     }
 
     /// 特定のパスとバージョンのキャッシュエントリを削除する。
+    #[allow(dead_code)]
     pub async fn invalidate_version(&self, path: &str, version: Option<i64>) {
         let cache_key = Self::cache_key(path, version);
         self.inner.invalidate(&cache_key).await;

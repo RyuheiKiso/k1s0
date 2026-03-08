@@ -26,6 +26,7 @@ pub struct TriggerJobUseCase {
 }
 
 impl TriggerJobUseCase {
+    #[allow(dead_code)]
     pub fn new(
         repo: Arc<dyn SchedulerJobRepository>,
         execution_repo: Arc<dyn SchedulerExecutionRepository>,

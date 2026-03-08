@@ -40,6 +40,7 @@ impl AppState {
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_spiffe(mut self, spiffe_state: SpiffeAuthState) -> Self {
         self.spiffe_state = Some(spiffe_state);
         self

@@ -25,7 +25,7 @@ pub mod middleware;
 pub mod rbac;
 pub mod verifier;
 
-pub use claims::{Audience, Claims, RealmAccess, RoleSet};
+pub use claims::{actor_from_claims, Audience, Claims, RealmAccess, RoleSet};
 pub use device_flow::{DeviceAuthClient, DeviceCodeResponse, DeviceFlowError, TokenResult};
 pub use middleware::{
     auth_middleware, get_claims, require_permission, require_role, require_tier_access,

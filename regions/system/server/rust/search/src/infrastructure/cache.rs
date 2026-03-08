@@ -38,11 +38,13 @@ impl IndexCache {
     }
 
     /// 特定のインデックス名のエントリをキャッシュから削除する。
+    #[allow(dead_code)]
     pub async fn invalidate(&self, name: &str) {
         self.inner.invalidate(name).await;
     }
 
     /// すべてのキャッシュエントリを削除する。
+    #[allow(dead_code)]
     pub async fn invalidate_all(&self) {
         self.inner.invalidate_all();
         // moka の invalidate_all は非同期ではないが、

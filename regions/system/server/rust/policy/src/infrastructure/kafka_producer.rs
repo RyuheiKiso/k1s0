@@ -74,6 +74,7 @@ impl PolicyChangedEvent {
 #[async_trait]
 pub trait PolicyEventPublisher: Send + Sync {
     async fn publish_policy_changed(&self, event: &PolicyChangedEvent) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -130,6 +131,7 @@ impl KafkaPolicyProducer {
     }
 
     /// 配信先トピック名を返す。
+    #[allow(dead_code)]
     pub fn topic(&self) -> &str {
         &self.topic
     }

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 /// Role はユーザーのロール情報を表す。
 /// Keycloak の realm_roles / client_roles に対応。
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Role {
     pub id: String,
@@ -11,6 +12,7 @@ pub struct Role {
 
 impl Role {
     /// 新しい Role を生成する。
+    #[allow(dead_code)]
     pub fn new(
         id: impl Into<String>,
         name: impl Into<String>,
@@ -26,6 +28,7 @@ impl Role {
 
 /// UserRoles はユーザーに割り当てられたロール一覧を表す。
 /// Keycloak の realm_roles / client_roles に対応。
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UserRoles {
     pub user_id: String,
@@ -35,6 +38,7 @@ pub struct UserRoles {
 
 impl UserRoles {
     /// 新しい UserRoles を生成する。
+    #[allow(dead_code)]
     pub fn new(user_id: impl Into<String>) -> Self {
         Self {
             user_id: user_id.into(),
@@ -44,11 +48,13 @@ impl UserRoles {
     }
 
     /// realm_roles のロール名一覧を返す。
+    #[allow(dead_code)]
     pub fn realm_role_names(&self) -> Vec<&str> {
         self.realm_roles.iter().map(|r| r.name.as_str()).collect()
     }
 
     /// 指定クライアントの client_roles のロール名一覧を返す。
+    #[allow(dead_code)]
     pub fn client_role_names(&self, client: &str) -> Vec<&str> {
         self.client_roles
             .get(client)
@@ -57,6 +63,7 @@ impl UserRoles {
     }
 
     /// 指定されたレルムロールを持っているかを判定する。
+    #[allow(dead_code)]
     pub fn has_realm_role(&self, role_name: &str) -> bool {
         self.realm_roles.iter().any(|r| r.name == role_name)
     }

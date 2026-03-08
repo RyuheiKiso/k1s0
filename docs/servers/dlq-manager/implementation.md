@@ -250,7 +250,7 @@ SQL クエリ:
 
 ### データベース設計
 
-マイグレーションファイルは `regions/system/database/dlq-db/migrations/` に格納する。データベースは `dlq` スキーマに配置する。
+マイグレーションファイルは `regions/system/database/dlq-manager-db/migrations/` に格納する。データベースは `dlq` スキーマに配置する。
 
 #### dlq_messages テーブル
 

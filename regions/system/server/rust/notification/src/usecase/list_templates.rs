@@ -18,6 +18,7 @@ impl ListTemplatesUseCase {
         Self { repo }
     }
 
+    #[allow(dead_code)]
     pub async fn execute(&self) -> Result<Vec<NotificationTemplate>, ListTemplatesError> {
         self.repo
             .find_all()

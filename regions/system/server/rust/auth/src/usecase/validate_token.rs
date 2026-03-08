@@ -19,6 +19,7 @@ pub enum AuthError {
     TokenExpired,
 
     #[error("verification failed: {0}")]
+    #[allow(dead_code)]
     VerificationFailed(String),
 }
 

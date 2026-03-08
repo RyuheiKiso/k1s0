@@ -147,6 +147,35 @@ impl Claims {
     pub fn tier_access_list(&self) -> &[String] {
         self.tier_access.as_deref().unwrap_or(&[])
     }
+
+    /// Claims からアクター名を取得する。
+    ///
+    /// preferred_username > email > sub の優先順位で非空の値を返す。
+    /// いずれも空の場合は None を返す。
+    pub fn actor(&self) -> Option<&str> {
+        self.preferred_username
+            .as_ref()
+            .filter(|v| !v.is_empty())
+            .map(|v| v.as_str())
+            .or_else(|| {
+                self.email
+                    .as_ref()
+                    .filter(|v| !v.is_empty())
+                    .map(|v| v.as_str())
+            })
+            .or_else(|| (!self.sub.is_empty()).then_some(self.sub.as_str()))
+    }
+}
+
+/// Claims からアクター名を取得するヘルパー。
+///
+/// Claims がない場合は "system" を返す。
+/// DRY: 各サービスの `actor_from_claims` を統一するための共通関数。
+pub fn actor_from_claims(claims: Option<&Claims>) -> String {
+    claims
+        .and_then(|c| c.actor())
+        .unwrap_or("system")
+        .to_string()
 }
 
 impl std::fmt::Display for Claims {
