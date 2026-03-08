@@ -130,7 +130,7 @@ fn require_table_operation(
                     .into_response();
             };
 
-            let permissions = match state.crud_records_uc.table_permissions(&table_name).await {
+            let permissions = match state.crud_records_uc.table_permissions(&table_name, None).await {
                 Ok(flags) => flags,
                 Err(err) => {
                     let message = err.to_string();

@@ -204,7 +204,7 @@ mod tests {
 ```dockerfile
 # Build stage
 # Note: build context must be ./regions/system (to include library dependencies)
-FROM rust:1.88-bookworm AS builder
+FROM rust:1.93-bookworm AS builder
 
 # Install protobuf compiler (for tonic-build in build.rs) and
 # cmake + build-essential (for rdkafka cmake-build feature)
@@ -222,7 +222,7 @@ COPY . .
 RUN cargo build --release -p k1s0-auth-server
 
 # Runtime stage
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM debian:bookworm-slim
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 COPY --from=builder /app/target/release/k1s0-auth-server /k1s0-auth-server
@@ -237,8 +237,8 @@ ENTRYPOINT ["/k1s0-auth-server"]
 
 | 項目 | 詳細 |
 | --- | --- |
-| ビルドステージ | `rust:1.88-bookworm`（マルチステージビルド） |
-| ランタイムステージ | `gcr.io/distroless/cc-debian12:nonroot`（最小イメージ） |
+| ビルドステージ | `rust:1.93-bookworm`（マルチステージビルド） |
+| ランタイムステージ | `debian:bookworm-slim`（最小イメージ） |
 | 追加パッケージ | `protobuf-compiler`（proto 生成）、`cmake` + `build-essential`（rdkafka ビルド） |
 | libz コピー | distroless には zlib が含まれないため、ビルドステージから手動コピー |
 | ビルドコマンド | `cargo build --release -p k1s0-auth-server`（ワークスペースから特定パッケージを指定） |

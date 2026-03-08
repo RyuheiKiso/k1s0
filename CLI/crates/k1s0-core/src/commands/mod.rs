@@ -3,6 +3,7 @@ pub mod deploy;
 pub mod deps;
 pub mod dev;
 pub mod generate;
+pub mod generate_events;
 pub mod init;
 pub mod migrate;
 pub mod test_cmd;

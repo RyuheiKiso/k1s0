@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::adapter::presentation::ConfigEditorSchemaDto;
 use crate::domain::entity::config_entry::ConfigEntry;
 use crate::proto::k1s0::system::common::v1::{
     PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
@@ -12,7 +13,7 @@ use crate::usecase::get_service_config::{GetServiceConfigError, GetServiceConfig
 use crate::usecase::list_configs::{ListConfigsError, ListConfigsParams, ListConfigsUseCase};
 use crate::usecase::update_config::{UpdateConfigError, UpdateConfigInput, UpdateConfigUseCase};
 use crate::usecase::upsert_config_schema::{UpsertConfigSchemaInput, UpsertConfigSchemaUseCase};
-use crate::usecase::watch_config::ConfigChangeEvent;
+use crate::usecase::watch_config::WatchConfigUseCase;
 
 use super::watch_stream::{WatchConfigRequest, WatchConfigStreamHandler};
 
@@ -39,36 +40,17 @@ pub struct ConfigGrpcService {
     delete_config_uc: Arc<DeleteConfigUseCase>,
     get_config_schema_uc: Option<Arc<GetConfigSchemaUseCase>>,
     upsert_config_schema_uc: Option<Arc<UpsertConfigSchemaUseCase>>,
-    watch_sender: Option<tokio::sync::broadcast::Sender<ConfigChangeEvent>>,
+    watch_uc: Option<Arc<WatchConfigUseCase>>,
 }
 
 impl ConfigGrpcService {
-    pub fn new(
-        get_config_uc: Arc<GetConfigUseCase>,
-        list_configs_uc: Arc<ListConfigsUseCase>,
-        get_service_config_uc: Arc<GetServiceConfigUseCase>,
-        update_config_uc: Arc<UpdateConfigUseCase>,
-        delete_config_uc: Arc<DeleteConfigUseCase>,
-    ) -> Self {
-        Self {
-            get_config_uc,
-            list_configs_uc,
-            get_service_config_uc,
-            update_config_uc,
-            delete_config_uc,
-            get_config_schema_uc: None,
-            upsert_config_schema_uc: None,
-            watch_sender: None,
-        }
-    }
-
     pub fn new_with_watch(
         get_config_uc: Arc<GetConfigUseCase>,
         list_configs_uc: Arc<ListConfigsUseCase>,
         get_service_config_uc: Arc<GetServiceConfigUseCase>,
         update_config_uc: Arc<UpdateConfigUseCase>,
         delete_config_uc: Arc<DeleteConfigUseCase>,
-        watch_sender: tokio::sync::broadcast::Sender<ConfigChangeEvent>,
+        watch_uc: Arc<WatchConfigUseCase>,
     ) -> Self {
         Self {
             get_config_uc,
@@ -78,7 +60,7 @@ impl ConfigGrpcService {
             delete_config_uc,
             get_config_schema_uc: None,
             upsert_config_schema_uc: None,
-            watch_sender: Some(watch_sender),
+            watch_uc: Some(watch_uc),
         }
     }
 
@@ -327,9 +309,9 @@ impl ConfigGrpcService {
         &self,
         req: WatchConfigRequest,
     ) -> Result<WatchConfigStreamHandler, GrpcError> {
-        match &self.watch_sender {
-            Some(sender) => {
-                let receiver = sender.subscribe();
+        match &self.watch_uc {
+            Some(watch_uc) => {
+                let receiver = watch_uc.subscribe();
                 let namespace_filters: Vec<String> = req
                     .namespaces
                     .into_iter()
@@ -368,140 +350,21 @@ fn domain_config_to_pb(e: &ConfigEntry) -> pb::ConfigEntry {
 fn domain_schema_to_pb(
     schema: &crate::domain::entity::config_schema::ConfigSchema,
 ) -> pb::ConfigEditorSchema {
-    let categories = schema
-        .schema_json
-        .get("categories")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .map(|cat| pb::ConfigCategorySchema {
-                    id: cat
-                        .get("id")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or_default()
-                        .to_string(),
-                    label: cat
-                        .get("label")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or_default()
-                        .to_string(),
-                    icon: cat
-                        .get("icon")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or_default()
-                        .to_string(),
-                    namespaces: cat
-                        .get("namespaces")
-                        .and_then(|v| v.as_array())
-                        .map(|a| {
-                            a.iter()
-                                .filter_map(|x| x.as_str().map(ToString::to_string))
-                                .collect()
-                        })
-                        .unwrap_or_default(),
-                    fields: cat
-                        .get("fields")
-                        .and_then(|v| v.as_array())
-                        .map(|farr| {
-                            farr.iter()
-                                .map(|f| pb::ConfigFieldSchema {
-                                    key: f
-                                        .get("key")
-                                        .and_then(|v| v.as_str())
-                                        .unwrap_or_default()
-                                        .to_string(),
-                                    label: f
-                                        .get("label")
-                                        .and_then(|v| v.as_str())
-                                        .unwrap_or_default()
-                                        .to_string(),
-                                    description: f
-                                        .get("description")
-                                        .and_then(|v| v.as_str())
-                                        .unwrap_or_default()
-                                        .to_string(),
-                                    r#type: f.get("type").and_then(|v| v.as_i64()).unwrap_or(0)
-                                        as i32,
-                                    min: f.get("min").and_then(|v| v.as_i64()).unwrap_or(0),
-                                    max: f.get("max").and_then(|v| v.as_i64()).unwrap_or(0),
-                                    options: f
-                                        .get("options")
-                                        .and_then(|v| v.as_array())
-                                        .map(|opts| {
-                                            opts.iter()
-                                                .filter_map(|x| x.as_str().map(ToString::to_string))
-                                                .collect()
-                                        })
-                                        .unwrap_or_default(),
-                                    pattern: f
-                                        .get("pattern")
-                                        .and_then(|v| v.as_str())
-                                        .unwrap_or_default()
-                                        .to_string(),
-                                    unit: f
-                                        .get("unit")
-                                        .and_then(|v| v.as_str())
-                                        .unwrap_or_default()
-                                        .to_string(),
-                                    default_value: f
-                                        .get("default_value")
-                                        .map(|v| serde_json::to_vec(v).unwrap_or_default())
-                                        .unwrap_or_default(),
-                                })
-                                .collect()
-                        })
-                        .unwrap_or_default(),
-                })
-                .collect()
+    ConfigEditorSchemaDto::try_from(schema)
+        .map(|dto| dto.to_pb())
+        .unwrap_or_else(|_| pb::ConfigEditorSchema {
+            service_name: schema.service_name.clone(),
+            namespace_prefix: schema.namespace_prefix.clone(),
+            categories: vec![],
+            updated_at: Some(ProtoTimestamp {
+                seconds: schema.updated_at.timestamp(),
+                nanos: schema.updated_at.timestamp_subsec_nanos() as i32,
+            }),
         })
-        .unwrap_or_default();
-
-    pb::ConfigEditorSchema {
-        service_name: schema.service_name.clone(),
-        namespace_prefix: schema.namespace_prefix.clone(),
-        categories,
-        updated_at: Some(ProtoTimestamp {
-            seconds: schema.updated_at.timestamp(),
-            nanos: schema.updated_at.timestamp_subsec_nanos() as i32,
-        }),
-    }
 }
 
 fn pb_schema_to_json(schema: &pb::ConfigEditorSchema) -> serde_json::Value {
-    let categories: Vec<serde_json::Value> = schema
-        .categories
-        .iter()
-        .map(|cat| {
-            let fields: Vec<serde_json::Value> = cat
-                .fields
-                .iter()
-                .map(|field| {
-                    let default_value =
-                        serde_json::from_slice::<serde_json::Value>(&field.default_value)
-                            .unwrap_or(serde_json::Value::Null);
-                    serde_json::json!({
-                        "key": field.key,
-                        "label": field.label,
-                        "description": field.description,
-                        "type": field.r#type,
-                        "min": field.min,
-                        "max": field.max,
-                        "options": field.options,
-                        "pattern": field.pattern,
-                        "unit": field.unit,
-                        "default_value": default_value
-                    })
-                })
-                .collect();
-
-            serde_json::json!({
-                "id": cat.id,
-                "label": cat.label,
-                "icon": cat.icon,
-                "namespaces": cat.namespaces,
-                "fields": fields
-            })
-        })
-        .collect();
-    serde_json::json!({ "categories": categories })
+    ConfigEditorSchemaDto::from_pb(schema)
+        .map(|dto| dto.into_schema_json())
+        .unwrap_or_else(|_| serde_json::json!({ "categories": [] }))
 }

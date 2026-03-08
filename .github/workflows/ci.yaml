@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
       - name: Format check Rust crates
@@ -200,7 +200,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
       - name: Test Rust crates
         shell: bash
         run: |
@@ -295,7 +295,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88
+      - uses: dtolnay/rust-toolchain@1.93
       - name: Build Rust crates
         shell: bash
         run: |
@@ -348,17 +348,24 @@ jobs:
         shell: bash
         run: |
           mapfile -t rust_dockerfiles < <(rg --files regions/system/server/rust -g 'Dockerfile' | sort)
-          (
-            cd regions/system
-            for dockerfile in "${rust_dockerfiles[@]}"; do
-              rel="${dockerfile#regions/system/}"
-              tag="ci-$(basename "$(dirname "$dockerfile")")"
-              echo "=== docker build $dockerfile ==="
-              docker build -f "$rel" -t "$tag" .
-            done
-          )
+          for dockerfile in "${rust_dockerfiles[@]}"; do
+            server_name="$(basename "$(dirname "$dockerfile")")"
+            tag="ci-${server_name}"
+            echo "=== docker build $dockerfile ==="
+            if [ "$server_name" = "graphql-gateway" ]; then
+              # graphql-gateway needs repo root context for api/proto access
+              docker build -f "$dockerfile" -t "$tag" .
+            else
+              docker build -f "regions/system/${dockerfile#regions/system/}" -t "$tag" regions/system
+            fi
+          done
           echo "=== docker build regions/system/server/go/bff-proxy/Dockerfile ==="
           docker build -t ci-bff-proxy regions/system/server/go/bff-proxy
+          # Business tier
+          if [ -f regions/business/accounting/server/rust/domain-master/Dockerfile ]; then
+            echo "=== docker build domain-master ==="
+            docker build -f regions/business/accounting/server/rust/domain-master/Dockerfile -t ci-domain-master .
+          fi
 
   # NOTE: proto チェックは専用ワークフロー proto.yaml で実行する。
   # ci.yaml の detect-changes で proto 変更を検出し、proto.yaml が独立してトリガーされる。

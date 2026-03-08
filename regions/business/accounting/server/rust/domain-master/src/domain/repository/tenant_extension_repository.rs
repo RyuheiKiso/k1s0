@@ -4,6 +4,7 @@ use crate::domain::entity::tenant_master_extension::{
 use async_trait::async_trait;
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait TenantExtensionRepository: Send + Sync {
     async fn find_by_tenant_and_item(

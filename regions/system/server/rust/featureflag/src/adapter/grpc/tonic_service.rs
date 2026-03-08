@@ -8,7 +8,10 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::featureflag::v1::{
-    feature_flag_service_server::FeatureFlagService, CreateFlagRequest as ProtoCreateFlagRequest,
+    feature_flag_service_server::FeatureFlagService,
+    WatchFeatureFlagRequest as ProtoWatchFeatureFlagRequest,
+    WatchFeatureFlagResponse as ProtoWatchFeatureFlagResponse,
+    CreateFlagRequest as ProtoCreateFlagRequest,
     CreateFlagResponse as ProtoCreateFlagResponse, DeleteFlagRequest as ProtoDeleteFlagRequest,
     DeleteFlagResponse as ProtoDeleteFlagResponse, EvaluateFlagRequest as ProtoEvaluateFlagRequest,
     EvaluateFlagResponse as ProtoEvaluateFlagResponse, FeatureFlag as ProtoFeatureFlag,
@@ -59,6 +62,53 @@ impl FeatureFlagServiceTonic {
 
 #[async_trait::async_trait]
 impl FeatureFlagService for FeatureFlagServiceTonic {
+    type WatchFeatureFlagStream =
+        tokio_stream::wrappers::ReceiverStream<Result<ProtoWatchFeatureFlagResponse, Status>>;
+
+    async fn watch_feature_flag(
+        &self,
+        request: Request<ProtoWatchFeatureFlagRequest>,
+    ) -> Result<Response<Self::WatchFeatureFlagStream>, Status> {
+        let req = request.into_inner();
+        let flag_key_filter = if req.flag_key.is_empty() {
+            None
+        } else {
+            Some(req.flag_key)
+        };
+        let mut handler = self
+            .inner
+            .watch_feature_flag(flag_key_filter)
+            .map_err(Into::<Status>::into)?;
+
+        let (tx, rx) = tokio::sync::mpsc::channel(128);
+        tokio::spawn(async move {
+            while let Some(notif) = handler.next().await {
+                let resp = ProtoWatchFeatureFlagResponse {
+                    flag_key: notif.flag_key.clone(),
+                    change_type: notif.change_type,
+                    flag: Some(ProtoFeatureFlag {
+                        id: String::new(),
+                        flag_key: notif.flag_key,
+                        description: notif.description,
+                        enabled: notif.enabled,
+                        variants: vec![],
+                        rules: vec![],
+                        created_at: None,
+                        updated_at: None,
+                    }),
+                    changed_at: None,
+                };
+                if tx.send(Ok(resp)).await.is_err() {
+                    break;
+                }
+            }
+        });
+
+        Ok(Response::new(tokio_stream::wrappers::ReceiverStream::new(
+            rx,
+        )))
+    }
+
     async fn evaluate_flag(
         &self,
         request: Request<ProtoEvaluateFlagRequest>,

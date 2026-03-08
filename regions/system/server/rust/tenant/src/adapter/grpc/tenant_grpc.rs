@@ -7,7 +7,10 @@ use crate::usecase::{
     GetProvisioningStatusUseCase, GetTenantUseCase, ListMembersError, ListMembersUseCase,
     ListTenantsUseCase, RemoveMemberUseCase, SuspendTenantError, SuspendTenantUseCase,
     UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase,
+    TenantChangeEvent,
 };
+
+use super::watch_stream::WatchTenantStreamHandler;
 
 // --- gRPC Request/Response Types (proto equivalent) ---
 
@@ -213,6 +216,7 @@ pub struct TenantGrpcService {
     list_members_uc: Arc<ListMembersUseCase>,
     remove_member_uc: Arc<RemoveMemberUseCase>,
     get_provisioning_status_uc: Arc<GetProvisioningStatusUseCase>,
+    watch_sender: Option<tokio::sync::broadcast::Sender<TenantChangeEvent>>,
 }
 
 impl TenantGrpcService {
@@ -241,6 +245,53 @@ impl TenantGrpcService {
             list_members_uc,
             remove_member_uc,
             get_provisioning_status_uc,
+            watch_sender: None,
+        }
+    }
+
+    pub fn new_with_watch(
+        create_tenant_uc: Arc<CreateTenantUseCase>,
+        get_tenant_uc: Arc<GetTenantUseCase>,
+        list_tenants_uc: Arc<ListTenantsUseCase>,
+        update_tenant_uc: Arc<UpdateTenantUseCase>,
+        suspend_tenant_uc: Arc<SuspendTenantUseCase>,
+        activate_tenant_uc: Arc<ActivateTenantUseCase>,
+        delete_tenant_uc: Arc<DeleteTenantUseCase>,
+        add_member_uc: Arc<AddMemberUseCase>,
+        list_members_uc: Arc<ListMembersUseCase>,
+        remove_member_uc: Arc<RemoveMemberUseCase>,
+        get_provisioning_status_uc: Arc<GetProvisioningStatusUseCase>,
+        watch_sender: tokio::sync::broadcast::Sender<TenantChangeEvent>,
+    ) -> Self {
+        Self {
+            create_tenant_uc,
+            get_tenant_uc,
+            list_tenants_uc,
+            update_tenant_uc,
+            suspend_tenant_uc,
+            activate_tenant_uc,
+            delete_tenant_uc,
+            add_member_uc,
+            list_members_uc,
+            remove_member_uc,
+            get_provisioning_status_uc,
+            watch_sender: Some(watch_sender),
+        }
+    }
+
+    pub fn watch_tenant(
+        &self,
+        tenant_id: Option<String>,
+    ) -> Result<WatchTenantStreamHandler, GrpcError> {
+        match &self.watch_sender {
+            Some(sender) => {
+                let receiver = sender.subscribe();
+                let filter = tenant_id.filter(|id| !id.is_empty());
+                Ok(WatchTenantStreamHandler::new(receiver, filter))
+            }
+            None => Err(GrpcError::Internal(
+                "watch_tenant is not enabled on this server".to_string(),
+            )),
         }
     }
 

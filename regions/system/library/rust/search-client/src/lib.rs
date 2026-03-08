@@ -10,6 +10,12 @@ pub use document::{
 pub use error::SearchError;
 pub use query::{FacetBucket, Filter, SearchQuery, SearchResult};
 
+#[cfg(feature = "grpc")]
+pub mod grpc_client;
+
+#[cfg(feature = "grpc")]
+pub use grpc_client::GrpcSearchClient;
+
 #[cfg(feature = "mock")]
 pub use client::MockSearchClient;
 

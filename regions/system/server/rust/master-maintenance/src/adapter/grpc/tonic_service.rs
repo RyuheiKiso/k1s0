@@ -804,7 +804,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .map_err(|_| Status::invalid_argument("invalid rule_id"))?;
         let results = self
             .check_consistency_uc
-            .execute_rule(rule_id)
+            .execute_rule(rule_id, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
@@ -1342,6 +1342,7 @@ fn domain_audit_log_to_proto(log: crate::domain::entity::change_log::ChangeLog) 
         change_reason: log.change_reason.unwrap_or_default(),
         trace_id: log.trace_id.unwrap_or_default(),
         created_at: log.created_at.to_rfc3339(),
+        domain_scope: log.domain_scope.unwrap_or_default(),
     }
 }
 

@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface LoadingSpinnerProps {
   size?: number;
   message?: string;

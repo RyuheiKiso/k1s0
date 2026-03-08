@@ -8,6 +8,9 @@ use crate::usecase::evaluate_flag::{EvaluateFlagError, EvaluateFlagInput, Evalua
 use crate::usecase::get_flag::{GetFlagError, GetFlagUseCase};
 use crate::usecase::list_flags::{ListFlagsError, ListFlagsUseCase};
 use crate::usecase::update_flag::{UpdateFlagError, UpdateFlagInput, UpdateFlagUseCase};
+use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
+
+use super::watch_stream::WatchFeatureFlagStreamHandler;
 
 #[derive(Debug, Clone)]
 pub struct EvaluateFlagRequest {
@@ -139,6 +142,7 @@ pub struct FeatureFlagGrpcService {
     create_flag_uc: Arc<CreateFlagUseCase>,
     update_flag_uc: Arc<UpdateFlagUseCase>,
     delete_flag_uc: Arc<DeleteFlagUseCase>,
+    watch_sender: Option<tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>>,
 }
 
 impl FeatureFlagGrpcService {
@@ -157,6 +161,43 @@ impl FeatureFlagGrpcService {
             create_flag_uc,
             update_flag_uc,
             delete_flag_uc,
+            watch_sender: None,
+        }
+    }
+
+    pub fn new_with_watch(
+        list_flags_uc: Arc<ListFlagsUseCase>,
+        evaluate_flag_uc: Arc<EvaluateFlagUseCase>,
+        get_flag_uc: Arc<GetFlagUseCase>,
+        create_flag_uc: Arc<CreateFlagUseCase>,
+        update_flag_uc: Arc<UpdateFlagUseCase>,
+        delete_flag_uc: Arc<DeleteFlagUseCase>,
+        watch_sender: tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>,
+    ) -> Self {
+        Self {
+            list_flags_uc,
+            evaluate_flag_uc,
+            get_flag_uc,
+            create_flag_uc,
+            update_flag_uc,
+            delete_flag_uc,
+            watch_sender: Some(watch_sender),
+        }
+    }
+
+    pub fn watch_feature_flag(
+        &self,
+        flag_key: Option<String>,
+    ) -> Result<WatchFeatureFlagStreamHandler, GrpcError> {
+        match &self.watch_sender {
+            Some(sender) => {
+                let receiver = sender.subscribe();
+                let filter = flag_key.filter(|k| !k.is_empty());
+                Ok(WatchFeatureFlagStreamHandler::new(receiver, filter))
+            }
+            None => Err(GrpcError::Internal(
+                "watch_feature_flag is not enabled on this server".to_string(),
+            )),
         }
     }
 

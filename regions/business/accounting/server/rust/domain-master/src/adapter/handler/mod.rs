@@ -3,7 +3,6 @@ pub mod error;
 pub mod item_handler;
 pub mod tenant_handler;
 
-use crate::infrastructure::messaging::kafka_producer::DomainMasterKafkaProducer;
 use crate::usecase;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
@@ -22,7 +21,6 @@ pub struct AppState {
     pub manage_tenant_extensions_uc:
         Arc<usecase::manage_tenant_extensions::ManageTenantExtensionsUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub kafka_producer: Option<Arc<DomainMasterKafkaProducer>>,
     pub auth_state: Option<AuthState>,
 }
 
@@ -44,34 +42,6 @@ pub fn actor_from_claims(claims: Option<&Claims>) -> String {
                 .or_else(|| (!claims.sub.is_empty()).then(|| claims.sub.clone()))
         })
         .unwrap_or_else(|| "system".to_string())
-}
-
-pub async fn publish_category_event(state: &AppState, event: serde_json::Value) {
-    let Some(producer) = &state.kafka_producer else {
-        return;
-    };
-
-    if let Err(err) = producer.publish_category_changed(&event).await {
-        tracing::warn!(
-            error = %err,
-            topic = %producer.category_topic(),
-            "failed to publish category changed event"
-        );
-    }
-}
-
-pub async fn publish_item_event(state: &AppState, event: serde_json::Value) {
-    let Some(producer) = &state.kafka_producer else {
-        return;
-    };
-
-    if let Err(err) = producer.publish_item_changed(&event).await {
-        tracing::warn!(
-            error = %err,
-            topic = %producer.item_topic(),
-            "failed to publish item changed event"
-        );
-    }
 }
 
 pub fn router(state: AppState) -> Router {

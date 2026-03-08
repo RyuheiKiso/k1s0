@@ -73,8 +73,8 @@ impl ItemRepository for ItemPostgresRepository {
         let row = sqlx::query_as::<_, ItemRow>(
             r#"INSERT INTO domain_master.master_items
                (category_id, code, display_name, description, attributes,
-                parent_item_id, effective_from, effective_until, sort_order, created_by)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                parent_item_id, effective_from, effective_until, is_active, sort_order, created_by)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                RETURNING *"#,
         )
         .bind(category_id)
@@ -85,6 +85,7 @@ impl ItemRepository for ItemPostgresRepository {
         .bind(input.parent_item_id)
         .bind(input.effective_from)
         .bind(input.effective_until)
+        .bind(input.is_active.unwrap_or(true))
         .bind(input.sort_order.unwrap_or(0))
         .bind(created_by)
         .fetch_one(&self.pool)

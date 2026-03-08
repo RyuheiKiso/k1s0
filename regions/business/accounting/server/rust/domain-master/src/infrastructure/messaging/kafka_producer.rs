@@ -1,4 +1,6 @@
 use crate::infrastructure::config::KafkaConfig;
+use crate::usecase::event_publisher::DomainMasterEventPublisher;
+use async_trait::async_trait;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use serde_json::Value;
@@ -54,10 +56,12 @@ impl DomainMasterKafkaProducer {
 
     async fn publish(&self, topic: &str, event: &Value) -> anyhow::Result<()> {
         let payload = serde_json::to_vec(event)?;
+        // イベントタイプに応じたキー選択: item → item_code, tenant → tenant_id, category → category_code
         let key = event
-            .get("resource_id")
+            .get("item_code")
             .and_then(Value::as_str)
-            .or_else(|| event.get("resource_code").and_then(Value::as_str))
+            .or_else(|| event.get("tenant_id").and_then(Value::as_str))
+            .or_else(|| event.get("category_code").and_then(Value::as_str))
             .unwrap_or("domain-master");
 
         tracing::info!(topic = %topic, key, "publishing change event");
@@ -71,5 +75,20 @@ impl DomainMasterKafkaProducer {
             .map_err(|(err, _)| anyhow::anyhow!("failed to publish change event: {err}"))?;
 
         Ok(())
+    }
+}
+
+#[async_trait]
+impl DomainMasterEventPublisher for DomainMasterKafkaProducer {
+    async fn publish_category_changed(&self, event: &Value) -> anyhow::Result<()> {
+        DomainMasterKafkaProducer::publish_category_changed(self, event).await
+    }
+
+    async fn publish_item_changed(&self, event: &Value) -> anyhow::Result<()> {
+        DomainMasterKafkaProducer::publish_item_changed(self, event).await
+    }
+
+    async fn publish_tenant_extension_changed(&self, event: &Value) -> anyhow::Result<()> {
+        DomainMasterKafkaProducer::publish_tenant_extension_changed(self, event).await
     }
 }

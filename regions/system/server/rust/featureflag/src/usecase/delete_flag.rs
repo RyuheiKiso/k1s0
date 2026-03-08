@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::domain::entity::flag_audit_log::FlagAuditLog;
 use crate::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
 use crate::infrastructure::kafka_producer::FlagEventPublisher;
+use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteFlagError {
@@ -19,6 +20,7 @@ pub struct DeleteFlagUseCase {
     repo: Arc<dyn FeatureFlagRepository>,
     event_publisher: Arc<dyn FlagEventPublisher>,
     audit_repo: Arc<dyn FlagAuditLogRepository>,
+    watch_sender: Option<tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>>,
 }
 
 impl DeleteFlagUseCase {
@@ -31,7 +33,13 @@ impl DeleteFlagUseCase {
             repo,
             event_publisher,
             audit_repo,
+            watch_sender: None,
         }
+    }
+
+    pub fn with_watch_sender(mut self, sender: tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>) -> Self {
+        self.watch_sender = Some(sender);
+        self
     }
 
     pub async fn execute(&self, id: &Uuid) -> Result<(), DeleteFlagError> {
@@ -87,6 +95,15 @@ impl DeleteFlagUseCase {
             )
             .await
             .map_err(|e| DeleteFlagError::Internal(e.to_string()))?;
+
+        if let Some(sender) = &self.watch_sender {
+            let _ = sender.send(FeatureFlagChangeEvent {
+                flag_key: target.flag_key.clone(),
+                change_type: "DELETED".to_string(),
+                enabled: target.enabled,
+                description: target.description.clone(),
+            });
+        }
 
         Ok(())
     }

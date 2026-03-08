@@ -8,7 +8,10 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::tenant::v1::{
-    tenant_service_server::TenantService, ActivateTenantRequest as ProtoActivateTenantRequest,
+    tenant_service_server::TenantService,
+    WatchTenantRequest as ProtoWatchTenantRequest,
+    WatchTenantResponse as ProtoWatchTenantResponse,
+    ActivateTenantRequest as ProtoActivateTenantRequest,
     ActivateTenantResponse as ProtoActivateTenantResponse,
     AddMemberRequest as ProtoAddMemberRequest, AddMemberResponse as ProtoAddMemberResponse,
     CreateTenantRequest as ProtoCreateTenantRequest,
@@ -111,6 +114,56 @@ impl TenantServiceTonic {
 
 #[async_trait::async_trait]
 impl TenantService for TenantServiceTonic {
+    type WatchTenantStream =
+        tokio_stream::wrappers::ReceiverStream<Result<ProtoWatchTenantResponse, Status>>;
+
+    async fn watch_tenant(
+        &self,
+        request: Request<ProtoWatchTenantRequest>,
+    ) -> Result<Response<Self::WatchTenantStream>, Status> {
+        let req = request.into_inner();
+        let tenant_id_filter = if req.tenant_id.is_empty() {
+            None
+        } else {
+            Some(req.tenant_id)
+        };
+        let mut handler = self
+            .inner
+            .watch_tenant(tenant_id_filter)
+            .map_err(Into::<Status>::into)?;
+
+        let (tx, rx) = tokio::sync::mpsc::channel(128);
+        tokio::spawn(async move {
+            while let Some(notif) = handler.next().await {
+                let resp = ProtoWatchTenantResponse {
+                    tenant_id: notif.tenant_id.clone(),
+                    change_type: notif.change_type,
+                    tenant: Some(ProtoTenant {
+                        id: notif.tenant_id,
+                        name: notif.tenant_name,
+                        display_name: notif.tenant_display_name,
+                        status: notif.tenant_status,
+                        plan: notif.tenant_plan,
+                        owner_id: String::new(),
+                        settings: String::new(),
+                        db_schema: String::new(),
+                        keycloak_realm: String::new(),
+                        created_at: None,
+                        updated_at: None,
+                    }),
+                    changed_at: None,
+                };
+                if tx.send(Ok(resp)).await.is_err() {
+                    break;
+                }
+            }
+        });
+
+        Ok(Response::new(tokio_stream::wrappers::ReceiverStream::new(
+            rx,
+        )))
+    }
+
     async fn create_tenant(
         &self,
         request: Request<ProtoCreateTenantRequest>,

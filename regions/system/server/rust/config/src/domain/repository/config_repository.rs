@@ -1,6 +1,4 @@
 use async_trait::async_trait;
-use uuid::Uuid;
-
 use crate::domain::entity::config_change_log::ConfigChangeLog;
 use crate::domain::entity::config_entry::{ConfigEntry, ConfigListResult, ServiceConfigResult};
 
@@ -25,9 +23,6 @@ pub trait ConfigRepository: Send + Sync {
         search: Option<String>,
     ) -> anyhow::Result<ConfigListResult>;
 
-    /// 設定値を作成する。
-    async fn create(&self, entry: &ConfigEntry) -> anyhow::Result<ConfigEntry>;
-
     /// 設定値を更新する（楽観的排他制御付き）。
     /// expected_version と現在のバージョンが一致しない場合はエラーを返す。
     async fn update(
@@ -50,15 +45,6 @@ pub trait ConfigRepository: Send + Sync {
     /// 設定変更ログを記録する。
     async fn record_change_log(&self, log: &ConfigChangeLog) -> anyhow::Result<()>;
 
-    /// 設定変更ログを namespace と key で取得する。
-    async fn list_change_logs(
-        &self,
-        namespace: &str,
-        key: &str,
-    ) -> anyhow::Result<Vec<ConfigChangeLog>>;
-
-    /// ID で設定値を取得する。
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>>;
 }
 
 #[cfg(test)]
@@ -67,6 +53,7 @@ mod tests {
     use crate::domain::entity::config_entry::{
         ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
     };
+    use uuid::Uuid;
 
     #[tokio::test]
     async fn test_mock_config_repository_find_by_namespace_and_key() {

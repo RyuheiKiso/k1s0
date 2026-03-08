@@ -15,6 +15,8 @@ service FeatureFlagService {
   rpc CreateFlag(CreateFlagRequest) returns (CreateFlagResponse);
   rpc UpdateFlag(UpdateFlagRequest) returns (UpdateFlagResponse);
   rpc DeleteFlag(DeleteFlagRequest) returns (DeleteFlagResponse);
+  // WatchFeatureFlag はフラグ変更の監視（Server-Side Streaming）。
+  rpc WatchFeatureFlag(WatchFeatureFlagRequest) returns (stream WatchFeatureFlagResponse);
 }
 
 message EvaluateFlagRequest {
@@ -103,4 +105,23 @@ message FlagRule {
   string operator = 2;
   string value = 3;
   string variant = 4;
+}
+
+// ============================================================
+// WatchFeatureFlag（Server-Side Streaming）
+// ============================================================
+
+// WatchFeatureFlagRequest はフラグ変更監視リクエスト。
+message WatchFeatureFlagRequest {
+  // 監視対象のフラグキー（空の場合は全フラグの変更を受け取る）
+  string flag_key = 1;
+}
+
+// WatchFeatureFlagResponse はフラグ変更の監視レスポンス（ストリーミング）。
+message WatchFeatureFlagResponse {
+  string flag_key = 1;
+  // CREATED, UPDATED, DELETED
+  string change_type = 2;
+  FeatureFlag flag = 3;
+  k1s0.system.common.v1.Timestamp changed_at = 4;
 }

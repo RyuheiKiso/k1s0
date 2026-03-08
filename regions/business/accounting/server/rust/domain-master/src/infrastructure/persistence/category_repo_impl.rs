@@ -62,14 +62,15 @@ impl CategoryRepository for CategoryPostgresRepository {
     ) -> anyhow::Result<MasterCategory> {
         let row = sqlx::query_as::<_, CategoryRow>(
             r#"INSERT INTO domain_master.master_categories
-               (code, display_name, description, validation_schema, sort_order, created_by)
-               VALUES ($1, $2, $3, $4, $5, $6)
+               (code, display_name, description, validation_schema, is_active, sort_order, created_by)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)
                RETURNING *"#,
         )
         .bind(&input.code)
         .bind(&input.display_name)
         .bind(&input.description)
         .bind(&input.validation_schema)
+        .bind(input.is_active.unwrap_or(true))
         .bind(input.sort_order.unwrap_or(0))
         .bind(created_by)
         .fetch_one(&self.pool)

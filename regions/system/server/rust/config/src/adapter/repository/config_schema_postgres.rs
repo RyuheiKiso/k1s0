@@ -13,13 +13,6 @@ pub struct ConfigSchemaPostgresRepository {
 }
 
 impl ConfigSchemaPostgresRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self {
-            pool,
-            metrics: None,
-        }
-    }
-
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,

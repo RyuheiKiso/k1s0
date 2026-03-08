@@ -150,8 +150,8 @@ fn test_kong_plugins_rate_limit_system() {
 
     let content = read_output(&tmp, "kong-plugins.yaml");
     assert!(
-        content.contains("minute: 120"),
-        "System tier should have rate limit minute: 120\n--- kong-plugins.yaml ---\n{content}"
+        content.contains("minute: 3000"),
+        "System tier should have rate limit minute: 3000\n--- kong-plugins.yaml ---\n{content}"
     );
 }
 
@@ -164,8 +164,8 @@ fn test_kong_plugins_rate_limit_service() {
 
     let content = read_output(&tmp, "kong-plugins.yaml");
     assert!(
-        content.contains("minute: 30"),
-        "Service tier should have rate limit minute: 30\n--- kong-plugins.yaml ---\n{content}"
+        content.contains("minute: 500"),
+        "Service tier should have rate limit minute: 500\n--- kong-plugins.yaml ---\n{content}"
     );
 }
 

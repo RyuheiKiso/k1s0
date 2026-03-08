@@ -174,18 +174,58 @@ describe('NavigationInterpreter', () => {
     expect(result.routes[0].guards).toHaveLength(0);
   });
 
-  it('local modeでJSONデータからrouterが構築される', async () => {
+  it('local modeでYAMLデータからrouterが構築される', async () => {
     server.use(
-      http.get('http://localhost/navigation.json', () => {
-        return new HttpResponse(JSON.stringify(mockNavigation), {
-          headers: { 'Content-Type': 'application/json' },
-        });
+      http.get('http://localhost/navigation.yaml', () => {
+        return new HttpResponse(
+          `
+guards:
+  - id: auth_required
+    type: auth_required
+    redirect_to: /login
+  - id: admin_only
+    type: role_required
+    redirect_to: /dashboard
+    roles:
+      - admin
+routes:
+  - id: root
+    path: /
+    redirect_to: /dashboard
+  - id: login
+    path: /login
+    component_id: LoginPage
+    guards: []
+  - id: dashboard
+    path: /dashboard
+    component_id: DashboardPage
+    guards:
+      - auth_required
+    transition: fade
+  - id: admin
+    path: /admin
+    component_id: AdminPage
+    guards:
+      - auth_required
+      - admin_only
+    children:
+      - id: admin_users
+        path: /admin/users
+        component_id: AdminUsersPage
+        guards:
+          - auth_required
+          - admin_only
+`,
+          {
+            headers: { 'Content-Type': 'application/yaml' },
+          },
+        );
       }),
     );
 
     const interpreter = new NavigationInterpreter({
       mode: 'local',
-      localConfigPath: 'http://localhost/navigation.json',
+      localConfigPath: 'http://localhost/navigation.yaml',
       componentRegistry: mockRegistry,
     });
 

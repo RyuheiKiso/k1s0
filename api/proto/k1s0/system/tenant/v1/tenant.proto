@@ -31,6 +31,8 @@ service TenantService {
   rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
   // GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
   rpc GetProvisioningStatus(GetProvisioningStatusRequest) returns (GetProvisioningStatusResponse);
+  // WatchTenant はテナント変更の監視（Server-Side Streaming）。
+  rpc WatchTenant(WatchTenantRequest) returns (stream WatchTenantResponse);
 }
 
 message CreateTenantRequest {
@@ -160,4 +162,23 @@ message ProvisioningJob {
   string error_message = 5;
   k1s0.system.common.v1.Timestamp created_at = 6;
   k1s0.system.common.v1.Timestamp updated_at = 7;
+}
+
+// ============================================================
+// WatchTenant（Server-Side Streaming）
+// ============================================================
+
+// WatchTenantRequest はテナント変更監視リクエスト。
+message WatchTenantRequest {
+  // 監視対象のテナント ID（空の場合は全テナントの変更を受け取る）
+  string tenant_id = 1;
+}
+
+// WatchTenantResponse はテナント変更の監視レスポンス（ストリーミング）。
+message WatchTenantResponse {
+  string tenant_id = 1;
+  // CREATED, UPDATED, SUSPENDED, ACTIVATED, DELETED
+  string change_type = 2;
+  Tenant tenant = 3;
+  k1s0.system.common.v1.Timestamp changed_at = 4;
 }

@@ -1,7 +1,4 @@
-use async_trait::async_trait;
 use serde::Deserialize;
-
-use crate::domain::entity::config_change_log::ConfigChangeLog;
 
 /// ConfigChangedEvent は設定値変更時に Kafka へ発行するイベント。
 #[derive(Debug, serde::Serialize)]
@@ -58,14 +55,6 @@ pub struct TopicsConfig {
     pub subscribe: Vec<String>,
 }
 
-/// ConfigChangeEventPublisher は設定変更イベント配信のためのトレイト。
-#[cfg_attr(test, mockall::automock)]
-#[async_trait]
-pub trait ConfigChangeEventPublisher: Send + Sync {
-    async fn publish(&self, event: &ConfigChangeLog) -> anyhow::Result<()>;
-    async fn close(&self) -> anyhow::Result<()>;
-}
-
 /// KafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
 pub struct KafkaProducer {
     producer: rdkafka::producer::FutureProducer,
@@ -120,10 +109,6 @@ impl KafkaProducer {
     }
 
     /// 配信先トピック名を返す。
-    pub fn topic(&self) -> &str {
-        &self.topic
-    }
-
     /// 設定値変更イベントを Kafka へ発行する。
     /// 内部的には ConfigChangeLog を構築して既存の publish メソッドに委譲する。
     pub async fn publish_config_changed(&self, event: &ConfigChangedEvent) -> anyhow::Result<()> {
@@ -150,98 +135,9 @@ impl KafkaProducer {
     }
 }
 
-#[async_trait]
-impl ConfigChangeEventPublisher for KafkaProducer {
-    async fn publish(&self, event: &ConfigChangeLog) -> anyhow::Result<()> {
-        use rdkafka::producer::FutureRecord;
-        use std::time::Duration;
-
-        let payload = serde_json::to_vec(event)?;
-        let key = format!("{}/{}", event.namespace, event.key);
-
-        let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
-
-        self.producer
-            .send(record, Duration::from_secs(5))
-            .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish config change event: {}", err)
-            })?;
-
-        if let Some(ref m) = self.metrics {
-            m.record_kafka_message_produced(&self.topic);
-        }
-
-        Ok(())
-    }
-
-    async fn close(&self) -> anyhow::Result<()> {
-        use rdkafka::producer::Producer;
-        self.producer.flush(std::time::Duration::from_secs(5))?;
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::config_change_log::{ConfigChangeLog, CreateChangeLogRequest};
-    use std::sync::Mutex;
-    use uuid::Uuid;
-
-    /// テスト用のインメモリプロデューサー。
-    struct InMemoryProducer {
-        messages: Mutex<Vec<(String, Vec<u8>)>>,
-        should_fail: bool,
-    }
-
-    impl InMemoryProducer {
-        fn new() -> Self {
-            Self {
-                messages: Mutex::new(Vec::new()),
-                should_fail: false,
-            }
-        }
-
-        fn with_error() -> Self {
-            Self {
-                messages: Mutex::new(Vec::new()),
-                should_fail: true,
-            }
-        }
-    }
-
-    #[async_trait]
-    impl ConfigChangeEventPublisher for InMemoryProducer {
-        async fn publish(&self, event: &ConfigChangeLog) -> anyhow::Result<()> {
-            if self.should_fail {
-                return Err(anyhow::anyhow!("broker connection refused"));
-            }
-            let payload = serde_json::to_vec(event)?;
-            let key = format!("{}/{}", event.namespace, event.key);
-            self.messages.lock().unwrap().push((key, payload));
-            Ok(())
-        }
-
-        async fn close(&self) -> anyhow::Result<()> {
-            Ok(())
-        }
-    }
-
-    fn make_test_change_log() -> ConfigChangeLog {
-        ConfigChangeLog::new(CreateChangeLogRequest {
-            config_entry_id: Uuid::new_v4(),
-            namespace: "system.auth.database".to_string(),
-            key: "max_connections".to_string(),
-            old_value: Some(serde_json::json!(25)),
-            new_value: Some(serde_json::json!(50)),
-            old_version: 3,
-            new_version: 4,
-            change_type: "UPDATED".to_string(),
-            changed_by: "operator@example.com".to_string(),
-            trace_id: Some("trace-123".to_string()),
-        })
-    }
 
     #[test]
     fn test_kafka_config_deserialization() {
@@ -280,59 +176,6 @@ brokers:
         assert!(config.topics.publish.is_empty());
     }
 
-    #[tokio::test]
-    async fn test_publish_serialization() {
-        let producer = InMemoryProducer::new();
-        let log = make_test_change_log();
-
-        let result = producer.publish(&log).await;
-        assert!(result.is_ok());
-
-        let messages = producer.messages.lock().unwrap();
-        assert_eq!(messages.len(), 1);
-
-        // JSON に正常変換されていることを確認
-        let deserialized: ConfigChangeLog = serde_json::from_slice(&messages[0].1).unwrap();
-        assert_eq!(deserialized.namespace, "system.auth.database");
-        assert_eq!(deserialized.key, "max_connections");
-        assert_eq!(deserialized.change_type, "UPDATED");
-        assert_eq!(deserialized.old_value, Some(serde_json::json!(25)));
-        assert_eq!(deserialized.new_value, Some(serde_json::json!(50)));
-    }
-
-    #[tokio::test]
-    async fn test_publish_key_is_namespace_key() {
-        let producer = InMemoryProducer::new();
-        let log = make_test_change_log();
-
-        producer.publish(&log).await.unwrap();
-
-        let messages = producer.messages.lock().unwrap();
-        assert_eq!(messages.len(), 1);
-        // パーティションキーが namespace/key であることを確認
-        assert_eq!(messages[0].0, "system.auth.database/max_connections");
-    }
-
-    #[tokio::test]
-    async fn test_publish_connection_error() {
-        let producer = InMemoryProducer::with_error();
-        let log = make_test_change_log();
-
-        let result = producer.publish(&log).await;
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("broker connection refused"));
-    }
-
-    #[tokio::test]
-    async fn test_close_graceful() {
-        let producer = InMemoryProducer::new();
-        let result = producer.close().await;
-        assert!(result.is_ok());
-    }
-
     #[test]
     fn test_default_topic_name() {
         let yaml = r#"
@@ -361,17 +204,6 @@ topics:
 "#;
         let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.topics.publish[0], "k1s0.system.config.changed.v1");
-    }
-
-    #[tokio::test]
-    async fn test_mock_config_change_event_publisher() {
-        let mut mock = MockConfigChangeEventPublisher::new();
-        mock.expect_publish().returning(|_| Ok(()));
-        mock.expect_close().returning(|| Ok(()));
-
-        let log = make_test_change_log();
-        assert!(mock.publish(&log).await.is_ok());
-        assert!(mock.close().await.is_ok());
     }
 
     // --- ConfigChangedEvent テスト ---

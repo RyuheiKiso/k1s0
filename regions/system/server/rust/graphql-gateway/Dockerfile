@@ -1,6 +1,6 @@
 # Build stage
-# Note: build context must be ./regions/system (to include library dependencies)
-FROM rust:1.88-bookworm AS builder
+# Note: build context is repo root (to include api/proto for tonic-build)
+FROM rust:1.93-bookworm AS builder
 
 # Install protobuf compiler (for tonic-build in build.rs) and
 # cmake + build-essential (for rdkafka cmake-build feature)
@@ -12,18 +12,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy the entire system directory to resolve path dependencies
-COPY . .
+# Copy only what's needed: proto files + system workspace
+COPY api/proto api/proto
+COPY regions/system regions/system
+
+WORKDIR /app/regions/system
 
 RUN cargo build --release -p k1s0-graphql-gateway-server
 
 # Runtime stage
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM debian:bookworm-slim
 
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
-COPY --from=builder /app/target/release/k1s0-graphql-gateway-server /k1s0-graphql-gateway-server
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN groupadd -r app && useradd -r -g app app
 
-USER nonroot:nonroot
+COPY --from=builder /app/regions/system/target/release/k1s0-graphql-gateway-server /k1s0-graphql-gateway-server
+
+USER app:app
 EXPOSE 8080
 
 ENTRYPOINT ["/k1s0-graphql-gateway-server"]

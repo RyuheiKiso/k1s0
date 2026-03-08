@@ -266,6 +266,7 @@ impl SubscriptionRoot {
     ) -> impl Stream<Item = Tenant> {
         self.subscription
             .watch_tenant_updated(tenant_id.to_string())
+            .await
     }
 
     #[graphql(name = "featureFlagChanged")]
@@ -274,7 +275,7 @@ impl SubscriptionRoot {
         _ctx: &Context<'_>,
         key: String,
     ) -> impl Stream<Item = FeatureFlag> {
-        self.subscription.watch_feature_flag_changed(key)
+        self.subscription.watch_feature_flag_changed(key).await
     }
 }
 

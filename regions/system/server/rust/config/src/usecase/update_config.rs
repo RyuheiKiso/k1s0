@@ -56,31 +56,7 @@ impl UpdateConfigUseCase {
     }
 
     /// スキーマリポジトリ付きのコンストラクタ。
-    pub fn new_with_schema(
-        config_repo: Arc<dyn ConfigRepository>,
-        config_schema_repo: Arc<dyn ConfigSchemaRepository>,
-    ) -> Self {
-        Self {
-            config_repo,
-            config_schema_repo: Some(config_schema_repo),
-            kafka_producer: None,
-            watch_sender: None,
-        }
-    }
-
     /// Kafka 通知ありのコンストラクタ。
-    pub fn new_with_kafka(
-        config_repo: Arc<dyn ConfigRepository>,
-        kafka_producer: Arc<KafkaProducer>,
-    ) -> Self {
-        Self {
-            config_repo,
-            config_schema_repo: None,
-            kafka_producer: Some(kafka_producer),
-            watch_sender: None,
-        }
-    }
-
     /// broadcast watch sender ありのコンストラクタ。
     /// watch_sender を指定すると、更新成功後に ConfigChangeEvent が全購読者に送信される。
     pub fn new_with_watch(
@@ -250,7 +226,7 @@ impl UpdateConfigUseCase {
 ///     "id": "...",
 ///     "fields": [{
 ///       "key": "max_connections",
-///       "type": "integer" | "string" | "boolean" | "number"
+///       "type": "integer" | "string" | "boolean" | "float"
 ///     }]
 ///   }]
 /// }
@@ -278,7 +254,7 @@ fn validate_value_against_schema(
             let field_type = field.get("type").and_then(|t| t.as_str()).unwrap_or("");
             let type_ok = match field_type {
                 "integer" => value.is_i64() || value.is_u64(),
-                "number" => value.is_number(),
+                "float" | "number" => value.is_number(),
                 "string" => value.is_string(),
                 "boolean" => value.is_boolean(),
                 _ => true, // 不明な型はスキップ
@@ -528,26 +504,6 @@ mod tests {
         assert!(uc.kafka_producer.is_none());
     }
 
-    #[tokio::test]
-    async fn test_new_with_kafka_sets_producer() {
-        // new_with_kafka() で作成した UseCase は kafka_producer が Some
-        // KafkaProducer はブローカー接続が必要なため、Option<Arc<KafkaProducer>> の
-        // Some 性チェックのみ行う（実際のKafka接続は統合テストで確認）
-        let mock = MockConfigRepository::new();
-        // KafkaConfig を直接構築してテスト（接続は行わない）
-        // ここでは型検証のみ: new_with_kafka のシグネチャが正しいことを確認する
-        let _ = |producer: Arc<KafkaProducer>| {
-            let uc = UpdateConfigUseCase::new_with_kafka(
-                Arc::new(MockConfigRepository::new()),
-                producer,
-            );
-            assert!(uc.kafka_producer.is_some());
-        };
-        // kafka_producer なし版は None
-        let uc = UpdateConfigUseCase::new(Arc::new(mock));
-        assert!(uc.kafka_producer.is_none());
-    }
-
     // --- watch_sender 関連テスト ---
 
     #[tokio::test]
@@ -601,22 +557,6 @@ mod tests {
 
         // チャンネルは空のまま（イベントが届いていない）
         assert!(rx.try_recv().is_err());
-    }
-
-    #[tokio::test]
-    async fn test_new_with_kafka_and_watch_sets_both() {
-        // new_with_kafka_and_watch() で作成した UseCase は両方が Some
-        let (tx, _rx) = tokio::sync::broadcast::channel::<ConfigChangeEvent>(16);
-        let _ = |producer: Arc<KafkaProducer>| {
-            let uc = UpdateConfigUseCase::new_with_kafka_and_watch(
-                Arc::new(MockConfigRepository::new()),
-                producer,
-                tx,
-            );
-            assert!(uc.kafka_producer.is_some());
-            assert!(uc.watch_sender.is_some());
-        };
-        // 型チェックのみ（実際のKafka接続は統合テストで確認）
     }
 
     #[tokio::test]

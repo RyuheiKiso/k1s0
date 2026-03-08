@@ -73,7 +73,7 @@ members = [
 ]
 
 [workspace.package]
-rust-version = "1.88"
+rust-version = "1.93"
 
 [profile.dev]
 debug = 1

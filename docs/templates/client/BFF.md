@@ -385,7 +385,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /app/server ./cmd/main.go
 
 # === Runtime Stage ===
-FROM gcr.io/distroless/static-debian12
+FROM debian:bookworm-slim
 
 COPY --from=builder /app/server /server
 COPY --from=builder /app/config /config
@@ -712,7 +712,7 @@ upstream:
 
 ```dockerfile
 # === Build Stage ===
-FROM rust:1.88-bookworm AS builder
+FROM rust:1.93-bookworm AS builder
 
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
@@ -722,7 +722,7 @@ COPY . .
 RUN cargo build --release
 
 # === Runtime Stage ===
-FROM gcr.io/distroless/cc-debian12
+FROM debian:bookworm-slim
 
 COPY --from=builder /app/target/release/{{ service_name }}-bff /server
 COPY --from=builder /app/config /config

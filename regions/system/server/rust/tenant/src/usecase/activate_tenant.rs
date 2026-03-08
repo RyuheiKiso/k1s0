@@ -4,6 +4,7 @@ use uuid::Uuid;
 use crate::domain::entity::{Tenant, TenantStatus};
 use crate::domain::repository::TenantRepository;
 use crate::domain::service::TenantDomainService;
+use crate::usecase::watch_tenant::TenantChangeEvent;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ActivateTenantError {
@@ -17,11 +18,20 @@ pub enum ActivateTenantError {
 
 pub struct ActivateTenantUseCase {
     tenant_repo: Arc<dyn TenantRepository>,
+    watch_sender: Option<tokio::sync::broadcast::Sender<TenantChangeEvent>>,
 }
 
 impl ActivateTenantUseCase {
     pub fn new(tenant_repo: Arc<dyn TenantRepository>) -> Self {
-        Self { tenant_repo }
+        Self {
+            tenant_repo,
+            watch_sender: None,
+        }
+    }
+
+    pub fn with_watch_sender(mut self, sender: tokio::sync::broadcast::Sender<TenantChangeEvent>) -> Self {
+        self.watch_sender = Some(sender);
+        self
     }
 
     pub async fn execute(&self, tenant_id: Uuid) -> Result<Tenant, ActivateTenantError> {
@@ -45,6 +55,17 @@ impl ActivateTenantUseCase {
             .update(&tenant)
             .await
             .map_err(|e| ActivateTenantError::Internal(e.to_string()))?;
+
+        if let Some(sender) = &self.watch_sender {
+            let _ = sender.send(TenantChangeEvent {
+                tenant_id: tenant.id.to_string(),
+                change_type: "ACTIVATED".to_string(),
+                tenant_name: tenant.name.clone(),
+                tenant_display_name: tenant.display_name.clone(),
+                tenant_status: tenant.status.as_str().to_string(),
+                tenant_plan: tenant.plan.as_str().to_string(),
+            });
+        }
 
         Ok(tenant)
     }

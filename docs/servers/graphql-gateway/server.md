@@ -217,7 +217,7 @@ type Subscription {
   configChanged(namespaces: [String!] = []): ConfigEntry!
 }
 
-> `Subscription` の現在実装は 5 秒間隔ポーリング。Kafka 等のイベント駆動への移行は TODO。
+> `Subscription` は全サブスクリプション（`configChanged` / `tenantUpdated` / `featureFlagChanged`）で gRPC Server-Side Streaming を使用したイベント駆動方式で実装済み。
 
 type Tenant {
   id: ID!

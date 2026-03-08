@@ -1,5 +1,5 @@
 use crate::adapter::handler::error::from_anyhow;
-use crate::adapter::handler::{actor_from_claims, publish_category_event, AppState};
+use crate::adapter::handler::{actor_from_claims, AppState};
 use crate::domain::entity::master_category::{CreateMasterCategory, UpdateMasterCategory};
 use axum::{
     extract::{Extension, Path, Query, State},
@@ -90,20 +90,6 @@ pub async fn create_category(
         .create_category(&input, &actor)
         .await
         .map_err(from_anyhow)?;
-    publish_category_event(
-        &state,
-        serde_json::json!({
-            "event_type": "DOMAIN_MASTER_CATEGORY_CHANGED",
-            "resource_type": "master_category",
-            "resource_id": category.id,
-            "resource_code": category.code,
-            "action": "created",
-            "actor": actor,
-            "after": category.clone(),
-            "timestamp": chrono::Utc::now().to_rfc3339(),
-        }),
-    )
-    .await;
     Ok((
         StatusCode::CREATED,
         Json(serde_json::to_value(category).unwrap()),
@@ -113,11 +99,13 @@ pub async fn create_category(
 pub async fn update_category(
     State(state): State<AppState>,
     Path(code): Path<String>,
+    claims: Option<Extension<Claims>>,
     Json(input): Json<UpdateMasterCategory>,
 ) -> Result<Json<serde_json::Value>, ServiceError> {
+    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let category = state
         .manage_categories_uc
-        .update_category(&code, &input)
+        .update_category(&code, &actor, &input)
         .await
         .map_err(from_anyhow)?;
     Ok(Json(serde_json::to_value(category).unwrap()))
@@ -126,10 +114,12 @@ pub async fn update_category(
 pub async fn delete_category(
     State(state): State<AppState>,
     Path(code): Path<String>,
+    claims: Option<Extension<Claims>>,
 ) -> Result<StatusCode, ServiceError> {
+    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     state
         .manage_categories_uc
-        .delete_category(&code)
+        .delete_category(&code, &actor)
         .await
         .map_err(from_anyhow)?;
     Ok(StatusCode::NO_CONTENT)

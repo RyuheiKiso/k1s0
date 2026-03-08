@@ -1,16 +1,21 @@
 ---
-source: tests/snapshot_tests.rs
+source: crates/k1s0-cli/tests/snapshot_tests.rs
 expression: sorted
 ---
 - ".prettierrc"
 - Dockerfile
 - README.md
+- config-schema.yaml
 - eslint.config.mjs
+- navigation.yaml
 - nginx.conf
 - package.json
 - src/app/App.tsx
+- src/config/__generated__/config-types.ts
 - src/lib/api-client.ts
 - src/lib/query-client.ts
+- src/navigation/__generated__/component-registry.ts
+- src/navigation/__generated__/route-types.ts
 - tests/App.test.tsx
 - tests/testutil/msw-setup.ts
 - tests/testutil/setup.ts

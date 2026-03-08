@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
       - run: cargo fmt --all -- --check
@@ -140,7 +140,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
       - run: cargo test --all
 
   test-go:
@@ -679,7 +679,7 @@ jobs:
           - 9092:9092
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88
+      - uses: dtolnay/rust-toolchain@1.93
       - name: Initialize database schemas
         run: |
           for sql in infra/docker/init-db/*.sql; do

@@ -9,6 +9,7 @@ pub mod list_tenants;
 pub mod remove_member;
 pub mod suspend_tenant;
 pub mod update_tenant;
+pub mod watch_tenant;
 
 pub use activate_tenant::{ActivateTenantError, ActivateTenantUseCase};
 pub use add_member::{AddMemberError, AddMemberInput, AddMemberUseCase};
@@ -21,3 +22,4 @@ pub use list_tenants::{ListTenantsError, ListTenantsUseCase};
 pub use remove_member::{RemoveMemberError, RemoveMemberUseCase};
 pub use suspend_tenant::{SuspendTenantError, SuspendTenantUseCase};
 pub use update_tenant::{UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase};
+pub use watch_tenant::{TenantChangeEvent, WatchTenantUseCase};

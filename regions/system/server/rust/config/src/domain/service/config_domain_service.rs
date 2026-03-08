@@ -2,20 +2,12 @@
 #[derive(Debug)]
 pub enum DomainError {
     InvalidNamespace(String),
-    VersionConflict { expected: i32, actual: i32 },
 }
 
 impl std::fmt::Display for DomainError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidNamespace(ns) => write!(f, "Invalid namespace format: {}", ns),
-            Self::VersionConflict { expected, actual } => {
-                write!(
-                    f,
-                    "Version conflict: expected {}, actual {}",
-                    expected, actual
-                )
-            }
         }
     }
 }
@@ -47,21 +39,6 @@ impl ConfigDomainService {
         }
         Ok(())
     }
-
-    /// Validate version for optimistic concurrency control.
-    pub fn validate_version(
-        &self,
-        current_version: i32,
-        expected_version: i32,
-    ) -> Result<(), DomainError> {
-        if current_version != expected_version {
-            return Err(DomainError::VersionConflict {
-                expected: expected_version,
-                actual: current_version,
-            });
-        }
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -86,7 +63,6 @@ mod tests {
             DomainError::InvalidNamespace(msg) => {
                 assert!(msg.contains("at least 2 segments"));
             }
-            _ => unreachable!(),
         }
     }
 
@@ -99,27 +75,7 @@ mod tests {
             DomainError::InvalidNamespace(msg) => {
                 assert!(msg.contains("Invalid tier"));
             }
-            _ => unreachable!(),
         }
     }
 
-    #[test]
-    fn test_validate_version_ok() {
-        let svc = ConfigDomainService::new();
-        assert!(svc.validate_version(3, 3).is_ok());
-    }
-
-    #[test]
-    fn test_validate_version_conflict() {
-        let svc = ConfigDomainService::new();
-        let result = svc.validate_version(4, 3);
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            DomainError::VersionConflict { expected, actual } => {
-                assert_eq!(expected, 3);
-                assert_eq!(actual, 4);
-            }
-            _ => unreachable!(),
-        }
-    }
 }

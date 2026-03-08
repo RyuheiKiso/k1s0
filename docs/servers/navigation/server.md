@@ -21,7 +21,7 @@
 | ルートガード | AUTH_REQUIRED / ROLE_REQUIRED / REDIRECT_IF_AUTHENTICATED の3種のガードを定義 |
 | 階層ルーティング | 子ルート（`children`）をサポートした再帰的なルート構造 |
 | ページ遷移アニメーション | Fade / Slide / Modal の遷移アニメーション設定を含む |
-| 未認証アクセス | `bearer_token` 省略時は公開ルートのみ返す |
+| 未認証アクセス | `bearer_token` 省略時は公開ルートのみ返す。無効トークンは 401 を返す |
 
 ### 技術スタック
 
@@ -41,14 +41,15 @@
 
 ### REST API エンドポイント
 
-navigation-server の REST は運用用エンドポイントのみを提供する。  
-ナビゲーション本体の取得 API は gRPC (`GetNavigation`) を正とする。
+navigation-server の REST は運用用エンドポイントに加えて、クライアント直接利用向けの
+`GET /api/v1/navigation` も提供する。gRPC (`GetNavigation`) は内部連携用の正規 API とする。
 
 | Method | Path | Description |
 | --- | --- | --- |
 | GET | `/healthz` | ヘルスチェック |
 | GET | `/readyz` | レディネスチェック |
 | GET | `/metrics` | Prometheus メトリクス |
+| GET | `/api/v1/navigation` | Bearer トークンを元にフィルタ済みナビゲーションを返す。トークン省略時は公開ルートのみ、無効トークンは 401 |
 
 ### gRPC サービス定義
 
@@ -172,7 +173,7 @@ GetNavigationRequest {
 
 ### 認証あり（ロールベースフィルタリング）
 
-`bearer_token` を指定した場合、サーバーはトークンからロールを抽出し、アクセス可能なルートおよびガード定義を返す。
+`bearer_token` を指定した場合、サーバーはトークンからロールを抽出し、アクセス可能なルートおよびガード定義を返す。検証に失敗した場合は REST では 401、gRPC では `Unauthenticated` を返す。
 
 ```protobuf
 // リクエスト例（認証済み）

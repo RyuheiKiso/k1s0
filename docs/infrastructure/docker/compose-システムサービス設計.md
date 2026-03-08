@@ -14,7 +14,7 @@ system tier のアプリケーションサーバーは `docker-compose.override.
 | --- | --- |
 | サービス名 | `auth-rust` |
 | ビルドコンテキスト | `./regions/system/server/rust/auth` |
-| Dockerfile | マルチステージビルド（`rust:1.88-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
+| Dockerfile | マルチステージビルド（`rust:1.93-bookworm` → `debian:bookworm-slim`） |
 | プロファイル | `system` |
 | ポート | REST `8083:8080` / gRPC `50052:50051` |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
@@ -54,7 +54,7 @@ auth-rust:
 | --- | --- |
 | サービス名 | `config-rust` |
 | ビルドコンテキスト | `./regions/system/server/rust/config` |
-| Dockerfile | マルチステージビルド（`rust:1.88-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
+| Dockerfile | マルチステージビルド（`rust:1.93-bookworm` → `debian:bookworm-slim`） |
 | プロファイル | `system` |
 | ポート | REST `8084:8080` / gRPC `50054:50051` |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
@@ -94,7 +94,7 @@ config-rust:
 | --- | --- |
 | サービス名 | `saga-rust` |
 | ビルドコンテキスト | `./regions/system/server/rust/saga` |
-| Dockerfile | マルチステージビルド（`rust:1.88-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
+| Dockerfile | マルチステージビルド（`rust:1.93-bookworm` → `debian:bookworm-slim`） |
 | プロファイル | `system` |
 | ポート | REST `8085:8080` / gRPC `50055:50051` |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
@@ -136,7 +136,7 @@ DLQ（Dead Letter Queue）メッセージの管理・再処理を担う REST API
 | --- | --- |
 | サービス名 | `dlq-manager` |
 | ビルドコンテキスト | `./regions/system/server/rust/dlq-manager` |
-| Dockerfile | マルチステージビルド（`rust:1.88-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
+| Dockerfile | マルチステージビルド（`rust:1.93-bookworm` → `debian:bookworm-slim`） |
 | プロファイル | `system` |
 | ポート | REST `8086:8080`（gRPC なし） |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy） |
@@ -529,7 +529,7 @@ plugins:
 ```dockerfile
 # regions/system/server/rust/auth/Dockerfile
 # Build stage
-FROM rust:1.88-bookworm AS builder
+FROM rust:1.93-bookworm AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler cmake build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -540,7 +540,7 @@ COPY . .
 RUN touch src/main.rs && cargo build --release
 
 # Runtime stage
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM debian:bookworm-slim
 COPY --from=builder /app/target/release/k1s0-auth-server /k1s0-auth-server
 USER nonroot:nonroot
 EXPOSE 8080 50051
@@ -549,8 +549,8 @@ ENTRYPOINT ["/k1s0-auth-server"]
 
 | 項目 | 設定 |
 | --- | --- |
-| ビルドイメージ | `rust:1.88-bookworm` |
-| ランタイムイメージ | `gcr.io/distroless/cc-debian12:nonroot`（C/C++ ランタイム含む） |
+| ビルドイメージ | `rust:1.93-bookworm` |
+| ランタイムイメージ | `debian:bookworm-slim`（C/C++ ランタイム含む） |
 | 追加パッケージ | `protobuf-compiler`（tonic-build）, `cmake` + `build-essential`（rdkafka） |
 | 依存キャッシュ | ダミー `main.rs` で依存クレートを先にビルド |
 | 実行ユーザー | `nonroot:nonroot` |

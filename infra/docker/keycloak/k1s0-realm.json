@@ -35,6 +35,18 @@
   "roles": {
     "realm": [
       {
+        "name": "biz_admin",
+        "description": "Business tier full access"
+      },
+      {
+        "name": "biz_operator",
+        "description": "Business tier read/write access"
+      },
+      {
+        "name": "biz_auditor",
+        "description": "Business tier read-only access"
+      },
+      {
         "name": "user",
         "description": "Default user role",
         "composite": false
@@ -291,8 +303,34 @@
             "access.token.claim": "true",
             "userinfo.token.claim": "false"
           }
+        },
+        {
+          "name": "k1s0-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "k1s0-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "multivalued": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
         }
-      ]
+      ],
+      "serviceAccountsEnabled": true,
+      "serviceAccountClientId": "k1s0-service",
+      "defaultRoles": ["biz_admin"]
     }
   ],
   "clientScopes": [
@@ -311,6 +349,16 @@
             "access.token.claim": "true",
             "id.token.claim": "true",
             "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "k1s0-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "k1s0-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
           }
         }
       ]

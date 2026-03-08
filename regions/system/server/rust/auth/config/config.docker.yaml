@@ -36,5 +36,11 @@ audit:
   kafka_enabled: false
   retention_days: 30
 
+keycloak:
+  base_url: "http://keycloak:8080"
+  realm: "k1s0"
+  client_id: "k1s0-service"
+  client_secret: "dev-service-secret"
+
 keycloak_admin:
   token_cache_ttl_secs: 60

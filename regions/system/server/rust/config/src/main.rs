@@ -45,9 +45,20 @@ async fn main() -> anyhow::Result<()> {
         app_name = %cfg.app.name,
         version = %cfg.app.version,
         environment = %cfg.app.environment,
+        host = %cfg.server.host,
+        metrics_enabled = cfg.observability.metrics.enabled,
+        metrics_path = %cfg.observability.metrics.path,
         read_timeout = %cfg.server.read_timeout,
         write_timeout = %cfg.server.write_timeout,
         shutdown_timeout = %cfg.server.shutdown_timeout,
+        cache_refresh_on_miss = cfg.config_server.cache.refresh_on_miss,
+        namespace_default_prefix = %cfg.config_server.namespace.default_prefix,
+        namespace_allowed_tiers = ?cfg.config_server.namespace.allowed_tiers,
+        namespace_max_depth = cfg.config_server.namespace.max_depth,
+        audit_enabled = cfg.config_server.audit.enabled,
+        audit_retention_days = cfg.config_server.audit.retention_days,
+        audit_kafka_enabled = cfg.config_server.audit.kafka_enabled,
+        audit_kafka_topic = %cfg.config_server.audit.kafka_topic,
         "starting config server"
     );
 
@@ -60,8 +71,21 @@ async fn main() -> anyhow::Result<()> {
         Arc<dyn domain::repository::ConfigSchemaRepository>,
     ) = if let Ok(database_url) = std::env::var("DATABASE_URL") {
         info!("connecting to PostgreSQL...");
+        if let Some(db_cfg) = cfg.database.as_ref() {
+            info!(
+                max_open_conns = db_cfg.max_open_conns,
+                max_idle_conns = db_cfg.max_idle_conns,
+                conn_max_lifetime = %db_cfg.conn_max_lifetime,
+                "database pool options loaded from config"
+            );
+        }
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(cfg.database.as_ref().map_or(25, |db| db.max_open_conns))
+            .max_lifetime(
+                cfg.database
+                    .as_ref()
+                    .and_then(|db| parse_duration(&db.conn_max_lifetime)),
+            )
             .connect(&database_url)
             .await?;
         info!("connected to PostgreSQL");
@@ -99,8 +123,15 @@ async fn main() -> anyhow::Result<()> {
         )
     } else if let Some(ref db_cfg) = cfg.database {
         info!("connecting to PostgreSQL via config...");
+        info!(
+            max_open_conns = db_cfg.max_open_conns,
+            max_idle_conns = db_cfg.max_idle_conns,
+            conn_max_lifetime = %db_cfg.conn_max_lifetime,
+            "database pool options loaded from config"
+        );
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(db_cfg.max_open_conns)
+            .max_lifetime(parse_duration(&db_cfg.conn_max_lifetime))
             .connect(&db_cfg.connection_url())
             .await?;
         info!("connected to PostgreSQL");
@@ -146,6 +177,12 @@ async fn main() -> anyhow::Result<()> {
 
     // Kafka producer (optional)
     let kafka_producer = cfg.kafka.as_ref().and_then(|kafka_cfg| {
+        info!(
+            brokers = ?kafka_cfg.brokers,
+            consumer_group = %kafka_cfg.consumer_group,
+            subscribe_topics = ?kafka_cfg.topics.subscribe,
+            "configuring kafka producer"
+        );
         match infrastructure::kafka_producer::KafkaProducer::new(kafka_cfg) {
             Ok(p) => {
                 info!("kafka producer initialized for config change notifications");
@@ -162,7 +199,8 @@ async fn main() -> anyhow::Result<()> {
     });
 
     // --- WatchConfig (broadcast channel) ---
-    let (_watch_uc, watch_tx) = usecase::WatchConfigUseCase::new();
+    let watch_uc = Arc::new(usecase::watch_config::WatchConfigUseCase::new());
+    let watch_tx = watch_uc.sender();
     info!("watch config broadcast channel initialized");
 
     // --- gRPC Service ---
@@ -197,7 +235,7 @@ async fn main() -> anyhow::Result<()> {
             get_service_config_uc,
             update_config_uc_grpc,
             delete_config_uc,
-            watch_tx.clone(),
+            watch_uc.clone(),
         )
         .with_schema_usecases(get_config_schema_uc, upsert_config_schema_uc),
     );
@@ -224,44 +262,23 @@ async fn main() -> anyhow::Result<()> {
     )?;
 
     // AppState (REST handler 逕ｨ) - Kafka騾夂衍莉倥″縺ｧ讒狗ｯ・
-    let mut state = adapter::handler::AppState {
-        get_config_uc: std::sync::Arc::new(usecase::GetConfigUseCase::new(config_repo.clone())),
-        list_configs_uc: std::sync::Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone())),
-        update_config_uc: if let Some(ref producer) = kafka_producer {
-            std::sync::Arc::new(
-                usecase::UpdateConfigUseCase::new_with_kafka_and_watch(
-                    config_repo.clone(),
-                    producer.clone(),
-                    watch_tx.clone(),
-                )
+    let mut state = adapter::handler::AppState::new(config_repo.clone(), schema_repo.clone());
+    state.update_config_uc = if let Some(ref producer) = kafka_producer {
+        std::sync::Arc::new(
+            usecase::UpdateConfigUseCase::new_with_kafka_and_watch(
+                config_repo.clone(),
+                producer.clone(),
+                watch_tx.clone(),
+            )
+            .with_schema_repo(schema_repo.clone()),
+        )
+    } else {
+        std::sync::Arc::new(
+            usecase::UpdateConfigUseCase::new_with_watch(config_repo.clone(), watch_tx.clone())
                 .with_schema_repo(schema_repo.clone()),
-            )
-        } else {
-            std::sync::Arc::new(
-                usecase::UpdateConfigUseCase::new_with_watch(config_repo.clone(), watch_tx.clone())
-                    .with_schema_repo(schema_repo.clone()),
-            )
-        },
-        delete_config_uc: std::sync::Arc::new(usecase::DeleteConfigUseCase::new(
-            config_repo.clone(),
-        )),
-        get_service_config_uc: std::sync::Arc::new(usecase::GetServiceConfigUseCase::new(
-            config_repo.clone(),
-        )),
-        get_config_schema_uc: std::sync::Arc::new(usecase::GetConfigSchemaUseCase::new(
-            schema_repo.clone(),
-        )),
-        list_config_schemas_uc: std::sync::Arc::new(usecase::ListConfigSchemasUseCase::new(
-            schema_repo.clone(),
-        )),
-        upsert_config_schema_uc: std::sync::Arc::new(usecase::UpsertConfigSchemaUseCase::new(
-            schema_repo,
-        )),
-        metrics: metrics.clone(),
-        config_repo: config_repo.clone(),
-        kafka_configured: false,
-        auth_state: None,
+        )
     };
+    state.metrics = metrics.clone();
     if kafka_producer.is_some() {
         state = state.with_kafka();
     }
@@ -273,7 +290,7 @@ async fn main() -> anyhow::Result<()> {
     let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
+    let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
     info!("gRPC server starting on {}", grpc_addr);
 
     use proto::k1s0::system::config::v1::config_service_server::ConfigServiceServer;
@@ -289,7 +306,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // REST server
-    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port).parse()?;
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
@@ -322,7 +339,6 @@ use domain::entity::config_entry::{
 };
 use domain::entity::config_schema::ConfigSchema;
 use tokio::sync::RwLock;
-use uuid::Uuid;
 
 /// InMemoryConfigRepository 縺ｯ髢狗匱逕ｨ縺ｮ繧､繝ｳ繝｡繝｢繝ｪ險ｭ螳壹Μ繝昴ず繝医Μ縲・
 struct InMemoryConfigRepository {
@@ -391,12 +407,6 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
                 has_next,
             },
         })
-    }
-
-    async fn create(&self, entry: &ConfigEntry) -> anyhow::Result<ConfigEntry> {
-        let mut entries = self.entries.write().await;
-        entries.push(entry.clone());
-        Ok(entry.clone())
     }
 
     async fn update(
@@ -476,19 +486,6 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
         Ok(())
     }
 
-    async fn list_change_logs(
-        &self,
-        _namespace: &str,
-        _key: &str,
-    ) -> anyhow::Result<Vec<ConfigChangeLog>> {
-        // In-memory: 遨ｺ繝ｪ繧ｹ繝医ｒ霑斐☆・磯幕逋ｺ逕ｨ・・
-        Ok(vec![])
-    }
-
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>> {
-        let entries = self.entries.read().await;
-        Ok(entries.iter().find(|e| e.id == *id).cloned())
-    }
 }
 
 /// InMemoryConfigSchemaRepository 縺ｯ髢狗匱逕ｨ縺ｮ繧､繝ｳ繝｡繝｢繝ｪ險ｭ螳壹せ繧ｭ繝ｼ繝槭Μ繝昴ず繝医Μ縲・
@@ -546,4 +543,39 @@ impl domain::repository::ConfigSchemaRepository for InMemoryConfigSchemaReposito
             Ok(schema.clone())
         }
     }
+}
+
+fn parse_duration(raw: &str) -> Option<std::time::Duration> {
+    let trimmed = raw.trim();
+
+    if let Some(value) = trimmed.strip_suffix("ms") {
+        return value
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(std::time::Duration::from_millis);
+    }
+    if let Some(value) = trimmed.strip_suffix('s') {
+        return value
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(std::time::Duration::from_secs);
+    }
+    if let Some(value) = trimmed.strip_suffix('m') {
+        return value
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(|mins| std::time::Duration::from_secs(mins * 60));
+    }
+    if let Some(value) = trimmed.strip_suffix('h') {
+        return value
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(|hours| std::time::Duration::from_secs(hours * 60 * 60));
+    }
+
+    trimmed.parse::<u64>().ok().map(std::time::Duration::from_secs)
 }

@@ -1,19 +1,37 @@
 {% if has_database %}
-use sqlx::{{ database_type }}::{{ database_type | title }}Pool;
-use sqlx::{{ database_type }}::{{ database_type | title }}PoolOptions;
+{% if database_type == "postgresql" %}
+use sqlx::postgres::PgPool;
+use sqlx::postgres::PgPoolOptions;
+{% elif database_type == "mysql" %}
+use sqlx::mysql::MySqlPool;
+use sqlx::mysql::MySqlPoolOptions;
+{% elif database_type == "sqlite" %}
+use sqlx::sqlite::SqlitePool;
+use sqlx::sqlite::SqlitePoolOptions;
+{% endif %}
 use async_trait::async_trait;
-use std::time::Duration;
 
 use crate::domain::model::{{ service_name_pascal }}Entity;
 use crate::domain::repository::{{ service_name_pascal }}Repository;
 use crate::infra::config::DatabaseConfig;
 
-pub type DbPool = {{ database_type | title }}Pool;
+{% if database_type == "postgresql" %}
+pub type DbPool = PgPool;
+{% elif database_type == "mysql" %}
+pub type DbPool = MySqlPool;
+{% elif database_type == "sqlite" %}
+pub type DbPool = SqlitePool;
+{% endif %}
 
 pub async fn create_pool(cfg: &DatabaseConfig) -> anyhow::Result<DbPool> {
-    let pool = {{ database_type | title }}PoolOptions::new()
-        .max_connections(cfg.pool.max_open)
-        .idle_timeout(Duration::from_secs(cfg.pool.max_lifetime_sec))
+{% if database_type == "postgresql" %}
+    let pool = PgPoolOptions::new()
+{% elif database_type == "mysql" %}
+    let pool = MySqlPoolOptions::new()
+{% elif database_type == "sqlite" %}
+    let pool = SqlitePoolOptions::new()
+{% endif %}
+        .max_connections(cfg.max_open_conns)
         .connect(&cfg.connection_string())
         .await?;
     Ok(pool)

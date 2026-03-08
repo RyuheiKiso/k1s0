@@ -1,4 +1,5 @@
 import type React from 'react';
+import { parse as parseYaml } from 'yaml';
 import type {
   NavigationResponse,
   NavigationRoute,
@@ -49,8 +50,12 @@ export class NavigationInterpreter {
   }
 
   private parseNavigation(text: string): NavigationResponse {
-    // JSON format supported; YAML requires js-yaml (not in dependencies)
-    return JSON.parse(text) as NavigationResponse;
+    const trimmed = text.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      return JSON.parse(trimmed) as NavigationResponse;
+    }
+
+    return parseYaml(trimmed) as NavigationResponse;
   }
 
   private buildRouter(nav: NavigationResponse): RouterResult {

@@ -1,5 +1,5 @@
 use crate::adapter::handler::error::from_anyhow;
-use crate::adapter::handler::{actor_from_claims, publish_item_event, AppState};
+use crate::adapter::handler::{actor_from_claims, AppState};
 use crate::domain::entity::master_item::{CreateMasterItem, UpdateMasterItem};
 use axum::{
     extract::{Extension, Path, Query, State},
@@ -59,20 +59,6 @@ pub async fn create_item(
         .create_item(&category_code, &input, &actor)
         .await
         .map_err(from_anyhow)?;
-    publish_item_event(
-        &state,
-        serde_json::json!({
-            "event_type": "DOMAIN_MASTER_ITEM_CHANGED",
-            "resource_type": "master_item",
-            "resource_id": item.id,
-            "resource_code": item.code,
-            "action": "created",
-            "actor": actor,
-            "after": item.clone(),
-            "timestamp": chrono::Utc::now().to_rfc3339(),
-        }),
-    )
-    .await;
     Ok((
         StatusCode::CREATED,
         Json(serde_json::to_value(item).unwrap()),
@@ -97,10 +83,12 @@ pub async fn update_item(
 pub async fn delete_item(
     State(state): State<AppState>,
     Path((category_code, item_code)): Path<(String, String)>,
+    claims: Option<Extension<Claims>>,
 ) -> Result<StatusCode, ServiceError> {
+    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     state
         .manage_items_uc
-        .delete_item(&category_code, &item_code)
+        .delete_item(&category_code, &item_code, &actor)
         .await
         .map_err(from_anyhow)?;
     Ok(StatusCode::NO_CONTENT)

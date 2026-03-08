@@ -36,14 +36,14 @@ impl VersionRepository for VersionPostgresRepository {
         Ok(row.map(|r| r.0).unwrap_or(0))
     }
 
-    async fn create(
+    async fn create<'a>(
         &self,
         item_id: Uuid,
         version_number: i32,
         before_data: Option<serde_json::Value>,
         after_data: Option<serde_json::Value>,
-        changed_by: &str,
-        change_reason: Option<&str>,
+        changed_by: &'a str,
+        change_reason: Option<&'a str>,
     ) -> anyhow::Result<MasterItemVersion> {
         let row = sqlx::query_as::<_, VersionRow>(
             r#"INSERT INTO domain_master.master_item_versions
