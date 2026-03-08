@@ -20,9 +20,14 @@ type PostgresLock struct {
 	db        *sql.DB
 	keyPrefix string
 	mu          sync.Mutex
-	// activeConns は Acquire で取得したコネクションをキー別に保持する。
-	// Release 時に同一コネクションで pg_advisory_unlock を実行するために必要。
-	activeConns map[string]*sql.Conn
+	// activeLocks は Acquire で取得したコネクションとトークンをキー別に保持する。
+	// Release 時に同一コネクションで pg_advisory_unlock を実行し、トークンを検証するために必要。
+	activeLocks map[string]activeLock
+}
+
+type activeLock struct {
+	conn  *sql.Conn
+	token string
 }
 
 // PostgresLockOption は PostgresLock の設定オプション。
@@ -40,7 +45,7 @@ func NewPostgresLock(db *sql.DB, opts ...PostgresLockOption) *PostgresLock {
 	l := &PostgresLock{
 		db:          db,
 		keyPrefix:   "lock",
-		activeConns: make(map[string]*sql.Conn),
+		activeLocks: make(map[string]activeLock),
 	}
 	for _, opt := range opts {
 		opt(l)
@@ -89,9 +94,9 @@ func (l *PostgresLock) Acquire(ctx context.Context, key string, _ time.Duration)
 		return nil, ErrAlreadyLocked
 	}
 
-	// ロック取得に成功したら、Release 用にコネクションを保持する
+	// ロック取得に成功したら、Release 用にコネクションとトークンを保持する
 	l.mu.Lock()
-	l.activeConns[fullKey] = conn
+	l.activeLocks[fullKey] = activeLock{conn: conn, token: token}
 	l.mu.Unlock()
 
 	return &LockGuard{Key: key, Token: token}, nil
@@ -102,18 +107,22 @@ func (l *PostgresLock) Release(ctx context.Context, guard *LockGuard) error {
 	fullKey := l.lockKey(guard.Key)
 
 	l.mu.Lock()
-	conn, ok := l.activeConns[fullKey]
+	entry, ok := l.activeLocks[fullKey]
 	if !ok {
 		l.mu.Unlock()
 		return ErrLockNotFound
 	}
-	delete(l.activeConns, fullKey)
+	if entry.token != guard.Token {
+		l.mu.Unlock()
+		return ErrTokenMismatch
+	}
+	delete(l.activeLocks, fullKey)
 	l.mu.Unlock()
 
-	defer conn.Close()
+	defer entry.conn.Close()
 
 	var released bool
-	err := conn.QueryRowContext(ctx, "SELECT pg_advisory_unlock(hashtext($1))", fullKey).Scan(&released)
+	err := entry.conn.QueryRowContext(ctx, "SELECT pg_advisory_unlock(hashtext($1))", fullKey).Scan(&released)
 	if err != nil {
 		return err
 	}

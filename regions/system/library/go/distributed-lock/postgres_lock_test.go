@@ -34,7 +34,7 @@ func TestNewPostgresLock_WithDB(t *testing.T) {
 	l := NewPostgresLock(nil)
 	assert.NotNil(t, l)
 	assert.Nil(t, l.db)
-	assert.NotNil(t, l.activeConns)
+	assert.NotNil(t, l.activeLocks)
 }
 
 func TestNewPostgresLock_ImplementsInterface(t *testing.T) {
@@ -70,9 +70,22 @@ func TestPostgresLock_Release_NotAcquired(t *testing.T) {
 	assert.ErrorIs(t, err, ErrLockNotFound)
 }
 
-func TestPostgresLock_ActiveConns_Initialized(t *testing.T) {
+func TestPostgresLock_ActiveLocks_Initialized(t *testing.T) {
 	l := NewPostgresLock(nil)
-	assert.Empty(t, l.activeConns)
+	assert.Empty(t, l.activeLocks)
+}
+
+func TestPostgresLock_Release_TokenMismatch(t *testing.T) {
+	l := NewPostgresLock(nil)
+	// activeLocks にエントリを直接設定してトークン検証をテスト
+	l.activeLocks["lock:key1"] = activeLock{conn: nil, token: "correct-token"}
+
+	wrongGuard := &LockGuard{Key: "key1", Token: "wrong-token"}
+	err := l.Release(context.Background(), wrongGuard)
+	assert.ErrorIs(t, err, ErrTokenMismatch)
+
+	// トークン不一致の場合、ロックは解放されない
+	assert.Contains(t, l.activeLocks, "lock:key1")
 }
 
 // setupPostgresLock は接続不能な DB を使ったテストセットアップ。
