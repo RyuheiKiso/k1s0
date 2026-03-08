@@ -3,6 +3,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::domain::entity::config_schema::ConfigSchema;
+use crate::proto::k1s0::system::common::v1::Timestamp as ProtoTimestamp;
+use crate::proto::k1s0::system::config::v1 as pb;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "lowercase")]
@@ -110,49 +112,22 @@ pub struct UpsertConfigSchemaRequestDto {
 
 impl UpsertConfigSchemaRequestDto {
     pub fn into_schema_json(self) -> Value {
-        let categories = self
-            .categories
-            .into_iter()
-            .map(|category| {
-                let fields = category
-                    .fields
-                    .into_iter()
-                    .map(|field| {
-                        serde_json::json!({
-                            "key": field.key,
-                            "label": field.label,
-                            "description": field.description,
-                            "type": field.field_type,
-                            "min": field.min,
-                            "max": field.max,
-                            "options": field.options,
-                            "pattern": field.pattern,
-                            "unit": field.unit,
-                            "default": field.default,
-                        })
-                    })
-                    .collect::<Vec<_>>();
-
-                serde_json::json!({
-                    "id": category.id,
-                    "label": category.label,
-                    "icon": category.icon,
-                    "namespaces": category.namespaces,
-                    "fields": fields,
-                })
-            })
-            .collect::<Vec<_>>();
-
-        serde_json::json!({ "categories": categories })
+        categories_to_schema_json(self.categories)
     }
 }
 
-impl TryFrom<&ConfigSchema> for ConfigEditorSchemaDto {
-    type Error = anyhow::Error;
+impl ConfigEditorSchemaDto {
+    pub fn into_schema_json(self) -> Value {
+        categories_to_schema_json(self.categories)
+    }
 
-    fn try_from(schema: &ConfigSchema) -> Result<Self, Self::Error> {
-        let categories = schema
-            .schema_json
+    pub fn from_schema_json(
+        service: String,
+        namespace_prefix: String,
+        schema_json: &Value,
+        updated_at: Option<DateTime<Utc>>,
+    ) -> Result<Self, anyhow::Error> {
+        let categories = schema_json
             .get("categories")
             .and_then(Value::as_array)
             .ok_or_else(|| anyhow::anyhow!("schema_json.categories must be an array"))?
@@ -161,11 +136,72 @@ impl TryFrom<&ConfigSchema> for ConfigEditorSchemaDto {
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Self {
+            service,
+            namespace_prefix,
+            categories,
+            updated_at,
+        })
+    }
+
+    pub fn from_pb(schema: &pb::ConfigEditorSchema) -> Result<Self, anyhow::Error> {
+        Ok(Self {
             service: schema.service_name.clone(),
             namespace_prefix: schema.namespace_prefix.clone(),
-            categories,
-            updated_at: Some(schema.updated_at),
+            categories: schema
+                .categories
+                .iter()
+                .map(ConfigCategorySchemaDto::from_pb)
+                .collect::<Result<Vec<_>, _>>()?,
+            updated_at: schema.updated_at.as_ref().and_then(proto_timestamp_to_datetime),
         })
+    }
+
+    pub fn to_pb(&self) -> pb::ConfigEditorSchema {
+        pb::ConfigEditorSchema {
+            service_name: self.service.clone(),
+            namespace_prefix: self.namespace_prefix.clone(),
+            categories: self.categories.iter().map(ConfigCategorySchemaDto::to_pb).collect(),
+            updated_at: self.updated_at.map(datetime_to_proto_timestamp),
+        }
+    }
+}
+
+impl TryFrom<&ConfigSchema> for ConfigEditorSchemaDto {
+    type Error = anyhow::Error;
+
+    fn try_from(schema: &ConfigSchema) -> Result<Self, Self::Error> {
+        Self::from_schema_json(
+            schema.service_name.clone(),
+            schema.namespace_prefix.clone(),
+            &schema.schema_json,
+            Some(schema.updated_at),
+        )
+    }
+}
+
+impl ConfigCategorySchemaDto {
+    fn from_pb(category: &pb::ConfigCategorySchema) -> Result<Self, anyhow::Error> {
+        Ok(Self {
+            id: category.id.clone(),
+            label: category.label.clone(),
+            icon: category.icon.clone(),
+            namespaces: category.namespaces.clone(),
+            fields: category
+                .fields
+                .iter()
+                .map(ConfigFieldSchemaDto::from_pb)
+                .collect::<Result<Vec<_>, _>>()?,
+        })
+    }
+
+    fn to_pb(&self) -> pb::ConfigCategorySchema {
+        pb::ConfigCategorySchema {
+            id: self.id.clone(),
+            label: self.label.clone(),
+            icon: self.icon.clone(),
+            namespaces: self.namespaces.clone(),
+            fields: self.fields.iter().map(ConfigFieldSchemaDto::to_pb).collect(),
+        }
     }
 }
 
@@ -239,6 +275,86 @@ impl TryFrom<&Value> for ConfigFieldSchemaDto {
                 .unwrap_or(Value::Null),
         })
     }
+}
+
+impl ConfigFieldSchemaDto {
+    fn from_pb(field: &pb::ConfigFieldSchema) -> Result<Self, anyhow::Error> {
+        Ok(Self {
+            key: field.key.clone(),
+            label: field.label.clone(),
+            description: field.description.clone(),
+            field_type: ConfigFieldType::from_legacy_number(field.r#type as i64)
+                .ok_or_else(|| anyhow::anyhow!("field type is invalid"))?,
+            min: field.min,
+            max: field.max,
+            options: field.options.clone(),
+            pattern: field.pattern.clone(),
+            unit: field.unit.clone(),
+            default: serde_json::from_slice::<Value>(&field.default_value).unwrap_or(Value::Null),
+        })
+    }
+
+    fn to_pb(&self) -> pb::ConfigFieldSchema {
+        pb::ConfigFieldSchema {
+            key: self.key.clone(),
+            label: self.label.clone(),
+            description: self.description.clone(),
+            r#type: self.field_type.to_legacy_number(),
+            min: self.min,
+            max: self.max,
+            options: self.options.clone(),
+            pattern: self.pattern.clone(),
+            unit: self.unit.clone(),
+            default_value: serde_json::to_vec(&self.default).unwrap_or_default(),
+        }
+    }
+}
+
+fn categories_to_schema_json(categories: Vec<ConfigCategorySchemaDto>) -> Value {
+    let categories = categories
+        .into_iter()
+        .map(|category| {
+            let fields = category
+                .fields
+                .into_iter()
+                .map(|field| {
+                    serde_json::json!({
+                        "key": field.key,
+                        "label": field.label,
+                        "description": field.description,
+                        "type": field.field_type,
+                        "min": field.min,
+                        "max": field.max,
+                        "options": field.options,
+                        "pattern": field.pattern,
+                        "unit": field.unit,
+                        "default": field.default,
+                    })
+                })
+                .collect::<Vec<_>>();
+
+            serde_json::json!({
+                "id": category.id,
+                "label": category.label,
+                "icon": category.icon,
+                "namespaces": category.namespaces,
+                "fields": fields,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    serde_json::json!({ "categories": categories })
+}
+
+fn datetime_to_proto_timestamp(value: DateTime<Utc>) -> ProtoTimestamp {
+    ProtoTimestamp {
+        seconds: value.timestamp(),
+        nanos: value.timestamp_subsec_nanos() as i32,
+    }
+}
+
+fn proto_timestamp_to_datetime(value: &ProtoTimestamp) -> Option<DateTime<Utc>> {
+    DateTime::<Utc>::from_timestamp(value.seconds, value.nanos as u32)
 }
 
 fn required_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, anyhow::Error> {
@@ -330,5 +446,44 @@ mod tests {
         assert_eq!(json["categories"][0]["fields"][0]["type"], "boolean");
         assert_eq!(json["categories"][0]["fields"][0]["default"], true);
         assert!(json["categories"][0]["fields"][0].get("default_value").is_none());
+    }
+
+    #[test]
+    fn pb_schema_roundtrip_uses_shared_conversion() {
+        let pb_schema = pb::ConfigEditorSchema {
+            service_name: "order-service".to_string(),
+            namespace_prefix: "service.order".to_string(),
+            categories: vec![pb::ConfigCategorySchema {
+                id: "database".to_string(),
+                label: "Database".to_string(),
+                icon: "storage".to_string(),
+                namespaces: vec!["service.order.database".to_string()],
+                fields: vec![pb::ConfigFieldSchema {
+                    key: "timeout".to_string(),
+                    label: "Timeout".to_string(),
+                    description: String::new(),
+                    r#type: 2,
+                    min: 1,
+                    max: 300,
+                    options: vec![],
+                    pattern: String::new(),
+                    unit: "ms".to_string(),
+                    default_value: serde_json::to_vec(&serde_json::json!(30)).unwrap(),
+                }],
+            }],
+            updated_at: Some(ProtoTimestamp {
+                seconds: 1_709_251_200,
+                nanos: 0,
+            }),
+        };
+
+        let dto = ConfigEditorSchemaDto::from_pb(&pb_schema).unwrap();
+        assert_eq!(dto.service, "order-service");
+        assert_eq!(dto.categories[0].fields[0].field_type, ConfigFieldType::Integer);
+        assert_eq!(dto.categories[0].fields[0].default, serde_json::json!(30));
+
+        let converted = dto.to_pb();
+        assert_eq!(converted.service_name, "order-service");
+        assert_eq!(converted.categories[0].fields[0].r#type, 2);
     }
 }

@@ -59,6 +59,8 @@ system tier の設定管理サーバーは以下の機能を提供する。
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
 
 > `GET /api/v1/config-schema` は登録済みサービスの設定スキーマ一覧を返す。
+> REST の schema API は公開 DTO を返し、永続化モデルの `service_name` / `schema_json` / `updated_by` はそのまま露出しない。
+> REST の schema upsert は canonical 形式として `categories[].fields[].type` に文字列型、デフォルト値に `default` を使う。旧形式の数値 `type` と `default_value` は互換入力として受け付け、保存時に正規化する。
 
 #### GET /api/v1/config-schema
 
@@ -69,43 +71,33 @@ system tier の設定管理サーバーは以下の機能を提供する。
 ```json
 [
   {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "service_name": "auth",
+    "service": "auth",
     "namespace_prefix": "system.auth",
-    "schema_json": {
-      "categories": [
-        {
-          "id": "jwt",
-          "label": "JWT Settings",
-          "fields": [
-            { "key": "jwt.issuer", "label": "Issuer", "type": "string" },
-            { "key": "jwt.audience", "label": "Audience", "type": "string" }
-          ]
-        }
-      ]
-    },
-    "updated_by": "admin@example.com",
-    "created_at": "2026-03-01T00:00:00Z",
+    "categories": [
+      {
+        "id": "jwt",
+        "label": "JWT Settings",
+        "fields": [
+          { "key": "jwt.issuer", "label": "Issuer", "type": "string" },
+          { "key": "jwt.audience", "label": "Audience", "type": "string" }
+        ]
+      }
+    ],
     "updated_at": "2026-03-01T00:00:00Z"
   },
   {
-    "id": "660e8400-e29b-41d4-a716-446655440111",
-    "service_name": "notification",
+    "service": "notification",
     "namespace_prefix": "system.notification",
-    "schema_json": {
-      "categories": [
-        {
-          "id": "general",
-          "label": "General",
-          "fields": [
-            { "key": "provider", "label": "Provider", "type": "string" },
-            { "key": "retry.max_attempts", "label": "Max Retry Attempts", "type": "integer" }
-          ]
-        }
-      ]
-    },
-    "updated_by": "admin@example.com",
-    "created_at": "2026-03-02T00:00:00Z",
+    "categories": [
+      {
+        "id": "general",
+        "label": "General",
+        "fields": [
+          { "key": "provider", "label": "Provider", "type": "string" },
+          { "key": "retry.max_attempts", "label": "Max Retry Attempts", "type": "integer" }
+        ]
+      }
+    ],
     "updated_at": "2026-03-02T00:00:00Z"
   }
 ]
@@ -712,10 +704,10 @@ config_server:
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `id` | string (UUID) | 設定スキーマの一意識別子 |
-| `service_name` | string | サービス名（例: `auth-server`） |
+| `service_name` | string | サービス名（例: `auth-server`）。永続化モデル・gRPC で使用 |
 | `namespace_prefix` | string | namespace の接頭辞（例: `system.auth`） |
-| `schema_json` | JSON | 設定エディタスキーマ（カテゴリ・フィールド定義を含む JSON） |
-| `updated_by` | string | 最終更新者 |
+| `schema_json` | JSON | 設定エディタスキーマ。永続化時は `categories` を内包した JSON として保持 |
+| `updated_by` | string | 最終更新者。REST レスポンスには含めない |
 | `created_at` | timestamp | 作成日時 |
 | `updated_at` | timestamp | 最終更新日時 |
 
@@ -797,7 +789,7 @@ config_server:
 
 
 ### 2026-03-03 追補
-- REST の schema upsert は schema_json（フラット JSON）を受け取る。
+- REST の schema upsert は `categories` を直接受け取り、`updated_by` はトークンから自動取得する。
 - gRPC の schema upsert は ConfigEditorSchema（構造化メッセージ）を受け取る。
 ---
 

@@ -230,6 +230,46 @@ impl ConfigSchemaRepository for TestConfigSchemaRepository {
     }
 }
 
+struct StaticConfigSchemaRepository {
+    schemas: Vec<ConfigSchema>,
+}
+
+impl StaticConfigSchemaRepository {
+    fn new(schemas: Vec<ConfigSchema>) -> Self {
+        Self { schemas }
+    }
+}
+
+#[async_trait]
+impl ConfigSchemaRepository for StaticConfigSchemaRepository {
+    async fn find_by_service_name(
+        &self,
+        service_name: &str,
+    ) -> anyhow::Result<Option<ConfigSchema>> {
+        Ok(self
+            .schemas
+            .iter()
+            .find(|schema| schema.service_name == service_name)
+            .cloned())
+    }
+
+    async fn find_by_namespace(&self, namespace: &str) -> anyhow::Result<Option<ConfigSchema>> {
+        Ok(self
+            .schemas
+            .iter()
+            .find(|schema| namespace.starts_with(&schema.namespace_prefix))
+            .cloned())
+    }
+
+    async fn list_all(&self) -> anyhow::Result<Vec<ConfigSchema>> {
+        Ok(self.schemas.clone())
+    }
+
+    async fn upsert(&self, schema: &ConfigSchema) -> anyhow::Result<ConfigSchema> {
+        Ok(schema.clone())
+    }
+}
+
 fn make_app_with_entries(entries: Vec<ConfigEntry>) -> axum::Router {
     let repo = Arc::new(TestConfigRepository::with_entries(entries));
     let schema_repo = Arc::new(TestConfigSchemaRepository);
@@ -242,6 +282,38 @@ fn make_empty_app() -> axum::Router {
     let schema_repo = Arc::new(TestConfigSchemaRepository);
     let state = AppState::new(repo, schema_repo);
     router(state)
+}
+
+fn make_app_with_schemas(schemas: Vec<ConfigSchema>) -> axum::Router {
+    let repo = Arc::new(TestConfigRepository::new());
+    let schema_repo = Arc::new(StaticConfigSchemaRepository::new(schemas));
+    let state = AppState::new(repo, schema_repo);
+    router(state)
+}
+
+fn make_test_schema(service_name: &str, namespace_prefix: &str) -> ConfigSchema {
+    ConfigSchema {
+        id: Uuid::new_v4(),
+        service_name: service_name.to_string(),
+        namespace_prefix: namespace_prefix.to_string(),
+        schema_json: serde_json::json!({
+            "categories": [{
+                "id": "database",
+                "label": "Database",
+                "icon": "storage",
+                "namespaces": [format!("{}.database", namespace_prefix)],
+                "fields": [{
+                    "key": "max_connections",
+                    "label": "Max Connections",
+                    "type": 2,
+                    "default_value": 25
+                }]
+            }]
+        }),
+        updated_by: "admin@example.com".to_string(),
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    }
 }
 
 #[tokio::test]
@@ -336,6 +408,59 @@ async fn test_list_configs_with_pagination() {
     assert_eq!(json["entries"].as_array().unwrap().len(), 2);
     assert_eq!(json["pagination"]["total_count"], 3);
     assert_eq!(json["pagination"]["has_next"], true);
+}
+
+#[tokio::test]
+async fn test_get_config_schema_returns_public_dto_contract() {
+    let app = make_app_with_schemas(vec![make_test_schema("auth-server", "system.auth")]);
+
+    let req = Request::builder()
+        .uri("/api/v1/config-schema/auth-server")
+        .body(Body::empty())
+        .unwrap();
+
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(json["service"], "auth-server");
+    assert_eq!(json["namespace_prefix"], "system.auth");
+    assert_eq!(json["categories"][0]["fields"][0]["type"], "integer");
+    assert_eq!(json["categories"][0]["fields"][0]["default"], 25);
+    assert!(json.get("service_name").is_none());
+    assert!(json.get("schema_json").is_none());
+    assert!(json.get("updated_by").is_none());
+}
+
+#[tokio::test]
+async fn test_list_config_schemas_returns_public_dto_contract() {
+    let app = make_app_with_schemas(vec![
+        make_test_schema("auth-server", "system.auth"),
+        make_test_schema("notification-server", "system.notification"),
+    ]);
+
+    let req = Request::builder()
+        .uri("/api/v1/config-schema")
+        .body(Body::empty())
+        .unwrap();
+
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(json.as_array().unwrap().len(), 2);
+    assert_eq!(json[0]["service"], "auth-server");
+    assert_eq!(json[1]["service"], "notification-server");
+    assert!(json[0].get("service_name").is_none());
+    assert!(json[0].get("schema_json").is_none());
 }
 
 #[tokio::test]

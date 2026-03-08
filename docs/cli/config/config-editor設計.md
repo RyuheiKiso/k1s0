@@ -289,21 +289,19 @@ rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaRes
 ```json
 {
   "namespace_prefix": "service.order",
-  "schema_json": {
-    "categories": [
-      {
-        "id": "database",
-        "label": "データベース",
-        "icon": "storage",
-        "namespaces": ["service.order.database"],
-        "fields": [...]
-      }
-    ]
-  }
+  "categories": [
+    {
+      "id": "database",
+      "label": "データベース",
+      "icon": "storage",
+      "namespaces": ["service.order.database"],
+      "fields": [...]
+    }
+  ]
 }
 ```
 
-> **注意**: gRPC の `UpsertConfigSchemaRequest` とは異なるフィールド構成。REST では `service_name` をパスパラメータで渡し、`updated_by` はトークンから自動取得する。
+> **注意**: gRPC の `UpsertConfigSchemaRequest` とは異なるフィールド構成。REST では `service_name` をパスパラメータで渡し、`updated_by` はトークンから自動取得する。REST の canonical 形式は `categories[].fields[].type` が文字列、デフォルト値は `default` である。
 
 ---
 
