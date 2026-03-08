@@ -35,6 +35,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[allow(dead_code)]
     pub fn new(
         config_repo: Arc<dyn ConfigRepository>,
         schema_repo: Arc<dyn crate::domain::repository::ConfigSchemaRepository>,

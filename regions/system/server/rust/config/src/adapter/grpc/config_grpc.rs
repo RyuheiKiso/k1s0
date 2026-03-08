@@ -44,6 +44,7 @@ pub struct ConfigGrpcService {
 }
 
 impl ConfigGrpcService {
+    #[allow(dead_code)]
     pub fn new(
         get_config_uc: Arc<GetConfigUseCase>,
         list_configs_uc: Arc<ListConfigsUseCase>,

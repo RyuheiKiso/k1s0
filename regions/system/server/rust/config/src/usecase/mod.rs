@@ -16,4 +16,4 @@ pub use list_config_schemas::ListConfigSchemasUseCase;
 pub use list_configs::ListConfigsUseCase;
 pub use update_config::UpdateConfigUseCase;
 pub use upsert_config_schema::UpsertConfigSchemaUseCase;
-pub use watch_config::{ConfigChangeEvent, WatchConfigUseCase};
+pub use watch_config::WatchConfigUseCase;

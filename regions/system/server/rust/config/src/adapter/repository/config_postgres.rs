@@ -32,6 +32,7 @@ impl ConfigPostgresRepository {
     }
 
     /// テストやマイグレーション用にプールへの参照を返す。
+    #[allow(dead_code)]
     pub fn pool(&self) -> &PgPool {
         &self.pool
     }
