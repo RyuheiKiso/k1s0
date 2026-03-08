@@ -20,6 +20,8 @@ k1s0-config = { path = "{{ system_library_rust_path }}/config" }
 k1s0-telemetry = { path = "{{ system_library_rust_path }}/telemetry", features = ["axum-layer"] }
 k1s0-auth = { path = "{{ system_library_rust_path }}/auth" }
 {% endif %}
+async-trait = "0.1"
+anyhow = "1"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 thiserror = "2"

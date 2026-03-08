@@ -1,6 +1,6 @@
 # Build stage
 # Note: build context must be ./regions (to include system library dependencies)
-FROM rust:1.88-bookworm AS builder
+FROM rust:1.93-bookworm AS builder
 
 # Install protobuf compiler (for tonic-build in build.rs) and
 # cmake + build-essential (for rdkafka cmake-build feature)

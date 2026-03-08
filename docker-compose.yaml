@@ -239,6 +239,7 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -265,6 +266,7 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -290,6 +292,7 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -314,6 +317,7 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -336,6 +340,7 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -360,6 +365,7 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -384,6 +390,7 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -399,8 +406,8 @@ services:
 
   graphql-gateway-rust:
     build:
-      context: ./regions/system
-      dockerfile: ./server/rust/graphql-gateway/Dockerfile
+      context: .
+      dockerfile: ./regions/system/server/rust/graphql-gateway/Dockerfile
     profiles: [system]
     ports:
       - "${GRAPHQL_GW_HOST_PORT:-8092}:8080"
