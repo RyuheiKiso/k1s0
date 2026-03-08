@@ -22,7 +22,7 @@ pub async fn create_relationship(
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let relationship = state
         .manage_relationships_uc
-        .create_relationship(&input, &actor)
+        .create_relationship(&input, &actor, None)
         .await?;
     publish_change_event(
         &state,
@@ -72,7 +72,7 @@ pub async fn get_related_records(
 ) -> Result<Json<serde_json::Value>, AppError> {
     let related = state
         .manage_relationships_uc
-        .get_related_records(&name, &id)
+        .get_related_records(&name, &id, None)
         .await?;
     Ok(Json(related))
 }

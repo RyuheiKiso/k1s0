@@ -14,7 +14,7 @@ pub async fn list_display_configs(
 ) -> Result<Json<serde_json::Value>, AppError> {
     let configs = state
         .manage_display_configs_uc
-        .list_display_configs(&name)
+        .list_display_configs(&name, None)
         .await?;
     Ok(Json(serde_json::to_value(configs).unwrap()))
 }
@@ -45,7 +45,7 @@ pub async fn create_display_config(
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let config = state
         .manage_display_configs_uc
-        .create_display_config(&name, &input, &actor)
+        .create_display_config(&name, &input, &actor, None)
         .await?;
     publish_change_event(
         &state,

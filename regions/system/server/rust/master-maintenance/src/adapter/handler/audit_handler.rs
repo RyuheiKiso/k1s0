@@ -23,6 +23,7 @@ pub async fn list_table_audit_logs(
             &name,
             query.page.unwrap_or(1),
             query.page_size.unwrap_or(20),
+            None,
         )
         .await?;
     Ok(Json(serde_json::json!({ "logs": logs, "total": total })))
@@ -40,6 +41,7 @@ pub async fn list_record_audit_logs(
             &id,
             query.page.unwrap_or(1),
             query.page_size.unwrap_or(20),
+            None,
         )
         .await?;
     Ok(Json(serde_json::json!({ "logs": logs, "total": total })))

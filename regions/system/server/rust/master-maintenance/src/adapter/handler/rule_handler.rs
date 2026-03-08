@@ -27,6 +27,7 @@ pub async fn list_rules(
             query.table.as_deref(),
             query.rule_type.as_deref(),
             query.severity.as_deref(),
+            None,
         )
         .await?;
     Ok(Json(serde_json::to_value(rules).unwrap()))
@@ -50,7 +51,7 @@ pub async fn create_rule(
     Json(input): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
-    let rule = state.manage_rules_uc.create_rule(&input, &actor).await?;
+    let rule = state.manage_rules_uc.create_rule(&input, &actor, None).await?;
     publish_change_event(
         &state,
         serde_json::json!({
@@ -76,7 +77,7 @@ pub async fn update_rule(
     Path(id): Path<uuid::Uuid>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let rule = state.manage_rules_uc.update_rule(id, &input).await?;
+    let rule = state.manage_rules_uc.update_rule(id, &input, None).await?;
     Ok(Json(serde_json::to_value(rule).unwrap()))
 }
 
@@ -92,7 +93,7 @@ pub async fn execute_rule(
     State(state): State<AppState>,
     Path(id): Path<uuid::Uuid>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let result = state.check_consistency_uc.execute_rule(id).await?;
+    let result = state.check_consistency_uc.execute_rule(id, None).await?;
     Ok(Json(serde_json::to_value(result).unwrap()))
 }
 
@@ -108,7 +109,7 @@ pub async fn check_rules(
         })?;
     let result = state
         .check_consistency_uc
-        .check_all_rules(table_name)
+        .check_all_rules(table_name, None)
         .await?;
     Ok(Json(serde_json::to_value(result).unwrap()))
 }

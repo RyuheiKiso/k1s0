@@ -19,7 +19,7 @@ pub async fn import_records(
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let job = state
         .import_export_uc
-        .import_records(&name, &data, &actor)
+        .import_records(&name, &data, &actor, None)
         .await?;
     publish_change_event(
         &state,
@@ -80,7 +80,7 @@ pub async fn import_records_file(
 
     let job = state
         .import_export_uc
-        .import_records_from_file(&name, &file_name, &file_content, &actor)
+        .import_records_from_file(&name, &file_name, &file_content, &actor, None)
         .await?;
     publish_change_event(
         &state,
@@ -109,7 +109,7 @@ pub async fn export_records(
 ) -> Result<impl IntoResponse, AppError> {
     let result = state
         .import_export_uc
-        .export_records(&name, query.format.as_deref())
+        .export_records(&name, query.format.as_deref(), None)
         .await?;
 
     if matches!(query.format.as_deref(), Some("csv")) {
