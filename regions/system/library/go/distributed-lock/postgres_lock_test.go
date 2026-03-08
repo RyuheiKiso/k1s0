@@ -1,6 +1,7 @@
 package distributedlock
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 
@@ -24,17 +25,16 @@ func TestPostgresLock_DefaultPrefix(t *testing.T) {
 }
 
 func TestNewPostgresLockFromURL_InvalidURL(t *testing.T) {
-	// sql.Open は driver の登録がなければエラーになる
-	// lib/pq がインポートされていない状態では "unknown driver" エラー
+	// ドライバ未登録の場合 "unknown driver" エラーとなる
 	_, err := NewPostgresLockFromURL("postgres://localhost:5432/testdb")
 	require.Error(t, err)
 }
 
 func TestNewPostgresLock_WithDB(t *testing.T) {
-	// nil DB でも構造体は作成できる
 	l := NewPostgresLock(nil)
 	assert.NotNil(t, l)
 	assert.Nil(t, l.db)
+	assert.NotNil(t, l.activeConns)
 }
 
 func TestNewPostgresLock_ImplementsInterface(t *testing.T) {
@@ -52,30 +52,34 @@ func TestPostgresLock_LockKey_SpecialCharacters(t *testing.T) {
 }
 
 func TestNewPostgresLockFromURL_CustomPrefix(t *testing.T) {
-	// driver 未登録でエラーになるが、オプション適用前にエラーとなるので
-	// 別途構造体ベースのテストでオプション適用を確認
 	l := NewPostgresLock(nil, WithPostgresLockPrefix("custom"))
 	assert.Equal(t, "custom", l.keyPrefix)
 }
 
-// TestPostgresLock_FromRealDB は実際の *sql.DB を受け取るコンストラクタの動作を確認する。
-// ドライバなしの空 DB を使い、接続エラーの伝搬を検証する。
 func TestPostgresLock_Acquire_NilDB(t *testing.T) {
-	// nil DB での Acquire は panic するので recover で捕捉
 	l := NewPostgresLock(nil)
 	assert.Panics(t, func() {
-		_, _ = l.Acquire(t.Context(), "key1", 0)
+		_, _ = l.Acquire(context.Background(), "key1", 0)
 	})
+}
+
+func TestPostgresLock_Release_NotAcquired(t *testing.T) {
+	l := NewPostgresLock(nil)
+	guard := &LockGuard{Key: "missing", Token: "abc"}
+	err := l.Release(context.Background(), guard)
+	assert.ErrorIs(t, err, ErrLockNotFound)
+}
+
+func TestPostgresLock_ActiveConns_Initialized(t *testing.T) {
+	l := NewPostgresLock(nil)
+	assert.Empty(t, l.activeConns)
 }
 
 // setupPostgresLock は接続不能な DB を使ったテストセットアップ。
 func setupPostgresLock(t *testing.T) (*PostgresLock, func()) {
 	t.Helper()
-	// 実在しないアドレスへの接続で sql.DB を作成（ドライバ登録が必要）
-	// ドライバ未登録でも sql.Open は成功し、実際のクエリでエラーとなる
 	db, err := sql.Open("postgres", "postgres://invalid:5432/nonexistent?sslmode=disable")
 	if err != nil {
-		// ドライバ未登録の場合はスキップ
 		t.Skip("postgres driver not registered, skipping connection test")
 	}
 	l := NewPostgresLock(db)
@@ -86,16 +90,7 @@ func TestPostgresLock_Acquire_ConnectionError(t *testing.T) {
 	l, cleanup := setupPostgresLock(t)
 	defer cleanup()
 
-	_, err := l.Acquire(t.Context(), "key1", 0)
-	assert.Error(t, err)
-}
-
-func TestPostgresLock_Release_ConnectionError(t *testing.T) {
-	l, cleanup := setupPostgresLock(t)
-	defer cleanup()
-
-	guard := &LockGuard{Key: "key1", Token: "token"}
-	err := l.Release(t.Context(), guard)
+	_, err := l.Acquire(context.Background(), "key1", 0)
 	assert.Error(t, err)
 }
 
@@ -103,6 +98,6 @@ func TestPostgresLock_IsLocked_ConnectionError(t *testing.T) {
 	l, cleanup := setupPostgresLock(t)
 	defer cleanup()
 
-	_, err := l.IsLocked(t.Context(), "key1")
+	_, err := l.IsLocked(context.Background(), "key1")
 	assert.Error(t, err)
 }

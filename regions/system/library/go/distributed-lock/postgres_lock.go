@@ -3,16 +3,26 @@ package distributedlock
 import (
 	"context"
 	"database/sql"
+	"sync"
 	"time"
 )
 
 // PostgresLock は PostgreSQL advisory lock を使用した分散ロック実装。
 // pg_try_advisory_lock(hashtext(key)) で非ブロッキングにロックを取得し、
 // pg_advisory_unlock(hashtext(key)) で解放する。
-// advisory lock はセッションスコープのため、TTL はアプリケーション側で管理する。
+// advisory lock はセッション（コネクション）スコープのため、Acquire から Release まで
+// 同一コネクションを保持する。TTL はアプリケーション側で管理する。
+//
+// 注意: advisory lock はコネクション単位で保持されるため、Acquire で取得した
+// コネクションは Release まで占有される。高頻度で使用する場合は接続プールの
+// サイズに注意すること。
 type PostgresLock struct {
 	db        *sql.DB
 	keyPrefix string
+	mu          sync.Mutex
+	// activeConns は Acquire で取得したコネクションをキー別に保持する。
+	// Release 時に同一コネクションで pg_advisory_unlock を実行するために必要。
+	activeConns map[string]*sql.Conn
 }
 
 // PostgresLockOption は PostgresLock の設定オプション。
@@ -28,8 +38,9 @@ func WithPostgresLockPrefix(prefix string) PostgresLockOption {
 // NewPostgresLock は *sql.DB から新しい PostgresLock を生成する。
 func NewPostgresLock(db *sql.DB, opts ...PostgresLockOption) *PostgresLock {
 	l := &PostgresLock{
-		db:        db,
-		keyPrefix: "lock",
+		db:          db,
+		keyPrefix:   "lock",
+		activeConns: make(map[string]*sql.Conn),
 	}
 	for _, opt := range opts {
 		opt(l)
@@ -38,6 +49,7 @@ func NewPostgresLock(db *sql.DB, opts ...PostgresLockOption) *PostgresLock {
 }
 
 // NewPostgresLockFromURL は PostgreSQL 接続 URL から新しい PostgresLock を生成する。
+// 使用するには postgres ドライバ（github.com/lib/pq など）が登録されている必要がある。
 func NewPostgresLockFromURL(url string, opts ...PostgresLockOption) (*PostgresLock, error) {
 	db, err := sql.Open("postgres", url)
 	if err != nil {
@@ -54,29 +66,54 @@ func (l *PostgresLock) lockKey(key string) string {
 }
 
 // Acquire は advisory lock で非ブロッキングにロックを取得する。
-// TTL は advisory lock では無視される（セッション終了まで保持）。
+// TTL は advisory lock では無視される（コネクション終了まで保持）。
+// 取得したコネクションは Release まで保持される。
 func (l *PostgresLock) Acquire(ctx context.Context, key string, _ time.Duration) (*LockGuard, error) {
 	fullKey := l.lockKey(key)
 	token := generateToken()
 
-	var acquired bool
-	err := l.db.QueryRowContext(ctx, "SELECT pg_try_advisory_lock(hashtext($1))", fullKey).Scan(&acquired)
+	// 専用コネクションを取得し、advisory lock をそのコネクション上で保持する
+	conn, err := l.db.Conn(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	var acquired bool
+	err = conn.QueryRowContext(ctx, "SELECT pg_try_advisory_lock(hashtext($1))", fullKey).Scan(&acquired)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
 	if !acquired {
+		conn.Close()
 		return nil, ErrAlreadyLocked
 	}
+
+	// ロック取得に成功したら、Release 用にコネクションを保持する
+	l.mu.Lock()
+	l.activeConns[fullKey] = conn
+	l.mu.Unlock()
 
 	return &LockGuard{Key: key, Token: token}, nil
 }
 
-// Release は advisory lock を解放する。
+// Release は advisory lock を解放し、保持していたコネクションを返却する。
 func (l *PostgresLock) Release(ctx context.Context, guard *LockGuard) error {
 	fullKey := l.lockKey(guard.Key)
 
+	l.mu.Lock()
+	conn, ok := l.activeConns[fullKey]
+	if !ok {
+		l.mu.Unlock()
+		return ErrLockNotFound
+	}
+	delete(l.activeConns, fullKey)
+	l.mu.Unlock()
+
+	defer conn.Close()
+
 	var released bool
-	err := l.db.QueryRowContext(ctx, "SELECT pg_advisory_unlock(hashtext($1))", fullKey).Scan(&released)
+	err := conn.QueryRowContext(ctx, "SELECT pg_advisory_unlock(hashtext($1))", fullKey).Scan(&released)
 	if err != nil {
 		return err
 	}
@@ -88,6 +125,7 @@ func (l *PostgresLock) Release(ctx context.Context, guard *LockGuard) error {
 }
 
 // IsLocked は advisory lock が保持されているか確認する。
+// この確認は任意のコネクションで実行可能（pg_locks ビューの参照のため）。
 func (l *PostgresLock) IsLocked(ctx context.Context, key string) (bool, error) {
 	fullKey := l.lockKey(key)
 
