@@ -103,7 +103,7 @@ pub async fn update_order_status(
     let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
     let id = parse_uuid(&order_id)?;
 
-    let new_status = OrderStatus::from_str(&body.status).map_err(|_| {
+    let new_status = body.status.parse::<OrderStatus>().map_err(|_| {
         ServiceError::BadRequest {
             code: k1s0_server_common::error::ErrorCode::new("SVC_ORDER_VALIDATION_FAILED"),
             message: format!("invalid order status: '{}'", body.status),
@@ -139,7 +139,7 @@ pub async fn list_orders(
     Query(query): Query<ListOrdersQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
     let status = match &query.status {
-        Some(s) => Some(OrderStatus::from_str(s).map_err(|_| ServiceError::BadRequest {
+        Some(s) => Some(s.parse::<OrderStatus>().map_err(|_| ServiceError::BadRequest {
             code: k1s0_server_common::error::ErrorCode::new("SVC_ORDER_VALIDATION_FAILED"),
             message: format!("invalid order status: '{}'", s),
             details: vec![],

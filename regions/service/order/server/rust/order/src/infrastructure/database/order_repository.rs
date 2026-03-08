@@ -22,16 +22,15 @@ impl OrderPostgresRepository {
 #[async_trait]
 impl OrderRepository for OrderPostgresRepository {
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<Order>> {
-        let row = sqlx::query_as!(
-            OrderRow,
+        let row = sqlx::query_as::<_, OrderRow>(
             r#"
             SELECT id, customer_id, status, total_amount, currency, notes,
                    created_by, updated_by, version, created_at, updated_at
             FROM orders
             WHERE id = $1
             "#,
-            id
         )
+        .bind(id)
         .fetch_optional(&self.pool)
         .await?;
 
@@ -39,8 +38,7 @@ impl OrderRepository for OrderPostgresRepository {
     }
 
     async fn find_items_by_order_id(&self, order_id: Uuid) -> anyhow::Result<Vec<OrderItem>> {
-        let rows = sqlx::query_as!(
-            OrderItemRow,
+        let rows = sqlx::query_as::<_, OrderItemRow>(
             r#"
             SELECT id, order_id, product_id, product_name, quantity, unit_price,
                    subtotal, created_at
@@ -48,8 +46,8 @@ impl OrderRepository for OrderPostgresRepository {
             WHERE order_id = $1
             ORDER BY created_at ASC
             "#,
-            order_id
         )
+        .bind(order_id)
         .fetch_all(&self.pool)
         .await?;
 
@@ -61,8 +59,7 @@ impl OrderRepository for OrderPostgresRepository {
         let limit = filter.limit.unwrap_or(50);
         let offset = filter.offset.unwrap_or(0);
 
-        let rows = sqlx::query_as!(
-            OrderRow,
+        let rows = sqlx::query_as::<_, OrderRow>(
             r#"
             SELECT id, customer_id, status, total_amount, currency, notes,
                    created_by, updated_by, version, created_at, updated_at
@@ -72,11 +69,11 @@ impl OrderRepository for OrderPostgresRepository {
             ORDER BY created_at DESC
             LIMIT $3 OFFSET $4
             "#,
-            filter.customer_id,
-            status_str,
-            limit,
-            offset
         )
+        .bind(&filter.customer_id)
+        .bind(&status_str)
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.pool)
         .await?;
 
@@ -86,20 +83,20 @@ impl OrderRepository for OrderPostgresRepository {
     async fn count(&self, filter: &OrderFilter) -> anyhow::Result<i64> {
         let status_str = filter.status.as_ref().map(|s| s.as_str().to_string());
 
-        let row = sqlx::query_scalar!(
+        let row: (i64,) = sqlx::query_as(
             r#"
-            SELECT COUNT(*) as "count!"
+            SELECT COUNT(*)
             FROM orders
             WHERE ($1::text IS NULL OR customer_id = $1)
               AND ($2::text IS NULL OR status = $2)
             "#,
-            filter.customer_id,
-            status_str
         )
+        .bind(&filter.customer_id)
+        .bind(&status_str)
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(row)
+        Ok(row.0)
     }
 
     async fn create(
@@ -113,45 +110,43 @@ impl OrderRepository for OrderPostgresRepository {
         let order_id = Uuid::new_v4();
         let now = Utc::now();
 
-        let order_row = sqlx::query_as!(
-            OrderRow,
+        let order_row = sqlx::query_as::<_, OrderRow>(
             r#"
             INSERT INTO orders (id, customer_id, status, total_amount, currency, notes, created_by, version, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, $9)
             RETURNING id, customer_id, status, total_amount, currency, notes, created_by, updated_by, version, created_at, updated_at
             "#,
-            order_id,
-            input.customer_id,
-            OrderStatus::Pending.as_str(),
-            total_amount,
-            input.currency,
-            input.notes,
-            created_by,
-            now,
-            now
         )
+        .bind(order_id)
+        .bind(&input.customer_id)
+        .bind(OrderStatus::Pending.as_str())
+        .bind(total_amount)
+        .bind(&input.currency)
+        .bind(&input.notes)
+        .bind(created_by)
+        .bind(now)
+        .bind(now)
         .fetch_one(&mut *tx)
         .await?;
 
         let mut items = Vec::with_capacity(input.items.len());
         for item_input in &input.items {
             let subtotal = item_input.quantity as i64 * item_input.unit_price;
-            let item_row = sqlx::query_as!(
-                OrderItemRow,
+            let item_row = sqlx::query_as::<_, OrderItemRow>(
                 r#"
                 INSERT INTO order_items (id, order_id, product_id, product_name, quantity, unit_price, subtotal, created_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING id, order_id, product_id, product_name, quantity, unit_price, subtotal, created_at
                 "#,
-                Uuid::new_v4(),
-                order_id,
-                item_input.product_id,
-                item_input.product_name,
-                item_input.quantity,
-                item_input.unit_price,
-                subtotal,
-                now
             )
+            .bind(Uuid::new_v4())
+            .bind(order_id)
+            .bind(&item_input.product_id)
+            .bind(&item_input.product_name)
+            .bind(item_input.quantity)
+            .bind(item_input.unit_price)
+            .bind(subtotal)
+            .bind(now)
             .fetch_one(&mut *tx)
             .await?;
             items.push(OrderItem::from(item_row));
@@ -186,18 +181,18 @@ impl OrderRepository for OrderPostgresRepository {
             "currency": input.currency,
         });
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             "#,
-            Uuid::new_v4(),
-            "Order",
-            order_id.to_string(),
-            "order.created",
-            outbox_payload,
-            now
         )
+        .bind(Uuid::new_v4())
+        .bind("Order")
+        .bind(order_id.to_string())
+        .bind("order.created")
+        .bind(&outbox_payload)
+        .bind(now)
         .execute(&mut *tx)
         .await?;
 
@@ -217,20 +212,19 @@ impl OrderRepository for OrderPostgresRepository {
         let mut tx = self.pool.begin().await?;
         let now = Utc::now();
 
-        let row = sqlx::query_as!(
-            OrderRow,
+        let row = sqlx::query_as::<_, OrderRow>(
             r#"
             UPDATE orders
             SET status = $2, updated_by = $3, version = version + 1, updated_at = $4
             WHERE id = $1 AND version = $5
             RETURNING id, customer_id, status, total_amount, currency, notes, created_by, updated_by, version, created_at, updated_at
             "#,
-            id,
-            status.as_str(),
-            updated_by,
-            now,
-            expected_version
         )
+        .bind(id)
+        .bind(status.as_str())
+        .bind(updated_by)
+        .bind(now)
+        .bind(expected_version)
         .fetch_optional(&mut *tx)
         .await?
         .ok_or_else(|| anyhow::anyhow!("Order '{}' not found or version conflict", id))?;
@@ -258,18 +252,18 @@ impl OrderRepository for OrderPostgresRepository {
             "total_amount": row.total_amount,
         });
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             "#,
-            Uuid::new_v4(),
-            "Order",
-            id.to_string(),
-            event_type,
-            outbox_payload,
-            now
         )
+        .bind(Uuid::new_v4())
+        .bind("Order")
+        .bind(id.to_string())
+        .bind(event_type)
+        .bind(&outbox_payload)
+        .bind(now)
         .execute(&mut *tx)
         .await?;
 
@@ -285,17 +279,17 @@ impl OrderRepository for OrderPostgresRepository {
         event_type: &str,
         payload: &serde_json::Value,
     ) -> anyhow::Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
             VALUES ($1, $2, $3, $4, $5, NOW())
             "#,
-            Uuid::new_v4(),
-            aggregate_type,
-            aggregate_id,
-            event_type,
-            payload
         )
+        .bind(Uuid::new_v4())
+        .bind(aggregate_type)
+        .bind(aggregate_id)
+        .bind(event_type)
+        .bind(payload)
         .execute(&self.pool)
         .await?;
 
@@ -303,8 +297,7 @@ impl OrderRepository for OrderPostgresRepository {
     }
 
     async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
-        let rows = sqlx::query_as!(
-            OutboxEventRow,
+        let rows = sqlx::query_as::<_, OutboxEventRow>(
             r#"
             SELECT id, aggregate_type, aggregate_id, event_type, payload,
                    created_at, published_at
@@ -313,8 +306,8 @@ impl OrderRepository for OrderPostgresRepository {
             ORDER BY created_at ASC
             LIMIT $1
             "#,
-            limit
         )
+        .bind(limit)
         .fetch_all(&self.pool)
         .await?;
 
@@ -322,14 +315,14 @@ impl OrderRepository for OrderPostgresRepository {
     }
 
     async fn mark_event_published(&self, event_id: Uuid) -> anyhow::Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE outbox_events
             SET published_at = NOW()
             WHERE id = $1
             "#,
-            event_id
         )
+        .bind(event_id)
         .execute(&self.pool)
         .await?;
 
@@ -339,11 +332,13 @@ impl OrderRepository for OrderPostgresRepository {
     async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
         let mut tx = self.pool.begin().await?;
 
-        sqlx::query!("DELETE FROM order_items WHERE order_id = $1", id)
+        sqlx::query("DELETE FROM order_items WHERE order_id = $1")
+            .bind(id)
             .execute(&mut *tx)
             .await?;
 
-        let result = sqlx::query!("DELETE FROM orders WHERE id = $1", id)
+        let result = sqlx::query("DELETE FROM orders WHERE id = $1")
+            .bind(id)
             .execute(&mut *tx)
             .await?;
 
@@ -358,6 +353,7 @@ impl OrderRepository for OrderPostgresRepository {
 
 // ── 内部 Row 型 ──
 
+#[derive(sqlx::FromRow)]
 struct OrderRow {
     id: Uuid,
     customer_id: String,
@@ -379,7 +375,7 @@ impl TryFrom<OrderRow> for Order {
         Ok(Self {
             id: row.id,
             customer_id: row.customer_id,
-            status: OrderStatus::from_str(&row.status)?,
+            status: row.status.parse::<OrderStatus>().map_err(|e| anyhow::anyhow!("{}", e))?,
             total_amount: row.total_amount,
             currency: row.currency,
             notes: row.notes,
@@ -392,6 +388,7 @@ impl TryFrom<OrderRow> for Order {
     }
 }
 
+#[derive(sqlx::FromRow)]
 struct OrderItemRow {
     id: Uuid,
     order_id: Uuid,
@@ -418,6 +415,7 @@ impl From<OrderItemRow> for OrderItem {
     }
 }
 
+#[derive(sqlx::FromRow)]
 struct OutboxEventRow {
     id: Uuid,
     aggregate_type: String,

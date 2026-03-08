@@ -26,11 +26,6 @@ impl OrderStatus {
         }
     }
 
-    pub fn from_str(s: &str) -> anyhow::Result<Self> {
-        s.parse::<Self>()
-            .map_err(|e| anyhow::anyhow!("{}", e))
-    }
-
     /// ステータス遷移が有効かどうかを検証する。
     pub fn can_transition_to(&self, next: &Self) -> bool {
         matches!(
@@ -140,14 +135,14 @@ mod tests {
         ];
         for status in statuses {
             let s = status.as_str();
-            let parsed = OrderStatus::from_str(s).unwrap();
+            let parsed: OrderStatus = s.parse().unwrap();
             assert_eq!(parsed, status);
         }
     }
 
     #[test]
     fn test_order_status_invalid() {
-        let result = OrderStatus::from_str("unknown");
+        let result = "unknown".parse::<OrderStatus>();
         assert!(result.is_err());
     }
 

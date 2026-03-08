@@ -34,7 +34,7 @@ pub enum BusinessRole {
 
 impl BusinessRole {
     /// ロール文字列からパースする。不明なロールは `None` を返す。
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse_role(s: &str) -> Option<Self> {
         match s {
             "biz_accounting_viewer" => Some(Self::BizAccountingViewer),
             "biz_accounting_manager" => Some(Self::BizAccountingManager),
@@ -84,7 +84,7 @@ pub fn highest_role(claims: &Claims) -> Option<BusinessRole> {
             access
                 .roles
                 .iter()
-                .filter_map(|r| BusinessRole::from_str(r))
+                .filter_map(|r| BusinessRole::parse_role(r))
                 .max()
         })
 }
@@ -169,18 +169,18 @@ mod tests {
     #[test]
     fn test_business_role_from_str() {
         assert_eq!(
-            BusinessRole::from_str("biz_accounting_viewer"),
+            BusinessRole::parse_role("biz_accounting_viewer"),
             Some(BusinessRole::BizAccountingViewer)
         );
         assert_eq!(
-            BusinessRole::from_str("biz_accounting_manager"),
+            BusinessRole::parse_role("biz_accounting_manager"),
             Some(BusinessRole::BizAccountingManager)
         );
         assert_eq!(
-            BusinessRole::from_str("biz_accounting_admin"),
+            BusinessRole::parse_role("biz_accounting_admin"),
             Some(BusinessRole::BizAccountingAdmin)
         );
-        assert_eq!(BusinessRole::from_str("unknown"), None);
+        assert_eq!(BusinessRole::parse_role("unknown"), None);
     }
 
     #[test]

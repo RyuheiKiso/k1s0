@@ -31,3 +31,6 @@ CREATE DATABASE tenant_db;
 
 -- vault-server 用DB
 CREATE DATABASE vault_db;
+
+-- order-server 用DB
+CREATE DATABASE k1s0_order;

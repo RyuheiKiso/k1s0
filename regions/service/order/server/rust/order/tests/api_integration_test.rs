@@ -260,7 +260,7 @@ async fn test_invalid_uuid_returns_400() {
         .unwrap();
     let err: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(err["error"]["code"], "SVC_ORDER_VALIDATION_FAILED");
-    assert!(err["error"]["details"].as_array().unwrap().len() > 0);
+    assert!(!err["error"]["details"].as_array().unwrap().is_empty());
 }
 
 #[tokio::test]
