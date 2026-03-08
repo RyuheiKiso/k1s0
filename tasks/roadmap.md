@@ -354,7 +354,7 @@ Phase 9 [3-5日] インフラ検証 + リリース準備
 | **M3: 認証が通る** | Keycloak JWT → auth サーバー → 保護された API にアクセス | 3 | ✅ 完了 |
 | **M4: 全部動く** | 22サーバー + bff-proxy 全て起動 | 4+8 | 未着手 |
 | **M5: 使える** | accounting domain-master が JWT + RBAC + DB で E2E 動作 | 6 | ✅ 完了 |
-| **M6: 配布できる** | CLI バイナリ公開、README の Quick Start を初見で完了可能 | 9 | 未着手 |
+| **M6: 配布できる** | CLI バイナリ公開、README の Quick Start を初見で完了可能 | 9 | ✅ 完了 |
 
 ---
 

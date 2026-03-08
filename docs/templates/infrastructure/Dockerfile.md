@@ -65,7 +65,7 @@ Rust サーバー用のマルチステージビルド Dockerfile。
 
 ```tera
 # Build stage
-FROM rust:1.88-bookworm AS builder
+FROM rust:1.93-bookworm AS builder
 
 WORKDIR /app
 
@@ -76,7 +76,7 @@ COPY . .
 RUN touch src/main.rs && cargo build --release
 
 # Runtime stage
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM debian:bookworm-slim
 
 COPY --from=builder /app/target/release/{{ service_name }} /{{ service_name }}
 
@@ -87,10 +87,10 @@ ENTRYPOINT ["/{{ service_name }}"]
 
 ### ポイント
 
-- `rust:1.88-bookworm` をビルドステージのベースイメージとして使用する
+- `rust:1.93-bookworm` をビルドステージのベースイメージとして使用する
 - ダミーの `main.rs` で事前に依存関係をビルドし、キャッシュを活用する
 - `--release` フラグで最適化ビルドを行う
-- ランタイムは `distroless/cc-debian12:nonroot` を使用する（Rust バイナリは `libc` が必要なため `cc` バリアントを使用）
+- ランタイムは `debian:bookworm-slim` を使用する
 - `USER nonroot:nonroot` で非特権ユーザーとして実行する
 
 ---
@@ -136,7 +136,7 @@ Rust BFF 用のマルチステージビルド Dockerfile。
 
 ```tera
 # Build stage
-FROM rust:1.88-bookworm AS builder
+FROM rust:1.93-bookworm AS builder
 
 WORKDIR /app
 
@@ -147,7 +147,7 @@ COPY . .
 RUN touch src/main.rs && cargo build --release
 
 # Runtime stage
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM debian:bookworm-slim
 
 COPY --from=builder /app/target/release/{{ service_name }} /{{ service_name }}
 
@@ -158,9 +158,9 @@ ENTRYPOINT ["/{{ service_name }}"]
 
 ### ポイント
 
-- `rust:1.88-bookworm` をビルドステージのベースイメージとして使用する
+- `rust:1.93-bookworm` をビルドステージのベースイメージとして使用する
 - ダミーの `main.rs` で依存関係を事前ビルドし、キャッシュを活用する
-- ランタイムは `distroless/cc-debian12:nonroot` を使用する
+- ランタイムは `debian:bookworm-slim` を使用する
 - server/rust と同様の構成だが、ビルドターゲットが BFF 用に異なる
 
 ---
@@ -243,9 +243,9 @@ CMD ["nginx", "-g", "daemon off;"]
 
 | kind/lang        | ベースイメージ                    | ランタイムイメージ                     | 概算サイズ |
 | ---------------- | --------------------------------- | -------------------------------------- | ---------- |
-| server/rust      | rust:1.88-bookworm                         | distroless/cc-debian12:nonroot         | ~15MB      |
+| server/rust      | rust:1.93-bookworm                         | debian:bookworm-slim                   | ~15MB      |
 | bff/go           | golang:1.23-alpine                | distroless/static-debian12:nonroot     | ~10MB      |
-| bff/rust         | rust:1.88-bookworm                         | distroless/cc-debian12:nonroot         | ~15MB      |
+| bff/rust         | rust:1.93-bookworm                         | debian:bookworm-slim                   | ~15MB      |
 | client/react     | node:22-bookworm                    | nginx:1.27-alpine                      | ~25MB      |
 | client/flutter   | cirruslabs/flutter:3.24.0         | nginx:1.27-alpine                      | ~25MB      |
 

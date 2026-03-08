@@ -166,7 +166,7 @@ concurrency:
     steps:
 {% raw %}
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88
+      - uses: dtolnay/rust-toolchain@1.93
         with:
           components: clippy, rustfmt
 {% endraw %}
@@ -181,7 +181,7 @@ concurrency:
     steps:
 {% raw %}
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88
+      - uses: dtolnay/rust-toolchain@1.93
 {% endraw %}
       - run: cargo test --all
         working-directory: {{ module_path }}
@@ -192,7 +192,7 @@ concurrency:
     steps:
 {% raw %}
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88
+      - uses: dtolnay/rust-toolchain@1.93
 {% endraw %}
       - run: cargo build --release
         working-directory: {{ module_path }}
@@ -724,7 +724,7 @@ CI/CD ワークフローで使用する言語・ツールのバージョンを�
 | 言語/ツール | バージョン | セットアップ Action              |
 | ----------- | ---------- | -------------------------------- |
 | Go          | 1.23       | `actions/setup-go@v5`            |
-| Rust        | 1.88       | `dtolnay/rust-toolchain@1.88`    |
+| Rust        | 1.93       | `dtolnay/rust-toolchain@1.93`    |
 | Node.js     | 22         | `actions/setup-node@v4`          |
 | Dart        | 3.5        | `subosito/flutter-action@v2`     |
 | Flutter     | 3.24.0     | `subosito/flutter-action@v2`     |
