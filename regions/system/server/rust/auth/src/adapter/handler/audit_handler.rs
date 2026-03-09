@@ -112,7 +112,7 @@ mod tests {
                     roles: vec!["sys_operator".to_string()],
                 },
                 resource_access: HashMap::new(),
-                tier_access: vec![],
+                tier_access: vec!["system".to_string()],
             })
         });
         token_verifier

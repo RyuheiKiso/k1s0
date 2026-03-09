@@ -344,6 +344,7 @@ mod tests {
         let rotate_uc = Arc::new(crate::usecase::RotateSecretUseCase::new(
             get_uc.clone(),
             set_uc.clone(),
+            Arc::new(NoopVaultEventPublisher),
         ));
 
         VaultGrpcService::new(
