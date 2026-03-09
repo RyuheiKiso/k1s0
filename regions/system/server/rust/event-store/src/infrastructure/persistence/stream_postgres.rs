@@ -42,7 +42,7 @@ impl EventStreamRepository for StreamPostgresRepository {
         let row = sqlx::query_as::<_, EventStreamRow>(
             r#"
             SELECT id, aggregate_type, current_version, created_at, updated_at
-            FROM event_store.event_streams
+            FROM eventstore.event_streams
             WHERE id = $1
             "#,
         )
@@ -54,7 +54,7 @@ impl EventStreamRepository for StreamPostgresRepository {
     }
 
     async fn list_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<EventStream>, u64)> {
-        let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM event_store.event_streams")
+        let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM eventstore.event_streams")
             .fetch_one(&self.pool)
             .await?;
 
@@ -65,7 +65,7 @@ impl EventStreamRepository for StreamPostgresRepository {
         let rows = sqlx::query_as::<_, EventStreamRow>(
             r#"
             SELECT id, aggregate_type, current_version, created_at, updated_at
-            FROM event_store.event_streams
+            FROM eventstore.event_streams
             ORDER BY created_at DESC
             LIMIT $1 OFFSET $2
             "#,
@@ -82,7 +82,7 @@ impl EventStreamRepository for StreamPostgresRepository {
     async fn create(&self, stream: &EventStream) -> anyhow::Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO event_store.event_streams
+            INSERT INTO eventstore.event_streams
                 (id, aggregate_type, current_version, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5)
             "#,
@@ -101,7 +101,7 @@ impl EventStreamRepository for StreamPostgresRepository {
     async fn update_version(&self, id: &str, new_version: i64) -> anyhow::Result<()> {
         sqlx::query(
             r#"
-            UPDATE event_store.event_streams
+            UPDATE eventstore.event_streams
             SET current_version = $2, updated_at = NOW()
             WHERE id = $1
             "#,
@@ -115,7 +115,7 @@ impl EventStreamRepository for StreamPostgresRepository {
     }
 
     async fn delete(&self, id: &str) -> anyhow::Result<bool> {
-        let result = sqlx::query("DELETE FROM event_store.event_streams WHERE id = $1")
+        let result = sqlx::query("DELETE FROM eventstore.event_streams WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
             .await?;

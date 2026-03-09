@@ -127,6 +127,7 @@ async fn main() -> anyhow::Result<()> {
         list_orders_uc,
         metrics,
         auth_state: auth_state.clone(),
+        db_pool: Some(db_pool.clone()),
     };
     let app = handler::router(state);
 

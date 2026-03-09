@@ -2,6 +2,7 @@ use crate::domain::entity::order::{
     CreateOrder, Order, OrderFilter, OrderItem, OrderStatus,
 };
 use crate::domain::entity::outbox::OutboxEvent;
+use crate::domain::error::OrderError;
 use crate::domain::repository::order_repository::OrderRepository;
 use crate::domain::service::order_service::OrderDomainService;
 use async_trait::async_trait;
@@ -226,8 +227,26 @@ impl OrderRepository for OrderPostgresRepository {
         .bind(now)
         .bind(expected_version)
         .fetch_optional(&mut *tx)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("Order '{}' not found or version conflict", id))?;
+        .await?;
+
+        let row = match row {
+            Some(r) => r,
+            None => {
+                // UPDATE が 0行 → レコード不在 or バージョン不一致を判別
+                let exists: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM orders WHERE id = $1)",
+                )
+                .bind(id)
+                .fetch_one(&mut *tx)
+                .await?;
+
+                if exists {
+                    return Err(OrderError::VersionConflict(id.to_string()).into());
+                } else {
+                    return Err(OrderError::NotFound(id.to_string()).into());
+                }
+            }
+        };
 
         // Outbox イベントを同一トランザクション内に挿入
         let event_type = if *status == OrderStatus::Cancelled {

@@ -843,11 +843,11 @@ vault:
 ## DB スキーマ DDL
 
 ```sql
--- event_store スキーマ
-CREATE SCHEMA IF NOT EXISTS event_store;
+-- eventstore スキーマ
+CREATE SCHEMA IF NOT EXISTS eventstore;
 
 -- ストリームテーブル
-CREATE TABLE event_store.event_streams (
+CREATE TABLE eventstore.event_streams (
     id              TEXT        NOT NULL PRIMARY KEY,
     aggregate_type  TEXT        NOT NULL,
     current_version BIGINT      NOT NULL DEFAULT 0,
@@ -856,9 +856,9 @@ CREATE TABLE event_store.event_streams (
 );
 
 -- イベントテーブル（Append-only: UPDATE/DELETE 禁止）
-CREATE TABLE event_store.events (
+CREATE TABLE eventstore.events (
     sequence        BIGINT      NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    stream_id       TEXT        NOT NULL REFERENCES event_store.event_streams(id),
+    stream_id       TEXT        NOT NULL REFERENCES eventstore.event_streams(id),
     version         BIGINT      NOT NULL,
     event_type      TEXT        NOT NULL,
     payload         JSONB       NOT NULL,
@@ -868,19 +868,19 @@ CREATE TABLE event_store.events (
     UNIQUE (stream_id, version)
 );
 
-CREATE INDEX idx_events_stream_id ON event_store.events (stream_id, version);
+CREATE INDEX idx_events_stream_id ON eventstore.events (stream_id, version);
 
 -- スナップショットテーブル
-CREATE TABLE event_store.snapshots (
+CREATE TABLE eventstore.snapshots (
     id                TEXT        NOT NULL PRIMARY KEY,
-    stream_id         TEXT        NOT NULL REFERENCES event_store.event_streams(id),
+    stream_id         TEXT        NOT NULL REFERENCES eventstore.event_streams(id),
     snapshot_version  BIGINT      NOT NULL,
     aggregate_type    TEXT        NOT NULL,
     state             JSONB       NOT NULL,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_snapshots_stream_id ON event_store.snapshots (stream_id, snapshot_version DESC);
+CREATE INDEX idx_snapshots_stream_id ON eventstore.snapshots (stream_id, snapshot_version DESC);
 ```
 
 ## 関連ドキュメント

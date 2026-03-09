@@ -22,22 +22,23 @@ struct StoredEventRow {
     event_type: String,
     version: i64,
     payload: serde_json::Value,
-    actor_id: Option<String>,
-    correlation_id: Option<String>,
-    causation_id: Option<String>,
+    metadata: serde_json::Value,
     occurred_at: chrono::DateTime<chrono::Utc>,
     stored_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl From<StoredEventRow> for StoredEvent {
     fn from(row: StoredEventRow) -> Self {
+        let actor_id = row.metadata.get("actor_id").and_then(|v| v.as_str()).map(String::from);
+        let correlation_id = row.metadata.get("correlation_id").and_then(|v| v.as_str()).map(String::from);
+        let causation_id = row.metadata.get("causation_id").and_then(|v| v.as_str()).map(String::from);
         StoredEvent {
             stream_id: row.stream_id,
             sequence: row.sequence as u64,
             event_type: row.event_type,
             version: row.version,
             payload: row.payload,
-            metadata: EventMetadata::new(row.actor_id, row.correlation_id, row.causation_id),
+            metadata: EventMetadata::new(actor_id, correlation_id, causation_id),
             occurred_at: row.occurred_at,
             stored_at: row.stored_at,
         }
@@ -54,21 +55,24 @@ impl EventRepository for EventPostgresRepository {
         let mut result = Vec::with_capacity(events.len());
 
         for event in events {
+            let metadata = serde_json::json!({
+                "actor_id": event.metadata.actor_id,
+                "correlation_id": event.metadata.correlation_id,
+                "causation_id": event.metadata.causation_id,
+            });
             let row = sqlx::query_as::<_, StoredEventRow>(
                 r#"
-                INSERT INTO event_store.stored_events
-                    (stream_id, event_type, version, payload, actor_id, correlation_id, causation_id, occurred_at, stored_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-                RETURNING stream_id, sequence, event_type, version, payload, actor_id, correlation_id, causation_id, occurred_at, stored_at
+                INSERT INTO eventstore.events
+                    (stream_id, event_type, version, payload, metadata, occurred_at, stored_at)
+                VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                RETURNING stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
                 "#,
             )
             .bind(stream_id)
             .bind(&event.event_type)
             .bind(event.version)
             .bind(&event.payload)
-            .bind(&event.metadata.actor_id)
-            .bind(&event.metadata.correlation_id)
-            .bind(&event.metadata.causation_id)
+            .bind(&metadata)
             .bind(event.occurred_at)
             .fetch_one(&self.pool)
             .await?;
@@ -96,7 +100,7 @@ impl EventRepository for EventPostgresRepository {
         let total: i64 = if let Some(ref et) = event_type {
             if let Some(tv) = to_version {
                 sqlx::query_scalar(
-                    r#"SELECT COUNT(*) FROM event_store.stored_events
+                    r#"SELECT COUNT(*) FROM eventstore.events
                        WHERE stream_id = $1 AND version >= $2 AND version <= $3 AND event_type = $4"#,
                 )
                 .bind(stream_id)
@@ -107,7 +111,7 @@ impl EventRepository for EventPostgresRepository {
                 .await?
             } else {
                 sqlx::query_scalar(
-                    r#"SELECT COUNT(*) FROM event_store.stored_events
+                    r#"SELECT COUNT(*) FROM eventstore.events
                        WHERE stream_id = $1 AND version >= $2 AND event_type = $3"#,
                 )
                 .bind(stream_id)
@@ -118,7 +122,7 @@ impl EventRepository for EventPostgresRepository {
             }
         } else if let Some(tv) = to_version {
             sqlx::query_scalar(
-                r#"SELECT COUNT(*) FROM event_store.stored_events
+                r#"SELECT COUNT(*) FROM eventstore.events
                    WHERE stream_id = $1 AND version >= $2 AND version <= $3"#,
             )
             .bind(stream_id)
@@ -128,7 +132,7 @@ impl EventRepository for EventPostgresRepository {
             .await?
         } else {
             sqlx::query_scalar(
-                r#"SELECT COUNT(*) FROM event_store.stored_events
+                r#"SELECT COUNT(*) FROM eventstore.events
                    WHERE stream_id = $1 AND version >= $2"#,
             )
             .bind(stream_id)
@@ -141,8 +145,8 @@ impl EventRepository for EventPostgresRepository {
         let rows = if let Some(ref et) = event_type {
             if let Some(tv) = to_version {
                 sqlx::query_as::<_, StoredEventRow>(
-                    r#"SELECT stream_id, sequence, event_type, version, payload, actor_id, correlation_id, causation_id, occurred_at, stored_at
-                       FROM event_store.stored_events
+                    r#"SELECT stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                       FROM eventstore.events
                        WHERE stream_id = $1 AND version >= $2 AND version <= $3 AND event_type = $4
                        ORDER BY sequence ASC
                        LIMIT $5 OFFSET $6"#,
@@ -157,8 +161,8 @@ impl EventRepository for EventPostgresRepository {
                 .await?
             } else {
                 sqlx::query_as::<_, StoredEventRow>(
-                    r#"SELECT stream_id, sequence, event_type, version, payload, actor_id, correlation_id, causation_id, occurred_at, stored_at
-                       FROM event_store.stored_events
+                    r#"SELECT stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                       FROM eventstore.events
                        WHERE stream_id = $1 AND version >= $2 AND event_type = $3
                        ORDER BY sequence ASC
                        LIMIT $4 OFFSET $5"#,
@@ -173,8 +177,8 @@ impl EventRepository for EventPostgresRepository {
             }
         } else if let Some(tv) = to_version {
             sqlx::query_as::<_, StoredEventRow>(
-                r#"SELECT stream_id, sequence, event_type, version, payload, actor_id, correlation_id, causation_id, occurred_at, stored_at
-                   FROM event_store.stored_events
+                r#"SELECT stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                   FROM eventstore.events
                    WHERE stream_id = $1 AND version >= $2 AND version <= $3
                    ORDER BY sequence ASC
                    LIMIT $4 OFFSET $5"#,
@@ -188,8 +192,8 @@ impl EventRepository for EventPostgresRepository {
             .await?
         } else {
             sqlx::query_as::<_, StoredEventRow>(
-                r#"SELECT stream_id, sequence, event_type, version, payload, actor_id, correlation_id, causation_id, occurred_at, stored_at
-                   FROM event_store.stored_events
+                r#"SELECT stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                   FROM eventstore.events
                    WHERE stream_id = $1 AND version >= $2
                    ORDER BY sequence ASC
                    LIMIT $3 OFFSET $4"#,
@@ -218,15 +222,15 @@ impl EventRepository for EventPostgresRepository {
 
         let (total, rows) = if let Some(ref et) = event_type {
             let total: i64 = sqlx::query_scalar(
-                "SELECT COUNT(*) FROM event_store.stored_events WHERE event_type = $1",
+                "SELECT COUNT(*) FROM eventstore.events WHERE event_type = $1",
             )
             .bind(et)
             .fetch_one(&self.pool)
             .await?;
 
             let rows = sqlx::query_as::<_, StoredEventRow>(
-                r#"SELECT stream_id, sequence, event_type, version, payload, actor_id, correlation_id, causation_id, occurred_at, stored_at
-                   FROM event_store.stored_events
+                r#"SELECT stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                   FROM eventstore.events
                    WHERE event_type = $1
                    ORDER BY sequence DESC
                    LIMIT $2 OFFSET $3"#,
@@ -239,13 +243,13 @@ impl EventRepository for EventPostgresRepository {
 
             (total, rows)
         } else {
-            let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM event_store.stored_events")
+            let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM eventstore.events")
                 .fetch_one(&self.pool)
                 .await?;
 
             let rows = sqlx::query_as::<_, StoredEventRow>(
-                r#"SELECT stream_id, sequence, event_type, version, payload, actor_id, correlation_id, causation_id, occurred_at, stored_at
-                   FROM event_store.stored_events
+                r#"SELECT stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                   FROM eventstore.events
                    ORDER BY sequence DESC
                    LIMIT $1 OFFSET $2"#,
             )
@@ -268,8 +272,8 @@ impl EventRepository for EventPostgresRepository {
     ) -> anyhow::Result<Option<StoredEvent>> {
         let row = sqlx::query_as::<_, StoredEventRow>(
             r#"
-            SELECT stream_id, sequence, event_type, version, payload, actor_id, correlation_id, causation_id, occurred_at, stored_at
-            FROM event_store.stored_events
+            SELECT stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+            FROM eventstore.events
             WHERE stream_id = $1 AND sequence = $2
             "#,
         )
@@ -282,7 +286,7 @@ impl EventRepository for EventPostgresRepository {
     }
 
     async fn delete_by_stream(&self, stream_id: &str) -> anyhow::Result<u64> {
-        let result = sqlx::query("DELETE FROM event_store.stored_events WHERE stream_id = $1")
+        let result = sqlx::query("DELETE FROM eventstore.events WHERE stream_id = $1")
             .bind(stream_id)
             .execute(&self.pool)
             .await?;

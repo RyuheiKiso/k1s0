@@ -147,6 +147,7 @@ fn build_app() -> axum::Router {
         list_orders_uc: Arc::new(usecase::list_orders::ListOrdersUseCase::new(repo)),
         metrics,
         auth_state: None,
+        db_pool: None,
     };
 
     handler::router(state)
