@@ -18,6 +18,7 @@ pub struct AppState {
     pub list_orders_uc: Arc<usecase::list_orders::ListOrdersUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
+    pub db_pool: Option<sqlx::PgPool>,
 }
 
 pub fn router(state: AppState) -> Router {

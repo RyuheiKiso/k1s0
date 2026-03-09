@@ -22,7 +22,7 @@ pub trait FlagEventPublisher: Send + Sync {
         &self,
         flag_key: &str,
         _enabled: bool,
-        actor_user_id: Option<&str>,
+        actor_user_id: Option<String>,
         before: Option<serde_json::Value>,
         after: serde_json::Value,
     ) -> anyhow::Result<()>;
@@ -42,7 +42,7 @@ impl FlagEventPublisher for NoopFlagEventPublisher {
         &self,
         _flag_key: &str,
         _enabled: bool,
-        _actor_user_id: Option<&str>,
+        _actor_user_id: Option<String>,
         _before: Option<serde_json::Value>,
         _after: serde_json::Value,
     ) -> anyhow::Result<()> {
@@ -105,7 +105,7 @@ impl FlagEventPublisher for KafkaFlagProducer {
         &self,
         flag_key: &str,
         _enabled: bool,
-        actor_user_id: Option<&str>,
+        actor_user_id: Option<String>,
         before: Option<serde_json::Value>,
         after: serde_json::Value,
     ) -> anyhow::Result<()> {
@@ -115,7 +115,7 @@ impl FlagEventPublisher for KafkaFlagProducer {
         let event = FlagChangedEvent {
             event_type: "FLAG_CHANGED".to_string(),
             flag_key: flag_key.to_string(),
-            actor_user_id: actor_user_id.map(ToString::to_string),
+            actor_user_id,
             before,
             after,
             timestamp: chrono::Utc::now().to_rfc3339(),
@@ -188,7 +188,7 @@ mod tests {
             &self,
             flag_key: &str,
             _enabled: bool,
-            actor_user_id: Option<&str>,
+            actor_user_id: Option<String>,
             before: Option<serde_json::Value>,
             after: serde_json::Value,
         ) -> anyhow::Result<()> {
@@ -198,7 +198,7 @@ mod tests {
             self.messages.lock().unwrap().push(FlagChangedEvent {
                 event_type: "FLAG_CHANGED".to_string(),
                 flag_key: flag_key.to_string(),
-                actor_user_id: actor_user_id.map(ToString::to_string),
+                actor_user_id,
                 before,
                 after,
                 timestamp: chrono::Utc::now().to_rfc3339(),
@@ -219,7 +219,7 @@ mod tests {
             .publish_flag_changed(
                 "feature.dark-mode",
                 true,
-                Some("user-1"),
+                Some("user-1".to_string()),
                 None,
                 serde_json::json!({"flag_key":"feature.dark-mode","enabled":true}),
             )

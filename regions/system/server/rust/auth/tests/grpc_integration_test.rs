@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use k1s0_auth_server::adapter::grpc::auth_grpc::{
-    AuthGrpcService, CheckPermissionRequest, GetUserRequest, GetUserRolesRequest, ListUsersRequest,
-    PbPagination, ValidateTokenRequest,
+use k1s0_auth_server::adapter::grpc::auth_grpc::{AuthGrpcService, GrpcError};
+use k1s0_auth_server::proto::k1s0::system::auth::v1::{
+    CheckPermissionRequest, GetUserRequest, GetUserRolesRequest, ListUsersRequest,
+    ValidateTokenRequest,
 };
+use k1s0_auth_server::proto::k1s0::system::common::v1::Pagination as PbPagination;
 use k1s0_auth_server::domain::entity::claims::{Claims, RealmAccess};
 use k1s0_auth_server::domain::entity::user::{Pagination, Role, User, UserListResult, UserRoles};
 use k1s0_auth_server::domain::repository::UserRepository;
@@ -12,6 +14,7 @@ use k1s0_auth_server::infrastructure::TokenVerifier;
 use k1s0_auth_server::usecase::get_user::GetUserUseCase;
 use k1s0_auth_server::usecase::get_user_roles::GetUserRolesUseCase;
 use k1s0_auth_server::usecase::list_users::ListUsersUseCase;
+use k1s0_auth_server::usecase::check_permission::CheckPermissionUseCase;
 use k1s0_auth_server::usecase::validate_token::ValidateTokenUseCase;
 
 // --- Test doubles ---
@@ -155,9 +158,10 @@ fn make_grpc_service(token_success: bool) -> AuthGrpcService {
     ));
     let get_user_uc = Arc::new(GetUserUseCase::new(user_repo.clone()));
     let get_user_roles_uc = Arc::new(GetUserRolesUseCase::new(user_repo.clone()));
-    let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo));
+    let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo.clone()));
+    let check_permission_uc = Arc::new(CheckPermissionUseCase::with_user_repo(user_repo));
 
-    AuthGrpcService::new(validate_uc, get_user_uc, get_user_roles_uc, list_users_uc)
+    AuthGrpcService::new(validate_uc, get_user_uc, get_user_roles_uc, list_users_uc, check_permission_uc)
 }
 
 // --- gRPC Integration Tests ---
@@ -220,7 +224,7 @@ async fn test_get_user_grpc_not_found() {
 
     assert!(result.is_err());
     match result.unwrap_err() {
-        k1s0_auth_server::adapter::grpc::auth_grpc::GrpcError::NotFound(msg) => {
+        GrpcError::NotFound(msg) => {
             assert!(msg.contains("not found"));
         }
         e => unreachable!("unexpected error in test: {:?}", e),
@@ -273,10 +277,10 @@ async fn test_check_permission_grpc_success() {
     let svc = make_grpc_service(true);
 
     let req = CheckPermissionRequest {
-        user_id: "grpc-user-1".to_string(),
-        permission: "admin".to_string(),
-        resource: "users".to_string(),
-        roles: vec!["sys_admin".to_string()],
+        user_id: Some("grpc-user-1".to_string()),
+        permission: "read".to_string(),
+        resource: "audit_logs".to_string(),
+        roles: vec!["sys_auditor".to_string()],
     };
     let resp = svc.check_permission(req).await.unwrap();
 
@@ -289,7 +293,7 @@ async fn test_check_permission_grpc_denied() {
     let svc = make_grpc_service(true);
 
     let req = CheckPermissionRequest {
-        user_id: "grpc-user-1".to_string(),
+        user_id: Some("grpc-user-1".to_string()),
         permission: "admin".to_string(),
         resource: "users".to_string(),
         roles: vec!["user".to_string()],

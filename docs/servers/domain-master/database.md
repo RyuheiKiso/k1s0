@@ -51,6 +51,7 @@ CREATE TABLE domain_master.master_categories (
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE INDEX idx_master_categories_code ON domain_master.master_categories(code);
 CREATE INDEX idx_master_categories_active ON domain_master.master_categories(is_active);
 ```
 
@@ -77,19 +78,19 @@ CREATE INDEX idx_master_categories_active ON domain_master.master_categories(is_
 CREATE TABLE domain_master.master_items (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     category_id     UUID NOT NULL REFERENCES domain_master.master_categories(id) ON DELETE CASCADE,
-    code            VARCHAR(100) NOT NULL,
+    code            VARCHAR(255) NOT NULL,
     display_name    VARCHAR(255) NOT NULL,
     description     TEXT,
     attributes      JSONB,
-    parent_item_id  UUID REFERENCES domain_master.master_items(id),
-    effective_from  DATE,
-    effective_until DATE,
+    parent_item_id  UUID REFERENCES domain_master.master_items(id) ON DELETE SET NULL,
+    effective_from  TIMESTAMPTZ,
+    effective_until TIMESTAMPTZ,
     is_active       BOOLEAN NOT NULL DEFAULT true,
     sort_order      INTEGER NOT NULL DEFAULT 0,
     created_by      VARCHAR(255) NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_items_category_code UNIQUE (category_id, code)
+    CONSTRAINT uq_master_items_category_code UNIQUE (category_id, code)
 );
 
 CREATE INDEX idx_master_items_category ON domain_master.master_items(category_id);
@@ -102,7 +103,7 @@ CREATE INDEX idx_master_items_effective ON domain_master.master_items(effective_
 | --- | --- | --- | --- |
 | id | UUID | PK | 主キー |
 | category_id | UUID | FK → master_categories.id, NOT NULL | 所属カテゴリ |
-| code | VARCHAR(100) | UNIQUE(category_id, code), NOT NULL | 項目コード |
+| code | VARCHAR(255) | UNIQUE(category_id, code), NOT NULL | 項目コード |
 | display_name | VARCHAR(255) | NOT NULL | 表示名 |
 | description | TEXT | | 説明 |
 | attributes | JSONB | | 項目属性（カテゴリの validation_schema でバリデーション） |
@@ -130,11 +131,11 @@ CREATE TABLE domain_master.master_item_versions (
     after_data      JSONB,
     changed_by      VARCHAR(255) NOT NULL,
     change_reason   TEXT,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_master_item_versions_item_version UNIQUE (item_id, version_number)
 );
 
-CREATE INDEX idx_item_versions_item ON domain_master.master_item_versions(item_id);
-CREATE INDEX idx_item_versions_created ON domain_master.master_item_versions(created_at);
+CREATE INDEX idx_master_item_versions_item ON domain_master.master_item_versions(item_id, created_at DESC);
 ```
 
 | カラム | 型 | 制約 | 説明 |
@@ -164,11 +165,11 @@ CREATE TABLE domain_master.tenant_master_extensions (
     is_enabled            BOOLEAN NOT NULL DEFAULT true,
     created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_tenant_item UNIQUE (tenant_id, item_id)
+    CONSTRAINT uq_tenant_master_extensions_tenant_item UNIQUE (tenant_id, item_id)
 );
 
-CREATE INDEX idx_tenant_extensions_tenant ON domain_master.tenant_master_extensions(tenant_id);
-CREATE INDEX idx_tenant_extensions_item ON domain_master.tenant_master_extensions(item_id);
+CREATE INDEX idx_tenant_master_extensions_tenant ON domain_master.tenant_master_extensions(tenant_id);
+CREATE INDEX idx_tenant_master_extensions_item ON domain_master.tenant_master_extensions(item_id);
 ```
 
 | カラム | 型 | 制約 | 説明 |
@@ -192,14 +193,8 @@ CREATE INDEX idx_tenant_extensions_item ON domain_master.tenant_master_extension
 | --- | --- |
 | `001_create_schema.up.sql` | `domain_master` スキーマ作成 |
 | `001_create_schema.down.sql` | スキーマ削除 |
-| `002_create_master_categories.up.sql` | master_categories テーブル作成 |
-| `002_create_master_categories.down.sql` | テーブル削除 |
-| `003_create_master_items.up.sql` | master_items テーブル作成 |
-| `003_create_master_items.down.sql` | テーブル削除 |
-| `004_create_master_item_versions.up.sql` | master_item_versions テーブル作成 |
-| `004_create_master_item_versions.down.sql` | テーブル削除 |
-| `005_create_tenant_master_extensions.up.sql` | tenant_master_extensions テーブル作成 |
-| `005_create_tenant_master_extensions.down.sql` | テーブル削除 |
+| `002_create_domain_master_tables.up.sql` | 全テーブル（master_categories, master_items, master_item_versions, tenant_master_extensions）・インデックス・制約の作成 |
+| `002_create_domain_master_tables.down.sql` | 全テーブル削除 |
 
 ---
 

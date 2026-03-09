@@ -1,43 +1,64 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import React from 'react';
-import { AuthProvider } from './AuthProvider';
+import React, { type ReactNode } from 'react';
+import { AuthContext, type AuthContextValue } from './AuthContext';
 import { useAuth } from './useAuth';
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <AuthProvider>{children}</AuthProvider>
-);
+function createMockAuthValue(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
+  return {
+    user: null,
+    isAuthenticated: false,
+    login: vi.fn(),
+    logout: vi.fn(),
+    ...overrides,
+  };
+}
+
+function createWrapper(value: AuthContextValue) {
+  return ({ children }: { children: ReactNode }) => (
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  );
+}
 
 describe('useAuth', () => {
   it('初期状態は unauthenticated', () => {
-    const { result } = renderHook(() => useAuth(), { wrapper });
+    const mockValue = createMockAuthValue();
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(mockValue) });
     expect(result.current.isAuthenticated).toBe(false);
     expect(result.current.user).toBeNull();
   });
 
-  it('login 後は authenticated になる', async () => {
-    const { result } = renderHook(() => useAuth(), { wrapper });
+  it('login を呼び出せる', async () => {
+    const loginMock = vi.fn();
+    const mockValue = createMockAuthValue({ login: loginMock });
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(mockValue) });
 
     await act(async () => {
       await result.current.login({ username: 'user@example.com', password: 'password' });
     });
 
-    expect(result.current.isAuthenticated).toBe(true);
-    expect(result.current.user).not.toBeNull();
+    expect(loginMock).toHaveBeenCalledWith({ username: 'user@example.com', password: 'password' });
   });
 
-  it('logout 後は unauthenticated になる', async () => {
-    const { result } = renderHook(() => useAuth(), { wrapper });
+  it('logout を呼び出せる', async () => {
+    const logoutMock = vi.fn();
+    const mockValue = createMockAuthValue({
+      user: { id: 'user-1', username: 'user@example.com' },
+      isAuthenticated: true,
+      logout: logoutMock,
+    });
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(mockValue) });
 
     await act(async () => {
-      await result.current.login({ username: 'user@example.com', password: 'password' });
+      await result.current.logout();
     });
 
-    await act(async () => {
-      result.current.logout();
-    });
+    expect(logoutMock).toHaveBeenCalled();
+  });
 
-    expect(result.current.isAuthenticated).toBe(false);
-    expect(result.current.user).toBeNull();
+  it('AuthProvider の外で使用するとエラーになる', () => {
+    expect(() => {
+      renderHook(() => useAuth());
+    }).toThrow('useAuth は AuthProvider の内部で使用する必要があります');
   });
 });

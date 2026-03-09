@@ -147,6 +147,7 @@ fn build_app() -> axum::Router {
         list_orders_uc: Arc::new(usecase::list_orders::ListOrdersUseCase::new(repo)),
         metrics,
         auth_state: None,
+        db_pool: None,
     };
 
     handler::router(state)
@@ -312,4 +313,124 @@ async fn test_list_orders() {
     let list: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(list["total"], 0);
     assert!(list["orders"].as_array().unwrap().is_empty());
+}
+
+/// ステータス更新テスト: pending → confirmed（正常遷移）
+#[tokio::test]
+async fn test_update_order_status_success() {
+    let app = build_app();
+
+    // まず注文を作成
+    let body = serde_json::json!({
+        "customer_id": "CUST-002",
+        "currency": "JPY",
+        "items": [{
+            "product_id": "PROD-010",
+            "product_name": "Gadget",
+            "quantity": 1,
+            "unit_price": 5000
+        }]
+    });
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/orders")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let created: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    let order_id = created["id"].as_str().unwrap();
+    assert_eq!(created["status"], "pending");
+
+    // pending → confirmed に遷移
+    let update_body = serde_json::json!({ "status": "confirmed" });
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(format!("/api/v1/orders/{}/status", order_id))
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_string(&update_body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let updated: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(updated["status"], "confirmed");
+    assert_eq!(updated["version"], 2);
+}
+
+/// ステータス更新テスト: pending → shipped（不正遷移）
+#[tokio::test]
+async fn test_update_order_status_invalid_transition() {
+    let app = build_app();
+
+    // まず注文を作成
+    let body = serde_json::json!({
+        "customer_id": "CUST-003",
+        "currency": "USD",
+        "items": [{
+            "product_id": "PROD-020",
+            "product_name": "Thingamajig",
+            "quantity": 2,
+            "unit_price": 3000
+        }]
+    });
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/orders")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let created: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    let order_id = created["id"].as_str().unwrap();
+
+    // pending → shipped（不正遷移）
+    let update_body = serde_json::json!({ "status": "shipped" });
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(format!("/api/v1/orders/{}/status", order_id))
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_string(&update_body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let err: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(err["error"]["code"], "SVC_ORDER_INVALID_STATUS_TRANSITION");
 }

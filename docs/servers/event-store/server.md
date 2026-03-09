@@ -421,9 +421,9 @@ message Snapshot {
 
 | テーブル | 用途 | 特記事項 |
 | --- | --- | --- |
-| `event_store.event_streams` | ストリーム管理 | PK: `id (TEXT)`, current_version で楽観的ロック |
-| `event_store.events` | イベント保存 | Append-only（UPDATE/DELETE 禁止）、UNIQUE(stream_id, version)、sequence は IDENTITY |
-| `event_store.snapshots` | スナップショット | PK: `id (TEXT)`, INDEX(stream_id, snapshot_version DESC) |
+| `eventstore.event_streams` | ストリーム管理 | PK: `id (UUID)`, current_version で楽観的ロック |
+| `eventstore.events` | イベント保存 | Append-only（UPDATE/DELETE 禁止）、UNIQUE(stream_id, version)、sequence は BIGINT |
+| `eventstore.snapshots` | スナップショット | PK: `id (UUID)`, INDEX(stream_id, snapshot_version DESC) |
 
 ---
 
@@ -843,44 +843,52 @@ vault:
 ## DB スキーマ DDL
 
 ```sql
--- event_store スキーマ
-CREATE SCHEMA IF NOT EXISTS event_store;
+-- eventstore スキーマ
+CREATE SCHEMA IF NOT EXISTS eventstore;
 
 -- ストリームテーブル
-CREATE TABLE event_store.event_streams (
-    id              TEXT        NOT NULL PRIMARY KEY,
-    aggregate_type  TEXT        NOT NULL,
-    current_version BIGINT      NOT NULL DEFAULT 0,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE eventstore.event_streams (
+    id              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    aggregate_type  VARCHAR(255) NOT NULL,
+    current_version BIGINT       NOT NULL DEFAULT 0,
+    metadata        JSONB        NOT NULL DEFAULT '{}',
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_event_streams_aggregate_type ON eventstore.event_streams (aggregate_type);
 
 -- イベントテーブル（Append-only: UPDATE/DELETE 禁止）
-CREATE TABLE event_store.events (
-    sequence        BIGINT      NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    stream_id       TEXT        NOT NULL REFERENCES event_store.event_streams(id),
-    version         BIGINT      NOT NULL,
-    event_type      TEXT        NOT NULL,
-    payload         JSONB       NOT NULL,
-    metadata        JSONB       NOT NULL DEFAULT '{}',
-    occurred_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    stored_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (stream_id, version)
+CREATE TABLE eventstore.events (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    stream_id   UUID         NOT NULL REFERENCES eventstore.event_streams(id) ON DELETE CASCADE,
+    sequence    BIGINT       NOT NULL,
+    event_type  VARCHAR(255) NOT NULL,
+    version     BIGINT       NOT NULL DEFAULT 1,
+    payload     JSONB        NOT NULL DEFAULT '{}',
+    metadata    JSONB        NOT NULL DEFAULT '{}',
+    occurred_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    stored_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uq_events_stream_sequence UNIQUE (stream_id, sequence)
 );
 
-CREATE INDEX idx_events_stream_id ON event_store.events (stream_id, version);
+CREATE INDEX idx_events_stream_id ON eventstore.events (stream_id);
+CREATE INDEX idx_events_event_type ON eventstore.events (event_type);
+CREATE INDEX idx_events_stream_sequence ON eventstore.events (stream_id, sequence);
 
 -- スナップショットテーブル
-CREATE TABLE event_store.snapshots (
-    id                TEXT        NOT NULL PRIMARY KEY,
-    stream_id         TEXT        NOT NULL REFERENCES event_store.event_streams(id),
-    snapshot_version  BIGINT      NOT NULL,
-    aggregate_type    TEXT        NOT NULL,
-    state             JSONB       NOT NULL,
-    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE eventstore.snapshots (
+    id               UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    stream_id        UUID         NOT NULL REFERENCES eventstore.event_streams(id) ON DELETE CASCADE,
+    snapshot_version BIGINT       NOT NULL,
+    aggregate_type   VARCHAR(255) NOT NULL DEFAULT '',
+    state            JSONB        NOT NULL DEFAULT '{}',
+    created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_snapshots_stream_id ON event_store.snapshots (stream_id, snapshot_version DESC);
+CREATE INDEX idx_snapshots_stream_id ON eventstore.snapshots (stream_id);
+CREATE UNIQUE INDEX idx_snapshots_stream_version ON eventstore.snapshots (stream_id, snapshot_version);
 ```
 
 ## 関連ドキュメント

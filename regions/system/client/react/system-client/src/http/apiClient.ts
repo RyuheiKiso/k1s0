@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance } from 'axios';
+import axios, { type AxiosInstance, type AxiosError } from 'axios';
 
 interface ApiClientOptions {
   baseURL: string;
@@ -23,6 +23,26 @@ export function createApiClient({ baseURL, timeout = 30000 }: ApiClientOptions):
     }
     return config;
   });
+
+  // レスポンスエラーインターセプター
+  client.interceptors.response.use(
+    (response) => response,
+    (error: AxiosError) => {
+      const status = error.response?.status;
+
+      if (status === 401) {
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
+      } else if (status === 403) {
+        console.error('[API] 403 Forbidden:', error.config?.url);
+      } else if (status != null && status >= 500) {
+        console.error('[API] Server Error:', status, error.config?.url);
+      }
+
+      return Promise.reject(error);
+    },
+  );
 
   return client;
 }

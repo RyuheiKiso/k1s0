@@ -33,6 +33,7 @@ impl TokenVerifier for TestTokenVerifier {
                 realm_access: RealmAccess {
                     roles: vec!["user".to_string(), "sys_operator".to_string()],
                 },
+                tier_access: vec!["system".to_string()],
                 ..Default::default()
             })
         } else {

@@ -33,6 +33,9 @@ service ConfigService {
 
   // 設定スキーマ作成・更新
   rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaResponse);
+
+  // 設定スキーマ一覧取得
+  rpc ListConfigSchemas(ListConfigSchemasRequest) returns (ListConfigSchemasResponse);
 }
 
 // ============================================================
@@ -251,4 +254,16 @@ message UpsertConfigSchemaRequest {
 // UpsertConfigSchemaResponse は設定スキーマ作成・更新レスポンス。
 message UpsertConfigSchemaResponse {
   ConfigEditorSchema schema = 1;
+}
+
+// ============================================================
+// ListConfigSchemas
+// ============================================================
+
+// ListConfigSchemasRequest は設定スキーマ一覧取得リクエスト。
+message ListConfigSchemasRequest {}
+
+// ListConfigSchemasResponse は設定スキーマ一覧取得レスポンス。
+message ListConfigSchemasResponse {
+  repeated ConfigEditorSchema schemas = 1;
 }

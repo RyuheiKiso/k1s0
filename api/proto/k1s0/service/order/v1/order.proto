@@ -1,0 +1,100 @@
+// k1s0 注文サービス gRPC 定義。
+// 注文の作成・取得・一覧・ステータス更新を提供する。
+syntax = "proto3";
+
+package k1s0.service.order.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/order/v1;orderv1";
+
+import "google/protobuf/timestamp.proto";
+import "k1s0/system/common/v1/types.proto";
+
+service OrderService {
+  // 注文作成
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  // 注文取得
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  // 注文一覧
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  // 注文ステータス更新
+  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse);
+}
+
+// ---------- メッセージ型 ----------
+
+// 注文
+message Order {
+  string id = 1;
+  string customer_id = 2;
+  string status = 3;
+  int64 total_amount = 4;
+  string currency = 5;
+  optional string notes = 6;
+  string created_by = 7;
+  optional string updated_by = 8;
+  int32 version = 9;
+  repeated OrderItem items = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// 注文明細
+message OrderItem {
+  string id = 1;
+  string order_id = 2;
+  string product_id = 3;
+  string product_name = 4;
+  int32 quantity = 5;
+  int64 unit_price = 6;
+  int64 subtotal = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+// ---------- リクエスト/レスポンス ----------
+
+message CreateOrderRequest {
+  string customer_id = 1;
+  string currency = 2;
+  optional string notes = 3;
+  repeated CreateOrderItemRequest items = 4;
+}
+
+message CreateOrderItemRequest {
+  string product_id = 1;
+  string product_name = 2;
+  int32 quantity = 3;
+  int64 unit_price = 4;
+}
+
+message CreateOrderResponse {
+  Order order = 1;
+}
+
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+message GetOrderResponse {
+  Order order = 1;
+}
+
+message ListOrdersRequest {
+  optional string customer_id = 1;
+  optional string status = 2;
+  k1s0.system.common.v1.Pagination pagination = 3;
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+  int64 total_count = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 3;
+}
+
+message UpdateOrderStatusRequest {
+  string order_id = 1;
+  string status = 2;
+}
+
+message UpdateOrderStatusResponse {
+  Order order = 1;
+}

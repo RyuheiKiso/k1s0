@@ -42,7 +42,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
             Json(serde_json::json!({
                 "status": "ready",
                 "checks": {
-                    "database": "ok",
+                    "database": "not_configured",
                 }
             })),
         )

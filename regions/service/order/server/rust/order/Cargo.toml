@@ -54,10 +54,18 @@ k1s0-telemetry = { path = "../../../../../system/library/rust/telemetry", featur
 k1s0-auth = { path = "../../../../../system/library/rust/auth" }
 
 # Server common (error codes, auth middleware, RBAC)
-k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["auth"] }
+k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["auth", "grpc-auth"] }
+
+# gRPC
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
 
 # Kafka
 rdkafka = { version = "0.36", features = ["cmake-build"] }
+
+[build-dependencies]
+tonic-build = "0.12"
 
 [features]
 db-tests = []

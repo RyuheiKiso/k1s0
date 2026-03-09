@@ -79,7 +79,10 @@ mod tests {
         let return_channel = channel.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| id == channel_id.as_str())
+            .withf({
+                let channel_id = channel_id.clone();
+                move |id| id == channel_id.as_str()
+            })
             .returning(move |_| Ok(Some(return_channel.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
@@ -106,7 +109,7 @@ mod tests {
 
         let uc = UpdateChannelUseCase::new(Arc::new(mock));
         let input = UpdateChannelInput {
-            id: missing_id,
+            id: missing_id.clone(),
             name: None,
             enabled: Some(true),
             config: None,

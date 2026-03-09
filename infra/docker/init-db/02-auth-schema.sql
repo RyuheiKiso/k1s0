@@ -95,14 +95,14 @@ CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON auth.role_permi
 -- 006: audit_logs テーブル（月次パーティショニング）
 CREATE TABLE IF NOT EXISTS auth.audit_logs (
     id          UUID         NOT NULL DEFAULT gen_random_uuid(),
-    user_id     UUID         REFERENCES auth.users(id) ON DELETE SET NULL,
+    user_id     TEXT,
     event_type  VARCHAR(100) NOT NULL,
     action      VARCHAR(100) NOT NULL,
     resource    VARCHAR(255),
     resource_id VARCHAR(255),
     result      VARCHAR(50)  NOT NULL DEFAULT 'SUCCESS',
     detail      JSONB,
-    ip_address  INET,
+    ip_address  TEXT,
     user_agent  TEXT,
     trace_id    VARCHAR(64),
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),

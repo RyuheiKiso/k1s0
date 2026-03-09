@@ -11,6 +11,8 @@ use crate::usecase::append_events::{AppendEventsError, AppendEventsInput};
 use crate::usecase::create_snapshot::{CreateSnapshotError, CreateSnapshotInput};
 use crate::usecase::delete_stream::{DeleteStreamError, DeleteStreamInput};
 use crate::usecase::get_latest_snapshot::{GetLatestSnapshotError, GetLatestSnapshotInput};
+use crate::usecase::list_events::{ListEventsError, ListEventsInput};
+use crate::usecase::list_streams::{ListStreamsError, ListStreamsInput};
 use crate::usecase::read_event_by_sequence::{ReadEventBySequenceError, ReadEventBySequenceInput};
 use crate::usecase::read_events::{ReadEventsError, ReadEventsInput};
 
@@ -433,27 +435,30 @@ pub async fn list_events(
     State(state): State<AppState>,
     Query(query): Query<ListEventsQuery>,
 ) -> Result<Json<ListEventsResponse>, EventStoreError> {
-    let page = query.page.max(1);
-    let page_size = query.page_size.max(1).min(200);
+    let input = ListEventsInput {
+        event_type: query.event_type,
+        page: query.page,
+        page_size: query.page_size,
+    };
 
-    let (events, total_count) = state
-        .event_repo
-        .find_all(query.event_type, page, page_size)
+    let output = state
+        .list_events_uc
+        .execute(&input)
         .await
-        .map_err(|e| EventStoreError::Internal(e.to_string()))?;
-
-    let has_next = (page as u64) * (page_size as u64) < total_count;
+        .map_err(|e| match e {
+            ListEventsError::Internal(msg) => EventStoreError::Internal(msg),
+        })?;
 
     let event_responses: Vec<StoredEventResponse> =
-        events.iter().map(to_stored_event_response).collect();
+        output.events.iter().map(to_stored_event_response).collect();
 
     Ok(Json(ListEventsResponse {
         events: event_responses,
         pagination: PaginationResponse {
-            total_count,
-            page,
-            page_size,
-            has_next,
+            total_count: output.pagination.total_count,
+            page: output.pagination.page,
+            page_size: output.pagination.page_size,
+            has_next: output.pagination.has_next,
         },
     }))
 }
@@ -474,26 +479,29 @@ pub async fn list_streams(
     State(state): State<AppState>,
     Query(query): Query<ListStreamsQuery>,
 ) -> Result<Json<ListStreamsResponse>, EventStoreError> {
-    let page = query.page.max(1);
-    let page_size = query.page_size.max(1).min(200);
+    let input = ListStreamsInput {
+        page: query.page,
+        page_size: query.page_size,
+    };
 
-    let (streams, total_count) = state
-        .stream_repo
-        .list_all(page, page_size)
+    let output = state
+        .list_streams_uc
+        .execute(&input)
         .await
-        .map_err(|e| EventStoreError::Internal(e.to_string()))?;
+        .map_err(|e| match e {
+            ListStreamsError::Internal(msg) => EventStoreError::Internal(msg),
+        })?;
 
-    let has_next = (page as u64) * (page_size as u64) < total_count;
-
-    let stream_responses: Vec<StreamResponse> = streams.iter().map(to_stream_response).collect();
+    let stream_responses: Vec<StreamResponse> =
+        output.streams.iter().map(to_stream_response).collect();
 
     Ok(Json(ListStreamsResponse {
         streams: stream_responses,
         pagination: PaginationResponse {
-            total_count,
-            page,
-            page_size,
-            has_next,
+            total_count: output.pagination.total_count,
+            page: output.pagination.page,
+            page_size: output.pagination.page_size,
+            has_next: output.pagination.has_next,
         },
     }))
 }
@@ -663,6 +671,8 @@ mod tests {
                 stream.clone(),
                 event.clone(),
             )),
+            list_events_uc: Arc::new(crate::usecase::ListEventsUseCase::new(event.clone())),
+            list_streams_uc: Arc::new(crate::usecase::ListStreamsUseCase::new(stream.clone())),
             create_snapshot_uc: Arc::new(CreateSnapshotUseCase::new(stream.clone(), snap.clone())),
             get_latest_snapshot_uc: Arc::new(GetLatestSnapshotUseCase::new(
                 stream.clone(),
@@ -674,7 +684,6 @@ mod tests {
                 snap.clone(),
             )),
             stream_repo: stream,
-            event_repo: event,
             event_publisher: publisher,
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new(
                 "k1s0-event-store-server-test",

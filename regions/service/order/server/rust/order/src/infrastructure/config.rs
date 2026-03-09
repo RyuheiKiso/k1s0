@@ -32,6 +32,9 @@ impl Config {
         if self.server.port == 0 {
             anyhow::bail!("server.port must be greater than zero");
         }
+        if self.server.grpc_port == 0 {
+            anyhow::bail!("server.grpc_port must be greater than zero");
+        }
 
         let db = self
             .database
@@ -69,6 +72,8 @@ pub struct ServerConfig {
     pub host: String,
     #[serde(default = "default_port")]
     pub port: u16,
+    #[serde(default = "default_grpc_port")]
+    pub grpc_port: u16,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -135,6 +140,9 @@ fn default_host() -> String {
 }
 fn default_port() -> u16 {
     8310
+}
+fn default_grpc_port() -> u16 {
+    50071
 }
 fn default_db_port() -> u16 {
     5432

@@ -25,7 +25,7 @@ mod tests {
     fn test_outbox_event_creation() {
         let event = OutboxEvent {
             id: Uuid::new_v4(),
-            aggregate_type: "Order".to_string(),
+            aggregate_type: "order".to_string(),
             aggregate_id: Uuid::new_v4().to_string(),
             event_type: "order.created".to_string(),
             payload: serde_json::json!({"order_id": "test"}),
@@ -33,14 +33,14 @@ mod tests {
             published_at: None,
         };
         assert!(event.published_at.is_none());
-        assert_eq!(event.aggregate_type, "Order");
+        assert_eq!(event.aggregate_type, "order");
     }
 
     #[test]
     fn test_outbox_event_serialization_roundtrip() {
         let event = OutboxEvent {
             id: Uuid::new_v4(),
-            aggregate_type: "Order".to_string(),
+            aggregate_type: "order".to_string(),
             aggregate_id: "ORD-001".to_string(),
             event_type: "order.created".to_string(),
             payload: serde_json::json!({"key": "value"}),

@@ -6,11 +6,12 @@ app:
 server:
   host: "0.0.0.0"
   port: 8310
+  grpc_port: 50071
 
 database:
   host: "localhost"
   port: 5432
-  name: "k1s0"
+  name: "k1s0_order"
   schema: "order_service"
   user: "k1s0"
   password: "k1s0"

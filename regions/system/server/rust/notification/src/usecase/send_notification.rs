@@ -273,7 +273,10 @@ mod tests {
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| id == channel_id.as_str())
+            .withf({
+                let channel_id = channel_id.clone();
+                move |id| id == channel_id.as_str()
+            })
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         log_mock.expect_create().returning(|_| Ok(()));
@@ -336,7 +339,10 @@ mod tests {
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| id == channel_id.as_str())
+            .withf({
+                let channel_id = channel_id.clone();
+                move |id| id == channel_id.as_str()
+            })
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
@@ -373,7 +379,10 @@ mod tests {
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| id == channel_id.as_str())
+            .withf({
+                let channel_id = channel_id.clone();
+                move |id| id == channel_id.as_str()
+            })
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         log_mock.expect_create().returning(|_| Ok(()));
@@ -418,7 +427,10 @@ mod tests {
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| id == channel_id.as_str())
+            .withf({
+                let channel_id = channel_id.clone();
+                move |id| id == channel_id.as_str()
+            })
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         log_mock
@@ -468,7 +480,10 @@ mod tests {
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| id == channel_id.as_str())
+            .withf({
+                let channel_id = channel_id.clone();
+                move |id| id == channel_id.as_str()
+            })
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         log_mock
@@ -511,12 +526,15 @@ mod tests {
             serde_json::json!({}),
             true,
         );
-        let channel_id = channel.id;
+        let channel_id = channel.id.clone();
         let return_channel = channel.clone();
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| *id == channel_id)
+            .withf({
+                let channel_id = channel_id.clone();
+                move |id| *id == channel_id
+            })
             .returning(move |_| Ok(Some(return_channel.clone())));
 
         log_mock

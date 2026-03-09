@@ -43,7 +43,7 @@ impl SnapshotRepository for SnapshotPostgresRepository {
     async fn create(&self, snapshot: &Snapshot) -> anyhow::Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO event_store.snapshots
+            INSERT INTO eventstore.snapshots
                 (id, stream_id, snapshot_version, aggregate_type, state, created_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             "#,
@@ -64,7 +64,7 @@ impl SnapshotRepository for SnapshotPostgresRepository {
         let row = sqlx::query_as::<_, SnapshotRow>(
             r#"
             SELECT id, stream_id, snapshot_version, aggregate_type, state, created_at
-            FROM event_store.snapshots
+            FROM eventstore.snapshots
             WHERE stream_id = $1
             ORDER BY snapshot_version DESC
             LIMIT 1
@@ -78,7 +78,7 @@ impl SnapshotRepository for SnapshotPostgresRepository {
     }
 
     async fn delete_by_stream(&self, stream_id: &str) -> anyhow::Result<u64> {
-        let result = sqlx::query("DELETE FROM event_store.snapshots WHERE stream_id = $1")
+        let result = sqlx::query("DELETE FROM eventstore.snapshots WHERE stream_id = $1")
             .bind(stream_id)
             .execute(&self.pool)
             .await?;

@@ -103,6 +103,8 @@ fn make_app_state(repo: Arc<dyn DlqMessageRepository>) -> AppState {
         delete_message_uc: Arc::new(DeleteMessageUseCase::new(repo.clone())),
         retry_all_uc: Arc::new(RetryAllUseCase::new(repo, None)),
         metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("test")),
+        db_pool: None,
+        publisher: None,
         auth_state: None,
     }
 }
@@ -170,8 +172,10 @@ fn make_app_state_with_publisher(
             Some(publisher.clone()),
         )),
         delete_message_uc: Arc::new(DeleteMessageUseCase::new(repo.clone())),
-        retry_all_uc: Arc::new(RetryAllUseCase::new(repo, Some(publisher))),
+        retry_all_uc: Arc::new(RetryAllUseCase::new(repo, Some(publisher.clone()))),
         metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("test")),
+        db_pool: None,
+        publisher: Some(publisher),
         auth_state: None,
     }
 }
@@ -387,7 +391,7 @@ async fn test_retry_message_resolves_pending_message() {
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     // publisher なしなので RESOLVED になる
-    assert_eq!(json["status"], "RESOLVED");
+    assert_eq!(json["message"]["status"], "RESOLVED");
 }
 
 #[tokio::test]
@@ -486,7 +490,7 @@ async fn test_retry_with_publisher_calls_publish_to_original_topic() {
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     // 発行成功 → RESOLVED
-    assert_eq!(json["status"], "RESOLVED");
+    assert_eq!(json["message"]["status"], "RESOLVED");
 
     // Publisher が元トピックへ発行されたことを確認
     let topics = published_topics.lock().unwrap();
@@ -529,7 +533,7 @@ async fn test_retry_with_failing_publisher_keeps_retrying_status() {
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     // 発行失敗 → RETRYING のまま
-    assert_eq!(json["status"], "RETRYING");
+    assert_eq!(json["message"]["status"], "RETRYING");
 }
 
 /// retry-all で Publisher が全 PENDING メッセージを発行し、RESOLVED になること。

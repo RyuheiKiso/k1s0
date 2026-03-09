@@ -185,14 +185,22 @@ impl JwksVerifier {
             }
         }
 
-        let keys = self.fetcher.fetch_keys(&self.jwks_url).await?;
-
-        *cache = Some(JwksCache {
-            keys: keys.clone(),
-            fetched_at: Instant::now(),
-        });
-
-        Ok(keys)
+        match self.fetcher.fetch_keys(&self.jwks_url).await {
+            Ok(keys) => {
+                *cache = Some(JwksCache {
+                    keys: keys.clone(),
+                    fetched_at: Instant::now(),
+                });
+                Ok(keys)
+            }
+            Err(err) => {
+                // fetch 失敗時、stale キャッシュがあればそれを返す（Go 実装と同等）
+                if let Some(ref c) = *cache {
+                    return Ok(c.keys.clone());
+                }
+                Err(err)
+            }
+        }
     }
 
     /// キャッシュを無効化する。鍵ローテーション時に使用。

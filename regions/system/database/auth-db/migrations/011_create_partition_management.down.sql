@@ -1,11 +1,22 @@
--- auth-db: audit_logs パーティション管理解除 (pg_partman)
--- pg_partman による自動管理を停止し、パーティション設定を元に戻す。
--- 注意: テーブルデータは保持される (p_keep_table = true)
+-- Revert partition management (pg_partman v5 compatible)
 
-SELECT partman.undo_partition_proc(
-    p_parent_table := 'auth.audit_logs',
-    p_keep_table   := true
-);
+-- pg_partman設定の削除
+DELETE FROM partman.part_config
+WHERE parent_table = 'auth.audit_logs';
 
--- pg_partman 拡張の削除は、他テーブルが使用中の場合に影響するためコメントアウト
--- DROP EXTENSION IF EXISTS pg_partman;
+-- パーティションテーブルを通常テーブルに戻す
+-- 子テーブルのデタッチ（データは保持）
+DO $$
+DECLARE
+    partition_name TEXT;
+BEGIN
+    FOR partition_name IN
+        SELECT inhrelid::regclass::text
+        FROM pg_inherits
+        WHERE inhparent = 'auth.audit_logs'::regclass
+        ORDER BY inhrelid::regclass::text
+    LOOP
+        EXECUTE format('ALTER TABLE auth.audit_logs DETACH PARTITION %s', partition_name);
+        EXECUTE format('DROP TABLE IF EXISTS %s', partition_name);
+    END LOOP;
+END $$;
