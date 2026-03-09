@@ -107,7 +107,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_activate_tenant_from_provisioning_fails() {
+    async fn test_activate_tenant_from_provisioning_succeeds() {
         let mut mock = MockTenantRepository::new();
         let tenant_id = Uuid::new_v4();
         let tid = tenant_id;
@@ -128,13 +128,11 @@ mod tests {
                     updated_at: chrono::Utc::now(),
                 }))
             });
+        mock.expect_update().returning(|_| Ok(()));
+
         let uc = ActivateTenantUseCase::new(Arc::new(mock));
-        let result = uc.execute(tenant_id).await;
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            ActivateTenantError::InvalidStatus(_) => {}
-            e => panic!("unexpected error: {:?}", e),
-        }
+        let tenant = uc.execute(tenant_id).await.unwrap();
+        assert_eq!(tenant.status, TenantStatus::Active);
     }
 
     #[tokio::test]
