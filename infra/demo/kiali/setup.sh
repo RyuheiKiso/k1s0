@@ -4,8 +4,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+LOCAL_TOOLS_BIN="${REPO_ROOT}/.tools/bin"
+if [ -d "${LOCAL_TOOLS_BIN}" ]; then
+  PATH="${LOCAL_TOOLS_BIN}:${PATH}"
+fi
+
 CLUSTER_NAME="${CLUSTER_NAME:-k1s0-demo}"
 RECREATE_CLUSTER="${RECREATE_CLUSTER:-0}"
+REQUIRED_ISTIO_MINOR="${REQUIRED_ISTIO_MINOR:-1.24}"
 
 echo "=== k1s0 Kiali Demo Environment Setup ==="
 
@@ -24,6 +31,20 @@ for cmd in docker kind istioctl kubectl helm curl; do
 done
 
 echo "All prerequisites found."
+
+ISTIOCTL_VERSION="$(istioctl version --remote=false 2>/dev/null | awk '/client version:/ {print $3; exit}')"
+if [ -z "${ISTIOCTL_VERSION}" ]; then
+  echo "ERROR: Failed to detect istioctl client version."
+  exit 1
+fi
+
+if [[ "${ISTIOCTL_VERSION}" != "${REQUIRED_ISTIO_MINOR}."* ]]; then
+  echo "ERROR: istioctl ${REQUIRED_ISTIO_MINOR}.x is required, but found ${ISTIOCTL_VERSION}."
+  echo "Update PATH or set it explicitly before running setup.sh."
+  exit 1
+fi
+
+echo "Using istioctl ${ISTIOCTL_VERSION}."
 
 # 2. Create kind cluster (skip if already exists)
 if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then

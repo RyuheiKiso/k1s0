@@ -49,6 +49,8 @@ docker-compose.override.yaml
 **/charts/*.tgz
 **/charts/*.tar.gz
 **/Chart.lock
+.helm-tmp/
+.tools/
 
 
 # Generated proto/grpc code

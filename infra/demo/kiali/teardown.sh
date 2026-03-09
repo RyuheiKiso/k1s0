@@ -5,6 +5,11 @@ set -euo pipefail
 CLUSTER_NAME="${CLUSTER_NAME:-k1s0-demo}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+LOCAL_TOOLS_BIN="${REPO_ROOT}/.tools/bin"
+if [ -d "${LOCAL_TOOLS_BIN}" ]; then
+  PATH="${LOCAL_TOOLS_BIN}:${PATH}"
+fi
 
 echo "=== k1s0 Kiali Demo Teardown ==="
 
