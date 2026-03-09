@@ -355,7 +355,7 @@ CREATE INDEX IF NOT EXISTS idx_outbox_unpublished
 
 ```yaml
 app:
-  name: "order-server"
+  name: "k1s0-order-server"
   version: "0.1.0"
   tier: "service"
   environment: "dev"
@@ -363,7 +363,7 @@ app:
 database:
   host: "postgres.k1s0-service.svc.cluster.local"
   port: 5432
-  name: "k1s0_service"
+  name: "k1s0_order"
   schema: "order_service"
   user: "app"
   password: ""

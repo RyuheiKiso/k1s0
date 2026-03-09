@@ -304,13 +304,22 @@ PostgreSQL への接続を確認する。
 
 ### イベントペイロード例
 
+メッセージング共通仕様に従い、metadata wrapper 構造 + epoch millis タイムスタンプを使用する。
+
 **order.created**
 
 ```json
 {
-  "event_id": "uuid",
-  "event_type": "order.created",
-  "order_id": "uuid",
+  "metadata": {
+    "event_id": "550e8400-e29b-41d4-a716-446655440000",
+    "event_type": "order.created",
+    "source": "order-server",
+    "timestamp": 1740787200000,
+    "trace_id": "",
+    "correlation_id": "660e8400-e29b-41d4-a716-446655440111",
+    "schema_version": 1
+  },
+  "order_id": "660e8400-e29b-41d4-a716-446655440111",
   "customer_id": "CUST-001",
   "items": [
     {
@@ -320,8 +329,7 @@ PostgreSQL への接続を確認する。
     }
   ],
   "total_amount": 3000,
-  "currency": "JPY",
-  "timestamp": "2026-03-01T00:00:00+00:00"
+  "currency": "JPY"
 }
 ```
 
@@ -329,13 +337,19 @@ PostgreSQL への接続を確認する。
 
 ```json
 {
-  "event_id": "uuid",
-  "event_type": "order.updated",
-  "order_id": "uuid",
+  "metadata": {
+    "event_id": "550e8400-e29b-41d4-a716-446655440001",
+    "event_type": "order.updated",
+    "source": "order-server",
+    "timestamp": 1740787200000,
+    "trace_id": "",
+    "correlation_id": "660e8400-e29b-41d4-a716-446655440111",
+    "schema_version": 1
+  },
+  "order_id": "660e8400-e29b-41d4-a716-446655440111",
   "user_id": "admin@example.com",
   "status": "confirmed",
-  "total_amount": 3000,
-  "timestamp": "2026-03-01T00:00:00+00:00"
+  "total_amount": 3000
 }
 ```
 
@@ -343,12 +357,20 @@ PostgreSQL への接続を確認する。
 
 ```json
 {
-  "event_id": "uuid",
-  "event_type": "order.cancelled",
-  "order_id": "uuid",
+  "metadata": {
+    "event_id": "550e8400-e29b-41d4-a716-446655440002",
+    "event_type": "order.cancelled",
+    "source": "order-server",
+    "timestamp": 1740787200000,
+    "trace_id": "",
+    "correlation_id": "660e8400-e29b-41d4-a716-446655440111",
+    "schema_version": 1
+  },
+  "order_id": "660e8400-e29b-41d4-a716-446655440111",
   "user_id": "admin@example.com",
-  "reason": "status changed to cancelled",
-  "timestamp": "2026-03-01T00:00:00+00:00"
+  "status": "cancelled",
+  "total_amount": 3000,
+  "reason": "status changed to cancelled"
 }
 ```
 
@@ -400,7 +422,7 @@ PostgreSQL への接続を確認する。
 
 ```yaml
 app:
-  name: "order-server"
+  name: "k1s0-order-server"
   version: "0.1.0"
   environment: "production"
 
@@ -411,7 +433,7 @@ server:
 database:
   host: "postgres.k1s0-service.svc.cluster.local"
   port: 5432
-  name: "k1s0_service"
+  name: "k1s0_order"
   schema: "order_service"
   user: "app"
   password: ""

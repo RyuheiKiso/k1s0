@@ -188,7 +188,7 @@ impl OrderRepository for OrderPostgresRepository {
             "#,
         )
         .bind(Uuid::new_v4())
-        .bind("Order")
+        .bind("order")
         .bind(order_id.to_string())
         .bind("order.created")
         .bind(&outbox_payload)
@@ -236,7 +236,7 @@ impl OrderRepository for OrderPostgresRepository {
             "order.updated"
         };
 
-        let outbox_payload = serde_json::json!({
+        let mut outbox_payload = serde_json::json!({
             "metadata": {
                 "event_id": Uuid::new_v4().to_string(),
                 "event_type": event_type,
@@ -252,6 +252,10 @@ impl OrderRepository for OrderPostgresRepository {
             "total_amount": row.total_amount,
         });
 
+        if *status == OrderStatus::Cancelled {
+            outbox_payload["reason"] = serde_json::json!("status changed to cancelled");
+        }
+
         sqlx::query(
             r#"
             INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
@@ -259,7 +263,7 @@ impl OrderRepository for OrderPostgresRepository {
             "#,
         )
         .bind(Uuid::new_v4())
-        .bind("Order")
+        .bind("order")
         .bind(id.to_string())
         .bind(event_type)
         .bind(&outbox_payload)

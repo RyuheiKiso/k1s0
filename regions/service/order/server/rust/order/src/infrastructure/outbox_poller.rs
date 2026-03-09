@@ -137,7 +137,7 @@ mod tests {
     fn sample_outbox_event(event_type: &str) -> OutboxEvent {
         OutboxEvent {
             id: Uuid::new_v4(),
-            aggregate_type: "Order".to_string(),
+            aggregate_type: "order".to_string(),
             aggregate_id: Uuid::new_v4().to_string(),
             event_type: event_type.to_string(),
             payload: serde_json::json!({"order_id": "test"}),
