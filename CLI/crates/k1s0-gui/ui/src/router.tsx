@@ -1,5 +1,6 @@
 import { createRouter, createRootRoute, createRoute } from '@tanstack/react-router';
 import Layout from './components/Layout';
+import DashboardPage from './pages/DashboardPage';
 import InitPage from './pages/InitPage';
 import GeneratePage from './pages/GeneratePage';
 import ConfigTypesPage from './pages/ConfigTypesPage';
@@ -13,9 +14,15 @@ const rootRoute = createRootRoute({
   component: Layout,
 });
 
-const initRoute = createRoute({
+const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
+  component: DashboardPage,
+});
+
+const initRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/init',
   component: InitPage,
 });
 
@@ -62,6 +69,7 @@ const deployRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+  dashboardRoute,
   initRoute,
   generateRoute,
   configTypesRoute,

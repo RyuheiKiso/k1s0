@@ -806,7 +806,6 @@ fn build_test_app(pool: PgPool) -> Router {
         import_export_uc: Arc::new(usecase::import_export::ImportExportUseCase::new(
             table_repo,
             column_repo,
-            record_repo,
             import_job_repo,
             crud_records_uc,
         )),

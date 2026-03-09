@@ -11,11 +11,21 @@ pub async fn get_navigation(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
-    let bearer_token = headers
-        .get(header::AUTHORIZATION)
-        .and_then(|value| value.to_str().ok())
-        .and_then(extract_bearer_token)
-        .unwrap_or_default();
+    let bearer_token = match parse_authorization_header(&headers) {
+        Ok(token) => token,
+        Err(err) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({
+                    "error": {
+                        "code": "SYS_NAVIGATION_UNAUTHENTICATED",
+                        "message": err,
+                    }
+                })),
+            )
+                .into_response();
+        }
+    };
 
     match state.get_navigation_uc.execute(bearer_token).await {
         Ok(result) => (StatusCode::OK, Json(NavigationResponseBody::from(result))).into_response(),
@@ -40,6 +50,19 @@ pub async fn get_navigation(
         )
             .into_response(),
     }
+}
+
+fn parse_authorization_header(headers: &HeaderMap) -> Result<&str, &'static str> {
+    let Some(raw_header) = headers.get(header::AUTHORIZATION) else {
+        return Ok("");
+    };
+
+    let raw_value = raw_header
+        .to_str()
+        .map_err(|_| "authorization header is not valid UTF-8")?;
+
+    extract_bearer_token(raw_value)
+        .ok_or("authorization header must use a non-empty Bearer token")
 }
 
 fn extract_bearer_token(value: &str) -> Option<&str> {
@@ -205,6 +228,47 @@ mod tests {
                 Request::builder()
                     .uri("/api/v1/navigation")
                     .header(header::AUTHORIZATION, "Bearer bad-token")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["error"]["code"], "SYS_NAVIGATION_UNAUTHENTICATED");
+    }
+
+    #[tokio::test]
+    async fn rest_endpoint_returns_unauthorized_for_malformed_authorization_header() {
+        let app = router(
+            state_with_config(NavigationConfig {
+                version: 1,
+                guards: vec![],
+                routes: vec![Route {
+                    id: "public".to_string(),
+                    path: "/".to_string(),
+                    component_id: Some("PublicPage".to_string()),
+                    guards: vec![],
+                    transition: None,
+                    transition_duration_ms: 300,
+                    redirect_to: None,
+                    children: vec![],
+                    params: vec![],
+                }],
+            }),
+            true,
+            "/metrics",
+        );
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/navigation")
+                    .header(header::AUTHORIZATION, "Basic abc123")
                     .body(Body::empty())
                     .unwrap(),
             )

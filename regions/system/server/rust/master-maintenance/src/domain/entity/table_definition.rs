@@ -15,6 +15,12 @@ pub struct TableDefinition {
     pub allow_create: bool,
     pub allow_update: bool,
     pub allow_delete: bool,
+    #[serde(default)]
+    pub read_roles: Vec<String>,
+    #[serde(default)]
+    pub write_roles: Vec<String>,
+    #[serde(default)]
+    pub admin_roles: Vec<String>,
     pub sort_order: i32,
     pub created_by: String,
     pub created_at: DateTime<Utc>,
@@ -33,6 +39,9 @@ pub struct CreateTableDefinition {
     pub allow_create: Option<bool>,
     pub allow_update: Option<bool>,
     pub allow_delete: Option<bool>,
+    pub read_roles: Option<Vec<String>>,
+    pub write_roles: Option<Vec<String>>,
+    pub admin_roles: Option<Vec<String>>,
     pub sort_order: Option<i32>,
     pub domain_scope: Option<String>,
 }
@@ -46,5 +55,8 @@ pub struct UpdateTableDefinition {
     pub allow_create: Option<bool>,
     pub allow_update: Option<bool>,
     pub allow_delete: Option<bool>,
+    pub read_roles: Option<Vec<String>>,
+    pub write_roles: Option<Vec<String>>,
+    pub admin_roles: Option<Vec<String>>,
     pub sort_order: Option<i32>,
 }

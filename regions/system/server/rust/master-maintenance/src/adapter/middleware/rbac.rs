@@ -1,3 +1,4 @@
+use crate::domain::entity::table_definition::TableDefinition;
 use crate::adapter::handler::error::AppError;
 use axum::{body::Body, http::Request, middleware::Next, response::Response};
 
@@ -35,6 +36,29 @@ async fn rbac_check(
     Ok(next.run(req).await)
 }
 
+pub fn has_action_permission(
+    roles: &[String],
+    action: &str,
+    table: Option<&TableDefinition>,
+) -> bool {
+    if check_system_permission(roles, action) {
+        return true;
+    }
+
+    let Some(table) = table else {
+        return false;
+    };
+
+    if check_table_permission(roles, table, action) {
+        return true;
+    }
+
+    table
+        .domain_scope
+        .as_deref()
+        .is_some_and(|domain| check_domain_permission(roles, domain, action))
+}
+
 pub fn check_system_permission(roles: &[String], action: &str) -> bool {
     for role in roles {
         match role.as_str() {
@@ -55,34 +79,78 @@ pub fn check_system_permission(roles: &[String], action: &str) -> bool {
     false
 }
 
+pub fn check_table_permission(roles: &[String], table: &TableDefinition, action: &str) -> bool {
+    let required_roles = match action {
+        "read" => &table.read_roles,
+        "write" => &table.write_roles,
+        "admin" => &table.admin_roles,
+        _ => return false,
+    };
+
+    !required_roles.is_empty() && required_roles.iter().any(|role| roles.iter().any(|r| r == role))
+}
+
 pub fn check_domain_permission(roles: &[String], domain: &str, action: &str) -> bool {
     for role in roles {
         // sys_admin は全ドメインアクセス可
         if role == "sys_admin" {
             return true;
         }
-        // ドメイン固有ロール: {domain}_admin, {domain}_operator, {domain}_auditor
-        match role.as_str() {
-            r if r == format!("{}_admin", domain) => return true,
-            r if r == format!("{}_operator", domain) => {
-                if matches!(action, "read" | "write") {
-                    return true;
-                }
-            }
-            r if r == format!("{}_auditor", domain) => {
-                if action == "read" {
-                    return true;
-                }
-            }
-            _ => {}
+
+        if matches_domain_admin_role(role, domain) {
+            return true;
+        }
+        if matches_domain_write_role(role, domain) && matches!(action, "read" | "write") {
+            return true;
+        }
+        if matches_domain_read_role(role, domain) && action == "read" {
+            return true;
         }
     }
     false
 }
 
+fn matches_domain_admin_role(role: &str, domain: &str) -> bool {
+    role == format!("{}_admin", domain) || role == format!("biz_{}_admin", domain)
+}
+
+fn matches_domain_write_role(role: &str, domain: &str) -> bool {
+    role == format!("{}_operator", domain) || role == format!("biz_{}_manager", domain)
+}
+
+fn matches_domain_read_role(role: &str, domain: &str) -> bool {
+    role == format!("{}_auditor", domain) || role == format!("biz_{}_viewer", domain)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    fn sample_table() -> TableDefinition {
+        TableDefinition {
+            id: Uuid::new_v4(),
+            name: "departments".to_string(),
+            schema_name: "business".to_string(),
+            database_name: "default".to_string(),
+            display_name: "Departments".to_string(),
+            description: None,
+            category: None,
+            is_active: true,
+            allow_create: true,
+            allow_update: true,
+            allow_delete: false,
+            read_roles: vec!["table_departments_reader".to_string()],
+            write_roles: vec!["table_departments_editor".to_string()],
+            admin_roles: vec!["table_departments_admin".to_string()],
+            sort_order: 0,
+            created_by: "tester".to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            domain_scope: Some("accounting".to_string()),
+        }
+    }
 
     #[test]
     fn test_sys_admin_all_allowed() {
@@ -141,10 +209,36 @@ mod tests {
     }
 
     #[test]
+    fn test_business_domain_roles_supported() {
+        let roles = vec!["biz_accounting_manager".to_string()];
+        assert!(check_domain_permission(&roles, "accounting", "read"));
+        assert!(check_domain_permission(&roles, "accounting", "write"));
+        assert!(!check_domain_permission(&roles, "accounting", "admin"));
+    }
+
+    #[test]
     fn test_sys_admin_accesses_all_domains() {
         let roles = vec!["sys_admin".to_string()];
         assert!(check_domain_permission(&roles, "accounting", "read"));
         assert!(check_domain_permission(&roles, "fa", "admin"));
         assert!(check_domain_permission(&roles, "any_domain", "write"));
+    }
+
+    #[test]
+    fn test_table_permission_grants_access() {
+        let roles = vec!["table_departments_editor".to_string()];
+        assert!(check_table_permission(&roles, &sample_table(), "write"));
+        assert!(!check_table_permission(&roles, &sample_table(), "admin"));
+    }
+
+    #[test]
+    fn test_has_action_permission_accepts_table_or_domain_roles() {
+        let table = sample_table();
+        let explicit_roles = vec!["table_departments_reader".to_string()];
+        let domain_roles = vec!["biz_accounting_viewer".to_string()];
+
+        assert!(has_action_permission(&explicit_roles, "read", Some(&table)));
+        assert!(has_action_permission(&domain_roles, "read", Some(&table)));
+        assert!(!has_action_permission(&["plain_user".to_string()], "read", Some(&table)));
     }
 }

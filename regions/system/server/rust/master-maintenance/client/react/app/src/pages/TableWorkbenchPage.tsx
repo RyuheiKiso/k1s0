@@ -86,7 +86,18 @@ export function TableWorkbenchPage() {
   const submitTable = async () => {
     try {
       const values = await tableForm.validateFields();
-      await createTable.mutateAsync(values);
+      const payload = {
+        ...values,
+        domain_scope: values.domain_scope || undefined,
+        read_roles: parseRoleList(values.read_roles_text),
+        write_roles: parseRoleList(values.write_roles_text),
+        admin_roles: parseRoleList(values.admin_roles_text),
+      };
+      delete payload.read_roles_text;
+      delete payload.write_roles_text;
+      delete payload.admin_roles_text;
+
+      await createTable.mutateAsync(payload);
       message.success(`Table ${values.display_name} created`);
       tableForm.resetFields();
       setTableDrawerOpen(false);
@@ -302,6 +313,9 @@ export function TableWorkbenchPage() {
                   showIcon
                   message={`create=${activeTable.allow_create} update=${activeTable.allow_update} delete=${activeTable.allow_delete}`}
                 />
+                <Typography.Paragraph className="!mb-0 !mt-3 text-white/70">
+                  read={formatRoleList(activeTable.read_roles)} write={formatRoleList(activeTable.write_roles)} admin={formatRoleList(activeTable.admin_roles)}
+                </Typography.Paragraph>
               </ShellCard>
               <ShellCard
                 title="Columns"
@@ -452,6 +466,10 @@ export function TableWorkbenchPage() {
             allow_create: true,
             allow_update: true,
             allow_delete: false,
+            domain_scope: "",
+            read_roles_text: "",
+            write_roles_text: "",
+            admin_roles_text: "",
             sort_order: 0,
           }}
         >
@@ -470,6 +488,9 @@ export function TableWorkbenchPage() {
           <Form.Item label="Category" name="category">
             <Input placeholder="organization" />
           </Form.Item>
+          <Form.Item label="Domain scope" name="domain_scope">
+            <Input placeholder="accounting" />
+          </Form.Item>
           <Form.Item label="Description" name="description">
             <Input.TextArea rows={4} />
           </Form.Item>
@@ -484,6 +505,15 @@ export function TableWorkbenchPage() {
           </Form.Item>
           <Form.Item label="Delete" name="allow_delete" valuePropName="checked">
             <Switch />
+          </Form.Item>
+          <Form.Item label="Read roles" name="read_roles_text">
+            <Input.TextArea rows={2} placeholder="role_a, role_b" />
+          </Form.Item>
+          <Form.Item label="Write roles" name="write_roles_text">
+            <Input.TextArea rows={2} placeholder="role_a, role_b" />
+          </Form.Item>
+          <Form.Item label="Admin roles" name="admin_roles_text">
+            <Input.TextArea rows={2} placeholder="role_a, role_b" />
           </Form.Item>
         </Form>
       </Drawer>
@@ -745,4 +775,15 @@ function getRecordRowKey(record: Record<string, unknown>, primaryKeyColumn?: Col
   }
 
   return JSON.stringify(record);
+}
+
+function parseRoleList(value: string | undefined) {
+  return (value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function formatRoleList(value: string[] | undefined) {
+  return value && value.length > 0 ? value.join(", ") : "inherit";
 }

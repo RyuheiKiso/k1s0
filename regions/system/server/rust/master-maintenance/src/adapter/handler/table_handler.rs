@@ -113,7 +113,17 @@ pub async fn get_table(
                 &format!("Table '{}' not found", name),
             )
         })?;
-    Ok(Json(serde_json::to_value(table).unwrap()))
+    let columns = state
+        .manage_columns_uc
+        .list_columns(&name, ds_query.domain_scope.as_deref())
+        .await?;
+
+    let mut payload = serde_json::to_value(table).unwrap();
+    if let Some(object) = payload.as_object_mut() {
+        object.insert("columns".to_string(), serde_json::to_value(columns).unwrap());
+    }
+
+    Ok(Json(payload))
 }
 
 pub async fn create_table(

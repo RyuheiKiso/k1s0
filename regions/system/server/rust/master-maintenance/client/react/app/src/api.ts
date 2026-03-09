@@ -43,6 +43,10 @@ export async function createTable(input: {
   allow_create?: boolean;
   allow_update?: boolean;
   allow_delete?: boolean;
+  domain_scope?: string;
+  read_roles?: string[];
+  write_roles?: string[];
+  admin_roles?: string[];
   sort_order?: number;
 }): Promise<TableDefinition> {
   const { data } = await http.post<TableDefinition>("/tables", input);

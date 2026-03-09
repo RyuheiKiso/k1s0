@@ -120,6 +120,9 @@ message GetTableDefinitionResponse {
   k1s0.system.common.v1.Timestamp created_at = 16;
   k1s0.system.common.v1.Timestamp updated_at = 17;
   string domain_scope = 18;
+  repeated string read_roles = 19;
+  repeated string write_roles = 20;
+  repeated string admin_roles = 21;
 }
 
 // カラム定義

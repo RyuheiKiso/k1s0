@@ -1,5 +1,7 @@
 use axum::{
     extract::{Extension, Multipart, Path, Query, State},
+    http::header::{CONTENT_DISPOSITION, CONTENT_TYPE},
+    http::HeaderMap,
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -8,18 +10,20 @@ use k1s0_auth::Claims;
 use serde::Deserialize;
 
 use crate::adapter::handler::error::AppError;
+use crate::adapter::handler::table_handler::DomainScopeQuery;
 use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState};
 
 pub async fn import_records(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
+    Query(ds_query): Query<DomainScopeQuery>,
     Json(data): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let job = state
         .import_export_uc
-        .import_records(&name, &data, &actor, None)
+        .import_records(&name, &data, &actor, ds_query.domain_scope.as_deref())
         .await?;
     publish_change_event(
         &state,
@@ -45,6 +49,7 @@ pub async fn import_records_file(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
+    Query(ds_query): Query<DomainScopeQuery>,
     mut multipart: Multipart,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
@@ -80,7 +85,13 @@ pub async fn import_records_file(
 
     let job = state
         .import_export_uc
-        .import_records_from_file(&name, &file_name, &file_content, &actor, None)
+        .import_records_from_file(
+            &name,
+            &file_name,
+            &file_content,
+            &actor,
+            ds_query.domain_scope.as_deref(),
+        )
         .await?;
     publish_change_event(
         &state,
@@ -109,23 +120,21 @@ pub async fn export_records(
 ) -> Result<impl IntoResponse, AppError> {
     let result = state
         .import_export_uc
-        .export_records(&name, query.format.as_deref(), None)
+        .export_records(&name, query.format.as_deref(), query.domain_scope.as_deref())
         .await?;
 
-    if matches!(query.format.as_deref(), Some("csv")) {
-        let content = result
-            .get("content")
-            .and_then(|value| value.as_str())
-            .unwrap_or_default()
-            .to_string();
-        Ok((
-            StatusCode::OK,
-            [("content-type", "text/csv; charset=utf-8")],
-            content,
-        )
-            .into_response())
+    if let Some(file) = result.file {
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_TYPE, file.content_type.parse().unwrap());
+        headers.insert(
+            CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{}\"", file.file_name)
+                .parse()
+                .unwrap(),
+        );
+        Ok((StatusCode::OK, headers, file.bytes).into_response())
     } else {
-        Ok(Json(result).into_response())
+        Ok(Json(result.as_json()).into_response())
     }
 }
 
@@ -146,4 +155,5 @@ pub async fn get_import_job(
 #[derive(Debug, Deserialize)]
 pub struct ExportQuery {
     pub format: Option<String>,
+    pub domain_scope: Option<String>,
 }

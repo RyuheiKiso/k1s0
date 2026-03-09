@@ -10,9 +10,10 @@ pub mod rule_handler;
 pub mod table_handler;
 
 use crate::adapter::middleware::auth::{auth_middleware, MasterMaintenanceAuthState};
-use crate::adapter::middleware::rbac::require_permission;
+use crate::adapter::middleware::rbac::has_action_permission;
 use crate::infrastructure::messaging::kafka_producer::MasterMaintenanceKafkaProducer;
 use crate::usecase;
+use opentelemetry::trace::TraceContextExt;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use axum::middleware::from_fn_with_state;
@@ -24,6 +25,7 @@ use axum::Router;
 use k1s0_auth::actor_from_claims;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -53,6 +55,17 @@ pub async fn publish_change_event(state: &AppState, event: serde_json::Value) {
             topic = %producer.topic(),
             "failed to publish data changed event"
         );
+    }
+}
+
+pub fn current_trace_id() -> Option<String> {
+    let context = tracing::Span::current().context();
+    let span = context.span();
+    let span_context = span.span_context();
+    if span_context.is_valid() {
+        Some(span_context.trace_id().to_string())
+    } else {
+        None
     }
 }
 
@@ -89,6 +102,80 @@ fn extract_table_name(path: &str) -> Option<&str> {
     None
 }
 
+fn extract_domain_scope(query: Option<&str>) -> Option<String> {
+    query.and_then(|value| {
+        value
+            .split('&')
+            .filter_map(|pair| pair.split_once('='))
+            .find_map(|(key, raw)| {
+                if key == "domain_scope" && !raw.is_empty() {
+                    Some(raw.to_string())
+                } else {
+                    None
+                }
+            })
+    })
+}
+
+fn require_route_permission(
+    state: AppState,
+    action: &'static str,
+) -> impl Fn(
+    Request<Body>,
+    Next,
+)
+    -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
+       + Clone {
+    move |req: Request<Body>, next: Next| {
+        let state = state.clone();
+        Box::pin(async move {
+            let claims = match req.extensions().get::<k1s0_auth::Claims>() {
+                Some(claims) => claims,
+                None => {
+                    return (
+                        StatusCode::UNAUTHORIZED,
+                        Json(serde_json::json!({
+                            "error": {
+                                "code": "SYS_MM_MISSING_CLAIMS",
+                                "message": "Missing authentication claims",
+                            }
+                        })),
+                    )
+                        .into_response();
+                }
+            };
+
+            let table_name = extract_table_name(req.uri().path()).map(str::to_string);
+            let domain_scope = extract_domain_scope(req.uri().query());
+
+            let table = match table_name.as_deref() {
+                Some(name) => state
+                    .manage_tables_uc
+                    .get_table(name, domain_scope.as_deref())
+                    .await
+                    .ok()
+                    .flatten(),
+                None => None,
+            };
+
+            if !has_action_permission(claims.realm_roles(), action, table.as_ref()) {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(serde_json::json!({
+                        "error": {
+                            "code": "SYS_AUTH_PERMISSION_DENIED",
+                            "message": format!("Insufficient permissions for action: {}", action),
+                        }
+                    })),
+                )
+                    .into_response();
+            }
+
+            next.run(req).await
+        })
+    }
+}
+
 fn require_table_operation(
     state: AppState,
     operation: RecordOperation,
@@ -109,8 +196,13 @@ fn require_table_operation(
                 )
                     .into_response();
             };
+            let domain_scope = extract_domain_scope(req.uri().query());
 
-            let permissions = match state.crud_records_uc.table_permissions(&table_name, None).await {
+            let permissions = match state
+                .crud_records_uc
+                .table_permissions(&table_name, domain_scope.as_deref())
+                .await
+            {
                 Ok(flags) => flags,
                 Err(err) => {
                     let message = err.to_string();
@@ -210,10 +302,10 @@ pub fn router(state: AppState) -> Router {
                 get(display_config_handler::get_display_config),
             )
             .route("/api/v1/domains", get(table_handler::list_domains))
-            .route_layer(axum::middleware::from_fn(move |req, next| {
-                let perm = require_permission("master-maintenance", "read");
-                perm(req, next)
-            }));
+            .route_layer(axum::middleware::from_fn(require_route_permission(
+                state.clone(),
+                "read",
+            )));
 
         let record_create_routes = Router::new()
             .route(
@@ -291,10 +383,10 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/tables/:name/display-configs/:id",
                 put(display_config_handler::update_display_config),
             )
-            .route_layer(axum::middleware::from_fn(move |req, next| {
-                let perm = require_permission("master-maintenance", "write");
-                perm(req, next)
-            }));
+            .route_layer(axum::middleware::from_fn(require_route_permission(
+                state.clone(),
+                "write",
+            )));
 
         // Admin routes (sys_admin のみ)
         let admin_routes = Router::new()
@@ -312,10 +404,10 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/tables/:name/display-configs/:id",
                 delete(display_config_handler::delete_display_config),
             )
-            .route_layer(axum::middleware::from_fn(move |req, next| {
-                let perm = require_permission("master-maintenance", "admin");
-                perm(req, next)
-            }));
+            .route_layer(axum::middleware::from_fn(require_route_permission(
+                state.clone(),
+                "admin",
+            )));
 
         read_routes
             .merge(write_routes)

@@ -40,6 +40,7 @@ regex = "1"
 # CSV/Excel
 csv = "1"
 calamine = "0.26"
+rust_xlsxwriter = "0.80"
 
 # Logging / Tracing
 tracing = "0.1"
