@@ -58,9 +58,9 @@ const scenarios = [
   {
     id: "kafka",
     label: "Kafka Messaging",
-    desc: "Async event flow visualization",
+    desc: "producer -> kafka -> consumer flow",
     group: "observability",
-    tab: "kiali",
+    tab: "topology",
   },
 ] as const;
 

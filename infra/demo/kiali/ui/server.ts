@@ -10,6 +10,10 @@ const KIALI_DIR = resolve(__dirname, "..");
 
 const app = new Hono();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
+const PROMETHEUS_URL =
+  process.env.PROMETHEUS_URL || "http://localhost:9090";
+const JAEGER_OTLP_URL =
+  process.env.JAEGER_OTLP_URL || "http://localhost:4318";
 
 // Active processes
 let trafficProcess: ChildProcess | null = null;
@@ -67,7 +71,11 @@ function runCommand(
 // Scenario definitions
 const scenarios: Record<
   string,
-  { apply: string | null; traffic: string; description: string }
+  {
+    apply: string | null;
+    traffic: "normal" | "canary" | "stop";
+    description: string;
+  }
 > = {
   normal: {
     apply: null,
@@ -105,9 +113,9 @@ const scenarios: Record<
     description: "Log aggregation - Grafana + Loki",
   },
   kafka: {
-    apply: "scenarios/kafka-flow.yaml",
-    traffic: "normal",
-    description: "Kafka messaging - async event flow",
+    apply: null,
+    traffic: "stop",
+    description: "Kafka producer/consumer flow",
   },
 };
 
@@ -129,11 +137,6 @@ async function resetScenarios() {
       ],
       true
     );
-    await runCommand(
-      "kubectl",
-      ["delete", "vs", "kafka-flow", "-n", "messaging", "--ignore-not-found"],
-      true
-    );
   } catch {
     // Ignore errors from non-existent resources
   }
@@ -152,6 +155,10 @@ function stopTraffic() {
 // Start traffic generator
 function startTraffic(mode: string) {
   stopTraffic();
+  if (mode === "stop") {
+    broadcast("Traffic generator remains stopped for this scenario.");
+    return;
+  }
   const args = [resolve(KIALI_DIR, "traffic-gen.sh"), "2", "3600"];
   if (mode === "canary") args.push("canary");
 
@@ -275,8 +282,6 @@ app.post("/api/traffic/stop", (c) => {
 
 // --- Topology API (query Prometheus) ---
 
-const PROMETHEUS_URL = "http://localhost:9090";
-
 app.get("/api/topology", async (c) => {
   try {
     // Query request rates between workloads
@@ -347,8 +352,6 @@ app.get("/api/topology", async (c) => {
 });
 
 // --- Jaeger Dependencies: inject synthetic multi-service traces ---
-
-const JAEGER_OTLP_URL = "http://localhost:4318";
 
 async function injectTraces() {
   const servicePairs = [
@@ -463,107 +466,6 @@ async function injectTraces() {
 setInterval(injectTraces, 30_000);
 // Initial injection after 3s
 setTimeout(injectTraces, 3_000);
-
-// --- Grafana Node Graph endpoints (for Infinity datasource) ---
-
-// Known service architecture (from traffic-gen.sh)
-const SERVICE_TOPOLOGY = {
-  nodes: [
-    { id: "order-bff", ns: "k1s0-service" },
-    { id: "order-server", ns: "k1s0-service" },
-    { id: "graphql-gateway", ns: "k1s0-system" },
-    { id: "auth-server", ns: "k1s0-system" },
-    { id: "config-server", ns: "k1s0-system" },
-    { id: "saga-server", ns: "k1s0-system" },
-    { id: "accounting-server", ns: "k1s0-business" },
-  ],
-  edges: [
-    { source: "order-bff", target: "order-server" },
-    { source: "order-bff", target: "graphql-gateway" },
-    { source: "order-server", target: "auth-server" },
-    { source: "order-server", target: "config-server" },
-    { source: "order-server", target: "saga-server" },
-    { source: "order-server", target: "accounting-server" },
-    { source: "accounting-server", target: "auth-server" },
-    { source: "accounting-server", target: "config-server" },
-    { source: "graphql-gateway", target: "auth-server" },
-    { source: "graphql-gateway", target: "config-server" },
-    { source: "saga-server", target: "auth-server" },
-    { source: "saga-server", target: "config-server" },
-    { source: "auth-server", target: "config-server" },
-  ],
-};
-
-app.get("/api/grafana/nodes", async (c) => {
-  try {
-    const query = encodeURIComponent(
-      'sum(rate(istio_requests_total{reporter="destination"}[5m])) by (destination_workload, destination_workload_namespace)'
-    );
-    const res = await fetch(`${PROMETHEUS_URL}/api/v1/query?query=${query}`);
-    const data = await res.json();
-
-    // Build rate map from actual metrics
-    const rateMap = new Map<string, number>();
-    for (const r of data.data?.result || []) {
-      const id = r.metric.destination_workload;
-      if (id === "unknown") continue;
-      rateMap.set(id, (rateMap.get(id) || 0) + parseFloat(r.value[1]));
-    }
-
-    const nodes = SERVICE_TOPOLOGY.nodes.map((n) => ({
-      id: n.id,
-      title: n.id,
-      subtitle: n.ns,
-      mainStat: rateMap.get(n.id) || 0,
-    }));
-
-    c.header("Access-Control-Allow-Origin", "*");
-    return c.json(nodes);
-  } catch {
-    return c.json([], 200);
-  }
-});
-
-app.get("/api/grafana/edges", async (c) => {
-  try {
-    const query = encodeURIComponent(
-      'sum(rate(istio_requests_total{reporter="destination"}[5m])) by (destination_workload)'
-    );
-    const res = await fetch(`${PROMETHEUS_URL}/api/v1/query?query=${query}`);
-    const data = await res.json();
-
-    // Build destination rate map
-    const dstRate = new Map<string, number>();
-    for (const r of data.data?.result || []) {
-      const id = r.metric.destination_workload;
-      if (id === "unknown") continue;
-      dstRate.set(id, parseFloat(r.value[1]));
-    }
-
-    // Distribute rate across known source edges proportionally
-    const edgesByTarget = new Map<string, typeof SERVICE_TOPOLOGY.edges>();
-    for (const e of SERVICE_TOPOLOGY.edges) {
-      if (!edgesByTarget.has(e.target)) edgesByTarget.set(e.target, []);
-      edgesByTarget.get(e.target)!.push(e);
-    }
-
-    const edges = SERVICE_TOPOLOGY.edges.map((e, i) => {
-      const totalRate = dstRate.get(e.target) || 0;
-      const numSources = edgesByTarget.get(e.target)?.length || 1;
-      return {
-        id: String(i),
-        source: e.source,
-        target: e.target,
-        mainStat: Math.round((totalRate / numSources) * 1000) / 1000,
-      };
-    });
-
-    c.header("Access-Control-Allow-Origin", "*");
-    return c.json(edges);
-  } catch {
-    return c.json([], 200);
-  }
-});
 
 // --- WebSocket ---
 

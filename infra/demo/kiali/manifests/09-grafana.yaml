@@ -34,14 +34,6 @@ data:
         access: proxy
         url: http://jaeger.observability.svc.cluster.local:16686
         editable: false
-      - name: Infinity
-        type: yesoreyeram-infinity-datasource
-        uid: infinity
-        access: proxy
-        editable: false
-        jsonData:
-          allowedHosts:
-            - host.docker.internal:3100
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -93,8 +85,6 @@ spec:
               value: "disabled"
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "false"
-            - name: GF_INSTALL_PLUGINS
-              value: "yesoreyeram-infinity-datasource"
           ports:
             - containerPort: 3000
               name: http

@@ -1,8 +1,8 @@
 # Istio resources for demo environment
-# Based on infra/istio/ configs, adjusted for PERMISSIVE mTLS
+# Keeps the demo aligned with the platform's STRICT mTLS baseline.
 
 ##############################################################
-# PeerAuthentication - PERMISSIVE for demo ease
+# PeerAuthentication
 ##############################################################
 ---
 apiVersion: security.istio.io/v1
@@ -12,6 +12,15 @@ metadata:
   namespace: istio-system
 spec:
   mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: allow-prometheus
+  namespace: observability
+spec:
+  mtls:
     mode: PERMISSIVE
 ---
 apiVersion: security.istio.io/v1
@@ -21,7 +30,7 @@ metadata:
   namespace: k1s0-system
 spec:
   mtls:
-    mode: PERMISSIVE
+    mode: STRICT
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -30,7 +39,7 @@ metadata:
   namespace: k1s0-business
 spec:
   mtls:
-    mode: PERMISSIVE
+    mode: STRICT
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -39,72 +48,56 @@ metadata:
   namespace: k1s0-service
 spec:
   mtls:
-    mode: PERMISSIVE
+    mode: STRICT
 
 ##############################################################
-# AuthorizationPolicy - Removed for demo (PERMISSIVE mTLS
-# without SPIFFE identity causes ALLOW policies to reject
-# traffic with unknown source). In production, these are
-# defined in infra/istio/authorizationpolicy.yaml.
-##############################################################
-
-##############################################################
-# VirtualService - Tier defaults (timeout/retry)
+# AuthorizationPolicy
 ##############################################################
 ---
-apiVersion: networking.istio.io/v1
-kind: VirtualService
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
 metadata:
-  name: default-system
+  name: allow-from-lower-tiers
   namespace: k1s0-system
 spec:
-  hosts:
-    - "*.k1s0-system.svc.cluster.local"
-  http:
-    - route:
-        - destination:
-            host: "*.k1s0-system.svc.cluster.local"
-      timeout: 5s
-      retries:
-        attempts: 3
-        perTryTimeout: 2s
-        retryOn: "5xx,reset,connect-failure"
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - observability
+              - k1s0-system
+              - k1s0-business
+              - k1s0-service
 ---
-apiVersion: networking.istio.io/v1
-kind: VirtualService
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
 metadata:
-  name: default-business
+  name: allow-from-service-tier
   namespace: k1s0-business
 spec:
-  hosts:
-    - "*.k1s0-business.svc.cluster.local"
-  http:
-    - route:
-        - destination:
-            host: "*.k1s0-business.svc.cluster.local"
-      timeout: 10s
-      retries:
-        attempts: 3
-        perTryTimeout: 3s
-        retryOn: "5xx,reset,connect-failure"
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - observability
+              - k1s0-business
+              - k1s0-service
 ---
-apiVersion: networking.istio.io/v1
-kind: VirtualService
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
 metadata:
-  name: default-service
+  name: allow-from-same-tier-and-observability
   namespace: k1s0-service
 spec:
-  hosts:
-    - "*.k1s0-service.svc.cluster.local"
-  http:
-    - route:
-        - destination:
-            host: "*.k1s0-service.svc.cluster.local"
-      timeout: 15s
-      retries:
-        attempts: 2
-        perTryTimeout: 5s
-        retryOn: "5xx,reset,connect-failure,retriable-4xx"
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - observability
+              - k1s0-service
 
 ##############################################################
 # DestinationRule
@@ -124,6 +117,8 @@ spec:
       http:
         http1MaxPendingRequests: 200
         http2MaxRequests: 2000
+    tls:
+      mode: ISTIO_MUTUAL
     outlierDetection:
       consecutive5xxErrors: 3
       interval: 10s
@@ -147,6 +142,8 @@ spec:
         http2MaxRequests: 1000
     loadBalancer:
       simple: LEAST_REQUEST
+    tls:
+      mode: ISTIO_MUTUAL
     outlierDetection:
       consecutive5xxErrors: 5
       interval: 30s

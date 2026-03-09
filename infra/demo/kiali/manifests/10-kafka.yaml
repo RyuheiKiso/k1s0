@@ -8,6 +8,7 @@ metadata:
   name: messaging
   labels:
     tier: infra
+    # Intentionally meshed in the demo so Kiali can visualize TCP flows to Kafka.
     istio-injection: enabled
 ---
 apiVersion: apps/v1

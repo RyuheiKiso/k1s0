@@ -89,3 +89,11 @@ spec:
       port: 16686
       targetPort: 16686
       nodePort: 30686
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      nodePort: 30417
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      nodePort: 30418

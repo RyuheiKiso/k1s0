@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 # Kiali demo environment setup script
-# Prerequisites: docker, kind, istioctl, kubectl, helm
+# Prerequisites: docker, kind, istioctl, kubectl, helm, curl
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLUSTER_NAME="k1s0-demo"
+CLUSTER_NAME="${CLUSTER_NAME:-k1s0-demo}"
+RECREATE_CLUSTER="${RECREATE_CLUSTER:-0}"
 
 echo "=== k1s0 Kiali Demo Environment Setup ==="
 
+cluster_has_required_mapping() {
+  local host_port="${1}"
+  local container_port="${2}"
+  docker port "${CLUSTER_NAME}-control-plane" "${container_port}/tcp" 2>/dev/null | grep -Eq ":${host_port}$"
+}
+
 # 1. Check prerequisites
-for cmd in docker kind istioctl kubectl helm; do
+for cmd in docker kind istioctl kubectl helm curl; do
   if ! command -v "$cmd" &>/dev/null; then
     echo "ERROR: $cmd is not installed. Please install it first."
     exit 1
@@ -20,10 +27,40 @@ echo "All prerequisites found."
 
 # 2. Create kind cluster (skip if already exists)
 if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
-  echo "Cluster '${CLUSTER_NAME}' already exists. Skipping creation."
+  if [ "${RECREATE_CLUSTER}" = "1" ]; then
+    echo "Recreating cluster '${CLUSTER_NAME}' to refresh host port mappings..."
+    kind delete cluster --name "${CLUSTER_NAME}"
+    kind create cluster --name "${CLUSTER_NAME}" --config "${SCRIPT_DIR}/kind-config.yaml"
+  else
+    missing_mappings=()
+    for mapping in \
+      "20001:30001" \
+      "16686:30686" \
+      "4318:30418" \
+      "4317:30417" \
+      "9090:30909" \
+      "3200:30300"; do
+      host_port="${mapping%%:*}"
+      container_port="${mapping##*:}"
+      if ! cluster_has_required_mapping "${host_port}" "${container_port}"; then
+        missing_mappings+=("${host_port}->${container_port}")
+      fi
+    done
+
+    if [ "${#missing_mappings[@]}" -gt 0 ]; then
+      echo "ERROR: Cluster '${CLUSTER_NAME}' already exists but is missing required host port mappings:"
+      for mapping in "${missing_mappings[@]}"; do
+        echo "  - ${mapping}"
+      done
+      echo "Run 'RECREATE_CLUSTER=1 bash ${SCRIPT_DIR}/setup.sh' to recreate it with the current config."
+      exit 1
+    fi
+
+    echo "Cluster '${CLUSTER_NAME}' already exists with required host port mappings. Skipping creation."
+  fi
 else
   echo "Creating kind cluster '${CLUSTER_NAME}'..."
-  kind create cluster --config "${SCRIPT_DIR}/kind-config.yaml"
+  kind create cluster --name "${CLUSTER_NAME}" --config "${SCRIPT_DIR}/kind-config.yaml"
 fi
 
 kubectl cluster-info --context "kind-${CLUSTER_NAME}"
@@ -117,19 +154,13 @@ kubectl wait --for=condition=ready pod -l app=kafka -n messaging --timeout=180s
 echo "  Waiting for Kiali..."
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kiali -n istio-system --timeout=120s
 
-# 7. Start port-forward for Kiali access
-echo "Starting port-forward for Kiali (localhost:20001)..."
-kubectl port-forward svc/kiali -n istio-system 20001:20001 &>/dev/null &
-KIALI_PF_PID=$!
-echo "${KIALI_PF_PID}" > "${SCRIPT_DIR}/.kiali-pf.pid"
+# 7. Verify externally mapped endpoints
 sleep 2
 
-# Verify Kiali is accessible
 if curl -s -o /dev/null -w "" http://localhost:20001/kiali/ 2>/dev/null; then
   echo "Kiali is accessible."
 else
-  echo "WARNING: Kiali may not be accessible yet. Try manually:"
-  echo "  kubectl port-forward svc/kiali -n istio-system 20001:20001"
+  echo "WARNING: Kiali may not be accessible yet at http://localhost:20001/kiali"
 fi
 
 # 8. Summary
@@ -139,7 +170,9 @@ echo ""
 echo "Dashboards:"
 echo "  Kiali:    http://localhost:20001/kiali"
 echo "  Jaeger:   http://localhost:16686"
-echo "  Grafana:  http://localhost:3000"
+echo "  Grafana:  http://localhost:3200"
+echo "  Prometheus API: http://localhost:9090"
+echo "  Jaeger OTLP HTTP: http://localhost:4318"
 echo "  Demo UI:  http://localhost:5173  (run 'cd ui && npm install && npm run dev')"
 echo ""
 echo "Next steps:"
@@ -149,5 +182,8 @@ echo "    Open http://localhost:5173"
 echo ""
 echo "  Option B: CLI demo (interactive terminal)"
 echo "    bash ${SCRIPT_DIR}/demo.sh"
+echo ""
+echo "If you updated kind-config host ports on an existing cluster:"
+echo "  RECREATE_CLUSTER=1 bash ${SCRIPT_DIR}/setup.sh"
 echo ""
 echo "To clean up: bash ${SCRIPT_DIR}/teardown.sh"

@@ -31,7 +31,7 @@ external_services:
   grafana:
     enabled: true
     in_cluster_url: http://grafana.observability.svc.cluster.local:3000
-    url: http://localhost:3000
+    url: http://localhost:3200
   tracing:
     enabled: true
     in_cluster_url: http://jaeger.observability.svc.cluster.local:16686

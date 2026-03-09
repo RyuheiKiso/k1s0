@@ -4,31 +4,28 @@ import TopologyView from "./TopologyView";
 
 interface DashboardViewerProps {
   recommendedTab: RecommendedTab;
+  activeScenario: string | null;
 }
 
-const iframeTabs = [
+const allTabs = [
   {
     id: "kiali" as const,
     label: "Kiali",
-    url: "http://localhost:20001/kiali/console/graph/namespaces/?namespaces=k1s0-system,k1s0-business,k1s0-service&graphType=versionedApp&duration=60&refresh=15000&animation=true",
+    url: "",
     color: "text-blue-400 border-blue-400",
   },
   {
     id: "jaeger" as const,
     label: "Jaeger",
-    url: "http://localhost:16686/search",
+    url: "",
     color: "text-cyan-400 border-cyan-400",
   },
   {
     id: "grafana" as const,
     label: "Grafana",
-    url: "http://localhost:3000/d/k1s0-mesh-overview/k1s0-service-mesh-overview?orgId=1&refresh=10s",
+    url: "",
     color: "text-orange-400 border-orange-400",
   },
-];
-
-const allTabs = [
-  ...iframeTabs,
   {
     id: "topology" as const,
     label: "Topology",
@@ -39,6 +36,7 @@ const allTabs = [
 
 export default function DashboardViewer({
   recommendedTab,
+  activeScenario,
 }: DashboardViewerProps) {
   const [activeTab, setActiveTab] = useState<string>("kiali");
 
@@ -46,7 +44,36 @@ export default function DashboardViewer({
     setActiveTab(recommendedTab);
   }, [recommendedTab]);
 
-  const currentTab = allTabs.find((t) => t.id === activeTab) ?? allTabs[0];
+  const kialiNamespaces =
+    activeScenario === "kafka"
+      ? "k1s0-system,k1s0-business,k1s0-service,messaging"
+      : "k1s0-system,k1s0-business,k1s0-service";
+
+  const iframeTabs = [
+    {
+      id: "kiali" as const,
+      label: "Kiali",
+      url: `/kiali/console/graph/namespaces/?namespaces=${kialiNamespaces}&graphType=versionedApp&duration=60&refresh=15000&animation=true`,
+      color: "text-blue-400 border-blue-400",
+    },
+    {
+      id: "jaeger" as const,
+      label: "Jaeger",
+      url: "http://localhost:16686/search",
+      color: "text-cyan-400 border-cyan-400",
+    },
+    {
+      id: "grafana" as const,
+      label: "Grafana",
+      url:
+        activeScenario === "logs"
+          ? "http://localhost:3200/d/k1s0-logs-explorer/k1s0-log-explorer?orgId=1&refresh=10s"
+          : "http://localhost:3200/d/k1s0-mesh-overview/k1s0-service-mesh-overview?orgId=1&refresh=10s",
+      color: "text-orange-400 border-orange-400",
+    },
+  ];
+
+  const currentTab = iframeTabs.find((t) => t.id === activeTab) ?? null;
   const isTopology = activeTab === "topology";
 
   return (
@@ -65,7 +92,7 @@ export default function DashboardViewer({
             {tab.label}
           </button>
         ))}
-        {!isTopology && currentTab.url && (
+        {!isTopology && currentTab?.url && (
           <a
             href={currentTab.url}
             target="_blank"
