@@ -227,6 +227,8 @@ async fn main() -> anyhow::Result<()> {
     let get_config_schema_uc = Arc::new(usecase::GetConfigSchemaUseCase::new(schema_repo.clone()));
     let upsert_config_schema_uc =
         Arc::new(usecase::UpsertConfigSchemaUseCase::new(schema_repo.clone()));
+    let list_config_schemas_uc =
+        Arc::new(usecase::ListConfigSchemasUseCase::new(schema_repo.clone()));
 
     let config_grpc_svc = Arc::new(
         ConfigGrpcService::new_with_watch(
@@ -237,7 +239,7 @@ async fn main() -> anyhow::Result<()> {
             delete_config_uc,
             watch_uc.clone(),
         )
-        .with_schema_usecases(get_config_schema_uc, upsert_config_schema_uc),
+        .with_schema_usecases(get_config_schema_uc, upsert_config_schema_uc, list_config_schemas_uc),
     );
 
     // tonic 繝ｩ繝・ヱ繝ｼ

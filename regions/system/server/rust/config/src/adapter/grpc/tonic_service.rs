@@ -114,6 +114,18 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         Ok(Response::new(resp))
     }
 
+    async fn list_config_schemas(
+        &self,
+        _request: Request<pb::ListConfigSchemasRequest>,
+    ) -> Result<Response<pb::ListConfigSchemasResponse>, Status> {
+        let resp = self
+            .inner
+            .list_config_schemas()
+            .await
+            .map_err(Status::from)?;
+        Ok(Response::new(resp))
+    }
+
     type WatchConfigStream =
         tokio_stream::wrappers::ReceiverStream<Result<pb::WatchConfigResponse, Status>>;
 

@@ -12,6 +12,7 @@ use crate::usecase::get_config_schema::{GetConfigSchemaError, GetConfigSchemaUse
 use crate::usecase::get_service_config::{GetServiceConfigError, GetServiceConfigUseCase};
 use crate::usecase::list_configs::{ListConfigsError, ListConfigsParams, ListConfigsUseCase};
 use crate::usecase::update_config::{UpdateConfigError, UpdateConfigInput, UpdateConfigUseCase};
+use crate::usecase::list_config_schemas::{ListConfigSchemasError, ListConfigSchemasUseCase};
 use crate::usecase::upsert_config_schema::{UpsertConfigSchemaInput, UpsertConfigSchemaUseCase};
 use crate::usecase::watch_config::WatchConfigUseCase;
 
@@ -40,6 +41,7 @@ pub struct ConfigGrpcService {
     delete_config_uc: Arc<DeleteConfigUseCase>,
     get_config_schema_uc: Option<Arc<GetConfigSchemaUseCase>>,
     upsert_config_schema_uc: Option<Arc<UpsertConfigSchemaUseCase>>,
+    list_config_schemas_uc: Option<Arc<ListConfigSchemasUseCase>>,
     watch_uc: Option<Arc<WatchConfigUseCase>>,
 }
 
@@ -60,6 +62,7 @@ impl ConfigGrpcService {
             delete_config_uc,
             get_config_schema_uc: None,
             upsert_config_schema_uc: None,
+            list_config_schemas_uc: None,
             watch_uc: Some(watch_uc),
         }
     }
@@ -68,9 +71,11 @@ impl ConfigGrpcService {
         mut self,
         get_config_schema_uc: Arc<GetConfigSchemaUseCase>,
         upsert_config_schema_uc: Arc<UpsertConfigSchemaUseCase>,
+        list_config_schemas_uc: Arc<ListConfigSchemasUseCase>,
     ) -> Self {
         self.get_config_schema_uc = Some(get_config_schema_uc);
         self.upsert_config_schema_uc = Some(upsert_config_schema_uc);
+        self.list_config_schemas_uc = Some(list_config_schemas_uc);
         self
     }
 
@@ -303,6 +308,21 @@ impl ConfigGrpcService {
         Ok(pb::UpsertConfigSchemaResponse {
             schema: Some(domain_schema_to_pb(&updated)),
         })
+    }
+
+    pub async fn list_config_schemas(
+        &self,
+    ) -> Result<pb::ListConfigSchemasResponse, GrpcError> {
+        let uc = self.list_config_schemas_uc.as_ref().ok_or_else(|| {
+            GrpcError::Internal("list_config_schemas usecase is not configured".to_string())
+        })?;
+
+        match uc.execute().await {
+            Ok(schemas) => Ok(pb::ListConfigSchemasResponse {
+                schemas: schemas.iter().map(domain_schema_to_pb).collect(),
+            }),
+            Err(ListConfigSchemasError::Internal(msg)) => Err(GrpcError::Internal(msg)),
+        }
     }
 
     pub fn watch_config(
