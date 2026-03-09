@@ -22,52 +22,7 @@ config-db は system Tier に属する PostgreSQL 17 データベースであり
 
 ## ER図
 
-```
-┌─────────────────────┐
-│   config_entries     │
-├─────────────────────┤
-│ id (PK)             │
-│ namespace            │──┐
-│ key                  │  │
-│ value_json (JSONB)   │  │
-│ version              │  │    ┌──────────────────────────┐
-│ description          │  │    │  config_change_logs       │
-│ created_by           │  │    ├──────────────────────────┤
-│ updated_by           │  ├───>│ id (PK)                  │
-│ created_at           │  │    │ config_entry_id (FK)     │
-│ updated_at           │  │    │ namespace                │
-└─────────────────────┘  │    │ key                      │
-         │                │    │ change_type              │
-         │                │    │ old_value_json (JSONB)   │
-         │                │    │ new_value_json (JSONB)   │
-         │                │    │ old_version              │
-         │                │    │ new_version              │
-         │                │    │ changed_by               │
-         │                │    │ trace_id                 │
-         │                │    │ created_at               │
-         │                │    └──────────────────────────┘
-         │
-         │    ┌─────────────────────────────┐
-         └───>│  service_config_mappings     │
-              ├─────────────────────────────┤
-              │ id (PK)                     │
-              │ service_name                │
-              │ config_entry_id (FK)        │
-              │ created_at                  │
-              └─────────────────────────────┘
-
-┌──────────────────────────┐
-│     config_schemas       │
-├──────────────────────────┤
-│ id (PK)                  │
-│ service_name (UNIQUE)    │
-│ namespace_prefix         │
-│ schema_json (JSONB)      │
-│ updated_by               │
-│ created_at               │
-│ updated_at               │
-└──────────────────────────┘
-```
+![ER図](images/er-diagram.svg)
 
 ### リレーション
 

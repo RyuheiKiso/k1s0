@@ -22,38 +22,7 @@ order-db は service Tier に属する PostgreSQL 17 データベースであり
 
 ## ER図
 
-```
-┌─────────────────────────┐
-│        orders            │
-├─────────────────────────┤
-│ id (PK)                  │
-│ customer_id              │
-│ status                   │
-│ total_amount             │         ┌──────────────────────────┐
-│ currency                 │         │      order_items          │
-│ notes                    │         ├──────────────────────────┤
-│ created_by               │    1:N  │ id (PK)                  │
-│ updated_by               │────────>│ order_id (FK)            │
-│ version                  │         │ product_id               │
-│ created_at               │         │ product_name             │
-│ updated_at               │         │ quantity                 │
-└─────────────────────────┘         │ unit_price               │
-                                     │ subtotal                 │
-                                     │ created_at               │
-                                     └──────────────────────────┘
-
-┌──────────────────────────┐
-│     outbox_events         │
-├──────────────────────────┤
-│ id (PK)                   │
-│ aggregate_type             │
-│ aggregate_id               │
-│ event_type                 │
-│ payload (JSONB)            │
-│ created_at                 │
-│ published_at               │
-└──────────────────────────┘
-```
+![ER図](images/er-diagram.svg)
 
 ### リレーション
 

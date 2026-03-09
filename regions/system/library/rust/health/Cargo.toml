@@ -25,3 +25,4 @@ rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"

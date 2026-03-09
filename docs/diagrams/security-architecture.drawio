@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2026-03-04" agent="Claude" version="24.0" type="device">
+<mxfile host="draw.io" modified="2026-03-04" agent="Claude" version="24.0" type="device">
   <diagram id="security-architecture" name="Security Architecture">
-    <mxGraphModel dx="3000" dy="2200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2200" math="0" shadow="0">
+    <mxGraphModel dx="3000" dy="2200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2200" math="0" shadow="0" background="#FFFFFF">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
