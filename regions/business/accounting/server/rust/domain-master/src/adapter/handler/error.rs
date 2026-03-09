@@ -7,6 +7,12 @@ pub fn from_anyhow(err: anyhow::Error) -> ServiceError {
     let lower = msg.to_ascii_lowercase();
 
     if lower.contains("not found") {
+        if lower.contains("tenant") {
+            return ServiceError::NotFound {
+                code: k1s0_server_common::ErrorCode::new("BIZ_DOMAINMASTER_TENANT_EXT_NOT_FOUND"),
+                message: msg,
+            };
+        }
         if lower.contains("category") {
             return ServiceError::NotFound {
                 code: k1s0_server_common::ErrorCode::new("BIZ_DOMAINMASTER_CATEGORY_NOT_FOUND"),
@@ -25,6 +31,20 @@ pub fn from_anyhow(err: anyhow::Error) -> ServiceError {
         };
     }
     if lower.contains("duplicate code") || lower.contains("already exists") {
+        if lower.contains("category") {
+            return ServiceError::Conflict {
+                code: k1s0_server_common::ErrorCode::new("BIZ_DOMAINMASTER_DUPLICATE_CATEGORY"),
+                message: msg,
+                details: vec![],
+            };
+        }
+        if lower.contains("item") {
+            return ServiceError::Conflict {
+                code: k1s0_server_common::ErrorCode::new("BIZ_DOMAINMASTER_DUPLICATE_ITEM"),
+                message: msg,
+                details: vec![],
+            };
+        }
         return ServiceError::Conflict {
             code: k1s0_server_common::ErrorCode::new("BIZ_DOMAINMASTER_DUPLICATE_CODE"),
             message: msg,

@@ -1,5 +1,5 @@
 -- Domain Master (accounting business tier)
-\c k1s0;
+\c k1s0_business;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA IF NOT EXISTS domain_master;

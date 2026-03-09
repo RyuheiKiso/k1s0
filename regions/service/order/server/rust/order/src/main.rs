@@ -12,7 +12,10 @@ use adapter::handler::{self, AppState};
 use infrastructure::config::{Config, DatabaseConfig};
 use k1s0_order_server::MIGRATOR;
 use k1s0_server_common::middleware::auth_middleware::AuthState;
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
 use k1s0_server_common::middleware::shutdown::shutdown_signal;
+use tonic::transport::Server;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -121,33 +124,86 @@ async fn main() -> anyhow::Result<()> {
 
     // 10. AppState + Router
     let state = AppState {
-        create_order_uc,
-        get_order_uc,
-        update_order_status_uc,
-        list_orders_uc,
-        metrics,
+        create_order_uc: create_order_uc.clone(),
+        get_order_uc: get_order_uc.clone(),
+        update_order_status_uc: update_order_status_uc.clone(),
+        list_orders_uc: list_orders_uc.clone(),
+        metrics: metrics.clone(),
         auth_state: auth_state.clone(),
         db_pool: Some(db_pool.clone()),
     };
     let app = handler::router(state);
 
-    // 11. Start REST server
+    // 11. gRPC Service
+    let grpc_service = adapter::grpc::order_grpc::OrderGrpcService::new(
+        create_order_uc,
+        get_order_uc,
+        list_orders_uc,
+        update_order_status_uc,
+    );
+    let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
+    info!("gRPC server listening on {}", grpc_addr);
+    let grpc_metrics = metrics.clone();
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::Service, required_action);
+    let (shutdown_grpc_tx, shutdown_grpc_rx) = tokio::sync::watch::channel(false);
+    let mut rest_shutdown_rx = shutdown_grpc_rx.clone();
+    let mut grpc_shutdown_rx = shutdown_grpc_rx.clone();
+    let grpc_future = async move {
+        use k1s0_order_server::proto::k1s0::service::order::v1::order_service_server::OrderServiceServer;
+
+        Server::builder()
+            .layer(grpc_auth_layer)
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
+            .add_service(OrderServiceServer::new(grpc_service))
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown_rx.changed().await;
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
+
+    // 12. Start REST server
     let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port).parse()?;
     info!("REST server listening on {}", rest_addr);
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
+    let rest_future = axum::serve(listener, app).with_graceful_shutdown(async move {
+        let _ = rest_shutdown_rx.changed().await;
+    });
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(async {
-            let _ = shutdown_signal().await;
-        })
-        .await?;
+    let shutdown_future = async move {
+        shutdown_signal().await.map_err(|e| anyhow::anyhow!("{}", e))?;
+        let _ = shutdown_grpc_tx.send(true);
+        let _ = shutdown_tx.send(true);
+        Ok::<(), anyhow::Error>(())
+    };
 
-    // 12. Graceful shutdown — Outbox Poller を停止
+    tokio::select! {
+        result = shutdown_future => {
+            result?;
+        }
+        result = rest_future => {
+            if let Err(e) = result {
+                return Err(anyhow::anyhow!("REST server error: {}", e));
+            }
+        }
+        result = grpc_future => {
+            result?;
+        }
+    }
+
+    // 13. Graceful shutdown — Outbox Poller を停止
     info!("shutting down outbox poller");
-    let _ = shutdown_tx.send(true);
     let _ = outbox_handle.await;
 
     Ok(())
+}
+
+/// gRPC メソッド名 → 必要なアクションのマッピング（order 固有）。
+fn required_action(method: &str) -> &'static str {
+    match method {
+        "GetOrder" | "ListOrders" => "read",
+        _ => "write",
+    }
 }
 
 async fn connect_database(db_cfg: &DatabaseConfig) -> anyhow::Result<sqlx::PgPool> {

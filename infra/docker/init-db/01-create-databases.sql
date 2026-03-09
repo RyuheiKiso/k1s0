@@ -34,3 +34,6 @@ CREATE DATABASE vault_db;
 
 -- order-server 用DB
 CREATE DATABASE k1s0_order;
+
+-- event-store-server 用DB
+CREATE DATABASE event_store_db;

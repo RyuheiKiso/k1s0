@@ -22,9 +22,79 @@ void main() {
       );
     });
 
-    test('インターセプターが設定される', () {
+    test('csrfTokenProvider なしではエラーハンドラのみ追加される', () {
       final client = ApiClient.create(baseUrl: 'https://api.example.com');
-      expect(client.interceptors.isNotEmpty, isTrue);
+      final customInterceptors = client.interceptors
+          .where((i) => i is InterceptorsWrapper || i is CsrfTokenInterceptor)
+          .toList();
+      expect(customInterceptors.length, equals(1));
+      expect(customInterceptors.first, isA<InterceptorsWrapper>());
+    });
+
+    test('csrfTokenProvider ありでは CSRF + エラーハンドラの2つが追加される', () {
+      final client = ApiClient.create(
+        baseUrl: 'https://api.example.com',
+        csrfTokenProvider: () async => 'test-token',
+      );
+      final customInterceptors = client.interceptors
+          .where((i) => i is InterceptorsWrapper || i is CsrfTokenInterceptor)
+          .toList();
+      expect(customInterceptors.length, equals(2));
+    });
+  });
+
+  group('CsrfTokenInterceptor', () {
+    test('トークンがリクエストヘッダーに追加される', () async {
+      final client = ApiClient.create(
+        baseUrl: 'https://api.example.com',
+        csrfTokenProvider: () async => 'csrf-token-123',
+      );
+
+      // インターセプターの動作を検証するため、リクエストインターセプターを直接テスト
+      final interceptor = client.interceptors
+          .whereType<CsrfTokenInterceptor>()
+          .first;
+      expect(interceptor, isNotNull);
+
+      final options = RequestOptions(path: '/test');
+      bool nextCalled = false;
+
+      await interceptor.onRequest(
+        options,
+        RequestInterceptorHandler(),
+      );
+
+      expect(options.headers['X-CSRF-Token'], equals('csrf-token-123'));
+    });
+
+    test('トークンが null の場合はヘッダーに追加されない', () async {
+      final interceptor = CsrfTokenInterceptor(
+        tokenProvider: () async => null,
+      );
+
+      final options = RequestOptions(path: '/test');
+
+      await interceptor.onRequest(
+        options,
+        RequestInterceptorHandler(),
+      );
+
+      expect(options.headers.containsKey('X-CSRF-Token'), isFalse);
+    });
+
+    test('トークンが空文字の場合はヘッダーに追加されない', () async {
+      final interceptor = CsrfTokenInterceptor(
+        tokenProvider: () async => '',
+      );
+
+      final options = RequestOptions(path: '/test');
+
+      await interceptor.onRequest(
+        options,
+        RequestInterceptorHandler(),
+      );
+
+      expect(options.headers.containsKey('X-CSRF-Token'), isFalse);
     });
   });
 }
