@@ -784,12 +784,15 @@ mod tests {
             serde_json::json!({}),
             true,
         );
-        let channel_id = channel.id;
+        let channel_id = channel.id.clone();
         let return_channel = channel.clone();
 
         channel_mock
             .expect_find_by_id()
-            .withf(move |id| *id == channel_id)
+            .withf({
+                let channel_id = channel_id.clone();
+                move |id| *id == channel_id
+            })
             .returning(move |_| Ok(Some(return_channel.clone())));
         log_mock.expect_create().returning(|_| Ok(()));
 
@@ -908,13 +911,19 @@ mod tests {
 
         log_mock_for_repo
             .expect_find_by_id()
-            .withf(move |id| id == log_id.as_str())
+            .withf({
+                let log_id = log_id.clone();
+                move |id| id == log_id.as_str()
+            })
             .returning(move |_| Ok(Some(return_log.clone())));
 
         let mut channel_mock_for_repo = MockNotificationChannelRepository::new();
         channel_mock_for_repo
             .expect_find_by_id()
-            .withf(move |id| id == channel_id.as_str())
+            .withf({
+                let channel_id = channel_id.clone();
+                move |id| id == channel_id.as_str()
+            })
             .returning(|_| {
                 Ok(Some(NotificationChannel::new(
                     "test".to_string(),

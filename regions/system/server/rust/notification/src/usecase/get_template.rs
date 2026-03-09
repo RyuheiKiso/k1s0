@@ -48,7 +48,10 @@ mod tests {
         let return_template = template.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| id == template_id.as_str())
+            .withf({
+                let template_id = template_id.clone();
+                move |id| id == template_id.as_str()
+            })
             .returning(move |_| Ok(Some(return_template.clone())));
 
         let uc = GetTemplateUseCase::new(Arc::new(mock));
