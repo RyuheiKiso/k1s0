@@ -14,11 +14,10 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::adapter::middleware::auth::{auth_middleware, EventStoreAuthState};
 use crate::adapter::middleware::rbac::require_permission;
-use crate::domain::repository::{EventRepository, EventStreamRepository};
 use crate::infrastructure::kafka::EventPublisher;
 use crate::usecase::{
     AppendEventsUseCase, CreateSnapshotUseCase, DeleteStreamUseCase, GetLatestSnapshotUseCase,
-    ReadEventBySequenceUseCase, ReadEventsUseCase,
+    ListEventsUseCase, ListStreamsUseCase, ReadEventBySequenceUseCase, ReadEventsUseCase,
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
@@ -27,11 +26,12 @@ pub struct AppState {
     pub append_events_uc: Arc<AppendEventsUseCase>,
     pub read_events_uc: Arc<ReadEventsUseCase>,
     pub read_event_by_sequence_uc: Arc<ReadEventBySequenceUseCase>,
+    pub list_events_uc: Arc<ListEventsUseCase>,
+    pub list_streams_uc: Arc<ListStreamsUseCase>,
     pub create_snapshot_uc: Arc<CreateSnapshotUseCase>,
     pub get_latest_snapshot_uc: Arc<GetLatestSnapshotUseCase>,
     pub delete_stream_uc: Arc<DeleteStreamUseCase>,
-    pub stream_repo: Arc<dyn EventStreamRepository>,
-    pub event_repo: Arc<dyn EventRepository>,
+    pub stream_repo: Arc<dyn crate::domain::repository::EventStreamRepository>,
     pub event_publisher: Arc<dyn EventPublisher>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<EventStoreAuthState>,

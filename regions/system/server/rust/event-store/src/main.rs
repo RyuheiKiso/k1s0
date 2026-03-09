@@ -175,16 +175,21 @@ async fn main() -> anyhow::Result<()> {
             verifier: s.verifier.clone(),
         });
 
+    // List use cases
+    let list_events_uc = Arc::new(usecase::ListEventsUseCase::new(event_repo.clone()));
+    let list_streams_uc = Arc::new(usecase::ListStreamsUseCase::new(stream_repo.clone()));
+
     // REST AppState
     let mut state = AppState {
         append_events_uc,
         read_events_uc,
         read_event_by_sequence_uc,
+        list_events_uc,
+        list_streams_uc,
         create_snapshot_uc,
         get_latest_snapshot_uc,
         delete_stream_uc,
         stream_repo,
-        event_repo,
         event_publisher,
         metrics: metrics.clone(),
         auth_state: None,

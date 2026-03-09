@@ -1,1 +1,4 @@
+DROP FUNCTION IF EXISTS search.update_updated_at();
 DROP SCHEMA IF EXISTS search CASCADE;
+DROP EXTENSION IF EXISTS "pg_trgm";
+DROP EXTENSION IF EXISTS "pgcrypto";
