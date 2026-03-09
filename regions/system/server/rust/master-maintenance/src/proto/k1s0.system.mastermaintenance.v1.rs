@@ -82,6 +82,12 @@ pub struct GetTableDefinitionResponse {
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(string, tag = "18")]
     pub domain_scope: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "19")]
+    pub read_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "20")]
+    pub write_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "21")]
+    pub admin_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// カラム定義
 #[derive(Clone, PartialEq, ::prost::Message)]

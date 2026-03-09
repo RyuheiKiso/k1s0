@@ -1,21 +1,50 @@
+use crate::domain::entity::column_definition::ColumnDefinition;
 use crate::domain::entity::import_job::ImportJob;
 use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
-use crate::domain::repository::dynamic_record_repository::DynamicRecordRepository;
 use crate::domain::repository::import_job_repository::ImportJobRepository;
 use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
 use crate::domain::value_object::rule_result::RuleResult;
 use crate::usecase::crud_records::CrudRecordsUseCase;
 use calamine::{open_workbook_auto_from_rs, Reader};
+use rust_xlsxwriter::Workbook;
 use serde_json::Map;
 use serde_json::Value;
 use std::io::Cursor;
 use std::sync::Arc;
 use uuid::Uuid;
 
+const EXPORT_PAGE_SIZE: i32 = 500;
+
+#[derive(Debug, Clone)]
+pub struct ExportedFile {
+    pub file_name: String,
+    pub content_type: &'static str,
+    pub bytes: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportRecordsOutput {
+    pub table: String,
+    pub format: String,
+    pub total: i64,
+    pub records: Vec<Value>,
+    pub file: Option<ExportedFile>,
+}
+
+impl ExportRecordsOutput {
+    pub fn as_json(&self) -> Value {
+        serde_json::json!({
+            "table": self.table,
+            "format": self.format,
+            "total": self.total,
+            "records": self.records,
+        })
+    }
+}
+
 pub struct ImportExportUseCase {
     table_repo: Arc<dyn TableDefinitionRepository>,
     column_repo: Arc<dyn ColumnDefinitionRepository>,
-    record_repo: Arc<dyn DynamicRecordRepository>,
     import_job_repo: Arc<dyn ImportJobRepository>,
     crud_records_uc: Arc<CrudRecordsUseCase>,
 }
@@ -24,14 +53,12 @@ impl ImportExportUseCase {
     pub fn new(
         table_repo: Arc<dyn TableDefinitionRepository>,
         column_repo: Arc<dyn ColumnDefinitionRepository>,
-        record_repo: Arc<dyn DynamicRecordRepository>,
         import_job_repo: Arc<dyn ImportJobRepository>,
         crud_records_uc: Arc<CrudRecordsUseCase>,
     ) -> Self {
         Self {
             table_repo,
             column_repo,
-            record_repo,
             import_job_repo,
             crud_records_uc,
         }
@@ -82,7 +109,7 @@ impl ImportExportUseCase {
         for (idx, record) in records.iter().enumerate() {
             match self
                 .crud_records_uc
-                .create_record(table_name, record, started_by, domain_scope)
+                .create_record(table_name, record, started_by, domain_scope, None)
                 .await
             {
                 Ok(output) => {
@@ -130,7 +157,7 @@ impl ImportExportUseCase {
         table_name: &str,
         format: Option<&str>,
         domain_scope: Option<&str>,
-    ) -> anyhow::Result<Value> {
+    ) -> anyhow::Result<ExportRecordsOutput> {
         let table = self
             .table_repo
             .find_by_name(table_name, domain_scope)
@@ -138,24 +165,45 @@ impl ImportExportUseCase {
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
 
         let columns = self.column_repo.find_by_table_id(table.id).await?;
-
-        // Fetch all records (large page size)
+        let export_columns: Vec<ColumnDefinition> = columns
+            .into_iter()
+            .filter(|column| column.is_visible_in_list)
+            .collect();
+        let selected_columns = (!export_columns.is_empty()).then(|| {
+            export_columns
+                .iter()
+                .map(|column| column.column_name.clone())
+                .collect::<Vec<_>>()
+                .join(",")
+        });
         let (records, total) = self
-            .record_repo
-            .find_all(&table, &columns, 1, i32::MAX, None, None, None)
+            .collect_export_records(table_name, selected_columns.as_deref(), domain_scope)
             .await?;
 
-        Ok(serde_json::json!({
-            "table": table_name,
-            "format": format.unwrap_or("json"),
-            "total": total,
-            "records": records,
-            "content": if matches!(format, Some("csv")) {
-                Value::String(self.export_as_csv(&columns, &records)?)
-            } else {
-                Value::Null
-            },
-        }))
+        let normalized_format = normalize_export_format(format)?;
+        let file = match normalized_format {
+            "json" => None,
+            "csv" => Some(ExportedFile {
+                file_name: format!("{}.csv", table_name),
+                content_type: "text/csv; charset=utf-8",
+                bytes: Self::export_as_csv(&export_columns, &records)?.into_bytes(),
+            }),
+            "xlsx" => Some(ExportedFile {
+                file_name: format!("{}.xlsx", table_name),
+                content_type:
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                bytes: Self::export_as_xlsx(&export_columns, &records)?,
+            }),
+            _ => unreachable!(),
+        };
+
+        Ok(ExportRecordsOutput {
+            table: table_name.to_string(),
+            format: normalized_format.to_string(),
+            total,
+            records,
+            file,
+        })
     }
 
     pub async fn get_import_job(&self, id: Uuid) -> anyhow::Result<Option<ImportJob>> {
@@ -290,16 +338,9 @@ impl ImportExportUseCase {
         Ok(records)
     }
 
-    fn export_as_csv(
-        &self,
-        columns: &[crate::domain::entity::column_definition::ColumnDefinition],
-        records: &[Value],
-    ) -> anyhow::Result<String> {
-        let ordered_columns: Vec<&str> = columns
-            .iter()
-            .filter(|column| column.is_visible_in_list)
-            .map(|column| column.column_name.as_str())
-            .collect();
+    fn export_as_csv(columns: &[ColumnDefinition], records: &[Value]) -> anyhow::Result<String> {
+        let ordered_columns: Vec<&str> =
+            columns.iter().map(|column| column.column_name.as_str()).collect();
         let mut writer = csv::Writer::from_writer(Vec::new());
         writer.write_record(&ordered_columns)?;
 
@@ -316,6 +357,84 @@ impl ImportExportUseCase {
 
         let bytes = writer.into_inner()?;
         Ok(String::from_utf8(bytes)?)
+    }
+
+    async fn collect_export_records(
+        &self,
+        table_name: &str,
+        selected_columns: Option<&str>,
+        domain_scope: Option<&str>,
+    ) -> anyhow::Result<(Vec<Value>, i64)> {
+        let mut page = 1;
+        let mut total = 0;
+        let mut records = Vec::new();
+
+        loop {
+            let result = self
+                .crud_records_uc
+                .list_records(
+                    table_name,
+                    page,
+                    EXPORT_PAGE_SIZE,
+                    None,
+                    None,
+                    None,
+                    selected_columns,
+                    domain_scope,
+                )
+                .await?;
+
+            if page == 1 {
+                total = result.total;
+            }
+
+            if result.records.is_empty() {
+                break;
+            }
+
+            records.extend(result.records);
+
+            if records.len() as i64 >= total {
+                break;
+            }
+
+            page += 1;
+        }
+
+        Ok((records, total))
+    }
+
+    fn export_as_xlsx(columns: &[ColumnDefinition], records: &[Value]) -> anyhow::Result<Vec<u8>> {
+        let mut workbook = Workbook::new();
+        let worksheet = workbook.add_worksheet();
+
+        for (column_index, column) in columns.iter().enumerate() {
+            worksheet.write_string(0, column_index as u16, &column.column_name)?;
+        }
+
+        for (row_index, record) in records.iter().enumerate() {
+            let object = record
+                .as_object()
+                .ok_or_else(|| anyhow::anyhow!("record must be a JSON object"))?;
+            for (column_index, column) in columns.iter().enumerate() {
+                worksheet.write_string(
+                    (row_index + 1) as u32,
+                    column_index as u16,
+                    stringify_csv_value(object.get(&column.column_name).unwrap_or(&Value::Null)),
+                )?;
+            }
+        }
+
+        Ok(workbook.save_to_buffer()?)
+    }
+}
+
+fn normalize_export_format(format: Option<&str>) -> anyhow::Result<&'static str> {
+    match format.unwrap_or("json").trim().to_ascii_lowercase().as_str() {
+        "" | "json" => Ok("json"),
+        "csv" => Ok("csv"),
+        "xlsx" | "xls" => Ok("xlsx"),
+        other => anyhow::bail!("unsupported export format: {}", other),
     }
 }
 
@@ -375,6 +494,38 @@ fn excel_cell_to_json(cell: &calamine::Data) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::entity::column_definition::ColumnDefinition;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    fn sample_column(name: &str) -> ColumnDefinition {
+        ColumnDefinition {
+            id: Uuid::new_v4(),
+            table_id: Uuid::new_v4(),
+            column_name: name.to_string(),
+            display_name: name.to_string(),
+            data_type: "text".to_string(),
+            is_primary_key: false,
+            is_nullable: true,
+            is_unique: false,
+            default_value: None,
+            max_length: None,
+            min_value: None,
+            max_value: None,
+            regex_pattern: None,
+            display_order: 0,
+            is_searchable: false,
+            is_sortable: false,
+            is_filterable: false,
+            is_visible_in_list: true,
+            is_visible_in_form: true,
+            is_readonly: false,
+            input_type: "text".to_string(),
+            select_options: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
 
     #[test]
     fn parse_scalar_value_handles_basic_types() {
@@ -408,5 +559,33 @@ mod tests {
             excel_cell_to_json(&calamine::Data::Bool(true)),
             Value::Bool(true)
         );
+    }
+
+    #[test]
+    fn normalize_export_format_accepts_excel_aliases() {
+        assert_eq!(normalize_export_format(Some("xlsx")).unwrap(), "xlsx");
+        assert_eq!(normalize_export_format(Some("xls")).unwrap(), "xlsx");
+        assert!(normalize_export_format(Some("pdf")).is_err());
+    }
+
+    #[test]
+    fn export_as_xlsx_generates_readable_workbook() {
+        let columns = vec![sample_column("id"), sample_column("name")];
+        let records = vec![serde_json::json!({
+            "id": "dept-1",
+            "name": "Platform",
+        })];
+
+        let bytes = ImportExportUseCase::export_as_xlsx(&columns, &records).unwrap();
+        let mut workbook = open_workbook_auto_from_rs(Cursor::new(bytes)).unwrap();
+        let sheet_name = workbook.sheet_names().first().cloned().unwrap();
+        let range = workbook.worksheet_range(&sheet_name).unwrap();
+        let rows: Vec<Vec<String>> = range
+            .rows()
+            .map(|row| row.iter().map(|cell| cell.to_string()).collect())
+            .collect();
+
+        assert_eq!(rows[0], vec![String::from("id"), String::from("name")]);
+        assert_eq!(rows[1], vec![String::from("dept-1"), String::from("Platform")]);
     }
 }

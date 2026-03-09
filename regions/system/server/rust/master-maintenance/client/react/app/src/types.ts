@@ -14,6 +14,11 @@ export type TableDefinition = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  domain_scope?: string | null;
+  read_roles?: string[];
+  write_roles?: string[];
+  admin_roles?: string[];
+  columns?: ColumnDefinition[];
 };
 
 export type ColumnDefinition = {

@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
+use opentelemetry::trace::TraceContextExt;
 use tonic::{Request, Response, Status};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::adapter::grpc::master_maintenance_grpc::MasterMaintenanceGrpcService;
 use crate::domain::value_object::domain_filter::DomainFilter;
@@ -153,11 +155,25 @@ fn domain_table_to_proto(
             nanos: table.updated_at.timestamp_subsec_nanos() as i32,
         }),
         domain_scope: table.domain_scope.clone().unwrap_or_default(),
+        read_roles: table.read_roles.clone(),
+        write_roles: table.write_roles.clone(),
+        admin_roles: table.admin_roles.clone(),
     }
 }
 
 fn optional_str(s: &str) -> Option<&str> {
     if s.is_empty() { None } else { Some(s) }
+}
+
+fn current_trace_id() -> Option<String> {
+    let context = tracing::Span::current().context();
+    let span = context.span();
+    let span_context = span.span_context();
+    if span_context.is_valid() {
+        Some(span_context.trace_id().to_string())
+    } else {
+        None
+    }
 }
 
 fn domain_consistency_rule_to_proto(
@@ -550,7 +566,13 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         let ds = optional_str(&req.domain_scope);
         let result = self
             .crud_records_uc
-            .create_record(&req.table_name, &json_data, created_by, ds)
+            .create_record(
+                &req.table_name,
+                &json_data,
+                created_by,
+                ds,
+                current_trace_id(),
+            )
             .await
             .map_err(status_from_anyhow)?;
 
@@ -590,7 +612,14 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         let ds = optional_str(&req.domain_scope);
         let result = self
             .crud_records_uc
-            .update_record(&req.table_name, &req.record_id, &json_data, updated_by, ds)
+            .update_record(
+                &req.table_name,
+                &req.record_id,
+                &json_data,
+                updated_by,
+                ds,
+                current_trace_id(),
+            )
             .await
             .map_err(status_from_anyhow)?;
 
@@ -618,7 +647,13 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
 
         let ds = optional_str(&req.domain_scope);
         self.crud_records_uc
-            .delete_record(&req.table_name, &req.record_id, "grpc-user", ds)
+            .delete_record(
+                &req.table_name,
+                &req.record_id,
+                "grpc-user",
+                ds,
+                current_trace_id(),
+            )
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
@@ -1068,11 +1103,12 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         if req.table_name.is_empty() {
             return Err(Status::invalid_argument("table_name is required"));
         }
-        let value = self
+        let result = self
             .import_export_uc
             .export_records(&req.table_name, None, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
+        let value = result.as_json();
         let data = json_to_struct(&value).unwrap_or_else(|| {
             let mut fields = BTreeMap::new();
             fields.insert("value".to_string(), json_value_to_prost(&value));

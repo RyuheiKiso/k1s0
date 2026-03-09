@@ -191,7 +191,6 @@ async fn main() -> anyhow::Result<()> {
     let import_export_uc = Arc::new(usecase::import_export::ImportExportUseCase::new(
         table_repo.clone(),
         column_repo.clone(),
-        record_repo.clone(),
         import_job_repo.clone(),
         crud_records_uc.clone(),
     ));

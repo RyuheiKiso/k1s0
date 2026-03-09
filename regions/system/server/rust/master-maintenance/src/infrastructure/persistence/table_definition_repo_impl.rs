@@ -88,8 +88,9 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
         let row = sqlx::query_as::<_, TableDefinitionRow>(
             r#"INSERT INTO master_maintenance.table_definitions
                (name, schema_name, database_name, display_name, description, category,
-                allow_create, allow_update, allow_delete, sort_order, created_by, domain_scope)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles,
+                sort_order, created_by, domain_scope)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
                RETURNING *"#,
         )
         .bind(&input.name)
@@ -101,6 +102,9 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
         .bind(input.allow_create.unwrap_or(true))
         .bind(input.allow_update.unwrap_or(true))
         .bind(input.allow_delete.unwrap_or(false))
+        .bind(input.read_roles.clone().unwrap_or_default())
+        .bind(input.write_roles.clone().unwrap_or_default())
+        .bind(input.admin_roles.clone().unwrap_or_default())
         .bind(input.sort_order.unwrap_or(0))
         .bind(created_by)
         .bind(&input.domain_scope)
@@ -125,9 +129,12 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
                    allow_create = COALESCE($6, allow_create),
                    allow_update = COALESCE($7, allow_update),
                    allow_delete = COALESCE($8, allow_delete),
-                   sort_order = COALESCE($9, sort_order),
+                   read_roles = COALESCE($9, read_roles),
+                   write_roles = COALESCE($10, write_roles),
+                   admin_roles = COALESCE($11, admin_roles),
+                   sort_order = COALESCE($12, sort_order),
                    updated_at = now()
-                   WHERE name = $1 AND domain_scope = $10 RETURNING *"#,
+                   WHERE name = $1 AND domain_scope = $13 RETURNING *"#,
             )
             .bind(name)
             .bind(&input.display_name)
@@ -137,6 +144,9 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
             .bind(input.allow_create)
             .bind(input.allow_update)
             .bind(input.allow_delete)
+            .bind(&input.read_roles)
+            .bind(&input.write_roles)
+            .bind(&input.admin_roles)
             .bind(input.sort_order)
             .bind(ds)
             .fetch_one(&self.pool)
@@ -151,7 +161,10 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
                    allow_create = COALESCE($6, allow_create),
                    allow_update = COALESCE($7, allow_update),
                    allow_delete = COALESCE($8, allow_delete),
-                   sort_order = COALESCE($9, sort_order),
+                   read_roles = COALESCE($9, read_roles),
+                   write_roles = COALESCE($10, write_roles),
+                   admin_roles = COALESCE($11, admin_roles),
+                   sort_order = COALESCE($12, sort_order),
                    updated_at = now()
                    WHERE name = $1 AND domain_scope IS NULL RETURNING *"#,
             )
@@ -163,6 +176,9 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
             .bind(input.allow_create)
             .bind(input.allow_update)
             .bind(input.allow_delete)
+            .bind(&input.read_roles)
+            .bind(&input.write_roles)
+            .bind(&input.admin_roles)
             .bind(input.sort_order)
             .fetch_one(&self.pool)
             .await?
@@ -213,6 +229,9 @@ struct TableDefinitionRow {
     allow_create: bool,
     allow_update: bool,
     allow_delete: bool,
+    read_roles: Vec<String>,
+    write_roles: Vec<String>,
+    admin_roles: Vec<String>,
     sort_order: i32,
     created_by: String,
     created_at: chrono::DateTime<chrono::Utc>,
@@ -234,6 +253,9 @@ impl From<TableDefinitionRow> for TableDefinition {
             allow_create: row.allow_create,
             allow_update: row.allow_update,
             allow_delete: row.allow_delete,
+            read_roles: row.read_roles,
+            write_roles: row.write_roles,
+            admin_roles: row.admin_roles,
             sort_order: row.sort_order,
             created_by: row.created_by,
             created_at: row.created_at,

@@ -1,6 +1,6 @@
 use crate::adapter::handler::error::AppError;
 use crate::adapter::handler::table_handler::DomainScopeQuery;
-use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState};
+use crate::adapter::handler::{actor_from_claims, current_trace_id, publish_change_event, AppState};
 use axum::{
     extract::{Extension, Path, Query, State},
     http::StatusCode,
@@ -76,7 +76,13 @@ pub async fn create_record(
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let result = state
         .crud_records_uc
-        .create_record(&name, &data, &actor, ds_query.domain_scope.as_deref())
+        .create_record(
+            &name,
+            &data,
+            &actor,
+            ds_query.domain_scope.as_deref(),
+            current_trace_id(),
+        )
         .await?;
     publish_change_event(
         &state,
@@ -111,7 +117,14 @@ pub async fn update_record(
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let result = state
         .crud_records_uc
-        .update_record(&name, &id, &data, &actor, ds_query.domain_scope.as_deref())
+        .update_record(
+            &name,
+            &id,
+            &data,
+            &actor,
+            ds_query.domain_scope.as_deref(),
+            current_trace_id(),
+        )
         .await?;
     publish_change_event(
         &state,
@@ -142,7 +155,13 @@ pub async fn delete_record(
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     state
         .crud_records_uc
-        .delete_record(&name, &id, &actor, ds_query.domain_scope.as_deref())
+        .delete_record(
+            &name,
+            &id,
+            &actor,
+            ds_query.domain_scope.as_deref(),
+            current_trace_id(),
+        )
         .await?;
     publish_change_event(
         &state,

@@ -21,9 +21,15 @@ function renderWithRouter(initialPath = '/') {
     ),
   });
 
-  const indexRoute = createRoute({
+  const dashboardRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
+    component: () => <div>dashboard-page</div>,
+  });
+
+  const initRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/init',
     component: () => <div>init-page</div>,
   });
 
@@ -52,7 +58,8 @@ function renderWithRouter(initialPath = '/') {
   });
 
   const routeTree = rootRoute.addChildren([
-    indexRoute,
+    dashboardRoute,
+    initRoute,
     generateRoute,
     buildRoute,
     testRoute,
@@ -68,7 +75,8 @@ function renderWithRouter(initialPath = '/') {
 describe('Sidebar', () => {
   it('should render all menu items', async () => {
     renderWithRouter();
-    expect(await screen.findByTestId('nav-init')).toBeInTheDocument();
+    expect(await screen.findByTestId('nav-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-init')).toBeInTheDocument();
     expect(screen.getByTestId('nav-generate')).toBeInTheDocument();
     expect(screen.getByTestId('nav-build')).toBeInTheDocument();
     expect(screen.getByTestId('nav-test')).toBeInTheDocument();
@@ -87,6 +95,15 @@ describe('Sidebar', () => {
     renderWithRouter('/build');
     const buildNav = await screen.findByTestId('nav-build');
     expect(buildNav.className).toContain('bg-white/15');
-    expect(screen.getByTestId('nav-init').className).not.toContain('bg-white/15');
+    expect(screen.getByTestId('nav-dashboard').className).not.toContain('bg-white/15');
+  });
+
+  it('should open the init route separately from the dashboard', async () => {
+    const user = userEvent.setup();
+    const { router } = renderWithRouter('/');
+
+    await user.click(await screen.findByTestId('nav-init'));
+
+    expect(router.state.location.pathname).toBe('/init');
   });
 });
