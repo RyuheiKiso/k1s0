@@ -15,9 +15,10 @@ deployment:
       cpu: 200m
       memory: 256Mi
   service_type: NodePort
-  node_port: 30001
 
 server:
+  port: 20001
+  node_port: 30001
   web_root: /kiali
   web_fqdn: localhost
   web_port: 20001
@@ -30,12 +31,12 @@ external_services:
     url: http://prometheus.observability.svc.cluster.local:9090
   grafana:
     enabled: true
-    in_cluster_url: http://grafana.observability.svc.cluster.local:3000
-    url: http://localhost:3000
+    internal_url: http://grafana.observability.svc.cluster.local:3000
+    external_url: http://localhost:3200
   tracing:
     enabled: true
-    in_cluster_url: http://jaeger.observability.svc.cluster.local:16686
-    url: http://localhost:16686
+    internal_url: http://jaeger.observability.svc.cluster.local:16686
+    external_url: http://localhost:16686
     use_grpc: false
   istio:
     root_namespace: istio-system

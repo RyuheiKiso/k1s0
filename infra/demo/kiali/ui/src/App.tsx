@@ -60,7 +60,10 @@ export default function App() {
 
         {/* Right panel: Dashboard viewer */}
         <div className="flex-1 min-w-0">
-          <DashboardViewer recommendedTab={recommendedTab} />
+          <DashboardViewer
+            recommendedTab={recommendedTab}
+            activeScenario={activeScenario}
+          />
         </div>
       </div>
 

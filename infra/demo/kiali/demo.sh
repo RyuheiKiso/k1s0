@@ -4,6 +4,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+LOCAL_TOOLS_BIN="${REPO_ROOT}/.tools/bin"
+if [ -d "${LOCAL_TOOLS_BIN}" ]; then
+  PATH="${LOCAL_TOOLS_BIN}:${PATH}"
+fi
+
+CLUSTER_NAME="${CLUSTER_NAME:-k1s0-demo}"
 NAMESPACE="k1s0-service"
 TRAFFIC_PID=""
 
@@ -37,7 +44,6 @@ reset_scenarios() {
   echo "Resetting all scenarios..."
   kubectl delete vs order-server-canary order-server-mirror order-server-fault \
     -n "${NAMESPACE}" 2>/dev/null || true
-  kubectl delete vs kafka-flow -n messaging 2>/dev/null || true
   echo "  All scenario VirtualServices removed."
 }
 
@@ -127,6 +133,7 @@ scenario_fault() {
 }
 
 scenario_tracing() {
+  reset_scenarios
   start_traffic normal
   echo ""
   echo "  [Jaeger Guide] http://localhost:16686"
@@ -142,9 +149,10 @@ scenario_tracing() {
 }
 
 scenario_logs() {
+  reset_scenarios
   start_traffic normal
   echo ""
-  echo "  [Grafana Guide] http://localhost:3000"
+  echo "  [Grafana Guide] http://localhost:3200"
   echo "  - Explore > Select 'Loki' datasource"
   echo "  - Query: {namespace=\"k1s0-service\"}"
   echo "  - Click 'Live' to stream logs in real-time"
@@ -156,13 +164,16 @@ scenario_logs() {
 }
 
 scenario_kafka() {
-  echo "Applying Kafka flow scenario..."
-  kubectl apply -f "${SCRIPT_DIR}/scenarios/kafka-flow.yaml"
-  start_traffic normal
+  reset_scenarios
+  if [ -n "${TRAFFIC_PID}" ] && kill -0 "${TRAFFIC_PID}" 2>/dev/null; then
+    kill "${TRAFFIC_PID}" 2>/dev/null || true
+    wait "${TRAFFIC_PID}" 2>/dev/null || true
+    TRAFFIC_PID=""
+  fi
   echo ""
   echo "  [Kafka Demo]"
   echo "  - Producer sends order-events every 5s to Kafka"
-  echo "  - Consumer (accounting-processor group) reads events"
+  echo "  - Consumer (accounting-processor group) reads events from Kafka"
   echo "  - Check producer logs:"
   echo "    kubectl logs -f deploy/kafka-demo-producer -n messaging"
   echo "  - Check consumer logs:"
@@ -170,14 +181,15 @@ scenario_kafka() {
   echo ""
   echo "  [Kiali Guide]"
   echo "  - Add 'messaging' namespace to graph view"
-  echo "  - See async flow: producer -> kafka -> consumer"
+  echo "  - See TCP flow: kafka-demo-producer -> kafka"
+  echo "  - See TCP flow: kafka-demo-consumer -> kafka"
 }
 
 # Main loop
 echo ""
 echo "Checking cluster connectivity..."
-kubectl cluster-info --context kind-k1s0-demo > /dev/null 2>&1 || {
-  echo "ERROR: Cannot connect to kind-k1s0-demo cluster."
+kubectl cluster-info --context "kind-${CLUSTER_NAME}" > /dev/null 2>&1 || {
+  echo "ERROR: Cannot connect to kind-${CLUSTER_NAME} cluster."
   echo "Run 'bash setup.sh' first."
   exit 1
 }

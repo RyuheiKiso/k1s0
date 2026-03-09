@@ -3,6 +3,7 @@ apiVersion: kind.x-k8s.io/v1alpha4
 name: k1s0-demo
 nodes:
   - role: control-plane
+    image: kindest/node:v1.31.14@sha256:6f86cf509dbb42767b6e79debc3f2c32e4ee01386f0489b3b2be24b0a55aac2b
     extraPortMappings:
       # Kiali dashboard
       - containerPort: 30001
@@ -12,11 +13,19 @@ nodes:
       - containerPort: 30686
         hostPort: 16686
         protocol: TCP
+      # Jaeger OTLP HTTP
+      - containerPort: 30418
+        hostPort: 4318
+        protocol: TCP
+      # Jaeger OTLP gRPC
+      - containerPort: 30417
+        hostPort: 4317
+        protocol: TCP
+      # Prometheus
+      - containerPort: 30909
+        hostPort: 9090
+        protocol: TCP
       # Grafana
       - containerPort: 30300
-        hostPort: 3000
-        protocol: TCP
-      # Demo UI
-      - containerPort: 30173
-        hostPort: 5173
+        hostPort: 3200
         protocol: TCP
