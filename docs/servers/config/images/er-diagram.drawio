@@ -1,0 +1,40 @@
+<mxfile>
+  <diagram name="ER Diagram" id="config-er-diagram-001">
+    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="600" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="e_config_entries" value="config_entries" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="220" height="216" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_config_entries_f" value="id (PK)&lt;br&gt;namespace&lt;br&gt;key&lt;br&gt;value_json (JSONB)&lt;br&gt;version&lt;br&gt;description&lt;br&gt;created_by&lt;br&gt;updated_by&lt;br&gt;created_at&lt;br&gt;updated_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_config_entries">
+          <mxGeometry y="28" width="220" height="188" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_config_change_logs" value="config_change_logs" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="20" width="250" height="252" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_config_change_logs_f" value="id (PK)&lt;br&gt;config_entry_id (FK)&lt;br&gt;namespace&lt;br&gt;key&lt;br&gt;change_type&lt;br&gt;old_value_json (JSONB)&lt;br&gt;new_value_json (JSONB)&lt;br&gt;old_version&lt;br&gt;new_version&lt;br&gt;changed_by&lt;br&gt;trace_id&lt;br&gt;created_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_config_change_logs">
+          <mxGeometry y="28" width="250" height="224" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_service_config_mappings" value="service_config_mappings" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="300" width="260" height="108" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_service_config_mappings_f" value="id (PK)&lt;br&gt;service_name&lt;br&gt;config_entry_id (FK)&lt;br&gt;created_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_service_config_mappings">
+          <mxGeometry y="28" width="260" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_config_schemas" value="config_schemas" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="300" width="250" height="162" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_config_schemas_f" value="id (PK)&lt;br&gt;service_name (UNIQUE)&lt;br&gt;namespace_prefix&lt;br&gt;schema_json (JSONB)&lt;br&gt;updated_by&lt;br&gt;created_at&lt;br&gt;updated_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_config_schemas">
+          <mxGeometry y="28" width="250" height="134" as="geometry"/>
+        </mxCell>
+        <mxCell id="rel_entries_logs" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;strokeColor=#666666;fontSize=11;" edge="1" source="e_config_entries" target="e_config_change_logs" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="rel_entries_mappings" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;strokeColor=#666666;fontSize=11;" edge="1" source="e_config_entries" target="e_service_config_mappings" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

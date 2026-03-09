@@ -1,0 +1,99 @@
+<mxfile>
+  <diagram name="ER Diagram" id="common-er">
+    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- ==================== users ==================== -->
+        <mxCell id="e_users" value="users" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="180" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_users_f" value="id (PK)&lt;br&gt;keycloak_sub&lt;br&gt;username&lt;br&gt;email&lt;br&gt;display_name&lt;br&gt;status&lt;br&gt;created_at&lt;br&gt;updated_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_users">
+          <mxGeometry y="28" width="180" height="152" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== user_roles ==================== -->
+        <mxCell id="e_user_roles" value="user_roles" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="20" width="200" height="126" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_user_roles_f" value="id (PK)&lt;br&gt;user_id (FK)&lt;br&gt;role_id (FK)&lt;br&gt;assigned_by&lt;br&gt;assigned_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_user_roles">
+          <mxGeometry y="28" width="200" height="98" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== roles ==================== -->
+        <mxCell id="e_roles" value="roles" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="20" width="180" height="126" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_roles_f" value="id (PK)&lt;br&gt;name&lt;br&gt;description&lt;br&gt;tier&lt;br&gt;created_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_roles">
+          <mxGeometry y="28" width="180" height="98" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== role_permissions ==================== -->
+        <mxCell id="e_role_permissions" value="role_permissions" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="240" width="200" height="108" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_role_permissions_f" value="id (PK)&lt;br&gt;role_id (FK)&lt;br&gt;permission_id (FK)&lt;br&gt;granted_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_role_permissions">
+          <mxGeometry y="28" width="200" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== permissions ==================== -->
+        <mxCell id="e_permissions" value="permissions" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="240" width="180" height="108" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_permissions_f" value="id (PK)&lt;br&gt;resource&lt;br&gt;action&lt;br&gt;description" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_permissions">
+          <mxGeometry y="28" width="180" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== audit_logs ==================== -->
+        <mxCell id="e_audit_logs" value="audit_logs" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="420" width="220" height="252" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_audit_logs_f" value="id (PK composite)&lt;br&gt;user_id (TEXT)&lt;br&gt;event_type&lt;br&gt;action&lt;br&gt;resource&lt;br&gt;resource_id&lt;br&gt;result&lt;br&gt;detail (JSONB)&lt;br&gt;ip_address (TEXT)&lt;br&gt;user_agent&lt;br&gt;trace_id&lt;br&gt;created_at (PK comp)" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_audit_logs">
+          <mxGeometry y="28" width="220" height="224" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== api_keys ==================== -->
+        <mxCell id="e_api_keys" value="api_keys" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="420" width="200" height="270" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_api_keys_f" value="id (PK)&lt;br&gt;name&lt;br&gt;key_hash&lt;br&gt;key_prefix&lt;br&gt;service_name&lt;br&gt;tier&lt;br&gt;permissions&lt;br&gt;expires_at&lt;br&gt;last_used_at&lt;br&gt;is_active&lt;br&gt;created_by (FK)&lt;br&gt;created_at&lt;br&gt;updated_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_api_keys">
+          <mxGeometry y="28" width="200" height="242" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== Relationships ==================== -->
+
+        <!-- users.id -> user_roles.user_id (1:N) -->
+        <mxCell id="rel_users_user_roles" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;strokeColor=#666666;fontSize=11;" edge="1" source="e_users" target="e_user_roles" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- roles.id -> user_roles.role_id (1:N) -->
+        <mxCell id="rel_roles_user_roles" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;strokeColor=#666666;fontSize=11;" edge="1" source="e_roles" target="e_user_roles" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- roles.id -> role_permissions.role_id (1:N) -->
+        <mxCell id="rel_roles_role_permissions" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;strokeColor=#666666;fontSize=11;" edge="1" source="e_roles" target="e_role_permissions" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- permissions.id -> role_permissions.permission_id (1:N) -->
+        <mxCell id="rel_permissions_role_permissions" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;strokeColor=#666666;fontSize=11;" edge="1" source="e_permissions" target="e_role_permissions" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- users.id -> api_keys.created_by (1:N) -->
+        <mxCell id="rel_users_api_keys" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;strokeColor=#666666;fontSize=11;" edge="1" source="e_users" target="e_api_keys" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- users -> audit_logs (dashed, no FK) -->
+        <mxCell id="rel_audit" value="user_id は TEXT&#xa;FK なし" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#999999;fontSize=10;" edge="1" source="e_users" target="e_audit_logs" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,25 @@
+<mxfile>
+  <diagram name="ER Diagram" id="saga_er_001">
+    <mxGraphModel dx="800" dy="500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="500" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="e_saga_states" value="saga_states" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="230" height="216" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_saga_states_f" value="id (PK)&lt;br&gt;workflow_name&lt;br&gt;current_step&lt;br&gt;status&lt;br&gt;payload (JSONB)&lt;br&gt;correlation_id&lt;br&gt;initiated_by&lt;br&gt;error_message&lt;br&gt;created_at&lt;br&gt;updated_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_saga_states">
+          <mxGeometry y="28" width="230" height="188" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_saga_step_logs" value="saga_step_logs" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontSize=13;swimlaneLine=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="20" width="250" height="234" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_saga_step_logs_f" value="id (PK)&lt;br&gt;saga_id (FK)&lt;br&gt;step_index&lt;br&gt;step_name&lt;br&gt;action&lt;br&gt;status&lt;br&gt;request_payload (JSONB)&lt;br&gt;response_payload (JSONB)&lt;br&gt;error_message&lt;br&gt;started_at&lt;br&gt;completed_at" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;fontFamily=Courier New;fontSize=11;html=1;whiteSpace=wrap;" vertex="1" parent="e_saga_step_logs">
+          <mxGeometry y="28" width="250" height="206" as="geometry"/>
+        </mxCell>
+        <mxCell id="rel_saga_states_step_logs" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;strokeColor=#666666;fontSize=11;" edge="1" source="e_saga_states" target="e_saga_step_logs" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

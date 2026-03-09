@@ -35,73 +35,7 @@ auth-db は PostgreSQL 17 データベースであり、Keycloak が管理する
 
 ## ER図
 
-```
-┌─────────────┐       ┌──────────────────┐       ┌─────────────────┐
-│   users     │       │   user_roles     │       │     roles       │
-├─────────────┤       ├──────────────────┤       ├─────────────────┤
-│ id (PK)     │──┐    │ id (PK)          │    ┌──│ id (PK)         │
-│ keycloak_sub│  └───>│ user_id (FK)     │    │  │ name            │
-│ username    │       │ role_id (FK)     │<───┘  │ description     │
-│ email       │       │ assigned_by      │       │ tier            │
-│ display_name│       │ assigned_at      │       │ created_at      │
-│ status      │       └──────────────────┘       └─────────────────┘
-│ created_at  │                                          │
-│ updated_at  │                                          │
-└─────────────┘       ┌──────────────────┐               │
-       │              │ role_permissions  │               │
-       │              ├──────────────────┤       ┌───────┘
-       │              │ id (PK)          │       │
-       │              │ role_id (FK)     │<──────┘
-       │              │ permission_id(FK)│───┐
-       │              │ granted_at       │   │
-       │              └──────────────────┘   │
-       │                                     │
-       │              ┌──────────────────┐   │
-       │              │  permissions     │   │
-       │              ├──────────────────┤   │
-       │              │ id (PK)          │<──┘
-       │              │ resource         │
-       │              │ action           │
-       │              │ description      │
-       │              └──────────────────┘
-       │
-       │              ┌──────────────────────┐
-       │              │  audit_logs          │
-       │              │  (user_id は TEXT、   │
-       │              │   FK なし)            │
-       │              ├──────────────────────┤
-       │              │ id (PK composite)    │
-       │              │ user_id (TEXT)       │
-       │              │ event_type           │
-       │              │ action               │
-       │              │ resource             │
-       │              │ resource_id          │
-       │              │ result               │
-       │              │ detail (JSONB)       │
-       │              │ ip_address (TEXT)    │
-       │              │ user_agent           │
-       │              │ trace_id             │
-       │              │ created_at (PK comp) │
-       │              └──────────────────────┘
-
-┌─────────────────┐
-│   api_keys      │
-├─────────────────┤
-│ id (PK)         │
-│ name            │
-│ key_hash        │
-│ key_prefix      │
-│ service_name    │
-│ tier            │
-│ permissions     │
-│ expires_at      │
-│ last_used_at    │
-│ is_active       │
-│ created_by (FK) │──> users(id)
-│ created_at      │
-│ updated_at      │
-└─────────────────┘
-```
+![ER図](images/er-diagram.svg)
 
 ### リレーション
 
