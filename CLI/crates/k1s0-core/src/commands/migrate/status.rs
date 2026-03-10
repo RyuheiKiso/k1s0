@@ -50,10 +50,7 @@ pub fn get_all_migration_status(targets: &[MigrateTarget]) -> Result<()> {
         } else {
             for status in &statuses {
                 let mark = if status.applied { "[x]" } else { "[ ]" };
-                let at = status
-                    .applied_at
-                    .as_deref()
-                    .unwrap_or("-");
+                let at = status.applied_at.as_deref().unwrap_or("-");
                 println!(
                     "  {} {:03}_{} (適用日時: {})",
                     mark, status.number, status.description, at
@@ -106,11 +103,7 @@ mod tests {
             "DROP TABLE;",
         )
         .unwrap();
-        fs::write(
-            migrations_dir.join("002_add_email.up.sql"),
-            "ALTER TABLE;",
-        )
-        .unwrap();
+        fs::write(migrations_dir.join("002_add_email.up.sql"), "ALTER TABLE;").unwrap();
         fs::write(
             migrations_dir.join("002_add_email.down.sql"),
             "ALTER TABLE;",

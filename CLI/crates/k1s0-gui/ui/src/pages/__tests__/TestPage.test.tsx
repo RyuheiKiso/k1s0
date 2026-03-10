@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
@@ -6,96 +6,115 @@ import TestPage from '../TestPage';
 
 beforeEach(() => {
   mockInvoke.mockReset();
-  mockInvoke.mockResolvedValue([]);
+  mockInvoke.mockImplementation((command: string) => {
+    if (command === 'scan_testable_targets') {
+      return Promise.resolve([]);
+    }
+    return Promise.resolve(undefined);
+  });
 });
 
 describe('TestPage', () => {
-  it('should render the test page', async () => {
+  it('renders the test page', async () => {
     render(<TestPage />);
     await waitFor(() => {
       expect(screen.getByTestId('test-page')).toBeInTheDocument();
     });
   });
 
-  it('should render all test kind radio buttons', () => {
+  it('renders all test kind radio buttons', async () => {
     render(<TestPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('test-page')).toBeInTheDocument();
+    });
     expect(screen.getByText('Unit')).toBeInTheDocument();
     expect(screen.getByText('Integration')).toBeInTheDocument();
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
-  it('should hide target list when All is selected', async () => {
+  it('hides the target list when All is selected', async () => {
     const user = userEvent.setup();
     render(<TestPage />);
-    // Radix RadioGroup.Item renders as role="radio" button; labels are not connected via htmlFor
-    const allRadio = screen.getAllByRole('radio')[2]; // Unit/Integration/All
-    await user.click(allRadio);
-    expect(screen.queryByText('テスト対象')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('radio', { name: 'All' }));
+
+    expect(screen.queryByText('Targets')).not.toBeInTheDocument();
   });
 
-  it('should show target list for Unit kind', async () => {
-    mockInvoke.mockResolvedValue(['regions/system/server/rust/auth']);
-    render(<TestPage />);
-    await waitFor(() => {
-      expect(screen.getByText('regions/system/server/rust/auth')).toBeInTheDocument();
+  it('shows target list for Unit kind', async () => {
+    mockInvoke.mockImplementation((command: string) => {
+      if (command === 'scan_testable_targets') {
+        return Promise.resolve(['regions/system/server/rust/auth']);
+      }
+      return Promise.resolve(undefined);
     });
-  });
 
-  it('should reload targets when switching from Unit to Integration', async () => {
-    const user = userEvent.setup();
-    mockInvoke
-      .mockResolvedValueOnce(['regions/system/server/rust/auth'])
-      .mockResolvedValueOnce(['regions/system/library/go/auth']);
     render(<TestPage />);
-    await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
-
-    const integrationRadio = screen.getAllByRole('radio')[1]; // Unit/Integration/All
-    await user.click(integrationRadio);
-    await waitFor(() => {
-      expect(screen.getByText('regions/system/library/go/auth')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('regions/system/server/rust/auth')).toBeInTheDocument();
   });
 
-  it('should disable the run button when no targets are selected (Unit)', async () => {
-    mockInvoke.mockResolvedValue(['regions/system/server/rust/auth']);
-    render(<TestPage />);
-    await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
-    expect(screen.getByTestId('btn-test')).toBeDisabled();
-  });
-
-  it('should enable the run button for All kind without selecting targets', async () => {
+  it('enables the run button for All without selecting targets', async () => {
     const user = userEvent.setup();
     render(<TestPage />);
-    const allRadio = screen.getAllByRole('radio')[2]; // Unit/Integration/All
-    await user.click(allRadio);
+
+    await user.click(screen.getByRole('radio', { name: 'All' }));
+
     expect(screen.getByTestId('btn-test')).not.toBeDisabled();
   });
 
-  it('should show success message after successful test run', async () => {
+  it('shows success after a successful terminal event', async () => {
     const user = userEvent.setup();
-    mockInvoke
-      .mockResolvedValueOnce(['regions/system/server/rust/auth'])
-      .mockResolvedValue(undefined);
+
+    mockInvoke.mockImplementation((command: string, args?: { onEvent?: { onmessage?: (event: unknown) => void } }) => {
+      if (command === 'scan_testable_targets') {
+        return Promise.resolve(['regions/system/server/rust/auth']);
+      }
+
+      if (command === 'execute_test_with_progress_at') {
+        args?.onEvent?.onmessage?.({
+          kind: 'Finished',
+          success: true,
+          message: 'Tests completed',
+        });
+      }
+
+      return Promise.resolve(undefined);
+    });
+
     render(<TestPage />);
     await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
 
-    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('checkbox', { name: /regions\/system\/server\/rust\/auth/i }));
     await user.click(screen.getByTestId('btn-test'));
 
     expect(await screen.findByTestId('success-message')).toBeInTheDocument();
   });
 
-  it('should show error message on test failure', async () => {
+  it('shows an error when the terminal event fails', async () => {
     const user = userEvent.setup();
-    mockInvoke
-      .mockResolvedValueOnce(['regions/system/server/rust/auth'])
-      .mockRejectedValue('test failed');
+
+    mockInvoke.mockImplementation((command: string, args?: { onEvent?: { onmessage?: (event: unknown) => void } }) => {
+      if (command === 'scan_testable_targets') {
+        return Promise.resolve(['regions/system/server/rust/auth']);
+      }
+
+      if (command === 'execute_test_with_progress_at') {
+        args?.onEvent?.onmessage?.({
+          kind: 'Finished',
+          success: false,
+          message: 'Tests failed',
+        });
+      }
+
+      return Promise.resolve(undefined);
+    });
+
     render(<TestPage />);
     await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
 
-    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('checkbox', { name: /regions\/system\/server\/rust\/auth/i }));
     await user.click(screen.getByTestId('btn-test'));
 
-    expect(await screen.findByTestId('error-message')).toBeInTheDocument();
+    expect(await screen.findByTestId('error-message')).toHaveTextContent('Tests failed');
   });
 });

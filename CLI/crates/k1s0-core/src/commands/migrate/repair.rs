@@ -3,8 +3,8 @@ use std::process::Command;
 
 use anyhow::{Context, Result};
 
-use super::types::{DbConnection, Language, MigrateTarget, RepairOperation};
 use super::apply::resolve_connection_string;
+use super::types::{DbConnection, Language, MigrateTarget, RepairOperation};
 
 /// マイグレーション修復を実行する。
 ///
@@ -38,9 +38,7 @@ fn execute_sqlx_repair(
             "UPDATE _sqlx_migrations SET success = true WHERE success = false;".to_string()
         }
         RepairOperation::ForceVersion(version) => {
-            format!(
-                "DELETE FROM _sqlx_migrations WHERE version > {version};"
-            )
+            format!("DELETE FROM _sqlx_migrations WHERE version > {version};")
         }
     };
 

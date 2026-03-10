@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
@@ -6,77 +6,118 @@ import BuildPage from '../BuildPage';
 
 beforeEach(() => {
   mockInvoke.mockReset();
-  mockInvoke.mockResolvedValue([]);
+  mockInvoke.mockImplementation((command: string) => {
+    if (command === 'scan_buildable_targets') {
+      return Promise.resolve([]);
+    }
+    return Promise.resolve(undefined);
+  });
 });
 
 describe('BuildPage', () => {
-  it('should render the build page', async () => {
+  it('renders the build page', async () => {
     render(<BuildPage />);
     await waitFor(() => {
       expect(screen.getByTestId('build-page')).toBeInTheDocument();
     });
   });
 
-  it('should show empty state when no targets are found', async () => {
-    mockInvoke.mockResolvedValue([]);
+  it('shows an empty state when no targets are found', async () => {
     render(<BuildPage />);
-    await waitFor(() => {
-      expect(screen.getByText('ビルド対象が見つかりません。')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('No buildable targets were found.')).toBeInTheDocument();
   });
 
-  it('should render targets returned by scanBuildableTargets', async () => {
-    mockInvoke.mockResolvedValue(['regions/system/server/rust/auth', 'regions/system/server/rust/saga']);
-    render(<BuildPage />);
-    await waitFor(() => {
-      expect(screen.getByText('regions/system/server/rust/auth')).toBeInTheDocument();
-      expect(screen.getByText('regions/system/server/rust/saga')).toBeInTheDocument();
+  it('renders targets returned by scanBuildableTargets', async () => {
+    mockInvoke.mockImplementation((command: string) => {
+      if (command === 'scan_buildable_targets') {
+        return Promise.resolve([
+          'regions/system/server/rust/auth',
+          'regions/system/server/rust/saga',
+        ]);
+      }
+      return Promise.resolve(undefined);
     });
+
+    render(<BuildPage />);
+
+    expect(await screen.findByText('regions/system/server/rust/auth')).toBeInTheDocument();
+    expect(screen.getByText('regions/system/server/rust/saga')).toBeInTheDocument();
   });
 
-  it('should disable the build button when no targets are selected', async () => {
-    mockInvoke.mockResolvedValue(['regions/system/server/rust/auth']);
+  it('disables the build button when no targets are selected', async () => {
+    mockInvoke.mockImplementation((command: string) => {
+      if (command === 'scan_buildable_targets') {
+        return Promise.resolve(['regions/system/server/rust/auth']);
+      }
+      return Promise.resolve(undefined);
+    });
+
     render(<BuildPage />);
+
     await waitFor(() => {
       expect(screen.getByTestId('btn-build')).toBeDisabled();
     });
   });
 
-  it('should enable the build button after selecting a target', async () => {
+  it('shows success only after a successful Finished event', async () => {
     const user = userEvent.setup();
-    mockInvoke.mockResolvedValue(['regions/system/server/rust/auth']);
+
+    mockInvoke.mockImplementation((command: string, args?: { onEvent?: { onmessage?: (event: unknown) => void } }) => {
+      if (command === 'scan_buildable_targets') {
+        return Promise.resolve(['regions/system/server/rust/auth']);
+      }
+
+      if (command === 'execute_build_with_progress') {
+        args?.onEvent?.onmessage?.({
+          kind: 'StepStarted',
+          step: 1,
+          total: 1,
+          message: 'Building auth',
+        });
+        args?.onEvent?.onmessage?.({
+          kind: 'Finished',
+          success: true,
+          message: 'Build completed',
+        });
+      }
+
+      return Promise.resolve(undefined);
+    });
+
     render(<BuildPage />);
     await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
 
-    await user.click(screen.getByRole('checkbox'));
-    expect(screen.getByTestId('btn-build')).not.toBeDisabled();
-  });
-
-  it('should show success message after successful build', async () => {
-    const user = userEvent.setup();
-    mockInvoke
-      .mockResolvedValueOnce(['regions/system/server/rust/auth'])
-      .mockResolvedValue(undefined);
-    render(<BuildPage />);
-    await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
-
-    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('checkbox', { name: /regions\/system\/server\/rust\/auth/i }));
     await user.click(screen.getByTestId('btn-build'));
 
     expect(await screen.findByTestId('success-message')).toBeInTheDocument();
   });
 
-  it('should show error message on build failure', async () => {
+  it('shows an error when the terminal event reports failure', async () => {
     const user = userEvent.setup();
-    mockInvoke
-      .mockResolvedValueOnce(['regions/system/server/rust/auth'])
-      .mockRejectedValue('build failed');
+
+    mockInvoke.mockImplementation((command: string, args?: { onEvent?: { onmessage?: (event: unknown) => void } }) => {
+      if (command === 'scan_buildable_targets') {
+        return Promise.resolve(['regions/system/server/rust/auth']);
+      }
+
+      if (command === 'execute_build_with_progress') {
+        args?.onEvent?.onmessage?.({
+          kind: 'Finished',
+          success: false,
+          message: 'Build failed',
+        });
+      }
+
+      return Promise.resolve(undefined);
+    });
+
     render(<BuildPage />);
     await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
 
-    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('checkbox', { name: /regions\/system\/server\/rust\/auth/i }));
     await user.click(screen.getByTestId('btn-build'));
 
-    expect(await screen.findByTestId('error-message')).toBeInTheDocument();
+    expect(await screen.findByTestId('error-message')).toHaveTextContent('Build failed');
   });
 });

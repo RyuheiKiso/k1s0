@@ -7,8 +7,8 @@ use std::path::Path;
 
 use crate::config::RuntimeConfig;
 
-pub use super::types::DetectedDependencies;
 use super::types::DatabaseDep;
+pub use super::types::DetectedDependencies;
 
 /// 指定サービスパスの config/config.yaml から依存を検出する。
 ///
@@ -38,7 +38,11 @@ pub fn detect_dependencies_at(service_dir: &Path) -> Result<DetectedDependencies
             // サービスディレクトリ名からDB名を推定
             service_dir
                 .file_name()
-                .and_then(|n| n.to_str()).map_or_else(|| "default_db".to_string(), |n| format!("{}_db", n.replace('-', "_")))
+                .and_then(|n| n.to_str())
+                .map_or_else(
+                    || "default_db".to_string(),
+                    |n| format!("{}_db", n.replace('-', "_")),
+                )
         } else {
             db.name.clone()
         };
@@ -248,8 +252,12 @@ kafka:
         let deps = detect_dependencies_at(tmp.path()).unwrap();
         assert!(deps.has_kafka);
         assert_eq!(deps.kafka_topics.len(), 2);
-        assert!(deps.kafka_topics.contains(&"k1s0.system.test.v1".to_string()));
-        assert!(deps.kafka_topics.contains(&"k1s0.system.other.v1".to_string()));
+        assert!(deps
+            .kafka_topics
+            .contains(&"k1s0.system.test.v1".to_string()));
+        assert!(deps
+            .kafka_topics
+            .contains(&"k1s0.system.other.v1".to_string()));
     }
 
     /// redis / redis_session セクションから Redis 依存を検出する。
@@ -374,9 +382,7 @@ redis:
         let tmp = TempDir::new().unwrap();
 
         // サーバー（config/config.yaml あり）
-        let server_dir = tmp
-            .path()
-            .join("regions/system/server/rust/auth");
+        let server_dir = tmp.path().join("regions/system/server/rust/auth");
         let config_dir = server_dir.join("config");
         fs::create_dir_all(&config_dir).unwrap();
         fs::write(

@@ -140,8 +140,10 @@ pub fn scan_grpc_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
     let re = Regex::new(r#"import\s+"k1s0/(\w+)/(\w[\w-]*)/v\d+/"#).unwrap();
 
     // サービス名→tier のマップを構築
-    let service_tier_map: HashMap<String, String> =
-        services.iter().map(|s| (s.name.clone(), s.tier.clone())).collect();
+    let service_tier_map: HashMap<String, String> = services
+        .iter()
+        .map(|s| (s.name.clone(), s.tier.clone()))
+        .collect();
 
     for service in services {
         let proto_files = find_files_with_extension(&service.path, "proto");
@@ -209,8 +211,10 @@ pub fn scan_kafka_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Ve
     // トピック名→購読先サービスのマップ
     let mut topic_subscribers: HashMap<String, Vec<String>> = HashMap::new();
 
-    let service_tier_map: HashMap<String, String> =
-        services.iter().map(|s| (s.name.clone(), s.tier.clone())).collect();
+    let service_tier_map: HashMap<String, String> = services
+        .iter()
+        .map(|s| (s.name.clone(), s.tier.clone()))
+        .collect();
 
     for service in services {
         let config_path = service.path.join("config").join("config.yaml");
@@ -253,10 +257,7 @@ pub fn scan_kafka_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Ve
                             .cloned()
                             .unwrap_or_default(),
                         target: publisher.clone(),
-                        target_tier: service_tier_map
-                            .get(publisher)
-                            .cloned()
-                            .unwrap_or_default(),
+                        target_tier: service_tier_map.get(publisher).cloned().unwrap_or_default(),
                         dep_type: DependencyType::Kafka,
                         locations: vec![format!("kafka topic: {topic}")],
                         detail: Some(topic.clone()),
@@ -365,8 +366,10 @@ pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
     let re = Regex::new(r"([\w-]+)\.k1s0-(system|business|service)").unwrap();
     let graphql_re = Regex::new(r"(?i)graphql|/graphql").unwrap();
 
-    let service_tier_map: HashMap<String, String> =
-        services.iter().map(|s| (s.name.clone(), s.tier.clone())).collect();
+    let service_tier_map: HashMap<String, String> = services
+        .iter()
+        .map(|s| (s.name.clone(), s.tier.clone()))
+        .collect();
 
     let extensions = ["rs", "go", "ts", "dart"];
 
@@ -449,13 +452,7 @@ pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> 
                 let location = cargo_toml.to_string_lossy().to_string();
                 for cap in cargo_re.captures_iter(&content) {
                     let lib_name = &cap[1];
-                    add_library_dep(
-                        &mut deps,
-                        &service.name,
-                        &service.tier,
-                        lib_name,
-                        &location,
-                    );
+                    add_library_dep(&mut deps, &service.name, &service.tier, lib_name, &location);
                 }
             }
         }
@@ -467,13 +464,7 @@ pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> 
                 let location = gomod.to_string_lossy().to_string();
                 for cap in gomod_re.captures_iter(&content) {
                     let lib_name = &cap[1];
-                    add_library_dep(
-                        &mut deps,
-                        &service.name,
-                        &service.tier,
-                        lib_name,
-                        &location,
-                    );
+                    add_library_dep(&mut deps, &service.name, &service.tier, lib_name, &location);
                 }
             }
         }
@@ -485,13 +476,7 @@ pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> 
                 let location = package_json.to_string_lossy().to_string();
                 for cap in npm_re.captures_iter(&content) {
                     let lib_name = &cap[1];
-                    add_library_dep(
-                        &mut deps,
-                        &service.name,
-                        &service.tier,
-                        lib_name,
-                        &location,
-                    );
+                    add_library_dep(&mut deps, &service.name, &service.tier, lib_name, &location);
                 }
             }
         }
@@ -503,13 +488,7 @@ pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> 
                 let location = pubspec.to_string_lossy().to_string();
                 for cap in dart_re.captures_iter(&content) {
                     let lib_name = &cap[1];
-                    add_library_dep(
-                        &mut deps,
-                        &service.name,
-                        &service.tier,
-                        lib_name,
-                        &location,
-                    );
+                    add_library_dep(&mut deps, &service.name, &service.tier, lib_name, &location);
                 }
             }
         }

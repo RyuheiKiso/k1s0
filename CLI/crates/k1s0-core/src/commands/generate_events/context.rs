@@ -17,10 +17,7 @@ pub fn build_template_context(config: &EventsConfig) -> Context {
     let has_outbox = config.events.iter().any(|e| e.outbox);
     ctx.insert("has_outbox", &has_outbox);
 
-    let has_consumers = config
-        .events
-        .iter()
-        .any(|e| !e.consumers.is_empty());
+    let has_consumers = config.events.iter().any(|e| !e.consumers.is_empty());
     ctx.insert("has_consumers", &has_consumers);
 
     let events: Vec<serde_json::Value> = config
@@ -54,7 +51,9 @@ pub fn build_consumer_context(
     // 個別 consumer データ
     let consumer_group = format!(
         "{}.{}.{}",
-        consumer.domain, consumer.service_name, event.name_snake()
+        consumer.domain,
+        consumer.service_name,
+        event.name_snake()
     );
     ctx.insert(
         "consumer",
@@ -100,10 +99,7 @@ pub fn build_single_event_context(config: &EventsConfig, event: &EventDefinition
         .collect();
     ctx.insert("events", &events);
 
-    let has_consumers = config
-        .events
-        .iter()
-        .any(|e| !e.consumers.is_empty());
+    let has_consumers = config.events.iter().any(|e| !e.consumers.is_empty());
     ctx.insert("has_consumers", &has_consumers);
 
     ctx
@@ -155,10 +151,7 @@ fn build_event_json(config: &EventsConfig, event: &EventDefinition) -> serde_jso
         .consumers
         .iter()
         .map(|c| {
-            let consumer_group = format!(
-                "{}.{}.{}",
-                c.domain, c.service_name, event.name_snake()
-            );
+            let consumer_group = format!("{}.{}.{}", c.domain, c.service_name, event.name_snake());
             serde_json::json!({
                 "domain": c.domain,
                 "service_name": c.service_name,
@@ -303,10 +296,7 @@ mod tests {
             event["topic"],
             "k1s0.business.accounting.master-item-created.v1"
         );
-        assert_eq!(
-            event["proto_package"],
-            "k1s0.event.business.accounting.v1"
-        );
+        assert_eq!(event["proto_package"], "k1s0.event.business.accounting.v1");
         assert_eq!(event["partition_key_pascal"], "ItemId");
 
         let fields = event["fields"].as_array().unwrap();
@@ -354,8 +344,14 @@ mod tests {
         let ctx = build_consumer_context(&config, event, consumer);
         let json = ctx.into_json();
 
-        assert_eq!(json["consumer"]["handler"], "on_accounting_master_item_created");
-        assert_eq!(json["consumer"]["handler_pascal"], "OnAccountingMasterItemCreated");
+        assert_eq!(
+            json["consumer"]["handler"],
+            "on_accounting_master_item_created"
+        );
+        assert_eq!(
+            json["consumer"]["handler_pascal"],
+            "OnAccountingMasterItemCreated"
+        );
         assert_eq!(json["event"]["name_pascal"], "MasterItemCreated");
     }
 

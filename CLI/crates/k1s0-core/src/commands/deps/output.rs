@@ -61,10 +61,7 @@ pub fn print_terminal(result: &DepsResult) {
                             .map(|d| format!("  {d}"))
                             .unwrap_or_default();
                         let dep_type_str = format!("{}", dep.dep_type);
-                        println!(
-                            "    <- ({dep_type_str:<8}) {}{detail}",
-                            dep.source
-                        );
+                        println!("    <- ({dep_type_str:<8}) {}{detail}", dep.source);
                     }
                 }
             }
@@ -210,9 +207,7 @@ pub fn generate_mermaid(result: &DepsResult) -> String {
         lines.push(String::new());
         lines.push("    %% 違反".to_string());
         for idx in &violation_link_indices {
-            lines.push(format!(
-                "    linkStyle {idx} stroke:red,stroke-width:3px"
-            ));
+            lines.push(format!("    linkStyle {idx} stroke:red,stroke-width:3px"));
         }
     }
 

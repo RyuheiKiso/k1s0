@@ -92,10 +92,7 @@ pub fn check_violations(dependencies: &[Dependency], services: &[ServiceInfo]) -
                 target: dep.target.clone(),
                 target_tier: dep.target_tier.clone(),
                 dep_type: dep.dep_type.clone(),
-                message: format!(
-                    "service tier間の同期通信({})が検出されました",
-                    dep.dep_type
-                ),
+                message: format!("service tier間の同期通信({})が検出されました", dep.dep_type),
                 location: dep.locations.first().cloned(),
                 recommendation:
                     "service tier間の通信はKafkaなどの非同期メッセージングを使用してください"
@@ -125,9 +122,8 @@ pub fn check_violations(dependencies: &[Dependency], services: &[ServiceInfo]) -
                         dep.dep_type
                     ),
                     location: dep.locations.first().cloned(),
-                    recommendation:
-                        "異なるドメイン間はKafkaなどの非同期メッセージングを推奨します"
-                            .to_string(),
+                    recommendation: "異なるドメイン間はKafkaなどの非同期メッセージングを推奨します"
+                        .to_string(),
                 });
                 continue;
             }
@@ -146,10 +142,7 @@ pub fn check_violations(dependencies: &[Dependency], services: &[ServiceInfo]) -
                     target: dep.target.clone(),
                     target_tier: dep.target_tier.clone(),
                     dep_type: dep.dep_type.clone(),
-                    message: format!(
-                        "同一ドメイン内の同期通信({})が検出されました",
-                        dep.dep_type
-                    ),
+                    message: format!("同一ドメイン内の同期通信({})が検出されました", dep.dep_type),
                     location: dep.locations.first().cloned(),
                     recommendation:
                         "同一ドメイン内の同期通信は許可されていますが、必要性を確認してください"
@@ -426,7 +419,10 @@ mod tests {
         )];
 
         let violations = check_violations(&deps, &services);
-        assert!(violations.is_empty(), "ライブラリ依存はルール違反にならないこと");
+        assert!(
+            violations.is_empty(),
+            "ライブラリ依存はルール違反にならないこと"
+        );
     }
 
     // ========================================================================
@@ -490,6 +486,9 @@ mod tests {
         )];
 
         let violations = check_violations(&deps, &services);
-        assert!(violations.is_empty(), "不明なTierの依存はスキップされること");
+        assert!(
+            violations.is_empty(),
+            "不明なTierの依存はスキップされること"
+        );
     }
 }

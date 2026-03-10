@@ -46,7 +46,9 @@ pub fn save_state_to(state: &DevState, path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::dev::types::{DevStateDeps, KafkaDep, MigrationStatus, PostgresDep, RedisDep, SeedStatus};
+    use crate::commands::dev::types::{
+        DevStateDeps, KafkaDep, MigrationStatus, PostgresDep, RedisDep, SeedStatus,
+    };
     use tempfile::TempDir;
 
     /// 存在しないファイルからの読み込みは None を返す。
@@ -65,7 +67,10 @@ mod tests {
         let mut migration_status = std::collections::HashMap::new();
         migration_status.insert(
             "k1s0_system".to_string(),
-            MigrationStatus { applied: 3, total: 3 },
+            MigrationStatus {
+                applied: 3,
+                total: 3,
+            },
         );
         let mut seed_status = std::collections::HashMap::new();
         seed_status.insert("k1s0_system".to_string(), SeedStatus { applied: true });

@@ -38,12 +38,19 @@ pub fn generate_compose(
 
     // Redis (session)
     if deps.has_redis_session {
-        yaml.push_str(&generate_redis_service(ports, "redis-session", ports.redis_session));
+        yaml.push_str(&generate_redis_service(
+            ports,
+            "redis-session",
+            ports.redis_session,
+        ));
     }
 
     // Keycloak
     if *auth == AuthMode::Keycloak {
-        yaml.push_str(&generate_keycloak_service(ports, !deps.databases.is_empty()));
+        yaml.push_str(&generate_keycloak_service(
+            ports,
+            !deps.databases.is_empty(),
+        ));
     }
 
     // ボリューム定義
@@ -165,11 +172,7 @@ fn generate_kafka_ui_service(ports: &PortAssignments) -> String {
 }
 
 /// Redis サービス定義を生成する。
-fn generate_redis_service(
-    _ports: &PortAssignments,
-    name: &str,
-    host_port: u16,
-) -> String {
+fn generate_redis_service(_ports: &PortAssignments, name: &str, host_port: u16) -> String {
     let container_name = format!("k1s0-dev-{name}");
     let volume_name = format!("k1s0_dev_{}_data", name.replace('-', "_"));
     format!(

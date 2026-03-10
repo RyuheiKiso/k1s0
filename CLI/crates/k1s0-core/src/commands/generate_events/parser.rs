@@ -44,8 +44,7 @@ pub fn parse_events_yaml(path: &str) -> Result<EventsConfig> {
 /// 正規表現のコンパイルに失敗した場合にパニックする（定数パターンのため発生しない）。
 pub fn validate(config: &EventsConfig) -> Result<()> {
     let kebab_re = Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").unwrap();
-    let event_name_re =
-        Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*(\.[a-z0-9]+(-[a-z0-9]+)*)+$").unwrap();
+    let event_name_re = Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*(\.[a-z0-9]+(-[a-z0-9]+)*)+$").unwrap();
     let snake_re = Regex::new(r"^[a-z_][a-z0-9_]*$").unwrap();
 
     // domain
@@ -299,8 +298,7 @@ mod tests {
     #[test]
     fn test_timestamp_field_type_valid() {
         let mut config = valid_config();
-        config.events[0].schema.fields[0].field_type =
-            "google.protobuf.Timestamp".to_string();
+        config.events[0].schema.fields[0].field_type = "google.protobuf.Timestamp".to_string();
         assert!(validate(&config).is_ok());
     }
 }

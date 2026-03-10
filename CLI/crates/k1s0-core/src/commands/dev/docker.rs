@@ -16,9 +16,9 @@ pub fn check_docker_available() -> Result<()> {
     match output {
         Ok(o) if o.status.success() => Ok(()),
         Ok(_) => bail!("Docker デーモンが起動していません。Docker Desktop を起動してください。"),
-        Err(e) => bail!(
-            "docker コマンドが見つかりません。Docker をインストールしてください。: {e}"
-        ),
+        Err(e) => {
+            bail!("docker コマンドが見つかりません。Docker をインストールしてください。: {e}")
+        }
     }
 }
 
@@ -132,10 +132,7 @@ pub fn wait_for_healthy(compose_dir: &Path, timeout_secs: u64) -> Result<()> {
             let stdout = String::from_utf8_lossy(&output.stdout);
             // すべてのコンテナが running であることを確認
             // "unhealthy" や "starting" が含まれていなければ OK
-            if !stdout.is_empty()
-                && !stdout.contains("unhealthy")
-                && !stdout.contains("starting")
-            {
+            if !stdout.is_empty() && !stdout.contains("unhealthy") && !stdout.contains("starting") {
                 return Ok(());
             }
         }

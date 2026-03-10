@@ -62,7 +62,10 @@ pub fn run() -> Result<()> {
     for path in &generated {
         println!("  ✅ {}", path.display());
     }
-    println!("\nイベントコードの生成が完了しました。({} ファイル)", generated.len());
+    println!(
+        "\nイベントコードの生成が完了しました。({} ファイル)",
+        generated.len()
+    );
 
     Ok(())
 }

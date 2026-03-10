@@ -85,7 +85,9 @@ fn run_migrations_for_service(migrations_dir: &Path, ports: &PortAssignments) ->
             }
             Ok(output) => {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                eprintln!("    警告: マイグレーション {file_name} でエラーが発生しました: {stderr}");
+                eprintln!(
+                    "    警告: マイグレーション {file_name} でエラーが発生しました: {stderr}"
+                );
             }
             Err(e) => {
                 eprintln!(
@@ -109,12 +111,7 @@ pub fn has_migrations(service_path: &Path) -> bool {
         .map(|entries| {
             entries
                 .filter_map(std::result::Result::ok)
-                .any(|e| {
-                    e.path()
-                        .extension()
-                        .and_then(|ext| ext.to_str())
-                        == Some("sql")
-                })
+                .any(|e| e.path().extension().and_then(|ext| ext.to_str()) == Some("sql"))
         })
         .unwrap_or(false)
 }
