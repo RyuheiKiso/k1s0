@@ -26,6 +26,13 @@ function renderWithRouter(initialPath = '/') {
     ['/auth', 'auth-page'],
     ['/init', 'init-page'],
     ['/generate', 'generate-page'],
+    ['/deps', 'deps-page'],
+    ['/dev', 'dev-page'],
+    ['/migrate', 'migrate-page'],
+    ['/config-types', 'config-types-page'],
+    ['/navigation-types', 'navigation-types-page'],
+    ['/event-codegen', 'event-codegen-page'],
+    ['/validate', 'validate-page'],
     ['/build', 'build-page'],
     ['/test', 'test-page'],
     ['/deploy', 'deploy-page'],
@@ -52,6 +59,13 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('nav-auth')).toBeInTheDocument();
     expect(screen.getByTestId('nav-init')).toBeInTheDocument();
     expect(screen.getByTestId('nav-generate')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-deps')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-dev')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-migrate')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-config-types')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-navigation-types')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-event-codegen')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-validate')).toBeInTheDocument();
     expect(screen.getByTestId('nav-build')).toBeInTheDocument();
     expect(screen.getByTestId('nav-test')).toBeInTheDocument();
     expect(screen.getByTestId('nav-deploy')).toBeInTheDocument();

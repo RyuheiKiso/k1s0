@@ -1,6 +1,11 @@
+use jsonschema::JSONSchema;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
+
+const CONFIG_SCHEMA_JSON: &str =
+    include_str!("../../../../k1s0-cli/templates/config/config-schema-schema.json");
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ConfigSchemaYaml {
@@ -34,156 +39,344 @@ pub struct FieldYaml {
     pub default: Option<serde_yaml::Value>,
 }
 
-/// config-schema.yaml をバリデーションする。
-/// 戻り値: エラー数 (0なら成功)
 pub fn validate_config_schema(path: &str) -> Result<usize, Box<dyn std::error::Error>> {
     let content = fs::read_to_string(path)?;
     println!("Checking config-schema.yaml...");
 
-    // 1. スキーマバリデーション（YAML パース）
-    let schema: ConfigSchemaYaml = match serde_yaml::from_str(&content) {
-        Ok(s) => {
-            println!("  \u{2705} スキーマバリデーション OK");
-            s
+    let yaml_value: serde_yaml::Value = match serde_yaml::from_str(&content) {
+        Ok(value) => {
+            println!("  OK YAML parse");
+            value
         }
-        Err(e) => {
-            println!("  \u{274c} スキーマバリデーションエラー: {e}");
+        Err(error) => {
+            println!("  ERROR YAML parse: {error}");
             return Ok(1);
         }
     };
 
     let mut errors = 0usize;
+    let schema_json: serde_json::Value = serde_json::from_str(CONFIG_SCHEMA_JSON)?;
+    let instance_json = serde_json::to_value(&yaml_value)?;
+    let compiled = JSONSchema::compile(&schema_json).map_err(|error| error.to_string())?;
+    let json_schema_errors = compiled
+        .validate(&instance_json)
+        .err()
+        .map(|validation_errors| {
+            validation_errors
+                .map(|error| format!("{error}"))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
 
-    // 2. 必須フィールド存在チェック (service, namespace_prefix, categories)
-    if schema.service.is_empty() {
-        println!("  \u{274c} service が空です");
-        errors += 1;
-    }
-    if schema.namespace_prefix.is_empty() {
-        println!("  \u{274c} namespace_prefix が空です");
-        errors += 1;
-    }
-    if schema.categories.is_empty() {
-        println!("  \u{274c} categories が空です");
-        errors += 1;
-    }
-
-    // 3. namespace prefix 整合性: 全 namespaces が namespace_prefix で始まっている
-    let mut ns_ok = true;
-    for cat in &schema.categories {
-        for ns in &cat.namespaces {
-            if !ns.starts_with(&schema.namespace_prefix) {
-                println!(
-                    "  \u{274c} category '{}' の namespace '{}' が namespace_prefix '{}' で始まっていません",
-                    cat.id, ns, schema.namespace_prefix
-                );
-                errors += 1;
-                ns_ok = false;
-            }
-        }
-    }
-    if ns_ok {
-        println!("  \u{2705} namespace prefix 整合性 OK");
-    }
-
-    // 4. field key の重複なし（同カテゴリ内）
-    let mut dup_ok = true;
-    for cat in &schema.categories {
-        let mut keys = HashSet::new();
-        for field in &cat.fields {
-            if !keys.insert(&field.key) {
-                println!(
-                    "  \u{274c} category '{}' の field key '{}' が重複しています",
-                    cat.id, field.key
-                );
-                errors += 1;
-                dup_ok = false;
-            }
-        }
-    }
-    if dup_ok {
-        println!("  \u{2705} field key の重複なし");
-    }
-
-    // 5. type 必須チェック（全フィールドに type が指定されている）
-    let mut type_ok = true;
-    for cat in &schema.categories {
-        for field in &cat.fields {
-            if field.field_type.is_none() || field.field_type.as_deref() == Some("") {
-                println!(
-                    "  \u{274c} category '{}' の field '{}' に type が未指定",
-                    cat.id, field.key
-                );
-                errors += 1;
-                type_ok = false;
-            }
-        }
-    }
-    if type_ok {
-        println!("  \u{2705} type 指定 OK");
-    }
-
-    // 6. enum options チェック（type=enum時にoptionsが空でない）
-    let mut enum_ok = true;
-    for cat in &schema.categories {
-        for field in &cat.fields {
-            if field.field_type.as_deref() == Some("enum") {
-                let has_options = field.options.as_ref().is_some_and(|opts| !opts.is_empty());
-                if !has_options {
-                    println!(
-                        "  \u{274c} category '{}' の field '{}' は type=enum ですが options が空です",
-                        cat.id, field.key
-                    );
-                    errors += 1;
-                    enum_ok = false;
-                }
-            }
-        }
-    }
-    if enum_ok {
-        println!("  \u{2705} enum options OK");
-    }
-
-    // 7. default 型整合性（integer/float -> 数値、boolean -> bool）
-    let mut default_ok = true;
-    for cat in &schema.categories {
-        for field in &cat.fields {
-            if let Some(ref default_val) = field.default {
-                let type_str = field.field_type.as_deref().unwrap_or("");
-                let valid = match type_str {
-                    "integer" => default_val.is_number(),
-                    "float" => default_val.is_number(),
-                    "boolean" => default_val.is_bool(),
-                    "string" => default_val.is_string(),
-                    _ => true,
-                };
-                if !valid {
-                    println!(
-                        "  \u{274c} category '{}' の field '{}' の default 値が type '{}' と不整合です",
-                        cat.id, field.key, type_str
-                    );
-                    errors += 1;
-                    default_ok = false;
-                }
-            }
-        }
-    }
-    if default_ok {
-        println!("  \u{2705} default 型整合性 OK");
-    }
-
-    if errors == 0 {
-        println!("\nバリデーション完了: エラーなし");
+    if json_schema_errors.is_empty() {
+        println!("  OK JSON Schema validation");
     } else {
-        println!("\nバリデーション完了: {errors} 件のエラー");
+        for error in json_schema_errors {
+            println!("  ERROR JSON Schema: {error}");
+            errors += 1;
+        }
     }
 
+    let schema: ConfigSchemaYaml = match serde_yaml::from_value(yaml_value.clone()) {
+        Ok(schema) => schema,
+        Err(error) => {
+            if errors == 0 {
+                println!("  ERROR schema parse: {error}");
+                errors += 1;
+            }
+            print_summary(errors);
+            return Ok(errors);
+        }
+    };
+
+    errors += validate_namespace_prefixes(&schema);
+    errors += validate_unique_category_ids(&schema);
+    errors += validate_unique_field_keys(&schema);
+    errors += validate_field_types(&schema);
+    errors += validate_enum_fields(&schema);
+    errors += validate_number_ranges(&schema);
+    errors += validate_default_values(&schema);
+
+    print_summary(errors);
     Ok(errors)
 }
 
-// ============================================================================
-// テスト
-// ============================================================================
+fn validate_namespace_prefixes(schema: &ConfigSchemaYaml) -> usize {
+    let mut errors = 0usize;
+    for category in &schema.categories {
+        for namespace in &category.namespaces {
+            if !namespace.starts_with(&schema.namespace_prefix) {
+                println!(
+                    "  ERROR namespace prefix: category '{}' namespace '{}' must start with '{}'",
+                    category.id, namespace, schema.namespace_prefix
+                );
+                errors += 1;
+            }
+        }
+    }
+
+    if errors == 0 {
+        println!("  OK namespace prefix");
+    }
+
+    errors
+}
+
+fn validate_unique_category_ids(schema: &ConfigSchemaYaml) -> usize {
+    let mut ids = HashSet::new();
+    let mut errors = 0usize;
+
+    for category in &schema.categories {
+        if !ids.insert(&category.id) {
+            println!("  ERROR duplicate category id: '{}'", category.id);
+            errors += 1;
+        }
+    }
+
+    if errors == 0 {
+        println!("  OK category ids");
+    }
+
+    errors
+}
+
+fn validate_unique_field_keys(schema: &ConfigSchemaYaml) -> usize {
+    let mut errors = 0usize;
+
+    for category in &schema.categories {
+        let mut keys = HashSet::new();
+        for field in &category.fields {
+            if !keys.insert(&field.key) {
+                println!(
+                    "  ERROR duplicate field key: category '{}' field '{}'",
+                    category.id, field.key
+                );
+                errors += 1;
+            }
+        }
+    }
+
+    if errors == 0 {
+        println!("  OK field keys");
+    }
+
+    errors
+}
+
+fn validate_field_types(schema: &ConfigSchemaYaml) -> usize {
+    const VALID_TYPES: &[&str] = &[
+        "string",
+        "integer",
+        "float",
+        "boolean",
+        "enum",
+        "object",
+        "array",
+    ];
+
+    let mut errors = 0usize;
+
+    for category in &schema.categories {
+        for field in &category.fields {
+            match field.field_type.as_deref() {
+                Some(field_type) if VALID_TYPES.contains(&field_type) => {}
+                Some(field_type) => {
+                    println!(
+                        "  ERROR field type: category '{}' field '{}' has unsupported type '{}'",
+                        category.id, field.key, field_type
+                    );
+                    errors += 1;
+                }
+                None => {
+                    println!(
+                        "  ERROR field type: category '{}' field '{}' is missing type",
+                        category.id, field.key
+                    );
+                    errors += 1;
+                }
+            }
+        }
+    }
+
+    if errors == 0 {
+        println!("  OK field types");
+    }
+
+    errors
+}
+
+fn validate_enum_fields(schema: &ConfigSchemaYaml) -> usize {
+    let mut errors = 0usize;
+
+    for category in &schema.categories {
+        for field in &category.fields {
+            if field.field_type.as_deref() != Some("enum") {
+                continue;
+            }
+
+            let options = field.options.as_ref().filter(|options| !options.is_empty());
+            if options.is_none() {
+                println!(
+                    "  ERROR enum options: category '{}' field '{}' requires options",
+                    category.id, field.key
+                );
+                errors += 1;
+                continue;
+            }
+
+            if let Some(default) = field.default.as_ref().and_then(serde_yaml::Value::as_str) {
+                if !options.unwrap().iter().any(|option| option == default) {
+                    println!(
+                        "  ERROR enum default: category '{}' field '{}' default '{}' is not in options",
+                        category.id, field.key, default
+                    );
+                    errors += 1;
+                }
+            }
+        }
+    }
+
+    if errors == 0 {
+        println!("  OK enum options");
+    }
+
+    errors
+}
+
+fn validate_number_ranges(schema: &ConfigSchemaYaml) -> usize {
+    let mut errors = 0usize;
+
+    for category in &schema.categories {
+        for field in &category.fields {
+            match field.field_type.as_deref() {
+                Some("integer") | Some("float") => {
+                    if let (Some(min), Some(max)) = (field.min, field.max) {
+                        if min > max {
+                            println!(
+                                "  ERROR numeric range: category '{}' field '{}' has min {} greater than max {}",
+                                category.id, field.key, min, max
+                            );
+                            errors += 1;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    if errors == 0 {
+        println!("  OK numeric ranges");
+    }
+
+    errors
+}
+
+fn validate_default_values(schema: &ConfigSchemaYaml) -> usize {
+    let mut errors = 0usize;
+
+    for category in &schema.categories {
+        for field in &category.fields {
+            let Some(default) = &field.default else {
+                continue;
+            };
+
+            let Some(field_type) = field.field_type.as_deref() else {
+                continue;
+            };
+
+            if !default_matches_type(field_type, default) {
+                println!(
+                    "  ERROR default type: category '{}' field '{}' default does not match type '{}'",
+                    category.id, field.key, field_type
+                );
+                errors += 1;
+                continue;
+            }
+
+            match field_type {
+                "integer" | "float" => {
+                    if let Some(value) = default.as_f64() {
+                        if let Some(min) = field.min {
+                            if value < min {
+                                println!(
+                                    "  ERROR default range: category '{}' field '{}' default {} is below min {}",
+                                    category.id, field.key, value, min
+                                );
+                                errors += 1;
+                            }
+                        }
+                        if let Some(max) = field.max {
+                            if value > max {
+                                println!(
+                                    "  ERROR default range: category '{}' field '{}' default {} is above max {}",
+                                    category.id, field.key, value, max
+                                );
+                                errors += 1;
+                            }
+                        }
+                    }
+                }
+                "string" => {
+                    if let (Some(pattern), Some(value)) =
+                        (field.pattern.as_deref(), default.as_str())
+                    {
+                        match Regex::new(pattern) {
+                            Ok(regex) if regex.is_match(value) => {}
+                            Ok(_) => {
+                                println!(
+                                    "  ERROR default pattern: category '{}' field '{}' default '{}' does not match '{}'",
+                                    category.id, field.key, value, pattern
+                                );
+                                errors += 1;
+                            }
+                            Err(error) => {
+                                println!(
+                                    "  ERROR string pattern: category '{}' field '{}' has invalid regex '{}': {}",
+                                    category.id, field.key, pattern, error
+                                );
+                                errors += 1;
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    if errors == 0 {
+        println!("  OK default values");
+    }
+
+    errors
+}
+
+fn default_matches_type(field_type: &str, value: &serde_yaml::Value) -> bool {
+    match field_type {
+        "string" | "enum" => value.as_str().is_some(),
+        "integer" => {
+            value.as_i64().is_some()
+                || value.as_u64().is_some()
+                || value
+                    .as_f64()
+                    .is_some_and(|number| (number.fract() - 0.0).abs() < f64::EPSILON)
+        }
+        "float" => value.as_f64().is_some(),
+        "boolean" => value.as_bool().is_some(),
+        "object" => value.as_mapping().is_some(),
+        "array" => value.as_sequence().is_some(),
+        _ => false,
+    }
+}
+
+fn print_summary(errors: usize) {
+    if errors == 0 {
+        println!("\nValidation succeeded. No errors found.");
+    } else {
+        println!("\nValidation failed. {errors} error(s) found.");
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -192,9 +385,9 @@ mod tests {
     use tempfile::NamedTempFile;
 
     fn write_yaml(content: &str) -> NamedTempFile {
-        let mut f = NamedTempFile::new().unwrap();
-        f.write_all(content.as_bytes()).unwrap();
-        f
+        let mut file = NamedTempFile::new().unwrap();
+        file.write_all(content.as_bytes()).unwrap();
+        file
     }
 
     #[test]
@@ -202,20 +395,20 @@ mod tests {
         let yaml = r#"
 version: 1
 service: my-service
-namespace_prefix: service.my_service
+namespace_prefix: service.myservice
 categories:
   - id: general
     label: General
     namespaces:
-      - service.my_service.general
+      - service.myservice.general
     fields:
       - key: flag
         label: Flag
         type: boolean
         default: false
 "#;
-        let f = write_yaml(yaml);
-        let errors = validate_config_schema(f.path().to_str().unwrap()).unwrap();
+        let file = write_yaml(yaml);
+        let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert_eq!(errors, 0);
     }
 
@@ -224,18 +417,39 @@ categories:
         let yaml = r#"
 version: 1
 service: my-service
-namespace_prefix: service.my_service
+namespace_prefix: service.myservice
 categories:
-  - id: db
-    label: Database
+  - id: general
+    label: General
     namespaces:
-      - service.my_service.db
+      - service.myservice.general
     fields:
       - key: max_retry
         label: Max Retry
 "#;
-        let f = write_yaml(yaml);
-        let errors = validate_config_schema(f.path().to_str().unwrap()).unwrap();
+        let file = write_yaml(yaml);
+        let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
+        assert!(errors > 0);
+    }
+
+    #[test]
+    fn test_validate_invalid_service_name_with_json_schema() {
+        let yaml = r#"
+version: 1
+service: MyService
+namespace_prefix: service.myservice
+categories:
+  - id: general
+    label: General
+    namespaces:
+      - service.myservice.general
+    fields:
+      - key: flag
+        label: Flag
+        type: boolean
+"#;
+        let file = write_yaml(yaml);
+        let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
     }
 
@@ -244,7 +458,7 @@ categories:
         let yaml = r#"
 version: 1
 service: my-service
-namespace_prefix: service.my_service
+namespace_prefix: service.myservice
 categories:
   - id: general
     label: General
@@ -255,8 +469,37 @@ categories:
         label: Flag
         type: boolean
 "#;
-        let f = write_yaml(yaml);
-        let errors = validate_config_schema(f.path().to_str().unwrap()).unwrap();
+        let file = write_yaml(yaml);
+        let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
+        assert!(errors > 0);
+    }
+
+    #[test]
+    fn test_validate_duplicate_category_ids() {
+        let yaml = r#"
+version: 1
+service: my-service
+namespace_prefix: service.myservice
+categories:
+  - id: general
+    label: General
+    namespaces:
+      - service.myservice.general
+    fields:
+      - key: flag
+        label: Flag
+        type: boolean
+  - id: general
+    label: General 2
+    namespaces:
+      - service.myservice.general2
+    fields:
+      - key: flag_two
+        label: Flag Two
+        type: boolean
+"#;
+        let file = write_yaml(yaml);
+        let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
     }
 
@@ -265,12 +508,12 @@ categories:
         let yaml = r#"
 version: 1
 service: my-service
-namespace_prefix: service.my_service
+namespace_prefix: service.myservice
 categories:
   - id: general
     label: General
     namespaces:
-      - service.my_service.general
+      - service.myservice.general
     fields:
       - key: flag
         label: Flag 1
@@ -279,8 +522,8 @@ categories:
         label: Flag 2
         type: boolean
 "#;
-        let f = write_yaml(yaml);
-        let errors = validate_config_schema(f.path().to_str().unwrap()).unwrap();
+        let file = write_yaml(yaml);
+        let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
     }
 
@@ -289,19 +532,19 @@ categories:
         let yaml = r#"
 version: 1
 service: my-service
-namespace_prefix: service.my_service
+namespace_prefix: service.myservice
 categories:
   - id: general
     label: General
     namespaces:
-      - service.my_service.general
+      - service.myservice.general
     fields:
       - key: log_level
         label: Log Level
         type: enum
 "#;
-        let f = write_yaml(yaml);
-        let errors = validate_config_schema(f.path().to_str().unwrap()).unwrap();
+        let file = write_yaml(yaml);
+        let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
     }
 
@@ -310,28 +553,27 @@ categories:
         let yaml = r#"
 version: 1
 service: my-service
-namespace_prefix: service.my_service
+namespace_prefix: service.myservice
 categories:
   - id: general
     label: General
     namespaces:
-      - service.my_service.general
+      - service.myservice.general
     fields:
       - key: count
         label: Count
         type: integer
         default: "not_a_number"
 "#;
-        let f = write_yaml(yaml);
-        let errors = validate_config_schema(f.path().to_str().unwrap()).unwrap();
+        let file = write_yaml(yaml);
+        let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
     }
 
     #[test]
     fn test_validate_invalid_yaml() {
-        let yaml = "{{{{ invalid yaml ::::";
-        let f = write_yaml(yaml);
-        let errors = validate_config_schema(f.path().to_str().unwrap()).unwrap();
+        let file = write_yaml("{{{{ invalid yaml ::::");
+        let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
     }
 }

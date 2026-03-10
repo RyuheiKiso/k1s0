@@ -6,8 +6,12 @@ type Page =
   | 'auth'
   | 'init'
   | 'generate'
+  | 'deps'
+  | 'dev'
+  | 'migrate'
   | 'config-types'
   | 'navigation-types'
+  | 'event-codegen'
   | 'validate'
   | 'build'
   | 'test'
@@ -18,12 +22,21 @@ const menuItems: { page: Page; path: string; label: string; shortLabel: string }
   { page: 'auth', path: '/auth', label: 'Authentication', shortLabel: 'AU' },
   { page: 'init', path: '/init', label: 'Init', shortLabel: 'IN' },
   { page: 'generate', path: '/generate', label: 'Generate', shortLabel: 'GN' },
+  { page: 'deps', path: '/deps', label: 'Deps Map', shortLabel: 'DM' },
+  { page: 'dev', path: '/dev', label: 'Local Dev', shortLabel: 'DV' },
+  { page: 'migrate', path: '/migrate', label: 'Migrate', shortLabel: 'MG' },
   { page: 'config-types', path: '/config-types', label: 'Config Types', shortLabel: 'CT' },
   {
     page: 'navigation-types',
     path: '/navigation-types',
     label: 'Navigation Types',
     shortLabel: 'NT',
+  },
+  {
+    page: 'event-codegen',
+    path: '/event-codegen',
+    label: 'Event Codegen',
+    shortLabel: 'EV',
   },
   { page: 'validate', path: '/validate', label: 'Validate', shortLabel: 'VL' },
   { page: 'build', path: '/build', label: 'Build', shortLabel: 'BL' },

@@ -1,14 +1,22 @@
 use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::sync::{Mutex, OnceLock};
 
 use k1s0_core::commands::build::{self as build_cmd, BuildConfig};
 use k1s0_core::commands::deploy::{self as deploy_cmd, DeployConfig};
-use k1s0_core::commands::deps::{self as deps_cmd, DepsConfig, DepsResult};
+use k1s0_core::commands::deps::{
+    self as deps_cmd, output as deps_output, DepsConfig, DepsOutputFormat, DepsResult,
+};
 use k1s0_core::commands::dev::{self as dev_cmd, DevDownConfig, DevUpConfig};
 use k1s0_core::commands::generate::config_types as config_types_cmd;
+use k1s0_core::commands::generate_events as event_codegen_cmd;
 use k1s0_core::commands::generate::navigation as nav_gen_cmd;
 use k1s0_core::commands::generate::{self as gen_cmd, GenerateConfig};
 use k1s0_core::commands::init::{self as init_cmd, InitConfig};
-use k1s0_core::commands::migrate::{self as migrate_cmd, MigrateCreateConfig};
+use k1s0_core::commands::migrate::{
+    self as migrate_cmd, DbConnection, MigrateCreateConfig, MigrateDownConfig, MigrateTarget,
+    MigrateUpConfig, MigrationStatus, RepairOperation,
+};
 use k1s0_core::commands::test_cmd::{self as test_cmd, TestConfig};
 use k1s0_core::commands::validate::config_schema as config_schema_validate;
 use k1s0_core::commands::validate::navigation as nav_validate;
@@ -16,6 +24,7 @@ use k1s0_core::config::CliConfig;
 use k1s0_core::progress::ProgressEvent;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
+use serde_yaml::Value as YamlValue;
 use tauri::ipc::Channel;
 
 const DEFAULT_DISCOVERY_URL: &str =
@@ -23,6 +32,87 @@ const DEFAULT_DISCOVERY_URL: &str =
 const DEFAULT_CLIENT_ID: &str = "k1s0-cli";
 const DEFAULT_SCOPE: &str = "openid profile email";
 const DEVICE_CODE_GRANT: &str = "urn:ietf:params:oauth:grant-type:device_code";
+static WORKSPACE_CWD_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeneratedFileResult {
+    pub path: String,
+    pub preview: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScaffoldDatabaseInfo {
+    pub name: String,
+    pub rdbms: String,
+    pub path: String,
+}
+
+fn workspace_cwd_lock() -> &'static Mutex<()> {
+    WORKSPACE_CWD_LOCK.get_or_init(|| Mutex::new(()))
+}
+
+fn resolve_workspace_root_from_option(base_dir: Option<String>) -> Result<PathBuf, String> {
+    match base_dir {
+        Some(path) => resolve_workspace_root_path(Path::new(&path)),
+        None => std::env::current_dir()
+            .map_err(|error| format!("failed to resolve current directory: {error}"))
+            .and_then(|path| {
+                find_workspace_root(&path)
+                    .ok_or_else(|| "path is not inside a k1s0 workspace".to_string())
+            }),
+    }
+}
+
+fn resolve_workspace_path(workspace_root: &Path, path: &str) -> PathBuf {
+    let candidate = Path::new(path);
+    if candidate.is_absolute() {
+        candidate.to_path_buf()
+    } else {
+        workspace_root.join(candidate)
+    }
+}
+
+fn with_workspace_cwd<T>(
+    base_dir: Option<String>,
+    operation: impl FnOnce(&Path) -> Result<T, String>,
+) -> Result<T, String> {
+    let workspace_root = resolve_workspace_root_from_option(base_dir)?;
+    let _guard = workspace_cwd_lock()
+        .lock()
+        .map_err(|_| "failed to lock workspace current directory".to_string())?;
+    let previous = std::env::current_dir()
+        .map_err(|error| format!("failed to resolve current directory: {error}"))?;
+    std::env::set_current_dir(&workspace_root)
+        .map_err(|error| format!("failed to switch workspace directory: {error}"))?;
+
+    let result = operation(&workspace_root);
+    let restore = std::env::set_current_dir(previous)
+        .map_err(|error| format!("failed to restore current directory: {error}"));
+
+    match (result, restore) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Err(error), Ok(())) => Err(error),
+        (_, Err(error)) => Err(error),
+    }
+}
+
+fn resolve_event_template_dir(workspace_root: &Path) -> Result<PathBuf, String> {
+    let candidates = [
+        workspace_root
+            .join("CLI")
+            .join("crates")
+            .join("k1s0-cli")
+            .join("templates")
+            .join("events"),
+        workspace_root.join("templates").join("events"),
+        event_codegen_cmd::default_template_dir(),
+    ];
+
+    candidates
+        .into_iter()
+        .find(|path| path.exists())
+        .ok_or_else(|| "event codegen templates directory was not found".to_string())
+}
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
@@ -94,6 +184,80 @@ pub fn scan_placements(
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
+pub fn scan_databases(
+    tier: k1s0_core::commands::generate::types::Tier,
+    base_dir: String,
+) -> Vec<ScaffoldDatabaseInfo> {
+    let Ok(workspace_root) = resolve_workspace_root_path(Path::new(&base_dir)) else {
+        return Vec::new();
+    };
+
+    let database_dirs: Vec<PathBuf> = match tier {
+        k1s0_core::commands::generate::types::Tier::System => {
+            vec![workspace_root.join("regions").join("system").join("database")]
+        }
+        k1s0_core::commands::generate::types::Tier::Business => {
+            let root = workspace_root.join("regions").join("business");
+            std::fs::read_dir(root)
+                .ok()
+                .into_iter()
+                .flatten()
+                .flatten()
+                .map(|entry| entry.path().join("database"))
+                .collect()
+        }
+        k1s0_core::commands::generate::types::Tier::Service => {
+            let root = workspace_root.join("regions").join("service");
+            std::fs::read_dir(root)
+                .ok()
+                .into_iter()
+                .flatten()
+                .flatten()
+                .map(|entry| entry.path().join("database"))
+                .collect()
+        }
+    };
+
+    let mut databases = Vec::new();
+    for directory in database_dirs {
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            continue;
+        };
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let database_yaml = path.join("database.yaml");
+            if !database_yaml.is_file() {
+                continue;
+            }
+
+            let Ok(content) = std::fs::read_to_string(&database_yaml) else {
+                continue;
+            };
+            let Ok(parsed) = serde_yaml::from_str::<YamlValue>(&content) else {
+                continue;
+            };
+            let Some(name) = parsed.get("name").and_then(YamlValue::as_str) else {
+                continue;
+            };
+            let Some(rdbms) = parsed.get("rdbms").and_then(YamlValue::as_str) else {
+                continue;
+            };
+
+            databases.push(ScaffoldDatabaseInfo {
+                name: name.to_string(),
+                rdbms: rdbms.to_string(),
+                path: path.to_string_lossy().to_string(),
+            });
+        }
+    }
+
+    databases.sort_by(|left, right| left.name.cmp(&right.name));
+    databases
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn scan_buildable_targets(base_dir: String) -> Vec<String> {
     match resolve_workspace_root_path(Path::new(&base_dir)) {
         Ok(workspace_root) => build_cmd::scan_buildable_targets_at(&workspace_root),
@@ -127,14 +291,22 @@ pub fn validate_name(name: String) -> Result<(), String> {
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn execute_validate_config_schema(path: String) -> Result<usize, String> {
-    config_schema_validate::validate_config_schema(&path).map_err(|error| error.to_string())
+pub fn execute_validate_config_schema(
+    path: String,
+    base_dir: Option<String>,
+) -> Result<usize, String> {
+    let workspace_root = resolve_workspace_root_from_option(base_dir)?;
+    let resolved = resolve_workspace_path(&workspace_root, &path);
+    config_schema_validate::validate_config_schema(&resolved.to_string_lossy())
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn execute_validate_navigation(path: String) -> Result<usize, String> {
-    nav_validate::validate_navigation(&path).map_err(|error| error.to_string())
+pub fn execute_validate_navigation(path: String, base_dir: Option<String>) -> Result<usize, String> {
+    let workspace_root = resolve_workspace_root_from_option(base_dir)?;
+    let resolved = resolve_workspace_path(&workspace_root, &path);
+    nav_validate::validate_navigation(&resolved.to_string_lossy()).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -142,11 +314,14 @@ pub fn execute_validate_navigation(path: String) -> Result<usize, String> {
 pub fn execute_generate_config_types(
     schema_path: String,
     target: String,
+    base_dir: Option<String>,
 ) -> Result<String, String> {
+    let workspace_root = resolve_workspace_root_from_option(base_dir)?;
+    let resolved = resolve_workspace_path(&workspace_root, &schema_path);
     match target.as_str() {
-        "typescript" => config_types_cmd::generate_typescript_types_from_file(&schema_path)
+        "typescript" => config_types_cmd::generate_typescript_types_from_file(&resolved.to_string_lossy())
             .map_err(|error| error.to_string()),
-        "dart" => config_types_cmd::generate_dart_types_from_file(&schema_path)
+        "dart" => config_types_cmd::generate_dart_types_from_file(&resolved.to_string_lossy())
             .map_err(|error| error.to_string()),
         _ => Err(format!("Unknown target: {target}")),
     }
@@ -157,14 +332,77 @@ pub fn execute_generate_config_types(
 pub fn execute_generate_navigation_types(
     nav_path: String,
     target: String,
+    base_dir: Option<String>,
 ) -> Result<String, String> {
+    let workspace_root = resolve_workspace_root_from_option(base_dir)?;
+    let resolved = resolve_workspace_path(&workspace_root, &nav_path);
     match target.as_str() {
-        "typescript" => nav_gen_cmd::generate_typescript_routes_from_file(&nav_path)
+        "typescript" => nav_gen_cmd::generate_typescript_routes_from_file(&resolved.to_string_lossy())
             .map_err(|error| error.to_string()),
-        "dart" => nav_gen_cmd::generate_dart_routes_from_file(&nav_path)
+        "dart" => nav_gen_cmd::generate_dart_routes_from_file(&resolved.to_string_lossy())
             .map_err(|error| error.to_string()),
         _ => Err(format!("Unknown target: {target}")),
     }
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn write_config_types(
+    schema_path: String,
+    output_dir: String,
+    targets: Vec<String>,
+    base_dir: String,
+) -> Result<Vec<GeneratedFileResult>, String> {
+    let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
+    let resolved_schema = resolve_workspace_path(&workspace_root, &schema_path);
+    let resolved_output_dir = resolve_workspace_path(&workspace_root, &output_dir);
+    let target_refs: Vec<&str> = targets.iter().map(String::as_str).collect();
+    let written = config_types_cmd::write_generated_types_from_file(
+        &resolved_schema,
+        &resolved_output_dir,
+        &target_refs,
+    )
+    .map_err(|error| error.to_string())?;
+
+    let mut files = Vec::new();
+    for path in written {
+        let preview = std::fs::read_to_string(&path).map_err(|error| error.to_string())?;
+        files.push(GeneratedFileResult {
+            path: path.to_string_lossy().to_string(),
+            preview,
+        });
+    }
+    Ok(files)
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn write_navigation_types(
+    nav_path: String,
+    output_dir: String,
+    targets: Vec<String>,
+    base_dir: String,
+) -> Result<Vec<GeneratedFileResult>, String> {
+    let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
+    let resolved_nav = resolve_workspace_path(&workspace_root, &nav_path);
+    let resolved_output_dir = resolve_workspace_path(&workspace_root, &output_dir);
+    let target_refs: Vec<&str> = targets.iter().map(String::as_str).collect();
+    let written = nav_gen_cmd::write_generated_routes_from_file(
+        &resolved_nav,
+        &resolved_output_dir,
+        &target_refs,
+    )
+    .map_err(|error| error.to_string())?;
+
+    let mut files = Vec::new();
+    for path in written {
+        let preview = std::fs::read_to_string(&path).map_err(|error| error.to_string())?;
+        files.push(GeneratedFileResult {
+            path: path.to_string_lossy().to_string(),
+            preview,
+        });
+    }
+    Ok(files)
 }
 
 #[tauri::command]
@@ -235,8 +473,25 @@ pub fn resolve_workspace_root(path: String) -> Result<String, String> {
 // deps
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn execute_deps(config: DepsConfig) -> Result<DepsResult, String> {
-    deps_cmd::execute_deps(&config).map_err(|error| error.to_string())
+pub fn execute_deps(config: DepsConfig, base_dir: Option<String>) -> Result<DepsResult, String> {
+    let workspace_root = resolve_workspace_root_from_option(base_dir)?;
+    let result =
+        deps_cmd::execute_deps_at(&workspace_root, &config).map_err(|error| error.to_string())?;
+
+    match &config.output {
+        DepsOutputFormat::Mermaid(path) | DepsOutputFormat::Both(path) => {
+            let output_path = if path.is_absolute() {
+                path.clone()
+            } else {
+                workspace_root.join(path)
+            };
+            deps_output::write_mermaid(&result, &output_path)
+                .map_err(|error| error.to_string())?;
+        }
+        DepsOutputFormat::Terminal => {}
+    }
+
+    Ok(result)
 }
 
 #[tauri::command]
@@ -251,19 +506,74 @@ pub fn scan_services(base_dir: String) -> Vec<deps_cmd::ServiceInfo> {
 // dev
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn execute_dev_up(config: DevUpConfig) -> Result<(), String> {
-    dev_cmd::execute_dev_up(&config).map_err(|error| error.to_string())
+pub fn execute_dev_up(config: DevUpConfig, base_dir: Option<String>) -> Result<(), String> {
+    with_workspace_cwd(base_dir, |_| dev_cmd::execute_dev_up(&config).map_err(|error| error.to_string()))
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn execute_dev_down(config: DevDownConfig) -> Result<(), String> {
-    dev_cmd::execute_dev_down(&config).map_err(|error| error.to_string())
+pub fn execute_dev_down(config: DevDownConfig, base_dir: Option<String>) -> Result<(), String> {
+    with_workspace_cwd(base_dir, |_| dev_cmd::execute_dev_down(&config).map_err(|error| error.to_string()))
 }
 
 #[tauri::command]
-pub fn execute_dev_status() -> Result<(), String> {
-    dev_cmd::execute_dev_status().map_err(|error| error.to_string())
+pub fn execute_dev_status(base_dir: Option<String>) -> Result<String, String> {
+    with_workspace_cwd(base_dir, |_| {
+        let compose_dir = Path::new(".k1s0-dev");
+        if !compose_dir.join("docker-compose.yaml").exists() {
+            return Ok("ローカル開発環境は起動していません。".to_string());
+        }
+
+        let mut output = String::new();
+        if let Some(state) = dev_cmd::state::load_state() {
+            output.push_str("--- ローカル開発環境の状態 ---\n");
+            output.push_str(&format!("起動日時: {}\n", state.started_at));
+            output.push_str(&format!("認証モード: {}\n", state.auth_mode));
+            output.push_str("対象サービス:\n");
+            for service in state.services {
+                output.push_str(&format!("- {service}\n"));
+            }
+        }
+
+        let compose_status = dev_cmd::docker::compose_status(compose_dir)
+            .map_err(|error| error.to_string())?;
+        output.push_str("\n--- コンテナの状態 ---\n");
+        output.push_str(&compose_status);
+
+        Ok(output)
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_dev_logs(service: Option<String>, base_dir: Option<String>) -> Result<String, String> {
+    with_workspace_cwd(base_dir, |_| {
+        let compose_dir = Path::new(".k1s0-dev");
+        if !compose_dir.join("docker-compose.yaml").exists() {
+            return Ok("ローカル開発環境は起動していません。".to_string());
+        }
+
+        let mut args = vec![
+            "compose".to_string(),
+            "logs".to_string(),
+            "--tail".to_string(),
+            "200".to_string(),
+        ];
+        if let Some(service_name) = service {
+            args.push(service_name);
+        }
+
+        let output = Command::new("docker")
+            .args(args.iter().map(String::as_str))
+            .current_dir(compose_dir)
+            .output()
+            .map_err(|error| error.to_string())?;
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+        }
+
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    })
 }
 
 #[tauri::command]
@@ -291,11 +601,92 @@ pub fn execute_migrate_create(config: MigrateCreateConfig) -> Result<(String, St
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
+pub fn execute_migrate_up(
+    config: MigrateUpConfig,
+    base_dir: Option<String>,
+) -> Result<(), String> {
+    with_workspace_cwd(base_dir, |_| {
+        migrate_cmd::execute_migrate_up(&config).map_err(|error| error.to_string())
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_migrate_down(
+    config: MigrateDownConfig,
+    base_dir: Option<String>,
+) -> Result<(), String> {
+    with_workspace_cwd(base_dir, |_| {
+        migrate_cmd::execute_migrate_down(&config).map_err(|error| error.to_string())
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_migrate_status(
+    target: MigrateTarget,
+    connection: DbConnection,
+    base_dir: Option<String>,
+) -> Result<Vec<MigrationStatus>, String> {
+    with_workspace_cwd(base_dir, |_| {
+        migrate_cmd::get_migration_status(&target, &connection).map_err(|error| error.to_string())
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_migrate_repair(
+    target: MigrateTarget,
+    operation: RepairOperation,
+    connection: DbConnection,
+    base_dir: Option<String>,
+) -> Result<(), String> {
+    with_workspace_cwd(base_dir, |_| {
+        migrate_cmd::execute_repair(&target, &operation, &connection)
+            .map_err(|error| error.to_string())
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn scan_migrate_targets(base_dir: String) -> Vec<migrate_cmd::MigrateTarget> {
     match resolve_workspace_root_path(Path::new(&base_dir)) {
         Ok(workspace_root) => migrate_cmd::scan_migrate_targets(&workspace_root),
         Err(_) => Vec::new(),
     }
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn preview_event_codegen(events_path: String, base_dir: Option<String>) -> Result<String, String> {
+    let workspace_root = resolve_workspace_root_from_option(base_dir)?;
+    let resolved = resolve_workspace_path(&workspace_root, &events_path);
+    let config =
+        event_codegen_cmd::parse_events_yaml(&resolved.to_string_lossy()).map_err(|error| error.to_string())?;
+    Ok(event_codegen_cmd::format_generation_summary(&config))
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_event_codegen(
+    events_path: String,
+    base_dir: Option<String>,
+) -> Result<Vec<String>, String> {
+    let workspace_root = resolve_workspace_root_from_option(base_dir)?;
+    let resolved = resolve_workspace_path(&workspace_root, &events_path);
+    let config =
+        event_codegen_cmd::parse_events_yaml(&resolved.to_string_lossy()).map_err(|error| error.to_string())?;
+    let template_dir = resolve_event_template_dir(&workspace_root)?;
+    let output_dir = resolved
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| workspace_root.clone());
+    let generated = event_codegen_cmd::execute_event_codegen(&config, &output_dir, &template_dir)
+        .map_err(|error| error.to_string())?;
+    Ok(generated
+        .into_iter()
+        .map(|path| path.to_string_lossy().to_string())
+        .collect())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

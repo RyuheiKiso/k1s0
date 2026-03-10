@@ -2,38 +2,41 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import axios from 'axios';
 import { ConfigEditorPage } from './ConfigEditorPage';
+import type { ConfigEditorSchema, ServiceConfigResultResponse } from './types';
 
-const mockSchema = {
+const mockSchema: ConfigEditorSchema = {
   service: 'test-service',
   namespace_prefix: 'test',
   categories: [
     {
       id: 'general',
-      label: '一般設定',
+      label: 'General',
       namespaces: ['test.general'],
       fields: [
-        { key: 'timeout', label: 'タイムアウト', type: 'integer', min: 1, max: 300, default: 30, unit: '秒' },
-        { key: 'enabled', label: '有効', type: 'boolean', default: false },
+        { key: 'timeout', label: 'Timeout', type: 'integer', min: 1, max: 300, default: 30, unit: 'sec' },
+        { key: 'enabled', label: 'Enabled', type: 'boolean', default: false },
       ],
     },
     {
       id: 'advanced',
-      label: '詳細設定',
+      label: 'Advanced',
       namespaces: ['test.advanced'],
       fields: [
-        { key: 'log_level', label: 'ログレベル', type: 'enum', options: ['debug', 'info', 'warn', 'error'], default: 'info' },
+        { key: 'log_level', label: 'Log Level', type: 'enum', options: ['debug', 'info', 'warn', 'error'], default: 'info' },
       ],
     },
   ],
 };
 
-const mockValues = [
-  { namespace: 'test.general', key: 'timeout', value: 60 },
-  { namespace: 'test.general', key: 'enabled', value: true },
-  { namespace: 'test.advanced', key: 'log_level', value: 'warn' },
-];
+const mockValues: ServiceConfigResultResponse = {
+  service_name: 'test-service',
+  entries: [
+    { namespace: 'test.general', key: 'timeout', value: 60, version: 2 },
+    { namespace: 'test.general', key: 'enabled', value: true, version: 4 },
+    { namespace: 'test.advanced', key: 'log_level', value: 'warn', version: 6 },
+  ],
+};
 
 const server = setupServer(
   http.get('http://localhost/api/v1/config-schema/:service', () => {
@@ -42,8 +45,14 @@ const server = setupServer(
   http.get('http://localhost/api/v1/config/services/:service', () => {
     return HttpResponse.json(mockValues);
   }),
-  http.put('http://localhost/api/v1/config/:namespace/:key', () => {
-    return HttpResponse.json({ ok: true });
+  http.put('http://localhost/api/v1/config/:namespace/:key', async ({ params, request }) => {
+    const body = await request.json() as { value: unknown; version: number };
+    return HttpResponse.json({
+      namespace: decodeURIComponent(String(params.namespace)),
+      key: decodeURIComponent(String(params.key)),
+      value: body.value,
+      version: body.version + 1,
+    });
   }),
 );
 
@@ -51,46 +60,44 @@ beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-const client = axios.create({ baseURL: 'http://localhost' });
-
 describe('ConfigEditorPage', () => {
-  it('カテゴリとフィールドをレンダリングする', async () => {
-    render(<ConfigEditorPage serviceName="test-service" client={client} />);
+  it('renders categories and fields using only serviceName plus apiBaseURL', async () => {
+    render(<ConfigEditorPage serviceName="test-service" apiBaseURL="http://localhost" />);
 
     await waitFor(() => {
-      expect(screen.getByText('test-service 設定')).toBeInTheDocument();
+      expect(screen.getByText('test-service Config')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('一般設定')).toBeInTheDocument();
-    expect(screen.getByText('詳細設定')).toBeInTheDocument();
+    expect(screen.getByText('General')).toBeInTheDocument();
+    expect(screen.getByText('Advanced')).toBeInTheDocument();
+    expect(screen.getByLabelText('Timeout')).toBeInTheDocument();
   });
 
-  it('カテゴリ切り替えでフィールドが変わる', async () => {
-    render(<ConfigEditorPage serviceName="test-service" client={client} />);
+  it('switches category content when another category is selected', async () => {
+    render(<ConfigEditorPage serviceName="test-service" apiBaseURL="http://localhost" />);
 
     await waitFor(() => {
-      expect(screen.getByText('一般設定')).toBeInTheDocument();
+      expect(screen.getByText('General')).toBeInTheDocument();
     });
 
-    // 最初は一般設定がアクティブ
-    expect(screen.getByLabelText('タイムアウト')).toBeInTheDocument();
+    expect(screen.getByLabelText('Timeout')).toBeInTheDocument();
 
-    // 詳細設定に切り替え
-    fireEvent.click(screen.getByText('詳細設定'));
+    fireEvent.click(screen.getByText('Advanced'));
 
     await waitFor(() => {
-      expect(screen.getByLabelText('ログレベル')).toBeInTheDocument();
+      expect(screen.getByLabelText('Log Level')).toBeInTheDocument();
     });
   });
 
-  it('保存ボタンは初期状態で無効', async () => {
-    render(<ConfigEditorPage serviceName="test-service" client={client} />);
+  it('keeps Save and Discard disabled before any edits', async () => {
+    render(<ConfigEditorPage serviceName="test-service" apiBaseURL="http://localhost" />);
 
     await waitFor(() => {
-      expect(screen.getByText('保存')).toBeInTheDocument();
+      expect(screen.getByText('Save')).toBeInTheDocument();
+      expect(screen.getByText('Discard')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('保存')).toBeDisabled();
-    expect(screen.getByText('破棄')).toBeDisabled();
+    expect(screen.getByText('Save')).toBeDisabled();
+    expect(screen.getByText('Discard')).toBeDisabled();
   });
 });

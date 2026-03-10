@@ -1,6 +1,6 @@
-# Promtail DaemonSet for demo environment.
-# Collects Pod logs and ships to Loki.
-# Based on infra/observability/loki/promtail-config.yaml
+# Promtail DaemonSet for the demo environment.
+# The demo targets a fixed set of pod log paths, so filesystem scraping is
+# more reliable than Kubernetes SD on a single-node kind cluster.
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -19,22 +19,66 @@ data:
       - url: http://loki.observability.svc.cluster.local:3100/loki/api/v1/push
 
     scrape_configs:
-      - job_name: kubernetes-pods
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_namespace]
-            regex: k1s0-(system|business|service)|observability|istio-system
-            action: keep
-          - source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            target_label: app
-          - source_labels: [__meta_kubernetes_pod_label_tier]
-            target_label: tier
-          - source_labels: [__meta_kubernetes_pod_label_version]
-            target_label: version
+      - job_name: demo-pod-logs
+        static_configs:
+          - targets: [localhost]
+            labels:
+              namespace: k1s0-system
+              app: auth-server
+              tier: system
+              version: stable
+              __path__: /var/log/pods/k1s0-system_auth-server-*/stub/*.log
+          - targets: [localhost]
+            labels:
+              namespace: k1s0-system
+              app: config-server
+              tier: system
+              version: stable
+              __path__: /var/log/pods/k1s0-system_config-server-*/stub/*.log
+          - targets: [localhost]
+            labels:
+              namespace: k1s0-system
+              app: graphql-gateway
+              tier: system
+              version: stable
+              __path__: /var/log/pods/k1s0-system_graphql-gateway-*/stub/*.log
+          - targets: [localhost]
+            labels:
+              namespace: k1s0-system
+              app: saga-server
+              tier: system
+              version: stable
+              __path__: /var/log/pods/k1s0-system_saga-server-*/stub/*.log
+          - targets: [localhost]
+            labels:
+              namespace: k1s0-business
+              app: accounting-server
+              tier: business
+              version: stable
+              __path__: /var/log/pods/k1s0-business_accounting-server-*/stub/*.log
+          - targets: [localhost]
+            labels:
+              namespace: k1s0-service
+              app: order-bff
+              tier: service
+              version: stable
+              __path__: /var/log/pods/k1s0-service_order-bff-*/stub/*.log
+          - targets: [localhost]
+            labels:
+              namespace: k1s0-service
+              app: order-server
+              tier: service
+              version: stable
+              __path__: /var/log/pods/k1s0-service_order-server-*/stub/*.log
+          - targets: [localhost]
+            labels:
+              namespace: k1s0-service
+              app: order-server
+              tier: service
+              version: canary
+              __path__: /var/log/pods/k1s0-service_order-server-canary-*/stub/*.log
         pipeline_stages:
+          - cri: {}
           - json:
               expressions:
                 level: level
@@ -70,9 +114,6 @@ spec:
             - name: varlog
               mountPath: /var/log
               readOnly: true
-            - name: containers
-              mountPath: /var/lib/docker/containers
-              readOnly: true
           resources:
             requests:
               cpu: 25m
@@ -87,6 +128,3 @@ spec:
         - name: varlog
           hostPath:
             path: /var/log
-        - name: containers
-          hostPath:
-            path: /var/lib/docker/containers

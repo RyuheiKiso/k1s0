@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'store.dart';
-import 'message.dart';
 
 /// アウトボックスメッセージを定期的に処理する。
 class OutboxProcessor {

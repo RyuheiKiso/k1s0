@@ -1,13 +1,13 @@
-# Fault injection: 503 error on 5% of requests
-# Based on infra/istio/fault-injection/abort.yaml
+# Fault injection: 503 error on 5% of requests plus 500ms delay on 10%.
+# Retries are intentionally omitted here so the failure is visible in Kiali.
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: order-server-fault
+  name: order-server
   namespace: k1s0-service
 spec:
   hosts:
-    - order-server
+    - order-server.k1s0-service.svc.cluster.local
   http:
     - fault:
         abort:
@@ -20,4 +20,6 @@ spec:
           fixedDelay: 500ms
       route:
         - destination:
-            host: order-server
+            host: order-server.k1s0-service.svc.cluster.local
+            subset: stable
+      timeout: 10s

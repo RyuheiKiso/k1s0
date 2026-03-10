@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { executeValidateConfigSchema, executeValidateNavigation } from '../lib/tauri-commands';
+import { useWorkspace } from '../lib/workspace';
 
 type ValidateTarget = 'config-schema' | 'navigation';
 
 export default function ValidatePage() {
+  const workspace = useWorkspace();
+  const activeWorkspaceRoot = workspace.workspaceRoot || '.';
+  const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
+
   const [validateTarget, setValidateTarget] = useState<ValidateTarget>('config-schema');
   const [filePath, setFilePath] = useState('config/config-schema.yaml');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -26,8 +31,8 @@ export default function ValidatePage() {
     try {
       const count =
         validateTarget === 'config-schema'
-          ? await executeValidateConfigSchema(filePath)
-          : await executeValidateNavigation(filePath);
+          ? await executeValidateConfigSchema(filePath, activeWorkspaceRoot)
+          : await executeValidateNavigation(filePath, activeWorkspaceRoot);
       setErrorCount(count);
       setStatus('success');
     } catch (error) {
@@ -41,8 +46,15 @@ export default function ValidatePage() {
       <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Quality</p>
       <h1 className="mt-2 text-3xl font-semibold text-white">Validate contracts</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Validate configuration and navigation files before moving into build, test, or deploy.
+        Validate configuration and navigation files against the selected workspace root before
+        build, test, or deploy.
       </p>
+
+      {workspaceUnavailable && (
+        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+          Configure a valid workspace root before running validation.
+        </p>
+      )}
 
       <div className="mt-6 space-y-5">
         <fieldset className="space-y-2">
@@ -83,7 +95,7 @@ export default function ValidatePage() {
           onClick={() => {
             void handleValidate();
           }}
-          disabled={status === 'loading' || !filePath}
+          disabled={status === 'loading' || !filePath || workspaceUnavailable}
           className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
           data-testid="btn-validate"
         >
@@ -91,12 +103,15 @@ export default function ValidatePage() {
         </button>
 
         {status === 'success' && (
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4" data-testid="validate-result">
+          <div
+            className="rounded-2xl border border-white/10 bg-white/5 p-4"
+            data-testid="validate-result"
+          >
             {errorCount === 0 ? (
               <p className="text-sm text-emerald-300">Validation completed with no errors.</p>
             ) : (
               <p className="text-sm text-rose-300">
-                Validation found {errorCount} error(s). Review the console output for details.
+                Validation found {errorCount} error(s). Review the backend output for details.
               </p>
             )}
           </div>

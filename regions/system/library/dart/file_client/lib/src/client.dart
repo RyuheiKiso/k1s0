@@ -148,7 +148,7 @@ class ServerFileClient implements FileClient {
 
   static String _normalizeUrl(String? url) {
     if (url == null || url.isEmpty) {
-      throw FileClientError('serverUrl が設定されていません', 'INVALID_CONFIG');
+      throw const FileClientError('serverUrl が設定されていません', 'INVALID_CONFIG');
     }
     return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
   }

@@ -54,7 +54,8 @@ infra/terraform/
     ├── consul-backup/           # Consul State バックアップ CronJob
     ├── harbor/                  # Harbor プロジェクト設定
     ├── keycloak/                # Keycloak Realm プロビジョニング
-    └── service-mesh/            # Istio 設定
+    ├── service-mesh/            # Istio 設定
+    └── ceph/                    # Ceph RGW バケット設定（アプリ配布用 S3 バケット等）
 ```
 
 ### 環境への統合方針

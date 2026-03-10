@@ -31,10 +31,13 @@ export interface ConfigEditorSchema {
 }
 
 export interface ConfigFieldValue {
+  id: string;
   key: string;
   namespace: string;
   value: unknown;
   originalValue: unknown;
+  version: number;
+  originalVersion: number;
   isDirty: boolean;
   hasError?: string;
 }
@@ -45,4 +48,16 @@ export interface ConfigEditorConfig {
     fieldValues: Record<string, ConfigFieldValue>;
   }>;
   dirtyCount: number;
+}
+
+export interface ServiceConfigEntryResponse {
+  namespace: string;
+  key: string;
+  value: unknown;
+  version: number;
+}
+
+export interface ServiceConfigResultResponse {
+  service_name: string;
+  entries: ServiceConfigEntryResponse[];
 }

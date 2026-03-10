@@ -16,6 +16,27 @@ const quickActions = [
     description: 'Create services, clients, libraries, or database layers from the GUI flow.',
   },
   {
+    id: 'deps',
+    to: '/deps',
+    eyebrow: 'Architecture',
+    title: 'Inspect dependency boundaries',
+    description: 'Run the dependency map flow and export Mermaid output from the workspace.',
+  },
+  {
+    id: 'dev',
+    to: '/dev',
+    eyebrow: 'Operations',
+    title: 'Control local development',
+    description: 'Start dependencies, inspect state, and collect container logs without leaving the GUI.',
+  },
+  {
+    id: 'migrate',
+    to: '/migrate',
+    eyebrow: 'Database',
+    title: 'Manage migrations',
+    description: 'Create, apply, roll back, and repair migration state for detected services.',
+  },
+  {
     id: 'config-types',
     to: '/config-types',
     eyebrow: 'Types',
@@ -28,6 +49,13 @@ const quickActions = [
     eyebrow: 'Types',
     title: 'Review navigation contracts',
     description: 'Keep navigation definitions aligned with the generated application structure.',
+  },
+  {
+    id: 'event-codegen',
+    to: '/event-codegen',
+    eyebrow: 'Events',
+    title: 'Generate event assets',
+    description: 'Preview and generate proto, producer, consumer, and outbox files from events.yaml.',
   },
   {
     id: 'validate',

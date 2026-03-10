@@ -69,7 +69,14 @@ infra/helm/
     │   │   ├── values-staging.yaml
     │   │   ├── values-prod.yaml
     │   │   └── templates/
-    │   └── kong/                    # Kong API Gateway
+    │   ├── kong/                    # Kong API Gateway
+    │   │   ├── Chart.yaml
+    │   │   ├── values.yaml
+    │   │   ├── values-dev.yaml
+    │   │   ├── values-staging.yaml
+    │   │   ├── values-prod.yaml
+    │   │   └── templates/
+    │   └── app-registry/            # アプリ配布メタデータ管理（Rust, HTTP）
     │       ├── Chart.yaml
     │       ├── values.yaml
     │       ├── values-dev.yaml
@@ -97,7 +104,7 @@ infra/helm/
 
 ## System Tier Chart 一覧
 
-system tier には以下の 7 つの Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: system` を設定する。
+system tier には以下の 8 つの Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: system` を設定する。
 
 | Chart | 説明 | 言語 | gRPC | Kafka | Redis | Vault secrets |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -108,6 +115,7 @@ system tier には以下の 7 つの Chart が存在する。全て `k1s0-common
 | bff-proxy | BFF プロキシ（OIDC 認証、セッション管理、リバースプロキシ） | Go | - | - | 有効 | OIDC client secret, Redis パスワード |
 | graphql-gateway | GraphQL Gateway（フェデレーション、クエリルーティング） | Rust | - | - | - | JWKS 署名鍵 |
 | kong | API Gateway（DB-backed PostgreSQL モード） | - | - | - | - | DB パスワード（SecretKeyRef） |
+| app-registry | アプリバイナリメタデータ管理・Presigned URL 生成（[アプリ配布基盤設計](../distribution/アプリ配布基盤設計.md)） | Rust | - | - | - | DB パスワード, Ceph RGW クレデンシャル |
 
 ### 実ファイル配置
 
@@ -122,6 +130,7 @@ system tier には以下の 7 つの Chart が存在する。全て `k1s0-common
 | bff-proxy | `infra/helm/services/system/bff-proxy/Chart.yaml` | `infra/helm/services/system/bff-proxy/values.yaml` |
 | graphql-gateway | `infra/helm/services/system/graphql-gateway/Chart.yaml` | `infra/helm/services/system/graphql-gateway/values.yaml` |
 | kong | `infra/helm/services/system/kong/Chart.yaml` | `infra/helm/services/system/kong/values.yaml` |
+| app-registry | `infra/helm/services/system/app-registry/Chart.yaml` | `infra/helm/services/system/app-registry/values.yaml` |
 
 全 Chart は `k1s0-common` Library Chart に依存し、`appVersion: "0.1.0"`（kong は `"3.8.0"`）。
 

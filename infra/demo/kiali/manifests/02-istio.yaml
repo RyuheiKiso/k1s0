@@ -109,7 +109,7 @@ metadata:
   name: auth-server
   namespace: k1s0-system
 spec:
-  host: auth-server
+  host: auth-server.k1s0-system.svc.cluster.local
   trafficPolicy:
     connectionPool:
       tcp:
@@ -131,7 +131,7 @@ metadata:
   name: order-server
   namespace: k1s0-service
 spec:
-  host: order-server
+  host: order-server.k1s0-service.svc.cluster.local
   trafficPolicy:
     connectionPool:
       tcp:

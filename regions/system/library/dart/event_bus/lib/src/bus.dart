@@ -160,7 +160,7 @@ class EventBus {
 /// Internal wrapper for identity-based handler removal.
 class _HandlerEntry {
   final EventHandler<DomainEvent> handler;
-  _HandlerEntry(EventHandler handler) : handler = handler as EventHandler<DomainEvent>;
+  _HandlerEntry(EventHandler handler) : handler = handler;
 }
 
 // ---------- Legacy InMemoryEventBus (backward compat) ----------

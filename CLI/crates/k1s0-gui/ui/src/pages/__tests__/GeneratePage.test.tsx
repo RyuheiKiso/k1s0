@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
 import GeneratePage from '../GeneratePage';
@@ -17,21 +17,31 @@ beforeEach(() => {
   });
 });
 
+async function renderGeneratePage() {
+  render(<GeneratePage />);
+  await waitFor(() => {
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'scan_databases',
+      expect.objectContaining({ tier: 'System', baseDir: '.' }),
+    );
+  });
+}
+
 describe('GeneratePage', () => {
-  it('renders the stepper', () => {
-    render(<GeneratePage />);
+  it('renders the stepper', async () => {
+    await renderGeneratePage();
     expect(screen.getByTestId('generate-page')).toBeInTheDocument();
     expect(screen.getByTestId('stepper')).toBeInTheDocument();
   });
 
-  it('starts at the kind step', () => {
-    render(<GeneratePage />);
+  it('starts at the kind step', async () => {
+    await renderGeneratePage();
     expect(screen.getByTestId('step-kind')).toBeInTheDocument();
   });
 
   it('navigates to the tier step on next', async () => {
     const user = userEvent.setup();
-    render(<GeneratePage />);
+    await renderGeneratePage();
 
     await user.click(screen.getByTestId('btn-next'));
 
@@ -40,7 +50,7 @@ describe('GeneratePage', () => {
 
   it('navigates through server system flow and skips placement', async () => {
     const user = userEvent.setup();
-    render(<GeneratePage />);
+    await renderGeneratePage();
 
     await user.click(screen.getByTestId('btn-next'));
     expect(screen.getByTestId('step-tier')).toBeInTheDocument();
@@ -57,7 +67,7 @@ describe('GeneratePage', () => {
 
   it('calls executeGenerateAt on confirm', async () => {
     const user = userEvent.setup();
-    render(<GeneratePage />);
+    await renderGeneratePage();
 
     await user.click(screen.getByTestId('btn-next'));
     await user.click(screen.getByTestId('btn-next'));
@@ -71,7 +81,7 @@ describe('GeneratePage', () => {
 
   it('shows the placement step for Business tier', async () => {
     const user = userEvent.setup();
-    render(<GeneratePage />);
+    await renderGeneratePage();
 
     await user.click(screen.getByText('Client'));
     await user.click(screen.getByTestId('btn-next'));
@@ -83,7 +93,7 @@ describe('GeneratePage', () => {
 
   it('skips detail for Database kind', async () => {
     const user = userEvent.setup();
-    render(<GeneratePage />);
+    await renderGeneratePage();
 
     await user.click(screen.getByText('Database'));
     await user.click(screen.getByTestId('btn-next'));
@@ -95,7 +105,7 @@ describe('GeneratePage', () => {
 
   it('skips detail for Client plus Service tier', async () => {
     const user = userEvent.setup();
-    render(<GeneratePage />);
+    await renderGeneratePage();
 
     await user.click(screen.getByText('Client'));
     await user.click(screen.getByTestId('btn-next'));
@@ -110,7 +120,7 @@ describe('GeneratePage', () => {
 
   it('shows only Go and Rust for Server kind', async () => {
     const user = userEvent.setup();
-    render(<GeneratePage />);
+    await renderGeneratePage();
 
     await user.click(screen.getByTestId('btn-next'));
     await user.click(screen.getByTestId('btn-next'));

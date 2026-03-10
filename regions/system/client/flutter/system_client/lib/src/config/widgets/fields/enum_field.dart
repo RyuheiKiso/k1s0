@@ -7,12 +7,14 @@ class EnumField extends StatelessWidget {
     super.key,
     required this.schema,
     required this.value,
+    required this.errorText,
     required this.onChanged,
   });
 
   final ConfigFieldSchema schema;
   final dynamic value;
-  final ValueChanged<dynamic> onChanged;
+  final String? errorText;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +27,15 @@ class EnumField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: schema.label,
         helperText: schema.description,
+        errorText: errorText,
       ),
       items: options
-          .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+          .map((option) => DropdownMenuItem(value: option, child: Text(option)))
           .toList(),
-      onChanged: (v) {
-        if (v != null) onChanged(v);
+      onChanged: (value) {
+        if (value != null) {
+          onChanged(value);
+        }
       },
     );
   }

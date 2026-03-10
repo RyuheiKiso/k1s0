@@ -7,17 +7,21 @@ class IntegerField extends StatelessWidget {
     super.key,
     required this.schema,
     required this.value,
+    required this.errorText,
+    required this.onValidationChanged,
     required this.onChanged,
   });
 
   final ConfigFieldSchema schema;
   final dynamic value;
-  final ValueChanged<dynamic> onChanged;
+  final String? errorText;
+  final ValueChanged<String?> onValidationChanged;
+  final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final currentValue =
-        value is num ? value as num : (schema.defaultValue as num?) ?? 0;
+        value is int ? value as int : (schema.defaultValue as int?) ?? 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,22 +33,16 @@ class IntegerField extends StatelessWidget {
             labelText: schema.label,
             helperText: schema.description,
             suffixText: schema.unit,
+            errorText: errorText,
           ),
-          validator: (v) {
-            if (v == null || v.isEmpty) return null;
-            final n = int.tryParse(v);
-            if (n == null) return '整数を入力してください';
-            if (schema.min != null && n < schema.min!) {
-              return '${schema.min} 以上の値を入力してください';
+          onChanged: (raw) {
+            final parsed = int.tryParse(raw);
+            if (parsed != null) {
+              onValidationChanged(null);
+              onChanged(parsed);
+              return;
             }
-            if (schema.max != null && n > schema.max!) {
-              return '${schema.max} 以下の値を入力してください';
-            }
-            return null;
-          },
-          onChanged: (v) {
-            final n = int.tryParse(v);
-            if (n != null) onChanged(n);
+            onValidationChanged('Enter an integer');
           },
         ),
         if (schema.min != null && schema.max != null)
@@ -57,7 +55,7 @@ class IntegerField extends StatelessWidget {
             max: schema.max!.toDouble(),
             divisions: (schema.max! - schema.min!).toInt(),
             label: currentValue.toString(),
-            onChanged: (v) => onChanged(v.round()),
+            onChanged: (value) => onChanged(value.round()),
           ),
       ],
     );

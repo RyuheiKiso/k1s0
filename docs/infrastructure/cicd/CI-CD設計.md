@@ -36,6 +36,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | saga Deploy       | `saga-deploy.yaml` | main マージ時 (`regions/system/server/rust/saga/**`) | saga-server 専用デプロイ（dev→staging→prod）|
 | dlq-manager Deploy | `dlq-manager-deploy.yaml` | main マージ時 (`regions/system/server/rust/dlq-manager/**`) | dlq-manager 専用デプロイ（dev→staging→prod）|
 | bff-proxy Deploy  | `bff-proxy-deploy.yaml` | main マージ時 (`regions/system/server/go/bff-proxy/**`) | bff-proxy 専用デプロイ（dev→staging→prod）|
+| App Publish       | `publish-app.yaml` | Git タグ push (`v*`) + `regions/**/flutter/**` 変更 | Flutter デスクトップアプリのクロスプラットフォームビルド・署名・Ceph RGW へのアップロード・App Registry へのメタデータ登録（[アプリ配布基盤設計](../distribution/アプリ配布基盤設計.md) 参照）|
 
 ### CI ワークフロー（ci.yaml）
 
@@ -736,3 +737,4 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 - [APIゲートウェイ設計.md](../../architecture/api/APIゲートウェイ設計.md) — Kong 構成管理
 - [メッセージング設計.md](../../architecture/messaging/メッセージング設計.md) — Kafka・Proto スキーマ CI
 - [コーディング規約.md](../../architecture/conventions/コーディング規約.md) — Linter・Formatter・命名規則
+- [アプリ配布基盤設計.md](../distribution/アプリ配布基盤設計.md) — デスクトップアプリ配布パイプライン

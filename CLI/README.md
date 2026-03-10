@@ -77,7 +77,7 @@ cargo tauri build
 cd CLI/crates/k1s0-gui/ui
 
 npm run build    # TypeScript コンパイル + Vite バンドル
-npm run dev      # Vite 開発サーバー (http://localhost:5173)
+npm run dev      # Vite 開発サーバー (http://localhost:1420)
 ```
 
 ### ワークスペース全体のビルド
@@ -185,7 +185,7 @@ cargo tauri dev
 ```
 
 `cargo tauri dev` は以下を同時実行する:
-- Vite 開発サーバー (ポート 5173) — フロントエンドのホットリロード
+- Vite 開発サーバー (ポート 1420) — フロントエンドのホットリロード
 - Rust バックエンドのビルド・起動 — ソース変更時に自動リビルド
 
 **フロントエンド（React）のデバッグ**

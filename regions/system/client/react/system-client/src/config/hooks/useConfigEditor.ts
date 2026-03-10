@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AxiosInstance } from 'axios';
 import type { ConfigEditorConfig } from '../types';
 import { ConfigInterpreter } from '../ConfigInterpreter';
+import { cloneConfig, updateDirtyField, validateFieldValue } from '../utils';
 
 interface UseConfigEditorOptions {
   client: AxiosInstance;
@@ -10,7 +11,10 @@ interface UseConfigEditorOptions {
 
 interface UseConfigEditorReturn {
   config: ConfigEditorConfig | null;
+  isLoading: boolean;
+  error: string | null;
   isDirty: boolean;
+  hasValidationErrors: boolean;
   hasConflict: boolean;
   updateField: (categoryId: string, key: string, value: unknown) => void;
   save: () => Promise<void>;
@@ -21,79 +25,133 @@ interface UseConfigEditorReturn {
 export function useConfigEditor({ client, serviceName }: UseConfigEditorOptions): UseConfigEditorReturn {
   const [config, setConfig] = useState<ConfigEditorConfig | null>(null);
   const [initialConfig, setInitialConfig] = useState<ConfigEditorConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hasConflict, setHasConflict] = useState(false);
 
   const interpreter = useMemo(() => new ConfigInterpreter(client), [client]);
 
   useEffect(() => {
     let cancelled = false;
-    interpreter.build(serviceName).then((result) => {
-      if (!cancelled) {
-        setConfig(result);
-        setInitialConfig(result);
-      }
-    });
-    return () => { cancelled = true; };
+    setIsLoading(true);
+    setError(null);
+
+    interpreter.build(serviceName)
+      .then((result) => {
+        if (!cancelled) {
+          setConfig(cloneConfig(result));
+          setInitialConfig(cloneConfig(result));
+          setHasConflict(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load config');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [interpreter, serviceName]);
 
   const isDirty = (config?.dirtyCount ?? 0) > 0;
+  const hasValidationErrors = config?.categories.some((category) =>
+    Object.values(category.fieldValues).some((field) => Boolean(field.hasError)),
+  ) ?? false;
 
   const updateField = useCallback((categoryId: string, key: string, value: unknown) => {
     setConfig((prev) => {
       if (!prev) return prev;
 
-      const categories = prev.categories.map((cat) => {
-        if (cat.id !== categoryId) return cat;
+      const categories = prev.categories.map((category) => {
+        if (category.id !== categoryId) return category;
 
-        const fieldValues = { ...cat.fieldValues };
-        const existing = fieldValues[key];
-        if (!existing) return cat;
+        const existing = category.fieldValues[key];
+        const fieldSchema = category.fields.find((field) => field.key === key);
+        if (!existing || !fieldSchema) return category;
 
-        const isDirty = value !== existing.originalValue;
-        fieldValues[key] = { ...existing, value, isDirty };
-
-        return { ...cat, fieldValues };
+        return {
+          ...category,
+          fieldValues: {
+            ...category.fieldValues,
+            [key]: updateDirtyField(existing, value, validateFieldValue(fieldSchema, value)),
+          },
+        };
       });
 
-      const dirtyCount = categories.reduce((sum, cat) => {
-        return sum + Object.values(cat.fieldValues).filter((fv) => fv.isDirty).length;
-      }, 0);
-
-      return { ...prev, categories, dirtyCount };
+      return {
+        ...prev,
+        categories,
+        dirtyCount: countDirtyFields(categories),
+      };
     });
   }, []);
 
   const save = useCallback(async () => {
     if (!config) return;
+    if (hasValidationErrors) {
+      throw new Error('Validation errors must be resolved before saving');
+    }
 
-    const dirtyFields = config.categories.flatMap((cat) =>
-      Object.values(cat.fieldValues).filter((fv) => fv.isDirty),
+    const dirtyFields = config.categories.flatMap((category) =>
+      Object.values(category.fieldValues).filter((field) => field.isDirty),
     );
 
     try {
-      await Promise.all(
+      const responses = await Promise.all(
         dirtyFields.map((field) =>
-          client.put(`/api/v1/config/${field.namespace}/${field.key}`, {
+          client.put(`/api/v1/config/${encodeURIComponent(field.namespace)}/${encodeURIComponent(field.key)}`, {
             value: field.value,
+            version: field.version,
           }),
         ),
       );
 
-      setConfig((prev) => {
-        if (!prev) return prev;
+      const updatedEntries = new Map<string, { value: unknown; version: number }>();
+      for (const response of responses) {
+        const updated = response.data as {
+          namespace: string;
+          key: string;
+          value: unknown;
+          version: number;
+        };
+        updatedEntries.set(`${updated.namespace}::${updated.key}`, {
+          value: updated.value,
+          version: updated.version,
+        });
+      }
 
-        const categories = prev.categories.map((cat) => ({
-          ...cat,
+      const nextConfig: ConfigEditorConfig = {
+        ...config,
+        categories: config.categories.map((category) => ({
+          ...category,
           fieldValues: Object.fromEntries(
-            Object.entries(cat.fieldValues).map(([k, fv]) => [
-              k,
-              { ...fv, originalValue: fv.value, isDirty: false },
-            ]),
+            Object.entries(category.fieldValues).map(([key, field]) => {
+              const updated = updatedEntries.get(field.id);
+              const value = updated?.value ?? field.value;
+              const version = updated?.version ?? field.version;
+              return [key, {
+                ...field,
+                value,
+                originalValue: value,
+                version,
+                originalVersion: version,
+                isDirty: false,
+              }];
+            }),
           ),
-        }));
+        })),
+        dirtyCount: 0,
+      };
 
-        return { ...prev, categories, dirtyCount: 0 };
-      });
+      setConfig(nextConfig);
+      setInitialConfig(cloneConfig(nextConfig));
       setHasConflict(false);
     } catch (err: unknown) {
       if (isAxios409(err)) {
@@ -102,11 +160,11 @@ export function useConfigEditor({ client, serviceName }: UseConfigEditorOptions)
         throw err;
       }
     }
-  }, [config, client]);
+  }, [client, config, hasValidationErrors]);
 
   const reset = useCallback(() => {
     if (initialConfig) {
-      setConfig(initialConfig);
+      setConfig(cloneConfig(initialConfig));
       setHasConflict(false);
     }
   }, [initialConfig]);
@@ -115,30 +173,52 @@ export function useConfigEditor({ client, serviceName }: UseConfigEditorOptions)
     setConfig((prev) => {
       if (!prev) return prev;
 
-      const categories = prev.categories.map((cat) => {
-        if (cat.id !== categoryId) return cat;
+      const categories = prev.categories.map((category) => {
+        if (category.id !== categoryId) return category;
 
-        const fieldValues = { ...cat.fieldValues };
-        const existing = fieldValues[key];
-        if (!existing) return cat;
+        const existing = category.fieldValues[key];
+        const fieldSchema = category.fields.find((field) => field.key === key);
+        if (!existing || !fieldSchema) return category;
 
-        const field = cat.fields.find((f) => f.key === key);
-        const defaultValue = field?.default;
-        const isDirty = defaultValue !== existing.originalValue;
-        fieldValues[key] = { ...existing, value: defaultValue, isDirty };
-
-        return { ...cat, fieldValues };
+        return {
+          ...category,
+          fieldValues: {
+            ...category.fieldValues,
+            [key]: updateDirtyField(
+              existing,
+              fieldSchema.default,
+              validateFieldValue(fieldSchema, fieldSchema.default),
+            ),
+          },
+        };
       });
 
-      const dirtyCount = categories.reduce((sum, cat) => {
-        return sum + Object.values(cat.fieldValues).filter((fv) => fv.isDirty).length;
-      }, 0);
-
-      return { ...prev, categories, dirtyCount };
+      return {
+        ...prev,
+        categories,
+        dirtyCount: countDirtyFields(categories),
+      };
     });
   }, []);
 
-  return { config, isDirty, hasConflict, updateField, save, reset, resetFieldToDefault };
+  return {
+    config,
+    isLoading,
+    error,
+    isDirty,
+    hasValidationErrors,
+    hasConflict,
+    updateField,
+    save,
+    reset,
+    resetFieldToDefault,
+  };
+}
+
+function countDirtyFields(config: ConfigEditorConfig['categories']): number {
+  return config.reduce((sum, category) => {
+    return sum + Object.values(category.fieldValues).filter((field) => field.isDirty).length;
+  }, 0);
 }
 
 function isAxios409(err: unknown): boolean {

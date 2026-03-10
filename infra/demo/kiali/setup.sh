@@ -103,11 +103,25 @@ kubectl wait --for=condition=available deployment/istiod -n istio-system --timeo
 echo "Applying namespaces..."
 kubectl apply -f "${SCRIPT_DIR}/manifests/00-namespaces.yaml"
 
+echo "Creating demo service ConfigMaps..."
+for ns in k1s0-system k1s0-business k1s0-service; do
+  kubectl create configmap demo-service-script \
+    --from-file=server.py="${SCRIPT_DIR}/demo-service/server.py" \
+    -n "${ns}" --dry-run=client -o yaml | kubectl apply -f -
+done
+
 echo "Applying stub services..."
 kubectl apply -f "${SCRIPT_DIR}/manifests/01-stub-services.yaml"
 
 echo "Applying Istio resources..."
 kubectl apply -f "${SCRIPT_DIR}/manifests/02-istio.yaml"
+
+echo "Removing legacy scenario VirtualServices..."
+kubectl delete vs order-server-canary order-server-mirror order-server-fault \
+  -n k1s0-service --ignore-not-found
+
+echo "Applying baseline VirtualServices..."
+kubectl apply -f "${SCRIPT_DIR}/manifests/02-virtualservices.yaml"
 
 echo "Applying canary deployment..."
 kubectl apply -f "${SCRIPT_DIR}/manifests/04-canary-deploy.yaml"

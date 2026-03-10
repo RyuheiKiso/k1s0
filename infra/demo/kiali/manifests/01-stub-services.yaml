@@ -1,6 +1,6 @@
-# Stub services using nginx:alpine as lightweight HTTP responder.
-# Each service returns 200 OK on any path, which is sufficient for
-# Istio sidecar to generate metrics that Kiali visualizes.
+# Demo services backed by a small Python app that emits JSON logs
+# and triggers downstream calls so the mesh shows real traffic,
+# logs, and traces.
 
 ##############################################################
 # system Tier
@@ -29,16 +29,37 @@ spec:
     spec:
       containers:
         - name: stub
-          image: nginx:alpine
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/server.py"]
+          env:
+            - name: SERVICE_NAME
+              value: auth-server
+            - name: NAMESPACE_NAME
+              value: k1s0-system
+            - name: VERSION
+              value: stable
+            - name: PORT
+              value: "8080"
+            - name: DOWNSTREAMS
+              value: http://config-server.k1s0-system.svc.cluster.local/
           ports:
-            - containerPort: 80
+            - containerPort: 8080
+          volumeMounts:
+            - name: demo-service-script
+              mountPath: /app/server.py
+              subPath: server.py
           resources:
             requests:
               cpu: 10m
-              memory: 16Mi
+              memory: 64Mi
             limits:
-              cpu: 50m
-              memory: 32Mi
+              cpu: 100m
+              memory: 256Mi
+      volumes:
+        - name: demo-service-script
+          configMap:
+            name: demo-service-script
 ---
 apiVersion: v1
 kind: Service
@@ -53,7 +74,7 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 80
+      targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -78,16 +99,35 @@ spec:
     spec:
       containers:
         - name: stub
-          image: nginx:alpine
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/server.py"]
+          env:
+            - name: SERVICE_NAME
+              value: config-server
+            - name: NAMESPACE_NAME
+              value: k1s0-system
+            - name: VERSION
+              value: stable
+            - name: PORT
+              value: "8080"
           ports:
-            - containerPort: 80
+            - containerPort: 8080
+          volumeMounts:
+            - name: demo-service-script
+              mountPath: /app/server.py
+              subPath: server.py
           resources:
             requests:
               cpu: 10m
-              memory: 16Mi
+              memory: 64Mi
             limits:
-              cpu: 50m
-              memory: 32Mi
+              cpu: 100m
+              memory: 256Mi
+      volumes:
+        - name: demo-service-script
+          configMap:
+            name: demo-service-script
 ---
 apiVersion: v1
 kind: Service
@@ -102,7 +142,7 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 80
+      targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -127,16 +167,37 @@ spec:
     spec:
       containers:
         - name: stub
-          image: nginx:alpine
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/server.py"]
+          env:
+            - name: SERVICE_NAME
+              value: graphql-gateway
+            - name: NAMESPACE_NAME
+              value: k1s0-system
+            - name: VERSION
+              value: stable
+            - name: PORT
+              value: "8080"
+            - name: DOWNSTREAMS
+              value: http://auth-server.k1s0-system.svc.cluster.local/,http://config-server.k1s0-system.svc.cluster.local/
           ports:
-            - containerPort: 80
+            - containerPort: 8080
+          volumeMounts:
+            - name: demo-service-script
+              mountPath: /app/server.py
+              subPath: server.py
           resources:
             requests:
               cpu: 10m
-              memory: 16Mi
+              memory: 64Mi
             limits:
-              cpu: 50m
-              memory: 32Mi
+              cpu: 100m
+              memory: 256Mi
+      volumes:
+        - name: demo-service-script
+          configMap:
+            name: demo-service-script
 ---
 apiVersion: v1
 kind: Service
@@ -151,7 +212,7 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 80
+      targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -176,16 +237,37 @@ spec:
     spec:
       containers:
         - name: stub
-          image: nginx:alpine
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/server.py"]
+          env:
+            - name: SERVICE_NAME
+              value: saga-server
+            - name: NAMESPACE_NAME
+              value: k1s0-system
+            - name: VERSION
+              value: stable
+            - name: PORT
+              value: "8080"
+            - name: DOWNSTREAMS
+              value: http://auth-server.k1s0-system.svc.cluster.local/,http://config-server.k1s0-system.svc.cluster.local/
           ports:
-            - containerPort: 80
+            - containerPort: 8080
+          volumeMounts:
+            - name: demo-service-script
+              mountPath: /app/server.py
+              subPath: server.py
           resources:
             requests:
               cpu: 10m
-              memory: 16Mi
+              memory: 64Mi
             limits:
-              cpu: 50m
-              memory: 32Mi
+              cpu: 100m
+              memory: 256Mi
+      volumes:
+        - name: demo-service-script
+          configMap:
+            name: demo-service-script
 ---
 apiVersion: v1
 kind: Service
@@ -200,7 +282,7 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 80
+      targetPort: 8080
 
 ##############################################################
 # business Tier
@@ -229,16 +311,37 @@ spec:
     spec:
       containers:
         - name: stub
-          image: nginx:alpine
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/server.py"]
+          env:
+            - name: SERVICE_NAME
+              value: accounting-server
+            - name: NAMESPACE_NAME
+              value: k1s0-business
+            - name: VERSION
+              value: stable
+            - name: PORT
+              value: "8080"
+            - name: DOWNSTREAMS
+              value: http://auth-server.k1s0-system.svc.cluster.local/,http://config-server.k1s0-system.svc.cluster.local/
           ports:
-            - containerPort: 80
+            - containerPort: 8080
+          volumeMounts:
+            - name: demo-service-script
+              mountPath: /app/server.py
+              subPath: server.py
           resources:
             requests:
               cpu: 10m
-              memory: 16Mi
+              memory: 64Mi
             limits:
-              cpu: 50m
-              memory: 32Mi
+              cpu: 100m
+              memory: 256Mi
+      volumes:
+        - name: demo-service-script
+          configMap:
+            name: demo-service-script
 ---
 apiVersion: v1
 kind: Service
@@ -253,7 +356,7 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 80
+      targetPort: 8080
 
 ##############################################################
 # service Tier
@@ -284,16 +387,37 @@ spec:
     spec:
       containers:
         - name: stub
-          image: nginx:alpine
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/server.py"]
+          env:
+            - name: SERVICE_NAME
+              value: order-bff
+            - name: NAMESPACE_NAME
+              value: k1s0-service
+            - name: VERSION
+              value: stable
+            - name: PORT
+              value: "8080"
+            - name: DOWNSTREAMS
+              value: http://order-server.k1s0-service.svc.cluster.local/,http://graphql-gateway.k1s0-system.svc.cluster.local/
           ports:
-            - containerPort: 80
+            - containerPort: 8080
+          volumeMounts:
+            - name: demo-service-script
+              mountPath: /app/server.py
+              subPath: server.py
           resources:
             requests:
               cpu: 10m
-              memory: 16Mi
+              memory: 64Mi
             limits:
-              cpu: 50m
-              memory: 32Mi
+              cpu: 100m
+              memory: 256Mi
+      volumes:
+        - name: demo-service-script
+          configMap:
+            name: demo-service-script
 ---
 apiVersion: v1
 kind: Service
@@ -308,7 +432,7 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 80
+      targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -334,16 +458,37 @@ spec:
     spec:
       containers:
         - name: stub
-          image: nginx:alpine
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/server.py"]
+          env:
+            - name: SERVICE_NAME
+              value: order-server
+            - name: NAMESPACE_NAME
+              value: k1s0-service
+            - name: VERSION
+              value: stable
+            - name: PORT
+              value: "8080"
+            - name: DOWNSTREAMS
+              value: http://auth-server.k1s0-system.svc.cluster.local/,http://config-server.k1s0-system.svc.cluster.local/,http://saga-server.k1s0-system.svc.cluster.local/,http://accounting-server.k1s0-business.svc.cluster.local/
           ports:
-            - containerPort: 80
+            - containerPort: 8080
+          volumeMounts:
+            - name: demo-service-script
+              mountPath: /app/server.py
+              subPath: server.py
           resources:
             requests:
               cpu: 10m
-              memory: 16Mi
+              memory: 64Mi
             limits:
-              cpu: 50m
-              memory: 32Mi
+              cpu: 100m
+              memory: 256Mi
+      volumes:
+        - name: demo-service-script
+          configMap:
+            name: demo-service-script
 ---
 apiVersion: v1
 kind: Service
@@ -358,4 +503,4 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 80
+      targetPort: 8080

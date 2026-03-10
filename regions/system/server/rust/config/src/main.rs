@@ -470,6 +470,7 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
                 namespace: e.namespace.clone(),
                 key: e.key.clone(),
                 value: e.value_json.clone(),
+                version: e.version,
             })
             .collect();
 

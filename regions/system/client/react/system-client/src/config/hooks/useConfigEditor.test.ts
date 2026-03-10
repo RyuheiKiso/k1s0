@@ -4,27 +4,46 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import axios from 'axios';
 import { useConfigEditor } from './useConfigEditor';
+import type { ConfigEditorSchema, ServiceConfigResultResponse } from '../types';
 
-const mockSchema = {
+const mockSchema: ConfigEditorSchema = {
   service: 'test-service',
   namespace_prefix: 'test',
   categories: [
     {
       id: 'general',
-      label: '一般設定',
+      label: 'General',
       namespaces: ['test.general'],
       fields: [
-        { key: 'timeout', label: 'タイムアウト', type: 'integer', default: 30 },
-        { key: 'name', label: '名前', type: 'string', default: 'default' },
+        { key: 'timeout', label: 'Timeout', type: 'integer', default: 30 },
+        { key: 'name', label: 'Name', type: 'string', default: 'default-name' },
+      ],
+    },
+    {
+      id: 'advanced',
+      label: 'Advanced',
+      namespaces: ['test.advanced'],
+      fields: [
+        { key: 'timeout', label: 'Advanced Timeout', type: 'integer', default: 15 },
       ],
     },
   ],
 };
 
-const mockValues = [
-  { namespace: 'test.general', key: 'timeout', value: 60 },
-  { namespace: 'test.general', key: 'name', value: 'current' },
-];
+const mockValues: ServiceConfigResultResponse = {
+  service_name: 'test-service',
+  entries: [
+    { namespace: 'test.general', key: 'timeout', value: 60, version: 3 },
+    { namespace: 'test.general', key: 'name', value: 'current-name', version: 4 },
+    { namespace: 'test.advanced', key: 'timeout', value: 180, version: 8 },
+  ],
+};
+
+const receivedUpdates: Array<{
+  namespace: string;
+  key: string;
+  body: { value: unknown; version: number };
+}> = [];
 
 const server = setupServer(
   http.get('http://localhost/api/v1/config-schema/:service', () => {
@@ -33,32 +52,51 @@ const server = setupServer(
   http.get('http://localhost/api/v1/config/services/:service', () => {
     return HttpResponse.json(mockValues);
   }),
-  http.put('http://localhost/api/v1/config/:namespace/:key', () => {
-    return HttpResponse.json({ ok: true });
+  http.put('http://localhost/api/v1/config/:namespace/:key', async ({ params, request }) => {
+    const body = await request.json() as { value: unknown; version: number };
+    receivedUpdates.push({
+      namespace: decodeURIComponent(String(params.namespace)),
+      key: decodeURIComponent(String(params.key)),
+      body,
+    });
+
+    return HttpResponse.json({
+      namespace: decodeURIComponent(String(params.namespace)),
+      key: decodeURIComponent(String(params.key)),
+      value: body.value,
+      version: body.version + 1,
+    });
   }),
 );
 
 beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  receivedUpdates.length = 0;
+  server.resetHandlers();
+});
 afterAll(() => server.close());
 
 const client = axios.create({ baseURL: 'http://localhost' });
 
 describe('useConfigEditor', () => {
-  it('初期ロード後に config を返す', async () => {
+  it('loads config data with versioned service entries', async () => {
     const { result } = renderHook(() =>
       useConfigEditor({ client, serviceName: 'test-service' }),
     );
 
     await waitFor(() => {
       expect(result.current.config).not.toBeNull();
+      expect(result.current.isLoading).toBe(false);
     });
 
+    expect(result.current.error).toBeNull();
     expect(result.current.config?.service).toBe('test-service');
+    expect(result.current.config?.categories[0].fieldValues.timeout.version).toBe(3);
+    expect(result.current.config?.categories[1].fieldValues.timeout.value).toBe(180);
     expect(result.current.isDirty).toBe(false);
   });
 
-  it('updateField でフィールドを更新し isDirty が true になる', async () => {
+  it('updates fields by category without colliding on duplicate keys', async () => {
     const { result } = renderHook(() =>
       useConfigEditor({ client, serviceName: 'test-service' }),
     );
@@ -68,15 +106,16 @@ describe('useConfigEditor', () => {
     });
 
     act(() => {
-      result.current.updateField('general', 'timeout', 120);
+      result.current.updateField('advanced', 'timeout', 240);
     });
 
     expect(result.current.isDirty).toBe(true);
     expect(result.current.config?.dirtyCount).toBe(1);
-    expect(result.current.config?.categories[0].fieldValues['timeout'].value).toBe(120);
+    expect(result.current.config?.categories[0].fieldValues.timeout.value).toBe(60);
+    expect(result.current.config?.categories[1].fieldValues.timeout.value).toBe(240);
   });
 
-  it('reset で全変更を元に戻す', async () => {
+  it('reset restores the initial config snapshot', async () => {
     const { result } = renderHook(() =>
       useConfigEditor({ client, serviceName: 'test-service' }),
     );
@@ -93,11 +132,14 @@ describe('useConfigEditor', () => {
     act(() => {
       result.current.reset();
     });
+
     expect(result.current.isDirty).toBe(false);
-    expect(result.current.config?.categories[0].fieldValues['timeout'].value).toBe(60);
+    expect(result.current.hasConflict).toBe(false);
+    expect(result.current.config?.categories[0].fieldValues.timeout.value).toBe(60);
+    expect(result.current.config?.dirtyCount).toBe(0);
   });
 
-  it('save で変更を保存し isDirty が false になる', async () => {
+  it('save sends namespace-specific versioned updates and refreshes local versions', async () => {
     const { result } = renderHook(() =>
       useConfigEditor({ client, serviceName: 'test-service' }),
     );
@@ -107,18 +149,28 @@ describe('useConfigEditor', () => {
     });
 
     act(() => {
-      result.current.updateField('general', 'timeout', 120);
+      result.current.updateField('advanced', 'timeout', 240);
     });
 
     await act(async () => {
       await result.current.save();
     });
 
+    expect(receivedUpdates).toEqual([
+      {
+        namespace: 'test.advanced',
+        key: 'timeout',
+        body: { value: 240, version: 8 },
+      },
+    ]);
     expect(result.current.isDirty).toBe(false);
     expect(result.current.hasConflict).toBe(false);
+    expect(result.current.config?.categories[1].fieldValues.timeout.value).toBe(240);
+    expect(result.current.config?.categories[1].fieldValues.timeout.version).toBe(9);
+    expect(result.current.config?.categories[1].fieldValues.timeout.originalVersion).toBe(9);
   });
 
-  it('save で 409 の場合 hasConflict が true になる', async () => {
+  it('marks hasConflict when save receives 409', async () => {
     server.use(
       http.put('http://localhost/api/v1/config/:namespace/:key', () => {
         return new HttpResponse(null, { status: 409 });

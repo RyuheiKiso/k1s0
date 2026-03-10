@@ -318,17 +318,20 @@ namespace 内の全設定値をページネーション付きで取得する。
     {
       "namespace": "system.auth.database",
       "key": "max_connections",
-      "value": 25
+      "value": 25,
+      "version": 3
     },
     {
       "namespace": "system.auth.database",
       "key": "ssl_mode",
-      "value": "require"
+      "value": "require",
+      "version": 1
     },
     {
       "namespace": "system.auth.jwt",
       "key": "issuer",
-      "value": "https://auth.k1s0.internal.example.com/realms/k1s0"
+      "value": "https://auth.k1s0.internal.example.com/realms/k1s0",
+      "version": 2
     }
   ]
 }

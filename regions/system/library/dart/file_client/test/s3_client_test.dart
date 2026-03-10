@@ -219,7 +219,7 @@ void main() {
 
   group('list', () {
     test('ListObjectsV2 レスポンスをパースする', () async {
-      final xmlResponse = '''<?xml version="1.0" encoding="UTF-8"?>
+      const xmlResponse = '''<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Name>test-bucket</Name>
   <Prefix>uploads/</Prefix>
@@ -260,7 +260,7 @@ void main() {
     });
 
     test('空の結果を正しく処理する', () async {
-      final xmlResponse = '''<?xml version="1.0" encoding="UTF-8"?>
+      const xmlResponse = '''<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Name>test-bucket</Name>
   <Prefix>empty/</Prefix>

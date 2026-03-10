@@ -1,6 +1,6 @@
-# order-server canary Deployment
-# Same nginx:alpine stub but with version: canary label.
-# Kiali displays stable/canary as separate workload nodes.
+# order-server canary Deployment.
+# Shares the same demo service implementation as stable, but exposes
+# the canary version label so Kiali can split workloads correctly.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,13 +26,34 @@ spec:
     spec:
       containers:
         - name: stub
-          image: nginx:alpine
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/server.py"]
+          env:
+            - name: SERVICE_NAME
+              value: order-server
+            - name: NAMESPACE_NAME
+              value: k1s0-service
+            - name: VERSION
+              value: canary
+            - name: PORT
+              value: "8080"
+            - name: DOWNSTREAMS
+              value: http://auth-server.k1s0-system.svc.cluster.local/,http://config-server.k1s0-system.svc.cluster.local/,http://saga-server.k1s0-system.svc.cluster.local/,http://accounting-server.k1s0-business.svc.cluster.local/
           ports:
-            - containerPort: 80
+            - containerPort: 8080
+          volumeMounts:
+            - name: demo-service-script
+              mountPath: /app/server.py
+              subPath: server.py
           resources:
             requests:
               cpu: 10m
-              memory: 16Mi
+              memory: 64Mi
             limits:
-              cpu: 50m
-              memory: 32Mi
+              cpu: 100m
+              memory: 256Mi
+      volumes:
+        - name: demo-service-script
+          configMap:
+            name: demo-service-script
