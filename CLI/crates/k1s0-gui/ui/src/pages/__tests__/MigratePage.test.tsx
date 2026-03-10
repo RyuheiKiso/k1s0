@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
+import { renderWithProviders } from '../../test/render';
 import MigratePage from '../MigratePage';
 
 beforeEach(() => {
@@ -35,7 +36,7 @@ beforeEach(() => {
 describe('MigratePage', () => {
   it('loads migration status for the selected target', async () => {
     const user = userEvent.setup();
-    render(<MigratePage />);
+    renderWithProviders(<MigratePage />);
 
     await waitFor(() => expect(screen.getByTestId('select-migrate-target')).toBeInTheDocument());
     await user.click(screen.getByTestId('btn-migrate-status'));

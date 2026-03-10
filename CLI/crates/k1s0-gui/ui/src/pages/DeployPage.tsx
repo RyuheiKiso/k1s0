@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import ProgressLog from '../components/ProgressLog';
+import ProtectedActionNotice from '../components/ProtectedActionNotice';
+import { useAuth } from '../lib/auth';
 import { toDisplayPath } from '../lib/paths';
 import {
   executeDeployRollback,
   executeDeployWithProgress,
+  getFailedProdRollbackTarget,
   scanDeployableTargets,
   type Environment,
   type ProgressEvent,
@@ -11,9 +14,11 @@ import {
 import { useWorkspace } from '../lib/workspace';
 
 export default function DeployPage() {
+  const auth = useAuth();
   const workspace = useWorkspace();
   const activeWorkspaceRoot = workspace.workspaceRoot || '.';
   const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
+  const actionsLocked = auth.loading || !auth.isAuthenticated;
 
   const [targets, setTargets] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -28,6 +33,16 @@ export default function DeployPage() {
     'idle',
   );
   const [rollbackMessage, setRollbackMessage] = useState('');
+  const [failedRollbackTarget, setFailedRollbackTarget] = useState<string | null>(null);
+
+  async function refreshRollbackTarget() {
+    try {
+      const nextTarget = await getFailedProdRollbackTarget();
+      setFailedRollbackTarget(nextTarget ?? null);
+    } catch {
+      setFailedRollbackTarget(null);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +74,10 @@ export default function DeployPage() {
       cancelled = true;
     };
   }, [activeWorkspaceRoot, workspace.ready, workspace.workspaceRoot]);
+
+  useEffect(() => {
+    void refreshRollbackTarget();
+  }, []);
 
   function toggleTarget(target: string) {
     setSelected((current) =>
@@ -111,6 +130,7 @@ export default function DeployPage() {
     setTotalSteps(selected.length);
     setRollbackStatus('idle');
     setRollbackMessage('');
+    setFailedRollbackTarget(null);
 
     let finished = false;
 
@@ -129,11 +149,13 @@ export default function DeployPage() {
     } catch (error) {
       setStatus('error');
       setErrorMessage(String(error));
+    } finally {
+      await refreshRollbackTarget();
     }
   }
 
   async function handleRollback() {
-    if (selected.length !== 1) {
+    if (!failedRollbackTarget) {
       return;
     }
 
@@ -141,17 +163,20 @@ export default function DeployPage() {
     setRollbackMessage('');
 
     try {
-      const message = await executeDeployRollback(selected[0]);
+      const message = await executeDeployRollback(failedRollbackTarget);
       setRollbackStatus('success');
       setRollbackMessage(message);
     } catch (error) {
       setRollbackStatus('error');
       setRollbackMessage(String(error));
+    } finally {
+      await refreshRollbackTarget();
     }
   }
 
   const allSelected = targets.length > 0 && selected.length === targets.length;
-  const canRollback = environment === 'Prod' && status === 'error' && selected.length === 1;
+  const canRollback = status === 'error' && Boolean(failedRollbackTarget);
+  const showRollbackPanel = canRollback || rollbackMessage !== '';
 
   return (
     <div className="glass max-w-5xl p-6" data-testid="deploy-page">
@@ -167,6 +192,7 @@ export default function DeployPage() {
           Configure a valid workspace root before scanning deploy targets.
         </p>
       )}
+      {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -213,7 +239,9 @@ export default function DeployPage() {
             onClick={() => {
               void handleDeploy();
             }}
-            disabled={status === 'loading' || selected.length === 0 || workspaceUnavailable}
+            disabled={
+              status === 'loading' || selected.length === 0 || workspaceUnavailable || actionsLocked
+            }
             className="mt-6 rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
             data-testid="btn-deploy"
           >
@@ -231,22 +259,29 @@ export default function DeployPage() {
             </p>
           )}
 
-          {canRollback && (
+          {showRollbackPanel && (
             <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm text-slate-200/76">
-                The production deployment failed. Roll back the selected release if needed.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  void handleRollback();
-                }}
-                disabled={rollbackStatus === 'loading'}
-                className="mt-4 rounded-xl border border-white/15 bg-white/6 px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
-                data-testid="btn-rollback"
-              >
-                {rollbackStatus === 'loading' ? 'Rolling back...' : 'Rollback'}
-              </button>
+              {failedRollbackTarget && (
+                <>
+                  <p className="text-sm text-slate-200/76">
+                    The last failed production deployment can be rolled back safely.
+                  </p>
+                  <p className="mt-2 text-sm text-slate-100">
+                    Target: {toDisplayPath(activeWorkspaceRoot, failedRollbackTarget)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleRollback();
+                    }}
+                    disabled={rollbackStatus === 'loading' || actionsLocked}
+                    className="mt-4 rounded-xl border border-white/15 bg-white/6 px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+                    data-testid="btn-rollback"
+                  >
+                    {rollbackStatus === 'loading' ? 'Rolling back...' : 'Rollback'}
+                  </button>
+                </>
+              )}
               {rollbackMessage && (
                 <p
                   className={`mt-3 text-sm ${

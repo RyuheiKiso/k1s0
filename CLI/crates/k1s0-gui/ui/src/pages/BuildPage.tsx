@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import ProgressLog from '../components/ProgressLog';
+import { useAuth } from '../lib/auth';
 import { toDisplayPath } from '../lib/paths';
 import {
   executeBuildWithProgress,
@@ -10,9 +12,11 @@ import {
 import { useWorkspace } from '../lib/workspace';
 
 export default function BuildPage() {
+  const auth = useAuth();
   const workspace = useWorkspace();
   const activeWorkspaceRoot = workspace.workspaceRoot || '.';
   const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
+  const actionsLocked = auth.loading || !auth.isAuthenticated;
 
   const [targets, setTargets] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -134,6 +138,7 @@ export default function BuildPage() {
           Configure a valid workspace root before scanning build targets.
         </p>
       )}
+      {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -193,7 +198,9 @@ export default function BuildPage() {
             onClick={() => {
               void handleBuild();
             }}
-            disabled={status === 'loading' || selected.length === 0 || workspaceUnavailable}
+            disabled={
+              status === 'loading' || selected.length === 0 || workspaceUnavailable || actionsLocked
+            }
             className="mt-6 rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
             data-testid="btn-build"
           >

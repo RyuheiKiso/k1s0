@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
+import { renderWithProviders } from '../../test/render';
 import DevPage from '../DevPage';
 
 beforeEach(() => {
@@ -20,7 +21,7 @@ beforeEach(() => {
 describe('DevPage', () => {
   it('loads local development status', async () => {
     const user = userEvent.setup();
-    render(<DevPage />);
+    renderWithProviders(<DevPage />);
 
     await waitFor(() => screen.getByText('auth'));
     await user.click(screen.getByTestId('btn-dev-status'));

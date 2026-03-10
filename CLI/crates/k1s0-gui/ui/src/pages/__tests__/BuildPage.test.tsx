@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
+import { renderWithProviders } from '../../test/render';
 import BuildPage from '../BuildPage';
 
 beforeEach(() => {
@@ -16,14 +17,14 @@ beforeEach(() => {
 
 describe('BuildPage', () => {
   it('renders the build page', async () => {
-    render(<BuildPage />);
+    renderWithProviders(<BuildPage />);
     await waitFor(() => {
       expect(screen.getByTestId('build-page')).toBeInTheDocument();
     });
   });
 
   it('shows an empty state when no targets are found', async () => {
-    render(<BuildPage />);
+    renderWithProviders(<BuildPage />);
     expect(await screen.findByText('No buildable targets were found.')).toBeInTheDocument();
   });
 
@@ -38,7 +39,7 @@ describe('BuildPage', () => {
       return Promise.resolve(undefined);
     });
 
-    render(<BuildPage />);
+    renderWithProviders(<BuildPage />);
 
     expect(await screen.findByText('regions/system/server/rust/auth')).toBeInTheDocument();
     expect(screen.getByText('regions/system/server/rust/saga')).toBeInTheDocument();
@@ -52,7 +53,7 @@ describe('BuildPage', () => {
       return Promise.resolve(undefined);
     });
 
-    render(<BuildPage />);
+    renderWithProviders(<BuildPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('btn-build')).toBeDisabled();
@@ -84,7 +85,7 @@ describe('BuildPage', () => {
       return Promise.resolve(undefined);
     });
 
-    render(<BuildPage />);
+    renderWithProviders(<BuildPage />);
     await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
 
     await user.click(screen.getByRole('checkbox', { name: /regions\/system\/server\/rust\/auth/i }));
@@ -112,7 +113,7 @@ describe('BuildPage', () => {
       return Promise.resolve(undefined);
     });
 
-    render(<BuildPage />);
+    renderWithProviders(<BuildPage />);
     await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
 
     await user.click(screen.getByRole('checkbox', { name: /regions\/system\/server\/rust\/auth/i }));

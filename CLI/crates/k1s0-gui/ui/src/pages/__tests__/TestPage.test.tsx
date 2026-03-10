@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
+import { renderWithProviders } from '../../test/render';
 import TestPage from '../TestPage';
 
 beforeEach(() => {
@@ -16,14 +17,14 @@ beforeEach(() => {
 
 describe('TestPage', () => {
   it('renders the test page', async () => {
-    render(<TestPage />);
+    renderWithProviders(<TestPage />);
     await waitFor(() => {
       expect(screen.getByTestId('test-page')).toBeInTheDocument();
     });
   });
 
   it('renders all test kind radio buttons', async () => {
-    render(<TestPage />);
+    renderWithProviders(<TestPage />);
     await waitFor(() => {
       expect(screen.getByTestId('test-page')).toBeInTheDocument();
     });
@@ -34,7 +35,7 @@ describe('TestPage', () => {
 
   it('hides the target list when All is selected', async () => {
     const user = userEvent.setup();
-    render(<TestPage />);
+    renderWithProviders(<TestPage />);
 
     await user.click(screen.getByRole('radio', { name: 'All' }));
 
@@ -49,13 +50,13 @@ describe('TestPage', () => {
       return Promise.resolve(undefined);
     });
 
-    render(<TestPage />);
+    renderWithProviders(<TestPage />);
     expect(await screen.findByText('regions/system/server/rust/auth')).toBeInTheDocument();
   });
 
   it('enables the run button for All without selecting targets', async () => {
     const user = userEvent.setup();
-    render(<TestPage />);
+    renderWithProviders(<TestPage />);
 
     await user.click(screen.getByRole('radio', { name: 'All' }));
 
@@ -81,7 +82,7 @@ describe('TestPage', () => {
       return Promise.resolve(undefined);
     });
 
-    render(<TestPage />);
+    renderWithProviders(<TestPage />);
     await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
 
     await user.click(screen.getByRole('checkbox', { name: /regions\/system\/server\/rust\/auth/i }));
@@ -109,7 +110,7 @@ describe('TestPage', () => {
       return Promise.resolve(undefined);
     });
 
-    render(<TestPage />);
+    renderWithProviders(<TestPage />);
     await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
 
     await user.click(screen.getByRole('checkbox', { name: /regions\/system\/server\/rust\/auth/i }));

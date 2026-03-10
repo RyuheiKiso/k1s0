@@ -1,68 +1,115 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
-import type { AuthTokens } from './tauri-commands';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  clearAuthSession as clearStoredAuthSession,
+  getAuthSession,
+  type AuthSessionSummary,
+} from './tauri-commands';
 
-const STORAGE_KEY = 'k1s0.authSession';
+export type AuthSession = AuthSessionSummary;
 
-export interface AuthSession {
-  issuer: string;
-  authenticatedAt: string;
-  tokens: AuthTokens;
-}
-
-interface AuthContextValue {
+export interface AuthContextValue {
   session: AuthSession | null;
   isAuthenticated: boolean;
-  saveSession: (issuer: string, tokens: AuthTokens) => void;
-  clearSession: () => void;
+  loading: boolean;
+  refreshSession: () => Promise<AuthSession | null>;
+  setSession: (session: AuthSession | null) => void;
+  clearSession: () => Promise<void>;
 }
 
 const defaultContextValue: AuthContextValue = {
   session: null,
   isAuthenticated: false,
-  saveSession: () => undefined,
-  clearSession: () => undefined,
+  loading: false,
+  refreshSession: async () => null,
+  setSession: () => undefined,
+  clearSession: async () => undefined,
 };
 
-const AuthContext = createContext<AuthContextValue>(defaultContextValue);
-
-function loadStoredSession(): AuthSession | null {
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw) as AuthSession;
-  } catch {
-    window.localStorage.removeItem(STORAGE_KEY);
-    return null;
-  }
-}
+export const AuthContext = createContext<AuthContextValue>(defaultContextValue);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(() => loadStoredSession());
+  const [session, setSessionState] = useState<AuthSession | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  function saveSession(issuer: string, tokens: AuthTokens) {
-    const nextSession: AuthSession = {
-      issuer,
-      authenticatedAt: new Date().toISOString(),
-      tokens,
+  async function refreshSession() {
+    setLoading(true);
+    try {
+      const nextSession = await getAuthSession();
+      setSessionState(nextSession);
+      return nextSession;
+    } catch {
+      setSessionState(null);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function setSession(nextSession: AuthSession | null) {
+    setSessionState(nextSession);
+  }
+
+  async function clearSession() {
+    setLoading(true);
+    try {
+      await clearStoredAuthSession();
+      setSessionState(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    let active = true;
+
+    void getAuthSession()
+      .then((nextSession) => {
+        if (active) {
+          setSessionState(nextSession);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setSessionState(null);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
     };
-    setSession(nextSession);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSession));
-  }
+  }, []);
 
-  function clearSession() {
-    setSession(null);
-    window.localStorage.removeItem(STORAGE_KEY);
-  }
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const delayMs = Math.min(
+      Math.max(session.expires_at_epoch_secs * 1000 - Date.now() + 1000, 1000),
+      2_147_483_647,
+    );
+    const timerId = window.setTimeout(() => {
+      void refreshSession();
+    }, delayMs);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [session]);
 
   return (
     <AuthContext.Provider
       value={{
         session,
         isAuthenticated: session !== null,
-        saveSession,
+        loading,
+        refreshSession,
+        setSession,
         clearSession,
       }}
     >

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import ProtectedActionNotice from '../components/ProtectedActionNotice';
+import { useAuth } from '../lib/auth';
 import {
   executeGenerateAt,
   scanDatabases,
@@ -93,9 +95,11 @@ function getDefaultDetailName(kind: Kind): string {
 }
 
 export default function GeneratePage() {
+  const auth = useAuth();
   const workspace = useWorkspace();
   const activeWorkspaceRoot = workspace.workspaceRoot || '.';
   const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
+  const actionsLocked = auth.loading || !auth.isAuthenticated;
 
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState<Kind>('Server');
@@ -411,6 +415,7 @@ export default function GeneratePage() {
           Configure a valid workspace root before generating files.
         </p>
       )}
+      {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 flex flex-wrap gap-2" data-testid="stepper">
         {STEP_LABELS.map((label, index) => (
@@ -988,7 +993,7 @@ export default function GeneratePage() {
               onClick={() => {
                 void handleGenerate();
               }}
-              disabled={status === 'loading' || workspaceUnavailable}
+              disabled={status === 'loading' || workspaceUnavailable || actionsLocked}
               className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
               data-testid="btn-generate"
             >

@@ -1,4 +1,6 @@
-use super::super::validate::config_schema::{validate_config_schema, CategoryYaml, ConfigSchemaYaml};
+use super::super::validate::config_schema::{
+    validate_config_schema, CategoryYaml, ConfigSchemaYaml,
+};
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -63,7 +65,11 @@ pub fn generate_dart_types(schema: &ConfigSchemaYaml) -> String {
 
         out.push_str(&format!("enum {cat_pascal}ConfigKey {{\n"));
         for (index, field) in cat.fields.iter().enumerate() {
-            let suffix = if index + 1 == cat.fields.len() { ";" } else { "," };
+            let suffix = if index + 1 == cat.fields.len() {
+                ";"
+            } else {
+                ","
+            };
             out.push_str(&format!("  {}{suffix}\n", to_camel_case(&field.key)));
         }
         out.push_str("\n  String get key => switch (this) {\n");
@@ -142,9 +148,7 @@ pub fn push_config_schema(
 pub fn load_validated_schema_from_file(
     path: &Path,
 ) -> Result<ConfigSchemaYaml, Box<dyn std::error::Error>> {
-    let path_str = path
-        .to_str()
-        .ok_or("schema path must be valid UTF-8")?;
+    let path_str = path.to_str().ok_or("schema path must be valid UTF-8")?;
     let errors = validate_config_schema(path_str)?;
     if errors > 0 {
         return Err(format!("config schema validation failed with {errors} error(s)").into());
@@ -218,10 +222,7 @@ pub fn write_generated_types_from_file(
 ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     let target_specs = targets
         .iter()
-        .map(|target| GeneratedTypesTarget {
-            target,
-            output_dir,
-        })
+        .map(|target| GeneratedTypesTarget { target, output_dir })
         .collect::<Vec<_>>();
     write_generated_types_to_targets_from_file(schema_path, &target_specs)
 }
@@ -267,7 +268,9 @@ fn to_pascal_case(value: &str) -> String {
 }
 
 fn to_camel_case(value: &str) -> String {
-    let mut segments = value.split(['_', '-']).filter(|segment| !segment.is_empty());
+    let mut segments = value
+        .split(['_', '-'])
+        .filter(|segment| !segment.is_empty());
     let Some(first) = segments.next() else {
         return String::new();
     };
@@ -393,12 +396,12 @@ mod tests {
             url,
             "https://config.example.com/api/v1/config-schema/my-service"
         );
-        assert!(headers.iter().any(|(key, value)| {
-            key == "Authorization" && value == "Bearer test-token"
-        }));
-        assert!(headers.iter().any(|(key, value)| {
-            key == "Content-Type" && value == "application/json"
-        }));
+        assert!(headers
+            .iter()
+            .any(|(key, value)| { key == "Authorization" && value == "Bearer test-token" }));
+        assert!(headers
+            .iter()
+            .any(|(key, value)| { key == "Content-Type" && value == "application/json" }));
 
         let body_json: serde_json::Value = serde_json::from_str(&body).unwrap();
         assert_eq!(body_json["namespace_prefix"], "service.myservice");
@@ -474,7 +477,9 @@ categories:
 
         assert_eq!(written.len(), 2);
         assert!(written.iter().any(|path| path.ends_with("config-types.ts")));
-        assert!(written.iter().any(|path| path.ends_with("config_types.dart")));
+        assert!(written
+            .iter()
+            .any(|path| path.ends_with("config_types.dart")));
         assert!(ts_dir.join("config-types.ts").exists());
         assert!(dart_dir.join("config_types.dart").exists());
     }
@@ -497,10 +502,8 @@ categories:
 "#,
         );
 
-        let error = generate_typescript_types_from_file(
-            schema_file.path().to_str().unwrap(),
-        )
-        .unwrap_err();
+        let error =
+            generate_typescript_types_from_file(schema_file.path().to_str().unwrap()).unwrap_err();
 
         assert!(error.to_string().contains("validation failed"));
     }

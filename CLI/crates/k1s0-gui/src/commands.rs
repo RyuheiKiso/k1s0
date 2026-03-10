@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Mutex, OnceLock};
 
+use crate::auth_session::{self, AuthSessionSummary, TokenPayload};
 use k1s0_core::commands::build::{self as build_cmd, BuildConfig};
 use k1s0_core::commands::deploy::{self as deploy_cmd, DeployConfig};
 use k1s0_core::commands::deps::{
@@ -9,9 +10,9 @@ use k1s0_core::commands::deps::{
 };
 use k1s0_core::commands::dev::{self as dev_cmd, DevDownConfig, DevUpConfig};
 use k1s0_core::commands::generate::config_types as config_types_cmd;
-use k1s0_core::commands::generate_events as event_codegen_cmd;
 use k1s0_core::commands::generate::navigation as nav_gen_cmd;
 use k1s0_core::commands::generate::{self as gen_cmd, GenerateConfig};
+use k1s0_core::commands::generate_events as event_codegen_cmd;
 use k1s0_core::commands::init::{self as init_cmd, InitConfig};
 use k1s0_core::commands::migrate::{
     self as migrate_cmd, DbConnection, MigrateCreateConfig, MigrateDownConfig, MigrateTarget,
@@ -20,6 +21,7 @@ use k1s0_core::commands::migrate::{
 use k1s0_core::commands::test_cmd::{self as test_cmd, TestConfig};
 use k1s0_core::commands::validate::config_schema as config_schema_validate;
 use k1s0_core::commands::validate::navigation as nav_validate;
+use k1s0_core::commands::validate::ValidationDiagnostic;
 use k1s0_core::config::CliConfig;
 use k1s0_core::progress::ProgressEvent;
 use reqwest::blocking::Client;
@@ -33,6 +35,7 @@ const DEFAULT_CLIENT_ID: &str = "k1s0-cli";
 const DEFAULT_SCOPE: &str = "openid profile email";
 const DEVICE_CODE_GRANT: &str = "urn:ietf:params:oauth:grant-type:device_code";
 static WORKSPACE_CWD_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+static FAILED_PROD_ROLLBACK_TARGET: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedFileResult {
@@ -49,6 +52,36 @@ pub struct ScaffoldDatabaseInfo {
 
 fn workspace_cwd_lock() -> &'static Mutex<()> {
     WORKSPACE_CWD_LOCK.get_or_init(|| Mutex::new(()))
+}
+
+fn failed_prod_rollback_target() -> &'static Mutex<Option<String>> {
+    FAILED_PROD_ROLLBACK_TARGET.get_or_init(|| Mutex::new(None))
+}
+
+fn set_failed_prod_rollback_target(target: Option<String>) -> Result<(), String> {
+    let mut guard = failed_prod_rollback_target()
+        .lock()
+        .map_err(|_| "failed to lock rollback target state".to_string())?;
+    *guard = target;
+    Ok(())
+}
+
+fn ensure_authenticated() -> Result<AuthSessionSummary, String> {
+    auth_session::require_auth_session()
+}
+
+fn current_failed_prod_rollback_target() -> Result<Option<String>, String> {
+    failed_prod_rollback_target()
+        .lock()
+        .map_err(|_| "failed to lock rollback target state".to_string())
+        .map(|guard| guard.clone())
+}
+
+fn deploy_rollback_target(config: &DeployConfig) -> Option<String> {
+    if config.environment.is_prod() && config.targets.len() == 1 {
+        return config.targets.first().cloned();
+    }
+    None
 }
 
 fn resolve_workspace_root_from_option(base_dir: Option<String>) -> Result<PathBuf, String> {
@@ -123,18 +156,21 @@ pub fn get_config(config_path: String) -> Result<CliConfig, String> {
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_init(config: InitConfig) -> Result<(), String> {
+    ensure_authenticated()?;
     init_cmd::execute_init(&config).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_generate(config: GenerateConfig) -> Result<(), String> {
+    ensure_authenticated()?;
     gen_cmd::execute_generate(&config).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_generate_at(config: GenerateConfig, base_dir: String) -> Result<(), String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
     gen_cmd::execute_generate_at(&config, &workspace_root).map_err(|error| error.to_string())
 }
@@ -142,18 +178,21 @@ pub fn execute_generate_at(config: GenerateConfig, base_dir: String) -> Result<(
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_build(config: BuildConfig) -> Result<(), String> {
+    ensure_authenticated()?;
     build_cmd::execute_build(&config).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_test(config: TestConfig) -> Result<(), String> {
+    ensure_authenticated()?;
     test_cmd::execute_test(&config).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_test_at(config: TestConfig, base_dir: String) -> Result<(), String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
     test_cmd::execute_test_at(&config, &workspace_root).map_err(|error| error.to_string())
 }
@@ -161,13 +200,53 @@ pub fn execute_test_at(config: TestConfig, base_dir: String) -> Result<(), Strin
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_deploy(config: DeployConfig) -> Result<(), String> {
-    deploy_cmd::execute_deploy(&config).map_err(|error| error.to_string())
+    ensure_authenticated()?;
+    let rollback_target = deploy_rollback_target(&config);
+    let result = deploy_cmd::execute_deploy(&config).map_err(|error| error.to_string());
+    set_failed_prod_rollback_target(if result.is_err() {
+        rollback_target
+    } else {
+        None
+    })?;
+    result
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_deploy_rollback(target: String) -> Result<String, String> {
-    deploy_cmd::execute_deploy_rollback(&target).map_err(|error| error.to_string())
+    ensure_authenticated()?;
+
+    let expected_target = failed_prod_rollback_target()
+        .lock()
+        .map_err(|_| "failed to lock rollback target state".to_string())?
+        .clone();
+    if expected_target.as_deref() != Some(target.as_str()) {
+        return Err(
+            "Rollback is only available for the last failed production deployment target."
+                .to_string(),
+        );
+    }
+
+    let result = deploy_cmd::execute_deploy_rollback(&target).map_err(|error| error.to_string());
+    if result.is_ok() {
+        set_failed_prod_rollback_target(None)?;
+    }
+    result
+}
+
+#[tauri::command]
+pub fn get_failed_prod_rollback_target() -> Result<Option<String>, String> {
+    current_failed_prod_rollback_target()
+}
+
+#[tauri::command]
+pub fn get_auth_session() -> Result<Option<AuthSessionSummary>, String> {
+    auth_session::load_auth_session()
+}
+
+#[tauri::command]
+pub fn clear_auth_session() -> Result<(), String> {
+    auth_session::clear_auth_session()
 }
 
 #[tauri::command]
@@ -194,7 +273,10 @@ pub fn scan_databases(
 
     let database_dirs: Vec<PathBuf> = match tier {
         k1s0_core::commands::generate::types::Tier::System => {
-            vec![workspace_root.join("regions").join("system").join("database")]
+            vec![workspace_root
+                .join("regions")
+                .join("system")
+                .join("database")]
         }
         k1s0_core::commands::generate::types::Tier::Business => {
             let root = workspace_root.join("regions").join("business");
@@ -294,19 +376,25 @@ pub fn validate_name(name: String) -> Result<(), String> {
 pub fn execute_validate_config_schema(
     path: String,
     base_dir: Option<String>,
-) -> Result<usize, String> {
+) -> Result<Vec<ValidationDiagnostic>, String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
     let resolved = resolve_workspace_path(&workspace_root, &path);
-    config_schema_validate::validate_config_schema(&resolved.to_string_lossy())
+    config_schema_validate::collect_config_schema_diagnostics(&resolved.to_string_lossy())
         .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn execute_validate_navigation(path: String, base_dir: Option<String>) -> Result<usize, String> {
+pub fn execute_validate_navigation(
+    path: String,
+    base_dir: Option<String>,
+) -> Result<Vec<ValidationDiagnostic>, String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
     let resolved = resolve_workspace_path(&workspace_root, &path);
-    nav_validate::validate_navigation(&resolved.to_string_lossy()).map_err(|error| error.to_string())
+    nav_validate::collect_navigation_diagnostics(&resolved.to_string_lossy())
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -316,11 +404,14 @@ pub fn execute_generate_config_types(
     target: String,
     base_dir: Option<String>,
 ) -> Result<String, String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
     let resolved = resolve_workspace_path(&workspace_root, &schema_path);
     match target.as_str() {
-        "typescript" => config_types_cmd::generate_typescript_types_from_file(&resolved.to_string_lossy())
-            .map_err(|error| error.to_string()),
+        "typescript" => {
+            config_types_cmd::generate_typescript_types_from_file(&resolved.to_string_lossy())
+                .map_err(|error| error.to_string())
+        }
         "dart" => config_types_cmd::generate_dart_types_from_file(&resolved.to_string_lossy())
             .map_err(|error| error.to_string()),
         _ => Err(format!("Unknown target: {target}")),
@@ -334,11 +425,14 @@ pub fn execute_generate_navigation_types(
     target: String,
     base_dir: Option<String>,
 ) -> Result<String, String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
     let resolved = resolve_workspace_path(&workspace_root, &nav_path);
     match target.as_str() {
-        "typescript" => nav_gen_cmd::generate_typescript_routes_from_file(&resolved.to_string_lossy())
-            .map_err(|error| error.to_string()),
+        "typescript" => {
+            nav_gen_cmd::generate_typescript_routes_from_file(&resolved.to_string_lossy())
+                .map_err(|error| error.to_string())
+        }
         "dart" => nav_gen_cmd::generate_dart_routes_from_file(&resolved.to_string_lossy())
             .map_err(|error| error.to_string()),
         _ => Err(format!("Unknown target: {target}")),
@@ -353,6 +447,7 @@ pub fn write_config_types(
     targets: Vec<String>,
     base_dir: String,
 ) -> Result<Vec<GeneratedFileResult>, String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
     let resolved_schema = resolve_workspace_path(&workspace_root, &schema_path);
     let resolved_output_dir = resolve_workspace_path(&workspace_root, &output_dir);
@@ -383,6 +478,7 @@ pub fn write_navigation_types(
     targets: Vec<String>,
     base_dir: String,
 ) -> Result<Vec<GeneratedFileResult>, String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
     let resolved_nav = resolve_workspace_path(&workspace_root, &nav_path);
     let resolved_output_dir = resolve_workspace_path(&workspace_root, &output_dir);
@@ -411,6 +507,7 @@ pub fn execute_test_with_progress(
     config: TestConfig,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), String> {
+    ensure_authenticated()?;
     test_cmd::execute_test_with_progress(&config, |event| {
         let _ = on_event.send(event);
     })
@@ -424,6 +521,7 @@ pub fn execute_test_with_progress_at(
     base_dir: String,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
     test_cmd::execute_test_with_progress_at(&config, &workspace_root, |event| {
         let _ = on_event.send(event);
@@ -437,6 +535,7 @@ pub fn execute_build_with_progress(
     config: BuildConfig,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), String> {
+    ensure_authenticated()?;
     build_cmd::execute_build_with_progress(&config, |event| {
         let _ = on_event.send(event);
     })
@@ -449,10 +548,18 @@ pub fn execute_deploy_with_progress(
     config: DeployConfig,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), String> {
-    deploy_cmd::execute_deploy_with_progress(&config, |event| {
+    ensure_authenticated()?;
+    let rollback_target = deploy_rollback_target(&config);
+    let result = deploy_cmd::execute_deploy_with_progress(&config, |event| {
         let _ = on_event.send(event);
     })
-    .map_err(|error| error.to_string())
+    .map_err(|error| error.to_string());
+    set_failed_prod_rollback_target(if result.is_err() {
+        rollback_target
+    } else {
+        None
+    })?;
+    result
 }
 
 #[tauri::command]
@@ -474,6 +581,7 @@ pub fn resolve_workspace_root(path: String) -> Result<String, String> {
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_deps(config: DepsConfig, base_dir: Option<String>) -> Result<DepsResult, String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
     let result =
         deps_cmd::execute_deps_at(&workspace_root, &config).map_err(|error| error.to_string())?;
@@ -485,8 +593,7 @@ pub fn execute_deps(config: DepsConfig, base_dir: Option<String>) -> Result<Deps
             } else {
                 workspace_root.join(path)
             };
-            deps_output::write_mermaid(&result, &output_path)
-                .map_err(|error| error.to_string())?;
+            deps_output::write_mermaid(&result, &output_path).map_err(|error| error.to_string())?;
         }
         DepsOutputFormat::Terminal => {}
     }
@@ -507,17 +614,24 @@ pub fn scan_services(base_dir: String) -> Vec<deps_cmd::ServiceInfo> {
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_dev_up(config: DevUpConfig, base_dir: Option<String>) -> Result<(), String> {
-    with_workspace_cwd(base_dir, |_| dev_cmd::execute_dev_up(&config).map_err(|error| error.to_string()))
+    ensure_authenticated()?;
+    with_workspace_cwd(base_dir, |_| {
+        dev_cmd::execute_dev_up(&config).map_err(|error| error.to_string())
+    })
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_dev_down(config: DevDownConfig, base_dir: Option<String>) -> Result<(), String> {
-    with_workspace_cwd(base_dir, |_| dev_cmd::execute_dev_down(&config).map_err(|error| error.to_string()))
+    ensure_authenticated()?;
+    with_workspace_cwd(base_dir, |_| {
+        dev_cmd::execute_dev_down(&config).map_err(|error| error.to_string())
+    })
 }
 
 #[tauri::command]
 pub fn execute_dev_status(base_dir: Option<String>) -> Result<String, String> {
+    ensure_authenticated()?;
     with_workspace_cwd(base_dir, |_| {
         let compose_dir = Path::new(".k1s0-dev");
         if !compose_dir.join("docker-compose.yaml").exists() {
@@ -535,8 +649,8 @@ pub fn execute_dev_status(base_dir: Option<String>) -> Result<String, String> {
             }
         }
 
-        let compose_status = dev_cmd::docker::compose_status(compose_dir)
-            .map_err(|error| error.to_string())?;
+        let compose_status =
+            dev_cmd::docker::compose_status(compose_dir).map_err(|error| error.to_string())?;
         output.push_str("\n--- コンテナの状態 ---\n");
         output.push_str(&compose_status);
 
@@ -546,7 +660,11 @@ pub fn execute_dev_status(base_dir: Option<String>) -> Result<String, String> {
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn execute_dev_logs(service: Option<String>, base_dir: Option<String>) -> Result<String, String> {
+pub fn execute_dev_logs(
+    service: Option<String>,
+    base_dir: Option<String>,
+) -> Result<String, String> {
+    ensure_authenticated()?;
     with_workspace_cwd(base_dir, |_| {
         let compose_dir = Path::new(".k1s0-dev");
         if !compose_dir.join("docker-compose.yaml").exists() {
@@ -589,6 +707,7 @@ pub fn scan_dev_targets(base_dir: String) -> Vec<(String, String)> {
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn execute_migrate_create(config: MigrateCreateConfig) -> Result<(String, String), String> {
+    ensure_authenticated()?;
     migrate_cmd::create_migration(&config)
         .map(|(up, down)| {
             (
@@ -601,10 +720,8 @@ pub fn execute_migrate_create(config: MigrateCreateConfig) -> Result<(String, St
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn execute_migrate_up(
-    config: MigrateUpConfig,
-    base_dir: Option<String>,
-) -> Result<(), String> {
+pub fn execute_migrate_up(config: MigrateUpConfig, base_dir: Option<String>) -> Result<(), String> {
+    ensure_authenticated()?;
     with_workspace_cwd(base_dir, |_| {
         migrate_cmd::execute_migrate_up(&config).map_err(|error| error.to_string())
     })
@@ -616,6 +733,7 @@ pub fn execute_migrate_down(
     config: MigrateDownConfig,
     base_dir: Option<String>,
 ) -> Result<(), String> {
+    ensure_authenticated()?;
     with_workspace_cwd(base_dir, |_| {
         migrate_cmd::execute_migrate_down(&config).map_err(|error| error.to_string())
     })
@@ -628,6 +746,7 @@ pub fn execute_migrate_status(
     connection: DbConnection,
     base_dir: Option<String>,
 ) -> Result<Vec<MigrationStatus>, String> {
+    ensure_authenticated()?;
     with_workspace_cwd(base_dir, |_| {
         migrate_cmd::get_migration_status(&target, &connection).map_err(|error| error.to_string())
     })
@@ -641,6 +760,7 @@ pub fn execute_migrate_repair(
     connection: DbConnection,
     base_dir: Option<String>,
 ) -> Result<(), String> {
+    ensure_authenticated()?;
     with_workspace_cwd(base_dir, |_| {
         migrate_cmd::execute_repair(&target, &operation, &connection)
             .map_err(|error| error.to_string())
@@ -658,11 +778,15 @@ pub fn scan_migrate_targets(base_dir: String) -> Vec<migrate_cmd::MigrateTarget>
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn preview_event_codegen(events_path: String, base_dir: Option<String>) -> Result<String, String> {
+pub fn preview_event_codegen(
+    events_path: String,
+    base_dir: Option<String>,
+) -> Result<String, String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
     let resolved = resolve_workspace_path(&workspace_root, &events_path);
-    let config =
-        event_codegen_cmd::parse_events_yaml(&resolved.to_string_lossy()).map_err(|error| error.to_string())?;
+    let config = event_codegen_cmd::parse_events_yaml(&resolved.to_string_lossy())
+        .map_err(|error| error.to_string())?;
     Ok(event_codegen_cmd::format_generation_summary(&config))
 }
 
@@ -672,10 +796,11 @@ pub fn execute_event_codegen(
     events_path: String,
     base_dir: Option<String>,
 ) -> Result<Vec<String>, String> {
+    ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
     let resolved = resolve_workspace_path(&workspace_root, &events_path);
-    let config =
-        event_codegen_cmd::parse_events_yaml(&resolved.to_string_lossy()).map_err(|error| error.to_string())?;
+    let config = event_codegen_cmd::parse_events_yaml(&resolved.to_string_lossy())
+        .map_err(|error| error.to_string())?;
     let template_dir = resolve_event_template_dir(&workspace_root)?;
     let output_dir = resolved
         .parent()
@@ -704,20 +829,10 @@ pub struct DeviceAuthorizationChallenge {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuthTokens {
-    pub access_token: String,
-    pub refresh_token: Option<String>,
-    pub id_token: Option<String>,
-    pub token_type: String,
-    pub expires_in: u64,
-    pub scope: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "status")]
 pub enum DeviceAuthorizationPollResult {
     Pending { interval: u64, message: String },
-    Success { tokens: AuthTokens },
+    Success { session: AuthSessionSummary },
     Error { message: String },
 }
 
@@ -825,8 +940,12 @@ pub fn poll_device_authorization(
 
     if response.status().is_success() {
         let payload: RawTokenResponse = response.json().map_err(|error| error.to_string())?;
-        return Ok(DeviceAuthorizationPollResult::Success {
-            tokens: AuthTokens {
+        let session = auth_session::store_auth_session(
+            challenge.issuer,
+            challenge.client_id,
+            challenge.scope,
+            challenge.token_endpoint,
+            TokenPayload {
                 access_token: payload.access_token,
                 refresh_token: payload.refresh_token,
                 id_token: payload.id_token,
@@ -834,7 +953,8 @@ pub fn poll_device_authorization(
                 expires_in: payload.expires_in,
                 scope: payload.scope,
             },
-        });
+        )?;
+        return Ok(DeviceAuthorizationPollResult::Success { session });
     }
 
     let status = response.status();

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
+import { renderWithProviders } from '../../test/render';
 import EventCodegenPage from '../EventCodegenPage';
 
 beforeEach(() => {
@@ -20,7 +21,7 @@ beforeEach(() => {
 describe('EventCodegenPage', () => {
   it('previews and generates event assets', async () => {
     const user = userEvent.setup();
-    render(<EventCodegenPage />);
+    renderWithProviders(<EventCodegenPage />);
 
     await user.click(screen.getByTestId('btn-preview-event'));
     expect(await screen.findByText(/Event count: 1/)).toBeInTheDocument();

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import ProgressLog from '../components/ProgressLog';
+import { useAuth } from '../lib/auth';
 import { toDisplayPath } from '../lib/paths';
 import {
   executeTestWithProgressAt,
@@ -10,9 +12,11 @@ import {
 import { useWorkspace } from '../lib/workspace';
 
 export default function TestPage() {
+  const auth = useAuth();
   const workspace = useWorkspace();
   const activeWorkspaceRoot = workspace.workspaceRoot || '.';
   const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
+  const actionsLocked = auth.loading || !auth.isAuthenticated;
 
   const [targets, setTargets] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -141,6 +145,7 @@ export default function TestPage() {
           Configure a valid workspace root before scanning test targets.
         </p>
       )}
+      {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -167,6 +172,7 @@ export default function TestPage() {
             disabled={
               status === 'loading' ||
               workspaceUnavailable ||
+              actionsLocked ||
               (kind !== 'All' && selected.length === 0)
             }
             className="mt-6 rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
