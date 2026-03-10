@@ -1,10 +1,11 @@
 use anyhow::Result;
-use dialoguer::{Input, MultiSelect};
+use dialoguer::Input;
 use std::fs;
+use std::path::PathBuf;
 
 use crate::prompt;
 use k1s0_core::commands::generate::config_types::{
-    build_push_request, generate_dart_types, generate_typescript_types,
+    build_push_request, write_generated_types_from_file,
 };
 use k1s0_core::commands::validate::config_schema::ConfigSchemaYaml;
 
@@ -30,23 +31,34 @@ pub fn run() -> Result<()> {
     let schema: ConfigSchemaYaml = serde_yaml::from_str(&content)
         .map_err(|e| anyhow::anyhow!("config-schema.yaml のパースエラー: {e}"))?;
 
-    // Step 2: 対象フレームワーク（複数選択）
-    let fw_items = &["React (TypeScript)", "Flutter (Dart)"];
-    let Some(fw_selection) = MultiSelect::with_theme(&prompt::theme())
-        .with_prompt("対象フレームワーク（スペースで選択、Enter で確定）")
-        .items(fw_items)
-        .defaults(&[true, true])
-        .interact_opt()?
+    // Step 2: 生成ターゲット
+    let Some(target_idx) = prompt::select_prompt(
+        "生成ターゲットを選択してください",
+        &["TypeScript", "Dart", "両方"],
+    )?
     else {
         return Ok(());
     };
 
-    if fw_selection.is_empty() {
-        println!("フレームワークが選択されていません。");
-        return Ok(());
-    }
+    let targets: Vec<&str> = match target_idx {
+        0 => vec!["typescript"],
+        1 => vec!["dart"],
+        2 => vec!["typescript", "dart"],
+        _ => unreachable!(),
+    };
 
-    // Step 3: config server に push するか
+    // Step 3: 出力先ディレクトリ
+    let default_output_dir = match target_idx {
+        0 => "src/config/__generated__",
+        1 => "lib/config/__generated__",
+        _ => "generated/config",
+    };
+    let output_dir: String = Input::with_theme(&prompt::theme())
+        .with_prompt("生成先ディレクトリ")
+        .default(default_output_dir.to_string())
+        .interact_text()?;
+
+    // Step 4: config server に push するか
     let push = match prompt::yes_no_prompt("config server に push しますか？")? {
         Some(v) => v,
         None => return Ok(()),
@@ -68,11 +80,19 @@ pub fn run() -> Result<()> {
     if let Some(ref url) = server_url {
         println!("  push:     {url}");
     }
-    if fw_selection.contains(&0) {
-        println!("  React  → src/config/__generated__/config-types.ts");
-    }
-    if fw_selection.contains(&1) {
-        println!("  Flutter → lib/config/__generated__/config_types.dart");
+    println!("  出力先:   {}", output_dir);
+    for target in &targets {
+        match *target {
+            "typescript" => println!(
+                "  TypeScript → {}",
+                PathBuf::from(&output_dir).join("config-types.ts").display()
+            ),
+            "dart" => println!(
+                "  Dart       → {}",
+                PathBuf::from(&output_dir).join("config_types.dart").display()
+            ),
+            _ => {}
+        }
     }
 
     if prompt::confirm_prompt()? == prompt::ConfirmResult::Yes {
@@ -83,19 +103,14 @@ pub fn run() -> Result<()> {
 
     // 型定義生成
     println!("\n型定義ファイルを生成中...");
-    if fw_selection.contains(&0) {
-        let ts = generate_typescript_types(&schema);
-        let out_path = "src/config/__generated__/config-types.ts";
-        fs::create_dir_all("src/config/__generated__")?;
-        fs::write(out_path, ts)?;
-        println!("  ✅ {out_path}");
-    }
-    if fw_selection.contains(&1) {
-        let dart = generate_dart_types(&schema);
-        let out_path = "lib/config/__generated__/config_types.dart";
-        fs::create_dir_all("lib/config/__generated__")?;
-        fs::write(out_path, dart)?;
-        println!("  ✅ {out_path}");
+    let generated = write_generated_types_from_file(
+        std::path::Path::new(&schema_path),
+        std::path::Path::new(&output_dir),
+        &targets,
+    )
+    .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+    for path in &generated {
+        println!("  ✅ {}", path.display());
     }
 
     // push

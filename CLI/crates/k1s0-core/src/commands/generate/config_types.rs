@@ -1,4 +1,6 @@
 use super::super::validate::config_schema::ConfigSchemaYaml;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 /// `TypeScript型定義を生成`
 pub fn generate_typescript_types(schema: &ConfigSchemaYaml) -> String {
@@ -165,6 +167,49 @@ pub fn generate_dart_types_from_file(path: &str) -> Result<String, Box<dyn std::
     let content = std::fs::read_to_string(path)?;
     let schema: ConfigSchemaYaml = serde_yaml::from_str(&content)?;
     Ok(generate_dart_types(&schema))
+}
+
+/// 指定スキーマから TypeScript 型定義を書き出す。
+pub fn write_typescript_types_file(
+    schema: &ConfigSchemaYaml,
+    output_dir: &Path,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    fs::create_dir_all(output_dir)?;
+    let output_path = output_dir.join("config-types.ts");
+    fs::write(&output_path, generate_typescript_types(schema))?;
+    Ok(output_path)
+}
+
+/// 指定スキーマから Dart 型定義を書き出す。
+pub fn write_dart_types_file(
+    schema: &ConfigSchemaYaml,
+    output_dir: &Path,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    fs::create_dir_all(output_dir)?;
+    let output_path = output_dir.join("config_types.dart");
+    fs::write(&output_path, generate_dart_types(schema))?;
+    Ok(output_path)
+}
+
+/// ファイルパスから複数ターゲットの型定義を生成して書き出す。
+pub fn write_generated_types_from_file(
+    schema_path: &Path,
+    output_dir: &Path,
+    targets: &[&str],
+) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(schema_path)?;
+    let schema: ConfigSchemaYaml = serde_yaml::from_str(&content)?;
+
+    let mut written = Vec::new();
+    for target in targets {
+        match *target {
+            "typescript" => written.push(write_typescript_types_file(&schema, output_dir)?),
+            "dart" => written.push(write_dart_types_file(&schema, output_dir)?),
+            other => return Err(format!("unsupported target: {other}").into()),
+        }
+    }
+
+    Ok(written)
 }
 
 // ============================================================================

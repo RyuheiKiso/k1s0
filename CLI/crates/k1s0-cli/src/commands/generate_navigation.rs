@@ -1,9 +1,10 @@
 use anyhow::Result;
 use dialoguer::Input;
 use std::fs;
+use std::path::PathBuf;
 
 use crate::prompt;
-use k1s0_core::commands::generate::navigation::{generate_dart_routes, generate_typescript_routes};
+use k1s0_core::commands::generate::navigation::write_generated_routes_from_file;
 use k1s0_core::commands::validate::navigation::NavigationYaml;
 
 /// ナビゲーション型ファイル生成コマンドを実行する。
@@ -26,17 +27,32 @@ pub fn run() -> Result<()> {
     let nav: NavigationYaml = serde_yaml::from_str(&content)
         .map_err(|e| anyhow::anyhow!("navigation.yaml のパースエラー: {e}"))?;
 
-    // Step 2: 対象フレームワーク
+    // Step 2: 生成ターゲット
     let Some(idx) = prompt::select_prompt(
-        "対象フレームワークを選択してください",
-        &["React (TypeScript)", "Flutter (Dart)", "両方"],
+        "生成ターゲットを選択してください",
+        &["TypeScript", "Dart", "両方"],
     )?
     else {
         return Ok(());
     };
 
-    let gen_react = idx == 0 || idx == 2;
-    let gen_flutter = idx == 1 || idx == 2;
+    let targets: Vec<&str> = match idx {
+        0 => vec!["typescript"],
+        1 => vec!["dart"],
+        2 => vec!["typescript", "dart"],
+        _ => unreachable!(),
+    };
+
+    // Step 3: 出力先ディレクトリ
+    let default_output_dir = match idx {
+        0 => "src/navigation/__generated__",
+        1 => "lib/navigation/__generated__",
+        _ => "generated/navigation",
+    };
+    let output_dir: String = Input::with_theme(&prompt::theme())
+        .with_prompt("生成先ディレクトリ")
+        .default(default_output_dir.to_string())
+        .interact_text()?;
 
     // 確認
     println!("\n[確認] 以下の内容で実行します。よろしいですか？");
@@ -45,11 +61,19 @@ pub fn run() -> Result<()> {
         nav_path,
         nav.routes.len()
     );
-    if gen_react {
-        println!("  React  → src/navigation/__generated__/route-types.ts");
-    }
-    if gen_flutter {
-        println!("  Flutter → lib/navigation/__generated__/route_ids.dart");
+    println!("  出力先:         {}", output_dir);
+    for target in &targets {
+        match *target {
+            "typescript" => println!(
+                "  TypeScript      → {}",
+                PathBuf::from(&output_dir).join("route-types.ts").display()
+            ),
+            "dart" => println!(
+                "  Dart            → {}",
+                PathBuf::from(&output_dir).join("route_ids.dart").display()
+            ),
+            _ => {}
+        }
     }
 
     if prompt::confirm_prompt()? == prompt::ConfirmResult::Yes {
@@ -60,19 +84,14 @@ pub fn run() -> Result<()> {
 
     // 生成
     println!("\n型定義ファイルを生成中...");
-    if gen_react {
-        let ts = generate_typescript_routes(&nav);
-        let out_path = "src/navigation/__generated__/route-types.ts";
-        fs::create_dir_all("src/navigation/__generated__")?;
-        fs::write(out_path, ts)?;
-        println!("  ✅ {out_path}");
-    }
-    if gen_flutter {
-        let dart = generate_dart_routes(&nav);
-        let out_path = "lib/navigation/__generated__/route_ids.dart";
-        fs::create_dir_all("lib/navigation/__generated__")?;
-        fs::write(out_path, dart)?;
-        println!("  ✅ {out_path}");
+    let generated = write_generated_routes_from_file(
+        std::path::Path::new(&nav_path),
+        std::path::Path::new(&output_dir),
+        &targets,
+    )
+    .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+    for path in &generated {
+        println!("  ✅ {}", path.display());
     }
 
     println!("\nナビゲーション型ファイルの生成が完了しました。");

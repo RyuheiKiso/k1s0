@@ -10,6 +10,15 @@ export type BuildMode = 'Development' | 'Production';
 export type TestKind = 'Unit' | 'Integration' | 'All';
 export type Environment = 'Dev' | 'Staging' | 'Prod';
 export type GenerateTarget = 'typescript' | 'dart';
+export type TypeOutputTarget = GenerateTarget | 'both';
+export type AuthMode = 'Skip' | 'Keycloak';
+export type CleanupLevel = 'ContainersOnly' | 'ContainersAndVolumes';
+export type MigrateLanguage = 'Rust' | 'Go';
+export type DepsScope = 'All' | { Tier: string } | { Services: string[] };
+export type DepsOutputFormat = 'Terminal' | { Mermaid: string } | { Both: string };
+export type MigrateRange = 'All' | { UpTo: number };
+export type DbConnection = 'LocalDev' | { Custom: string };
+export type RepairOperation = 'ClearDirty' | { ForceVersion: number };
 
 export interface DbInfo {
   name: string;
@@ -66,6 +75,105 @@ export interface CliConfig {
   [key: string]: unknown;
 }
 
+export interface GeneratedFileResult {
+  path: string;
+  preview: string;
+}
+
+export interface ScaffoldDatabaseInfo {
+  name: string;
+  rdbms: Rdbms;
+  path: string;
+}
+
+export interface DepsConfig {
+  scope: DepsScope;
+  output: DepsOutputFormat;
+  no_cache: boolean;
+}
+
+export interface ServiceInfo {
+  name: string;
+  tier: string;
+  domain: string | null;
+  language: string;
+  path: string;
+}
+
+export type DependencyType = 'Grpc' | 'Kafka' | 'Rest' | 'GraphQL' | 'Library';
+export type Severity = 'Error' | 'Warning' | 'Info';
+
+export interface Dependency {
+  source: string;
+  source_tier: string;
+  target: string;
+  target_tier: string;
+  dep_type: DependencyType;
+  locations: string[];
+  detail: string | null;
+}
+
+export interface Violation {
+  severity: Severity;
+  source: string;
+  source_tier: string;
+  target: string;
+  target_tier: string;
+  dep_type: DependencyType;
+  message: string;
+  location: string | null;
+  recommendation: string;
+}
+
+export interface DepsResult {
+  services: ServiceInfo[];
+  dependencies: Dependency[];
+  violations: Violation[];
+}
+
+export interface DevUpConfig {
+  services: string[];
+  auth_mode: AuthMode;
+}
+
+export interface DevDownConfig {
+  cleanup: CleanupLevel;
+}
+
+export type DevTarget = [string, string];
+
+export interface MigrateTarget {
+  service_name: string;
+  tier: string;
+  language: MigrateLanguage;
+  migrations_dir: string;
+  db_name: string;
+}
+
+export interface MigrateCreateConfig {
+  target: MigrateTarget;
+  migration_name: string;
+}
+
+export interface MigrateUpConfig {
+  target: MigrateTarget;
+  range: MigrateRange;
+  connection: DbConnection;
+}
+
+export interface MigrateDownConfig {
+  target: MigrateTarget;
+  range: MigrateRange;
+  connection: DbConnection;
+}
+
+export interface MigrationStatus {
+  number: number;
+  description: string;
+  applied: boolean;
+  applied_at: string | null;
+}
+
 export type ProgressEvent =
   | { kind: 'StepStarted'; step: number; total: number; message: string }
   | { kind: 'StepCompleted'; step: number; total: number; message: string }
@@ -107,6 +215,10 @@ function createProgressChannel(onEvent: (event: ProgressEvent) => void): Channel
   return channel;
 }
 
+function withBaseDir(baseDir?: string) {
+  return baseDir ? { baseDir } : {};
+}
+
 export async function getConfig(configPath: string): Promise<CliConfig> {
   return invoke<CliConfig>('get_config', { configPath });
 }
@@ -119,10 +231,7 @@ export async function executeGenerate(config: GenerateConfig): Promise<void> {
   return invoke<void>('execute_generate', { config });
 }
 
-export async function executeGenerateAt(
-  config: GenerateConfig,
-  baseDir: string,
-): Promise<void> {
+export async function executeGenerateAt(config: GenerateConfig, baseDir: string): Promise<void> {
   return invoke<void>('execute_generate_at', { config, baseDir });
 }
 
@@ -162,30 +271,87 @@ export async function scanPlacements(tier: Tier, baseDir: string): Promise<strin
   return invoke<string[]>('scan_placements', { tier, baseDir });
 }
 
+export async function scanDatabases(
+  tier: Tier,
+  baseDir: string,
+): Promise<ScaffoldDatabaseInfo[]> {
+  return invoke<ScaffoldDatabaseInfo[]>('scan_databases', { tier, baseDir });
+}
+
 export async function validateName(name: string): Promise<void> {
   return invoke<void>('validate_name', { name });
 }
 
-export async function executeValidateConfigSchema(path: string): Promise<number> {
-  return invoke<number>('execute_validate_config_schema', { path });
+export async function executeValidateConfigSchema(
+  path: string,
+  baseDir?: string,
+): Promise<number> {
+  return invoke<number>('execute_validate_config_schema', {
+    path,
+    ...withBaseDir(baseDir),
+  });
 }
 
-export async function executeValidateNavigation(path: string): Promise<number> {
-  return invoke<number>('execute_validate_navigation', { path });
+export async function executeValidateNavigation(
+  path: string,
+  baseDir?: string,
+): Promise<number> {
+  return invoke<number>('execute_validate_navigation', {
+    path,
+    ...withBaseDir(baseDir),
+  });
 }
 
 export async function executeGenerateConfigTypes(
   schemaPath: string,
   target: GenerateTarget,
+  baseDir?: string,
 ): Promise<string> {
-  return invoke<string>('execute_generate_config_types', { schemaPath, target });
+  return invoke<string>('execute_generate_config_types', {
+    schemaPath,
+    target,
+    ...withBaseDir(baseDir),
+  });
 }
 
 export async function executeGenerateNavigationTypes(
   navPath: string,
   target: GenerateTarget,
+  baseDir?: string,
 ): Promise<string> {
-  return invoke<string>('execute_generate_navigation_types', { navPath, target });
+  return invoke<string>('execute_generate_navigation_types', {
+    navPath,
+    target,
+    ...withBaseDir(baseDir),
+  });
+}
+
+export async function writeConfigTypes(
+  schemaPath: string,
+  outputDir: string,
+  targets: GenerateTarget[],
+  baseDir: string,
+): Promise<GeneratedFileResult[]> {
+  return invoke<GeneratedFileResult[]>('write_config_types', {
+    schemaPath,
+    outputDir,
+    targets,
+    baseDir,
+  });
+}
+
+export async function writeNavigationTypes(
+  navPath: string,
+  outputDir: string,
+  targets: GenerateTarget[],
+  baseDir: string,
+): Promise<GeneratedFileResult[]> {
+  return invoke<GeneratedFileResult[]>('write_navigation_types', {
+    navPath,
+    outputDir,
+    targets,
+    baseDir,
+  });
 }
 
 export async function executeTestWithProgress(
@@ -236,6 +402,110 @@ export async function detectWorkspaceRoot(): Promise<string | null> {
 
 export async function resolveWorkspaceRoot(path: string): Promise<string> {
   return invoke<string>('resolve_workspace_root', { path });
+}
+
+export async function executeDeps(config: DepsConfig, baseDir?: string): Promise<DepsResult> {
+  return invoke<DepsResult>('execute_deps', { config, ...withBaseDir(baseDir) });
+}
+
+export async function scanServices(baseDir: string): Promise<ServiceInfo[]> {
+  return invoke<ServiceInfo[]>('scan_services', { baseDir });
+}
+
+export async function executeDevUp(config: DevUpConfig, baseDir?: string): Promise<void> {
+  return invoke<void>('execute_dev_up', { config, ...withBaseDir(baseDir) });
+}
+
+export async function executeDevDown(config: DevDownConfig, baseDir?: string): Promise<void> {
+  return invoke<void>('execute_dev_down', { config, ...withBaseDir(baseDir) });
+}
+
+export async function executeDevStatus(baseDir?: string): Promise<string> {
+  return invoke<string>('execute_dev_status', withBaseDir(baseDir));
+}
+
+export async function executeDevLogs(
+  service?: string | null,
+  baseDir?: string,
+): Promise<string> {
+  return invoke<string>('execute_dev_logs', {
+    service: service ?? null,
+    ...withBaseDir(baseDir),
+  });
+}
+
+export async function scanDevTargets(baseDir: string): Promise<DevTarget[]> {
+  return invoke<DevTarget[]>('scan_dev_targets', { baseDir });
+}
+
+export async function executeMigrateCreate(
+  config: MigrateCreateConfig,
+): Promise<[string, string]> {
+  return invoke<[string, string]>('execute_migrate_create', { config });
+}
+
+export async function executeMigrateUp(
+  config: MigrateUpConfig,
+  baseDir?: string,
+): Promise<void> {
+  return invoke<void>('execute_migrate_up', { config, ...withBaseDir(baseDir) });
+}
+
+export async function executeMigrateDown(
+  config: MigrateDownConfig,
+  baseDir?: string,
+): Promise<void> {
+  return invoke<void>('execute_migrate_down', { config, ...withBaseDir(baseDir) });
+}
+
+export async function executeMigrateStatus(
+  target: MigrateTarget,
+  connection: DbConnection,
+  baseDir?: string,
+): Promise<MigrationStatus[]> {
+  return invoke<MigrationStatus[]>('execute_migrate_status', {
+    target,
+    connection,
+    ...withBaseDir(baseDir),
+  });
+}
+
+export async function executeMigrateRepair(
+  target: MigrateTarget,
+  operation: RepairOperation,
+  connection: DbConnection,
+  baseDir?: string,
+): Promise<void> {
+  return invoke<void>('execute_migrate_repair', {
+    target,
+    operation,
+    connection,
+    ...withBaseDir(baseDir),
+  });
+}
+
+export async function scanMigrateTargets(baseDir: string): Promise<MigrateTarget[]> {
+  return invoke<MigrateTarget[]>('scan_migrate_targets', { baseDir });
+}
+
+export async function previewEventCodegen(
+  eventsPath: string,
+  baseDir?: string,
+): Promise<string> {
+  return invoke<string>('preview_event_codegen', {
+    eventsPath,
+    ...withBaseDir(baseDir),
+  });
+}
+
+export async function executeEventCodegen(
+  eventsPath: string,
+  baseDir?: string,
+): Promise<string[]> {
+  return invoke<string[]>('execute_event_codegen', {
+    eventsPath,
+    ...withBaseDir(baseDir),
+  });
 }
 
 export async function startDeviceAuthorization(): Promise<DeviceAuthorizationChallenge> {

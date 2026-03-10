@@ -1,86 +1,210 @@
 import { useState } from 'react';
-import { executeGenerateNavigationTypes, type GenerateTarget } from '../lib/tauri-commands';
+import {
+  executeGenerateNavigationTypes,
+  writeNavigationTypes,
+  type GenerateTarget,
+  type GeneratedFileResult,
+  type TypeOutputTarget,
+} from '../lib/tauri-commands';
+import { toDisplayPath } from '../lib/paths';
+import { useWorkspace } from '../lib/workspace';
+
+type PreviewResult = { label: string; content: string };
+
+function expandTargets(target: TypeOutputTarget): GenerateTarget[] {
+  return target === 'both' ? ['typescript', 'dart'] : [target];
+}
+
+function formatLabel(target: GenerateTarget) {
+  return target === 'typescript' ? 'TypeScript' : 'Dart';
+}
 
 export default function NavigationTypesPage() {
+  const workspace = useWorkspace();
+  const activeWorkspaceRoot = workspace.workspaceRoot || '.';
+  const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
+
   const [navPath, setNavPath] = useState('config/navigation.yaml');
-  const [target, setTarget] = useState<GenerateTarget>('typescript');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [output, setOutput] = useState('');
+  const [outputDir, setOutputDir] = useState('src/navigation/__generated__');
+  const [target, setTarget] = useState<TypeOutputTarget>('both');
+  const [previewStatus, setPreviewStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(
+    'idle',
+  );
+  const [writeStatus, setWriteStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [previewResults, setPreviewResults] = useState<PreviewResult[]>([]);
+  const [writtenFiles, setWrittenFiles] = useState<GeneratedFileResult[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
 
-  async function handleGenerate() {
-    setStatus('loading');
-    setOutput('');
+  async function handlePreview() {
+    setPreviewStatus('loading');
     setErrorMessage('');
+    setPreviewResults([]);
 
     try {
-      const result = await executeGenerateNavigationTypes(navPath, target);
-      setOutput(result);
-      setStatus('success');
+      const previews = await Promise.all(
+        expandTargets(target).map(async (currentTarget) => ({
+          label: formatLabel(currentTarget),
+          content: await executeGenerateNavigationTypes(
+            navPath,
+            currentTarget,
+            activeWorkspaceRoot,
+          ),
+        })),
+      );
+      setPreviewResults(previews);
+      setPreviewStatus('success');
     } catch (error) {
-      setStatus('error');
+      setPreviewStatus('error');
+      setErrorMessage(String(error));
+    }
+  }
+
+  async function handleWrite() {
+    setWriteStatus('loading');
+    setErrorMessage('');
+    setWrittenFiles([]);
+
+    try {
+      const files = await writeNavigationTypes(
+        navPath,
+        outputDir,
+        expandTargets(target),
+        activeWorkspaceRoot,
+      );
+      setWrittenFiles(files);
+      setWriteStatus('success');
+    } catch (error) {
+      setWriteStatus('error');
       setErrorMessage(String(error));
     }
   }
 
   return (
-    <div className="glass max-w-3xl p-6" data-testid="navigation-types-page">
+    <div className="glass max-w-4xl p-6" data-testid="navigation-types-page">
       <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Types</p>
       <h1 className="mt-2 text-3xl font-semibold text-white">Generate navigation contracts</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Generate navigation route types from `config/navigation.yaml`.
+        Preview and write navigation route types from the selected workspace.
       </p>
 
-      <div className="mt-6 space-y-5">
-        <div>
-          <label className="block text-sm font-medium text-slate-200/82">Navigation file</label>
-          <input
-            type="text"
-            value={navPath}
-            onChange={(event) => setNavPath(event.target.value)}
-            className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
-            data-testid="input-nav-path"
-          />
-        </div>
+      {workspaceUnavailable && (
+        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+          Configure a valid workspace root before generating files.
+        </p>
+      )}
 
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium text-slate-200/82">Target</legend>
-          {(['typescript', 'dart'] as GenerateTarget[]).map((value) => (
-            <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-200/82">Navigation file</label>
               <input
-                type="radio"
-                checked={target === value}
-                onChange={() => setTarget(value)}
-                name="navigation-types-target"
+                type="text"
+                value={navPath}
+                onChange={(event) => setNavPath(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                data-testid="input-nav-path"
               />
-              {value}
-            </label>
-          ))}
-        </fieldset>
+            </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            void handleGenerate();
-          }}
-          disabled={status === 'loading' || !navPath}
-          className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
-          data-testid="btn-generate"
-        >
-          {status === 'loading' ? 'Generating...' : 'Generate'}
-        </button>
+            <div>
+              <label className="block text-sm font-medium text-slate-200/82">Output directory</label>
+              <input
+                type="text"
+                value={outputDir}
+                onChange={(event) => setOutputDir(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                data-testid="input-output-dir"
+              />
+            </div>
 
-        {status === 'error' && (
-          <p className="text-sm text-rose-300" data-testid="error-message">
-            {errorMessage}
-          </p>
-        )}
-
-        {status === 'success' && output && (
-          <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4" data-testid="output-area">
-            <pre className="overflow-auto whitespace-pre-wrap text-xs text-slate-100">{output}</pre>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium text-slate-200/82">Target</legend>
+              {(['typescript', 'dart', 'both'] as TypeOutputTarget[]).map((value) => (
+                <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
+                  <input
+                    type="radio"
+                    checked={target === value}
+                    onChange={() => setTarget(value)}
+                    name="navigation-types-target"
+                  />
+                  {value === 'both' ? 'TypeScript + Dart' : formatLabel(value)}
+                </label>
+              ))}
+            </fieldset>
           </div>
-        )}
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                void handlePreview();
+              }}
+              disabled={previewStatus === 'loading' || !navPath || workspaceUnavailable}
+              className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              data-testid="btn-preview"
+            >
+              {previewStatus === 'loading' ? 'Previewing...' : 'Preview'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void handleWrite();
+              }}
+              disabled={writeStatus === 'loading' || !navPath || !outputDir || workspaceUnavailable}
+              className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              data-testid="btn-generate"
+            >
+              {writeStatus === 'loading' ? 'Writing...' : 'Write files'}
+            </button>
+          </div>
+
+          {(previewStatus === 'error' || writeStatus === 'error') && (
+            <p className="mt-4 text-sm text-rose-300" data-testid="error-message">
+              {errorMessage}
+            </p>
+          )}
+
+          {writeStatus === 'success' && writtenFiles.length > 0 && (
+            <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+              <p className="text-sm font-medium text-emerald-100">Generated files</p>
+              <div className="mt-3 space-y-2 text-sm text-emerald-50/90">
+                {writtenFiles.map((file) => (
+                  <p key={file.path}>{toDisplayPath(activeWorkspaceRoot, file.path)}</p>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <h2 className="text-lg font-semibold text-white">Preview</h2>
+          <div className="mt-4 space-y-4">
+            {previewResults.length === 0 && writtenFiles.length === 0 ? (
+              <p className="text-sm text-slate-200/55">
+                Run preview or write files to inspect generated output.
+              </p>
+            ) : (
+              (previewResults.length > 0
+                ? previewResults
+                : writtenFiles.map((file) => ({
+                    label: toDisplayPath(activeWorkspaceRoot, file.path),
+                    content: file.preview,
+                  }))
+              ).map((result) => (
+                <div
+                  key={result.label}
+                  className="rounded-2xl border border-white/10 bg-slate-950/40 p-4"
+                >
+                  <p className="mb-3 text-sm font-medium text-slate-100">{result.label}</p>
+                  <pre className="overflow-auto whitespace-pre-wrap text-xs text-slate-100">
+                    {result.content}
+                  </pre>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );

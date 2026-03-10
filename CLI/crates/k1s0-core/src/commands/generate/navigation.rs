@@ -1,4 +1,6 @@
 use super::super::validate::navigation::NavigationYaml;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 /// TypeScript の route-types.ts を生成する
 pub fn generate_typescript_routes(nav: &NavigationYaml) -> String {
@@ -161,6 +163,49 @@ pub fn generate_dart_routes_from_file(path: &str) -> Result<String, Box<dyn std:
     let content = std::fs::read_to_string(path)?;
     let nav: NavigationYaml = serde_yaml::from_str(&content)?;
     Ok(generate_dart_routes(&nav))
+}
+
+/// 指定ナビゲーションから TypeScript ルート定義を書き出す。
+pub fn write_typescript_routes_file(
+    nav: &NavigationYaml,
+    output_dir: &Path,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    fs::create_dir_all(output_dir)?;
+    let output_path = output_dir.join("route-types.ts");
+    fs::write(&output_path, generate_typescript_routes(nav))?;
+    Ok(output_path)
+}
+
+/// 指定ナビゲーションから Dart ルート定義を書き出す。
+pub fn write_dart_routes_file(
+    nav: &NavigationYaml,
+    output_dir: &Path,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    fs::create_dir_all(output_dir)?;
+    let output_path = output_dir.join("route_ids.dart");
+    fs::write(&output_path, generate_dart_routes(nav))?;
+    Ok(output_path)
+}
+
+/// ファイルパスから複数ターゲットのルート定義を生成して書き出す。
+pub fn write_generated_routes_from_file(
+    nav_path: &Path,
+    output_dir: &Path,
+    targets: &[&str],
+) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(nav_path)?;
+    let nav: NavigationYaml = serde_yaml::from_str(&content)?;
+
+    let mut written = Vec::new();
+    for target in targets {
+        match *target {
+            "typescript" => written.push(write_typescript_routes_file(&nav, output_dir)?),
+            "dart" => written.push(write_dart_routes_file(&nav, output_dir)?),
+            other => return Err(format!("unsupported target: {other}").into()),
+        }
+    }
+
+    Ok(written)
 }
 
 // ============================================================================

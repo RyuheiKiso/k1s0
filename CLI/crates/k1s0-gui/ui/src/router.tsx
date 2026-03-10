@@ -4,8 +4,12 @@ import DashboardPage from './pages/DashboardPage';
 import AuthPage from './pages/AuthPage';
 import InitPage from './pages/InitPage';
 import GeneratePage from './pages/GeneratePage';
+import DepsPage from './pages/DepsPage';
+import DevPage from './pages/DevPage';
+import MigratePage from './pages/MigratePage';
 import ConfigTypesPage from './pages/ConfigTypesPage';
 import NavigationTypesPage from './pages/NavigationTypesPage';
+import EventCodegenPage from './pages/EventCodegenPage';
 import ValidatePage from './pages/ValidatePage';
 import BuildPage from './pages/BuildPage';
 import TestPage from './pages/TestPage';
@@ -39,6 +43,24 @@ const generateRoute = createRoute({
   component: GeneratePage,
 });
 
+const depsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/deps',
+  component: DepsPage,
+});
+
+const devRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/dev',
+  component: DevPage,
+});
+
+const migrateRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/migrate',
+  component: MigratePage,
+});
+
 const configTypesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/config-types',
@@ -49,6 +71,12 @@ const navigationTypesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/navigation-types',
   component: NavigationTypesPage,
+});
+
+const eventCodegenRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/event-codegen',
+  component: EventCodegenPage,
 });
 
 const validateRoute = createRoute({
@@ -80,8 +108,12 @@ const routeTree = rootRoute.addChildren([
   authRoute,
   initRoute,
   generateRoute,
+  depsRoute,
+  devRoute,
+  migrateRoute,
   configTypesRoute,
   navigationTypesRoute,
+  eventCodegenRoute,
   validateRoute,
   buildRoute,
   testRoute,

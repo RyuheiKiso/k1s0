@@ -1,18 +1,15 @@
 mod commands;
 
-/// In dev mode, if the Vite dev server (port 5173) is not running,
+const DEV_SERVER_ADDR: &str = "127.0.0.1:1420";
+const DEV_SERVER_IPV6_ADDR: &str = "[::1]:1420";
+
+/// In dev mode, if the Vite dev server (port 1420) is not running,
 /// start a minimal static file server from `ui/dist/` so the exe works standalone.
 #[cfg(dev)]
 fn ensure_dev_server() {
-    use std::net::TcpStream;
     use std::time::Duration;
 
-    if TcpStream::connect_timeout(
-        &"127.0.0.1:5173".parse().unwrap(),
-        Duration::from_millis(300),
-    )
-    .is_ok()
-    {
+    if is_dev_server_available(Duration::from_millis(300)) {
         return; // Vite dev server is already running
     }
 
@@ -23,10 +20,10 @@ fn ensure_dev_server() {
     }
 
     std::thread::spawn(move || {
-        let listener = match std::net::TcpListener::bind("127.0.0.1:5173") {
+        let listener = match std::net::TcpListener::bind(DEV_SERVER_ADDR) {
             Ok(l) => l,
             Err(e) => {
-                eprintln!("Failed to bind fallback server on :5173: {e}");
+                eprintln!("Failed to bind fallback server on {DEV_SERVER_ADDR}: {e}");
                 return;
             }
         };
@@ -38,15 +35,20 @@ fn ensure_dev_server() {
     // Wait for the server to be ready
     for _ in 0..20 {
         std::thread::sleep(Duration::from_millis(50));
-        if TcpStream::connect_timeout(
-            &"127.0.0.1:5173".parse().unwrap(),
-            Duration::from_millis(100),
-        )
-        .is_ok()
-        {
+        if is_dev_server_available(Duration::from_millis(100)) {
             return;
         }
     }
+}
+
+#[cfg(dev)]
+fn is_dev_server_available(timeout: std::time::Duration) -> bool {
+    use std::net::{SocketAddr, TcpStream};
+
+    [DEV_SERVER_ADDR, DEV_SERVER_IPV6_ADDR]
+        .into_iter()
+        .filter_map(|address| address.parse::<SocketAddr>().ok())
+        .any(|address| TcpStream::connect_timeout(&address, timeout).is_ok())
 }
 
 #[cfg(dev)]
@@ -137,6 +139,8 @@ pub fn run() {
             commands::execute_validate_navigation,
             commands::execute_generate_config_types,
             commands::execute_generate_navigation_types,
+            commands::write_config_types,
+            commands::write_navigation_types,
             // deps
             commands::execute_deps,
             commands::scan_services,
@@ -144,10 +148,20 @@ pub fn run() {
             commands::execute_dev_up,
             commands::execute_dev_down,
             commands::execute_dev_status,
+            commands::execute_dev_logs,
             commands::scan_dev_targets,
             // migrate
             commands::execute_migrate_create,
+            commands::execute_migrate_up,
+            commands::execute_migrate_down,
+            commands::execute_migrate_status,
+            commands::execute_migrate_repair,
             commands::scan_migrate_targets,
+            // scaffold databases
+            commands::scan_databases,
+            // event codegen
+            commands::preview_event_codegen,
+            commands::execute_event_codegen,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

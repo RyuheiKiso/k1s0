@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   executeGenerateAt,
+  scanDatabases,
   scanPlacements,
   validateName,
   type ApiStyle,
@@ -10,11 +11,13 @@ import {
   type LangFw,
   type Language,
   type Rdbms,
+  type ScaffoldDatabaseInfo,
   type Tier,
 } from '../lib/tauri-commands';
 import { useWorkspace } from '../lib/workspace';
 
 const STEP_LABELS = ['Kind', 'Tier', 'Placement', 'Language', 'Detail', 'Confirm'] as const;
+type ServerDatabaseMode = 'none' | 'existing' | 'new';
 
 function getAvailableTiers(kind: Kind): Tier[] {
   switch (kind) {
@@ -92,8 +95,7 @@ function getDefaultDetailName(kind: Kind): string {
 export default function GeneratePage() {
   const workspace = useWorkspace();
   const activeWorkspaceRoot = workspace.workspaceRoot || '.';
-  const workspaceUnavailable =
-    workspace.ready && !workspace.workspaceRoot && activeWorkspaceRoot !== '.';
+  const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
 
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState<Kind>('Server');
@@ -105,6 +107,11 @@ export default function GeneratePage() {
   const [framework, setFramework] = useState<Framework>('React');
   const [databaseName, setDatabaseName] = useState('main');
   const [databaseEngine, setDatabaseEngine] = useState<Rdbms>('PostgreSQL');
+  const [serverDatabaseMode, setServerDatabaseMode] = useState<ServerDatabaseMode>('none');
+  const [availableDatabases, setAvailableDatabases] = useState<ScaffoldDatabaseInfo[]>([]);
+  const [selectedDatabasePath, setSelectedDatabasePath] = useState('');
+  const [newDatabaseName, setNewDatabaseName] = useState('service-db');
+  const [newDatabaseEngine, setNewDatabaseEngine] = useState<Rdbms>('PostgreSQL');
   const [detail, setDetail] = useState<DetailConfig>({
     name: 'service',
     api_styles: ['Rest'],
@@ -117,9 +124,11 @@ export default function GeneratePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [nameError, setNameError] = useState('');
   const [placementError, setPlacementError] = useState('');
+  const [detailError, setDetailError] = useState('');
+  const [serverDatabaseError, setServerDatabaseError] = useState('');
 
   useEffect(() => {
-    if (step !== 2 || shouldSkipPlacement(tier)) {
+    if (step !== 2 || shouldSkipPlacement(tier) || workspaceUnavailable) {
       return;
     }
 
@@ -140,14 +149,53 @@ export default function GeneratePage() {
     return () => {
       cancelled = true;
     };
-  }, [activeWorkspaceRoot, step, tier]);
+  }, [activeWorkspaceRoot, step, tier, workspaceUnavailable]);
 
   useEffect(() => {
     const availableTiers = getAvailableTiers(kind);
     if (!availableTiers.includes(tier)) {
       setTier(availableTiers[0]);
     }
+
+    if (kind !== 'Server') {
+      setServerDatabaseMode('none');
+      setServerDatabaseError('');
+    }
   }, [kind, tier]);
+
+  useEffect(() => {
+    if (kind !== 'Server' || workspaceUnavailable) {
+      setAvailableDatabases([]);
+      setSelectedDatabasePath('');
+      return;
+    }
+
+    let cancelled = false;
+
+    scanDatabases(tier, activeWorkspaceRoot)
+      .then((databases) => {
+        const safeDatabases = Array.isArray(databases) ? databases : [];
+        if (!cancelled) {
+          setAvailableDatabases(safeDatabases);
+          setSelectedDatabasePath((current) => {
+            if (current && safeDatabases.some((database) => database.path === current)) {
+              return current;
+            }
+            return safeDatabases[0]?.path ?? '';
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAvailableDatabases([]);
+          setSelectedDatabasePath('');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeWorkspaceRoot, kind, tier, workspaceUnavailable]);
 
   function buildLangFw(): LangFw {
     if (kind === 'Client') {
@@ -171,6 +219,26 @@ export default function GeneratePage() {
     }
 
     return getDefaultDetailName(kind);
+  }
+
+  function getSelectedExistingDatabase() {
+    return availableDatabases.find((database) => database.path === selectedDatabasePath) ?? null;
+  }
+
+  function resolveServerDatabase() {
+    if (serverDatabaseMode === 'none') {
+      return null;
+    }
+
+    if (serverDatabaseMode === 'existing') {
+      const database = getSelectedExistingDatabase();
+      return database ? { name: database.name, rdbms: database.rdbms } : null;
+    }
+
+    return {
+      name: newDatabaseName.trim(),
+      rdbms: newDatabaseEngine,
+    };
   }
 
   async function validatePlacementValue(value: string): Promise<boolean> {
@@ -210,7 +278,25 @@ export default function GeneratePage() {
     }
   }
 
+  async function validateServerDatabaseName(value: string): Promise<boolean> {
+    if (!value.trim()) {
+      setServerDatabaseError('Database name is required.');
+      return false;
+    }
+
+    try {
+      await validateName(value.trim());
+      setServerDatabaseError('');
+      return true;
+    } catch (error) {
+      setServerDatabaseError(String(error));
+      return false;
+    }
+  }
+
   async function goNext() {
+    setDetailError('');
+
     if (step === 2 && isNewPlacement) {
       const ok = await validatePlacementValue(placement);
       if (!ok) {
@@ -218,10 +304,36 @@ export default function GeneratePage() {
       }
     }
 
-    if (step === 4) {
-      const ok = await validateDetailName(getResolvedDetailName());
+    if (step === 3 && kind === 'Database') {
+      const ok = await validateDetailName(databaseName);
       if (!ok) {
         return;
+      }
+    }
+
+    if (step === 4) {
+      if (tier !== 'Service') {
+        const ok = await validateDetailName(getResolvedDetailName());
+        if (!ok) {
+          return;
+        }
+      }
+
+      if (kind === 'Server' && detail.api_styles.length === 0) {
+        setDetailError('Select at least one API style.');
+        return;
+      }
+
+      if (kind === 'Server' && serverDatabaseMode === 'existing' && !getSelectedExistingDatabase()) {
+        setServerDatabaseError('Select an existing database.');
+        return;
+      }
+
+      if (kind === 'Server' && serverDatabaseMode === 'new') {
+        const ok = await validateServerDatabaseName(newDatabaseName);
+        if (!ok) {
+          return;
+        }
       }
     }
 
@@ -260,7 +372,12 @@ export default function GeneratePage() {
           detail: {
             ...detail,
             name: getResolvedDetailName(),
-            db: kind === 'Database' ? { name: databaseName, rdbms: databaseEngine } : detail.db,
+            db:
+              kind === 'Database'
+                ? { name: databaseName, rdbms: databaseEngine }
+                : kind === 'Server'
+                  ? resolveServerDatabase()
+                  : null,
           },
         },
         activeWorkspaceRoot,
@@ -277,6 +394,8 @@ export default function GeneratePage() {
   const showBffControls =
     kind === 'Server' && tier === 'Service' && detail.api_styles.includes('GraphQL');
   const currentRuntime = buildLangFw();
+  const selectedExistingDatabase = getSelectedExistingDatabase();
+  const resolvedServerDatabase = resolveServerDatabase();
 
   return (
     <div className="glass max-w-5xl p-6" data-testid="generate-page">
@@ -631,6 +750,101 @@ export default function GeneratePage() {
                 </div>
               </div>
 
+              <div className="mt-5">
+                <p className="text-sm font-medium text-slate-200/82">Database</p>
+                <div className="mt-3 space-y-3">
+                  {(['none', 'existing', 'new'] as ServerDatabaseMode[]).map((value) => (
+                    <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
+                      <input
+                        type="radio"
+                        checked={serverDatabaseMode === value}
+                        onChange={() => {
+                          setServerDatabaseMode(value);
+                          setServerDatabaseError('');
+                        }}
+                        name="server-database-mode"
+                      />
+                      {value === 'none'
+                        ? 'No database'
+                        : value === 'existing'
+                          ? 'Use existing database'
+                          : 'Create new database'}
+                    </label>
+                  ))}
+                </div>
+
+                {serverDatabaseMode === 'existing' && (
+                  <div className="mt-4">
+                    {availableDatabases.length === 0 ? (
+                      <p className="text-sm text-slate-200/55">
+                        No existing databases were found for this tier.
+                      </p>
+                    ) : (
+                      <>
+                        <label className="block text-sm font-medium text-slate-200/82">
+                          Existing database
+                        </label>
+                        <select
+                          value={selectedDatabasePath}
+                          onChange={(event) => {
+                            setSelectedDatabasePath(event.target.value);
+                            setServerDatabaseError('');
+                          }}
+                          className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/35 px-3 py-2 text-white"
+                          data-testid="select-server-db"
+                        >
+                          {availableDatabases.map((database) => (
+                            <option key={database.path} value={database.path}>
+                              {database.name} ({database.rdbms})
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {serverDatabaseMode === 'new' && (
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200/82">
+                        Database name
+                      </label>
+                      <input
+                        value={newDatabaseName}
+                        onChange={(event) => setNewDatabaseName(event.target.value)}
+                        onBlur={() => {
+                          void validateServerDatabaseName(newDatabaseName);
+                        }}
+                        placeholder="service-db"
+                        className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                        data-testid="input-server-db-name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      {(['PostgreSQL', 'MySQL', 'SQLite'] as Rdbms[]).map((value) => (
+                        <label
+                          key={value}
+                          className="flex items-center gap-3 text-sm text-slate-200/82"
+                        >
+                          <input
+                            type="radio"
+                            checked={newDatabaseEngine === value}
+                            onChange={() => setNewDatabaseEngine(value)}
+                            name="server-database-engine"
+                          />
+                          {value}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {serverDatabaseError && (
+                  <p className="mt-3 text-sm text-rose-300">{serverDatabaseError}</p>
+                )}
+              </div>
+
               <div className="mt-5 space-y-2">
                 <label className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input
@@ -686,6 +900,12 @@ export default function GeneratePage() {
             </>
           )}
 
+          {detailError && (
+            <p className="mt-4 text-sm text-rose-300" data-testid="detail-error">
+              {detailError}
+            </p>
+          )}
+
           <div className="mt-5 flex gap-3">
             <button
               type="button"
@@ -728,6 +948,30 @@ export default function GeneratePage() {
                   : currentRuntime.Language}
             </p>
             <p>Name: {getResolvedDetailName()}</p>
+            {kind === 'Server' && (
+              <>
+                <p>API styles: {detail.api_styles.length > 0 ? detail.api_styles.join(', ') : 'none'}</p>
+                <p>
+                  Database:{' '}
+                  {resolvedServerDatabase
+                    ? `${resolvedServerDatabase.name} (${resolvedServerDatabase.rdbms})`
+                    : 'none'}
+                </p>
+                <p>Kafka: {detail.kafka ? 'enabled' : 'disabled'}</p>
+                <p>Redis: {detail.redis ? 'enabled' : 'disabled'}</p>
+                <p>BFF language: {detail.bff_language ?? 'not required'}</p>
+              </>
+            )}
+            {kind === 'Database' && (
+              <p>
+                RDBMS: {databaseEngine} ({databaseName})
+              </p>
+            )}
+            {serverDatabaseMode === 'existing' && selectedExistingDatabase && (
+              <p className="text-slate-300/60">
+                Existing DB path: {selectedExistingDatabase.path}
+              </p>
+            )}
           </div>
 
           <div className="mt-5 flex gap-3">

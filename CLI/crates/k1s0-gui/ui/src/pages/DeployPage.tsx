@@ -13,8 +13,7 @@ import { useWorkspace } from '../lib/workspace';
 export default function DeployPage() {
   const workspace = useWorkspace();
   const activeWorkspaceRoot = workspace.workspaceRoot || '.';
-  const workspaceUnavailable =
-    workspace.ready && !workspace.workspaceRoot && activeWorkspaceRoot !== '.';
+  const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
 
   const [targets, setTargets] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
