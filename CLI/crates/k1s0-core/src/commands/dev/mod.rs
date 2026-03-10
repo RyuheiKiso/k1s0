@@ -106,19 +106,14 @@ pub fn execute_dev_up(config: &DevUpConfig) -> Result<()> {
             .filter_map(|s| {
                 let migrations_dir = std::path::Path::new(s).join("migrations");
                 if migrations_dir.is_dir() {
-                    std::fs::read_dir(&migrations_dir)
-                        .ok()
-                        .map(|entries| {
-                            entries
-                                .filter_map(std::result::Result::ok)
-                                .filter(|e| {
-                                    e.path()
-                                        .extension()
-                                        .and_then(|ext| ext.to_str())
-                                        == Some("sql")
-                                })
-                                .count() as u32
-                        })
+                    std::fs::read_dir(&migrations_dir).ok().map(|entries| {
+                        entries
+                            .filter_map(std::result::Result::ok)
+                            .filter(|e| {
+                                e.path().extension().and_then(|ext| ext.to_str()) == Some("sql")
+                            })
+                            .count() as u32
+                    })
                 } else {
                     None
                 }

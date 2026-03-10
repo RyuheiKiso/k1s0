@@ -54,9 +54,9 @@ pub fn check_migration_integrity(target: &MigrateTarget) -> MigrateCiResult {
 
     for (num, desc) in &down_numbers {
         if !up_numbers.contains_key(num) {
-            result.errors.push(format!(
-                "up.sql が見つかりません: {num:03}_{desc}.up.sql"
-            ));
+            result
+                .errors
+                .push(format!("up.sql が見つかりません: {num:03}_{desc}.up.sql"));
         }
     }
 
@@ -274,16 +274,8 @@ mod tests {
         let migrations = tmp.path().join("migrations");
         fs::create_dir_all(&migrations).unwrap();
 
-        fs::write(
-            migrations.join("002_something.up.sql"),
-            "CREATE TABLE t;\n",
-        )
-        .unwrap();
-        fs::write(
-            migrations.join("002_something.down.sql"),
-            "DROP TABLE t;\n",
-        )
-        .unwrap();
+        fs::write(migrations.join("002_something.up.sql"), "CREATE TABLE t;\n").unwrap();
+        fs::write(migrations.join("002_something.down.sql"), "DROP TABLE t;\n").unwrap();
 
         let target = make_target(migrations);
         let result = check_migration_integrity(&target);
@@ -372,16 +364,8 @@ mod tests {
         fs::write(service_dir.join("Cargo.toml"), "[package]").unwrap();
         let migrations = service_dir.join("migrations");
         fs::create_dir_all(&migrations).unwrap();
-        fs::write(
-            migrations.join("001_init.up.sql"),
-            "CREATE TABLE t;\n",
-        )
-        .unwrap();
-        fs::write(
-            migrations.join("001_init.down.sql"),
-            "DROP TABLE t;\n",
-        )
-        .unwrap();
+        fs::write(migrations.join("001_init.up.sql"), "CREATE TABLE t;\n").unwrap();
+        fs::write(migrations.join("001_init.down.sql"), "DROP TABLE t;\n").unwrap();
 
         let results = check_all_migrations(tmp.path()).unwrap();
         assert_eq!(results.len(), 1);

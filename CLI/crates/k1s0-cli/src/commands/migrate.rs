@@ -82,24 +82,20 @@ pub fn run() -> Result<()> {
             // ================================================================
             // 新規作成フロー
             // ================================================================
-            Step::CreateTarget => {
-                match step_select_target(&targets)? {
-                    Some(idx) => {
-                        selected_target_idx = idx;
-                        step = Step::CreateName;
-                    }
-                    None => step = Step::Operation,
+            Step::CreateTarget => match step_select_target(&targets)? {
+                Some(idx) => {
+                    selected_target_idx = idx;
+                    step = Step::CreateName;
                 }
-            }
-            Step::CreateName => {
-                match step_input_migration_name()? {
-                    Some(name) => {
-                        migration_name = name;
-                        step = Step::CreateConfirm;
-                    }
-                    None => step = Step::CreateTarget,
+                None => step = Step::Operation,
+            },
+            Step::CreateName => match step_input_migration_name()? {
+                Some(name) => {
+                    migration_name = name;
+                    step = Step::CreateConfirm;
                 }
-            }
+                None => step = Step::CreateTarget,
+            },
             Step::CreateConfirm => {
                 let target = &targets[selected_target_idx];
                 print_create_confirmation(target, &migration_name);
@@ -126,33 +122,27 @@ pub fn run() -> Result<()> {
             // ================================================================
             // 適用 (up) フロー
             // ================================================================
-            Step::UpTarget => {
-                match step_select_target(&targets)? {
-                    Some(idx) => {
-                        selected_target_idx = idx;
-                        step = Step::UpRange;
-                    }
-                    None => step = Step::Operation,
+            Step::UpTarget => match step_select_target(&targets)? {
+                Some(idx) => {
+                    selected_target_idx = idx;
+                    step = Step::UpRange;
                 }
-            }
-            Step::UpRange => {
-                match step_select_range()? {
-                    Some(r) => {
-                        range = r;
-                        step = Step::UpConnection;
-                    }
-                    None => step = Step::UpTarget,
+                None => step = Step::Operation,
+            },
+            Step::UpRange => match step_select_range()? {
+                Some(r) => {
+                    range = r;
+                    step = Step::UpConnection;
                 }
-            }
-            Step::UpConnection => {
-                match step_select_connection()? {
-                    Some(c) => {
-                        connection = c;
-                        step = Step::UpConfirm;
-                    }
-                    None => step = Step::UpRange,
+                None => step = Step::UpTarget,
+            },
+            Step::UpConnection => match step_select_connection()? {
+                Some(c) => {
+                    connection = c;
+                    step = Step::UpConfirm;
                 }
-            }
+                None => step = Step::UpRange,
+            },
             Step::UpConfirm => {
                 let target = &targets[selected_target_idx];
                 print_up_confirmation(target, &range, &connection);
@@ -164,7 +154,10 @@ pub fn run() -> Result<()> {
                                 "\n{} がインストールされていません。",
                                 tool_name(&target.language)
                             );
-                            if let Some(true) = prompt::yes_no_prompt("インストールしますか？")? { install_tool(&target.language)? } else {
+                            if let Some(true) = prompt::yes_no_prompt("インストールしますか？")?
+                            {
+                                install_tool(&target.language)?
+                            } else {
                                 println!("キャンセルしました。");
                                 return Ok(());
                             }
@@ -189,33 +182,27 @@ pub fn run() -> Result<()> {
             // ================================================================
             // ロールバック (down) フロー
             // ================================================================
-            Step::DownTarget => {
-                match step_select_target(&targets)? {
-                    Some(idx) => {
-                        selected_target_idx = idx;
-                        step = Step::DownRange;
-                    }
-                    None => step = Step::Operation,
+            Step::DownTarget => match step_select_target(&targets)? {
+                Some(idx) => {
+                    selected_target_idx = idx;
+                    step = Step::DownRange;
                 }
-            }
-            Step::DownRange => {
-                match step_select_range()? {
-                    Some(r) => {
-                        range = r;
-                        step = Step::DownConnection;
-                    }
-                    None => step = Step::DownTarget,
+                None => step = Step::Operation,
+            },
+            Step::DownRange => match step_select_range()? {
+                Some(r) => {
+                    range = r;
+                    step = Step::DownConnection;
                 }
-            }
-            Step::DownConnection => {
-                match step_select_connection()? {
-                    Some(c) => {
-                        connection = c;
-                        step = Step::DownConfirm;
-                    }
-                    None => step = Step::DownRange,
+                None => step = Step::DownTarget,
+            },
+            Step::DownConnection => match step_select_connection()? {
+                Some(c) => {
+                    connection = c;
+                    step = Step::DownConfirm;
                 }
-            }
+                None => step = Step::DownRange,
+            },
             Step::DownConfirm => {
                 let target = &targets[selected_target_idx];
                 print_down_confirmation(target, &range, &connection);
@@ -227,7 +214,10 @@ pub fn run() -> Result<()> {
                                 "\n{} がインストールされていません。",
                                 tool_name(&target.language)
                             );
-                            if let Some(true) = prompt::yes_no_prompt("インストールしますか？")? { install_tool(&target.language)? } else {
+                            if let Some(true) = prompt::yes_no_prompt("インストールしますか？")?
+                            {
+                                install_tool(&target.language)?
+                            } else {
                                 println!("キャンセルしました。");
                                 return Ok(());
                             }
@@ -261,12 +251,8 @@ pub fn run() -> Result<()> {
                     }
                     Some(Some(idx)) => {
                         let target = &targets[idx];
-                        let statuses =
-                            get_migration_status(target, &DbConnection::LocalDev)?;
-                        println!(
-                            "\n=== {} ({}) ===",
-                            target.service_name, target.tier
-                        );
+                        let statuses = get_migration_status(target, &DbConnection::LocalDev)?;
+                        println!("\n=== {} ({}) ===", target.service_name, target.tier);
                         if statuses.is_empty() {
                             println!("  マイグレーションファイルはありません。");
                         } else {
@@ -288,24 +274,20 @@ pub fn run() -> Result<()> {
             // ================================================================
             // 修復フロー
             // ================================================================
-            Step::RepairTarget => {
-                match step_select_target(&targets)? {
-                    Some(idx) => {
-                        selected_target_idx = idx;
-                        step = Step::RepairOperation;
-                    }
-                    None => step = Step::Operation,
+            Step::RepairTarget => match step_select_target(&targets)? {
+                Some(idx) => {
+                    selected_target_idx = idx;
+                    step = Step::RepairOperation;
                 }
-            }
-            Step::RepairOperation => {
-                match step_select_repair_operation()? {
-                    Some(op) => {
-                        repair_op = op;
-                        step = Step::RepairConfirm;
-                    }
-                    None => step = Step::RepairTarget,
+                None => step = Step::Operation,
+            },
+            Step::RepairOperation => match step_select_repair_operation()? {
+                Some(op) => {
+                    repair_op = op;
+                    step = Step::RepairConfirm;
                 }
-            }
+                None => step = Step::RepairTarget,
+            },
             Step::RepairConfirm => {
                 let target = &targets[selected_target_idx];
                 print_repair_confirmation(target, &repair_op);
@@ -344,16 +326,17 @@ fn step_select_target(targets: &[MigrateTarget]) -> Result<Option<usize>> {
         return Ok(None);
     }
 
-    let labels: Vec<String> = targets.iter().map(k1s0_core::commands::migrate::MigrateTarget::display_label).collect();
+    let labels: Vec<String> = targets
+        .iter()
+        .map(k1s0_core::commands::migrate::MigrateTarget::display_label)
+        .collect();
     let label_refs: Vec<&str> = labels.iter().map(std::string::String::as_str).collect();
     prompt::select_prompt("サービスを選択してください", &label_refs)
 }
 
 /// サービス選択（「すべて」オプション付き）。
 /// 戻り値: Some(None) = すべて, Some(Some(idx)) = 個別, None = Esc
-fn step_select_target_or_all(
-    targets: &[MigrateTarget],
-) -> Result<Option<Option<usize>>> {
+fn step_select_target_or_all(targets: &[MigrateTarget]) -> Result<Option<Option<usize>>> {
     if targets.is_empty() {
         println!("マイグレーション対象のサービスが見つかりません。");
         return Ok(None);
@@ -367,8 +350,8 @@ fn step_select_target_or_all(
 
     match prompt::select_prompt("サービスを選択してください", &label_refs)? {
         None => Ok(None),
-        Some(0) => Ok(Some(None)),         // 「すべて」
-        Some(i) => Ok(Some(Some(i - 1))),  // 個別サービス
+        Some(0) => Ok(Some(None)),        // 「すべて」
+        Some(i) => Ok(Some(Some(i - 1))), // 個別サービス
     }
 }
 
@@ -462,10 +445,7 @@ fn print_create_confirmation(target: &MigrateTarget, migration_name: &str) {
     println!("\n[確認] 以下の内容でマイグレーションファイルを作成します。よろしいですか？");
     println!("    サービス: {}", target.display_label());
     println!("    名前:     {migration_name}");
-    println!(
-        "    保存先:   {}/",
-        target.migrations_dir.display()
-    );
+    println!("    保存先:   {}/", target.migrations_dir.display());
 }
 
 /// 適用 (up) の確認内容を表示する。
@@ -473,7 +453,10 @@ fn print_up_confirmation(target: &MigrateTarget, range: &MigrateRange, connectio
     println!("\n[確認] 以下の内容でマイグレーションを適用します。よろしいですか？");
     println!("    サービス: {}", target.display_label());
     println!("    範囲:     {}", format_range(range));
-    println!("    接続先:   {}", format_connection(connection, &target.db_name));
+    println!(
+        "    接続先:   {}",
+        format_connection(connection, &target.db_name)
+    );
 }
 
 /// ロールバック (down) の確認内容を表示する。
@@ -485,7 +468,10 @@ fn print_down_confirmation(
     println!("\n[確認] 以下の内容でロールバックを実行します。よろしいですか？");
     println!("    サービス: {}", target.display_label());
     println!("    範囲:     {}", format_range(range));
-    println!("    接続先:   {}", format_connection(connection, &target.db_name));
+    println!(
+        "    接続先:   {}",
+        format_connection(connection, &target.db_name)
+    );
 }
 
 /// 修復の確認内容を表示する。

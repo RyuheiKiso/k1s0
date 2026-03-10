@@ -11,72 +11,69 @@ export default function ProgressLog({ events, currentStep, totalSteps }: Progres
   const percentage = totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0;
 
   return (
-    <div data-testid="progress-log" className="mt-4">
+    <section className="mt-5" data-testid="progress-log">
       {totalSteps > 0 && (
         <div className="mb-3">
-          <div className="flex justify-between text-sm mb-1 text-white/70">
+          <div className="mb-1 flex items-center justify-between text-sm text-slate-200/72">
             <span data-testid="progress-label">
-              ステップ {currentStep} / {totalSteps}
+              Step {currentStep} / {totalSteps}
             </span>
             <span data-testid="progress-percent">{percentage}%</span>
           </div>
           <Progress.Root value={percentage} max={100} data-testid="progress-bar-bg">
-            <Progress.Indicator
-              style={{ width: `${percentage}%` }}
-              data-testid="progress-bar"
-            />
+            <Progress.Indicator style={{ width: `${percentage}%` }} data-testid="progress-bar" />
           </Progress.Root>
         </div>
       )}
 
       <div
-        className="glass-subtle p-3 font-mono text-xs max-h-60 overflow-y-auto"
+        className="glass-subtle max-h-72 overflow-y-auto rounded-2xl border border-white/10 p-3 font-mono text-xs"
         data-testid="log-viewer"
       >
         {events.length === 0 ? (
-          <p className="text-white/30">ログはありません。</p>
+          <p className="text-slate-200/35">No logs yet.</p>
         ) : (
-          events.map((event, i) => (
-            <div key={i} className={getEventClassName(event)}>
+          events.map((event, index) => (
+            <div key={`${event.kind}-${index}`} className={getEventClassName(event)}>
               {formatEvent(event)}
             </div>
           ))
         )}
       </div>
-    </div>
+    </section>
   );
 }
 
 function getEventClassName(event: ProgressEvent): string {
   switch (event.kind) {
     case 'StepStarted':
-      return 'text-indigo-300';
+      return 'text-sky-200';
     case 'StepCompleted':
-      return 'text-emerald-300';
+      return 'text-emerald-200';
     case 'Log':
-      return 'text-white/60';
+      return 'text-slate-200/65';
     case 'Warning':
-      return 'text-amber-300';
+      return 'text-amber-200';
     case 'Error':
-      return 'text-rose-400';
+      return 'text-rose-300';
     case 'Finished':
-      return event.success ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+      return event.success ? 'font-semibold text-emerald-300' : 'font-semibold text-rose-300';
   }
 }
 
 function formatEvent(event: ProgressEvent): string {
   switch (event.kind) {
     case 'StepStarted':
-      return `[${event.step}/${event.total}] ${event.message} ...`;
+      return `[${event.step}/${event.total}] start ${event.message}`;
     case 'StepCompleted':
-      return `[${event.step}/${event.total}] \u2713 ${event.message}`;
+      return `[${event.step}/${event.total}] done ${event.message}`;
     case 'Log':
-      return `  ${event.message}`;
+      return `log ${event.message}`;
     case 'Warning':
-      return `  \u26a0 ${event.message}`;
+      return `warn ${event.message}`;
     case 'Error':
-      return `  \u2717 ${event.message}`;
+      return `error ${event.message}`;
     case 'Finished':
-      return event.success ? `\u2713 ${event.message}` : `\u2717 ${event.message}`;
+      return event.success ? `success ${event.message}` : `failure ${event.message}`;
   }
 }

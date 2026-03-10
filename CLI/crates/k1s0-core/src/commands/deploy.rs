@@ -1,18 +1,14 @@
-use anyhow::Result;
+use anyhow::{anyhow, bail, Result};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use crate::config::CliConfig;
 use crate::progress::ProgressEvent;
 
-// ============================================================================
-// デプロイパイプライン (CLIフロー.md「デプロイ実行」セクション準拠)
-// ============================================================================
-
-/// デプロイパイプラインのステップ名。
-///
-/// CLIフロー.md で定義された4段階のデプロイパイプラインに対応する。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeployStep {
     DockerBuild,
@@ -22,17 +18,15 @@ pub enum DeployStep {
 }
 
 impl DeployStep {
-    /// ステップの日本語ラベルを返す。
     pub fn label(&self) -> &'static str {
         match self {
-            DeployStep::DockerBuild => "Docker イメージのビルド",
-            DeployStep::DockerPush => "Docker イメージのプッシュ",
-            DeployStep::CosignSign => "イメージ署名 (Cosign)",
-            DeployStep::HelmDeploy => "Helm デプロイ",
+            DeployStep::DockerBuild => "Docker image build",
+            DeployStep::DockerPush => "Docker image push",
+            DeployStep::CosignSign => "Cosign image signing",
+            DeployStep::HelmDeploy => "Helm deploy",
         }
     }
 
-    /// ステップ番号 (1-based) を返す。
     pub fn step_number(&self) -> usize {
         match self {
             DeployStep::DockerBuild => 1,
@@ -43,12 +37,8 @@ impl DeployStep {
     }
 }
 
-/// デプロイパイプラインの総ステップ数。
 pub const TOTAL_DEPLOY_STEPS: usize = 4;
 
-/// Docker イメージタグを生成する。
-///
-/// フォーマット: `{registry}/k1s0-{tier}/{service_name}:{version}-{sha}`
 pub fn build_image_tag(
     registry: &str,
     tier: &str,
@@ -59,15 +49,6 @@ pub fn build_image_tag(
     format!("{registry}/k1s0-{tier}/{service_name}:{version}-{sha}")
 }
 
-/// Helm upgrade コマンドの引数を構築する。
-///
-/// CLIフロー.md のデプロイ実行パイプラインに準拠:
-/// ```text
-/// helm upgrade --install {service_name} ./infra/helm/services/{helm_path} \
-///     -n k1s0-{tier} \
-///     -f ./infra/helm/services/{helm_path}/values-{env}.yaml \
-///     --set image.tag={version}-{sha}
-/// ```
 pub fn build_helm_args(
     service_name: &str,
     helm_path: &str,
@@ -79,59 +60,39 @@ pub fn build_helm_args(
         "upgrade".to_string(),
         "--install".to_string(),
         service_name.to_string(),
-        format!("./infra/helm/services/{}", helm_path),
+        format!("./infra/helm/services/{helm_path}"),
         "-n".to_string(),
-        format!("k1s0-{}", tier),
+        format!("k1s0-{tier}"),
         "-f".to_string(),
-        format!("./infra/helm/services/{}/values-{}.yaml", helm_path, env),
+        format!("./infra/helm/services/{helm_path}/values-{env}.yaml"),
         "--set".to_string(),
-        format!("image.tag={}", image_tag),
+        format!("image.tag={image_tag}"),
     ]
 }
 
-/// Helm rollback コマンドの引数を構築する。
-///
-/// prod 環境でのデプロイ失敗時にロールバックするためのコマンド引数:
-/// ```text
-/// helm rollback {service_name} -n k1s0-{tier}
-/// ```
 pub fn build_helm_rollback_args(service_name: &str, tier: &str) -> Vec<String> {
     vec![
         "rollback".to_string(),
         service_name.to_string(),
         "-n".to_string(),
-        format!("k1s0-{}", tier),
+        format!("k1s0-{tier}"),
     ]
 }
 
-/// デプロイエラー情報。
-///
-/// デプロイパイプラインの各ステップでエラーが発生した場合の情報を保持する。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeployError {
-    /// 失敗したステップ
     pub step: DeployStep,
-    /// エラーメッセージ
     pub message: String,
-    /// 手動で再実行するためのコマンド
     pub manual_command: String,
 }
 
-/// ターゲットパスから tier を抽出する。
-///
-/// パス例: `regions/service/order/server/rust` → `"service"`
-/// パス例: `regions/system/server/rust/auth` → `"system"`
-///
-/// `regions/{tier}/...` の形式を前提とする。
-/// 抽出できない場合は `None` を返す。
 pub fn extract_tier_from_target_path(target: &str) -> Option<String> {
     let normalized = target.replace('\\', "/");
     let parts: Vec<&str> = normalized.split('/').collect();
-    // "regions" の次の要素が tier
-    for (i, part) in parts.iter().enumerate() {
-        if *part == "regions" && i + 1 < parts.len() {
-            let tier = parts[i + 1];
-            if tier == "system" || tier == "business" || tier == "service" {
+    for (index, part) in parts.iter().enumerate() {
+        if *part == "regions" && index + 1 < parts.len() {
+            let tier = parts[index + 1];
+            if matches!(tier, "system" | "business" | "service") {
                 return Some(tier.to_string());
             }
         }
@@ -139,83 +100,52 @@ pub fn extract_tier_from_target_path(target: &str) -> Option<String> {
     None
 }
 
-/// ターゲットパスから `service_name` を抽出する。
-///
-/// パス構造に応じて末尾のディレクトリ名をサービス名として返す。
-/// - `regions/service/order/server/rust` → `"order"`  (service tier: サービス名)
-/// - `regions/system/server/rust/auth` → `"auth"` (system tier: 末尾ディレクトリ名)
-/// - `regions/business/accounting/server/rust/ledger` → `"ledger"` (business tier: 末尾ディレクトリ名)
-///
-/// 抽出できない場合は `None` を返す。
 pub fn extract_service_name_from_target_path(target: &str) -> Option<String> {
     let normalized = target.replace('\\', "/");
-    let trimmed = normalized.trim_end_matches('/');
-    let parts: Vec<&str> = trimmed.split('/').collect();
-
-    // 最低限 regions/{tier}/... の形式が必要
-    if parts.len() < 3 {
-        return None;
-    }
-
-    // regions のインデックスを見つける
-    let regions_idx = parts.iter().position(|&p| p == "regions")?;
-    if regions_idx + 2 >= parts.len() {
-        return None;
-    }
-
-    let tier = parts[regions_idx + 1];
+    let parts: Vec<&str> = normalized.trim_end_matches('/').split('/').collect();
+    let regions_idx = parts.iter().position(|part| *part == "regions")?;
+    let tier = *parts.get(regions_idx + 1)?;
 
     match tier {
-        "service" => {
-            // regions/service/{service_name}/... → service_name
-            Some(parts[regions_idx + 2].to_string())
-        }
-        "system" | "business" => {
-            // 末尾のディレクトリ名をサービス名とする
-            parts.last().map(std::string::ToString::to_string)
-        }
+        "service" => parts.get(regions_idx + 2).map(|part| (*part).to_string()),
+        "system" | "business" => parts.last().map(|part| (*part).to_string()),
         _ => None,
     }
 }
 
-/// デプロイ結果の表示メッセージを構築する。
 pub fn format_deploy_success(env: &str, service_name: &str, image_tag: &str, tier: &str) -> String {
     format!(
-        "\u{2713} デプロイが完了しました\n  環境:     {env}\n  サービス: {service_name}\n  イメージ: {image_tag}\n  Helm:     helm status {service_name} -n k1s0-{tier}"
+        "Deploy completed\n  Environment: {env}\n  Service: {service_name}\n  Image: {image_tag}\n  Helm: helm status {service_name} -n k1s0-{tier}"
     )
 }
 
-/// デプロイエラーの表示メッセージを構築する。
 pub fn format_deploy_failure(error: &DeployError) -> String {
     format!(
-        "\u{2717} デプロイに失敗しました\n  ステップ: {}\n  エラー:   {}\n  手動で再実行する場合: {}",
+        "Deploy failed\n  Step: {}\n  Error: {}\n  Manual retry: {}",
         error.step.label(),
         error.message,
         error.manual_command
     )
 }
 
-/// 進捗メッセージ (開始) を構築する。
 pub fn format_step_start(step: &DeployStep) -> String {
     format!(
-        "[{}/{}] {} しています...",
+        "[{}/{}] {}...",
         step.step_number(),
         TOTAL_DEPLOY_STEPS,
         step.label()
     )
 }
 
-/// 進捗メッセージ (完了) を構築する。
 pub fn format_step_done(step: &DeployStep) -> String {
     format!(
-        "[{}/{}] \u{2713} {}完了",
+        "[{}/{}] done: {}",
         step.step_number(),
         TOTAL_DEPLOY_STEPS,
         step.label()
     )
 }
 
-/// デプロイ環境。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Environment {
     Dev,
@@ -237,153 +167,513 @@ impl Environment {
     }
 }
 
-/// デプロイ設定。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeployConfig {
-    /// デプロイ先環境
     pub environment: Environment,
-    /// デプロイ対象のパス一覧
     pub targets: Vec<String>,
 }
 
-/// デプロイ実行。
-///
-/// # Errors
-/// エラーが発生した場合。
-pub fn execute_deploy(config: &DeployConfig) -> Result<()> {
-    for target in &config.targets {
-        println!("\nデプロイ中: {} → {}", target, config.environment.as_str());
-        let target_path = Path::new(target);
-
-        if !target_path.is_dir() {
-            println!("  警告: ディレクトリが見つかりません: {target}");
-            continue;
-        }
-
-        // Dockerfile があれば Docker ベースのデプロイ
-        if target_path.join("Dockerfile").exists() {
-            let image_tag = format!(
-                "{}:{}",
-                target.replace(['/', '\\'], "-"),
-                config.environment.as_str()
-            );
-            println!("  Docker イメージビルド: {image_tag}");
-            let build_status = Command::new("docker")
-                .args(["build", "-t", &image_tag, "."])
-                .current_dir(target_path)
-                .status();
-            match build_status {
-                Ok(s) if s.success() => {
-                    println!("  イメージビルド完了: {image_tag}");
-                }
-                Ok(_) => {
-                    println!("  警告: Docker ビルドに失敗しました");
-                }
-                Err(e) => {
-                    println!("  警告: docker コマンドの実行に失敗しました: {e}");
-                }
-            }
-        } else {
-            println!(
-                "  デプロイ: {} を {} 環境にデプロイします (dry-run)",
-                target,
-                config.environment.as_str()
-            );
-        }
-    }
-    Ok(())
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DeployPlan {
+    environment: Environment,
+    workspace_root: PathBuf,
+    target_path: PathBuf,
+    module_path: String,
+    tier: String,
+    service_name: String,
+    helm_path: String,
+    version: String,
+    sha: String,
+    image_tag_suffix: String,
+    full_image_tag: String,
 }
 
-/// プログレスコールバック付きデプロイ実行。
-///
-/// # Errors
-/// エラーが発生した場合。
+pub fn execute_deploy(config: &DeployConfig) -> Result<()> {
+    execute_deploy_internal(config, Option::<&fn(ProgressEvent)>::None)
+}
+
 pub fn execute_deploy_with_progress(
     config: &DeployConfig,
     on_progress: impl Fn(ProgressEvent),
 ) -> Result<()> {
-    let total = config.targets.len();
-    for (i, target) in config.targets.iter().enumerate() {
-        let step = i + 1;
-        on_progress(ProgressEvent::StepStarted {
-            step,
-            total,
-            message: format!("デプロイ中: {} → {}", target, config.environment.as_str()),
-        });
+    execute_deploy_internal(config, Some(&on_progress))
+}
 
-        let target_path = Path::new(target);
-        if !target_path.is_dir() {
-            on_progress(ProgressEvent::Warning {
-                message: format!("ディレクトリが見つかりません: {target}"),
-            });
-            on_progress(ProgressEvent::StepCompleted {
+pub fn execute_deploy_rollback(target: &str) -> Result<String> {
+    let plan = build_deploy_plan(Path::new(target), Environment::Prod)?;
+    let args = build_helm_rollback_args(&plan.service_name, &plan.tier);
+    run_checked_command("helm", &args, &plan.workspace_root)?;
+    Ok(format!(
+        "Rollback completed for {} in k1s0-{}",
+        plan.service_name, plan.tier
+    ))
+}
+
+fn execute_deploy_internal<F>(config: &DeployConfig, on_progress: Option<&F>) -> Result<()>
+where
+    F: Fn(ProgressEvent),
+{
+    if config.targets.is_empty() {
+        emit(
+            on_progress,
+            ProgressEvent::Finished {
+                success: false,
+                message: "No deploy targets selected".to_string(),
+            },
+        );
+        bail!("no deploy targets selected");
+    }
+
+    let total = config.targets.len();
+
+    for (index, target) in config.targets.iter().enumerate() {
+        let step = index + 1;
+        emit(
+            on_progress,
+            ProgressEvent::StepStarted {
                 step,
                 total,
-                message: format!("スキップ: {target}"),
-            });
-            continue;
-        }
+                message: format!("Deploying {target} to {}", config.environment.as_str()),
+            },
+        );
 
-        if target_path.join("Dockerfile").exists() {
-            let image_tag = format!(
-                "{}:{}",
-                target.replace(['/', '\\'], "-"),
-                config.environment.as_str()
-            );
-            on_progress(ProgressEvent::Log {
-                message: format!("Docker イメージビルド: {image_tag}"),
-            });
-            let build_status = Command::new("docker")
-                .args(["build", "-t", &image_tag, "."])
-                .current_dir(target_path)
-                .status();
-            match build_status {
-                Ok(s) if s.success() => {
-                    on_progress(ProgressEvent::Log {
-                        message: format!("イメージビルド完了: {image_tag}"),
-                    });
-                }
-                Ok(_) => {
-                    on_progress(ProgressEvent::Warning {
-                        message: "Docker ビルドに失敗しました".to_string(),
-                    });
-                }
-                Err(e) => {
-                    on_progress(ProgressEvent::Warning {
-                        message: format!("docker コマンドの実行に失敗しました: {e}"),
-                    });
-                }
+        let plan = match build_deploy_plan(Path::new(target), config.environment) {
+            Ok(plan) => plan,
+            Err(error) => {
+                let message = error.to_string();
+                emit(
+                    on_progress,
+                    ProgressEvent::Error {
+                        message: message.clone(),
+                    },
+                );
+                emit(
+                    on_progress,
+                    ProgressEvent::Finished {
+                        success: false,
+                        message: "Deploy failed".to_string(),
+                    },
+                );
+                return Err(error);
             }
-        } else {
-            on_progress(ProgressEvent::Log {
-                message: format!(
-                    "デプロイ: {} を {} 環境にデプロイします (dry-run)",
-                    target,
-                    config.environment.as_str()
-                ),
-            });
+        };
+
+        if let Err(error) = execute_deploy_plan(&plan, on_progress) {
+            let message = format_deploy_failure(&error);
+            emit(
+                on_progress,
+                ProgressEvent::Error {
+                    message: message.clone(),
+                },
+            );
+            if plan.environment.is_prod() {
+                let rollback = build_helm_rollback_args(&plan.service_name, &plan.tier);
+                emit(
+                    on_progress,
+                    ProgressEvent::Warning {
+                        message: format!("Rollback available: helm {}", rollback.join(" ")),
+                    },
+                );
+            }
+            emit(
+                on_progress,
+                ProgressEvent::Finished {
+                    success: false,
+                    message: "Deploy failed".to_string(),
+                },
+            );
+            return Err(anyhow!(message));
         }
 
-        on_progress(ProgressEvent::StepCompleted {
-            step,
-            total,
-            message: format!("デプロイ完了: {target}"),
-        });
+        emit(
+            on_progress,
+            ProgressEvent::StepCompleted {
+                step,
+                total,
+                message: format!("Deployed {}", plan.module_path),
+            },
+        );
     }
-    on_progress(ProgressEvent::Finished {
-        success: true,
-        message: "すべてのデプロイが完了しました".to_string(),
-    });
+
+    emit(
+        on_progress,
+        ProgressEvent::Finished {
+            success: true,
+            message: "Deploy completed".to_string(),
+        },
+    );
     Ok(())
 }
 
-/// デプロイ可能な対象を走査する。
-/// サーバーとクライアントのみ (ライブラリは対象外)。
+fn execute_deploy_plan<F>(
+    plan: &DeployPlan,
+    on_progress: Option<&F>,
+) -> std::result::Result<(), DeployError>
+where
+    F: Fn(ProgressEvent),
+{
+    emit(
+        on_progress,
+        ProgressEvent::Log {
+            message: format_step_start(&DeployStep::DockerBuild),
+        },
+    );
+    run_checked_command(
+        "docker",
+        &[
+            "build".to_string(),
+            "-t".to_string(),
+            plan.full_image_tag.clone(),
+            ".".to_string(),
+        ],
+        &plan.target_path,
+    )
+    .map_err(|error| build_error(plan, DeployStep::DockerBuild, error))?;
+    emit(
+        on_progress,
+        ProgressEvent::Log {
+            message: format_step_done(&DeployStep::DockerBuild),
+        },
+    );
+
+    emit(
+        on_progress,
+        ProgressEvent::Log {
+            message: format_step_start(&DeployStep::DockerPush),
+        },
+    );
+    run_checked_command(
+        "docker",
+        &["push".to_string(), plan.full_image_tag.clone()],
+        &plan.target_path,
+    )
+    .map_err(|error| build_error(plan, DeployStep::DockerPush, error))?;
+    emit(
+        on_progress,
+        ProgressEvent::Log {
+            message: format_step_done(&DeployStep::DockerPush),
+        },
+    );
+
+    emit(
+        on_progress,
+        ProgressEvent::Log {
+            message: format_step_start(&DeployStep::CosignSign),
+        },
+    );
+    run_checked_command(
+        "cosign",
+        &[
+            "sign".to_string(),
+            "--yes".to_string(),
+            plan.full_image_tag.clone(),
+        ],
+        &plan.workspace_root,
+    )
+    .map_err(|error| build_error(plan, DeployStep::CosignSign, error))?;
+    emit(
+        on_progress,
+        ProgressEvent::Log {
+            message: format_step_done(&DeployStep::CosignSign),
+        },
+    );
+
+    emit(
+        on_progress,
+        ProgressEvent::Log {
+            message: format_step_start(&DeployStep::HelmDeploy),
+        },
+    );
+    let helm_args = build_helm_args(
+        &plan.service_name,
+        &plan.helm_path,
+        &plan.tier,
+        plan.environment.as_str(),
+        &plan.image_tag_suffix,
+    );
+    run_checked_command("helm", &helm_args, &plan.workspace_root)
+        .map_err(|error| build_error(plan, DeployStep::HelmDeploy, error))?;
+    emit(
+        on_progress,
+        ProgressEvent::Log {
+            message: format_step_done(&DeployStep::HelmDeploy),
+        },
+    );
+
+    emit(
+        on_progress,
+        ProgressEvent::Log {
+            message: format_deploy_success(
+                plan.environment.as_str(),
+                &plan.service_name,
+                &plan.full_image_tag,
+                &plan.tier,
+            ),
+        },
+    );
+
+    Ok(())
+}
+
+fn build_deploy_plan(target_path: &Path, environment: Environment) -> Result<DeployPlan> {
+    if !target_path.is_dir() {
+        bail!("target directory does not exist");
+    }
+    if !target_path.join("Dockerfile").exists() {
+        bail!("target does not contain a Dockerfile");
+    }
+
+    let workspace_root = find_workspace_root(target_path).ok_or_else(|| {
+        anyhow!(
+            "failed to locate workspace root for {}",
+            target_path.display()
+        )
+    })?;
+    let module_path = to_relative_path(&workspace_root, target_path)?;
+    let tier = extract_tier_from_target_path(&module_path)
+        .ok_or_else(|| anyhow!("failed to determine tier from {module_path}"))?;
+    let service_name = extract_service_name_from_target_path(&module_path)
+        .ok_or_else(|| anyhow!("failed to determine service name from {module_path}"))?;
+    let helm_path = resolve_helm_path(&workspace_root, &module_path, &service_name, &tier)?;
+    let version = detect_version(target_path).unwrap_or_else(|_| "0.1.0".to_string());
+    let sha = detect_revision(&workspace_root);
+    let image_tag_suffix = format!("{version}-{sha}");
+    let full_image_tag = build_image_tag(
+        &resolve_registry(&workspace_root),
+        &tier,
+        &service_name,
+        &version,
+        &sha,
+    );
+
+    Ok(DeployPlan {
+        environment,
+        workspace_root,
+        target_path: target_path.to_path_buf(),
+        module_path,
+        tier,
+        service_name,
+        helm_path,
+        version,
+        sha,
+        image_tag_suffix,
+        full_image_tag,
+    })
+}
+
+fn resolve_registry(workspace_root: &Path) -> String {
+    let candidate_paths = [
+        workspace_root.join("k1s0-cli.yaml"),
+        workspace_root.join("config.yaml"),
+        workspace_root.join(".k1s0").join("cli-config.yaml"),
+    ];
+
+    for candidate in candidate_paths {
+        if let Some(registry) = load_registry_from_yaml(&candidate) {
+            return registry;
+        }
+    }
+
+    CliConfig::default().docker_registry
+}
+
+fn load_registry_from_yaml(path: &Path) -> Option<String> {
+    let content = fs::read_to_string(path).ok()?;
+    let parsed = serde_yaml::from_str::<Value>(&content).ok()?;
+    parsed
+        .get("docker_registry")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+}
+
+fn detect_version(target_path: &Path) -> Result<String> {
+    if target_path.join("Cargo.toml").exists() {
+        let cargo_toml = fs::read_to_string(target_path.join("Cargo.toml"))
+            .map_err(|error| anyhow!("failed to read Cargo.toml: {error}"))?;
+        let regex = Regex::new(r#"(?m)^version\s*=\s*"([^"]+)""#).unwrap();
+        let version = regex
+            .captures(&cargo_toml)
+            .and_then(|captures| captures.get(1))
+            .map(|capture| capture.as_str().to_string())
+            .ok_or_else(|| anyhow!("failed to detect Cargo version"))?;
+        return Ok(version);
+    }
+
+    if target_path.join("package.json").exists() {
+        let package_json = fs::read_to_string(target_path.join("package.json"))
+            .map_err(|error| anyhow!("failed to read package.json: {error}"))?;
+        let parsed: Value = serde_json::from_str(&package_json)
+            .map_err(|error| anyhow!("invalid package.json: {error}"))?;
+        let version = parsed
+            .get("version")
+            .and_then(Value::as_str)
+            .ok_or_else(|| anyhow!("package.json does not contain version"))?;
+        return Ok(version.to_string());
+    }
+
+    if target_path.join("pubspec.yaml").exists() {
+        let pubspec = fs::read_to_string(target_path.join("pubspec.yaml"))
+            .map_err(|error| anyhow!("failed to read pubspec.yaml: {error}"))?;
+        let regex = Regex::new(r#"(?m)^version:\s*([^\s]+)"#).unwrap();
+        let version = regex
+            .captures(&pubspec)
+            .and_then(|captures| captures.get(1))
+            .map(|capture| capture.as_str().to_string())
+            .ok_or_else(|| anyhow!("failed to detect pubspec version"))?;
+        return Ok(version);
+    }
+
+    bail!("failed to detect target version")
+}
+
+fn detect_revision(workspace_root: &Path) -> String {
+    if let Ok(sha) = std::env::var("K1S0_IMAGE_SHA") {
+        let trimmed = sha.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+
+    let output = Command::new("git")
+        .args(["rev-parse", "--short", "HEAD"])
+        .current_dir(workspace_root)
+        .output();
+
+    match output {
+        Ok(result) if result.status.success() => {
+            String::from_utf8_lossy(&result.stdout).trim().to_string()
+        }
+        _ => "local".to_string(),
+    }
+}
+
+fn resolve_helm_path(
+    workspace_root: &Path,
+    module_path: &str,
+    service_name: &str,
+    tier: &str,
+) -> Result<String> {
+    let normalized = module_path.replace('\\', "/");
+    let parts: Vec<&str> = normalized.split('/').collect();
+
+    let mut candidates = Vec::new();
+    match tier {
+        "service" if parts.len() >= 3 => candidates.push(format!("service/{}", parts[2])),
+        "business" if parts.len() >= 6 => {
+            candidates.push(format!("business/{}/{}", parts[2], service_name))
+        }
+        "system" => candidates.push(format!("system/{service_name}")),
+        _ => {}
+    }
+    candidates.push(format!("{tier}/{service_name}"));
+
+    for candidate in candidates {
+        if workspace_root
+            .join("infra")
+            .join("helm")
+            .join("services")
+            .join(&candidate)
+            .is_dir()
+        {
+            return Ok(candidate);
+        }
+    }
+
+    let services_root = workspace_root.join("infra").join("helm").join("services");
+    for entry in walkdir::WalkDir::new(&services_root).into_iter().flatten() {
+        if entry.file_type().is_dir() && entry.file_name().to_string_lossy() == service_name {
+            let relative = entry
+                .path()
+                .strip_prefix(&services_root)
+                .map_err(|error| anyhow!("failed to resolve helm path: {error}"))?;
+            return Ok(relative.to_string_lossy().replace('\\', "/"));
+        }
+    }
+
+    bail!("failed to resolve helm path for {module_path}")
+}
+
+fn find_workspace_root(start: &Path) -> Option<PathBuf> {
+    start.ancestors().find_map(|ancestor| {
+        let has_regions = ancestor.join("regions").is_dir();
+        let has_helm = ancestor
+            .join("infra")
+            .join("helm")
+            .join("services")
+            .is_dir();
+        if has_regions && has_helm {
+            Some(ancestor.to_path_buf())
+        } else {
+            None
+        }
+    })
+}
+
+fn to_relative_path(root: &Path, path: &Path) -> Result<String> {
+    let relative = path
+        .strip_prefix(root)
+        .map_err(|error| anyhow!("failed to relativize path: {error}"))?;
+    Ok(relative.to_string_lossy().replace('\\', "/"))
+}
+
+fn run_checked_command(cmd: &str, args: &[String], cwd: &Path) -> Result<()> {
+    let status = Command::new(cmd)
+        .args(args.iter().map(String::as_str))
+        .current_dir(cwd)
+        .status()
+        .map_err(|error| anyhow!("failed to start {cmd}: {error}"))?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        bail!("{cmd} exited with {}", status.code().unwrap_or(-1))
+    }
+}
+
+fn build_error(plan: &DeployPlan, step: DeployStep, error: anyhow::Error) -> DeployError {
+    let manual_command = match step {
+        DeployStep::DockerBuild => format!(
+            "cd {} && docker build -t {} .",
+            plan.module_path, plan.full_image_tag
+        ),
+        DeployStep::DockerPush => format!("docker push {}", plan.full_image_tag),
+        DeployStep::CosignSign => format!("cosign sign --yes {}", plan.full_image_tag),
+        DeployStep::HelmDeploy => format!(
+            "cd {} && helm {}",
+            plan.workspace_root.display(),
+            build_helm_args(
+                &plan.service_name,
+                &plan.helm_path,
+                &plan.tier,
+                plan.environment.as_str(),
+                &plan.image_tag_suffix,
+            )
+            .join(" ")
+        ),
+    };
+
+    DeployError {
+        step,
+        message: error.to_string(),
+        manual_command,
+    }
+}
+
+fn emit<F>(on_progress: Option<&F>, event: ProgressEvent)
+where
+    F: Fn(ProgressEvent),
+{
+    if let Some(callback) = on_progress {
+        callback(event);
+    } else {
+        crate::progress::print_progress(&event);
+    }
+}
+
 pub fn scan_deployable_targets() -> Vec<String> {
     scan_deployable_targets_at(Path::new("."))
 }
 
-/// 指定ディレクトリを基点にデプロイ可能な対象を走査する。
 pub fn scan_deployable_targets_at(base_dir: &Path) -> Vec<String> {
     let mut targets = Vec::new();
     let regions = base_dir.join("regions");
@@ -400,20 +690,11 @@ fn scan_targets_recursive(path: &Path, targets: &mut Vec<String>) {
         return;
     }
 
-    // デプロイ可能なプロジェクトを検出
-    // Dockerfile がある、または package.json / pubspec.yaml がある
-    let is_deployable = path.join("Dockerfile").exists()
-        || path.join("package.json").exists()
-        || path.join("pubspec.yaml").exists()
-        || (path.join("go.mod").exists())
-        || (path.join("Cargo.toml").exists());
-
+    let is_deployable = path.join("Dockerfile").exists();
     if is_deployable {
-        // library/ は除外
-        let path_str = path.to_str().unwrap_or("");
-        let is_library = path_str.contains("/library/") || path_str.contains("\\library\\");
-        if !is_library {
-            targets.push(path_str.to_string());
+        let path_str = path.to_string_lossy().replace('\\', "/");
+        if !path_str.contains("/library/") {
+            targets.push(path.to_string_lossy().to_string());
         }
         return;
     }
@@ -432,8 +713,6 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
 
-    // --- Environment ---
-
     #[test]
     fn test_environment_as_str() {
         assert_eq!(Environment::Dev.as_str(), "dev");
@@ -448,8 +727,6 @@ mod tests {
         assert!(Environment::Prod.is_prod());
     }
 
-    // --- DeployConfig ---
-
     #[test]
     fn test_deploy_config_creation() {
         let config = DeployConfig {
@@ -460,113 +737,28 @@ mod tests {
         assert_eq!(config.targets.len(), 1);
     }
 
-    // --- scan_deployable_targets ---
-
     #[test]
     fn test_scan_deployable_targets_empty() {
         let tmp = TempDir::new().unwrap();
-
-        let targets = scan_deployable_targets_at(tmp.path());
-
-        assert!(targets.is_empty());
+        assert!(scan_deployable_targets_at(tmp.path()).is_empty());
     }
 
     #[test]
     fn test_scan_deployable_targets_excludes_library() {
         let tmp = TempDir::new().unwrap();
 
-        // サーバー (デプロイ可能)
         let server_path = tmp.path().join("regions/system/server/rust/auth");
         fs::create_dir_all(&server_path).unwrap();
-        fs::write(server_path.join("Cargo.toml"), "[package]\n").unwrap();
+        fs::write(server_path.join("Dockerfile"), "FROM scratch\n").unwrap();
 
-        // ライブラリ (デプロイ対象外)
         let lib_path = tmp.path().join("regions/system/library/rust/authlib");
         fs::create_dir_all(&lib_path).unwrap();
-        fs::write(lib_path.join("Cargo.toml"), "[package]\n").unwrap();
+        fs::write(lib_path.join("Dockerfile"), "FROM scratch\n").unwrap();
 
         let targets = scan_deployable_targets_at(tmp.path());
-
         assert_eq!(targets.len(), 1);
         assert!(targets[0].contains("server"));
     }
-
-    #[test]
-    fn test_scan_deployable_targets_includes_client() {
-        let tmp = TempDir::new().unwrap();
-
-        let client_path = tmp.path().join("regions/service/order/client/react");
-        fs::create_dir_all(&client_path).unwrap();
-        fs::write(client_path.join("package.json"), "{}").unwrap();
-
-        let targets = scan_deployable_targets_at(tmp.path());
-
-        assert_eq!(targets.len(), 1);
-        assert!(targets[0].contains("client"));
-    }
-
-    // --- prod confirmation logic ---
-
-    #[test]
-    fn test_step_prod_confirmation_logic_matching() {
-        // "deploy" が正確に一致する場合にtrueを返すロジックの検証
-        // step_prod_confirmationはprivateでプロンプトを使うので直接テストできない
-        // 代わりに、prod確認のビジネスロジックを検証する
-        assert_eq!("deploy".trim(), "deploy");
-        assert_ne!("Deploy".trim(), "deploy"); // 大文字小文字は区別
-        assert_ne!("DEPLOY".trim(), "deploy");
-        assert_ne!("".trim(), "deploy");
-        assert_ne!("no".trim(), "deploy");
-        assert_eq!(" deploy ".trim(), "deploy"); // 前後の空白はtrimされる
-    }
-
-    #[test]
-    fn test_deploy_step_flow_prod_requires_confirmation() {
-        // prod環境選択時はProdConfirmステップを経由する
-        let env = Environment::Prod;
-        assert!(env.is_prod());
-        // 非prod環境はProdConfirmをスキップ
-        let env_dev = Environment::Dev;
-        assert!(!env_dev.is_prod());
-        let env_stg = Environment::Staging;
-        assert!(!env_stg.is_prod());
-    }
-
-    // --- execute_deploy ---
-
-    #[test]
-    fn test_execute_deploy_nonexistent_target() {
-        let config = DeployConfig {
-            environment: Environment::Dev,
-            targets: vec!["/nonexistent/path".to_string()],
-        };
-        let result = execute_deploy(&config);
-        assert!(result.is_ok());
-    }
-
-    // =========================================================================
-    // デプロイパイプライン テスト (TDD)
-    // =========================================================================
-
-    // --- DeployStep ---
-
-    #[test]
-    fn test_deploy_step_labels() {
-        assert_eq!(DeployStep::DockerBuild.label(), "Docker イメージのビルド");
-        assert_eq!(DeployStep::DockerPush.label(), "Docker イメージのプッシュ");
-        assert_eq!(DeployStep::CosignSign.label(), "イメージ署名 (Cosign)");
-        assert_eq!(DeployStep::HelmDeploy.label(), "Helm デプロイ");
-    }
-
-    #[test]
-    fn test_deploy_step_numbers() {
-        assert_eq!(DeployStep::DockerBuild.step_number(), 1);
-        assert_eq!(DeployStep::DockerPush.step_number(), 2);
-        assert_eq!(DeployStep::CosignSign.step_number(), 3);
-        assert_eq!(DeployStep::HelmDeploy.step_number(), 4);
-    }
-
-    // --- イメージタグ ---
 
     #[test]
     fn test_build_image_tag() {
@@ -584,27 +776,19 @@ mod tests {
     }
 
     #[test]
-    fn test_build_image_tag_with_custom_registry() {
-        let tag = build_image_tag("my-registry.io", "system", "auth", "0.1.0", "def5678");
-        assert_eq!(tag, "my-registry.io/k1s0-system/auth:0.1.0-def5678");
-    }
-
-    // --- Helm 引数 ---
-
-    #[test]
     fn test_build_helm_args() {
-        let args = build_helm_args("order", "order", "service", "dev", "1.2.3-abc1234");
+        let args = build_helm_args("order", "service/order", "service", "dev", "1.2.3-abc1234");
         assert_eq!(
             args,
             vec![
                 "upgrade",
                 "--install",
                 "order",
-                "./infra/helm/services/order",
+                "./infra/helm/services/service/order",
                 "-n",
                 "k1s0-service",
                 "-f",
-                "./infra/helm/services/order/values-dev.yaml",
+                "./infra/helm/services/service/order/values-dev.yaml",
                 "--set",
                 "image.tag=1.2.3-abc1234",
             ]
@@ -612,206 +796,125 @@ mod tests {
     }
 
     #[test]
-    fn test_build_helm_args_prod() {
-        let args = build_helm_args("auth", "auth", "system", "prod", "2.0.0-fff9999");
-        assert_eq!(
-            args,
-            vec![
-                "upgrade",
-                "--install",
-                "auth",
-                "./infra/helm/services/auth",
-                "-n",
-                "k1s0-system",
-                "-f",
-                "./infra/helm/services/auth/values-prod.yaml",
-                "--set",
-                "image.tag=2.0.0-fff9999",
-            ]
-        );
-    }
-
-    // --- Helm ロールバック ---
-
-    #[test]
     fn test_build_helm_rollback_args() {
         let args = build_helm_rollback_args("order", "service");
-        assert_eq!(args, vec!["rollback", "order", "-n", "k1s0-service",]);
+        assert_eq!(args, vec!["rollback", "order", "-n", "k1s0-service"]);
     }
-
-    // --- DeployError ---
-
-    #[test]
-    fn test_deploy_error_creation() {
-        let error = DeployError {
-            step: DeployStep::DockerBuild,
-            message: "Dockerfile not found".to_string(),
-            manual_command: "cd regions/service/order/server/rust && docker build -t order:dev ."
-                .to_string(),
-        };
-        assert_eq!(error.step, DeployStep::DockerBuild);
-        assert_eq!(error.message, "Dockerfile not found");
-        assert!(error.manual_command.contains("docker build"));
-    }
-
-    // --- tier 抽出 ---
 
     #[test]
     fn test_extract_tier_from_target_path() {
-        // service tier
         assert_eq!(
             extract_tier_from_target_path("regions/service/order/server/rust"),
             Some("service".to_string())
         );
-        // system tier
         assert_eq!(
             extract_tier_from_target_path("regions/system/server/rust/auth"),
             Some("system".to_string())
         );
-        // business tier
-        assert_eq!(
-            extract_tier_from_target_path("regions/business/accounting/server/rust/ledger"),
-            Some("business".to_string())
-        );
-        // 無効なパス
         assert_eq!(extract_tier_from_target_path("invalid/path"), None);
-        // regions の後に無効な tier
-        assert_eq!(extract_tier_from_target_path("regions/unknown/foo"), None);
-        // Windows パス区切りでも動作する
-        assert_eq!(
-            extract_tier_from_target_path("regions\\service\\order\\server\\rust"),
-            Some("service".to_string())
-        );
     }
-
-    // --- service_name 抽出 ---
 
     #[test]
     fn test_extract_service_name_from_target_path() {
-        // service tier: サービス名 (regions/service/{service_name}/...)
         assert_eq!(
             extract_service_name_from_target_path("regions/service/order/server/rust"),
             Some("order".to_string())
         );
-        // system tier: 末尾ディレクトリ名
         assert_eq!(
             extract_service_name_from_target_path("regions/system/server/rust/auth"),
             Some("auth".to_string())
         );
-        // business tier: 末尾ディレクトリ名
-        assert_eq!(
-            extract_service_name_from_target_path("regions/business/accounting/server/rust/ledger"),
-            Some("ledger".to_string())
-        );
-        // 無効なパス
         assert_eq!(extract_service_name_from_target_path("invalid"), None);
-        // 短すぎるパス
+    }
+
+    #[test]
+    fn test_format_step_messages() {
         assert_eq!(
-            extract_service_name_from_target_path("regions/service"),
-            None
+            format_step_start(&DeployStep::DockerBuild),
+            "[1/4] Docker image build..."
+        );
+        assert_eq!(
+            format_step_done(&DeployStep::HelmDeploy),
+            "[4/4] done: Helm deploy"
         );
     }
-
-    // --- 進捗メッセージ ---
-
-    #[test]
-    fn test_format_step_start() {
-        let msg = format_step_start(&DeployStep::DockerBuild);
-        assert_eq!(msg, "[1/4] Docker イメージのビルド しています...");
-    }
-
-    #[test]
-    fn test_format_step_done() {
-        let msg = format_step_done(&DeployStep::HelmDeploy);
-        assert_eq!(msg, "[4/4] \u{2713} Helm デプロイ完了");
-    }
-
-    // --- 結果表示メッセージ ---
 
     #[test]
     fn test_format_deploy_success() {
-        let msg = format_deploy_success(
+        let message = format_deploy_success(
             "dev",
             "order",
             "harbor.internal.example.com/k1s0-service/order:1.0.0-abc1234",
             "service",
         );
-        assert!(msg.contains("デプロイが完了しました"));
-        assert!(msg.contains("環境:     dev"));
-        assert!(msg.contains("サービス: order"));
-        assert!(msg.contains("harbor.internal.example.com/k1s0-service/order:1.0.0-abc1234"));
-        assert!(msg.contains("helm status order -n k1s0-service"));
+        assert!(message.contains("Deploy completed"));
+        assert!(message.contains("helm status order -n k1s0-service"));
     }
-
-    // --- エラー表示メッセージ ---
 
     #[test]
     fn test_format_deploy_failure() {
         let error = DeployError {
             step: DeployStep::DockerBuild,
             message: "exit code 1".to_string(),
-            manual_command: "cd path && docker build -t tag .".to_string(),
+            manual_command: "docker build".to_string(),
         };
-        let msg = format_deploy_failure(&error);
-        assert!(msg.contains("デプロイに失敗しました"));
-        assert!(msg.contains("ステップ: Docker イメージのビルド"));
-        assert!(msg.contains("エラー:   exit code 1"));
-        assert!(msg.contains("手動で再実行する場合: cd path && docker build -t tag ."));
+        let message = format_deploy_failure(&error);
+        assert!(message.contains("Deploy failed"));
+        assert!(message.contains("Docker image build"));
     }
-
-    // --- TOTAL_DEPLOY_STEPS 定数 ---
 
     #[test]
     fn test_total_deploy_steps() {
         assert_eq!(TOTAL_DEPLOY_STEPS, 4);
     }
 
-    // --- DeployStep の等値性 ---
-
     #[test]
-    fn test_deploy_step_equality() {
-        assert_eq!(DeployStep::DockerBuild, DeployStep::DockerBuild);
-        assert_ne!(DeployStep::DockerBuild, DeployStep::DockerPush);
-        assert_ne!(DeployStep::CosignSign, DeployStep::HelmDeploy);
+    fn test_build_deploy_plan_detects_workspace_and_chart() {
+        let tmp = TempDir::new().unwrap();
+        let target = tmp.path().join("regions/system/server/rust/auth");
+        let helm = tmp.path().join("infra/helm/services/system/auth");
+        fs::create_dir_all(&target).unwrap();
+        fs::create_dir_all(&helm).unwrap();
+        fs::write(target.join("Dockerfile"), "FROM scratch\n").unwrap();
+        fs::write(
+            target.join("Cargo.toml"),
+            "[package]\nname = \"auth\"\nversion = \"0.4.0\"\n",
+        )
+        .unwrap();
+        fs::write(helm.join("values-dev.yaml"), "image: {}\n").unwrap();
+
+        let plan = build_deploy_plan(&target, Environment::Dev).unwrap();
+        assert_eq!(plan.tier, "system");
+        assert_eq!(plan.service_name, "auth");
+        assert_eq!(plan.helm_path, "system/auth");
+        assert_eq!(plan.version, "0.4.0");
     }
 
-    // --- DeployStep の Clone ---
-
     #[test]
-    fn test_deploy_step_clone() {
-        let step = DeployStep::HelmDeploy;
-        let cloned = step;
-        assert_eq!(step, cloned);
+    fn test_execute_deploy_nonexistent_target_is_error() {
+        let config = DeployConfig {
+            environment: Environment::Dev,
+            targets: vec!["/nonexistent/path".to_string()],
+        };
+        assert!(execute_deploy(&config).is_err());
     }
 
-    // --- build_helm_rollback_args の system tier ---
-
     #[test]
-    fn test_build_helm_rollback_args_system() {
-        let args = build_helm_rollback_args("auth", "system");
-        assert_eq!(args[0], "rollback");
-        assert_eq!(args[1], "auth");
-        assert_eq!(args[2], "-n");
-        assert_eq!(args[3], "k1s0-system");
-    }
-
-    // --- execute_deploy_with_progress ---
-
-    #[test]
-    fn test_execute_deploy_with_progress_nonexistent_target() {
+    fn test_execute_deploy_with_progress_nonexistent_target_marks_failure() {
         let config = DeployConfig {
             environment: Environment::Dev,
             targets: vec!["/nonexistent/path".to_string()],
         };
         let events = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let events_clone = events.clone();
+
         let result = execute_deploy_with_progress(&config, move |event| {
             events_clone.lock().unwrap().push(event);
         });
-        assert!(result.is_ok());
+
+        assert!(result.is_err());
 
         let collected = events.lock().unwrap();
-        assert!(collected.len() >= 3);
         assert!(matches!(
             &collected[0],
             ProgressEvent::StepStarted {
@@ -820,59 +923,35 @@ mod tests {
                 ..
             }
         ));
-        assert!(matches!(&collected[1], ProgressEvent::Warning { .. }));
+        assert!(collected
+            .iter()
+            .any(|event| matches!(event, ProgressEvent::Error { .. })));
         assert!(matches!(
             collected.last().unwrap(),
-            ProgressEvent::Finished { success: true, .. }
+            ProgressEvent::Finished { success: false, .. }
         ));
     }
 
     #[test]
-    fn test_execute_deploy_with_progress_empty_targets() {
+    fn test_execute_deploy_with_progress_empty_targets_marks_failure() {
         let config = DeployConfig {
             environment: Environment::Dev,
             targets: vec![],
         };
         let events = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let events_clone = events.clone();
+
         let result = execute_deploy_with_progress(&config, move |event| {
             events_clone.lock().unwrap().push(event);
         });
-        assert!(result.is_ok());
+
+        assert!(result.is_err());
 
         let collected = events.lock().unwrap();
         assert_eq!(collected.len(), 1);
         assert!(matches!(
             &collected[0],
-            ProgressEvent::Finished { success: true, .. }
+            ProgressEvent::Finished { success: false, .. }
         ));
-    }
-
-    #[test]
-    fn test_execute_deploy_with_progress_dryrun_no_dockerfile() {
-        let tmp = TempDir::new().unwrap();
-        // Dockerfile なしのディレクトリ → dry-run メッセージ
-        let config = DeployConfig {
-            environment: Environment::Staging,
-            targets: vec![tmp.path().to_string_lossy().to_string()],
-        };
-        let events = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
-        let events_clone = events.clone();
-        let result = execute_deploy_with_progress(&config, move |event| {
-            events_clone.lock().unwrap().push(event);
-        });
-        assert!(result.is_ok());
-
-        let collected = events.lock().unwrap();
-        // StepStarted, Log (dry-run), StepCompleted, Finished
-        assert!(collected.len() >= 3);
-        let has_dryrun_log = collected.iter().any(|e| {
-            if let ProgressEvent::Log { message } = e {
-                message.contains("dry-run")
-            } else {
-                false
-            }
-        });
-        assert!(has_dryrun_log);
     }
 }

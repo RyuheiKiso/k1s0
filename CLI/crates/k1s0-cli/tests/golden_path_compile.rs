@@ -33,9 +33,16 @@ fn generate_and_check(
         .parent() // repo root
         .unwrap();
     let output_dir = match tier {
-        "service" => repo_root.join("regions/service").join(service_name).join("server/rust"),
-        "business" => repo_root.join("regions/business/test-domain/server/rust").join(service_name),
-        _ => repo_root.join("regions/system/server/rust").join(service_name),
+        "service" => repo_root
+            .join("regions/service")
+            .join(service_name)
+            .join("server/rust"),
+        "business" => repo_root
+            .join("regions/business/test-domain/server/rust")
+            .join(service_name),
+        _ => repo_root
+            .join("regions/system/server/rust")
+            .join(service_name),
     };
 
     let mut builder =
@@ -92,7 +99,15 @@ fn generate_and_check(
 #[test]
 #[ignore = "requires network (cargo fetches dependencies)"]
 fn test_golden_path_rust_rest_service() {
-    generate_and_check("gp-rest-svc", "service", "rest", true, "postgresql", false, false);
+    generate_and_check(
+        "gp-rest-svc",
+        "service",
+        "rest",
+        true,
+        "postgresql",
+        false,
+        false,
+    );
 }
 
 // Note: gRPC テストは proto ファイル（api/proto/）が必要なため、
@@ -108,7 +123,15 @@ fn test_golden_path_rust_rest_no_db() {
 #[test]
 #[ignore = "requires network (cargo fetches dependencies)"]
 fn test_golden_path_rust_rest_full_stack() {
-    generate_and_check("gp-rest-full", "service", "rest", true, "postgresql", true, true);
+    generate_and_check(
+        "gp-rest-full",
+        "service",
+        "rest",
+        true,
+        "postgresql",
+        true,
+        true,
+    );
 }
 
 // Note: system tier テストは regions/system/Cargo.toml の workspace に

@@ -159,7 +159,8 @@ fn step_service_select() -> Result<Option<Vec<String>>> {
     let names: Vec<String> = services.iter().map(|s| s.name.clone()).collect();
     let labels: Vec<&str> = names.iter().map(String::as_str).collect();
 
-    let selected = prompt::multi_select_prompt("サービスを選択してください（複数選択可）", &labels)?;
+    let selected =
+        prompt::multi_select_prompt("サービスを選択してください（複数選択可）", &labels)?;
 
     match selected {
         None => Ok(None),

@@ -283,14 +283,12 @@ mod tests {
 
     #[test]
     fn test_is_cache_valid_hash_changed() {
-        let old_hashes: HashMap<String, String> =
-            [("a.rs".to_string(), "old_hash".to_string())]
-                .into_iter()
-                .collect();
-        let new_hashes: HashMap<String, String> =
-            [("a.rs".to_string(), "new_hash".to_string())]
-                .into_iter()
-                .collect();
+        let old_hashes: HashMap<String, String> = [("a.rs".to_string(), "old_hash".to_string())]
+            .into_iter()
+            .collect();
+        let new_hashes: HashMap<String, String> = [("a.rs".to_string(), "new_hash".to_string())]
+            .into_iter()
+            .collect();
 
         let cache = DepsCache {
             version: CACHE_VERSION,
@@ -305,10 +303,9 @@ mod tests {
 
     #[test]
     fn test_is_cache_valid_file_added() {
-        let old_hashes: HashMap<String, String> =
-            [("a.rs".to_string(), "hash_a".to_string())]
-                .into_iter()
-                .collect();
+        let old_hashes: HashMap<String, String> = [("a.rs".to_string(), "hash_a".to_string())]
+            .into_iter()
+            .collect();
         let new_hashes: HashMap<String, String> = [
             ("a.rs".to_string(), "hash_a".to_string()),
             ("b.rs".to_string(), "hash_b".to_string()),
@@ -335,10 +332,9 @@ mod tests {
         ]
         .into_iter()
         .collect();
-        let new_hashes: HashMap<String, String> =
-            [("a.rs".to_string(), "hash_a".to_string())]
-                .into_iter()
-                .collect();
+        let new_hashes: HashMap<String, String> = [("a.rs".to_string(), "hash_a".to_string())]
+            .into_iter()
+            .collect();
 
         let cache = DepsCache {
             version: CACHE_VERSION,

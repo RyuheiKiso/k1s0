@@ -31,7 +31,13 @@ pub fn install_tool(language: &Language) -> Result<()> {
         Language::Rust => {
             println!("sqlx-cli をインストールしています...");
             let status = Command::new("cargo")
-                .args(["install", "sqlx-cli", "--no-default-features", "--features", "postgres"])
+                .args([
+                    "install",
+                    "sqlx-cli",
+                    "--no-default-features",
+                    "--features",
+                    "postgres",
+                ])
                 .status()
                 .context("cargo install の実行に失敗しました")?;
             if !status.success() {

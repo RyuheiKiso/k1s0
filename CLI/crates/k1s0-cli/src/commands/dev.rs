@@ -60,17 +60,15 @@ pub fn run() -> Result<()> {
         match step {
             Step::Operation => {
                 match step_operation()? {
-                    Some(op) => {
-                        match op {
-                            DevOperation::Up => step = Step::ServiceSelect,
-                            DevOperation::Down => step = Step::CleanupLevel,
-                            DevOperation::Status => {
-                                execute_dev_status()?;
-                                return Ok(());
-                            }
-                            DevOperation::Logs => step = Step::LogsTarget,
+                    Some(op) => match op {
+                        DevOperation::Up => step = Step::ServiceSelect,
+                        DevOperation::Down => step = Step::CleanupLevel,
+                        DevOperation::Status => {
+                            execute_dev_status()?;
+                            return Ok(());
                         }
-                    }
+                        DevOperation::Logs => step = Step::LogsTarget,
+                    },
                     None => return Ok(()), // Esc → メインメニューに戻る
                 }
             }
@@ -99,15 +97,13 @@ pub fn run() -> Result<()> {
                 }
             }
 
-            Step::AuthModeSelect => {
-                match step_auth_mode()? {
-                    Some(mode) => {
-                        auth_mode = mode;
-                        step = Step::ConfirmUp;
-                    }
-                    None => step = Step::ServiceSelect,
+            Step::AuthModeSelect => match step_auth_mode()? {
+                Some(mode) => {
+                    auth_mode = mode;
+                    step = Step::ConfirmUp;
                 }
-            }
+                None => step = Step::ServiceSelect,
+            },
 
             Step::ConfirmUp => {
                 print_up_confirmation(&selected_service_names, &deps, &auth_mode);
@@ -129,15 +125,13 @@ pub fn run() -> Result<()> {
             }
 
             // === 停止フロー ===
-            Step::CleanupLevel => {
-                match step_cleanup_level()? {
-                    Some(level) => {
-                        cleanup_level = level;
-                        step = Step::ConfirmDown;
-                    }
-                    None => step = Step::Operation,
+            Step::CleanupLevel => match step_cleanup_level()? {
+                Some(level) => {
+                    cleanup_level = level;
+                    step = Step::ConfirmDown;
                 }
-            }
+                None => step = Step::Operation,
+            },
 
             Step::ConfirmDown => {
                 print_down_confirmation(&cleanup_level);
@@ -158,15 +152,13 @@ pub fn run() -> Result<()> {
             }
 
             // === ログフロー ===
-            Step::LogsTarget => {
-                match step_logs_target()? {
-                    Some(service) => {
-                        execute_dev_logs(service.as_deref())?;
-                        return Ok(());
-                    }
-                    None => step = Step::Operation,
+            Step::LogsTarget => match step_logs_target()? {
+                Some(service) => {
+                    execute_dev_logs(service.as_deref())?;
+                    return Ok(());
                 }
-            }
+                None => step = Step::Operation,
+            },
         }
     }
 }
@@ -211,14 +203,10 @@ fn step_service_select() -> Result<Option<(Vec<String>, Vec<String>)>> {
                 let paths: Vec<String> = targets.iter().map(|(_, p)| p.clone()).collect();
                 Ok(Some((names, paths)))
             } else {
-                let names: Vec<String> = indices
-                    .iter()
-                    .map(|&i| targets[i - 1].0.clone())
-                    .collect();
-                let paths: Vec<String> = indices
-                    .iter()
-                    .map(|&i| targets[i - 1].1.clone())
-                    .collect();
+                let names: Vec<String> =
+                    indices.iter().map(|&i| targets[i - 1].0.clone()).collect();
+                let paths: Vec<String> =
+                    indices.iter().map(|&i| targets[i - 1].1.clone()).collect();
                 Ok(Some((names, paths)))
             }
         }
@@ -251,12 +239,16 @@ fn step_logs_target() -> Result<Option<Option<String>>> {
 
     // 稼働中のサービス名を取得（state.json から）
     let service_names: Vec<String> = if let Some(state) = state::load_state() {
-        state.services.iter().filter_map(|s| {
-            std::path::Path::new(s)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .map(std::string::ToString::to_string)
-        }).collect()
+        state
+            .services
+            .iter()
+            .filter_map(|s| {
+                std::path::Path::new(s)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(std::string::ToString::to_string)
+            })
+            .collect()
     } else {
         // docker compose のサービス名を静的に提示
         vec![
@@ -266,7 +258,10 @@ fn step_logs_target() -> Result<Option<Option<String>>> {
         ]
     };
 
-    let name_refs: Vec<&str> = service_names.iter().map(std::string::String::as_str).collect();
+    let name_refs: Vec<&str> = service_names
+        .iter()
+        .map(std::string::String::as_str)
+        .collect();
     for name in &name_refs {
         items.push(name);
     }
@@ -296,10 +291,7 @@ fn print_up_confirmation(
         }
     }
     if deps.has_kafka {
-        println!(
-            "      Kafka       {} topics",
-            deps.kafka_topics.len()
-        );
+        println!("      Kafka       {} topics", deps.kafka_topics.len());
     }
     if deps.has_redis {
         println!("      Redis       cache");

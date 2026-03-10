@@ -75,7 +75,8 @@ pub fn run() -> Result<()> {
         println!("  Flutter → lib/config/__generated__/config_types.dart");
     }
 
-    if prompt::confirm_prompt()? == prompt::ConfirmResult::Yes {} else {
+    if prompt::confirm_prompt()? == prompt::ConfirmResult::Yes {
+    } else {
         println!("キャンセルしました。");
         return Ok(());
     }

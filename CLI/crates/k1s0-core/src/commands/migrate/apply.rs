@@ -109,13 +109,15 @@ fn execute_sqlx_up(migrations_dir: &Path, conn_str: &str, range: &MigrateRange) 
     }
 
     println!("実行: sqlx {}", args.join(" "));
-    let status = Command::new("sqlx")
-        .args(&args)
-        .status()
-        .context("sqlx コマンドの実行に失敗しました。sqlx-cli がインストールされているか確認してください。")?;
+    let status = Command::new("sqlx").args(&args).status().context(
+        "sqlx コマンドの実行に失敗しました。sqlx-cli がインストールされているか確認してください。",
+    )?;
 
     if !status.success() {
-        anyhow::bail!("sqlx migrate run が失敗しました（終了コード: {:?}）", status.code());
+        anyhow::bail!(
+            "sqlx migrate run が失敗しました（終了コード: {:?}）",
+            status.code()
+        );
     }
 
     Ok(())
@@ -144,10 +146,9 @@ fn execute_sqlx_down(migrations_dir: &Path, conn_str: &str, range: &MigrateRange
     }
 
     println!("実行: sqlx {}", args.join(" "));
-    let status = Command::new("sqlx")
-        .args(&args)
-        .status()
-        .context("sqlx コマンドの実行に失敗しました。sqlx-cli がインストールされているか確認してください。")?;
+    let status = Command::new("sqlx").args(&args).status().context(
+        "sqlx コマンドの実行に失敗しました。sqlx-cli がインストールされているか確認してください。",
+    )?;
 
     if !status.success() {
         anyhow::bail!(
@@ -243,9 +244,8 @@ mod tests {
     #[test]
     fn test_resolve_connection_string_custom() {
         let custom_url = "postgresql://user:pass@remote:5433/mydb".to_string();
-        let conn =
-            resolve_connection_string(&DbConnection::Custom(custom_url.clone()), "ignored")
-                .unwrap();
+        let conn = resolve_connection_string(&DbConnection::Custom(custom_url.clone()), "ignored")
+            .unwrap();
         assert_eq!(conn, custom_url);
     }
 }

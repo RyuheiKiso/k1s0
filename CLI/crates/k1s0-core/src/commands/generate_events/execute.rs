@@ -32,11 +32,7 @@ pub fn execute_event_codegen(
             .join(format!("v{}", event.version))
             .join(format!("{}.proto", event.name_snake()));
         let event_ctx = build_single_event_context(config, event);
-        let rendered = render_template(
-            template_base,
-            "proto/event.proto.tera",
-            &event_ctx,
-        )?;
+        let rendered = render_template(template_base, "proto/event.proto.tera", &event_ctx)?;
         write_generated_file(&proto_path, &rendered)?;
         generated.push(proto_path);
     }
@@ -112,8 +108,7 @@ fn generate_rust(
                 .join("consumers")
                 .join(format!("{}.rs", consumer.handler));
             let consumer_ctx = build_consumer_context(config, event, consumer);
-            let rendered =
-                render_template(template_base, "rust/consumer.rs.tera", &consumer_ctx)?;
+            let rendered = render_template(template_base, "rust/consumer.rs.tera", &consumer_ctx)?;
             write_generated_file(&consumer_path, &rendered)?;
             generated.push(consumer_path);
         }
@@ -145,8 +140,7 @@ fn generate_go(
                 .join("consumers")
                 .join(format!("{}.go", consumer.handler));
             let consumer_ctx = build_consumer_context(config, event, consumer);
-            let rendered =
-                render_template(template_base, "go/consumer.go.tera", &consumer_ctx)?;
+            let rendered = render_template(template_base, "go/consumer.go.tera", &consumer_ctx)?;
             write_generated_file(&consumer_path, &rendered)?;
             generated.push(consumer_path);
         }

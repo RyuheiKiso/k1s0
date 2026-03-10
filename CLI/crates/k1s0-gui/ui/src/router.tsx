@@ -1,6 +1,7 @@
-import { createRouter, createRootRoute, createRoute } from '@tanstack/react-router';
+import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
+import AuthPage from './pages/AuthPage';
 import InitPage from './pages/InitPage';
 import GeneratePage from './pages/GeneratePage';
 import ConfigTypesPage from './pages/ConfigTypesPage';
@@ -18,6 +19,12 @@ const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   component: DashboardPage,
+});
+
+const authRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/auth',
+  component: AuthPage,
 });
 
 const initRoute = createRoute({
@@ -70,6 +77,7 @@ const deployRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   dashboardRoute,
+  authRoute,
   initRoute,
   generateRoute,
   configTypesRoute,

@@ -1,13 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
+  Outlet,
+  RouterProvider,
   createMemoryHistory,
-  createRouter,
   createRootRoute,
   createRoute,
-  RouterProvider,
-  Outlet,
+  createRouter,
 } from '@tanstack/react-router';
 import Sidebar from '../Sidebar';
 
@@ -21,61 +21,35 @@ function renderWithRouter(initialPath = '/') {
     ),
   });
 
-  const dashboardRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/',
-    component: () => <div>dashboard-page</div>,
-  });
+  const routeDefinitions = [
+    ['/', 'dashboard-page'],
+    ['/auth', 'auth-page'],
+    ['/init', 'init-page'],
+    ['/generate', 'generate-page'],
+    ['/build', 'build-page'],
+    ['/test', 'test-page'],
+    ['/deploy', 'deploy-page'],
+  ] as const;
 
-  const initRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/init',
-    component: () => <div>init-page</div>,
-  });
-
-  const generateRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/generate',
-    component: () => <div>generate-page</div>,
-  });
-
-  const buildRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/build',
-    component: () => <div>build-page</div>,
-  });
-
-  const testRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/test',
-    component: () => <div>test-page</div>,
-  });
-
-  const deployRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/deploy',
-    component: () => <div>deploy-page</div>,
-  });
-
-  const routeTree = rootRoute.addChildren([
-    dashboardRoute,
-    initRoute,
-    generateRoute,
-    buildRoute,
-    testRoute,
-    deployRoute,
-  ]);
+  const routes = routeDefinitions.map(([path, text]) =>
+    createRoute({
+      getParentRoute: () => rootRoute,
+      path,
+      component: () => <div>{text}</div>,
+    }),
+  );
 
   const history = createMemoryHistory({ initialEntries: [initialPath] });
-  const router = createRouter({ routeTree, history });
+  const router = createRouter({ routeTree: rootRoute.addChildren(routes), history });
 
   return { ...render(<RouterProvider router={router} />), router };
 }
 
 describe('Sidebar', () => {
-  it('should render all menu items', async () => {
+  it('renders the primary navigation items', async () => {
     renderWithRouter();
     expect(await screen.findByTestId('nav-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-auth')).toBeInTheDocument();
     expect(screen.getByTestId('nav-init')).toBeInTheDocument();
     expect(screen.getByTestId('nav-generate')).toBeInTheDocument();
     expect(screen.getByTestId('nav-build')).toBeInTheDocument();
@@ -83,27 +57,19 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('nav-deploy')).toBeInTheDocument();
   });
 
-  it('should navigate when a menu item is clicked', async () => {
-    const user = userEvent.setup();
-    const { router } = renderWithRouter();
-    await screen.findByTestId('nav-generate');
-    await user.click(screen.getByTestId('nav-generate'));
-    expect(router.state.location.pathname).toBe('/generate');
-  });
-
-  it('should highlight the current page', async () => {
-    renderWithRouter('/build');
-    const buildNav = await screen.findByTestId('nav-build');
-    expect(buildNav.className).toContain('bg-white/15');
-    expect(screen.getByTestId('nav-dashboard').className).not.toContain('bg-white/15');
-  });
-
-  it('should open the init route separately from the dashboard', async () => {
+  it('navigates to the selected route', async () => {
     const user = userEvent.setup();
     const { router } = renderWithRouter('/');
 
-    await user.click(await screen.findByTestId('nav-init'));
+    await user.click(await screen.findByTestId('nav-generate'));
 
-    expect(router.state.location.pathname).toBe('/init');
+    expect(router.state.location.pathname).toBe('/generate');
+  });
+
+  it('marks the active route', async () => {
+    renderWithRouter('/build');
+    const buildNav = await screen.findByTestId('nav-build');
+    expect(buildNav.className).toContain('bg-emerald-400/14');
+    expect(screen.getByTestId('nav-dashboard').className).not.toContain('bg-emerald-400/14');
   });
 });

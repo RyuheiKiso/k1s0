@@ -559,7 +559,8 @@ routes:
     component_id: DashboardPage
     guards: [auth_required]
     transition: fade
-".to_string();
+"
+    .to_string();
 
     match framework {
         "react" => {

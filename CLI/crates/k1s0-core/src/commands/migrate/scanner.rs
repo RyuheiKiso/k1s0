@@ -127,8 +127,12 @@ pub fn scan_migration_files(migrations_dir: &Path) -> Result<Vec<MigrationFile>>
     let pattern = Regex::new(r"^(\d{3})_([a-z0-9_]+)\.(up|down)\.sql$")
         .context("マイグレーションファイル名の正規表現のコンパイルに失敗しました")?;
 
-    let entries = fs::read_dir(migrations_dir)
-        .with_context(|| format!("ディレクトリの読み込みに失敗しました: {}", migrations_dir.display()))?;
+    let entries = fs::read_dir(migrations_dir).with_context(|| {
+        format!(
+            "ディレクトリの読み込みに失敗しました: {}",
+            migrations_dir.display()
+        )
+    })?;
 
     for entry in entries.flatten() {
         let path = entry.path();

@@ -40,7 +40,10 @@ pub fn create_migration(config: &MigrateCreateConfig) -> Result<(PathBuf, PathBu
     let prefix = format!("{:03}_{}", seq, config.migration_name);
 
     // up.sql
-    let up_path = config.target.migrations_dir.join(format!("{prefix}.up.sql"));
+    let up_path = config
+        .target
+        .migrations_dir
+        .join(format!("{prefix}.up.sql"));
     let up_content = format!(
         "-- migrations/{prefix}.up.sql\n\
          -- マイグレーション: {name}\n\
@@ -69,12 +72,8 @@ pub fn create_migration(config: &MigrateCreateConfig) -> Result<(PathBuf, PathBu
         name = config.migration_name,
         date = date,
     );
-    fs::write(&down_path, &down_content).with_context(|| {
-        format!(
-            "down.sql の書き込みに失敗しました: {}",
-            down_path.display()
-        )
-    })?;
+    fs::write(&down_path, &down_content)
+        .with_context(|| format!("down.sql の書き込みに失敗しました: {}", down_path.display()))?;
 
     Ok((up_path, down_path))
 }
