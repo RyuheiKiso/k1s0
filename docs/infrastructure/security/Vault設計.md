@@ -79,6 +79,8 @@ Root CA（`pki/`）は直接利用しない。Intermediate CA（`pki_int/`）経
 - `secret/data/k1s0/system/dlq-manager/*` --- dlq-manager サービス固有シークレット
 - `secret/data/k1s0/system/saga-server/*` --- saga-server サービス固有シークレット
 - `secret/data/k1s0/system/bff-proxy/*` --- bff-proxy サービス固有シークレット
+- `secret/data/k1s0/system/app-registry/database` --- app-registry DB パスワード（キー: `password`）
+- `secret/data/k1s0/system/app-registry/ceph` --- Ceph RGW アクセスキー（キー: `access_key`, `secret_key`）
 - `secret/data/k1s0/system/redis/*` --- BFF セッション Redis AUTH パスワード（キー: `password`）
 - `secret/data/k1s0/system/keycloak/bff-proxy` --- BFF OIDC Client Secret（キー: `client_secret`）
 - `secret/data/k1s0/system/keycloak/*` --- Keycloak 統合シークレット（キー: `client_secret`）

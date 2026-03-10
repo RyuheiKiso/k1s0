@@ -1,0 +1,97 @@
+<mxfile host="draw.io">
+  <diagram name="Download Flow" id="download-flow">
+    <mxGraphModel dx="1100" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="ダウンロードフロー" style="text;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Actors -->
+        <mxCell id="user" value="ユーザー" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="40" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Steps -->
+        <mxCell id="s1" value="1. App Catalog にアクセス&#xa;(ブラウザ)" style="rounded=1;whiteSpace=wrap;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="160" y="80" width="220" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s2" value="2. Keycloak で認証&#xa;(OIDC / SSO)" style="rounded=1;whiteSpace=wrap;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="440" y="80" width="220" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3" value="3. アプリ一覧を閲覧&#xa;検索・フィルタ・カテゴリ" style="rounded=1;whiteSpace=wrap;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="220" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4" value="4. アプリ詳細ページ&#xa;バージョン・変更履歴・&#xa;対応OS・サイズ" style="rounded=1;whiteSpace=wrap;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="720" y="180" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s5" value="5. ダウンロードボタン押下&#xa;OS 自動検出" style="rounded=1;whiteSpace=wrap;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="190" width="220" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s6" value="6. App Registry が&#xa;Presigned URL を生成" style="rounded=1;whiteSpace=wrap;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="160" y="190" width="220" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s7" value="7. Ceph RGW から&#xa;バイナリを直接ダウンロード&#xa;(Presigned URL)" style="rounded=1;whiteSpace=wrap;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="300" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s8" value="8. SHA-256 検証&#xa;+ Cosign 署名検証" style="rounded=1;whiteSpace=wrap;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="440" y="310" width="220" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s9" value="9. インストール完了&#xa;自動更新クライアント起動" style="rounded=1;whiteSpace=wrap;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="310" width="220" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="user" target="s1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="s4" target="s5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="s5" target="s6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="s6" target="s7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="s7" target="s8">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="s8" target="s9">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Note: Presigned URL detail -->
+        <mxCell id="note1" value="Presigned URL により&#xa;App Registry を経由せず&#xa;Ceph から直接ダウンロード&#xa;= サーバー負荷を軽減" style="shape=note;whiteSpace=wrap;fontSize=10;fillColor=#ffffcc;strokeColor=#d6b656;size=14;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="220" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Note: Security -->
+        <mxCell id="note2" value="全バイナリに対して&#xa;SHA-256 + Cosign 署名を&#xa;検証し改ざんを防止" style="shape=note;whiteSpace=wrap;fontSize=10;fillColor=#ffffcc;strokeColor=#d6b656;size=14;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="440" y="400" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

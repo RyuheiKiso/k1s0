@@ -44,7 +44,8 @@ reset_scenarios() {
   echo "Resetting all scenarios..."
   kubectl delete vs order-server-canary order-server-mirror order-server-fault \
     -n "${NAMESPACE}" 2>/dev/null || true
-  echo "  All scenario VirtualServices removed."
+  kubectl apply -f "${SCRIPT_DIR}/manifests/02-virtualservices.yaml" >/dev/null
+  echo "  Baseline VirtualServices restored."
 }
 
 show_menu() {

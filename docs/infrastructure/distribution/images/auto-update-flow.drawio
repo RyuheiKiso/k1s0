@@ -1,0 +1,114 @@
+<mxfile host="draw.io">
+  <diagram name="Auto Update Flow" id="auto-update">
+    <mxGraphModel dx="1100" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="600" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="自動更新フロー" style="text;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="350" y="10" width="400" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Desktop App -->
+        <mxCell id="app-container" value="デスクトップアプリ (Flutter)" style="swimlane;startSize=28;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;rounded=1;pointerEvents=0;" vertex="1" parent="1" connectable="0">
+          <mxGeometry x="40" y="70" width="300" height="490" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a1" value="アプリ起動" style="ellipse;whiteSpace=wrap;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1" parent="app-container">
+          <mxGeometry x="90" y="40" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" value="バージョンチェック&#xa;API 呼び出し" style="rounded=1;whiteSpace=wrap;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="app-container">
+          <mxGeometry x="50" y="110" width="200" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" value="更新あり？" style="rhombus;whiteSpace=wrap;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" vertex="1" parent="app-container">
+          <mxGeometry x="70" y="190" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4" value="更新ダイアログ表示&#xa;(変更内容・サイズ)" style="rounded=1;whiteSpace=wrap;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="app-container">
+          <mxGeometry x="50" y="280" width="200" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="a5" value="バックグラウンド&#xa;ダウンロード" style="rounded=1;whiteSpace=wrap;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="app-container">
+          <mxGeometry x="50" y="356" width="200" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="a6" value="再起動して適用" style="ellipse;whiteSpace=wrap;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="app-container">
+          <mxGeometry x="70" y="432" width="160" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- No update path -->
+        <mxCell id="a-no" value="通常起動" style="ellipse;whiteSpace=wrap;fontSize=11;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="100" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Server side -->
+        <mxCell id="srv-container" value="App Registry Server" style="swimlane;startSize=28;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;rounded=1;pointerEvents=0;" vertex="1" parent="1" connectable="0">
+          <mxGeometry x="420" y="70" width="280" height="340" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sv1" value="GET /api/v1/apps/{id}/latest&#xa;?platform=windows&amp;arch=x64" style="rounded=1;whiteSpace=wrap;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Courier New;" vertex="1" parent="srv-container">
+          <mxGeometry x="20" y="46" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="sv2" value="レスポンス:&#xa;{ version, download_url,&#xa;  checksum, release_notes,&#xa;  mandatory, size }" style="rounded=1;whiteSpace=wrap;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Courier New;align=left;spacingLeft=10;" vertex="1" parent="srv-container">
+          <mxGeometry x="20" y="120" width="240" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="sv3" value="Presigned URL 生成&#xa;(有効期限: 1時間)" style="rounded=1;whiteSpace=wrap;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="srv-container">
+          <mxGeometry x="20" y="226" width="240" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="sv4" value="ダウンロード統計記録" style="rounded=1;whiteSpace=wrap;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="srv-container">
+          <mxGeometry x="20" y="286" width="240" height="36" as="geometry"/>
+        </mxCell>
+
+        <!-- Storage -->
+        <mxCell id="storage" value="Ceph RGW&#xa;(S3)" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="120" width="160" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="db" value="PostgreSQL" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="260" width="160" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Internal edges (app) -->
+        <mxCell id="ea1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="app-container" source="a1" target="a2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="app-container" source="a2" target="a3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;fontSize=10;fontStyle=1;" edge="1" parent="app-container" source="a3" target="a4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="app-container" source="a4" target="a5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="app-container" source="a5" target="a6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- No branch -->
+        <mxCell id="ea-no" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#999;fontSize=10;fontStyle=1;exitX=0;exitY=0.5;" edge="1" parent="1" source="a3" target="a-no">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Cross edges -->
+        <mxCell id="ec1" value="バージョン問い合わせ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;fontSize=10;" edge="1" parent="1" source="a2" target="sv1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ec2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;fontSize=10;" edge="1" parent="1" source="sv3" target="storage">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ec3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;fontSize=10;" edge="1" parent="1" source="sv4" target="db">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ec4" value="Presigned URL で&#xa;直接ダウンロード" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;dashed=1;fontSize=10;" edge="1" parent="1" source="a5" target="storage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="450"/>
+              <mxPoint x="760" y="450"/>
+              <mxPoint x="760" y="160"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

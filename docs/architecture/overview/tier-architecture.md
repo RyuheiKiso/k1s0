@@ -29,7 +29,8 @@ Tier とは別に、クラスタ基盤用の Namespace も存在する（例: `i
 
 | 種別     | 役割                                           |
 | -------- | ---------------------------------------------- |
-| server   | 共通のサーバー基盤（認証、API ゲートウェイ等） |
+| server   | 共通のサーバー基盤（認証、API ゲートウェイ、アプリ配布等） |
+| client   | 共通 SDK パッケージ + App Catalog UI           |
 | library  | server・client 双方で使う共通ライブラリ        |
 | database | 共通基盤のデータストア（ユーザー、認証等）     |
 
@@ -213,4 +214,5 @@ k1s0 CLI や Tauri GUI（[TauriGUI設計](../../cli/gui/TauriGUI設計.md)）な
 - [CLIフロー](../../cli/flow/CLIフロー.md)
 - [TauriGUI設計](../../cli/gui/TauriGUI設計.md)
 - [可観測性設計](../observability/可観測性設計.md)
+- [アプリ配布基盤設計](../../infrastructure/distribution/アプリ配布基盤設計.md)
 - [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md)

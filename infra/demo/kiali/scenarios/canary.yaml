@@ -1,13 +1,13 @@
-# Canary VirtualService: 90:10 weight split + header-based routing
-# Based on infra/istio/virtualservices/canary.yaml
+# Canary VirtualService: 90:10 weight split + header-based routing.
+# Reuses the order-server baseline timeout/retry policy.
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: order-server-canary
+  name: order-server
   namespace: k1s0-service
 spec:
   hosts:
-    - order-server
+    - order-server.k1s0-service.svc.cluster.local
   http:
     - match:
         - headers:
@@ -15,14 +15,26 @@ spec:
               exact: "true"
       route:
         - destination:
-            host: order-server
+            host: order-server.k1s0-service.svc.cluster.local
             subset: canary
+      timeout: 10s
+      retries:
+        attempts: 3
+        perTryTimeout: 3s
+        retryOn: "5xx,reset,connect-failure,retriable-4xx"
+        retryRemoteLocalities: true
     - route:
         - destination:
-            host: order-server
+            host: order-server.k1s0-service.svc.cluster.local
             subset: stable
           weight: 90
         - destination:
-            host: order-server
+            host: order-server.k1s0-service.svc.cluster.local
             subset: canary
           weight: 10
+      timeout: 10s
+      retries:
+        attempts: 3
+        perTryTimeout: 3s
+        retryOn: "5xx,reset,connect-failure,retriable-4xx"
+        retryRemoteLocalities: true

@@ -4,6 +4,7 @@ interface TopoNode {
   id: string;
   namespace: string;
   rate: number;
+  unit: "reqps" | "bytesps" | "mixed";
 }
 
 interface TopoEdge {
@@ -11,6 +12,8 @@ interface TopoEdge {
   target: string;
   rate: number;
   errorRate: number;
+  protocol: "http" | "tcp";
+  unit: "reqps" | "bytesps";
 }
 
 interface TopologyData {
@@ -60,7 +63,14 @@ function layoutNodes(nodes: TopoNode[]): Map<string, { x: number; y: number }> {
   return positions;
 }
 
-function formatRate(rate: number): string {
+function formatRate(rate: number, unit: TopoNode["unit"] | TopoEdge["unit"]): string {
+  if (unit === "bytesps") {
+    if (rate >= 1024 * 1024) return `${(rate / (1024 * 1024)).toFixed(1)} MiB/s`;
+    if (rate >= 1024) return `${(rate / 1024).toFixed(1)} KiB/s`;
+    return `${rate.toFixed(0)} B/s`;
+  }
+
+  if (unit === "mixed") return "mixed traffic";
   if (rate >= 1) return `${rate.toFixed(1)} req/s`;
   if (rate >= 0.01) return `${(rate * 1000).toFixed(0)} mreq/s`;
   return `${(rate * 1000).toFixed(1)} mreq/s`;
@@ -153,6 +163,7 @@ export default function TopologyView() {
             <span className="inline-block w-6 h-0.5 bg-red-500 mr-1 align-middle" />
             errors
           </span>
+          <span className="text-sky-400">TCP edges show throughput</span>
         </div>
       </div>
 
@@ -205,16 +216,21 @@ export default function TopologyView() {
 
           const hasError = edge.errorRate > 0;
           const errorPct = edge.rate > 0 ? (edge.errorRate / edge.rate) * 100 : 0;
-          const strokeColor = hasError
-            ? errorPct > 5
-              ? "#ef4444"
-              : "#eab308"
-            : "#22c55e";
-          const markerEnd = hasError
-            ? errorPct > 5
-              ? "url(#arrowRed)"
-              : "url(#arrowYellow)"
-            : "url(#arrowGreen)";
+          const isTcp = edge.protocol === "tcp";
+          const strokeColor = isTcp
+            ? "#38bdf8"
+            : hasError
+              ? errorPct > 5
+                ? "#ef4444"
+                : "#eab308"
+              : "#22c55e";
+          const markerEnd = isTcp
+            ? "url(#arrowGreen)"
+            : hasError
+              ? errorPct > 5
+                ? "url(#arrowRed)"
+                : "url(#arrowYellow)"
+              : "url(#arrowGreen)";
           const thickness = 1 + (edge.rate / maxRate) * 3;
 
           // Offset for line so it doesn't overlap node circle
@@ -253,7 +269,7 @@ export default function TopologyView() {
                 fill={strokeColor}
                 opacity={0.9}
               >
-                {formatRate(edge.rate)}
+                {edge.protocol.toUpperCase()} {formatRate(edge.rate, edge.unit)}
               </text>
             </g>
           );
@@ -294,7 +310,7 @@ export default function TopologyView() {
                 fill={color.text}
                 opacity={0.6}
               >
-                {formatRate(node.rate)}
+                {formatRate(node.rate, node.unit)}
               </text>
             </g>
           );
