@@ -90,7 +90,9 @@ export default function Layout() {
               </p>
               <h2 className="mt-2 text-xl font-semibold text-white">Operator session</h2>
               <p className="mt-3 text-sm text-slate-200/75">
-                {auth.isAuthenticated
+                {auth.loading
+                  ? 'Checking the secure operator session before enabling protected actions.'
+                  : auth.isAuthenticated
                   ? `Authenticated against ${auth.session?.issuer ?? 'the identity provider'}.`
                   : 'Sign in with the Device Authorization Grant flow before running protected actions.'}
               </p>
@@ -106,7 +108,9 @@ export default function Layout() {
                 {auth.isAuthenticated && (
                   <button
                     type="button"
-                    onClick={auth.clearSession}
+                    onClick={() => {
+                      void auth.clearSession();
+                    }}
                     className="rounded-xl border border-white/15 bg-white/6 px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10"
                     data-testid="auth-logout"
                   >

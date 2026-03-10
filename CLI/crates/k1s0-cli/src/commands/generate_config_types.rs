@@ -103,8 +103,8 @@ pub fn run() -> Result<()> {
         .collect::<Vec<_>>();
 
     println!("\nGenerating type definitions...");
-    let generated =
-        write_generated_types_to_targets(&schema, &target_specs).map_err(|error| anyhow::anyhow!("{error}"))?;
+    let generated = write_generated_types_to_targets(&schema, &target_specs)
+        .map_err(|error| anyhow::anyhow!("{error}"))?;
     for path in &generated {
         println!("  OK {}", path.display());
     }

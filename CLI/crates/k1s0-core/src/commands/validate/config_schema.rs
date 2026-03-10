@@ -1,3 +1,4 @@
+use super::ValidationDiagnostic;
 use jsonschema::JSONSchema;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -39,224 +40,256 @@ pub struct FieldYaml {
     pub default: Option<serde_yaml::Value>,
 }
 
-pub fn validate_config_schema(path: &str) -> Result<usize, Box<dyn std::error::Error>> {
+pub fn collect_config_schema_diagnostics(
+    path: &str,
+) -> Result<Vec<ValidationDiagnostic>, Box<dyn std::error::Error>> {
     let content = fs::read_to_string(path)?;
-    println!("Checking config-schema.yaml...");
-
     let yaml_value: serde_yaml::Value = match serde_yaml::from_str(&content) {
-        Ok(value) => {
-            println!("  OK YAML parse");
-            value
-        }
+        Ok(value) => value,
         Err(error) => {
-            println!("  ERROR YAML parse: {error}");
-            return Ok(1);
+            return Ok(vec![ValidationDiagnostic {
+                rule: "yaml-parse".to_string(),
+                path: "$".to_string(),
+                message: error.to_string(),
+                line: error.location().map(|location| location.line()),
+            }]);
         }
     };
 
-    let mut errors = 0usize;
+    let mut diagnostics = Vec::new();
     let schema_json: serde_json::Value = serde_json::from_str(CONFIG_SCHEMA_JSON)?;
     let instance_json = serde_json::to_value(&yaml_value)?;
     let compiled = JSONSchema::compile(&schema_json).map_err(|error| error.to_string())?;
-    let json_schema_errors = compiled
-        .validate(&instance_json)
-        .err()
-        .map(|validation_errors| {
-            validation_errors
-                .map(|error| format!("{error}"))
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    if json_schema_errors.is_empty() {
-        println!("  OK JSON Schema validation");
-    } else {
-        for error in json_schema_errors {
-            println!("  ERROR JSON Schema: {error}");
-            errors += 1;
-        }
+    if let Err(validation_errors) = compiled.validate(&instance_json) {
+        diagnostics.extend(validation_errors.map(|error| ValidationDiagnostic {
+            rule: "json-schema".to_string(),
+            path: json_pointer_or_root(error.instance_path.to_string()),
+            message: error.to_string(),
+            line: None,
+        }));
     }
 
     let schema: ConfigSchemaYaml = match serde_yaml::from_value(yaml_value.clone()) {
         Ok(schema) => schema,
         Err(error) => {
-            if errors == 0 {
-                println!("  ERROR schema parse: {error}");
-                errors += 1;
+            if diagnostics.is_empty() {
+                diagnostics.push(ValidationDiagnostic {
+                    rule: "schema-parse".to_string(),
+                    path: "$".to_string(),
+                    message: error.to_string(),
+                    line: None,
+                });
             }
-            print_summary(errors);
-            return Ok(errors);
+            return Ok(diagnostics);
         }
     };
 
-    errors += validate_namespace_prefixes(&schema);
-    errors += validate_unique_category_ids(&schema);
-    errors += validate_unique_field_keys(&schema);
-    errors += validate_field_types(&schema);
-    errors += validate_enum_fields(&schema);
-    errors += validate_number_ranges(&schema);
-    errors += validate_default_values(&schema);
+    collect_namespace_prefix_diagnostics(&schema, &mut diagnostics);
+    collect_unique_category_id_diagnostics(&schema, &mut diagnostics);
+    collect_unique_field_key_diagnostics(&schema, &mut diagnostics);
+    collect_field_type_diagnostics(&schema, &mut diagnostics);
+    collect_enum_field_diagnostics(&schema, &mut diagnostics);
+    collect_number_range_diagnostics(&schema, &mut diagnostics);
+    collect_default_value_diagnostics(&schema, &mut diagnostics);
 
-    print_summary(errors);
-    Ok(errors)
+    Ok(diagnostics)
 }
 
-fn validate_namespace_prefixes(schema: &ConfigSchemaYaml) -> usize {
-    let mut errors = 0usize;
-    for category in &schema.categories {
-        for namespace in &category.namespaces {
-            if !namespace.starts_with(&schema.namespace_prefix) {
-                println!(
-                    "  ERROR namespace prefix: category '{}' namespace '{}' must start with '{}'",
-                    category.id, namespace, schema.namespace_prefix
-                );
-                errors += 1;
-            }
-        }
-    }
+pub fn validate_config_schema(path: &str) -> Result<usize, Box<dyn std::error::Error>> {
+    println!("Checking config-schema.yaml...");
+    let diagnostics = collect_config_schema_diagnostics(path)?;
 
-    if errors == 0 {
+    if diagnostics.is_empty() {
+        println!("  OK YAML parse");
+        println!("  OK JSON Schema validation");
         println!("  OK namespace prefix");
-    }
-
-    errors
-}
-
-fn validate_unique_category_ids(schema: &ConfigSchemaYaml) -> usize {
-    let mut ids = HashSet::new();
-    let mut errors = 0usize;
-
-    for category in &schema.categories {
-        if !ids.insert(&category.id) {
-            println!("  ERROR duplicate category id: '{}'", category.id);
-            errors += 1;
+        println!("  OK category ids");
+        println!("  OK field keys");
+        println!("  OK field types");
+        println!("  OK enum options");
+        println!("  OK numeric ranges");
+        println!("  OK default values");
+    } else {
+        for diagnostic in &diagnostics {
+            println!(
+                "  ERROR [{}] {}: {}",
+                diagnostic.rule, diagnostic.path, diagnostic.message
+            );
         }
     }
 
-    if errors == 0 {
-        println!("  OK category ids");
-    }
-
-    errors
+    print_summary(diagnostics.len());
+    Ok(diagnostics.len())
 }
 
-fn validate_unique_field_keys(schema: &ConfigSchemaYaml) -> usize {
-    let mut errors = 0usize;
+fn json_pointer_or_root(pointer: String) -> String {
+    if pointer.is_empty() {
+        "$".to_string()
+    } else {
+        pointer
+    }
+}
 
-    for category in &schema.categories {
-        let mut keys = HashSet::new();
-        for field in &category.fields {
-            if !keys.insert(&field.key) {
-                println!(
-                    "  ERROR duplicate field key: category '{}' field '{}'",
-                    category.id, field.key
-                );
-                errors += 1;
+fn collect_namespace_prefix_diagnostics(
+    schema: &ConfigSchemaYaml,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    for (category_index, category) in schema.categories.iter().enumerate() {
+        for (namespace_index, namespace) in category.namespaces.iter().enumerate() {
+            if !namespace.starts_with(&schema.namespace_prefix) {
+                diagnostics.push(ValidationDiagnostic {
+                    rule: "namespace-prefix".to_string(),
+                    path: format!("categories[{category_index}].namespaces[{namespace_index}]"),
+                    message: format!(
+                        "category '{}' namespace '{}' must start with '{}'",
+                        category.id, namespace, schema.namespace_prefix
+                    ),
+                    line: None,
+                });
             }
         }
     }
-
-    if errors == 0 {
-        println!("  OK field keys");
-    }
-
-    errors
 }
 
-fn validate_field_types(schema: &ConfigSchemaYaml) -> usize {
+fn collect_unique_category_id_diagnostics(
+    schema: &ConfigSchemaYaml,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    let mut ids = HashSet::new();
+
+    for (category_index, category) in schema.categories.iter().enumerate() {
+        if !ids.insert(category.id.as_str()) {
+            diagnostics.push(ValidationDiagnostic {
+                rule: "duplicate-category-id".to_string(),
+                path: format!("categories[{category_index}].id"),
+                message: format!("duplicate category id '{}'", category.id),
+                line: None,
+            });
+        }
+    }
+}
+
+fn collect_unique_field_key_diagnostics(
+    schema: &ConfigSchemaYaml,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    for (category_index, category) in schema.categories.iter().enumerate() {
+        let mut keys = HashSet::new();
+        for (field_index, field) in category.fields.iter().enumerate() {
+            if !keys.insert(field.key.as_str()) {
+                diagnostics.push(ValidationDiagnostic {
+                    rule: "duplicate-field-key".to_string(),
+                    path: format!("categories[{category_index}].fields[{field_index}].key"),
+                    message: format!(
+                        "category '{}' field '{}' is duplicated",
+                        category.id, field.key
+                    ),
+                    line: None,
+                });
+            }
+        }
+    }
+}
+
+fn collect_field_type_diagnostics(
+    schema: &ConfigSchemaYaml,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
     const VALID_TYPES: &[&str] = &[
-        "string",
-        "integer",
-        "float",
-        "boolean",
-        "enum",
-        "object",
-        "array",
+        "string", "integer", "float", "boolean", "enum", "object", "array",
     ];
 
-    let mut errors = 0usize;
-
-    for category in &schema.categories {
-        for field in &category.fields {
+    for (category_index, category) in schema.categories.iter().enumerate() {
+        for (field_index, field) in category.fields.iter().enumerate() {
             match field.field_type.as_deref() {
                 Some(field_type) if VALID_TYPES.contains(&field_type) => {}
-                Some(field_type) => {
-                    println!(
-                        "  ERROR field type: category '{}' field '{}' has unsupported type '{}'",
+                Some(field_type) => diagnostics.push(ValidationDiagnostic {
+                    rule: "field-type".to_string(),
+                    path: format!("categories[{category_index}].fields[{field_index}].type"),
+                    message: format!(
+                        "category '{}' field '{}' has unsupported type '{}'",
                         category.id, field.key, field_type
-                    );
-                    errors += 1;
-                }
-                None => {
-                    println!(
-                        "  ERROR field type: category '{}' field '{}' is missing type",
+                    ),
+                    line: None,
+                }),
+                None => diagnostics.push(ValidationDiagnostic {
+                    rule: "field-type".to_string(),
+                    path: format!("categories[{category_index}].fields[{field_index}].type"),
+                    message: format!(
+                        "category '{}' field '{}' is missing type",
                         category.id, field.key
-                    );
-                    errors += 1;
-                }
+                    ),
+                    line: None,
+                }),
             }
         }
     }
-
-    if errors == 0 {
-        println!("  OK field types");
-    }
-
-    errors
 }
 
-fn validate_enum_fields(schema: &ConfigSchemaYaml) -> usize {
-    let mut errors = 0usize;
-
-    for category in &schema.categories {
-        for field in &category.fields {
+fn collect_enum_field_diagnostics(
+    schema: &ConfigSchemaYaml,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    for (category_index, category) in schema.categories.iter().enumerate() {
+        for (field_index, field) in category.fields.iter().enumerate() {
             if field.field_type.as_deref() != Some("enum") {
                 continue;
             }
 
             let options = field.options.as_ref().filter(|options| !options.is_empty());
             if options.is_none() {
-                println!(
-                    "  ERROR enum options: category '{}' field '{}' requires options",
-                    category.id, field.key
-                );
-                errors += 1;
+                diagnostics.push(ValidationDiagnostic {
+                    rule: "enum-options".to_string(),
+                    path: format!("categories[{category_index}].fields[{field_index}].options"),
+                    message: format!(
+                        "category '{}' field '{}' requires options",
+                        category.id, field.key
+                    ),
+                    line: None,
+                });
                 continue;
             }
 
             if let Some(default) = field.default.as_ref().and_then(serde_yaml::Value::as_str) {
-                if !options.unwrap().iter().any(|option| option == default) {
-                    println!(
-                        "  ERROR enum default: category '{}' field '{}' default '{}' is not in options",
-                        category.id, field.key, default
-                    );
-                    errors += 1;
+                if !options
+                    .expect("checked above")
+                    .iter()
+                    .any(|option| option == default)
+                {
+                    diagnostics.push(ValidationDiagnostic {
+                        rule: "enum-default".to_string(),
+                        path: format!("categories[{category_index}].fields[{field_index}].default"),
+                        message: format!(
+                            "category '{}' field '{}' default '{}' is not in options",
+                            category.id, field.key, default
+                        ),
+                        line: None,
+                    });
                 }
             }
         }
     }
-
-    if errors == 0 {
-        println!("  OK enum options");
-    }
-
-    errors
 }
 
-fn validate_number_ranges(schema: &ConfigSchemaYaml) -> usize {
-    let mut errors = 0usize;
-
-    for category in &schema.categories {
-        for field in &category.fields {
+fn collect_number_range_diagnostics(
+    schema: &ConfigSchemaYaml,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    for (category_index, category) in schema.categories.iter().enumerate() {
+        for (field_index, field) in category.fields.iter().enumerate() {
             match field.field_type.as_deref() {
                 Some("integer") | Some("float") => {
                     if let (Some(min), Some(max)) = (field.min, field.max) {
                         if min > max {
-                            println!(
-                                "  ERROR numeric range: category '{}' field '{}' has min {} greater than max {}",
-                                category.id, field.key, min, max
-                            );
-                            errors += 1;
+                            diagnostics.push(ValidationDiagnostic {
+                                rule: "numeric-range".to_string(),
+                                path: format!("categories[{category_index}].fields[{field_index}]"),
+                                message: format!(
+                                    "category '{}' field '{}' has min {} greater than max {}",
+                                    category.id, field.key, min, max
+                                ),
+                                line: None,
+                            });
                         }
                     }
                 }
@@ -264,19 +297,14 @@ fn validate_number_ranges(schema: &ConfigSchemaYaml) -> usize {
             }
         }
     }
-
-    if errors == 0 {
-        println!("  OK numeric ranges");
-    }
-
-    errors
 }
 
-fn validate_default_values(schema: &ConfigSchemaYaml) -> usize {
-    let mut errors = 0usize;
-
-    for category in &schema.categories {
-        for field in &category.fields {
+fn collect_default_value_diagnostics(
+    schema: &ConfigSchemaYaml,
+    diagnostics: &mut Vec<ValidationDiagnostic>,
+) {
+    for (category_index, category) in schema.categories.iter().enumerate() {
+        for (field_index, field) in category.fields.iter().enumerate() {
             let Some(default) = &field.default else {
                 continue;
             };
@@ -286,11 +314,15 @@ fn validate_default_values(schema: &ConfigSchemaYaml) -> usize {
             };
 
             if !default_matches_type(field_type, default) {
-                println!(
-                    "  ERROR default type: category '{}' field '{}' default does not match type '{}'",
-                    category.id, field.key, field_type
-                );
-                errors += 1;
+                diagnostics.push(ValidationDiagnostic {
+                    rule: "default-type".to_string(),
+                    path: format!("categories[{category_index}].fields[{field_index}].default"),
+                    message: format!(
+                        "category '{}' field '{}' default does not match type '{}'",
+                        category.id, field.key, field_type
+                    ),
+                    line: None,
+                });
                 continue;
             }
 
@@ -299,20 +331,32 @@ fn validate_default_values(schema: &ConfigSchemaYaml) -> usize {
                     if let Some(value) = default.as_f64() {
                         if let Some(min) = field.min {
                             if value < min {
-                                println!(
-                                    "  ERROR default range: category '{}' field '{}' default {} is below min {}",
-                                    category.id, field.key, value, min
-                                );
-                                errors += 1;
+                                diagnostics.push(ValidationDiagnostic {
+                                    rule: "default-range".to_string(),
+                                    path: format!(
+                                        "categories[{category_index}].fields[{field_index}].default"
+                                    ),
+                                    message: format!(
+                                        "category '{}' field '{}' default {} is below min {}",
+                                        category.id, field.key, value, min
+                                    ),
+                                    line: None,
+                                });
                             }
                         }
                         if let Some(max) = field.max {
                             if value > max {
-                                println!(
-                                    "  ERROR default range: category '{}' field '{}' default {} is above max {}",
-                                    category.id, field.key, value, max
-                                );
-                                errors += 1;
+                                diagnostics.push(ValidationDiagnostic {
+                                    rule: "default-range".to_string(),
+                                    path: format!(
+                                        "categories[{category_index}].fields[{field_index}].default"
+                                    ),
+                                    message: format!(
+                                        "category '{}' field '{}' default {} is above max {}",
+                                        category.id, field.key, value, max
+                                    ),
+                                    line: None,
+                                });
                             }
                         }
                     }
@@ -323,20 +367,28 @@ fn validate_default_values(schema: &ConfigSchemaYaml) -> usize {
                     {
                         match Regex::new(pattern) {
                             Ok(regex) if regex.is_match(value) => {}
-                            Ok(_) => {
-                                println!(
-                                    "  ERROR default pattern: category '{}' field '{}' default '{}' does not match '{}'",
+                            Ok(_) => diagnostics.push(ValidationDiagnostic {
+                                rule: "default-pattern".to_string(),
+                                path: format!(
+                                    "categories[{category_index}].fields[{field_index}].default"
+                                ),
+                                message: format!(
+                                    "category '{}' field '{}' default '{}' does not match '{}'",
                                     category.id, field.key, value, pattern
-                                );
-                                errors += 1;
-                            }
-                            Err(error) => {
-                                println!(
-                                    "  ERROR string pattern: category '{}' field '{}' has invalid regex '{}': {}",
+                                ),
+                                line: None,
+                            }),
+                            Err(error) => diagnostics.push(ValidationDiagnostic {
+                                rule: "string-pattern".to_string(),
+                                path: format!(
+                                    "categories[{category_index}].fields[{field_index}].pattern"
+                                ),
+                                message: format!(
+                                    "category '{}' field '{}' has invalid regex '{}': {}",
                                     category.id, field.key, pattern, error
-                                );
-                                errors += 1;
-                            }
+                                ),
+                                line: None,
+                            }),
                         }
                     }
                 }
@@ -344,12 +396,6 @@ fn validate_default_values(schema: &ConfigSchemaYaml) -> usize {
             }
         }
     }
-
-    if errors == 0 {
-        println!("  OK default values");
-    }
-
-    errors
 }
 
 fn default_matches_type(field_type: &str, value: &serde_yaml::Value) -> bool {

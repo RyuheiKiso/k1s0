@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockInvoke } from '../../test/mocks';
 import {
+  clearAuthSession,
   detectWorkspaceRoot,
   executeBuildWithProgress,
   executeGenerateAt,
   executeTestWithProgressAt,
+  getAuthSession,
+  getFailedProdRollbackTarget,
   pollDeviceAuthorization,
   resolveWorkspaceRoot,
   scanBuildableTargets,
@@ -108,5 +111,29 @@ describe('tauri-commands', () => {
       interval: 5,
       message: 'pending',
     });
+  });
+
+  it('wraps auth session commands', async () => {
+    const session = {
+      issuer: 'https://issuer.example.com',
+      authenticated_at_epoch_secs: 1_700_000_000,
+      expires_at_epoch_secs: 1_700_000_600,
+      token_type: 'Bearer',
+      scope: 'openid profile',
+      can_refresh: true,
+    };
+
+    mockInvoke
+      .mockResolvedValueOnce(session)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce('regions/system/server/rust/auth');
+
+    expect(await getAuthSession()).toEqual(session);
+    await clearAuthSession();
+    expect(await getFailedProdRollbackTarget()).toBe('regions/system/server/rust/auth');
+
+    expect(mockInvoke).toHaveBeenNthCalledWith(1, 'get_auth_session');
+    expect(mockInvoke).toHaveBeenNthCalledWith(2, 'clear_auth_session');
+    expect(mockInvoke).toHaveBeenNthCalledWith(3, 'get_failed_prod_rollback_target');
   });
 });

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import ProtectedActionNotice from '../components/ProtectedActionNotice';
+import { useAuth } from '../lib/auth';
 import {
   executeDevDown,
   executeDevLogs,
@@ -13,9 +15,11 @@ import { toDisplayPath } from '../lib/paths';
 import { useWorkspace } from '../lib/workspace';
 
 export default function DevPage() {
+  const auth = useAuth();
   const workspace = useWorkspace();
   const activeWorkspaceRoot = workspace.workspaceRoot || '.';
   const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
+  const actionsLocked = auth.loading || !auth.isAuthenticated;
 
   const [targets, setTargets] = useState<DevTarget[]>([]);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
@@ -89,6 +93,7 @@ export default function DevPage() {
           Configure a valid workspace root before managing local development services.
         </p>
       )}
+      {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -172,7 +177,12 @@ export default function DevPage() {
                   ),
                 );
               }}
-              disabled={workspaceUnavailable || selectedPaths.length === 0 || status === 'loading'}
+              disabled={
+                workspaceUnavailable ||
+                selectedPaths.length === 0 ||
+                status === 'loading' ||
+                actionsLocked
+              }
               className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
               data-testid="btn-dev-up"
             >
@@ -185,7 +195,7 @@ export default function DevPage() {
                   executeDevDown({ cleanup }, activeWorkspaceRoot),
                 );
               }}
-              disabled={workspaceUnavailable || status === 'loading'}
+              disabled={workspaceUnavailable || status === 'loading' || actionsLocked}
               className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
               data-testid="btn-dev-down"
             >
@@ -196,7 +206,7 @@ export default function DevPage() {
               onClick={() => {
                 void runAction(() => executeDevStatus(activeWorkspaceRoot));
               }}
-              disabled={workspaceUnavailable || status === 'loading'}
+              disabled={workspaceUnavailable || status === 'loading' || actionsLocked}
               className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
               data-testid="btn-dev-status"
             >
@@ -207,7 +217,7 @@ export default function DevPage() {
               onClick={() => {
                 void runAction(() => executeDevLogs(logService || null, activeWorkspaceRoot));
               }}
-              disabled={workspaceUnavailable || status === 'loading'}
+              disabled={workspaceUnavailable || status === 'loading' || actionsLocked}
               className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
               data-testid="btn-dev-logs"
             >

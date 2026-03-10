@@ -174,6 +174,13 @@ export interface MigrationStatus {
   applied_at: string | null;
 }
 
+export interface ValidationDiagnostic {
+  rule: string;
+  path: string;
+  message: string;
+  line: number | null;
+}
+
 export type ProgressEvent =
   | { kind: 'StepStarted'; step: number; total: number; message: string }
   | { kind: 'StepCompleted'; step: number; total: number; message: string }
@@ -195,18 +202,18 @@ export interface DeviceAuthorizationChallenge {
   expires_in: number;
 }
 
-export interface AuthTokens {
-  access_token: string;
-  refresh_token: string | null;
-  id_token: string | null;
+export interface AuthSessionSummary {
+  issuer: string;
+  authenticated_at_epoch_secs: number;
+  expires_at_epoch_secs: number;
   token_type: string;
-  expires_in: number;
   scope: string | null;
+  can_refresh: boolean;
 }
 
 export type DeviceAuthorizationPollResult =
   | { status: 'Pending'; interval: number; message: string }
-  | { status: 'Success'; tokens: AuthTokens }
+  | { status: 'Success'; session: AuthSessionSummary }
   | { status: 'Error'; message: string };
 
 function createProgressChannel(onEvent: (event: ProgressEvent) => void): Channel<ProgressEvent> {
@@ -255,6 +262,10 @@ export async function executeDeployRollback(target: string): Promise<string> {
   return invoke<string>('execute_deploy_rollback', { target });
 }
 
+export async function getFailedProdRollbackTarget(): Promise<string | null> {
+  return invoke<string | null>('get_failed_prod_rollback_target');
+}
+
 export async function scanBuildableTargets(baseDir: string): Promise<string[]> {
   return invoke<string[]>('scan_buildable_targets', { baseDir });
 }
@@ -285,8 +296,8 @@ export async function validateName(name: string): Promise<void> {
 export async function executeValidateConfigSchema(
   path: string,
   baseDir?: string,
-): Promise<number> {
-  return invoke<number>('execute_validate_config_schema', {
+): Promise<ValidationDiagnostic[]> {
+  return invoke<ValidationDiagnostic[]>('execute_validate_config_schema', {
     path,
     ...withBaseDir(baseDir),
   });
@@ -295,8 +306,8 @@ export async function executeValidateConfigSchema(
 export async function executeValidateNavigation(
   path: string,
   baseDir?: string,
-): Promise<number> {
-  return invoke<number>('execute_validate_navigation', {
+): Promise<ValidationDiagnostic[]> {
+  return invoke<ValidationDiagnostic[]>('execute_validate_navigation', {
     path,
     ...withBaseDir(baseDir),
   });
@@ -516,4 +527,12 @@ export async function pollDeviceAuthorization(
   challenge: DeviceAuthorizationChallenge,
 ): Promise<DeviceAuthorizationPollResult> {
   return invoke<DeviceAuthorizationPollResult>('poll_device_authorization', { challenge });
+}
+
+export async function getAuthSession(): Promise<AuthSessionSummary | null> {
+  return invoke<AuthSessionSummary | null>('get_auth_session');
+}
+
+export async function clearAuthSession(): Promise<void> {
+  return invoke<void>('clear_auth_session');
 }

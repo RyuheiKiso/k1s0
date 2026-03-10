@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import ProtectedActionNotice from '../components/ProtectedActionNotice';
+import { useAuth } from '../lib/auth';
 import { executeDeps, scanServices, type DepsConfig, type DepsResult, type ServiceInfo } from '../lib/tauri-commands';
 import { toDisplayPath } from '../lib/paths';
 import { useWorkspace } from '../lib/workspace';
@@ -7,9 +9,11 @@ type ScopeMode = 'all' | 'tier' | 'services';
 type OutputMode = 'terminal' | 'mermaid' | 'both';
 
 export default function DepsPage() {
+  const auth = useAuth();
   const workspace = useWorkspace();
   const activeWorkspaceRoot = workspace.workspaceRoot || '.';
   const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
+  const actionsLocked = auth.loading || !auth.isAuthenticated;
 
   const [services, setServices] = useState<ServiceInfo[]>([]);
   const [scopeMode, setScopeMode] = useState<ScopeMode>('all');
@@ -104,6 +108,7 @@ export default function DepsPage() {
           Configure a valid workspace root before running the dependency scan.
         </p>
       )}
+      {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -219,6 +224,7 @@ export default function DepsPage() {
             disabled={
               status === 'loading' ||
               workspaceUnavailable ||
+              actionsLocked ||
               (scopeMode === 'services' && selectedServices.length === 0) ||
               (outputMode !== 'terminal' && !mermaidPath)
             }

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
+import { renderWithProviders } from '../../test/render';
 import GeneratePage from '../GeneratePage';
 
 beforeEach(() => {
@@ -18,7 +19,7 @@ beforeEach(() => {
 });
 
 async function renderGeneratePage() {
-  render(<GeneratePage />);
+  renderWithProviders(<GeneratePage />);
   await waitFor(() => {
     expect(mockInvoke).toHaveBeenCalledWith(
       'scan_databases',

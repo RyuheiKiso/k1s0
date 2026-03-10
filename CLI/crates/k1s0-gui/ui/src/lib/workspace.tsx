@@ -11,7 +11,7 @@ import { detectWorkspaceRoot, resolveWorkspaceRoot } from './tauri-commands';
 
 const STORAGE_KEY = 'k1s0.workspaceRoot';
 
-interface WorkspaceContextValue {
+export interface WorkspaceContextValue {
   workspaceRoot: string;
   draftPath: string;
   ready: boolean;
@@ -33,7 +33,7 @@ const defaultContextValue: WorkspaceContextValue = {
   detectWorkspace: async () => false,
 };
 
-const WorkspaceContext = createContext<WorkspaceContextValue>(defaultContextValue);
+export const WorkspaceContext = createContext<WorkspaceContextValue>(defaultContextValue);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaceRoot, setWorkspaceRoot] = useState('');

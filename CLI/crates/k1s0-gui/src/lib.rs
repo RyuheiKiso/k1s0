@@ -1,3 +1,4 @@
+mod auth_session;
 mod commands;
 
 const DEV_SERVER_ADDR: &str = "127.0.0.1:1420";
@@ -122,6 +123,7 @@ pub fn run() {
             commands::execute_test_at,
             commands::execute_deploy,
             commands::execute_deploy_rollback,
+            commands::get_failed_prod_rollback_target,
             commands::scan_placements,
             commands::scan_buildable_targets,
             commands::scan_deployable_targets,
@@ -135,6 +137,8 @@ pub fn run() {
             commands::resolve_workspace_root,
             commands::start_device_authorization,
             commands::poll_device_authorization,
+            commands::get_auth_session,
+            commands::clear_auth_session,
             commands::execute_validate_config_schema,
             commands::execute_validate_navigation,
             commands::execute_generate_config_types,

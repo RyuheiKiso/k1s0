@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import ProtectedActionNotice from '../components/ProtectedActionNotice';
+import { useAuth } from '../lib/auth';
 import {
   executeMigrateCreate,
   executeMigrateDown,
@@ -22,9 +24,11 @@ type RangeMode = 'all' | 'upTo';
 type RepairMode = 'clearDirty' | 'forceVersion';
 
 export default function MigratePage() {
+  const auth = useAuth();
   const workspace = useWorkspace();
   const activeWorkspaceRoot = workspace.workspaceRoot || '.';
   const workspaceUnavailable = workspace.ready && !workspace.workspaceRoot;
+  const actionsLocked = auth.loading || !auth.isAuthenticated;
 
   const [targets, setTargets] = useState<MigrateTarget[]>([]);
   const [selectedTargetKey, setSelectedTargetKey] = useState('');
@@ -159,6 +163,7 @@ export default function MigratePage() {
           Configure a valid workspace root before managing migrations.
         </p>
       )}
+      {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <section className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -230,7 +235,13 @@ export default function MigratePage() {
               onClick={() => {
                 void handleCreate();
               }}
-              disabled={!selectedTarget || !migrationName || workspaceUnavailable || status === 'loading'}
+              disabled={
+                !selectedTarget ||
+                !migrationName ||
+                workspaceUnavailable ||
+                status === 'loading' ||
+                actionsLocked
+              }
               className="mt-4 rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
               data-testid="btn-migrate-create"
             >
@@ -242,7 +253,7 @@ export default function MigratePage() {
             title="Apply migrations"
             buttonLabel="Migrate up"
             buttonTestId="btn-migrate-up"
-            disabled={!selectedTarget || workspaceUnavailable || status === 'loading'}
+            disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
             onClick={() => {
               if (!selectedTarget) {
                 return;
@@ -272,7 +283,7 @@ export default function MigratePage() {
             title="Roll back migrations"
             buttonLabel="Migrate down"
             buttonTestId="btn-migrate-down"
-            disabled={!selectedTarget || workspaceUnavailable || status === 'loading'}
+            disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
             onClick={() => {
               if (!selectedTarget) {
                 return;
@@ -302,7 +313,7 @@ export default function MigratePage() {
             title="Repair migration state"
             buttonLabel="Repair"
             buttonTestId="btn-migrate-repair"
-            disabled={!selectedTarget || workspaceUnavailable || status === 'loading'}
+            disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
             onClick={() => {
               if (!selectedTarget) {
                 return;
@@ -356,7 +367,7 @@ export default function MigratePage() {
             onClick={() => {
               void handleStatus();
             }}
-            disabled={!selectedTarget || workspaceUnavailable || status === 'loading'}
+            disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
             className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
             data-testid="btn-migrate-status"
           >

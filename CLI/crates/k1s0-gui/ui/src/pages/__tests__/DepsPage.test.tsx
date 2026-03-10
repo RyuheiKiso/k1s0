@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
+import { renderWithProviders } from '../../test/render';
 import DepsPage from '../DepsPage';
 
 beforeEach(() => {
@@ -32,7 +33,7 @@ beforeEach(() => {
 describe('DepsPage', () => {
   it('runs the dependency scan for selected services', async () => {
     const user = userEvent.setup();
-    render(<DepsPage />);
+    renderWithProviders(<DepsPage />);
 
     await user.click(screen.getByRole('radio', { name: 'Selected services' }));
     await waitFor(() => screen.getByText('auth'));

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
+import { renderWithProviders } from '../../test/render';
 import ConfigTypesPage from '../ConfigTypesPage';
 
 beforeEach(() => {
@@ -23,7 +24,7 @@ beforeEach(() => {
 describe('ConfigTypesPage', () => {
   it('previews both targets from the workspace root', async () => {
     const user = userEvent.setup();
-    render(<ConfigTypesPage />);
+    renderWithProviders(<ConfigTypesPage />);
 
     await user.click(screen.getByTestId('btn-preview'));
 
@@ -43,7 +44,7 @@ describe('ConfigTypesPage', () => {
 
   it('writes generated files', async () => {
     const user = userEvent.setup();
-    render(<ConfigTypesPage />);
+    renderWithProviders(<ConfigTypesPage />);
 
     await user.click(screen.getByTestId('btn-generate'));
 

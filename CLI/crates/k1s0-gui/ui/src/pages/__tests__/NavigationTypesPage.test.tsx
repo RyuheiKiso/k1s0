@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockInvoke } from '../../test/mocks';
+import { renderWithProviders } from '../../test/render';
 import NavigationTypesPage from '../NavigationTypesPage';
 
 beforeEach(() => {
@@ -23,7 +24,7 @@ beforeEach(() => {
 describe('NavigationTypesPage', () => {
   it('writes both navigation targets', async () => {
     const user = userEvent.setup();
-    render(<NavigationTypesPage />);
+    renderWithProviders(<NavigationTypesPage />);
 
     await user.click(screen.getByTestId('btn-generate'));
 

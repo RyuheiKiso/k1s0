@@ -2,6 +2,8 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
+import ProtectedActionNotice from '../components/ProtectedActionNotice';
+import { useAuth } from '../lib/auth';
 import { executeInit, type Tier } from '../lib/tauri-commands';
 
 const initSchema = z.object({
@@ -20,8 +22,10 @@ const initSchema = z.object({
 type InitFormData = z.infer<typeof initSchema>;
 
 export default function InitPage() {
+  const auth = useAuth();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const actionsLocked = auth.loading || !auth.isAuthenticated;
 
   const {
     register,
@@ -66,6 +70,7 @@ export default function InitPage() {
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         Set the project name and optional sparse checkout tiers before scaffolding modules.
       </p>
+      {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
         <div>
@@ -155,7 +160,7 @@ export default function InitPage() {
 
         <button
           type="submit"
-          disabled={status === 'loading'}
+          disabled={status === 'loading' || actionsLocked}
           className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
           data-testid="btn-submit"
         >

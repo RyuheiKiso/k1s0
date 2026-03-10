@@ -6,6 +6,14 @@ import {
   type DeviceAuthorizationChallenge,
 } from '../lib/tauri-commands';
 
+function formatTimestamp(epochSeconds: number | null | undefined) {
+  if (!epochSeconds) {
+    return 'unknown time';
+  }
+
+  return new Date(epochSeconds * 1000).toLocaleString();
+}
+
 export default function AuthPage() {
   const auth = useAuth();
   const [challenge, setChallenge] = useState<DeviceAuthorizationChallenge | null>(null);
@@ -52,7 +60,7 @@ export default function AuthPage() {
             );
             break;
           case 'Success':
-            auth.saveSession(challenge.issuer, result.tokens);
+            auth.setSession(result.session);
             setStatus('success');
             setMessage('Authentication completed.');
             setChallenge(null);
@@ -93,9 +101,11 @@ export default function AuthPage() {
             <div>
               <h2 className="text-xl font-semibold text-white">Session status</h2>
               <p className="mt-2 text-sm text-slate-200/72">
-                {auth.isAuthenticated
-                  ? `Authenticated at ${auth.session?.authenticatedAt ?? 'unknown time'}.`
-                  : 'No active session is stored in the GUI.'}
+                {auth.loading
+                  ? 'Checking the secure operator session.'
+                  : auth.isAuthenticated
+                    ? `Authenticated at ${formatTimestamp(auth.session?.authenticated_at_epoch_secs)}.`
+                    : 'No active operator session is stored in secure storage.'}
               </p>
             </div>
             <span
@@ -105,7 +115,7 @@ export default function AuthPage() {
                   : 'bg-amber-400/15 text-amber-200'
               }`}
             >
-              {auth.isAuthenticated ? 'authenticated' : 'signed out'}
+              {auth.loading ? 'checking' : auth.isAuthenticated ? 'authenticated' : 'signed out'}
             </span>
           </div>
 
@@ -115,12 +125,14 @@ export default function AuthPage() {
                 <span className="text-slate-200/55">Issuer:</span> {auth.session.issuer}
               </p>
               <p className="mt-2">
-                <span className="text-slate-200/55">Token type:</span>{' '}
-                {auth.session.tokens.token_type}
+                <span className="text-slate-200/55">Token type:</span> {auth.session.token_type}
               </p>
               <p className="mt-2">
-                <span className="text-slate-200/55">Scope:</span>{' '}
-                {auth.session.tokens.scope ?? 'not provided'}
+                <span className="text-slate-200/55">Scope:</span> {auth.session.scope ?? 'not provided'}
+              </p>
+              <p className="mt-2">
+                <span className="text-slate-200/55">Expires:</span>{' '}
+                {formatTimestamp(auth.session.expires_at_epoch_secs)}
               </p>
             </div>
           )}
@@ -131,7 +143,7 @@ export default function AuthPage() {
               onClick={() => {
                 void beginDeviceFlow();
               }}
-              disabled={status === 'starting' || status === 'waiting'}
+              disabled={status === 'starting' || status === 'waiting' || auth.loading}
               className="rounded-xl bg-sky-500/85 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-500 disabled:opacity-50"
               data-testid="btn-start-auth"
             >
@@ -140,7 +152,9 @@ export default function AuthPage() {
             {auth.isAuthenticated && (
               <button
                 type="button"
-                onClick={auth.clearSession}
+                onClick={() => {
+                  void auth.clearSession();
+                }}
                 className="rounded-xl border border-white/15 bg-white/6 px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10"
                 data-testid="btn-sign-out"
               >
