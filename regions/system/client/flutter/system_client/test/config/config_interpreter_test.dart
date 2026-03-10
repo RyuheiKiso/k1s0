@@ -13,7 +13,7 @@ void main() {
   });
 
   group('ConfigInterpreter', () {
-    test('schema と values が正しくマージされる', () async {
+    test('merges schema and versioned service entries by namespace plus key', () async {
       final schemaJson = {
         'service': 'test-service',
         'namespace_prefix': 'test',
@@ -34,11 +34,44 @@ void main() {
               },
             ],
           },
+          {
+            'id': 'advanced',
+            'label': 'Advanced',
+            'namespaces': ['test.advanced'],
+            'fields': [
+              {
+                'key': 'timeout',
+                'label': 'Advanced Timeout',
+                'type': 'float',
+                'default': 1.5,
+              },
+              {
+                'key': 'metadata',
+                'label': 'Metadata',
+                'type': 'object',
+                'default': {'owner': 'system'},
+              },
+            ],
+          },
         ],
       };
 
       final valuesJson = {
-        'values': {'timeout': 60},
+        'service_name': 'test-service',
+        'entries': [
+          {
+            'namespace': 'test.general',
+            'key': 'timeout',
+            'value': 60,
+            'version': 3,
+          },
+          {
+            'namespace': 'test.advanced',
+            'key': 'timeout',
+            'value': 2.75,
+            'version': 9,
+          },
+        ],
       };
 
       when(() => mockDio.get<Map<String, dynamic>>(
@@ -64,15 +97,30 @@ void main() {
       final interpreter = ConfigInterpreter(dio: mockDio);
       final data = await interpreter.build('test-service');
 
-      expect(data.schema.service, equals('test-service'));
-      expect(data.schema.namespacePrefix, equals('test'));
-      expect(data.schema.categories, hasLength(1));
-      expect(data.schema.categories.first.fields, hasLength(1));
-      expect(data.schema.categories.first.fields.first.key, equals('timeout'));
-      expect(data.values['timeout'], equals(60));
+      expect(data.service, equals('test-service'));
+      expect(data.categories, hasLength(2));
+      expect(data.dirtyCount, equals(0));
+
+      final general = data.categories.firstWhere((category) => category.schema.id == 'general');
+      final advanced = data.categories.firstWhere((category) => category.schema.id == 'advanced');
+
+      expect(general.fields.single.id, equals('test.general::timeout'));
+      expect(general.fields.single.value, equals(60));
+      expect(general.fields.single.version, equals(3));
+      expect(general.fields.single.originalVersion, equals(3));
+
+      expect(advanced.fields.first.id, equals('test.advanced::timeout'));
+      expect(advanced.fields.first.value, equals(2.75));
+      expect(advanced.fields.first.version, equals(9));
+      expect(advanced.fields.first.originalValue, equals(2.75));
+
+      final metadata = advanced.fields.firstWhere((field) => field.key == 'metadata');
+      expect(metadata.value, equals({'owner': 'system'}));
+      expect(metadata.version, equals(0));
+      expect(metadata.error, isNull);
     });
 
-    test('API 失敗時に例外がスローされる', () async {
+    test('surfaces Dio errors when the API request fails', () async {
       when(() => mockDio.get<Map<String, dynamic>>(
             '/api/v1/config-schema/bad-service',
           )).thenThrow(

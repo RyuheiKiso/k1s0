@@ -119,6 +119,8 @@ pub struct ServiceConfigEntry {
     pub key: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub value: ::prost::alloc::string::String,
+    #[prost(int32, tag = "4")]
+    pub version: i32,
 }
 /// GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
 #[derive(Clone, PartialEq, ::prost::Message)]

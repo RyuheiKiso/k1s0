@@ -68,11 +68,13 @@ mod tests {
                             namespace: "system.auth.database".to_string(),
                             key: "max_connections".to_string(),
                             value: serde_json::json!(25),
+                            version: 3,
                         },
                         ServiceConfigEntry {
                             namespace: "system.auth.database".to_string(),
                             key: "ssl_mode".to_string(),
                             value: serde_json::json!("require"),
+                            version: 1,
                         },
                         ServiceConfigEntry {
                             namespace: "system.auth.jwt".to_string(),
@@ -80,6 +82,7 @@ mod tests {
                             value: serde_json::json!(
                                 "https://auth.k1s0.internal.example.com/realms/k1s0"
                             ),
+                            version: 2,
                         },
                     ],
                 })

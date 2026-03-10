@@ -155,6 +155,7 @@ impl ConfigGrpcService {
                         namespace: e.namespace,
                         key: e.key,
                         value: e.value.to_string(),
+                        version: e.version,
                     })
                     .collect(),
             }),

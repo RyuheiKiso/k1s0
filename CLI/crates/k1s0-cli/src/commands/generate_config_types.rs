@@ -1,129 +1,114 @@
 use anyhow::Result;
-use dialoguer::Input;
-use std::fs;
-use std::path::PathBuf;
+use dialoguer::{Input, MultiSelect};
+use std::path::{Path, PathBuf};
 
 use crate::prompt;
 use k1s0_core::commands::generate::config_types::{
-    build_push_request, write_generated_types_from_file,
+    load_validated_schema_from_file, push_config_schema, write_generated_types_to_targets,
+    GeneratedTypesTarget,
 };
-use k1s0_core::commands::validate::config_schema::ConfigSchemaYaml;
 
-/// 設定スキーマ型ファイル生成コマンドを実行する。
-///
-/// config-schema.yaml を読み込み、TypeScript / Dart の型定義ファイルを生成する。
-/// オプションで config server にスキーマを push する。
-///
-/// # Errors
-///
-/// プロンプトの入出力・ファイル操作・スキーマパースに失敗した場合にエラーを返す。
 pub fn run() -> Result<()> {
-    println!("\n--- 設定スキーマ型ファイル生成 ---\n");
+    println!("\n--- Generate Config Types ---\n");
 
-    // Step 1: config-schema.yaml のパス
     let schema_path: String = Input::with_theme(&prompt::theme())
-        .with_prompt("config-schema.yaml のパス")
+        .with_prompt("config-schema.yaml path")
         .default("config-schema.yaml".to_string())
         .interact_text()?;
+    let schema = load_validated_schema_from_file(Path::new(&schema_path))
+        .map_err(|error| anyhow::anyhow!("{schema_path}: {error}"))?;
 
-    let content =
-        fs::read_to_string(&schema_path).map_err(|e| anyhow::anyhow!("{schema_path}: {e}"))?;
-    let schema: ConfigSchemaYaml = serde_yaml::from_str(&content)
-        .map_err(|e| anyhow::anyhow!("config-schema.yaml のパースエラー: {e}"))?;
-
-    // Step 2: 生成ターゲット
-    let Some(target_idx) = prompt::select_prompt(
-        "生成ターゲットを選択してください",
-        &["TypeScript", "Dart", "両方"],
-    )?
-    else {
+    let selections = MultiSelect::with_theme(&prompt::theme())
+        .with_prompt("Select generation targets")
+        .items(&["React (TypeScript)", "Flutter (Dart)"])
+        .interact()?;
+    if selections.is_empty() {
         return Ok(());
-    };
+    }
 
-    let targets: Vec<&str> = match target_idx {
-        0 => vec!["typescript"],
-        1 => vec!["dart"],
-        2 => vec!["typescript", "dart"],
-        _ => unreachable!(),
-    };
+    let mut output_dirs: Vec<(String, PathBuf)> = Vec::new();
+    if selections.contains(&0) {
+        let output_dir: String = Input::with_theme(&prompt::theme())
+            .with_prompt("React output directory")
+            .default("src/config/__generated__".to_string())
+            .interact_text()?;
+        output_dirs.push(("typescript".to_string(), PathBuf::from(output_dir)));
+    }
+    if selections.contains(&1) {
+        let output_dir: String = Input::with_theme(&prompt::theme())
+            .with_prompt("Flutter output directory")
+            .default("lib/config/__generated__".to_string())
+            .interact_text()?;
+        output_dirs.push(("dart".to_string(), PathBuf::from(output_dir)));
+    }
 
-    // Step 3: 出力先ディレクトリ
-    let default_output_dir = match target_idx {
-        0 => "src/config/__generated__",
-        1 => "lib/config/__generated__",
-        _ => "generated/config",
-    };
-    let output_dir: String = Input::with_theme(&prompt::theme())
-        .with_prompt("生成先ディレクトリ")
-        .default(default_output_dir.to_string())
-        .interact_text()?;
-
-    // Step 4: config server に push するか
-    let push = match prompt::yes_no_prompt("config server に push しますか？")? {
-        Some(v) => v,
+    let push = match prompt::yes_no_prompt("Push schema to config server?")? {
+        Some(value) => value,
         None => return Ok(()),
     };
 
     let server_url = if push {
-        let url: String = Input::with_theme(&prompt::theme())
-            .with_prompt("config server URL")
-            .default("http://localhost:8080".to_string())
-            .interact_text()?;
-        Some(url)
+        Some(
+            Input::with_theme(&prompt::theme())
+                .with_prompt("config server URL")
+                .default("http://localhost:8080".to_string())
+                .interact_text()?,
+        )
     } else {
         None
     };
 
-    // 確認
-    println!("\n[確認] 以下の内容で実行します。よろしいですか？");
-    println!("  スキーマ: {} ({})", schema_path, schema.service);
-    if let Some(ref url) = server_url {
-        println!("  push:     {url}");
+    println!("\n[Summary]");
+    println!("  Schema: {schema_path} ({})", schema.service);
+    if let Some(url) = &server_url {
+        println!("  Push:   {url}");
     }
-    println!("  出力先:   {}", output_dir);
-    for target in &targets {
-        match *target {
-            "typescript" => println!(
-                "  TypeScript → {}",
-                PathBuf::from(&output_dir).join("config-types.ts").display()
-            ),
-            "dart" => println!(
-                "  Dart       → {}",
-                PathBuf::from(&output_dir).join("config_types.dart").display()
-            ),
-            _ => {}
-        }
+    for (target, output_dir) in &output_dirs {
+        let file_name = match target.as_str() {
+            "typescript" => "config-types.ts",
+            "dart" => "config_types.dart",
+            _ => continue,
+        };
+        println!("  {target}: {}", output_dir.join(file_name).display());
     }
 
-    if prompt::confirm_prompt()? == prompt::ConfirmResult::Yes {
-    } else {
-        println!("キャンセルしました。");
+    if prompt::confirm_prompt()? != prompt::ConfirmResult::Yes {
+        println!("Cancelled.");
         return Ok(());
     }
 
-    // 型定義生成
-    println!("\n型定義ファイルを生成中...");
-    let generated = write_generated_types_from_file(
-        std::path::Path::new(&schema_path),
-        std::path::Path::new(&output_dir),
-        &targets,
-    )
-    .map_err(|error| anyhow::anyhow!(error.to_string()))?;
-    for path in &generated {
-        println!("  ✅ {}", path.display());
-    }
-
-    // push
-    if let Some(ref url) = server_url {
-        let token = std::env::var("K1S0_TOKEN").unwrap_or_default();
-        let (method, req_url, _, _) =
-            build_push_request(&schema, url, &token).map_err(|e| anyhow::anyhow!("{e}"))?;
-        println!("  {method} {req_url}");
+    if let Some(url) = &server_url {
+        let token = std::env::var("K1S0_TOKEN")
+            .map_err(|_| anyhow::anyhow!("K1S0_TOKEN is required when push is enabled"))?;
+        println!("\nPushing schema...");
+        push_config_schema(&schema, url, &token).map_err(|error| anyhow::anyhow!("{error}"))?;
         println!(
-            "  ⚠️  スキーマ push には K1S0_TOKEN 環境変数と HTTP クライアントの実装が必要です"
+            "  OK schema registered: {} ({} categories, {} fields)",
+            schema.service,
+            schema.categories.len(),
+            schema
+                .categories
+                .iter()
+                .map(|category| category.fields.len())
+                .sum::<usize>()
         );
     }
 
-    println!("\n設定スキーマ型ファイルの生成が完了しました。");
+    let target_specs = output_dirs
+        .iter()
+        .map(|(target, output_dir)| GeneratedTypesTarget {
+            target: target.as_str(),
+            output_dir: output_dir.as_path(),
+        })
+        .collect::<Vec<_>>();
+
+    println!("\nGenerating type definitions...");
+    let generated =
+        write_generated_types_to_targets(&schema, &target_specs).map_err(|error| anyhow::anyhow!("{error}"))?;
+    for path in &generated {
+        println!("  OK {}", path.display());
+    }
+
+    println!("\nConfig types generated successfully.");
     Ok(())
 }

@@ -7,12 +7,14 @@ class StringField extends StatelessWidget {
     super.key,
     required this.schema,
     required this.value,
+    required this.errorText,
     required this.onChanged,
   });
 
   final ConfigFieldSchema schema;
   final dynamic value;
-  final ValueChanged<dynamic> onChanged;
+  final String? errorText;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -25,18 +27,9 @@ class StringField extends StatelessWidget {
         labelText: schema.label,
         helperText: schema.description,
         suffixText: schema.unit,
+        errorText: errorText,
       ),
-      validator: (v) {
-        if (v == null || v.isEmpty) return null;
-        if (schema.pattern != null) {
-          final regex = RegExp(schema.pattern!);
-          if (!regex.hasMatch(v)) {
-            return 'パターン ${schema.pattern} に一致しません';
-          }
-        }
-        return null;
-      },
-      onChanged: (v) => onChanged(v),
+      onChanged: onChanged,
     );
   }
 }

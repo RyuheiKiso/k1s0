@@ -124,6 +124,7 @@ mod tests {
                         namespace: "system.auth.database".to_string(),
                         key: "max_connections".to_string(),
                         value: serde_json::json!(25),
+                        version: 3,
                     }],
                 })
             });

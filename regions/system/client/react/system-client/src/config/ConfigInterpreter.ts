@@ -1,11 +1,12 @@
 import type { AxiosInstance } from 'axios';
-import type { ConfigEditorSchema, ConfigEditorConfig, ConfigFieldValue } from './types';
-
-interface ConfigValueResponse {
-  namespace: string;
-  key: string;
-  value: unknown;
-}
+import type {
+  ConfigEditorConfig,
+  ConfigEditorSchema,
+  ConfigFieldValue,
+  ServiceConfigEntryResponse,
+  ServiceConfigResultResponse,
+} from './types';
+import { buildFieldId, findEntryForField, validateFieldValue } from './utils';
 
 export class ConfigInterpreter {
   constructor(private readonly client: AxiosInstance) {}
@@ -13,37 +14,41 @@ export class ConfigInterpreter {
   async build(serviceName: string): Promise<ConfigEditorConfig> {
     const [schemaRes, valuesRes] = await Promise.all([
       this.client.get<ConfigEditorSchema>(`/api/v1/config-schema/${serviceName}`),
-      this.client.get<ConfigValueResponse[]>(`/api/v1/config/services/${serviceName}`),
+      this.client.get<ServiceConfigResultResponse>(`/api/v1/config/services/${serviceName}`),
     ]);
 
     const schema = schemaRes.data;
-    const values = valuesRes.data;
-
-    const valueMap = new Map<string, ConfigValueResponse>();
-    for (const v of values) {
-      valueMap.set(v.key, v);
+    const valueMap = new Map<string, ServiceConfigEntryResponse>();
+    for (const entry of valuesRes.data.entries) {
+      valueMap.set(buildFieldId(entry.namespace, entry.key), entry);
     }
 
-    const categories = schema.categories.map((cat) => {
+    const categories = schema.categories.map((category) => {
       const fieldValues: Record<string, ConfigFieldValue> = {};
 
-      for (const field of cat.fields) {
-        const existing = valueMap.get(field.key);
+      for (const field of category.fields) {
+        const existing = findEntryForField(category.namespaces, field.key, valueMap);
+        const namespace = existing?.namespace ?? category.namespaces[0] ?? schema.namespace_prefix;
         const currentValue = existing?.value ?? field.default;
+
         fieldValues[field.key] = {
+          id: buildFieldId(namespace, field.key),
           key: field.key,
-          namespace: existing?.namespace ?? cat.namespaces[0] ?? '',
+          namespace,
           value: currentValue,
           originalValue: currentValue,
+          version: existing?.version ?? 0,
+          originalVersion: existing?.version ?? 0,
           isDirty: false,
+          hasError: validateFieldValue(field, currentValue),
         };
       }
 
-      return { ...cat, fieldValues };
+      return { ...category, fieldValues };
     });
 
     return {
-      service: schema.service,
+      service: valuesRes.data.service_name || schema.service,
       categories,
       dirtyCount: 0,
     };

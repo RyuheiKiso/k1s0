@@ -1,5 +1,6 @@
 import type { ConfigCategorySchema, ConfigFieldValue } from '../types';
 import { IntegerField } from './fields/IntegerField';
+import { FloatField } from './fields/FloatField';
 import { BooleanField } from './fields/BooleanField';
 import { EnumField } from './fields/EnumField';
 import { StringField } from './fields/StringField';
@@ -56,9 +57,16 @@ function renderField(
 ) {
   switch (field.type) {
     case 'integer':
-    case 'float':
       return (
         <IntegerField
+          schema={field}
+          value={(value as number) ?? 0}
+          onChange={onChange}
+        />
+      );
+    case 'float':
+      return (
+        <FloatField
           schema={field}
           value={(value as number) ?? 0}
           onChange={onChange}

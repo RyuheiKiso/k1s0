@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import { createApiClient } from './apiClient';
 

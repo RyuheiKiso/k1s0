@@ -173,6 +173,7 @@ fn row_to_service_config_entry(
         namespace: row.try_get("namespace")?,
         key: row.try_get("key")?,
         value: row.try_get("value_json")?,
+        version: row.try_get("version")?,
     })
 }
 
@@ -415,7 +416,7 @@ impl ConfigRepository for ConfigPostgresRepository {
         let start = std::time::Instant::now();
         let rows = sqlx::query(
             r#"
-            SELECT namespace, key, value_json
+            SELECT namespace, key, value_json, version
             FROM config_entries
             WHERE namespace LIKE $1
             ORDER BY namespace, key
@@ -441,7 +442,7 @@ impl ConfigRepository for ConfigPostgresRepository {
             // service_config_mappings テーブルから直接マッピングを検索
             let mapped_rows = sqlx::query(
                 r#"
-                SELECT ce.namespace, ce.key, ce.value_json
+                SELECT ce.namespace, ce.key, ce.value_json, ce.version
                 FROM config_entries ce
                 INNER JOIN service_config_mappings scm ON ce.id = scm.config_entry_id
                 WHERE scm.service_name = $1

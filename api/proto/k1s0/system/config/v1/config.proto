@@ -147,6 +147,7 @@ message ServiceConfigEntry {
   string namespace = 1;
   string key = 2;
   string value = 3;
+  int32 version = 4;
 }
 
 // GetServiceConfigResponse はサービス向け設定一括取得レスポンス。

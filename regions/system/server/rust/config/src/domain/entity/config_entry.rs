@@ -36,6 +36,7 @@ pub struct ServiceConfigEntry {
     pub namespace: String,
     pub key: String,
     pub value: serde_json::Value,
+    pub version: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
@@ -169,11 +170,13 @@ mod tests {
                     namespace: "system.auth.database".to_string(),
                     key: "max_connections".to_string(),
                     value: serde_json::json!(25),
+                    version: 3,
                 },
                 ServiceConfigEntry {
                     namespace: "system.auth.database".to_string(),
                     key: "ssl_mode".to_string(),
                     value: serde_json::json!("require"),
+                    version: 1,
                 },
             ],
         };
