@@ -1,0 +1,135 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/publish-app.yaml
+# Flutter cross-platform build + sign + upload pipeline
+name: publish-app
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_id:
+        description: 'Application ID (e.g., order-client)'
+        required: true
+        type: string
+      version:
+        description: 'Version (e.g., 1.2.0)'
+        required: true
+        type: string
+      flutter_project_path:
+        description: 'Path to Flutter project'
+        required: true
+        type: string
+      release_notes:
+        description: 'Release notes'
+        required: false
+        type: string
+        default: ''
+      mandatory:
+        description: 'Mandatory update'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY_URL: https://app-registry.internal.example.com
+  CEPH_ENDPOINT: https://ceph-rgw.internal.example.com
+  CEPH_BUCKET: k1s0-apps
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            arch: x64
+            extension: exe
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            extension: AppImage
+          - os: macos-latest
+            platform: macos
+            arch: arm64
+            extension: dmg
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: ${{ inputs.flutter_project_path }}
+
+      - name: Build
+        run: flutter build ${{ matrix.platform == 'linux' && 'linux' || matrix.platform == 'macos' && 'macos' || 'windows' }} --release
+        working-directory: ${{ inputs.flutter_project_path }}
+
+      - name: Package
+        id: package
+        run: |
+          # Package script creates the distributable
+          bash scripts/package.sh \
+            --platform ${{ matrix.platform }} \
+            --arch ${{ matrix.arch }} \
+            --input-dir ${{ inputs.flutter_project_path }}/build \
+            --output-dir ./dist \
+            --app-name ${{ inputs.app_id }} \
+            --version ${{ inputs.version }}
+          echo "artifact_path=./dist/${{ inputs.app_id }}.${{ matrix.extension }}" >> $GITHUB_OUTPUT
+
+      - name: Generate SHA-256 checksum
+        id: checksum
+        shell: bash
+        run: |
+          CHECKSUM=$(sha256sum ${{ steps.package.outputs.artifact_path }} | awk '{print $1}')
+          echo "sha256=$CHECKSUM" >> $GITHUB_OUTPUT
+          echo "$CHECKSUM  ${{ inputs.app_id }}.${{ matrix.extension }}" > ${{ steps.package.outputs.artifact_path }}.sha256
+
+      - name: Sign with Cosign
+        uses: sigstore/cosign-installer@v3
+      - run: |
+          cosign sign-blob --yes \
+            --output-signature ${{ steps.package.outputs.artifact_path }}.sig \
+            ${{ steps.package.outputs.artifact_path }}
+
+      - name: Generate SBOM
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: ${{ inputs.flutter_project_path }}
+          format: cyclonedx
+          output: ./dist/${{ inputs.app_id }}.sbom.json
+
+      - name: Upload to Ceph S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --acl private
+        env:
+          AWS_S3_ENDPOINT: ${{ env.CEPH_ENDPOINT }}
+          AWS_S3_BUCKET: ${{ env.CEPH_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_SECRET_KEY }}
+          SOURCE_DIR: ./dist
+          DEST_DIR: ${{ inputs.app_id }}/${{ inputs.version }}/${{ matrix.platform }}-${{ matrix.arch }}
+
+      - name: Register version in App Registry
+        shell: bash
+        run: |
+          SIZE=$(stat -c%s "${{ steps.package.outputs.artifact_path }}" 2>/dev/null || stat -f%z "${{ steps.package.outputs.artifact_path }}")
+          curl -sf -X POST "${{ env.REGISTRY_URL }}/api/v1/apps/${{ inputs.app_id }}/versions" \
+            -H "Authorization: Bearer ${{ secrets.APP_REGISTRY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"version\": \"${{ inputs.version }}\",
+              \"platform\": \"${{ matrix.platform }}\",
+              \"arch\": \"${{ matrix.arch }}\",
+              \"size_bytes\": $SIZE,
+              \"checksum_sha256\": \"${{ steps.checksum.outputs.sha256 }}\",
+              \"s3_key\": \"${{ inputs.app_id }}/${{ inputs.version }}/${{ matrix.platform }}-${{ matrix.arch }}/${{ inputs.app_id }}.${{ matrix.extension }}\",
+              \"release_notes\": \"${{ inputs.release_notes }}\",
+              \"mandatory\": ${{ inputs.mandatory }}
+            }"

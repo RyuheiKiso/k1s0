@@ -1,0 +1,37 @@
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+
+ceph:
+  endpoint: http://ceph-rgw.k1s0-system.svc.cluster.local:8080
+  bucket: app-registry-staging
+  region: us-east-1
+
+config:
+  data:
+    config.yaml: |
+      app:
+        environment: staging
+      database:
+        host: postgres.k1s0-system.svc.cluster.local
+        ssl_mode: require
+      ceph:
+        endpoint: http://ceph-rgw.k1s0-system.svc.cluster.local:8080
+        bucket: app-registry-staging
+        region: us-east-1
+      observability:
+        log:
+          level: info
+        trace:
+          sample_rate: 0.5
