@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApps } from '../hooks/useApps';
 import { fetchDownloadStats } from '../api/client';
-import type { App, DownloadStats } from '../api/types';
+import type { App } from '../api/types';
 
 function AppStatsRow({ app }: { app: App }) {
   const { data: stats } = useQuery({
@@ -15,6 +15,7 @@ function AppStatsRow({ app }: { app: App }) {
       <td>{app.category}</td>
       <td>{stats?.total_downloads ?? '-'}</td>
       <td>{stats?.version_downloads ?? '-'}</td>
+      <td>{stats?.latest_version ?? '-'}</td>
       <td>{new Date(app.updated_at).toLocaleDateString('ja-JP')}</td>
     </tr>
   );
@@ -41,6 +42,7 @@ export function AdminPage() {
             <th>カテゴリ</th>
             <th>総ダウンロード数</th>
             <th>最新バージョンDL数</th>
+            <th>最新バージョン</th>
             <th>最終更新日</th>
           </tr>
         </thead>

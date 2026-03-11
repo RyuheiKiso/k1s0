@@ -7,6 +7,23 @@ interface AuthProviderProps {
   apiBaseURL?: string;
 }
 
+interface UserResponse {
+  id: string;
+  username: string;
+  roles?: string[];
+  realm_access?: {
+    roles?: string[];
+  };
+}
+
+function normalizeUser(user: UserResponse): User {
+  return {
+    id: user.id,
+    username: user.username,
+    roles: user.roles ?? user.realm_access?.roles ?? [],
+  };
+}
+
 export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,8 +34,8 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await apiClient.get<User>('/auth/me');
-        setUser(response.data);
+        const response = await apiClient.get<UserResponse>('/auth/me');
+        setUser(normalizeUser(response.data));
       } catch {
         setUser(null);
       } finally {
@@ -32,11 +49,11 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
 
   const login = useCallback(
     async ({ username, password }: { username: string; password: string }) => {
-      const response = await apiClient.post<User>('/auth/login', {
+      const response = await apiClient.post<UserResponse>('/auth/login', {
         username,
         password,
       });
-      setUser(response.data);
+      setUser(normalizeUser(response.data));
     },
     [apiClient],
   );

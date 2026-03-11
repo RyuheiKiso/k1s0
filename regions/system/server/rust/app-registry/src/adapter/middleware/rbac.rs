@@ -16,17 +16,17 @@ fn error_response(status: StatusCode, code: &str, message: impl Into<String>) ->
 
 /// 静的 RBAC: ロール名とリソース・アクションの組み合わせでパーミッションを判定する。
 /// app-registry 固有のロール定義:
-/// - sys_admin: すべてのリソースに対する全アクション
-/// - sys_operator / app_publisher: "apps" リソースに対する read/write
-/// - sys_auditor / sys_viewer / user: "apps" リソースに対する read のみ
+/// - admin / sys_admin: すべてのリソースに対する全アクション
+/// - publisher / app_publisher / sys_operator: "apps" リソースに対する read/write
+/// - user / sys_auditor / sys_viewer: "apps" リソースに対する read のみ
 fn check_permission_static(roles: &[String], resource: &str, action: &str) -> bool {
     for role in roles {
         let allowed = match role.as_str() {
-            "sys_admin" => true,
-            "sys_operator" | "app_publisher" => {
+            "admin" | "sys_admin" => true,
+            "publisher" | "sys_operator" | "app_publisher" => {
                 resource == "apps" && (action == "read" || action == "write")
             }
-            "sys_auditor" | "sys_viewer" => resource == "apps" && action == "read",
+            "user" | "sys_auditor" | "sys_viewer" => resource == "apps" && action == "read",
             _ => false,
         };
         if allowed {
@@ -93,25 +93,25 @@ mod tests {
 
     #[test]
     fn test_admin_can_do_everything() {
-        assert!(check_permission_static(&["sys_admin".to_string()], "apps", "read"));
-        assert!(check_permission_static(&["sys_admin".to_string()], "apps", "write"));
-        assert!(check_permission_static(&["sys_admin".to_string()], "apps", "delete"));
+        assert!(check_permission_static(&["admin".to_string()], "apps", "read"));
+        assert!(check_permission_static(&["admin".to_string()], "apps", "write"));
+        assert!(check_permission_static(&["admin".to_string()], "apps", "admin"));
     }
 
     #[test]
     fn test_publisher_can_read_and_write() {
         assert!(check_permission_static(
-            &["app_publisher".to_string()],
+            &["publisher".to_string()],
             "apps",
             "read"
         ));
         assert!(check_permission_static(
-            &["app_publisher".to_string()],
+            &["publisher".to_string()],
             "apps",
             "write"
         ));
         assert!(!check_permission_static(
-            &["app_publisher".to_string()],
+            &["publisher".to_string()],
             "apps",
             "delete"
         ));
@@ -119,16 +119,8 @@ mod tests {
 
     #[test]
     fn test_viewer_can_only_read() {
-        assert!(check_permission_static(
-            &["sys_viewer".to_string()],
-            "apps",
-            "read"
-        ));
-        assert!(!check_permission_static(
-            &["sys_viewer".to_string()],
-            "apps",
-            "write"
-        ));
+        assert!(check_permission_static(&["user".to_string()], "apps", "read"));
+        assert!(!check_permission_static(&["user".to_string()], "apps", "write"));
     }
 
     #[test]

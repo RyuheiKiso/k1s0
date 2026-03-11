@@ -11,12 +11,13 @@ use crate::domain::entity::claims::Claims;
 use crate::domain::entity::platform::Platform;
 use crate::domain::entity::version::AppVersion;
 use crate::usecase::generate_download_url::DownloadUrlResult;
+use crate::usecase::version_selection::normalize_arch;
 
 /// プラットフォーム・アーキテクチャのクエリパラメータ。
 #[derive(Debug, Deserialize)]
 pub struct PlatformQuery {
-    pub platform: String,
-    pub arch: String,
+    pub platform: Option<String>,
+    pub arch: Option<String>,
 }
 
 #[utoipa::path(
@@ -24,8 +25,8 @@ pub struct PlatformQuery {
     path = "/api/v1/apps/{id}/latest",
     params(
         ("id" = String, Path, description = "App ID"),
-        ("platform" = String, Query, description = "Platform: windows, linux, macos"),
-        ("arch" = String, Query, description = "Architecture: amd64, arm64"),
+        ("platform" = Option<String>, Query, description = "Platform: windows, linux, macos"),
+        ("arch" = Option<String>, Query, description = "Architecture: amd64/x64, arm64"),
     ),
     responses(
         (status = 200, description = "Latest version", body = AppVersion),
@@ -38,29 +39,36 @@ pub async fn get_latest(
     Path(id): Path<String>,
     Query(params): Query<PlatformQuery>,
 ) -> impl IntoResponse {
-    let platform: Platform = match params.platform.parse() {
-        Ok(p) => p,
-        Err(_) => {
-            let err = ErrorResponse::new(
-                "SYS_APPS_INVALID_PLATFORM",
-                "Invalid platform. Use: windows, linux, macos",
-            );
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-        }
+    let platform = match params.platform {
+        Some(platform) => match platform.parse::<Platform>() {
+            Ok(platform) => Some(platform),
+            Err(_) => {
+                let err = ErrorResponse::new(
+                    "SYS_APPS_INVALID_PLATFORM",
+                    "Invalid platform. Use: windows, linux, macos",
+                );
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        },
+        None => None,
     };
+    let arch = params.arch.map(|arch| normalize_arch(&arch));
 
-    match state
-        .get_latest_uc
-        .execute(&id, &platform, &params.arch)
-        .await
-    {
+    match state.get_latest_uc.execute(&id, platform.as_ref(), arch.as_deref()).await {
         Ok(version) => {
             (StatusCode::OK, Json(serde_json::to_value(version).unwrap())).into_response()
         }
-        Err(crate::usecase::get_latest::GetLatestError::NotFound(_, _, _)) => {
+        Err(crate::usecase::get_latest::GetLatestError::AppNotFound(_)) => {
+            let err = ErrorResponse::new(
+                "SYS_APPS_APP_NOT_FOUND",
+                "The specified app was not found",
+            );
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(crate::usecase::get_latest::GetLatestError::VersionNotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_APPS_VERSION_NOT_FOUND",
-                "No version found for the specified platform and architecture",
+                "No version found for the specified filters",
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -77,8 +85,8 @@ pub async fn get_latest(
     params(
         ("id" = String, Path, description = "App ID"),
         ("version" = String, Path, description = "Version string"),
-        ("platform" = String, Query, description = "Platform: windows, linux, macos"),
-        ("arch" = String, Query, description = "Architecture: amd64, arm64"),
+        ("platform" = Option<String>, Query, description = "Platform: windows, linux, macos"),
+        ("arch" = Option<String>, Query, description = "Architecture: amd64/x64, arm64"),
     ),
     responses(
         (status = 200, description = "Download URL generated", body = DownloadUrlResult),
@@ -92,34 +100,50 @@ pub async fn download_version(
     Query(params): Query<PlatformQuery>,
     Extension(claims): Extension<Claims>,
 ) -> impl IntoResponse {
-    let platform: Platform = match params.platform.parse() {
-        Ok(p) => p,
-        Err(_) => {
-            let err = ErrorResponse::new(
-                "SYS_APPS_INVALID_PLATFORM",
-                "Invalid platform. Use: windows, linux, macos",
-            );
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-        }
+    let platform = match params.platform {
+        Some(platform) => match platform.parse::<Platform>() {
+            Ok(platform) => Some(platform),
+            Err(_) => {
+                let err = ErrorResponse::new(
+                    "SYS_APPS_INVALID_PLATFORM",
+                    "Invalid platform. Use: windows, linux, macos",
+                );
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        },
+        None => None,
     };
+    let arch = params.arch.map(|arch| normalize_arch(&arch));
 
     match state
         .generate_download_url_uc
-        .execute(&id, &version, &platform, &params.arch, &claims.sub)
+        .execute(&id, &version, platform.as_ref(), arch.as_deref(), &claims.sub)
         .await
     {
         Ok(result) => (StatusCode::OK, Json(result)).into_response(),
-        Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::NotFound(
-            _,
-            _,
-            _,
-            _,
-        )) => {
+        Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::AppNotFound(_)) => {
+            let err = ErrorResponse::new(
+                "SYS_APPS_APP_NOT_FOUND",
+                "The specified app was not found",
+            );
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::NotFound(_, _)) => {
             let err = ErrorResponse::new(
                 "SYS_APPS_VERSION_NOT_FOUND",
                 "Version not found for the specified platform and architecture",
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::AmbiguousVersion(
+            _,
+            _,
+        )) => {
+            let err = ErrorResponse::new(
+                "SYS_APPS_CREATE_VERSION_FAILED",
+                "Multiple platform-specific releases matched the requested version. Specify platform and arch.",
+            );
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
             let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());

@@ -1,152 +1,264 @@
-import 'dart:io';
+import 'dart:async';
 
-import 'package:path/path.dart' as p;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import 'checksum_verifier.dart';
-import 'errors.dart';
-import 'models/app_version.dart';
-import 'models/update_info.dart';
+import 'config.dart';
+import 'error.dart';
+import 'model.dart';
 import 'platform_detector.dart';
 import 'registry_api_client.dart';
 
-/// Main auto-update class for desktop applications.
-class AppUpdater {
-  final String appId;
-  final String currentVersion;
-  final RegistryApiClient _client;
-  final String _downloadDir;
+abstract class AppUpdater {
+  Future<AppVersionInfo> fetchVersionInfo();
 
-  AppUpdater({
-    required this.appId,
-    required this.currentVersion,
-    required String registryUrl,
-    String? authToken,
-    String? downloadDir,
+  Future<UpdateCheckResult> checkForUpdate();
+
+  void startPeriodicCheck({
+    required void Function(UpdateCheckResult result) onUpdateAvailable,
+  });
+
+  void stopPeriodicCheck();
+
+  String? getStoreUrl();
+
+  Future<bool> openStore();
+
+  void dispose();
+}
+
+class AppRegistryAppUpdater implements AppUpdater {
+  final AppUpdaterConfig _config;
+  final RegistryApiClient _client;
+  final Future<String> Function() _currentVersionProvider;
+  final Future<bool> Function(Uri uri) _launchUrl;
+
+  Timer? _periodicTimer;
+
+  AppRegistryAppUpdater(
+    this._config, {
     RegistryApiClient? client,
   })  : _client = client ??
             RegistryApiClient(
-              baseUrl: registryUrl,
-              authToken: authToken,
+              baseUrl: _config.serverUrl,
+              client: _config.httpClient,
+              timeout: _config.timeout,
+              tokenProvider: _config.tokenProvider,
             ),
-        _downloadDir = downloadDir ?? Directory.systemTemp.path;
+        _currentVersionProvider =
+            _config.currentVersionProvider ?? _defaultCurrentVersionProvider,
+        _launchUrl = _config.urlLauncher ?? launchUrl {
+    _validateConfig(_config);
+  }
 
-  /// Check if an update is available.
-  Future<UpdateInfo> checkForUpdate() async {
-    final platform = PlatformDetector.currentPlatform;
-    final arch = PlatformDetector.currentArch;
+  @override
+  Future<AppVersionInfo> fetchVersionInfo() async {
+    final platform = _resolvePlatform();
+    final arch = _resolveArch();
 
-    final latest = await _client.getLatestVersion(appId, platform, arch);
-    if (latest == null) {
-      return UpdateInfo(
-        updateAvailable: false,
-        currentVersion: currentVersion,
-      );
-    }
+    final latest = await _client.getLatestVersion(
+      _config.appId,
+      platform: platform,
+      arch: arch,
+    );
+    final versions = await _client.listVersions(_config.appId);
 
-    final isNewer = _isNewerVersion(latest.version, currentVersion);
-    return UpdateInfo(
-      updateAvailable: isNewer,
-      latestVersion: latest,
-      currentVersion: currentVersion,
+    final mandatoryVersions =
+        versions.where((version) => version.mandatory).toList()
+          ..sort((left, right) {
+            final leftPublishedAt =
+                left.publishedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final rightPublishedAt =
+                right.publishedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return rightPublishedAt.compareTo(leftPublishedAt);
+          });
+
+    final minimumVersion = mandatoryVersions.isNotEmpty
+        ? mandatoryVersions.first.version
+        : latest.mandatory
+            ? latest.version
+            : '0.0.0';
+
+    return AppVersionInfo(
+      latestVersion: latest.version,
+      minimumVersion: minimumVersion,
+      releaseNotes: latest.releaseNotes,
+      mandatory: latest.mandatory,
+      storeUrl: getStoreUrl(),
+      publishedAt: latest.publishedAt,
+      platform: latest.platform,
+      arch: latest.arch,
+      sizeBytes: latest.sizeBytes,
+      checksumSha256: latest.checksumSha256,
+      downloadUrl: latest.downloadUrl,
     );
   }
 
-  /// Download the latest version.
-  Future<String> download(
-    AppVersion version, {
-    void Function(int received, int total)? onProgress,
+  Future<DownloadArtifactInfo> fetchDownloadInfo({
+    String? version,
+    String? platform,
+    String? arch,
   }) async {
-    final url = version.downloadUrl ??
-        await _client.getDownloadUrl(
-          appId,
-          version.version,
-          version.platform,
-          version.arch,
-        );
-
-    final uri = Uri.parse(url);
-    final request = await HttpClient().getUrl(uri);
-    final response = await request.close();
-
-    if (response.statusCode != 200) {
-      throw DownloadError('HTTP ${response.statusCode}');
-    }
-
-    final fileName = uri.pathSegments.isNotEmpty
-        ? uri.pathSegments.last
-        : '${version.appId}-${version.version}';
-    final filePath = p.join(_downloadDir, fileName);
-    final file = File(filePath);
-    final sink = file.openWrite();
-
-    final total = response.contentLength;
-    var received = 0;
-
-    await for (final chunk in response) {
-      sink.add(chunk);
-      received += chunk.length;
-      onProgress?.call(received, total);
-    }
-
-    await sink.close();
-    return filePath;
+    final resolvedInfo = version == null ? await fetchVersionInfo() : null;
+    return _client.getDownloadInfo(
+      _config.appId,
+      version ?? resolvedInfo!.latestVersion,
+      platform: platform ?? _resolvePlatform(),
+      arch: arch ?? _resolveArch(),
+    );
   }
 
-  /// Verify downloaded file checksum.
-  Future<bool> verify(String filePath, String expectedChecksum) async {
-    return ChecksumVerifier.verify(filePath, expectedChecksum);
+  @override
+  Future<UpdateCheckResult> checkForUpdate() async {
+    final currentVersion = await _currentVersionProvider();
+    final versionInfo = await fetchVersionInfo();
+    final updateType = determineUpdateType(
+      currentVersion: currentVersion,
+      versionInfo: versionInfo,
+    );
+
+    return UpdateCheckResult(
+      type: updateType,
+      currentVersion: currentVersion,
+      versionInfo: versionInfo,
+    );
   }
 
-  /// Apply update and restart (platform-specific).
-  Future<void> applyAndRestart(String installerPath) async {
-    final file = File(installerPath);
-    if (!await file.exists()) {
-      throw ApplyError('Installer not found: $installerPath');
+  @override
+  void startPeriodicCheck({
+    required void Function(UpdateCheckResult result) onUpdateAvailable,
+  }) {
+    final interval = _config.checkInterval;
+    if (interval == null) {
+      return;
     }
 
-    final platform = PlatformDetector.currentPlatform;
+    _periodicTimer?.cancel();
+    _periodicTimer = Timer.periodic(interval, (_) async {
+      try {
+        final result = await checkForUpdate();
+        if (result.needsUpdate) {
+          onUpdateAvailable(result);
+        }
+      } on AppUpdaterError {
+        // Ignore background polling failures.
+      }
+    });
+  }
 
+  @override
+  void stopPeriodicCheck() {
+    _periodicTimer?.cancel();
+    _periodicTimer = null;
+  }
+
+  @override
+  String? getStoreUrl() {
+    final platform = (_config.platform ?? _safePlatform())?.toLowerCase();
+    if (platform == null) {
+      return null;
+    }
     switch (platform) {
-      case 'windows':
-        await Process.start(
-          installerPath,
-          ['/SILENT', '/RESTARTAPPLICATIONS'],
-          mode: ProcessStartMode.detached,
-        );
-      case 'macos':
-        await Process.start(
-          'open',
-          [installerPath],
-          mode: ProcessStartMode.detached,
-        );
-      case 'linux':
-        await Process.start(
-          'chmod',
-          ['+x', installerPath],
-        );
-        await Process.start(
-          installerPath,
-          [],
-          mode: ProcessStartMode.detached,
-        );
+      case 'ios':
+        return _config.iosStoreUrl;
+      case 'android':
+        return _config.androidStoreUrl;
       default:
-        throw ApplyError('Unsupported platform: $platform');
+        return null;
     }
-
-    exit(0);
   }
 
-  /// Compare semantic versions. Returns true if [newer] > [current].
-  bool _isNewerVersion(String newer, String current) {
-    final newerParts = newer.split('.').map(int.tryParse).toList();
-    final currentParts = current.split('.').map(int.tryParse).toList();
-
-    for (var i = 0; i < newerParts.length && i < currentParts.length; i++) {
-      final n = newerParts[i] ?? 0;
-      final c = currentParts[i] ?? 0;
-      if (n > c) return true;
-      if (n < c) return false;
+  @override
+  Future<bool> openStore() async {
+    final storeUrl = getStoreUrl();
+    if (storeUrl == null) {
+      return false;
     }
-    return newerParts.length > currentParts.length;
+    return _launchUrl(Uri.parse(storeUrl));
   }
+
+  @override
+  void dispose() {
+    stopPeriodicCheck();
+  }
+
+  String? _resolvePlatform() {
+    return (_config.platform ?? _safePlatform())?.toLowerCase();
+  }
+
+  String? _safePlatform() {
+    try {
+      return PlatformDetector.currentPlatform;
+    } on UnsupportedError {
+      return null;
+    }
+  }
+
+  String? _resolveArch() {
+    if (_config.arch != null && _config.arch!.isNotEmpty) {
+      return _config.arch;
+    }
+
+    try {
+      return PlatformDetector.currentArch;
+    } on UnsupportedError {
+      return null;
+    }
+  }
+}
+
+Future<String> _defaultCurrentVersionProvider() async {
+  final packageInfo = await PackageInfo.fromPlatform();
+  return packageInfo.version;
+}
+
+void _validateConfig(AppUpdaterConfig config) {
+  if (config.serverUrl.trim().isEmpty) {
+    throw const InvalidConfigError('serverUrl must not be empty.');
+  }
+  if (config.appId.trim().isEmpty) {
+    throw const InvalidConfigError('appId must not be empty.');
+  }
+}
+
+UpdateType determineUpdateType({
+  required String currentVersion,
+  required AppVersionInfo versionInfo,
+}) {
+  if (_compareVersions(currentVersion, versionInfo.minimumVersion) < 0 ||
+      versionInfo.mandatory) {
+    return UpdateType.mandatory;
+  }
+
+  if (_compareVersions(currentVersion, versionInfo.latestVersion) < 0) {
+    return UpdateType.optional;
+  }
+
+  return UpdateType.none;
+}
+
+int _compareVersions(String left, String right) {
+  final leftParts = _normalizeVersion(left);
+  final rightParts = _normalizeVersion(right);
+  final length = leftParts.length > rightParts.length
+      ? leftParts.length
+      : rightParts.length;
+
+  for (var index = 0; index < length; index += 1) {
+    final leftValue = index < leftParts.length ? leftParts[index] : 0;
+    final rightValue = index < rightParts.length ? rightParts[index] : 0;
+    if (leftValue != rightValue) {
+      return leftValue.compareTo(rightValue);
+    }
+  }
+
+  return 0;
+}
+
+List<int> _normalizeVersion(String version) {
+  return version
+      .split('.')
+      .map((segment) =>
+          int.tryParse(segment.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0)
+      .toList();
 }

@@ -57,8 +57,10 @@ impl AppPostgresRepository {
 
 #[async_trait]
 impl AppRepository for AppPostgresRepository {
-    async fn list(&self, category: Option<&str>, search: Option<&str>) -> anyhow::Result<Vec<App>> {
+    async fn list(&self, category: Option<String>, search: Option<String>) -> anyhow::Result<Vec<App>> {
         let start = std::time::Instant::now();
+        let category = category.as_deref();
+        let search = search.as_deref();
 
         let rows = if let (Some(cat), Some(q)) = (category, search) {
             sqlx::query_as::<_, AppRow>(

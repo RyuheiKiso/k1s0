@@ -1,17 +1,11 @@
 import type { AppVersion } from '../api/types';
 import { PlatformBadge } from './PlatformBadge';
 import { DownloadButton } from './DownloadButton';
+import { formatArch, formatBytes } from '../lib/platform';
 
 interface VersionHistoryProps {
   versions: AppVersion[];
   appId: string;
-}
-
-function formatBytes(bytes: number | null): string {
-  if (bytes === null) return '-';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function VersionHistory({ versions, appId }: VersionHistoryProps) {
@@ -29,6 +23,7 @@ export function VersionHistory({ versions, appId }: VersionHistoryProps) {
             <th>プラットフォーム</th>
             <th>アーキテクチャ</th>
             <th>サイズ</th>
+            <th>チェックサム</th>
             <th>公開日</th>
             <th>必須</th>
             <th></th>
@@ -41,12 +36,20 @@ export function VersionHistory({ versions, appId }: VersionHistoryProps) {
               <td>
                 <PlatformBadge platform={version.platform} />
               </td>
-              <td>{version.arch}</td>
+              <td>{formatArch(version.arch)}</td>
               <td>{formatBytes(version.size_bytes)}</td>
+              <td>
+                <code>{version.checksum_sha256}</code>
+              </td>
               <td>{new Date(version.published_at).toLocaleDateString('ja-JP')}</td>
               <td>{version.mandatory ? 'はい' : 'いいえ'}</td>
               <td>
-                <DownloadButton appId={appId} versionId={version.id} />
+                <DownloadButton
+                  appId={appId}
+                  version={version.version}
+                  platform={version.platform}
+                  arch={version.arch}
+                />
               </td>
             </tr>
           ))}

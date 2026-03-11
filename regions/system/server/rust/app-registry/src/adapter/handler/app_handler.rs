@@ -8,6 +8,12 @@ use serde::Deserialize;
 
 use super::{AppState, ErrorResponse};
 use crate::domain::entity::app::App;
+use crate::usecase::get_download_stats::DownloadStatsSummary;
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct AppListResponse {
+    pub apps: Vec<App>,
+}
 
 #[utoipa::path(
     get,
@@ -91,7 +97,7 @@ pub struct ListAppsQuery {
         ("search" = Option<String>, Query, description = "Search by name or description"),
     ),
     responses(
-        (status = 200, description = "App list", body = Vec<App>),
+        (status = 200, description = "App list", body = AppListResponse),
     ),
     security(("bearer_auth" = []))
 )]
@@ -99,12 +105,38 @@ pub async fn list_apps(
     State(state): State<AppState>,
     Query(params): Query<ListAppsQuery>,
 ) -> impl IntoResponse {
-    match state
-        .list_apps_uc
-        .execute(params.category.as_deref(), params.search.as_deref())
-        .await
-    {
-        Ok(apps) => (StatusCode::OK, Json(serde_json::to_value(apps).unwrap())).into_response(),
+    match state.list_apps_uc.execute(params.category, params.search).await {
+        Ok(apps) => (StatusCode::OK, Json(AppListResponse { apps })).into_response(),
+        Err(e) => {
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/apps/{id}/stats",
+    params(("id" = String, Path, description = "App ID")),
+    responses(
+        (status = 200, description = "Download stats", body = DownloadStatsSummary),
+        (status = 404, description = "App not found"),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_download_stats(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    match state.get_download_stats_uc.execute(&id).await {
+        Ok(stats) => (StatusCode::OK, Json(stats)).into_response(),
+        Err(crate::usecase::get_download_stats::GetDownloadStatsError::AppNotFound(_)) => {
+            let err = ErrorResponse::new(
+                "SYS_APPS_APP_NOT_FOUND",
+                "The specified app was not found",
+            );
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
         Err(e) => {
             let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()

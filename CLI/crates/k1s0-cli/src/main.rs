@@ -20,6 +20,7 @@ const MENU_ITEMS: &[&str] = &[
     "ローカル開発",
     "マイグレーション管理",
     "イベントコード生成",
+    "テンプレートマイグレーション",
     "終了",
 ];
 
@@ -142,7 +143,12 @@ fn show_main_menu(_cli_config: &config::CliConfig) -> Result<bool> {
                         eprintln!("イベントコード生成エラー: {e}");
                     }
                 }
-                12 => return Ok(true),
+                12 => {
+                    if let Err(e) = commands::template_migrate::run() {
+                        eprintln!("テンプレートマイグレーションエラー: {e}");
+                    }
+                }
+                13 => return Ok(true),
                 _ => unreachable!(),
             }
             Ok(false)

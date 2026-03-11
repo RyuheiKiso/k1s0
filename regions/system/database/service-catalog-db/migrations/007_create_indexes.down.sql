@@ -1,0 +1,10 @@
+DROP INDEX IF EXISTS service_catalog.idx_services_team_id;
+DROP INDEX IF EXISTS service_catalog.idx_services_tier;
+DROP INDEX IF EXISTS service_catalog.idx_services_lifecycle;
+DROP INDEX IF EXISTS service_catalog.idx_services_name;
+DROP INDEX IF EXISTS service_catalog.idx_services_tags;
+DROP INDEX IF EXISTS service_catalog.idx_services_name_desc_search;
+DROP INDEX IF EXISTS service_catalog.idx_dependencies_source;
+DROP INDEX IF EXISTS service_catalog.idx_dependencies_target;
+DROP INDEX IF EXISTS service_catalog.idx_service_docs_service_id;
+DROP INDEX IF EXISTS service_catalog.idx_health_status_checked_at;

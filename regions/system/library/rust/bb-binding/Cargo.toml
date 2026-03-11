@@ -1,0 +1,21 @@
+[package]
+name = "k1s0-bb-binding"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.93"
+
+[features]
+default = []
+mock = ["mockall"]
+
+[dependencies]
+async-trait = "0.1"
+k1s0-building-blocks = { path = "../building-blocks" }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tokio = { version = "1", features = ["sync"] }
+tracing = "0.1"
+mockall = { version = "0.13", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AppListPage } from '../../src/pages/AppListPage';
-import type { App } from '../../src/api/types';
+import type { App, AppVersion } from '../../src/api/types';
 
 const mockApps: App[] = [
   {
@@ -28,9 +28,43 @@ const mockApps: App[] = [
   },
 ];
 
+const mockVersions: Record<string, AppVersion[]> = {
+  'app-1': [
+    {
+      id: 'ver-1',
+      app_id: 'app-1',
+      version: '1.2.0',
+      platform: 'windows',
+      arch: 'amd64',
+      size_bytes: 1024,
+      checksum_sha256: 'checksum-a',
+      release_notes: '改善',
+      mandatory: false,
+      published_at: '2024-01-03T00:00:00Z',
+    },
+  ],
+  'app-2': [
+    {
+      id: 'ver-2',
+      app_id: 'app-2',
+      version: '2.0.0',
+      platform: 'macos',
+      arch: 'arm64',
+      size_bytes: 2048,
+      checksum_sha256: 'checksum-b',
+      release_notes: '更新',
+      mandatory: false,
+      published_at: '2024-01-04T00:00:00Z',
+    },
+  ],
+};
+
 const server = setupServer(
-  http.get('/api/apps', () => {
-    return HttpResponse.json(mockApps);
+  http.get('/api/v1/apps', () => {
+    return HttpResponse.json({ apps: mockApps });
+  }),
+  http.get('/api/v1/apps/:appId/versions', ({ params }) => {
+    return HttpResponse.json({ versions: mockVersions[String(params.appId)] ?? [] });
   }),
 );
 

@@ -1,0 +1,19 @@
+{
+  "name": "@k1s0/building-blocks",
+  "version": "0.1.0",
+  "description": "k1s0 Building Blocks abstraction library",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "yaml": "^2.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
+}

@@ -14,8 +14,7 @@ class UpdateInfo {
   bool get isMandatory => latestVersion?.mandatory ?? false;
 
   @override
-  String toString() =>
-      'UpdateInfo(available: $updateAvailable, '
+  String toString() => 'UpdateInfo(available: $updateAvailable, '
       'current: $currentVersion, '
       'latest: ${latestVersion?.version})';
 }

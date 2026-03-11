@@ -18,6 +18,7 @@ ureq = { version = "3", features = ["json"] }
 sha2 = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
 jsonschema = "0.18"
+similar = "2"
 
 [lints]
 workspace = true

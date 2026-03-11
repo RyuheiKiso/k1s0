@@ -15,8 +15,8 @@ impl ListAppsUseCase {
 
     pub async fn execute(
         &self,
-        category: Option<&str>,
-        search: Option<&str>,
+        category: Option<String>,
+        search: Option<String>,
     ) -> anyhow::Result<Vec<App>> {
         self.app_repo.list(category, search).await
     }
@@ -54,7 +54,10 @@ mod tests {
         mock.expect_list().returning(|_, _| Ok(vec![]));
 
         let uc = ListAppsUseCase::new(Arc::new(mock));
-        let result = uc.execute(Some("nonexistent"), None).await.unwrap();
+        let result = uc
+            .execute(Some("nonexistent".to_string()), None)
+            .await
+            .unwrap();
         assert!(result.is_empty());
     }
 }

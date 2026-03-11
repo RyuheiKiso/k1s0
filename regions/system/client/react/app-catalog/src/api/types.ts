@@ -25,6 +25,14 @@ export interface AppVersion {
 export interface DownloadStats {
   total_downloads: number;
   version_downloads: number;
+  latest_version?: string | null;
+}
+
+export interface DownloadUrlResponse {
+  download_url: string;
+  expires_in: number;
+  checksum_sha256: string;
+  size_bytes: number | null;
 }
 
 export interface AppListParams {
@@ -32,7 +40,10 @@ export interface AppListParams {
   category?: string;
 }
 
-export interface AppDetailResponse {
-  app: App;
+export interface AppListResponse {
+  apps: App[];
+}
+
+export interface VersionListResponse {
   versions: AppVersion[];
 }

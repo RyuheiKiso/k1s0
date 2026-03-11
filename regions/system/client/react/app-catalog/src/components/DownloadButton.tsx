@@ -2,15 +2,23 @@ import { useDownload } from '../hooks/useDownload';
 
 interface DownloadButtonProps {
   appId: string;
-  versionId: string;
+  version: string;
+  platform?: 'windows' | 'linux' | 'macos';
+  arch?: string;
   label?: string;
 }
 
-export function DownloadButton({ appId, versionId, label = 'ダウンロード' }: DownloadButtonProps) {
+export function DownloadButton({
+  appId,
+  version,
+  platform,
+  arch,
+  label = 'ダウンロード',
+}: DownloadButtonProps) {
   const { mutate, isPending } = useDownload();
 
   const handleClick = () => {
-    mutate({ appId, versionId });
+    mutate({ appId, version, platform, arch });
   };
 
   return (
