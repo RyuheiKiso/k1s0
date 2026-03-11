@@ -40,6 +40,11 @@ pub struct FieldYaml {
     pub default: Option<serde_yaml::Value>,
 }
 
+/// Collect validation diagnostics for `config-schema.yaml`.
+///
+/// # Errors
+///
+/// Returns an error when the file cannot be read or the bundled JSON Schema cannot be parsed.
 pub fn collect_config_schema_diagnostics(
     path: &str,
 ) -> Result<Vec<ValidationDiagnostic>, Box<dyn std::error::Error>> {
@@ -95,6 +100,11 @@ pub fn collect_config_schema_diagnostics(
     Ok(diagnostics)
 }
 
+/// Validate `config-schema.yaml` and print a summary.
+///
+/// # Errors
+///
+/// Returns an error when diagnostics cannot be collected.
 pub fn validate_config_schema(path: &str) -> Result<usize, Box<dyn std::error::Error>> {
     println!("Checking config-schema.yaml...");
     let diagnostics = collect_config_schema_diagnostics(path)?;
@@ -277,23 +287,20 @@ fn collect_number_range_diagnostics(
 ) {
     for (category_index, category) in schema.categories.iter().enumerate() {
         for (field_index, field) in category.fields.iter().enumerate() {
-            match field.field_type.as_deref() {
-                Some("integer") | Some("float") => {
-                    if let (Some(min), Some(max)) = (field.min, field.max) {
-                        if min > max {
-                            diagnostics.push(ValidationDiagnostic {
-                                rule: "numeric-range".to_string(),
-                                path: format!("categories[{category_index}].fields[{field_index}]"),
-                                message: format!(
-                                    "category '{}' field '{}' has min {} greater than max {}",
-                                    category.id, field.key, min, max
-                                ),
-                                line: None,
-                            });
-                        }
+            if let Some("integer" | "float") = field.field_type.as_deref() {
+                if let (Some(min), Some(max)) = (field.min, field.max) {
+                    if min > max {
+                        diagnostics.push(ValidationDiagnostic {
+                            rule: "numeric-range".to_string(),
+                            path: format!("categories[{category_index}].fields[{field_index}]"),
+                            message: format!(
+                                "category '{}' field '{}' has min {} greater than max {}",
+                                category.id, field.key, min, max
+                            ),
+                            line: None,
+                        });
                     }
                 }
-                _ => {}
             }
         }
     }

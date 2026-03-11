@@ -1,6 +1,6 @@
-//! 依存関係マップの出力処理。
+//! Dependency output helpers.
 //!
-//! ターミナルへのテキスト出力とMermaidダイアグラム生成を提供する。
+//! Provides terminal and Mermaid renderers for dependency analysis results.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -8,16 +8,12 @@ use std::path::Path;
 
 use anyhow::Result;
 
-use super::types::{DependencyType, DepsResult, Severity};
+use super::types::{Dependency, DependencyType, DepsResult, Severity, Violation};
 
-/// ターミナルに依存関係マップを色付きで出力する。
-///
-/// 設計書に従い、Tier別グループ表示で各サービスの依存先を表示する。
-/// 違反は `✗`、警告は `⚠` マークで表示する。
+/// Print dependency analysis results to the terminal.
 pub fn print_terminal(result: &DepsResult) {
     println!();
 
-    // Tier別にサービスをグループ化
     let tier_order = ["system", "business", "service"];
     let mut by_tier: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
     for service in &result.services {
@@ -34,7 +30,6 @@ pub fn print_terminal(result: &DepsResult) {
             println!("\n[{tier} tier]");
             for service_name in services {
                 println!("  {service_name}");
-                // このサービスが source の依存関係を表示
                 for dep in &result.dependencies {
                     if dep.source == *service_name {
                         let tier_label = if dep.target_tier == *tier {
@@ -47,20 +42,19 @@ pub fn print_terminal(result: &DepsResult) {
                             .as_ref()
                             .map(|d| format!("  {d}"))
                             .unwrap_or_default();
-                        let dep_type_str = format!("{}", dep.dep_type);
+                        let dep_type_str = dep.dep_type.to_string();
                         println!(
                             "    -> ({dep_type_str:<8}) {}{tier_label}{detail}",
                             dep.target
                         );
                     }
-                    // このサービスが target の依存関係（逆方向表示）
                     if dep.target == *service_name && dep.source_tier == *tier {
                         let detail = dep
                             .detail
                             .as_ref()
                             .map(|d| format!("  {d}"))
                             .unwrap_or_default();
-                        let dep_type_str = format!("{}", dep.dep_type);
+                        let dep_type_str = dep.dep_type.to_string();
                         println!("    <- ({dep_type_str:<8}) {}{detail}", dep.source);
                     }
                 }
@@ -68,16 +62,15 @@ pub fn print_terminal(result: &DepsResult) {
         }
     }
 
-    // 違反検出
     if result.violations.is_empty() {
-        println!("\n=== 違反検出: なし ===");
+        println!("\n=== ルール違反: なし ===");
     } else {
-        println!("\n=== 違反検出 ===");
+        println!("\n=== ルール違反 ===");
 
         for violation in &result.violations {
             let prefix = match violation.severity {
-                Severity::Error => "\n  \u{2717}",   // ✗
-                Severity::Warning => "\n  \u{26A0}", // ⚠
+                Severity::Error => "\n  ✗",
+                Severity::Warning => "\n  ⚠",
                 Severity::Info => "\n  (i)",
             };
             println!(
@@ -96,7 +89,6 @@ pub fn print_terminal(result: &DepsResult) {
         }
     }
 
-    // サマリー
     let error_count = result
         .violations
         .iter()
@@ -109,22 +101,36 @@ pub fn print_terminal(result: &DepsResult) {
         .count();
 
     println!("\n=== サマリー ===");
-    println!("  解析対象: {} サービス", result.services.len());
-    println!("  依存関係: {} 件", result.dependencies.len());
-    println!("  違反:     {error_count} 件");
-    println!("  警告:     {warning_count} 件");
+    println!("  対象サービス: {}", result.services.len());
+    println!("  依存関係:     {}", result.dependencies.len());
+    println!("  エラー:       {error_count}");
+    println!("  警告:         {warning_count}");
     println!();
 }
 
-/// Mermaidダイアグラムを生成する。
+/// Generate a Mermaid dependency diagram.
 pub fn generate_mermaid(result: &DepsResult) -> String {
-    let mut lines = Vec::new();
-    lines.push("# 依存関係マップ".to_string());
-    lines.push(String::new());
-    lines.push("```mermaid".to_string());
-    lines.push("graph TD".to_string());
+    let mut lines = vec![
+        "# 依存関係マップ".to_string(),
+        String::new(),
+        "```mermaid".to_string(),
+        "graph TD".to_string(),
+    ];
+    let tiers = collect_mermaid_tiers(result);
+    append_mermaid_subgraphs(&mut lines, &tiers);
 
-    // Tier別にサブグラフを作成
+    let violation_pairs = collect_violation_pairs(result);
+    let violation_link_indices =
+        append_mermaid_links(&mut lines, &result.dependencies, &violation_pairs);
+    append_violation_link_styles(&mut lines, &violation_link_indices);
+
+    lines.push("```".to_string());
+    append_violation_summary(&mut lines, &result.violations);
+    lines.push(String::new());
+    lines.join("\n")
+}
+
+fn collect_mermaid_tiers(result: &DepsResult) -> BTreeMap<String, BTreeSet<String>> {
     let mut tiers: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for service in &result.services {
         tiers
@@ -132,11 +138,9 @@ pub fn generate_mermaid(result: &DepsResult) -> String {
             .or_default()
             .insert(service.name.clone());
     }
-
-    // 依存先がサービス一覧にないものも収集
     for dep in &result.dependencies {
         if dep.dep_type == DependencyType::Library {
-            continue; // ライブラリはダイアグラムから除外
+            continue;
         }
         tiers
             .entry(dep.source_tier.clone())
@@ -147,7 +151,10 @@ pub fn generate_mermaid(result: &DepsResult) -> String {
             .or_default()
             .insert(dep.target.clone());
     }
+    tiers
+}
 
+fn append_mermaid_subgraphs(lines: &mut Vec<String>, tiers: &BTreeMap<String, BTreeSet<String>>) {
     let tier_labels: BTreeMap<&str, &str> = [
         ("system", "System Tier"),
         ("business", "Business Tier"),
@@ -156,7 +163,7 @@ pub fn generate_mermaid(result: &DepsResult) -> String {
     .into_iter()
     .collect();
 
-    for (tier, services) in &tiers {
+    for (tier, services) in tiers {
         let tier_str = tier.as_str();
         let default_label = tier_str;
         let label = tier_labels.get(tier_str).unwrap_or(&default_label);
@@ -168,100 +175,104 @@ pub fn generate_mermaid(result: &DepsResult) -> String {
         }
         lines.push("    end".to_string());
     }
+}
 
-    // 違反ペアを収集（赤色linkStyle用）
-    let violation_pairs: BTreeSet<(String, String)> = result
+fn collect_violation_pairs(result: &DepsResult) -> BTreeSet<(String, String)> {
+    result
         .violations
         .iter()
         .filter(|v| v.severity == Severity::Error)
         .map(|v| (v.source.clone(), v.target.clone()))
-        .collect();
+        .collect()
+}
 
-    // 依存関係の矢印
-    let mut link_index: usize = 0;
-    let mut violation_link_indices: Vec<usize> = Vec::new();
+fn append_mermaid_links(
+    lines: &mut Vec<String>,
+    dependencies: &[Dependency],
+    violation_pairs: &BTreeSet<(String, String)>,
+) -> Vec<usize> {
+    let mut link_index = 0;
+    let mut violation_link_indices = Vec::new();
 
-    for dep in &result.dependencies {
+    for dep in dependencies {
         if dep.dep_type == DependencyType::Library {
             continue;
         }
         let source_id = sanitize_mermaid_id(&dep.source);
         let target_id = sanitize_mermaid_id(&dep.target);
         let label = dep.dep_type.to_string();
-
         let arrow = match dep.dep_type {
             DependencyType::Kafka => format!("{source_id} -.->|{label}| {target_id}"),
             _ => format!("{source_id} -->|{label}| {target_id}"),
         };
         lines.push(format!("    {arrow}"));
 
-        // 違反エッジのインデックスを記録
         if violation_pairs.contains(&(dep.source.clone(), dep.target.clone())) {
             violation_link_indices.push(link_index);
         }
         link_index += 1;
     }
 
-    // 違反エッジを赤色でスタイル設定
-    if !violation_link_indices.is_empty() {
-        lines.push(String::new());
-        lines.push("    %% 違反".to_string());
-        for idx in &violation_link_indices {
-            lines.push(format!("    linkStyle {idx} stroke:red,stroke-width:3px"));
-        }
-    }
+    violation_link_indices
+}
 
-    lines.push("```".to_string());
-
-    // 違反サマリー
-    if !result.violations.is_empty() {
-        lines.push(String::new());
-        lines.push("## ルール違反".to_string());
-        lines.push(String::new());
-
-        for violation in &result.violations {
-            let icon = match violation.severity {
-                Severity::Error => "x",
-                Severity::Warning => "!",
-                Severity::Info => "i",
-            };
-            lines.push(format!(
-                "- [{icon}] **{}**: {} ({}) -> {} ({})",
-                violation.severity,
-                violation.source,
-                violation.source_tier,
-                violation.target,
-                violation.target_tier,
-            ));
-            lines.push(format!("  - {}", violation.message));
-            lines.push(format!("  - 推奨: {}", violation.recommendation));
-        }
+fn append_violation_link_styles(lines: &mut Vec<String>, violation_link_indices: &[usize]) {
+    if violation_link_indices.is_empty() {
+        return;
     }
 
     lines.push(String::new());
-    lines.join("\n")
+    lines.push("    %% 違反".to_string());
+    for idx in violation_link_indices {
+        lines.push(format!("    linkStyle {idx} stroke:red,stroke-width:3px"));
+    }
 }
 
-/// Mermaidダイアグラムをファイルに書き込む。
+fn append_violation_summary(lines: &mut Vec<String>, violations: &[Violation]) {
+    if violations.is_empty() {
+        return;
+    }
+
+    lines.push(String::new());
+    lines.push("## ルール違反".to_string());
+    lines.push(String::new());
+
+    for violation in violations {
+        let icon = match violation.severity {
+            Severity::Error => "x",
+            Severity::Warning => "!",
+            Severity::Info => "i",
+        };
+        lines.push(format!(
+            "- [{icon}] **{}**: {} ({}) -> {} ({})",
+            violation.severity,
+            violation.source,
+            violation.source_tier,
+            violation.target,
+            violation.target_tier,
+        ));
+        lines.push(format!("  - {}", violation.message));
+        lines.push(format!("  - 推奨: {}", violation.recommendation));
+    }
+}
+
+/// Write a Mermaid dependency diagram to a file.
 ///
 /// # Errors
 ///
-/// ファイル書き込みに失敗した場合にエラーを返す。
+/// Returns an error when the parent directory cannot be created or the file cannot be written.
 pub fn write_mermaid(result: &DepsResult, path: &Path) -> Result<()> {
     let content = generate_mermaid(result);
 
-    // 親ディレクトリを作成
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
 
     fs::write(path, content)?;
-    println!("Mermaidダイアグラムを出力しました: {}", path.display());
+    println!("Mermaid diagram written: {}", path.display());
     Ok(())
 }
 
-/// `Mermaid用のノードIDをサニタイズする`。
-/// ハイフンをアンダースコアに変換する。
 fn sanitize_mermaid_id(name: &str) -> String {
     name.replace('-', "_")
 }
@@ -303,10 +314,6 @@ mod tests {
         }
     }
 
-    // ========================================================================
-    // Mermaid生成テスト
-    // ========================================================================
-
     #[test]
     fn test_generate_mermaid_basic() {
         let result = sample_result();
@@ -338,13 +345,12 @@ mod tests {
         };
 
         let mermaid = generate_mermaid(&result);
-        assert!(mermaid.contains("-.->|Kafka|"), "Kafkaは破線矢印であること");
+        assert!(mermaid.contains("-.->|Kafka|"));
     }
 
     #[test]
     fn test_generate_mermaid_with_violations() {
         let mut result = sample_result();
-        // 違反に対応する依存関係を追加（linkStyle用）
         result.dependencies.push(Dependency {
             source: "auth-server".to_string(),
             source_tier: "system".to_string(),
@@ -361,22 +367,16 @@ mod tests {
             target: "order-server".to_string(),
             target_tier: "service".to_string(),
             dep_type: DependencyType::Grpc,
-            message: "上位Tierから下位Tierへの依存".to_string(),
+            message: "上位 tier から下位 tier への依存です".to_string(),
             location: None,
-            recommendation: "イベント駆動を検討してください".to_string(),
+            recommendation: "イベント駆動に変更してください".to_string(),
         });
 
         let mermaid = generate_mermaid(&result);
         assert!(mermaid.contains("## ルール違反"));
         assert!(mermaid.contains("**ERROR**"));
-        assert!(
-            mermaid.contains("linkStyle"),
-            "違反エッジにlinkStyleが設定されること"
-        );
-        assert!(
-            mermaid.contains("stroke:red"),
-            "違反エッジが赤色でスタイルされること"
-        );
+        assert!(mermaid.contains("linkStyle"));
+        assert!(mermaid.contains("stroke:red"));
     }
 
     #[test]
@@ -404,15 +404,8 @@ mod tests {
         };
 
         let mermaid = generate_mermaid(&result);
-        assert!(
-            !mermaid.contains("observability"),
-            "ライブラリ依存はダイアグラムに含まれないこと"
-        );
+        assert!(!mermaid.contains("observability"));
     }
-
-    // ========================================================================
-    // Mermaidファイル書き込みテスト
-    // ========================================================================
 
     #[test]
     fn test_write_mermaid_creates_file() {
@@ -437,10 +430,6 @@ mod tests {
 
         assert!(output_path.exists());
     }
-
-    // ========================================================================
-    // サニタイズテスト
-    // ========================================================================
 
     #[test]
     fn test_sanitize_mermaid_id() {

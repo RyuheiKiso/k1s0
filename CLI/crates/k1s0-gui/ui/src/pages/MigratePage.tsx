@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import {
@@ -20,8 +20,12 @@ import { toDisplayPath } from '../lib/paths';
 import { useWorkspace } from '../lib/workspace';
 
 type ConnectionMode = 'local' | 'custom';
-type RangeMode = 'all' | 'upTo';
+type UpRangeMode = 'all' | 'upTo';
+type DownRangeMode = 'previous' | 'upTo' | 'all';
 type RepairMode = 'clearDirty' | 'forceVersion';
+type PendingMigrationAction =
+  | { kind: 'up'; config: MigrateUpConfig }
+  | { kind: 'down'; config: MigrateDownConfig };
 
 export default function MigratePage() {
   const auth = useAuth();
@@ -35,9 +39,9 @@ export default function MigratePage() {
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>('local');
   const [customConnection, setCustomConnection] = useState('');
   const [migrationName, setMigrationName] = useState('');
-  const [upRangeMode, setUpRangeMode] = useState<RangeMode>('all');
+  const [upRangeMode, setUpRangeMode] = useState<UpRangeMode>('all');
   const [upRangeValue, setUpRangeValue] = useState('1');
-  const [downRangeMode, setDownRangeMode] = useState<RangeMode>('all');
+  const [downRangeMode, setDownRangeMode] = useState<DownRangeMode>('previous');
   const [downRangeValue, setDownRangeValue] = useState('1');
   const [repairMode, setRepairMode] = useState<RepairMode>('clearDirty');
   const [repairVersion, setRepairVersion] = useState('1');
@@ -45,13 +49,12 @@ export default function MigratePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [createdFiles, setCreatedFiles] = useState<[string, string] | null>(null);
   const [migrationStatus, setMigrationStatus] = useState<MigrationStatus[]>([]);
+  const [pendingAction, setPendingAction] = useState<PendingMigrationAction | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    if (workspaceUnavailable) {
-      setTargets([]);
-      setSelectedTargetKey('');
+    if (!workspace.ready || !workspace.workspaceRoot) {
       return;
     }
 
@@ -72,24 +75,49 @@ export default function MigratePage() {
     return () => {
       cancelled = true;
     };
-  }, [activeWorkspaceRoot, workspaceUnavailable]);
+  }, [activeWorkspaceRoot, workspace.ready, workspace.workspaceRoot]);
 
-  const selectedTarget = useMemo(
-    () => targets.find((target) => encodeTarget(target) === selectedTargetKey) ?? null,
-    [selectedTargetKey, targets],
-  );
+  const availableTargets = workspace.ready && workspace.workspaceRoot ? targets : [];
+  const activeTargetKey =
+    selectedTargetKey && availableTargets.some((target) => encodeTarget(target) === selectedTargetKey)
+      ? selectedTargetKey
+      : encodeTarget(availableTargets[0]);
+  const selectedTarget =
+    availableTargets.find((target) => encodeTarget(target) === activeTargetKey) ?? null;
 
   function buildConnection(): DbConnection {
     return connectionMode === 'local' ? 'LocalDev' : { Custom: customConnection };
   }
 
-  function buildRange(mode: RangeMode, value: string): MigrateRange {
+  function buildUpRange(mode: UpRangeMode, value: string): MigrateRange {
+    return mode === 'all' ? 'All' : { UpTo: Number(value) };
+  }
+
+  function buildDownRange(mode: DownRangeMode, value: string): MigrateRange {
+    if (mode === 'previous') {
+      return { Steps: 1 };
+    }
     return mode === 'all' ? 'All' : { UpTo: Number(value) };
   }
 
   function resetResult() {
     setCreatedFiles(null);
     setMigrationStatus([]);
+    setPendingAction(null);
+  }
+
+  function describeRange(range: MigrateRange): string {
+    if (range === 'All') {
+      return 'all migrations';
+    }
+    if ('Steps' in range) {
+      return `roll back ${range.Steps} migration`;
+    }
+    return `up to version ${range.UpTo}`;
+  }
+
+  function describeConnection(connection: DbConnection): string {
+    return connection === 'LocalDev' ? 'local development database' : connection.Custom;
   }
 
   async function runAction(action: () => Promise<void>) {
@@ -150,6 +178,22 @@ export default function MigratePage() {
     }
   }
 
+  async function handleConfirmAction() {
+    if (!pendingAction) {
+      return;
+    }
+
+    const action = pendingAction;
+    setPendingAction(null);
+
+    if (action.kind === 'up') {
+      await runAction(() => executeMigrateUp(action.config, activeWorkspaceRoot));
+      return;
+    }
+
+    await runAction(() => executeMigrateDown(action.config, activeWorkspaceRoot));
+  }
+
   return (
     <div className="glass max-w-6xl p-6" data-testid="migrate-page">
       <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Database</p>
@@ -170,7 +214,7 @@ export default function MigratePage() {
           <div>
             <label className="block text-sm font-medium text-slate-200/82">Target</label>
             <select
-              value={selectedTargetKey}
+              value={activeTargetKey}
               onChange={(event) => {
                 setSelectedTargetKey(event.target.value);
                 resetResult();
@@ -178,10 +222,10 @@ export default function MigratePage() {
               className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/35 px-3 py-2 text-white"
               data-testid="select-migrate-target"
             >
-              {targets.length === 0 ? (
+              {availableTargets.length === 0 ? (
                 <option value="">No migration targets found</option>
               ) : (
-                targets.map((target) => (
+                availableTargets.map((target) => (
                   <option key={encodeTarget(target)} value={encodeTarget(target)}>
                     {target.service_name} ({target.tier}/{target.language}) [{target.db_name}]
                   </option>
@@ -196,7 +240,10 @@ export default function MigratePage() {
               <input
                 type="radio"
                 checked={connectionMode === 'local'}
-                onChange={() => setConnectionMode('local')}
+                onChange={() => {
+                  setConnectionMode('local');
+                  setPendingAction(null);
+                }}
                 name="migrate-connection"
               />
               Local development
@@ -205,7 +252,10 @@ export default function MigratePage() {
               <input
                 type="radio"
                 checked={connectionMode === 'custom'}
-                onChange={() => setConnectionMode('custom')}
+                onChange={() => {
+                  setConnectionMode('custom');
+                  setPendingAction(null);
+                }}
                 name="migrate-connection"
               />
               Custom connection string
@@ -213,7 +263,10 @@ export default function MigratePage() {
             {connectionMode === 'custom' && (
               <input
                 value={customConnection}
-                onChange={(event) => setCustomConnection(event.target.value)}
+                onChange={(event) => {
+                  setCustomConnection(event.target.value);
+                  setPendingAction(null);
+                }}
                 placeholder="postgres://user:pass@host:5432/db"
                 className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
                 data-testid="input-custom-connection"
@@ -251,61 +304,69 @@ export default function MigratePage() {
 
           <ActionBlock
             title="Apply migrations"
-            buttonLabel="Migrate up"
+            buttonLabel="Review migrate up"
             buttonTestId="btn-migrate-up"
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
             onClick={() => {
               if (!selectedTarget) {
                 return;
               }
-              void runAction(() =>
-                executeMigrateUp(
-                  {
-                    target: selectedTarget,
-                    range: buildRange(upRangeMode, upRangeValue),
-                    connection: buildConnection(),
-                  } satisfies MigrateUpConfig,
-                  activeWorkspaceRoot,
-                ),
-              );
+              setPendingAction({
+                kind: 'up',
+                config: {
+                  target: selectedTarget,
+                  range: buildUpRange(upRangeMode, upRangeValue),
+                  connection: buildConnection(),
+                } satisfies MigrateUpConfig,
+              });
             }}
           >
-            <RangeSelector
+            <UpRangeSelector
               name="migrate-up-range"
               mode={upRangeMode}
               value={upRangeValue}
-              onModeChange={setUpRangeMode}
-              onValueChange={setUpRangeValue}
+              onModeChange={(mode) => {
+                setUpRangeMode(mode);
+                setPendingAction(null);
+              }}
+              onValueChange={(value) => {
+                setUpRangeValue(value);
+                setPendingAction(null);
+              }}
             />
           </ActionBlock>
 
           <ActionBlock
             title="Roll back migrations"
-            buttonLabel="Migrate down"
+            buttonLabel="Review migrate down"
             buttonTestId="btn-migrate-down"
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
             onClick={() => {
               if (!selectedTarget) {
                 return;
               }
-              void runAction(() =>
-                executeMigrateDown(
-                  {
-                    target: selectedTarget,
-                    range: buildRange(downRangeMode, downRangeValue),
-                    connection: buildConnection(),
-                  } satisfies MigrateDownConfig,
-                  activeWorkspaceRoot,
-                ),
-              );
+              setPendingAction({
+                kind: 'down',
+                config: {
+                  target: selectedTarget,
+                  range: buildDownRange(downRangeMode, downRangeValue),
+                  connection: buildConnection(),
+                } satisfies MigrateDownConfig,
+              });
             }}
           >
-            <RangeSelector
+            <DownRangeSelector
               name="migrate-down-range"
               mode={downRangeMode}
               value={downRangeValue}
-              onModeChange={setDownRangeMode}
-              onValueChange={setDownRangeValue}
+              onModeChange={(mode) => {
+                setDownRangeMode(mode);
+                setPendingAction(null);
+              }}
+              onValueChange={(value) => {
+                setDownRangeValue(value);
+                setPendingAction(null);
+              }}
             />
           </ActionBlock>
 
@@ -373,6 +434,41 @@ export default function MigratePage() {
           >
             Load status
           </button>
+
+          {pendingAction && selectedTarget && (
+            <div
+              className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4"
+              data-testid="migrate-confirmation"
+            >
+              <p className="text-sm font-medium text-emerald-100">Confirm migration action</p>
+              <div className="mt-3 space-y-2 text-sm text-emerald-50/90">
+                <p>Service: {selectedTarget.service_name}</p>
+                <p>Database: {selectedTarget.db_name}</p>
+                <p>Action: {pendingAction.kind === 'up' ? 'migrate up' : 'migrate down'}</p>
+                <p>Range: {describeRange(pendingAction.config.range)}</p>
+                <p>Connection: {describeConnection(pendingAction.config.connection)}</p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPendingAction(null)}
+                  className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleConfirmAction();
+                  }}
+                  className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+                  data-testid="btn-confirm-migrate"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          )}
 
           {status === 'error' && (
             <p className="text-sm text-rose-300" data-testid="error-message">
@@ -472,7 +568,7 @@ function ActionBlock({
   );
 }
 
-function RangeSelector({
+function UpRangeSelector({
   name,
   mode,
   value,
@@ -480,9 +576,9 @@ function RangeSelector({
   onValueChange,
 }: {
   name: string;
-  mode: RangeMode;
+  mode: UpRangeMode;
   value: string;
-  onModeChange: (mode: RangeMode) => void;
+  onModeChange: (mode: UpRangeMode) => void;
   onValueChange: (value: string) => void;
 }) {
   return (
@@ -512,6 +608,59 @@ function RangeSelector({
           className="mt-3 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
         />
       )}
+    </>
+  );
+}
+
+function DownRangeSelector({
+  name,
+  mode,
+  value,
+  onModeChange,
+  onValueChange,
+}: {
+  name: string;
+  mode: DownRangeMode;
+  value: string;
+  onModeChange: (mode: DownRangeMode) => void;
+  onValueChange: (value: string) => void;
+}) {
+  return (
+    <>
+      <label className="flex items-center gap-3 text-sm text-slate-200/82">
+        <input
+          type="radio"
+          checked={mode === 'previous'}
+          onChange={() => onModeChange('previous')}
+          name={name}
+        />
+        Roll back the previous migration
+      </label>
+      <label className="mt-2 flex items-center gap-3 text-sm text-slate-200/82">
+        <input
+          type="radio"
+          checked={mode === 'upTo'}
+          onChange={() => onModeChange('upTo')}
+          name={name}
+        />
+        Roll back to version
+      </label>
+      {mode === 'upTo' && (
+        <input
+          value={value}
+          onChange={(event) => onValueChange(event.target.value)}
+          className="mt-3 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+        />
+      )}
+      <label className="mt-2 flex items-center gap-3 text-sm text-slate-200/82">
+        <input
+          type="radio"
+          checked={mode === 'all'}
+          onChange={() => onModeChange('all')}
+          name={name}
+        />
+        Roll back all migrations
+      </label>
     </>
   );
 }

@@ -16,7 +16,7 @@ export type CleanupLevel = 'ContainersOnly' | 'ContainersAndVolumes';
 export type MigrateLanguage = 'Rust' | 'Go';
 export type DepsScope = 'All' | { Tier: string } | { Services: string[] };
 export type DepsOutputFormat = 'Terminal' | { Mermaid: string } | { Both: string };
-export type MigrateRange = 'All' | { UpTo: number };
+export type MigrateRange = 'All' | { UpTo: number } | { Steps: number };
 export type DbConnection = 'LocalDev' | { Custom: string };
 export type RepairOperation = 'ClearDirty' | { ForceVersion: number };
 
@@ -141,6 +141,40 @@ export interface DevDownConfig {
 }
 
 export type DevTarget = [string, string];
+
+export interface DatabaseDep {
+  name: string;
+  service: string;
+}
+
+export interface DetectedDependencies {
+  databases: DatabaseDep[];
+  has_kafka: boolean;
+  has_redis: boolean;
+  has_redis_session: boolean;
+  kafka_topics: string[];
+}
+
+export interface PortAssignments {
+  postgres: number;
+  kafka: number;
+  redis: number;
+  redis_session: number;
+  pgadmin: number;
+  kafka_ui: number;
+  keycloak: number;
+}
+
+export interface DevAdditionalService {
+  name: string;
+  url: string;
+}
+
+export interface DevUpPreview {
+  dependencies: DetectedDependencies;
+  ports: PortAssignments;
+  additional_services: DevAdditionalService[];
+}
 
 export interface MigrateTarget {
   service_name: string;
@@ -425,6 +459,10 @@ export async function scanServices(baseDir: string): Promise<ServiceInfo[]> {
 
 export async function executeDevUp(config: DevUpConfig, baseDir?: string): Promise<void> {
   return invoke<void>('execute_dev_up', { config, ...withBaseDir(baseDir) });
+}
+
+export async function previewDevUp(config: DevUpConfig, baseDir?: string): Promise<DevUpPreview> {
+  return invoke<DevUpPreview>('preview_dev_up', { config, ...withBaseDir(baseDir) });
 }
 
 export async function executeDevDown(config: DevDownConfig, baseDir?: string): Promise<void> {

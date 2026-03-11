@@ -30,14 +30,7 @@ export default function BuildPage() {
   useEffect(() => {
     let cancelled = false;
 
-    setSelected([]);
-    setTargets([]);
-
-    if (!workspace.ready && workspace.workspaceRoot === '') {
-      return;
-    }
-
-    if (workspace.ready && !workspace.workspaceRoot) {
+    if (!workspace.ready || !workspace.workspaceRoot) {
       return;
     }
 
@@ -45,6 +38,7 @@ export default function BuildPage() {
       .then((nextTargets) => {
         if (!cancelled) {
           setTargets(nextTargets);
+          setSelected((current) => current.filter((target) => nextTargets.includes(target)));
         }
       })
       .catch(() => {
@@ -58,6 +52,9 @@ export default function BuildPage() {
     };
   }, [activeWorkspaceRoot, workspace.ready, workspace.workspaceRoot]);
 
+  const availableTargets = workspace.ready && workspace.workspaceRoot ? targets : [];
+  const selectedTargets = selected.filter((target) => availableTargets.includes(target));
+
   function toggleTarget(target: string) {
     setSelected((current) =>
       current.includes(target)
@@ -67,7 +64,7 @@ export default function BuildPage() {
   }
 
   function handleToggleAll(checked: boolean) {
-    setSelected(checked ? [...targets] : []);
+    setSelected(checked ? [...availableTargets] : []);
   }
 
   function handleProgress(event: ProgressEvent) {
@@ -100,12 +97,12 @@ export default function BuildPage() {
     setErrorMessage('');
     setEvents([]);
     setCurrentStep(0);
-    setTotalSteps(selected.length);
+    setTotalSteps(selectedTargets.length);
 
     let finished = false;
 
     try {
-      await executeBuildWithProgress({ targets: selected, mode }, (event) => {
+      await executeBuildWithProgress({ targets: selectedTargets, mode }, (event) => {
         if (event.kind === 'Finished') {
           finished = true;
         }
@@ -122,7 +119,8 @@ export default function BuildPage() {
     }
   }
 
-  const allSelected = targets.length > 0 && selected.length === targets.length;
+  const allSelected =
+    availableTargets.length > 0 && selectedTargets.length === availableTargets.length;
 
   return (
     <div className="glass max-w-4xl p-6" data-testid="build-page">
@@ -144,7 +142,7 @@ export default function BuildPage() {
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-white">Targets</h2>
-            {targets.length > 0 && (
+            {availableTargets.length > 0 && (
               <label className="flex items-center gap-2 text-sm text-slate-200/72">
                 <input
                   type="checkbox"
@@ -157,17 +155,17 @@ export default function BuildPage() {
           </div>
 
           <div className="mt-4 space-y-2">
-            {targets.length === 0 ? (
+            {availableTargets.length === 0 ? (
               <p className="text-sm text-slate-200/55">No buildable targets were found.</p>
             ) : (
-              targets.map((target) => (
+              availableTargets.map((target) => (
                 <label
                   key={target}
                   className="flex items-center gap-3 rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm text-slate-100"
                 >
                   <input
                     type="checkbox"
-                    checked={selected.includes(target)}
+                    checked={selectedTargets.includes(target)}
                     onChange={() => toggleTarget(target)}
                   />
                   {toDisplayPath(activeWorkspaceRoot, target)}
@@ -199,7 +197,10 @@ export default function BuildPage() {
               void handleBuild();
             }}
             disabled={
-              status === 'loading' || selected.length === 0 || workspaceUnavailable || actionsLocked
+              status === 'loading' ||
+              workspaceUnavailable ||
+              actionsLocked ||
+              selectedTargets.length === 0
             }
             className="mt-6 rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
             data-testid="btn-build"

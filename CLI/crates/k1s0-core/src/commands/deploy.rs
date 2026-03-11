@@ -188,10 +188,20 @@ struct DeployPlan {
     full_image_tag: String,
 }
 
+/// Execute deployment for the selected targets.
+///
+/// # Errors
+///
+/// Returns an error when target validation fails or any deployment command fails.
 pub fn execute_deploy(config: &DeployConfig) -> Result<()> {
     execute_deploy_internal(config, Option::<&fn(ProgressEvent)>::None)
 }
 
+/// Execute deployment for the selected targets while emitting progress events.
+///
+/// # Errors
+///
+/// Returns an error when target validation fails or any deployment command fails.
 pub fn execute_deploy_with_progress(
     config: &DeployConfig,
     on_progress: impl Fn(ProgressEvent),
@@ -199,6 +209,11 @@ pub fn execute_deploy_with_progress(
     execute_deploy_internal(config, Some(&on_progress))
 }
 
+/// Roll back the most recent production Helm release for a target.
+///
+/// # Errors
+///
+/// Returns an error when the deploy plan cannot be resolved or the Helm command fails.
 pub fn execute_deploy_rollback(target: &str) -> Result<String> {
     let plan = build_deploy_plan(Path::new(target), Environment::Prod)?;
     let args = build_helm_rollback_args(&plan.service_name, &plan.tier);
@@ -328,7 +343,7 @@ where
         ],
         &plan.target_path,
     )
-    .map_err(|error| build_error(plan, DeployStep::DockerBuild, error))?;
+    .map_err(|error| build_error(plan, DeployStep::DockerBuild, &error))?;
     emit(
         on_progress,
         ProgressEvent::Log {
@@ -347,7 +362,7 @@ where
         &["push".to_string(), plan.full_image_tag.clone()],
         &plan.target_path,
     )
-    .map_err(|error| build_error(plan, DeployStep::DockerPush, error))?;
+    .map_err(|error| build_error(plan, DeployStep::DockerPush, &error))?;
     emit(
         on_progress,
         ProgressEvent::Log {
@@ -370,7 +385,7 @@ where
         ],
         &plan.workspace_root,
     )
-    .map_err(|error| build_error(plan, DeployStep::CosignSign, error))?;
+    .map_err(|error| build_error(plan, DeployStep::CosignSign, &error))?;
     emit(
         on_progress,
         ProgressEvent::Log {
@@ -392,7 +407,7 @@ where
         &plan.image_tag_suffix,
     );
     run_checked_command("helm", &helm_args, &plan.workspace_root)
-        .map_err(|error| build_error(plan, DeployStep::HelmDeploy, error))?;
+        .map_err(|error| build_error(plan, DeployStep::HelmDeploy, &error))?;
     emit(
         on_progress,
         ProgressEvent::Log {
@@ -514,7 +529,7 @@ fn detect_version(target_path: &Path) -> Result<String> {
     if target_path.join("pubspec.yaml").exists() {
         let pubspec = fs::read_to_string(target_path.join("pubspec.yaml"))
             .map_err(|error| anyhow!("failed to read pubspec.yaml: {error}"))?;
-        let regex = Regex::new(r#"(?m)^version:\s*([^\s]+)"#).unwrap();
+        let regex = Regex::new(r"(?m)^version:\s*([^\s]+)").unwrap();
         let version = regex
             .captures(&pubspec)
             .and_then(|captures| captures.get(1))
@@ -560,7 +575,7 @@ fn resolve_helm_path(
     match tier {
         "service" if parts.len() >= 3 => candidates.push(format!("service/{}", parts[2])),
         "business" if parts.len() >= 6 => {
-            candidates.push(format!("business/{}/{}", parts[2], service_name))
+            candidates.push(format!("business/{}/{}", parts[2], service_name));
         }
         "system" => candidates.push(format!("system/{service_name}")),
         _ => {}
@@ -630,7 +645,7 @@ fn run_checked_command(cmd: &str, args: &[String], cwd: &Path) -> Result<()> {
     }
 }
 
-fn build_error(plan: &DeployPlan, step: DeployStep, error: anyhow::Error) -> DeployError {
+fn build_error(plan: &DeployPlan, step: DeployStep, error: &anyhow::Error) -> DeployError {
     let manual_command = match step {
         DeployStep::DockerBuild => format!(
             "cd {} && docker build -t {} .",

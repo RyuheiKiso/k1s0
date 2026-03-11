@@ -53,9 +53,8 @@ pub fn check_violations(dependencies: &[Dependency], services: &[ServiceInfo]) -
         let target_rank = tier_rank(&dep.target_tier);
 
         // Tier序列が不明な場合はスキップ
-        let (src_rank, tgt_rank) = match (source_rank, target_rank) {
-            (Some(s), Some(t)) => (s, t),
-            _ => continue,
+        let (Some(src_rank), Some(tgt_rank)) = (source_rank, target_rank) else {
+            continue;
         };
 
         // ルール1: 上位→下位の依存（数値が小さい→大きい）

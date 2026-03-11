@@ -185,11 +185,20 @@ pub fn next_sequence_number(files: &[MigrationFile]) -> u32 {
 /// マイグレーション名のバリデーション。
 ///
 /// 英小文字・数字・アンダースコアのみ許可（[a-z0-9_]+）。
+/// Validate a migration name.
+///
+/// Only lowercase alphanumeric characters and underscores are allowed.
+///
+/// # Errors
+///
+/// Returns an error when the name is empty, contains unsupported characters,
+/// or the validation pattern cannot be constructed.
 pub fn validate_migration_name(name: &str) -> Result<(), String> {
     if name.is_empty() {
         return Err("マイグレーション名を入力してください".to_string());
     }
-    let re = Regex::new(r"^[a-z0-9_]+$").unwrap();
+    let re = Regex::new(r"^[a-z0-9_]+$")
+        .map_err(|error| format!("migration name validation regex is invalid: {error}"))?;
     if !re.is_match(name) {
         return Err(
             "マイグレーション名は英小文字・数字・アンダースコアのみ使用できます（[a-z0-9_]+）"

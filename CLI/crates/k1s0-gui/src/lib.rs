@@ -149,6 +149,7 @@ pub fn run() {
             commands::execute_deps,
             commands::scan_services,
             // dev
+            commands::preview_dev_up,
             commands::execute_dev_up,
             commands::execute_dev_down,
             commands::execute_dev_status,

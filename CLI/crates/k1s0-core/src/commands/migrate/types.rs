@@ -130,6 +130,8 @@ pub enum MigrateRange {
     All,
     /// 指定バージョンまで適用
     UpTo(u32),
+    /// 指定件数ぶんだけ進める/戻す
+    Steps(u32),
 }
 
 /// DB接続先。
@@ -298,6 +300,10 @@ mod tests {
         let up_to = MigrateRange::UpTo(5);
         assert_eq!(up_to, MigrateRange::UpTo(5));
         assert_ne!(up_to, MigrateRange::All);
+
+        let steps = MigrateRange::Steps(1);
+        assert_eq!(steps, MigrateRange::Steps(1));
+        assert_ne!(steps, MigrateRange::All);
     }
 
     #[test]

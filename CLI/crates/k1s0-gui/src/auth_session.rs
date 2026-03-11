@@ -290,6 +290,17 @@ fn delete_session() -> Result<(), String> {
 mod tests {
     use super::*;
 
+    fn test_execution_lock() -> &'static Mutex<()> {
+        static TEST_EXECUTION_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        TEST_EXECUTION_LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    fn lock_test_execution() -> std::sync::MutexGuard<'static, ()> {
+        test_execution_lock()
+            .lock()
+            .expect("test execution mutex poisoned")
+    }
+
     fn reset_test_state() {
         *session_blob()
             .lock()
@@ -301,6 +312,7 @@ mod tests {
 
     #[test]
     fn store_and_load_session_from_secure_storage() {
+        let _guard = lock_test_execution();
         reset_test_state();
 
         let session = store_auth_session(
@@ -326,6 +338,7 @@ mod tests {
 
     #[test]
     fn expired_session_without_refresh_is_cleared() {
+        let _guard = lock_test_execution();
         reset_test_state();
 
         let summary = store_auth_session(
@@ -358,6 +371,7 @@ mod tests {
 
     #[test]
     fn require_auth_session_returns_error_when_missing() {
+        let _guard = lock_test_execution();
         reset_test_state();
 
         let error = require_auth_session().expect_err("session should be required");

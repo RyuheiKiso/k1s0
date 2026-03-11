@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Mutex, OnceLock};
@@ -48,6 +49,19 @@ pub struct ScaffoldDatabaseInfo {
     pub name: String,
     pub rdbms: String,
     pub path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DevAdditionalService {
+    pub name: String,
+    pub url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DevUpPreview {
+    pub dependencies: dev_cmd::DetectedDependencies,
+    pub ports: dev_cmd::PortAssignments,
+    pub additional_services: Vec<DevAdditionalService>,
 }
 
 fn workspace_cwd_lock() -> &'static Mutex<()> {
@@ -124,8 +138,7 @@ fn with_workspace_cwd<T>(
 
     match (result, restore) {
         (Ok(value), Ok(())) => Ok(value),
-        (Err(error), Ok(())) => Err(error),
-        (_, Err(error)) => Err(error),
+        (Err(error), Ok(())) | (_, Err(error)) => Err(error),
     }
 }
 
@@ -630,6 +643,7 @@ pub fn execute_dev_down(config: DevDownConfig, base_dir: Option<String>) -> Resu
 }
 
 #[tauri::command]
+#[allow(clippy::format_push_string)]
 pub fn execute_dev_status(base_dir: Option<String>) -> Result<String, String> {
     ensure_authenticated()?;
     with_workspace_cwd(base_dir, |_| {
@@ -645,7 +659,7 @@ pub fn execute_dev_status(base_dir: Option<String>) -> Result<String, String> {
             output.push_str(&format!("認証モード: {}\n", state.auth_mode));
             output.push_str("対象サービス:\n");
             for service in state.services {
-                output.push_str(&format!("- {service}\n"));
+                writeln!(output, "- {service}").expect("writing to String cannot fail");
             }
         }
 
@@ -701,6 +715,62 @@ pub fn scan_dev_targets(base_dir: String) -> Vec<(String, String)> {
         Ok(workspace_root) => dev_cmd::scan_dev_targets(&workspace_root),
         Err(_) => Vec::new(),
     }
+}
+
+fn build_dev_additional_services(
+    dependencies: &dev_cmd::DetectedDependencies,
+    ports: &dev_cmd::PortAssignments,
+    auth_mode: &dev_cmd::AuthMode,
+) -> Vec<DevAdditionalService> {
+    let mut services = Vec::new();
+
+    if !dependencies.databases.is_empty() {
+        services.push(DevAdditionalService {
+            name: "pgAdmin".to_string(),
+            url: format!("http://localhost:{}", ports.pgadmin),
+        });
+    }
+
+    if dependencies.has_kafka {
+        services.push(DevAdditionalService {
+            name: "Kafka UI".to_string(),
+            url: format!("http://localhost:{}", ports.kafka_ui),
+        });
+    }
+
+    if matches!(auth_mode, dev_cmd::AuthMode::Keycloak) {
+        services.push(DevAdditionalService {
+            name: "Keycloak".to_string(),
+            url: format!("http://localhost:{}", ports.keycloak),
+        });
+    }
+
+    services
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn preview_dev_up(
+    config: DevUpConfig,
+    base_dir: Option<String>,
+) -> Result<DevUpPreview, String> {
+    ensure_authenticated()?;
+    with_workspace_cwd(base_dir, |_| {
+        let dependencies = config
+            .services
+            .iter()
+            .map(|service| dev_cmd::detect::detect_dependencies(service))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| error.to_string())?;
+        let merged = dev_cmd::detect::merge_dependencies(&dependencies);
+        let ports = dev_cmd::port::resolve_ports(&dev_cmd::port::default_ports());
+
+        Ok(DevUpPreview {
+            additional_services: build_dev_additional_services(&merged, &ports, &config.auth_mode),
+            dependencies: merged,
+            ports,
+        })
+    })
 }
 
 // migrate
@@ -804,8 +874,7 @@ pub fn execute_event_codegen(
     let template_dir = resolve_event_template_dir(&workspace_root)?;
     let output_dir = resolved
         .parent()
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| workspace_root.clone());
+        .map_or_else(|| workspace_root.clone(), Path::to_path_buf);
     let generated = event_codegen_cmd::execute_event_codegen(&config, &output_dir, &template_dir)
         .map_err(|error| error.to_string())?;
     Ok(generated
@@ -882,7 +951,7 @@ pub fn start_device_authorization() -> Result<DeviceAuthorizationChallenge, Stri
     let discovery: DiscoveryDocument = client
         .get(&discovery_url)
         .send()
-        .and_then(|response| response.error_for_status())
+        .and_then(reqwest::blocking::Response::error_for_status)
         .map_err(|error| error.to_string())?
         .json()
         .map_err(|error| error.to_string())?;
@@ -901,7 +970,7 @@ pub fn start_device_authorization() -> Result<DeviceAuthorizationChallenge, Stri
         .post(&device_endpoint)
         .form(&[("client_id", client_id.as_str()), ("scope", scope.as_str())])
         .send()
-        .and_then(|response| response.error_for_status())
+        .and_then(reqwest::blocking::Response::error_for_status)
         .map_err(|error| error.to_string())?
         .json()
         .map_err(|error| error.to_string())?;

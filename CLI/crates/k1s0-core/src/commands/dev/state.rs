@@ -32,6 +32,11 @@ pub fn save_state(state: &DevState) -> Result<()> {
 }
 
 /// 指定パスに状態ファイルを保存する（テスト用）。
+/// Save dev state to the specified path.
+///
+/// # Errors
+///
+/// Returns an error when the parent directory cannot be created or the file cannot be written.
 pub fn save_state_to(state: &DevState, path: &Path) -> Result<()> {
     // 親ディレクトリがなければ作成
     if let Some(parent) = path.parent() {

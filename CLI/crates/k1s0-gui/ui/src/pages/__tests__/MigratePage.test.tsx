@@ -43,4 +43,26 @@ describe('MigratePage', () => {
 
     expect(await screen.findByText(/Applied at/)).toBeInTheDocument();
   });
+
+  it('requires confirmation before rolling back the previous migration', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<MigratePage />);
+
+    await waitFor(() => expect(screen.getByTestId('select-migrate-target')).toBeInTheDocument());
+    await user.click(screen.getByTestId('btn-migrate-down'));
+
+    expect(await screen.findByTestId('migrate-confirmation')).toBeInTheDocument();
+    expect(screen.getByText(/roll back 1 migration/i)).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('btn-confirm-migrate'));
+
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'execute_migrate_down',
+      expect.objectContaining({
+        config: expect.objectContaining({
+          range: { Steps: 1 },
+        }),
+      }),
+    );
+  });
 });

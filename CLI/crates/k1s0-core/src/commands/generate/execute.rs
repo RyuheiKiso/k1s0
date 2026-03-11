@@ -1,4 +1,4 @@
-use anyhow::Result;
+﻿use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -62,10 +62,6 @@ pub fn execute_generate_at(config: &GenerateConfig, base_dir: &Path) -> Result<(
                 let mut engine = TemplateEngine::new(&tpl_dir)?;
                 let _ = engine.render_to_dir(&bff_ctx, &bff_path);
             }
-        } else {
-            // BFF 言語未指定の場合は空ディレクトリのみ作成（後方互換）
-            let bff_path = output_path.join("bff");
-            fs::create_dir_all(&bff_path)?;
         }
     }
 
@@ -137,9 +133,6 @@ pub fn execute_generate_with_config(
                     }
                 }
             }
-        } else {
-            let bff_path = output_path.join("bff");
-            fs::create_dir_all(&bff_path)?;
         }
     }
 
@@ -1440,7 +1433,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
-                bff_language: None,
+                bff_language: Some(Language::Go),
             },
         };
         execute_generate_at(&config, tmp.path()).unwrap();
@@ -1562,7 +1555,6 @@ mod tests {
 
     #[test]
     fn test_bff_not_created_when_bff_language_none() {
-        // bff_language=None でも service+GraphQL では空ディレクトリが作成される（既存の互換性）
         let tmp = TempDir::new().unwrap();
         let config = GenerateConfig {
             kind: Kind::Server,
@@ -1580,7 +1572,10 @@ mod tests {
         };
         execute_generate_at(&config, tmp.path()).unwrap();
         let bff_path = tmp.path().join("regions/service/order/server/go/bff");
-        assert!(bff_path.exists(), "bff_language=None でも service+GraphQL では空 BFF ディレクトリが作成される（互換性維持）");
+        assert!(
+            !bff_path.exists(),
+            "bff_language=None では BFF ディレクトリは生成されない"
+        );
     }
 
     // --- scan_placements_at ---

@@ -490,6 +490,7 @@ fn format_range(range: &MigrateRange) -> String {
     match range {
         MigrateRange::All => "すべて".to_string(),
         MigrateRange::UpTo(n) => format!("バージョン {n} まで"),
+        MigrateRange::Steps(n) => format!("{n} 件"),
     }
 }
 

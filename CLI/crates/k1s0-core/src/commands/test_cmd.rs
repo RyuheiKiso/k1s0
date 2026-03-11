@@ -77,14 +77,29 @@ pub fn resolve_test_command(kind: TestKind, lang: Option<ProjectLang>) -> Option
     })
 }
 
+/// Execute tests for the selected targets from the current workspace.
+///
+/// # Errors
+///
+/// Returns an error when no targets are selected or a test command fails.
 pub fn execute_test(config: &TestConfig) -> Result<()> {
     execute_test_at(config, Path::new("."))
 }
 
+/// Execute tests for the selected targets relative to `base_dir`.
+///
+/// # Errors
+///
+/// Returns an error when no targets are selected or a test command fails.
 pub fn execute_test_at(config: &TestConfig, base_dir: &Path) -> Result<()> {
     execute_test_internal(config, base_dir, Option::<&fn(ProgressEvent)>::None)
 }
 
+/// Execute tests while emitting progress events.
+///
+/// # Errors
+///
+/// Returns an error when no targets are selected or a test command fails.
 pub fn execute_test_with_progress(
     config: &TestConfig,
     on_progress: impl Fn(ProgressEvent),
@@ -92,6 +107,11 @@ pub fn execute_test_with_progress(
     execute_test_with_progress_at(config, Path::new("."), on_progress)
 }
 
+/// Execute tests relative to `base_dir` while emitting progress events.
+///
+/// # Errors
+///
+/// Returns an error when no targets are selected or a test command fails.
 pub fn execute_test_with_progress_at(
     config: &TestConfig,
     base_dir: &Path,
