@@ -231,7 +231,9 @@ migrations/
 ├── 006_create_config_schemas.up.sql             # config_schemas テーブル・インデックス・トリガー
 ├── 006_create_config_schemas.down.sql
 ├── 007_add_version_columns_to_change_logs.up.sql   # old_version/new_version 列追加
-└── 007_add_version_columns_to_change_logs.down.sql
+├── 007_add_version_columns_to_change_logs.down.sql
+├── 008_fix_version_columns_default.up.sql           # old_version/new_version に NOT NULL DEFAULT 0 制約適用
+└── 008_fix_version_columns_default.down.sql
 ```
 
 ### マイグレーション一覧
@@ -245,6 +247,7 @@ migrations/
 | 005 | create_service_config_mappings | service_config_mappings テーブル・インデックス・ユニーク制約 |
 | 006 | create_config_schemas | config_schemas テーブル・インデックス・updated_at トリガー |
 | 007 | add_version_columns_to_change_logs | config_change_logs に old_version/new_version 列を追加 |
+| 008 | fix_version_columns_default | config_change_logs の old_version/new_version に NOT NULL DEFAULT 0 制約を適用 |
 
 ### 001_create_schema.up.sql
 

@@ -244,13 +244,13 @@ CREATE TABLE IF NOT EXISTS auth.api_keys (
     id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     name         VARCHAR(255) NOT NULL,
     key_hash     VARCHAR(255) UNIQUE NOT NULL,
-    key_prefix   VARCHAR(10)  NOT NULL,
-    service_name VARCHAR(255) NOT NULL,
+    prefix       VARCHAR(10)  NOT NULL,
+    tenant_id    VARCHAR(255) NOT NULL,
     tier         VARCHAR(20)  NOT NULL,
-    permissions  JSONB        NOT NULL DEFAULT '[]',
+    scopes       JSONB        NOT NULL DEFAULT '[]',
     expires_at   TIMESTAMPTZ,
     last_used_at TIMESTAMPTZ,
-    is_active    BOOLEAN      NOT NULL DEFAULT true,
+    revoked      BOOLEAN      NOT NULL DEFAULT false,
     created_by   UUID         REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -258,9 +258,9 @@ CREATE TABLE IF NOT EXISTS auth.api_keys (
     CONSTRAINT chk_api_keys_tier CHECK (tier IN ('system', 'business', 'service'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON auth.api_keys (key_hash) WHERE is_active = true;
-CREATE INDEX IF NOT EXISTS idx_api_keys_service_name ON auth.api_keys (service_name);
-CREATE INDEX IF NOT EXISTS idx_api_keys_key_prefix ON auth.api_keys (key_prefix);
+CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON auth.api_keys (key_hash) WHERE revoked = false;
+CREATE INDEX IF NOT EXISTS idx_api_keys_tenant_id ON auth.api_keys (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON auth.api_keys (prefix);
 CREATE INDEX IF NOT EXISTS idx_api_keys_expires_at ON auth.api_keys (expires_at) WHERE expires_at IS NOT NULL;
 ```
 
@@ -269,13 +269,13 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_expires_at ON auth.api_keys (expires_at)
 | id | UUID | PK | 主キー |
 | name | VARCHAR(255) | NOT NULL | キー名 |
 | key_hash | VARCHAR(255) | UNIQUE, NOT NULL | キーハッシュ |
-| key_prefix | VARCHAR(10) | NOT NULL | キープレフィックス（識別用） |
-| service_name | VARCHAR(255) | NOT NULL | サービス名 |
+| prefix | VARCHAR(10) | NOT NULL | キープレフィックス（識別用） |
+| tenant_id | VARCHAR(255) | NOT NULL | テナント ID |
 | tier | VARCHAR(20) | NOT NULL | Tier（system/business/service） |
-| permissions | JSONB | NOT NULL, DEFAULT '[]' | 許可パーミッション一覧 |
+| scopes | JSONB | NOT NULL, DEFAULT '[]' | 許可スコープ一覧 |
 | expires_at | TIMESTAMPTZ | | 有効期限 |
 | last_used_at | TIMESTAMPTZ | | 最終使用日時 |
-| is_active | BOOLEAN | NOT NULL, DEFAULT true | 有効フラグ |
+| revoked | BOOLEAN | NOT NULL, DEFAULT false | 失効フラグ |
 | created_by | UUID | FK → users.id | 作成者 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 更新日時 |
@@ -310,6 +310,8 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_expires_at ON auth.api_keys (expires_at)
 | `010_fix_audit_log_columns.down.sql` | リネーム復元 |
 | `011_create_partition_management.up.sql` | pg_partman によるパーティション自動管理設定 |
 | `011_create_partition_management.down.sql` | パーティション管理設定削除 |
+| `012_align_api_keys_columns.up.sql` | api_keys カラム名を Rust コードと整合（service_name→tenant_id, permissions→scopes, key_prefix→prefix, is_active→revoked） |
+| `012_align_api_keys_columns.down.sql` | カラム名復元 |
 
 ---
 
