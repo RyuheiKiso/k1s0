@@ -404,6 +404,356 @@ services:
       timeout: 5s
       retries: 5
 
+  api-registry-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/api-registry/Dockerfile
+    profiles: [system]
+    ports:
+      - "${API_REGISTRY_REST_HOST_PORT:-8093}:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/api-registry/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app-registry-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/app-registry/Dockerfile
+    profiles: [system]
+    ports:
+      - "${APP_REGISTRY_REST_HOST_PORT:-8094}:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/app-registry/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  event-monitor-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/event-monitor/Dockerfile
+    profiles: [system]
+    ports:
+      - "${EVENT_MONITOR_REST_HOST_PORT:-8095}:8080"
+      - "${EVENT_MONITOR_GRPC_HOST_PORT:-50060}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/event-monitor/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  event-store-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/event-store/Dockerfile
+    profiles: [system]
+    ports:
+      - "${EVENT_STORE_REST_HOST_PORT:-8096}:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/event-store/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  file-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/file/Dockerfile
+    profiles: [system]
+    ports:
+      - "${FILE_REST_HOST_PORT:-8097}:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/file/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  master-maintenance-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/master-maintenance/Dockerfile
+    profiles: [system]
+    ports:
+      - "${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}:8080"
+      - "${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50061}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/master-maintenance/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  navigation-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/navigation/Dockerfile
+    profiles: [system]
+    ports:
+      - "${NAVIGATION_REST_HOST_PORT:-8099}:8080"
+      - "${NAVIGATION_GRPC_HOST_PORT:-50062}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/navigation/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  notification-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/notification/Dockerfile
+    profiles: [system]
+    ports:
+      - "${NOTIFICATION_REST_HOST_PORT:-8100}:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/notification/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  policy-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/policy/Dockerfile
+    profiles: [system]
+    ports:
+      - "${POLICY_REST_HOST_PORT:-8101}:8080"
+      - "${POLICY_GRPC_HOST_PORT:-50063}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/policy/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  quota-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/quota/Dockerfile
+    profiles: [system]
+    ports:
+      - "${QUOTA_REST_HOST_PORT:-8102}:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/quota/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rule-engine-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/rule-engine/Dockerfile
+    profiles: [system]
+    ports:
+      - "${RULE_ENGINE_REST_HOST_PORT:-8103}:8080"
+      - "${RULE_ENGINE_GRPC_HOST_PORT:-50064}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/rule-engine/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  scheduler-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/scheduler/Dockerfile
+    profiles: [system]
+    ports:
+      - "${SCHEDULER_REST_HOST_PORT:-8104}:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/scheduler/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  search-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/search/Dockerfile
+    profiles: [system]
+    ports:
+      - "${SEARCH_REST_HOST_PORT:-8105}:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/search/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  session-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/session/Dockerfile
+    profiles: [system]
+    ports:
+      - "${SESSION_REST_HOST_PORT:-8106}:8080"
+      - "${SESSION_GRPC_HOST_PORT:-50065}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/session/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  workflow-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/workflow/Dockerfile
+    profiles: [system]
+    ports:
+      - "${WORKFLOW_REST_HOST_PORT:-8107}:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/workflow/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   graphql-gateway-rust:
     build:
       context: .

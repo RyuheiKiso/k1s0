@@ -1,13 +1,7 @@
-import axios from 'axios';
+import { createApiClient } from 'system-client';
 import type { App, AppVersion, AppListParams, AppDetailResponse, DownloadStats } from './types';
 
-const api = axios.create({
-  baseURL: '/api',
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const api = createApiClient({ baseURL: '/api' });
 
 export async function fetchApps(params?: AppListParams): Promise<App[]> {
   const { data } = await api.get<App[]>('/apps', { params });

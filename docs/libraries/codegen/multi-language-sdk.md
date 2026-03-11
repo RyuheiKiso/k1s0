@@ -1,3 +1,5 @@
+> **ステータス: 未実装（設計のみ）**
+
 # Multi-language Client SDK 生成
 
 ## 概要
