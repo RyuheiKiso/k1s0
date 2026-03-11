@@ -25,7 +25,7 @@ data:
         kubernetes_sd_configs:
           - role: pod
             namespaces:
-              names: ['istio-system']
+              names: ['service-mesh']
         relabel_configs:
           - source_labels: [__meta_kubernetes_pod_label_app]
             regex: istiod
@@ -56,7 +56,37 @@ data:
             target_label: __address__
             replacement: $1:$2
             action: replace
----
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: service
+          - source_labels: [__meta_kubernetes_pod_label_tier]
+            target_label: tier
+          - source_labels: [__meta_kubernetes_pod_label_version]
+            target_label: version
+
+      # Scrape OTel Collector Prometheus exporter.
+      - job_name: 'otel-collector'
+        static_configs:
+          - targets: ['otel-collector.observability.svc.cluster.local:8889']
+
+      # Scrape kubelet cadvisor metrics to support infrastructure dashboards.
+      - job_name: 'kubelet-cadvisor'
+        scheme: https
+        kubernetes_sd_configs:
+          - role: node
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          insecure_skip_verify: true
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+--- 
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -71,6 +101,9 @@ rules:
   - apiGroups: [""]
     resources: ["pods", "nodes", "endpoints", "services"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes/proxy", "nodes/metrics"]
+    verbs: ["get"]
   - nonResourceURLs: ["/metrics"]
     verbs: ["get"]
 ---

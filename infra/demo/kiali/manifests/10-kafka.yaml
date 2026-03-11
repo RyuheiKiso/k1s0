@@ -164,3 +164,54 @@ spec:
             limits:
               cpu: 100m
               memory: 128Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-exporter
+  namespace: messaging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-exporter
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9308"
+        prometheus.io/scrape: "true"
+        prometheus.istio.io/merge-metrics: "true"
+      labels:
+        app: kafka-exporter
+        tier: infra
+    spec:
+      containers:
+        - name: kafka-exporter
+          image: danielqsj/kafka-exporter:v1.8.0
+          args:
+            - --kafka.server=kafka.messaging.svc.cluster.local:9092
+            - --web.listen-address=:9308
+          ports:
+            - containerPort: 9308
+              name: metrics
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-exporter
+  namespace: messaging
+spec:
+  selector:
+    app: kafka-exporter
+  ports:
+    - name: metrics
+      port: 9308
+      targetPort: 9308

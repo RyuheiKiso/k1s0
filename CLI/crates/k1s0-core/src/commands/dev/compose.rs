@@ -1,11 +1,10 @@
-/// docker-compose.yaml 生成モジュール。
-///
-/// 検出された依存情報から docker-compose.yaml を動的に生成する。
+//! Compose/config file generation for `k1s0 dev up`.
+
+use std::fmt::Write as _;
+
 use super::types::{AuthMode, DatabaseDep, DetectedDependencies, PortAssignments};
 
-/// docker-compose.yaml を生成する。
-///
-/// 検出された依存に応じて必要なサービスのみを含む YAML を生成する。
+/// Generate `docker-compose.yaml` content for the detected dependencies.
 pub fn generate_compose(
     deps: &DetectedDependencies,
     ports: &PortAssignments,
@@ -18,42 +17,31 @@ pub fn generate_compose(
     yaml.push_str("version: \"3.8\"\n\n");
     yaml.push_str("services:\n");
 
-    // PostgreSQL
-    if !deps.databases.is_empty() {
-        let first_db_name = &deps.databases[0].name;
-        yaml.push_str(&generate_postgres_service(ports, first_db_name));
+    if let Some(first_db) = deps.databases.first() {
+        yaml.push_str(&generate_postgres_service(ports, &first_db.name));
         yaml.push_str(&generate_pgadmin_service(ports));
     }
 
-    // Kafka (KRaft モード)
     if deps.has_kafka {
         yaml.push_str(&generate_kafka_service(ports));
         yaml.push_str(&generate_kafka_ui_service(ports));
     }
 
-    // Redis
     if deps.has_redis {
-        yaml.push_str(&generate_redis_service(ports, "redis", ports.redis));
+        yaml.push_str(&generate_redis_service("redis", ports.redis));
     }
 
-    // Redis (session)
     if deps.has_redis_session {
         yaml.push_str(&generate_redis_service(
-            ports,
             "redis-session",
             ports.redis_session,
         ));
     }
 
-    // Keycloak
     if *auth == AuthMode::Keycloak {
-        yaml.push_str(&generate_keycloak_service(
-            ports,
-            !deps.databases.is_empty(),
-        ));
+        yaml.push_str(&generate_keycloak_service(ports));
     }
 
-    // ボリューム定義
     yaml.push_str("\nvolumes:\n");
     if !deps.databases.is_empty() {
         yaml.push_str("  k1s0_dev_postgres_data:\n");
@@ -71,7 +59,6 @@ pub fn generate_compose(
     yaml
 }
 
-/// `PostgreSQL` サービス定義を生成する。
 fn generate_postgres_service(ports: &PortAssignments, first_db_name: &str) -> String {
     format!(
         r#"  postgres:
@@ -98,7 +85,6 @@ fn generate_postgres_service(ports: &PortAssignments, first_db_name: &str) -> St
     )
 }
 
-/// pgAdmin サービス定義を生成する。
 fn generate_pgadmin_service(ports: &PortAssignments) -> String {
     format!(
         r#"  pgadmin:
@@ -119,7 +105,6 @@ fn generate_pgadmin_service(ports: &PortAssignments) -> String {
     )
 }
 
-/// Kafka サービス定義を生成する（KRaft モード）。
 fn generate_kafka_service(ports: &PortAssignments) -> String {
     format!(
         r#"  kafka:
@@ -151,7 +136,6 @@ fn generate_kafka_service(ports: &PortAssignments) -> String {
     )
 }
 
-/// Kafka UI サービス定義を生成する。
 fn generate_kafka_ui_service(ports: &PortAssignments) -> String {
     format!(
         r#"  kafka-ui:
@@ -171,8 +155,7 @@ fn generate_kafka_ui_service(ports: &PortAssignments) -> String {
     )
 }
 
-/// Redis サービス定義を生成する。
-fn generate_redis_service(_ports: &PortAssignments, name: &str, host_port: u16) -> String {
+fn generate_redis_service(name: &str, host_port: u16) -> String {
     let container_name = format!("k1s0-dev-{name}");
     let volume_name = format!("k1s0_dev_{}_data", name.replace('-', "_"));
     format!(
@@ -193,8 +176,7 @@ fn generate_redis_service(_ports: &PortAssignments, name: &str, host_port: u16) 
     )
 }
 
-/// Keycloak サービス定義を生成する。
-fn generate_keycloak_service(ports: &PortAssignments, _has_postgres: bool) -> String {
+fn generate_keycloak_service(ports: &PortAssignments) -> String {
     format!(
         r#"  keycloak:
     image: quay.io/keycloak/keycloak:26.0
@@ -219,31 +201,27 @@ fn generate_keycloak_service(ports: &PortAssignments, _has_postgres: bool) -> St
     )
 }
 
-/// 複数データベース初期化用 SQL を生成する。
-///
-/// `PostgreSQL` の docker-entrypoint-initdb.d で実行される SQL。
+/// Generate the init SQL executed by `PostgreSQL`'s `docker-entrypoint-initdb.d`.
 pub fn generate_init_db_sql(databases: &[DatabaseDep]) -> String {
     let mut sql = String::new();
     sql.push_str("-- 自動生成: k1s0 dev up\n");
     sql.push_str("-- 各サービスが使用するデータベースを作成する\n\n");
 
     for db in databases {
-        sql.push_str(&format!(
+        write!(
+            sql,
             "-- サービス: {service}\nCREATE DATABASE \"{name}\";\n\n",
             service = db.service,
             name = db.name
-        ));
+        )
+        .expect("writing to String cannot fail");
     }
 
-    // Keycloak 用 DB（常に作成しておく）
     sql.push_str("-- Keycloak 用\nCREATE DATABASE \"keycloak\";\n");
-
     sql
 }
 
-/// config.dev-local.yaml を生成する。
-///
-/// ローカル開発環境向けの設定オーバーライドファイル。
+/// Generate `config.dev-local.yaml` content.
 pub fn generate_dev_local_config(
     deps: &DetectedDependencies,
     ports: &PortAssignments,
@@ -256,42 +234,35 @@ pub fn generate_dev_local_config(
     yaml.push_str("app:\n");
     yaml.push_str("  environment: dev\n\n");
 
-    // データベース設定
     if let Some(first_db) = deps.databases.first() {
         yaml.push_str("database:\n");
         yaml.push_str("  host: localhost\n");
-        yaml.push_str(&format!("  port: {}\n", ports.postgres));
-        yaml.push_str(&format!("  name: \"{}\"\n", first_db.name));
+        writeln!(yaml, "  port: {}", ports.postgres).expect("writing to String cannot fail");
+        writeln!(yaml, "  name: \"{}\"", first_db.name).expect("writing to String cannot fail");
         yaml.push_str("  user: app\n");
         yaml.push_str("  password: password\n");
         yaml.push_str("  ssl_mode: disable\n\n");
     }
 
-    // Kafka 設定
     if deps.has_kafka {
         yaml.push_str("kafka:\n");
-        yaml.push_str(&format!(
-            "  brokers:\n    - \"localhost:{}\"\n",
-            ports.kafka
-        ));
+        write!(yaml, "  brokers:\n    - \"localhost:{}\"\n", ports.kafka)
+            .expect("writing to String cannot fail");
         yaml.push_str("  security_protocol: PLAINTEXT\n\n");
     }
 
-    // Redis 設定
     if deps.has_redis {
         yaml.push_str("redis:\n");
         yaml.push_str("  host: localhost\n");
-        yaml.push_str(&format!("  port: {}\n\n", ports.redis));
+        write!(yaml, "  port: {}\n\n", ports.redis).expect("writing to String cannot fail");
     }
 
-    // Redis (session) 設定
     if deps.has_redis_session {
         yaml.push_str("redis_session:\n");
         yaml.push_str("  host: localhost\n");
-        yaml.push_str(&format!("  port: {}\n\n", ports.redis_session));
+        write!(yaml, "  port: {}\n\n", ports.redis_session).expect("writing to String cannot fail");
     }
 
-    // 認証設定
     match auth {
         AuthMode::Skip => {
             yaml.push_str("auth:\n");
@@ -305,16 +276,20 @@ pub fn generate_dev_local_config(
         AuthMode::Keycloak => {
             yaml.push_str("auth:\n");
             yaml.push_str("  jwt:\n");
-            yaml.push_str(&format!(
-                "    issuer: \"http://localhost:{}/realms/k1s0\"\n",
+            writeln!(
+                yaml,
+                "    issuer: \"http://localhost:{}/realms/k1s0\"",
                 ports.keycloak
-            ));
+            )
+            .expect("writing to String cannot fail");
             yaml.push_str("    audience: k1s0-api\n");
             yaml.push_str("  oidc:\n");
-            yaml.push_str(&format!(
-                "    discovery_url: \"http://localhost:{}/.well-known/openid-configuration\"\n",
+            writeln!(
+                yaml,
+                "    discovery_url: \"http://localhost:{}/.well-known/openid-configuration\"",
                 ports.keycloak
-            ));
+            )
+            .expect("writing to String cannot fail");
             yaml.push_str("    client_id: k1s0-dev\n");
             yaml.push_str("    client_secret: \"\"\n");
         }
@@ -327,7 +302,6 @@ pub fn generate_dev_local_config(
 mod tests {
     use super::*;
 
-    /// PostgreSQL のみの依存でdocker-compose.yamlを生成できる。
     #[test]
     fn test_generate_compose_postgres_only() {
         let deps = DetectedDependencies {
@@ -361,7 +335,6 @@ mod tests {
         assert!(!yaml.contains("keycloak:"));
     }
 
-    /// Kafka のみの依存でdocker-compose.yamlを生成できる。
     #[test]
     fn test_generate_compose_kafka_only() {
         let deps = DetectedDependencies {
@@ -391,7 +364,6 @@ mod tests {
         assert!(!yaml.contains("postgres:"));
     }
 
-    /// Redis 依存を含む docker-compose.yaml を生成できる。
     #[test]
     fn test_generate_compose_redis() {
         let deps = DetectedDependencies {
@@ -419,7 +391,6 @@ mod tests {
         assert!(yaml.contains("k1s0_dev_redis_session_data"));
     }
 
-    /// Keycloak 認証モードで docker-compose.yaml を生成できる。
     #[test]
     fn test_generate_compose_with_keycloak() {
         let deps = DetectedDependencies {
@@ -448,7 +419,6 @@ mod tests {
         assert!(yaml.contains("healthcheck:"));
     }
 
-    /// init-db SQL を正しく生成できる。
     #[test]
     fn test_generate_init_db_sql() {
         let databases = vec![
@@ -471,14 +441,12 @@ mod tests {
         assert!(sql.contains("-- サービス: auth-server"));
     }
 
-    /// 空のデータベースリストでも keycloak DB は作成される。
     #[test]
     fn test_generate_init_db_sql_empty() {
         let sql = generate_init_db_sql(&[]);
         assert!(sql.contains("CREATE DATABASE \"keycloak\""));
     }
 
-    /// dev-local 設定ファイルを生成できる。
     #[test]
     fn test_generate_dev_local_config_skip_auth() {
         let deps = DetectedDependencies {
@@ -511,7 +479,6 @@ mod tests {
         assert!(config.contains("sub: \"dev-user-001\""));
     }
 
-    /// Keycloak モードの dev-local 設定ファイルを生成できる。
     #[test]
     fn test_generate_dev_local_config_keycloak_auth() {
         let deps = DetectedDependencies {
@@ -534,7 +501,6 @@ mod tests {
         assert!(config.contains("client_id: k1s0-dev"));
     }
 
-    /// 全サービスを含む docker-compose.yaml を生成できる。
     #[test]
     fn test_generate_compose_all_services() {
         let deps = DetectedDependencies {
@@ -559,7 +525,6 @@ mod tests {
 
         let yaml = generate_compose(&deps, &ports, &AuthMode::Keycloak);
 
-        // 全サービスが含まれている
         assert!(yaml.contains("postgres:"));
         assert!(yaml.contains("pgadmin:"));
         assert!(yaml.contains("kafka:"));
@@ -568,7 +533,6 @@ mod tests {
         assert!(yaml.contains("redis-session:"));
         assert!(yaml.contains("keycloak:"));
 
-        // 全ボリュームが含まれている
         assert!(yaml.contains("k1s0_dev_postgres_data:"));
         assert!(yaml.contains("k1s0_dev_kafka_data:"));
         assert!(yaml.contains("k1s0_dev_redis_data:"));

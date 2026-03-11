@@ -29,8 +29,7 @@ export default function DepsPage() {
   useEffect(() => {
     let cancelled = false;
 
-    if (workspaceUnavailable) {
-      setServices([]);
+    if (!workspace.ready || !workspace.workspaceRoot) {
       return;
     }
 
@@ -49,7 +48,12 @@ export default function DepsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeWorkspaceRoot, workspaceUnavailable]);
+  }, [activeWorkspaceRoot, workspace.ready, workspace.workspaceRoot]);
+
+  const availableServices = workspace.ready && workspace.workspaceRoot ? services : [];
+  const selectedServiceNames = selectedServices.filter((name) =>
+    availableServices.some((service) => service.name === name),
+  );
 
   function toggleService(name: string) {
     setSelectedServices((current) =>
@@ -62,10 +66,10 @@ export default function DepsPage() {
   function buildConfig(): DepsConfig {
     const scope =
       scopeMode === 'all'
-        ? 'All'
+          ? 'All'
         : scopeMode === 'tier'
           ? { Tier: tier }
-          : { Services: selectedServices };
+          : { Services: selectedServiceNames };
 
     const output =
       outputMode === 'terminal'
@@ -153,17 +157,17 @@ export default function DepsPage() {
               <div>
                 <p className="text-sm font-medium text-slate-200/82">Services</p>
                 <div className="mt-3 max-h-64 space-y-2 overflow-auto pr-1">
-                  {services.length === 0 ? (
+                  {availableServices.length === 0 ? (
                     <p className="text-sm text-slate-200/55">No services were found.</p>
                   ) : (
-                    services.map((service) => (
+                    availableServices.map((service) => (
                       <label
                         key={service.path}
                         className="flex items-center gap-3 rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm text-slate-100"
                       >
                         <input
                           type="checkbox"
-                          checked={selectedServices.includes(service.name)}
+                          checked={selectedServiceNames.includes(service.name)}
                           onChange={() => toggleService(service.name)}
                         />
                         <span>{service.name}</span>
@@ -225,7 +229,7 @@ export default function DepsPage() {
               status === 'loading' ||
               workspaceUnavailable ||
               actionsLocked ||
-              (scopeMode === 'services' && selectedServices.length === 0) ||
+              (scopeMode === 'services' && selectedServiceNames.length === 0) ||
               (outputMode !== 'terminal' && !mermaidPath)
             }
             className="mt-6 rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"

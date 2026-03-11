@@ -116,6 +116,7 @@ export default function GeneratePage() {
   const [selectedDatabasePath, setSelectedDatabasePath] = useState('');
   const [newDatabaseName, setNewDatabaseName] = useState('service-db');
   const [newDatabaseEngine, setNewDatabaseEngine] = useState<Rdbms>('PostgreSQL');
+  const [generateBff, setGenerateBff] = useState(false);
   const [detail, setDetail] = useState<DetailConfig>({
     name: 'service',
     api_styles: ['Rest'],
@@ -156,21 +157,7 @@ export default function GeneratePage() {
   }, [activeWorkspaceRoot, step, tier, workspaceUnavailable]);
 
   useEffect(() => {
-    const availableTiers = getAvailableTiers(kind);
-    if (!availableTiers.includes(tier)) {
-      setTier(availableTiers[0]);
-    }
-
-    if (kind !== 'Server') {
-      setServerDatabaseMode('none');
-      setServerDatabaseError('');
-    }
-  }, [kind, tier]);
-
-  useEffect(() => {
     if (kind !== 'Server' || workspaceUnavailable) {
-      setAvailableDatabases([]);
-      setSelectedDatabasePath('');
       return;
     }
 
@@ -328,6 +315,11 @@ export default function GeneratePage() {
         return;
       }
 
+      if (showBffControls && generateBff && !detail.bff_language) {
+        setDetailError('Select a BFF language.');
+        return;
+      }
+
       if (kind === 'Server' && serverDatabaseMode === 'existing' && !getSelectedExistingDatabase()) {
         setServerDatabaseError('Select an existing database.');
         return;
@@ -360,6 +352,50 @@ export default function GeneratePage() {
         bff_language: nextStyles.includes('GraphQL') ? current.bff_language : null,
       };
     });
+
+    if (style === 'GraphQL' && detail.api_styles.includes('GraphQL')) {
+      setGenerateBff(false);
+    }
+  }
+
+  function handleKindChange(nextKind: Kind) {
+    const availableTiers = getAvailableTiers(nextKind);
+    const nextTier = availableTiers.includes(tier) ? tier : availableTiers[0];
+
+    setKind(nextKind);
+    setTier(nextTier);
+    setDetail((current) => ({
+      ...current,
+      name: getDefaultDetailName(nextKind),
+      bff_language:
+        nextKind === 'Server' && nextTier === 'Service' && current.api_styles.includes('GraphQL')
+          ? current.bff_language
+          : null,
+    }));
+
+    if (nextKind !== 'Server') {
+      setServerDatabaseMode('none');
+      setServerDatabaseError('');
+      setGenerateBff(false);
+    }
+  }
+
+  function handleTierChange(nextTier: Tier) {
+    setTier(nextTier);
+
+    if (kind === 'Server') {
+      setDetail((current) => ({
+        ...current,
+        bff_language:
+          nextTier === 'Service' && current.api_styles.includes('GraphQL')
+            ? current.bff_language
+            : null,
+      }));
+    }
+
+    if (nextTier !== 'Service') {
+      setGenerateBff(false);
+    }
   }
 
   async function handleGenerate() {
@@ -382,6 +418,7 @@ export default function GeneratePage() {
                 : kind === 'Server'
                   ? resolveServerDatabase()
                   : null,
+            bff_language: showBffControls && generateBff ? detail.bff_language : null,
           },
         },
         activeWorkspaceRoot,
@@ -397,6 +434,7 @@ export default function GeneratePage() {
   const showDetailStep = !shouldSkipDetail(kind, tier);
   const showBffControls =
     kind === 'Server' && tier === 'Service' && detail.api_styles.includes('GraphQL');
+  const selectedBffLanguage = showBffControls && generateBff ? detail.bff_language : null;
   const currentRuntime = buildLangFw();
   const selectedExistingDatabase = getSelectedExistingDatabase();
   const resolvedServerDatabase = resolveServerDatabase();
@@ -449,13 +487,7 @@ export default function GeneratePage() {
                 <input
                   type="radio"
                   checked={kind === value}
-                  onChange={() => {
-                    setKind(value);
-                    setDetail((current) => ({
-                      ...current,
-                      name: getDefaultDetailName(value),
-                    }));
-                  }}
+                  onChange={() => handleKindChange(value)}
                   name="generate-kind"
                 />
                 {value}
@@ -487,7 +519,7 @@ export default function GeneratePage() {
                 <input
                   type="radio"
                   checked={tier === value}
-                  onChange={() => setTier(value)}
+                  onChange={() => handleTierChange(value)}
                   name="generate-tier"
                 />
                 {value.toLowerCase()}
@@ -881,25 +913,60 @@ export default function GeneratePage() {
 
               {showBffControls && (
                 <div className="mt-5">
-                  <p className="text-sm font-medium text-slate-200/82">BFF language</p>
+                  <p className="text-sm font-medium text-slate-200/82">
+                    Generate GraphQL BFF
+                  </p>
                   <div className="mt-3 space-y-2">
-                    {(['Go', 'Rust'] as Language[]).map((value) => (
-                      <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
+                    {[
+                      { label: 'Yes', enabled: true },
+                      { label: 'No', enabled: false },
+                    ].map(({ label, enabled }) => (
+                      <label key={label} className="flex items-center gap-3 text-sm text-slate-200/82">
                         <input
                           type="radio"
-                          checked={detail.bff_language === value}
-                          onChange={() =>
-                            setDetail((current) => ({
-                              ...current,
-                              bff_language: value,
-                            }))
-                          }
-                          name="bff-language"
+                          checked={generateBff === enabled}
+                          onChange={() => {
+                            setGenerateBff(enabled);
+                            if (!enabled) {
+                              setDetail((current) => ({
+                                ...current,
+                                bff_language: null,
+                              }));
+                            }
+                          }}
+                          name="generate-bff"
                         />
-                        {value}
+                        {label}
                       </label>
                     ))}
                   </div>
+
+                  {generateBff && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-slate-200/82">BFF language</p>
+                      <div className="mt-3 space-y-2">
+                        {(['Go', 'Rust'] as Language[]).map((value) => (
+                          <label
+                            key={value}
+                            className="flex items-center gap-3 text-sm text-slate-200/82"
+                          >
+                            <input
+                              type="radio"
+                              checked={detail.bff_language === value}
+                              onChange={() =>
+                                setDetail((current) => ({
+                                  ...current,
+                                  bff_language: value,
+                                }))
+                              }
+                              name="bff-language"
+                            />
+                            {value}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -964,7 +1031,8 @@ export default function GeneratePage() {
                 </p>
                 <p>Kafka: {detail.kafka ? 'enabled' : 'disabled'}</p>
                 <p>Redis: {detail.redis ? 'enabled' : 'disabled'}</p>
-                <p>BFF language: {detail.bff_language ?? 'not required'}</p>
+                <p>Generate BFF: {showBffControls ? (generateBff ? 'yes' : 'no') : 'not available'}</p>
+                <p>BFF language: {selectedBffLanguage ?? 'not required'}</p>
               </>
             )}
             {kind === 'Database' && (

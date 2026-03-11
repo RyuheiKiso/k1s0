@@ -2,8 +2,13 @@ use super::super::validate::config_schema::{
     validate_config_schema, CategoryYaml, ConfigSchemaYaml,
 };
 use serde::Serialize;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+type BoxError = Box<dyn std::error::Error>;
+type RequestHeaders = Vec<(String, String)>;
+type PushRequest = (String, String, RequestHeaders, String);
 
 pub struct GeneratedTypesTarget<'a> {
     pub target: &'a str,
@@ -25,26 +30,29 @@ pub fn generate_typescript_types(schema: &ConfigSchemaYaml) -> String {
     );
 
     out.push_str("export const ConfigKeys = {\n");
-    for cat in &schema.categories {
-        let cat_const = cat.id.to_uppercase();
-        out.push_str(&format!("  {cat_const}: {{\n"));
-        for field in &cat.fields {
+    for category in &schema.categories {
+        let category_const = category.id.to_uppercase();
+        writeln!(out, "  {category_const}: {{").expect("writing to String cannot fail");
+        for field in &category.fields {
             let field_const = field.key.to_uppercase();
-            out.push_str(&format!("    {field_const}: '{}',\n", field.key));
+            writeln!(out, "    {field_const}: '{}',", field.key)
+                .expect("writing to String cannot fail");
         }
         out.push_str("  },\n");
     }
     out.push_str("} as const;\n\n");
 
     out.push_str("export type ConfigValues = {\n");
-    for cat in &schema.categories {
-        for field in &cat.fields {
-            out.push_str(&format!(
-                "  '{}.{}': {};\n",
-                cat.id,
+    for category in &schema.categories {
+        for field in &category.fields {
+            writeln!(
+                out,
+                "  '{}.{}': {};",
+                category.id,
                 field.key,
                 typescript_type(field)
-            ));
+            )
+            .expect("writing to String cannot fail");
         }
     }
     out.push_str("};\n");
@@ -60,40 +68,45 @@ pub fn generate_dart_types(schema: &ConfigSchemaYaml) -> String {
          // Do not edit manually.\n\n",
     );
 
-    for cat in &schema.categories {
-        let cat_pascal = to_pascal_case(&cat.id);
+    for category in &schema.categories {
+        let category_pascal = to_pascal_case(&category.id);
 
-        out.push_str(&format!("enum {cat_pascal}ConfigKey {{\n"));
-        for (index, field) in cat.fields.iter().enumerate() {
-            let suffix = if index + 1 == cat.fields.len() {
+        writeln!(out, "enum {category_pascal}ConfigKey {{").expect("writing to String cannot fail");
+        for (index, field) in category.fields.iter().enumerate() {
+            let suffix = if index + 1 == category.fields.len() {
                 ";"
             } else {
                 ","
             };
-            out.push_str(&format!("  {}{suffix}\n", to_camel_case(&field.key)));
+            writeln!(out, "  {}{suffix}", to_camel_case(&field.key))
+                .expect("writing to String cannot fail");
         }
         out.push_str("\n  String get key => switch (this) {\n");
-        for field in &cat.fields {
+        for field in &category.fields {
             let camel = to_camel_case(&field.key);
-            out.push_str(&format!(
-                "    {cat_pascal}ConfigKey.{camel} => '{}',\n",
+            writeln!(
+                out,
+                "    {category_pascal}ConfigKey.{camel} => '{}',",
                 field.key
-            ));
+            )
+            .expect("writing to String cannot fail");
         }
         out.push_str("  };\n");
         out.push_str("}\n\n");
 
-        for field in &cat.fields {
+        for field in &category.fields {
             if field.field_type.as_deref() == Some("enum") {
-                if let Some(options) = &field.options {
-                    let enum_name = to_pascal_case(&field.key);
-                    let values = options
-                        .iter()
-                        .map(|option| to_camel_case(option))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    out.push_str(&format!("enum {enum_name} {{ {values} }}\n\n"));
-                }
+                let Some(options) = &field.options else {
+                    continue;
+                };
+                let enum_name = to_pascal_case(&field.key);
+                let values = options
+                    .iter()
+                    .map(|option| to_camel_case(option))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                writeln!(out, "enum {enum_name} {{ {values} }}\n")
+                    .expect("writing to String cannot fail");
             }
         }
     }
@@ -101,11 +114,16 @@ pub fn generate_dart_types(schema: &ConfigSchemaYaml) -> String {
     out
 }
 
+/// Build the HTTP request used to push a config schema.
+///
+/// # Errors
+///
+/// Returns an error when the JSON request body cannot be serialized.
 pub fn build_push_request(
     schema: &ConfigSchemaYaml,
     server_url: &str,
     token: &str,
-) -> Result<(String, String, Vec<(String, String)>, String), Box<dyn std::error::Error>> {
+) -> Result<PushRequest, BoxError> {
     let url = format!(
         "{}/api/v1/config-schema/{}",
         server_url.trim_end_matches('/'),
@@ -124,11 +142,16 @@ pub fn build_push_request(
     Ok(("PUT".to_string(), url, headers, body))
 }
 
+/// Push a validated config schema to the server.
+///
+/// # Errors
+///
+/// Returns an error when the token is missing or the HTTP request fails.
 pub fn push_config_schema(
     schema: &ConfigSchemaYaml,
     server_url: &str,
     token: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), BoxError> {
     if token.trim().is_empty() {
         return Err("K1S0_TOKEN is required when push is enabled".into());
     }
@@ -145,9 +168,12 @@ pub fn push_config_schema(
     Ok(())
 }
 
-pub fn load_validated_schema_from_file(
-    path: &Path,
-) -> Result<ConfigSchemaYaml, Box<dyn std::error::Error>> {
+/// Load and validate a schema file.
+///
+/// # Errors
+///
+/// Returns an error when validation fails or the file cannot be read.
+pub fn load_validated_schema_from_file(path: &Path) -> Result<ConfigSchemaYaml, BoxError> {
     let path_str = path.to_str().ok_or("schema path must be valid UTF-8")?;
     let errors = validate_config_schema(path_str)?;
     if errors > 0 {
@@ -159,42 +185,65 @@ pub fn load_validated_schema_from_file(
     Ok(schema)
 }
 
-pub fn generate_typescript_types_from_file(
-    path: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
+/// Generate TypeScript config types from a schema file.
+///
+/// # Errors
+///
+/// Returns an error when the schema file cannot be validated or loaded.
+pub fn generate_typescript_types_from_file(path: &str) -> Result<String, BoxError> {
     let schema = load_validated_schema_from_file(Path::new(path))?;
     Ok(generate_typescript_types(&schema))
 }
 
-pub fn generate_dart_types_from_file(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+/// Generate Dart config types from a schema file.
+///
+/// # Errors
+///
+/// Returns an error when the schema file cannot be validated or loaded.
+pub fn generate_dart_types_from_file(path: &str) -> Result<String, BoxError> {
     let schema = load_validated_schema_from_file(Path::new(path))?;
     Ok(generate_dart_types(&schema))
 }
 
+/// Write TypeScript config types to disk.
+///
+/// # Errors
+///
+/// Returns an error when the output directory cannot be created or the file cannot be written.
 pub fn write_typescript_types_file(
     schema: &ConfigSchemaYaml,
     output_dir: &Path,
-) -> Result<PathBuf, Box<dyn std::error::Error>> {
+) -> Result<PathBuf, BoxError> {
     fs::create_dir_all(output_dir)?;
     let output_path = output_dir.join("config-types.ts");
     fs::write(&output_path, generate_typescript_types(schema))?;
     Ok(output_path)
 }
 
+/// Write Dart config types to disk.
+///
+/// # Errors
+///
+/// Returns an error when the output directory cannot be created or the file cannot be written.
 pub fn write_dart_types_file(
     schema: &ConfigSchemaYaml,
     output_dir: &Path,
-) -> Result<PathBuf, Box<dyn std::error::Error>> {
+) -> Result<PathBuf, BoxError> {
     fs::create_dir_all(output_dir)?;
     let output_path = output_dir.join("config_types.dart");
     fs::write(&output_path, generate_dart_types(schema))?;
     Ok(output_path)
 }
 
+/// Write generated types for the requested targets.
+///
+/// # Errors
+///
+/// Returns an error when a target is unsupported or an output file cannot be written.
 pub fn write_generated_types_to_targets(
     schema: &ConfigSchemaYaml,
     targets: &[GeneratedTypesTarget<'_>],
-) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+) -> Result<Vec<PathBuf>, BoxError> {
     let mut written = Vec::new();
     for spec in targets {
         let path = match spec.target {
@@ -207,19 +256,29 @@ pub fn write_generated_types_to_targets(
     Ok(written)
 }
 
+/// Load a schema file and write generated types for the requested targets.
+///
+/// # Errors
+///
+/// Returns an error when the schema file cannot be loaded or an output file cannot be written.
 pub fn write_generated_types_to_targets_from_file(
     schema_path: &Path,
     targets: &[GeneratedTypesTarget<'_>],
-) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+) -> Result<Vec<PathBuf>, BoxError> {
     let schema = load_validated_schema_from_file(schema_path)?;
     write_generated_types_to_targets(&schema, targets)
 }
 
+/// Load a schema file and write generated types into one output directory.
+///
+/// # Errors
+///
+/// Returns an error when the schema file cannot be loaded or an output file cannot be written.
 pub fn write_generated_types_from_file(
     schema_path: &Path,
     output_dir: &Path,
     targets: &[&str],
-) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+) -> Result<Vec<PathBuf>, BoxError> {
     let target_specs = targets
         .iter()
         .map(|target| GeneratedTypesTarget { target, output_dir })
@@ -232,17 +291,16 @@ fn typescript_type(field: &super::super::validate::config_schema::FieldYaml) -> 
         "string" => "string".to_string(),
         "integer" | "float" => "number".to_string(),
         "boolean" => "boolean".to_string(),
-        "enum" => field
-            .options
-            .as_ref()
-            .map(|options| {
+        "enum" => field.options.as_ref().map_or_else(
+            || "string".to_string(),
+            |options| {
                 options
                     .iter()
                     .map(|option| format!("\"{option}\""))
                     .collect::<Vec<_>>()
                     .join(" | ")
-            })
-            .unwrap_or_else(|| "string".to_string()),
+            },
+        ),
         "object" => "Record<string, unknown>".to_string(),
         "array" => "unknown[]".to_string(),
         other => other.to_string(),
@@ -398,10 +456,10 @@ mod tests {
         );
         assert!(headers
             .iter()
-            .any(|(key, value)| { key == "Authorization" && value == "Bearer test-token" }));
+            .any(|(key, value)| key == "Authorization" && value == "Bearer test-token"));
         assert!(headers
             .iter()
-            .any(|(key, value)| { key == "Content-Type" && value == "application/json" }));
+            .any(|(key, value)| key == "Content-Type" && value == "application/json"));
 
         let body_json: serde_json::Value = serde_json::from_str(&body).unwrap();
         assert_eq!(body_json["namespace_prefix"], "service.myservice");

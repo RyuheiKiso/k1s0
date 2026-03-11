@@ -43,6 +43,11 @@ pub struct ParamYaml {
     pub param_type: String,
 }
 
+/// Collect validation diagnostics for `navigation.yaml`.
+///
+/// # Errors
+///
+/// Returns an error when the navigation file cannot be read.
 pub fn collect_navigation_diagnostics(
     path: &str,
 ) -> Result<Vec<ValidationDiagnostic>, Box<dyn std::error::Error>> {
@@ -98,6 +103,11 @@ pub fn collect_navigation_diagnostics(
     Ok(diagnostics)
 }
 
+/// Validate `navigation.yaml` and print a summary.
+///
+/// # Errors
+///
+/// Returns an error when diagnostics cannot be collected.
 pub fn validate_navigation(path: &str) -> Result<usize, Box<dyn std::error::Error>> {
     println!("Checking navigation.yaml...");
     let diagnostics = collect_navigation_diagnostics(path)?;
@@ -151,7 +161,7 @@ fn collect_route_id_diagnostics(
     }
 }
 
-fn collect_all_routes<'a>(routes: &'a [RouteYaml]) -> Vec<(String, &'a RouteYaml)> {
+fn collect_all_routes(routes: &[RouteYaml]) -> Vec<(String, &RouteYaml)> {
     let mut result = Vec::new();
     collect_routes_recursive(routes, "routes", &mut result);
     result
@@ -192,7 +202,7 @@ fn collect_redirect_cycle_diagnostics(
                 diagnostics.push(ValidationDiagnostic {
                     rule: "redirect-cycle".to_string(),
                     path: route_path.to_string(),
-                    message: format!("redirect cycle detected starting from '{}'", start_path),
+                    message: format!("redirect cycle detected starting from '{start_path}'"),
                     line: None,
                 });
                 break;

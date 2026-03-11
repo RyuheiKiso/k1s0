@@ -6,9 +6,11 @@ import {
   executeDevLogs,
   executeDevStatus,
   executeDevUp,
+  previewDevUp,
   scanDevTargets,
   type AuthMode,
   type CleanupLevel,
+  type DevUpPreview,
   type DevTarget,
 } from '../lib/tauri-commands';
 import { toDisplayPath } from '../lib/paths';
@@ -29,12 +31,12 @@ export default function DevPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [output, setOutput] = useState('');
+  const [preview, setPreview] = useState<DevUpPreview | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    if (workspaceUnavailable) {
-      setTargets([]);
+    if (!workspace.ready || !workspace.workspaceRoot) {
       return;
     }
 
@@ -42,6 +44,9 @@ export default function DevPage() {
       .then((nextTargets) => {
         if (!cancelled) {
           setTargets(nextTargets);
+          setSelectedPaths((current) =>
+            current.filter((path) => nextTargets.some(([, nextPath]) => nextPath === path)),
+          );
         }
       })
       .catch(() => {
@@ -53,14 +58,53 @@ export default function DevPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeWorkspaceRoot, workspaceUnavailable]);
+  }, [activeWorkspaceRoot, workspace.ready, workspace.workspaceRoot]);
+
+  const availableTargets = workspace.ready && workspace.workspaceRoot ? targets : [];
+  const selectedTargetPaths = selectedPaths.filter((path) =>
+    availableTargets.some(([, targetPath]) => targetPath === path),
+  );
+  const selectedServices = availableTargets.filter(([, path]) => selectedTargetPaths.includes(path));
 
   function toggleTarget(path: string) {
+    setPreview(null);
     setSelectedPaths((current) =>
       current.includes(path)
         ? current.filter((value) => value !== path)
         : [...current, path],
     );
+  }
+
+  function getPreviewPorts() {
+    if (!preview) {
+      return [];
+    }
+
+    const ports: Array<{ name: string; value: string }> = [];
+
+    if (preview.dependencies.databases.length > 0) {
+      ports.push({ name: 'PostgreSQL', value: `localhost:${preview.ports.postgres}` });
+      ports.push({ name: 'pgAdmin', value: preview.additional_services.find((service) => service.name === 'pgAdmin')?.url ?? `http://localhost:${preview.ports.pgadmin}` });
+    }
+
+    if (preview.dependencies.has_kafka) {
+      ports.push({ name: 'Kafka', value: `localhost:${preview.ports.kafka}` });
+      ports.push({ name: 'Kafka UI', value: preview.additional_services.find((service) => service.name === 'Kafka UI')?.url ?? `http://localhost:${preview.ports.kafka_ui}` });
+    }
+
+    if (preview.dependencies.has_redis) {
+      ports.push({ name: 'Redis', value: `localhost:${preview.ports.redis}` });
+    }
+
+    if (preview.dependencies.has_redis_session) {
+      ports.push({ name: 'Redis session', value: `localhost:${preview.ports.redis_session}` });
+    }
+
+    if (authMode === 'Keycloak') {
+      ports.push({ name: 'Keycloak', value: `http://localhost:${preview.ports.keycloak}` });
+    }
+
+    return ports;
   }
 
   async function runAction(action: () => Promise<void | string>) {
@@ -77,6 +121,30 @@ export default function DevPage() {
       setStatus('error');
       setErrorMessage(String(error));
     }
+  }
+
+  async function handleReviewStart() {
+    setStatus('loading');
+    setErrorMessage('');
+
+    try {
+      const nextPreview = await previewDevUp(
+        { services: selectedTargetPaths, auth_mode: authMode },
+        activeWorkspaceRoot,
+      );
+      setPreview(nextPreview);
+      setStatus('idle');
+    } catch (error) {
+      setStatus('error');
+      setErrorMessage(String(error));
+    }
+  }
+
+  async function handleConfirmStart() {
+    setPreview(null);
+    await runAction(() =>
+      executeDevUp({ services: selectedTargetPaths, auth_mode: authMode }, activeWorkspaceRoot),
+    );
   }
 
   return (
@@ -100,17 +168,17 @@ export default function DevPage() {
           <div>
             <p className="text-sm font-medium text-slate-200/82">Services</p>
             <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">
-              {targets.length === 0 ? (
+              {availableTargets.length === 0 ? (
                 <p className="text-sm text-slate-200/55">No runnable services were found.</p>
               ) : (
-                targets.map(([label, path]) => (
+                availableTargets.map(([label, path]) => (
                   <label
                     key={path}
                     className="flex items-center gap-3 rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm text-slate-100"
                   >
                     <input
                       type="checkbox"
-                      checked={selectedPaths.includes(path)}
+                      checked={selectedTargetPaths.includes(path)}
                       onChange={() => toggleTarget(path)}
                     />
                     <span>{label}</span>
@@ -130,7 +198,10 @@ export default function DevPage() {
                 <input
                   type="radio"
                   checked={authMode === value}
-                  onChange={() => setAuthMode(value)}
+                  onChange={() => {
+                    setAuthMode(value);
+                    setPreview(null);
+                  }}
                   name="dev-auth-mode"
                 />
                 {value}
@@ -170,30 +241,23 @@ export default function DevPage() {
             <button
               type="button"
               onClick={() => {
-                void runAction(() =>
-                  executeDevUp(
-                    { services: selectedPaths, auth_mode: authMode },
-                    activeWorkspaceRoot,
-                  ),
-                );
+                void handleReviewStart();
               }}
               disabled={
                 workspaceUnavailable ||
-                selectedPaths.length === 0 ||
+                selectedTargetPaths.length === 0 ||
                 status === 'loading' ||
                 actionsLocked
               }
               className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
               data-testid="btn-dev-up"
             >
-              Start
+              {status === 'loading' ? 'Preparing...' : 'Review start'}
             </button>
             <button
               type="button"
               onClick={() => {
-                void runAction(() =>
-                  executeDevDown({ cleanup }, activeWorkspaceRoot),
-                );
+                void runAction(() => executeDevDown({ cleanup }, activeWorkspaceRoot));
               }}
               disabled={workspaceUnavailable || status === 'loading' || actionsLocked}
               className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
@@ -224,6 +288,100 @@ export default function DevPage() {
               Logs
             </button>
           </div>
+
+          {preview && (
+            <div
+              className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4"
+              data-testid="dev-up-preview"
+            >
+              <p className="text-sm font-medium text-emerald-100">Review local start plan</p>
+
+              <div className="mt-4 space-y-4 text-sm text-emerald-50/90">
+                <div>
+                  <p className="font-medium">Selected services</p>
+                  <div className="mt-2 space-y-1">
+                    {selectedServices.map(([label, path]) => (
+                      <p key={path}>
+                        {label}: {toDisplayPath(activeWorkspaceRoot, path)}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-medium">Detected dependencies</p>
+                  <div className="mt-2 space-y-1">
+                    <p>
+                      Databases:{' '}
+                      {preview.dependencies.databases.length > 0
+                        ? preview.dependencies.databases
+                            .map((database) => `${database.name} (${database.service})`)
+                            .join(', ')
+                        : 'none'}
+                    </p>
+                    <p>
+                      Kafka topics:{' '}
+                      {preview.dependencies.kafka_topics.length > 0
+                        ? preview.dependencies.kafka_topics.join(', ')
+                        : 'none'}
+                    </p>
+                    <p>Redis: {preview.dependencies.has_redis ? 'enabled' : 'disabled'}</p>
+                    <p>
+                      Redis session:{' '}
+                      {preview.dependencies.has_redis_session ? 'enabled' : 'disabled'}
+                    </p>
+                    <p>Auth mode: {authMode}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-medium">Additional services</p>
+                  <div className="mt-2 space-y-1">
+                    {preview.additional_services.length === 0 ? (
+                      <p>none</p>
+                    ) : (
+                      preview.additional_services.map((service) => (
+                        <p key={service.name}>
+                          {service.name}: {service.url}
+                        </p>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-medium">Resolved endpoints</p>
+                  <div className="mt-2 space-y-1">
+                    {getPreviewPorts().map((port) => (
+                      <p key={port.name}>
+                        {port.name}: {port.value}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPreview(null)}
+                  className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleConfirmStart();
+                  }}
+                  className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+                  data-testid="btn-confirm-dev-up"
+                >
+                  Confirm start
+                </button>
+              </div>
+            </div>
+          )}
 
           {status === 'error' && (
             <p className="mt-4 text-sm text-rose-300" data-testid="error-message">

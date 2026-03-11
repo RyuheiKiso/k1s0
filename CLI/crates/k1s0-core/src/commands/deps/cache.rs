@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 use std::fs;
+use std::hash::BuildHasher;
 use std::path::Path;
 
 use anyhow::Result;
@@ -39,18 +40,21 @@ pub fn load_cache(cache_dir: &Path) -> Option<DepsCache> {
 /// # Errors
 ///
 /// ファイル書き込みに失敗した場合にエラーを返す。
-pub fn save_cache(
+pub fn save_cache<S: BuildHasher>(
     cache_dir: &Path,
     dependencies: &[Dependency],
     violations: &[Violation],
-    file_hashes: &HashMap<String, String>,
+    file_hashes: &HashMap<String, String, S>,
 ) -> Result<()> {
     fs::create_dir_all(cache_dir)?;
 
     let cache = DepsCache {
         version: CACHE_VERSION,
         generated_at: chrono::Utc::now().to_rfc3339(),
-        file_hashes: file_hashes.clone(),
+        file_hashes: file_hashes
+            .iter()
+            .map(|(path, hash)| (path.clone(), hash.clone()))
+            .collect(),
         dependencies: dependencies.to_vec(),
         violations: violations.to_vec(),
     };
@@ -65,7 +69,10 @@ pub fn save_cache(
 ///
 /// 現在のファイルハッシュとキャッシュ内のハッシュを比較し、
 /// すべて一致していれば有効と判定する。
-pub fn is_cache_valid(cache: &DepsCache, current_hashes: &HashMap<String, String>) -> bool {
+pub fn is_cache_valid<S: BuildHasher>(
+    cache: &DepsCache,
+    current_hashes: &HashMap<String, String, S>,
+) -> bool {
     if cache.version != CACHE_VERSION {
         return false;
     }

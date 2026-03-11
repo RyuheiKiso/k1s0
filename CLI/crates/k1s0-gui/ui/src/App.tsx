@@ -1,6 +1,6 @@
 import { RouterProvider } from '@tanstack/react-router';
-import { AuthProvider } from './lib/auth';
-import { WorkspaceProvider } from './lib/workspace';
+import { AuthProvider } from './lib/auth-provider';
+import { WorkspaceProvider } from './lib/workspace-provider';
 import { router } from './router';
 
 export default function App() {

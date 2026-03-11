@@ -1,4 +1,4 @@
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
@@ -31,7 +31,6 @@ export default function InitPage() {
     register,
     control,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<InitFormData>({
     resolver: zodResolver(initSchema),
@@ -43,7 +42,7 @@ export default function InitPage() {
     },
   });
 
-  const sparseCheckout = watch('sparseCheckout');
+  const sparseCheckout = useWatch({ control, name: 'sparseCheckout' });
 
   async function onSubmit(data: InitFormData) {
     setStatus('loading');

@@ -16,14 +16,12 @@ COPY regions regions
 RUN cargo build --release --manifest-path regions/service/order/server/rust/order/Cargo.toml
 
 # Runtime stage
-FROM debian:bookworm-slim
+FROM gcr.io/distroless/cc-debian12:nonroot
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
-RUN groupadd -r app && useradd -r -g app app
-
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 COPY --from=builder /app/regions/service/order/server/rust/order/target/release/k1s0-order-server /k1s0-order-server
 
-USER app:app
+USER nonroot:nonroot
 EXPOSE 8310
 
 ENTRYPOINT ["/k1s0-order-server"]

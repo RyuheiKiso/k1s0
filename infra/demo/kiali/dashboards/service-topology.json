@@ -11,7 +11,7 @@
       "description": "Source-to-destination paths ranked by current traffic",
       "type": "barchart",
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "refId": "A",
@@ -45,11 +45,11 @@
       "description": "Non-2xx rate for each source-to-destination path",
       "type": "barchart",
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 },
-      "datasource": { "type": "prometheus", "uid": "" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "refId": "A",
-          "expr": "sort_desc((sum(rate(istio_requests_total{reporter=\"destination\",response_code!~\"2..\"}[5m])) by (source_workload, destination_workload) / sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (source_workload, destination_workload)) * 100)",
+          "expr": "sort_desc((sum(rate(istio_requests_total{reporter=\"source\",response_code!~\"2..\"}[5m])) by (source_workload, destination_workload) / clamp_min(sum(rate(istio_requests_total{reporter=\"source\"}[5m])) by (source_workload, destination_workload), 0.0001)) * 100)",
           "legendFormat": "{{source_workload}} -> {{destination_workload}}",
           "format": "time_series",
           "instant": true
@@ -86,10 +86,10 @@
       "title": "Path Latency P95",
       "type": "timeseries",
       "gridPos": { "h": 9, "w": 12, "x": 0, "y": 20 },
-      "datasource": { "type": "prometheus", "uid": "" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{reporter=\"destination\"}[5m])) by (le, source_workload, destination_workload))",
+          "expr": "histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{reporter=\"source\"}[5m])) by (le, source_workload, destination_workload))",
           "legendFormat": "{{source_workload}} -> {{destination_workload}}"
         }
       ],
@@ -104,10 +104,10 @@
       "title": "Traffic by Namespace",
       "type": "timeseries",
       "gridPos": { "h": 9, "w": 12, "x": 12, "y": 20 },
-      "datasource": { "type": "prometheus", "uid": "" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(istio_requests_total{reporter=\"destination\"}[5m])) by (destination_workload_namespace)",
+          "expr": "sum(rate(istio_requests_total{reporter=\"source\"}[5m])) by (destination_workload_namespace)",
           "legendFormat": "{{destination_workload_namespace}}"
         }
       ],

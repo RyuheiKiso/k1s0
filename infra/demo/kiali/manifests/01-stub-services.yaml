@@ -22,6 +22,11 @@ spec:
       app: auth-server
   template:
     metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+        prometheus.istio.io/merge-metrics: "true"
       labels:
         app: auth-server
         version: stable
@@ -92,6 +97,11 @@ spec:
       app: config-server
   template:
     metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+        prometheus.istio.io/merge-metrics: "true"
       labels:
         app: config-server
         version: stable
@@ -160,6 +170,11 @@ spec:
       app: graphql-gateway
   template:
     metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+        prometheus.istio.io/merge-metrics: "true"
       labels:
         app: graphql-gateway
         version: stable
@@ -230,6 +245,11 @@ spec:
       app: saga-server
   template:
     metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+        prometheus.istio.io/merge-metrics: "true"
       labels:
         app: saga-server
         version: stable
@@ -304,6 +324,11 @@ spec:
       app: accounting-server
   template:
     metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+        prometheus.istio.io/merge-metrics: "true"
       labels:
         app: accounting-server
         version: stable
@@ -379,6 +404,11 @@ spec:
       app: order-bff
   template:
     metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+        prometheus.istio.io/merge-metrics: "true"
       labels:
         app: order-bff
         version: stable
@@ -451,6 +481,11 @@ spec:
       version: stable
   template:
     metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+        prometheus.istio.io/merge-metrics: "true"
       labels:
         app: order-server
         version: stable

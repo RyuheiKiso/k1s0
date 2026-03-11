@@ -25,6 +25,11 @@ pub struct RuntimeConfig {
 }
 
 impl RuntimeConfig {
+    /// Validate runtime configuration values.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a field contains an unsupported value.
     pub fn validate(&self) -> Result<(), String> {
         const VALID_TIERS: &[&str] = &["system", "business", "service"];
         const VALID_ENVIRONMENTS: &[&str] = &["dev", "staging", "prod"];
@@ -315,6 +320,10 @@ impl Default for CliConfig {
 }
 
 /// Load CLI configuration from YAML.
+///
+/// # Errors
+///
+/// Returns an error when the file cannot be read or parsed.
 pub fn load_config(path: &str) -> anyhow::Result<CliConfig> {
     let config_path = Path::new(path);
     if !config_path.exists() {
@@ -328,6 +337,10 @@ pub fn load_config(path: &str) -> anyhow::Result<CliConfig> {
 }
 
 /// Load CLI configuration and optionally merge secrets from Vault.
+///
+/// # Errors
+///
+/// Returns an error when local configuration loading or Vault response parsing fails.
 pub fn load_config_with_vault(path: &str) -> anyhow::Result<CliConfig> {
     let mut config = load_config(path)?;
 
@@ -384,6 +397,10 @@ fn extract_vault_secret_data(
 }
 
 /// Merge known CLI settings from a Vault KV response.
+///
+/// # Errors
+///
+/// Returns an error when the Vault response cannot be parsed or does not contain secret data.
 pub fn merge_vault_secrets(
     base: &mut CliConfig,
     vault_addr: &str,
@@ -429,6 +446,10 @@ pub fn merge_vault_secrets(
 }
 
 /// Merge an override config file into the base config.
+///
+/// # Errors
+///
+/// Returns an error when the override file cannot be read or parsed.
 pub fn merge_config(base: &mut CliConfig, override_path: &str) -> anyhow::Result<()> {
     let path = Path::new(override_path);
     if !path.exists() {

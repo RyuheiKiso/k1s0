@@ -135,6 +135,11 @@ fn is_server_dir(path: &Path) -> bool {
 ///
 /// パターン: `import "k1s0/{tier}/{domain}/v{n}/{file}.proto"`
 /// → ターゲット: `{domain}-server` ({tier})
+/// Scan gRPC dependencies from imported proto files.
+///
+/// # Panics
+///
+/// Panics only if a hard-coded regular expression becomes invalid.
 pub fn scan_grpc_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
     let re = Regex::new(r#"import\s+"k1s0/(\w+)/(\w[\w-]*)/v\d+/"#).unwrap();
@@ -298,9 +303,8 @@ fn parse_kafka_config(
     publishers: &mut HashMap<String, Vec<String>>,
     subscribers: &mut HashMap<String, Vec<String>>,
 ) {
-    let content = match fs::read_to_string(config_path) {
-        Ok(c) => c,
-        Err(_) => return,
+    let Ok(content) = fs::read_to_string(config_path) else {
+        return;
     };
 
     let value: serde_yaml::Value = match serde_yaml::from_str(&content) {
@@ -360,6 +364,11 @@ fn extract_topics(
 /// ソースコード内のHTTPクライアントURLパターンからサービス間依存を検出する。
 ///
 /// パターン: `{service-name}.k1s0-{tier}`
+/// Scan REST and GraphQL dependencies from source files.
+///
+/// # Panics
+///
+/// Panics only if a hard-coded regular expression becomes invalid.
 pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
     // {service-name}.k1s0-{tier} パターン
@@ -436,6 +445,12 @@ pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
 /// - go.mod: `k1s0/regions/system/library/go/`
 /// - package.json: `@k1s0/`
 /// - pubspec.yaml: `k1s0_`
+///
+/// Scan shared-library dependencies from package manifests.
+///
+/// # Panics
+///
+/// Panics only if a hard-coded regular expression becomes invalid.
 pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
 

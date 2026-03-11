@@ -21,14 +21,12 @@ WORKDIR /app/regions/system
 RUN cargo build --release -p k1s0-graphql-gateway-server
 
 # Runtime stage
-FROM debian:bookworm-slim
+FROM gcr.io/distroless/cc-debian12:nonroot
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
-RUN groupadd -r app && useradd -r -g app app
-
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 COPY --from=builder /app/regions/system/target/release/k1s0-graphql-gateway-server /k1s0-graphql-gateway-server
 
-USER app:app
+USER nonroot:nonroot
 EXPOSE 8080
 
 ENTRYPOINT ["/k1s0-graphql-gateway-server"]

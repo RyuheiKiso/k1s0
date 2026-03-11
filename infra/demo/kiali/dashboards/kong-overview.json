@@ -1,0 +1,46 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Kong Demo Note",
+      "type": "text",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "Kong is not deployed in this local Kiali demo. This dashboard is provisioned so the platform observability set matches the docs and becomes active as soon as Kong metrics are present."
+      }
+    },
+    {
+      "title": "Kong Request Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total{service=\"kong\"}[5m])) by (status)", "legendFormat": "{{status}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "title": "Kong Error Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total{service=\"kong\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_requests_total{service=\"kong\"}[5m])), 0.0001) * 100", "legendFormat": "error rate" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent" } }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["k1s0", "kong"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "timezone": "browser",
+  "title": "k1s0 Kong Overview",
+  "uid": "k1s0-kong-overview",
+  "version": 1
+}

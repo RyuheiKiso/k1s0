@@ -30,18 +30,7 @@ export default function TestPage() {
   useEffect(() => {
     let cancelled = false;
 
-    setSelected([]);
-    setTargets([]);
-
-    if (!workspace.ready && workspace.workspaceRoot === '') {
-      return;
-    }
-
-    if (workspace.ready && !workspace.workspaceRoot) {
-      return;
-    }
-
-    if (kind === 'All') {
+    if (!workspace.ready || !workspace.workspaceRoot || kind === 'All') {
       return;
     }
 
@@ -49,6 +38,7 @@ export default function TestPage() {
       .then((nextTargets) => {
         if (!cancelled) {
           setTargets(nextTargets);
+          setSelected((current) => current.filter((target) => nextTargets.includes(target)));
         }
       })
       .catch(() => {
@@ -62,6 +52,10 @@ export default function TestPage() {
     };
   }, [activeWorkspaceRoot, kind, workspace.ready, workspace.workspaceRoot]);
 
+  const availableTargets =
+    workspace.ready && workspace.workspaceRoot && kind !== 'All' ? targets : [];
+  const selectedTargets = selected.filter((target) => availableTargets.includes(target));
+
   function toggleTarget(target: string) {
     setSelected((current) =>
       current.includes(target)
@@ -71,7 +65,7 @@ export default function TestPage() {
   }
 
   function handleToggleAll(checked: boolean) {
-    setSelected(checked ? [...targets] : []);
+    setSelected(checked ? [...availableTargets] : []);
   }
 
   function handleProgress(event: ProgressEvent) {
@@ -104,13 +98,13 @@ export default function TestPage() {
     setErrorMessage('');
     setEvents([]);
     setCurrentStep(0);
-    setTotalSteps(kind === 'All' ? 0 : selected.length);
+    setTotalSteps(kind === 'All' ? 0 : selectedTargets.length);
 
     let finished = false;
 
     try {
       await executeTestWithProgressAt(
-        { kind, targets: kind === 'All' ? [] : selected },
+        { kind, targets: kind === 'All' ? [] : selectedTargets },
         activeWorkspaceRoot,
         (event) => {
           if (event.kind === 'Finished') {
@@ -130,7 +124,8 @@ export default function TestPage() {
     }
   }
 
-  const allSelected = targets.length > 0 && selected.length === targets.length;
+  const allSelected =
+    availableTargets.length > 0 && selectedTargets.length === availableTargets.length;
 
   return (
     <div className="glass max-w-4xl p-6" data-testid="test-page">
@@ -156,7 +151,10 @@ export default function TestPage() {
                 <input
                   type="radio"
                   checked={kind === value}
-                  onChange={() => setKind(value)}
+                  onChange={() => {
+                    setKind(value);
+                    setSelected([]);
+                  }}
                   name="test-kind"
                 />
                 {value}
@@ -173,7 +171,7 @@ export default function TestPage() {
               status === 'loading' ||
               workspaceUnavailable ||
               actionsLocked ||
-              (kind !== 'All' && selected.length === 0)
+              (kind !== 'All' && selectedTargets.length === 0)
             }
             className="mt-6 rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
             data-testid="btn-test"
@@ -197,7 +195,7 @@ export default function TestPage() {
           <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-white">Targets</h2>
-              {targets.length > 0 && (
+              {availableTargets.length > 0 && (
                 <label className="flex items-center gap-2 text-sm text-slate-200/72">
                   <input
                     type="checkbox"
@@ -210,17 +208,17 @@ export default function TestPage() {
             </div>
 
             <div className="mt-4 space-y-2">
-              {targets.length === 0 ? (
+              {availableTargets.length === 0 ? (
                 <p className="text-sm text-slate-200/55">No testable targets were found.</p>
               ) : (
-                targets.map((target) => (
+                availableTargets.map((target) => (
                   <label
                     key={target}
                     className="flex items-center gap-3 rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm text-slate-100"
                   >
                     <input
                       type="checkbox"
-                      checked={selected.includes(target)}
+                      checked={selectedTargets.includes(target)}
                       onChange={() => toggleTarget(target)}
                     />
                     {toDisplayPath(activeWorkspaceRoot, target)}

@@ -28,6 +28,16 @@ async function renderGeneratePage() {
   });
 }
 
+async function reachServiceServerDetailStep(user: ReturnType<typeof userEvent.setup>) {
+  await renderGeneratePage();
+  await user.click(screen.getByTestId('btn-next'));
+  await user.click(screen.getByText('service'));
+  await user.click(screen.getByTestId('btn-next'));
+  await user.type(screen.getByPlaceholderText('placement-name'), 'order');
+  await user.click(screen.getByTestId('btn-next'));
+  await user.click(screen.getByTestId('btn-next'));
+}
+
 describe('GeneratePage', () => {
   it('renders the stepper', async () => {
     await renderGeneratePage();
@@ -131,5 +141,23 @@ describe('GeneratePage', () => {
     expect(screen.getByText('Rust')).toBeInTheDocument();
     expect(screen.queryByText('TypeScript')).not.toBeInTheDocument();
     expect(screen.queryByText('Dart')).not.toBeInTheDocument();
+  });
+
+  it('requires explicit BFF opt-in and language selection for GraphQL service servers', async () => {
+    const user = userEvent.setup();
+    await reachServiceServerDetailStep(user);
+
+    await user.click(screen.getByLabelText('GraphQL'));
+    await user.click(screen.getByLabelText('Yes'));
+    await user.click(screen.getByTestId('btn-next'));
+
+    expect(screen.getByTestId('detail-error')).toHaveTextContent('Select a BFF language.');
+
+    await user.click(screen.getByLabelText('Rust'));
+    await user.click(screen.getByTestId('btn-next'));
+
+    expect(screen.getByTestId('step-confirm')).toBeInTheDocument();
+    expect(screen.getByText('Generate BFF: yes')).toBeInTheDocument();
+    expect(screen.getByText('BFF language: Rust')).toBeInTheDocument();
   });
 });

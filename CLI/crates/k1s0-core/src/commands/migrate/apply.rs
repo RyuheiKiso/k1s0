@@ -1,4 +1,4 @@
-/// マイグレーションの適用・ロールバック。
+﻿/// マイグレーションの適用・ロールバック。
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -82,7 +82,7 @@ fn read_local_dev_port() -> Option<u16> {
         .and_then(|d| d.get("postgres"))
         .and_then(|p| p.get("port"))
         .and_then(tera::Value::as_u64)
-        .map(|p| p as u16)
+        .and_then(|p| u16::try_from(p).ok())
 }
 
 /// sqlx migrate run を実行する。
@@ -100,12 +100,17 @@ fn execute_sqlx_up(migrations_dir: &Path, conn_str: &str, range: &MigrateRange) 
         conn_str,
     ];
 
-    // sqlx-cli は UpTo に直接対応しないので、 --target-version で指定
     let version_str;
-    if let MigrateRange::UpTo(n) = range {
-        version_str = n.to_string();
-        args.push("--target-version");
-        args.push(&version_str);
+    match range {
+        MigrateRange::All => {}
+        MigrateRange::UpTo(n) => {
+            version_str = n.to_string();
+            args.push("--target-version");
+            args.push(&version_str);
+        }
+        MigrateRange::Steps(_) => {
+            anyhow::bail!("sqlx migrate run does not support step-based execution");
+        }
     }
 
     println!("実行: sqlx {}", args.join(" "));
@@ -125,11 +130,26 @@ fn execute_sqlx_up(migrations_dir: &Path, conn_str: &str, range: &MigrateRange) 
 
 /// sqlx migrate revert を実行する。
 fn execute_sqlx_down(migrations_dir: &Path, conn_str: &str, range: &MigrateRange) -> Result<()> {
+    match range {
+        MigrateRange::All => execute_sqlx_revert_to_version(migrations_dir, conn_str, 0),
+        MigrateRange::UpTo(version) => {
+            execute_sqlx_revert_to_version(migrations_dir, conn_str, *version)
+        }
+        MigrateRange::Steps(steps) => {
+            for _ in 0..*steps {
+                execute_sqlx_revert_latest(migrations_dir, conn_str)?;
+            }
+            Ok(())
+        }
+    }
+}
+
+fn execute_sqlx_revert_latest(migrations_dir: &Path, conn_str: &str) -> Result<()> {
     let dir_str = migrations_dir
         .to_str()
         .context("マイグレーションディレクトリのパスが不正です")?;
 
-    let mut args = vec![
+    let args = vec![
         "migrate",
         "revert",
         "--source",
@@ -138,12 +158,40 @@ fn execute_sqlx_down(migrations_dir: &Path, conn_str: &str, range: &MigrateRange
         conn_str,
     ];
 
-    let version_str;
-    if let MigrateRange::UpTo(n) = range {
-        version_str = n.to_string();
-        args.push("--target-version");
-        args.push(&version_str);
+    println!("実行: sqlx {}", args.join(" "));
+    let status = Command::new("sqlx").args(&args).status().context(
+        "sqlx コマンドの実行に失敗しました。sqlx-cli がインストールされているか確認してください。",
+    )?;
+
+    if !status.success() {
+        anyhow::bail!(
+            "sqlx migrate revert が失敗しました（終了コード: {:?}）",
+            status.code()
+        );
     }
+
+    Ok(())
+}
+
+fn execute_sqlx_revert_to_version(
+    migrations_dir: &Path,
+    conn_str: &str,
+    version: u32,
+) -> Result<()> {
+    let dir_str = migrations_dir
+        .to_str()
+        .context("マイグレーションディレクトリのパスが不正です")?;
+    let version_str = version.to_string();
+    let args = vec![
+        "migrate",
+        "revert",
+        "--source",
+        dir_str,
+        "--database-url",
+        conn_str,
+        "--target-version",
+        &version_str,
+    ];
 
     println!("実行: sqlx {}", args.join(" "));
     let status = Command::new("sqlx").args(&args).status().context(
@@ -170,12 +218,22 @@ fn execute_golang_migrate_up(
         .to_str()
         .context("マイグレーションディレクトリのパスが不正です")?;
 
-    let mut args = vec!["-path", dir_str, "-database", conn_str, "up"];
-
-    let n_str;
-    if let MigrateRange::UpTo(n) = range {
-        n_str = n.to_string();
-        args.push(&n_str);
+    let mut args = vec!["-path", dir_str, "-database", conn_str];
+    let value_str;
+    match range {
+        MigrateRange::All => {
+            args.push("up");
+        }
+        MigrateRange::UpTo(version) => {
+            value_str = version.to_string();
+            args.push("goto");
+            args.push(&value_str);
+        }
+        MigrateRange::Steps(steps) => {
+            value_str = steps.to_string();
+            args.push("up");
+            args.push(&value_str);
+        }
     }
 
     println!("実行: migrate {}", args.join(" "));
@@ -204,12 +262,23 @@ fn execute_golang_migrate_down(
         .to_str()
         .context("マイグレーションディレクトリのパスが不正です")?;
 
-    let mut args = vec!["-path", dir_str, "-database", conn_str, "down"];
-
-    let n_str;
-    if let MigrateRange::UpTo(n) = range {
-        n_str = n.to_string();
-        args.push(&n_str);
+    let mut args = vec!["-path", dir_str, "-database", conn_str];
+    let value_str;
+    match range {
+        MigrateRange::All => {
+            args.push("down");
+            args.push("-all");
+        }
+        MigrateRange::UpTo(version) => {
+            value_str = version.to_string();
+            args.push("goto");
+            args.push(&value_str);
+        }
+        MigrateRange::Steps(steps) => {
+            value_str = steps.to_string();
+            args.push("down");
+            args.push(&value_str);
+        }
     }
 
     println!("実行: migrate {}", args.join(" "));

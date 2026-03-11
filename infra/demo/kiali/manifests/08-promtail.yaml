@@ -10,7 +10,7 @@ metadata:
 data:
   promtail.yaml: |
     server:
-      http_listen_port: 3101
+      http_listen_port: 3100
 
     positions:
       filename: /tmp/positions.yaml
@@ -19,74 +19,48 @@ data:
       - url: http://loki.observability.svc.cluster.local:3100/loki/api/v1/push
 
     scrape_configs:
-      - job_name: demo-pod-logs
-        static_configs:
-          - targets: [localhost]
-            labels:
-              namespace: k1s0-system
-              app: auth-server
-              tier: system
-              version: stable
-              __path__: /var/log/pods/k1s0-system_auth-server-*/stub/*.log
-          - targets: [localhost]
-            labels:
-              namespace: k1s0-system
-              app: config-server
-              tier: system
-              version: stable
-              __path__: /var/log/pods/k1s0-system_config-server-*/stub/*.log
-          - targets: [localhost]
-            labels:
-              namespace: k1s0-system
-              app: graphql-gateway
-              tier: system
-              version: stable
-              __path__: /var/log/pods/k1s0-system_graphql-gateway-*/stub/*.log
-          - targets: [localhost]
-            labels:
-              namespace: k1s0-system
-              app: saga-server
-              tier: system
-              version: stable
-              __path__: /var/log/pods/k1s0-system_saga-server-*/stub/*.log
-          - targets: [localhost]
-            labels:
-              namespace: k1s0-business
-              app: accounting-server
-              tier: business
-              version: stable
-              __path__: /var/log/pods/k1s0-business_accounting-server-*/stub/*.log
-          - targets: [localhost]
-            labels:
-              namespace: k1s0-service
-              app: order-bff
-              tier: service
-              version: stable
-              __path__: /var/log/pods/k1s0-service_order-bff-*/stub/*.log
-          - targets: [localhost]
-            labels:
-              namespace: k1s0-service
-              app: order-server
-              tier: service
-              version: stable
-              __path__: /var/log/pods/k1s0-service_order-server-*/stub/*.log
-          - targets: [localhost]
-            labels:
-              namespace: k1s0-service
-              app: order-server
-              tier: service
-              version: canary
-              __path__: /var/log/pods/k1s0-service_order-server-canary-*/stub/*.log
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: (k1s0-system|k1s0-business|k1s0-service|messaging)
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            regex: (stub|producer|consumer|kafka|kafka-exporter)
+            action: keep
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: __host__
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+          - source_labels: [__meta_kubernetes_pod_label_tier]
+            target_label: tier
+          - source_labels: [__meta_kubernetes_pod_label_version]
+            target_label: version
+          - target_label: environment
+            replacement: dev
+          - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+            separator: /
+            target_label: __path__
+            replacement: /var/log/pods/*$1/$2/*.log
         pipeline_stages:
           - cri: {}
           - json:
               expressions:
                 level: level
                 trace_id: trace_id
+                span_id: span_id
                 service: service
+                request_id: request_id
           - labels:
               level:
               trace_id:
+              span_id:
               service:
 ---
 apiVersion: apps/v1
@@ -108,6 +82,11 @@ spec:
         - name: promtail
           image: grafana/promtail:2.9.0
           args: ["-config.file=/etc/promtail/promtail.yaml"]
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: config
               mountPath: /etc/promtail

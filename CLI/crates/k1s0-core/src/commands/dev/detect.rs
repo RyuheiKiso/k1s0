@@ -21,6 +21,11 @@ pub fn detect_dependencies(service_path: &str) -> Result<DetectedDependencies> {
 }
 
 /// 指定パスを基点にconfig/config.yamlから依存を検出する（テスト用）。
+/// Detect dependencies from `config/config.yaml` in the given service directory.
+///
+/// # Errors
+///
+/// Returns an error when `config.yaml` exists but cannot be read or parsed.
 pub fn detect_dependencies_at(service_dir: &Path) -> Result<DetectedDependencies> {
     let config_path = service_dir.join("config").join("config.yaml");
     if !config_path.exists() {

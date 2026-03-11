@@ -1,0 +1,81 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Error Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(istio_requests_total{reporter=\"source\",source_workload=\"order-bff\",destination_service_name=\"order-server\",response_code!~\"2..\"}[1m])) / clamp_min(sum(rate(istio_requests_total{reporter=\"source\",source_workload=\"order-bff\",destination_service_name=\"order-server\"}[1m])), 0.0001) * 100",
+          "legendFormat": "order-bff -> order-server"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent" } }
+    },
+    {
+      "title": "P99 Latency",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(istio_request_duration_milliseconds_bucket{reporter=\"source\",source_workload=\"order-bff\",destination_service_name=\"order-server\"}[1m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "title": "Circuit Breaker Ejections",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(envoy_cluster_outlier_detection_ejections_enforced_total{cluster_name=~\".*order-server.*\"}[5m]))",
+          "legendFormat": "enforced ejections"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "title": "Retry Count",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(envoy_cluster_upstream_rq_retry{cluster_name=~\".*order-server.*\"}[5m]))",
+          "legendFormat": "retries"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "title": "Response Codes",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(increase(istio_requests_total{reporter=\"source\",source_workload=\"order-bff\",destination_service_name=\"order-server\"}[5m])) by (response_code)",
+          "legendFormat": "{{response_code}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["fault", "istio", "k1s0"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timezone": "browser",
+  "title": "Fault Injection Results",
+  "uid": "k1s0-fault-injection-results",
+  "version": 1
+}

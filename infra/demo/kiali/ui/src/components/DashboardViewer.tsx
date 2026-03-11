@@ -34,6 +34,19 @@ const allTabs = [
   },
 ];
 
+function getGrafanaUrl(activeScenario: string | null): string {
+  switch (activeScenario) {
+    case "fault":
+      return "http://localhost:3200/d/k1s0-fault-injection-results/fault-injection-results?orgId=1&refresh=10s";
+    case "logs":
+      return "http://localhost:3200/d/k1s0-logs-explorer/k1s0-log-explorer?orgId=1&refresh=10s";
+    case "kafka":
+      return "http://localhost:3200/d/k1s0-kafka-overview/k1s0-kafka-overview?orgId=1&refresh=10s";
+    default:
+      return "http://localhost:3200/d/k1s0-mesh-overview/k1s0-service-mesh-overview?orgId=1&refresh=10s";
+  }
+}
+
 export default function DashboardViewer({
   recommendedTab,
   activeScenario,
@@ -65,10 +78,7 @@ export default function DashboardViewer({
     {
       id: "grafana" as const,
       label: "Grafana",
-      url:
-        activeScenario === "logs"
-          ? "http://localhost:3200/d/k1s0-logs-explorer/k1s0-log-explorer?orgId=1&refresh=10s"
-          : "http://localhost:3200/d/k1s0-mesh-overview/k1s0-service-mesh-overview?orgId=1&refresh=10s",
+      url: getGrafanaUrl(activeScenario),
       color: "text-orange-400 border-orange-400",
     },
   ];
