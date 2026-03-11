@@ -39,7 +39,7 @@ const scenarios = [
     label: "Fault Injection",
     desc: "500ms delay + 503 abort",
     group: "traffic",
-    tab: "kiali",
+    tab: "grafana",
   },
   {
     id: "tracing",
@@ -60,7 +60,7 @@ const scenarios = [
     label: "Kafka Messaging",
     desc: "producer -> kafka -> consumer flow",
     group: "observability",
-    tab: "topology",
+    tab: "grafana",
   },
 ] as const;
 

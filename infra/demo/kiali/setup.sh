@@ -86,22 +86,26 @@ fi
 
 kubectl cluster-info --context "kind-${CLUSTER_NAME}"
 
-# 3. Install Istio (minimal profile + tracing)
+# 3. Create namespaces before Istio install
+echo "Applying namespaces..."
+kubectl apply -f "${SCRIPT_DIR}/manifests/00-namespaces.yaml"
+
+# 4. Install Istio (minimal profile + tracing)
 echo "Installing Istio..."
 istioctl install --set profile=minimal \
+  --set values.global.istioNamespace=service-mesh \
   --set meshConfig.defaultConfig.holdApplicationUntilProxyStarts=true \
   --set meshConfig.enableTracing=true \
+  --set meshConfig.rootNamespace=service-mesh \
   --set meshConfig.defaultConfig.tracing.zipkin.address=otel-collector.observability.svc.cluster.local:9411 \
   --set meshConfig.defaultConfig.tracing.sampling=100 \
   -y
 
 # Wait for istiod
 echo "Waiting for istiod to be ready..."
-kubectl wait --for=condition=available deployment/istiod -n istio-system --timeout=120s
+kubectl wait --for=condition=available deployment/istiod -n service-mesh --timeout=120s
 
-# 4. Apply manifests
-echo "Applying namespaces..."
-kubectl apply -f "${SCRIPT_DIR}/manifests/00-namespaces.yaml"
+# 5. Apply manifests
 
 echo "Creating demo service ConfigMaps..."
 for ns in k1s0-system k1s0-business k1s0-service; do
@@ -152,23 +156,23 @@ kubectl apply -f "${SCRIPT_DIR}/manifests/09-grafana.yaml"
 echo "Applying Kafka..."
 kubectl apply -f "${SCRIPT_DIR}/manifests/10-kafka.yaml"
 
-# 5. Install Kiali via Helm
+# 6. Install Kiali via Helm
 echo "Installing Kiali..."
 helm repo add kiali https://kiali.org/helm-charts 2>/dev/null || true
 helm repo update kiali
 
-if helm status kiali-server -n istio-system &>/dev/null; then
+if helm status kiali-server -n service-mesh &>/dev/null; then
   echo "Kiali already installed. Upgrading..."
   helm upgrade kiali-server kiali/kiali-server \
-    -n istio-system \
+    -n service-mesh \
     -f "${SCRIPT_DIR}/values/kiali-values.yaml"
 else
   helm install kiali-server kiali/kiali-server \
-    -n istio-system \
+    -n service-mesh \
     -f "${SCRIPT_DIR}/values/kiali-values.yaml"
 fi
 
-# 6. Wait for all pods
+# 7. Wait for all pods
 echo "Waiting for all pods to be ready..."
 
 for ns in k1s0-system k1s0-business k1s0-service; do
@@ -185,11 +189,12 @@ kubectl wait --for=condition=ready pod -l app=grafana -n observability --timeout
 
 echo "  Waiting for Kafka..."
 kubectl wait --for=condition=ready pod -l app=kafka -n messaging --timeout=180s
+kubectl wait --for=condition=ready pod -l app=kafka-exporter -n messaging --timeout=120s
 
 echo "  Waiting for Kiali..."
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kiali -n istio-system --timeout=120s
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kiali -n service-mesh --timeout=120s
 
-# 7. Verify externally mapped endpoints
+# 8. Verify externally mapped endpoints
 sleep 2
 
 if curl -s -o /dev/null -w "" http://localhost:20001/kiali/ 2>/dev/null; then
@@ -198,7 +203,7 @@ else
   echo "WARNING: Kiali may not be accessible yet at http://localhost:20001/kiali"
 fi
 
-# 8. Summary
+# 9. Summary
 echo ""
 echo "=== Setup Complete ==="
 echo ""

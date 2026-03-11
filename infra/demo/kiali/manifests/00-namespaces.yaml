@@ -3,6 +3,14 @@
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: service-mesh
+  labels:
+    tier: infra
+    app.kubernetes.io/part-of: k1s0
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   name: k1s0-system
   labels:
     tier: system

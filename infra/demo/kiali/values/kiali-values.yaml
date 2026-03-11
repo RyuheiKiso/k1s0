@@ -39,4 +39,4 @@ external_services:
     external_url: http://localhost:16686
     use_grpc: false
   istio:
-    root_namespace: istio-system
+    root_namespace: service-mesh
