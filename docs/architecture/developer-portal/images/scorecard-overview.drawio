@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="Scorecard Overview" id="scorecard-overview">
+    <mxGraphModel dx="1600" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Center: Overall Score (blue) -->
+        <mxCell id="center" value="サービススコアカード&#xa;(A-F)&#xa;トレンド (90日)" style="ellipse;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=16;fontStyle=1;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="750" y="350" width="260" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Category 1: Reliability 30% (green) -->
+        <mxCell id="c1_group" value="信頼性 30%" style="rounded=1;whiteSpace=wrap;fillColor=#E8F5E9;strokeColor=#43A047;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="380" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="c1a" value="SLO達成率" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c1b" value="エラーバジェット" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="240" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c1c" value="MTTR" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c1d" value="インシデント頻度" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="240" y="140" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Category 2: Security 25% (red) -->
+        <mxCell id="c2_group" value="セキュリティ 25%" style="rounded=1;whiteSpace=wrap;fillColor=#FFEBEE;strokeColor=#EF5350;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="40" width="380" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="c2a" value="脆弱性スキャン" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c2b" value="依存関係更新" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c2c" value="mTLS" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="140" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c2d" value="RBAC" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="140" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Category 3: Observability 20% (orange) -->
+        <mxCell id="c3_group" value="可観測性 20%" style="rounded=1;whiteSpace=wrap;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="380" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="c3a" value="メトリクス定義数" style="rounded=1;whiteSpace=wrap;fillColor=#FFCC80;strokeColor=#E65100;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="350" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c3b" value="アラートルール" style="rounded=1;whiteSpace=wrap;fillColor=#FFCC80;strokeColor=#E65100;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="240" y="350" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c3c" value="ダッシュボード" style="rounded=1;whiteSpace=wrap;fillColor=#FFCC80;strokeColor=#E65100;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="410" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c3d" value="構造化ログ" style="rounded=1;whiteSpace=wrap;fillColor=#FFCC80;strokeColor=#E65100;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="240" y="410" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Category 4: Quality 15% (purple) -->
+        <mxCell id="c4_group" value="品質 15%" style="rounded=1;whiteSpace=wrap;fillColor=#F3E5F5;strokeColor=#AB47BC;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="310" width="380" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="c4a" value="テストカバレッジ" style="rounded=1;whiteSpace=wrap;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="350" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c4b" value="リントパス率" style="rounded=1;whiteSpace=wrap;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="350" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c4c" value="ドキュメント" style="rounded=1;whiteSpace=wrap;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="410" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c4d" value="APIドキュメント" style="rounded=1;whiteSpace=wrap;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="410" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Category 5: Operability 10% (grey) -->
+        <mxCell id="c5_group" value="運用性 10%" style="rounded=1;whiteSpace=wrap;fillColor=#ECEFF1;strokeColor=#78909C;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="690" y="40" width="380" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="c5a" value="オーナー設定" style="rounded=1;whiteSpace=wrap;fillColor=#CFD8DC;strokeColor=#546E7A;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="710" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c5b" value="オンコール" style="rounded=1;whiteSpace=wrap;fillColor=#CFD8DC;strokeColor=#546E7A;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="890" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c5c" value="ランブック" style="rounded=1;whiteSpace=wrap;fillColor=#CFD8DC;strokeColor=#546E7A;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="710" y="140" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c5d" value="Chaosテスト" style="rounded=1;whiteSpace=wrap;fillColor=#CFD8DC;strokeColor=#546E7A;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="890" y="140" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Data Sources (yellow) -->
+        <mxCell id="ds_group" value="データソース" style="rounded=1;whiteSpace=wrap;fillColor=#FFFDE7;strokeColor=#FDD835;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="600" width="880" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ds1" value="Prometheus&#xa;/Grafana" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="635" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ds2" value="GitHub API" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="220" y="635" width="130" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ds3" value="Trivy&#xa;/SonarQube" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="370" y="635" width="130" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ds4" value="Backstage&#xa;Catalog" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="520" y="635" width="130" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ds5" value="Argo Rollouts" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="635" width="130" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- DORA Metrics (cyan) -->
+        <mxCell id="dora_group" value="DORA Metrics" style="rounded=1;whiteSpace=wrap;fillColor=#E0F7FA;strokeColor=#00ACC1;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="760" width="880" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="dora1" value="デプロイ頻度" style="rounded=1;whiteSpace=wrap;fillColor=#B2EBF2;strokeColor=#00838F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="795" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dora2" value="リードタイム" style="rounded=1;whiteSpace=wrap;fillColor=#B2EBF2;strokeColor=#00838F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="795" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dora3" value="変更失敗率" style="rounded=1;whiteSpace=wrap;fillColor=#B2EBF2;strokeColor=#00838F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="795" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dora4" value="MTTR" style="rounded=1;whiteSpace=wrap;fillColor=#B2EBF2;strokeColor=#00838F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="795" width="140" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Tech Radar (pink) -->
+        <mxCell id="tr_group" value="Tech Radar" style="rounded=1;whiteSpace=wrap;fillColor=#FCE4EC;strokeColor=#EC407A;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="600" width="420" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tr1" value="Adopt" style="rounded=1;whiteSpace=wrap;fillColor=#F8BBD0;strokeColor=#AD1457;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="635" width="80" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="tr2" value="Trial" style="rounded=1;whiteSpace=wrap;fillColor=#F8BBD0;strokeColor=#AD1457;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="635" width="80" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="tr3" value="Assess" style="rounded=1;whiteSpace=wrap;fillColor=#F8BBD0;strokeColor=#AD1457;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="635" width="80" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="tr4" value="Hold" style="rounded=1;whiteSpace=wrap;fillColor=#F8BBD0;strokeColor=#AD1457;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="635" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Dashboard Output -->
+        <mxCell id="dash_group" value="ダッシュボード出力" style="rounded=1;whiteSpace=wrap;fillColor=#E0F2F1;strokeColor=#26A69A;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="760" width="420" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="dash1" value="組織全体スコア" style="rounded=1;whiteSpace=wrap;fillColor=#B2DFDB;strokeColor=#00796B;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="795" width="120" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dash2" value="チーム別&#xa;ランキング" style="rounded=1;whiteSpace=wrap;fillColor=#B2DFDB;strokeColor=#00796B;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="795" width="110" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dash3" value="改善&#xa;レコメンデーション" style="rounded=1;whiteSpace=wrap;fillColor=#B2DFDB;strokeColor=#00796B;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="795" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Categories to Center -->
+        <mxCell id="e1" value="30%" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#43A047;strokeWidth=3;fontSize=12;fontStyle=1;" edge="1" source="c1_group" target="center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="25%" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#EF5350;strokeWidth=3;fontSize=12;fontStyle=1;" edge="1" source="c2_group" target="center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="20%" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#FF9800;strokeWidth=3;fontSize=12;fontStyle=1;" edge="1" source="c3_group" target="center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="15%" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#AB47BC;strokeWidth=3;fontSize=12;fontStyle=1;" edge="1" source="c4_group" target="center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="10%" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#78909C;strokeWidth=3;fontSize=12;fontStyle=1;" edge="1" source="c5_group" target="center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Data Sources to Center -->
+        <mxCell id="e6" value="データ収集" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#F9A825;strokeWidth=2;dashed=1;fontSize=11;" edge="1" source="ds_group" target="center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: DORA to Center -->
+        <mxCell id="e7" value="パフォーマンス指標" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#00ACC1;strokeWidth=2;dashed=1;fontSize=11;" edge="1" source="dora_group" target="center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Tech Radar to Center -->
+        <mxCell id="e8" value="技術評価" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#EC407A;strokeWidth=2;dashed=1;fontSize=11;" edge="1" source="tr_group" target="center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Center to Dashboard -->
+        <mxCell id="e9" value="出力" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#26A69A;strokeWidth=3;fontSize=12;fontStyle=1;" edge="1" source="center" target="dash_group" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge: Data Sources to DORA -->
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#78909C;strokeWidth=1;dashed=1;" edge="1" source="ds_group" target="dora_group" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

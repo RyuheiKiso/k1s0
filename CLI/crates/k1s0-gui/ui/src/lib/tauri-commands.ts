@@ -54,6 +54,10 @@ export interface InitConfig {
   tiers: Tier[];
 }
 
+export interface InitResult {
+  workspace_root: string;
+}
+
 export interface BuildConfig {
   targets: string[];
   mode: BuildMode;
@@ -208,6 +212,77 @@ export interface MigrationStatus {
   applied_at: string | null;
 }
 
+export type TemplateMergeStrategy = 'merge' | 'template' | 'user' | 'ask';
+export type TemplateChangeType = 'Added' | 'Modified' | 'Deleted' | 'Skipped';
+export type TemplateMergeResult =
+  | 'NoChange'
+  | { Clean: string }
+  | { Conflict: TemplateConflictHunk[] };
+
+export interface TemplateConflictHunk {
+  base: string;
+  ours: string;
+  theirs: string;
+  base_preview?: string;
+  ours_preview?: string;
+  theirs_preview?: string;
+}
+
+export interface TemplateManifest {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    generatedAt: string;
+    generatedBy: string;
+  };
+  spec: {
+    template: {
+      type: string;
+      language: string;
+      version: string;
+      checksum: string;
+    };
+    parameters: {
+      tier: string;
+      placement?: string | null;
+      serviceName?: string | null;
+      moduleName?: string | null;
+      framework?: string | null;
+      apiStyles?: string[];
+      database?: string | null;
+      databaseType?: string | null;
+      kafka?: boolean | null;
+      redis?: boolean | null;
+      bffLanguage?: string | null;
+      dockerRegistry?: string | null;
+      goModuleBase?: string | null;
+    };
+    customizations: {
+      ignorePaths: string[];
+      mergeStrategy: Record<string, TemplateMergeStrategy>;
+    };
+  };
+}
+
+export interface TemplateMigrationTarget {
+  path: string;
+  manifest: TemplateManifest;
+  available_version: string;
+}
+
+export interface TemplateFileChange {
+  path: string;
+  change_type: TemplateChangeType;
+  merge_strategy: TemplateMergeStrategy;
+  merge_result: TemplateMergeResult;
+}
+
+export interface TemplateMigrationPlan {
+  target: TemplateMigrationTarget;
+  changes: TemplateFileChange[];
+}
+
 export interface ValidationDiagnostic {
   rule: string;
   path: string;
@@ -234,6 +309,18 @@ export interface DeviceAuthorizationChallenge {
   verification_uri_complete: string;
   interval: number;
   expires_in: number;
+}
+
+export interface DeviceAuthorizationSettings {
+  discovery_url: string;
+  client_id: string;
+  scope: string;
+}
+
+export interface DeviceAuthorizationDiscovery {
+  issuer: string;
+  token_endpoint: string;
+  device_authorization_endpoint: string;
 }
 
 export interface AuthSessionSummary {
@@ -268,12 +355,23 @@ export async function executeInit(config: InitConfig): Promise<void> {
   return invoke<void>('execute_init', { config });
 }
 
+export async function executeInitAt(config: InitConfig, baseDir: string): Promise<string> {
+  return invoke<string>('execute_init_at', { config, baseDir });
+}
+
 export async function executeGenerate(config: GenerateConfig): Promise<void> {
   return invoke<void>('execute_generate', { config });
 }
 
 export async function executeGenerateAt(config: GenerateConfig, baseDir: string): Promise<void> {
   return invoke<void>('execute_generate_at', { config, baseDir });
+}
+
+export async function scanGenerateConflicts(
+  config: GenerateConfig,
+  baseDir: string,
+): Promise<string[]> {
+  return invoke<string[]>('scan_generate_conflicts', { config, baseDir });
 }
 
 export async function executeBuild(config: BuildConfig): Promise<void> {
@@ -445,6 +543,10 @@ export async function detectWorkspaceRoot(): Promise<string | null> {
   return invoke<string | null>('detect_workspace_root');
 }
 
+export async function getCurrentDirectory(): Promise<string> {
+  return invoke<string>('get_current_directory');
+}
+
 export async function resolveWorkspaceRoot(path: string): Promise<string> {
   return invoke<string>('resolve_workspace_root', { path });
 }
@@ -537,6 +639,37 @@ export async function scanMigrateTargets(baseDir: string): Promise<MigrateTarget
   return invoke<MigrateTarget[]>('scan_migrate_targets', { baseDir });
 }
 
+export async function scanTemplateMigrationTargets(
+  baseDir: string,
+): Promise<TemplateMigrationTarget[]> {
+  return invoke<TemplateMigrationTarget[]>('scan_template_migration_targets', { baseDir });
+}
+
+export async function previewTemplateMigration(
+  target: TemplateMigrationTarget,
+): Promise<TemplateMigrationPlan> {
+  return invoke<TemplateMigrationPlan>('preview_template_migration', { target });
+}
+
+export async function executeTemplateMigration(
+  plan: TemplateMigrationPlan,
+): Promise<void> {
+  return invoke<void>('execute_template_migration', { plan });
+}
+
+export async function listTemplateMigrationBackups(
+  projectDir: string,
+): Promise<string[]> {
+  return invoke<string[]>('list_template_migration_backups', { projectDir });
+}
+
+export async function executeTemplateMigrationRollback(
+  projectDir: string,
+  backupId: string,
+): Promise<void> {
+  return invoke<void>('execute_template_migration_rollback', { projectDir, backupId });
+}
+
 export async function previewEventCodegen(
   eventsPath: string,
   baseDir?: string,
@@ -557,8 +690,22 @@ export async function executeEventCodegen(
   });
 }
 
-export async function startDeviceAuthorization(): Promise<DeviceAuthorizationChallenge> {
-  return invoke<DeviceAuthorizationChallenge>('start_device_authorization');
+export async function getDeviceAuthorizationDefaults(): Promise<DeviceAuthorizationSettings> {
+  return invoke<DeviceAuthorizationSettings>('get_device_authorization_defaults');
+}
+
+export async function validateDeviceAuthorizationSettings(
+  settings: DeviceAuthorizationSettings,
+): Promise<DeviceAuthorizationDiscovery> {
+  return invoke<DeviceAuthorizationDiscovery>('validate_device_authorization_settings', {
+    settings,
+  });
+}
+
+export async function startDeviceAuthorization(
+  settings?: DeviceAuthorizationSettings,
+): Promise<DeviceAuthorizationChallenge> {
+  return invoke<DeviceAuthorizationChallenge>('start_device_authorization', { settings });
 }
 
 export async function pollDeviceAuthorization(

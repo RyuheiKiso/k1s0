@@ -15,11 +15,14 @@ COPY regions regions
 
 RUN cargo build --release --manifest-path regions/service/order/server/rust/order/Cargo.toml
 
+FROM busybox:1.36.1-musl AS busybox
+
 # Runtime stage
 FROM gcr.io/distroless/cc-debian12:nonroot
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 COPY --from=builder /app/regions/service/order/server/rust/order/target/release/k1s0-order-server /k1s0-order-server
+COPY --from=busybox /bin/busybox /busybox
 
 USER nonroot:nonroot
 EXPOSE 8310

@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS tenant.tenants (
     status          VARCHAR(50)  NOT NULL DEFAULT 'provisioning',
     plan            VARCHAR(50)  NOT NULL DEFAULT 'free',
     settings        JSONB        NOT NULL DEFAULT '{}',
+    owner_id        VARCHAR(255),
     keycloak_realm  VARCHAR(255),
     db_schema       VARCHAR(255),
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -62,6 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenant.tenants (status);
 | status | VARCHAR(50) | NOT NULL, DEFAULT 'provisioning' | ステータス（provisioning/active/suspended/deleted） |
 | plan | VARCHAR(50) | NOT NULL, DEFAULT 'free' | プラン（free/starter/professional/enterprise） |
 | settings | JSONB | NOT NULL, DEFAULT '{}' | テナント設定 |
+| owner_id | VARCHAR(255) | | テナントオーナーのユーザー ID |
 | keycloak_realm | VARCHAR(255) | | Keycloak realm 名 |
 | db_schema | VARCHAR(255) | | データベーススキーマ名 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
@@ -113,6 +115,8 @@ CREATE INDEX IF NOT EXISTS idx_tenant_members_user_id ON tenant.tenant_members (
 | `003_create_tenant_members.down.sql` | テーブル削除 |
 | `004_add_tenant_fields.up.sql` | keycloak_realm・db_schema カラム追加 |
 | `004_add_tenant_fields.down.sql` | カラム削除 |
+| `005_add_owner_id.up.sql` | owner_id カラム追加 |
+| `005_add_owner_id.down.sql` | カラム削除 |
 
 ---
 

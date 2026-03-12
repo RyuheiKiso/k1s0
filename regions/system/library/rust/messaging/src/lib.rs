@@ -5,6 +5,7 @@
 
 pub mod config;
 pub mod consumer;
+pub mod dlq;
 pub mod error;
 pub mod event;
 pub mod producer;

@@ -1,3 +1,9 @@
+> **ステータス: 未実装（設計のみ）**
+
+> **実装形態**: `k1s0-codegen` クレートの `event-codegen` feature として実装。
+> 実装パス: `regions/system/library/rust/codegen/src/event_codegen/`
+> 独立クレートではなく、`k1s0-codegen` クレートの feature モジュールとして提供される。
+
 # イベントコード生成 (event-codegen)
 
 ## 概要

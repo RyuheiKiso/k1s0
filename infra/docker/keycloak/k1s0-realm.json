@@ -329,7 +329,6 @@
         }
       ],
       "serviceAccountsEnabled": true,
-      "serviceAccountClientId": "k1s0-service",
       "defaultRoles": ["biz_admin"]
     }
   ],

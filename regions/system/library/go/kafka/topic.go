@@ -55,3 +55,26 @@ func (t *TopicConfig) Tier() string {
 	}
 	return matches[1]
 }
+
+// DefaultPartitionsForTier は tier 別のデフォルトパーティション数を返す。
+//   - system tier: 6 パーティション
+//   - business tier: 6 パーティション
+//   - service tier / その他: 3 パーティション
+func DefaultPartitionsForTier(tier string) int {
+	switch tier {
+	case "system", "business":
+		return 6
+	default:
+		return 3
+	}
+}
+
+// WithTierDefaults はトピック名から tier を判定し、
+// tier 別デフォルトパーティション数を設定して返す。
+func (t *TopicConfig) WithTierDefaults() *TopicConfig {
+	tier := t.Tier()
+	if tier != "" {
+		t.Partitions = DefaultPartitionsForTier(tier)
+	}
+	return t
+}

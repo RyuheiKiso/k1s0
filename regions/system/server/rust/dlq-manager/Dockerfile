@@ -17,11 +17,14 @@ COPY . .
 
 RUN cargo build --release -p k1s0-dlq-manager
 
+FROM busybox:1.36.1-musl AS busybox
+
 # Runtime stage
 FROM gcr.io/distroless/cc-debian12:nonroot
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 COPY --from=builder /app/target/release/k1s0-dlq-manager /k1s0-dlq-manager
+COPY --from=busybox /bin/busybox /busybox
 
 USER nonroot:nonroot
 EXPOSE 8080

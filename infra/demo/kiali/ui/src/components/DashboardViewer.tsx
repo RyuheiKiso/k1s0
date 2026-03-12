@@ -38,6 +38,8 @@ function getGrafanaUrl(activeScenario: string | null): string {
   switch (activeScenario) {
     case "fault":
       return "http://localhost:3200/d/k1s0-fault-injection-results/fault-injection-results?orgId=1&refresh=10s";
+    case "rollback":
+      return "http://localhost:3200/d/k1s0-fault-injection-results/fault-injection-results?orgId=1&refresh=10s";
     case "logs":
       return "http://localhost:3200/d/k1s0-logs-explorer/k1s0-log-explorer?orgId=1&refresh=10s";
     case "kafka":
@@ -61,12 +63,16 @@ export default function DashboardViewer({
     activeScenario === "kafka"
       ? "k1s0-system,k1s0-business,k1s0-service,messaging"
       : "k1s0-system,k1s0-business,k1s0-service";
+  const kialiGraphType =
+    activeScenario === "canary" || activeScenario === "rollback"
+      ? "workload"
+      : "versionedApp";
 
   const iframeTabs = [
     {
       id: "kiali" as const,
       label: "Kiali",
-      url: `/kiali/console/graph/namespaces/?namespaces=${kialiNamespaces}&graphType=versionedApp&duration=60&refresh=15000&animation=true`,
+      url: `/kiali/console/graph/namespaces/?namespaces=${kialiNamespaces}&graphType=${kialiGraphType}&duration=60&refresh=15000&animation=true`,
       color: "text-blue-400 border-blue-400",
     },
     {

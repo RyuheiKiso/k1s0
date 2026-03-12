@@ -365,11 +365,26 @@ async fn main() -> anyhow::Result<()> {
     // Use cases
     let list_apps_uc = Arc::new(usecase::ListAppsUseCase::new(app_repo.clone()));
     let get_app_uc = Arc::new(usecase::GetAppUseCase::new(app_repo.clone()));
-    let list_versions_uc = Arc::new(usecase::ListVersionsUseCase::new(version_repo.clone()));
+    let list_versions_uc = Arc::new(usecase::ListVersionsUseCase::new(
+        app_repo.clone(),
+        version_repo.clone(),
+    ));
     let create_version_uc = Arc::new(usecase::CreateVersionUseCase::new(version_repo.clone()));
-    let delete_version_uc = Arc::new(usecase::DeleteVersionUseCase::new(version_repo.clone()));
-    let get_latest_uc = Arc::new(usecase::GetLatestUseCase::new(version_repo.clone()));
+    let delete_version_uc = Arc::new(usecase::DeleteVersionUseCase::new(
+        app_repo.clone(),
+        version_repo.clone(),
+    ));
+    let get_latest_uc = Arc::new(usecase::GetLatestUseCase::new(
+        app_repo.clone(),
+        version_repo.clone(),
+    ));
+    let get_download_stats_uc = Arc::new(usecase::GetDownloadStatsUseCase::new(
+        app_repo.clone(),
+        version_repo.clone(),
+        download_stats_repo.clone(),
+    ));
     let generate_download_url_uc = Arc::new(usecase::GenerateDownloadUrlUseCase::new(
+        app_repo.clone(),
         version_repo.clone(),
         download_stats_repo.clone(),
         s3_client.clone(),
@@ -389,6 +404,7 @@ async fn main() -> anyhow::Result<()> {
         create_version_uc,
         delete_version_uc,
         get_latest_uc,
+        get_download_stats_uc,
         generate_download_url_uc,
         validate_token_uc,
         metrics: metrics.clone(),
@@ -428,8 +444,8 @@ struct StubAppRepository;
 impl domain::repository::AppRepository for StubAppRepository {
     async fn list(
         &self,
-        _category: Option<&str>,
-        _search: Option<&str>,
+        _category: Option<String>,
+        _search: Option<String>,
     ) -> anyhow::Result<Vec<domain::entity::app::App>> {
         Ok(vec![])
     }
@@ -451,15 +467,6 @@ impl domain::repository::VersionRepository for StubVersionRepository {
         _app_id: &str,
     ) -> anyhow::Result<Vec<domain::entity::version::AppVersion>> {
         Ok(vec![])
-    }
-
-    async fn find_latest(
-        &self,
-        _app_id: &str,
-        _platform: &domain::entity::platform::Platform,
-        _arch: &str,
-    ) -> anyhow::Result<Option<domain::entity::version::AppVersion>> {
-        Ok(None)
     }
 
     async fn create(

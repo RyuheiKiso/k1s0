@@ -324,3 +324,47 @@ func TestTopicPartitionInfo_EmptyReplicas(t *testing.T) {
 	assert.Nil(t, info.Replicas)
 	assert.Nil(t, info.ISR)
 }
+
+// --- DefaultPartitionsForTier Tests ---
+
+func TestDefaultPartitionsForTier_System(t *testing.T) {
+	assert.Equal(t, 6, kafka.DefaultPartitionsForTier("system"))
+}
+
+func TestDefaultPartitionsForTier_Business(t *testing.T) {
+	assert.Equal(t, 6, kafka.DefaultPartitionsForTier("business"))
+}
+
+func TestDefaultPartitionsForTier_Service(t *testing.T) {
+	assert.Equal(t, 3, kafka.DefaultPartitionsForTier("service"))
+}
+
+func TestDefaultPartitionsForTier_Unknown(t *testing.T) {
+	assert.Equal(t, 3, kafka.DefaultPartitionsForTier("other"))
+}
+
+// --- WithTierDefaults Tests ---
+
+func TestTopicConfig_WithTierDefaults_System(t *testing.T) {
+	tc := &kafka.TopicConfig{Name: "k1s0.system.auth.login.v1"}
+	tc.WithTierDefaults()
+	assert.Equal(t, 6, tc.Partitions)
+}
+
+func TestTopicConfig_WithTierDefaults_Business(t *testing.T) {
+	tc := &kafka.TopicConfig{Name: "k1s0.business.order.placed.v1"}
+	tc.WithTierDefaults()
+	assert.Equal(t, 6, tc.Partitions)
+}
+
+func TestTopicConfig_WithTierDefaults_Service(t *testing.T) {
+	tc := &kafka.TopicConfig{Name: "k1s0.service.payment.done.v1"}
+	tc.WithTierDefaults()
+	assert.Equal(t, 3, tc.Partitions)
+}
+
+func TestTopicConfig_WithTierDefaults_InvalidName(t *testing.T) {
+	tc := &kafka.TopicConfig{Name: "invalid", Partitions: 5}
+	tc.WithTierDefaults()
+	assert.Equal(t, 5, tc.Partitions) // 変更されないこと
+}

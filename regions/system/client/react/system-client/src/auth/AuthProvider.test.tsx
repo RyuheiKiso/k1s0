@@ -18,6 +18,7 @@ const server = setupServer(
     return HttpResponse.json({
       id: 'user-1',
       username: body.username,
+      roles: ['user'],
     });
   }),
   http.post(`${API_BASE}/auth/logout`, () => {
@@ -46,7 +47,13 @@ describe('AuthProvider（API 統合）', () => {
   it('既存セッションがある場合は認証済みになる', async () => {
     server.use(
       http.get(`${API_BASE}/auth/me`, () => {
-        return HttpResponse.json({ id: 'user-existing', username: 'existing@example.com' });
+        return HttpResponse.json({
+          id: 'user-existing',
+          username: 'existing@example.com',
+          realm_access: {
+            roles: ['admin'],
+          },
+        });
       }),
     );
 
@@ -55,6 +62,7 @@ describe('AuthProvider（API 統合）', () => {
     await waitFor(() => {
       expect(result.current.isAuthenticated).toBe(true);
       expect(result.current.user?.username).toBe('existing@example.com');
+      expect(result.current.user?.roles).toEqual(['admin']);
     });
   });
 
@@ -76,6 +84,7 @@ describe('AuthProvider（API 統合）', () => {
     expect(result.current.isAuthenticated).toBe(true);
     expect(result.current.user?.id).toBe('user-1');
     expect(result.current.user?.username).toBe('user@example.com');
+    expect(result.current.user?.roles).toEqual(['user']);
   });
 
   it('logout で API を呼び出してユーザー情報をクリアする', async () => {

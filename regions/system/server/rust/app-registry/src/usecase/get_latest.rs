@@ -2,13 +2,17 @@ use std::sync::Arc;
 
 use crate::domain::entity::platform::Platform;
 use crate::domain::entity::version::AppVersion;
-use crate::domain::repository::VersionRepository;
+use crate::domain::repository::{AppRepository, VersionRepository};
+use crate::usecase::version_selection::select_latest;
 
 /// GetLatestError は最新バージョン取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetLatestError {
-    #[error("no version found for app={0} platform={1} arch={2}")]
-    NotFound(String, String, String),
+    #[error("app not found: {0}")]
+    AppNotFound(String),
+
+    #[error("no version found for app={0}")]
+    VersionNotFound(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -16,42 +20,70 @@ pub enum GetLatestError {
 
 /// GetLatestUseCase は最新バージョン取得ユースケース。
 pub struct GetLatestUseCase {
+    app_repo: Arc<dyn AppRepository>,
     version_repo: Arc<dyn VersionRepository>,
 }
 
 impl GetLatestUseCase {
-    pub fn new(version_repo: Arc<dyn VersionRepository>) -> Self {
-        Self { version_repo }
+    pub fn new(app_repo: Arc<dyn AppRepository>, version_repo: Arc<dyn VersionRepository>) -> Self {
+        Self {
+            app_repo,
+            version_repo,
+        }
     }
 
     pub async fn execute(
         &self,
         app_id: &str,
-        platform: &Platform,
-        arch: &str,
+        platform: Option<&Platform>,
+        arch: Option<&str>,
     ) -> Result<AppVersion, GetLatestError> {
-        match self.version_repo.find_latest(app_id, platform, arch).await {
-            Ok(Some(v)) => Ok(v),
-            Ok(None) => Err(GetLatestError::NotFound(
-                app_id.to_string(),
-                platform.to_string(),
-                arch.to_string(),
-            )),
-            Err(e) => Err(GetLatestError::Internal(e.to_string())),
+        let app = self
+            .app_repo
+            .find_by_id(app_id)
+            .await
+            .map_err(|e| GetLatestError::Internal(e.to_string()))?;
+
+        if app.is_none() {
+            return Err(GetLatestError::AppNotFound(app_id.to_string()));
         }
+
+        let versions = self
+            .version_repo
+            .list_by_app(app_id)
+            .await
+            .map_err(|e| GetLatestError::Internal(e.to_string()))?;
+
+        select_latest(&versions, platform, arch)
+            .ok_or_else(|| GetLatestError::VersionNotFound(app_id.to_string()))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::entity::app::App;
+    use crate::domain::repository::app_repository::MockAppRepository;
     use crate::domain::repository::version_repository::MockVersionRepository;
 
     #[tokio::test]
     async fn test_get_latest_success() {
-        let mut mock = MockVersionRepository::new();
-        mock.expect_find_latest().returning(|_, _, _| {
-            Ok(Some(AppVersion {
+        let mut app_repo = MockAppRepository::new();
+        app_repo.expect_find_by_id().returning(|_| {
+            Ok(Some(App {
+                id: "cli".to_string(),
+                name: "CLI".to_string(),
+                description: None,
+                category: "tools".to_string(),
+                icon_url: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            }))
+        });
+
+        let mut version_repo = MockVersionRepository::new();
+        version_repo.expect_list_by_app().returning(|_| {
+            Ok(vec![AppVersion {
                 id: uuid::Uuid::new_v4(),
                 app_id: "cli".to_string(),
                 version: "2.0.0".to_string(),
@@ -64,22 +96,35 @@ mod tests {
                 mandatory: false,
                 published_at: chrono::Utc::now(),
                 created_at: chrono::Utc::now(),
-            }))
+            }])
         });
 
-        let uc = GetLatestUseCase::new(Arc::new(mock));
-        let result = uc.execute("cli", &Platform::Linux, "amd64").await;
+        let uc = GetLatestUseCase::new(Arc::new(app_repo), Arc::new(version_repo));
+        let result = uc.execute("cli", Some(&Platform::Linux), Some("amd64")).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().version, "2.0.0");
     }
 
     #[tokio::test]
     async fn test_get_latest_not_found() {
-        let mut mock = MockVersionRepository::new();
-        mock.expect_find_latest().returning(|_, _, _| Ok(None));
+        let mut app_repo = MockAppRepository::new();
+        app_repo.expect_find_by_id().returning(|_| {
+            Ok(Some(App {
+                id: "cli".to_string(),
+                name: "CLI".to_string(),
+                description: None,
+                category: "tools".to_string(),
+                icon_url: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            }))
+        });
 
-        let uc = GetLatestUseCase::new(Arc::new(mock));
-        let result = uc.execute("cli", &Platform::Macos, "arm64").await;
-        assert!(matches!(result, Err(GetLatestError::NotFound(_, _, _))));
+        let mut version_repo = MockVersionRepository::new();
+        version_repo.expect_list_by_app().returning(|_| Ok(vec![]));
+
+        let uc = GetLatestUseCase::new(Arc::new(app_repo), Arc::new(version_repo));
+        let result = uc.execute("cli", Some(&Platform::Macos), Some("arm64")).await;
+        assert!(matches!(result, Err(GetLatestError::VersionNotFound(_))));
     }
 }

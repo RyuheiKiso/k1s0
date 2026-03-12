@@ -14,6 +14,57 @@ pub struct KeycloakConfig {
     pub client_id: String,
     #[serde(default)]
     pub client_secret: String,
+    #[serde(default = "default_admin_realm")]
+    pub admin_realm: String,
+    #[serde(default = "default_admin_client_id")]
+    pub admin_client_id: String,
+    #[serde(default)]
+    pub admin_username: String,
+    #[serde(default)]
+    pub admin_password: String,
+}
+
+fn default_admin_realm() -> String {
+    "master".to_string()
+}
+
+fn default_admin_client_id() -> String {
+    "admin-cli".to_string()
+}
+
+impl KeycloakConfig {
+    fn uses_admin_password_grant(&self) -> bool {
+        !self.admin_username.is_empty() && !self.admin_password.is_empty()
+    }
+
+    pub(crate) fn admin_token_url(&self) -> String {
+        let realm = if self.uses_admin_password_grant() {
+            self.admin_realm.as_str()
+        } else {
+            self.realm.as_str()
+        };
+        format!(
+            "{}/realms/{}/protocol/openid-connect/token",
+            self.base_url, realm
+        )
+    }
+
+    pub(crate) fn admin_token_form(&self) -> Vec<(&'static str, String)> {
+        if self.uses_admin_password_grant() {
+            vec![
+                ("grant_type", "password".to_string()),
+                ("client_id", self.admin_client_id.clone()),
+                ("username", self.admin_username.clone()),
+                ("password", self.admin_password.clone()),
+            ]
+        } else {
+            vec![
+                ("grant_type", "client_credentials".to_string()),
+                ("client_id", self.client_id.clone()),
+                ("client_secret", self.client_secret.clone()),
+            ]
+        }
+    }
 }
 
 /// CachedToken はキャッシュされた管理トークンを表す。
@@ -68,19 +119,13 @@ impl KeycloakClient {
             }
         }
 
-        let token_url = format!(
-            "{}/realms/{}/protocol/openid-connect/token",
-            self.config.base_url, self.config.realm
-        );
+        let token_url = self.config.admin_token_url();
+        let form = self.config.admin_token_form();
 
         let resp = self
             .http_client
             .post(&token_url)
-            .form(&[
-                ("grant_type", "client_credentials"),
-                ("client_id", &self.config.client_id),
-                ("client_secret", &self.config.client_secret),
-            ])
+            .form(&form)
             .send()
             .await?;
 

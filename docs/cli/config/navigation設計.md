@@ -1,5 +1,8 @@
 # Navigation 設計
 
+> **実装先**: エンドユーザー向けクライアント (system-client)
+> Navigation Editor は k1s0-gui（開発者ツール）ではなく、エンドユーザー向けクライアントアプリケーション上で実装します。k1s0-gui の NavigationTypesPage はナビゲーション定義の型生成であり、本設計とは異なる機能です。
+
 k1s0 におけるクライアントナビゲーション（画面遷移）の統一設計を定義する。
 React・Flutter のいずれのフレームワークでも同一の `navigation.yaml` から
 ナビゲーションを制御し、開発者体験（DX）と保守性を両立する。

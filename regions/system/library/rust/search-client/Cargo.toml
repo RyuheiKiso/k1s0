@@ -20,3 +20,7 @@ mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
+
+[[test]]
+name = "search_client_test"
+required-features = ["test-utils"]

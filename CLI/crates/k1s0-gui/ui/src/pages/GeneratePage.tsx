@@ -1,14 +1,20 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { useEffect, useState } from 'react';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
+import { toDisplayPath } from '../lib/paths';
 import {
   executeGenerateAt,
+  scanGenerateConflicts,
   scanDatabases,
   scanPlacements,
   validateName,
   type ApiStyle,
   type DetailConfig,
   type Framework,
+  type GenerateConfig,
   type Kind,
   type LangFw,
   type Language,
@@ -18,8 +24,23 @@ import {
 } from '../lib/tauri-commands';
 import { useWorkspace } from '../lib/workspace';
 
-const STEP_LABELS = ['Kind', 'Tier', 'Placement', 'Language', 'Detail', 'Confirm'] as const;
+const STEP_LABELS = ['種別', 'ティア', '配置', '言語', '詳細', '確認'] as const;
 type ServerDatabaseMode = 'none' | 'existing' | 'new';
+const API_STYLE_VALUES = ['Rest', 'Grpc', 'GraphQL'] as const;
+const BFF_LANGUAGE_VALUES = ['Go', 'Rust'] as const;
+
+const generateSchema = z.object({
+  placement: z.string().trim().min(1, '配置は必須です。'),
+  detailName: z.string().trim().min(1, '名前は必須です。'),
+  databaseName: z.string().trim().min(1, '名前は必須です。'),
+  newDatabaseName: z.string().trim().min(1, 'データベース名は必須です。'),
+  apiStyles: z.array(z.enum(API_STYLE_VALUES)),
+  selectedDatabasePath: z.string(),
+  generateBff: z.boolean(),
+  bffLanguage: z.enum(BFF_LANGUAGE_VALUES).nullable(),
+});
+
+type GenerateFormData = z.infer<typeof generateSchema>;
 
 function getAvailableTiers(kind: Kind): Tier[] {
   switch (kind) {
@@ -127,10 +148,35 @@ export default function GeneratePage() {
   });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const [nameError, setNameError] = useState('');
-  const [placementError, setPlacementError] = useState('');
-  const [detailError, setDetailError] = useState('');
-  const [serverDatabaseError, setServerDatabaseError] = useState('');
+  const [availabilityError, setAvailabilityError] = useState<{
+    key: string;
+    message: string;
+  } | null>(null);
+  const {
+    clearErrors,
+    formState: { errors },
+    setError,
+    setValue,
+    trigger,
+  } = useForm<GenerateFormData>({
+    resolver: zodResolver(generateSchema),
+    defaultValues: {
+      placement: '',
+      detailName: 'service',
+      databaseName: 'main',
+      newDatabaseName: 'service-db',
+      apiStyles: ['Rest'],
+      selectedDatabasePath: '',
+      generateBff: false,
+      bffLanguage: null,
+    },
+  });
+
+  const placementError = errors.placement?.message ?? '';
+  const nameError = errors.databaseName?.message ?? errors.detailName?.message ?? '';
+  const detailError = errors.apiStyles?.message ?? errors.bffLanguage?.message ?? '';
+  const serverDatabaseError =
+    errors.newDatabaseName?.message ?? errors.selectedDatabasePath?.message ?? '';
 
   useEffect(() => {
     if (step !== 2 || shouldSkipPlacement(tier) || workspaceUnavailable) {
@@ -170,9 +216,12 @@ export default function GeneratePage() {
           setAvailableDatabases(safeDatabases);
           setSelectedDatabasePath((current) => {
             if (current && safeDatabases.some((database) => database.path === current)) {
+              setValue('selectedDatabasePath', current);
               return current;
             }
-            return safeDatabases[0]?.path ?? '';
+            const nextPath = safeDatabases[0]?.path ?? '';
+            setValue('selectedDatabasePath', nextPath);
+            return nextPath;
           });
         }
       })
@@ -180,13 +229,14 @@ export default function GeneratePage() {
         if (!cancelled) {
           setAvailableDatabases([]);
           setSelectedDatabasePath('');
+          setValue('selectedDatabasePath', '');
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [activeWorkspaceRoot, kind, tier, workspaceUnavailable]);
+  }, [activeWorkspaceRoot, kind, setValue, tier, workspaceUnavailable]);
 
   function buildLangFw(): LangFw {
     if (kind === 'Client') {
@@ -198,6 +248,26 @@ export default function GeneratePage() {
     }
 
     return { Language: language };
+  }
+
+  function buildGenerateConfig(): GenerateConfig {
+    return {
+      kind,
+      tier,
+      placement: shouldSkipPlacement(tier) ? null : placement || null,
+      lang_fw: buildLangFw(),
+      detail: {
+        ...detail,
+        name: getResolvedDetailName(),
+        db:
+          kind === 'Database'
+            ? { name: databaseName, rdbms: databaseEngine }
+            : kind === 'Server'
+              ? resolveServerDatabase()
+              : null,
+        bff_language: showBffControls && generateBff ? detail.bff_language : null,
+      },
+    };
   }
 
   function getResolvedDetailName(): string {
@@ -232,61 +302,86 @@ export default function GeneratePage() {
     };
   }
 
-  async function validatePlacementValue(value: string): Promise<boolean> {
-    if (!value.trim()) {
-      setPlacementError('Placement is required.');
+  async function validateNameField(
+    field: 'placement' | 'detailName' | 'databaseName' | 'newDatabaseName',
+    value: string,
+    duplicateMessage?: string,
+  ): Promise<boolean> {
+    const valid = await trigger(field);
+    if (!valid) {
       return false;
     }
 
-    if (existingPlacements.includes(value.trim())) {
-      setPlacementError('This placement already exists.');
+    if (duplicateMessage) {
+      setError(field, { type: 'manual', message: duplicateMessage });
       return false;
     }
 
     try {
       await validateName(value.trim());
-      setPlacementError('');
+      clearErrors(field);
       return true;
     } catch (error) {
-      setPlacementError(String(error));
+      setError(field, { type: 'manual', message: String(error) });
       return false;
     }
+  }
+
+  async function validatePlacementValue(value: string): Promise<boolean> {
+    return validateNameField(
+      'placement',
+      value,
+      existingPlacements.includes(value.trim()) ? 'この配置はすでに存在します。' : undefined,
+    );
   }
 
   async function validateDetailName(value: string): Promise<boolean> {
-    if (!value.trim()) {
-      setNameError('Name is required.');
-      return false;
-    }
-
-    try {
-      await validateName(value.trim());
-      setNameError('');
-      return true;
-    } catch (error) {
-      setNameError(String(error));
-      return false;
-    }
+    return validateNameField('detailName', value);
   }
 
   async function validateServerDatabaseName(value: string): Promise<boolean> {
-    if (!value.trim()) {
-      setServerDatabaseError('Database name is required.');
+    return validateNameField('newDatabaseName', value);
+  }
+
+  async function validateAvailability(): Promise<boolean> {
+    if (workspaceUnavailable) {
+      setAvailabilityError({
+        key: currentAvailabilityKey,
+        message: 'ファイルを生成する前に有効なワークスペースルートを設定してください。',
+      });
       return false;
     }
 
     try {
-      await validateName(value.trim());
-      setServerDatabaseError('');
-      return true;
+      const conflicts = await scanGenerateConflicts(currentGenerateConfig, activeWorkspaceRoot);
+      if (conflicts.length === 0) {
+        setAvailabilityError((current) =>
+          current?.key === currentAvailabilityKey ? null : current,
+        );
+        return true;
+      }
+
+      const visibleConflicts = conflicts
+        .slice(0, 3)
+        .map((conflict) => toDisplayPath(activeWorkspaceRoot, conflict));
+      const suffix = conflicts.length > 3 ? ` 他${conflicts.length - 3}件。` : '。';
+      setAvailabilityError({
+        key: currentAvailabilityKey,
+        message: `競合する生成済みアセットがすでに存在します: ${visibleConflicts.join(', ')}${suffix}`,
+      });
+      return false;
     } catch (error) {
-      setServerDatabaseError(String(error));
+      setAvailabilityError({
+        key: currentAvailabilityKey,
+        message: String(error),
+      });
       return false;
     }
   }
 
   async function goNext() {
-    setDetailError('');
+    clearErrors();
+    setAvailabilityError((current) => (current?.key === currentAvailabilityKey ? null : current));
 
     if (step === 2 && isNewPlacement) {
       const ok = await validatePlacementValue(placement);
@@ -296,8 +391,13 @@ export default function GeneratePage() {
     }
 
     if (step === 3 && kind === 'Database') {
-      const ok = await validateDetailName(databaseName);
+      const ok = await validateNameField('databaseName', databaseName);
       if (!ok) {
+        return;
+      }
+
+      const available = await validateAvailability();
+      if (!available) {
         return;
       }
     }
@@ -311,17 +411,20 @@ export default function GeneratePage() {
       }
 
       if (kind === 'Server' && detail.api_styles.length === 0) {
-        setDetailError('Select at least one API style.');
+        setError('apiStyles', { type: 'manual', message: '1つ以上のAPIスタイルを選択してください。' });
         return;
       }
 
       if (showBffControls && generateBff && !detail.bff_language) {
-        setDetailError('Select a BFF language.');
+        setError('bffLanguage', { type: 'manual', message: 'BFF言語を選択してください。' });
         return;
       }
 
       if (kind === 'Server' && serverDatabaseMode === 'existing' && !getSelectedExistingDatabase()) {
-        setServerDatabaseError('Select an existing database.');
+        setError('selectedDatabasePath', {
+          type: 'manual',
+          message: '既存のデータベースを選択してください。',
+        });
         return;
       }
 
@@ -330,6 +433,18 @@ export default function GeneratePage() {
         if (!ok) {
           return;
         }
+      }
+
+      const available = await validateAvailability();
+      if (!available) {
+        return;
+      }
+    }
+
+    if (step === 3 && !showDetailStep && kind !== 'Database') {
+      const available = await validateAvailability();
+      if (!available) {
+        return;
       }
     }
 
@@ -341,20 +456,23 @@ export default function GeneratePage() {
   }
 
   function toggleApiStyle(style: ApiStyle) {
-    setDetail((current) => {
-      const nextStyles = current.api_styles.includes(style)
-        ? current.api_styles.filter((value) => value !== style)
-        : [...current.api_styles, style];
+    const nextStyles = detail.api_styles.includes(style)
+      ? detail.api_styles.filter((value) => value !== style)
+      : [...detail.api_styles, style];
 
-      return {
-        ...current,
-        api_styles: nextStyles,
-        bff_language: nextStyles.includes('GraphQL') ? current.bff_language : null,
-      };
-    });
+    setDetail((current) => ({
+      ...current,
+      api_styles: nextStyles,
+      bff_language: nextStyles.includes('GraphQL') ? current.bff_language : null,
+    }));
+    setValue('apiStyles', nextStyles);
+    clearErrors('apiStyles');
 
     if (style === 'GraphQL' && detail.api_styles.includes('GraphQL')) {
       setGenerateBff(false);
+      setValue('generateBff', false);
+      setValue('bffLanguage', null);
+      clearErrors('bffLanguage');
     }
   }
 
@@ -372,11 +490,14 @@ export default function GeneratePage() {
           ? current.bff_language
           : null,
     }));
+    setValue('detailName', getDefaultDetailName(nextKind));
+    clearErrors(['detailName', 'apiStyles', 'selectedDatabasePath', 'newDatabaseName', 'bffLanguage']);
 
     if (nextKind !== 'Server') {
       setServerDatabaseMode('none');
-      setServerDatabaseError('');
       setGenerateBff(false);
+      setValue('generateBff', false);
+      setValue('bffLanguage', null);
     }
   }
 
@@ -395,34 +516,25 @@ export default function GeneratePage() {
 
     if (nextTier !== 'Service') {
       setGenerateBff(false);
+      setValue('generateBff', false);
+      setValue('bffLanguage', null);
+      clearErrors('bffLanguage');
     }
   }
 
   async function handleGenerate() {
     setStatus('loading');
     setErrorMessage('');
+    setAvailabilityError((current) => (current?.key === currentAvailabilityKey ? null : current));
+
+    const available = await validateAvailability();
+    if (!available) {
+      setStatus('error');
+      return;
+    }
 
     try {
-      await executeGenerateAt(
-        {
-          kind,
-          tier,
-          placement: shouldSkipPlacement(tier) ? null : placement || null,
-          lang_fw: buildLangFw(),
-          detail: {
-            ...detail,
-            name: getResolvedDetailName(),
-            db:
-              kind === 'Database'
-                ? { name: databaseName, rdbms: databaseEngine }
-                : kind === 'Server'
-                  ? resolveServerDatabase()
-                  : null,
-            bff_language: showBffControls && generateBff ? detail.bff_language : null,
-          },
-        },
-        activeWorkspaceRoot,
-      );
+      await executeGenerateAt(currentGenerateConfig, activeWorkspaceRoot);
       setStatus('success');
     } catch (error) {
       setStatus('error');
@@ -435,22 +547,28 @@ export default function GeneratePage() {
   const showBffControls =
     kind === 'Server' && tier === 'Service' && detail.api_styles.includes('GraphQL');
   const selectedBffLanguage = showBffControls && generateBff ? detail.bff_language : null;
-  const currentRuntime = buildLangFw();
+  const currentGenerateConfig = buildGenerateConfig();
+  const currentAvailabilityKey = JSON.stringify({
+    workspaceRoot: activeWorkspaceRoot,
+    config: currentGenerateConfig,
+  });
+  const availabilityErrorMessage =
+    availabilityError?.key === currentAvailabilityKey ? availabilityError.message : '';
+  const currentRuntime = currentGenerateConfig.lang_fw;
   const selectedExistingDatabase = getSelectedExistingDatabase();
-  const resolvedServerDatabase = resolveServerDatabase();
+  const resolvedServerDatabase = currentGenerateConfig.detail.db;
 
   return (
     <div className="glass max-w-5xl p-6" data-testid="generate-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Scaffold</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Generate workspace assets</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">生成</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white">ワークスペースアセットの生成</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        The GUI generates from the selected workspace root instead of the process working
-        directory.
+        GUIはプロセスの作業ディレクトリではなく、選択したワークスペースルートから生成します。
       </p>
 
       {workspaceUnavailable && (
         <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-          Configure a valid workspace root before generating files.
+          ファイルを生成する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
@@ -477,7 +595,7 @@ export default function GeneratePage() {
           className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5"
           data-testid="step-kind"
         >
-          <h2 className="text-lg font-semibold text-white">Choose a module kind</h2>
+          <h2 className="text-lg font-semibold text-white">モジュール種別を選択</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {(['Server', 'Client', 'Library', 'Database'] as Kind[]).map((value) => (
               <label
@@ -502,7 +620,7 @@ export default function GeneratePage() {
             className="mt-5 rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
             data-testid="btn-next"
           >
-            Next
+            次へ
           </button>
         </section>
       )}
@@ -512,7 +630,7 @@ export default function GeneratePage() {
           className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5"
           data-testid="step-tier"
         >
-          <h2 className="text-lg font-semibold text-white">Choose a tier</h2>
+          <h2 className="text-lg font-semibold text-white">ティアを選択</h2>
           <div className="mt-4 space-y-2">
             {getAvailableTiers(kind).map((value) => (
               <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
@@ -533,7 +651,7 @@ export default function GeneratePage() {
               className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
               data-testid="btn-back"
             >
-              Back
+              戻る
             </button>
             <button
               type="button"
@@ -543,9 +661,14 @@ export default function GeneratePage() {
               className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
               data-testid="btn-next"
             >
-              Next
+              次へ
             </button>
           </div>
+          {availabilityErrorMessage && (
+            <p className="mt-4 text-sm text-rose-300" data-testid="availability-error">
+              {availabilityErrorMessage}
+            </p>
+          )}
         </section>
       )}
 
@@ -554,12 +677,12 @@ export default function GeneratePage() {
           className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5"
           data-testid="step-placement"
         >
-          <h2 className="text-lg font-semibold text-white">Choose a placement</h2>
+          <h2 className="text-lg font-semibold text-white">配置を選択</h2>
 
           {existingPlacements.length > 0 && (
             <div className="mt-4">
               <label className="block text-sm font-medium text-slate-200/82">
-                Existing placement
+                既存の配置
               </label>
               <select
                 className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/35 px-3 py-2 text-white"
@@ -568,15 +691,17 @@ export default function GeneratePage() {
                   if (event.target.value === '__new__') {
                     setIsNewPlacement(true);
                     setPlacement('');
+                    setValue('placement', '');
                   } else {
                     setIsNewPlacement(false);
                     setPlacement(event.target.value);
-                    setPlacementError('');
+                    setValue('placement', event.target.value);
+                    clearErrors('placement');
                   }
                 }}
                 data-testid="select-placement"
               >
-                <option value="__new__">Create new placement</option>
+                <option value="__new__">新しい配置を作成</option>
                 {existingPlacements.map((value) => (
                   <option key={value} value={value}>
                     {value}
@@ -588,10 +713,14 @@ export default function GeneratePage() {
 
           {(isNewPlacement || existingPlacements.length === 0) && (
             <div className="mt-4">
-              <label className="block text-sm font-medium text-slate-200/82">Placement name</label>
+              <label className="block text-sm font-medium text-slate-200/82">配置名</label>
               <input
                 value={placement}
-                onChange={(event) => setPlacement(event.target.value)}
+                onChange={(event) => {
+                  setPlacement(event.target.value);
+                  setValue('placement', event.target.value);
+                  clearErrors('placement');
+                }}
                 onBlur={() => {
                   void validatePlacementValue(placement);
                 }}
@@ -616,7 +745,7 @@ export default function GeneratePage() {
               className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
               data-testid="btn-back"
             >
-              Back
+              戻る
             </button>
             <button
               type="button"
@@ -626,9 +755,14 @@ export default function GeneratePage() {
               className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
               data-testid="btn-next"
             >
-              Next
+              次へ
             </button>
           </div>
+          {availabilityErrorMessage && (
+            <p className="mt-4 text-sm text-rose-300" data-testid="availability-error">
+              {availabilityErrorMessage}
+            </p>
+          )}
         </section>
       )}
 
@@ -637,7 +771,7 @@ export default function GeneratePage() {
           className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5"
           data-testid="step-langfw"
         >
-          <h2 className="text-lg font-semibold text-white">Language or framework</h2>
+          <h2 className="text-lg font-semibold text-white">言語またはフレームワーク</h2>
 
           {kind === 'Client' && (
             <div className="mt-4 space-y-2">
@@ -658,12 +792,16 @@ export default function GeneratePage() {
           {kind === 'Database' && (
             <div className="mt-4 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-200/82">Database name</label>
+                <label className="block text-sm font-medium text-slate-200/82">データベース名</label>
                 <input
                   value={databaseName}
-                  onChange={(event) => setDatabaseName(event.target.value)}
+                  onChange={(event) => {
+                    setDatabaseName(event.target.value);
+                    setValue('databaseName', event.target.value);
+                    clearErrors('databaseName');
+                  }}
                   onBlur={() => {
-                    void validateDetailName(databaseName);
+                    void validateNameField('databaseName', databaseName);
                   }}
                   placeholder="main"
                   className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
@@ -714,7 +852,7 @@ export default function GeneratePage() {
               className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
               data-testid="btn-back"
             >
-              Back
+              戻る
             </button>
             <button
               type="button"
@@ -724,9 +862,14 @@ export default function GeneratePage() {
               className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
               data-testid="btn-next"
             >
-              Next
+              次へ
             </button>
           </div>
+          {availabilityErrorMessage && (
+            <p className="mt-4 text-sm text-rose-300" data-testid="availability-error">
+              {availabilityErrorMessage}
+            </p>
+          )}
         </section>
       )}
 
@@ -735,19 +878,21 @@ export default function GeneratePage() {
           className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5"
           data-testid="step-detail"
         >
-          <h2 className="text-lg font-semibold text-white">Detail options</h2>
+          <h2 className="text-lg font-semibold text-white">詳細オプション</h2>
 
           {tier !== 'Service' && (
             <div className="mt-4">
-              <label className="block text-sm font-medium text-slate-200/82">Module name</label>
+              <label className="block text-sm font-medium text-slate-200/82">モジュール名</label>
               <input
                 value={detail.name ?? ''}
-                onChange={(event) =>
+                onChange={(event) => {
                   setDetail((current) => ({
                     ...current,
                     name: event.target.value,
-                  }))
-                }
+                  }));
+                  setValue('detailName', event.target.value);
+                  clearErrors('detailName');
+                }}
                 onBlur={() => {
                   void validateDetailName(detail.name ?? '');
                 }}
@@ -765,14 +910,14 @@ export default function GeneratePage() {
 
           {tier === 'Service' && (
             <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/20 p-4 text-sm text-slate-200/82">
-              Service name is derived from the placement: <strong>{placement || 'not set'}</strong>
+              サービス名は配置から導出されます: <strong>{placement || '未設定'}</strong>
             </div>
           )}
 
           {kind === 'Server' && (
             <>
               <div className="mt-5">
-                <p className="text-sm font-medium text-slate-200/82">API styles</p>
+                <p className="text-sm font-medium text-slate-200/82">APIスタイル</p>
                 <div className="mt-3 space-y-2">
                   {(['Rest', 'Grpc', 'GraphQL'] as ApiStyle[]).map((value) => (
                     <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
@@ -788,24 +933,24 @@ export default function GeneratePage() {
               </div>
 
               <div className="mt-5">
-                <p className="text-sm font-medium text-slate-200/82">Database</p>
+                <p className="text-sm font-medium text-slate-200/82">データベース</p>
                 <div className="mt-3 space-y-3">
                   {(['none', 'existing', 'new'] as ServerDatabaseMode[]).map((value) => (
                     <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
-                      <input
-                        type="radio"
-                        checked={serverDatabaseMode === value}
-                        onChange={() => {
-                          setServerDatabaseMode(value);
-                          setServerDatabaseError('');
-                        }}
-                        name="server-database-mode"
-                      />
+                        <input
+                          type="radio"
+                          checked={serverDatabaseMode === value}
+                          onChange={() => {
+                            setServerDatabaseMode(value);
+                            clearErrors(['selectedDatabasePath', 'newDatabaseName']);
+                          }}
+                          name="server-database-mode"
+                        />
                       {value === 'none'
-                        ? 'No database'
+                        ? 'データベースなし'
                         : value === 'existing'
-                          ? 'Use existing database'
-                          : 'Create new database'}
+                          ? '既存のデータベースを使用'
+                          : '新しいデータベースを作成'}
                     </label>
                   ))}
                 </div>
@@ -814,18 +959,19 @@ export default function GeneratePage() {
                   <div className="mt-4">
                     {availableDatabases.length === 0 ? (
                       <p className="text-sm text-slate-200/55">
-                        No existing databases were found for this tier.
+                        このティアに既存のデータベースが見つかりませんでした。
                       </p>
                     ) : (
                       <>
                         <label className="block text-sm font-medium text-slate-200/82">
-                          Existing database
+                          既存のデータベース
                         </label>
                         <select
                           value={selectedDatabasePath}
                           onChange={(event) => {
                             setSelectedDatabasePath(event.target.value);
-                            setServerDatabaseError('');
+                            setValue('selectedDatabasePath', event.target.value);
+                            clearErrors('selectedDatabasePath');
                           }}
                           className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/35 px-3 py-2 text-white"
                           data-testid="select-server-db"
@@ -845,11 +991,15 @@ export default function GeneratePage() {
                   <div className="mt-4 space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-200/82">
-                        Database name
+                        データベース名
                       </label>
                       <input
                         value={newDatabaseName}
-                        onChange={(event) => setNewDatabaseName(event.target.value)}
+                        onChange={(event) => {
+                          setNewDatabaseName(event.target.value);
+                          setValue('newDatabaseName', event.target.value);
+                          clearErrors('newDatabaseName');
+                        }}
                         onBlur={() => {
                           void validateServerDatabaseName(newDatabaseName);
                         }}
@@ -894,7 +1044,7 @@ export default function GeneratePage() {
                       }))
                     }
                   />
-                  Enable Kafka integration
+                  Kafka連携を有効にする
                 </label>
                 <label className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input
@@ -907,19 +1057,19 @@ export default function GeneratePage() {
                       }))
                     }
                   />
-                  Enable Redis integration
+                  Redis連携を有効にする
                 </label>
               </div>
 
               {showBffControls && (
                 <div className="mt-5">
                   <p className="text-sm font-medium text-slate-200/82">
-                    Generate GraphQL BFF
+                    GraphQL BFFを生成する
                   </p>
                   <div className="mt-3 space-y-2">
                     {[
-                      { label: 'Yes', enabled: true },
-                      { label: 'No', enabled: false },
+                      { label: 'はい', enabled: true },
+                      { label: 'いいえ', enabled: false },
                     ].map(({ label, enabled }) => (
                       <label key={label} className="flex items-center gap-3 text-sm text-slate-200/82">
                         <input
@@ -927,11 +1077,14 @@ export default function GeneratePage() {
                           checked={generateBff === enabled}
                           onChange={() => {
                             setGenerateBff(enabled);
+                            setValue('generateBff', enabled);
                             if (!enabled) {
                               setDetail((current) => ({
                                 ...current,
                                 bff_language: null,
                               }));
+                              setValue('bffLanguage', null);
+                              clearErrors('bffLanguage');
                             }
                           }}
                           name="generate-bff"
@@ -943,9 +1096,9 @@ export default function GeneratePage() {
 
                   {generateBff && (
                     <div className="mt-4">
-                      <p className="text-sm font-medium text-slate-200/82">BFF language</p>
+                      <p className="text-sm font-medium text-slate-200/82">BFF言語</p>
                       <div className="mt-3 space-y-2">
-                        {(['Go', 'Rust'] as Language[]).map((value) => (
+                        {BFF_LANGUAGE_VALUES.map((value) => (
                           <label
                             key={value}
                             className="flex items-center gap-3 text-sm text-slate-200/82"
@@ -953,12 +1106,14 @@ export default function GeneratePage() {
                             <input
                               type="radio"
                               checked={detail.bff_language === value}
-                              onChange={() =>
+                              onChange={() => {
                                 setDetail((current) => ({
                                   ...current,
                                   bff_language: value,
-                                }))
-                              }
+                                }));
+                                setValue('bffLanguage', value);
+                                clearErrors('bffLanguage');
+                              }}
                               name="bff-language"
                             />
                             {value}
@@ -985,7 +1140,7 @@ export default function GeneratePage() {
               className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
               data-testid="btn-back"
             >
-              Back
+              戻る
             </button>
             <button
               type="button"
@@ -995,7 +1150,7 @@ export default function GeneratePage() {
               className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
               data-testid="btn-next"
             >
-              Next
+              次へ
             </button>
           </div>
         </section>
@@ -1006,33 +1161,33 @@ export default function GeneratePage() {
           className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5"
           data-testid="step-confirm"
         >
-          <h2 className="text-lg font-semibold text-white">Confirm generation</h2>
+          <h2 className="text-lg font-semibold text-white">生成の確認</h2>
           <div className="mt-4 space-y-3 text-sm text-slate-200/82">
-            <p>Kind: {kind}</p>
-            <p>Tier: {tier}</p>
-            <p>Placement: {showPlacementStep ? placement || 'not set' : 'not required'}</p>
+            <p>種別: {kind}</p>
+            <p>ティア: {tier}</p>
+            <p>配置: {showPlacementStep ? placement || '未設定' : '不要'}</p>
             <p>
-              Runtime:{' '}
+              ランタイム:{' '}
               {'Framework' in currentRuntime
                 ? currentRuntime.Framework
                 : 'Database' in currentRuntime
                   ? `${currentRuntime.Database.rdbms} (${currentRuntime.Database.name})`
                   : currentRuntime.Language}
             </p>
-            <p>Name: {getResolvedDetailName()}</p>
+            <p>名前: {getResolvedDetailName()}</p>
             {kind === 'Server' && (
               <>
-                <p>API styles: {detail.api_styles.length > 0 ? detail.api_styles.join(', ') : 'none'}</p>
+                <p>APIスタイル: {detail.api_styles.length > 0 ? detail.api_styles.join(', ') : 'なし'}</p>
                 <p>
-                  Database:{' '}
+                  データベース:{' '}
                   {resolvedServerDatabase
                     ? `${resolvedServerDatabase.name} (${resolvedServerDatabase.rdbms})`
-                    : 'none'}
+                    : 'なし'}
                 </p>
-                <p>Kafka: {detail.kafka ? 'enabled' : 'disabled'}</p>
-                <p>Redis: {detail.redis ? 'enabled' : 'disabled'}</p>
-                <p>Generate BFF: {showBffControls ? (generateBff ? 'yes' : 'no') : 'not available'}</p>
-                <p>BFF language: {selectedBffLanguage ?? 'not required'}</p>
+                <p>Kafka: {detail.kafka ? '有効' : '無効'}</p>
+                <p>Redis: {detail.redis ? '有効' : '無効'}</p>
+                <p>BFF生成: {showBffControls ? (generateBff ? 'あり' : 'なし') : '利用不可'}</p>
+                <p>BFF言語: {selectedBffLanguage ?? '不要'}</p>
               </>
             )}
             {kind === 'Database' && (
@@ -1042,7 +1197,7 @@ export default function GeneratePage() {
             )}
             {serverDatabaseMode === 'existing' && selectedExistingDatabase && (
               <p className="text-slate-300/60">
-                Existing DB path: {selectedExistingDatabase.path}
+                既存DBパス: {selectedExistingDatabase.path}
               </p>
             )}
           </div>
@@ -1054,7 +1209,7 @@ export default function GeneratePage() {
               className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
               data-testid="btn-back"
             >
-              Back
+              戻る
             </button>
             <button
               type="button"
@@ -1065,18 +1220,23 @@ export default function GeneratePage() {
               className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
               data-testid="btn-generate"
             >
-              {status === 'loading' ? 'Generating...' : 'Generate'}
+              {status === 'loading' ? '生成中...' : '生成'}
             </button>
           </div>
 
           {status === 'success' && (
             <p className="mt-4 text-sm text-emerald-300" data-testid="success-message">
-              Generation completed successfully.
+              生成が正常に完了しました。
             </p>
           )}
           {status === 'error' && (
             <p className="mt-4 text-sm text-rose-300" data-testid="error-message">
               {errorMessage}
+            </p>
+          )}
+          {availabilityErrorMessage && (
+            <p className="mt-4 text-sm text-rose-300" data-testid="availability-error">
+              {availabilityErrorMessage}
             </p>
           )}
         </section>

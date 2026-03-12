@@ -37,6 +37,78 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
 
+# 権限拒否 (auth-server -> audit)
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.auth.permission_denied.v1 \
+  --partitions 6 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# APIレジストリ スキーマ更新 (api-registry -> subscribers)
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.apiregistry.schema_updated.v1 \
+  --partitions 6 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# フィーチャーフラグ変更 (featureflag-server -> subscribers)
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.featureflag.changed.v1 \
+  --partitions 6 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# ファイルアップロード (file-server -> subscribers)
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.file.uploaded.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# ファイル削除 (file-server -> subscribers)
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.file.deleted.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# シークレットローテーション (vault-server -> subscribers)
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.vault.secret_rotated.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# 通知リクエスト (notification-server -> delivery)
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.notification.requested.v1 \
+  --partitions 6 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# クォータ超過 (quota-server -> alerting)
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.quota.exceeded.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# Saga 状態変更 (saga-server -> orchestration)
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.saga.state_changed.v1 \
+  --partitions 6 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
 # --- Service Tier ---
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --create --if-not-exists \
@@ -57,6 +129,15 @@ for topic in \
   k1s0.system.auth.audit.v1.dlq \
   k1s0.system.config.changed.v1.dlq \
   k1s0.system.auth.login.v1.dlq \
+  k1s0.system.auth.permission_denied.v1.dlq \
+  k1s0.system.apiregistry.schema_updated.v1.dlq \
+  k1s0.system.featureflag.changed.v1.dlq \
+  k1s0.system.file.uploaded.v1.dlq \
+  k1s0.system.file.deleted.v1.dlq \
+  k1s0.system.vault.secret_rotated.v1.dlq \
+  k1s0.system.notification.requested.v1.dlq \
+  k1s0.system.quota.exceeded.v1.dlq \
+  k1s0.system.saga.state_changed.v1.dlq \
   k1s0.service.order.created.v1.dlq \
   k1s0.service.order.updated.v1.dlq; do
   kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \

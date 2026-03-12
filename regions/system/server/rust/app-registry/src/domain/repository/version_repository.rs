@@ -10,14 +10,6 @@ pub trait VersionRepository: Send + Sync {
     /// 指定アプリの全バージョンを取得する。
     async fn list_by_app(&self, app_id: &str) -> anyhow::Result<Vec<AppVersion>>;
 
-    /// 指定アプリ・プラットフォーム・アーキテクチャの最新バージョンを取得する。
-    async fn find_latest(
-        &self,
-        app_id: &str,
-        platform: &Platform,
-        arch: &str,
-    ) -> anyhow::Result<Option<AppVersion>>;
-
     /// 新しいバージョンを作成する。
     async fn create(&self, version: &AppVersion) -> anyhow::Result<AppVersion>;
 

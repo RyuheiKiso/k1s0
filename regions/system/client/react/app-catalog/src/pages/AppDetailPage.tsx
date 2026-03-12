@@ -1,7 +1,39 @@
 import { useParams } from 'react-router-dom';
+import type { App, AppVersion } from '../api/types';
 import { useAppDetail } from '../hooks/useAppDetail';
+import { PlatformBadge } from '../components/PlatformBadge';
 import { VersionHistory } from '../components/VersionHistory';
 import { DownloadButton } from '../components/DownloadButton';
+import { detectClientPlatform, formatArch, formatBytes, platformLabels } from '../lib/platform';
+
+function buildPreviewCards(app: App) {
+  return [
+    {
+      title: `${app.name} ホーム`,
+      description: '主要機能へ素早くアクセスするための開始画面。',
+    },
+    {
+      title: '作業フロー',
+      description: '更新後の操作イメージを確認できる代表画面。',
+    },
+    {
+      title: 'レポート',
+      description: app.description ?? 'リリース内容を反映したプレビュー。',
+    },
+  ];
+}
+
+function getRecommendedVersion(versions: AppVersion[]) {
+  const detectedPlatform = detectClientPlatform();
+
+  return {
+    detectedPlatform,
+    recommendedVersion:
+      (detectedPlatform
+        ? versions.find((version) => version.platform === detectedPlatform)
+        : undefined) ?? versions[0],
+  };
+}
 
 export function AppDetailPage() {
   const { appId } = useParams<{ appId: string }>();
@@ -16,7 +48,9 @@ export function AppDetailPage() {
   }
 
   const { app, versions } = data;
-  const latestVersion = versions[0];
+  const { detectedPlatform, recommendedVersion } = getRecommendedVersion(versions);
+  const previewCards = buildPreviewCards(app);
+  const supportedPlatforms = [...new Set(versions.map((version) => version.platform))];
 
   return (
     <div className="app-detail-page">
@@ -32,19 +66,73 @@ export function AppDetailPage() {
           <h1>{app.name}</h1>
           <span className="app-detail-page__category">{app.category}</span>
           {app.description && <p>{app.description}</p>}
-          {latestVersion && (
-            <DownloadButton
-              appId={app.id}
-              versionId={latestVersion.id}
-              label={`v${latestVersion.version} をダウンロード`}
-            />
+          {recommendedVersion && (
+            <div className="app-detail-page__download-panel">
+              <div className="app-detail-page__recommendation">
+                <p className="app-detail-page__eyebrow">推奨ダウンロード</p>
+                <strong>
+                  v{recommendedVersion.version} / {platformLabels[recommendedVersion.platform]} /{' '}
+                  {formatArch(recommendedVersion.arch)}
+                </strong>
+                <p>
+                  {detectedPlatform
+                    ? `この端末では ${platformLabels[detectedPlatform]} 向けバイナリを推奨します。`
+                    : '利用端末を判定できなかったため、最新バージョンを表示しています。'}
+                </p>
+              </div>
+              <DownloadButton
+                appId={app.id}
+                version={recommendedVersion.version}
+                platform={recommendedVersion.platform}
+                arch={recommendedVersion.arch}
+                label={`v${recommendedVersion.version} をダウンロード`}
+              />
+            </div>
           )}
         </div>
       </div>
-      {latestVersion?.release_notes && (
+
+      {recommendedVersion && (
+        <section className="app-detail-page__summary">
+          <div className="app-detail-page__summary-card">
+            <p className="app-detail-page__summary-label">対応 OS</p>
+            <div className="app-detail-page__platforms">
+              {supportedPlatforms.map((platform) => (
+                <PlatformBadge key={platform} platform={platform} />
+              ))}
+            </div>
+          </div>
+          <div className="app-detail-page__summary-card">
+            <p className="app-detail-page__summary-label">ファイルサイズ</p>
+            <strong>{formatBytes(recommendedVersion.size_bytes)}</strong>
+          </div>
+          <div className="app-detail-page__summary-card">
+            <p className="app-detail-page__summary-label">SHA-256</p>
+            <code>{recommendedVersion.checksum_sha256}</code>
+          </div>
+        </section>
+      )}
+
+      <section className="app-detail-page__screenshots">
+        <div className="app-detail-page__section-heading">
+          <h2>スクリーンショット</h2>
+          <p>代表的な利用シーンをプレビューで確認できます。</p>
+        </div>
+        <div className="app-detail-page__preview-grid">
+          {previewCards.map((preview) => (
+            <article key={preview.title} className="app-detail-page__preview-card">
+              <div className="app-detail-page__preview-visual">{app.name}</div>
+              <h3>{preview.title}</h3>
+              <p>{preview.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {recommendedVersion?.release_notes && (
         <div className="app-detail-page__release-notes">
-          <h2>リリースノート</h2>
-          <p>{latestVersion.release_notes}</p>
+          <h2>最新リリースノート</h2>
+          <p>{recommendedVersion.release_notes}</p>
         </div>
       )}
       <VersionHistory versions={versions} appId={app.id} />

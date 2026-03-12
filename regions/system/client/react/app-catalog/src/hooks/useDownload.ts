@@ -3,15 +3,17 @@ import { fetchDownloadUrl } from '../api/client';
 
 interface DownloadParams {
   appId: string;
-  versionId: string;
+  version: string;
+  platform?: 'windows' | 'linux' | 'macos';
+  arch?: string;
 }
 
 export function useDownload() {
   return useMutation({
-    mutationFn: async ({ appId, versionId }: DownloadParams) => {
-      const url = await fetchDownloadUrl(appId, versionId);
-      window.open(url, '_blank');
-      return url;
+    mutationFn: async ({ appId, version, platform, arch }: DownloadParams) => {
+      const response = await fetchDownloadUrl(appId, version, platform, arch);
+      window.open(response.download_url, '_blank', 'noopener,noreferrer');
+      return response;
     },
   });
 }

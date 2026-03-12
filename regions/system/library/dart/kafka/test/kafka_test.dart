@@ -231,6 +231,49 @@ void main() {
         expect(topic.tier(), equals(''));
       });
     });
+
+    group('partitionsForTier', () {
+      test('returns 6 for system tier', () {
+        expect(TopicConfig.partitionsForTier('system'), equals(6));
+      });
+
+      test('returns 6 for business tier', () {
+        expect(TopicConfig.partitionsForTier('business'), equals(6));
+      });
+
+      test('returns 3 for service tier', () {
+        expect(TopicConfig.partitionsForTier('service'), equals(3));
+      });
+
+      test('returns 3 for unknown tier', () {
+        expect(TopicConfig.partitionsForTier('other'), equals(3));
+      });
+    });
+
+    group('defaultPartitionsForTier', () {
+      test('returns 6 for system topic', () {
+        final topic =
+            TopicConfig(name: 'k1s0.system.auth.login.v1');
+        expect(topic.defaultPartitionsForTier(), equals(6));
+      });
+
+      test('returns 6 for business topic', () {
+        final topic =
+            TopicConfig(name: 'k1s0.business.order.placed.v1');
+        expect(topic.defaultPartitionsForTier(), equals(6));
+      });
+
+      test('returns 3 for service topic', () {
+        final topic =
+            TopicConfig(name: 'k1s0.service.payment.done.v1');
+        expect(topic.defaultPartitionsForTier(), equals(3));
+      });
+
+      test('returns 3 for invalid topic name', () {
+        final topic = TopicConfig(name: 'invalid');
+        expect(topic.defaultPartitionsForTier(), equals(3));
+      });
+    });
   });
 
   group('KafkaHealthStatus', () {

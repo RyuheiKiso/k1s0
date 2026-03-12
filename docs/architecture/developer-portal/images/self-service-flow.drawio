@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="Self Service Flow" id="self-service-flow">
+    <mxGraphModel dx="1400" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="2400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Step 1: Template Selection (blue) -->
+        <mxCell id="s1_group" value="Step 1: テンプレート選択" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#42A5F5;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="1000" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="s1a" value="Rust Server" style="rounded=1;whiteSpace=wrap;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1b" value="Go Server" style="rounded=1;whiteSpace=wrap;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="185" y="70" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1c" value="React Client" style="rounded=1;whiteSpace=wrap;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="70" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1d" value="Flutter Client" style="rounded=1;whiteSpace=wrap;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="435" y="70" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1e" value="Library" style="rounded=1;whiteSpace=wrap;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="70" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1f" value="Database" style="rounded=1;whiteSpace=wrap;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1g" value="Kafka Topic" style="rounded=1;whiteSpace=wrap;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="185" y="120" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1h" value="Helm Chart" style="rounded=1;whiteSpace=wrap;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="120" width="110" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Parameter Input (orange) -->
+        <mxCell id="s2_group" value="Step 2: パラメータ入力" style="rounded=1;whiteSpace=wrap;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="210" width="1000" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="s2a" value="サービス名" style="rounded=1;whiteSpace=wrap;fillColor=#FFCC80;strokeColor=#E65100;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="250" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s2b" value="Tier" style="rounded=1;whiteSpace=wrap;fillColor=#FFCC80;strokeColor=#E65100;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="200" y="250" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s2c" value="ドメイン" style="rounded=1;whiteSpace=wrap;fillColor=#FFCC80;strokeColor=#E65100;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="250" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s2d" value="API種別" style="rounded=1;whiteSpace=wrap;fillColor=#FFCC80;strokeColor=#E65100;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="250" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e" value="DB種別" style="rounded=1;whiteSpace=wrap;fillColor=#FFCC80;strokeColor=#E65100;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="250" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s2f" value="オーナーチーム" style="rounded=1;whiteSpace=wrap;fillColor=#FFCC80;strokeColor=#E65100;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="710" y="250" width="130" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3: Code Generation (purple) -->
+        <mxCell id="s3_group" value="Step 3: コード生成" style="rounded=1;whiteSpace=wrap;fillColor=#F3E5F5;strokeColor=#AB47BC;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="1000" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="s3a" value="k1s0 CLI Core" style="rounded=1;whiteSpace=wrap;fillColor=#CE93D8;strokeColor=#7B1FA2;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s3b" value="Tera Engine" style="rounded=1;whiteSpace=wrap;fillColor=#CE93D8;strokeColor=#7B1FA2;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="400" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s3c" value="50+ Templates" style="rounded=1;whiteSpace=wrap;fillColor=#CE93D8;strokeColor=#7B1FA2;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="400" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4: Git Operations (grey) -->
+        <mxCell id="s4_group" value="Step 4: Git操作" style="rounded=1;whiteSpace=wrap;fillColor=#ECEFF1;strokeColor=#78909C;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="510" width="1000" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="s4a" value="ブランチ作成" style="rounded=1;whiteSpace=wrap;fillColor=#CFD8DC;strokeColor=#455A64;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="550" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s4b" value="コミット" style="rounded=1;whiteSpace=wrap;fillColor=#CFD8DC;strokeColor=#455A64;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="550" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s4c" value="PR作成" style="rounded=1;whiteSpace=wrap;fillColor=#CFD8DC;strokeColor=#455A64;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="550" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s4d" value="自動レビュー" style="rounded=1;whiteSpace=wrap;fillColor=#CFD8DC;strokeColor=#455A64;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="550" width="130" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Step 5: Auto Setup (yellow) -->
+        <mxCell id="s5_group" value="Step 5: 自動セットアップ" style="rounded=1;whiteSpace=wrap;fillColor=#FFFDE7;strokeColor=#FDD835;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="660" width="1000" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="s5a" value="CI/CD設定" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="700" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s5b" value="Helm Chart" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="700" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s5c" value="Docker Image" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="700" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s5d" value="Terraform" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="700" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Step 6: Auto Registration (cyan) -->
+        <mxCell id="s6_group" value="Step 6: 自動登録" style="rounded=1;whiteSpace=wrap;fillColor=#E0F7FA;strokeColor=#00ACC1;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="810" width="1000" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="s6a" value="Service Catalog" style="rounded=1;whiteSpace=wrap;fillColor=#B2EBF2;strokeColor=#00838F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="850" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s6b" value="API Registry" style="rounded=1;whiteSpace=wrap;fillColor=#B2EBF2;strokeColor=#00838F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="230" y="850" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s6c" value="Grafana&#xa;Dashboard" style="rounded=1;whiteSpace=wrap;fillColor=#B2EBF2;strokeColor=#00838F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="850" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s6d" value="Prometheus&#xa;Alert" style="rounded=1;whiteSpace=wrap;fillColor=#B2EBF2;strokeColor=#00838F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="550" y="850" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s6e" value="Kafka Topic" style="rounded=1;whiteSpace=wrap;fillColor=#B2EBF2;strokeColor=#00838F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="710" y="850" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Approval Workflow (red) -->
+        <mxCell id="aw_group" value="承認ワークフロー" style="rounded=1;whiteSpace=wrap;fillColor=#FFEBEE;strokeColor=#EF5350;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="360" width="280" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="aw1" value="コードレビュー" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="400" width="220" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="aw2" value="セキュリティレビュー" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="465" width="220" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="aw3" value="インフラ承認" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="530" width="220" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- IaC (pink) -->
+        <mxCell id="iac_group" value="IaC" style="rounded=1;whiteSpace=wrap;fillColor=#FCE4EC;strokeColor=#EC407A;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="660" width="280" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="iac1" value="Crossplane Claim" style="rounded=1;whiteSpace=wrap;fillColor=#F8BBD0;strokeColor=#AD1457;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="700" width="220" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="iac2" value="Terraform Apply" style="rounded=1;whiteSpace=wrap;fillColor=#F8BBD0;strokeColor=#AD1457;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="765" width="220" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="iac3" value="Helm Install" style="rounded=1;whiteSpace=wrap;fillColor=#F8BBD0;strokeColor=#AD1457;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="830" width="220" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Flow Edges: Step to Step -->
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#42A5F5;strokeWidth=3;" edge="1" source="s1_group" target="s2_group" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#FF9800;strokeWidth=3;" edge="1" source="s2_group" target="s3_group" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#AB47BC;strokeWidth=3;" edge="1" source="s3_group" target="s4_group" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#78909C;strokeWidth=3;" edge="1" source="s4_group" target="s5_group" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#FDD835;strokeWidth=3;" edge="1" source="s5_group" target="s6_group" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Internal Step 3 flow -->
+        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7B1FA2;strokeWidth=2;" edge="1" source="s3a" target="s3b" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7B1FA2;strokeWidth=2;" edge="1" source="s3b" target="s3c" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Internal Step 4 flow -->
+        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#455A64;strokeWidth=2;" edge="1" source="s4a" target="s4b" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#455A64;strokeWidth=2;" edge="1" source="s4b" target="s4c" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#455A64;strokeWidth=2;" edge="1" source="s4c" target="s4d" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Approval edges -->
+        <mxCell id="e11" value="承認が必要" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C62828;strokeWidth=2;dashed=1;fontSize=11;" edge="1" source="s4_group" target="aw_group" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C62828;strokeWidth=2;" edge="1" source="aw1" target="aw2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C62828;strokeWidth=2;" edge="1" source="aw2" target="aw3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- IaC edges -->
+        <mxCell id="e14" value="IaC実行" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#AD1457;strokeWidth=2;dashed=1;fontSize=11;" edge="1" source="s5_group" target="iac_group" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#AD1457;strokeWidth=2;" edge="1" source="iac1" target="iac2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#AD1457;strokeWidth=2;" edge="1" source="iac2" target="iac3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Approval to Step5 connection -->
+        <mxCell id="e17" value="承認完了" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;dashed=1;fontSize=11;" edge="1" source="aw3" target="s5_group" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

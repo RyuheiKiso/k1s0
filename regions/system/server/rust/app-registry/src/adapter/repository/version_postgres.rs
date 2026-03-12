@@ -98,43 +98,6 @@ impl VersionRepository for VersionPostgresRepository {
         rows.into_iter().map(|r| r.try_into()).collect()
     }
 
-    async fn find_latest(
-        &self,
-        app_id: &str,
-        platform: &Platform,
-        arch: &str,
-    ) -> anyhow::Result<Option<AppVersion>> {
-        let start = std::time::Instant::now();
-        let row = sqlx::query_as::<_, VersionRow>(
-            r#"
-            SELECT id, app_id, version, platform, arch, size_bytes, checksum_sha256,
-                   s3_key, release_notes, mandatory, published_at, created_at
-            FROM app_registry.app_versions
-            WHERE app_id = $1 AND platform = $2 AND arch = $3
-            ORDER BY published_at DESC
-            LIMIT 1
-            "#,
-        )
-        .bind(app_id)
-        .bind(platform.to_string())
-        .bind(arch)
-        .fetch_optional(&self.pool)
-        .await?;
-
-        if let Some(ref m) = self.metrics {
-            m.record_db_query_duration(
-                "find_latest",
-                "app_versions",
-                start.elapsed().as_secs_f64(),
-            );
-        }
-
-        match row {
-            Some(r) => Ok(Some(r.try_into()?)),
-            None => Ok(None),
-        }
-    }
-
     async fn create(&self, version: &AppVersion) -> anyhow::Result<AppVersion> {
         let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, VersionRow>(

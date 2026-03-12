@@ -1,5 +1,8 @@
 # Config Editor 設計
 
+> **実装先**: エンドユーザー向けクライアント (system-client)
+> Config Editor は k1s0-gui（開発者ツール）ではなく、エンドユーザー向けクライアントアプリケーション上で system-config-server の API を利用して実装します。k1s0-gui の ConfigTypesPage は設定スキーマの型定義生成であり、本設計とは異なる機能です。
+
 tier1 の system-client を使い、tier3 サービスの設定値をゲームのコンフィグ画面のように
 編集できる GUI の設計を定義する。React・Flutter のいずれでも同一の `config-schema.yaml`
 からUIを生成し、設定値の追加・変更にフロントエンドのコード変更を不要にする。

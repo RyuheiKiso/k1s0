@@ -478,7 +478,6 @@ spec:
   selector:
     matchLabels:
       app: order-server
-      version: stable
   template:
     metadata:
       annotations:
@@ -503,6 +502,14 @@ spec:
               value: k1s0-service
             - name: VERSION
               value: stable
+            - name: FAILURE_RATE
+              value: "0"
+            - name: FIXED_DELAY_MS
+              value: "0"
+            - name: RELEASE_TRACK
+              value: stable
+            - name: RELEASE_REVISION
+              value: bootstrap
             - name: PORT
               value: "8080"
             - name: DOWNSTREAMS

@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="draw.io">
+  <diagram name="Self-Healing Pipeline" id="self-healing-pipeline">
+    <mxGraphModel dx="1800" dy="2400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1600" pageHeight="2200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="自動回復パイプライン" style="text;html=1;fontSize=22;fontStyle=1;fillColor=none;strokeColor=none;fontColor=#37474F;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="30" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 層1: 障害検知層 (赤系) -->
+        <mxCell id="layer1" value="層1: 障害検知" style="rounded=1;whiteSpace=wrap;fillColor=#FFEBEE;strokeColor=#EF5350;fontStyle=1;fontSize=15;verticalAlign=top;spacingTop=5;arcSize=8;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="120" y="100" width="960" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_n1" value="Prometheus&#xa;Alertmanager" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#EF5350;fontSize=12;fontStyle=1;" vertex="1" parent="layer1">
+          <mxGeometry x="30" y="50" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_n2" value="PrometheusRule&#xa;CRD" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#EF5350;fontSize=12;" vertex="1" parent="layer1">
+          <mxGeometry x="220" y="50" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_n3" value="SLO違反検知" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#EF5350;fontSize=12;" vertex="1" parent="layer1">
+          <mxGeometry x="410" y="50" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_n4" value="ヘルスチェック&#xa;失敗" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#EF5350;fontSize=12;" vertex="1" parent="layer1">
+          <mxGeometry x="600" y="50" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_n5" value="CrashLoop&#xa;検知" style="rounded=1;whiteSpace=wrap;fillColor=#FFCDD2;strokeColor=#EF5350;fontSize=12;" vertex="1" parent="layer1">
+          <mxGeometry x="790" y="50" width="140" height="60" as="geometry" />
+        </mxCell>
+        <!-- Internal arrows: all detectors feed to Alertmanager -->
+        <mxCell id="l1_e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#EF5350;strokeWidth=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="l1_n2" target="l1_n1" parent="layer1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="140" />
+              <mxPoint x="110" y="140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l1_e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#EF5350;strokeWidth=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="l1_n3" target="l1_n1" parent="layer1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="490" y="155" />
+              <mxPoint x="110" y="155" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l1_e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#EF5350;strokeWidth=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="l1_n4" target="l1_n1" parent="layer1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="680" y="170" />
+              <mxPoint x="110" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l1_e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#EF5350;strokeWidth=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="l1_n5" target="l1_n1" parent="layer1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="185" />
+              <mxPoint x="110" y="185" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 層2: 評価・判定層 (オレンジ系) -->
+        <mxCell id="layer2" value="層2: 評価・判定" style="rounded=1;whiteSpace=wrap;fillColor=#FFF3E0;strokeColor=#FFA726;fontStyle=1;fontSize=15;verticalAlign=top;spacingTop=5;arcSize=8;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="200" y="380" width="800" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_n1" value="Recovery Operator&#xa;(Rust)" style="rounded=1;whiteSpace=wrap;fillColor=#FFE0B2;strokeColor=#FFA726;fontSize=13;fontStyle=1;" vertex="1" parent="layer2">
+          <mxGeometry x="30" y="50" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_n2" value="RecoveryPolicy&#xa;CRD照合" style="rounded=1;whiteSpace=wrap;fillColor=#FFE0B2;strokeColor=#FFA726;fontSize=12;" vertex="1" parent="layer2">
+          <mxGeometry x="230" y="50" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_n3" value="Blast Radius&#xa;評価" style="rounded=1;whiteSpace=wrap;fillColor=#FFE0B2;strokeColor=#FFA726;fontSize=12;" vertex="1" parent="layer2">
+          <mxGeometry x="420" y="50" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_n4" value="エスカレーション&#xa;レベル判定" style="rounded=1;whiteSpace=wrap;fillColor=#FFE0B2;strokeColor=#FFA726;fontSize=12;fontStyle=1;" vertex="1" parent="layer2">
+          <mxGeometry x="610" y="50" width="160" height="60" as="geometry" />
+        </mxCell>
+        <!-- Internal flow -->
+        <mxCell id="l2_e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#FFA726;strokeWidth=1.5;" edge="1" source="l2_n1" target="l2_n2" parent="layer2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#FFA726;strokeWidth=1.5;" edge="1" source="l2_n2" target="l2_n3" parent="layer2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#FFA726;strokeWidth=1.5;" edge="1" source="l2_n3" target="l2_n4" parent="layer2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Level labels below decision node -->
+        <mxCell id="l2_label" value="Level判定で分岐" style="text;html=1;fontSize=11;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#E65100;align=center;" vertex="1" parent="layer2">
+          <mxGeometry x="610" y="130" width="160" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- 層3: 回復アクション層 (緑系) -->
+        <mxCell id="layer3" value="層3: 回復アクション" style="rounded=1;whiteSpace=wrap;fillColor=#E8F5E9;strokeColor=#66BB6A;fontStyle=1;fontSize=15;verticalAlign=top;spacingTop=5;arcSize=8;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="660" width="1080" height="280" as="geometry" />
+        </mxCell>
+        <!-- Level 1 -->
+        <mxCell id="l3_g1" value="Level 1: 自動回復" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#66BB6A;fontStyle=1;fontSize=12;verticalAlign=top;spacingTop=3;container=1;collapsible=0;" vertex="1" parent="layer3">
+          <mxGeometry x="20" y="45" width="320" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_n1" value="Pod再起動" style="rounded=1;whiteSpace=wrap;fillColor=#E8F5E9;strokeColor=#66BB6A;fontSize=11;" vertex="1" parent="l3_g1">
+          <mxGeometry x="20" y="35" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_n2" value="HPAスケールアウト" style="rounded=1;whiteSpace=wrap;fillColor=#E8F5E9;strokeColor=#66BB6A;fontSize=11;" vertex="1" parent="l3_g1">
+          <mxGeometry x="170" y="35" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_n3" value="Circuit Breaker&#xa;活性化" style="rounded=1;whiteSpace=wrap;fillColor=#E8F5E9;strokeColor=#66BB6A;fontSize=11;" vertex="1" parent="l3_g1">
+          <mxGeometry x="80" y="95" width="160" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_g1_label" value="自動実行" style="text;html=1;fontSize=10;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#2E7D32;align=center;" vertex="1" parent="l3_g1">
+          <mxGeometry x="80" y="160" width="160" height="25" as="geometry" />
+        </mxCell>
+        <!-- Level 2 -->
+        <mxCell id="l3_g2" value="Level 2: トラフィック制御" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#FFA726;fontStyle=1;fontSize=12;verticalAlign=top;spacingTop=3;container=1;collapsible=0;strokeWidth=2;" vertex="1" parent="layer3">
+          <mxGeometry x="380" y="45" width="310" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_n4" value="Istio&#xa;トラフィックシフト" style="rounded=1;whiteSpace=wrap;fillColor=#E8F5E9;strokeColor=#FFA726;fontSize=11;" vertex="1" parent="l3_g2">
+          <mxGeometry x="20" y="40" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_n5" value="カナリア&#xa;ロールバック" style="rounded=1;whiteSpace=wrap;fillColor=#E8F5E9;strokeColor=#FFA726;fontSize=11;" vertex="1" parent="l3_g2">
+          <mxGeometry x="170" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_g2_label" value="準自動（承認付き）" style="text;html=1;fontSize=10;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#E65100;align=center;" vertex="1" parent="l3_g2">
+          <mxGeometry x="60" y="120" width="180" height="25" as="geometry" />
+        </mxCell>
+        <!-- Level 3 -->
+        <mxCell id="l3_g3" value="Level 3: エスカレーション" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#EF5350;fontStyle=1;fontSize=12;verticalAlign=top;spacingTop=3;container=1;collapsible=0;strokeWidth=2;" vertex="1" parent="layer3">
+          <mxGeometry x="730" y="45" width="320" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_n6" value="PagerDuty&#xa;通知" style="rounded=1;whiteSpace=wrap;fillColor=#FFEBEE;strokeColor=#EF5350;fontSize=11;" vertex="1" parent="l3_g3">
+          <mxGeometry x="15" y="40" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_n7" value="Slack&#xa;通知" style="rounded=1;whiteSpace=wrap;fillColor=#FFEBEE;strokeColor=#EF5350;fontSize=11;" vertex="1" parent="l3_g3">
+          <mxGeometry x="120" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_n8" value="手動介入" style="rounded=1;whiteSpace=wrap;fillColor=#FFEBEE;strokeColor=#EF5350;fontSize=11;fontStyle=1;" vertex="1" parent="l3_g3">
+          <mxGeometry x="215" y="40" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_g3_label" value="人間の判断が必要" style="text;html=1;fontSize=10;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#C62828;align=center;" vertex="1" parent="l3_g3">
+          <mxGeometry x="70" y="120" width="180" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- 層4: 記録・学習層 (青系) -->
+        <mxCell id="layer4" value="層4: 記録・学習" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#42A5F5;fontStyle=1;fontSize=15;verticalAlign=top;spacingTop=5;arcSize=8;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="160" y="1020" width="880" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="l4_n1" value="RecoveryHistory&#xa;CRD" style="rounded=1;whiteSpace=wrap;fillColor=#BBDEFB;strokeColor=#42A5F5;fontSize=12;" vertex="1" parent="layer4">
+          <mxGeometry x="30" y="50" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l4_n2" value="Kafka&#xa;監査イベント" style="rounded=1;whiteSpace=wrap;fillColor=#BBDEFB;strokeColor=#42A5F5;fontSize=12;" vertex="1" parent="layer4">
+          <mxGeometry x="240" y="50" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l4_n3" value="Grafana&#xa;ダッシュボード" style="rounded=1;whiteSpace=wrap;fillColor=#BBDEFB;strokeColor=#42A5F5;fontSize=12;" vertex="1" parent="layer4">
+          <mxGeometry x="450" y="50" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l4_n4" value="MTTD / MTTR&#xa;計測" style="rounded=1;whiteSpace=wrap;fillColor=#BBDEFB;strokeColor=#42A5F5;fontSize=12;fontStyle=1;" vertex="1" parent="layer4">
+          <mxGeometry x="660" y="50" width="170" height="55" as="geometry" />
+        </mxCell>
+        <!-- Internal flow -->
+        <mxCell id="l4_e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#42A5F5;strokeWidth=1.5;" edge="1" source="l4_n1" target="l4_n2" parent="layer4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l4_e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#42A5F5;strokeWidth=1.5;" edge="1" source="l4_n2" target="l4_n3" parent="layer4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l4_e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#42A5F5;strokeWidth=1.5;" edge="1" source="l4_n3" target="l4_n4" parent="layer4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Main flow edges between layers -->
+
+        <!-- 検知 → 評価 (Alertmanager to Recovery Operator) -->
+        <mxCell id="main_e1" value="アラート発火" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#EF5350;strokeWidth=2.5;fontColor=#C62828;fontSize=11;fontStyle=1;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=0.15;entryY=0;entryDx=0;entryDy=0;" edge="1" source="layer1" target="layer2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 評価 → Level 1 -->
+        <mxCell id="main_e2" value="Level 1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#66BB6A;strokeWidth=2;fontColor=#2E7D32;fontSize=11;fontStyle=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="layer2" target="l3_g1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="400" y="630" />
+              <mxPoint x="240" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 評価 → Level 2 -->
+        <mxCell id="main_e3" value="Level 2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#FFA726;strokeWidth=2;fontColor=#E65100;fontSize=11;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="layer2" target="l3_g2" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="630" />
+              <mxPoint x="595" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 評価 → Level 3 -->
+        <mxCell id="main_e4" value="Level 3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#EF5350;strokeWidth=2;fontColor=#C62828;fontSize=11;fontStyle=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="layer2" target="l3_g3" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="630" />
+              <mxPoint x="950" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Level 1 → 記録 -->
+        <mxCell id="main_e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#42A5F5;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" edge="1" source="l3_g1" target="layer4" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="980" />
+              <mxPoint x="336" y="980" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Level 2 → 記録 -->
+        <mxCell id="main_e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#42A5F5;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="l3_g2" target="layer4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Level 3 → 記録 -->
+        <mxCell id="main_e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#42A5F5;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;" edge="1" source="l3_g3" target="layer4" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="950" y="980" />
+              <mxPoint x="864" y="980" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Severity indicator arrows on the right -->
+        <mxCell id="sev_arrow" value="" style="endArrow=block;endFill=1;strokeColor=#90A4AE;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1170" y="720" as="sourcePoint" />
+            <mxPoint x="1170" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sev_label" value="深刻度" style="text;html=1;fontSize=11;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#90A4AE;align=center;rotation=-90;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="790" width="60" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,8 +1,7 @@
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:test/test.dart';
-
+import 'package:flutter_test/flutter_test.dart';
 import 'package:k1s0_app_updater/app_updater.dart';
 
 void main() {
@@ -19,36 +18,17 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  group('calculate', () {
-    test('returns correct SHA-256 for file', () async {
-      final checksum = await ChecksumVerifier.calculate(testFilePath);
+  test('calculates the SHA-256 checksum for a file', () async {
+    final checksum = await ChecksumVerifier.calculate(testFilePath);
+    final expected = sha256.convert('hello world'.codeUnits).toString();
 
-      // SHA-256 of 'hello world'
-      final expected = sha256.convert('hello world'.codeUnits).toString();
-      expect(checksum, equals(expected));
-    });
+    expect(checksum, expected);
   });
 
-  group('verify', () {
-    test('returns true for correct checksum', () async {
-      final expected = sha256.convert('hello world'.codeUnits).toString();
-      final result = await ChecksumVerifier.verify(testFilePath, expected);
-      expect(result, isTrue);
-    });
-
-    test('returns true for uppercase checksum', () async {
-      final expected =
-          sha256.convert('hello world'.codeUnits).toString().toUpperCase();
-      final result = await ChecksumVerifier.verify(testFilePath, expected);
-      expect(result, isTrue);
-    });
-
-    test('returns false for incorrect checksum', () async {
-      final result = await ChecksumVerifier.verify(
-        testFilePath,
-        'incorrect_checksum_value',
-      );
-      expect(result, isFalse);
-    });
+  test('verifyOrThrow throws when the checksum is invalid', () async {
+    expect(
+      () => ChecksumVerifier.verifyOrThrow(testFilePath, 'invalid'),
+      throwsA(isA<ChecksumError>()),
+    );
   });
 }

@@ -60,7 +60,8 @@ export function ConfigEditorPage({
     return <div role="alert">{error}</div>;
   }
 
-  const activeData = config?.categories.find((category) => category.id === activeCategory);
+  const activeData =
+    config?.categories.find((category) => category.id === activeCategory) ?? config?.categories[0];
 
   return (
     <div className="config-editor">

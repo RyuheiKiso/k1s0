@@ -99,6 +99,14 @@ podAnnotations: {}
 labels:
   tier: system
 
+kafka:
+  enabled: true
+  brokers: []
+
+redis:
+  enabled: false
+  host: ""
+
 ceph:
   endpoint: ""
   bucket: "app-registry"

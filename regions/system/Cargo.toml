@@ -22,6 +22,7 @@ members = [
     "server/rust/saga",
     "server/rust/scheduler",
     "server/rust/search",
+    "server/rust/service-catalog",
     "server/rust/session",
     "server/rust/tenant",
     "server/rust/vault",
@@ -71,6 +72,12 @@ members = [
     "library/rust/vault-client",
     "library/rust/webhook-client",
     "library/rust/websocket",
+    # Building Blocks (5)
+    "library/rust/building-blocks",
+    "library/rust/bb-pubsub",
+    "library/rust/bb-statestore",
+    "library/rust/bb-secretstore",
+    "library/rust/bb-binding",
 ]
 
 [workspace.package]

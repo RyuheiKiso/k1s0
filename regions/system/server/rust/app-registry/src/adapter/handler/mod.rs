@@ -16,7 +16,7 @@ use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::make_rbac_middleware;
 use crate::usecase::{
     CreateVersionUseCase, DeleteVersionUseCase, GenerateDownloadUrlUseCase, GetAppUseCase,
-    GetLatestUseCase, ListAppsUseCase, ListVersionsUseCase,
+    GetDownloadStatsUseCase, GetLatestUseCase, ListAppsUseCase, ListVersionsUseCase,
 };
 
 /// ValidateTokenUseCase はトークン検証のためのユースケース。
@@ -70,6 +70,7 @@ pub struct AppState {
     pub create_version_uc: Arc<CreateVersionUseCase>,
     pub delete_version_uc: Arc<DeleteVersionUseCase>,
     pub get_latest_uc: Arc<GetLatestUseCase>,
+    pub get_download_stats_uc: Arc<GetDownloadStatsUseCase>,
     pub generate_download_url_uc: Arc<GenerateDownloadUrlUseCase>,
     pub validate_token_uc: Arc<ValidateTokenUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
@@ -84,6 +85,7 @@ pub struct AppState {
         app_handler::metrics,
         app_handler::list_apps,
         app_handler::get_app,
+        app_handler::get_download_stats,
         version_handler::list_versions,
         version_handler::create_version,
         version_handler::delete_version,
@@ -96,6 +98,10 @@ pub struct AppState {
         crate::domain::entity::platform::Platform,
         crate::domain::entity::download_stat::DownloadStat,
         crate::usecase::generate_download_url::DownloadUrlResult,
+        crate::usecase::get_download_stats::DownloadStatsSummary,
+        app_handler::AppListResponse,
+        version_handler::VersionListResponse,
+        version_handler::CreateVersionResponse,
         version_handler::CreateVersionRequest,
         ErrorResponse,
         ErrorBody,
@@ -124,6 +130,13 @@ pub fn router(state: AppState) -> Router {
             make_rbac_middleware("apps", "read"),
         ));
 
+    let app_admin_routes = Router::new()
+        .route("/api/v1/apps/:id/stats", get(app_handler::get_download_stats))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            make_rbac_middleware("apps", "admin"),
+        ));
+
     // Write routes: require "apps" / "write" permission (publisher/admin)
     let app_write_routes = Router::new()
         .route(
@@ -142,6 +155,7 @@ pub fn router(state: AppState) -> Router {
     // Protected routes share auth_middleware for Bearer token validation
     let protected = Router::new()
         .merge(app_read_routes)
+        .merge(app_admin_routes)
         .merge(app_write_routes)
         .route_layer(middleware::from_fn_with_state(
             state.clone(),

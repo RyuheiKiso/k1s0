@@ -199,7 +199,8 @@ services:
 
   # ============================================================
   # 可観測性
-  # NOTE: ローカル開発環境では Promtail を省略し、docker compose logs で直接確認する。
+  # NOTE: ローカル開発環境では observability プロファイル有効時のみ Promtail を起動する
+  #       （`docker compose --profile observability up`）。
   # Kubernetes 環境では Promtail を DaemonSet としてデプロイする。
   # ============================================================
   jaeger:
@@ -279,8 +280,10 @@ kafka:
   topics:
     publish:
       - "k1s0.system.config.changed.v1"
+      - "k1s0.system.auth.login.v1"
     subscribe:
       - "k1s0.system.config.changed.v1"
+      - "k1s0.system.auth.login.v1"
 ```
 
 ### staging/prod（Kubernetes / SASL_SSL）
@@ -302,8 +305,10 @@ kafka:
   topics:
     publish:
       - "k1s0.system.config.changed.v1"
+      - "k1s0.system.auth.login.v1"
     subscribe:
       - "k1s0.system.config.changed.v1"
+      - "k1s0.system.auth.login.v1"
 ```
 
 詳細なフィールド定義・命名規則は [config設計](../../cli/config/config設計.md) と [メッセージング設計](../../architecture/messaging/メッセージング設計.md) を参照。
@@ -381,7 +386,7 @@ CREATE DATABASE vault_db;
 | --- | --- | --- |
 | `infra` | PostgreSQL, MySQL, Redis, Redis-session, Kafka, Kafka-UI, Schema Registry, Keycloak, Vault, kafka-init | 共通インフラ |
 | `observability` | Jaeger, Prometheus, Loki, Grafana | 監視・可視化 |
-| `system` | auth-rust, config-rust, saga-rust, dlq-manager | system tier サーバー |
+| `system` | auth-rust, config-rust, saga-rust, dlq-manager, featureflag-rust, ratelimit-rust, tenant-rust, vault-rust, graphql-gateway-rust, bff-proxy, api-registry-rust, app-registry-rust, event-monitor-rust, event-store-rust, file-rust, master-maintenance-rust, navigation-rust, notification-rust, policy-rust, quota-rust, rule-engine-rust, scheduler-rust, search-rust, session-rust, workflow-rust | system tier サーバー |
 | `business` | (将来追加) | business tier サーバー |
 | `service` | order-server (将来追加) | service tier サーバー |
 
@@ -519,6 +524,27 @@ echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
 | `VAULT_SVC_REST_HOST_PORT` | 8091 | vault-rust | Vault Service（REST） |
 | `VAULT_SVC_GRPC_HOST_PORT` | 50059 | vault-rust | Vault Service（gRPC） |
 | `GRAPHQL_GW_HOST_PORT` | 8092 | graphql-gateway-rust | GraphQL Gateway |
+| `API_REGISTRY_REST_HOST_PORT` | 8093 | api-registry-rust | API Registry（REST） |
+| `APP_REGISTRY_REST_HOST_PORT` | 8094 | app-registry-rust | App Registry（REST） |
+| `EVENT_MONITOR_REST_HOST_PORT` | 8095 | event-monitor-rust | Event Monitor（REST） |
+| `EVENT_MONITOR_GRPC_HOST_PORT` | 50060 | event-monitor-rust | Event Monitor（gRPC） |
+| `EVENT_STORE_REST_HOST_PORT` | 8096 | event-store-rust | Event Store（REST） |
+| `FILE_REST_HOST_PORT` | 8097 | file-rust | File Service（REST） |
+| `MASTER_MAINTENANCE_REST_HOST_PORT` | 8098 | master-maintenance-rust | Master Maintenance（REST） |
+| `MASTER_MAINTENANCE_GRPC_HOST_PORT` | 50061 | master-maintenance-rust | Master Maintenance（gRPC） |
+| `NAVIGATION_REST_HOST_PORT` | 8099 | navigation-rust | Navigation（REST） |
+| `NAVIGATION_GRPC_HOST_PORT` | 50062 | navigation-rust | Navigation（gRPC） |
+| `NOTIFICATION_REST_HOST_PORT` | 8100 | notification-rust | Notification（REST） |
+| `POLICY_REST_HOST_PORT` | 8101 | policy-rust | Policy（REST） |
+| `POLICY_GRPC_HOST_PORT` | 50063 | policy-rust | Policy（gRPC） |
+| `QUOTA_REST_HOST_PORT` | 8102 | quota-rust | Quota（REST） |
+| `RULE_ENGINE_REST_HOST_PORT` | 8103 | rule-engine-rust | Rule Engine（REST） |
+| `RULE_ENGINE_GRPC_HOST_PORT` | 50064 | rule-engine-rust | Rule Engine（gRPC） |
+| `SCHEDULER_REST_HOST_PORT` | 8104 | scheduler-rust | Scheduler（REST） |
+| `SEARCH_REST_HOST_PORT` | 8105 | search-rust | Search（REST） |
+| `SESSION_REST_HOST_PORT` | 8106 | session-rust | Session（REST） |
+| `SESSION_GRPC_HOST_PORT` | 50065 | session-rust | Session（gRPC） |
+| `WORKFLOW_REST_HOST_PORT` | 8107 | workflow-rust | Workflow（REST） |
 
 ### 可観測性サービス
 

@@ -33,8 +33,16 @@ const quickActions = [
     id: 'migrate',
     to: '/migrate',
     eyebrow: 'Database',
-    title: 'Manage migrations',
+    title: 'Manage database migrations',
     description: 'Create, apply, roll back, and repair migration state for detected services.',
+  },
+  {
+    id: 'template-migrate',
+    to: '/template-migrate',
+    eyebrow: 'Scaffold',
+    title: 'Review template upgrades',
+    description:
+      'Preview template drift, resolve merge conflicts, and roll back generated modules safely.',
   },
   {
     id: 'config-types',

@@ -12,7 +12,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const resolveAndStore = useCallback(async (path: string): Promise<boolean> => {
     if (!path.trim()) {
       setWorkspaceRoot('');
-      setErrorMessage('Enter a workspace path.');
+      setErrorMessage('ワークスペースパスを入力してください。');
       return false;
     }
 
@@ -40,7 +40,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const detected = await detectWorkspaceRoot();
       if (!detected) {
         setWorkspaceRoot('');
-        setErrorMessage('No k1s0 workspace was detected from the current working directory.');
+        setErrorMessage('カレントディレクトリからk1s0ワークスペースが検出されませんでした。');
         return false;
       }
       return await resolveAndStore(detected);
@@ -90,6 +90,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         setDraftPath,
         applyWorkspace: () => resolveAndStore(draftPath),
         detectWorkspace: detectAndStore,
+        adoptWorkspace: resolveAndStore,
       }}
     >
       {children}

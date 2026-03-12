@@ -8,6 +8,17 @@ interface ClusterStatus {
   podsReady: number;
   podsTotal: number;
   trafficRunning: boolean;
+  canary: {
+    phase: string;
+    weight: number;
+    failedChecks: number;
+    message: string | null;
+  } | null;
+  fault: {
+    name: string;
+    phase: string;
+    windowActive: boolean;
+  } | null;
 }
 
 export default function StatusBar({ activeScenario }: StatusBarProps) {
@@ -22,6 +33,8 @@ export default function StatusBar({ activeScenario }: StatusBarProps) {
           podsReady: data.pods.ready,
           podsTotal: data.pods.total,
           trafficRunning: data.trafficRunning,
+          canary: data.canary,
+          fault: data.fault,
         });
       }
     } catch {
@@ -69,6 +82,38 @@ export default function StatusBar({ activeScenario }: StatusBarProps) {
               {status.trafficRunning ? "ON" : "OFF"}
             </span>
           </div>
+
+          {status.canary && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-500">Canary:</span>
+              <span
+                className={
+                  status.canary.phase === "Succeeded"
+                    ? "text-green-400"
+                    : status.canary.phase === "Failed"
+                      ? "text-red-400"
+                      : "text-blue-400"
+                }
+              >
+                {status.canary.phase} {status.canary.weight}%
+              </span>
+            </div>
+          )}
+
+          {status.fault && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-500">Fault Job:</span>
+              <span
+                className={
+                  status.fault.windowActive
+                    ? "text-amber-400"
+                    : "text-slate-400"
+                }
+              >
+                {status.fault.phase}
+              </span>
+            </div>
+          )}
         </>
       )}
 

@@ -41,6 +41,10 @@ keycloak:
   realm: "k1s0"
   client_id: "k1s0-service"
   client_secret: "dev-service-secret"
+  admin_realm: "master"
+  admin_client_id: "admin-cli"
+  admin_username: "admin"
+  admin_password: "dev"
 
 keycloak_admin:
   token_cache_ttl_secs: 60

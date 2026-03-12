@@ -456,7 +456,10 @@ infra/docker/
 │   ├── 06-featureflag-schema.sql  # featureflag-server 用スキーマ
 │   ├── 07-ratelimit-schema.sql    # ratelimit-server 用スキーマ
 │   ├── 08-tenant-schema.sql       # tenant-server 用スキーマ
-│   └── 09-vault-schema.sql        # vault-server 用スキーマ
+│   ├── 09-vault-schema.sql        # vault-server 用スキーマ
+│   ├── 10-domain-master-schema.sql # ドメインマスターデータスキーマ
+│   ├── 11-order-schema.sql        # 注文管理スキーマ
+│   └── 12-event-store-schema.sql  # イベントストアスキーマ
 ├── keycloak/
 │   └── k1s0-realm.json            # Keycloak realm 初期設定
 ├── prometheus/
@@ -495,6 +498,9 @@ PostgreSQL の公式 Docker イメージは、初回起動時に `/docker-entryp
 | `07-ratelimit-schema.sql` | 7 | レートリミットルールテーブル作成（ratelimit_db、ratelimit スキーマ） |
 | `08-tenant-schema.sql` | 8 | テナント・メンバー・プロビジョニングジョブテーブル作成（tenant_db、tenant スキーマ） |
 | `09-vault-schema.sql` | 9 | シークレットアクセスログテーブル作成（vault_db、vault スキーマ） |
+| `10-domain-master-schema.sql` | 10 | ドメインマスターデータスキーマ |
+| `11-order-schema.sql` | 11 | 注文管理スキーマ |
+| `12-event-store-schema.sql` | 12 | イベントストアスキーマ |
 
 > **注記**: 初期化スクリプトはデータボリュームが空の場合のみ実行される。既存データがある場合はスキップされるため、スキーマ変更時は `docker compose down -v` でボリュームを削除してから再起動すること。
 

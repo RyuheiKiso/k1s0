@@ -13,32 +13,33 @@ system tier のアプリケーションサーバーは `docker-compose.override.
 | 項目 | 設定 |
 | --- | --- |
 | サービス名 | `auth-rust` |
-| ビルドコンテキスト | `./regions/system/server/rust/auth` |
+| ビルドコンテキスト | `./regions/system`（dockerfile: `./server/rust/auth/Dockerfile`） |
 | Dockerfile | マルチステージビルド（`rust:1.93-bookworm` → `debian:bookworm-slim`） |
 | プロファイル | `system` |
-| ポート | REST `8083:8080` / gRPC `50052:50051` |
-| 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
-| 環境変数 | `CONFIG_PATH=/app/config/config.dev.yaml` |
+| ポート | REST `${AUTH_REST_HOST_PORT:-8083}:8080` / gRPC `${AUTH_GRPC_HOST_PORT:-50052}:50051` |
+| 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（healthy） |
+| 環境変数 | `CONFIG_PATH=/app/config/config.docker.yaml`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317` |
 | ボリューム | `./regions/system/server/rust/auth/config:/app/config` |
 
 ```yaml
 auth-rust:
   build:
-    context: ./regions/system/server/rust/auth
-    dockerfile: Dockerfile
+    context: ./regions/system
+    dockerfile: ./server/rust/auth/Dockerfile
   profiles: [system]
   ports:
-    - "8083:8080"    # REST
-    - "50052:50051"  # gRPC
+    - "${AUTH_REST_HOST_PORT:-8083}:8080"    # REST
+    - "${AUTH_GRPC_HOST_PORT:-50052}:50051"  # gRPC
   environment:
-    - CONFIG_PATH=/app/config/config.dev.yaml
+    - CONFIG_PATH=/app/config/config.docker.yaml
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
   depends_on:
     postgres:
       condition: service_healthy
     kafka:
       condition: service_healthy
     keycloak:
-      condition: service_started
+      condition: service_healthy
   volumes:
     - ./regions/system/server/rust/auth/config:/app/config
   healthcheck:
@@ -53,32 +54,34 @@ auth-rust:
 | 項目 | 設定 |
 | --- | --- |
 | サービス名 | `config-rust` |
-| ビルドコンテキスト | `./regions/system/server/rust/config` |
+| ビルドコンテキスト | `./regions/system`（dockerfile: `./server/rust/config/Dockerfile`） |
 | Dockerfile | マルチステージビルド（`rust:1.93-bookworm` → `debian:bookworm-slim`） |
 | プロファイル | `system` |
-| ポート | REST `8084:8080` / gRPC `50054:50051` |
-| 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
-| 環境変数 | `CONFIG_PATH=/app/config/config.dev.yaml` |
+| ポート | REST `${CONFIG_REST_HOST_PORT:-8084}:8080` / gRPC `${CONFIG_GRPC_HOST_PORT:-50054}:50051` |
+| 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（healthy） |
+| 環境変数 | `CONFIG_PATH=/app/config/config.docker.yaml`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317`, `ALLOW_INSECURE_NO_AUTH=true` |
 | ボリューム | `./regions/system/server/rust/config/config:/app/config` |
 
 ```yaml
 config-rust:
   build:
-    context: ./regions/system/server/rust/config
-    dockerfile: Dockerfile
+    context: ./regions/system
+    dockerfile: ./server/rust/config/Dockerfile
   profiles: [system]
   ports:
-    - "8084:8080"    # REST
-    - "50054:50051"  # gRPC
+    - "${CONFIG_REST_HOST_PORT:-8084}:8080"    # REST
+    - "${CONFIG_GRPC_HOST_PORT:-50054}:50051"  # gRPC
   environment:
-    - CONFIG_PATH=/app/config/config.dev.yaml
+    - CONFIG_PATH=/app/config/config.docker.yaml
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    - ALLOW_INSECURE_NO_AUTH=true
   depends_on:
     postgres:
       condition: service_healthy
     kafka:
       condition: service_healthy
     keycloak:
-      condition: service_started
+      condition: service_healthy
   volumes:
     - ./regions/system/server/rust/config/config:/app/config
   healthcheck:
@@ -93,32 +96,34 @@ config-rust:
 | 項目 | 設定 |
 | --- | --- |
 | サービス名 | `saga-rust` |
-| ビルドコンテキスト | `./regions/system/server/rust/saga` |
+| ビルドコンテキスト | `./regions/system`（dockerfile: `./server/rust/saga/Dockerfile`） |
 | Dockerfile | マルチステージビルド（`rust:1.93-bookworm` → `debian:bookworm-slim`） |
 | プロファイル | `system` |
-| ポート | REST `8085:8080` / gRPC `50055:50051` |
-| 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
-| 環境変数 | `CONFIG_PATH=/app/config/config.dev.yaml` |
+| ポート | REST `${SAGA_REST_HOST_PORT:-8085}:8080` / gRPC `${SAGA_GRPC_HOST_PORT:-50055}:50051` |
+| 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（healthy） |
+| 環境変数 | `CONFIG_PATH=/app/config/config.docker.yaml`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317`, `ALLOW_INSECURE_NO_AUTH=true` |
 | ボリューム | `./regions/system/server/rust/saga/config:/app/config` |
 
 ```yaml
 saga-rust:
   build:
-    context: ./regions/system/server/rust/saga
-    dockerfile: Dockerfile
+    context: ./regions/system
+    dockerfile: ./server/rust/saga/Dockerfile
   profiles: [system]
   ports:
-    - "8085:8080"    # REST
-    - "50055:50051"  # gRPC
+    - "${SAGA_REST_HOST_PORT:-8085}:8080"    # REST
+    - "${SAGA_GRPC_HOST_PORT:-50055}:50051"  # gRPC
   environment:
-    - CONFIG_PATH=/app/config/config.dev.yaml
+    - CONFIG_PATH=/app/config/config.docker.yaml
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    - ALLOW_INSECURE_NO_AUTH=true
   depends_on:
     postgres:
       condition: service_healthy
     kafka:
       condition: service_healthy
     keycloak:
-      condition: service_started
+      condition: service_healthy
   volumes:
     - ./regions/system/server/rust/saga/config:/app/config
   healthcheck:
@@ -135,24 +140,26 @@ DLQ（Dead Letter Queue）メッセージの管理・再処理を担う REST API
 | 項目 | 設定 |
 | --- | --- |
 | サービス名 | `dlq-manager` |
-| ビルドコンテキスト | `./regions/system/server/rust/dlq-manager` |
+| ビルドコンテキスト | `./regions/system`（dockerfile: `./server/rust/dlq-manager/Dockerfile`） |
 | Dockerfile | マルチステージビルド（`rust:1.93-bookworm` → `debian:bookworm-slim`） |
 | プロファイル | `system` |
-| ポート | REST `8086:8080`（gRPC なし） |
+| ポート | REST `${DLQ_REST_HOST_PORT:-8086}:8080`（gRPC なし） |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy） |
-| 環境変数 | `CONFIG_PATH=/app/config/config.docker.yaml` |
+| 環境変数 | `CONFIG_PATH=/app/config/config.docker.yaml`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317`, `ALLOW_INSECURE_NO_AUTH=true` |
 | ボリューム | `./regions/system/server/rust/dlq-manager/config:/app/config` |
 
 ```yaml
 dlq-manager:
   build:
-    context: ./regions/system/server/rust/dlq-manager
-    dockerfile: Dockerfile
+    context: ./regions/system
+    dockerfile: ./server/rust/dlq-manager/Dockerfile
   profiles: [system]
   ports:
-    - "8086:8080"    # REST のみ（gRPC なし）
+    - "${DLQ_REST_HOST_PORT:-8086}:8080"    # REST のみ（gRPC なし）
   environment:
     - CONFIG_PATH=/app/config/config.docker.yaml
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    - ALLOW_INSECURE_NO_AUTH=true
   depends_on:
     postgres:
       condition: service_healthy
@@ -169,12 +176,14 @@ dlq-manager:
 
 ### ポート割り当て一覧
 
-| サービス | REST ポート | gRPC ポート | 備考 |
+全ホストポートは `${VAR:-default}` 形式で外部から変更可能。`.env` ファイルで設定する。
+
+| サービス | REST ポート（デフォルト） | gRPC ポート（デフォルト） | 備考 |
 | --- | --- | --- | --- |
-| auth-rust | 8083 | 50052 | Rust 版 auth-server |
-| config-rust | 8084 | 50054 | Rust 版 config-server |
-| saga-rust | 8085 | 50055 | Rust 版 saga-server |
-| dlq-manager | 8086 | - | DLQ 管理サーバー（gRPC なし） |
+| auth-rust | `${AUTH_REST_HOST_PORT:-8083}` | `${AUTH_GRPC_HOST_PORT:-50052}` | Rust 版 auth-server |
+| config-rust | `${CONFIG_REST_HOST_PORT:-8084}` | `${CONFIG_GRPC_HOST_PORT:-50054}` | Rust 版 config-server |
+| saga-rust | `${SAGA_REST_HOST_PORT:-8085}` | `${SAGA_GRPC_HOST_PORT:-50055}` | Rust 版 saga-server |
+| dlq-manager | `${DLQ_REST_HOST_PORT:-8086}` | - | DLQ 管理サーバー（gRPC なし） |
 
 ## アプリケーションサービスの追加
 
@@ -198,29 +207,31 @@ dlq-manager:
 
 services:
   # --- system tier ---
-  # ポート割り当て:
+  # ポート割り当て（デフォルト値）:
   #   auth-rust:   REST 8083, gRPC 50052
   #   config-rust: REST 8084, gRPC 50054
   #   saga-rust:   REST 8085, gRPC 50055
   #   dlq-manager: REST 8086  (gRPC なし)
+  # 全ポートは ${VAR:-default} 形式で .env から変更可能
   #
   # auth-rust:
   #   build:
-  #     context: ./regions/system/server/rust/auth
-  #     dockerfile: Dockerfile
+  #     context: ./regions/system
+  #     dockerfile: ./server/rust/auth/Dockerfile
   #   profiles: [system]
   #   ports:
-  #     - "8083:8080"
-  #     - "50052:50051"
+  #     - "${AUTH_REST_HOST_PORT:-8083}:8080"
+  #     - "${AUTH_GRPC_HOST_PORT:-50052}:50051"
   #   environment:
-  #     - CONFIG_PATH=/app/config/config.dev.yaml
+  #     - CONFIG_PATH=/app/config/config.docker.yaml
+  #     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
   #   depends_on:
   #     postgres:
   #       condition: service_healthy
   #     kafka:
   #       condition: service_healthy
   #     keycloak:
-  #       condition: service_started
+  #       condition: service_healthy
   #   volumes:
   #     - ./regions/system/server/rust/auth/config:/app/config
   #   healthcheck:
@@ -231,21 +242,23 @@ services:
   #
   # config-rust:
   #   build:
-  #     context: ./regions/system/server/rust/config
-  #     dockerfile: Dockerfile
+  #     context: ./regions/system
+  #     dockerfile: ./server/rust/config/Dockerfile
   #   profiles: [system]
   #   ports:
-  #     - "8084:8080"
-  #     - "50054:50051"
+  #     - "${CONFIG_REST_HOST_PORT:-8084}:8080"
+  #     - "${CONFIG_GRPC_HOST_PORT:-50054}:50051"
   #   environment:
-  #     - CONFIG_PATH=/app/config/config.dev.yaml
+  #     - CONFIG_PATH=/app/config/config.docker.yaml
+  #     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+  #     - ALLOW_INSECURE_NO_AUTH=true
   #   depends_on:
   #     postgres:
   #       condition: service_healthy
   #     kafka:
   #       condition: service_healthy
   #     keycloak:
-  #       condition: service_started
+  #       condition: service_healthy
   #   volumes:
   #     - ./regions/system/server/rust/config/config:/app/config
   #   healthcheck:
@@ -256,21 +269,23 @@ services:
   #
   # saga-rust:
   #   build:
-  #     context: ./regions/system/server/rust/saga
-  #     dockerfile: Dockerfile
+  #     context: ./regions/system
+  #     dockerfile: ./server/rust/saga/Dockerfile
   #   profiles: [system]
   #   ports:
-  #     - "8085:8080"
-  #     - "50055:50051"
+  #     - "${SAGA_REST_HOST_PORT:-8085}:8080"
+  #     - "${SAGA_GRPC_HOST_PORT:-50055}:50051"
   #   environment:
-  #     - CONFIG_PATH=/app/config/config.dev.yaml
+  #     - CONFIG_PATH=/app/config/config.docker.yaml
+  #     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+  #     - ALLOW_INSECURE_NO_AUTH=true
   #   depends_on:
   #     postgres:
   #       condition: service_healthy
   #     kafka:
   #       condition: service_healthy
   #     keycloak:
-  #       condition: service_started
+  #       condition: service_healthy
   #   volumes:
   #     - ./regions/system/server/rust/saga/config:/app/config
   #   healthcheck:
@@ -281,13 +296,15 @@ services:
   #
   # dlq-manager:
   #   build:
-  #     context: ./regions/system/server/rust/dlq-manager
-  #     dockerfile: Dockerfile
+  #     context: ./regions/system
+  #     dockerfile: ./server/rust/dlq-manager/Dockerfile
   #   profiles: [system]
   #   ports:
-  #     - "8086:8080"
+  #     - "${DLQ_REST_HOST_PORT:-8086}:8080"
   #   environment:
   #     - CONFIG_PATH=/app/config/config.docker.yaml
+  #     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+  #     - ALLOW_INSECURE_NO_AUTH=true
   #   depends_on:
   #     postgres:
   #       condition: service_healthy

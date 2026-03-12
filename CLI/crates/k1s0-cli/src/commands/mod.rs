@@ -8,5 +8,6 @@ pub mod generate_events;
 pub mod generate_navigation;
 pub mod init;
 pub mod migrate;
+pub mod template_migrate;
 pub mod test_cmd;
 pub mod validate;

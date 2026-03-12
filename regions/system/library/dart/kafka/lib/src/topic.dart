@@ -29,4 +29,24 @@ class TopicConfig {
     final match = _topicNameRegex.firstMatch(name);
     return match?.group(1) ?? '';
   }
+
+  /// tier 別デフォルトパーティション数を返す。
+  int defaultPartitionsForTier() {
+    return TopicConfig.partitionsForTier(tier());
+  }
+
+  /// tier 名からデフォルトパーティション数を返す。
+  ///
+  /// - system tier: 6 パーティション
+  /// - business tier: 6 パーティション
+  /// - service tier / その他: 3 パーティション
+  static int partitionsForTier(String tier) {
+    switch (tier) {
+      case 'system':
+      case 'business':
+        return 6;
+      default:
+        return 3;
+    }
+  }
 }

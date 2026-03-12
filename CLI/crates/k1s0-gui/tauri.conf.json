@@ -3,8 +3,14 @@
   "version": "0.1.0",
   "identifier": "com.k1s0.gui",
   "build": {
-    "beforeBuildCommand": "npm --prefix k1s0-gui/ui run build",
-    "beforeDevCommand": "npm --prefix k1s0-gui/ui run dev",
+    "beforeBuildCommand": {
+      "cwd": "ui",
+      "script": "npm run build"
+    },
+    "beforeDevCommand": {
+      "cwd": "ui",
+      "script": "npm run dev"
+    },
     "devUrl": "http://localhost:1420",
     "frontendDist": "ui/dist"
   },

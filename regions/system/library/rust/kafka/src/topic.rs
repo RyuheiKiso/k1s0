@@ -20,6 +20,18 @@ fn default_partitions() -> u32 {
     3
 }
 
+/// tier 別のデフォルトパーティション数を返す。
+///
+/// - system tier: 6 パーティション
+/// - business tier: 6 パーティション
+/// - service tier / その他: 3 パーティション
+pub fn default_partitions_for_tier(tier: &str) -> u32 {
+    match tier {
+        "system" | "business" => 6,
+        _ => 3,
+    }
+}
+
 fn default_replication_factor() -> i16 {
     3
 }
@@ -44,6 +56,38 @@ impl TopicConfig {
     pub fn validate_name(&self) -> bool {
         let parts: Vec<&str> = self.name.split('.').collect();
         parts.len() >= 4 && parts[0] == "k1s0"
+    }
+
+    /// トピック名から tier を抽出する（system / business / service）。
+    /// 名前が不正な場合は空文字列を返す。
+    pub fn tier(&self) -> &str {
+        let parts: Vec<&str> = self.name.split('.').collect();
+        if parts.len() >= 2 && parts[0] == "k1s0" {
+            match parts[1] {
+                "system" | "business" | "service" => parts[1],
+                _ => "",
+            }
+        } else {
+            ""
+        }
+    }
+
+    /// トピック名から tier を判定し、tier 別デフォルトパーティション数を設定した TopicConfig を返す。
+    /// パーティション数が明示指定されていない（デフォルト値 3 のまま）場合に tier 別の値で上書きする。
+    pub fn with_tier_defaults(mut self) -> Self {
+        let parts: Vec<&str> = self.name.split('.').collect();
+        let tier = if parts.len() >= 2 && parts[0] == "k1s0" {
+            match parts[1] {
+                "system" | "business" | "service" => parts[1],
+                _ => "",
+            }
+        } else {
+            ""
+        };
+        if !tier.is_empty() {
+            self.partitions = default_partitions_for_tier(tier);
+        }
+        self
     }
 }
 
@@ -101,5 +145,99 @@ mod tests {
             retention_ms: default_retention_ms(),
         };
         assert_eq!(cfg.retention_ms, 7 * 24 * 60 * 60 * 1000);
+    }
+
+    #[test]
+    fn test_default_partitions_for_tier_system() {
+        assert_eq!(default_partitions_for_tier("system"), 6);
+    }
+
+    #[test]
+    fn test_default_partitions_for_tier_business() {
+        assert_eq!(default_partitions_for_tier("business"), 6);
+    }
+
+    #[test]
+    fn test_default_partitions_for_tier_service() {
+        assert_eq!(default_partitions_for_tier("service"), 3);
+    }
+
+    #[test]
+    fn test_default_partitions_for_tier_unknown() {
+        assert_eq!(default_partitions_for_tier("other"), 3);
+    }
+
+    #[test]
+    fn test_tier_extraction() {
+        let cfg = TopicConfig {
+            name: "k1s0.system.auth.login.v1".to_string(),
+            partitions: 3,
+            replication_factor: 3,
+            retention_ms: 604_800_000,
+        };
+        assert_eq!(cfg.tier(), "system");
+
+        let cfg = TopicConfig {
+            name: "k1s0.business.order.created.v1".to_string(),
+            partitions: 3,
+            replication_factor: 3,
+            retention_ms: 604_800_000,
+        };
+        assert_eq!(cfg.tier(), "business");
+
+        let cfg = TopicConfig {
+            name: "k1s0.service.payment.done.v1".to_string(),
+            partitions: 3,
+            replication_factor: 3,
+            retention_ms: 604_800_000,
+        };
+        assert_eq!(cfg.tier(), "service");
+    }
+
+    #[test]
+    fn test_tier_extraction_invalid() {
+        let cfg = TopicConfig {
+            name: "invalid".to_string(),
+            partitions: 3,
+            replication_factor: 3,
+            retention_ms: 604_800_000,
+        };
+        assert_eq!(cfg.tier(), "");
+    }
+
+    #[test]
+    fn test_with_tier_defaults_system() {
+        let cfg = TopicConfig {
+            name: "k1s0.system.auth.login.v1".to_string(),
+            partitions: 3,
+            replication_factor: 3,
+            retention_ms: 604_800_000,
+        }
+        .with_tier_defaults();
+        assert_eq!(cfg.partitions, 6);
+    }
+
+    #[test]
+    fn test_with_tier_defaults_business() {
+        let cfg = TopicConfig {
+            name: "k1s0.business.order.created.v1".to_string(),
+            partitions: 3,
+            replication_factor: 3,
+            retention_ms: 604_800_000,
+        }
+        .with_tier_defaults();
+        assert_eq!(cfg.partitions, 6);
+    }
+
+    #[test]
+    fn test_with_tier_defaults_service() {
+        let cfg = TopicConfig {
+            name: "k1s0.service.payment.done.v1".to_string(),
+            partitions: 3,
+            replication_factor: 3,
+            retention_ms: 604_800_000,
+        }
+        .with_tier_defaults();
+        assert_eq!(cfg.partitions, 3);
     }
 }

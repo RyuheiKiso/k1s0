@@ -1,4 +1,5 @@
 pub mod build;
+mod command_runner;
 pub mod deploy;
 pub mod deps;
 pub mod dev;
@@ -6,5 +7,6 @@ pub mod generate;
 pub mod generate_events;
 pub mod init;
 pub mod migrate;
+pub mod template_migrate;
 pub mod test_cmd;
 pub mod validate;
