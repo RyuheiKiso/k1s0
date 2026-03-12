@@ -16,8 +16,14 @@ pub struct ConfigAuthState {
     pub verifier: Arc<JwksVerifier>,
 }
 
+/// CONFIG_SERVER_TIER はこのサービスが所属する Tier。
+/// tier_access 検証で使用する。
+const CONFIG_SERVER_TIER: &str = "system";
+
 /// auth_middleware は Bearer トークンを検証し、k1s0_auth::Claims をリクエストエクステンションに格納する。
 /// トークンが存在しないか無効な場合は 401 Unauthorized を返す。
+/// tier_access 検証: このサービスは system Tier に所属するため、
+/// JWT の tier_access に system 以上のアクセス権が含まれていなければ 403 Forbidden を返す。
 pub async fn auth_middleware(
     State(state): State<ConfigAuthState>,
     mut req: Request<Body>,
@@ -41,6 +47,21 @@ pub async fn auth_middleware(
 
     match state.verifier.verify_token(&token).await {
         Ok(claims) => {
+            if let Err(_) = k1s0_auth::validate_tier_access(&claims, CONFIG_SERVER_TIER) {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(serde_json::json!({
+                        "error": {
+                            "code": "SYS_AUTH_TIER_FORBIDDEN",
+                            "message": format!(
+                                "Token does not include required tier access: {}",
+                                CONFIG_SERVER_TIER
+                            )
+                        }
+                    })),
+                )
+                    .into_response();
+            }
             req.extensions_mut().insert(claims);
             next.run(req).await
         }

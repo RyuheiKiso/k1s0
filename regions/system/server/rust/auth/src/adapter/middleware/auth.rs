@@ -26,10 +26,34 @@ pub fn extract_bearer_token<B>(req: &Request<B>) -> Option<String> {
     }
 }
 
+/// Tier の階層レベルを返す。
+/// system(0) > business(1) > service(2) の順で上位 Tier ほど小さい値を返す。
+fn tier_level(tier: &str) -> Option<u8> {
+    match tier.to_ascii_lowercase().as_str() {
+        "system" => Some(0),
+        "business" => Some(1),
+        "service" => Some(2),
+        _ => None,
+    }
+}
+
+/// tier_access 配列から、required_tier へのアクセスが許可されているかを判定する。
+///
+/// Tier 階層ルール:
+/// - system tier を持つユーザーは全 Tier にアクセス可能
+/// - business tier を持つユーザーは business と service にアクセス可能
+/// - service tier を持つユーザーは service のみにアクセス可能
 fn has_tier_access(tier_access: &[String], required_tier: &str) -> bool {
-    tier_access
-        .iter()
-        .any(|tier| tier.eq_ignore_ascii_case(required_tier))
+    let required_level = match tier_level(required_tier) {
+        Some(level) => level,
+        None => return false,
+    };
+
+    tier_access.iter().any(|user_tier| {
+        tier_level(user_tier)
+            .map(|user_level| user_level <= required_level)
+            .unwrap_or(false)
+    })
 }
 
 /// auth_middleware は Bearer トークンを検証して、Request extension に Claims を格納する axum ミドルウェア。

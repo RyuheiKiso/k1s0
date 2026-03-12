@@ -183,6 +183,34 @@ func TestProvider_Shutdown_NilTracerProvider(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestTraceHandler_WithoutSpan(t *testing.T) {
+	handler := slog.NewJSONHandler(nil, &slog.HandlerOptions{Level: slog.LevelDebug})
+	th := TraceHandler(handler)
+
+	require.NotNil(t, th)
+	assert.True(t, th.Enabled(context.Background(), slog.LevelDebug))
+}
+
+func TestTraceHandler_WithAttrs(t *testing.T) {
+	handler := slog.NewJSONHandler(nil, &slog.HandlerOptions{Level: slog.LevelDebug})
+	th := TraceHandler(handler)
+
+	withAttrs := th.WithAttrs([]slog.Attr{slog.String("key", "value")})
+	require.NotNil(t, withAttrs)
+	_, ok := withAttrs.(*traceHandler)
+	assert.True(t, ok, "WithAttrs should return a *traceHandler")
+}
+
+func TestTraceHandler_WithGroup(t *testing.T) {
+	handler := slog.NewJSONHandler(nil, &slog.HandlerOptions{Level: slog.LevelDebug})
+	th := TraceHandler(handler)
+
+	withGroup := th.WithGroup("test-group")
+	require.NotNil(t, withGroup)
+	_, ok := withGroup.(*traceHandler)
+	assert.True(t, ok, "WithGroup should return a *traceHandler")
+}
+
 func TestTelemetryConfig_Fields(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName:   "my-service",

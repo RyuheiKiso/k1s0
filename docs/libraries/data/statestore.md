@@ -1,5 +1,9 @@
 # k1s0-statestore ライブラリ設計
 
+> **実装形態**: Building Block 統合
+> 本ライブラリは設計当初スタンドアロンとして計画されましたが、実装では Building Block パッケージ (`bb-*` / `building-blocks/`) に統合されています。
+> 実装パス: `regions/system/library/{go,rust,typescript,dart}/building-blocks/` または `bb-*`
+
 ## 概要
 
 StateStore Building Block ライブラリ。キーバリュー型の状態管理を統一インターフェースで抽象化する。ETag による楽観ロック（CAS: Compare-And-Swap）を標準サポートし、並行アクセス時のデータ整合性を保証する。RedisStateStore は内部で k1s0-cache をラップして利用する。

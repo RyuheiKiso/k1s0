@@ -46,12 +46,55 @@ pub fn has_permission(claims: &Claims, resource: &str, action: &str) -> bool {
     check_permission(claims, resource, action)
 }
 
+/// Tier の階層レベルを返す。
+/// system(0) > business(1) > service(2) の順で上位 Tier ほど小さい値を返す。
+/// 不明な Tier は None を返す。
+fn tier_level(tier: &str) -> Option<u8> {
+    match tier.to_ascii_lowercase().as_str() {
+        "system" => Some(0),
+        "business" => Some(1),
+        "service" => Some(2),
+        _ => None,
+    }
+}
+
 /// Claims で指定 Tier へのアクセスが許可されているかを判定する。
-pub fn has_tier_access(claims: &Claims, tier: &str) -> bool {
-    claims
-        .tier_access_list()
-        .iter()
-        .any(|t| t.eq_ignore_ascii_case(tier))
+///
+/// Tier 階層ルール:
+/// - system tier を持つユーザーは全 Tier (system, business, service) にアクセス可能
+/// - business tier を持つユーザーは business と service にアクセス可能
+/// - service tier を持つユーザーは service のみにアクセス可能
+///
+/// tier_access 配列内の各 Tier について、要求された Tier 以上の階層であればアクセスを許可する。
+pub fn has_tier_access(claims: &Claims, required_tier: &str) -> bool {
+    let required_level = match tier_level(required_tier) {
+        Some(level) => level,
+        None => return false,
+    };
+
+    claims.tier_access_list().iter().any(|user_tier| {
+        tier_level(user_tier)
+            .map(|user_level| user_level <= required_level)
+            .unwrap_or(false)
+    })
+}
+
+/// tier_access Claim を検証し、指定 Tier へのアクセス権がない場合はエラーを返す。
+///
+/// `has_tier_access` のラッパーで、ミドルウェアやユースケースから直接呼び出せる。
+///
+/// # Errors
+///
+/// 指定 Tier へのアクセス権がない場合は `AuthError::TierAccessDenied` を返す。
+pub fn validate_tier_access(
+    claims: &Claims,
+    required_tier: &str,
+) -> Result<(), crate::verifier::AuthError> {
+    if has_tier_access(claims, required_tier) {
+        Ok(())
+    } else {
+        Err(crate::verifier::AuthError::TierAccessDenied)
+    }
 }
 
 #[cfg(test)]
@@ -160,13 +203,42 @@ mod tests {
     }
 
     #[test]
-    fn test_has_tier_access() {
-        let claims = make_claims(vec![], HashMap::new(), vec!["system", "business"]);
+    fn test_has_tier_access_system_grants_all() {
+        let claims = make_claims(vec![], HashMap::new(), vec!["system"]);
 
         assert!(has_tier_access(&claims, "system"));
         assert!(has_tier_access(&claims, "business"));
+        assert!(has_tier_access(&claims, "service"));
         assert!(has_tier_access(&claims, "System")); // case insensitive
-        assert!(!has_tier_access(&claims, "service"));
+    }
+
+    #[test]
+    fn test_has_tier_access_business_grants_business_and_service() {
+        let claims = make_claims(vec![], HashMap::new(), vec!["business"]);
+
+        assert!(!has_tier_access(&claims, "system"));
+        assert!(has_tier_access(&claims, "business"));
+        assert!(has_tier_access(&claims, "service"));
+        assert!(has_tier_access(&claims, "Business")); // case insensitive
+    }
+
+    #[test]
+    fn test_has_tier_access_service_grants_service_only() {
+        let claims = make_claims(vec![], HashMap::new(), vec!["service"]);
+
+        assert!(!has_tier_access(&claims, "system"));
+        assert!(!has_tier_access(&claims, "business"));
+        assert!(has_tier_access(&claims, "service"));
+        assert!(has_tier_access(&claims, "Service")); // case insensitive
+    }
+
+    #[test]
+    fn test_has_tier_access_multiple_tiers() {
+        let claims = make_claims(vec![], HashMap::new(), vec!["business", "service"]);
+
+        assert!(!has_tier_access(&claims, "system"));
+        assert!(has_tier_access(&claims, "business"));
+        assert!(has_tier_access(&claims, "service"));
     }
 
     #[test]
@@ -189,5 +261,69 @@ mod tests {
         };
 
         assert!(!has_tier_access(&claims, "system"));
+        assert!(!has_tier_access(&claims, "business"));
+        assert!(!has_tier_access(&claims, "service"));
+    }
+
+    #[test]
+    fn test_has_tier_access_unknown_required_tier() {
+        let claims = make_claims(vec![], HashMap::new(), vec!["system"]);
+
+        assert!(!has_tier_access(&claims, "unknown"));
+    }
+
+    #[test]
+    fn test_has_tier_access_unknown_user_tier() {
+        let claims = make_claims(vec![], HashMap::new(), vec!["unknown"]);
+
+        assert!(!has_tier_access(&claims, "system"));
+        assert!(!has_tier_access(&claims, "business"));
+        assert!(!has_tier_access(&claims, "service"));
+    }
+
+    #[test]
+    fn test_validate_tier_access_ok() {
+        use crate::rbac::validate_tier_access;
+
+        let claims = make_claims(vec![], HashMap::new(), vec!["system"]);
+        assert!(validate_tier_access(&claims, "system").is_ok());
+        assert!(validate_tier_access(&claims, "business").is_ok());
+        assert!(validate_tier_access(&claims, "service").is_ok());
+    }
+
+    #[test]
+    fn test_validate_tier_access_denied() {
+        use crate::rbac::validate_tier_access;
+
+        let claims = make_claims(vec![], HashMap::new(), vec!["service"]);
+        assert!(validate_tier_access(&claims, "system").is_err());
+        assert!(validate_tier_access(&claims, "business").is_err());
+        assert!(validate_tier_access(&claims, "service").is_ok());
+    }
+
+    #[test]
+    fn test_validate_tier_access_empty_denied() {
+        use crate::rbac::validate_tier_access;
+
+        let claims = Claims {
+            sub: "user-1".into(),
+            iss: "iss".into(),
+            aud: Audience(vec![]),
+            exp: 9999999999,
+            iat: 1000000000,
+            jti: None,
+            typ: None,
+            azp: None,
+            scope: None,
+            preferred_username: None,
+            email: None,
+            realm_access: None,
+            resource_access: None,
+            tier_access: None,
+        };
+
+        assert!(validate_tier_access(&claims, "system").is_err());
+        assert!(validate_tier_access(&claims, "business").is_err());
+        assert!(validate_tier_access(&claims, "service").is_err());
     }
 }

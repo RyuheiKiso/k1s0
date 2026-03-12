@@ -7,6 +7,8 @@ import {
   TopicConfig,
   validateTopicName,
   topicTier,
+  defaultPartitionsForTier,
+  topicDefaultPartitions,
   NoOpKafkaHealthChecker,
   KafkaHealthStatus,
   KafkaError,
@@ -105,6 +107,42 @@ describe('topicTier', () => {
 
   it('returns empty string for invalid topic name', () => {
     expect(topicTier({ name: 'invalid-name' })).toBe('');
+  });
+});
+
+describe('defaultPartitionsForTier', () => {
+  it('returns 6 for system tier', () => {
+    expect(defaultPartitionsForTier('system')).toBe(6);
+  });
+
+  it('returns 6 for business tier', () => {
+    expect(defaultPartitionsForTier('business')).toBe(6);
+  });
+
+  it('returns 3 for service tier', () => {
+    expect(defaultPartitionsForTier('service')).toBe(3);
+  });
+
+  it('returns 3 for unknown tier', () => {
+    expect(defaultPartitionsForTier('other')).toBe(3);
+  });
+});
+
+describe('topicDefaultPartitions', () => {
+  it('returns 6 for system topic', () => {
+    expect(topicDefaultPartitions({ name: 'k1s0.system.auth.login.v1' })).toBe(6);
+  });
+
+  it('returns 6 for business topic', () => {
+    expect(topicDefaultPartitions({ name: 'k1s0.business.order.placed.v1' })).toBe(6);
+  });
+
+  it('returns 3 for service topic', () => {
+    expect(topicDefaultPartitions({ name: 'k1s0.service.payment.done.v1' })).toBe(3);
+  });
+
+  it('returns 3 for invalid topic name', () => {
+    expect(topicDefaultPartitions({ name: 'invalid' })).toBe(3);
   });
 });
 

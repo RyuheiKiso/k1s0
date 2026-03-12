@@ -10,4 +10,4 @@ pub mod topic;
 pub use config::{KafkaConfig, KafkaConfigBuilder};
 pub use error::KafkaError;
 pub use health::{KafkaHealthChecker, KafkaHealthStatus};
-pub use topic::{TopicConfig, TopicPartitionInfo};
+pub use topic::{default_partitions_for_tier, TopicConfig, TopicPartitionInfo};

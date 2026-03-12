@@ -1,5 +1,9 @@
 # k1s0-binding ライブラリ設計
 
+> **実装形態**: Building Block 統合
+> 本ライブラリは設計当初スタンドアロンとして計画されましたが、実装では Building Block パッケージ (`bb-*` / `building-blocks/`) に統合されています。
+> 実装パス: `regions/system/library/{go,rust,typescript,dart}/building-blocks/` または `bb-*`
+
 ## 概要
 
 Binding Building Block ライブラリ。外部リソースへの入出力を統一インターフェースで抽象化する。InputBinding（外部からのイベント受信）と OutputBinding（外部への操作実行）の 2 つのトレイトを提供し、PostgreSQL・S3・HTTP 等のリソースを同一の API で扱える。

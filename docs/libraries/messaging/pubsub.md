@@ -1,5 +1,9 @@
 # k1s0-pubsub ライブラリ設計
 
+> **実装形態**: Building Block 統合
+> 本ライブラリは設計当初スタンドアロンとして計画されましたが、実装では Building Block パッケージ (`bb-*` / `building-blocks/`) に統合されています。
+> 実装パス: `regions/system/library/{go,rust,typescript,dart}/building-blocks/` または `bb-*`
+
 ## 概要
 
 PubSub Building Block ライブラリ。トピックベースのメッセージングを統一インターフェースで抽象化する。Kafka・Redis Pub/Sub・InMemory の 3 コンポーネントを提供し、アプリケーションコードは `PubSub` トレイト/インターフェースのみに依存する。KafkaPubSub は内部で k1s0-kafka（接続管理）と k1s0-messaging（EventProducer）をラップして利用する。

@@ -19,12 +19,14 @@ BB の設計思想は以下の通り:
 
 ## Building Block 一覧
 
-| Building Block | 用途 | 内部実装 | 詳細設計 |
-|---------------|------|---------|---------|
-| PubSub | メッセージング抽象化（トピックベースの Pub/Sub） | k1s0-kafka + k1s0-messaging ラッパー、Redis Pub/Sub、InMemory | [PubSub 設計](../messaging/pubsub.md) |
-| StateStore | 状態管理抽象化（キーバリューストア + ETag 楽観ロック） | k1s0-cache ラッパー（Redis）、PostgreSQL、InMemory | [StateStore 設計](../data/statestore.md) |
-| SecretStore | シークレット抽象化（統一的なシークレット取得） | k1s0-vault-client ラッパー、環境変数、ファイル | [SecretStore 設計](../auth-security/secret-store.md) |
-| Binding | リソースバインディング（外部リソースへの入出力） | PostgreSQL、S3、HTTP | [Binding 設計](../config/binding.md) |
+以下の 4 つのライブラリは、設計当初はスタンドアロンとして計画されましたが、実装では Building Block パッケージ (`bb-*` / `building-blocks/`) に統合されています。実装パスは `regions/system/library/{go,rust,typescript,dart}/building-blocks/` または `bb-*` です。
+
+| Building Block | 用途 | 内部実装 | 統合パッケージ | 詳細設計 |
+|---------------|------|---------|--------------|---------|
+| PubSub | メッセージング抽象化（トピックベースの Pub/Sub） | k1s0-kafka + k1s0-messaging ラッパー、Redis Pub/Sub、InMemory | `building-blocks/pubsub.*` | [PubSub 設計](../messaging/pubsub.md) |
+| StateStore | 状態管理抽象化（キーバリューストア + ETag 楽観ロック） | k1s0-cache ラッパー（Redis）、PostgreSQL、InMemory | `bb-statestore` | [StateStore 設計](../data/statestore.md) |
+| SecretStore | シークレット抽象化（統一的なシークレット取得） | k1s0-vault-client ラッパー、環境変数、ファイル | `bb-secretstore` | [SecretStore 設計](../auth-security/secret-store.md) |
+| Binding | リソースバインディング（外部リソースへの入出力） | PostgreSQL、S3、HTTP | `building-blocks/binding.*` | [Binding 設計](../config/binding.md) |
 
 ## 共通インターフェース
 

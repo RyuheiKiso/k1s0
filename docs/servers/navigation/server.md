@@ -254,6 +254,13 @@ navigation:
 
 ---
 
+## 実装・デプロイ
+
+共通実装パターンは [_common/implementation.md](../_common/implementation.md) を参照。
+デプロイ手順は [_common/deploy.md](../_common/deploy.md) を参照。
+
+---
+
 ## 関連ドキュメント
 
 > 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。

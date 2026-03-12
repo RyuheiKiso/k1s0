@@ -1,5 +1,9 @@
 # k1s0-secretstore ライブラリ設計
 
+> **実装形態**: Building Block 統合
+> 本ライブラリは設計当初スタンドアロンとして計画されましたが、実装では Building Block パッケージ (`bb-*` / `building-blocks/`) に統合されています。
+> 実装パス: `regions/system/library/{go,rust,typescript,dart}/building-blocks/` または `bb-*`
+
 ## 概要
 
 SecretStore Building Block ライブラリ。シークレット取得を統一インターフェースで抽象化する。VaultSecretStore は内部で k1s0-vault-client をラップして利用する。環境変数やファイルからのシークレット取得も同一インターフェースで扱える。

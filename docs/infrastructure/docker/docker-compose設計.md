@@ -199,7 +199,8 @@ services:
 
   # ============================================================
   # 可観測性
-  # NOTE: ローカル開発環境では Promtail を省略し、docker compose logs で直接確認する。
+  # NOTE: ローカル開発環境では observability プロファイル有効時のみ Promtail を起動する
+  #       （`docker compose --profile observability up`）。
   # Kubernetes 環境では Promtail を DaemonSet としてデプロイする。
   # ============================================================
   jaeger:

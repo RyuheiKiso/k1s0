@@ -61,6 +61,28 @@ export function topicTier(topic: TopicConfig): string {
   return match[1];
 }
 
+/**
+ * tier 別のデフォルトパーティション数を返す。
+ * - system tier: 6 パーティション
+ * - business tier: 6 パーティション
+ * - service tier / その他: 3 パーティション
+ */
+export function defaultPartitionsForTier(tier: string): number {
+  switch (tier) {
+    case 'system':
+    case 'business':
+      return 6;
+    default:
+      return 3;
+  }
+}
+
+/** トピック名から tier を判定し、tier 別デフォルトパーティション数を返す。 */
+export function topicDefaultPartitions(topic: TopicConfig): number {
+  const tier = topicTier(topic);
+  return defaultPartitionsForTier(tier);
+}
+
 /** Kafka ヘルスチェックの結果。 */
 export interface KafkaHealthStatus {
   healthy: boolean;

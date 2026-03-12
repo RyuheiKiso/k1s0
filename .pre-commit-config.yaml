@@ -47,4 +47,5 @@ repos:
         entry: dart format --set-exit-if-changed
         language: system
         files: '\.dart$'
+        pass_filenames: false
 

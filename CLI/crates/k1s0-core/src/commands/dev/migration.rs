@@ -1,20 +1,29 @@
 /// マイグレーション実行モジュール。
 ///
 /// dev up 時に各サービスの migrations/ ディレクトリを検出し、
-/// マイグレーションを実行する。
+/// `migrate apply`（sqlx-cli / golang-migrate）経由でマイグレーションを実行する。
+///
+/// 設計書: docs/cli/dev/ローカル開発環境設計.md
+///   - Rust サービス → sqlx migrate run
+///   - Go サービス   → migrate -path ... up
 use anyhow::Result;
 use std::path::Path;
+
+use crate::commands::migrate::apply::execute_migrate_up;
+use crate::commands::migrate::types::{DbConnection, Language, MigrateRange, MigrateTarget, MigrateUpConfig};
 
 use super::types::PortAssignments;
 
 /// dev up 時のマイグレーションを実行する。
 ///
 /// 各サービスの migrations/ ディレクトリを検出し、
-/// SQL ファイルを `PostgreSQL` に対して実行する。
+/// 言語に応じた正規のマイグレーションツール（sqlx-cli / golang-migrate）で
+/// マイグレーションを適用する。ポート情報から接続文字列を構築するため、
+/// state.json の保存前でも正しいポートで接続できる。
 ///
 /// # Errors
 ///
-/// マイグレーションファイルの読み込みまたは SQL 実行に失敗した場合にエラーを返す。
+/// マイグレーションツールの実行に失敗した場合にエラーを返す。
 pub fn run_dev_migrations(service_paths: &[String], ports: &PortAssignments) -> Result<()> {
     for service_path in service_paths {
         let path = Path::new(service_path);
@@ -24,81 +33,77 @@ pub fn run_dev_migrations(service_paths: &[String], ports: &PortAssignments) -> 
             continue;
         }
 
-        println!(
-            "  マイグレーション実行中: {}",
-            path.file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("unknown")
+        let service_name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown");
+
+        println!("  マイグレーション実行中: {service_name}");
+
+        let language = detect_service_language(path);
+        let db_name = detect_db_name(path).unwrap_or_else(|| format!("{service_name}_db"));
+
+        // state.json はまだ保存されていないため、LocalDev ではなく
+        // ポート情報から直接接続文字列を構築する
+        let conn_url = format!(
+            "postgresql://app:password@localhost:{}/{db_name}?sslmode=disable",
+            ports.postgres
         );
 
-        run_migrations_for_service(&migrations_dir, ports)?;
+        let config = MigrateUpConfig {
+            target: MigrateTarget {
+                service_name: service_name.to_string(),
+                tier: detect_tier(path),
+                language,
+                migrations_dir,
+                db_name,
+            },
+            range: MigrateRange::All,
+            connection: DbConnection::Custom(conn_url),
+        };
+
+        execute_migrate_up(&config)?;
     }
 
     Ok(())
 }
 
-/// 指定ディレクトリ内のマイグレーションファイルを実行する。
-fn run_migrations_for_service(migrations_dir: &Path, ports: &PortAssignments) -> Result<()> {
-    let mut sql_files: Vec<_> = std::fs::read_dir(migrations_dir)?
-        .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) == Some("sql") {
-                Some(path)
-            } else {
-                None
-            }
-        })
-        .collect();
+/// サービスディレクトリから言語を検出する。
+/// Cargo.toml があれば Rust、go.mod があれば Go、デフォルトは Rust。
+fn detect_service_language(path: &Path) -> Language {
+    if path.join("go.mod").exists() {
+        Language::Go
+    } else {
+        // Cargo.toml の有無に関わらず Rust をデフォルトとする
+        Language::Rust
+    }
+}
 
-    // ファイル名でソート（マイグレーション順序を保証）
-    sql_files.sort();
+/// config/config.yaml からデータベース名を検出する。
+fn detect_db_name(path: &Path) -> Option<String> {
+    let config_path = path.join("config").join("config.yaml");
+    let content = std::fs::read_to_string(config_path).ok()?;
+    let config: serde_yaml::Value = serde_yaml::from_str(&content).ok()?;
+    config
+        .get("database")?
+        .get("name")?
+        .as_str()
+        .map(String::from)
+}
 
-    for sql_file in &sql_files {
-        let file_name = sql_file
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("unknown");
-
-        println!("    適用中: {file_name}");
-
-        let content = std::fs::read_to_string(sql_file)?;
-
-        // psql を使ってマイグレーションを実行
-        let status = std::process::Command::new("psql")
-            .args([
-                "-h",
-                "localhost",
-                "-p",
-                &ports.postgres.to_string(),
-                "-U",
-                "app",
-                "-c",
-                &content,
-            ])
-            .env("PGPASSWORD", "password")
-            .output();
-
-        match status {
-            Ok(output) if output.status.success() => {
-                println!("    完了: {file_name}");
-            }
-            Ok(output) => {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                eprintln!(
-                    "    警告: マイグレーション {file_name} でエラーが発生しました: {stderr}"
-                );
-            }
-            Err(e) => {
-                eprintln!(
-                    "    警告: psql コマンドの実行に失敗しました: {e}（psql がインストールされていない場合はスキップします）"
-                );
-                break;
+/// パスからティアを抽出する。
+fn detect_tier(path: &Path) -> String {
+    let path_str = path.to_string_lossy().replace('\\', "/");
+    let parts: Vec<&str> = path_str.split('/').collect();
+    for (i, part) in parts.iter().enumerate() {
+        if *part == "regions" && i + 1 < parts.len() {
+            let tier = parts[i + 1];
+            if tier == "system" || tier == "business" || tier == "service" {
+                return tier.to_string();
             }
         }
     }
-
-    Ok(())
+    "unknown".to_string()
 }
 
 /// 指定ディレクトリにマイグレーションファイルが存在するか確認する。
@@ -152,5 +157,50 @@ mod tests {
         std::fs::write(migrations_dir.join("README.md"), "# Migrations").unwrap();
 
         assert!(!has_migrations(tmp.path()));
+    }
+
+    /// Cargo.toml があるディレクトリは Rust として検出する。
+    #[test]
+    fn test_detect_service_language_rust() {
+        let tmp = TempDir::new().unwrap();
+        std::fs::write(tmp.path().join("Cargo.toml"), "[package]").unwrap();
+        assert_eq!(detect_service_language(tmp.path()), Language::Rust);
+    }
+
+    /// go.mod があるディレクトリは Go として検出する。
+    #[test]
+    fn test_detect_service_language_go() {
+        let tmp = TempDir::new().unwrap();
+        std::fs::write(tmp.path().join("go.mod"), "module test").unwrap();
+        assert_eq!(detect_service_language(tmp.path()), Language::Go);
+    }
+
+    /// 言語判定ファイルがない場合は Rust をデフォルトとする。
+    #[test]
+    fn test_detect_service_language_default() {
+        let tmp = TempDir::new().unwrap();
+        assert_eq!(detect_service_language(tmp.path()), Language::Rust);
+    }
+
+    /// config/config.yaml からデータベース名を検出する。
+    #[test]
+    fn test_detect_db_name() {
+        let tmp = TempDir::new().unwrap();
+        let config_dir = tmp.path().join("config");
+        std::fs::create_dir_all(&config_dir).unwrap();
+        std::fs::write(
+            config_dir.join("config.yaml"),
+            "database:\n  name: order_db\n",
+        )
+        .unwrap();
+
+        assert_eq!(detect_db_name(tmp.path()), Some("order_db".to_string()));
+    }
+
+    /// config.yaml がない場合は None を返す。
+    #[test]
+    fn test_detect_db_name_missing() {
+        let tmp = TempDir::new().unwrap();
+        assert_eq!(detect_db_name(tmp.path()), None);
     }
 }
