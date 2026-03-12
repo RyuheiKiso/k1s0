@@ -8,18 +8,48 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const KIALI_DIR = resolve(__dirname, "..");
-const BASELINE_VIRTUAL_SERVICES = resolve(
-  KIALI_DIR,
-  "manifests/02-virtualservices.yaml"
-);
-
-const app = new Hono();
-const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
-const PROMETHEUS_URL =
-  process.env.PROMETHEUS_URL || "http://localhost:9090";
+const PROMETHEUS_URL = process.env.PROMETHEUS_URL || "http://localhost:9090";
+const DEMO_NAMESPACES = new Set([
+  "service-mesh",
+  "observability",
+  "messaging",
+  "k1s0-system",
+  "k1s0-business",
+  "k1s0-service",
+]);
 
 type MetricUnit = "reqps" | "bytesps" | "mixed";
 type ProtocolKind = "http" | "tcp";
+type ScenarioTraffic = "normal" | "stop";
+
+type ScenarioDefinition = {
+  commands: Array<{ script: string; args?: string[] }>;
+  traffic: ScenarioTraffic;
+  description: string;
+};
+
+type CanaryResponse = {
+  status?: {
+    phase?: string;
+    canaryWeight?: number;
+    failedChecks?: number;
+    conditions?: Array<{ message?: string }>;
+  };
+};
+
+type JobResponse = {
+  items?: Array<{
+    metadata?: {
+      name?: string;
+      creationTimestamp?: string;
+    };
+    status?: {
+      active?: number;
+      succeeded?: number;
+      failed?: number;
+    };
+  }>;
+};
 
 function resolveBashExecutable() {
   const configured = process.env.GIT_BASH;
@@ -43,15 +73,63 @@ function resolveBashExecutable() {
 
 const BASH_EXECUTABLE = resolveBashExecutable();
 
-// Active processes
+const app = new Hono();
+const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
+
 let trafficProcess: ChildProcess | null = null;
 let activeScenario: string | null = null;
 
-// WebSocket clients
 const wsClients = new Set<{
   send: (data: string) => void;
   close: () => void;
 }>();
+
+const scenarios: Record<string, ScenarioDefinition> = {
+  normal: {
+    commands: [{ script: "reset-demo-state.sh", args: ["flagger"] }],
+    traffic: "normal",
+    description: "Flagger baseline with healthy traffic",
+  },
+  canary: {
+    commands: [
+      { script: "reset-demo-state.sh", args: ["flagger"] },
+      { script: "start-flagger-rollout.sh", args: ["promote"] },
+    ],
+    traffic: "normal",
+    description: "Flagger automatic canary promotion in 20% steps",
+  },
+  rollback: {
+    commands: [
+      { script: "reset-demo-state.sh", args: ["flagger"] },
+      { script: "start-flagger-rollout.sh", args: ["rollback"] },
+    ],
+    traffic: "normal",
+    description: "Flagger automatic rollback on 503 and latency regression",
+  },
+  fault: {
+    commands: [
+      { script: "reset-demo-state.sh", args: ["manual"] },
+      { script: "run-fault-cronjob.sh" },
+    ],
+    traffic: "normal",
+    description: "CronJob-backed fault injection window with auto cleanup",
+  },
+  tracing: {
+    commands: [{ script: "reset-demo-state.sh", args: ["flagger"] }],
+    traffic: "normal",
+    description: "Distributed tracing in Jaeger",
+  },
+  logs: {
+    commands: [{ script: "reset-demo-state.sh", args: ["flagger"] }],
+    traffic: "normal",
+    description: "Structured logs in Grafana Loki",
+  },
+  kafka: {
+    commands: [{ script: "reset-demo-state.sh", args: ["flagger"] }],
+    traffic: "stop",
+    description: "Kafka producer and consumer flow",
+  },
+};
 
 function broadcast(message: string) {
   const data = JSON.stringify({
@@ -72,7 +150,7 @@ function runCommand(
   args: string[],
   stream = false
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolvePromise, reject) => {
     const proc = spawn(command, args, { shell: false, windowsHide: true });
     let stdout = "";
     let stderr = "";
@@ -90,116 +168,57 @@ function runCommand(
     });
 
     proc.on("close", (code: number | null) => {
-      if (code === 0) resolve(stdout);
+      if (code === 0) resolvePromise(stdout);
       else reject(new Error(stderr || `Exit code ${code}`));
     });
   });
 }
 
-// Scenario definitions
-const scenarios: Record<
-  string,
-  {
-    apply: string | null;
-    traffic: "normal" | "canary" | "stop";
-    description: string;
-  }
-> = {
-  normal: {
-    apply: null,
-    traffic: "normal",
-    description: "Normal traffic - all services healthy",
-  },
-  canary: {
-    apply: "scenarios/canary.yaml",
-    traffic: "normal",
-    description: "Canary release - 90:10 weight split",
-  },
-  header: {
-    apply: "scenarios/canary.yaml",
-    traffic: "canary",
-    description: "Header routing - x-canary:true to canary",
-  },
-  mirror: {
-    apply: "scenarios/mirror.yaml",
-    traffic: "normal",
-    description: "Traffic mirroring - 10% copy to canary",
-  },
-  fault: {
-    apply: "scenarios/fault-abort.yaml",
-    traffic: "normal",
-    description: "Fault injection - 500ms delay + 503 abort",
-  },
-  tracing: {
-    apply: null,
-    traffic: "normal",
-    description: "Distributed tracing - view in Jaeger",
-  },
-  logs: {
-    apply: null,
-    traffic: "normal",
-    description: "Log aggregation - Grafana + Loki",
-  },
-  kafka: {
-    apply: null,
-    traffic: "stop",
-    description: "Kafka producer/consumer flow",
-  },
-};
+async function runScript(script: string, args: string[] = []) {
+  const scriptPath = resolve(KIALI_DIR, script);
+  broadcast(`Running ${script}${args.length > 0 ? ` ${args.join(" ")}` : ""}...`);
+  return runCommand(BASH_EXECUTABLE, [scriptPath, ...args], true);
+}
 
-// Reset all scenarios
-async function resetScenarios() {
-  broadcast("Resetting all scenarios...");
+async function stopTraffic() {
+  if (!trafficProcess?.pid) return;
+
+  const pid = trafficProcess.pid;
+  const runningProcess = trafficProcess;
+  trafficProcess = null;
+
   try {
-    await runCommand(
-      "kubectl",
-      [
-        "delete",
-        "vs",
-        "order-server-canary",
-        "order-server-mirror",
-        "order-server-fault",
-        "-n",
-        "k1s0-service",
-        "--ignore-not-found",
-      ],
-      true
-    );
+    if (process.platform === "win32") {
+      await runCommand("taskkill", ["/PID", `${pid}`, "/T", "/F"]);
+    } else {
+      try {
+        process.kill(-pid, "SIGTERM");
+      } catch {
+        runningProcess.kill("SIGTERM");
+      }
+    }
   } catch {
-    // Ignore errors from non-existent resources
+    runningProcess.kill("SIGTERM");
   }
 
-  await runCommand(
-    "kubectl",
-    ["apply", "-f", BASELINE_VIRTUAL_SERVICES],
-    true
-  );
-  broadcast("Baseline VirtualServices restored.");
+  broadcast("Traffic generator stopped.");
 }
 
-// Stop traffic generator
-function stopTraffic() {
-  if (trafficProcess) {
-    trafficProcess.kill("SIGTERM");
-    trafficProcess = null;
-    broadcast("Traffic generator stopped.");
-  }
-}
+async function startTraffic(mode: ScenarioTraffic) {
+  await stopTraffic();
 
-// Start traffic generator
-function startTraffic(mode: string) {
-  stopTraffic();
   if (mode === "stop") {
     broadcast("Traffic generator remains stopped for this scenario.");
     return;
   }
-  const args = [resolve(KIALI_DIR, "traffic-gen.sh"), "2", "3600"];
-  if (mode === "canary") args.push("canary");
 
+  const args = [resolve(KIALI_DIR, "traffic-gen.sh"), "2", "3600", mode];
   trafficProcess = spawn(BASH_EXECUTABLE, args, {
     shell: false,
     windowsHide: true,
+    detached: process.platform !== "win32",
   });
+
   broadcast(`Traffic generator started (mode: ${mode})`);
 
   trafficProcess.stdout?.on("data", (data: Buffer) => {
@@ -216,6 +235,91 @@ function startTraffic(mode: string) {
   });
 }
 
+async function getCanaryStatus() {
+  try {
+    const raw = await runCommand("kubectl", [
+      "get",
+      "canary",
+      "order-server",
+      "-n",
+      "k1s0-service",
+      "-o",
+      "json",
+    ]);
+    const data = JSON.parse(raw) as CanaryResponse;
+    const lastCondition = data.status?.conditions?.at(-1);
+
+    return {
+      phase: data.status?.phase ?? "Unknown",
+      weight: data.status?.canaryWeight ?? 0,
+      failedChecks: data.status?.failedChecks ?? 0,
+      message: lastCondition?.message ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function getFaultStatus() {
+  try {
+    const raw = await runCommand("kubectl", [
+      "get",
+      "job",
+      "-n",
+      "k1s0-service",
+      "-l",
+      "app.kubernetes.io/part-of=k1s0-demo,fault-injection-run=manual",
+      "-o",
+      "json",
+    ]);
+    const data = JSON.parse(raw) as JobResponse;
+    const job = [...(data.items ?? [])]
+      .sort((left, right) =>
+        (right.metadata?.creationTimestamp ?? "").localeCompare(
+          left.metadata?.creationTimestamp ?? ""
+        )
+      )
+      .at(0);
+
+    if (!job?.metadata?.name) {
+      return null;
+    }
+
+    let windowActive = false;
+    try {
+      await runCommand("kubectl", [
+        "get",
+        "virtualservice",
+        "order-server-fault-window",
+        "-n",
+        "k1s0-service",
+        "-o",
+        "name",
+      ]);
+      windowActive = true;
+    } catch {
+      windowActive = false;
+    }
+
+    const status = job.status ?? {};
+    const phase = status.active
+      ? "Running"
+      : status.succeeded
+        ? "Succeeded"
+        : status.failed
+          ? "Failed"
+          : "Pending";
+
+    return {
+      name: job.metadata.name,
+      phase,
+      windowActive,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // --- REST API ---
 
 app.post("/api/scenario/:name", async (c) => {
@@ -227,15 +331,11 @@ app.post("/api/scenario/:name", async (c) => {
   }
 
   try {
-    await resetScenarios();
-
-    if (scenario.apply) {
-      const yamlPath = resolve(KIALI_DIR, scenario.apply);
-      broadcast(`Applying ${scenario.apply}...`);
-      await runCommand("kubectl", ["apply", "-f", yamlPath], true);
+    for (const command of scenario.commands) {
+      await runScript(command.script, command.args ?? []);
     }
 
-    startTraffic(scenario.traffic);
+    await startTraffic(scenario.traffic);
     activeScenario = name;
 
     return c.json({
@@ -252,8 +352,8 @@ app.post("/api/scenario/:name", async (c) => {
 
 app.delete("/api/scenario", async (c) => {
   try {
-    await resetScenarios();
-    startTraffic("normal");
+    await runScript("reset-demo-state.sh", ["flagger"]);
+    await startTraffic("normal");
     activeScenario = null;
     return c.json({ status: "reset" });
   } catch (error) {
@@ -264,32 +364,37 @@ app.delete("/api/scenario", async (c) => {
 
 app.get("/api/status", async (c) => {
   try {
-    const pods = await runCommand("kubectl", [
-      "get",
-      "pods",
-      "-A",
-      "-l",
-      "app",
-      "--no-headers",
-      "-o",
-      "custom-columns=NS:.metadata.namespace,NAME:.metadata.name,READY:.status.conditions[?(@.type=='Ready')].status,STATUS:.status.phase",
+    const [pods, canary, fault] = await Promise.all([
+      runCommand("kubectl", [
+        "get",
+        "pods",
+        "-A",
+        "--no-headers",
+        "-o",
+        "custom-columns=NS:.metadata.namespace,NAME:.metadata.name,READY:.status.conditions[?(@.type=='Ready')].status,STATUS:.status.phase",
+      ]),
+      getCanaryStatus(),
+      getFaultStatus(),
     ]);
 
     const lines = pods
       .trim()
       .split("\n")
       .filter(Boolean);
-    const podList = lines.map((line) => {
-      const parts = line.trim().split(/\s+/);
-      return {
-        namespace: parts[0],
-        name: parts[1],
-        ready: parts[2] === "True",
-        status: parts[3],
-      };
-    });
 
-    const readyCount = podList.filter((p) => p.ready).length;
+    const podList = lines
+      .map((line) => {
+        const parts = line.trim().split(/\s+/);
+        return {
+          namespace: parts[0],
+          name: parts[1],
+          ready: parts[2] === "True",
+          status: parts[3],
+        };
+      })
+      .filter((pod) => DEMO_NAMESPACES.has(pod.namespace));
+
+    const readyCount = podList.filter((pod) => pod.ready).length;
 
     return c.json({
       activeScenario,
@@ -299,6 +404,8 @@ app.get("/api/status", async (c) => {
         total: podList.length,
         list: podList,
       },
+      canary,
+      fault,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -306,14 +413,13 @@ app.get("/api/status", async (c) => {
   }
 });
 
-app.post("/api/traffic/start", (c) => {
-  const mode = activeScenario === "header" ? "canary" : "normal";
-  startTraffic(mode);
-  return c.json({ status: "started", mode });
+app.post("/api/traffic/start", async (c) => {
+  await startTraffic("normal");
+  return c.json({ status: "started", mode: "normal" });
 });
 
-app.post("/api/traffic/stop", (c) => {
-  stopTraffic();
+app.post("/api/traffic/stop", async (c) => {
+  await stopTraffic();
   return c.json({ status: "stopped" });
 });
 
@@ -343,13 +449,13 @@ app.get("/api/topology", async (c) => {
 
     const errorMap = new Map<string, number>();
     if (httpErrorData.data?.result) {
-      for (const r of httpErrorData.data.result) {
+      for (const result of httpErrorData.data.result) {
         const destination =
-          r.metric.destination_workload ||
-          r.metric.destination_service_name?.split(".")[0] ||
+          result.metric.destination_workload ||
+          result.metric.destination_service_name?.split(".")[0] ||
           "unknown";
-        const key = `${r.metric.source_workload}->${destination}`;
-        const value = parseFloat(r.value[1]);
+        const key = `${result.metric.source_workload}->${destination}`;
+        const value = parseFloat(result.value[1]);
         errorMap.set(key, Math.max(errorMap.get(key) || 0, value));
       }
     }
@@ -390,12 +496,12 @@ app.get("/api/topology", async (c) => {
     };
 
     if (httpRateData.data?.result) {
-      for (const r of httpRateData.data.result) {
-        const src = r.metric.source_workload;
-        const srcNs = r.metric.source_workload_namespace;
-        const dst = r.metric.destination_workload;
-        const dstNs = r.metric.destination_workload_namespace;
-        const rate = parseFloat(r.value[1]);
+      for (const result of httpRateData.data.result) {
+        const src = result.metric.source_workload;
+        const srcNs = result.metric.source_workload_namespace;
+        const dst = result.metric.destination_workload;
+        const dstNs = result.metric.destination_workload_namespace;
+        const rate = parseFloat(result.value[1]);
 
         recordNode(src, srcNs, rate, "reqps");
         recordNode(dst, dstNs, rate, "reqps");
@@ -415,12 +521,12 @@ app.get("/api/topology", async (c) => {
     }
 
     if (tcpRateData.data?.result) {
-      for (const r of tcpRateData.data.result) {
-        const src = r.metric.source_workload;
-        const srcNs = r.metric.source_workload_namespace;
-        const dst = r.metric.destination_workload;
-        const dstNs = r.metric.destination_workload_namespace;
-        const rate = parseFloat(r.value[1]);
+      for (const result of tcpRateData.data.result) {
+        const src = result.metric.source_workload;
+        const srcNs = result.metric.source_workload_namespace;
+        const dst = result.metric.destination_workload;
+        const dstNs = result.metric.destination_workload_namespace;
+        const rate = parseFloat(result.value[1]);
 
         recordNode(src, srcNs, rate, "bytesps");
         recordNode(dst, dstNs, rate, "bytesps");
@@ -463,7 +569,6 @@ app.get(
         })
       );
 
-      // Store reference for cleanup
       (ws as unknown as Record<string, unknown>).__client = client;
     },
     onClose(_event, ws) {
@@ -475,8 +580,6 @@ app.get(
   }))
 );
 
-// --- Start server ---
-
 const port = parseInt(process.env.BACKEND_PORT || "3100", 10);
 const server = serve({ fetch: app.fetch, port }, (info) => {
   console.log(`Backend running on http://localhost:${info.port}`);
@@ -484,13 +587,10 @@ const server = serve({ fetch: app.fetch, port }, (info) => {
 
 injectWebSocket(server);
 
-// Cleanup on exit
 process.on("SIGINT", () => {
-  stopTraffic();
-  process.exit(0);
+  void stopTraffic().finally(() => process.exit(0));
 });
 
 process.on("SIGTERM", () => {
-  stopTraffic();
-  process.exit(0);
+  void stopTraffic().finally(() => process.exit(0));
 });

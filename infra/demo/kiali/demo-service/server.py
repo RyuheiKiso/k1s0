@@ -19,6 +19,26 @@ DOWNSTREAMS = [
     url.strip() for url in os.getenv("DOWNSTREAMS", "").split(",") if url.strip()
 ]
 ENVIRONMENT = os.getenv("ENVIRONMENT_NAME", "dev")
+RELEASE_TRACK = os.getenv("RELEASE_TRACK", VERSION)
+
+
+def env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+FAILURE_RATE = max(0.0, min(1.0, env_float("FAILURE_RATE", 0.0)))
+FIXED_DELAY_MS = max(0, env_int("FIXED_DELAY_MS", 0))
+ERROR_STATUS = max(100, min(599, env_int("ERROR_STATUS", 503)))
 
 HTTP_BUCKETS = (0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0)
 DB_BUCKETS = (0.001, 0.003, 0.005, 0.01, 0.025, 0.05, 0.1)
@@ -358,6 +378,7 @@ class DemoHandler(BaseHTTPRequestHandler):
                         "tier": TIER,
                         "environment": ENVIRONMENT,
                         "namespace": NAMESPACE,
+                        "release_track": RELEASE_TRACK,
                         "trace_id": trace_id,
                         "span_id": child_span_id,
                         "request_id": request_id,
@@ -372,6 +393,20 @@ class DemoHandler(BaseHTTPRequestHandler):
             downstream_results.append({"target": url, "status": child_status})
 
         duration_ms = round((time.time() - started) * 1000, 2)
+
+        if FIXED_DELAY_MS > 0:
+            time.sleep(FIXED_DELAY_MS / 1000.0)
+            duration_ms = round((time.time() - started) * 1000, 2)
+
+        if FAILURE_RATE > 0 and RNG.random() < FAILURE_RATE:
+            overall_status = ERROR_STATUS
+            error_payload = {
+                "message": "demo canary failure injected",
+                "failure_rate": FAILURE_RATE,
+                "fixed_delay_ms": FIXED_DELAY_MS,
+                "status": ERROR_STATUS,
+            }
+
         record_request_metrics(self.command, self.path, overall_status, duration_ms)
         record_db_metrics(overall_status)
         record_kafka_metrics(overall_status)
@@ -383,8 +418,11 @@ class DemoHandler(BaseHTTPRequestHandler):
                 "tier": TIER,
                 "environment": ENVIRONMENT,
                 "version": VERSION,
+                "release_track": RELEASE_TRACK,
                 "trace_id": trace_id,
                 "request_id": request_id,
+                "failure_rate": FAILURE_RATE,
+                "fixed_delay_ms": FIXED_DELAY_MS,
                 "downstreams": downstream_results,
             },
             separators=(",", ":"),
@@ -401,6 +439,7 @@ class DemoHandler(BaseHTTPRequestHandler):
                 "tier": TIER,
                 "environment": ENVIRONMENT,
                 "namespace": NAMESPACE,
+                "release_track": RELEASE_TRACK,
                 "trace_id": trace_id,
                 "span_id": span_id,
                 "request_id": request_id,
@@ -409,6 +448,8 @@ class DemoHandler(BaseHTTPRequestHandler):
                 "status": overall_status,
                 "duration_ms": duration_ms,
                 "user_id": user_id,
+                "failure_rate": FAILURE_RATE,
+                "fixed_delay_ms": FIXED_DELAY_MS,
                 "downstreams": downstream_results,
                 "error": error_payload,
             }
@@ -435,6 +476,7 @@ def main() -> int:
             "tier": TIER,
             "environment": ENVIRONMENT,
             "namespace": NAMESPACE,
+            "release_track": RELEASE_TRACK,
             "error": None,
         }
     )
