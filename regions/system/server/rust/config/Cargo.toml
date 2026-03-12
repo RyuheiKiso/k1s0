@@ -10,6 +10,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "k1s0-config-server"
 path = "src/main.rs"
+test = false
 
 [dependencies]
 # gRPC / Protobuf

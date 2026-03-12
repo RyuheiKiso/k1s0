@@ -5,12 +5,15 @@ import {
   detectWorkspaceRoot,
   executeBuildWithProgress,
   executeGenerateAt,
+  executeTemplateMigration,
   executeTestWithProgressAt,
   getAuthSession,
   getFailedProdRollbackTarget,
+  previewTemplateMigration,
   pollDeviceAuthorization,
   resolveWorkspaceRoot,
   scanBuildableTargets,
+  scanTemplateMigrationTargets,
   startDeviceAuthorization,
 } from '../tauri-commands';
 
@@ -49,6 +52,49 @@ describe('tauri-commands', () => {
     expect(mockInvoke).toHaveBeenCalledWith('execute_generate_at', {
       config: expect.objectContaining({ kind: 'Server', tier: 'System' }),
       baseDir: '/repo',
+    });
+  });
+
+  it('wraps template migration commands', async () => {
+    const target = {
+      path: '/repo/regions/service/order/server/rust',
+      available_version: '1.5.0',
+      manifest: {
+        apiVersion: 'k1s0/v1',
+        kind: 'TemplateInstance',
+        metadata: {
+          name: 'order-server',
+          generatedAt: '2026-03-12T00:00:00Z',
+          generatedBy: 'k1s0-cli@0.1.0',
+        },
+        spec: {
+          template: {
+            type: 'server',
+            language: 'rust',
+            version: '1.2.0',
+            checksum: 'sha256:abc',
+          },
+          parameters: { tier: 'service' },
+          customizations: { ignorePaths: [], mergeStrategy: {} },
+        },
+      },
+    };
+
+    mockInvoke
+      .mockResolvedValueOnce([target])
+      .mockResolvedValueOnce({ target, changes: [] })
+      .mockResolvedValueOnce(undefined);
+
+    expect(await scanTemplateMigrationTargets('/repo')).toEqual([target]);
+    expect(await previewTemplateMigration(target)).toEqual({ target, changes: [] });
+    await executeTemplateMigration({ target, changes: [] });
+
+    expect(mockInvoke).toHaveBeenNthCalledWith(1, 'scan_template_migration_targets', {
+      baseDir: '/repo',
+    });
+    expect(mockInvoke).toHaveBeenNthCalledWith(2, 'preview_template_migration', { target });
+    expect(mockInvoke).toHaveBeenNthCalledWith(3, 'execute_template_migration', {
+      plan: { target, changes: [] },
     });
   });
 

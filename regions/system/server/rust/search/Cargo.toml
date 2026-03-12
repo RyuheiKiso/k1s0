@@ -10,6 +10,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "k1s0-search-server"
 path = "src/main.rs"
+test = false
 
 [dependencies]
 tonic = "0.12"

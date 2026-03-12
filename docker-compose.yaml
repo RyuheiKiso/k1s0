@@ -5,6 +5,12 @@
 # 共用開発サーバーでは COMPOSE_PROJECT_NAME でコンテナ・ボリューム・ネットワークを分離する。
 # 詳細: docs/infrastructure/devenv/共用開発サーバー設計.md
 
+x-rust-healthcheck: &rust-healthcheck
+  test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+
 services:
   # ============================================================
   # インフラ
@@ -222,11 +228,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/auth/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   config-rust:
     build:
@@ -249,11 +251,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/config/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   saga-rust:
     build:
@@ -276,11 +274,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/saga/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   dlq-manager:
     build:
@@ -300,11 +294,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/dlq-manager/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   featureflag-rust:
     build:
@@ -323,11 +313,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/featureflag/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   ratelimit-rust:
     build:
@@ -348,11 +334,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/ratelimit/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   tenant-rust:
     build:
@@ -373,11 +355,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/tenant/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   vault-rust:
     build:
@@ -398,11 +376,7 @@ services:
         condition: service_started
     volumes:
       - ./regions/system/server/rust/vault/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   api-registry-rust:
     build:
@@ -420,11 +394,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/api-registry/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   app-registry-rust:
     build:
@@ -444,11 +414,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/app-registry/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   event-monitor-rust:
     build:
@@ -469,11 +435,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/event-monitor/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   event-store-rust:
     build:
@@ -491,11 +453,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/event-store/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   file-rust:
     build:
@@ -513,11 +471,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/file/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   master-maintenance-rust:
     build:
@@ -536,11 +490,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/master-maintenance/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   navigation-rust:
     build:
@@ -559,11 +509,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/navigation/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   notification-rust:
     build:
@@ -583,11 +529,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/notification/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   policy-rust:
     build:
@@ -606,11 +548,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/policy/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   quota-rust:
     build:
@@ -630,11 +568,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/quota/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   rule-engine-rust:
     build:
@@ -653,11 +587,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/rule-engine/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   scheduler-rust:
     build:
@@ -677,11 +607,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/scheduler/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   search-rust:
     build:
@@ -699,11 +625,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/search/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   session-rust:
     build:
@@ -724,11 +646,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/session/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   workflow-rust:
     build:
@@ -748,11 +666,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/workflow/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   graphql-gateway-rust:
     build:
@@ -775,11 +689,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/graphql-gateway/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   bff-proxy:
     build:
@@ -822,11 +732,7 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/business/accounting/server/rust/domain-master/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    healthcheck: *rust-healthcheck
 
   # ============================================================
   # Kafka トピック自動作成

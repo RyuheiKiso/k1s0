@@ -20,11 +20,14 @@ WORKDIR /app/regions/system
 
 RUN cargo build --release -p k1s0-graphql-gateway-server
 
+FROM busybox:1.36.1-musl AS busybox
+
 # Runtime stage
 FROM gcr.io/distroless/cc-debian12:nonroot
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 COPY --from=builder /app/regions/system/target/release/k1s0-graphql-gateway-server /k1s0-graphql-gateway-server
+COPY --from=busybox /bin/busybox /busybox
 
 USER nonroot:nonroot
 EXPOSE 8080

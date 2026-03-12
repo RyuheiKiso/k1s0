@@ -208,6 +208,77 @@ export interface MigrationStatus {
   applied_at: string | null;
 }
 
+export type TemplateMergeStrategy = 'merge' | 'template' | 'user' | 'ask';
+export type TemplateChangeType = 'Added' | 'Modified' | 'Deleted' | 'Skipped';
+export type TemplateMergeResult =
+  | 'NoChange'
+  | { Clean: string }
+  | { Conflict: TemplateConflictHunk[] };
+
+export interface TemplateConflictHunk {
+  base: string;
+  ours: string;
+  theirs: string;
+  base_preview?: string;
+  ours_preview?: string;
+  theirs_preview?: string;
+}
+
+export interface TemplateManifest {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    generatedAt: string;
+    generatedBy: string;
+  };
+  spec: {
+    template: {
+      type: string;
+      language: string;
+      version: string;
+      checksum: string;
+    };
+    parameters: {
+      tier: string;
+      placement?: string | null;
+      serviceName?: string | null;
+      moduleName?: string | null;
+      framework?: string | null;
+      apiStyles?: string[];
+      database?: string | null;
+      databaseType?: string | null;
+      kafka?: boolean | null;
+      redis?: boolean | null;
+      bffLanguage?: string | null;
+      dockerRegistry?: string | null;
+      goModuleBase?: string | null;
+    };
+    customizations: {
+      ignorePaths: string[];
+      mergeStrategy: Record<string, TemplateMergeStrategy>;
+    };
+  };
+}
+
+export interface TemplateMigrationTarget {
+  path: string;
+  manifest: TemplateManifest;
+  available_version: string;
+}
+
+export interface TemplateFileChange {
+  path: string;
+  change_type: TemplateChangeType;
+  merge_strategy: TemplateMergeStrategy;
+  merge_result: TemplateMergeResult;
+}
+
+export interface TemplateMigrationPlan {
+  target: TemplateMigrationTarget;
+  changes: TemplateFileChange[];
+}
+
 export interface ValidationDiagnostic {
   rule: string;
   path: string;
@@ -535,6 +606,37 @@ export async function executeMigrateRepair(
 
 export async function scanMigrateTargets(baseDir: string): Promise<MigrateTarget[]> {
   return invoke<MigrateTarget[]>('scan_migrate_targets', { baseDir });
+}
+
+export async function scanTemplateMigrationTargets(
+  baseDir: string,
+): Promise<TemplateMigrationTarget[]> {
+  return invoke<TemplateMigrationTarget[]>('scan_template_migration_targets', { baseDir });
+}
+
+export async function previewTemplateMigration(
+  target: TemplateMigrationTarget,
+): Promise<TemplateMigrationPlan> {
+  return invoke<TemplateMigrationPlan>('preview_template_migration', { target });
+}
+
+export async function executeTemplateMigration(
+  plan: TemplateMigrationPlan,
+): Promise<void> {
+  return invoke<void>('execute_template_migration', { plan });
+}
+
+export async function listTemplateMigrationBackups(
+  projectDir: string,
+): Promise<string[]> {
+  return invoke<string[]>('list_template_migration_backups', { projectDir });
+}
+
+export async function executeTemplateMigrationRollback(
+  projectDir: string,
+  backupId: string,
+): Promise<void> {
+  return invoke<void>('execute_template_migration_rollback', { projectDir, backupId });
 }
 
 export async function previewEventCodegen(

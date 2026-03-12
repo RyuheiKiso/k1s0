@@ -18,11 +18,14 @@ COPY regions regions
 
 RUN cargo build --release --manifest-path regions/business/accounting/server/rust/domain-master/Cargo.toml
 
+FROM busybox:1.36.1-musl AS busybox
+
 # Runtime stage
 FROM gcr.io/distroless/cc-debian12:nonroot
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 COPY --from=builder /app/regions/business/accounting/server/rust/domain-master/target/release/k1s0-domain-master-server /k1s0-domain-master-server
+COPY --from=busybox /bin/busybox /busybox
 
 USER nonroot:nonroot
 EXPOSE 8080 50051

@@ -19,6 +19,11 @@ use k1s0_core::commands::migrate::{
     self as migrate_cmd, DbConnection, MigrateCreateConfig, MigrateDownConfig, MigrateTarget,
     MigrateUpConfig, MigrationStatus, RepairOperation,
 };
+use k1s0_core::commands::template_migrate::{
+    executor as template_migrate_executor, planner as template_migrate_planner,
+    rollback as template_migrate_rollback, scanner as template_migrate_scanner,
+    types::{MigrationPlan as TemplateMigrationPlan, MigrationTarget as TemplateMigrationTarget},
+};
 use k1s0_core::commands::test_cmd::{self as test_cmd, TestConfig};
 use k1s0_core::commands::validate::config_schema as config_schema_validate;
 use k1s0_core::commands::validate::navigation as nav_validate;
@@ -844,6 +849,53 @@ pub fn scan_migrate_targets(base_dir: String) -> Vec<migrate_cmd::MigrateTarget>
         Ok(workspace_root) => migrate_cmd::scan_migrate_targets(&workspace_root),
         Err(_) => Vec::new(),
     }
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn scan_template_migration_targets(base_dir: String) -> Vec<TemplateMigrationTarget> {
+    match resolve_workspace_root_path(Path::new(&base_dir)) {
+        Ok(workspace_root) => {
+            template_migrate_scanner::scan_targets(&workspace_root).unwrap_or_else(|_| Vec::new())
+        }
+        Err(_) => Vec::new(),
+    }
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn preview_template_migration(
+    target: TemplateMigrationTarget,
+) -> Result<TemplateMigrationPlan, String> {
+    ensure_authenticated()?;
+    template_migrate_planner::build_plan(&target).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_template_migration(plan: TemplateMigrationPlan) -> Result<(), String> {
+    ensure_authenticated()?;
+    template_migrate_executor::execute_migration(&plan).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn list_template_migration_backups(project_dir: String) -> Result<Vec<String>, String> {
+    let project_path = PathBuf::from(project_dir);
+    template_migrate_rollback::list_backups(&project_path).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_template_migration_rollback(
+    project_dir: String,
+    backup_id: String,
+) -> Result<(), String> {
+    ensure_authenticated()?;
+    let project_path = PathBuf::from(project_dir);
+    let backup_dir = template_migrate_rollback::backup_dir(&project_path, &backup_id);
+    template_migrate_rollback::rollback(&project_path, &backup_dir)
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]

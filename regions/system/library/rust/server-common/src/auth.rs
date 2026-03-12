@@ -37,9 +37,16 @@ Set auth.* in the config, or use ALLOW_INSECURE_NO_AUTH=true only for dev/test."
 #[cfg(test)]
 mod tests {
     use super::{allow_insecure_no_auth, require_auth_state};
+    use std::sync::{Mutex, OnceLock};
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
 
     #[test]
     fn allows_insecure_auth_override_only_for_dev_and_test() {
+        let _guard = env_lock().lock().unwrap();
         std::env::set_var("ALLOW_INSECURE_NO_AUTH", "true");
 
         assert!(allow_insecure_no_auth("dev"));
@@ -51,6 +58,7 @@ mod tests {
 
     #[test]
     fn rejects_missing_auth_without_override() {
+        let _guard = env_lock().lock().unwrap();
         std::env::remove_var("ALLOW_INSECURE_NO_AUTH");
 
         let err = require_auth_state::<()>("example-service", "dev", None).unwrap_err();
@@ -62,6 +70,7 @@ mod tests {
 
     #[test]
     fn accepts_missing_auth_when_override_is_enabled() {
+        let _guard = env_lock().lock().unwrap();
         std::env::set_var("ALLOW_INSECURE_NO_AUTH", "true");
 
         let auth_state = require_auth_state::<()>("example-service", "dev", None).unwrap();

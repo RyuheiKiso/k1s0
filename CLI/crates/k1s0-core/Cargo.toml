@@ -19,12 +19,12 @@ sha2 = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
 jsonschema = "0.18"
 similar = "2"
+tempfile = "3"
 
 [lints]
 workspace = true
 
 [dev-dependencies]
-tempfile = "3"
 pretty_assertions = "1"
 insta = { version = "1", features = ["yaml"] }
 mockito = "1"

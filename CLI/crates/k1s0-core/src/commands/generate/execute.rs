@@ -1,10 +1,15 @@
-﻿use anyhow::Result;
+use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::retry::{run_with_retry, RetryConfig};
 use super::scaffold::{generate_client, generate_database, generate_library, generate_server};
 use super::types::{ApiStyle, Framework, GenerateConfig, Kind, LangFw, Language, Rdbms, Tier};
+use crate::commands::template_migrate::parser::{
+    collect_project_files, compute_checksum, snapshot_dir, write_manifest, write_snapshot,
+    CURRENT_TEMPLATE_VERSION,
+};
+use crate::commands::template_migrate::types::TemplateManifest;
 use crate::config::CliConfig;
 use crate::template::context::TemplateContextBuilder;
 use crate::template::TemplateEngine;
@@ -23,49 +28,13 @@ pub fn execute_generate(config: &GenerateConfig) -> Result<()> {
 }
 
 /// 指定されたベースディレクトリを起点にひな形生成を実行する。
-/// テンプレートエンジンを使わず、インライン生成のみ行う（テスト後方互換用）。
+/// GUI などのワークスペース明示呼び出し向け。
 ///
 /// # Errors
 ///
 /// ディレクトリの作成またはファイルの書き込みに失敗した場合にエラーを返す。
 pub fn execute_generate_at(config: &GenerateConfig, base_dir: &Path) -> Result<()> {
-    let output_path = build_output_path(config, base_dir);
-    fs::create_dir_all(&output_path)?;
-
-    match config.kind {
-        Kind::Server => generate_server(config, &output_path)?,
-        Kind::Client => generate_client(config, &output_path)?,
-        Kind::Library => generate_library(config, &output_path)?,
-        Kind::Database => generate_database(config, &output_path)?,
-    }
-
-    // service Tier + GraphQL の場合は BFF を追加生成
-    if config.kind == Kind::Server
-        && config.tier == Tier::Service
-        && config.detail.api_styles.contains(&ApiStyle::GraphQL)
-    {
-        if let Some(bff_lang) = config.detail.bff_language {
-            // BFF 言語が指定されている場合はテンプレートエンジンで生成を試みる
-            let bff_path = output_path.join("bff");
-            fs::create_dir_all(&bff_path)?;
-            let tpl_dir = resolve_template_dir(base_dir);
-            let bff_tpl_dir = tpl_dir.join("bff").join(bff_lang.dir_name());
-            if bff_tpl_dir.exists() {
-                let bff_ctx = TemplateContextBuilder::new(
-                    config.detail.name.as_deref().unwrap_or("service"),
-                    config.tier.as_str(),
-                    bff_lang.dir_name(),
-                    "bff",
-                )
-                .api_style("graphql")
-                .build();
-                let mut engine = TemplateEngine::new(&tpl_dir)?;
-                let _ = engine.render_to_dir(&bff_ctx, &bff_path);
-            }
-        }
-    }
-
-    Ok(())
+    execute_generate_with_config(config, base_dir, &CliConfig::default())
 }
 
 /// `CliConfig` を指定してひな形生成を実行する。
@@ -79,62 +48,20 @@ pub fn execute_generate_with_config(
     base_dir: &Path,
     cli_config: &CliConfig,
 ) -> Result<()> {
-    let output_path = build_output_path(config, base_dir);
-    fs::create_dir_all(&output_path)?;
-
-    // D-03: テンプレートエンジンによる生成を試み、失敗時はインライン生成にフォールバック
     let tpl_dir = resolve_template_dir(base_dir);
+    let output_path = render_scaffold_preview(config, base_dir, cli_config, &tpl_dir)?;
     let template_context = build_template_context(config, cli_config);
-    let template_generated = if tpl_dir.exists() {
-        try_generate_from_templates(config, &output_path, &tpl_dir, cli_config)
-    } else {
-        false
-    };
-
-    // テンプレートで生成できなかった場合はインライン生成にフォールバック
-    if !template_generated {
-        match config.kind {
-            Kind::Server => generate_server(config, &output_path)?,
-            Kind::Client => generate_client(config, &output_path)?,
-            Kind::Library => generate_library(config, &output_path)?,
-            Kind::Database => generate_database(config, &output_path)?,
-        }
-    }
-
-    // service Tier + GraphQL の場合は BFF を追加生成
-    if config.kind == Kind::Server
-        && config.tier == Tier::Service
-        && config.detail.api_styles.contains(&ApiStyle::GraphQL)
-    {
-        if let Some(bff_lang) = config.detail.bff_language {
-            let bff_path = output_path.join("bff");
-            fs::create_dir_all(&bff_path)?;
-            let bff_tpl_dir = tpl_dir.join("bff").join(bff_lang.dir_name());
-            if bff_tpl_dir.exists() {
-                let bff_ctx = TemplateContextBuilder::new(
-                    config.detail.name.as_deref().unwrap_or("service"),
-                    config.tier.as_str(),
-                    bff_lang.dir_name(),
-                    "bff",
-                )
-                .api_style("graphql")
-                .build();
-                match TemplateEngine::new(&tpl_dir) {
-                    Ok(mut engine) => match engine.render_to_dir(&bff_ctx, &bff_path) {
-                        Ok(files) => {
-                            println!("BFF テンプレートを生成しました: {} ファイル", files.len());
-                        }
-                        Err(e) => {
-                            eprintln!("BFF テンプレートの生成に失敗しました: {e}");
-                        }
-                    },
-                    Err(e) => {
-                        eprintln!("BFF テンプレートエンジンの初期化に失敗しました: {e}");
-                    }
-                }
-            }
-        }
-    }
+    let generated_files = collect_project_files(&output_path)?;
+    let checksum = compute_checksum(&output_path, &generated_files)?;
+    let manifest = TemplateManifest::from_generate_config(
+        config,
+        cli_config,
+        CURRENT_TEMPLATE_VERSION,
+        &checksum,
+    );
+    let snapshot_path = snapshot_dir(&output_path, &checksum);
+    write_snapshot(&output_path, &generated_files, &snapshot_path)?;
+    write_manifest(&output_path, &manifest)?;
 
     // Helm Chart 生成（server のみ）
     if config.kind == Kind::Server {
@@ -179,21 +106,32 @@ pub fn execute_generate_with_config(
 }
 
 /// テンプレートディレクトリのパスを解決する。
-fn resolve_template_dir(base_dir: &Path) -> PathBuf {
-    // まず CLI/templates/ を探す
-    let cli_templates = base_dir.join("CLI").join("templates");
-    if cli_templates.exists() {
-        return cli_templates;
-    }
-    // CARGO_MANIFEST_DIR からの相対パスも試す（テスト時など）
-    if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
-        let manifest_templates = Path::new(&manifest_dir).join("templates");
-        if manifest_templates.exists() {
-            return manifest_templates;
+pub(crate) fn resolve_template_dir(base_dir: &Path) -> PathBuf {
+    for ancestor in base_dir.ancestors() {
+        for candidate in template_dir_candidates(ancestor) {
+            if is_template_dir(&candidate) {
+                return candidate;
+            }
         }
     }
-    // 見つからない場合はデフォルトのパスを返す（exists() で false になる）
-    cli_templates
+
+    let manifest_path = Path::new(env!("CARGO_MANIFEST_DIR"));
+    for candidate in template_dir_candidates(manifest_path) {
+        if is_template_dir(&candidate) {
+            return candidate;
+        }
+    }
+
+    let sibling_cli_templates = manifest_path.join("..").join("k1s0-cli").join("templates");
+    if is_template_dir(&sibling_cli_templates) {
+        return sibling_cli_templates;
+    }
+
+    base_dir
+        .join("CLI")
+        .join("crates")
+        .join("k1s0-cli")
+        .join("templates")
 }
 
 /// テンプレートエンジンを使って生成を試みる。成功した場合 true を返す。
@@ -227,6 +165,197 @@ fn try_generate_from_templates(
         Ok(files) => !files.is_empty(),
         Err(_) => false,
     }
+}
+
+/// プロジェクト本体の scaffold を生成する。
+///
+/// Helm/CI/CD や後処理は行わず、対象モジュール配下のみを作成する。
+///
+/// # Errors
+///
+/// ディレクトリ作成またはファイル生成に失敗した場合にエラーを返す。
+pub(crate) fn render_scaffold_preview(
+    config: &GenerateConfig,
+    base_dir: &Path,
+    cli_config: &CliConfig,
+    template_dir: &Path,
+) -> Result<PathBuf> {
+    let output_path = build_output_path(config, base_dir);
+    fs::create_dir_all(&output_path)?;
+
+    let template_generated = if template_dir.exists() {
+        try_generate_from_templates(config, &output_path, template_dir, cli_config)
+    } else {
+        false
+    };
+
+    if !template_generated {
+        generate_inline_scaffold(config, &output_path)?;
+    }
+
+    render_bff_if_needed(config, template_dir, &output_path)?;
+    normalize_generated_scaffold(config, &output_path)?;
+
+    Ok(output_path)
+}
+
+fn template_dir_candidates(root: &Path) -> [PathBuf; 4] {
+    [
+        root.join("CLI")
+            .join("crates")
+            .join("k1s0-cli")
+            .join("templates"),
+        root.join("CLI").join("templates"),
+        root.join("crates").join("k1s0-cli").join("templates"),
+        root.join("templates"),
+    ]
+}
+
+fn is_template_dir(candidate: &Path) -> bool {
+    candidate.join("server").is_dir()
+        && candidate.join("client").is_dir()
+        && candidate.join("library").is_dir()
+        && candidate.join("database").is_dir()
+        && candidate.join("bff").is_dir()
+}
+
+fn generate_inline_scaffold(config: &GenerateConfig, output_path: &Path) -> Result<()> {
+    match config.kind {
+        Kind::Server => generate_server(config, output_path)?,
+        Kind::Client => generate_client(config, output_path)?,
+        Kind::Library => generate_library(config, output_path)?,
+        Kind::Database => generate_database(config, output_path)?,
+    }
+
+    Ok(())
+}
+
+fn render_bff_if_needed(
+    config: &GenerateConfig,
+    template_dir: &Path,
+    output_path: &Path,
+) -> Result<()> {
+    if config.kind != Kind::Server
+        || config.tier != Tier::Service
+        || !config.detail.api_styles.contains(&ApiStyle::GraphQL)
+    {
+        return Ok(());
+    }
+
+    let Some(bff_lang) = config.detail.bff_language else {
+        return Ok(());
+    };
+
+    let bff_tpl_dir = template_dir.join("bff").join(bff_lang.dir_name());
+    if !bff_tpl_dir.exists() {
+        return Ok(());
+    }
+
+    let bff_path = output_path.join("bff");
+    fs::create_dir_all(&bff_path)?;
+    let bff_ctx = TemplateContextBuilder::new(
+        config.detail.name.as_deref().unwrap_or("service"),
+        config.tier.as_str(),
+        bff_lang.dir_name(),
+        "bff",
+    )
+    .api_style("graphql")
+    .build();
+
+    match TemplateEngine::new(template_dir) {
+        Ok(mut engine) => {
+            let _ = engine.render_to_dir(&bff_ctx, &bff_path);
+        }
+        Err(error) => {
+            eprintln!("BFF テンプレートエンジンの初期化に失敗しました: {error}");
+        }
+    }
+
+    Ok(())
+}
+
+fn normalize_generated_scaffold(config: &GenerateConfig, output_path: &Path) -> Result<()> {
+    match config.kind {
+        Kind::Database => normalize_database_layout(config, output_path),
+        Kind::Library => normalize_library_layout(config, output_path),
+        _ => Ok(()),
+    }
+}
+
+fn normalize_database_layout(config: &GenerateConfig, output_path: &Path) -> Result<()> {
+    let LangFw::Database { name, rdbms } = &config.lang_fw else {
+        return Ok(());
+    };
+
+    let migrations_dir = output_path.join("migrations");
+    fs::create_dir_all(&migrations_dir)?;
+    fs::create_dir_all(output_path.join("seeds"))?;
+    fs::create_dir_all(output_path.join("schema"))?;
+
+    for file_name in ["001_init.up.sql", "001_init.down.sql"] {
+        let root_path = output_path.join(file_name);
+        let migration_path = migrations_dir.join(file_name);
+        if root_path.is_file() && !migration_path.exists() {
+            fs::rename(root_path, migration_path)?;
+        }
+    }
+
+    let database_yaml = output_path.join("database.yaml");
+    if !database_yaml.exists() {
+        fs::write(
+            database_yaml,
+            format!("name: {name}\nrdbms: {}\n", rdbms.as_str()),
+        )?;
+    }
+
+    Ok(())
+}
+
+fn normalize_library_layout(config: &GenerateConfig, output_path: &Path) -> Result<()> {
+    if !matches!(config.lang_fw, LangFw::Language(Language::Dart)) {
+        return Ok(());
+    }
+
+    let Some(name) = config.detail.name.as_deref() else {
+        return Ok(());
+    };
+
+    let module_name = to_snake_case(name);
+    let lib_dir = output_path.join("lib");
+    fs::create_dir_all(&lib_dir)?;
+
+    let legacy_entry = lib_dir.join(format!("{name}.dart"));
+    let expected_entry = lib_dir.join(format!("{module_name}.dart"));
+
+    if legacy_entry.is_file() && !expected_entry.exists() {
+        fs::rename(&legacy_entry, &expected_entry)?;
+    }
+
+    if !expected_entry.exists() {
+        fs::write(
+            &expected_entry,
+            format!("library {module_name};\n\nexport 'src/{module_name}.dart';\n"),
+        )?;
+    }
+
+    Ok(())
+}
+
+fn to_snake_case(value: &str) -> String {
+    let mut snake = String::with_capacity(value.len());
+    let mut previous_was_separator = false;
+
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            snake.push(ch.to_ascii_lowercase());
+            previous_was_separator = false;
+        } else if !previous_was_separator {
+            snake.push('_');
+            previous_was_separator = true;
+        }
+    }
+
+    snake.trim_matches('_').to_string()
 }
 
 /// `GenerateConfig` から `TemplateContext` を構築する。

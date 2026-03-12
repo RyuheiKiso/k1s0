@@ -7,6 +7,7 @@ import GeneratePage from './pages/GeneratePage';
 import DepsPage from './pages/DepsPage';
 import DevPage from './pages/DevPage';
 import MigratePage from './pages/MigratePage';
+import TemplateMigratePage from './pages/TemplateMigratePage';
 import ConfigTypesPage from './pages/ConfigTypesPage';
 import NavigationTypesPage from './pages/NavigationTypesPage';
 import EventCodegenPage from './pages/EventCodegenPage';
@@ -61,6 +62,12 @@ const migrateRoute = createRoute({
   component: MigratePage,
 });
 
+const templateMigrateRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/template-migrate',
+  component: TemplateMigratePage,
+});
+
 const configTypesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/config-types',
@@ -111,6 +118,7 @@ const routeTree = rootRoute.addChildren([
   depsRoute,
   devRoute,
   migrateRoute,
+  templateMigrateRoute,
   configTypesRoute,
   navigationTypesRoute,
   eventCodegenRoute,

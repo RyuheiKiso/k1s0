@@ -29,6 +29,7 @@ function renderWithRouter(initialPath = '/') {
     ['/deps', 'deps-page'],
     ['/dev', 'dev-page'],
     ['/migrate', 'migrate-page'],
+    ['/template-migrate', 'template-migrate-page'],
     ['/config-types', 'config-types-page'],
     ['/navigation-types', 'navigation-types-page'],
     ['/event-codegen', 'event-codegen-page'],
@@ -62,6 +63,7 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('nav-deps')).toBeInTheDocument();
     expect(screen.getByTestId('nav-dev')).toBeInTheDocument();
     expect(screen.getByTestId('nav-migrate')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-template-migrate')).toBeInTheDocument();
     expect(screen.getByTestId('nav-config-types')).toBeInTheDocument();
     expect(screen.getByTestId('nav-navigation-types')).toBeInTheDocument();
     expect(screen.getByTestId('nav-event-codegen')).toBeInTheDocument();

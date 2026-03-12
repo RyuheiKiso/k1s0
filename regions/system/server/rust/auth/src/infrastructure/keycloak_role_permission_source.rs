@@ -48,18 +48,12 @@ impl KeycloakRolePermissionSource {
             }
         }
 
-        let token_url = format!(
-            "{}/realms/{}/protocol/openid-connect/token",
-            self.config.base_url, self.config.realm
-        );
+        let token_url = self.config.admin_token_url();
+        let form = self.config.admin_token_form();
         let resp = self
             .http_client
             .post(&token_url)
-            .form(&[
-                ("grant_type", "client_credentials"),
-                ("client_id", &self.config.client_id),
-                ("client_secret", &self.config.client_secret),
-            ])
+            .form(&form)
             .send()
             .await?;
         let body: serde_json::Value = resp.error_for_status()?.json().await?;

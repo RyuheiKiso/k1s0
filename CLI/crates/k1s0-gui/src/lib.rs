@@ -162,6 +162,11 @@ pub fn run() {
             commands::execute_migrate_status,
             commands::execute_migrate_repair,
             commands::scan_migrate_targets,
+            commands::scan_template_migration_targets,
+            commands::preview_template_migration,
+            commands::execute_template_migration,
+            commands::list_template_migration_backups,
+            commands::execute_template_migration_rollback,
             // scaffold databases
             commands::scan_databases,
             // event codegen

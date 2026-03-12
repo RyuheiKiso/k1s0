@@ -9,6 +9,7 @@ type Page =
   | 'deps'
   | 'dev'
   | 'migrate'
+  | 'template-migrate'
   | 'config-types'
   | 'navigation-types'
   | 'event-codegen'
@@ -24,7 +25,13 @@ const menuItems: { page: Page; path: string; label: string; shortLabel: string }
   { page: 'generate', path: '/generate', label: 'Generate', shortLabel: 'GN' },
   { page: 'deps', path: '/deps', label: 'Deps Map', shortLabel: 'DM' },
   { page: 'dev', path: '/dev', label: 'Local Dev', shortLabel: 'DV' },
-  { page: 'migrate', path: '/migrate', label: 'Migrate', shortLabel: 'MG' },
+  { page: 'migrate', path: '/migrate', label: 'DB Migrate', shortLabel: 'DBM' },
+  {
+    page: 'template-migrate',
+    path: '/template-migrate',
+    label: 'Template Migrate',
+    shortLabel: 'TMP',
+  },
   { page: 'config-types', path: '/config-types', label: 'Config Types', shortLabel: 'CT' },
   {
     page: 'navigation-types',
