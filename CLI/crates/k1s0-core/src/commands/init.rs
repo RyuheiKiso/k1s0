@@ -49,10 +49,28 @@ impl Tier {
 }
 
 pub fn execute_init(config: &InitConfig) -> Result<()> {
-    let base = Path::new(&config.project_name);
+    execute_init_at(config, Path::new("."))?;
+    Ok(())
+}
+
+pub fn execute_init_at(config: &InitConfig, base_dir: &Path) -> Result<PathBuf> {
+    let parent_dir = base_dir.canonicalize().with_context(|| {
+        format!(
+            "failed to resolve initialization directory {}",
+            base_dir.display()
+        )
+    })?;
+    if !parent_dir.is_dir() {
+        bail!(
+            "initialization directory is not a directory: {}",
+            parent_dir.display()
+        );
+    }
+
+    let base = parent_dir.join(&config.project_name);
     let scaffold_root = resolve_scaffold_root();
 
-    fs::create_dir_all(base)?;
+    fs::create_dir_all(&base)?;
 
     for tier in &config.tiers {
         fs::create_dir_all(base.join("regions").join(tier.as_str()))?;
@@ -71,33 +89,33 @@ pub fn execute_init(config: &InitConfig) -> Result<()> {
     )?;
     copy_scaffold_file(
         &scaffold_root,
-        base,
+        &base,
         Path::new(".devcontainer/docker-compose.extend.yaml"),
     )?;
     copy_scaffold_file(
         &scaffold_root,
-        base,
+        &base,
         Path::new(".devcontainer/post-create.sh"),
     )?;
 
     for workflow in WORKFLOW_FILES {
         copy_scaffold_file(
             &scaffold_root,
-            base,
+            &base,
             &Path::new(".github").join("workflows").join(workflow),
         )?;
     }
 
     fs::write(base.join("docker-compose.yaml"), generate_docker_compose()?)?;
-    copy_scaffold_file(&scaffold_root, base, Path::new(".env.example"))?;
+    copy_scaffold_file(&scaffold_root, &base, Path::new(".env.example"))?;
     copy_scaffold_file(
         &scaffold_root,
-        base,
+        &base,
         Path::new("docker-compose.override.yaml.example"),
     )?;
 
     for directory in INFRA_DIRECTORIES {
-        copy_scaffold_directory(&scaffold_root, base, Path::new(directory))?;
+        copy_scaffold_directory(&scaffold_root, &base, Path::new(directory))?;
     }
 
     fs::write(
@@ -106,13 +124,13 @@ pub fn execute_init(config: &InitConfig) -> Result<()> {
     )?;
 
     if config.git_init {
-        let status = Command::new("git").arg("init").current_dir(base).status();
+        let status = Command::new("git").arg("init").current_dir(&base).status();
         match status {
             Ok(outcome) if outcome.success() => {
                 if config.sparse_checkout {
                     let _ = Command::new("git")
                         .args(["sparse-checkout", "init", "--cone"])
-                        .current_dir(base)
+                        .current_dir(&base)
                         .status();
                     let tier_paths: Vec<String> = config
                         .tiers
@@ -122,7 +140,7 @@ pub fn execute_init(config: &InitConfig) -> Result<()> {
                     let _ = Command::new("git")
                         .args(["sparse-checkout", "set"])
                         .args(&tier_paths)
-                        .current_dir(base)
+                        .current_dir(&base)
                         .status();
                 }
             }
@@ -132,7 +150,8 @@ pub fn execute_init(config: &InitConfig) -> Result<()> {
         }
     }
 
-    Ok(())
+    base.canonicalize()
+        .with_context(|| format!("failed to resolve created workspace {}", base.display()))
 }
 
 fn resolve_scaffold_root() -> PathBuf {
@@ -339,17 +358,15 @@ mod tests {
     #[test]
     fn test_execute_init_creates_scaffold_files() {
         let tmp = TempDir::new().unwrap();
-        let project_name = tmp.path().join("my-project").to_string_lossy().to_string();
         let config = InitConfig {
-            project_name,
+            project_name: "my-project".to_string(),
             git_init: false,
             sparse_checkout: false,
             tiers: vec![Tier::System, Tier::Business, Tier::Service],
         };
 
-        execute_init(&config).unwrap();
+        let base = execute_init_at(&config, tmp.path()).unwrap();
 
-        let base = Path::new(&config.project_name);
         assert!(base.join("regions/system").is_dir());
         assert!(base.join("regions/business").is_dir());
         assert!(base.join("regions/service").is_dir());
@@ -383,21 +400,15 @@ mod tests {
     #[test]
     fn test_execute_init_partial_tiers() {
         let tmp = TempDir::new().unwrap();
-        let project_name = tmp
-            .path()
-            .join("partial-project")
-            .to_string_lossy()
-            .to_string();
         let config = InitConfig {
-            project_name,
+            project_name: "partial-project".to_string(),
             git_init: false,
             sparse_checkout: true,
             tiers: vec![Tier::System],
         };
 
-        execute_init(&config).unwrap();
+        let base = execute_init_at(&config, tmp.path()).unwrap();
 
-        let base = Path::new(&config.project_name);
         assert!(base.join("regions/system").is_dir());
         assert!(!base.join("regions/business").exists());
         assert!(!base.join("regions/service").exists());
@@ -406,16 +417,33 @@ mod tests {
     #[test]
     fn test_execute_init_with_git() {
         let tmp = TempDir::new().unwrap();
-        let project_name = tmp.path().join("git-project").to_string_lossy().to_string();
         let config = InitConfig {
-            project_name,
+            project_name: "git-project".to_string(),
             git_init: true,
             sparse_checkout: false,
             tiers: vec![Tier::System, Tier::Business, Tier::Service],
         };
 
-        let result = execute_init(&config);
+        let result = execute_init_at(&config, tmp.path());
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_init_at_returns_created_workspace_root() {
+        let tmp = TempDir::new().unwrap();
+        let config = InitConfig {
+            project_name: "workspace-root".to_string(),
+            git_init: false,
+            sparse_checkout: false,
+            tiers: vec![Tier::System],
+        };
+
+        let created = execute_init_at(&config, tmp.path()).unwrap();
+
+        assert_eq!(
+            created,
+            tmp.path().join("workspace-root").canonicalize().unwrap()
+        );
     }
 
     #[test]

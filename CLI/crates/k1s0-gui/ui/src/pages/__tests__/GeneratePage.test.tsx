@@ -11,6 +11,9 @@ beforeEach(() => {
     if (command === 'scan_placements') {
       return Promise.resolve([]);
     }
+    if (command === 'scan_generate_conflicts') {
+      return Promise.resolve([]);
+    }
     if (command === 'validate_name') {
       return Promise.resolve(undefined);
     }
@@ -88,6 +91,48 @@ describe('GeneratePage', () => {
 
     expect(await screen.findByTestId('success-message')).toBeInTheDocument();
     expect(mockInvoke).toHaveBeenCalledWith('execute_generate_at', expect.anything());
+  });
+
+  it('blocks confirmation when conflicting generated assets already exist', async () => {
+    const user = userEvent.setup();
+    mockInvoke.mockImplementation((command: string) => {
+      if (command === 'scan_placements') {
+        return Promise.resolve([]);
+      }
+      if (command === 'scan_generate_conflicts') {
+        return Promise.resolve(['/repo/.github/workflows/system-server-rust-auth-ci.yaml']);
+      }
+      if (command === 'validate_name') {
+        return Promise.resolve(undefined);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    renderWithProviders(<GeneratePage />, {
+      workspace: { workspaceRoot: '/repo', draftPath: '/repo' },
+    });
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'scan_databases',
+        expect.objectContaining({ tier: 'System', baseDir: '/repo' }),
+      );
+    });
+
+    await user.click(screen.getByTestId('btn-next'));
+    await user.click(screen.getByTestId('btn-next'));
+    await user.click(screen.getByTestId('btn-next'));
+    await user.click(screen.getByTestId('btn-next'));
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'scan_generate_conflicts',
+        expect.objectContaining({
+          baseDir: '/repo',
+          config: expect.objectContaining({ kind: 'Server', tier: 'System' }),
+        }),
+      );
+    });
+    expect(screen.queryByTestId('step-confirm')).not.toBeInTheDocument();
   });
 
   it('shows the placement step for Business tier', async () => {

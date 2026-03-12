@@ -54,6 +54,10 @@ export interface InitConfig {
   tiers: Tier[];
 }
 
+export interface InitResult {
+  workspace_root: string;
+}
+
 export interface BuildConfig {
   targets: string[];
   mode: BuildMode;
@@ -307,6 +311,18 @@ export interface DeviceAuthorizationChallenge {
   expires_in: number;
 }
 
+export interface DeviceAuthorizationSettings {
+  discovery_url: string;
+  client_id: string;
+  scope: string;
+}
+
+export interface DeviceAuthorizationDiscovery {
+  issuer: string;
+  token_endpoint: string;
+  device_authorization_endpoint: string;
+}
+
 export interface AuthSessionSummary {
   issuer: string;
   authenticated_at_epoch_secs: number;
@@ -339,12 +355,23 @@ export async function executeInit(config: InitConfig): Promise<void> {
   return invoke<void>('execute_init', { config });
 }
 
+export async function executeInitAt(config: InitConfig, baseDir: string): Promise<string> {
+  return invoke<string>('execute_init_at', { config, baseDir });
+}
+
 export async function executeGenerate(config: GenerateConfig): Promise<void> {
   return invoke<void>('execute_generate', { config });
 }
 
 export async function executeGenerateAt(config: GenerateConfig, baseDir: string): Promise<void> {
   return invoke<void>('execute_generate_at', { config, baseDir });
+}
+
+export async function scanGenerateConflicts(
+  config: GenerateConfig,
+  baseDir: string,
+): Promise<string[]> {
+  return invoke<string[]>('scan_generate_conflicts', { config, baseDir });
 }
 
 export async function executeBuild(config: BuildConfig): Promise<void> {
@@ -516,6 +543,10 @@ export async function detectWorkspaceRoot(): Promise<string | null> {
   return invoke<string | null>('detect_workspace_root');
 }
 
+export async function getCurrentDirectory(): Promise<string> {
+  return invoke<string>('get_current_directory');
+}
+
 export async function resolveWorkspaceRoot(path: string): Promise<string> {
   return invoke<string>('resolve_workspace_root', { path });
 }
@@ -659,8 +690,22 @@ export async function executeEventCodegen(
   });
 }
 
-export async function startDeviceAuthorization(): Promise<DeviceAuthorizationChallenge> {
-  return invoke<DeviceAuthorizationChallenge>('start_device_authorization');
+export async function getDeviceAuthorizationDefaults(): Promise<DeviceAuthorizationSettings> {
+  return invoke<DeviceAuthorizationSettings>('get_device_authorization_defaults');
+}
+
+export async function validateDeviceAuthorizationSettings(
+  settings: DeviceAuthorizationSettings,
+): Promise<DeviceAuthorizationDiscovery> {
+  return invoke<DeviceAuthorizationDiscovery>('validate_device_authorization_settings', {
+    settings,
+  });
+}
+
+export async function startDeviceAuthorization(
+  settings?: DeviceAuthorizationSettings,
+): Promise<DeviceAuthorizationChallenge> {
+  return invoke<DeviceAuthorizationChallenge>('start_device_authorization', { settings });
 }
 
 export async function pollDeviceAuthorization(

@@ -4,17 +4,22 @@ import {
   clearAuthSession,
   detectWorkspaceRoot,
   executeBuildWithProgress,
+  executeInitAt,
   executeGenerateAt,
   executeTemplateMigration,
   executeTestWithProgressAt,
+  getCurrentDirectory,
+  getDeviceAuthorizationDefaults,
   getAuthSession,
   getFailedProdRollbackTarget,
   previewTemplateMigration,
   pollDeviceAuthorization,
   resolveWorkspaceRoot,
   scanBuildableTargets,
+  scanGenerateConflicts,
   scanTemplateMigrationTargets,
   startDeviceAuthorization,
+  validateDeviceAuthorizationSettings,
 } from '../tauri-commands';
 
 beforeEach(() => {
@@ -50,6 +55,34 @@ describe('tauri-commands', () => {
     );
 
     expect(mockInvoke).toHaveBeenCalledWith('execute_generate_at', {
+      config: expect.objectContaining({ kind: 'Server', tier: 'System' }),
+      baseDir: '/repo',
+    });
+  });
+
+  it('wraps generate conflict scanning with the resolved workspace root', async () => {
+    mockInvoke.mockResolvedValue(['/repo/regions/system/server/rust/auth']);
+
+    const conflicts = await scanGenerateConflicts(
+      {
+        kind: 'Server',
+        tier: 'System',
+        placement: null,
+        lang_fw: { Language: 'Rust' },
+        detail: {
+          name: 'auth',
+          api_styles: ['Rest'],
+          db: null,
+          kafka: false,
+          redis: false,
+          bff_language: null,
+        },
+      },
+      '/repo',
+    );
+
+    expect(conflicts).toEqual(['/repo/regions/system/server/rust/auth']);
+    expect(mockInvoke).toHaveBeenCalledWith('scan_generate_conflicts', {
       config: expect.objectContaining({ kind: 'Server', tier: 'System' }),
       baseDir: '/repo',
     });
@@ -124,16 +157,43 @@ describe('tauri-commands', () => {
   });
 
   it('wraps workspace root commands', async () => {
-    mockInvoke.mockResolvedValueOnce('/repo').mockResolvedValueOnce('/repo');
+    mockInvoke.mockResolvedValueOnce('/repo').mockResolvedValueOnce('C:/work').mockResolvedValueOnce('/repo');
 
     expect(await detectWorkspaceRoot()).toBe('/repo');
+    expect(await getCurrentDirectory()).toBe('C:/work');
     expect(await resolveWorkspaceRoot('/repo')).toBe('/repo');
 
     expect(mockInvoke).toHaveBeenNthCalledWith(1, 'detect_workspace_root');
-    expect(mockInvoke).toHaveBeenNthCalledWith(2, 'resolve_workspace_root', { path: '/repo' });
+    expect(mockInvoke).toHaveBeenNthCalledWith(2, 'get_current_directory');
+    expect(mockInvoke).toHaveBeenNthCalledWith(3, 'resolve_workspace_root', { path: '/repo' });
+  });
+
+  it('wraps execute_init_at with an explicit parent directory', async () => {
+    mockInvoke.mockResolvedValue('C:/work/my-project');
+
+    const result = await executeInitAt(
+      {
+        project_name: 'my-project',
+        git_init: true,
+        sparse_checkout: false,
+        tiers: ['System'],
+      },
+      'C:/work',
+    );
+
+    expect(result).toBe('C:/work/my-project');
+    expect(mockInvoke).toHaveBeenCalledWith('execute_init_at', {
+      config: expect.objectContaining({ project_name: 'my-project' }),
+      baseDir: 'C:/work',
+    });
   });
 
   it('wraps device authorization commands', async () => {
+    const settings = {
+      discovery_url: 'https://issuer.example.com/.well-known/openid-configuration',
+      client_id: 'client',
+      scope: 'openid',
+    };
     const challenge = {
       issuer: 'https://issuer.example.com',
       client_id: 'client',
@@ -148,15 +208,33 @@ describe('tauri-commands', () => {
     };
 
     mockInvoke
+      .mockResolvedValueOnce(settings)
+      .mockResolvedValueOnce({
+        issuer: 'https://issuer.example.com',
+        token_endpoint: 'https://issuer.example.com/token',
+        device_authorization_endpoint: 'https://issuer.example.com/device',
+      })
       .mockResolvedValueOnce(challenge)
       .mockResolvedValueOnce({ status: 'Pending', interval: 5, message: 'pending' });
 
-    expect(await startDeviceAuthorization()).toEqual(challenge);
+    expect(await getDeviceAuthorizationDefaults()).toEqual(settings);
+    expect(await validateDeviceAuthorizationSettings(settings)).toEqual({
+      issuer: 'https://issuer.example.com',
+      token_endpoint: 'https://issuer.example.com/token',
+      device_authorization_endpoint: 'https://issuer.example.com/device',
+    });
+    expect(await startDeviceAuthorization(settings)).toEqual(challenge);
     expect(await pollDeviceAuthorization(challenge)).toEqual({
       status: 'Pending',
       interval: 5,
       message: 'pending',
     });
+
+    expect(mockInvoke).toHaveBeenNthCalledWith(1, 'get_device_authorization_defaults');
+    expect(mockInvoke).toHaveBeenNthCalledWith(2, 'validate_device_authorization_settings', {
+      settings,
+    });
+    expect(mockInvoke).toHaveBeenNthCalledWith(3, 'start_device_authorization', { settings });
   });
 
   it('wraps auth session commands', async () => {

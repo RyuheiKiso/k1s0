@@ -180,6 +180,15 @@ pub fn execute_init(config: InitConfig) -> Result<(), String> {
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
+pub fn execute_init_at(config: InitConfig, base_dir: String) -> Result<String, String> {
+    ensure_authenticated()?;
+    init_cmd::execute_init_at(&config, Path::new(&base_dir))
+        .map(|workspace_root| workspace_root.to_string_lossy().to_string())
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn execute_generate(config: GenerateConfig) -> Result<(), String> {
     ensure_authenticated()?;
     gen_cmd::execute_generate(&config).map_err(|error| error.to_string())
@@ -191,6 +200,19 @@ pub fn execute_generate_at(config: GenerateConfig, base_dir: String) -> Result<(
     ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
     gen_cmd::execute_generate_at(&config, &workspace_root).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn scan_generate_conflicts(
+    config: GenerateConfig,
+    base_dir: String,
+) -> Result<Vec<String>, String> {
+    let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
+    Ok(gen_cmd::find_generate_conflicts_at(
+        &config,
+        &workspace_root,
+    ))
 }
 
 #[tauri::command]
@@ -589,6 +611,13 @@ pub fn detect_workspace_root() -> Option<String> {
 }
 
 #[tauri::command]
+pub fn get_current_directory() -> Result<String, String> {
+    std::env::current_dir()
+        .map(|path| path.to_string_lossy().to_string())
+        .map_err(|error| format!("failed to resolve current directory: {error}"))
+}
+
+#[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn resolve_workspace_root(path: String) -> Result<String, String> {
     resolve_workspace_root_path(Path::new(&path))
@@ -950,6 +979,20 @@ pub struct DeviceAuthorizationChallenge {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceAuthorizationSettings {
+    pub discovery_url: String,
+    pub client_id: String,
+    pub scope: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceAuthorizationDiscovery {
+    pub issuer: String,
+    pub token_endpoint: String,
+    pub device_authorization_endpoint: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "status")]
 pub enum DeviceAuthorizationPollResult {
     Pending { interval: u64, message: String },
@@ -991,24 +1034,58 @@ struct OAuthErrorResponse {
     interval: Option<u64>,
 }
 
-#[tauri::command]
-pub fn start_device_authorization() -> Result<DeviceAuthorizationChallenge, String> {
-    let client = http_client()?;
-    let discovery_url = std::env::var("K1S0_GUI_OIDC_DISCOVERY_URL")
-        .unwrap_or_else(|_| DEFAULT_DISCOVERY_URL.to_string());
-    let client_id =
-        std::env::var("K1S0_GUI_OIDC_CLIENT_ID").unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string());
-    let scope = std::env::var("K1S0_GUI_OIDC_SCOPE").unwrap_or_else(|_| DEFAULT_SCOPE.to_string());
+fn default_device_authorization_settings() -> DeviceAuthorizationSettings {
+    DeviceAuthorizationSettings {
+        discovery_url: std::env::var("K1S0_GUI_OIDC_DISCOVERY_URL")
+            .unwrap_or_else(|_| DEFAULT_DISCOVERY_URL.to_string()),
+        client_id: std::env::var("K1S0_GUI_OIDC_CLIENT_ID")
+            .unwrap_or_else(|_| DEFAULT_CLIENT_ID.to_string()),
+        scope: std::env::var("K1S0_GUI_OIDC_SCOPE").unwrap_or_else(|_| DEFAULT_SCOPE.to_string()),
+    }
+}
 
-    let discovery: DiscoveryDocument = client
-        .get(&discovery_url)
+fn normalize_device_authorization_settings(
+    settings: Option<DeviceAuthorizationSettings>,
+) -> Result<DeviceAuthorizationSettings, String> {
+    let defaults = default_device_authorization_settings();
+    let settings = settings.unwrap_or(defaults);
+
+    let discovery_url = settings.discovery_url.trim();
+    let client_id = settings.client_id.trim();
+    let scope = settings.scope.trim();
+
+    if discovery_url.is_empty() {
+        return Err("OIDC discovery URL is required.".to_string());
+    }
+    if client_id.is_empty() {
+        return Err("OIDC client ID is required.".to_string());
+    }
+    if scope.is_empty() {
+        return Err("OIDC scope is required.".to_string());
+    }
+
+    Ok(DeviceAuthorizationSettings {
+        discovery_url: discovery_url.to_string(),
+        client_id: client_id.to_string(),
+        scope: scope.to_string(),
+    })
+}
+
+fn fetch_discovery_document(
+    client: &Client,
+    settings: &DeviceAuthorizationSettings,
+) -> Result<DiscoveryDocument, String> {
+    client
+        .get(&settings.discovery_url)
         .send()
         .and_then(reqwest::blocking::Response::error_for_status)
         .map_err(|error| error.to_string())?
         .json()
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| error.to_string())
+}
 
-    let device_endpoint = discovery
+fn resolve_device_authorization_endpoint(discovery: &DiscoveryDocument) -> String {
+    discovery
         .device_authorization_endpoint
         .clone()
         .unwrap_or_else(|| {
@@ -1016,11 +1093,45 @@ pub fn start_device_authorization() -> Result<DeviceAuthorizationChallenge, Stri
                 "{}/protocol/openid-connect/auth/device",
                 discovery.issuer.trim_end_matches('/')
             )
-        });
+        })
+}
+
+#[tauri::command]
+pub fn get_device_authorization_defaults() -> DeviceAuthorizationSettings {
+    default_device_authorization_settings()
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn validate_device_authorization_settings(
+    settings: DeviceAuthorizationSettings,
+) -> Result<DeviceAuthorizationDiscovery, String> {
+    let client = http_client()?;
+    let settings = normalize_device_authorization_settings(Some(settings))?;
+    let discovery = fetch_discovery_document(&client, &settings)?;
+
+    Ok(DeviceAuthorizationDiscovery {
+        issuer: discovery.issuer.clone(),
+        token_endpoint: discovery.token_endpoint.clone(),
+        device_authorization_endpoint: resolve_device_authorization_endpoint(&discovery),
+    })
+}
+
+#[tauri::command]
+pub fn start_device_authorization(
+    settings: Option<DeviceAuthorizationSettings>,
+) -> Result<DeviceAuthorizationChallenge, String> {
+    let client = http_client()?;
+    let settings = normalize_device_authorization_settings(settings)?;
+    let discovery = fetch_discovery_document(&client, &settings)?;
+    let device_endpoint = resolve_device_authorization_endpoint(&discovery);
 
     let response: RawDeviceAuthorizationResponse = client
         .post(&device_endpoint)
-        .form(&[("client_id", client_id.as_str()), ("scope", scope.as_str())])
+        .form(&[
+            ("client_id", settings.client_id.as_str()),
+            ("scope", settings.scope.as_str()),
+        ])
         .send()
         .and_then(reqwest::blocking::Response::error_for_status)
         .map_err(|error| error.to_string())?
@@ -1029,8 +1140,8 @@ pub fn start_device_authorization() -> Result<DeviceAuthorizationChallenge, Stri
 
     Ok(DeviceAuthorizationChallenge {
         issuer: discovery.issuer,
-        client_id,
-        scope,
+        client_id: settings.client_id,
+        scope: settings.scope,
         token_endpoint: discovery.token_endpoint,
         device_code: response.device_code,
         user_code: response.user_code,
@@ -1199,5 +1310,26 @@ mod tests {
             endpoint,
             "https://auth.example.com/realms/k1s0/protocol/openid-connect/auth/device"
         );
+    }
+
+    #[test]
+    fn test_default_device_authorization_settings_have_values() {
+        let settings = default_device_authorization_settings();
+
+        assert!(!settings.discovery_url.is_empty());
+        assert!(!settings.client_id.is_empty());
+        assert!(!settings.scope.is_empty());
+    }
+
+    #[test]
+    fn test_normalize_device_authorization_settings_rejects_blank_fields() {
+        let error = normalize_device_authorization_settings(Some(DeviceAuthorizationSettings {
+            discovery_url: "   ".to_string(),
+            client_id: "client".to_string(),
+            scope: "openid".to_string(),
+        }))
+        .expect_err("blank discovery URL should be rejected");
+
+        assert!(error.contains("discovery URL"));
     }
 }

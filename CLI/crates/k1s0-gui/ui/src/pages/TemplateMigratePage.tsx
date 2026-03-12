@@ -44,6 +44,10 @@ export default function TemplateMigratePage() {
       }
       return nextTargets[0]?.path || '';
     });
+    if (nextTargets.length === 0) {
+      setBackups([]);
+      setSelectedBackup('');
+    }
     return nextTargets;
   }
 
@@ -74,12 +78,23 @@ export default function TemplateMigratePage() {
         }
 
         setTargets(nextTargets);
-        setSelectedTargetPath((current) => current || nextTargets[0]?.path || '');
+        setSelectedTargetPath((current) => {
+          if (current && nextTargets.some((target) => target.path === current)) {
+            return current;
+          }
+          return nextTargets[0]?.path || '';
+        });
+        if (nextTargets.length === 0) {
+          setBackups([]);
+          setSelectedBackup('');
+        }
       })
       .catch(() => {
         if (!cancelled) {
           setTargets([]);
           setSelectedTargetPath('');
+          setBackups([]);
+          setSelectedBackup('');
         }
       });
 
@@ -89,12 +104,11 @@ export default function TemplateMigratePage() {
   }, [activeWorkspaceRoot, workspace.ready, workspace.workspaceRoot]);
 
   useEffect(() => {
-    let cancelled = false;
     if (!selectedTargetPath) {
-      setBackups([]);
-      setSelectedBackup('');
       return;
     }
+
+    let cancelled = false;
 
     listTemplateMigrationBackups(selectedTargetPath)
       .then((nextBackups) => {
@@ -140,8 +154,8 @@ export default function TemplateMigratePage() {
       setStatus('success');
       setSuccessMessage(
         nextPlan.changes.length === 0
-          ? 'No template changes were detected.'
-          : 'Dry-run completed. Review the plan before applying it.',
+          ? 'テンプレートの変更が検出されませんでした。'
+          : 'ドライランが完了しました。適用前にプランを確認してください。',
       );
     } catch (error) {
       setStatus('error');
@@ -167,11 +181,11 @@ export default function TemplateMigratePage() {
         await refreshTargets(plan.target.path);
         await refreshBackups(plan.target.path);
       } catch (refreshError) {
-        refreshNote = ` Migration applied, but the page could not refresh automatically: ${String(refreshError)}`;
+        refreshNote = ` 移行は適用されましたが、ページを自動更新できませんでした: ${String(refreshError)}`;
       }
 
       setStatus('success');
-      setSuccessMessage(`Template migration completed successfully.${refreshNote}`);
+      setSuccessMessage(`テンプレート移行が正常に完了しました。${refreshNote}`);
     } catch (error) {
       setStatus('error');
       setErrorMessage(String(error));
@@ -196,11 +210,11 @@ export default function TemplateMigratePage() {
         await refreshTargets(selectedTarget.path);
         await refreshBackups(selectedTarget.path);
       } catch (refreshError) {
-        refreshNote = ` Workspace state was restored, but the page could not refresh automatically: ${String(refreshError)}`;
+        refreshNote = ` ワークスペースの状態は復元されましたが、ページを自動更新できませんでした: ${String(refreshError)}`;
       }
 
       setStatus('success');
-      setSuccessMessage(`Rolled back to backup ${selectedBackup}.${refreshNote}`);
+      setSuccessMessage(`バックアップ ${selectedBackup} にロールバックしました。${refreshNote}`);
     } catch (error) {
       setStatus('error');
       setErrorMessage(String(error));
@@ -244,16 +258,15 @@ export default function TemplateMigratePage() {
 
   return (
     <div className="glass max-w-6xl p-6" data-testid="template-migrate-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Template</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Template migration</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">テンプレート</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white">テンプレート移行</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Preview scaffold drift with a dry-run, resolve merge conflicts, and keep a rollback path
-        for generated modules.
+        ドライランでスキャフォールドのドリフトをプレビューし、マージコンフリクトを解決して、生成済みモジュールのロールバック手段を確保します。
       </p>
 
       {workspaceUnavailable && (
         <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-          Configure a valid workspace root before running template migration.
+          テンプレート移行を実行する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
@@ -261,7 +274,7 @@ export default function TemplateMigratePage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <section className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-5">
           <div>
-            <label className="block text-sm font-medium text-slate-200/82">Target</label>
+            <label className="block text-sm font-medium text-slate-200/82">ターゲット</label>
             <select
               value={selectedTarget?.path ?? ''}
               onChange={(event) => {
@@ -274,7 +287,7 @@ export default function TemplateMigratePage() {
               data-testid="select-template-target"
             >
               {targets.length === 0 ? (
-                <option value="">No template-managed targets found</option>
+                <option value="">テンプレート管理対象が見つかりません</option>
               ) : (
                 targets.map((target) => (
                   <option key={target.path} value={target.path}>
@@ -288,12 +301,12 @@ export default function TemplateMigratePage() {
 
           {selectedTarget && (
             <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4 text-sm text-slate-200/82">
-              <p>Name: {selectedTarget.manifest.metadata.name}</p>
-              <p>Type: {selectedTarget.manifest.spec.template.type}</p>
-              <p>Language: {selectedTarget.manifest.spec.template.language}</p>
-              <p>Version: v{selectedTarget.manifest.spec.template.version}</p>
-              <p>Latest: v{selectedTarget.available_version}</p>
-              <p>Path: {toDisplayPath(activeWorkspaceRoot, selectedTarget.path)}</p>
+              <p>名前: {selectedTarget.manifest.metadata.name}</p>
+              <p>種別: {selectedTarget.manifest.spec.template.type}</p>
+              <p>言語: {selectedTarget.manifest.spec.template.language}</p>
+              <p>バージョン: v{selectedTarget.manifest.spec.template.version}</p>
+              <p>最新: v{selectedTarget.available_version}</p>
+              <p>パス: {toDisplayPath(activeWorkspaceRoot, selectedTarget.path)}</p>
             </div>
           )}
 
@@ -306,14 +319,13 @@ export default function TemplateMigratePage() {
             className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
             data-testid="btn-template-preview"
           >
-            Preview migration
+            移行をプレビュー
           </button>
 
           <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4">
-            <p className="text-sm font-medium text-slate-200/82">Rollback</p>
+            <p className="text-sm font-medium text-slate-200/82">ロールバック</p>
             <p className="mt-2 text-sm leading-6 text-slate-300/72">
-              Restore the entire project tree from a captured backup if a migration outcome is not
-              acceptable.
+              移行結果が許容できない場合、キャプチャされたバックアップからプロジェクトツリー全体を復元します。
             </p>
 
             <select
@@ -323,7 +335,7 @@ export default function TemplateMigratePage() {
               data-testid="select-template-backup"
             >
               {backups.length === 0 ? (
-                <option value="">No backups available</option>
+                <option value="">利用可能なバックアップがありません</option>
               ) : (
                 backups.map((backup) => (
                   <option key={backup} value={backup}>
@@ -348,7 +360,7 @@ export default function TemplateMigratePage() {
               className="mt-4 rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
               data-testid="btn-template-rollback"
             >
-              Roll back
+              ロールバック実行
             </button>
           </div>
 
@@ -367,9 +379,9 @@ export default function TemplateMigratePage() {
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Plan</h2>
+              <h2 className="text-lg font-semibold text-white">計画</h2>
               <p className="mt-1 text-sm text-slate-300/72">
-                Dry-run results include add, modify, delete, skip, and conflict outcomes.
+                ドライランの結果には追加、変更、削除、スキップ、コンフリクトが含まれます。
               </p>
             </div>
             {plan && (
@@ -388,7 +400,7 @@ export default function TemplateMigratePage() {
                 className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
                 data-testid="btn-template-apply"
               >
-                Apply migration
+                移行を適用
               </button>
             )}
           </div>
@@ -396,17 +408,17 @@ export default function TemplateMigratePage() {
           {plan ? (
             <>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <Metric label="Changes" value={String(plan.changes.length)} />
-                <Metric label="Conflicts" value={String(unresolvedConflicts)} />
+                <Metric label="変更数" value={String(plan.changes.length)} />
+                <Metric label="コンフリクト数" value={String(unresolvedConflicts)} />
                 <Metric
-                  label="Version"
+                  label="バージョン"
                   value={`v${plan.target.manifest.spec.template.version} → v${plan.target.available_version}`}
                 />
               </div>
 
               <div className="mt-5 space-y-3" data-testid="template-plan-list">
                 {plan.changes.length === 0 ? (
-                  <p className="text-sm text-slate-200/55">No migration changes were detected.</p>
+                  <p className="text-sm text-slate-200/55">移行の変更が検出されませんでした。</p>
                 ) : (
                   plan.changes.map((change) => {
                     const conflictHunks = getConflictHunks(change.merge_result);
@@ -429,7 +441,7 @@ export default function TemplateMigratePage() {
 
                         {change.change_type === 'Skipped' && (
                           <p className="mt-3 text-sm text-slate-300/70">
-                            This path matches an ignore rule and will be preserved.
+                            このパスは無視ルールに一致しており、保持されます。
                           </p>
                         )}
 
@@ -441,7 +453,7 @@ export default function TemplateMigratePage() {
 
                         {conflictHunks.length > 0 && (
                           <div className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4">
-                            <p className="text-sm font-medium text-rose-100">Conflict resolution</p>
+                            <p className="text-sm font-medium text-rose-100">コンフリクト解決</p>
                             {conflictHunks.map((hunk, index) => (
                               <ConflictPreview key={index} index={index} hunk={hunk} />
                             ))}
@@ -451,21 +463,21 @@ export default function TemplateMigratePage() {
                                 onClick={() => handleConflictResolution(change.path, 'template')}
                                 className="rounded-xl bg-rose-500/80 px-3 py-2 text-sm font-medium text-white transition hover:bg-rose-500"
                               >
-                                Use template
+                                テンプレートを使用
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleConflictResolution(change.path, 'user')}
                                 className="rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10"
                               >
-                                Keep user changes
+                                ユーザーの変更を保持
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleConflictResolution(change.path, 'skip')}
                                 className="rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10"
                               >
-                                Skip file
+                                ファイルをスキップ
                               </button>
                             </div>
                           </div>
@@ -478,7 +490,7 @@ export default function TemplateMigratePage() {
             </>
           ) : (
             <p className="mt-5 text-sm text-slate-200/55">
-              Run a dry-run preview to build a migration plan.
+              移行計画を構築するためにドライランプレビューを実行してください。
             </p>
           )}
         </section>
@@ -508,11 +520,11 @@ function ConflictPreview({
   return (
     <div className="mt-4 grid gap-3 lg:grid-cols-2">
       <div className="rounded-xl border border-white/8 bg-slate-950/35 p-3">
-        <p className="text-xs uppercase tracking-[0.22em] text-rose-100/72">Template #{index + 1}</p>
+        <p className="text-xs uppercase tracking-[0.22em] text-rose-100/72">テンプレート #{index + 1}</p>
         <pre className="mt-2 overflow-x-auto text-xs text-rose-50/90">{previewText(templatePreview)}</pre>
       </div>
       <div className="rounded-xl border border-white/8 bg-slate-950/35 p-3">
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-200/72">User #{index + 1}</p>
+        <p className="text-xs uppercase tracking-[0.22em] text-slate-200/72">ユーザー #{index + 1}</p>
         <pre className="mt-2 overflow-x-auto text-xs text-slate-100/90">{previewText(userPreview)}</pre>
       </div>
     </div>

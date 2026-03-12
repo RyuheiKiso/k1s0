@@ -1,7 +1,9 @@
 mod auth_session;
 mod commands;
 
+#[cfg(dev)]
 const DEV_SERVER_ADDR: &str = "127.0.0.1:1420";
+#[cfg(dev)]
 const DEV_SERVER_IPV6_ADDR: &str = "[::1]:1420";
 
 /// In dev mode, if the Vite dev server (port 1420) is not running,
@@ -116,8 +118,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::execute_init,
+            commands::execute_init_at,
             commands::execute_generate,
             commands::execute_generate_at,
+            commands::scan_generate_conflicts,
             commands::execute_build,
             commands::execute_test,
             commands::execute_test_at,
@@ -134,7 +138,10 @@ pub fn run() {
             commands::execute_build_with_progress,
             commands::execute_deploy_with_progress,
             commands::detect_workspace_root,
+            commands::get_current_directory,
             commands::resolve_workspace_root,
+            commands::get_device_authorization_defaults,
+            commands::validate_device_authorization_settings,
             commands::start_device_authorization,
             commands::poll_device_authorization,
             commands::get_auth_session,

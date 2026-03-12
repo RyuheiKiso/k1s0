@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -48,6 +48,8 @@ pub fn execute_generate_with_config(
     base_dir: &Path,
     cli_config: &CliConfig,
 ) -> Result<()> {
+    ensure_generate_targets_available(config, base_dir)?;
+
     let tpl_dir = resolve_template_dir(base_dir);
     let output_path = render_scaffold_preview(config, base_dir, cli_config, &tpl_dir)?;
     let template_context = build_template_context(config, cli_config);
@@ -620,6 +622,26 @@ pub fn build_output_path(config: &GenerateConfig, base_dir: &Path) -> PathBuf {
     path
 }
 
+fn generated_module_identifier(config: &GenerateConfig) -> String {
+    let relative = build_output_path(config, Path::new(""))
+        .to_string_lossy()
+        .replace('\\', "/");
+    let relative = relative.strip_prefix("regions/").unwrap_or(&relative);
+    relative.replace('/', "-")
+}
+
+fn build_ci_workflow_path(config: &GenerateConfig, base_dir: &Path) -> PathBuf {
+    let file_name = format!("{}-ci.yaml", generated_module_identifier(config));
+    build_cicd_output_path(config, base_dir).join(file_name)
+}
+
+fn build_deploy_workflow_path(config: &GenerateConfig, base_dir: &Path) -> Option<PathBuf> {
+    (config.kind == Kind::Server).then(|| {
+        let file_name = format!("{}-deploy.yaml", generated_module_identifier(config));
+        build_cicd_output_path(config, base_dir).join(file_name)
+    })
+}
+
 /// Helm Chart の出力先パスを構築する。
 fn build_helm_output_path(config: &GenerateConfig, base_dir: &Path) -> PathBuf {
     let mut path = base_dir.join("infra").join("helm").join("services");
@@ -643,6 +665,42 @@ fn build_helm_output_path(config: &GenerateConfig, base_dir: &Path) -> PathBuf {
 /// CI/CD ワークフローの出力先パスを構築する。
 fn build_cicd_output_path(_config: &GenerateConfig, base_dir: &Path) -> PathBuf {
     base_dir.join(".github").join("workflows")
+}
+
+pub fn find_generate_conflicts_at(config: &GenerateConfig, base_dir: &Path) -> Vec<String> {
+    let mut conflicts = Vec::new();
+
+    let mut reserved_paths = vec![
+        build_output_path(config, base_dir),
+        build_ci_workflow_path(config, base_dir),
+    ];
+
+    if config.kind == Kind::Server {
+        reserved_paths.push(build_helm_output_path(config, base_dir));
+    }
+
+    if let Some(deploy_workflow_path) = build_deploy_workflow_path(config, base_dir) {
+        reserved_paths.push(deploy_workflow_path);
+    }
+
+    for path in reserved_paths {
+        if path.exists() {
+            conflicts.push(path.to_string_lossy().replace('\\', "/"));
+        }
+    }
+
+    conflicts.sort();
+    conflicts.dedup();
+    conflicts
+}
+
+pub fn ensure_generate_targets_available(config: &GenerateConfig, base_dir: &Path) -> Result<()> {
+    let conflicts = find_generate_conflicts_at(config, base_dir);
+    if conflicts.is_empty() {
+        return Ok(());
+    }
+
+    bail!("generated assets already exist: {}", conflicts.join(", "));
 }
 
 /// Helm Chart テンプレートをレンダリングする。
@@ -715,8 +773,8 @@ fn generate_cicd_workflows(
         tera.add_raw_template("ci.yaml", &template_content)?;
         let rendered = tera.render("ci.yaml", &tera_ctx)?;
 
-        let service_name = config.detail.name.as_deref().unwrap_or("service");
-        let output_path = output_dir.join(format!("{service_name}-ci.yaml"));
+        let output_path =
+            build_ci_workflow_path(config, output_dir.parent().unwrap().parent().unwrap());
         if let Some(parent) = output_path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -732,8 +790,9 @@ fn generate_cicd_workflows(
             tera.add_raw_template("deploy.yaml", &template_content)?;
             let rendered = tera.render("deploy.yaml", &tera_ctx)?;
 
-            let service_name = config.detail.name.as_deref().unwrap_or("service");
-            let output_path = output_dir.join(format!("{service_name}-deploy.yaml"));
+            let output_path =
+                build_deploy_workflow_path(config, output_dir.parent().unwrap().parent().unwrap())
+                    .expect("server deploy workflow path should exist");
             if let Some(parent) = output_path.parent() {
                 fs::create_dir_all(parent)?;
             }
@@ -1705,6 +1764,155 @@ mod tests {
             !bff_path.exists(),
             "bff_language=None では BFF ディレクトリは生成されない"
         );
+    }
+
+    #[test]
+    fn test_build_ci_workflow_path_uses_unique_module_identifier() {
+        let base_dir = Path::new("workspace");
+        let config = GenerateConfig {
+            kind: Kind::Client,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Framework(Framework::React),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                ..DetailConfig::default()
+            },
+        };
+
+        let ci_path = build_ci_workflow_path(&config, base_dir);
+        assert_eq!(
+            ci_path,
+            PathBuf::from("workspace/.github/workflows/service-order-client-react-ci.yaml")
+        );
+    }
+
+    #[test]
+    fn test_find_generate_conflicts_at_detects_existing_output_directory() {
+        let tmp = TempDir::new().unwrap();
+        let output_path = tmp.path().join("regions/system/library/rust/utils");
+        fs::create_dir_all(&output_path).unwrap();
+
+        let config = GenerateConfig {
+            kind: Kind::Library,
+            tier: Tier::System,
+            placement: None,
+            lang_fw: LangFw::Language(Language::Rust),
+            detail: DetailConfig {
+                name: Some("utils".to_string()),
+                ..DetailConfig::default()
+            },
+        };
+
+        let conflicts = find_generate_conflicts_at(&config, tmp.path());
+        assert_eq!(
+            conflicts,
+            vec![output_path.to_string_lossy().replace('\\', "/")]
+        );
+    }
+
+    #[test]
+    fn test_find_generate_conflicts_at_detects_server_helm_collision() {
+        let tmp = TempDir::new().unwrap();
+        let helm_path = tmp.path().join("infra/helm/services/system/auth");
+        fs::create_dir_all(&helm_path).unwrap();
+
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::System,
+            placement: None,
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("auth".to_string()),
+                api_styles: vec![ApiStyle::Rest],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: None,
+            },
+        };
+
+        let conflicts = find_generate_conflicts_at(&config, tmp.path());
+        assert_eq!(
+            conflicts,
+            vec![helm_path.to_string_lossy().replace('\\', "/")]
+        );
+    }
+
+    #[test]
+    fn test_execute_generate_at_rejects_existing_conflicting_assets() {
+        let tmp = TempDir::new().unwrap();
+        let output_path = tmp.path().join("regions/system/library/rust/utils");
+        fs::create_dir_all(&output_path).unwrap();
+
+        let config = GenerateConfig {
+            kind: Kind::Library,
+            tier: Tier::System,
+            placement: None,
+            lang_fw: LangFw::Language(Language::Rust),
+            detail: DetailConfig {
+                name: Some("utils".to_string()),
+                ..DetailConfig::default()
+            },
+        };
+
+        let result = execute_generate_at(&config, tmp.path());
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("generated assets already exist"));
+    }
+
+    #[test]
+    fn test_execute_generate_at_allows_service_server_and_client_to_coexist() {
+        let tmp = TempDir::new().unwrap();
+
+        let server_config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Language(Language::Rust),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                api_styles: vec![ApiStyle::Rest],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: None,
+            },
+        };
+        execute_generate_at(&server_config, tmp.path()).unwrap();
+
+        let client_config = GenerateConfig {
+            kind: Kind::Client,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Framework(Framework::React),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                ..DetailConfig::default()
+            },
+        };
+
+        let result = execute_generate_at(&client_config, tmp.path());
+        assert!(result.is_ok());
+        assert!(tmp
+            .path()
+            .join("regions/service/order/server/rust")
+            .is_dir());
+        assert!(tmp
+            .path()
+            .join("regions/service/order/client/react")
+            .is_dir());
+        assert!(tmp
+            .path()
+            .join(".github/workflows/service-order-server-rust-ci.yaml")
+            .is_file());
+        assert!(tmp
+            .path()
+            .join(".github/workflows/service-order-client-react-ci.yaml")
+            .is_file());
     }
 
     // --- scan_placements_at ---

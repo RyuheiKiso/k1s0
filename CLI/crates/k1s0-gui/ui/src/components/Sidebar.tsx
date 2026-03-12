@@ -19,36 +19,36 @@ type Page =
   | 'deploy';
 
 const menuItems: { page: Page; path: string; label: string; shortLabel: string }[] = [
-  { page: 'dashboard', path: '/', label: 'Dashboard', shortLabel: 'DB' },
-  { page: 'auth', path: '/auth', label: 'Authentication', shortLabel: 'AU' },
-  { page: 'init', path: '/init', label: 'Init', shortLabel: 'IN' },
-  { page: 'generate', path: '/generate', label: 'Generate', shortLabel: 'GN' },
-  { page: 'deps', path: '/deps', label: 'Deps Map', shortLabel: 'DM' },
-  { page: 'dev', path: '/dev', label: 'Local Dev', shortLabel: 'DV' },
-  { page: 'migrate', path: '/migrate', label: 'DB Migrate', shortLabel: 'DBM' },
+  { page: 'dashboard', path: '/', label: 'ダッシュボード', shortLabel: 'DB' },
+  { page: 'auth', path: '/auth', label: '認証', shortLabel: 'AU' },
+  { page: 'init', path: '/init', label: '初期化', shortLabel: 'IN' },
+  { page: 'generate', path: '/generate', label: '生成', shortLabel: 'GN' },
+  { page: 'deps', path: '/deps', label: '依存関係マップ', shortLabel: 'DM' },
+  { page: 'dev', path: '/dev', label: 'ローカル開発', shortLabel: 'DV' },
+  { page: 'migrate', path: '/migrate', label: 'DBマイグレーション', shortLabel: 'DBM' },
   {
     page: 'template-migrate',
     path: '/template-migrate',
-    label: 'Template Migrate',
+    label: 'テンプレート移行',
     shortLabel: 'TMP',
   },
-  { page: 'config-types', path: '/config-types', label: 'Config Types', shortLabel: 'CT' },
+  { page: 'config-types', path: '/config-types', label: '設定型', shortLabel: 'CT' },
   {
     page: 'navigation-types',
     path: '/navigation-types',
-    label: 'Navigation Types',
+    label: 'ナビゲーション型',
     shortLabel: 'NT',
   },
   {
     page: 'event-codegen',
     path: '/event-codegen',
-    label: 'Event Codegen',
+    label: 'イベントコード生成',
     shortLabel: 'EV',
   },
-  { page: 'validate', path: '/validate', label: 'Validate', shortLabel: 'VL' },
-  { page: 'build', path: '/build', label: 'Build', shortLabel: 'BL' },
-  { page: 'test', path: '/test', label: 'Test', shortLabel: 'TS' },
-  { page: 'deploy', path: '/deploy', label: 'Deploy', shortLabel: 'DP' },
+  { page: 'validate', path: '/validate', label: '検証', shortLabel: 'VL' },
+  { page: 'build', path: '/build', label: 'ビルド', shortLabel: 'BL' },
+  { page: 'test', path: '/test', label: 'テスト', shortLabel: 'TS' },
+  { page: 'deploy', path: '/deploy', label: 'デプロイ', shortLabel: 'DP' },
 ];
 
 export default function Sidebar() {
@@ -63,10 +63,9 @@ export default function Sidebar() {
     >
       <div className="rounded-[22px] border border-white/8 bg-white/6 px-5 py-5">
         <p className="text-xs uppercase tracking-[0.32em] text-emerald-100/55">k1s0</p>
-        <h1 className="mt-3 text-2xl font-semibold text-white">GUI control surface</h1>
+        <h1 className="mt-3 text-2xl font-semibold text-white">GUI コントロール</h1>
         <p className="mt-2 text-sm leading-6 text-slate-200/70">
-          Move through workspace setup, validation, build, test, and deploy without dropping into
-          separate tools.
+          ワークスペースのセットアップ、検証、ビルド、テスト、デプロイを別々のツールを使わずに一括で操作できます。
         </p>
       </div>
 

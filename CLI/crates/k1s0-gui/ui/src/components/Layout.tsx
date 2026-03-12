@@ -23,10 +23,10 @@ export default function Layout() {
               <div className="mb-3 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">
-                    Workspace
+                    ワークスペース
                   </p>
                   <h1 className="mt-2 text-2xl font-semibold text-white">
-                    Use one verified workspace root across all flows.
+                    すべてのフローで共通のワークスペースルートを使用します。
                   </h1>
                 </div>
                 <span
@@ -36,7 +36,7 @@ export default function Layout() {
                       : 'bg-amber-400/15 text-amber-200'
                   }`}
                 >
-                  {workspace.workspaceRoot ? 'ready' : 'not set'}
+                  {workspace.workspaceRoot ? '準備完了' : '未設定'}
                 </span>
               </div>
 
@@ -57,7 +57,7 @@ export default function Layout() {
                   className="rounded-xl bg-emerald-500/80 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
                   data-testid="workspace-apply"
                 >
-                  Apply
+                  適用
                 </button>
                 <button
                   type="button"
@@ -68,16 +68,16 @@ export default function Layout() {
                   className="rounded-xl border border-white/15 bg-white/6 px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
                   data-testid="workspace-detect"
                 >
-                  Detect
+                  自動検出
                 </button>
               </div>
 
               <p className="mt-3 text-sm text-slate-200/70">
                 {workspace.resolving
-                  ? 'Resolving workspace root...'
+                  ? 'ワークスペースルートを解決しています...'
                   : workspace.workspaceRoot
                     ? workspace.workspaceRoot
-                    : 'Choose a valid workspace before running scans, generation, or delivery actions.'}
+                    : 'スキャン、生成、デリバリーアクションを実行する前に有効なワークスペースを選択してください。'}
               </p>
               {workspace.errorMessage && (
                 <p className="mt-2 text-sm text-rose-300">{workspace.errorMessage}</p>
@@ -86,15 +86,15 @@ export default function Layout() {
 
             <section className="glass p-5" data-testid="auth-panel">
               <p className="text-xs uppercase tracking-[0.24em] text-sky-100/55">
-                Authentication
+                認証
               </p>
-              <h2 className="mt-2 text-xl font-semibold text-white">Operator session</h2>
+              <h2 className="mt-2 text-xl font-semibold text-white">オペレーターセッション</h2>
               <p className="mt-3 text-sm text-slate-200/75">
                 {auth.loading
-                  ? 'Checking the secure operator session before enabling protected actions.'
+                  ? 'セキュアなオペレーターセッションを確認しています。'
                   : auth.isAuthenticated
-                  ? `Authenticated against ${auth.session?.issuer ?? 'the identity provider'}.`
-                  : 'Sign in with the Device Authorization Grant flow before running protected actions.'}
+                  ? `${auth.session?.issuer ?? 'IDプロバイダー'} に対して認証済みです。`
+                  : 'Device Authorization Grantフローでサインインしてから保護されたアクションを実行してください。'}
               </p>
 
               <div className="mt-4 flex items-center gap-3">
@@ -103,7 +103,7 @@ export default function Layout() {
                   className="rounded-xl bg-sky-500/80 px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-sky-500"
                   data-testid="auth-link"
                 >
-                  {auth.isAuthenticated ? 'View session' : 'Sign in'}
+                  {auth.isAuthenticated ? 'セッション確認' : 'サインイン'}
                 </Link>
                 {auth.isAuthenticated && (
                   <button
@@ -114,7 +114,7 @@ export default function Layout() {
                     className="rounded-xl border border-white/15 bg-white/6 px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10"
                     data-testid="auth-logout"
                   >
-                    Sign out
+                    サインアウト
                   </button>
                 )}
               </div>

@@ -80,6 +80,27 @@ npm run build    # TypeScript コンパイル + Vite バンドル
 npm run dev      # Vite 開発サーバー (http://localhost:1420)
 ```
 
+### GUI の初回認証設定
+
+GUI の保護操作は Device Authorization Grant 認証を前提とする。初回起動時は `Auth` ページで OIDC 設定を確認してからサインインする。
+
+1. `Auth` ページで `OIDC discovery URL`、`Client ID`、`Scope` を確認または編集する
+2. `Check connection` を押し、issuer と device endpoint が解決できることを GUI 上で確認する
+3. `Start device flow` を押し、表示された verification URL で認証を完了する
+4. 認証完了後、他ページの保護操作を実行する
+
+- GUI で入力した OIDC 設定はローカルストレージへ保存され、次回起動時に再利用される
+- 実行時の既定値は `K1S0_GUI_OIDC_DISCOVERY_URL`、`K1S0_GUI_OIDC_CLIENT_ID`、`K1S0_GUI_OIDC_SCOPE` で上書きできる
+- 接続失敗時は `Auth` ページに失敗した discovery URL とエラー詳細が表示される
+
+### GUI のプロジェクト初期化
+
+`Init` ページでは `Parent directory` と `Project name` を明示入力し、生成先プレビューを確認してから初期化する。
+
+- 生成先は `Parent directory` と `Project name` の結合で決まり、デスクトップアプリのカレントディレクトリには依存しない
+- 初期化成功後は GUI の active workspace root が新規ワークスペースへ自動更新される
+- `sparse checkout` を有効にした場合は取り込む Tier を GUI 上で選択できる
+
 ### ワークスペース全体のビルド
 
 ```bash

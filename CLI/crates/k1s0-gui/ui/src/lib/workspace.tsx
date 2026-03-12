@@ -16,6 +16,7 @@ export interface WorkspaceContextValue {
   setDraftPath: Dispatch<SetStateAction<string>>;
   applyWorkspace: () => Promise<boolean>;
   detectWorkspace: () => Promise<boolean>;
+  adoptWorkspace: (path: string) => Promise<boolean>;
 }
 
 const defaultContextValue: WorkspaceContextValue = {
@@ -27,6 +28,7 @@ const defaultContextValue: WorkspaceContextValue = {
   setDraftPath: () => undefined,
   applyWorkspace: async () => false,
   detectWorkspace: async () => false,
+  adoptWorkspace: async () => false,
 };
 
 export const WorkspaceContext = createContext<WorkspaceContextValue>(defaultContextValue);

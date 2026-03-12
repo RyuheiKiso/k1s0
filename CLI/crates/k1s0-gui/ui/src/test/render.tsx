@@ -33,6 +33,7 @@ const defaultWorkspaceContext: WorkspaceContextValue = {
   setDraftPath: () => undefined,
   applyWorkspace: async () => true,
   detectWorkspace: async () => true,
+  adoptWorkspace: async () => true,
 };
 
 export function renderWithProviders(ui: ReactElement, options: ProviderOptions = {}) {
