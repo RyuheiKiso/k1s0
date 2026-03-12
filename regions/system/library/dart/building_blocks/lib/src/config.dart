@@ -34,7 +34,7 @@ class ComponentsConfig {
   factory ComponentsConfig.fromYaml(String yamlContent) {
     final yaml = loadYaml(yamlContent);
     if (yaml is! Map || yaml['components'] is! List) {
-      throw ComponentError(
+      throw const ComponentError(
         component: 'config',
         operation: 'parse',
         message: 'components field is required and must be a list',
