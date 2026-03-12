@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
+use super::command_runner::run_streaming_command;
 use crate::progress::ProgressEvent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -181,17 +181,9 @@ where
         },
     );
 
-    let status = Command::new(cmd)
-        .args(args.iter().map(String::as_str))
-        .current_dir(cwd)
-        .status()
-        .map_err(|error| anyhow!("failed to start {cmd}: {error}"))?;
-
-    if status.success() {
-        Ok(())
-    } else {
-        bail!("{cmd} exited with {}", status.code().unwrap_or(-1))
-    }
+    run_streaming_command(cmd, args, cwd, |message| {
+        emit(on_progress, ProgressEvent::Log { message });
+    })
 }
 
 fn emit<F>(on_progress: Option<&F>, event: ProgressEvent)

@@ -80,8 +80,7 @@ pub fn run() -> Result<()> {
 /// 対象選択。.k1s0-template.yaml を走査してリストを表示する。
 fn step_select_target() -> Result<Option<MigrationTarget>> {
     let root = std::path::Path::new(".");
-    let targets =
-        k1s0_core::commands::template_migrate::scanner::scan_targets(root)?;
+    let targets = k1s0_core::commands::template_migrate::scanner::scan_targets(root)?;
 
     if targets.is_empty() {
         println!("テンプレートマイグレーション対象が見つかりません。");
@@ -103,7 +102,8 @@ fn step_select_target() -> Result<Option<MigrationTarget>> {
         .collect();
     let label_refs: Vec<&str> = labels.iter().map(String::as_str).collect();
 
-    match prompt::select_prompt("マイグレーション対象を選択してください", &label_refs)? {
+    match prompt::select_prompt("マイグレーション対象を選択してください", &label_refs)?
+    {
         Some(idx) => {
             let (path, manifest) = targets.into_iter().nth(idx).unwrap();
             // TODO: 実際にはレジストリから最新バージョンを取得する
@@ -166,11 +166,7 @@ fn step_preview(target: &MigrationTarget) -> Result<Option<MigrationPlan>> {
 fn step_resolve_conflicts(plan: &mut MigrationPlan) -> Result<Option<()>> {
     println!("\n--- コンフリクト解決 ---\n");
 
-    let conflict_items = &[
-        "テンプレートを優先",
-        "ユーザーの変更を優先",
-        "スキップ",
-    ];
+    let conflict_items = &["テンプレートを優先", "ユーザーの変更を優先", "スキップ"];
 
     for change in &mut plan.changes {
         if let MergeResult::Conflict(hunks) = &change.merge_result {
@@ -188,21 +184,16 @@ fn step_resolve_conflicts(plan: &mut MigrationPlan) -> Result<Option<()>> {
                 }
             }
 
-            match prompt::select_prompt("解決方針を選択してください", conflict_items)? {
+            match prompt::select_prompt("解決方針を選択してください", conflict_items)?
+            {
                 Some(0) => {
                     // テンプレート優先
-                    let content = hunks
-                        .first()
-                        .map(|h| h.theirs.clone())
-                        .unwrap_or_default();
+                    let content = hunks.first().map(|h| h.theirs.clone()).unwrap_or_default();
                     change.merge_result = MergeResult::Clean(content);
                 }
                 Some(1) => {
                     // ユーザー優先
-                    let content = hunks
-                        .first()
-                        .map(|h| h.ours.clone())
-                        .unwrap_or_default();
+                    let content = hunks.first().map(|h| h.ours.clone()).unwrap_or_default();
                     change.merge_result = MergeResult::Clean(content);
                 }
                 Some(2) => {

@@ -47,7 +47,10 @@ pub fn three_way_merge(base: &str, ours: &str, theirs: &str) -> MergeResult {
         let theirs_lines: Vec<&str> = theirs.lines().collect();
 
         let mut merged = Vec::new();
-        let max_len = base_lines.len().max(ours_lines.len()).max(theirs_lines.len());
+        let max_len = base_lines
+            .len()
+            .max(ours_lines.len())
+            .max(theirs_lines.len());
 
         for i in 0..max_len {
             let base_line = base_lines.get(i).copied().unwrap_or("");

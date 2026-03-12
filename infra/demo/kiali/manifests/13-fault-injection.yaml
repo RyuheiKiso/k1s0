@@ -1,6 +1,6 @@
 # Scheduled fault injection assets.
 # The CronJob keeps the weekly schedule from the design doc.
-# The active fault window is reduced to 60s so the demo can prove auto-apply and auto-cleanup quickly.
+# The active fault window matches the service-mesh design doc.
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -46,11 +46,32 @@ metadata:
   labels:
     app.kubernetes.io/part-of: k1s0-demo
 data:
-  fault-window.yaml: |
+  fault-delay.yaml: |
     apiVersion: networking.istio.io/v1
     kind: VirtualService
     metadata:
-      name: order-server-fault-window
+      name: order-server-fault-delay
+      namespace: k1s0-service
+      labels:
+        app.kubernetes.io/part-of: k1s0-demo
+    spec:
+      hosts:
+        - order-server.k1s0-service.svc.cluster.local
+      http:
+        - fault:
+            delay:
+              percentage:
+                value: 10.0
+              fixedDelay: 500ms
+          route:
+            - destination:
+                host: order-server.k1s0-service.svc.cluster.local
+          timeout: 10s
+  fault-abort.yaml: |
+    apiVersion: networking.istio.io/v1
+    kind: VirtualService
+    metadata:
+      name: order-server-fault-abort
       namespace: k1s0-service
       labels:
         app.kubernetes.io/part-of: k1s0-demo
@@ -63,14 +84,9 @@ data:
               percentage:
                 value: 5.0
               httpStatus: 503
-            delay:
-              percentage:
-                value: 10.0
-              fixedDelay: 500ms
           route:
             - destination:
                 host: order-server.k1s0-service.svc.cluster.local
-          timeout: 10s
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -99,16 +115,15 @@ spec:
           containers:
             - name: fault-injection
               image: bitnami/kubectl:latest@sha256:6e2cdb22d6ab7264ea198c717f555e30536b54029d26c8781b9f25f78951b564
-              env:
-                - name: FAULT_INJECTION_DURATION_SECONDS
-                  value: "60"
               command:
                 - sh
                 - -ceu
                 - |
-                  kubectl apply -f /config/fault-window.yaml
-                  sleep "${FAULT_INJECTION_DURATION_SECONDS}"
-                  kubectl delete -f /config/fault-window.yaml --ignore-not-found=true
+                  kubectl apply -f /config/fault-delay.yaml
+                  kubectl apply -f /config/fault-abort.yaml
+                  sleep 1800
+                  kubectl delete -f /config/fault-delay.yaml --ignore-not-found=true
+                  kubectl delete -f /config/fault-abort.yaml --ignore-not-found=true
               volumeMounts:
                 - name: config
                   mountPath: /config

@@ -6,6 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use super::command_runner::run_streaming_command;
 use crate::config::CliConfig;
 use crate::progress::ProgressEvent;
 
@@ -333,7 +334,7 @@ where
             message: format_step_start(&DeployStep::DockerBuild),
         },
     );
-    run_checked_command(
+    run_checked_command_with_progress(
         "docker",
         &[
             "build".to_string(),
@@ -342,6 +343,7 @@ where
             ".".to_string(),
         ],
         &plan.target_path,
+        on_progress,
     )
     .map_err(|error| build_error(plan, DeployStep::DockerBuild, &error))?;
     emit(
@@ -357,10 +359,11 @@ where
             message: format_step_start(&DeployStep::DockerPush),
         },
     );
-    run_checked_command(
+    run_checked_command_with_progress(
         "docker",
         &["push".to_string(), plan.full_image_tag.clone()],
         &plan.target_path,
+        on_progress,
     )
     .map_err(|error| build_error(plan, DeployStep::DockerPush, &error))?;
     emit(
@@ -376,7 +379,7 @@ where
             message: format_step_start(&DeployStep::CosignSign),
         },
     );
-    run_checked_command(
+    run_checked_command_with_progress(
         "cosign",
         &[
             "sign".to_string(),
@@ -384,6 +387,7 @@ where
             plan.full_image_tag.clone(),
         ],
         &plan.workspace_root,
+        on_progress,
     )
     .map_err(|error| build_error(plan, DeployStep::CosignSign, &error))?;
     emit(
@@ -406,7 +410,7 @@ where
         plan.environment.as_str(),
         &plan.image_tag_suffix,
     );
-    run_checked_command("helm", &helm_args, &plan.workspace_root)
+    run_checked_command_with_progress("helm", &helm_args, &plan.workspace_root, on_progress)
         .map_err(|error| build_error(plan, DeployStep::HelmDeploy, &error))?;
     emit(
         on_progress,
@@ -632,17 +636,28 @@ fn to_relative_path(root: &Path, path: &Path) -> Result<String> {
 }
 
 fn run_checked_command(cmd: &str, args: &[String], cwd: &Path) -> Result<()> {
-    let status = Command::new(cmd)
-        .args(args.iter().map(String::as_str))
-        .current_dir(cwd)
-        .status()
-        .map_err(|error| anyhow!("failed to start {cmd}: {error}"))?;
+    run_streaming_command(cmd, args, cwd, |_| {})
+}
 
-    if status.success() {
-        Ok(())
-    } else {
-        bail!("{cmd} exited with {}", status.code().unwrap_or(-1))
-    }
+fn run_checked_command_with_progress<F>(
+    cmd: &str,
+    args: &[String],
+    cwd: &Path,
+    on_progress: Option<&F>,
+) -> Result<()>
+where
+    F: Fn(ProgressEvent),
+{
+    emit(
+        on_progress,
+        ProgressEvent::Log {
+            message: format!("Running {cmd} {}", args.join(" ")),
+        },
+    );
+
+    run_streaming_command(cmd, args, cwd, |message| {
+        emit(on_progress, ProgressEvent::Log { message });
+    })
 }
 
 fn build_error(plan: &DeployPlan, step: DeployStep, error: &anyhow::Error) -> DeployError {

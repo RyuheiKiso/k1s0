@@ -1,3 +1,6 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { useEffect, useState } from 'react';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
@@ -20,6 +23,21 @@ import { useWorkspace } from '../lib/workspace';
 
 const STEP_LABELS = ['Kind', 'Tier', 'Placement', 'Language', 'Detail', 'Confirm'] as const;
 type ServerDatabaseMode = 'none' | 'existing' | 'new';
+const API_STYLE_VALUES = ['Rest', 'Grpc', 'GraphQL'] as const;
+const BFF_LANGUAGE_VALUES = ['Go', 'Rust'] as const;
+
+const generateSchema = z.object({
+  placement: z.string().trim().min(1, 'Placement is required.'),
+  detailName: z.string().trim().min(1, 'Name is required.'),
+  databaseName: z.string().trim().min(1, 'Name is required.'),
+  newDatabaseName: z.string().trim().min(1, 'Database name is required.'),
+  apiStyles: z.array(z.enum(API_STYLE_VALUES)),
+  selectedDatabasePath: z.string(),
+  generateBff: z.boolean(),
+  bffLanguage: z.enum(BFF_LANGUAGE_VALUES).nullable(),
+});
+
+type GenerateFormData = z.infer<typeof generateSchema>;
 
 function getAvailableTiers(kind: Kind): Tier[] {
   switch (kind) {
@@ -127,10 +145,31 @@ export default function GeneratePage() {
   });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const [nameError, setNameError] = useState('');
-  const [placementError, setPlacementError] = useState('');
-  const [detailError, setDetailError] = useState('');
-  const [serverDatabaseError, setServerDatabaseError] = useState('');
+  const {
+    clearErrors,
+    formState: { errors },
+    setError,
+    setValue,
+    trigger,
+  } = useForm<GenerateFormData>({
+    resolver: zodResolver(generateSchema),
+    defaultValues: {
+      placement: '',
+      detailName: 'service',
+      databaseName: 'main',
+      newDatabaseName: 'service-db',
+      apiStyles: ['Rest'],
+      selectedDatabasePath: '',
+      generateBff: false,
+      bffLanguage: null,
+    },
+  });
+
+  const placementError = errors.placement?.message ?? '';
+  const nameError = errors.databaseName?.message ?? errors.detailName?.message ?? '';
+  const detailError = errors.apiStyles?.message ?? errors.bffLanguage?.message ?? '';
+  const serverDatabaseError =
+    errors.newDatabaseName?.message ?? errors.selectedDatabasePath?.message ?? '';
 
   useEffect(() => {
     if (step !== 2 || shouldSkipPlacement(tier) || workspaceUnavailable) {
@@ -170,9 +209,12 @@ export default function GeneratePage() {
           setAvailableDatabases(safeDatabases);
           setSelectedDatabasePath((current) => {
             if (current && safeDatabases.some((database) => database.path === current)) {
+              setValue('selectedDatabasePath', current);
               return current;
             }
-            return safeDatabases[0]?.path ?? '';
+            const nextPath = safeDatabases[0]?.path ?? '';
+            setValue('selectedDatabasePath', nextPath);
+            return nextPath;
           });
         }
       })
@@ -180,13 +222,14 @@ export default function GeneratePage() {
         if (!cancelled) {
           setAvailableDatabases([]);
           setSelectedDatabasePath('');
+          setValue('selectedDatabasePath', '');
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [activeWorkspaceRoot, kind, tier, workspaceUnavailable]);
+  }, [activeWorkspaceRoot, kind, setValue, tier, workspaceUnavailable]);
 
   function buildLangFw(): LangFw {
     if (kind === 'Client') {
@@ -232,61 +275,49 @@ export default function GeneratePage() {
     };
   }
 
-  async function validatePlacementValue(value: string): Promise<boolean> {
-    if (!value.trim()) {
-      setPlacementError('Placement is required.');
+  async function validateNameField(
+    field: 'placement' | 'detailName' | 'databaseName' | 'newDatabaseName',
+    value: string,
+    duplicateMessage?: string,
+  ): Promise<boolean> {
+    const valid = await trigger(field);
+    if (!valid) {
       return false;
     }
 
-    if (existingPlacements.includes(value.trim())) {
-      setPlacementError('This placement already exists.');
+    if (duplicateMessage) {
+      setError(field, { type: 'manual', message: duplicateMessage });
       return false;
     }
 
     try {
       await validateName(value.trim());
-      setPlacementError('');
+      clearErrors(field);
       return true;
     } catch (error) {
-      setPlacementError(String(error));
+      setError(field, { type: 'manual', message: String(error) });
       return false;
     }
+  }
+
+  async function validatePlacementValue(value: string): Promise<boolean> {
+    return validateNameField(
+      'placement',
+      value,
+      existingPlacements.includes(value.trim()) ? 'This placement already exists.' : undefined,
+    );
   }
 
   async function validateDetailName(value: string): Promise<boolean> {
-    if (!value.trim()) {
-      setNameError('Name is required.');
-      return false;
-    }
-
-    try {
-      await validateName(value.trim());
-      setNameError('');
-      return true;
-    } catch (error) {
-      setNameError(String(error));
-      return false;
-    }
+    return validateNameField('detailName', value);
   }
 
   async function validateServerDatabaseName(value: string): Promise<boolean> {
-    if (!value.trim()) {
-      setServerDatabaseError('Database name is required.');
-      return false;
-    }
-
-    try {
-      await validateName(value.trim());
-      setServerDatabaseError('');
-      return true;
-    } catch (error) {
-      setServerDatabaseError(String(error));
-      return false;
-    }
+    return validateNameField('newDatabaseName', value);
   }
 
   async function goNext() {
-    setDetailError('');
+    clearErrors();
 
     if (step === 2 && isNewPlacement) {
       const ok = await validatePlacementValue(placement);
@@ -296,7 +327,7 @@ export default function GeneratePage() {
     }
 
     if (step === 3 && kind === 'Database') {
-      const ok = await validateDetailName(databaseName);
+      const ok = await validateNameField('databaseName', databaseName);
       if (!ok) {
         return;
       }
@@ -311,17 +342,20 @@ export default function GeneratePage() {
       }
 
       if (kind === 'Server' && detail.api_styles.length === 0) {
-        setDetailError('Select at least one API style.');
+        setError('apiStyles', { type: 'manual', message: 'Select at least one API style.' });
         return;
       }
 
       if (showBffControls && generateBff && !detail.bff_language) {
-        setDetailError('Select a BFF language.');
+        setError('bffLanguage', { type: 'manual', message: 'Select a BFF language.' });
         return;
       }
 
       if (kind === 'Server' && serverDatabaseMode === 'existing' && !getSelectedExistingDatabase()) {
-        setServerDatabaseError('Select an existing database.');
+        setError('selectedDatabasePath', {
+          type: 'manual',
+          message: 'Select an existing database.',
+        });
         return;
       }
 
@@ -341,20 +375,23 @@ export default function GeneratePage() {
   }
 
   function toggleApiStyle(style: ApiStyle) {
-    setDetail((current) => {
-      const nextStyles = current.api_styles.includes(style)
-        ? current.api_styles.filter((value) => value !== style)
-        : [...current.api_styles, style];
+    const nextStyles = detail.api_styles.includes(style)
+      ? detail.api_styles.filter((value) => value !== style)
+      : [...detail.api_styles, style];
 
-      return {
-        ...current,
-        api_styles: nextStyles,
-        bff_language: nextStyles.includes('GraphQL') ? current.bff_language : null,
-      };
-    });
+    setDetail((current) => ({
+      ...current,
+      api_styles: nextStyles,
+      bff_language: nextStyles.includes('GraphQL') ? current.bff_language : null,
+    }));
+    setValue('apiStyles', nextStyles);
+    clearErrors('apiStyles');
 
     if (style === 'GraphQL' && detail.api_styles.includes('GraphQL')) {
       setGenerateBff(false);
+      setValue('generateBff', false);
+      setValue('bffLanguage', null);
+      clearErrors('bffLanguage');
     }
   }
 
@@ -372,11 +409,14 @@ export default function GeneratePage() {
           ? current.bff_language
           : null,
     }));
+    setValue('detailName', getDefaultDetailName(nextKind));
+    clearErrors(['detailName', 'apiStyles', 'selectedDatabasePath', 'newDatabaseName', 'bffLanguage']);
 
     if (nextKind !== 'Server') {
       setServerDatabaseMode('none');
-      setServerDatabaseError('');
       setGenerateBff(false);
+      setValue('generateBff', false);
+      setValue('bffLanguage', null);
     }
   }
 
@@ -395,6 +435,9 @@ export default function GeneratePage() {
 
     if (nextTier !== 'Service') {
       setGenerateBff(false);
+      setValue('generateBff', false);
+      setValue('bffLanguage', null);
+      clearErrors('bffLanguage');
     }
   }
 
@@ -568,10 +611,12 @@ export default function GeneratePage() {
                   if (event.target.value === '__new__') {
                     setIsNewPlacement(true);
                     setPlacement('');
+                    setValue('placement', '');
                   } else {
                     setIsNewPlacement(false);
                     setPlacement(event.target.value);
-                    setPlacementError('');
+                    setValue('placement', event.target.value);
+                    clearErrors('placement');
                   }
                 }}
                 data-testid="select-placement"
@@ -591,7 +636,11 @@ export default function GeneratePage() {
               <label className="block text-sm font-medium text-slate-200/82">Placement name</label>
               <input
                 value={placement}
-                onChange={(event) => setPlacement(event.target.value)}
+                onChange={(event) => {
+                  setPlacement(event.target.value);
+                  setValue('placement', event.target.value);
+                  clearErrors('placement');
+                }}
                 onBlur={() => {
                   void validatePlacementValue(placement);
                 }}
@@ -661,9 +710,13 @@ export default function GeneratePage() {
                 <label className="block text-sm font-medium text-slate-200/82">Database name</label>
                 <input
                   value={databaseName}
-                  onChange={(event) => setDatabaseName(event.target.value)}
+                  onChange={(event) => {
+                    setDatabaseName(event.target.value);
+                    setValue('databaseName', event.target.value);
+                    clearErrors('databaseName');
+                  }}
                   onBlur={() => {
-                    void validateDetailName(databaseName);
+                    void validateNameField('databaseName', databaseName);
                   }}
                   placeholder="main"
                   className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
@@ -742,12 +795,14 @@ export default function GeneratePage() {
               <label className="block text-sm font-medium text-slate-200/82">Module name</label>
               <input
                 value={detail.name ?? ''}
-                onChange={(event) =>
+                onChange={(event) => {
                   setDetail((current) => ({
                     ...current,
                     name: event.target.value,
-                  }))
-                }
+                  }));
+                  setValue('detailName', event.target.value);
+                  clearErrors('detailName');
+                }}
                 onBlur={() => {
                   void validateDetailName(detail.name ?? '');
                 }}
@@ -792,15 +847,15 @@ export default function GeneratePage() {
                 <div className="mt-3 space-y-3">
                   {(['none', 'existing', 'new'] as ServerDatabaseMode[]).map((value) => (
                     <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
-                      <input
-                        type="radio"
-                        checked={serverDatabaseMode === value}
-                        onChange={() => {
-                          setServerDatabaseMode(value);
-                          setServerDatabaseError('');
-                        }}
-                        name="server-database-mode"
-                      />
+                        <input
+                          type="radio"
+                          checked={serverDatabaseMode === value}
+                          onChange={() => {
+                            setServerDatabaseMode(value);
+                            clearErrors(['selectedDatabasePath', 'newDatabaseName']);
+                          }}
+                          name="server-database-mode"
+                        />
                       {value === 'none'
                         ? 'No database'
                         : value === 'existing'
@@ -825,7 +880,8 @@ export default function GeneratePage() {
                           value={selectedDatabasePath}
                           onChange={(event) => {
                             setSelectedDatabasePath(event.target.value);
-                            setServerDatabaseError('');
+                            setValue('selectedDatabasePath', event.target.value);
+                            clearErrors('selectedDatabasePath');
                           }}
                           className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/35 px-3 py-2 text-white"
                           data-testid="select-server-db"
@@ -849,7 +905,11 @@ export default function GeneratePage() {
                       </label>
                       <input
                         value={newDatabaseName}
-                        onChange={(event) => setNewDatabaseName(event.target.value)}
+                        onChange={(event) => {
+                          setNewDatabaseName(event.target.value);
+                          setValue('newDatabaseName', event.target.value);
+                          clearErrors('newDatabaseName');
+                        }}
                         onBlur={() => {
                           void validateServerDatabaseName(newDatabaseName);
                         }}
@@ -927,11 +987,14 @@ export default function GeneratePage() {
                           checked={generateBff === enabled}
                           onChange={() => {
                             setGenerateBff(enabled);
+                            setValue('generateBff', enabled);
                             if (!enabled) {
                               setDetail((current) => ({
                                 ...current,
                                 bff_language: null,
                               }));
+                              setValue('bffLanguage', null);
+                              clearErrors('bffLanguage');
                             }
                           }}
                           name="generate-bff"
@@ -945,7 +1008,7 @@ export default function GeneratePage() {
                     <div className="mt-4">
                       <p className="text-sm font-medium text-slate-200/82">BFF language</p>
                       <div className="mt-3 space-y-2">
-                        {(['Go', 'Rust'] as Language[]).map((value) => (
+                        {BFF_LANGUAGE_VALUES.map((value) => (
                           <label
                             key={value}
                             className="flex items-center gap-3 text-sm text-slate-200/82"
@@ -953,12 +1016,14 @@ export default function GeneratePage() {
                             <input
                               type="radio"
                               checked={detail.bff_language === value}
-                              onChange={() =>
+                              onChange={() => {
                                 setDetail((current) => ({
                                   ...current,
                                   bff_language: value,
-                                }))
-                              }
+                                }));
+                                setValue('bffLanguage', value);
+                                clearErrors('bffLanguage');
+                              }}
                               name="bff-language"
                             />
                             {value}
