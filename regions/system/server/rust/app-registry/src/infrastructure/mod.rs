@@ -1,6 +1,8 @@
+pub mod config;
 pub mod database;
 pub mod s3_client;
 pub mod signature_verifier;
+pub mod startup;
 
 use crate::domain::entity::claims::Claims;
 use async_trait::async_trait;

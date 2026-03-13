@@ -57,3 +57,56 @@ impl GetFlowInstancesUseCase {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::repository::flow_instance_repository::MockFlowInstanceRepository;
+
+    #[tokio::test]
+    async fn paginated() {
+        let flow_id = Uuid::new_v4();
+        let mut mock = MockFlowInstanceRepository::new();
+        mock.expect_find_by_flow_id_paginated().returning(move |_, _, _| {
+            Ok((
+                vec![
+                    FlowInstance::new(flow_id, "corr-1".to_string()),
+                    FlowInstance::new(flow_id, "corr-2".to_string()),
+                ],
+                5,
+            ))
+        });
+
+        let uc = GetFlowInstancesUseCase::new(Arc::new(mock));
+        let input = GetFlowInstancesInput {
+            flow_id,
+            page: 1,
+            page_size: 2,
+        };
+        let result = uc.execute(&input).await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.instances.len(), 2);
+        assert_eq!(output.total_count, 5);
+        assert!(output.has_next);
+    }
+
+    #[tokio::test]
+    async fn empty() {
+        let mut mock = MockFlowInstanceRepository::new();
+        mock.expect_find_by_flow_id_paginated()
+            .returning(|_, _, _| Ok((vec![], 0)));
+
+        let uc = GetFlowInstancesUseCase::new(Arc::new(mock));
+        let input = GetFlowInstancesInput {
+            flow_id: Uuid::new_v4(),
+            page: 1,
+            page_size: 10,
+        };
+        let result = uc.execute(&input).await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.instances.is_empty());
+        assert!(!output.has_next);
+    }
+}

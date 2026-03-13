@@ -1,5 +1,7 @@
+pub mod config;
 pub mod database;
 pub mod health_collector;
+pub mod startup;
 
 use crate::domain::entity::claims::Claims;
 use async_trait::async_trait;

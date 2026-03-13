@@ -36,3 +36,40 @@ impl DeleteFlowUseCase {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::repository::flow_definition_repository::MockFlowDefinitionRepository;
+
+    #[tokio::test]
+    async fn success() {
+        let mut mock = MockFlowDefinitionRepository::new();
+        mock.expect_delete().returning(|_| Ok(true));
+
+        let uc = DeleteFlowUseCase::new(Arc::new(mock));
+        let result = uc.execute(&Uuid::new_v4()).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn not_found() {
+        let mut mock = MockFlowDefinitionRepository::new();
+        mock.expect_delete().returning(|_| Ok(false));
+
+        let uc = DeleteFlowUseCase::new(Arc::new(mock));
+        let result = uc.execute(&Uuid::new_v4()).await;
+        assert!(matches!(result, Err(DeleteFlowError::NotFound(_))));
+    }
+
+    #[tokio::test]
+    async fn internal_error() {
+        let mut mock = MockFlowDefinitionRepository::new();
+        mock.expect_delete()
+            .returning(|_| Err(anyhow::anyhow!("db error")));
+
+        let uc = DeleteFlowUseCase::new(Arc::new(mock));
+        let result = uc.execute(&Uuid::new_v4()).await;
+        assert!(matches!(result, Err(DeleteFlowError::Internal(_))));
+    }
+}

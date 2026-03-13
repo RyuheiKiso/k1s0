@@ -229,3 +229,383 @@ fn merge_item(item: MasterItem, extension: Option<TenantMasterExtension>) -> Ten
         effective_attributes,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entity::master_category::MasterCategory;
+    use crate::domain::repository::category_repository::MockCategoryRepository;
+    use crate::domain::repository::item_repository::MockItemRepository;
+    use crate::domain::repository::tenant_extension_repository::MockTenantExtensionRepository;
+    use crate::usecase::event_publisher::MockDomainMasterEventPublisher;
+    use chrono::Utc;
+    use mockall::predicate::*;
+
+    fn sample_item(category_id: Uuid) -> MasterItem {
+        MasterItem {
+            id: Uuid::new_v4(),
+            category_id,
+            code: "JPY".to_string(),
+            display_name: "Japanese Yen".to_string(),
+            description: None,
+            attributes: Some(serde_json::json!({"symbol": "¥"})),
+            parent_item_id: None,
+            effective_from: None,
+            effective_until: None,
+            is_active: true,
+            sort_order: 1,
+            created_by: "admin".to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn sample_extension(item_id: Uuid) -> TenantMasterExtension {
+        TenantMasterExtension {
+            id: Uuid::new_v4(),
+            tenant_id: "tenant-1".to_string(),
+            item_id,
+            display_name_override: Some("Custom Yen".to_string()),
+            attributes_override: None,
+            is_enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn sample_category() -> MasterCategory {
+        MasterCategory {
+            id: Uuid::new_v4(),
+            code: "CURRENCY".to_string(),
+            display_name: "Currency".to_string(),
+            description: None,
+            validation_schema: None,
+            is_active: true,
+            sort_order: 1,
+            created_by: "admin".to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn build_usecase(
+        category_repo: MockCategoryRepository,
+        item_repo: MockItemRepository,
+        tenant_ext_repo: MockTenantExtensionRepository,
+        event_publisher: MockDomainMasterEventPublisher,
+    ) -> ManageTenantExtensionsUseCase {
+        ManageTenantExtensionsUseCase::new(
+            Arc::new(category_repo),
+            Arc::new(item_repo),
+            Arc::new(tenant_ext_repo),
+            Arc::new(event_publisher),
+        )
+    }
+
+    #[tokio::test]
+    async fn test_get_extension() {
+        let category_repo = MockCategoryRepository::new();
+        let item_repo = MockItemRepository::new();
+        let mut tenant_ext_repo = MockTenantExtensionRepository::new();
+        let event_publisher = MockDomainMasterEventPublisher::new();
+
+        let item_id = Uuid::new_v4();
+        let ext = sample_extension(item_id);
+        let ext_clone = ext.clone();
+
+        tenant_ext_repo
+            .expect_find_by_tenant_and_item()
+            .with(eq("tenant-1"), eq(item_id))
+            .times(1)
+            .returning(move |_, _| Ok(Some(ext_clone.clone())));
+
+        let uc = build_usecase(category_repo, item_repo, tenant_ext_repo, event_publisher);
+        let result = uc.get_extension("tenant-1", item_id).await;
+        assert!(result.is_ok());
+        let ext = result.unwrap();
+        assert!(ext.is_some());
+        assert_eq!(ext.unwrap().tenant_id, "tenant-1");
+    }
+
+    #[tokio::test]
+    async fn test_upsert_create() {
+        let category_repo = MockCategoryRepository::new();
+        let mut item_repo = MockItemRepository::new();
+        let mut tenant_ext_repo = MockTenantExtensionRepository::new();
+        let mut event_publisher = MockDomainMasterEventPublisher::new();
+
+        let item_id = Uuid::new_v4();
+        let category_id = Uuid::new_v4();
+        let item = sample_item(category_id);
+        let item_clone = item.clone();
+        let ext = sample_extension(item_id);
+        let ext_clone = ext.clone();
+
+        tenant_ext_repo
+            .expect_find_by_tenant_and_item()
+            .with(eq("tenant-1"), eq(item_id))
+            .times(1)
+            .returning(|_, _| Ok(None));
+
+        item_repo
+            .expect_find_by_id()
+            .with(eq(item_id))
+            .times(1)
+            .returning(move |_| Ok(Some(item_clone.clone())));
+
+        tenant_ext_repo
+            .expect_upsert()
+            .times(1)
+            .returning(move |_, _, _| Ok(ext_clone.clone()));
+
+        event_publisher
+            .expect_publish_tenant_extension_changed()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let uc = build_usecase(category_repo, item_repo, tenant_ext_repo, event_publisher);
+
+        let input = UpsertTenantMasterExtension {
+            display_name_override: Some("Custom Yen".to_string()),
+            attributes_override: None,
+            is_enabled: Some(true),
+        };
+
+        let result = uc.upsert_extension("tenant-1", item_id, &input, "admin").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_upsert_update() {
+        let category_repo = MockCategoryRepository::new();
+        let mut item_repo = MockItemRepository::new();
+        let mut tenant_ext_repo = MockTenantExtensionRepository::new();
+        let mut event_publisher = MockDomainMasterEventPublisher::new();
+
+        let item_id = Uuid::new_v4();
+        let category_id = Uuid::new_v4();
+        let item = sample_item(category_id);
+        let item_clone = item.clone();
+        let existing_ext = sample_extension(item_id);
+        let existing_ext_clone = existing_ext.clone();
+        let updated_ext = sample_extension(item_id);
+        let updated_ext_clone = updated_ext.clone();
+
+        tenant_ext_repo
+            .expect_find_by_tenant_and_item()
+            .with(eq("tenant-1"), eq(item_id))
+            .times(1)
+            .returning(move |_, _| Ok(Some(existing_ext_clone.clone())));
+
+        item_repo
+            .expect_find_by_id()
+            .with(eq(item_id))
+            .times(1)
+            .returning(move |_| Ok(Some(item_clone.clone())));
+
+        tenant_ext_repo
+            .expect_upsert()
+            .times(1)
+            .returning(move |_, _, _| Ok(updated_ext_clone.clone()));
+
+        event_publisher
+            .expect_publish_tenant_extension_changed()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let uc = build_usecase(category_repo, item_repo, tenant_ext_repo, event_publisher);
+
+        let input = UpsertTenantMasterExtension {
+            display_name_override: Some("Updated Name".to_string()),
+            attributes_override: None,
+            is_enabled: Some(true),
+        };
+
+        let result = uc.upsert_extension("tenant-1", item_id, &input, "admin").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_delete_success() {
+        let category_repo = MockCategoryRepository::new();
+        let item_repo = MockItemRepository::new();
+        let mut tenant_ext_repo = MockTenantExtensionRepository::new();
+        let mut event_publisher = MockDomainMasterEventPublisher::new();
+
+        let item_id = Uuid::new_v4();
+        let ext = sample_extension(item_id);
+        let ext_clone = ext.clone();
+
+        tenant_ext_repo
+            .expect_find_by_tenant_and_item()
+            .with(eq("tenant-1"), eq(item_id))
+            .times(1)
+            .returning(move |_, _| Ok(Some(ext_clone.clone())));
+
+        tenant_ext_repo
+            .expect_delete()
+            .with(eq("tenant-1"), eq(item_id))
+            .times(1)
+            .returning(|_, _| Ok(()));
+
+        event_publisher
+            .expect_publish_tenant_extension_changed()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let uc = build_usecase(category_repo, item_repo, tenant_ext_repo, event_publisher);
+        let result = uc.delete_extension("tenant-1", item_id, "admin").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_delete_not_found() {
+        let category_repo = MockCategoryRepository::new();
+        let item_repo = MockItemRepository::new();
+        let mut tenant_ext_repo = MockTenantExtensionRepository::new();
+        let event_publisher = MockDomainMasterEventPublisher::new();
+
+        let item_id = Uuid::new_v4();
+
+        tenant_ext_repo
+            .expect_find_by_tenant_and_item()
+            .with(eq("tenant-1"), eq(item_id))
+            .times(1)
+            .returning(|_, _| Ok(None));
+
+        let uc = build_usecase(category_repo, item_repo, tenant_ext_repo, event_publisher);
+        let result = uc.delete_extension("tenant-1", item_id, "admin").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+    }
+
+    #[tokio::test]
+    async fn test_list_tenant_items() {
+        let mut category_repo = MockCategoryRepository::new();
+        let mut item_repo = MockItemRepository::new();
+        let mut tenant_ext_repo = MockTenantExtensionRepository::new();
+        let event_publisher = MockDomainMasterEventPublisher::new();
+
+        let category = sample_category();
+        let category_id = category.id;
+        let category_clone = category.clone();
+
+        let item = sample_item(category_id);
+        let items = vec![item.clone()];
+
+        category_repo
+            .expect_find_by_code()
+            .with(eq("CURRENCY"))
+            .times(1)
+            .returning(move |_| Ok(Some(category_clone.clone())));
+
+        category_repo
+            .expect_find_by_id()
+            .with(eq(category_id))
+            .times(1)
+            .returning(move |_| {
+                Ok(Some(MasterCategory {
+                    id: category_id,
+                    code: "CURRENCY".to_string(),
+                    display_name: "Currency".to_string(),
+                    description: None,
+                    validation_schema: None,
+                    is_active: true,
+                    sort_order: 1,
+                    created_by: "admin".to_string(),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                }))
+            });
+
+        item_repo
+            .expect_find_by_category()
+            .with(eq(category_id), eq(true))
+            .times(1)
+            .returning(move |_, _| Ok(items.clone()));
+
+        tenant_ext_repo
+            .expect_find_by_tenant_and_category()
+            .with(eq("tenant-1"), eq(category_id))
+            .times(1)
+            .returning(|_, _| Ok(vec![]));
+
+        let uc = build_usecase(category_repo, item_repo, tenant_ext_repo, event_publisher);
+        let result = uc.list_tenant_items("tenant-1", "CURRENCY").await;
+        assert!(result.is_ok());
+        let merged = result.unwrap();
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].effective_display_name, "Japanese Yen");
+    }
+
+    #[tokio::test]
+    async fn test_list_merged_with_disabled_filter() {
+        let mut category_repo = MockCategoryRepository::new();
+        let mut item_repo = MockItemRepository::new();
+        let mut tenant_ext_repo = MockTenantExtensionRepository::new();
+        let event_publisher = MockDomainMasterEventPublisher::new();
+
+        let category_id = Uuid::new_v4();
+
+        let item1 = sample_item(category_id);
+        let _item1_id = item1.id;
+        let mut item2 = sample_item(category_id);
+        item2.id = Uuid::new_v4();
+        item2.code = "USD".to_string();
+        item2.display_name = "US Dollar".to_string();
+        let item2_id = item2.id;
+        let items = vec![item1.clone(), item2.clone()];
+
+        category_repo
+            .expect_find_by_id()
+            .with(eq(category_id))
+            .times(1)
+            .returning(move |_| {
+                Ok(Some(MasterCategory {
+                    id: category_id,
+                    code: "CURRENCY".to_string(),
+                    display_name: "Currency".to_string(),
+                    description: None,
+                    validation_schema: None,
+                    is_active: true,
+                    sort_order: 1,
+                    created_by: "admin".to_string(),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                }))
+            });
+
+        item_repo
+            .expect_find_by_category()
+            .with(eq(category_id), eq(true))
+            .times(1)
+            .returning(move |_, _| Ok(items.clone()));
+
+        let disabled_ext = TenantMasterExtension {
+            id: Uuid::new_v4(),
+            tenant_id: "tenant-1".to_string(),
+            item_id: item2_id,
+            display_name_override: None,
+            attributes_override: None,
+            is_enabled: false,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        tenant_ext_repo
+            .expect_find_by_tenant_and_category()
+            .with(eq("tenant-1"), eq(category_id))
+            .times(1)
+            .returning(move |_, _| Ok(vec![disabled_ext.clone()]));
+
+        let uc = build_usecase(category_repo, item_repo, tenant_ext_repo, event_publisher);
+        let result = uc
+            .list_tenant_items_by_category_id("tenant-1", category_id, true)
+            .await;
+        assert!(result.is_ok());
+        let merged = result.unwrap();
+        // item2 (USD) should be filtered out because its extension is disabled
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].base_item.code, "JPY");
+    }
+}

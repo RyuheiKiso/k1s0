@@ -18,6 +18,13 @@ regions/system/server/rust/graphql-gateway/
 │   │   │   ├── tenant.rs          # Tenant, TenantStatus, TenantConnection
 │   │   │   ├── feature_flag.rs    # FeatureFlag
 │   │   │   ├── config_entry.rs    # ConfigEntry
+│   │   │   ├── auth.rs             # User, Role, PermissionCheck, AuditLog, AuditLogConnection
+│   │   │   ├── session.rs          # Session, SessionStatus
+│   │   │   ├── vault.rs            # SecretMetadata, VaultAuditLogEntry
+│   │   │   ├── scheduler.rs        # Job, JobExecution
+│   │   │   ├── notification.rs     # NotificationLog, NotificationChannel, NotificationTemplate
+│   │   │   ├── workflow.rs         # WorkflowDefinition, WorkflowStep, WorkflowInstance, WorkflowTask
+│   │   │   ├── payload.rs          # Mutation payload types (all services)
 │   │   │   └── graphql_context.rs # GraphqlContext (user_id, roles, request_id)
 │   │   └── loader/
 │   │       └── mod.rs             # DataLoader trait 定義
@@ -27,6 +34,18 @@ regions/system/server/rust/graphql-gateway/
 │   │   ├── feature_flag_query.rs  # FeatureFlagQueryResolver
 │   │   ├── config_query.rs        # ConfigQueryResolver
 │   │   ├── tenant_mutation.rs     # TenantMutationResolver
+│   │   ├── auth_query.rs           # AuthQueryResolver
+│   │   ├── auth_mutation.rs        # AuthMutationResolver
+│   │   ├── session_query.rs        # SessionQueryResolver
+│   │   ├── session_mutation.rs     # SessionMutationResolver
+│   │   ├── vault_query.rs          # VaultQueryResolver
+│   │   ├── vault_mutation.rs       # VaultMutationResolver
+│   │   ├── scheduler_query.rs      # SchedulerQueryResolver
+│   │   ├── scheduler_mutation.rs   # SchedulerMutationResolver
+│   │   ├── notification_query.rs   # NotificationQueryResolver
+│   │   ├── notification_mutation.rs # NotificationMutationResolver
+│   │   ├── workflow_query.rs       # WorkflowQueryResolver
+│   │   ├── workflow_mutation.rs    # WorkflowMutationResolver
 │   │   └── subscription.rs        # SubscriptionResolver
 │   ├── adapter/
 │   │   ├── mod.rs
@@ -42,7 +61,13 @@ regions/system/server/rust/graphql-gateway/
 │       │   ├── mod.rs
 │       │   ├── tenant_client.rs   # TenantGrpcClient
 │       │   ├── feature_flag_client.rs
-│       │   └── config_client.rs
+│       │   ├── config_client.rs
+│       │   ├── auth_client.rs      # AuthGrpcClient (AuthService + AuditService)
+│       │   ├── session_client.rs   # SessionGrpcClient
+│       │   ├── vault_client.rs     # VaultGrpcClient
+│       │   ├── scheduler_client.rs # SchedulerGrpcClient
+│       │   ├── notification_client.rs # NotificationGrpcClient
+│       │   └── workflow_client.rs  # WorkflowGrpcClient
 │       └── auth/
 │           └── jwks.rs            # JWKS 取得・JWT 検証
 ├── api/
@@ -75,7 +100,7 @@ regions/system/server/rust/graphql-gateway/
 
 ### build.rs
 
-gRPC クライアント側のため `build_server(false)` / `build_client(true)`。proto パス: `tenant.proto`, `featureflag.proto`, `config.proto`。
+gRPC クライアント側のため `build_server(false)` / `build_client(true)`。proto パス: `tenant.proto`, `featureflag.proto`, `config.proto`, `navigation.proto`, `service_catalog.proto`, `auth.proto`, `session.proto`, `vault.proto`, `scheduler.proto`, `notification.proto`, `workflow.proto`。
 
 ---
 
@@ -126,43 +151,44 @@ axum-test = "16"
 
 ```rust
     // --- gRPC クライアント ---
-    let tenant_client = Arc::new(
-        TenantGrpcClient::connect(&cfg.backends.tenant).await?,
-    );
-    let feature_flag_client = Arc::new(
-        FeatureFlagGrpcClient::connect(&cfg.backends.featureflag).await?,
-    );
-    let config_client = Arc::new(
-        ConfigGrpcClient::connect(&cfg.backends.config).await?,
-    );
+    let tenant_client = Arc::new(TenantGrpcClient::connect(&cfg.backends.tenant).await?);
+    let feature_flag_client = Arc::new(FeatureFlagGrpcClient::connect(&cfg.backends.featureflag).await?);
+    let config_client = Arc::new(ConfigGrpcClient::connect(&cfg.backends.config).await?);
+    let navigation_client = Arc::new(NavigationGrpcClient::connect(&cfg.backends.navigation).await?);
+    let service_catalog_client = Arc::new(ServiceCatalogGrpcClient::connect(&cfg.backends.service_catalog).await?);
+    let auth_client = Arc::new(AuthGrpcClient::connect(&cfg.backends.auth).await?);
+    let session_client = Arc::new(SessionGrpcClient::connect(&cfg.backends.session).await?);
+    let vault_client = Arc::new(VaultGrpcClient::connect(&cfg.backends.vault).await?);
+    let scheduler_client = Arc::new(SchedulerGrpcClient::connect(&cfg.backends.scheduler).await?);
+    let notification_client = Arc::new(NotificationGrpcClient::connect(&cfg.backends.notification).await?);
+    let workflow_client = Arc::new(WorkflowGrpcClient::connect(&cfg.backends.workflow).await?);
 
     // --- JWT 検証 ---
-    let jwks_verifier = Arc::new(
-        JwksVerifier::new(cfg.auth.jwks_url.clone()),
-    );
+    let jwks_verifier = Arc::new(JwksVerifier::new(cfg.auth.jwks_url.clone()));
 
-    // --- Resolver DI ---
-    let tenant_query = Arc::new(TenantQueryResolver::new(tenant_client.clone()));
-    let feature_flag_query = Arc::new(FeatureFlagQueryResolver::new(feature_flag_client.clone()));
-    let config_query = Arc::new(ConfigQueryResolver::new(config_client.clone()));
-    let tenant_mutation = Arc::new(TenantMutationResolver::new(tenant_client.clone()));
-    let subscription = Arc::new(SubscriptionResolver::new(
-        config_client.clone(),
-        tenant_client.clone(),
-        feature_flag_client.clone(),
-    ));
+    // --- GatewayClients ---
+    let clients = GatewayClients {
+        tenant: tenant_client.clone(),
+        feature_flag: feature_flag_client.clone(),
+        config: config_client.clone(),
+        navigation: navigation_client.clone(),
+        service_catalog: service_catalog_client.clone(),
+        auth: auth_client.clone(),
+        session: session_client.clone(),
+        vault: vault_client.clone(),
+        scheduler: scheduler_client.clone(),
+        notification: notification_client.clone(),
+        workflow: workflow_client.clone(),
+    };
+
+    // --- GatewayResolvers ---
+    let resolvers = GatewayResolvers { /* ... all 20 resolvers ... */ };
 
     // --- Router ---
     let app = graphql_handler::router(
         jwks_verifier,
-        tenant_query,
-        feature_flag_query,
-        config_query,
-        tenant_mutation,
-        subscription,
-        feature_flag_client,
-        tenant_client,
-        config_client,
+        clients,
+        resolvers,
         cfg.graphql.clone(),
         metrics.clone(),
     );
@@ -653,18 +679,20 @@ pub struct AppState {
     pub tenant_client: Arc<TenantGrpcClient>,
     pub feature_flag_client: Arc<FeatureFlagGrpcClient>,
     pub config_client: Arc<ConfigGrpcClient>,
+    pub navigation_client: Arc<NavigationGrpcClient>,
+    pub service_catalog_client: Arc<ServiceCatalogGrpcClient>,
+    pub auth_client: Arc<AuthGrpcClient>,
+    pub session_client: Arc<SessionGrpcClient>,
+    pub vault_client: Arc<VaultGrpcClient>,
+    pub scheduler_client: Arc<SchedulerGrpcClient>,
+    pub notification_client: Arc<NotificationGrpcClient>,
+    pub workflow_client: Arc<WorkflowGrpcClient>,
 }
 
 pub fn router(
     jwks_verifier: Arc<crate::infrastructure::auth::JwksVerifier>,
-    tenant_query: Arc<TenantQueryResolver>,
-    feature_flag_query: Arc<FeatureFlagQueryResolver>,
-    config_query: Arc<ConfigQueryResolver>,
-    tenant_mutation: Arc<TenantMutationResolver>,
-    subscription: Arc<SubscriptionResolver>,
-    feature_flag_client: Arc<FeatureFlagGrpcClient>,
-    tenant_client: Arc<TenantGrpcClient>,
-    config_client: Arc<ConfigGrpcClient>,
+    clients: GatewayClients,
+    resolvers: GatewayResolvers,
     graphql_cfg: GraphQLConfig,
     metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 ) -> Router {
@@ -761,14 +789,42 @@ async fn readyz(State(state): State<AppState>) -> (StatusCode, Json<serde_json::
     let tenant = state.tenant_client.healthz().await;
     let feature_flag = state.feature_flag_client.healthz().await;
     let config = state.config_client.healthz().await;
+    let navigation = state.navigation_client.healthz().await;
+    let service_catalog = state.service_catalog_client.healthz().await;
+    let auth = state.auth_client.healthz().await;
+    let session = state.session_client.healthz().await;
+    let vault = state.vault_client.healthz().await;
+    let scheduler = state.scheduler_client.healthz().await;
+    let notification = state.notification_client.healthz().await;
+    let workflow = state.workflow_client.healthz().await;
 
     let checks = serde_json::json!({
         "tenant": if tenant.is_ok() { "ok" } else { "error" },
         "featureflag": if feature_flag.is_ok() { "ok" } else { "error" },
-        "config": if config.is_ok() { "ok" } else { "error" }
+        "config": if config.is_ok() { "ok" } else { "error" },
+        "navigation": if navigation.is_ok() { "ok" } else { "error" },
+        "service_catalog": if service_catalog.is_ok() { "ok" } else { "error" },
+        "auth": if auth.is_ok() { "ok" } else { "error" },
+        "session": if session.is_ok() { "ok" } else { "error" },
+        "vault": if vault.is_ok() { "ok" } else { "error" },
+        "scheduler": if scheduler.is_ok() { "ok" } else { "error" },
+        "notification": if notification.is_ok() { "ok" } else { "error" },
+        "workflow": if workflow.is_ok() { "ok" } else { "error" }
     });
 
-    if tenant.is_ok() && feature_flag.is_ok() && config.is_ok() {
+    let all_ok = tenant.is_ok()
+        && feature_flag.is_ok()
+        && config.is_ok()
+        && navigation.is_ok()
+        && service_catalog.is_ok()
+        && auth.is_ok()
+        && session.is_ok()
+        && vault.is_ok()
+        && scheduler.is_ok()
+        && notification.is_ok()
+        && workflow.is_ok();
+
+    if all_ok {
         (StatusCode::OK, Json(serde_json::json!({"status": "ready", "checks": checks})))
     } else {
         (
@@ -987,6 +1043,14 @@ pub struct BackendsConfig {
     pub tenant: BackendConfig,
     pub featureflag: BackendConfig,
     pub config: BackendConfig,
+    pub navigation: BackendConfig,
+    pub service_catalog: BackendConfig,
+    pub auth: BackendConfig,
+    pub session: BackendConfig,
+    pub vault: BackendConfig,
+    pub scheduler: BackendConfig,
+    pub notification: BackendConfig,
+    pub workflow: BackendConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1134,6 +1198,30 @@ backends:
   config:
     address: "http://config-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
+  navigation:
+    address: "http://navigation-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  service_catalog:
+    address: "http://service-catalog-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  auth:
+    address: "http://auth-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  session:
+    address: "http://session-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  vault:
+    address: "http://vault-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  scheduler:
+    address: "http://scheduler-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  notification:
+    address: "http://notification-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  workflow:
+    address: "http://workflow-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
 
 observability:
   log:
@@ -1273,7 +1361,7 @@ mod tests {
 - `ConfigLoader` は `GetConfig` 呼び出し時に tenant 文脈を含めて問い合わせる。
 - Loader trait は native async を採用し、エラー型は `Arc<anyhow::Error>` を使用する。
 - Auth middleware は Tower `Layer` / `Service` パターンで統一する。
-- `/readyz` は tenant / featureflag / config の 3 バックエンド疎通を確認する。
+- `/readyz` は全 11 バックエンド（tenant / featureflag / config / navigation / service_catalog / auth / session / vault / scheduler / notification / workflow）の疎通を確認する。
 - Subscription は WebSocket 経由で配信し、tenant / featureflag / config の全 3 サブスクリプションで gRPC Server-Side Streaming（`WatchTenant` / `WatchFeatureFlag` / `WatchConfig`）を使用したイベント駆動方式を採用する。
 - WebSocket 接続時に JWT 検証を実施する。
 - `list_tenants` では `last` / `before` を受け付けない。

@@ -116,6 +116,22 @@ pub struct BackendsConfig {
     pub featureflag: BackendConfig,
     #[serde(default)]
     pub config: BackendConfig,
+    #[serde(default)]
+    pub navigation: BackendConfig,
+    #[serde(default)]
+    pub service_catalog: BackendConfig,
+    #[serde(default)]
+    pub auth: BackendConfig,
+    #[serde(default)]
+    pub session: BackendConfig,
+    #[serde(default)]
+    pub vault: BackendConfig,
+    #[serde(default)]
+    pub scheduler: BackendConfig,
+    #[serde(default)]
+    pub notification: BackendConfig,
+    #[serde(default)]
+    pub workflow: BackendConfig,
 }
 
 impl Default for BackendsConfig {
@@ -124,6 +140,14 @@ impl Default for BackendsConfig {
             tenant: BackendConfig::default(),
             featureflag: BackendConfig::default(),
             config: BackendConfig::default(),
+            navigation: BackendConfig::default(),
+            service_catalog: BackendConfig::default(),
+            auth: BackendConfig::default(),
+            session: BackendConfig::default(),
+            vault: BackendConfig::default(),
+            scheduler: BackendConfig::default(),
+            notification: BackendConfig::default(),
+            workflow: BackendConfig::default(),
         }
     }
 }

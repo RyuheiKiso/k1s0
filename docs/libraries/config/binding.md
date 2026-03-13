@@ -8,7 +8,7 @@
 
 Binding Building Block ライブラリ。外部リソースへの入出力を統一インターフェースで抽象化する。InputBinding（外部からのイベント受信）と OutputBinding（外部への操作実行）の 2 つのトレイトを提供し、PostgreSQL・S3・HTTP 等のリソースを同一の API で扱える。
 
-**配置先**: `regions/system/library/rust/binding/`
+**配置先**: `regions/system/library/rust/bb-binding/`
 
 ## 公開 API
 
@@ -30,7 +30,7 @@ Binding Building Block ライブラリ。外部リソースへの入出力を統
 
 ```toml
 [package]
-name = "k1s0-binding"
+name = "bb-binding"
 version = "0.1.0"
 edition = "2021"
 
@@ -54,12 +54,12 @@ reqwest = { version = "0.12", features = ["json"], optional = true }
 tokio = { version = "1", features = ["full"] }
 ```
 
-**依存追加**: `k1s0-binding = { path = "../../system/library/rust/binding" }`
+**依存追加**: `bb-binding = { path = "../../system/library/rust/bb-binding" }`
 
 **モジュール構成**:
 
 ```
-binding/
+bb-binding/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）
 │   ├── traits.rs       # InputBinding・OutputBinding トレイト定義

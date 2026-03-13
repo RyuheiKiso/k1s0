@@ -126,3 +126,149 @@ impl TraceByCorrelationUseCase {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entity::event_record::EventRecord;
+    use crate::domain::entity::flow_definition::{FlowDefinition, FlowSlo, FlowStep};
+    use crate::domain::repository::event_record_repository::MockEventRecordRepository;
+    use crate::domain::repository::flow_definition_repository::MockFlowDefinitionRepository;
+    use crate::domain::repository::flow_instance_repository::MockFlowInstanceRepository;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    fn make_event(corr_id: &str) -> EventRecord {
+        EventRecord::new(
+            corr_id.to_string(),
+            "OrderCreated".to_string(),
+            "order-service".to_string(),
+            "service.order".to_string(),
+            "trace-123".to_string(),
+            Utc::now(),
+        )
+    }
+
+    fn make_flow_with_steps(flow_id: Uuid) -> FlowDefinition {
+        let mut flow = FlowDefinition::new(
+            "order_flow".to_string(),
+            "test".to_string(),
+            "service.order".to_string(),
+            vec![
+                FlowStep {
+                    event_type: "OrderCreated".to_string(),
+                    source: "order-service".to_string(),
+                    source_filter: None,
+                    timeout_seconds: 30,
+                    description: "step 0".to_string(),
+                },
+                FlowStep {
+                    event_type: "PaymentProcessed".to_string(),
+                    source: "payment-service".to_string(),
+                    source_filter: None,
+                    timeout_seconds: 60,
+                    description: "step 1".to_string(),
+                },
+                FlowStep {
+                    event_type: "OrderShipped".to_string(),
+                    source: "shipping-service".to_string(),
+                    source_filter: None,
+                    timeout_seconds: 120,
+                    description: "step 2".to_string(),
+                },
+            ],
+            FlowSlo {
+                target_completion_seconds: 300,
+                target_success_rate: 0.99,
+                alert_on_violation: true,
+            },
+        );
+        flow.id = flow_id;
+        flow
+    }
+
+    #[tokio::test]
+    async fn with_flow() {
+        let flow_id = Uuid::new_v4();
+        let instance = FlowInstance::new(flow_id, "corr-123".to_string());
+        // instance is InProgress at step 0, so steps 1 and 2 are pending
+
+        let mut event_mock = MockEventRecordRepository::new();
+        event_mock
+            .expect_find_by_correlation_id()
+            .returning(|_| Ok(vec![make_event("corr-123")]));
+
+        let instance_clone = instance.clone();
+        let mut inst_mock = MockFlowInstanceRepository::new();
+        inst_mock
+            .expect_find_by_correlation_id()
+            .returning(move |_| Ok(Some(instance_clone.clone())));
+
+        let mut def_mock = MockFlowDefinitionRepository::new();
+        def_mock
+            .expect_find_by_id()
+            .returning(move |_| Ok(Some(make_flow_with_steps(flow_id))));
+
+        let uc = TraceByCorrelationUseCase::new(
+            Arc::new(event_mock),
+            Arc::new(def_mock),
+            Arc::new(inst_mock),
+        );
+        let result = uc.execute("corr-123").await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.correlation_id, "corr-123");
+        assert_eq!(output.events.len(), 1);
+        assert!(output.flow_instance.is_some());
+        assert_eq!(output.flow_name, Some("order_flow".to_string()));
+        assert_eq!(output.pending_steps.len(), 2);
+        assert_eq!(output.pending_steps[0].event_type, "PaymentProcessed");
+        assert_eq!(output.pending_steps[1].event_type, "OrderShipped");
+    }
+
+    #[tokio::test]
+    async fn without_flow() {
+        let mut event_mock = MockEventRecordRepository::new();
+        event_mock
+            .expect_find_by_correlation_id()
+            .returning(|_| Ok(vec![make_event("corr-456")]));
+
+        let mut inst_mock = MockFlowInstanceRepository::new();
+        inst_mock
+            .expect_find_by_correlation_id()
+            .returning(|_| Ok(None));
+
+        let def_mock = MockFlowDefinitionRepository::new();
+
+        let uc = TraceByCorrelationUseCase::new(
+            Arc::new(event_mock),
+            Arc::new(def_mock),
+            Arc::new(inst_mock),
+        );
+        let result = uc.execute("corr-456").await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.flow_instance.is_none());
+        assert!(output.flow_name.is_none());
+        assert!(output.pending_steps.is_empty());
+    }
+
+    #[tokio::test]
+    async fn not_found() {
+        let mut event_mock = MockEventRecordRepository::new();
+        event_mock
+            .expect_find_by_correlation_id()
+            .returning(|_| Ok(vec![]));
+
+        let inst_mock = MockFlowInstanceRepository::new();
+        let def_mock = MockFlowDefinitionRepository::new();
+
+        let uc = TraceByCorrelationUseCase::new(
+            Arc::new(event_mock),
+            Arc::new(def_mock),
+            Arc::new(inst_mock),
+        );
+        let result = uc.execute("corr-missing").await;
+        assert!(matches!(result, Err(TraceByCorrelationError::NotFound(_))));
+    }
+}

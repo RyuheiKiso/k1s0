@@ -3,3 +3,4 @@ pub mod messaging;
 pub mod persistence;
 pub mod rule_engine;
 pub mod schema;
+pub mod startup;

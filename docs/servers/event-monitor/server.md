@@ -478,6 +478,8 @@ service EventMonitorService {
   rpc CreateFlow(CreateFlowRequest) returns (CreateFlowResponse);
   rpc UpdateFlow(UpdateFlowRequest) returns (UpdateFlowResponse);
   rpc DeleteFlow(DeleteFlowRequest) returns (DeleteFlowResponse);
+  rpc GetFlowInstance(GetFlowInstanceRequest) returns (GetFlowInstanceResponse);
+  rpc ListFlowInstances(ListFlowInstancesRequest) returns (ListFlowInstancesResponse);
   rpc GetFlowKpi(GetFlowKpiRequest) returns (GetFlowKpiResponse);
   rpc GetKpiSummary(GetKpiSummaryRequest) returns (GetKpiSummaryResponse);
   rpc GetSloStatus(GetSloStatusRequest) returns (GetSloStatusResponse);
@@ -492,7 +494,7 @@ message EventRecord {
   string id = 1;
   string correlation_id = 2;
   string event_type = 3;
-  string source = 4;
+  string source_service = 4;
   string domain = 5;
   string trace_id = 6;
   k1s0.system.common.v1.Timestamp timestamp = 7;
@@ -629,6 +631,38 @@ message DeleteFlowRequest {
 message DeleteFlowResponse {
   bool success = 1;
   string message = 2;
+}
+
+// --- FlowInstance messages ---
+
+message GetFlowInstanceRequest {
+  string instance_id = 1;
+}
+
+message GetFlowInstanceResponse {
+  FlowInstance instance = 1;
+}
+
+message ListFlowInstancesRequest {
+  string flow_id = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+  optional string status = 3;
+}
+
+message ListFlowInstancesResponse {
+  repeated FlowInstance instances = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message FlowInstance {
+  string id = 1;
+  string flow_definition_id = 2;
+  string correlation_id = 3;
+  string status = 4;
+  int32 current_step_index = 5;
+  k1s0.system.common.v1.Timestamp started_at = 6;
+  optional k1s0.system.common.v1.Timestamp completed_at = 7;
+  optional int64 duration_ms = 8;
 }
 
 // --- KPI messages ---
@@ -824,7 +858,7 @@ scheduler-server にジョブを登録し、定期的にタイムアウトした
 | domain/entity | `EventRecord`, `FlowDefinition`, `FlowStep`, `FlowInstance`, `FlowSlo`, `FlowKpi`, `SloStatus` | エンティティ定義 |
 | domain/repository | `EventRecordRepository`, `FlowDefinitionRepository`, `FlowInstanceRepository` | リポジトリトレイト |
 | domain/service | `FlowMatchingService`, `KpiAggregationService`, `SloCalculationService`, `TimeoutDetectionService` | フローマッチング・KPI 集計・SLO 計算・タイムアウト検出 |
-| usecase | `ListEventsUseCase`, `TraceByCorrelationUseCase`, `CreateFlowUseCase`, `UpdateFlowUseCase`, `DeleteFlowUseCase`, `GetFlowKpiUseCase`, `GetKpiSummaryUseCase`, `GetSloStatusUseCase`, `PreviewReplayUseCase`, `ExecuteReplayUseCase` | ユースケース |
+| usecase | `ListEventsUseCase`, `TraceByCorrelationUseCase`, `CreateFlowUseCase`, `UpdateFlowUseCase`, `DeleteFlowUseCase`, `GetFlowInstanceUseCase`, `ListFlowInstancesUseCase`, `GetFlowKpiUseCase`, `GetKpiSummaryUseCase`, `GetSloStatusUseCase`, `PreviewReplayUseCase`, `ExecuteReplayUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/persistence | `EventRecordPostgresRepository`, `FlowDefinitionPostgresRepository`, `FlowInstancePostgresRepository` | PostgreSQL リポジトリ実装 |
@@ -870,7 +904,7 @@ scheduler-server にジョブを登録し、定期的にタイムアウトした
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `id` | UUID | フローインスタンスの一意識別子 |
-| `flow_id` | UUID | フロー定義 ID |
+| `flow_definition_id` | UUID | フロー定義 ID |
 | `correlation_id` | String | 業務トランザクション相関 ID |
 | `status` | FlowInstanceStatus | `in_progress` / `completed` / `failed` / `timeout` |
 | `current_step_index` | i32 | 現在のステップインデックス |
@@ -971,7 +1005,7 @@ CREATE TABLE event_monitor.event_records (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     correlation_id   TEXT NOT NULL,
     event_type       TEXT NOT NULL,
-    source           TEXT NOT NULL,
+    source_service   TEXT NOT NULL,
     domain           TEXT NOT NULL,
     trace_id         TEXT NOT NULL DEFAULT '',
     timestamp        TIMESTAMPTZ NOT NULL,
@@ -983,7 +1017,7 @@ CREATE TABLE event_monitor.event_records (
 
 CREATE TABLE event_monitor.flow_instances (
     id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    flow_id            UUID NOT NULL REFERENCES event_monitor.flow_definitions(id) ON DELETE CASCADE,
+    flow_definition_id UUID NOT NULL REFERENCES event_monitor.flow_definitions(id) ON DELETE CASCADE,
     correlation_id     TEXT NOT NULL UNIQUE,
     status             TEXT NOT NULL DEFAULT 'in_progress',
     current_step_index INTEGER NOT NULL DEFAULT 0,
@@ -996,7 +1030,7 @@ CREATE INDEX idx_event_records_correlation ON event_monitor.event_records(correl
 CREATE INDEX idx_event_records_domain_type ON event_monitor.event_records(domain, event_type);
 CREATE INDEX idx_event_records_timestamp ON event_monitor.event_records(timestamp DESC);
 CREATE INDEX idx_event_records_flow_id ON event_monitor.event_records(flow_id);
-CREATE INDEX idx_flow_instances_flow_id ON event_monitor.flow_instances(flow_id);
+CREATE INDEX idx_flow_instances_flow_definition_id ON event_monitor.flow_instances(flow_definition_id);
 CREATE INDEX idx_flow_instances_status ON event_monitor.flow_instances(status);
 CREATE INDEX idx_flow_instances_started_at ON event_monitor.flow_instances(started_at DESC);
 ```

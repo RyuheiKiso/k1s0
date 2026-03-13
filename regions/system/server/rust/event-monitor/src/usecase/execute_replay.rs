@@ -103,3 +103,76 @@ impl ExecuteReplayUseCase {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::dlq_client::{MockDlqManagerClient, ReplayResponse};
+
+    #[tokio::test]
+    async fn success() {
+        let mut dlq_mock = MockDlqManagerClient::new();
+        dlq_mock.expect_execute_replay().returning(|_| {
+            Ok(ReplayResponse {
+                replay_id: "replay-001".to_string(),
+                status: "completed".to_string(),
+                total_events: 5,
+                replayed_events: 5,
+            })
+        });
+
+        let uc = ExecuteReplayUseCase::new(Arc::new(dlq_mock));
+        let input = ExecuteReplayInput {
+            correlation_ids: vec!["corr-1".to_string()],
+            from_step_index: 0,
+            include_downstream: true,
+            dry_run: false,
+        };
+        let result = uc.execute(&input).await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.replay_id, "replay-001");
+        assert_eq!(output.status, "completed");
+        assert_eq!(output.total_events, 5);
+        assert_eq!(output.replayed_events, 5);
+    }
+
+    #[tokio::test]
+    async fn in_progress() {
+        let dlq_mock = MockDlqManagerClient::new();
+        let uc = ExecuteReplayUseCase::new(Arc::new(dlq_mock));
+
+        // Pre-insert a correlation_id into active_replays
+        {
+            let mut active = uc.active_replays.write().await;
+            active.insert("corr-1".to_string());
+        }
+
+        let input = ExecuteReplayInput {
+            correlation_ids: vec!["corr-1".to_string()],
+            from_step_index: 0,
+            include_downstream: false,
+            dry_run: false,
+        };
+        let result = uc.execute(&input).await;
+        assert!(matches!(result, Err(ExecuteReplayError::ReplayInProgress(_))));
+    }
+
+    #[tokio::test]
+    async fn dlq_failure() {
+        let mut dlq_mock = MockDlqManagerClient::new();
+        dlq_mock
+            .expect_execute_replay()
+            .returning(|_| Err(anyhow::anyhow!("dlq unavailable")));
+
+        let uc = ExecuteReplayUseCase::new(Arc::new(dlq_mock));
+        let input = ExecuteReplayInput {
+            correlation_ids: vec!["corr-1".to_string()],
+            from_step_index: 0,
+            include_downstream: false,
+            dry_run: false,
+        };
+        let result = uc.execute(&input).await;
+        assert!(matches!(result, Err(ExecuteReplayError::Failed(_))));
+    }
+}

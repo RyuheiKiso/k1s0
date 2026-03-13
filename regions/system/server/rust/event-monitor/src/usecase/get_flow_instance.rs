@@ -31,3 +31,44 @@ impl GetFlowInstanceUseCase {
             .ok_or_else(|| GetFlowInstanceError::NotFound(id.to_string()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::repository::flow_instance_repository::MockFlowInstanceRepository;
+
+    #[tokio::test]
+    async fn success() {
+        let instance = FlowInstance::new(Uuid::new_v4(), "corr-123".to_string());
+        let instance_id = instance.id;
+        let mut mock = MockFlowInstanceRepository::new();
+        mock.expect_find_by_id()
+            .returning(move |_| Ok(Some(FlowInstance::new(Uuid::new_v4(), "corr-123".to_string()))));
+
+        let uc = GetFlowInstanceUseCase::new(Arc::new(mock));
+        let result = uc.execute(&instance_id).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().correlation_id, "corr-123");
+    }
+
+    #[tokio::test]
+    async fn not_found() {
+        let mut mock = MockFlowInstanceRepository::new();
+        mock.expect_find_by_id().returning(|_| Ok(None));
+
+        let uc = GetFlowInstanceUseCase::new(Arc::new(mock));
+        let result = uc.execute(&Uuid::new_v4()).await;
+        assert!(matches!(result, Err(GetFlowInstanceError::NotFound(_))));
+    }
+
+    #[tokio::test]
+    async fn internal_error() {
+        let mut mock = MockFlowInstanceRepository::new();
+        mock.expect_find_by_id()
+            .returning(|_| Err(anyhow::anyhow!("db error")));
+
+        let uc = GetFlowInstanceUseCase::new(Arc::new(mock));
+        let result = uc.execute(&Uuid::new_v4()).await;
+        assert!(matches!(result, Err(GetFlowInstanceError::Internal(_))));
+    }
+}
