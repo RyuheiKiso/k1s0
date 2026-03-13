@@ -2,6 +2,7 @@ use crate::domain::entity::master_category::{
     CreateMasterCategory, MasterCategory, UpdateMasterCategory,
 };
 use crate::domain::repository::category_repository::CategoryRepository;
+use crate::domain::service::category_service::CategoryService;
 use crate::usecase::event_publisher::DomainMasterEventPublisher;
 use chrono::Utc;
 use std::sync::Arc;
@@ -40,6 +41,10 @@ impl ManageCategoriesUseCase {
         input: &CreateMasterCategory,
         created_by: &str,
     ) -> anyhow::Result<MasterCategory> {
+        CategoryService::validate_code(&input.code)?;
+        if let Some(ref schema) = input.validation_schema {
+            CategoryService::validate_schema(schema)?;
+        }
         if let Some(_existing) = self.category_repo.find_by_code(&input.code).await? {
             anyhow::bail!("Duplicate code: category '{}' already exists", input.code);
         }
@@ -55,6 +60,9 @@ impl ManageCategoriesUseCase {
         updated_by: &str,
         input: &UpdateMasterCategory,
     ) -> anyhow::Result<MasterCategory> {
+        if let Some(ref schema) = input.validation_schema {
+            CategoryService::validate_schema(schema)?;
+        }
         let existing = self
             .category_repo
             .find_by_code(code)
