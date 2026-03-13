@@ -1,3 +1,4 @@
+pub mod config;
 pub mod database;
 pub mod jwks_adapter;
 pub mod jwks_provider;
