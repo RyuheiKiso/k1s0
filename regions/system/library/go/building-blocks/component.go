@@ -15,12 +15,18 @@ const (
 	StatusError         ComponentStatus = "error"
 )
 
+// Metadata holds component metadata.
+type Metadata struct {
+	Name    string            `json:"name"`
+	Version string            `json:"version"`
+	Tags    map[string]string `json:"tags,omitempty"`
+}
+
 // Component is the base interface for all building block components.
 type Component interface {
 	Name() string
-	Type() string
-	Init(ctx context.Context) error
+	Version() string
+	Init(ctx context.Context, metadata Metadata) error
 	Close(ctx context.Context) error
 	Status(ctx context.Context) ComponentStatus
-	Metadata() map[string]string
 }

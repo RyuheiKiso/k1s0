@@ -1,24 +1,22 @@
 package buildingblocks
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // Message represents a pub/sub message.
 type Message struct {
-	Topic    string
-	Data     []byte
-	Metadata map[string]string
-	ID       string
-}
-
-// MessageHandler processes incoming messages.
-type MessageHandler interface {
-	Handle(ctx context.Context, msg Message) error
+	Topic     string            `json:"topic"`
+	Data      []byte            `json:"data"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
+	ID        string            `json:"id"`
+	Timestamp time.Time         `json:"timestamp"`
 }
 
 // PubSub provides publish/subscribe messaging capabilities.
 type PubSub interface {
 	Component
-	Publish(ctx context.Context, topic string, data []byte, metadata map[string]string) error
-	Subscribe(ctx context.Context, topic string, handler MessageHandler) (string, error)
-	Unsubscribe(ctx context.Context, subscriptionID string) error
+	Publish(ctx context.Context, msg *Message) error
+	Subscribe(ctx context.Context, topic string) (<-chan *Message, error)
 }

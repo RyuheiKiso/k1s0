@@ -627,6 +627,24 @@ services:
       - ./regions/system/server/rust/search/config:/app/config
     healthcheck: *rust-healthcheck
 
+  service-catalog-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/service-catalog/Dockerfile
+    profiles: [system]
+    ports:
+      - "${SERVICE_CATALOG_REST_HOST_PORT:-8108}:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/service-catalog/config:/app/config
+    healthcheck: *rust-healthcheck
+
   session-rust:
     build:
       context: ./regions/system
@@ -732,6 +750,29 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/business/accounting/server/rust/domain-master/config:/app/config
+    healthcheck: *rust-healthcheck
+
+  # ============================================================
+  # Service プロファイル
+  # ============================================================
+  order-rust:
+    build:
+      context: .
+      dockerfile: ./regions/service/order/server/rust/order/Dockerfile
+    profiles: [service]
+    ports:
+      - "${ORDER_REST_HOST_PORT:-8310}:8080"
+      - "${ORDER_GRPC_HOST_PORT:-9310}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/service/order/server/rust/order/config:/app/config
     healthcheck: *rust-healthcheck
 
   # ============================================================

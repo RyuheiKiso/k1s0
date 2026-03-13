@@ -2,16 +2,17 @@ package buildingblocks
 
 import "context"
 
-// SecretValue represents a retrieved secret.
-type SecretValue struct {
-	Key      string
-	Value    string
-	Metadata map[string]string
+// Secret represents a retrieved secret.
+type Secret struct {
+	Key      string            `json:"key"`
+	Value    string            `json:"value"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 // SecretStore provides unified secret retrieval.
 type SecretStore interface {
 	Component
-	GetSecret(ctx context.Context, key string) (*SecretValue, error)
-	BulkGet(ctx context.Context, keys []string) (map[string]*SecretValue, error)
+	Get(ctx context.Context, key string) (*Secret, error)
+	BulkGet(ctx context.Context, keys []string) ([]*Secret, error)
+	Close(ctx context.Context) error
 }

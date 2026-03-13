@@ -24,12 +24,20 @@ func (e *ComponentError) Unwrap() error {
 // ETagMismatchError indicates an optimistic concurrency conflict.
 type ETagMismatchError struct {
 	Key      string
-	Expected string
-	Actual   string
+	Expected *ETag
+	Actual   *ETag
 }
 
 func (e *ETagMismatchError) Error() string {
-	return fmt.Sprintf("etag mismatch for key %q: expected %q, got %q", e.Key, e.Expected, e.Actual)
+	expected := "<nil>"
+	actual := "<nil>"
+	if e.Expected != nil {
+		expected = e.Expected.Value
+	}
+	if e.Actual != nil {
+		actual = e.Actual.Value
+	}
+	return fmt.Sprintf("etag mismatch for key %q: expected %q, got %q", e.Key, expected, actual)
 }
 
 // NewComponentError creates a new ComponentError.

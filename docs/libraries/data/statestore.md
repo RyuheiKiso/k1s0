@@ -8,7 +8,7 @@
 
 StateStore Building Block ライブラリ。キーバリュー型の状態管理を統一インターフェースで抽象化する。ETag による楽観ロック（CAS: Compare-And-Swap）を標準サポートし、並行アクセス時のデータ整合性を保証する。RedisStateStore は内部で k1s0-cache をラップして利用する。
 
-**配置先**: `regions/system/library/rust/statestore/`
+**配置先**: `regions/system/library/rust/bb-statestore/`
 
 ## 公開 API
 
@@ -28,7 +28,7 @@ StateStore Building Block ライブラリ。キーバリュー型の状態管理
 
 ```toml
 [package]
-name = "k1s0-statestore"
+name = "bb-statestore"
 version = "0.1.0"
 edition = "2021"
 
@@ -50,12 +50,12 @@ sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"], optional = t
 tokio = { version = "1", features = ["full"] }
 ```
 
-**依存追加**: `k1s0-statestore = { path = "../../system/library/rust/statestore" }`
+**依存追加**: `bb-statestore = { path = "../../system/library/rust/bb-statestore" }`
 
 **モジュール構成**:
 
 ```
-statestore/
+bb-statestore/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）
 │   ├── traits.rs       # StateStore トレイト定義
