@@ -6,7 +6,7 @@ system tier の GraphQL BFF ゲートウェイ。複数 gRPC バックエンド�
 
 | 機能 | 説明 |
 | --- | --- |
-| GraphQL スキーマ集約 | 認証・設定・テナント等の system サービスを単一スキーマに統合 |
+| GraphQL スキーマ集約 | 認証・設定・テナント・セッション・Vault・スケジューラー・通知・ワークフロー等の system サービスを単一スキーマに統合 |
 | DataLoader によるバッチ処理 | N+1 問題を DataLoader で解決し、バックエンドへの呼び出しを最小化 |
 | サブスクリプション | WebSocket で公開。現実装は 5 秒ポーリングで状態同期し、将来はイベント駆動へ移行予定 |
 | イントロスペクション | 開発環境のみ GraphQL スキーマイントロスペクションを有効化 |
@@ -75,6 +75,7 @@ GraphQL クエリおよびミューテーションを受け付ける。リクエ
 **Mutation の RBAC チェック**:
 - `createTenant` / `updateTenant` / `setFeatureFlag` は `has_write_role()` を通して `sys_admin` または `sys_operator` を必須とする
 - 権限不足時は `extensions.code = FORBIDDEN` を返却する
+- 新規バックエンド（auth / session / vault / scheduler / notification / workflow）のミューテーションも同様に `sys_admin` または `sys_operator` を必須とする
 
 **リクエスト例**
 
@@ -166,7 +167,7 @@ JWT が無効または欠落している場合は HTTP 401 を返す（GraphQL �
 
 #### GET /readyz
 
-バックエンド gRPC サービス（tenant / featureflag / config）の疎通を確認する。全サービスが応答すれば `200 OK`、いずれかが失敗すれば `503 Service Unavailable` を返す。
+バックエンド gRPC サービス（tenant / featureflag / config / navigation / service-catalog / auth / session / vault / scheduler / notification / workflow）の疎通を確認する。全サービスが応答すれば `200 OK`、いずれかが失敗すれば `503 Service Unavailable` を返す。
 
 **レスポンス例（200 OK）**
 
@@ -176,7 +177,15 @@ JWT が無効または欠落している場合は HTTP 401 を返す（GraphQL �
   "checks": {
     "tenant_grpc": "ok",
     "featureflag_grpc": "ok",
-    "config_grpc": "ok"
+    "config_grpc": "ok",
+    "navigation_grpc": "ok",
+    "service_catalog_grpc": "ok",
+    "auth_grpc": "ok",
+    "session_grpc": "ok",
+    "vault_grpc": "ok",
+    "scheduler_grpc": "ok",
+    "notification_grpc": "ok",
+    "workflow_grpc": "ok"
   }
 }
 ```
@@ -189,7 +198,15 @@ JWT が無効または欠落している場合は HTTP 401 を返す（GraphQL �
   "checks": {
     "tenant_grpc": "ok",
     "featureflag_grpc": "error",
-    "config_grpc": "ok"
+    "config_grpc": "ok",
+    "navigation_grpc": "ok",
+    "service_catalog_grpc": "ok",
+    "auth_grpc": "ok",
+    "session_grpc": "error",
+    "vault_grpc": "ok",
+    "scheduler_grpc": "ok",
+    "notification_grpc": "ok",
+    "workflow_grpc": "ok"
   }
 }
 ```
@@ -203,12 +220,79 @@ type Query {
   featureFlag(key: String!): FeatureFlag
   featureFlags(environment: String): [FeatureFlag!]!
   config(key: String!): ConfigEntry
+  # Auth
+  user(id: ID!): User
+  users(pageSize: Int, page: Int, search: String, enabled: Boolean): [User!]!
+  userRoles(userId: ID!): [Role!]!
+  checkPermission(userId: ID, permission: String!, resource: String!, roles: [String!]!): PermissionCheck!
+  searchAuditLogs(pageSize: Int, page: Int, userId: String, eventType: String, result: String): AuditLogConnection!
+  # Session
+  session(sessionId: ID!): Session
+  userSessions(userId: ID!): [Session!]!
+  # Vault
+  secretMetadata(path: String!): SecretMetadata
+  secrets(prefix: String): [String!]!
+  vaultAuditLogs(offset: Int, limit: Int): [VaultAuditLogEntry!]!
+  # Scheduler
+  job(jobId: ID!): Job
+  jobs(status: String, pageSize: Int, page: Int): [Job!]!
+  jobExecution(executionId: ID!): JobExecution
+  jobExecutions(jobId: ID!, pageSize: Int, page: Int, status: String): [JobExecution!]!
+  # Notification
+  notification(notificationId: ID!): NotificationLog
+  notifications(channelId: String, status: String, page: Int, pageSize: Int): [NotificationLog!]!
+  notificationChannel(id: ID!): NotificationChannel
+  notificationChannels(channelType: String, enabledOnly: Boolean!, page: Int, pageSize: Int): [NotificationChannel!]!
+  notificationTemplate(id: ID!): NotificationTemplate
+  notificationTemplates(channelType: String, page: Int, pageSize: Int): [NotificationTemplate!]!
+  # Workflow
+  workflow(workflowId: ID!): WorkflowDefinition
+  workflows(enabledOnly: Boolean!, pageSize: Int, page: Int): [WorkflowDefinition!]!
+  workflowInstance(instanceId: ID!): WorkflowInstance
+  workflowInstances(status: String, workflowId: String, initiatorId: String, pageSize: Int, page: Int): [WorkflowInstance!]!
+  workflowTasks(assigneeId: String, status: String, instanceId: String, overdueOnly: Boolean!, pageSize: Int, page: Int): [WorkflowTask!]!
 }
 
 type Mutation {
   createTenant(input: CreateTenantInput!): CreateTenantPayload!
   updateTenant(id: ID!, input: UpdateTenantInput!): UpdateTenantPayload!
   setFeatureFlag(key: String!, input: SetFeatureFlagInput!): SetFeatureFlagPayload!
+  # Auth
+  recordAuditLog(input: RecordAuditLogInput!): RecordAuditLogPayload!
+  # Session
+  createSession(input: CreateSessionInput!): CreateSessionPayload!
+  refreshSession(sessionId: ID!, ttlSeconds: Int): RefreshSessionPayload!
+  revokeSession(sessionId: ID!): RevokeSessionPayload!
+  revokeAllSessions(userId: ID!): RevokeAllSessionsPayload!
+  # Vault
+  setSecret(input: SetSecretInput!): SetSecretPayload!
+  rotateSecret(path: String!, data: [SecretDataInput!]!): RotateSecretPayload!
+  deleteSecret(path: String!, versions: [Int!]!): DeleteSecretPayload!
+  # Scheduler
+  createJob(input: CreateJobInput!): CreateJobPayload!
+  updateJob(input: UpdateJobInput!): UpdateJobPayload!
+  deleteJob(jobId: ID!): DeleteJobPayload!
+  pauseJob(jobId: ID!): PauseJobPayload!
+  resumeJob(jobId: ID!): ResumeJobPayload!
+  triggerJob(jobId: ID!): TriggerJobPayload!
+  # Notification
+  sendNotification(input: SendNotificationInput!): SendNotificationPayload!
+  retryNotification(notificationId: ID!): RetryNotificationPayload!
+  createChannel(input: CreateChannelInput!): CreateChannelPayload!
+  updateChannel(input: UpdateChannelInput!): UpdateChannelPayload!
+  deleteChannel(id: ID!): DeleteChannelPayload!
+  createTemplate(input: CreateTemplateInput!): CreateTemplatePayload!
+  updateTemplate(input: UpdateTemplateInput!): UpdateTemplatePayload!
+  deleteTemplate(id: ID!): DeleteTemplatePayload!
+  # Workflow
+  createWorkflow(input: CreateWorkflowInput!): CreateWorkflowPayload!
+  updateWorkflow(input: UpdateWorkflowInput!): UpdateWorkflowPayload!
+  deleteWorkflow(workflowId: ID!): DeleteWorkflowPayload!
+  startWorkflowInstance(input: StartInstanceInput!): StartInstancePayload!
+  cancelWorkflowInstance(instanceId: ID!, reason: String): CancelInstancePayload!
+  reassignTask(input: ReassignTaskInput!): ReassignTaskPayload!
+  approveTask(input: TaskDecisionInput!): ApproveTaskPayload!
+  rejectTask(input: TaskDecisionInput!): RejectTaskPayload!
 }
 
 type Subscription {
@@ -301,6 +385,203 @@ input SetFeatureFlagInput {
   rolloutPercentage: Int
   targetEnvironments: [String!]
 }
+
+# ── Auth ──
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  firstName: String!
+  lastName: String!
+  enabled: Boolean!
+  emailVerified: Boolean!
+  createdAt: String!
+}
+
+type Role {
+  id: String!
+  name: String!
+  description: String!
+}
+
+type PermissionCheck {
+  allowed: Boolean!
+  reason: String!
+}
+
+type AuditLog {
+  id: String!
+  eventType: String!
+  userId: String!
+  ipAddress: String!
+  userAgent: String!
+  resource: String!
+  action: String!
+  result: String!
+  resourceId: String!
+  traceId: String!
+  createdAt: String!
+}
+
+type AuditLogConnection {
+  logs: [AuditLog!]!
+  totalCount: Int!
+  hasNext: Boolean!
+}
+
+# ── Session ──
+type Session {
+  sessionId: String!
+  userId: String!
+  deviceId: String!
+  deviceName: String
+  deviceType: String
+  userAgent: String
+  ipAddress: String
+  status: SessionStatus!
+  expiresAt: String!
+  createdAt: String!
+  lastAccessedAt: String
+}
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+}
+
+# ── Vault ──
+type SecretMetadata {
+  path: String!
+  currentVersion: Int!
+  versionCount: Int!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type VaultAuditLogEntry {
+  id: String!
+  keyPath: String!
+  action: String!
+  actorId: String!
+  ipAddress: String!
+  success: Boolean!
+  errorMsg: String
+  createdAt: String!
+}
+
+# ── Scheduler ──
+type Job {
+  id: String!
+  name: String!
+  description: String!
+  cronExpression: String!
+  timezone: String!
+  targetType: String!
+  target: String!
+  status: String!
+  nextRunAt: String
+  lastRunAt: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+type JobExecution {
+  id: String!
+  jobId: String!
+  status: String!
+  triggeredBy: String!
+  startedAt: String!
+  finishedAt: String
+  durationMs: Int
+  errorMessage: String
+}
+
+# ── Notification ──
+type NotificationLog {
+  id: String!
+  channelId: String!
+  channelType: String!
+  templateId: String
+  recipient: String!
+  subject: String
+  body: String!
+  status: String!
+  retryCount: Int!
+  errorMessage: String
+  sentAt: String
+  createdAt: String!
+}
+
+type NotificationChannel {
+  id: String!
+  name: String!
+  channelType: String!
+  configJson: String!
+  enabled: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type NotificationTemplate {
+  id: String!
+  name: String!
+  channelType: String!
+  subjectTemplate: String
+  bodyTemplate: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
+# ── Workflow ──
+type WorkflowDefinition {
+  id: String!
+  name: String!
+  description: String!
+  version: Int!
+  enabled: Boolean!
+  steps: [WorkflowStep!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type WorkflowStep {
+  stepId: String!
+  name: String!
+  stepType: String!
+  assigneeRole: String
+  timeoutHours: Int
+  onApprove: String
+  onReject: String
+}
+
+type WorkflowInstance {
+  id: String!
+  workflowId: String!
+  workflowName: String!
+  title: String!
+  initiatorId: String!
+  currentStepId: String
+  status: String!
+  contextJson: String
+  startedAt: String!
+  completedAt: String
+  createdAt: String
+}
+
+type WorkflowTask {
+  id: String!
+  instanceId: String!
+  stepId: String!
+  stepName: String!
+  assigneeId: String
+  status: String!
+  dueAt: String
+  comment: String
+  actorId: String
+  decidedAt: String
+  createdAt: String!
+  updatedAt: String!
+}
 ```
 
 ### エラーコード（GraphQL extensions.code）
@@ -325,7 +606,7 @@ input SetFeatureFlagInput {
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | GraphQL 出力型（`Tenant`, `FeatureFlag`, `ConfigEntry` 等） | GraphQL スキーマ型定義 |
+| domain/model | GraphQL 出力型（`Tenant`, `FeatureFlag`, `ConfigEntry`, `User`, `Session`, `SecretMetadata`, `Job`, `NotificationLog`, `WorkflowDefinition` 等） | GraphQL スキーマ型定義 |
 | domain/loader | DataLoader インターフェース | バッチ取得トレイト |
 | usecase | `TenantQueryResolver`, `FeatureFlagQueryResolver`, `ConfigQueryResolver`, `TenantMutationResolver`, `SubscriptionResolver` | クエリ・ミューテーション・サブスクリプション解決 |
 | adapter/graphql | async-graphql の Query / Mutation / Subscription 実装 | GraphQL レイヤー |

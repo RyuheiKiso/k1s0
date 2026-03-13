@@ -3,17 +3,21 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use crate::adapter::graphql_handler;
+use crate::adapter::graphql_handler::{self, GatewayClients, GatewayResolvers};
 use super::auth::JwksVerifier;
 use super::config::Config;
 use super::grpc::{
-    ConfigGrpcClient, FeatureFlagGrpcClient, NavigationGrpcClient, ServiceCatalogGrpcClient,
-    TenantGrpcClient,
+    AuthGrpcClient, ConfigGrpcClient, FeatureFlagGrpcClient, NavigationGrpcClient,
+    NotificationGrpcClient, SchedulerGrpcClient, ServiceCatalogGrpcClient, SessionGrpcClient,
+    TenantGrpcClient, VaultGrpcClient, WorkflowGrpcClient,
 };
 use crate::usecase::{
-    ConfigQueryResolver, FeatureFlagQueryResolver, NavigationQueryResolver,
-    ServiceCatalogMutationResolver, ServiceCatalogQueryResolver, SubscriptionResolver,
-    TenantMutationResolver, TenantQueryResolver,
+    AuthMutationResolver, AuthQueryResolver, ConfigQueryResolver, FeatureFlagQueryResolver,
+    NavigationQueryResolver, NotificationMutationResolver, NotificationQueryResolver,
+    SchedulerMutationResolver, SchedulerQueryResolver, ServiceCatalogMutationResolver,
+    ServiceCatalogQueryResolver, SessionMutationResolver, SessionQueryResolver,
+    SubscriptionResolver, TenantMutationResolver, TenantQueryResolver, VaultMutationResolver,
+    VaultQueryResolver, WorkflowMutationResolver, WorkflowQueryResolver,
 };
 
 pub async fn run() -> anyhow::Result<()> {
@@ -57,6 +61,14 @@ pub async fn run() -> anyhow::Result<()> {
         Arc::new(NavigationGrpcClient::connect(&cfg.backends.navigation).await?);
     let service_catalog_client =
         Arc::new(ServiceCatalogGrpcClient::connect(&cfg.backends.service_catalog).await?);
+    let auth_client = Arc::new(AuthGrpcClient::connect(&cfg.backends.auth).await?);
+    let session_client = Arc::new(SessionGrpcClient::connect(&cfg.backends.session).await?);
+    let vault_client = Arc::new(VaultGrpcClient::connect(&cfg.backends.vault).await?);
+    let scheduler_client =
+        Arc::new(SchedulerGrpcClient::connect(&cfg.backends.scheduler).await?);
+    let notification_client =
+        Arc::new(NotificationGrpcClient::connect(&cfg.backends.notification).await?);
+    let workflow_client = Arc::new(WorkflowGrpcClient::connect(&cfg.backends.workflow).await?);
 
     // --- JWT 検証 ---
     let jwks_verifier = Arc::new(JwksVerifier::new(cfg.auth.jwks_url.clone()));
@@ -67,40 +79,57 @@ pub async fn run() -> anyhow::Result<()> {
     ));
 
     // --- Resolver DI ---
-    let tenant_query = Arc::new(TenantQueryResolver::new(tenant_client.clone()));
-    let feature_flag_query = Arc::new(FeatureFlagQueryResolver::new(feature_flag_client.clone()));
-    let config_query = Arc::new(ConfigQueryResolver::new(config_client.clone()));
-    let navigation_query = Arc::new(NavigationQueryResolver::new(navigation_client.clone()));
-    let service_catalog_query =
-        Arc::new(ServiceCatalogQueryResolver::new(service_catalog_client.clone()));
-    let tenant_mutation = Arc::new(TenantMutationResolver::new(tenant_client.clone()));
-    let service_catalog_mutation =
-        Arc::new(ServiceCatalogMutationResolver::new(service_catalog_client.clone()));
-    let subscription = Arc::new(SubscriptionResolver::new(
-        config_client.clone(),
-        tenant_client.clone(),
-        feature_flag_client.clone(),
-    ));
+    let resolvers = GatewayResolvers {
+        tenant_query: Arc::new(TenantQueryResolver::new(tenant_client.clone())),
+        feature_flag_query: Arc::new(FeatureFlagQueryResolver::new(feature_flag_client.clone())),
+        config_query: Arc::new(ConfigQueryResolver::new(config_client.clone())),
+        navigation_query: Arc::new(NavigationQueryResolver::new(navigation_client.clone())),
+        service_catalog_query: Arc::new(ServiceCatalogQueryResolver::new(
+            service_catalog_client.clone(),
+        )),
+        tenant_mutation: Arc::new(TenantMutationResolver::new(tenant_client.clone())),
+        service_catalog_mutation: Arc::new(ServiceCatalogMutationResolver::new(
+            service_catalog_client.clone(),
+        )),
+        subscription: Arc::new(SubscriptionResolver::new(
+            config_client.clone(),
+            tenant_client.clone(),
+            feature_flag_client.clone(),
+        )),
+        auth_query: Arc::new(AuthQueryResolver::new(auth_client.clone())),
+        auth_mutation: Arc::new(AuthMutationResolver::new(auth_client.clone())),
+        session_query: Arc::new(SessionQueryResolver::new(session_client.clone())),
+        session_mutation: Arc::new(SessionMutationResolver::new(session_client.clone())),
+        vault_query: Arc::new(VaultQueryResolver::new(vault_client.clone())),
+        vault_mutation: Arc::new(VaultMutationResolver::new(vault_client.clone())),
+        scheduler_query: Arc::new(SchedulerQueryResolver::new(scheduler_client.clone())),
+        scheduler_mutation: Arc::new(SchedulerMutationResolver::new(scheduler_client.clone())),
+        notification_query: Arc::new(NotificationQueryResolver::new(
+            notification_client.clone(),
+        )),
+        notification_mutation: Arc::new(NotificationMutationResolver::new(
+            notification_client.clone(),
+        )),
+        workflow_query: Arc::new(WorkflowQueryResolver::new(workflow_client.clone())),
+        workflow_mutation: Arc::new(WorkflowMutationResolver::new(workflow_client.clone())),
+    };
+
+    let clients = GatewayClients {
+        tenant: tenant_client,
+        feature_flag: feature_flag_client,
+        config: config_client,
+        navigation: navigation_client,
+        service_catalog: service_catalog_client,
+        auth: auth_client,
+        session: session_client,
+        vault: vault_client,
+        scheduler: scheduler_client,
+        notification: notification_client,
+        workflow: workflow_client,
+    };
 
     // --- Router ---
-    let app = graphql_handler::router(
-        jwks_verifier,
-        tenant_query,
-        feature_flag_query,
-        config_query,
-        navigation_query,
-        service_catalog_query,
-        tenant_mutation,
-        service_catalog_mutation,
-        subscription,
-        feature_flag_client,
-        tenant_client,
-        config_client,
-        navigation_client,
-        service_catalog_client,
-        cfg.graphql.clone(),
-        metrics,
-    );
+    let app = graphql_handler::router(jwks_verifier, clients, resolvers, cfg.graphql.clone(), metrics);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("graphql-gateway starting on {}", addr);
