@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_graphql::dataloader::DataLoader;
@@ -17,15 +18,21 @@ use crate::domain::model::graphql_context::{
     ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
 };
 use crate::domain::model::{
-    ConfigEntry, CreateTenantPayload, FeatureFlag, SetFeatureFlagPayload, Tenant, TenantConnection,
-    TenantStatus, UpdateTenantPayload, UserError,
+    CatalogService, CatalogServiceConnection, ConfigEntry, CreateTenantPayload,
+    DeleteServicePayload, FeatureFlag, Navigation, RegisterServicePayload, ServiceHealth,
+    SetFeatureFlagPayload, Tenant, TenantConnection, TenantStatus, UpdateServicePayload,
+    UpdateTenantPayload, UserError,
 };
 use crate::infrastructure::auth::JwksVerifier;
 use crate::infrastructure::config::GraphQLConfig;
-use crate::infrastructure::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+use crate::infrastructure::grpc::{
+    ConfigGrpcClient, FeatureFlagGrpcClient, NavigationGrpcClient, ServiceCatalogGrpcClient,
+    TenantGrpcClient,
+};
 use crate::usecase::{
-    ConfigQueryResolver, FeatureFlagQueryResolver, SubscriptionResolver, TenantMutationResolver,
-    TenantQueryResolver,
+    ConfigQueryResolver, FeatureFlagQueryResolver, NavigationQueryResolver,
+    ServiceCatalogMutationResolver, ServiceCatalogQueryResolver, SubscriptionResolver,
+    TenantMutationResolver, TenantQueryResolver,
 };
 
 const CODE_FORBIDDEN: &str = "FORBIDDEN";
@@ -121,12 +128,36 @@ pub struct SetFeatureFlagInput {
     pub target_environments: Option<Vec<String>>,
 }
 
+#[derive(async_graphql::InputObject)]
+pub struct RegisterServiceInput {
+    pub name: String,
+    pub display_name: String,
+    pub description: String,
+    pub tier: String,
+    pub version: String,
+    pub base_url: String,
+    pub grpc_endpoint: Option<String>,
+    pub health_url: String,
+}
+
+#[derive(async_graphql::InputObject)]
+pub struct UpdateServiceInput {
+    pub display_name: Option<String>,
+    pub description: Option<String>,
+    pub version: Option<String>,
+    pub base_url: Option<String>,
+    pub grpc_endpoint: Option<String>,
+    pub health_url: Option<String>,
+}
+
 // --- Query ---
 
 pub struct QueryRoot {
     pub tenant_query: Arc<TenantQueryResolver>,
     pub feature_flag_query: Arc<FeatureFlagQueryResolver>,
     pub config_query: Arc<ConfigQueryResolver>,
+    pub navigation_query: Arc<NavigationQueryResolver>,
+    pub service_catalog_query: Arc<ServiceCatalogQueryResolver>,
 }
 
 #[Object]
@@ -190,6 +221,59 @@ impl QueryRoot {
             .await
             .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
+
+    async fn navigation(
+        &self,
+        _ctx: &Context<'_>,
+        bearer_token: Option<String>,
+    ) -> FieldResult<Navigation> {
+        let token = bearer_token.unwrap_or_default();
+        self.navigation_query
+            .get_navigation(&token)
+            .await
+            .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
+    }
+
+    async fn catalog_service(
+        &self,
+        _ctx: &Context<'_>,
+        id: async_graphql::ID,
+    ) -> FieldResult<Option<CatalogService>> {
+        self.service_catalog_query
+            .get_service(id.as_str())
+            .await
+            .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
+    }
+
+    async fn catalog_services(
+        &self,
+        _ctx: &Context<'_>,
+        first: Option<i32>,
+        tier: Option<String>,
+        status: Option<String>,
+        search: Option<String>,
+    ) -> FieldResult<CatalogServiceConnection> {
+        self.service_catalog_query
+            .list_services(
+                first,
+                tier.as_deref(),
+                status.as_deref(),
+                search.as_deref(),
+            )
+            .await
+            .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
+    }
+
+    async fn service_health(
+        &self,
+        _ctx: &Context<'_>,
+        service_id: Option<String>,
+    ) -> FieldResult<Vec<ServiceHealth>> {
+        self.service_catalog_query
+            .health_check(service_id.as_deref())
+            .await
+            .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
+    }
 }
 
 // --- Mutation ---
@@ -197,6 +281,7 @@ impl QueryRoot {
 pub struct MutationRoot {
     pub tenant_mutation: Arc<TenantMutationResolver>,
     pub feature_flag_client: Arc<FeatureFlagGrpcClient>,
+    pub service_catalog_mutation: Arc<ServiceCatalogMutationResolver>,
 }
 
 #[Object]
@@ -266,6 +351,62 @@ impl MutationRoot {
             }
         }
     }
+
+    async fn register_service(
+        &self,
+        ctx: &Context<'_>,
+        input: RegisterServiceInput,
+    ) -> FieldResult<RegisterServicePayload> {
+        ensure_write_permission(ctx)?;
+        Ok(self
+            .service_catalog_mutation
+            .register_service(
+                &input.name,
+                &input.display_name,
+                &input.description,
+                &input.tier,
+                &input.version,
+                &input.base_url,
+                input.grpc_endpoint.as_deref(),
+                &input.health_url,
+                HashMap::new(),
+            )
+            .await)
+    }
+
+    async fn update_service(
+        &self,
+        ctx: &Context<'_>,
+        id: async_graphql::ID,
+        input: UpdateServiceInput,
+    ) -> FieldResult<UpdateServicePayload> {
+        ensure_write_permission(ctx)?;
+        Ok(self
+            .service_catalog_mutation
+            .update_service(
+                id.as_str(),
+                input.display_name.as_deref(),
+                input.description.as_deref(),
+                input.version.as_deref(),
+                input.base_url.as_deref(),
+                input.grpc_endpoint.as_deref(),
+                input.health_url.as_deref(),
+                HashMap::new(),
+            )
+            .await)
+    }
+
+    async fn delete_service(
+        &self,
+        ctx: &Context<'_>,
+        id: async_graphql::ID,
+    ) -> FieldResult<DeleteServicePayload> {
+        ensure_write_permission(ctx)?;
+        Ok(self
+            .service_catalog_mutation
+            .delete_service(id.as_str())
+            .await)
+    }
 }
 
 // --- Subscription ---
@@ -318,21 +459,29 @@ pub struct AppState {
     pub tenant_client: Arc<TenantGrpcClient>,
     pub feature_flag_client: Arc<FeatureFlagGrpcClient>,
     pub config_client: Arc<ConfigGrpcClient>,
+    pub navigation_client: Arc<NavigationGrpcClient>,
+    pub service_catalog_client: Arc<ServiceCatalogGrpcClient>,
     pub tenant_loader: Arc<DataLoader<TenantLoader>>,
     pub flag_loader: Arc<DataLoader<FeatureFlagLoader>>,
     pub config_loader: Arc<DataLoader<ConfigLoader>>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn router(
     jwks_verifier: Arc<JwksVerifier>,
     tenant_query: Arc<TenantQueryResolver>,
     feature_flag_query: Arc<FeatureFlagQueryResolver>,
     config_query: Arc<ConfigQueryResolver>,
+    navigation_query: Arc<NavigationQueryResolver>,
+    service_catalog_query: Arc<ServiceCatalogQueryResolver>,
     tenant_mutation: Arc<TenantMutationResolver>,
+    service_catalog_mutation: Arc<ServiceCatalogMutationResolver>,
     subscription: Arc<SubscriptionResolver>,
     feature_flag_client: Arc<FeatureFlagGrpcClient>,
     tenant_client: Arc<TenantGrpcClient>,
     config_client: Arc<ConfigGrpcClient>,
+    navigation_client: Arc<NavigationGrpcClient>,
+    service_catalog_client: Arc<ServiceCatalogGrpcClient>,
     graphql_cfg: GraphQLConfig,
     metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 ) -> Router {
@@ -341,10 +490,13 @@ pub fn router(
             tenant_query,
             feature_flag_query,
             config_query,
+            navigation_query,
+            service_catalog_query,
         },
         MutationRoot {
             tenant_mutation,
             feature_flag_client: feature_flag_client.clone(),
+            service_catalog_mutation,
         },
         SubscriptionRoot { subscription },
     )
@@ -385,6 +537,8 @@ pub fn router(
         tenant_client: tenant_client.clone(),
         feature_flag_client: feature_flag_client.clone(),
         config_client: config_client.clone(),
+        navigation_client: navigation_client.clone(),
+        service_catalog_client: service_catalog_client.clone(),
         tenant_loader,
         flag_loader,
         config_loader,
@@ -468,8 +622,24 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         Ok(_) => "ok".to_string(),
         Err(e) => format!("error: {}", e),
     };
+    let navigation_status = match state.navigation_client.get_navigation("").await {
+        Ok(_) => "ok".to_string(),
+        Err(e) => format!("error: {}", e),
+    };
+    let service_catalog_status = match state
+        .service_catalog_client
+        .list_services(1, 1, None, None, None)
+        .await
+    {
+        Ok(_) => "ok".to_string(),
+        Err(e) => format!("error: {}", e),
+    };
 
-    let ready = tenant_status == "ok" && featureflag_status == "ok" && config_status == "ok";
+    let ready = tenant_status == "ok"
+        && featureflag_status == "ok"
+        && config_status == "ok"
+        && navigation_status == "ok"
+        && service_catalog_status == "ok";
     let status_code = if ready {
         StatusCode::OK
     } else {
@@ -484,6 +654,8 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                 "tenant_grpc": tenant_status,
                 "featureflag_grpc": featureflag_status,
                 "config_grpc": config_status,
+                "navigation_grpc": navigation_status,
+                "service_catalog_grpc": service_catalog_status,
             }
         })),
     )

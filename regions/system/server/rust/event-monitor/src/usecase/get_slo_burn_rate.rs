@@ -82,3 +82,123 @@ impl GetSloBurnRateUseCase {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entity::flow_definition::{FlowDefinition, FlowSlo, FlowStep};
+    use crate::domain::entity::flow_instance::{FlowInstance, FlowInstanceStatus};
+    use crate::domain::repository::flow_definition_repository::MockFlowDefinitionRepository;
+    use crate::domain::repository::flow_instance_repository::MockFlowInstanceRepository;
+    use chrono::Utc;
+
+    fn make_flow() -> FlowDefinition {
+        FlowDefinition::new(
+            "order_flow".to_string(),
+            "test".to_string(),
+            "service.order".to_string(),
+            vec![FlowStep {
+                event_type: "OrderCreated".to_string(),
+                source: "order-service".to_string(),
+                source_filter: None,
+                timeout_seconds: 30,
+                description: String::new(),
+            }],
+            FlowSlo {
+                target_completion_seconds: 120,
+                target_success_rate: 0.99,
+                alert_on_violation: true,
+            },
+        )
+    }
+
+    fn make_instance(flow_id: Uuid, status: FlowInstanceStatus) -> FlowInstance {
+        let mut inst = FlowInstance::new(flow_id, format!("corr-{}", Uuid::new_v4()));
+        inst.status = status.clone();
+        if status == FlowInstanceStatus::Completed || status == FlowInstanceStatus::Failed {
+            inst.completed_at = Some(Utc::now());
+            inst.duration_ms = Some(1000);
+        }
+        inst
+    }
+
+    #[tokio::test]
+    async fn success_ok() {
+        let flow = make_flow();
+        let flow_id = flow.id;
+        let flow_clone = flow.clone();
+
+        let mut def_mock = MockFlowDefinitionRepository::new();
+        def_mock
+            .expect_find_by_id()
+            .returning(move |_| Ok(Some(flow_clone.clone())));
+
+        let mut inst_mock = MockFlowInstanceRepository::new();
+        inst_mock
+            .expect_find_by_flow_id_paginated()
+            .returning(move |id, _, _| {
+                Ok((
+                    vec![
+                        make_instance(*id, FlowInstanceStatus::Completed),
+                        make_instance(*id, FlowInstanceStatus::Completed),
+                        make_instance(*id, FlowInstanceStatus::Completed),
+                    ],
+                    3,
+                ))
+            });
+
+        let uc = GetSloBurnRateUseCase::new(Arc::new(def_mock), Arc::new(inst_mock));
+        let result = uc.execute(&flow_id).await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.alert_status, "ok");
+        assert!(output.alert_fired_at.is_none());
+    }
+
+    #[tokio::test]
+    async fn success_firing() {
+        let flow = make_flow();
+        let flow_id = flow.id;
+        let flow_clone = flow.clone();
+
+        let mut def_mock = MockFlowDefinitionRepository::new();
+        def_mock
+            .expect_find_by_id()
+            .returning(move |_| Ok(Some(flow_clone.clone())));
+
+        let mut inst_mock = MockFlowInstanceRepository::new();
+        inst_mock
+            .expect_find_by_flow_id_paginated()
+            .returning(move |id, _, _| {
+                Ok((
+                    vec![
+                        make_instance(*id, FlowInstanceStatus::Failed),
+                        make_instance(*id, FlowInstanceStatus::Failed),
+                        make_instance(*id, FlowInstanceStatus::Failed),
+                        make_instance(*id, FlowInstanceStatus::Failed),
+                        make_instance(*id, FlowInstanceStatus::Completed),
+                    ],
+                    5,
+                ))
+            });
+
+        let uc = GetSloBurnRateUseCase::new(Arc::new(def_mock), Arc::new(inst_mock));
+        let result = uc.execute(&flow_id).await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.alert_status, "firing");
+        assert!(output.alert_fired_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn not_found() {
+        let mut def_mock = MockFlowDefinitionRepository::new();
+        def_mock.expect_find_by_id().returning(|_| Ok(None));
+
+        let inst_mock = MockFlowInstanceRepository::new();
+
+        let uc = GetSloBurnRateUseCase::new(Arc::new(def_mock), Arc::new(inst_mock));
+        let result = uc.execute(&Uuid::new_v4()).await;
+        assert!(matches!(result, Err(GetSloBurnRateError::NotFound(_))));
+    }
+}

@@ -3,12 +3,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tenant_proto = "../../../../../api/proto/k1s0/system/tenant/v1/tenant.proto";
     let featureflag_proto = "../../../../../api/proto/k1s0/system/featureflag/v1/featureflag.proto";
     let config_proto = "../../../../../api/proto/k1s0/system/config/v1/config.proto";
+    let navigation_proto = "../../../../../api/proto/k1s0/system/navigation/v1/navigation.proto";
+    let service_catalog_proto =
+        "../../../../../api/proto/k1s0/system/servicecatalog/v1/service_catalog.proto";
     let api_common_proto = "../../../../../api/proto/k1s0/system/common/v1/types.proto";
     let api_proto_include = "../../../../../api/proto";
 
     let protos_exist = std::path::Path::new(tenant_proto).exists()
         && std::path::Path::new(featureflag_proto).exists()
         && std::path::Path::new(config_proto).exists()
+        && std::path::Path::new(navigation_proto).exists()
+        && std::path::Path::new(service_catalog_proto).exists()
         && std::path::Path::new(api_common_proto).exists();
 
     if protos_exist {
@@ -20,6 +25,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     tenant_proto,
                     featureflag_proto,
                     config_proto,
+                    navigation_proto,
+                    service_catalog_proto,
                     api_common_proto,
                 ],
                 &[api_proto_include],

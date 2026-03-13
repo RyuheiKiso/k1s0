@@ -109,3 +109,120 @@ impl GetFlowKpiUseCase {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entity::flow_definition::{FlowDefinition, FlowSlo, FlowStep};
+    use crate::domain::entity::flow_instance::{FlowInstance, FlowInstanceStatus};
+    use crate::domain::repository::flow_definition_repository::MockFlowDefinitionRepository;
+    use crate::domain::repository::flow_instance_repository::MockFlowInstanceRepository;
+    use chrono::Utc;
+
+    fn make_flow() -> FlowDefinition {
+        FlowDefinition::new(
+            "order_flow".to_string(),
+            "test".to_string(),
+            "service.order".to_string(),
+            vec![FlowStep {
+                event_type: "OrderCreated".to_string(),
+                source: "order-service".to_string(),
+                source_filter: None,
+                timeout_seconds: 30,
+                description: String::new(),
+            }],
+            FlowSlo {
+                target_completion_seconds: 120,
+                target_success_rate: 0.99,
+                alert_on_violation: true,
+            },
+        )
+    }
+
+    fn make_completed_instance(flow_id: Uuid) -> FlowInstance {
+        let mut inst = FlowInstance::new(flow_id, "corr-1".to_string());
+        inst.status = FlowInstanceStatus::Completed;
+        inst.completed_at = Some(Utc::now());
+        inst.duration_ms = Some(1000);
+        inst
+    }
+
+    #[tokio::test]
+    async fn no_cache() {
+        let flow = make_flow();
+        let flow_id = flow.id;
+        let flow_clone = flow.clone();
+
+        let mut def_mock = MockFlowDefinitionRepository::new();
+        def_mock
+            .expect_find_by_id()
+            .returning(move |_| Ok(Some(flow_clone.clone())));
+
+        let mut inst_mock = MockFlowInstanceRepository::new();
+        inst_mock
+            .expect_find_by_flow_id_paginated()
+            .returning(move |id, _, _| {
+                Ok((vec![make_completed_instance(*id)], 1))
+            });
+
+        let uc = GetFlowKpiUseCase::new(Arc::new(def_mock), Arc::new(inst_mock));
+        let result = uc.execute(&flow_id, "24h").await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.flow_name, "order_flow");
+        assert_eq!(output.kpi.total_started, 1);
+    }
+
+    #[tokio::test]
+    async fn cached() {
+        let flow = make_flow();
+        let flow_id = flow.id;
+        let flow_clone = flow.clone();
+
+        let mut def_mock = MockFlowDefinitionRepository::new();
+        def_mock
+            .expect_find_by_id()
+            .returning(move |_| Ok(Some(flow_clone.clone())));
+
+        let inst_mock = MockFlowInstanceRepository::new();
+        // No expectations on inst_mock -- should not be called
+
+        let cache = Arc::new(KpiCache::new(100, 300));
+        let cached_kpi = FlowKpi {
+            total_started: 10,
+            total_completed: 9,
+            total_failed: 1,
+            total_in_progress: 0,
+            completion_rate: 0.9,
+            avg_duration_seconds: 5.0,
+            p50_duration_seconds: 4.0,
+            p95_duration_seconds: 8.0,
+            p99_duration_seconds: 10.0,
+            bottleneck_step: None,
+        };
+        let cache_key = format!("flow_kpi:{}:24h", flow_id);
+        cache.insert(cache_key, Arc::new(cached_kpi)).await;
+
+        let uc = GetFlowKpiUseCase::new(Arc::new(def_mock), Arc::new(inst_mock)).with_cache(cache);
+        let result = uc.execute(&flow_id, "24h").await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.kpi.total_started, 10);
+        assert_eq!(output.kpi.total_completed, 9);
+    }
+
+    #[tokio::test]
+    async fn not_found() {
+        let mut def_mock = MockFlowDefinitionRepository::new();
+        def_mock.expect_find_by_id().returning(|_| Ok(None));
+
+        let mut inst_mock = MockFlowInstanceRepository::new();
+        inst_mock
+            .expect_find_by_flow_id_paginated()
+            .returning(|_, _, _| Ok((vec![], 0)));
+
+        let uc = GetFlowKpiUseCase::new(Arc::new(def_mock), Arc::new(inst_mock));
+        let result = uc.execute(&Uuid::new_v4(), "24h").await;
+        assert!(matches!(result, Err(GetFlowKpiError::NotFound(_))));
+    }
+}

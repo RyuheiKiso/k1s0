@@ -72,3 +72,79 @@ impl GetSloStatusUseCase {
         Ok(items)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entity::flow_definition::{FlowDefinition, FlowSlo, FlowStep};
+    use crate::domain::entity::flow_instance::{FlowInstance, FlowInstanceStatus};
+    use crate::domain::repository::flow_definition_repository::MockFlowDefinitionRepository;
+    use crate::domain::repository::flow_instance_repository::MockFlowInstanceRepository;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    fn make_flow(name: &str) -> FlowDefinition {
+        FlowDefinition::new(
+            name.to_string(),
+            "test".to_string(),
+            "service.order".to_string(),
+            vec![FlowStep {
+                event_type: "OrderCreated".to_string(),
+                source: "order-service".to_string(),
+                source_filter: None,
+                timeout_seconds: 30,
+                description: String::new(),
+            }],
+            FlowSlo {
+                target_completion_seconds: 120,
+                target_success_rate: 0.99,
+                alert_on_violation: true,
+            },
+        )
+    }
+
+    fn make_completed_instance(flow_id: Uuid) -> FlowInstance {
+        let mut inst = FlowInstance::new(flow_id, "corr-1".to_string());
+        inst.status = FlowInstanceStatus::Completed;
+        inst.completed_at = Some(Utc::now());
+        inst.duration_ms = Some(1000);
+        inst
+    }
+
+    #[tokio::test]
+    async fn with_flows() {
+        let mut def_mock = MockFlowDefinitionRepository::new();
+        def_mock
+            .expect_find_all()
+            .returning(|| Ok(vec![make_flow("flow_a"), make_flow("flow_b")]));
+
+        let mut inst_mock = MockFlowInstanceRepository::new();
+        inst_mock
+            .expect_find_by_flow_id_paginated()
+            .returning(move |id, _, _| {
+                Ok((vec![make_completed_instance(*id)], 1))
+            });
+
+        let uc = GetSloStatusUseCase::new(Arc::new(def_mock), Arc::new(inst_mock));
+        let result = uc.execute().await;
+        assert!(result.is_ok());
+        let items = result.unwrap();
+        assert_eq!(items.len(), 2);
+        for item in &items {
+            assert!(!item.flow_name.is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn empty_flows() {
+        let mut def_mock = MockFlowDefinitionRepository::new();
+        def_mock.expect_find_all().returning(|| Ok(vec![]));
+
+        let inst_mock = MockFlowInstanceRepository::new();
+
+        let uc = GetSloStatusUseCase::new(Arc::new(def_mock), Arc::new(inst_mock));
+        let result = uc.execute().await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+}

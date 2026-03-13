@@ -6,10 +6,14 @@ use tracing::info;
 use crate::adapter::graphql_handler;
 use super::auth::JwksVerifier;
 use super::config::Config;
-use super::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+use super::grpc::{
+    ConfigGrpcClient, FeatureFlagGrpcClient, NavigationGrpcClient, ServiceCatalogGrpcClient,
+    TenantGrpcClient,
+};
 use crate::usecase::{
-    ConfigQueryResolver, FeatureFlagQueryResolver, SubscriptionResolver, TenantMutationResolver,
-    TenantQueryResolver,
+    ConfigQueryResolver, FeatureFlagQueryResolver, NavigationQueryResolver,
+    ServiceCatalogMutationResolver, ServiceCatalogQueryResolver, SubscriptionResolver,
+    TenantMutationResolver, TenantQueryResolver,
 };
 
 pub async fn run() -> anyhow::Result<()> {
@@ -49,6 +53,10 @@ pub async fn run() -> anyhow::Result<()> {
     let feature_flag_client =
         Arc::new(FeatureFlagGrpcClient::connect(&cfg.backends.featureflag).await?);
     let config_client = Arc::new(ConfigGrpcClient::connect(&cfg.backends.config).await?);
+    let navigation_client =
+        Arc::new(NavigationGrpcClient::connect(&cfg.backends.navigation).await?);
+    let service_catalog_client =
+        Arc::new(ServiceCatalogGrpcClient::connect(&cfg.backends.service_catalog).await?);
 
     // --- JWT 検証 ---
     let jwks_verifier = Arc::new(JwksVerifier::new(cfg.auth.jwks_url.clone()));
@@ -62,7 +70,12 @@ pub async fn run() -> anyhow::Result<()> {
     let tenant_query = Arc::new(TenantQueryResolver::new(tenant_client.clone()));
     let feature_flag_query = Arc::new(FeatureFlagQueryResolver::new(feature_flag_client.clone()));
     let config_query = Arc::new(ConfigQueryResolver::new(config_client.clone()));
+    let navigation_query = Arc::new(NavigationQueryResolver::new(navigation_client.clone()));
+    let service_catalog_query =
+        Arc::new(ServiceCatalogQueryResolver::new(service_catalog_client.clone()));
     let tenant_mutation = Arc::new(TenantMutationResolver::new(tenant_client.clone()));
+    let service_catalog_mutation =
+        Arc::new(ServiceCatalogMutationResolver::new(service_catalog_client.clone()));
     let subscription = Arc::new(SubscriptionResolver::new(
         config_client.clone(),
         tenant_client.clone(),
@@ -75,11 +88,16 @@ pub async fn run() -> anyhow::Result<()> {
         tenant_query,
         feature_flag_query,
         config_query,
+        navigation_query,
+        service_catalog_query,
         tenant_mutation,
+        service_catalog_mutation,
         subscription,
         feature_flag_client,
         tenant_client,
         config_client,
+        navigation_client,
+        service_catalog_client,
         cfg.graphql.clone(),
         metrics,
     );

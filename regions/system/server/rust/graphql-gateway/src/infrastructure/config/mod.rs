@@ -116,6 +116,10 @@ pub struct BackendsConfig {
     pub featureflag: BackendConfig,
     #[serde(default)]
     pub config: BackendConfig,
+    #[serde(default)]
+    pub navigation: BackendConfig,
+    #[serde(default)]
+    pub service_catalog: BackendConfig,
 }
 
 impl Default for BackendsConfig {
@@ -124,6 +128,8 @@ impl Default for BackendsConfig {
             tenant: BackendConfig::default(),
             featureflag: BackendConfig::default(),
             config: BackendConfig::default(),
+            navigation: BackendConfig::default(),
+            service_catalog: BackendConfig::default(),
         }
     }
 }

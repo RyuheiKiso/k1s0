@@ -68,3 +68,72 @@ impl ListEventsUseCase {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::repository::event_record_repository::MockEventRecordRepository;
+    use chrono::Utc;
+
+    fn make_event(corr_id: &str) -> EventRecord {
+        EventRecord::new(
+            corr_id.to_string(),
+            "OrderCreated".to_string(),
+            "order-service".to_string(),
+            "service.order".to_string(),
+            "trace-123".to_string(),
+            Utc::now(),
+        )
+    }
+
+    #[tokio::test]
+    async fn paginated() {
+        let mut mock = MockEventRecordRepository::new();
+        mock.expect_find_all_paginated()
+            .returning(|_, _, _, _, _, _, _, _| {
+                Ok((vec![make_event("corr-1"), make_event("corr-2")], 5))
+            });
+
+        let uc = ListEventsUseCase::new(Arc::new(mock));
+        let input = ListEventsInput {
+            page: 1,
+            page_size: 2,
+            domain: None,
+            event_type: None,
+            source: None,
+            from: None,
+            to: None,
+            status: None,
+        };
+        let result = uc.execute(&input).await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.events.len(), 2);
+        assert_eq!(output.total_count, 5);
+        assert!(output.has_next);
+    }
+
+    #[tokio::test]
+    async fn empty() {
+        let mut mock = MockEventRecordRepository::new();
+        mock.expect_find_all_paginated()
+            .returning(|_, _, _, _, _, _, _, _| Ok((vec![], 0)));
+
+        let uc = ListEventsUseCase::new(Arc::new(mock));
+        let input = ListEventsInput {
+            page: 1,
+            page_size: 10,
+            domain: None,
+            event_type: None,
+            source: None,
+            from: None,
+            to: None,
+            status: None,
+        };
+        let result = uc.execute(&input).await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.events.is_empty());
+        assert!(!output.has_next);
+    }
+}
