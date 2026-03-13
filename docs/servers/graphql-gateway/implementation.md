@@ -691,14 +691,8 @@ pub struct AppState {
 
 pub fn router(
     jwks_verifier: Arc<crate::infrastructure::auth::JwksVerifier>,
-    tenant_query: Arc<TenantQueryResolver>,
-    feature_flag_query: Arc<FeatureFlagQueryResolver>,
-    config_query: Arc<ConfigQueryResolver>,
-    tenant_mutation: Arc<TenantMutationResolver>,
-    subscription: Arc<SubscriptionResolver>,
-    feature_flag_client: Arc<FeatureFlagGrpcClient>,
-    tenant_client: Arc<TenantGrpcClient>,
-    config_client: Arc<ConfigGrpcClient>,
+    clients: GatewayClients,
+    resolvers: GatewayResolvers,
     graphql_cfg: GraphQLConfig,
     metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 ) -> Router {
