@@ -25,6 +25,7 @@ impl S3Client {
         );
 
         let config = aws_sdk_s3::Config::builder()
+            .behavior_version_latest()
             .endpoint_url(endpoint)
             .region(aws_sdk_s3::config::Region::new(region.to_string()))
             .credentials_provider(credentials)

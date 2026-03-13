@@ -8,10 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type migrationData struct {
-	Version, Name, Content string
-}
-
 func newTestRunner() *InMemoryMigrationRunner {
 	ups := []struct{ Version, Name, Content string }{
 		{"20240101000001", "create_users", "CREATE TABLE users (id INT);"},
