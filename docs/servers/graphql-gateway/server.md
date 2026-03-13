@@ -612,7 +612,7 @@ type WorkflowTask {
 | adapter/graphql | async-graphql の Query / Mutation / Subscription 実装 | GraphQL レイヤー |
 | adapter/middleware | JWT 検証ミドルウェア（axum layer） | 認証処理 |
 | infra/config | Config ローダー | config.yaml の読み込み |
-| infra/grpc | `TenantGrpcClient`, `FeatureFlagGrpcClient`, `ConfigGrpcClient` | tonic gRPC クライアント |
+| infra/grpc | `TenantGrpcClient`, `FeatureFlagGrpcClient`, `ConfigGrpcClient`, `AuthGrpcClient`, `SessionGrpcClient`, `VaultGrpcClient`, `SchedulerGrpcClient`, `NotificationGrpcClient`, `WorkflowGrpcClient` | tonic gRPC クライアント |
 | infra/auth | JWT 検証実装 | JWKS 取得・署名検証 |
 
 ### ドメインモデル

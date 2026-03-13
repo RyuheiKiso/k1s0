@@ -679,6 +679,14 @@ pub struct AppState {
     pub tenant_client: Arc<TenantGrpcClient>,
     pub feature_flag_client: Arc<FeatureFlagGrpcClient>,
     pub config_client: Arc<ConfigGrpcClient>,
+    pub navigation_client: Arc<NavigationGrpcClient>,
+    pub service_catalog_client: Arc<ServiceCatalogGrpcClient>,
+    pub auth_client: Arc<AuthGrpcClient>,
+    pub session_client: Arc<SessionGrpcClient>,
+    pub vault_client: Arc<VaultGrpcClient>,
+    pub scheduler_client: Arc<SchedulerGrpcClient>,
+    pub notification_client: Arc<NotificationGrpcClient>,
+    pub workflow_client: Arc<WorkflowGrpcClient>,
 }
 
 pub fn router(
