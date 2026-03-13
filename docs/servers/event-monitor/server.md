@@ -1017,7 +1017,7 @@ CREATE TABLE event_monitor.event_records (
 
 CREATE TABLE event_monitor.flow_instances (
     id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    flow_id            UUID NOT NULL REFERENCES event_monitor.flow_definitions(id) ON DELETE CASCADE,
+    flow_definition_id UUID NOT NULL REFERENCES event_monitor.flow_definitions(id) ON DELETE CASCADE,
     correlation_id     TEXT NOT NULL UNIQUE,
     status             TEXT NOT NULL DEFAULT 'in_progress',
     current_step_index INTEGER NOT NULL DEFAULT 0,
@@ -1030,7 +1030,7 @@ CREATE INDEX idx_event_records_correlation ON event_monitor.event_records(correl
 CREATE INDEX idx_event_records_domain_type ON event_monitor.event_records(domain, event_type);
 CREATE INDEX idx_event_records_timestamp ON event_monitor.event_records(timestamp DESC);
 CREATE INDEX idx_event_records_flow_id ON event_monitor.event_records(flow_id);
-CREATE INDEX idx_flow_instances_flow_id ON event_monitor.flow_instances(flow_id);
+CREATE INDEX idx_flow_instances_flow_definition_id ON event_monitor.flow_instances(flow_definition_id);
 CREATE INDEX idx_flow_instances_status ON event_monitor.flow_instances(status);
 CREATE INDEX idx_flow_instances_started_at ON event_monitor.flow_instances(started_at DESC);
 ```

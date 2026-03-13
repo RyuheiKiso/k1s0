@@ -719,6 +719,22 @@ type WorkflowTask {
 | `featureflag.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
 | `config.address` | string | 設定サービス gRPC エンドポイント |
 | `config.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+| `navigation.address` | string | ナビゲーションサービス gRPC エンドポイント |
+| `navigation.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+| `service_catalog.address` | string | サービスカタログサービス gRPC エンドポイント |
+| `service_catalog.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+| `auth.address` | string | 認証サービス gRPC エンドポイント |
+| `auth.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+| `session.address` | string | セッションサービス gRPC エンドポイント |
+| `session.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+| `vault.address` | string | Vault サービス gRPC エンドポイント |
+| `vault.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+| `scheduler.address` | string | スケジューラーサービス gRPC エンドポイント |
+| `scheduler.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+| `notification.address` | string | 通知サービス gRPC エンドポイント |
+| `notification.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+| `workflow.address` | string | ワークフローサービス gRPC エンドポイント |
+| `workflow.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
 
 ### observability
 
