@@ -789,14 +789,42 @@ async fn readyz(State(state): State<AppState>) -> (StatusCode, Json<serde_json::
     let tenant = state.tenant_client.healthz().await;
     let feature_flag = state.feature_flag_client.healthz().await;
     let config = state.config_client.healthz().await;
+    let navigation = state.navigation_client.healthz().await;
+    let service_catalog = state.service_catalog_client.healthz().await;
+    let auth = state.auth_client.healthz().await;
+    let session = state.session_client.healthz().await;
+    let vault = state.vault_client.healthz().await;
+    let scheduler = state.scheduler_client.healthz().await;
+    let notification = state.notification_client.healthz().await;
+    let workflow = state.workflow_client.healthz().await;
 
     let checks = serde_json::json!({
         "tenant": if tenant.is_ok() { "ok" } else { "error" },
         "featureflag": if feature_flag.is_ok() { "ok" } else { "error" },
-        "config": if config.is_ok() { "ok" } else { "error" }
+        "config": if config.is_ok() { "ok" } else { "error" },
+        "navigation": if navigation.is_ok() { "ok" } else { "error" },
+        "service_catalog": if service_catalog.is_ok() { "ok" } else { "error" },
+        "auth": if auth.is_ok() { "ok" } else { "error" },
+        "session": if session.is_ok() { "ok" } else { "error" },
+        "vault": if vault.is_ok() { "ok" } else { "error" },
+        "scheduler": if scheduler.is_ok() { "ok" } else { "error" },
+        "notification": if notification.is_ok() { "ok" } else { "error" },
+        "workflow": if workflow.is_ok() { "ok" } else { "error" }
     });
 
-    if tenant.is_ok() && feature_flag.is_ok() && config.is_ok() {
+    let all_ok = tenant.is_ok()
+        && feature_flag.is_ok()
+        && config.is_ok()
+        && navigation.is_ok()
+        && service_catalog.is_ok()
+        && auth.is_ok()
+        && session.is_ok()
+        && vault.is_ok()
+        && scheduler.is_ok()
+        && notification.is_ok()
+        && workflow.is_ok();
+
+    if all_ok {
         (StatusCode::OK, Json(serde_json::json!({"status": "ready", "checks": checks})))
     } else {
         (

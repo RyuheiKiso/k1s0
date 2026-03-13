@@ -786,6 +786,30 @@ backends:
   config:
     address: "http://config-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
+  navigation:
+    address: "http://navigation-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  service_catalog:
+    address: "http://service-catalog-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  auth:
+    address: "http://auth-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  session:
+    address: "http://session-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  vault:
+    address: "http://vault-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  scheduler:
+    address: "http://scheduler-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  notification:
+    address: "http://notification-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
+  workflow:
+    address: "http://workflow-server.k1s0-system.svc.cluster.local:50051"
+    timeout_ms: 3000
 
 observability:
   log:
