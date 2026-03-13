@@ -1,14 +1,19 @@
-> **ステータス**: 未実装（設計フェーズ）
-> 本ライブラリは現在設計段階です。実装は将来のフェーズで予定されています。
-> 検収対象外とし、実装開始時に本ドキュメントのステータスを更新してください。
-
 # Migration スキーマ進化管理
 
 ## 概要
 
-`k1s0-migration` の `schema-evolution` Feature で有効化される拡張モジュール群。DOWN SQL 自動生成、破壊的変更検出、スキーマ差分比較、宣言的スキーマ定義 (TOML→SQL) を提供する。
+`k1s0-migration` の拡張モジュール群。DOWN SQL 自動生成、破壊的変更検出、スキーマ差分比較、宣言的スキーマ定義 (TOML→SQL) を提供する。Rust / Go / TypeScript / Dart の4言語で実装済み。
 
-## Feature Flags
+## 実装状況
+
+| 言語 | SQL解析方式 | TOML依存 | テスト数 |
+|------|-----------|---------|---------|
+| Rust | sqlparser クレート | toml | 設計書参照 |
+| Go | 正規表現 | github.com/BurntSushi/toml v1.4.0 | 25 |
+| TypeScript | 正規表現 | smol-toml ^1.3.0 | 29 |
+| Dart | 正規表現 | toml ^0.15.0 | 25 |
+
+## Feature Flags (Rust)
 
 ```toml
 [dependencies]
@@ -153,12 +158,89 @@ let sql = toml_to_create_sql(&std::fs::read_to_string("schema/users.toml")?)?;
 // => "CREATE TABLE users (\n  id UUID,\n  name TEXT NOT NULL,\n  PRIMARY KEY (id)\n);"
 ```
 
+## Go 実装
+
+**配置先**: `regions/system/library/go/migration/`
+
+**追加依存**: `github.com/BurntSushi/toml v1.4.0`
+
+**追加ファイル**: `schema.go`, `reverse.go`, `analyzer.go`, `diff.go`, `declarative.go` + 対応テストファイル
+
+```go
+// reverse -- DOWN SQL 自動生成
+func GenerateDownSQL(upSQL string) (string, error)
+
+// analyzer -- 破壊的変更検出
+func DetectBreakingChanges(sql string) []BreakingChange
+
+// diff -- スキーマ差分比較
+func DiffSchemas(old, new *Schema) []SchemaDiff
+
+// declarative -- TOML → CREATE TABLE SQL
+func TomlToCreateSQL(tomlStr string) (string, error)
+```
+
+型定義は Rust と同等。`BreakingChange` は `BreakingChangeType` iota enum + `String()` メソッドで表現。`SchemaDiff` は `SchemaDiffType` iota enum で表現。
+
+## TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/migration/`
+
+**追加依存**: `smol-toml ^1.3.0`
+
+**追加ファイル**: `src/schema.ts`, `src/reverse.ts`, `src/analyzer.ts`, `src/diff.ts`, `src/declarative.ts` + 対応テストファイル
+
+```typescript
+// reverse
+export function generateDownSql(upSql: string): string;
+
+// analyzer
+export type BreakingChange = { type: 'columnDropped'; ... } | { type: 'tableDropped'; ... } | ...;
+export function detectBreakingChanges(sql: string): BreakingChange[];
+export function formatBreakingChange(change: BreakingChange): string;
+
+// diff
+export type SchemaDiff = { type: 'tableAdded'; ... } | { type: 'tableDropped'; ... } | ...;
+export function diffSchemas(oldSchema: Schema, newSchema: Schema): SchemaDiff[];
+
+// declarative
+export function tomlToCreateSql(tomlStr: string): string;
+```
+
+型定義は TypeScript の discriminated union で表現。`src/index.ts` から全モジュールを re-export。
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/migration/`
+
+**追加依存**: `toml: ^0.15.0`
+
+**追加ファイル**: `lib/src/evolution/` 配下に `schema.dart`, `reverse.dart`, `analyzer.dart`, `diff.dart`, `declarative.dart` + 対応テストファイル
+
+```dart
+// reverse
+String generateDownSql(String upSql);
+
+// analyzer
+sealed class BreakingChange { String get description; }
+List<BreakingChange> detectBreakingChanges(String sql);
+
+// diff
+sealed class SchemaDiff {}
+List<SchemaDiff> diffSchemas(Schema oldSchema, Schema newSchema);
+
+// declarative
+String tomlToCreateSql(String tomlStr);
+```
+
+型定義は Dart 3 の sealed class で表現。`lib/migration.dart` から全モジュールを export。
+
 ## 設計判断
 
 | 判断 | 理由 |
 |------|------|
-| sqlparser による SQL 解析 | 正規表現では扱えない複雑な SQL 構文に対応 |
+| Rust: sqlparser、Go/TS/Dart: 正規表現 | Rust は sqlparser クレートで高精度解析。他言語は同等ライブラリが無いため正規表現ベースで実装し、対応 SQL パターンを限定 |
 | DOWN SQL の逆順出力 | 依存関係（FK等）を考慮した安全なロールバック |
-| BreakingChange を enum で表現 | パターンマッチで網羅的な処理を強制 |
-| Schema 型を独立定義 | sqlparser の AST に依存せず、diff/declarative 間で共通利用 |
+| BreakingChange を enum/sealed/union で表現 | パターンマッチで網羅的な処理を強制 |
+| Schema 型を独立定義 | SQL パーサーの AST に依存せず、diff/declarative 間で共通利用 |
 | TOML による宣言的定義 | SQL を直接書くより可読性が高く、バリデーションも容易 |
