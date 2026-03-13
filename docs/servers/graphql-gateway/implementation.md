@@ -1013,6 +1013,14 @@ pub struct BackendsConfig {
     pub tenant: BackendConfig,
     pub featureflag: BackendConfig,
     pub config: BackendConfig,
+    pub navigation: BackendConfig,
+    pub service_catalog: BackendConfig,
+    pub auth: BackendConfig,
+    pub session: BackendConfig,
+    pub vault: BackendConfig,
+    pub scheduler: BackendConfig,
+    pub notification: BackendConfig,
+    pub workflow: BackendConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]

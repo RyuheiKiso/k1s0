@@ -904,7 +904,7 @@ scheduler-server にジョブを登録し、定期的にタイムアウトした
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `id` | UUID | フローインスタンスの一意識別子 |
-| `flow_id` | UUID | フロー定義 ID |
+| `flow_definition_id` | UUID | フロー定義 ID |
 | `correlation_id` | String | 業務トランザクション相関 ID |
 | `status` | FlowInstanceStatus | `in_progress` / `completed` / `failed` / `timeout` |
 | `current_step_index` | i32 | 現在のステップインデックス |
@@ -1005,7 +1005,7 @@ CREATE TABLE event_monitor.event_records (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     correlation_id   TEXT NOT NULL,
     event_type       TEXT NOT NULL,
-    source           TEXT NOT NULL,
+    source_service   TEXT NOT NULL,
     domain           TEXT NOT NULL,
     trace_id         TEXT NOT NULL DEFAULT '',
     timestamp        TIMESTAMPTZ NOT NULL,

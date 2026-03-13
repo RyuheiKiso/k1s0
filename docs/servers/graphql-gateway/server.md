@@ -608,7 +608,7 @@ type WorkflowTask {
 | --- | --- | --- |
 | domain/model | GraphQL 出力型（`Tenant`, `FeatureFlag`, `ConfigEntry`, `User`, `Session`, `SecretMetadata`, `Job`, `NotificationLog`, `WorkflowDefinition` 等） | GraphQL スキーマ型定義 |
 | domain/loader | DataLoader インターフェース | バッチ取得トレイト |
-| usecase | `TenantQueryResolver`, `FeatureFlagQueryResolver`, `ConfigQueryResolver`, `TenantMutationResolver`, `SubscriptionResolver` | クエリ・ミューテーション・サブスクリプション解決 |
+| usecase | `TenantQueryResolver`, `FeatureFlagQueryResolver`, `ConfigQueryResolver`, `TenantMutationResolver`, `AuthQueryResolver`, `SessionQueryResolver`, `VaultQueryResolver`, `SchedulerQueryResolver`, `NotificationQueryResolver`, `WorkflowQueryResolver`, `SubscriptionResolver` | クエリ・ミューテーション・サブスクリプション解決 |
 | adapter/graphql | async-graphql の Query / Mutation / Subscription 実装 | GraphQL レイヤー |
 | adapter/middleware | JWT 検証ミドルウェア（axum layer） | 認証処理 |
 | infra/config | Config ローダー | config.yaml の読み込み |
