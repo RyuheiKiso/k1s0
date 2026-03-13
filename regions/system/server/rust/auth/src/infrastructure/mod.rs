@@ -6,6 +6,7 @@ pub mod kafka_producer;
 pub mod keycloak_client;
 pub mod keycloak_role_permission_source;
 pub mod permission_cache;
+pub mod startup;
 pub mod user_cache;
 
 pub use jwks_adapter::JwksVerifierAdapter;
