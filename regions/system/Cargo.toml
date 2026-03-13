@@ -63,6 +63,7 @@ members = [
     "library/rust/search-client",
     "library/rust/serviceauth",
     "library/rust/session-client",
+    "library/rust/app-updater",
     "library/rust/telemetry",
     "library/rust/telemetry-macros",
     "library/rust/tenant-client",
