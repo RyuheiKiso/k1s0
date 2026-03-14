@@ -143,6 +143,89 @@ class ComponentError implements Exception {
 }
 ```
 
+## ComponentRegistry
+
+`ComponentRegistry` は、複数のコンポーネントを名前で登録・管理し、一括ライフサイクル制御を提供するレジストリ。サービス起動時に全コンポーネントをまとめて初期化し、終了時に一括クローズする用途に使う。
+
+### 機能
+
+| メソッド | 説明 |
+|---------|------|
+| `register(component)` | コンポーネントを登録。同名が既に存在する場合はエラー |
+| `get(name)` | 名前でコンポーネントを取得 |
+| `initAll()` | 登録済み全コンポーネントを順次初期化 |
+| `closeAll()` | 登録済み全コンポーネントを順次クローズ |
+| `statusAll()` | 全コンポーネントのステータスを名前→ステータスのマップで返す |
+
+スレッドセーフ設計（Rust: `tokio::sync::RwLock`、Go: `sync.RWMutex`、TypeScript/Dart: シングルスレッドのため不要）。
+
+### 使用例（Rust）
+
+```rust
+let registry = ComponentRegistry::new();
+registry.register(Arc::new(KafkaPubSub::new(config))).await?;
+registry.register(Arc::new(RedisStateStore::new(config))).await?;
+
+// サービス起動時に一括初期化
+registry.init_all().await?;
+
+// サービス終了時に一括クローズ
+registry.close_all().await?;
+```
+
+### 使用例（Go）
+
+```go
+registry := buildingblocks.NewComponentRegistry()
+registry.Register(kafka.NewKafkaPubSub(cfg))
+registry.Register(redis.NewRedisStateStore(cfg))
+
+// サービス起動時に一括初期化
+if err := registry.InitAll(ctx); err != nil {
+    return err
+}
+
+// サービス終了時に一括クローズ
+defer registry.CloseAll(ctx)
+```
+
+### 使用例（TypeScript）
+
+```typescript
+const registry = new ComponentRegistry();
+registry.register(new KafkaPubSub(config));
+registry.register(new RedisStateStore(config));
+
+// サービス起動時に一括初期化
+await registry.initAll();
+
+// サービス終了時に一括クローズ
+await registry.closeAll();
+```
+
+### 使用例（Dart）
+
+```dart
+final registry = ComponentRegistry();
+registry.register(KafkaPubSub(config));
+registry.register(RedisStateStore(config));
+
+// サービス起動時に一括初期化
+await registry.initAll();
+
+// サービス終了時に一括クローズ
+await registry.closeAll();
+```
+
+### 実装パス
+
+| 言語 | パス |
+|------|------|
+| Rust | `regions/system/library/rust/bb-core/src/registry.rs` |
+| Go | `regions/system/library/go/building-blocks/registry.go` |
+| TypeScript | `regions/system/library/typescript/building-blocks/src/registry.ts` |
+| Dart | `regions/system/library/dart/building_blocks/lib/src/registry.dart` |
+
 ## components.yaml 仕様
 
 サービスが利用する BB コンポーネントを宣言的に定義する YAML ファイル。サービス起動時にこのファイルを読み込み、指定されたコンポーネントを初期化する。

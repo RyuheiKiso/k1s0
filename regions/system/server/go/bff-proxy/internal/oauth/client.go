@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/coreos/go-oidc/v3/oidc"
 )
 
 // OIDCConfig holds the OIDC provider endpoints discovered or configured.
@@ -17,7 +19,9 @@ type OIDCConfig struct {
 	TokenEndpoint         string `json:"token_endpoint"`
 	UserinfoEndpoint      string `json:"userinfo_endpoint"`
 	EndSessionEndpoint    string `json:"end_session_endpoint"`
-	Issuer                string `json:"issuer"`
+	// JwksURI はJWKSエンドポイントURL。JWT署名検証に使用する。
+	JwksURI string `json:"jwks_uri"`
+	Issuer  string `json:"issuer"`
 }
 
 // TokenResponse represents an OAuth2 token endpoint response.
@@ -38,6 +42,8 @@ type Client struct {
 	scopes       []string
 	httpClient   *http.Client
 	oidcConfig   *OIDCConfig
+	// verifier はJWT署名検証器。初回のExtractSubject呼び出し時に生成してキャッシュする。
+	verifier *oidc.IDTokenVerifier
 }
 
 // NewClient creates an OIDC client for the BFF proxy.
@@ -91,7 +97,7 @@ func (c *Client) Discover(ctx context.Context) (*OIDCConfig, error) {
 
 // AuthCodeURL builds the authorization URL with PKCE parameters.
 func (c *Client) AuthCodeURL(state, codeChallenge string) (string, error) {
-	oidc, err := c.ensureDiscovered()
+	cfg, err := c.ensureDiscovered()
 	if err != nil {
 		return "", err
 	}
@@ -106,12 +112,12 @@ func (c *Client) AuthCodeURL(state, codeChallenge string) (string, error) {
 		"code_challenge_method": {"S256"},
 	}
 
-	return oidc.AuthorizationEndpoint + "?" + params.Encode(), nil
+	return cfg.AuthorizationEndpoint + "?" + params.Encode(), nil
 }
 
 // ExchangeCode exchanges an authorization code for tokens using PKCE.
 func (c *Client) ExchangeCode(ctx context.Context, code, codeVerifier string) (*TokenResponse, error) {
-	oidc, err := c.ensureDiscovered()
+	cfg, err := c.ensureDiscovered()
 	if err != nil {
 		return nil, err
 	}
@@ -128,12 +134,12 @@ func (c *Client) ExchangeCode(ctx context.Context, code, codeVerifier string) (*
 		data.Set("client_secret", c.clientSecret)
 	}
 
-	return c.tokenRequest(ctx, oidc.TokenEndpoint, data)
+	return c.tokenRequest(ctx, cfg.TokenEndpoint, data)
 }
 
 // RefreshToken exchanges a refresh token for new tokens.
 func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (*TokenResponse, error) {
-	oidc, err := c.ensureDiscovered()
+	cfg, err := c.ensureDiscovered()
 	if err != nil {
 		return nil, err
 	}
@@ -148,17 +154,17 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (*TokenR
 		data.Set("client_secret", c.clientSecret)
 	}
 
-	return c.tokenRequest(ctx, oidc.TokenEndpoint, data)
+	return c.tokenRequest(ctx, cfg.TokenEndpoint, data)
 }
 
 // LogoutURL returns the OIDC end-session endpoint URL.
 func (c *Client) LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error) {
-	oidc, err := c.ensureDiscovered()
+	cfg, err := c.ensureDiscovered()
 	if err != nil {
 		return "", err
 	}
 
-	if oidc.EndSessionEndpoint == "" {
+	if cfg.EndSessionEndpoint == "" {
 		return "", fmt.Errorf("end_session_endpoint not available")
 	}
 
@@ -170,7 +176,7 @@ func (c *Client) LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, e
 		params.Set("post_logout_redirect_uri", postLogoutRedirectURI)
 	}
 
-	return oidc.EndSessionEndpoint + "?" + params.Encode(), nil
+	return cfg.EndSessionEndpoint + "?" + params.Encode(), nil
 }
 
 func (c *Client) tokenRequest(ctx context.Context, endpoint string, data url.Values) (*TokenResponse, error) {
@@ -208,4 +214,43 @@ func (c *Client) ensureDiscovered() (*OIDCConfig, error) {
 		return c.oidcConfig, nil
 	}
 	return nil, fmt.Errorf("OIDC discovery not performed; call Discover() first")
+}
+
+// ExtractSubject はIDトークンをJWKSで署名検証し、subクレームを返す。
+// verifierはキャッシュし、JWKS公開鍵の再取得はライブラリ内部のキャッシュに委ねる。
+func (c *Client) ExtractSubject(ctx context.Context, idToken string) (string, error) {
+	v, err := c.ensureVerifier()
+	if err != nil {
+		return "", err
+	}
+
+	token, err := v.Verify(ctx, idToken)
+	if err != nil {
+		return "", fmt.Errorf("ID token signature verification failed: %w", err)
+	}
+
+	return token.Subject, nil
+}
+
+// ensureVerifier はverifierを初期化してキャッシュする。
+// RemoteKeySetはcontext.Backgroundで生成し、JWKS鍵のHTTPフェッチを
+// リクエストコンテキストのキャンセルから切り離す。
+func (c *Client) ensureVerifier() (*oidc.IDTokenVerifier, error) {
+	if c.verifier != nil {
+		return c.verifier, nil
+	}
+
+	cfg, err := c.ensureDiscovered()
+	if err != nil {
+		return nil, fmt.Errorf("OIDC not discovered: %w", err)
+	}
+
+	if cfg.JwksURI == "" {
+		return nil, fmt.Errorf("jwks_uri not available in OIDC discovery document")
+	}
+
+	// JWKSエンドポイントから公開鍵を取得してトークン検証を行う
+	keySet := oidc.NewRemoteKeySet(context.Background(), cfg.JwksURI)
+	c.verifier = oidc.NewVerifier(cfg.Issuer, keySet, &oidc.Config{ClientID: c.clientID})
+	return c.verifier, nil
 }

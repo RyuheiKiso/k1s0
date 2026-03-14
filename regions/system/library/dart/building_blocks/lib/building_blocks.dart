@@ -35,3 +35,6 @@ export 'src/inmemory_secretstore.dart';
 
 /// テスト・開発用のインメモリ Binding 実装を提供する。
 export 'src/inmemory_binding.dart';
+
+/// コンポーネントの登録・管理を行う ComponentRegistry を提供する。
+export 'src/registry.dart';

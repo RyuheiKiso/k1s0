@@ -16,15 +16,6 @@ func respondError(c *gin.Context, status int, code string) {
 	c.JSON(status, payload)
 }
 
-func respondErrorWithMessage(c *gin.Context, status int, code, message string) {
-	payload := gin.H{
-		"error":      code,
-		"message":    message,
-		"request_id": middleware.GetRequestID(c),
-	}
-	c.JSON(status, payload)
-}
-
 func respondBadRequest(c *gin.Context, code string) {
 	respondError(c, http.StatusBadRequest, code)
 }

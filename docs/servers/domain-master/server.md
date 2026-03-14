@@ -34,6 +34,8 @@ accounting 領域のドメインマスタデータハブ。型安全な固定ス
 | --- | --- |
 | Proto 定義 | `api/proto/k1s0/business/accounting/domainmaster/v1/domain_master.proto` |
 | DB マイグレーション | `regions/business/accounting/database/domain-master-db/migrations/` |
+| React クライアント | `regions/business/accounting/client/react/domain-master/` |
+| Flutter クライアント | `regions/business/accounting/client/flutter/domain_master/` |
 
 ---
 
@@ -775,7 +777,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Web framework
-axum = { version = "0.7", features = ["macros"] }
+axum = { version = "0.7", features = ["macros", "multipart"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
@@ -788,15 +790,13 @@ serde_yaml = "0.9"
 # DB
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
 
-# JSON Schema Validation
-jsonschema = "0.28"
-
 # Utilities
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1"
 thiserror = "2"
 async-trait = "0.1"
+regex = "1"
 
 # Logging / Tracing
 tracing = "0.1"
@@ -815,8 +815,11 @@ validator = { version = "0.18", features = ["derive"] }
 # Telemetry library
 k1s0-telemetry = { path = "../../../../../system/library/rust/telemetry", features = ["full"] }
 
-# Server common (error codes)
-k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["axum"] }
+# Auth library
+k1s0-auth = { path = "../../../../../system/library/rust/auth" }
+
+# Server common (error codes, auth middleware, RBAC, gRPC auth)
+k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["axum", "grpc-auth"] }
 
 # OpenAPI
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
@@ -841,6 +844,7 @@ mockall = "0.13"
 tokio-test = "0.4"
 tower = { version = "0.5", features = ["util"] }
 testcontainers = "0.23"
+axum-test = "16"
 ```
 
 ---
