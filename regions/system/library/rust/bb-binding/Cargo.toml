@@ -7,6 +7,7 @@ rust-version = "1.93"
 [features]
 default = []
 mock = ["mockall"]
+http = ["reqwest"]
 
 [dependencies]
 async-trait = "0.1"
@@ -16,6 +17,7 @@ thiserror = "2"
 tokio = { version = "1", features = ["sync"] }
 tracing = "0.1"
 mockall = { version = "0.13", optional = true }
+reqwest = { version = "0.12", features = ["json"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
