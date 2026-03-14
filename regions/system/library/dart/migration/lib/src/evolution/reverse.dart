@@ -1,5 +1,3 @@
-import '../error.dart';
-
 /// Generates DOWN SQL from UP SQL using regex-based parsing.
 ///
 /// For each recognized statement, produces the inverse operation:

@@ -1,4 +1,5 @@
 /// Breaking change detection for SQL migrations.
+library;
 
 sealed class BreakingChange {
   String get description;

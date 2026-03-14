@@ -1,6 +1,7 @@
 name: k1s0_resiliency
 description: Resiliency library for k1s0 platform (retry, circuit breaker, bulkhead, timeout)
 version: 0.1.0
+publish_to: none
 
 environment:
   sdk: '>=3.4.0 <4.0.0'

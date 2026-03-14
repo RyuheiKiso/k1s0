@@ -57,8 +57,6 @@ void main() {
       expect(interceptor, isNotNull);
 
       final options = RequestOptions(path: '/test');
-      bool nextCalled = false;
-
       await interceptor.onRequest(
         options,
         RequestInterceptorHandler(),

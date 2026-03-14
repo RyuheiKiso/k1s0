@@ -1,4 +1,5 @@
 /// Schema model classes for migration evolution.
+library;
 
 class Column {
   final String name;
