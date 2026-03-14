@@ -34,6 +34,8 @@ accounting 領域のドメインマスタデータハブ。型安全な固定ス
 | --- | --- |
 | Proto 定義 | `api/proto/k1s0/business/accounting/domainmaster/v1/domain_master.proto` |
 | DB マイグレーション | `regions/business/accounting/database/domain-master-db/migrations/` |
+| React クライアント | `regions/business/accounting/client/react/domain-master/` |
+| Flutter クライアント | `regions/business/accounting/client/flutter/domain_master/` |
 
 ---
 
