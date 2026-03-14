@@ -1,0 +1,23 @@
+name: payment
+description: 決済管理クライアント
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Riverpod による状態管理
+  flutter_riverpod: ^2.5.1
+  # go_router によるルーティング
+  go_router: ^14.2.7
+  # Dio による HTTP クライアント
+  dio: ^5.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0

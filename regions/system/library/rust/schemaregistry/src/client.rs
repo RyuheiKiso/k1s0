@@ -617,4 +617,171 @@ mod tests {
         let versions = mock.delete_subject("old-topic-value").await.unwrap();
         assert_eq!(versions, vec![1, 2, 3]);
     }
+
+    // ---- 追加の URL 構築テスト ----
+
+    // サブジェクト一覧取得のURL形式が正しいことを確認する。
+    #[test]
+    fn test_list_subjects_url_format() {
+        let config = SchemaRegistryConfig::new("http://localhost:8081");
+        let client = HttpSchemaRegistryClient::new(config).unwrap();
+        let url = format!("{}/subjects", client.base_url());
+        assert_eq!(url, "http://localhost:8081/subjects");
+    }
+
+    // バージョン一覧取得のURL形式が正しいことを確認する。
+    #[test]
+    fn test_list_versions_url_format() {
+        let config = SchemaRegistryConfig::new("http://localhost:8081");
+        let client = HttpSchemaRegistryClient::new(config).unwrap();
+        let url = format!("{}/subjects/{}/versions", client.base_url(), "my-topic-value");
+        assert_eq!(
+            url,
+            "http://localhost:8081/subjects/my-topic-value/versions"
+        );
+    }
+
+    // 末尾に複数のスラッシュがある URL でもベースURLが正しく正規化されることを確認する。
+    #[test]
+    fn test_base_url_strips_multiple_trailing_slashes() {
+        let config = SchemaRegistryConfig::new("http://schema-registry:8081///");
+        let client = HttpSchemaRegistryClient::new(config).unwrap();
+        assert_eq!(client.base_url(), "http://schema-registry:8081");
+    }
+
+    // ポート番号なしの URL が正しく処理されることを確認する。
+    #[test]
+    fn test_base_url_without_port() {
+        let config = SchemaRegistryConfig::new("http://schema-registry");
+        let client = HttpSchemaRegistryClient::new(config).unwrap();
+        assert_eq!(client.base_url(), "http://schema-registry");
+    }
+
+    // HTTPS URL が正しく処理されることを確認する。
+    #[test]
+    fn test_base_url_https() {
+        let config = SchemaRegistryConfig::new("https://schema-registry.example.com:443");
+        let client = HttpSchemaRegistryClient::new(config).unwrap();
+        assert_eq!(
+            client.base_url(),
+            "https://schema-registry.example.com:443"
+        );
+    }
+
+    // タイムアウトを 1 秒に設定したクライアントが正常に構築されることを確認する。
+    #[test]
+    fn test_client_construction_with_very_short_timeout() {
+        let mut config = SchemaRegistryConfig::new("http://localhost:8081");
+        config.timeout_secs = 1;
+        let client = HttpSchemaRegistryClient::new(config);
+        assert!(client.is_ok());
+    }
+
+    // スキーマ登録URLにサブジェクト名の特殊文字（ドット、ハイフン）が正しく含まれることを確認する。
+    #[test]
+    fn test_register_url_with_complex_subject() {
+        let config = SchemaRegistryConfig::new("http://localhost:8081");
+        let client = HttpSchemaRegistryClient::new(config).unwrap();
+        let subject = "k1s0.business.accounting.invoice-issued.v2-value";
+        let url = format!("{}/subjects/{}/versions", client.base_url(), subject);
+        assert!(url.contains("k1s0.business.accounting.invoice-issued.v2-value"));
+    }
+
+    // モックを使ってスキーマIDによる取得が正しく動作することを確認する。
+    #[cfg(feature = "mock")]
+    #[tokio::test]
+    async fn test_mock_get_schema_by_id() {
+        let mut mock = MockSchemaRegistryClient::new();
+        mock.expect_get_schema_by_id()
+            .times(1)
+            .returning(|id| {
+                Box::pin(async move {
+                    Ok(RegisteredSchema {
+                        id,
+                        subject: "test-value".to_string(),
+                        version: 1,
+                        schema: "syntax = \"proto3\";".to_string(),
+                        schema_type: SchemaType::Protobuf,
+                    })
+                })
+            });
+
+        let schema = mock.get_schema_by_id(42).await.unwrap();
+        assert_eq!(schema.id, 42);
+        assert_eq!(schema.schema_type, SchemaType::Protobuf);
+    }
+
+    // モックを使ってバージョン一覧取得が正しく動作することを確認する。
+    #[cfg(feature = "mock")]
+    #[tokio::test]
+    async fn test_mock_list_versions() {
+        let mut mock = MockSchemaRegistryClient::new();
+        mock.expect_list_versions()
+            .times(1)
+            .returning(|_| Box::pin(async { Ok(vec![1, 2, 3, 4, 5]) }));
+
+        let versions = mock.list_versions("my-topic-value").await.unwrap();
+        assert_eq!(versions.len(), 5);
+        assert_eq!(versions, vec![1, 2, 3, 4, 5]);
+    }
+
+    // モックを使って互換性チェックが true を返すケースを確認する。
+    #[cfg(feature = "mock")]
+    #[tokio::test]
+    async fn test_mock_check_compatibility_true() {
+        let mut mock = MockSchemaRegistryClient::new();
+        mock.expect_check_compatibility()
+            .times(1)
+            .returning(|_, _, _| Box::pin(async { Ok(true) }));
+
+        let compatible = mock
+            .check_compatibility("events-value", "syntax = \"proto3\";", SchemaType::Protobuf)
+            .await
+            .unwrap();
+        assert!(compatible);
+    }
+
+    // モックを使って Avro スキーマの登録が正しく動作することを確認する。
+    #[cfg(feature = "mock")]
+    #[tokio::test]
+    async fn test_mock_register_avro_schema() {
+        use mockall::predicate::*;
+        let mut mock = MockSchemaRegistryClient::new();
+        mock.expect_register_schema()
+            .with(eq("avro-topic-value"), always(), eq(SchemaType::Avro))
+            .times(1)
+            .returning(|_, _, _| Box::pin(async { Ok(1) }));
+
+        let id = mock
+            .register_schema(
+                "avro-topic-value",
+                r#"{"type": "record", "name": "Test", "fields": []}"#,
+                SchemaType::Avro,
+            )
+            .await
+            .unwrap();
+        assert_eq!(id, 1);
+    }
+
+    // モックを使って JSON Schema の登録が正しく動作することを確認する。
+    #[cfg(feature = "mock")]
+    #[tokio::test]
+    async fn test_mock_register_json_schema() {
+        use mockall::predicate::*;
+        let mut mock = MockSchemaRegistryClient::new();
+        mock.expect_register_schema()
+            .with(eq("json-topic-value"), always(), eq(SchemaType::Json))
+            .times(1)
+            .returning(|_, _, _| Box::pin(async { Ok(50) }));
+
+        let id = mock
+            .register_schema(
+                "json-topic-value",
+                r#"{"$schema": "http://json-schema.org/draft-07/schema#"}"#,
+                SchemaType::Json,
+            )
+            .await
+            .unwrap();
+        assert_eq!(id, 50);
+    }
 }

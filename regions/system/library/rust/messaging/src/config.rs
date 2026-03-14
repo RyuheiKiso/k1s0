@@ -72,4 +72,89 @@ mod tests {
         assert_eq!(cfg.timeout_ms, 5000);
         assert_eq!(cfg.batch_size, 100);
     }
+
+    // 全フィールドを明示的に指定した JSON から正しくデシリアライズされることを確認する。
+    #[test]
+    fn test_deserialize_all_fields_explicit() {
+        let json = r#"{
+            "brokers": ["kafka-0:9092", "kafka-1:9092", "kafka-2:9092"],
+            "security_protocol": "SASL_SSL",
+            "timeout_ms": 10000,
+            "batch_size": 500
+        }"#;
+        let cfg: MessagingConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(cfg.brokers.len(), 3);
+        assert_eq!(cfg.security_protocol, "SASL_SSL");
+        assert_eq!(cfg.timeout_ms, 10000);
+        assert_eq!(cfg.batch_size, 500);
+    }
+
+    // MessagingConfig をシリアライズ・デシリアライズしても全フィールドが保持されることを確認する。
+    #[test]
+    fn test_config_roundtrip() {
+        let cfg = MessagingConfig {
+            brokers: vec!["kafka-0:9092".to_string(), "kafka-1:9092".to_string()],
+            security_protocol: "SSL".to_string(),
+            timeout_ms: 3000,
+            batch_size: 200,
+        };
+        let json = serde_json::to_string(&cfg).unwrap();
+        let restored: MessagingConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.brokers, cfg.brokers);
+        assert_eq!(restored.security_protocol, cfg.security_protocol);
+        assert_eq!(restored.timeout_ms, cfg.timeout_ms);
+        assert_eq!(restored.batch_size, cfg.batch_size);
+    }
+
+    // 空のブローカーリストで brokers_string が空文字列を返すことを確認する。
+    #[test]
+    fn test_brokers_string_empty() {
+        let cfg = MessagingConfig {
+            brokers: vec![],
+            security_protocol: "PLAINTEXT".to_string(),
+            timeout_ms: 5000,
+            batch_size: 100,
+        };
+        assert_eq!(cfg.brokers_string(), "");
+    }
+
+    // MessagingConfig の Clone が全フィールドを正しくコピーすることを確認する。
+    #[test]
+    fn test_config_clone() {
+        let cfg = MessagingConfig {
+            brokers: vec!["kafka:9092".to_string()],
+            security_protocol: "PLAINTEXT".to_string(),
+            timeout_ms: 5000,
+            batch_size: 100,
+        };
+        let cloned = cfg.clone();
+        assert_eq!(cloned.brokers, cfg.brokers);
+        assert_eq!(cloned.security_protocol, cfg.security_protocol);
+        assert_eq!(cloned.timeout_ms, cfg.timeout_ms);
+        assert_eq!(cloned.batch_size, cfg.batch_size);
+    }
+
+    // 3つのブローカーの場合に brokers_string がカンマ区切りで連結されることを確認する。
+    #[test]
+    fn test_brokers_string_three() {
+        let cfg = MessagingConfig {
+            brokers: vec![
+                "kafka-0:9092".to_string(),
+                "kafka-1:9092".to_string(),
+                "kafka-2:9092".to_string(),
+            ],
+            security_protocol: "PLAINTEXT".to_string(),
+            timeout_ms: 5000,
+            batch_size: 100,
+        };
+        assert_eq!(cfg.brokers_string(), "kafka-0:9092,kafka-1:9092,kafka-2:9092");
+    }
+
+    // セキュリティプロトコルに SASL_PLAINTEXT を指定できることを確認する。
+    #[test]
+    fn test_security_protocol_sasl_plaintext() {
+        let json = r#"{"brokers": ["kafka:9092"], "security_protocol": "SASL_PLAINTEXT"}"#;
+        let cfg: MessagingConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(cfg.security_protocol, "SASL_PLAINTEXT");
+    }
 }

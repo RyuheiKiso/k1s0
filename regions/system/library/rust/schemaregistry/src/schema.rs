@@ -199,4 +199,85 @@ mod tests {
         let copied = t;
         assert_eq!(t, copied);
     }
+
+    // JSON 文字列が大文字小文字を問わず正しくパースされることを確認する。
+    #[test]
+    fn test_parse_schema_type_json_case_insensitive() {
+        assert_eq!(parse_schema_type("json"), SchemaType::Json);
+        assert_eq!(parse_schema_type("Json"), SchemaType::Json);
+        assert_eq!(parse_schema_type("jSoN"), SchemaType::Json);
+    }
+
+    // AVRO が大文字小文字を問わず正しくパースされることを確認する。
+    #[test]
+    fn test_parse_schema_type_avro_case_insensitive() {
+        assert_eq!(parse_schema_type("avro"), SchemaType::Avro);
+        assert_eq!(parse_schema_type("Avro"), SchemaType::Avro);
+    }
+
+    // 空文字列が Avro にフォールバックすることを確認する。
+    #[test]
+    fn test_parse_schema_type_empty_string() {
+        assert_eq!(parse_schema_type(""), SchemaType::Avro);
+    }
+
+    // SchemaType の Display 出力が JSON の場合に正しいことを確認する。
+    #[test]
+    fn test_schema_type_display_json() {
+        assert_eq!(SchemaType::Json.to_string(), "JSON");
+    }
+
+    // RegisteredSchema のデフォルト値がないフィールドが正しく設定されることを確認する。
+    #[test]
+    fn test_registered_schema_all_fields() {
+        let s = RegisteredSchema {
+            id: 100,
+            subject: "k1s0.system.auth.user-created.v1-value".to_string(),
+            version: 5,
+            schema: r#"{"type": "record", "name": "User"}"#.to_string(),
+            schema_type: SchemaType::Avro,
+        };
+        assert_eq!(s.id, 100);
+        assert_eq!(s.subject, "k1s0.system.auth.user-created.v1-value");
+        assert_eq!(s.version, 5);
+        assert_eq!(s.schema_type, SchemaType::Avro);
+    }
+
+    // RegisterSchemaRequest が schema と schemaType の両フィールドを JSON に含むことを確認する。
+    #[test]
+    fn test_register_schema_request_json_structure() {
+        let req = RegisterSchemaRequest {
+            schema: r#"{"type": "record"}"#,
+            schema_type: SchemaType::Avro.as_str(),
+        };
+        let json: serde_json::Value = serde_json::from_str(&serde_json::to_string(&req).unwrap()).unwrap();
+        assert!(json.get("schema").is_some());
+        assert!(json.get("schemaType").is_some());
+        assert_eq!(json["schemaType"], "AVRO");
+    }
+
+    // RegisterSchemaRequest の JSON schema type が JSON の場合に正しいことを確認する。
+    #[test]
+    fn test_register_schema_request_json_type() {
+        let req = RegisterSchemaRequest {
+            schema: r#"{"$schema": "http://json-schema.org/draft-07/schema#"}"#,
+            schema_type: SchemaType::Json.as_str(),
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("JSON"));
+    }
+
+    // RegisteredSchema の JSON シリアライズに schema_type が含まれることを確認する。
+    #[test]
+    fn test_registered_schema_json_contains_schema_type() {
+        let s = RegisteredSchema {
+            id: 1,
+            subject: "test".to_string(),
+            version: 1,
+            schema: "schema".to_string(),
+            schema_type: SchemaType::Json,
+        };
+        let json = serde_json::to_string(&s).unwrap();
+        assert!(json.contains("Json"));
+    }
 }

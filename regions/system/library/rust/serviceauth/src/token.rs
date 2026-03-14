@@ -435,4 +435,102 @@ mod tests {
         assert!(token.acquired_at >= before);
         assert!(token.acquired_at <= after);
     }
+
+    // ServiceToken の Clone が全フィールドを正しくコピーすることを確認する。
+    #[test]
+    fn test_service_token_clone() {
+        let token = ServiceToken::new("my-token-123".to_string(), "Bearer".to_string(), 3600);
+        let cloned = token.clone();
+        assert_eq!(cloned.access_token, token.access_token);
+        assert_eq!(cloned.token_type, token.token_type);
+        assert_eq!(cloned.expires_in, token.expires_in);
+        assert_eq!(cloned.acquired_at, token.acquired_at);
+    }
+
+    // bearer_header が token_type に関わらず "Bearer" を使用することを確認する。
+    #[test]
+    fn test_bearer_header_format() {
+        let token = ServiceToken::new("abc-def-ghi".to_string(), "bearer".to_string(), 900);
+        // bearer_header は常に "Bearer {access_token}" 形式
+        assert_eq!(token.bearer_header(), "Bearer abc-def-ghi");
+    }
+
+    // expires_in が 0 の場合にすぐに期限切れと判定されることを確認する。
+    #[test]
+    fn test_is_expired_zero_expires_in() {
+        let token = ServiceToken::new("tok".to_string(), "Bearer".to_string(), 0);
+        assert!(token.is_expired());
+    }
+
+    // expires_in が 0 の場合に should_refresh が true を返すことを確認する。
+    #[test]
+    fn test_should_refresh_zero_expires_in() {
+        let token = ServiceToken::new("tok".to_string(), "Bearer".to_string(), 0);
+        assert!(token.should_refresh(0));
+    }
+
+    // refresh_before_secs が 0 の場合でも期限切れ直前はリフレッシュ不要と判定されることを確認する。
+    #[test]
+    fn test_should_refresh_zero_refresh_before() {
+        let token = ServiceToken::new("tok".to_string(), "Bearer".to_string(), 3600);
+        // refresh_before_secs=0 なら期限切れぎりぎりまでリフレッシュ不要
+        assert!(!token.should_refresh(0));
+    }
+
+    // SpiffeId の to_uri が正しい SPIFFE URI を生成することを確認する。
+    #[test]
+    fn test_spiffe_id_to_uri_service_namespace() {
+        let spiffe = SpiffeId {
+            trust_domain: "example.com".to_string(),
+            namespace: "service".to_string(),
+            service_account: "api-gateway".to_string(),
+        };
+        assert_eq!(
+            spiffe.to_uri(),
+            "spiffe://example.com/ns/service/sa/api-gateway"
+        );
+    }
+
+    // SpiffeId の parse が余分なパスセグメントを含む URI を拒否することを確認する。
+    #[test]
+    fn test_spiffe_parse_extra_segments() {
+        let result = SpiffeId::parse("spiffe://k1s0.internal/ns/system/sa/auth-service/extra");
+        assert!(result.is_err());
+    }
+
+    // SpiffeId の parse が "ns" でなく別のプレフィックスを含む URI を拒否することを確認する。
+    #[test]
+    fn test_spiffe_parse_wrong_ns_prefix() {
+        let result = SpiffeId::parse("spiffe://k1s0.internal/namespace/system/sa/auth-service");
+        assert!(result.is_err());
+    }
+
+    // SpiffeId の parse が "sa" でなく別のプレフィックスを含む URI を拒否することを確認する。
+    #[test]
+    fn test_spiffe_parse_wrong_sa_prefix() {
+        let result = SpiffeId::parse("spiffe://k1s0.internal/ns/system/service-account/auth-service");
+        assert!(result.is_err());
+    }
+
+    // allows_tier_access が未知の target_tier に対して false を返すことを確認する。
+    #[test]
+    fn test_allows_tier_access_unknown_target() {
+        let spiffe = SpiffeId {
+            trust_domain: "k1s0.internal".to_string(),
+            namespace: "system".to_string(),
+            service_account: "auth-service".to_string(),
+        };
+        assert!(!spiffe.allows_tier_access("unknown-tier"));
+    }
+
+    // SpiffeId の Clone が正しく動作することを確認する。
+    #[test]
+    fn test_spiffe_id_clone() {
+        let original = SpiffeId::parse("spiffe://k1s0.internal/ns/system/sa/auth-service").unwrap();
+        let cloned = original.clone();
+        assert_eq!(original, cloned);
+        assert_eq!(cloned.trust_domain, "k1s0.internal");
+        assert_eq!(cloned.namespace, "system");
+        assert_eq!(cloned.service_account, "auth-service");
+    }
 }

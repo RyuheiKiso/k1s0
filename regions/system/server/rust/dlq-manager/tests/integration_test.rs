@@ -617,3 +617,556 @@ async fn test_retry_exhausted_message_returns_conflict() {
     // リトライ不可 → 409 CONFLICT
     assert_eq!(response.status(), StatusCode::CONFLICT);
 }
+
+// ---------------------------------------------------------------------------
+// メッセージ一覧のページネーションテスト
+// ---------------------------------------------------------------------------
+
+/// ページネーションのパラメータが正しく動作することを検証する。
+#[tokio::test]
+async fn test_list_messages_pagination_first_page() {
+    let repo = Arc::new(InMemoryDlqRepo::new());
+    // 5件のメッセージを作成
+    for i in 0..5 {
+        let msg = DlqMessage::new(
+            "orders.events.v1".to_string(),
+            format!("error-{}", i),
+            serde_json::json!({"index": i}),
+            3,
+        );
+        repo.create(&msg).await.unwrap();
+    }
+
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/dlq/orders.events.v1?page=1&page_size=3")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["pagination"]["total_count"], 5);
+    assert_eq!(json["messages"].as_array().unwrap().len(), 3);
+}
+
+/// 2ページ目のメッセージが正しく取得できる。
+#[tokio::test]
+async fn test_list_messages_pagination_second_page() {
+    let repo = Arc::new(InMemoryDlqRepo::new());
+    for i in 0..5 {
+        let msg = DlqMessage::new(
+            "orders.events.v1".to_string(),
+            format!("error-{}", i),
+            serde_json::json!({"index": i}),
+            3,
+        );
+        repo.create(&msg).await.unwrap();
+    }
+
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/dlq/orders.events.v1?page=2&page_size=3")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    // 2ページ目は残り2件
+    assert_eq!(json["messages"].as_array().unwrap().len(), 2);
+}
+
+// ---------------------------------------------------------------------------
+// 複数トピックのフィルタリングテスト
+// ---------------------------------------------------------------------------
+
+/// 異なるトピックのメッセージが混在している場合、正しくフィルタされる。
+#[tokio::test]
+async fn test_list_messages_topic_filtering() {
+    let repo = Arc::new(InMemoryDlqRepo::new());
+
+    // orders トピックに2件
+    let msg1 = DlqMessage::new(
+        "orders.events.v1".to_string(),
+        "error-1".to_string(),
+        serde_json::json!({}),
+        3,
+    );
+    let msg2 = DlqMessage::new(
+        "orders.events.v1".to_string(),
+        "error-2".to_string(),
+        serde_json::json!({}),
+        3,
+    );
+    // payments トピックに1件
+    let msg3 = DlqMessage::new(
+        "payments.events.v1".to_string(),
+        "timeout".to_string(),
+        serde_json::json!({}),
+        3,
+    );
+
+    repo.create(&msg1).await.unwrap();
+    repo.create(&msg2).await.unwrap();
+    repo.create(&msg3).await.unwrap();
+
+    let app = handler::router(make_app_state(repo));
+
+    // orders トピックのみ取得
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/dlq/orders.events.v1")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["pagination"]["total_count"], 2);
+}
+
+// ---------------------------------------------------------------------------
+// 削除後の確認テスト
+// ---------------------------------------------------------------------------
+
+/// メッセージ削除後にそのIDで取得すると 404 になる。
+#[tokio::test]
+async fn test_delete_message_then_get_returns_404() {
+    let msg = DlqMessage::new(
+        "orders.events.v1".to_string(),
+        "failed".to_string(),
+        serde_json::json!({}),
+        3,
+    );
+    let msg_id = msg.id;
+    let repo = Arc::new(InMemoryDlqRepo::with_message(msg));
+    let app = handler::router(make_app_state(repo));
+
+    // まず削除
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(format!("/api/v1/dlq/messages/{}", msg_id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // 削除後に GET すると 404
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/dlq/messages/{}", msg_id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+/// 存在しないメッセージの削除も OK を返す（冪等性）。
+#[tokio::test]
+async fn test_delete_nonexistent_message() {
+    let repo = Arc::new(InMemoryDlqRepo::new());
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(format!("/api/v1/dlq/messages/{}", Uuid::new_v4()))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    // 存在しなくても削除は成功扱い（冪等性）
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+// ---------------------------------------------------------------------------
+// retry-all のエッジケーステスト
+// ---------------------------------------------------------------------------
+
+/// 空のトピックで retry-all は retried_count=0 を返す。
+#[tokio::test]
+async fn test_retry_all_empty_topic() {
+    let repo = Arc::new(InMemoryDlqRepo::new());
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/dlq/nonexistent.topic.v1/retry-all")
+                .header("content-type", "application/json")
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["retried_count"], 0);
+}
+
+/// max_retries に達したメッセージは retry-all でスキップされる。
+#[tokio::test]
+async fn test_retry_all_skips_exhausted_messages() {
+    let mut exhausted_msg = DlqMessage::new(
+        "orders.events.v1".to_string(),
+        "failed".to_string(),
+        serde_json::json!({}),
+        1,
+    );
+    exhausted_msg.mark_retrying(); // retry_count = 1 = max_retries
+
+    let fresh_msg = DlqMessage::new(
+        "orders.events.v1".to_string(),
+        "timeout".to_string(),
+        serde_json::json!({}),
+        3,
+    );
+
+    let repo = Arc::new(InMemoryDlqRepo::new());
+    repo.create(&exhausted_msg).await.unwrap();
+    repo.create(&fresh_msg).await.unwrap();
+
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/dlq/orders.events.v1/retry-all")
+                .header("content-type", "application/json")
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    // 1件のみリトライ可能
+    assert_eq!(json["retried_count"], 1);
+}
+
+// ---------------------------------------------------------------------------
+// Publisher 連携の追加テスト
+// ---------------------------------------------------------------------------
+
+/// retry-all で Publisher が失敗した場合の処理を検証する。
+#[tokio::test]
+async fn test_retry_all_with_failing_publisher() {
+    let msg = DlqMessage::new(
+        "orders.events.v1".to_string(),
+        "failed".to_string(),
+        serde_json::json!({}),
+        3,
+    );
+
+    let spy = SpyPublisher::new_failing();
+    let repo = Arc::new(InMemoryDlqRepo::with_message(msg));
+    let app = handler::router(make_app_state_with_publisher(repo, Arc::new(spy)));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/dlq/orders.events.v1/retry-all")
+                .header("content-type", "application/json")
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+// ---------------------------------------------------------------------------
+// メッセージペイロードの詳細テスト
+// ---------------------------------------------------------------------------
+
+/// メッセージのペイロードが正しく保存・取得されることを検証する。
+#[tokio::test]
+async fn test_message_payload_preserved() {
+    let payload = serde_json::json!({
+        "order_id": "abc-123",
+        "amount": 99.99,
+        "items": ["item-1", "item-2"],
+        "metadata": {"source": "api-gateway"}
+    });
+
+    let msg = DlqMessage::new(
+        "orders.events.v1".to_string(),
+        "processing failed".to_string(),
+        payload.clone(),
+        3,
+    );
+    let msg_id = msg.id;
+    let repo = Arc::new(InMemoryDlqRepo::with_message(msg));
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/dlq/messages/{}", msg_id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["payload"]["order_id"], "abc-123");
+    assert_eq!(json["payload"]["items"].as_array().unwrap().len(), 2);
+}
+
+/// メッセージのエラーメッセージが正しく取得できることを検証する。
+#[tokio::test]
+async fn test_message_error_message_preserved() {
+    let msg = DlqMessage::new(
+        "payments.events.v1".to_string(),
+        "Connection timeout after 30s: gateway.payment-provider.com".to_string(),
+        serde_json::json!({}),
+        5,
+    );
+    let msg_id = msg.id;
+    let repo = Arc::new(InMemoryDlqRepo::with_message(msg));
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/dlq/messages/{}", msg_id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert!(json["error_message"]
+        .as_str()
+        .unwrap()
+        .contains("Connection timeout"));
+}
+
+/// RESOLVED 状態のメッセージのリトライは CONFLICT になる。
+#[tokio::test]
+async fn test_retry_resolved_message_returns_conflict() {
+    let mut msg = DlqMessage::new(
+        "orders.events.v1".to_string(),
+        "failed".to_string(),
+        serde_json::json!({}),
+        3,
+    );
+    msg.mark_resolved();
+    let msg_id = msg.id;
+
+    let repo = Arc::new(InMemoryDlqRepo::with_message(msg));
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/dlq/messages/{}/retry", msg_id))
+                .header("content-type", "application/json")
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+}
+
+/// DEAD 状態のメッセージのリトライは CONFLICT になる。
+#[tokio::test]
+async fn test_retry_dead_message_returns_conflict() {
+    let mut msg = DlqMessage::new(
+        "orders.events.v1".to_string(),
+        "failed".to_string(),
+        serde_json::json!({}),
+        3,
+    );
+    msg.mark_dead();
+    let msg_id = msg.id;
+
+    let repo = Arc::new(InMemoryDlqRepo::with_message(msg));
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/dlq/messages/{}/retry", msg_id))
+                .header("content-type", "application/json")
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+}
+
+/// retry-all で Publisher 付きの複数メッセージリトライを検証する。
+#[tokio::test]
+async fn test_retry_all_with_publisher_multiple_messages() {
+    let repo = Arc::new(InMemoryDlqRepo::new());
+    for i in 0..3 {
+        let msg = DlqMessage::new(
+            "bulk.events.v1".to_string(),
+            format!("error-{}", i),
+            serde_json::json!({"index": i}),
+            5,
+        );
+        repo.create(&msg).await.unwrap();
+    }
+
+    let (spy, published_topics) = SpyPublisher::new_success();
+    let app = handler::router(make_app_state_with_publisher(repo, Arc::new(spy)));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/dlq/bulk.events.v1/retry-all")
+                .header("content-type", "application/json")
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["retried_count"], 3);
+
+    // 3件の発行が記録されていること
+    let topics = published_topics.lock().unwrap();
+    assert_eq!(topics.len(), 3);
+}
+
+/// max_retries=0 のメッセージは作成直後からリトライ不可。
+#[tokio::test]
+async fn test_message_with_zero_max_retries_not_retryable() {
+    let msg = DlqMessage::new(
+        "orders.events.v1".to_string(),
+        "failed".to_string(),
+        serde_json::json!({}),
+        0,
+    );
+    let msg_id = msg.id;
+
+    let repo = Arc::new(InMemoryDlqRepo::with_message(msg));
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/dlq/messages/{}/retry", msg_id))
+                .header("content-type", "application/json")
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // max_retries=0 なのでリトライ不可 → CONFLICT
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+}
+
+/// 複数メッセージの一括作成と一覧取得を検証する。
+#[tokio::test]
+async fn test_multiple_messages_in_same_topic() {
+    let repo = Arc::new(InMemoryDlqRepo::new());
+    for i in 0..10 {
+        let msg = DlqMessage::new(
+            "bulk.events.v1".to_string(),
+            format!("error-{}", i),
+            serde_json::json!({"index": i}),
+            3,
+        );
+        repo.create(&msg).await.unwrap();
+    }
+
+    let app = handler::router(make_app_state(repo));
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/dlq/bulk.events.v1")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["pagination"]["total_count"], 10);
+}

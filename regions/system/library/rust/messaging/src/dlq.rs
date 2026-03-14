@@ -193,6 +193,81 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    // リトライ回数を 1 に設定した場合にハンドラーが 1 回だけ呼ばれることを確認する。
+    #[tokio::test]
+    async fn test_process_with_dlq_fallback_single_retry() {
+        let producer = NoOpEventProducer;
+        let call_count = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
+        let counter = call_count.clone();
+
+        let result = process_with_dlq_fallback(
+            &producer,
+            "k1s0.service.order.created.v1",
+            "order-123",
+            b"payload".to_vec(),
+            Some(1),
+            |_payload| {
+                let c = counter.clone();
+                async move {
+                    c.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    Err(MessagingError::ConsumerError("fail".to_string()))
+                }
+            },
+        )
+        .await;
+        assert!(result.is_ok());
+        assert_eq!(call_count.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
+
+    // 2 回目のリトライで成功する場合に DLQ に転送されないことを確認する。
+    #[tokio::test]
+    async fn test_process_with_dlq_fallback_succeeds_on_second_retry() {
+        let producer = NoOpEventProducer;
+        let call_count = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
+        let counter = call_count.clone();
+
+        let result = process_with_dlq_fallback(
+            &producer,
+            "k1s0.service.order.created.v1",
+            "order-123",
+            b"payload".to_vec(),
+            Some(3),
+            |_payload| {
+                let c = counter.clone();
+                async move {
+                    let count = c.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    if count == 0 {
+                        Err(MessagingError::ConsumerError("first attempt fail".to_string()))
+                    } else {
+                        Ok(())
+                    }
+                }
+            },
+        )
+        .await;
+        assert!(result.is_ok());
+        // 2回目で成功するので呼び出し回数は 2
+        assert_eq!(call_count.load(std::sync::atomic::Ordering::SeqCst), 2);
+    }
+
+    // 空文字列のトピック名でも DLQ トピック名が正しく生成されることを確認する。
+    #[test]
+    fn test_dlq_topic_name_empty_string() {
+        assert_eq!(dlq_topic_name(""), ".dlq");
+    }
+
+    // 空文字列に .dlq を付けた DLQ トピックから original_topic_name で空文字列が復元されることを確認する。
+    #[test]
+    fn test_original_topic_name_from_dlq_suffix_only() {
+        assert_eq!(original_topic_name(".dlq"), Some(""));
+    }
+
+    // ".dlq" を含むが末尾にない場合に original_topic_name が None を返すことを確認する。
+    #[test]
+    fn test_original_topic_name_dlq_in_middle() {
+        assert_eq!(original_topic_name("my.dlq.topic"), None);
+    }
+
     // max_retries を None にした場合にデフォルト（3回）のリトライが実行されることを確認する。
     #[tokio::test]
     async fn test_process_with_dlq_fallback_default_retries() {

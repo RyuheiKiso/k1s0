@@ -98,4 +98,60 @@ mod tests {
         let err = SchemaRegistryError::Unavailable("connection refused".to_string());
         assert!(err.to_string().contains("connection refused"));
     }
+
+    // すべてのエラーバリアントが std::error::Error トレイトを実装していることを確認する。
+    #[test]
+    fn test_all_variants_implement_error_trait() {
+        fn assert_error<E: std::error::Error>(_: &E) {}
+
+        assert_error(&SchemaRegistryError::SchemaNotFound {
+            subject: "t".to_string(),
+            version: None,
+        });
+        assert_error(&SchemaRegistryError::CompatibilityViolation {
+            subject: "t".to_string(),
+            reason: "r".to_string(),
+        });
+        assert_error(&SchemaRegistryError::InvalidSchema("test".to_string()));
+        assert_error(&SchemaRegistryError::Unavailable("test".to_string()));
+    }
+
+    // SchemaNotFound エラーの Debug 出力にバリアント名が含まれることを確認する。
+    #[test]
+    fn test_schema_not_found_debug() {
+        let err = SchemaRegistryError::SchemaNotFound {
+            subject: "test-topic-value".to_string(),
+            version: Some(5),
+        };
+        let debug = format!("{:?}", err);
+        assert!(debug.contains("SchemaNotFound"));
+        assert!(debug.contains("test-topic-value"));
+    }
+
+    // CompatibilityViolation の表示文字列がサブジェクトと理由の両方を含むことを確認する。
+    #[test]
+    fn test_compatibility_violation_display_format() {
+        let err = SchemaRegistryError::CompatibilityViolation {
+            subject: "events-value".to_string(),
+            reason: "field type changed from int to string".to_string(),
+        };
+        let display = err.to_string();
+        assert!(display.contains("events-value"));
+        assert!(display.contains("field type changed from int to string"));
+        assert!(display.starts_with("Compatibility check failed"));
+    }
+
+    // InvalidSchema の表示文字列が "Invalid schema:" プレフィックスを持つことを確認する。
+    #[test]
+    fn test_invalid_schema_display_prefix() {
+        let err = SchemaRegistryError::InvalidSchema("bad proto syntax".to_string());
+        assert!(err.to_string().starts_with("Invalid schema:"));
+    }
+
+    // Unavailable の表示文字列が "Schema Registry unavailable:" プレフィックスを持つことを確認する。
+    #[test]
+    fn test_unavailable_display_prefix() {
+        let err = SchemaRegistryError::Unavailable("timeout after 30s".to_string());
+        assert!(err.to_string().starts_with("Schema Registry unavailable:"));
+    }
 }

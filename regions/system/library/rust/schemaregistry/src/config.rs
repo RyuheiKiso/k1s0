@@ -161,4 +161,68 @@ mod tests {
             SchemaRegistryConfig::new("http://schema-registry.k1s0-system.svc.cluster.local:8081");
         assert!(cfg.url.contains("cluster.local"));
     }
+
+    // service 層のトピック名からサブジェクト名が正しく生成されることを確認する。
+    #[test]
+    fn test_subject_name_service_topic() {
+        let subject = SchemaRegistryConfig::subject_name("k1s0.service.notification.email-sent.v1");
+        assert_eq!(subject, "k1s0.service.notification.email-sent.v1-value");
+    }
+
+    // 空文字列のトピック名からもサブジェクト名が生成されることを確認する。
+    #[test]
+    fn test_subject_name_empty_topic() {
+        let subject = SchemaRegistryConfig::subject_name("");
+        assert_eq!(subject, "-value");
+    }
+
+    // FORWARD_TRANSITIVE の互換性モードがシリアライズ・デシリアライズで正しく往復することを確認する。
+    #[test]
+    fn test_compatibility_mode_forward_transitive() {
+        let mode = CompatibilityMode::ForwardTransitive;
+        let json = serde_json::to_string(&mode).unwrap();
+        assert_eq!(json, r#""FORWARD_TRANSITIVE""#);
+        let back: CompatibilityMode = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, CompatibilityMode::ForwardTransitive);
+    }
+
+    // FULL_TRANSITIVE の互換性モードがシリアライズ・デシリアライズで正しく往復することを確認する。
+    #[test]
+    fn test_compatibility_mode_full_transitive() {
+        let mode = CompatibilityMode::FullTransitive;
+        let json = serde_json::to_string(&mode).unwrap();
+        assert_eq!(json, r#""FULL_TRANSITIVE""#);
+        let back: CompatibilityMode = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, CompatibilityMode::FullTransitive);
+    }
+
+    // FORWARD の互換性モードがシリアライズ・デシリアライズで正しく往復することを確認する。
+    #[test]
+    fn test_compatibility_mode_forward() {
+        let mode = CompatibilityMode::Forward;
+        let json = serde_json::to_string(&mode).unwrap();
+        assert_eq!(json, r#""FORWARD""#);
+    }
+
+    // BACKWARD の互換性モードがシリアライズで正しい文字列になることを確認する。
+    #[test]
+    fn test_compatibility_mode_backward_serialize() {
+        let mode = CompatibilityMode::Backward;
+        let json = serde_json::to_string(&mode).unwrap();
+        assert_eq!(json, r#""BACKWARD""#);
+    }
+
+    // 全フィールドを含む JSON からデシリアライズし、カスタムタイムアウトが適用されることを確認する。
+    #[test]
+    fn test_deserialize_full_config() {
+        let json = r#"{
+            "url": "http://sr:8081",
+            "compatibility": "FULL_TRANSITIVE",
+            "timeout_secs": 120
+        }"#;
+        let cfg: SchemaRegistryConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(cfg.url, "http://sr:8081");
+        assert_eq!(cfg.compatibility, CompatibilityMode::FullTransitive);
+        assert_eq!(cfg.timeout_secs, 120);
+    }
 }

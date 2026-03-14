@@ -517,3 +517,482 @@ async fn test_unauthorized_with_invalid_token() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
 }
+
+// ---------------------------------------------------------------------------
+// アプリ作成テスト
+// ---------------------------------------------------------------------------
+
+/// アプリを POST で新規作成できることを検証する。
+#[tokio::test]
+async fn test_create_app_success() {
+    let app = make_test_app(true).await;
+
+    let (key, val) = auth_header();
+    let input = serde_json::json!({
+        "name": "New CLI Tool",
+        "description": "A new command line tool",
+        "category": "tools"
+    });
+
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/apps")
+                .header("content-type", "application/json")
+                .header(key, val)
+                .body(Body::from(serde_json::to_string(&input).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    let body = response_body_string(resp).await;
+    let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(json["name"], "New CLI Tool");
+    assert_eq!(json["category"], "tools");
+}
+
+/// 名前が空のアプリ作成はバリデーションエラーになる。
+#[tokio::test]
+async fn test_create_app_empty_name_returns_error() {
+    let app = make_test_app(true).await;
+
+    let (key, val) = auth_header();
+    let input = serde_json::json!({
+        "name": "",
+        "category": "tools"
+    });
+
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/apps")
+                .header("content-type", "application/json")
+                .header(key, val)
+                .body(Body::from(serde_json::to_string(&input).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    // バリデーションエラーは 400 系のレスポンスになる
+    assert!(resp.status().is_client_error());
+}
+
+/// カテゴリが空のアプリ作成はバリデーションエラーになる。
+#[tokio::test]
+async fn test_create_app_empty_category_returns_error() {
+    let app = make_test_app(true).await;
+
+    let (key, val) = auth_header();
+    let input = serde_json::json!({
+        "name": "Valid Name",
+        "category": " "
+    });
+
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/apps")
+                .header("content-type", "application/json")
+                .header(key, val)
+                .body(Body::from(serde_json::to_string(&input).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(resp.status().is_client_error());
+}
+
+// ---------------------------------------------------------------------------
+// アプリ更新テスト
+// ---------------------------------------------------------------------------
+
+/// アプリを PUT で更新できることを検証する。
+#[tokio::test]
+async fn test_update_app() {
+    let apps = vec![sample_app("update-me", "Old Name")];
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestAppRepository::with_apps(apps)),
+        Arc::new(TestVersionRepository::new()),
+        Arc::new(TestDownloadStatsRepository),
+    )
+    .await;
+
+    let (key, val) = auth_header();
+    let input = serde_json::json!({
+        "name": "Updated Name",
+        "description": "Updated description",
+        "category": "utilities"
+    });
+
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri("/api/v1/apps/update-me")
+                .header("content-type", "application/json")
+                .header(key, val)
+                .body(Body::from(serde_json::to_string(&input).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = response_body_string(resp).await;
+    let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(json["name"], "Updated Name");
+}
+
+/// 存在しないアプリの更新は 404 になる。
+#[tokio::test]
+async fn test_update_app_not_found() {
+    let app = make_test_app(true).await;
+
+    let (key, val) = auth_header();
+    let input = serde_json::json!({
+        "name": "Updated",
+        "category": "tools"
+    });
+
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri("/api/v1/apps/nonexistent-id")
+                .header("content-type", "application/json")
+                .header(key, val)
+                .body(Body::from(serde_json::to_string(&input).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
+
+// ---------------------------------------------------------------------------
+// アプリ削除テスト
+// ---------------------------------------------------------------------------
+
+/// アプリを DELETE で削除できることを検証する。
+#[tokio::test]
+async fn test_delete_app_success() {
+    let apps = vec![sample_app("delete-me", "Delete Target")];
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestAppRepository::with_apps(apps)),
+        Arc::new(TestVersionRepository::new()),
+        Arc::new(TestDownloadStatsRepository),
+    )
+    .await;
+
+    let (key, val) = auth_header();
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/apps/delete-me")
+                .header(key, val)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    // delete_app ハンドラーは NO_CONTENT (204) を返す
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+}
+
+/// 存在しないアプリの削除は 404 になる。
+#[tokio::test]
+async fn test_delete_app_not_found() {
+    let app = make_test_app(true).await;
+
+    let (key, val) = auth_header();
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/apps/no-such-app")
+                .header(key, val)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
+
+// ---------------------------------------------------------------------------
+// バージョン関連テスト
+// ---------------------------------------------------------------------------
+
+/// 複数バージョンのリスト取得を検証する。
+#[tokio::test]
+async fn test_list_multiple_versions() {
+    let apps = vec![sample_app("cli", "k1s0 CLI")];
+    let versions = vec![
+        sample_version("cli", "1.0.0"),
+        sample_version("cli", "1.1.0"),
+        sample_version("cli", "2.0.0"),
+    ];
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestAppRepository::with_apps(apps)),
+        Arc::new(TestVersionRepository::with_versions(versions)),
+        Arc::new(TestDownloadStatsRepository),
+    )
+    .await;
+
+    let (key, val) = auth_header();
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/apps/cli/versions")
+                .header(key, val)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = response_body_string(resp).await;
+    let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+    let versions_arr = json["versions"].as_array().unwrap();
+    assert_eq!(versions_arr.len(), 3);
+}
+
+/// 存在しないアプリのバージョンリスト取得は 404 になる。
+#[tokio::test]
+async fn test_list_versions_app_not_found() {
+    let app = make_test_app(true).await;
+
+    let (key, val) = auth_header();
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/apps/nonexistent/versions")
+                .header(key, val)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
+
+/// バージョンが無いアプリの latest 取得は 404 になる。
+#[tokio::test]
+async fn test_get_latest_no_versions_returns_404() {
+    let apps = vec![sample_app("cli", "k1s0 CLI")];
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestAppRepository::with_apps(apps)),
+        Arc::new(TestVersionRepository::new()),
+        Arc::new(TestDownloadStatsRepository),
+    )
+    .await;
+
+    let (key, val) = auth_header();
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/apps/cli/latest")
+                .header(key, val)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
+
+/// 存在しないアプリの latest は 404 になる。
+#[tokio::test]
+async fn test_get_latest_app_not_found() {
+    let app = make_test_app(true).await;
+
+    let (key, val) = auth_header();
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/apps/nonexistent/latest")
+                .header(key, val)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
+
+// ---------------------------------------------------------------------------
+// アプリ一覧のフィルタリングテスト
+// ---------------------------------------------------------------------------
+
+/// 空のアプリリストは空配列を返す。
+#[tokio::test]
+async fn test_list_apps_empty() {
+    let app = make_test_app(true).await;
+
+    let (key, val) = auth_header();
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/apps")
+                .header(key, val)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = response_body_string(resp).await;
+    let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+    let apps_arr = json["apps"].as_array().unwrap();
+    assert!(apps_arr.is_empty());
+}
+
+/// 複数アプリが正しくリストされる。
+#[tokio::test]
+async fn test_list_multiple_apps() {
+    let apps = vec![
+        sample_app("cli", "k1s0 CLI"),
+        sample_app("web", "k1s0 Web"),
+        sample_app("mobile", "k1s0 Mobile"),
+    ];
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestAppRepository::with_apps(apps)),
+        Arc::new(TestVersionRepository::new()),
+        Arc::new(TestDownloadStatsRepository),
+    )
+    .await;
+
+    let (key, val) = auth_header();
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/apps")
+                .header(key, val)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = response_body_string(resp).await;
+    let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+    let apps_arr = json["apps"].as_array().unwrap();
+    assert_eq!(apps_arr.len(), 3);
+}
+
+// ---------------------------------------------------------------------------
+// ダウンロード統計テスト
+// ---------------------------------------------------------------------------
+
+/// ダウンロード統計エンドポイントが正常にレスポンスを返す。
+#[tokio::test]
+async fn test_get_download_stats() {
+    let apps = vec![sample_app("cli", "k1s0 CLI")];
+    let versions = vec![sample_version("cli", "1.0.0")];
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestAppRepository::with_apps(apps)),
+        Arc::new(TestVersionRepository::with_versions(versions)),
+        Arc::new(TestDownloadStatsRepository),
+    )
+    .await;
+
+    let (key, val) = auth_header();
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/apps/cli/stats")
+                .header(key, val)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+/// 存在しないアプリのダウンロード統計は 404 になる。
+#[tokio::test]
+async fn test_get_download_stats_app_not_found() {
+    let app = make_test_app(true).await;
+
+    let (key, val) = auth_header();
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/apps/nonexistent/stats")
+                .header(key, val)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
+
+// ---------------------------------------------------------------------------
+// 認証バリエーションテスト
+// ---------------------------------------------------------------------------
+
+/// 不正な Authorization ヘッダー形式は 401 になる。
+#[tokio::test]
+async fn test_malformed_auth_header() {
+    let app = make_test_app(true).await;
+
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/apps")
+                .header("Authorization", "InvalidScheme token")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+}
+
+/// healthz/readyz は認証不要であることを確認する。
+#[tokio::test]
+async fn test_health_endpoints_no_auth_required() {
+    let app = make_test_app(false).await;
+
+    // healthz は認証不要
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/healthz")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    // readyz は認証不要
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/readyz")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
