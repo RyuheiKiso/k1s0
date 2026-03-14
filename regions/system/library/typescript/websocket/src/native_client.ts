@@ -6,8 +6,11 @@ import type { WsClient } from './client.js';
 export class NativeWsClient implements WsClient {
   private ws: WebSocket | null = null;
   private _state: ConnectionState = 'disconnected';
-  // receive() が待機中の場合に解決するResolver キュー
-  private receiveResolvers: Array<(msg: WsMessage) => void> = [];
+  // receive() が待機中の場合に解決・拒否するための { resolve, reject } のキュー
+  private receiveResolvers: Array<{
+    resolve: (msg: WsMessage) => void;
+    reject: (err: Error) => void;
+  }> = [];
   // 受信済みだが receive() で取り出されていないメッセージキュー
   private receiveQueue: WsMessage[] = [];
   private reconnectAttempts = 0;
@@ -42,6 +45,8 @@ export class NativeWsClient implements WsClient {
     this.ws?.close(1000, 'Normal closure');
     this.ws = null;
     this._state = 'disconnected';
+    // 待機中の receive() を全て拒否して呼び出し元を解放する
+    this.rejectPendingReceivers(new Error('Connection closed'));
   }
 
   // send はメッセージを WebSocket に送信する。
@@ -67,8 +72,8 @@ export class NativeWsClient implements WsClient {
     if (this.receiveQueue.length > 0) {
       return this.receiveQueue.shift()!;
     }
-    return new Promise<WsMessage>((resolve) => {
-      this.receiveResolvers.push(resolve);
+    return new Promise<WsMessage>((resolve, reject) => {
+      this.receiveResolvers.push({ resolve, reject });
     });
   }
 
@@ -113,7 +118,7 @@ export class NativeWsClient implements WsClient {
         const msg = this.parseMessage(event);
         if (msg !== null) {
           if (this.receiveResolvers.length > 0) {
-            this.receiveResolvers.shift()!(msg);
+            this.receiveResolvers.shift()!.resolve(msg);
           } else {
             this.receiveQueue.push(msg);
           }
@@ -122,14 +127,23 @@ export class NativeWsClient implements WsClient {
     });
   }
 
+  // rejectPendingReceivers は待機中の receive() を全て拒否して呼び出し元を解放する。
+  private rejectPendingReceivers(err: Error): void {
+    const resolvers = this.receiveResolvers.splice(0);
+    for (const { reject } of resolvers) {
+      reject(err);
+    }
+  }
+
   // scheduleReconnect は再接続のスケジュールを管理する。
-  // 試行回数が上限に達した場合は disconnected 状態に遷移する。
+  // 試行回数が上限に達した場合は disconnected 状態に遷移して待機中 receive() を拒否する。
   private scheduleReconnect(): void {
     if (
       !this.config.reconnect ||
       this.reconnectAttempts >= this.config.maxReconnectAttempts
     ) {
       this._state = 'disconnected';
+      this.rejectPendingReceivers(new Error('Connection closed permanently'));
       return;
     }
     this._state = 'reconnecting';

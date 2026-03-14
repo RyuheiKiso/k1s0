@@ -43,6 +43,8 @@ func (c *NativeWsClient) Connect(ctx context.Context) error {
 	c.quit = make(chan struct{})
 	c.done = make(chan struct{})
 	c.once = sync.Once{}
+	// 再接続時はチャネルを再作成して古い状態をリセットする
+	c.recvCh = make(chan WsMessage, 100)
 	c.mu.Unlock()
 
 	conn, _, err := websocket.DefaultDialer.DialContext(ctx, c.config.URL, nil)
@@ -99,6 +101,7 @@ func (c *NativeWsClient) Disconnect(ctx context.Context) error {
 	c.mu.Lock()
 	c.state = StateDisconnected
 	c.mu.Unlock()
+	// recvCh は readLoop の defer で閉じられるため、ここでは閉じない
 	return nil
 }
 
@@ -154,6 +157,8 @@ func (c *NativeWsClient) State() ConnectionState {
 // readLoop はバックグラウンドでメッセージを読み続け、接続が切れた場合に再接続を試みる。
 func (c *NativeWsClient) readLoop() {
 	defer close(c.done)
+	// 終了時に recvCh を閉じることで Receive() でブロック中の呼び出し元を解放する
+	defer close(c.recvCh)
 
 	for {
 		c.mu.RLock()

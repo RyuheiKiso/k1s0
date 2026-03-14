@@ -50,6 +50,17 @@ class NativeWsClient implements WsClient {
     await _ws?.close(WebSocketStatus.normalClosure);
     _ws = null;
     _state = ws_state.ConnectionState.disconnected;
+    // 待機中の receive() を全て完了させて呼び出し元を解放する
+    _rejectPendingReceivers(StateError('Connection closed'));
+  }
+
+  // _rejectPendingReceivers は待機中の receive() を全てエラーで完了させる。
+  void _rejectPendingReceivers(Object error) {
+    final completers = List<Completer<WsMessage>>.from(_receiveCompleters);
+    _receiveCompleters.clear();
+    for (final completer in completers) {
+      completer.completeError(error);
+    }
   }
 
   // send はメッセージを WebSocket に送信する。
@@ -133,6 +144,8 @@ class NativeWsClient implements WsClient {
     if (!_config.reconnect ||
         _reconnectAttempts >= _config.maxReconnectAttempts) {
       _state = ws_state.ConnectionState.disconnected;
+      // 最大試行回数に達した場合、待機中の receive() を全てエラーで完了させる
+      _rejectPendingReceivers(StateError('Connection closed permanently'));
       return;
     }
     _state = ws_state.ConnectionState.reconnecting;
