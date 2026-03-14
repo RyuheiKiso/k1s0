@@ -52,6 +52,7 @@ impl WsConfig {
 mod tests {
     use super::*;
 
+    // WsConfig のデフォルト値が正しく設定されていることを確認する。
     #[test]
     fn test_default() {
         let cfg = WsConfig::default();
@@ -62,6 +63,7 @@ mod tests {
         assert!(cfg.ping_interval_ms.is_none());
     }
 
+    // ビルダーメソッドチェーンで全フィールドを設定した WsConfig が正しい値を持つことを確認する。
     #[test]
     fn test_builder() {
         let cfg = WsConfig::new("ws://example.com")

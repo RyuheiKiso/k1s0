@@ -19,18 +19,21 @@ pub struct CloseFrame {
 mod tests {
     use super::*;
 
+    // テキストメッセージが正しく生成されパターンマッチできることを確認する。
     #[test]
     fn test_text_message() {
         let msg = WsMessage::Text("hello".to_string());
         assert!(matches!(msg, WsMessage::Text(ref s) if s == "hello"));
     }
 
+    // バイナリメッセージが正しく生成されバイト数を確認できることを確認する。
     #[test]
     fn test_binary_message() {
         let msg = WsMessage::Binary(vec![1, 2, 3]);
         assert!(matches!(msg, WsMessage::Binary(ref b) if b.len() == 3));
     }
 
+    // Ping と Pong のメッセージバリアントが正しく識別できることを確認する。
     #[test]
     fn test_ping_pong() {
         let ping = WsMessage::Ping(vec![0]);
@@ -39,6 +42,7 @@ mod tests {
         assert!(matches!(pong, WsMessage::Pong(_)));
     }
 
+    // 理由付きクローズフレームのコードと理由が正しく取得できることを確認する。
     #[test]
     fn test_close_frame() {
         let msg = WsMessage::Close(Some(CloseFrame {
@@ -53,6 +57,7 @@ mod tests {
         }
     }
 
+    // フレームなしのクローズメッセージが None として正しく生成されることを確認する。
     #[test]
     fn test_close_without_frame() {
         let msg = WsMessage::Close(None);
