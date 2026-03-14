@@ -1,8 +1,8 @@
 # k1s0-binding ライブラリ設計
 
-> **実装形態**: Building Block 統合
-> 本ライブラリは設計当初スタンドアロンとして計画されましたが、実装では Building Block パッケージ (`bb-*` / `building-blocks/`) に統合されています。
-> 実装パス: `regions/system/library/{go,rust,typescript,dart}/building-blocks/` または `bb-*`
+> **実装形態**: Go は独立パッケージ、Rust/TypeScript/Dart は building-blocks に統合
+> - Go: `regions/system/library/go/binding/` (module: `github.com/k1s0-platform/system-library-go-binding`)
+> - Rust/TypeScript/Dart: `regions/system/library/{rust,typescript,dart}/building-blocks/`
 
 ## 概要
 

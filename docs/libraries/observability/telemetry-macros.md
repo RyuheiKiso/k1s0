@@ -1,7 +1,8 @@
 # テレメトリマクロ / 計装ユーティリティ
 
-> **対応言語**: Rust 専用
-> proc-macro による属性マクロであり、Rust コンパイラの機能に依存するため他言語への移植対象外です。
+> **対応言語**: Rust（proc-macro）、Go（関数ラッパー）
+> - Rust: proc-macro による属性マクロ (`#[k1s0_trace]`)
+> - Go: `regions/system/library/go/telemetry-macros/` (module: `github.com/k1s0-platform/system-library-go-telemetry-macros`) — `Trace()`, `TraceValue()`, `InstrumentDB()`, `KafkaTracingMiddleware()` 関数として提供
 
 ## 概要
 

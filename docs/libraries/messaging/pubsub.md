@@ -1,8 +1,9 @@
 # k1s0-pubsub ライブラリ設計
 
-> **実装形態**: Building Block 統合
-> 本ライブラリは設計当初スタンドアロンとして計画されましたが、実装では Building Block パッケージ (`bb-*` / `building-blocks/`) に統合されています。
-> 実装パス: `regions/system/library/{go,rust,typescript,dart}/building-blocks/` または `bb-*`
+> **実装形態**: Go は独立パッケージ、Rust は bb-pubsub、TypeScript/Dart は building-blocks に統合
+> - Go: `regions/system/library/go/pubsub/` (module: `github.com/k1s0-platform/system-library-go-pubsub`)
+> - Rust: `regions/system/library/rust/bb-pubsub/`
+> - TypeScript/Dart: `regions/system/library/{typescript,dart}/building-blocks/`
 
 ## 概要
 
