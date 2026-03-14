@@ -1,18 +1,19 @@
-/// 耐障害性ポリシーの設定クラス群。
-/// [ResiliencyPolicy] で各ポリシーをまとめて管理する。
+/// Policy configuration types for the resiliency library.
+/// [ResiliencyPolicy] combines retry, circuit breaker, bulkhead, and timeout.
+library;
 
-/// リトライ動作の設定。
+/// Retry policy configuration.
 class RetryConfig {
-  /// 最大試行回数（初回実行を含む）。
+  /// Maximum number of attempts, including the first execution.
   final int maxAttempts;
 
-  /// バックオフの基準遅延時間。
+  /// Initial backoff delay.
   final Duration baseDelay;
 
-  /// バックオフの上限遅延時間。
+  /// Maximum backoff delay.
   final Duration maxDelay;
 
-  /// ジッター（ランダムな揺らぎ）を有効にするかどうか。
+  /// Whether randomized jitter is applied to retry delays.
   final bool jitter;
 
   const RetryConfig({
@@ -23,15 +24,15 @@ class RetryConfig {
   });
 }
 
-/// サーキットブレーカー動作の設定。
+/// Circuit breaker configuration.
 class CircuitBreakerConfig {
-  /// オープン状態に遷移するまでの連続失敗回数のしきい値。
+  /// Number of consecutive failures required to open the circuit.
   final int failureThreshold;
 
-  /// オープン状態からハーフオープン状態に遷移するまでの待機時間。
+  /// Time to wait before entering half-open state.
   final Duration recoveryTimeout;
 
-  /// ハーフオープン状態で許容する最大呼び出し回数。
+  /// Number of trial calls allowed while half-open.
   final int halfOpenMaxCalls;
 
   const CircuitBreakerConfig({
@@ -41,12 +42,12 @@ class CircuitBreakerConfig {
   });
 }
 
-/// バルクヘッド（同時実行数制限）の設定。
+/// Bulkhead configuration.
 class BulkheadConfig {
-  /// 許容する最大同時実行数。
+  /// Maximum number of concurrent calls.
   final int maxConcurrentCalls;
 
-  /// スロット空き待ちの最大待機時間。これを超えると [BulkheadFullError] が発生する。
+  /// Maximum time to wait for an available slot.
   final Duration maxWaitDuration;
 
   const BulkheadConfig({
@@ -55,19 +56,19 @@ class BulkheadConfig {
   });
 }
 
-/// 複数の耐障害性ポリシーをまとめたポリシー定義。
-/// 各フィールドが null の場合、対応するポリシーは無効になる。
+/// Combined resiliency policy.
+/// Any field may be null to disable that policy.
 class ResiliencyPolicy {
-  /// リトライポリシー（null の場合はリトライなし）。
+  /// Retry policy. When null, retries are disabled.
   final RetryConfig? retry;
 
-  /// サーキットブレーカーポリシー（null の場合は無効）。
+  /// Circuit breaker policy. When null, it is disabled.
   final CircuitBreakerConfig? circuitBreaker;
 
-  /// バルクヘッドポリシー（null の場合は無効）。
+  /// Bulkhead policy. When null, it is disabled.
   final BulkheadConfig? bulkhead;
 
-  /// タイムアウト時間（null の場合は無制限）。
+  /// Timeout policy. When null, no timeout is applied.
   final Duration? timeout;
 
   const ResiliencyPolicy({

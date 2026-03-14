@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// TestETagCreation は ETag の各フィールドが正しく設定されることを確認する。
 func TestETagCreation(t *testing.T) {
 	etag := ETag{Value: "abc123"}
 	if etag.Value != "abc123" {
@@ -12,6 +13,7 @@ func TestETagCreation(t *testing.T) {
 	}
 }
 
+// TestETagJSONRoundtrip は ETag の JSON シリアライズ・デシリアライズが正しく動作することを確認する。
 func TestETagJSONRoundtrip(t *testing.T) {
 	etag := ETag{Value: "v1"}
 	data, err := json.Marshal(etag)
@@ -27,6 +29,7 @@ func TestETagJSONRoundtrip(t *testing.T) {
 	}
 }
 
+// TestStateEntryCreation は StateEntry の各フィールドが正しく設定されることを確認する。
 func TestStateEntryCreation(t *testing.T) {
 	etag := &ETag{Value: "e1"}
 	entry := StateEntry{
@@ -45,6 +48,7 @@ func TestStateEntryCreation(t *testing.T) {
 	}
 }
 
+// TestStateEntryJSONRoundtrip は StateEntry の JSON シリアライズ・デシリアライズが正しく動作することを確認する。
 func TestStateEntryJSONRoundtrip(t *testing.T) {
 	entry := StateEntry{
 		Key:   "key1",
@@ -67,6 +71,7 @@ func TestStateEntryJSONRoundtrip(t *testing.T) {
 	}
 }
 
+// TestStateEntryJSONOmitEmptyETag は ETag が nil のとき JSON フィールドが省略されることを確認する。
 func TestStateEntryJSONOmitEmptyETag(t *testing.T) {
 	entry := StateEntry{Key: "k", Value: []byte("v")}
 	data, err := json.Marshal(entry)
@@ -82,6 +87,7 @@ func TestStateEntryJSONOmitEmptyETag(t *testing.T) {
 	}
 }
 
+// TestSetRequestCreation は SetRequest の各フィールドが正しく設定されることを確認する。
 func TestSetRequestCreation(t *testing.T) {
 	req := SetRequest{
 		Key:   "session:abc",
@@ -99,6 +105,7 @@ func TestSetRequestCreation(t *testing.T) {
 	}
 }
 
+// TestSetRequestJSONRoundtrip は SetRequest の JSON シリアライズ・デシリアライズが正しく動作することを確認する。
 func TestSetRequestJSONRoundtrip(t *testing.T) {
 	req := SetRequest{
 		Key:   "k",

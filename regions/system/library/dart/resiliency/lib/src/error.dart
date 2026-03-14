@@ -1,7 +1,8 @@
-/// 耐障害性ライブラリで使用するエラー型の定義。
-/// すべてのエラーは [ResiliencyError] を基底クラスとして持つ。
+/// Error types used by the resiliency library.
+/// Consumers can catch [ResiliencyError] and its subclasses.
+library;
 
-/// 耐障害性ライブラリ共通の基底エラークラス。
+/// Base error for resiliency operations.
 sealed class ResiliencyError implements Exception {
   final String message;
   const ResiliencyError(this.message);
@@ -10,38 +11,38 @@ sealed class ResiliencyError implements Exception {
   String toString() => 'ResiliencyError: $message';
 }
 
-/// 最大リトライ回数を超過した場合のエラー。
+/// Raised when retry attempts are exhausted.
 class MaxRetriesExceededError extends ResiliencyError {
-  /// 試行した回数。
+  /// Total number of attempted executions.
   final int attempts;
 
-  /// 最後に発生したエラー。
+  /// Last observed error, if any.
   final Object? lastError;
 
   const MaxRetriesExceededError(this.attempts, this.lastError)
       : super('max retries exceeded');
 }
 
-/// サーキットブレーカーがオープン状態でリクエストを拒否した場合のエラー。
+/// Raised when a circuit breaker rejects execution while open.
 class CircuitBreakerOpenError extends ResiliencyError {
-  /// サーキットブレーカーがクローズするまでの残り時間。
+  /// Remaining time until the breaker may allow calls again.
   final Duration remainingDuration;
 
   const CircuitBreakerOpenError(this.remainingDuration)
       : super('circuit breaker is open');
 }
 
-/// バルクヘッドの同時実行数が上限に達し、リクエストを受け付けられない場合のエラー。
+/// Raised when the bulkhead has no remaining capacity.
 class BulkheadFullError extends ResiliencyError {
-  /// 設定されている最大同時実行数。
+  /// Configured maximum concurrent operations.
   final int maxConcurrent;
 
   const BulkheadFullError(this.maxConcurrent) : super('bulkhead full');
 }
 
-/// 処理がタイムアウト時間内に完了しなかった場合のエラー。
+/// Raised when an operation exceeds the configured timeout.
 class TimeoutError extends ResiliencyError {
-  /// 設定されていたタイムアウト時間。
+  /// Timeout duration that was exceeded.
   final Duration after;
 
   const TimeoutError(this.after) : super('operation timed out');
