@@ -4,7 +4,7 @@ import 'package:k1s0_building_blocks/building_blocks.dart';
 
 void main() {
   group('Message', () {
-    test('should create with all required fields', () {
+    test('必須フィールドをすべて指定して生成できること', () {
       final msg = Message(
         topic: 'orders',
         data: Uint8List.fromList([1, 2, 3]),
@@ -18,7 +18,7 @@ void main() {
       expect(msg.id, 'msg-001');
     });
 
-    test('should support empty data and metadata', () {
+    test('空のデータとメタデータをサポートすること', () {
       final msg = Message(
         topic: 'events',
         data: Uint8List(0),
@@ -30,7 +30,7 @@ void main() {
       expect(msg.metadata, isEmpty);
     });
 
-    test('should be immutable (final fields)', () {
+    test('イミュータブルであること（final フィールド）', () {
       final msg = Message(
         topic: 'test',
         data: Uint8List.fromList([42]),

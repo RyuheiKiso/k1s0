@@ -11,13 +11,13 @@ void main() {
   });
 
   group('WsMessage', () {
-    test('creates text message', () {
+    test('テキストメッセージが生成されること', () {
       const msg = WsMessage(type: MessageType.text, payload: 'hello');
       expect(msg.textPayload, equals('hello'));
       expect(msg.type, equals(MessageType.text));
     });
 
-    test('creates binary message', () {
+    test('バイナリメッセージが生成されること', () {
       final data = Uint8List.fromList([1, 2, 3]);
       final msg = WsMessage(type: MessageType.binary, payload: data);
       expect(msg.binaryPayload, equals(data));
@@ -25,7 +25,7 @@ void main() {
   });
 
   group('WsConfig', () {
-    test('defaults has expected values', () {
+    test('デフォルト値が期待通りに設定されていること', () {
       final config = WsConfig.defaults;
       expect(config.url, equals('ws://localhost'));
       expect(config.reconnect, isTrue);
@@ -34,7 +34,7 @@ void main() {
       expect(config.pingInterval, isNull);
     });
 
-    test('custom config', () {
+    test('カスタム設定が適用されること', () {
       const config = WsConfig(
         url: 'ws://example.com',
         reconnect: false,
@@ -49,37 +49,37 @@ void main() {
   });
 
   group('ConnectionState', () {
-    test('has all values', () {
+    test('全ての値が定義されていること', () {
       expect(ConnectionState.values, hasLength(5));
     });
   });
 
   group('InMemoryWsClient', () {
-    test('starts disconnected', () {
+    test('初期状態が切断中であること', () {
       expect(client.state, equals(ConnectionState.disconnected));
     });
 
-    test('connect transitions to connected', () async {
+    test('connectで接続済み状態に遷移すること', () async {
       await client.connect();
       expect(client.state, equals(ConnectionState.connected));
     });
 
-    test('disconnect transitions to disconnected', () async {
+    test('disconnectで切断済み状態に遷移すること', () async {
       await client.connect();
       await client.disconnect();
       expect(client.state, equals(ConnectionState.disconnected));
     });
 
-    test('connect throws when already connected', () async {
+    test('接続済みの状態でconnectを呼ぶと例外がスローされること', () async {
       await client.connect();
       expect(() => client.connect(), throwsStateError);
     });
 
-    test('disconnect throws when not connected', () async {
+    test('未接続の状態でdisconnectを呼ぶと例外がスローされること', () async {
       expect(() => client.disconnect(), throwsStateError);
     });
 
-    test('send stores messages', () async {
+    test('sendでメッセージが保存されること', () async {
       await client.connect();
       const msg = WsMessage(type: MessageType.text, payload: 'test');
       await client.send(msg);
@@ -87,12 +87,12 @@ void main() {
       expect(client.sentMessages.first.textPayload, equals('test'));
     });
 
-    test('send throws when not connected', () async {
+    test('未接続の状態でsendを呼ぶと例外がスローされること', () async {
       const msg = WsMessage(type: MessageType.text, payload: 'test');
       expect(() => client.send(msg), throwsStateError);
     });
 
-    test('receive returns injected messages', () async {
+    test('receiveで注入したメッセージが返されること', () async {
       await client.connect();
       const msg = WsMessage(type: MessageType.text, payload: 'incoming');
       client.injectMessage(msg);
@@ -100,16 +100,16 @@ void main() {
       expect(received.textPayload, equals('incoming'));
     });
 
-    test('receive throws when not connected', () async {
+    test('未接続の状態でreceiveを呼ぶと例外がスローされること', () async {
       expect(() => client.receive(), throwsStateError);
     });
 
-    test('receive throws when queue is empty', () async {
+    test('キューが空の状態でreceiveを呼ぶと例外がスローされること', () async {
       await client.connect();
       expect(() => client.receive(), throwsStateError);
     });
 
-    test('receive returns messages in order', () async {
+    test('receiveでメッセージが順序通りに返されること', () async {
       await client.connect();
       client.injectMessage(const WsMessage(type: MessageType.text, payload: 'first'));
       client.injectMessage(const WsMessage(type: MessageType.text, payload: 'second'));
@@ -119,7 +119,7 @@ void main() {
       expect(second.textPayload, equals('second'));
     });
 
-    test('send ping message', () async {
+    test('pingメッセージが送信できること', () async {
       await client.connect();
       const msg = WsMessage(type: MessageType.ping, payload: '');
       await client.send(msg);

@@ -44,6 +44,7 @@ mod tests {
         LOCK.get_or_init(|| Mutex::new(()))
     }
 
+    // ALLOW_INSECURE_NO_AUTH が true のとき dev と test 環境のみ認証なしが許可されることを確認する。
     #[test]
     fn allows_insecure_auth_override_only_for_dev_and_test() {
         let _guard = env_lock().lock().unwrap();
@@ -56,6 +57,7 @@ mod tests {
         std::env::remove_var("ALLOW_INSECURE_NO_AUTH");
     }
 
+    // オーバーライドなしで認証設定が未指定の場合にエラーが返されることを確認する。
     #[test]
     fn rejects_missing_auth_without_override() {
         let _guard = env_lock().lock().unwrap();
@@ -68,6 +70,7 @@ mod tests {
             .contains("auth configuration is required for example-service"));
     }
 
+    // ALLOW_INSECURE_NO_AUTH 有効時に認証設定なしでも None が返されることを確認する。
     #[test]
     fn accepts_missing_auth_when_override_is_enabled() {
         let _guard = env_lock().lock().unwrap();

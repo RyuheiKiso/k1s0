@@ -3,18 +3,18 @@ import 'package:test/test.dart';
 import 'package:k1s0_telemetry/telemetry.dart';
 
 void main() {
-  group('Metrics', () {
+  group('メトリクス', () {
     late Metrics metrics;
 
     setUp(() {
       metrics = Metrics(serviceName: 'test-service');
     });
 
-    test('should initialize with service name', () {
+    test('サービス名で初期化されること', () {
       expect(metrics.serviceName, 'test-service');
     });
 
-    test('should have zero counters initially', () {
+    test('初期状態ではカウンタがゼロであること', () {
       // 初期状態ではカウンタマップが空であること
       expect(metrics.httpRequestsTotal, isEmpty);
       expect(metrics.grpcHandledTotal, isEmpty);
@@ -26,8 +26,8 @@ void main() {
       expect(output, isNot(contains('http_requests_total{')));
     });
 
-    group('HTTP request counter', () {
-      test('should increment counter for a request', () {
+    group('HTTPリクエストカウンター', () {
+      test('リクエストのカウンターがインクリメントされること', () {
         metrics.recordHttpRequest(
           method: 'GET',
           path: '/api/users',
@@ -39,7 +39,7 @@ void main() {
         expect(metrics.httpRequestsTotal[key], 1);
       });
 
-      test('should increment counter for multiple requests', () {
+      test('複数リクエストのカウンターが正しくインクリメントされること', () {
         metrics.recordHttpRequest(
           method: 'GET',
           path: '/api/users',
@@ -65,8 +65,8 @@ void main() {
       });
     });
 
-    group('Latency histogram', () {
-      test('should record latency', () {
+    group('レイテンシヒストグラム', () {
+      test('レイテンシが記録されること', () {
         metrics.recordHttpDuration(
           method: 'GET',
           path: '/api/users',
@@ -76,7 +76,7 @@ void main() {
         expect(metrics.httpDurationBuckets, isNotEmpty);
       });
 
-      test('should categorize latency into correct buckets', () {
+      test('レイテンシが正しいバケットに分類されること', () {
         // 5ms request -> should fall into 0.005 and higher buckets
         metrics.recordHttpDuration(
           method: 'GET',
@@ -95,7 +95,7 @@ void main() {
         expect(output, contains('http_request_duration_seconds_bucket'));
       });
 
-      test('should track sum and count for histogram', () {
+      test('ヒストグラムの合計値とカウントが追跡されること', () {
         metrics.recordHttpDuration(
           method: 'GET',
           path: '/api/users',
@@ -113,8 +113,8 @@ void main() {
       });
     });
 
-    group('gRPC metrics', () {
-      test('should record gRPC request', () {
+    group('gRPCメトリクス', () {
+      test('gRPCリクエストが記録されること', () {
         metrics.recordGrpcRequest(
           service: 'UserService',
           method: 'GetUser',
@@ -129,7 +129,7 @@ void main() {
         expect(metrics.grpcHandledTotal[key], 1);
       });
 
-      test('should record gRPC duration', () {
+      test('gRPC処理時間が記録されること', () {
         metrics.recordGrpcDuration(
           service: 'UserService',
           method: 'GetUser',
@@ -141,8 +141,8 @@ void main() {
       });
     });
 
-    group('Prometheus text format', () {
-      test('should output valid Prometheus text format', () {
+    group('Prometheusテキスト形式', () {
+      test('有効なPrometheusテキスト形式で出力されること', () {
         metrics.recordHttpRequest(
           method: 'GET',
           path: '/api/users',
@@ -172,7 +172,7 @@ void main() {
         expect(output, contains('status="200"'));
       });
 
-      test('should output empty metrics when nothing recorded', () {
+      test('何も記録されていない場合でも空のメトリクスが出力されること', () {
         final output = metrics.toPrometheusText();
         // HELP/TYPE lines should still be present
         expect(output, contains('# HELP http_requests_total'));

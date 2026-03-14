@@ -3,7 +3,7 @@ import 'package:k1s0_migration/migration.dart';
 
 void main() {
   group('tomlToCreateSql', () {
-    test('basic table', () {
+    test('基本的なテーブルのSQLが生成されること', () {
       final toml = '''
 [table]
 name = "users"
@@ -33,7 +33,7 @@ unique = true
       expect(sql, contains('PRIMARY KEY (id)'));
     });
 
-    test('column with default', () {
+    test('デフォルト値付きカラムのSQLが生成されること', () {
       final toml = '''
 [table]
 name = "settings"
@@ -48,7 +48,7 @@ default = "true"
       expect(sql, contains('active BOOLEAN NOT NULL DEFAULT true'));
     });
 
-    test('column with references', () {
+    test('外部キー参照付きカラムのSQLが生成されること', () {
       final toml = '''
 [table]
 name = "orders"
@@ -69,14 +69,14 @@ references = "users(id)"
       expect(sql, contains('user_id UUID NOT NULL REFERENCES users(id)'));
     });
 
-    test('invalid TOML throws error', () {
+    test('無効なTOMLの場合エラーがスローされること', () {
       expect(
         () => tomlToCreateSql('not valid toml {{{}}}'),
         throwsA(isA<MigrationError>()),
       );
     });
 
-    test('composite primary key', () {
+    test('複合主キーのSQLが生成されること', () {
       final toml = '''
 [table]
 name = "order_items"

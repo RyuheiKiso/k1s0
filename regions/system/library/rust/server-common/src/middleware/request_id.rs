@@ -90,6 +90,7 @@ mod tests {
     use std::convert::Infallible;
     use tower::{ServiceBuilder, ServiceExt};
 
+    // レスポンスに x-request-id ヘッダーが付与されることを確認する。
     #[tokio::test]
     async fn test_request_id_added_to_response() {
         let svc = ServiceBuilder::new()
@@ -106,6 +107,7 @@ mod tests {
         assert!(!rid.is_empty());
     }
 
+    // リクエストごとに異なる x-request-id が生成されることを確認する。
     #[tokio::test]
     async fn test_request_id_unique_per_request() {
         let mut svc = ServiceBuilder::new()

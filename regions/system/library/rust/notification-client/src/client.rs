@@ -22,6 +22,7 @@ mod tests {
     use crate::request::NotificationChannel;
     use uuid::Uuid;
 
+    // モッククライアントの send が期待するレスポンスを返すことを確認する。
     #[tokio::test]
     async fn test_mock_send() {
         let mut mock = MockNotificationClient::new();
@@ -54,6 +55,7 @@ mod tests {
         assert_eq!(result.message_id, Some("msg-123".to_string()));
     }
 
+    // Slack チャンネル向けのモッククライアント send が期待するレスポンスを返すことを確認する。
     #[tokio::test]
     async fn test_mock_send_slack() {
         let mut mock = MockNotificationClient::new();

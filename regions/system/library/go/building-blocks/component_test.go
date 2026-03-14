@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// Metadata の Name・Version・Tags フィールドが正しく設定されることを確認する。
 func TestMetadataCreation(t *testing.T) {
 	m := Metadata{
 		Name:    "test-component",
@@ -22,6 +23,7 @@ func TestMetadataCreation(t *testing.T) {
 	}
 }
 
+// Metadata の JSON シリアライズ・デシリアライズが全フィールドを正しく復元することを確認する。
 func TestMetadataJSONMarshal(t *testing.T) {
 	m := Metadata{
 		Name:    "my-component",
@@ -45,6 +47,7 @@ func TestMetadataJSONMarshal(t *testing.T) {
 	}
 }
 
+// Metadata の Tags が nil のとき JSON フィールドが省略されることを確認する。
 func TestMetadataJSONOmitEmptyTags(t *testing.T) {
 	m := Metadata{Name: "simple", Version: "v1"}
 	data, err := json.Marshal(m)
@@ -60,6 +63,7 @@ func TestMetadataJSONOmitEmptyTags(t *testing.T) {
 	}
 }
 
+// ComponentStatus の各定数が期待する文字列値を持つことを確認する。
 func TestComponentStatusConstants(t *testing.T) {
 	statuses := map[ComponentStatus]string{
 		StatusUninitialized: "uninitialized",

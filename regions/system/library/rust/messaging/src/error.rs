@@ -33,48 +33,56 @@ pub enum MessagingError {
 mod tests {
     use super::*;
 
+    // ProducerError の表示文字列にエラーメッセージが含まれることを確認する。
     #[test]
     fn test_producer_error_display() {
         let err = MessagingError::ProducerError("kafka broker unreachable".to_string());
         assert!(err.to_string().contains("kafka broker unreachable"));
     }
 
+    // SerializationError の表示文字列にエラーメッセージが含まれることを確認する。
     #[test]
     fn test_serialization_error_display() {
         let err = MessagingError::SerializationError("invalid json".to_string());
         assert!(err.to_string().contains("invalid json"));
     }
 
+    // ConsumerError の表示文字列が期待するフォーマットであることを確認する。
     #[test]
     fn test_consumer_error_display() {
         let err = MessagingError::ConsumerError("offset commit failed".to_string());
         assert_eq!(err.to_string(), "consumer error: offset commit failed");
     }
 
+    // DeserializationError の表示文字列が期待するフォーマットであることを確認する。
     #[test]
     fn test_deserialization_error_display() {
         let err = MessagingError::DeserializationError("unexpected field".to_string());
         assert_eq!(err.to_string(), "deserialization error: unexpected field");
     }
 
+    // ConnectionError の表示文字列が期待するフォーマットであることを確認する。
     #[test]
     fn test_connection_error_display() {
         let err = MessagingError::ConnectionError("broker unreachable".to_string());
         assert_eq!(err.to_string(), "connection error: broker unreachable");
     }
 
+    // TimeoutError の表示文字列が期待するフォーマットであることを確認する。
     #[test]
     fn test_timeout_error_display() {
         let err = MessagingError::TimeoutError("30s exceeded".to_string());
         assert_eq!(err.to_string(), "timeout error: 30s exceeded");
     }
 
+    // ProducerError の表示文字列が "producer error:" プレフィックスを持つことを確認する。
     #[test]
     fn test_producer_error_display_prefix() {
         let err = MessagingError::ProducerError("send failed".to_string());
         assert_eq!(err.to_string(), "producer error: send failed");
     }
 
+    // MessagingError が Debug トレイトを実装しており、デバッグ文字列にバリアント名が含まれることを確認する。
     #[test]
     fn test_error_is_debug() {
         let err = MessagingError::ConnectionError("test".to_string());

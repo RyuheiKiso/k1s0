@@ -3,7 +3,7 @@ import 'package:k1s0_messaging/messaging.dart';
 
 void main() {
   group('EventMetadata', () {
-    test('create generates UUID eventId', () {
+    test('createでUUID形式のeventIdが生成されること', () {
       final meta = EventMetadata.create(
         'user.created',
         'auth-service',
@@ -15,35 +15,35 @@ void main() {
       expect(uuidRegex.hasMatch(meta.eventId), isTrue);
     });
 
-    test('create uses provided correlationId', () {
+    test('createで指定したcorrelationIdが使用されること', () {
       final meta =
           EventMetadata.create('event', 'svc', correlationId: 'corr-123');
       expect(meta.correlationId, equals('corr-123'));
     });
 
-    test('create uses provided traceId', () {
+    test('createで指定したtraceIdが使用されること', () {
       final meta =
           EventMetadata.create('event', 'svc', correlationId: 'corr-124', traceId: 'trace-123');
       expect(meta.traceId, equals('trace-123'));
     });
 
-    test('create auto-generates traceId', () {
+    test('createでtraceIdが自動生成されること', () {
       final meta = EventMetadata.create('event', 'svc', correlationId: 'corr-125');
       expect(meta.correlationId, equals('corr-125'));
       expect(meta.traceId, isNotEmpty);
     });
 
-    test('create sets timestamp to UTC', () {
+    test('createでタイムスタンプがUTCに設定されること', () {
       final meta = EventMetadata.create('event', 'svc', correlationId: 'corr-126');
       expect(meta.timestamp.isUtc, isTrue);
     });
 
-    test('create defaults schemaVersion to 1', () {
+    test('createでschemaVersionのデフォルト値が1になること', () {
       final meta = EventMetadata.create('event', 'svc', correlationId: 'corr-127');
       expect(meta.schemaVersion, equals(1));
     });
 
-    test('create sets eventType and source', () {
+    test('createでeventTypeとsourceが設定されること', () {
       final meta = EventMetadata.create(
         'user.created',
         'auth-service',
@@ -55,7 +55,7 @@ void main() {
   });
 
   group('EventEnvelope', () {
-    test('can be created with required fields', () {
+    test('必須フィールドを指定して生成できること', () {
       final meta = EventMetadata.create('event.v1', 'service', correlationId: 'corr-129');
       final envelope = EventEnvelope(
         topic: 'k1s0.system.user.created.v1',
@@ -70,7 +70,7 @@ void main() {
   });
 
   group('NoOpEventProducer', () {
-    test('publish adds event to published list', () async {
+    test('publishでイベントがpublishedリストに追加されること', () async {
       final producer = NoOpEventProducer();
       final envelope = EventEnvelope(
         topic: 'test-topic',
@@ -83,7 +83,7 @@ void main() {
       expect(producer.published.first, equals(envelope));
     });
 
-    test('publish multiple events', () async {
+    test('複数イベントをpublishできること', () async {
       final producer = NoOpEventProducer();
       for (var i = 0; i < 3; i++) {
         await producer.publish(EventEnvelope(
@@ -96,7 +96,7 @@ void main() {
       expect(producer.published, hasLength(3));
     });
 
-    test('publishBatch adds multiple events', () async {
+    test('publishBatchで複数イベントが追加されること', () async {
       final producer = NoOpEventProducer();
       await producer.publishBatch([
         EventEnvelope(
@@ -115,19 +115,19 @@ void main() {
       expect(producer.published, hasLength(2));
     });
 
-    test('close completes without error', () async {
+    test('closeがエラーなく完了すること', () async {
       final producer = NoOpEventProducer();
       await expectLater(producer.close(), completes);
     });
   });
 
   group('MessagingError', () {
-    test('toString includes op', () {
+    test('toStringにop名が含まれること', () {
       final err = MessagingError('Publish');
       expect(err.toString(), contains('Publish'));
     });
 
-    test('toString includes cause', () {
+    test('toStringに原因が含まれること', () {
       final cause = Exception('connection refused');
       final err = MessagingError('Publish', cause: cause);
       expect(err.toString(), contains('Publish'));

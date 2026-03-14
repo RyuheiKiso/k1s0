@@ -92,6 +92,7 @@ impl HealthCheck for TimeoutCheck {
 
 // ─── Single Check ───────────────────────────────────────────────────────────
 
+// ヘルシーなチェックを1件だけ登録した場合に全体ステータスが Healthy になることを確認する。
 #[tokio::test]
 async fn single_healthy_check_returns_healthy() {
     let mut checker = CompositeHealthChecker::new();
@@ -108,6 +109,7 @@ async fn single_healthy_check_returns_healthy() {
     assert!(response.checks["always-healthy"].message.is_none());
 }
 
+// 異常なチェックを1件だけ登録した場合に全体ステータスが Unhealthy になることを確認する。
 #[tokio::test]
 async fn single_unhealthy_check_returns_unhealthy() {
     let mut checker = CompositeHealthChecker::new();
@@ -126,6 +128,7 @@ async fn single_unhealthy_check_returns_unhealthy() {
 
 // ─── CompositeHealthChecker ─────────────────────────────────────────────────
 
+// 全チェックがヘルシーな場合に全体ステータスが Healthy になることを確認する。
 #[tokio::test]
 async fn all_healthy_checks_returns_up() {
     let mut checker = CompositeHealthChecker::new();
@@ -142,6 +145,7 @@ async fn all_healthy_checks_returns_up() {
     }
 }
 
+// 1件でも異常なチェックがある場合に全体ステータスが Unhealthy になることを確認する。
 #[tokio::test]
 async fn one_unhealthy_check_returns_down() {
     let mut checker = CompositeHealthChecker::new();
@@ -158,6 +162,7 @@ async fn one_unhealthy_check_returns_down() {
     assert_eq!(response.checks["queue"].status, HealthStatus::Healthy);
 }
 
+// 複数の異常チェックがある場合でも全体ステータスが Unhealthy になることを確認する。
 #[tokio::test]
 async fn multiple_unhealthy_checks_returns_down() {
     let mut checker = CompositeHealthChecker::new();
@@ -173,6 +178,7 @@ async fn multiple_unhealthy_checks_returns_down() {
     assert_eq!(response.checks["queue"].status, HealthStatus::Healthy);
 }
 
+// チェックが1件も登録されていない場合に全体ステータスが Healthy になることを確認する。
 #[tokio::test]
 async fn empty_checker_returns_healthy() {
     let checker = CompositeHealthChecker::new();
@@ -182,6 +188,7 @@ async fn empty_checker_returns_healthy() {
     assert!(response.checks.is_empty());
 }
 
+// Default トレイトで生成したチェッカーがチェックなし・Healthy 状態であることを確認する。
 #[tokio::test]
 async fn default_trait_creates_empty_checker() {
     let checker = CompositeHealthChecker::default();
@@ -193,6 +200,7 @@ async fn default_trait_creates_empty_checker() {
 
 // ─── Timeout Behavior ──────────────────────────────────────────────────────
 
+// 遅延があるチェックでも完了まで待機してヘルシー結果を返すことを確認する。
 #[tokio::test]
 async fn slow_check_still_completes() {
     let mut checker = CompositeHealthChecker::new();
@@ -205,6 +213,7 @@ async fn slow_check_still_completes() {
     assert_eq!(response.checks["slow-check"].status, HealthStatus::Healthy);
 }
 
+// タイムアウトエラーが Unhealthy として記録され、メッセージに "timed out" が含まれることを確認する。
 #[tokio::test]
 async fn timeout_error_reported_as_unhealthy() {
     let mut checker = CompositeHealthChecker::new();
@@ -221,6 +230,7 @@ async fn timeout_error_reported_as_unhealthy() {
 
 // ─── readyz / healthz ───────────────────────────────────────────────────────
 
+// readyz が run_all と同じ結果を返すことを確認する。
 #[tokio::test]
 async fn readyz_returns_same_as_run_all() {
     let mut checker = CompositeHealthChecker::new();
@@ -231,6 +241,7 @@ async fn readyz_returns_same_as_run_all() {
     assert_eq!(response.checks.len(), 1);
 }
 
+// 異常チェックがある場合に readyz が Unhealthy を返すことを確認する。
 #[tokio::test]
 async fn readyz_with_failing_check_returns_unhealthy() {
     let mut checker = CompositeHealthChecker::new();
@@ -240,6 +251,7 @@ async fn readyz_with_failing_check_returns_unhealthy() {
     assert_eq!(response.status, HealthStatus::Unhealthy);
 }
 
+// healthz が常に status="ok" を返すことを確認する。
 #[test]
 fn healthz_always_returns_ok() {
     let checker = CompositeHealthChecker::new();
@@ -247,6 +259,7 @@ fn healthz_always_returns_ok() {
     assert_eq!(response.status, "ok");
 }
 
+// 異常チェックが登録されていても healthz は常に status="ok" を返すことを確認する。
 #[test]
 fn healthz_returns_ok_regardless_of_checks() {
     let mut checker = CompositeHealthChecker::new();
@@ -259,6 +272,7 @@ fn healthz_returns_ok_regardless_of_checks() {
 
 // ─── HealthResponse / HealthzResponse Construction ──────────────────────────
 
+// HealthResponse を手動構築したとき各フィールドが正しく設定されることを確認する。
 #[test]
 fn health_response_manual_construction() {
     let mut checks = HashMap::new();
@@ -295,6 +309,7 @@ fn health_response_manual_construction() {
     assert_eq!(response.timestamp, "1234567890");
 }
 
+// HealthzResponse を手動構築したとき status フィールドが正しく設定されることを確認する。
 #[test]
 fn healthz_response_manual_construction() {
     let response = HealthzResponse {
@@ -305,6 +320,7 @@ fn healthz_response_manual_construction() {
 
 // ─── HealthStatus Equality ──────────────────────────────────────────────────
 
+// HealthStatus の等値・非等値比較が正しく動作することを確認する。
 #[test]
 fn health_status_equality() {
     assert_eq!(HealthStatus::Healthy, HealthStatus::Healthy);
@@ -315,6 +331,7 @@ fn health_status_equality() {
     assert_ne!(HealthStatus::Unhealthy, HealthStatus::Degraded);
 }
 
+// HealthStatus を clone した結果が元の値と等しいことを確認する。
 #[test]
 fn health_status_clone() {
     let status = HealthStatus::Healthy;
@@ -322,6 +339,7 @@ fn health_status_clone() {
     assert_eq!(status, cloned);
 }
 
+// HealthStatus の Debug 表示が期待する文字列になることを確認する。
 #[test]
 fn health_status_debug() {
     let debug = format!("{:?}", HealthStatus::Healthy);
@@ -330,6 +348,7 @@ fn health_status_debug() {
 
 // ─── HealthError Display ────────────────────────────────────────────────────
 
+// HealthError の Display 出力が期待するメッセージフォーマットになることを確認する。
 #[test]
 fn health_error_display() {
     let err = HealthError::CheckFailed("db down".to_string());
@@ -341,6 +360,7 @@ fn health_error_display() {
 
 // ─── Timestamp ──────────────────────────────────────────────────────────────
 
+// ヘルスチェック実行後のレスポンスにタイムスタンプが含まれ、数値として解析できることを確認する。
 #[tokio::test]
 async fn response_has_non_empty_timestamp() {
     let checker = CompositeHealthChecker::new();
@@ -352,6 +372,7 @@ async fn response_has_non_empty_timestamp() {
 
 // ─── Check Result Message ───────────────────────────────────────────────────
 
+// 異常チェックの結果にエラーメッセージが含まれることを確認する。
 #[tokio::test]
 async fn unhealthy_check_includes_error_message() {
     let mut checker = CompositeHealthChecker::new();
@@ -363,6 +384,7 @@ async fn unhealthy_check_includes_error_message() {
     assert!(result.message.as_ref().unwrap().contains("service is down"));
 }
 
+// ヘルシーなチェックの結果にメッセージが含まれないことを確認する。
 #[tokio::test]
 async fn healthy_check_has_no_message() {
     let mut checker = CompositeHealthChecker::new();

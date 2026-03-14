@@ -148,6 +148,7 @@ mod tests {
         }
     }
 
+    // InMemoryPubSub の初期化後にステータスが Ready になることを確認する。
     #[tokio::test]
     async fn test_init_and_status() {
         let pubsub = InMemoryPubSub::new("test-pubsub");
@@ -156,6 +157,7 @@ mod tests {
         assert_eq!(pubsub.status().await, ComponentStatus::Ready);
     }
 
+    // クローズ後にステータスが Closed になることを確認する。
     #[tokio::test]
     async fn test_close() {
         let pubsub = InMemoryPubSub::new("test-pubsub");
@@ -164,6 +166,7 @@ mod tests {
         assert_eq!(pubsub.status().await, ComponentStatus::Closed);
     }
 
+    // パブリッシュ時にサブスクライブ済みトピックのハンドラーが呼び出されることを確認する。
     #[tokio::test]
     async fn test_publish_subscribe() {
         let pubsub = InMemoryPubSub::new("test-pubsub");
@@ -190,6 +193,7 @@ mod tests {
         assert_eq!(count.load(Ordering::SeqCst), 1);
     }
 
+    // サブスクリプション解除後にメッセージが配信されないことを確認する。
     #[tokio::test]
     async fn test_unsubscribe() {
         let pubsub = InMemoryPubSub::new("test-pubsub");
@@ -210,6 +214,7 @@ mod tests {
         assert_eq!(count.load(Ordering::SeqCst), 0);
     }
 
+    // 存在しないサブスクリプション ID を解除しようとするとエラーになることを確認する。
     #[tokio::test]
     async fn test_unsubscribe_not_found() {
         let pubsub = InMemoryPubSub::new("test-pubsub");
@@ -217,6 +222,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // メタデータにバックエンドが "memory" として設定されていることを確認する。
     #[tokio::test]
     async fn test_metadata() {
         let pubsub = InMemoryPubSub::new("test-pubsub");
@@ -224,6 +230,7 @@ mod tests {
         assert_eq!(meta.get("backend").unwrap(), "memory");
     }
 
+    // コンポーネントタイプが "pubsub" であることを確認する。
     #[tokio::test]
     async fn test_component_type() {
         let pubsub = InMemoryPubSub::new("test-pubsub");

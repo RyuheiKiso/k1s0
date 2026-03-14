@@ -164,6 +164,7 @@ impl StateStore for InMemoryStateStore {
 mod tests {
     use super::*;
 
+    // InMemoryStateStore の初期化後にステータスが Ready になることを確認する。
     #[tokio::test]
     async fn test_init_and_status() {
         let store = InMemoryStateStore::new("test-store");
@@ -172,6 +173,7 @@ mod tests {
         assert_eq!(store.status().await, ComponentStatus::Ready);
     }
 
+    // 値をセットした後に正しく取得でき、ETag が返されることを確認する。
     #[tokio::test]
     async fn test_set_and_get() {
         let store = InMemoryStateStore::new("test-store");
@@ -186,6 +188,7 @@ mod tests {
         assert_eq!(entry.etag, etag);
     }
 
+    // 存在しないキーを取得すると None が返されることを確認する。
     #[tokio::test]
     async fn test_get_not_found() {
         let store = InMemoryStateStore::new("test-store");
@@ -193,6 +196,7 @@ mod tests {
         assert!(result.is_none());
     }
 
+    // 正しい ETag を指定して値を更新できることを確認する。
     #[tokio::test]
     async fn test_set_with_etag() {
         let store = InMemoryStateStore::new("test-store");
@@ -204,6 +208,7 @@ mod tests {
         assert_eq!(entry.value, b"value2");
     }
 
+    // 不正な ETag を指定してセットすると ETagMismatch エラーになることを確認する。
     #[tokio::test]
     async fn test_set_etag_mismatch() {
         let store = InMemoryStateStore::new("test-store");
@@ -212,6 +217,7 @@ mod tests {
         assert!(matches!(result, Err(StateStoreError::ETagMismatch { .. })));
     }
 
+    // キーを削除後に取得すると None が返されることを確認する。
     #[tokio::test]
     async fn test_delete() {
         let store = InMemoryStateStore::new("test-store");
@@ -220,6 +226,7 @@ mod tests {
         assert!(store.get("key1").await.unwrap().is_none());
     }
 
+    // 不正な ETag を指定して削除すると ETagMismatch エラーになることを確認する。
     #[tokio::test]
     async fn test_delete_with_etag_mismatch() {
         let store = InMemoryStateStore::new("test-store");
@@ -228,6 +235,7 @@ mod tests {
         assert!(matches!(result, Err(StateStoreError::ETagMismatch { .. })));
     }
 
+    // 複数キーを一括取得し、存在するキーのエントリのみ返されることを確認する。
     #[tokio::test]
     async fn test_bulk_get() {
         let store = InMemoryStateStore::new("test-store");
@@ -239,6 +247,7 @@ mod tests {
         assert_eq!(entries.len(), 2);
     }
 
+    // 複数エントリを一括セットし、それぞれ ETag が返されることを確認する。
     #[tokio::test]
     async fn test_bulk_set() {
         let store = InMemoryStateStore::new("test-store");
@@ -252,6 +261,7 @@ mod tests {
         assert_eq!(entry.value, b"10");
     }
 
+    // クローズ後にストアがクリアされステータスが Closed になることを確認する。
     #[tokio::test]
     async fn test_close_clears_store() {
         let store = InMemoryStateStore::new("test-store");
@@ -260,6 +270,7 @@ mod tests {
         assert_eq!(store.status().await, ComponentStatus::Closed);
     }
 
+    // メタデータにバックエンドが "memory" として設定されていることを確認する。
     #[tokio::test]
     async fn test_metadata() {
         let store = InMemoryStateStore::new("test-store");

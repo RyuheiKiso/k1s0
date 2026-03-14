@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// CalculateChecksum がファイルの SHA-256 チェックサムを正しく計算することを確認する。
 func TestCalculateChecksum(t *testing.T) {
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "test.txt")
@@ -28,11 +29,13 @@ func TestCalculateChecksum(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
+// CalculateChecksum が存在しないファイルを指定するとエラーを返すことを確認する。
 func TestCalculateChecksum_FileNotFound(t *testing.T) {
 	_, err := appupdater.CalculateChecksum("/nonexistent/file.txt")
 	require.Error(t, err)
 }
 
+// VerifyChecksum が正しいチェックサムに対して true を返すことを確認する。
 func TestVerifyChecksum_Valid(t *testing.T) {
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "test.txt")
@@ -48,6 +51,7 @@ func TestVerifyChecksum_Valid(t *testing.T) {
 	assert.True(t, ok)
 }
 
+// VerifyChecksum がチェックサムの大文字・小文字を区別せず比較することを確認する。
 func TestVerifyChecksum_CaseInsensitive(t *testing.T) {
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "test.txt")
@@ -63,6 +67,7 @@ func TestVerifyChecksum_CaseInsensitive(t *testing.T) {
 	assert.True(t, ok)
 }
 
+// VerifyChecksum が一致しないチェックサムに対して false を返すことを確認する。
 func TestVerifyChecksum_Invalid(t *testing.T) {
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "test.txt")
@@ -75,6 +80,7 @@ func TestVerifyChecksum_Invalid(t *testing.T) {
 	assert.False(t, ok)
 }
 
+// VerifyChecksumOrError がチェックサムが一致する場合にエラーなしで完了することを確認する。
 func TestVerifyChecksumOrError_Match(t *testing.T) {
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "test.txt")
@@ -89,6 +95,7 @@ func TestVerifyChecksumOrError_Match(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// VerifyChecksumOrError がチェックサムが不一致の場合に ChecksumError を返すことを確認する。
 func TestVerifyChecksumOrError_Mismatch(t *testing.T) {
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "test.txt")

@@ -139,12 +139,14 @@ mod tests {
         }
     }
 
+    // サーキットブレーカーの初期状態が Closed であることを確認する。
     #[tokio::test]
     async fn test_starts_closed() {
         let cb = CircuitBreaker::new(test_config());
         assert_eq!(cb.state().await, CircuitBreakerState::Closed);
     }
 
+    // 失敗回数が閾値に達した後に Open へ遷移することを確認する。
     #[tokio::test]
     async fn test_opens_after_failure_threshold() {
         let cb = CircuitBreaker::new(test_config());
@@ -156,6 +158,7 @@ mod tests {
         assert_eq!(cb.state().await, CircuitBreakerState::Open);
     }
 
+    // タイムアウト経過後に Open から HalfOpen へ遷移することを確認する。
     #[tokio::test]
     async fn test_half_open_after_timeout() {
         let config = CircuitBreakerConfig {
@@ -172,6 +175,7 @@ mod tests {
         assert_eq!(cb.state().await, CircuitBreakerState::HalfOpen);
     }
 
+    // HalfOpen 状態で成功回数が閾値に達した後に Closed へ遷移することを確認する。
     #[tokio::test]
     async fn test_closes_after_success_threshold_in_half_open() {
         let config = CircuitBreakerConfig {
@@ -193,6 +197,7 @@ mod tests {
         assert_eq!(cb.state().await, CircuitBreakerState::Closed);
     }
 
+    // call が成功した場合に値が正しく返されることを確認する。
     #[tokio::test]
     async fn test_call_success() {
         let cb = CircuitBreaker::new(test_config());
@@ -201,6 +206,7 @@ mod tests {
         assert_eq!(result.unwrap(), 42);
     }
 
+    // Open 状態のとき call がリジェクトされることを確認する。
     #[tokio::test]
     async fn test_call_rejects_when_open() {
         let cb = CircuitBreaker::new(test_config());
@@ -213,6 +219,7 @@ mod tests {
         assert!(matches!(result, Err(CircuitBreakerError::Open)));
     }
 
+    // HalfOpen 状態で失敗が発生した場合に Open へ再遷移することを確認する。
     #[tokio::test]
     async fn test_failure_in_half_open_reopens() {
         let config = CircuitBreakerConfig {
@@ -230,6 +237,7 @@ mod tests {
         assert_eq!(cb.state().await, CircuitBreakerState::Open);
     }
 
+    // メトリクスが成功数・失敗数・状態を正しく記録することを確認する。
     #[tokio::test]
     async fn test_metrics() {
         let cb = CircuitBreaker::new(test_config());

@@ -23,6 +23,7 @@ func newTestRunner() *InMemoryMigrationRunner {
 	return NewInMemoryRunnerFromMigrations(cfg, ups, downs)
 }
 
+// RunUpが全マイグレーションを適用し、適用数が3になることを確認する。
 func TestRunUpAppliesAll(t *testing.T) {
 	runner := newTestRunner()
 	report, err := runner.RunUp(context.Background())
@@ -31,6 +32,7 @@ func TestRunUpAppliesAll(t *testing.T) {
 	assert.Empty(t, report.Errors)
 }
 
+// RunUpが冪等に動作し、2回目の実行では適用数が0になることを確認する。
 func TestRunUpIdempotent(t *testing.T) {
 	runner := newTestRunner()
 	_, err := runner.RunUp(context.Background())
@@ -41,6 +43,7 @@ func TestRunUpIdempotent(t *testing.T) {
 	assert.Equal(t, 0, report.AppliedCount)
 }
 
+// RunDownが指定ステップ数だけマイグレーションを巻き戻すことを確認する。
 func TestRunDown(t *testing.T) {
 	runner := newTestRunner()
 	_, err := runner.RunUp(context.Background())
@@ -56,6 +59,7 @@ func TestRunDown(t *testing.T) {
 	assert.Equal(t, "20240201000001", pending[0].Version)
 }
 
+// RunDownが複数ステップの巻き戻しを正しく処理することを確認する。
 func TestRunDownMultipleSteps(t *testing.T) {
 	runner := newTestRunner()
 	_, err := runner.RunUp(context.Background())
@@ -70,6 +74,7 @@ func TestRunDownMultipleSteps(t *testing.T) {
 	assert.Len(t, pending, 2)
 }
 
+// RunDownの指定ステップ数が適用済み数を超えても全件巻き戻せることを確認する。
 func TestRunDownMoreThanApplied(t *testing.T) {
 	runner := newTestRunner()
 	_, err := runner.RunUp(context.Background())
@@ -80,6 +85,7 @@ func TestRunDownMoreThanApplied(t *testing.T) {
 	assert.Equal(t, 3, report.AppliedCount)
 }
 
+// RunUp前のStatusが全マイグレーションをAppliedAt=nilの未適用として返すことを確認する。
 func TestStatusAllPending(t *testing.T) {
 	runner := newTestRunner()
 	statuses, err := runner.Status(context.Background())
@@ -90,6 +96,7 @@ func TestStatusAllPending(t *testing.T) {
 	}
 }
 
+// RunUp後のStatusが全マイグレーションをAppliedAtが設定された適用済みとして返すことを確認する。
 func TestStatusAfterApply(t *testing.T) {
 	runner := newTestRunner()
 	_, err := runner.RunUp(context.Background())
@@ -103,6 +110,7 @@ func TestStatusAfterApply(t *testing.T) {
 	}
 }
 
+// RunUp前のPendingが全未適用マイグレーションをバージョン順に返すことを確認する。
 func TestPendingReturnsUnapplied(t *testing.T) {
 	runner := newTestRunner()
 	pending, err := runner.Pending(context.Background())
@@ -113,6 +121,7 @@ func TestPendingReturnsUnapplied(t *testing.T) {
 	assert.Equal(t, "20240201000001", pending[2].Version)
 }
 
+// RunUp後のPendingが空スライスを返すことを確認する。
 func TestPendingEmptyAfterApply(t *testing.T) {
 	runner := newTestRunner()
 	_, err := runner.RunUp(context.Background())
@@ -123,6 +132,7 @@ func TestPendingEmptyAfterApply(t *testing.T) {
 	assert.Empty(t, pending)
 }
 
+// ParseFilenameがupマイグレーションファイル名からバージョン・名前・方向を正しく解析することを確認する。
 func TestParseFilenameUp(t *testing.T) {
 	version, name, dir, ok := ParseFilename("20240101000001_create_users.up.sql")
 	assert.True(t, ok)
@@ -131,6 +141,7 @@ func TestParseFilenameUp(t *testing.T) {
 	assert.Equal(t, DirectionUp, dir)
 }
 
+// ParseFilenameがdownマイグレーションファイル名からバージョン・名前・方向を正しく解析することを確認する。
 func TestParseFilenameDown(t *testing.T) {
 	version, name, dir, ok := ParseFilename("20240101000001_create_users.down.sql")
 	assert.True(t, ok)
@@ -139,6 +150,7 @@ func TestParseFilenameDown(t *testing.T) {
 	assert.Equal(t, DirectionDown, dir)
 }
 
+// 不正なファイル名に対してParseFilenameがokをfalseで返すことを確認する。
 func TestParseFilenameInvalid(t *testing.T) {
 	_, _, _, ok := ParseFilename("invalid.sql")
 	assert.False(t, ok)
@@ -150,6 +162,7 @@ func TestParseFilenameInvalid(t *testing.T) {
 	assert.False(t, ok)
 }
 
+// 同一内容のSQLに対してChecksumが常に同じ値を返すことを確認する。
 func TestChecksumDeterministic(t *testing.T) {
 	content := "CREATE TABLE users (id SERIAL PRIMARY KEY);"
 	c1 := Checksum(content)
@@ -157,12 +170,14 @@ func TestChecksumDeterministic(t *testing.T) {
 	assert.Equal(t, c1, c2)
 }
 
+// 異なる内容のSQLに対してChecksumが異なる値を返すことを確認する。
 func TestChecksumDiffersForDifferentContent(t *testing.T) {
 	c1 := Checksum("CREATE TABLE users;")
 	c2 := Checksum("CREATE TABLE orders;")
 	assert.NotEqual(t, c1, c2)
 }
 
+// NewMigrationConfigがデフォルトのテーブル名とドライバーを正しく設定することを確認する。
 func TestDefaultConfig(t *testing.T) {
 	cfg := NewMigrationConfig("./migrations", "postgres://localhost/test")
 	assert.Equal(t, "_migrations", cfg.TableName)

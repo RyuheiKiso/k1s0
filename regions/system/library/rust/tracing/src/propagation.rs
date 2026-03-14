@@ -63,6 +63,7 @@ pub fn extract_context(headers: &HashMap<String, String>) -> Option<TraceContext
 mod tests {
     use super::*;
 
+    // TraceContext を traceparent 文字列に変換した結果が期待値と一致することを確認する。
     #[test]
     fn test_to_traceparent() {
         let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 1);
@@ -72,6 +73,7 @@ mod tests {
         );
     }
 
+    // 正しい traceparent 文字列から TraceContext が正しく解析されることを確認する。
     #[test]
     fn test_from_traceparent() {
         let s = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
@@ -81,6 +83,7 @@ mod tests {
         assert_eq!(ctx.flags, 1);
     }
 
+    // TraceContext をシリアライズ・デシリアライズした結果が元の値と一致することを確認する。
     #[test]
     fn test_roundtrip() {
         let original = TraceContext::new("abcdef1234567890abcdef1234567890", "1234567890abcdef", 0);
@@ -89,12 +92,14 @@ mod tests {
         assert_eq!(original, parsed);
     }
 
+    // バージョンが "00" 以外の traceparent の解析が None を返すことを確認する。
     #[test]
     fn test_invalid_version() {
         let s = "01-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
         assert!(TraceContext::from_traceparent(s).is_none());
     }
 
+    // 無効な形式の文字列の解析が None を返すことを確認する。
     #[test]
     fn test_invalid_format() {
         assert!(TraceContext::from_traceparent("invalid").is_none());
@@ -102,12 +107,14 @@ mod tests {
         assert!(TraceContext::from_traceparent("").is_none());
     }
 
+    // 非 16 進文字を含む trace_id の解析が None を返すことを確認する。
     #[test]
     fn test_invalid_hex() {
         let s = "00-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-b7ad6b7169203331-01";
         assert!(TraceContext::from_traceparent(s).is_none());
     }
 
+    // コンテキストをヘッダーに注入すると traceparent が正しい値で設定されることを確認する。
     #[test]
     fn test_inject_context() {
         let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 1);
@@ -120,6 +127,7 @@ mod tests {
         );
     }
 
+    // ヘッダーからコンテキストを抽出し trace_id が正しく復元されることを確認する。
     #[test]
     fn test_extract_context() {
         let mut headers = HashMap::new();
@@ -131,12 +139,14 @@ mod tests {
         assert_eq!(ctx.trace_id, "0af7651916cd43dd8448eb211c80319c");
     }
 
+    // traceparent ヘッダーが存在しない場合のコンテキスト抽出が None を返すことを確認する。
     #[test]
     fn test_extract_context_missing() {
         let headers = HashMap::new();
         assert!(extract_context(&headers).is_none());
     }
 
+    // flags が 0 のとき traceparent の末尾が "-00" になることを確認する。
     #[test]
     fn test_flags_zero() {
         let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 0);

@@ -25,6 +25,7 @@ impl std::error::Error for TestError {}
 // ResiliencyPolicyBuilder tests
 // ===========================================================================
 
+// デフォルトのビルダーが空のポリシーを生成することを確認する。
 #[test]
 fn builder_default_produces_empty_policy() {
     let policy = ResiliencyPolicy::builder().build();
@@ -36,6 +37,7 @@ fn builder_default_produces_empty_policy() {
     assert!(policy.retryable_errors.is_empty());
 }
 
+// ビルダーにリトライ設定を追加したときにポリシーが正しく設定されることを確認する。
 #[test]
 fn builder_with_retry() {
     let policy = ResiliencyPolicy::builder()
@@ -45,6 +47,7 @@ fn builder_with_retry() {
     assert_eq!(policy.retry.unwrap().max_attempts, 5);
 }
 
+// ビルダーにサーキットブレーカー設定を追加したときにポリシーが正しく設定されることを確認する。
 #[test]
 fn builder_with_circuit_breaker() {
     let policy = ResiliencyPolicy::builder()
@@ -60,6 +63,7 @@ fn builder_with_circuit_breaker() {
     assert_eq!(cb.timeout, Duration::from_secs(30));
 }
 
+// ビルダーにバルクヘッド設定を追加したときにポリシーが正しく設定されることを確認する。
 #[test]
 fn builder_with_bulkhead() {
     let policy = ResiliencyPolicy::builder()
@@ -73,6 +77,7 @@ fn builder_with_bulkhead() {
     assert_eq!(bh.max_wait_duration, Duration::from_millis(500));
 }
 
+// ビルダーにタイムアウトを設定したときにポリシーが正しく反映されることを確認する。
 #[test]
 fn builder_with_timeout() {
     let policy = ResiliencyPolicy::builder()
@@ -81,6 +86,7 @@ fn builder_with_timeout() {
     assert_eq!(policy.timeout, Some(Duration::from_secs(5)));
 }
 
+// ビルダーに指数バックオフを設定したときにポリシーが正しく反映されることを確認する。
 #[test]
 fn builder_with_backoff() {
     let policy = ResiliencyPolicy::builder()
@@ -94,6 +100,7 @@ fn builder_with_backoff() {
     assert_eq!(bo.max_delay, Duration::from_secs(10));
 }
 
+// ビルダーにリトライ対象エラーを設定したときにポリシーが正しく反映されることを確認する。
 #[test]
 fn builder_with_retryable_errors() {
     let policy = ResiliencyPolicy::builder()
@@ -106,6 +113,7 @@ fn builder_with_retryable_errors() {
         .contains(&"network_error".to_string()));
 }
 
+// ビルダーの全オプションをチェーンしたときにポリシーが正しく構築されることを確認する。
 #[test]
 fn builder_full_chain() {
     let policy = ResiliencyPolicy::builder()
@@ -139,6 +147,7 @@ fn builder_full_chain() {
 // ExponentialBackoff tests
 // ===========================================================================
 
+// 試行0回目のバックオフ遅延が初期遅延と等しいことを確認する。
 #[test]
 fn exponential_backoff_compute_delay_attempt_zero() {
     let bo = ExponentialBackoff::new(Duration::from_millis(100), Duration::from_secs(10));
@@ -146,6 +155,7 @@ fn exponential_backoff_compute_delay_attempt_zero() {
     assert_eq!(delay, Duration::from_millis(100));
 }
 
+// バックオフ遅延が試行回数を増やすごとに大きくなることを確認する。
 #[test]
 fn exponential_backoff_compute_delay_grows() {
     let bo = ExponentialBackoff::new(Duration::from_millis(100), Duration::from_secs(10));
@@ -156,6 +166,7 @@ fn exponential_backoff_compute_delay_grows() {
     assert!(d2 > d1);
 }
 
+// バックオフ遅延が最大遅延を超えないことを確認する。
 #[test]
 fn exponential_backoff_capped_at_max() {
     let bo = ExponentialBackoff::new(Duration::from_millis(100), Duration::from_millis(500));
@@ -532,6 +543,7 @@ async fn decorator_bulkhead_rejection_metrics() {
 // ResiliencyMetrics tests
 // ===========================================================================
 
+// ResiliencyMetricsの初期値がすべて0であることを確認する。
 #[test]
 fn metrics_initial_values() {
     let m = ResiliencyMetrics::new();
@@ -541,6 +553,7 @@ fn metrics_initial_values() {
     assert_eq!(m.timeout_events(), 0);
 }
 
+// リトライ試行を記録するとカウンターが正しく増加することを確認する。
 #[test]
 fn metrics_record_retry() {
     let m = ResiliencyMetrics::new();
@@ -549,6 +562,7 @@ fn metrics_record_retry() {
     assert_eq!(m.retry_attempts(), 2);
 }
 
+// サーキットオープンイベントを記録するとカウンターが増加することを確認する。
 #[test]
 fn metrics_record_circuit_open() {
     let m = ResiliencyMetrics::new();
@@ -556,6 +570,7 @@ fn metrics_record_circuit_open() {
     assert_eq!(m.circuit_open_events(), 1);
 }
 
+// バルクヘッド拒否を記録するとカウンターが正しく増加することを確認する。
 #[test]
 fn metrics_record_bulkhead_rejection() {
     let m = ResiliencyMetrics::new();
@@ -565,6 +580,7 @@ fn metrics_record_bulkhead_rejection() {
     assert_eq!(m.bulkhead_rejections(), 3);
 }
 
+// タイムアウトイベントを記録するとカウンターが増加することを確認する。
 #[test]
 fn metrics_record_timeout() {
     let m = ResiliencyMetrics::new();
@@ -572,6 +588,7 @@ fn metrics_record_timeout() {
     assert_eq!(m.timeout_events(), 1);
 }
 
+// サーキットブレーカーの状態遷移がメトリクスに正しく反映されることを確認する。
 #[test]
 fn metrics_circuit_state_transitions() {
     let m = ResiliencyMetrics::new();
@@ -614,6 +631,7 @@ async fn decorator_with_shared_metrics() {
 // ResiliencyError display
 // ===========================================================================
 
+// MaxRetriesExceededエラーの表示メッセージが試行回数と最後のエラーを含むことを確認する。
 #[test]
 fn error_max_retries_display() {
     let err = ResiliencyError::MaxRetriesExceeded {
@@ -625,6 +643,7 @@ fn error_max_retries_display() {
     assert!(msg.contains("connection refused"));
 }
 
+// CircuitOpenエラーの表示メッセージにサーキットブレーカーの情報が含まれることを確認する。
 #[test]
 fn error_circuit_open_display() {
     let err = ResiliencyError::CircuitOpen {
@@ -634,6 +653,7 @@ fn error_circuit_open_display() {
     assert!(msg.contains("circuit breaker"));
 }
 
+// BulkheadFullエラーの表示メッセージに最大同時実行数が含まれることを確認する。
 #[test]
 fn error_bulkhead_full_display() {
     let err = ResiliencyError::BulkheadFull {
@@ -643,6 +663,7 @@ fn error_bulkhead_full_display() {
     assert!(msg.contains("10"));
 }
 
+// Timeoutエラーの表示メッセージにタイムアウト情報が含まれることを確認する。
 #[test]
 fn error_timeout_display() {
     let err = ResiliencyError::Timeout {

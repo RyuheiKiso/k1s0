@@ -59,6 +59,7 @@ pub trait EventConsumer: Send + Sync {
 mod tests {
     use super::*;
 
+    // ConsumedMessage のペイロードを JSON としてデシリアライズできることを確認する。
     #[test]
     fn test_consumed_message_deserialize_json() {
         let payload = serde_json::json!({"user_id": "user-1", "event": "login"});
@@ -75,6 +76,7 @@ mod tests {
         assert_eq!(parsed["event"], "login");
     }
 
+    // JSON デシリアライズ時に ConsumerConfig のデフォルト値（auto_commit=false, session_timeout=30000ms）が設定されることを確認する。
     #[test]
     fn test_consumer_config_defaults() {
         let json = r#"{"group_id": "my-group", "topics": ["my-topic"]}"#;
@@ -83,6 +85,7 @@ mod tests {
         assert_eq!(cfg.session_timeout_ms, 30000);
     }
 
+    // キーが None の ConsumedMessage が正しく構築されフィールド値を保持することを確認する。
     #[test]
     fn test_consumed_message_with_none_key() {
         let msg = ConsumedMessage {
@@ -97,6 +100,7 @@ mod tests {
         assert!(msg.key.is_none());
     }
 
+    // 複数のトピックを持つ ConsumerConfig が正しくデシリアライズされることを確認する。
     #[test]
     fn test_consumer_config_with_multiple_topics() {
         let json = r#"{"group_id": "my-group", "topics": ["topic-a", "topic-b", "topic-c"]}"#;
@@ -105,6 +109,7 @@ mod tests {
         assert_eq!(cfg.group_id, "my-group");
     }
 
+    // 不正な JSON ペイロードのデシリアライズがエラーになることを確認する。
     #[test]
     fn test_consumed_message_deserialize_invalid_json() {
         let msg = ConsumedMessage {
@@ -118,6 +123,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // auto_commit を明示的に true に指定した場合に ConsumerConfig に反映されることを確認する。
     #[test]
     fn test_consumer_config_auto_commit_override() {
         let json = r#"{"group_id": "grp", "topics": ["t"], "auto_commit": true}"#;

@@ -73,6 +73,7 @@ impl SchemaRegistryConfig {
 mod tests {
     use super::*;
 
+    // new で作成した設定のデフォルト値が正しいことを確認する。
     #[test]
     fn test_new_defaults() {
         let cfg = SchemaRegistryConfig::new("http://schema-registry:8081");
@@ -81,18 +82,21 @@ mod tests {
         assert_eq!(cfg.timeout_secs, 30);
     }
 
+    // 標準トピック名からサブジェクト名が正しく生成されることを確認する。
     #[test]
     fn test_subject_name_standard_topic() {
         let subject = SchemaRegistryConfig::subject_name("k1s0.system.auth.user-created.v1");
         assert_eq!(subject, "k1s0.system.auth.user-created.v1-value");
     }
 
+    // シンプルなトピック名からサブジェクト名が正しく生成されることを確認する。
     #[test]
     fn test_subject_name_simple_topic() {
         let subject = SchemaRegistryConfig::subject_name("orders");
         assert_eq!(subject, "orders-value");
     }
 
+    // ビジネス層トピック名からサブジェクト名が正しく生成されることを確認する。
     #[test]
     fn test_subject_name_business_topic() {
         let subject =
@@ -100,6 +104,7 @@ mod tests {
         assert_eq!(subject, "k1s0.business.accounting.invoice-issued.v2-value");
     }
 
+    // URLのみ指定した JSON からデシリアライズしたとき、デフォルト値が適用されることを確認する。
     #[test]
     fn test_deserialize_defaults() {
         let json = r#"{"url": "http://localhost:8081"}"#;
@@ -108,6 +113,7 @@ mod tests {
         assert_eq!(cfg.timeout_secs, 30);
     }
 
+    // カスタム互換性モードとタイムアウトを JSON からデシリアライズできることを確認する。
     #[test]
     fn test_deserialize_custom_compatibility() {
         let json =
@@ -117,6 +123,7 @@ mod tests {
         assert_eq!(cfg.timeout_secs, 60);
     }
 
+    // CompatibilityMode が SCREAMING_SNAKE_CASE の JSON 文字列にシリアライズされることを確認する。
     #[test]
     fn test_serialize_compatibility_mode() {
         let mode = CompatibilityMode::BackwardTransitive;
@@ -124,6 +131,7 @@ mod tests {
         assert_eq!(json, r#""BACKWARD_TRANSITIVE""#);
     }
 
+    // CompatibilityMode::None がシリアライズ・デシリアライズで正しく往復することを確認する。
     #[test]
     fn test_compatibility_mode_none() {
         let mode = CompatibilityMode::None;
@@ -133,6 +141,7 @@ mod tests {
         assert_eq!(back, CompatibilityMode::None);
     }
 
+    // SchemaRegistryConfig と CompatibilityMode のクローン・コピーが正しく機能することを確認する。
     #[test]
     fn test_clone_and_copy() {
         let cfg = SchemaRegistryConfig::new("http://schema-registry:8081");
@@ -145,6 +154,7 @@ mod tests {
         assert_eq!(mode, copied);
     }
 
+    // Kubernetes 内の完全修飾ドメイン名URLが正しく設定されることを確認する。
     #[test]
     fn test_kubernetes_url() {
         let cfg =

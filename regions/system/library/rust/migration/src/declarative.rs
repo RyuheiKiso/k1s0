@@ -82,6 +82,7 @@ pub fn toml_to_create_sql(toml_str: &str) -> Result<String, MigrationError> {
 mod tests {
     use super::*;
 
+    // 基本的なテーブル定義 TOML から CREATE TABLE SQL が正しく生成されることを確認する。
     #[test]
     fn test_basic_table() {
         let toml = r#"
@@ -113,6 +114,7 @@ unique = true
         assert!(sql.contains("PRIMARY KEY (id)"));
     }
 
+    // DEFAULT 値を持つカラムが CREATE TABLE SQL に正しく反映されることを確認する。
     #[test]
     fn test_column_with_default() {
         let toml = r#"
@@ -129,6 +131,7 @@ default = "true"
         assert!(sql.contains("active BOOLEAN NOT NULL DEFAULT true"));
     }
 
+    // REFERENCES 制約を持つカラムが CREATE TABLE SQL に正しく反映されることを確認する。
     #[test]
     fn test_column_with_references() {
         let toml = r#"
@@ -151,12 +154,14 @@ references = "users(id)"
         assert!(sql.contains("user_id UUID NOT NULL REFERENCES users(id)"));
     }
 
+    // 不正な TOML 文字列を渡すとエラーになることを確認する。
     #[test]
     fn test_invalid_toml() {
         let result = toml_to_create_sql("not valid toml {{{}}}");
         assert!(result.is_err());
     }
 
+    // 複合主キーが CREATE TABLE SQL に正しく反映されることを確認する。
     #[test]
     fn test_composite_primary_key() {
         let toml = r#"

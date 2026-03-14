@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// NewEventMetadataがイベントメタデータを正しく生成することを確認する。
 func TestNewEventMetadata(t *testing.T) {
 	meta := messaging.NewEventMetadata("user.created.v1", "corr-123", "auth-service")
 	assert.NotEmpty(t, meta.EventId)
@@ -20,12 +21,14 @@ func TestNewEventMetadata(t *testing.T) {
 	assert.False(t, meta.Timestamp.IsZero())
 }
 
+// NewEventMetadataが呼び出しごとに一意なイベントIDを生成することを確認する。
 func TestNewEventMetadata_UniqueIds(t *testing.T) {
 	meta1 := messaging.NewEventMetadata("event.v1", "corr-1", "svc")
 	meta2 := messaging.NewEventMetadata("event.v1", "corr-1", "svc")
 	assert.NotEqual(t, meta1.EventId, meta2.EventId)
 }
 
+// NoOpEventProducerのPublishがエラーなしでイベントを受け付け、カウントを増加することを確認する。
 func TestNoOpEventProducer_Publish(t *testing.T) {
 	producer := &messaging.NoOpEventProducer{}
 	event := messaging.EventEnvelope{
@@ -38,6 +41,7 @@ func TestNoOpEventProducer_Publish(t *testing.T) {
 	assert.Equal(t, 1, producer.PublishedCount())
 }
 
+// NoOpEventProducerが複数回のPublishを正確にカウントすることを確認する。
 func TestNoOpEventProducer_Publish_Multiple(t *testing.T) {
 	producer := &messaging.NoOpEventProducer{}
 	for i := 0; i < 3; i++ {
@@ -50,6 +54,7 @@ func TestNoOpEventProducer_Publish_Multiple(t *testing.T) {
 	assert.Equal(t, 3, producer.PublishedCount())
 }
 
+// NoOpEventProducerのPublishBatchが複数のイベントをまとめて受け付けることを確認する。
 func TestNoOpEventProducer_PublishBatch(t *testing.T) {
 	producer := &messaging.NoOpEventProducer{}
 	events := []messaging.EventEnvelope{
@@ -67,6 +72,7 @@ func TestNoOpEventProducer_PublishBatch(t *testing.T) {
 	assert.Equal(t, 2, producer.PublishedCount())
 }
 
+// NoOpEventProducerにErrが設定されている場合、Publishがそのエラーを返すことを確認する。
 func TestNoOpEventProducer_Publish_WithError(t *testing.T) {
 	expectedErr := errors.New("publish failed")
 	producer := &messaging.NoOpEventProducer{Err: expectedErr}
@@ -75,6 +81,7 @@ func TestNoOpEventProducer_Publish_WithError(t *testing.T) {
 	assert.Equal(t, 0, producer.PublishedCount())
 }
 
+// NoOpEventProducerのCloseがプロデューサーをクローズ済み状態にすることを確認する。
 func TestNoOpEventProducer_Close(t *testing.T) {
 	producer := &messaging.NoOpEventProducer{}
 	assert.False(t, producer.IsClosed())
@@ -83,6 +90,7 @@ func TestNoOpEventProducer_Close(t *testing.T) {
 	assert.True(t, producer.IsClosed())
 }
 
+// MessagingErrorのエラーメッセージにオペレーション名と原因が含まれることを確認する。
 func TestMessagingError(t *testing.T) {
 	cause := errors.New("connection refused")
 	err := &messaging.MessagingError{Op: "Publish", Err: cause}
@@ -91,6 +99,7 @@ func TestMessagingError(t *testing.T) {
 	assert.ErrorIs(t, err, cause)
 }
 
+// EventEnvelopeにHeadersフィールドを設定して正しく取得できることを確認する。
 func TestEventEnvelope_WithHeaders(t *testing.T) {
 	event := messaging.EventEnvelope{
 		Metadata: messaging.NewEventMetadata("test.v1", "corr-1", "svc"),
@@ -102,6 +111,7 @@ func TestEventEnvelope_WithHeaders(t *testing.T) {
 	assert.Equal(t, "corr-1", event.Headers["X-Correlation-Id"])
 }
 
+// NoOpEventProducerがPublishしたイベントをPublishedスライスに記録することを確認する。
 func TestNoOpEventProducer_RecordsPublishedEvents(t *testing.T) {
 	producer := &messaging.NoOpEventProducer{}
 	event := messaging.EventEnvelope{
@@ -116,17 +126,20 @@ func TestNoOpEventProducer_RecordsPublishedEvents(t *testing.T) {
 	assert.Equal(t, "test-payload", producer.Published[0].Payload)
 }
 
+// NoOpEventProducerがEventProducerインターフェースを実装していることをコンパイル時に確認する。
 func TestEventProducer_InterfaceCompliance(t *testing.T) {
 	// NoOpEventProducer 縺ｯ EventProducer 繧､繝ｳ繧ｿ繝ｼ繝輔ぉ繝ｼ繧ｹ繧貞ｮ溯｣・＠縺ｦ縺・ｋ縺薙→繧堤｢ｺ隱・
 	var _ messaging.EventProducer = &messaging.NoOpEventProducer{}
 }
 
+// NewEventMetadataで生成されたメタデータにTraceIdフィールドが存在することを確認する。
 func TestNewEventMetadata_HasTraceId(t *testing.T) {
 	meta := messaging.NewEventMetadata("user.created.v1", "corr-001", "auth-service")
 	// TraceId 縺ｯ繝・ヵ繧ｩ繝ｫ繝育ｩｺ・亥､夜Κ縺九ｉ險ｭ螳夲ｼ・
 	_ = meta.TraceId // 繝輔ぅ繝ｼ繝ｫ繝峨′蟄伜惠縺吶ｋ縺薙→繧堤｢ｺ隱・
 }
 
+// WithTraceIdが元のメタデータを変更せず新しいメタデータにトレースIDを設定することを確認する。
 func TestEventMetadata_WithTraceId(t *testing.T) {
 	meta := messaging.NewEventMetadata("user.created.v1", "corr-001", "auth-service")
 	withTrace := meta.WithTraceId("trace-abc-123")
@@ -135,6 +148,7 @@ func TestEventMetadata_WithTraceId(t *testing.T) {
 	assert.Empty(t, meta.TraceId)
 }
 
+// EventEnvelopeの全フィールド（Topic、Payload、Headers）が正しく設定されることを確認する。
 func TestEventEnvelope_Fields(t *testing.T) {
 	meta := messaging.NewEventMetadata("order.placed.v1", "corr-002", "order-service")
 	envelope := messaging.EventEnvelope{
@@ -148,6 +162,7 @@ func TestEventEnvelope_Fields(t *testing.T) {
 	assert.Equal(t, map[string]int{"order_id": 42}, envelope.Payload)
 }
 
+// NoOpEventProducerがClose後もPublishを受け付けエラーを返さないことを確認する。
 func TestNoOpEventProducer_PublishAfterClose(t *testing.T) {
 	producer := &messaging.NoOpEventProducer{}
 	require.NoError(t, producer.Close())
@@ -157,6 +172,7 @@ func TestNoOpEventProducer_PublishAfterClose(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// MessagingErrorのエラーラップが正しく機能し、ErrorIsによる原因判定ができることを確認する。
 func TestMessagingError_IsNilSafe(t *testing.T) {
 	cause := errors.New("timeout")
 	err := &messaging.MessagingError{Op: "Subscribe", Err: cause}
@@ -165,6 +181,7 @@ func TestMessagingError_IsNilSafe(t *testing.T) {
 	assert.Contains(t, err.Error(), "timeout")
 }
 
+// EventEnvelopeのHeadersおよびPayloadがnilでも正常に扱えることを確認する。
 func TestEventEnvelope_NilHeadersAllowed(t *testing.T) {
 	meta := messaging.NewEventMetadata("test.v1", "corr-003", "svc")
 	envelope := messaging.EventEnvelope{

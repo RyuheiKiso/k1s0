@@ -20,6 +20,7 @@ fn test_payload() -> WebhookPayload {
 // Signature generation & verification roundtrip
 // ===========================================================================
 
+// 署名を生成し同じシークレットで検証が成功することを確認する。
 #[test]
 fn signature_roundtrip_succeeds() {
     let secret = "webhook-secret-key";
@@ -28,6 +29,7 @@ fn signature_roundtrip_succeeds() {
     assert!(verify_signature(secret, body, &sig));
 }
 
+// JSON ペイロードの署名と検証が正しく機能することを確認する。
 #[test]
 fn signature_roundtrip_with_json_payload() {
     let secret = "my-secret";
@@ -37,6 +39,7 @@ fn signature_roundtrip_with_json_payload() {
     assert!(verify_signature(secret, &body, &sig));
 }
 
+// 生成された署名が 64 文字の 16 進数文字列であることを確認する。
 #[test]
 fn signature_is_hex_encoded_64_chars() {
     let sig = generate_signature("secret", b"data");
@@ -44,6 +47,7 @@ fn signature_is_hex_encoded_64_chars() {
     assert!(sig.chars().all(|c| c.is_ascii_hexdigit()));
 }
 
+// 同じ入力に対して生成される署名が毎回同一であることを確認する。
 #[test]
 fn signature_deterministic_same_input() {
     let secret = "stable-secret";
@@ -53,6 +57,7 @@ fn signature_deterministic_same_input() {
     assert_eq!(sig1, sig2);
 }
 
+// 異なるシークレットで生成した署名が互いに異なることを確認する。
 #[test]
 fn signature_differs_for_different_secrets() {
     let body = b"payload";
@@ -61,6 +66,7 @@ fn signature_differs_for_different_secrets() {
     assert_ne!(sig1, sig2);
 }
 
+// 異なるボディで生成した署名が互いに異なることを確認する。
 #[test]
 fn signature_differs_for_different_bodies() {
     let secret = "same-secret";
@@ -73,6 +79,7 @@ fn signature_differs_for_different_bodies() {
 // Invalid signature verification
 // ===========================================================================
 
+// 誤ったシークレットで署名検証を行うと失敗することを確認する。
 #[test]
 fn verify_with_wrong_secret_fails() {
     let body = b"payload";
@@ -80,6 +87,7 @@ fn verify_with_wrong_secret_fails() {
     assert!(!verify_signature("wrong-secret", body, &sig));
 }
 
+// ボディが改ざんされた場合に署名検証が失敗することを確認する。
 #[test]
 fn verify_with_tampered_body_fails() {
     let secret = "my-secret";
@@ -87,16 +95,19 @@ fn verify_with_tampered_body_fails() {
     assert!(!verify_signature(secret, b"tampered body", &sig));
 }
 
+// 空の署名文字列で検証すると失敗することを確認する。
 #[test]
 fn verify_with_empty_signature_fails() {
     assert!(!verify_signature("secret", b"body", ""));
 }
 
+// 不正な署名文字列で検証すると失敗することを確認する。
 #[test]
 fn verify_with_garbage_signature_fails() {
     assert!(!verify_signature("secret", b"body", "not-a-valid-signature"));
 }
 
+// 署名が切り詰められた場合に検証が失敗することを確認する。
 #[test]
 fn verify_with_truncated_signature_fails() {
     let secret = "my-secret";
@@ -110,6 +121,7 @@ fn verify_with_truncated_signature_fails() {
 // Signature with edge-case inputs
 // ===========================================================================
 
+// 空ボディの署名生成と検証が正しく機能することを確認する。
 #[test]
 fn signature_with_empty_body() {
     let secret = "my-secret";
@@ -118,6 +130,7 @@ fn signature_with_empty_body() {
     assert_eq!(sig.len(), 64);
 }
 
+// 空シークレットでの署名生成と検証が正しく機能することを確認する。
 #[test]
 fn signature_with_empty_secret() {
     let sig = generate_signature("", b"body");
@@ -125,6 +138,7 @@ fn signature_with_empty_secret() {
     assert_eq!(sig.len(), 64);
 }
 
+// Unicode 文字を含むシークレットでの署名生成と検証が正しく機能することを確認する。
 #[test]
 fn signature_with_unicode_secret() {
     let secret = "secret-with-unicode-\u{1F600}";
@@ -133,6 +147,7 @@ fn signature_with_unicode_secret() {
     assert!(verify_signature(secret, body, &sig));
 }
 
+// 大きなボディの署名生成と検証が正しく機能することを確認する。
 #[test]
 fn signature_with_large_body() {
     let secret = "my-secret";
@@ -145,6 +160,7 @@ fn signature_with_large_body() {
 // WebhookPayload construction & serde
 // ===========================================================================
 
+// WebhookPayload をシリアライズ・デシリアライズした結果が元の値と一致することを確認する。
 #[test]
 fn payload_serialize_deserialize_roundtrip() {
     let payload = test_payload();
@@ -156,6 +172,7 @@ fn payload_serialize_deserialize_roundtrip() {
     assert_eq!(deserialized.data["amount"], 9999);
 }
 
+// ネストされた data を持つ WebhookPayload のシリアライズ・デシリアライズが正しいことを確認する。
 #[test]
 fn payload_with_nested_data() {
     let payload = WebhookPayload {
@@ -177,6 +194,7 @@ fn payload_with_nested_data() {
     assert_eq!(deserialized.data["user"]["profile"]["roles"][0], "admin");
 }
 
+// null データを持つ WebhookPayload のシリアライズ・デシリアライズが正しいことを確認する。
 #[test]
 fn payload_with_null_data() {
     let payload = WebhookPayload {
@@ -189,6 +207,7 @@ fn payload_with_null_data() {
     assert!(deserialized.data.is_null());
 }
 
+// 空オブジェクト data を持つ WebhookPayload のシリアライズ・デシリアライズが正しいことを確認する。
 #[test]
 fn payload_with_empty_object_data() {
     let payload = WebhookPayload {
@@ -206,6 +225,7 @@ fn payload_with_empty_object_data() {
 // WebhookConfig
 // ===========================================================================
 
+// WebhookConfig のデフォルト値が正しく設定されていることを確認する。
 #[test]
 fn webhook_config_default_values() {
     let config = WebhookConfig::default();
@@ -214,6 +234,7 @@ fn webhook_config_default_values() {
     assert_eq!(config.max_backoff_ms, 10000);
 }
 
+// カスタム値を設定した WebhookConfig が正しいフィールド値を持つことを確認する。
 #[test]
 fn webhook_config_custom_values() {
     let config = WebhookConfig {
@@ -230,11 +251,13 @@ fn webhook_config_custom_values() {
 // Constants
 // ===========================================================================
 
+// SIGNATURE_HEADER 定数が "X-K1s0-Signature" であることを確認する。
 #[test]
 fn signature_header_constant() {
     assert_eq!(SIGNATURE_HEADER, "X-K1s0-Signature");
 }
 
+// IDEMPOTENCY_KEY_HEADER 定数が "Idempotency-Key" であることを確認する。
 #[test]
 fn idempotency_key_header_constant() {
     assert_eq!(IDEMPOTENCY_KEY_HEADER, "Idempotency-Key");
@@ -244,6 +267,7 @@ fn idempotency_key_header_constant() {
 // WebhookError display
 // ===========================================================================
 
+// WebhookError::RequestFailed の表示にエラーメッセージが含まれることを確認する。
 #[test]
 fn error_display_request_failed() {
     let err = WebhookError::RequestFailed("connection reset".to_string());
@@ -251,6 +275,7 @@ fn error_display_request_failed() {
     assert!(msg.contains("connection reset"));
 }
 
+// WebhookError::SerializationError の表示が空でないことを確認する。
 #[test]
 fn error_display_serialization_error() {
     // Create a real serde_json::Error
@@ -261,6 +286,7 @@ fn error_display_serialization_error() {
     assert!(!msg.is_empty());
 }
 
+// WebhookError::SignatureError の表示にエラーメッセージが含まれることを確認する。
 #[test]
 fn error_display_signature_error() {
     let err = WebhookError::SignatureError("invalid key length".to_string());
@@ -268,6 +294,7 @@ fn error_display_signature_error() {
     assert!(msg.contains("invalid key length"));
 }
 
+// WebhookError::Internal の表示にエラーメッセージが含まれることを確認する。
 #[test]
 fn error_display_internal() {
     let err = WebhookError::Internal("unexpected state".to_string());
@@ -275,6 +302,7 @@ fn error_display_internal() {
     assert!(msg.contains("unexpected state"));
 }
 
+// WebhookError::MaxRetriesExceeded の表示に試行回数とステータスコードが含まれることを確認する。
 #[test]
 fn error_display_max_retries_exceeded() {
     let err = WebhookError::MaxRetriesExceeded {
@@ -290,6 +318,7 @@ fn error_display_max_retries_exceeded() {
 // Integration-style: sign payload and verify
 // ===========================================================================
 
+// フルペイロードの署名と検証が成功しボディ改ざんで検証が失敗することを確認する。
 #[test]
 fn sign_and_verify_full_payload() {
     let secret = "production-secret-key-2026";

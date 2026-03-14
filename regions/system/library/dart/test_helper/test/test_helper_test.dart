@@ -2,10 +2,10 @@ import 'package:test/test.dart';
 import 'package:k1s0_test_helper/test_helper.dart';
 
 void main() {
-  group('JwtTestHelper', () {
+  group('JwtTestHelperのテスト', () {
     final helper = JwtTestHelper(secret: 'test-secret');
 
-    test('creates admin token', () {
+    test('管理者トークンが作成されること', () {
       final token = helper.createAdminToken();
       final parts = token.split('.');
       expect(parts.length, equals(3));
@@ -15,7 +15,7 @@ void main() {
       expect(claims.roles, equals(['admin']));
     });
 
-    test('creates user token', () {
+    test('ユーザートークンが作成されること', () {
       final token = helper.createUserToken('user-123', ['user']);
       final claims = helper.decodeClaims(token);
       expect(claims, isNotNull);
@@ -23,7 +23,7 @@ void main() {
       expect(claims.roles, equals(['user']));
     });
 
-    test('creates token with tenant', () {
+    test('テナント付きトークンが作成されること', () {
       final token = helper.createToken(TestClaims(
         sub: 'svc',
         roles: ['service'],
@@ -34,13 +34,13 @@ void main() {
       expect(claims!.tenantId, equals('t-1'));
     });
 
-    test('returns null for invalid token', () {
+    test('無効なトークンでnullが返されること', () {
       expect(helper.decodeClaims('invalid'), isNull);
     });
   });
 
   group('MockServerBuilder', () {
-    test('builds notification server mock', () {
+    test('通知サーバーモックが構築されること', () {
       final server = MockServerBuilder.notificationServer()
           .withHealthOk()
           .withSuccessResponse('/send', '{"id":"1","status":"sent"}')
@@ -58,13 +58,13 @@ void main() {
       expect(server.requestCount, equals(2));
     });
 
-    test('returns null for unknown route', () {
+    test('未知のルートでnullが返されること', () {
       final server =
           MockServerBuilder.ratelimitServer().withHealthOk().build();
       expect(server.handle('GET', '/nonexistent'), isNull);
     });
 
-    test('supports error responses', () {
+    test('エラーレスポンスが設定できること', () {
       final server = MockServerBuilder.tenantServer()
           .withErrorResponse('/create', 500)
           .build();
@@ -76,23 +76,23 @@ void main() {
   });
 
   group('FixtureBuilder', () {
-    test('generates valid UUID', () {
+    test('有効なUUIDが生成されること', () {
       final id = FixtureBuilder.uuid();
       expect(id.length, equals(36));
       expect(id, contains('-'));
     });
 
-    test('generates email', () {
+    test('メールアドレスが生成されること', () {
       final email = FixtureBuilder.email();
       expect(email, contains('@example.com'));
     });
 
-    test('generates name with prefix', () {
+    test('プレフィックス付きの名前が生成されること', () {
       final name = FixtureBuilder.name();
       expect(name, startsWith('user-'));
     });
 
-    test('generates int in range', () {
+    test('指定した範囲内の整数が生成されること', () {
       for (var i = 0; i < 100; i++) {
         final val = FixtureBuilder.intValue(min: 10, max: 20);
         expect(val, greaterThanOrEqualTo(10));
@@ -100,15 +100,15 @@ void main() {
       }
     });
 
-    test('returns min when min equals max', () {
+    test('最小値と最大値が同じ場合に最小値が返されること', () {
       expect(FixtureBuilder.intValue(min: 5, max: 5), equals(5));
     });
 
-    test('generates tenant id', () {
+    test('テナントIDが生成されること', () {
       expect(FixtureBuilder.tenantId(), startsWith('tenant-'));
     });
 
-    test('generates unique values', () {
+    test('一意な値が生成されること', () {
       final a = FixtureBuilder.uuid();
       final b = FixtureBuilder.uuid();
       expect(a, isNot(equals(b)));
@@ -116,14 +116,14 @@ void main() {
   });
 
   group('AssertionHelper', () {
-    test('passes on JSON partial match', () {
+    test('JSONの部分一致で検証が通ること', () {
       AssertionHelper.assertJsonContains(
         {'id': '1', 'status': 'ok', 'extra': 'ignored'},
         {'id': '1', 'status': 'ok'},
       );
     });
 
-    test('passes on nested JSON partial match', () {
+    test('ネストしたJSONの部分一致で検証が通ること', () {
       AssertionHelper.assertJsonContains(
         {
           'user': {'id': '1', 'name': 'test'},
@@ -135,14 +135,14 @@ void main() {
       );
     });
 
-    test('fails on JSON mismatch', () {
+    test('JSONが一致しない場合に検証が失敗すること', () {
       expect(
         () => AssertionHelper.assertJsonContains({'id': '1'}, {'id': '2'}),
         throwsA(isA<AssertionError>()),
       );
     });
 
-    test('finds emitted event', () {
+    test('発行されたイベントが見つかること', () {
       final events = [
         {'type': 'created', 'id': '1'},
         {'type': 'updated', 'id': '2'},
@@ -151,7 +151,7 @@ void main() {
       AssertionHelper.assertEventEmitted(events, 'updated');
     });
 
-    test('throws for missing event', () {
+    test('イベントが存在しない場合に例外がスローされること', () {
       expect(
         () => AssertionHelper.assertEventEmitted(
           [{'type': 'created'}],

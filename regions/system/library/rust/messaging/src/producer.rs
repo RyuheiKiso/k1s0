@@ -34,6 +34,7 @@ mod tests {
     use crate::event::EventEnvelope;
     use std::collections::HashMap;
 
+    // NoOpEventProducer の publish が何も処理せず Ok を返すことを確認する。
     #[tokio::test]
     async fn test_noop_producer_publish() {
         let producer = NoOpEventProducer;
@@ -48,6 +49,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    // NoOpEventProducer の publish_batch が何も処理せず Ok を返すことを確認する。
     #[tokio::test]
     async fn test_noop_producer_publish_batch() {
         let producer = NoOpEventProducer;

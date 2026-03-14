@@ -4,7 +4,7 @@ import 'package:k1s0_kafka/kafka.dart';
 void main() {
   group('KafkaConfig', () {
     group('bootstrapServersString', () {
-      test('joins multiple brokers with comma', () {
+      test('複数のブローカーをカンマで結合すること', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker1:9092', 'broker2:9092', 'broker3:9092'],
         );
@@ -12,7 +12,7 @@ void main() {
             equals('broker1:9092,broker2:9092,broker3:9092'));
       });
 
-      test('returns single broker as-is', () {
+      test('単一ブローカーをそのまま返すこと', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker1:9092'],
         );
@@ -21,7 +21,7 @@ void main() {
     });
 
     group('usesTLS', () {
-      test('returns true for SSL', () {
+      test('SSLの場合にtrueを返すこと', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SSL',
@@ -29,7 +29,7 @@ void main() {
         expect(config.usesTLS(), isTrue);
       });
 
-      test('returns true for SASL_SSL', () {
+      test('SASL_SSLの場合にtrueを返すこと', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SASL_SSL',
@@ -37,7 +37,7 @@ void main() {
         expect(config.usesTLS(), isTrue);
       });
 
-      test('returns false for PLAINTEXT', () {
+      test('PLAINTEXTの場合にfalseを返すこと', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'PLAINTEXT',
@@ -45,7 +45,7 @@ void main() {
         expect(config.usesTLS(), isFalse);
       });
 
-      test('returns false for SASL_PLAINTEXT', () {
+      test('SASL_PLAINTEXTの場合にfalseを返すこと', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SASL_PLAINTEXT',
@@ -53,7 +53,7 @@ void main() {
         expect(config.usesTLS(), isFalse);
       });
 
-      test('returns false when securityProtocol is null', () {
+      test('securityProtocolがnullの場合にfalseを返すこと', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
         );
@@ -62,7 +62,7 @@ void main() {
     });
 
     group('validate', () {
-      test('throws on empty bootstrapServers', () {
+      test('bootstrapServersが空の場合にエラーを投げること', () {
         final config = KafkaConfig(bootstrapServers: []);
         expect(
           () => config.validate(),
@@ -71,7 +71,7 @@ void main() {
         );
       });
 
-      test('throws on invalid security protocol', () {
+      test('不正なセキュリティプロトコルでエラーを投げること', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'INVALID',
@@ -83,7 +83,7 @@ void main() {
         );
       });
 
-      test('passes with valid PLAINTEXT config', () {
+      test('有効なPLAINTEXT設定でバリデーションが通ること', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'PLAINTEXT',
@@ -91,7 +91,7 @@ void main() {
         expect(() => config.validate(), returnsNormally);
       });
 
-      test('passes with valid SSL config', () {
+      test('有効なSSL設定でバリデーションが通ること', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SSL',
@@ -99,7 +99,7 @@ void main() {
         expect(() => config.validate(), returnsNormally);
       });
 
-      test('passes with valid SASL_PLAINTEXT config', () {
+      test('有効なSASL_PLAINTEXT設定でバリデーションが通ること', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SASL_PLAINTEXT',
@@ -107,7 +107,7 @@ void main() {
         expect(() => config.validate(), returnsNormally);
       });
 
-      test('passes with valid SASL_SSL config', () {
+      test('有効なSASL_SSL設定でバリデーションが通ること', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SASL_SSL',
@@ -115,7 +115,7 @@ void main() {
         expect(() => config.validate(), returnsNormally);
       });
 
-      test('passes without securityProtocol', () {
+      test('securityProtocolなしでバリデーションが通ること', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
         );
@@ -126,37 +126,37 @@ void main() {
 
   group('TopicConfig', () {
     group('validateName', () {
-      test('accepts valid system topic', () {
+      test('有効なsystemトピック名を受け入れること', () {
         final topic =
             TopicConfig(name: 'k1s0.system.user.created.v1');
         expect(() => topic.validateName(), returnsNormally);
       });
 
-      test('accepts valid business topic', () {
+      test('有効なbusinessトピック名を受け入れること', () {
         final topic =
             TopicConfig(name: 'k1s0.business.order.placed.v1');
         expect(() => topic.validateName(), returnsNormally);
       });
 
-      test('accepts valid service topic', () {
+      test('有効なserviceトピック名を受け入れること', () {
         final topic =
             TopicConfig(name: 'k1s0.service.payment.completed.v2');
         expect(() => topic.validateName(), returnsNormally);
       });
 
-      test('accepts topic with hyphens', () {
+      test('ハイフンを含むトピック名を受け入れること', () {
         final topic = TopicConfig(
             name: 'k1s0.system.user-auth.session-created.v1');
         expect(() => topic.validateName(), returnsNormally);
       });
 
-      test('accepts topic with numbers', () {
+      test('数字を含むトピック名を受け入れること', () {
         final topic =
             TopicConfig(name: 'k1s0.system.user123.created456.v10');
         expect(() => topic.validateName(), returnsNormally);
       });
 
-      test('throws on empty name', () {
+      test('空のトピック名でエラーを投げること', () {
         final topic = TopicConfig(name: '');
         expect(
           () => topic.validateName(),
@@ -165,7 +165,7 @@ void main() {
         );
       });
 
-      test('throws on missing prefix', () {
+      test('プレフィックスが欠けている場合にエラーを投げること', () {
         final topic = TopicConfig(name: 'invalid.system.user.created.v1');
         expect(
           () => topic.validateName(),
@@ -174,7 +174,7 @@ void main() {
         );
       });
 
-      test('throws on invalid tier', () {
+      test('不正なティアでエラーを投げること', () {
         final topic = TopicConfig(name: 'k1s0.invalid.user.created.v1');
         expect(
           () => topic.validateName(),
@@ -182,7 +182,7 @@ void main() {
         );
       });
 
-      test('throws on missing version', () {
+      test('バージョンが欠けている場合にエラーを投げること', () {
         final topic = TopicConfig(name: 'k1s0.system.user.created');
         expect(
           () => topic.validateName(),
@@ -190,7 +190,7 @@ void main() {
         );
       });
 
-      test('throws on uppercase characters', () {
+      test('大文字が含まれる場合にエラーを投げること', () {
         final topic = TopicConfig(name: 'k1s0.system.User.Created.v1');
         expect(
           () => topic.validateName(),
@@ -198,7 +198,7 @@ void main() {
         );
       });
 
-      test('throws on missing segments', () {
+      test('セグメントが不足している場合にエラーを投げること', () {
         final topic = TopicConfig(name: 'k1s0.system.user.v1');
         expect(
           () => topic.validateName(),
@@ -208,68 +208,68 @@ void main() {
     });
 
     group('tier', () {
-      test('returns system tier', () {
+      test('systemティアを返すこと', () {
         final topic =
             TopicConfig(name: 'k1s0.system.user.created.v1');
         expect(topic.tier(), equals('system'));
       });
 
-      test('returns business tier', () {
+      test('businessティアを返すこと', () {
         final topic =
             TopicConfig(name: 'k1s0.business.order.placed.v1');
         expect(topic.tier(), equals('business'));
       });
 
-      test('returns service tier', () {
+      test('serviceティアを返すこと', () {
         final topic =
             TopicConfig(name: 'k1s0.service.payment.completed.v1');
         expect(topic.tier(), equals('service'));
       });
 
-      test('returns empty string for invalid topic', () {
+      test('不正なトピック名で空文字列を返すこと', () {
         final topic = TopicConfig(name: 'invalid');
         expect(topic.tier(), equals(''));
       });
     });
 
     group('partitionsForTier', () {
-      test('returns 6 for system tier', () {
+      test('systemティアで6を返すこと', () {
         expect(TopicConfig.partitionsForTier('system'), equals(6));
       });
 
-      test('returns 6 for business tier', () {
+      test('businessティアで6を返すこと', () {
         expect(TopicConfig.partitionsForTier('business'), equals(6));
       });
 
-      test('returns 3 for service tier', () {
+      test('serviceティアで3を返すこと', () {
         expect(TopicConfig.partitionsForTier('service'), equals(3));
       });
 
-      test('returns 3 for unknown tier', () {
+      test('不明なティアで3を返すこと', () {
         expect(TopicConfig.partitionsForTier('other'), equals(3));
       });
     });
 
     group('defaultPartitionsForTier', () {
-      test('returns 6 for system topic', () {
+      test('systemトピックで6を返すこと', () {
         final topic =
             TopicConfig(name: 'k1s0.system.auth.login.v1');
         expect(topic.defaultPartitionsForTier(), equals(6));
       });
 
-      test('returns 6 for business topic', () {
+      test('businessトピックで6を返すこと', () {
         final topic =
             TopicConfig(name: 'k1s0.business.order.placed.v1');
         expect(topic.defaultPartitionsForTier(), equals(6));
       });
 
-      test('returns 3 for service topic', () {
+      test('serviceトピックで3を返すこと', () {
         final topic =
             TopicConfig(name: 'k1s0.service.payment.done.v1');
         expect(topic.defaultPartitionsForTier(), equals(3));
       });
 
-      test('returns 3 for invalid topic name', () {
+      test('不正なトピック名で3を返すこと', () {
         final topic = TopicConfig(name: 'invalid');
         expect(topic.defaultPartitionsForTier(), equals(3));
       });
@@ -277,7 +277,7 @@ void main() {
   });
 
   group('KafkaHealthStatus', () {
-    test('can be created with required fields', () {
+    test('必須フィールドで生成できること', () {
       const status = KafkaHealthStatus(
         healthy: true,
         message: 'OK',
@@ -290,7 +290,7 @@ void main() {
   });
 
   group('NoOpKafkaHealthChecker', () {
-    test('returns configured status', () async {
+    test('設定済みステータスを返すこと', () async {
       const status = KafkaHealthStatus(
         healthy: true,
         message: 'All brokers connected',
@@ -303,7 +303,7 @@ void main() {
       expect(result.brokerCount, equals(3));
     });
 
-    test('throws configured error', () async {
+    test('設定済みエラーを投げること', () async {
       const status = KafkaHealthStatus(
         healthy: false,
         message: 'error',
@@ -321,7 +321,7 @@ void main() {
   });
 
   group('KafkaError', () {
-    test('toString includes message', () {
+    test('toStringにメッセージが含まれること', () {
       const err = KafkaError('test error');
       expect(err.toString(), contains('test error'));
     });

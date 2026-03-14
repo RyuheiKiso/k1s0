@@ -65,12 +65,14 @@ mod tests {
         }
     }
 
+    // 有効なブローカー設定に対して check_config が Ok を返すことを確認する。
     #[test]
     fn test_check_config_valid() {
         let checker = KafkaHealthChecker::new(make_config(vec!["kafka:9092".to_string()]));
         assert!(checker.check_config().is_ok());
     }
 
+    // ブローカーが空の場合に check_config が ConfigurationError を返すことを確認する。
     #[test]
     fn test_check_config_no_brokers() {
         let checker = KafkaHealthChecker::new(make_config(vec![]));
@@ -78,6 +80,7 @@ mod tests {
         assert!(matches!(err, KafkaError::ConfigurationError(_)));
     }
 
+    // 空文字列のブローカーアドレスが含まれる場合に check_config が ConfigurationError を返すことを確認する。
     #[test]
     fn test_check_config_empty_broker() {
         let checker = KafkaHealthChecker::new(make_config(vec!["".to_string()]));
@@ -85,6 +88,7 @@ mod tests {
         assert!(matches!(err, KafkaError::ConfigurationError(_)));
     }
 
+    // 複数の有効なブローカーアドレスが設定された場合に check_config が Ok を返すことを確認する。
     #[test]
     fn test_check_config_multiple_valid() {
         let checker = KafkaHealthChecker::new(make_config(vec![
@@ -94,6 +98,7 @@ mod tests {
         assert!(checker.check_config().is_ok());
     }
 
+    // 有効なブローカー設定に対して非同期の check が Healthy ステータスを返すことを確認する。
     #[tokio::test]
     async fn test_check_async_valid() {
         let checker = KafkaHealthChecker::new(make_config(vec!["kafka:9092".to_string()]));
@@ -101,6 +106,7 @@ mod tests {
         assert_eq!(status, KafkaHealthStatus::Healthy);
     }
 
+    // ブローカーが空の場合に非同期の check がエラーを返すことを確認する。
     #[tokio::test]
     async fn test_check_async_no_brokers() {
         let checker = KafkaHealthChecker::new(make_config(vec![]));

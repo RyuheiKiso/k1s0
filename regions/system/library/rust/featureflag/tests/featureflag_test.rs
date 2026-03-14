@@ -21,6 +21,7 @@ fn make_variant(name: &str, value: &str, weight: i32) -> FlagVariant {
     }
 }
 
+// 有効なフィーチャーフラグを評価すると enabled=true かつ理由が FLAG_ENABLED であることを確認する。
 #[tokio::test]
 async fn test_evaluate_enabled_flag() {
     let client = InMemoryFeatureFlagClient::new();
@@ -34,6 +35,7 @@ async fn test_evaluate_enabled_flag() {
     assert_eq!(result.reason, "FLAG_ENABLED");
 }
 
+// 無効なフィーチャーフラグを評価すると enabled=false かつ理由が FLAG_DISABLED であることを確認する。
 #[tokio::test]
 async fn test_evaluate_disabled_flag() {
     let client = InMemoryFeatureFlagClient::new();
@@ -47,6 +49,7 @@ async fn test_evaluate_disabled_flag() {
     assert_eq!(result.reason, "FLAG_DISABLED");
 }
 
+// 存在しないフラグを評価すると FlagNotFound エラーが返ることを確認する。
 #[tokio::test]
 async fn test_evaluate_nonexistent_flag_returns_error() {
     let client = InMemoryFeatureFlagClient::new();
@@ -59,6 +62,7 @@ async fn test_evaluate_nonexistent_flag_returns_error() {
     }
 }
 
+// フラグキーで登録済みフラグを取得し、バリアント情報が正しいことを確認する。
 #[tokio::test]
 async fn test_get_flag_by_key() {
     let client = InMemoryFeatureFlagClient::new();
@@ -74,6 +78,7 @@ async fn test_get_flag_by_key() {
     assert_eq!(flag.variants[0].name, "control");
 }
 
+// 有効なフラグに対して is_enabled が true を返すことを確認する。
 #[tokio::test]
 async fn test_is_enabled_true() {
     let client = InMemoryFeatureFlagClient::new();
@@ -83,6 +88,7 @@ async fn test_is_enabled_true() {
     assert!(client.is_enabled("on-flag", &ctx).await.unwrap());
 }
 
+// 無効なフラグに対して is_enabled が false を返すことを確認する。
 #[tokio::test]
 async fn test_is_enabled_false() {
     let client = InMemoryFeatureFlagClient::new();
@@ -93,6 +99,7 @@ async fn test_is_enabled_false() {
 }
 
 #[cfg(feature = "mock")]
+// モック実装でフィーチャーフラグの評価結果を差し替えられることを確認する。
 #[tokio::test]
 async fn test_mock_feature_flag_client() {
     use k1s0_featureflag::{EvaluationResult, MockFeatureFlagClient};
@@ -118,6 +125,7 @@ async fn test_mock_feature_flag_client() {
     assert_eq!(result.variant, Some("treatment".to_string()));
 }
 
+// EvaluationContext のビルダーメソッドでユーザーID・テナントID・属性を正しく設定できることを確認する。
 #[tokio::test]
 async fn test_evaluation_context_builder() {
     let ctx = EvaluationContext::new()
@@ -130,6 +138,7 @@ async fn test_evaluation_context_builder() {
     assert_eq!(ctx.attributes.get("role"), Some(&"admin".to_string()));
 }
 
+// フラグを動的に登録した後、キーで正しく取得できることを確認する。
 #[tokio::test]
 async fn test_set_flag_and_retrieve() {
     let client = InMemoryFeatureFlagClient::new();
@@ -144,6 +153,7 @@ async fn test_set_flag_and_retrieve() {
     assert!(flag.enabled);
 }
 
+// 複数バリアントを持つフラグを評価すると最初のバリアントが返ることを確認する。
 #[tokio::test]
 async fn test_variant_in_evaluation_result() {
     let client = InMemoryFeatureFlagClient::new();

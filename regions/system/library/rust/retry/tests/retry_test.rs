@@ -60,6 +60,7 @@ async fn test_retry_exhausted() {
     }
 }
 
+// 指数バックオフの遅延が正しく計算されることを確認する。
 #[test]
 fn test_compute_delay_exponential() {
     let config = RetryConfig::new(5)
@@ -77,6 +78,7 @@ fn test_compute_delay_exponential() {
     assert_eq!(delay2.as_millis(), 400);
 }
 
+// ジッターなし設定で遅延値が毎回同じになることを確認する。
 #[test]
 fn test_compute_delay_no_jitter() {
     let config = RetryConfig::new(3)

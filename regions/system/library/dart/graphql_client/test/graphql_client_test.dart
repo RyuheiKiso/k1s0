@@ -13,14 +13,14 @@ void main() {
   });
 
   group('GraphQlQuery', () {
-    test('creates with required fields', () {
+    test('必須フィールドで生成できること', () {
       const q = GraphQlQuery(query: '{ users { id } }');
       expect(q.query, equals('{ users { id } }'));
       expect(q.variables, isNull);
       expect(q.operationName, isNull);
     });
 
-    test('creates with all fields', () {
+    test('全フィールドで生成できること', () {
       const q = GraphQlQuery(
         query: 'query GetUser(\$id: ID!) { user(id: \$id) { name } }',
         variables: {'id': '1'},
@@ -32,26 +32,26 @@ void main() {
   });
 
   group('GraphQlResponse', () {
-    test('hasErrors is false when no errors', () {
+    test('エラーがない場合にhasErrorsがfalseであること', () {
       const resp = GraphQlResponse<String>(data: 'ok');
       expect(resp.hasErrors, isFalse);
     });
 
-    test('hasErrors is true with errors', () {
+    test('エラーがある場合にhasErrorsがtrueであること', () {
       const resp = GraphQlResponse<String>(
         errors: [GraphQlError(message: 'fail')],
       );
       expect(resp.hasErrors, isTrue);
     });
 
-    test('hasErrors is false with empty list', () {
+    test('空リストの場合にhasErrorsがfalseであること', () {
       const resp = GraphQlResponse<String>(errors: []);
       expect(resp.hasErrors, isFalse);
     });
   });
 
   group('ErrorLocation', () {
-    test('stores line and column', () {
+    test('行番号と列番号を保持すること', () {
       const loc = ErrorLocation(3, 5);
       expect(loc.line, equals(3));
       expect(loc.column, equals(5));
@@ -59,14 +59,14 @@ void main() {
   });
 
   group('GraphQlError', () {
-    test('creates with message', () {
+    test('メッセージで生成できること', () {
       const err = GraphQlError(message: 'Not found');
       expect(err.message, equals('Not found'));
       expect(err.locations, isNull);
       expect(err.path, isNull);
     });
 
-    test('creates with locations and path', () {
+    test('locationとpathを含めて生成できること', () {
       const err = GraphQlError(
         message: 'err',
         locations: [ErrorLocation(1, 2)],
@@ -78,40 +78,40 @@ void main() {
   });
 
   group('ClientError', () {
-    test('request variant', () {
+    test('requestバリアントを生成できること', () {
       final err = ClientError.request('connection refused');
       expect(err.kind, equals(ClientErrorKind.request));
       expect(err.message, equals('connection refused'));
       expect(err.toString(), equals('RequestError: connection refused'));
     });
 
-    test('deserialization variant', () {
+    test('deserializationバリアントを生成できること', () {
       final err = ClientError.deserialization('invalid json');
       expect(err.kind, equals(ClientErrorKind.deserialization));
       expect(
           err.toString(), equals('DeserializationError: invalid json'));
     });
 
-    test('graphQl variant', () {
+    test('graphQlバリアントを生成できること', () {
       final err = ClientError.graphQl('field not found');
       expect(err.kind, equals(ClientErrorKind.graphQl));
       expect(err.toString(), equals('GraphQlError: field not found'));
     });
 
-    test('notFound variant', () {
+    test('notFoundバリアントを生成できること', () {
       final err = ClientError.notFound('user 123');
       expect(err.kind, equals(ClientErrorKind.notFound));
       expect(err.toString(), equals('NotFoundError: user 123'));
     });
 
-    test('is an Exception', () {
+    test('Exceptionのサブタイプであること', () {
       final err = ClientError.request('test');
       expect(err, isA<Exception>());
     });
   });
 
   group('InMemoryGraphQlClient', () {
-    test('execute returns configured response', () async {
+    test('executeが設定済みレスポンスを返すこと', () async {
       client.setResponse('GetUser', {
         'data': {'id': '1', 'name': 'Alice'},
       });
@@ -126,7 +126,7 @@ void main() {
       expect(result.data?['name'], equals('Alice'));
     });
 
-    test('execute returns error for unconfigured operation', () async {
+    test('未設定のオペレーションでエラーレスポンスを返すこと', () async {
       final result = await client.execute(
         const GraphQlQuery(query: '{ unknown }', operationName: 'Unknown'),
         (json) => json,
@@ -135,7 +135,7 @@ void main() {
       expect(result.data, isNull);
     });
 
-    test('executeMutation returns configured response', () async {
+    test('executeMutationが設定済みレスポンスを返すこと', () async {
       client.setResponse('CreateUser', {
         'data': {'id': '2', 'name': 'Bob'},
       });
@@ -150,7 +150,7 @@ void main() {
       expect(result.data?['id'], equals('2'));
     });
 
-    test('execute falls back to query text when no operationName', () async {
+    test('operationNameがない場合にクエリ文字列をキーとして使用すること', () async {
       client.setResponse('{ me { id } }', {
         'data': {'id': '42'},
       });
@@ -161,7 +161,7 @@ void main() {
       expect(result.data?['id'], equals('42'));
     });
 
-    test('returns errors from response', () async {
+    test('レスポンスのエラーを返すこと', () async {
       client.setResponse('Fail', {
         'errors': [
           {'message': 'Unauthorized'},
@@ -176,7 +176,7 @@ void main() {
       expect(result.data, isNull);
     });
 
-    test('subscribe emits registered events', () async {
+    test('subscribeが登録済みイベントを送出すること', () async {
       client.setSubscriptionEvents('OnUserCreated', [
         {'id': '1', 'name': 'Alice'},
         {'id': '2', 'name': 'Bob'},
@@ -202,7 +202,7 @@ void main() {
       return http_testing.MockClient(handler);
     }
 
-    test('execute sends POST and parses response', () async {
+    test('executeがPOSTリクエストを送信してレスポンスをパースすること', () async {
       final mock = mockClient((request) async {
         expect(request.method, equals('POST'));
         expect(request.headers['Content-Type'], equals('application/json'));
@@ -230,7 +230,7 @@ void main() {
       expect(result.data?['name'], equals('Alice'));
     });
 
-    test('execute sends variables and operationName', () async {
+    test('executeがvariablesとoperationNameを送信すること', () async {
       final mock = mockClient((request) async {
         final body = jsonDecode(request.body) as Map<String, dynamic>;
         expect(body['variables'], equals({'id': '1'}));
@@ -258,7 +258,7 @@ void main() {
       );
     });
 
-    test('execute passes custom headers', () async {
+    test('executeがカスタムヘッダーを送信すること', () async {
       final mock = mockClient((request) async {
         expect(request.headers['Authorization'], equals('Bearer token'));
         return http.Response(
@@ -281,7 +281,7 @@ void main() {
       );
     });
 
-    test('execute throws ClientError.notFound on 404', () async {
+    test('404レスポンス時にClientError.notFoundを投げること', () async {
       final mock = mockClient((request) async {
         return http.Response('Not Found', 404);
       });
@@ -304,7 +304,7 @@ void main() {
       );
     });
 
-    test('execute throws ClientError.request on 500', () async {
+    test('500レスポンス時にClientError.requestを投げること', () async {
       final mock = mockClient((request) async {
         return http.Response('Internal Server Error', 500);
       });
@@ -327,7 +327,7 @@ void main() {
       );
     });
 
-    test('execute throws ClientError.deserialization on invalid JSON',
+    test('不正なJSONレスポンス時にClientError.deserializationを投げること',
         () async {
       final mock = mockClient((request) async {
         return http.Response('not json', 200);
@@ -351,7 +351,7 @@ void main() {
       );
     });
 
-    test('execute returns GraphQL errors from response', () async {
+    test('executeがレスポンスのGraphQLエラーを返すこと', () async {
       final mock = mockClient((request) async {
         return http.Response(
           jsonEncode({
@@ -386,7 +386,7 @@ void main() {
       expect(result.errors!.first.path, equals(['user']));
     });
 
-    test('executeMutation works the same as execute', () async {
+    test('executeMutationがexecuteと同様に動作すること', () async {
       final mock = mockClient((request) async {
         return http.Response(
           jsonEncode({
@@ -413,7 +413,7 @@ void main() {
       expect(result.data?['id'], equals('2'));
     });
 
-    test('subscribe throws ClientError.request', () {
+    test('subscribeがClientError.requestを投げること', () {
       final httpClient = GraphQlHttpClient('http://localhost:8080/graphql');
 
       expect(
@@ -429,7 +429,7 @@ void main() {
       );
     });
 
-    test('execute throws ClientError.deserialization when data is null',
+    test('dataがnullの場合にClientError.deserializationを投げること',
         () async {
       final mock = mockClient((request) async {
         return http.Response(jsonEncode({}), 200);

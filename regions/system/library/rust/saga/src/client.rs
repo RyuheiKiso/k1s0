@@ -103,18 +103,21 @@ impl SagaClient {
 mod tests {
     use super::*;
 
+    // クライアントが正しいエンドポイントで生成されることを確認する。
     #[test]
     fn test_client_creation() {
         let client = SagaClient::new("http://localhost:50051");
         assert_eq!(client.endpoint, "http://localhost:50051");
     }
 
+    // 末尾スラッシュがエンドポイントから除去されることを確認する。
     #[test]
     fn test_endpoint_trailing_slash_removed() {
         let client = SagaClient::new("http://localhost:8080/");
         assert_eq!(client.endpoint, "http://localhost:8080");
     }
 
+    // サーガ開始リクエストのURL形式が正しいことを確認する。
     #[test]
     fn test_start_saga_url() {
         let client = SagaClient::new("http://saga-server:8080");
@@ -122,6 +125,7 @@ mod tests {
         assert_eq!(expected_url, "http://saga-server:8080/api/v1/sagas");
     }
 
+    // サーガ取得リクエストのURL形式が正しいことを確認する。
     #[test]
     fn test_get_saga_url() {
         let client = SagaClient::new("http://saga-server:8080");
@@ -133,6 +137,7 @@ mod tests {
         );
     }
 
+    // サーガキャンセルリクエストのURL形式が正しいことを確認する。
     #[test]
     fn test_cancel_saga_url() {
         let client = SagaClient::new("http://saga-server:8080");

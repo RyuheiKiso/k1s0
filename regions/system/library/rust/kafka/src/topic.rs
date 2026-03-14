@@ -95,6 +95,7 @@ impl TopicConfig {
 mod tests {
     use super::*;
 
+    // JSON デシリアライズ時にデフォルト値（パーティション数・レプリケーションファクター）が正しく設定されることを確認する。
     #[test]
     fn test_topic_config_defaults() {
         let json = r#"{"name": "k1s0.system.auth.login.v1"}"#;
@@ -103,6 +104,7 @@ mod tests {
         assert_eq!(cfg.replication_factor, 3);
     }
 
+    // k1s0 の命名規則に従った正しいトピック名を validate_name が true と判定することを確認する。
     #[test]
     fn test_validate_name_valid() {
         let cfg = TopicConfig {
@@ -114,6 +116,7 @@ mod tests {
         assert!(cfg.validate_name());
     }
 
+    // k1s0 以外のプレフィックスを持つトピック名を validate_name が false と判定することを確認する。
     #[test]
     fn test_validate_name_invalid_prefix() {
         let cfg = TopicConfig {
@@ -125,6 +128,7 @@ mod tests {
         assert!(!cfg.validate_name());
     }
 
+    // セグメント数が 4 未満のトピック名を validate_name が false と判定することを確認する。
     #[test]
     fn test_validate_name_too_short() {
         let cfg = TopicConfig {
@@ -136,6 +140,7 @@ mod tests {
         assert!(!cfg.validate_name());
     }
 
+    // デフォルトのメッセージ保持期間が 7 日間（ミリ秒）であることを確認する。
     #[test]
     fn test_retention_ms_default_is_7_days() {
         let cfg = TopicConfig {
@@ -147,26 +152,31 @@ mod tests {
         assert_eq!(cfg.retention_ms, 7 * 24 * 60 * 60 * 1000);
     }
 
+    // system tier のデフォルトパーティション数が 6 であることを確認する。
     #[test]
     fn test_default_partitions_for_tier_system() {
         assert_eq!(default_partitions_for_tier("system"), 6);
     }
 
+    // business tier のデフォルトパーティション数が 6 であることを確認する。
     #[test]
     fn test_default_partitions_for_tier_business() {
         assert_eq!(default_partitions_for_tier("business"), 6);
     }
 
+    // service tier のデフォルトパーティション数が 3 であることを確認する。
     #[test]
     fn test_default_partitions_for_tier_service() {
         assert_eq!(default_partitions_for_tier("service"), 3);
     }
 
+    // 未知の tier に対してデフォルトパーティション数が 3 であることを確認する。
     #[test]
     fn test_default_partitions_for_tier_unknown() {
         assert_eq!(default_partitions_for_tier("other"), 3);
     }
 
+    // トピック名から tier（system / business / service）が正しく抽出されることを確認する。
     #[test]
     fn test_tier_extraction() {
         let cfg = TopicConfig {
@@ -194,6 +204,7 @@ mod tests {
         assert_eq!(cfg.tier(), "service");
     }
 
+    // 不正なトピック名から tier を抽出した場合に空文字列が返ることを確認する。
     #[test]
     fn test_tier_extraction_invalid() {
         let cfg = TopicConfig {
@@ -205,6 +216,7 @@ mod tests {
         assert_eq!(cfg.tier(), "");
     }
 
+    // system tier トピックに with_tier_defaults を適用するとパーティション数が 6 になることを確認する。
     #[test]
     fn test_with_tier_defaults_system() {
         let cfg = TopicConfig {
@@ -217,6 +229,7 @@ mod tests {
         assert_eq!(cfg.partitions, 6);
     }
 
+    // business tier トピックに with_tier_defaults を適用するとパーティション数が 6 になることを確認する。
     #[test]
     fn test_with_tier_defaults_business() {
         let cfg = TopicConfig {
@@ -229,6 +242,7 @@ mod tests {
         assert_eq!(cfg.partitions, 6);
     }
 
+    // service tier トピックに with_tier_defaults を適用してもパーティション数が 3 のままであることを確認する。
     #[test]
     fn test_with_tier_defaults_service() {
         let cfg = TopicConfig {

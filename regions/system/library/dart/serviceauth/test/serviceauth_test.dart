@@ -31,7 +31,7 @@ void main() {
   });
 
   group('parseSpiffeId', () {
-    test('parses valid SPIFFE ID', () {
+    test('有効なSPIFFE IDが正しくパースされること', () {
       final spiffe =
           parseSpiffeId('spiffe://k1s0.internal/ns/system/sa/auth-service');
       expect(spiffe.trustDomain, equals('k1s0.internal'));
@@ -39,28 +39,28 @@ void main() {
       expect(spiffe.serviceAccount, equals('auth-service'));
     });
 
-    test('throws on invalid scheme', () {
+    test('無効なスキームの場合に例外がスローされること', () {
       expect(
         () => parseSpiffeId('http://not-spiffe'),
         throwsA(isA<ServiceAuthError>()),
       );
     });
 
-    test('throws on missing /ns/ path', () {
+    test('/ns/パスが欠如している場合に例外がスローされること', () {
       expect(
         () => parseSpiffeId('spiffe://domain/invalid/path'),
         throwsA(isA<ServiceAuthError>()),
       );
     });
 
-    test('throws on empty string', () {
+    test('空文字列の場合に例外がスローされること', () {
       expect(
         () => parseSpiffeId(''),
         throwsA(isA<ServiceAuthError>()),
       );
     });
 
-    test('parses service tier SPIFFE ID', () {
+    test('サービス層のSPIFFE IDが正しくパースされること', () {
       final spiffe = parseSpiffeId(
           'spiffe://k1s0.internal/ns/service/sa/payment-service');
       expect(spiffe.namespace, equals('service'));
@@ -68,7 +68,7 @@ void main() {
       expect(spiffe.trustDomain, equals('k1s0.internal'));
     });
 
-    test('toString returns correct URI', () {
+    test('toStringが正しいURIを返すこと', () {
       final spiffe = parseSpiffeId(
           'spiffe://k1s0.internal/ns/business/sa/order-service');
       expect(spiffe.toString(),
@@ -77,13 +77,13 @@ void main() {
   });
 
   group('validateSpiffeId', () {
-    test('passes with correct namespace', () {
+    test('正しいネームスペースで検証が通ること', () {
       final spiffe = validateSpiffeId(
           'spiffe://k1s0.internal/ns/system/sa/auth-service', 'system');
       expect(spiffe.namespace, equals('system'));
     });
 
-    test('throws on wrong namespace', () {
+    test('誤ったネームスペースの場合に例外がスローされること', () {
       expect(
         () => validateSpiffeId(
             'spiffe://k1s0.internal/ns/system/sa/auth-service', 'business'),
@@ -93,7 +93,7 @@ void main() {
   });
 
   group('ServiceToken functions', () {
-    test('isExpired returns true for expired token', () {
+    test('期限切れトークンに対してisExpiredがtrueを返すこと', () {
       final token = ServiceToken(
         accessToken: 'tok',
         tokenType: 'Bearer',
@@ -102,7 +102,7 @@ void main() {
       expect(isExpired(token), isTrue);
     });
 
-    test('isExpired returns false for valid token', () {
+    test('有効なトークンに対してisExpiredがfalseを返すこと', () {
       final token = ServiceToken(
         accessToken: 'tok',
         tokenType: 'Bearer',
@@ -111,7 +111,7 @@ void main() {
       expect(isExpired(token), isFalse);
     });
 
-    test('shouldRefresh returns true within 30 seconds', () {
+    test('30秒以内に期限切れの場合にshouldRefreshがtrueを返すこと', () {
       final token = ServiceToken(
         accessToken: 'tok',
         tokenType: 'Bearer',
@@ -120,7 +120,7 @@ void main() {
       expect(shouldRefresh(token), isTrue);
     });
 
-    test('shouldRefresh returns false with sufficient remaining time', () {
+    test('十分な残り時間がある場合にshouldRefreshがfalseを返すこと', () {
       final token = ServiceToken(
         accessToken: 'tok',
         tokenType: 'Bearer',
@@ -129,7 +129,7 @@ void main() {
       expect(shouldRefresh(token), isFalse);
     });
 
-    test('bearerHeader returns correct header string', () {
+    test('bearerHeaderが正しいヘッダー文字列を返すこと', () {
       final token = ServiceToken(
         accessToken: 'my-token-123',
         tokenType: 'Bearer',
@@ -140,7 +140,7 @@ void main() {
   });
 
   group('HttpServiceAuthClient.getToken', () {
-    test('retrieves access token', () async {
+    test('アクセストークンが取得できること', () async {
       when(() => mockClient.post(
             any(),
             headers: any(named: 'headers'),
@@ -162,7 +162,7 @@ void main() {
       expect(isExpired(token), isFalse);
     });
 
-    test('throws on server error', () async {
+    test('サーバーエラー時に例外がスローされること', () async {
       when(() => mockClient.post(
             any(),
             headers: any(named: 'headers'),
@@ -183,7 +183,7 @@ void main() {
   });
 
   group('HttpServiceAuthClient.getCachedToken', () {
-    test('uses cache on subsequent calls', () async {
+    test('2回目以降の呼び出しでキャッシュが使用されること', () async {
       var callCount = 0;
       when(() => mockClient.post(
             any(),
@@ -211,7 +211,7 @@ void main() {
       expect(callCount, equals(1));
     });
 
-    test('refreshes when shouldRefresh is true', () async {
+    test('shouldRefreshがtrueのときトークンが更新されること', () async {
       var callCount = 0;
       when(() => mockClient.post(
             any(),
@@ -243,7 +243,7 @@ void main() {
   });
 
   group('HttpServiceAuthClient.validateSpiffeId', () {
-    test('works correctly', () {
+    test('正しく動作すること', () {
       final client = HttpServiceAuthClient(
         const ServiceAuthConfig(
           tokenEndpoint: 'http://localhost/token',
@@ -260,13 +260,13 @@ void main() {
   });
 
   group('ServiceAuthError', () {
-    test('has correct message', () {
+    test('正しいメッセージを持つこと', () {
       const err = ServiceAuthError('test error');
       expect(err.message, equals('test error'));
       expect(err.toString(), contains('test error'));
     });
 
-    test('includes cause when present', () {
+    test('causeが存在する場合にtoStringに含まれること', () {
       const err = ServiceAuthError('test error', cause: 'root cause');
       expect(err.toString(), contains('cause'));
     });

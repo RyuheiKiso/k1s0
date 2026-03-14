@@ -12,6 +12,7 @@ import (
 
 // --- KafkaConfig Tests ---
 
+// KafkaConfig_BootstrapServersStringが複数ブローカーをカンマ区切りの文字列として返すことを検証する。
 func TestKafkaConfig_BootstrapServersString(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092", "broker2:9092"},
@@ -19,6 +20,7 @@ func TestKafkaConfig_BootstrapServersString(t *testing.T) {
 	assert.Equal(t, "broker1:9092,broker2:9092", cfg.BootstrapServersString())
 }
 
+// KafkaConfig_BootstrapServersString_Singleが単一ブローカーの場合にカンマなしでサーバー文字列を返すことを検証する。
 func TestKafkaConfig_BootstrapServersString_Single(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -26,21 +28,25 @@ func TestKafkaConfig_BootstrapServersString_Single(t *testing.T) {
 	assert.Equal(t, "broker1:9092", cfg.BootstrapServersString())
 }
 
+// KafkaConfig_UsesTLS_SSLがセキュリティプロトコルSSLの場合にUsesTLSがtrueを返すことを検証する。
 func TestKafkaConfig_UsesTLS_SSL(t *testing.T) {
 	cfg := &kafka.KafkaConfig{SecurityProtocol: "SSL"}
 	assert.True(t, cfg.UsesTLS())
 }
 
+// KafkaConfig_UsesTLS_SASL_SSLがセキュリティプロトコルSASL_SSLの場合にUsesTLSがtrueを返すことを検証する。
 func TestKafkaConfig_UsesTLS_SASL_SSL(t *testing.T) {
 	cfg := &kafka.KafkaConfig{SecurityProtocol: "SASL_SSL"}
 	assert.True(t, cfg.UsesTLS())
 }
 
+// KafkaConfig_UsesTLS_PlaintextがセキュリティプロトコルPLAINTEXTの場合にUsesTLSがfalseを返すことを検証する。
 func TestKafkaConfig_UsesTLS_Plaintext(t *testing.T) {
 	cfg := &kafka.KafkaConfig{SecurityProtocol: "PLAINTEXT"}
 	assert.False(t, cfg.UsesTLS())
 }
 
+// KafkaConfig_Validate_Validが有効な設定のバリデーションが成功することを検証する。
 func TestKafkaConfig_Validate_Valid(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -49,11 +55,13 @@ func TestKafkaConfig_Validate_Valid(t *testing.T) {
 	assert.NoError(t, cfg.Validate())
 }
 
+// KafkaConfig_Validate_EmptyBrokersがブローカーリストが空の場合にバリデーションエラーを返すことを検証する。
 func TestKafkaConfig_Validate_EmptyBrokers(t *testing.T) {
 	cfg := &kafka.KafkaConfig{}
 	assert.Error(t, cfg.Validate())
 }
 
+// KafkaConfig_Validate_InvalidProtocolが無効なセキュリティプロトコルの場合にバリデーションエラーを返すことを検証する。
 func TestKafkaConfig_Validate_InvalidProtocol(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -64,6 +72,7 @@ func TestKafkaConfig_Validate_InvalidProtocol(t *testing.T) {
 
 // --- TopicConfig Tests ---
 
+// TopicConfig_ValidateName_Validが有効なトピック名に対してバリデーションが成功することを検証する。
 func TestTopicConfig_ValidateName_Valid(t *testing.T) {
 	tests := []struct {
 		name string
@@ -82,6 +91,7 @@ func TestTopicConfig_ValidateName_Valid(t *testing.T) {
 	}
 }
 
+// TopicConfig_ValidateName_Invalidが無効なトピック名に対してバリデーションエラーを返すことを検証する。
 func TestTopicConfig_ValidateName_Invalid(t *testing.T) {
 	tests := []struct {
 		name string
@@ -101,6 +111,7 @@ func TestTopicConfig_ValidateName_Invalid(t *testing.T) {
 	}
 }
 
+// TopicConfig_TierがトピックのTierメソッドがトピック名からシステム/ビジネス/サービスの層を正しく抽出することを検証する。
 func TestTopicConfig_Tier(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -120,6 +131,7 @@ func TestTopicConfig_Tier(t *testing.T) {
 
 // --- KafkaHealthChecker Tests ---
 
+// NoOpKafkaHealthChecker_HealthyがHealthCheckが正常ステータスとブローカー数を返すことを検証する。
 func TestNoOpKafkaHealthChecker_Healthy(t *testing.T) {
 	checker := &kafka.NoOpKafkaHealthChecker{
 		Status: &kafka.KafkaHealthStatus{Healthy: true, Message: "OK", BrokerCount: 3},
@@ -130,6 +142,7 @@ func TestNoOpKafkaHealthChecker_Healthy(t *testing.T) {
 	assert.Equal(t, 3, status.BrokerCount)
 }
 
+// NoOpKafkaHealthChecker_Unhealthyがステータス未健全の場合にHealthCheckがhealthy=falseを返すことを検証する。
 func TestNoOpKafkaHealthChecker_Unhealthy(t *testing.T) {
 	checker := &kafka.NoOpKafkaHealthChecker{
 		Status: &kafka.KafkaHealthStatus{Healthy: false, Message: "connection refused"},
@@ -139,6 +152,7 @@ func TestNoOpKafkaHealthChecker_Unhealthy(t *testing.T) {
 	assert.False(t, status.Healthy)
 }
 
+// NoOpKafkaHealthChecker_Errorが設定されたエラーをHealthCheckが返すことを検証する。
 func TestNoOpKafkaHealthChecker_Error(t *testing.T) {
 	expectedErr := errors.New("connection refused")
 	checker := &kafka.NoOpKafkaHealthChecker{
@@ -148,11 +162,13 @@ func TestNoOpKafkaHealthChecker_Error(t *testing.T) {
 	assert.ErrorIs(t, err, expectedErr)
 }
 
+// KafkaConfig_UsesTLS_SASLPlaintextがSASL_PLAINTEXTプロトコルの場合にUsesTLSがfalseを返すことを検証する。
 func TestKafkaConfig_UsesTLS_SASLPlaintext(t *testing.T) {
 	cfg := &kafka.KafkaConfig{SecurityProtocol: "SASL_PLAINTEXT"}
 	assert.False(t, cfg.UsesTLS())
 }
 
+// TopicConfig_Tier_InvalidNameが無効なトピック名の場合にTierが空文字を返すことを検証する。
 func TestTopicConfig_Tier_InvalidName(t *testing.T) {
 	tc := &kafka.TopicConfig{Name: "invalid-name"}
 	assert.Equal(t, "", tc.Tier())
@@ -160,6 +176,7 @@ func TestTopicConfig_Tier_InvalidName(t *testing.T) {
 
 // --- KafkaConfig 追加フィールド Tests ---
 
+// KafkaConfig_ConsumerGroupがConsumerGroupフィールドを設定した場合に正しく保存されバリデーションが成功することを検証する。
 func TestKafkaConfig_ConsumerGroup(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -169,6 +186,7 @@ func TestKafkaConfig_ConsumerGroup(t *testing.T) {
 	assert.NoError(t, cfg.Validate())
 }
 
+// KafkaConfig_EffectiveConnectionTimeoutMs_DefaultがConnectionTimeoutMs未設定時にデフォルト値を返すことを検証する。
 func TestKafkaConfig_EffectiveConnectionTimeoutMs_Default(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -176,6 +194,7 @@ func TestKafkaConfig_EffectiveConnectionTimeoutMs_Default(t *testing.T) {
 	assert.Equal(t, kafka.DefaultConnectionTimeoutMs, cfg.EffectiveConnectionTimeoutMs())
 }
 
+// KafkaConfig_EffectiveConnectionTimeoutMs_CustomがConnectionTimeoutMs設定時にカスタム値を返すことを検証する。
 func TestKafkaConfig_EffectiveConnectionTimeoutMs_Custom(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers:    []string{"broker1:9092"},
@@ -184,6 +203,7 @@ func TestKafkaConfig_EffectiveConnectionTimeoutMs_Custom(t *testing.T) {
 	assert.Equal(t, 10000, cfg.EffectiveConnectionTimeoutMs())
 }
 
+// KafkaConfig_EffectiveRequestTimeoutMs_DefaultがRequestTimeoutMs未設定時にデフォルト値を返すことを検証する。
 func TestKafkaConfig_EffectiveRequestTimeoutMs_Default(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -191,6 +211,7 @@ func TestKafkaConfig_EffectiveRequestTimeoutMs_Default(t *testing.T) {
 	assert.Equal(t, kafka.DefaultRequestTimeoutMs, cfg.EffectiveRequestTimeoutMs())
 }
 
+// KafkaConfig_EffectiveRequestTimeoutMs_CustomがRequestTimeoutMs設定時にカスタム値を返すことを検証する。
 func TestKafkaConfig_EffectiveRequestTimeoutMs_Custom(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -199,6 +220,7 @@ func TestKafkaConfig_EffectiveRequestTimeoutMs_Custom(t *testing.T) {
 	assert.Equal(t, 60000, cfg.EffectiveRequestTimeoutMs())
 }
 
+// KafkaConfig_EffectiveMaxMessageBytes_DefaultがMaxMessageBytes未設定時にデフォルト値を返すことを検証する。
 func TestKafkaConfig_EffectiveMaxMessageBytes_Default(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -206,6 +228,7 @@ func TestKafkaConfig_EffectiveMaxMessageBytes_Default(t *testing.T) {
 	assert.Equal(t, kafka.DefaultMaxMessageBytes, cfg.EffectiveMaxMessageBytes())
 }
 
+// KafkaConfig_EffectiveMaxMessageBytes_CustomがMaxMessageBytes設定時にカスタム値を返すことを検証する。
 func TestKafkaConfig_EffectiveMaxMessageBytes_Custom(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -214,6 +237,7 @@ func TestKafkaConfig_EffectiveMaxMessageBytes_Custom(t *testing.T) {
 	assert.Equal(t, 2000000, cfg.EffectiveMaxMessageBytes())
 }
 
+// KafkaConfig_Validate_NegativeConnectionTimeoutが負のConnectionTimeoutMsでバリデーションエラーを返すことを検証する。
 func TestKafkaConfig_Validate_NegativeConnectionTimeout(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers:    []string{"broker1:9092"},
@@ -222,6 +246,7 @@ func TestKafkaConfig_Validate_NegativeConnectionTimeout(t *testing.T) {
 	assert.Error(t, cfg.Validate())
 }
 
+// KafkaConfig_Validate_NegativeRequestTimeoutが負のRequestTimeoutMsでバリデーションエラーを返すことを検証する。
 func TestKafkaConfig_Validate_NegativeRequestTimeout(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -230,6 +255,7 @@ func TestKafkaConfig_Validate_NegativeRequestTimeout(t *testing.T) {
 	assert.Error(t, cfg.Validate())
 }
 
+// KafkaConfig_Validate_NegativeMaxMessageBytesが負のMaxMessageBytesでバリデーションエラーを返すことを検証する。
 func TestKafkaConfig_Validate_NegativeMaxMessageBytes(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers: []string{"broker1:9092"},
@@ -238,6 +264,7 @@ func TestKafkaConfig_Validate_NegativeMaxMessageBytes(t *testing.T) {
 	assert.Error(t, cfg.Validate())
 }
 
+// KafkaConfig_AllFieldsが全フィールドを設定した場合にバリデーション・TLS判定・各有効値取得が正常に動作することを検証する。
 func TestKafkaConfig_AllFields(t *testing.T) {
 	cfg := &kafka.KafkaConfig{
 		BootstrapServers:    []string{"broker1:9092", "broker2:9092"},
@@ -260,6 +287,7 @@ func TestKafkaConfig_AllFields(t *testing.T) {
 
 // --- KafkaError Tests ---
 
+// KafkaError_ErrorWithWrappedErrorがラップエラーを持つKafkaErrorのErrorメソッドが操作名・メッセージ・原因エラーを含む文字列を返すことを検証する。
 func TestKafkaError_ErrorWithWrappedError(t *testing.T) {
 	cause := errors.New("connection refused")
 	err := &kafka.KafkaError{
@@ -272,6 +300,7 @@ func TestKafkaError_ErrorWithWrappedError(t *testing.T) {
 	assert.Contains(t, err.Error(), "connection refused")
 }
 
+// KafkaError_ErrorWithoutWrappedErrorがラップエラーなしのKafkaErrorが「op: message」形式の文字列を返すことを検証する。
 func TestKafkaError_ErrorWithoutWrappedError(t *testing.T) {
 	err := &kafka.KafkaError{
 		Op:      "publish",
@@ -280,6 +309,7 @@ func TestKafkaError_ErrorWithoutWrappedError(t *testing.T) {
 	assert.Equal(t, "publish: topic not found", err.Error())
 }
 
+// KafkaError_UnwrapがUnwrapでラップされた原因エラーを取り出せることを検証する。
 func TestKafkaError_Unwrap(t *testing.T) {
 	cause := errors.New("timeout")
 	err := &kafka.KafkaError{
@@ -290,6 +320,7 @@ func TestKafkaError_Unwrap(t *testing.T) {
 	assert.ErrorIs(t, err, cause)
 }
 
+// KafkaError_UnwrapNilがErrフィールドなしのKafkaErrorのUnwrapがnilを返すことを検証する。
 func TestKafkaError_UnwrapNil(t *testing.T) {
 	err := &kafka.KafkaError{
 		Op:      "subscribe",
@@ -300,6 +331,7 @@ func TestKafkaError_UnwrapNil(t *testing.T) {
 
 // --- TopicPartitionInfo Tests ---
 
+// TopicPartitionInfo_FieldsがTopicPartitionInfoの全フィールドが正しく設定・取得できることを検証する。
 func TestTopicPartitionInfo_Fields(t *testing.T) {
 	info := &kafka.TopicPartitionInfo{
 		Topic:     "k1s0.system.auth.login.v1",
@@ -315,6 +347,7 @@ func TestTopicPartitionInfo_Fields(t *testing.T) {
 	assert.Equal(t, []int32{1, 2}, info.ISR)
 }
 
+// TopicPartitionInfo_EmptyReplicasがレプリカ未設定のTopicPartitionInfoのReplicasとISRがnilであることを検証する。
 func TestTopicPartitionInfo_EmptyReplicas(t *testing.T) {
 	info := &kafka.TopicPartitionInfo{
 		Topic:     "k1s0.system.auth.login.v1",
@@ -327,42 +360,50 @@ func TestTopicPartitionInfo_EmptyReplicas(t *testing.T) {
 
 // --- DefaultPartitionsForTier Tests ---
 
+// DefaultPartitionsForTier_SystemがSystemティアのデフォルトパーティション数が6であることを検証する。
 func TestDefaultPartitionsForTier_System(t *testing.T) {
 	assert.Equal(t, 6, kafka.DefaultPartitionsForTier("system"))
 }
 
+// DefaultPartitionsForTier_BusinessがBusinessティアのデフォルトパーティション数が6であることを検証する。
 func TestDefaultPartitionsForTier_Business(t *testing.T) {
 	assert.Equal(t, 6, kafka.DefaultPartitionsForTier("business"))
 }
 
+// DefaultPartitionsForTier_ServiceがServiceティアのデフォルトパーティション数が3であることを検証する。
 func TestDefaultPartitionsForTier_Service(t *testing.T) {
 	assert.Equal(t, 3, kafka.DefaultPartitionsForTier("service"))
 }
 
+// DefaultPartitionsForTier_Unknownが未知のティアに対してデフォルトパーティション数3を返すことを検証する。
 func TestDefaultPartitionsForTier_Unknown(t *testing.T) {
 	assert.Equal(t, 3, kafka.DefaultPartitionsForTier("other"))
 }
 
 // --- WithTierDefaults Tests ---
 
+// TopicConfig_WithTierDefaults_SystemがSystemティアのトピックにデフォルトパーティション数6を設定することを検証する。
 func TestTopicConfig_WithTierDefaults_System(t *testing.T) {
 	tc := &kafka.TopicConfig{Name: "k1s0.system.auth.login.v1"}
 	tc.WithTierDefaults()
 	assert.Equal(t, 6, tc.Partitions)
 }
 
+// TopicConfig_WithTierDefaults_BusinessがBusinessティアのトピックにデフォルトパーティション数6を設定することを検証する。
 func TestTopicConfig_WithTierDefaults_Business(t *testing.T) {
 	tc := &kafka.TopicConfig{Name: "k1s0.business.order.placed.v1"}
 	tc.WithTierDefaults()
 	assert.Equal(t, 6, tc.Partitions)
 }
 
+// TopicConfig_WithTierDefaults_ServiceがServiceティアのトピックにデフォルトパーティション数3を設定することを検証する。
 func TestTopicConfig_WithTierDefaults_Service(t *testing.T) {
 	tc := &kafka.TopicConfig{Name: "k1s0.service.payment.done.v1"}
 	tc.WithTierDefaults()
 	assert.Equal(t, 3, tc.Partitions)
 }
 
+// TopicConfig_WithTierDefaults_InvalidNameが無効なトピック名の場合にパーティション数が変更されないことを検証する。
 func TestTopicConfig_WithTierDefaults_InvalidName(t *testing.T) {
 	tc := &kafka.TopicConfig{Name: "invalid", Partitions: 5}
 	tc.WithTierDefaults()

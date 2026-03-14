@@ -10,13 +10,13 @@ void main() {
   });
 
   group('acquire', () {
-    test('acquires lock successfully', () async {
+    test('ロックを正常に取得できること', () async {
       final guard = await lock.acquire('key1', const Duration(seconds: 10));
       expect(guard.key, equals('key1'));
       expect(guard.token, isNotEmpty);
     });
 
-    test('throws when lock already held', () async {
+    test('ロックが既に保持されている場合に例外をスローすること', () async {
       await lock.acquire('key1', const Duration(seconds: 10));
       expect(
         () => lock.acquire('key1', const Duration(seconds: 10)),
@@ -24,7 +24,7 @@ void main() {
       );
     });
 
-    test('allows acquire after expiry', () async {
+    test('有効期限切れ後に再取得できること', () async {
       await lock.acquire('key1', const Duration(milliseconds: 1));
       await Future<void>.delayed(const Duration(milliseconds: 10));
       final guard = await lock.acquire('key1', const Duration(seconds: 10));
@@ -33,13 +33,13 @@ void main() {
   });
 
   group('release', () {
-    test('releases lock', () async {
+    test('ロックを解放できること', () async {
       final guard = await lock.acquire('key1', const Duration(seconds: 10));
       await lock.release(guard);
       expect(await lock.isLocked('key1'), isFalse);
     });
 
-    test('throws on token mismatch', () async {
+    test('トークンが一致しない場合に例外をスローすること', () async {
       await lock.acquire('key1', const Duration(seconds: 10));
       final fakeGuard = LockGuard(key: 'key1', token: 'wrong-token');
       expect(
@@ -50,11 +50,11 @@ void main() {
   });
 
   group('isLocked', () {
-    test('returns false for unknown key', () async {
+    test('存在しないキーに対してfalseを返すこと', () async {
       expect(await lock.isLocked('unknown'), isFalse);
     });
 
-    test('returns true for held lock', () async {
+    test('ロックが保持されている場合にtrueを返すこと', () async {
       await lock.acquire('key1', const Duration(seconds: 10));
       expect(await lock.isLocked('key1'), isTrue);
     });

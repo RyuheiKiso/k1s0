@@ -215,6 +215,7 @@ impl EventStore for PostgresEventStore {
 mod tests {
     use super::*;
 
+    // イベントテーブル作成 SQL が必要なカラムと制約を含む有効な文字列であることを確認する。
     #[test]
     fn test_create_events_table_sql_is_valid() {
         // Verify the SQL string is non-empty and contains expected keywords

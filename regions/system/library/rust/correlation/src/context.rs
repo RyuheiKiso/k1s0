@@ -89,6 +89,7 @@ mod tests {
     use super::*;
     use crate::id::CorrelationId;
 
+    // 新しく生成したコンテキストが相関 ID を持ちトレース ID が None であることを確認する。
     #[test]
     fn test_context_new() {
         let ctx = CorrelationContext::new();
@@ -96,6 +97,7 @@ mod tests {
         assert!(ctx.trace_id.is_none());
     }
 
+    // with_trace_id でトレース ID をコンテキストに設定できることを確認する。
     #[test]
     fn test_context_with_trace_id() {
         let trace = TraceId::new();
@@ -103,6 +105,7 @@ mod tests {
         assert_eq!(ctx.trace_id.as_ref().unwrap().as_str(), trace.as_str());
     }
 
+    // トレース ID なしのコンテキストから 1 件のヘッダーが生成されることを確認する。
     #[test]
     fn test_to_headers_without_trace() {
         let ctx = CorrelationContext::from_correlation_id(CorrelationId::from_string("corr-001"));
@@ -112,6 +115,7 @@ mod tests {
         assert_eq!(headers[0].1, "corr-001");
     }
 
+    // トレース ID ありのコンテキストから 2 件のヘッダーが生成されることを確認する。
     #[test]
     fn test_to_headers_with_trace() {
         let trace = TraceId::from_string("4bf92f3577b34da6a3ce929d0e0e4736").unwrap();
@@ -121,6 +125,7 @@ mod tests {
         assert_eq!(headers.len(), 2);
     }
 
+    // ヘッダーから相関 ID とトレース ID が正しく復元されることを確認する。
     #[test]
     fn test_from_headers() {
         let headers = vec![
@@ -135,6 +140,7 @@ mod tests {
         assert!(ctx.trace_id.is_some());
     }
 
+    // 相関 ID ヘッダーがない場合にデフォルトの相関 ID が自動生成されることを確認する。
     #[test]
     fn test_from_headers_missing_correlation() {
         let headers = vec![];
@@ -142,6 +148,7 @@ mod tests {
         assert!(!ctx.correlation_id.as_str().is_empty()); // 自動生成
     }
 
+    // Default 実装で生成したコンテキストが相関 ID を持ちトレース ID が None であることを確認する。
     #[test]
     fn test_context_default() {
         let ctx = CorrelationContext::default();
@@ -149,6 +156,7 @@ mod tests {
         assert!(ctx.trace_id.is_none());
     }
 
+    // 既存の相関 ID からコンテキストを生成してその値が保持されることを確認する。
     #[test]
     fn test_context_from_correlation_id() {
         let cid = CorrelationId::from_string("my-corr-id");
@@ -157,6 +165,7 @@ mod tests {
         assert!(ctx.trace_id.is_none());
     }
 
+    // トレース ID ありのヘッダー内容が正しいことを詳細に確認する。
     #[test]
     fn test_to_headers_with_trace_content() {
         let trace = TraceId::from_string("4bf92f3577b34da6a3ce929d0e0e4736").unwrap();
@@ -172,6 +181,7 @@ mod tests {
         assert_eq!(trace_header.unwrap().1, "4bf92f3577b34da6a3ce929d0e0e4736");
     }
 
+    // ヘッダーキーの大文字小文字を区別せずに相関 ID が取得できることを確認する。
     #[test]
     fn test_from_headers_case_insensitive() {
         // ヘッダーキーは小文字に正規化されて比較される
@@ -180,6 +190,7 @@ mod tests {
         assert_eq!(ctx.correlation_id.as_str(), "corr-upper");
     }
 
+    // 不正なトレース ID ヘッダーが None として無視されることを確認する。
     #[test]
     fn test_from_headers_invalid_trace_id_ignored() {
         // 不正なトレース ID は None になる
@@ -192,12 +203,14 @@ mod tests {
         assert!(ctx.trace_id.is_none());
     }
 
+    // ヘッダー名定数が正しい値を持つことを確認する。
     #[test]
     fn test_header_name_constants() {
         assert_eq!(CorrelationHeaders::CORRELATION_ID, "x-correlation-id");
         assert_eq!(CorrelationHeaders::TRACE_ID, "x-trace-id");
     }
 
+    // new で生成した複数のコンテキストが異なる相関 ID を持つことを確認する。
     #[test]
     fn test_context_unique_per_new() {
         let ctx1 = CorrelationContext::new();

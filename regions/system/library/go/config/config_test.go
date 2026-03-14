@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// YAMLファイルから設定を正常に読み込めることを確認する。
 func TestLoad(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "config.yaml")
@@ -37,12 +38,14 @@ auth:
 	assert.Equal(t, 8080, cfg.Server.Port)
 }
 
+// 存在しないファイルを読み込もうとするとエラーが返ることを確認する。
 func TestLoad_FileNotFound(t *testing.T) {
 	_, err := Load("/nonexistent/config.yaml")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to read config")
 }
 
+// 不正なYAMLファイルを読み込もうとするとパースエラーが返ることを確認する。
 func TestLoad_InvalidYAML(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "config.yaml")
@@ -53,6 +56,7 @@ func TestLoad_InvalidYAML(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to parse config")
 }
 
+// 環境固有のYAMLファイルでベース設定が上書きされることを確認する。
 func TestLoad_WithEnvOverride(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "config.yaml")
@@ -93,6 +97,7 @@ observability:
 	assert.Equal(t, "test-server", cfg.App.Name) // base value preserved
 }
 
+// 環境ファイルパスが空文字の場合にベース設定のみで正常に読み込めることを確認する。
 func TestLoad_WithEmptyEnvPath(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "config.yaml")
@@ -120,6 +125,7 @@ auth:
 	assert.Equal(t, "test-server", cfg.App.Name)
 }
 
+// 全必須フィールドが揃った設定でValidateがエラーなしで通ることを確認する。
 func TestValidate_ValidConfig(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "config.yaml")
@@ -149,12 +155,14 @@ auth:
 	assert.NoError(t, err)
 }
 
+// 必須フィールドが欠けた設定でValidateがエラーを返すことを確認する。
 func TestValidate_MissingRequired(t *testing.T) {
 	cfg := &Config{}
 	err := cfg.Validate()
 	assert.Error(t, err)
 }
 
+// 無効なTier値を持つ設定でValidateがエラーを返すことを確認する。
 func TestValidate_InvalidTier(t *testing.T) {
 	cfg := &Config{
 		App: AppConfig{
@@ -181,6 +189,7 @@ func TestValidate_InvalidTier(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// 無効なポート番号（0）を持つ設定でValidateがエラーを返すことを確認する。
 func TestValidate_InvalidPort(t *testing.T) {
 	cfg := &Config{
 		App: AppConfig{
@@ -207,6 +216,7 @@ func TestValidate_InvalidPort(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// VaultシークレットのデータベースパスワードがConfigにマージされることを確認する。
 func TestMergeVaultSecrets(t *testing.T) {
 	cfg := &Config{
 		Database: &DatabaseConfig{Password: ""},
@@ -217,6 +227,7 @@ func TestMergeVaultSecrets(t *testing.T) {
 	assert.Equal(t, "secret123", cfg.Database.Password)
 }
 
+// VaultシークレットのRedisパスワードがConfigにマージされることを確認する。
 func TestMergeVaultSecrets_RedisPassword(t *testing.T) {
 	cfg := &Config{
 		Redis: &RedisConfig{Password: ""},
@@ -227,6 +238,7 @@ func TestMergeVaultSecrets_RedisPassword(t *testing.T) {
 	assert.Equal(t, "redis-secret", cfg.Redis.Password)
 }
 
+// VaultシークレットのKafka SASL認証情報がConfigにマージされることを確認する。
 func TestMergeVaultSecrets_KafkaSASL(t *testing.T) {
 	cfg := &Config{
 		Kafka: &KafkaConfig{
@@ -241,6 +253,7 @@ func TestMergeVaultSecrets_KafkaSASL(t *testing.T) {
 	assert.Equal(t, "kafka-pass", cfg.Kafka.SASL.Password)
 }
 
+// VaultシークレットのOIDCクライアントシークレットがConfigにマージされることを確認する。
 func TestMergeVaultSecrets_OIDCClientSecret(t *testing.T) {
 	cfg := &Config{
 		Auth: AuthConfig{
@@ -253,6 +266,7 @@ func TestMergeVaultSecrets_OIDCClientSecret(t *testing.T) {
 	assert.Equal(t, "oidc-secret", cfg.Auth.OIDC.ClientSecret)
 }
 
+// オプションフィールドがnilの場合にMergeVaultSecretsがパニックしないことを確認する。
 func TestMergeVaultSecrets_NilOptionalFields(t *testing.T) {
 	cfg := &Config{}
 	// Should not panic when optional fields are nil
@@ -269,6 +283,7 @@ func TestMergeVaultSecrets_NilOptionalFields(t *testing.T) {
 	assert.Nil(t, cfg.Auth.OIDC)
 }
 
+// 全オプション設定（DB, Kafka, Redis, GRPC, OIDCなど）を含むYAMLを正常に読み込みバリデーションできることを確認する。
 func TestLoad_FullConfig(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "config.yaml")

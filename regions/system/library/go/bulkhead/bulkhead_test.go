@@ -19,6 +19,7 @@ func defaultConfig() bulkhead.Config {
 	}
 }
 
+// Acquire でスロットを取得し Release で解放後に再取得できることを確認する。
 func TestAcquire_Release(t *testing.T) {
 	bh := bulkhead.New(defaultConfig())
 	ctx := context.Background()
@@ -41,6 +42,7 @@ func TestAcquire_Release(t *testing.T) {
 	bh.Release()
 }
 
+// 全スロットが使用中の場合に Acquire が ErrFull を返すことを確認する。
 func TestFull_Rejection(t *testing.T) {
 	bh := bulkhead.New(defaultConfig())
 	ctx := context.Background()
@@ -60,6 +62,7 @@ func TestFull_Rejection(t *testing.T) {
 	bh.Release()
 }
 
+// MaxWaitDuration 経過後に Acquire が ErrFull を返すことを確認する。
 func TestWait_Timeout(t *testing.T) {
 	bh := bulkhead.New(defaultConfig())
 	ctx := context.Background()
@@ -81,6 +84,7 @@ func TestWait_Timeout(t *testing.T) {
 	bh.Release()
 }
 
+// コンテキストがキャンセルされると Acquire が context.Canceled を返すことを確認する。
 func TestContext_Cancellation(t *testing.T) {
 	bh := bulkhead.New(defaultConfig())
 	ctx, cancel := context.WithCancel(context.Background())
@@ -103,6 +107,7 @@ func TestContext_Cancellation(t *testing.T) {
 	bh.Release()
 }
 
+// 並行アクセス時に同時実行数が MaxConcurrentCalls を超えないことを確認する。
 func TestConcurrent_Access(t *testing.T) {
 	cfg := defaultConfig()
 	bh := bulkhead.New(cfg)
@@ -142,6 +147,7 @@ func TestConcurrent_Access(t *testing.T) {
 	assert.LessOrEqual(t, maxConcurrency.Load(), int32(cfg.MaxConcurrentCalls))
 }
 
+// Call がスロットを取得してコールバックを実行しエラーなしで完了することを確認する。
 func TestCall_Success(t *testing.T) {
 	bh := bulkhead.New(defaultConfig())
 	ctx := context.Background()
@@ -156,6 +162,7 @@ func TestCall_Success(t *testing.T) {
 	assert.True(t, called)
 }
 
+// Call がバルクヘッド満杯時にコールバックを実行せず ErrFull を返すことを確認する。
 func TestCall_Full(t *testing.T) {
 	bh := bulkhead.New(defaultConfig())
 	ctx := context.Background()

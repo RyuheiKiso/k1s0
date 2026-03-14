@@ -22,6 +22,7 @@ func makeTable(name string, columns []Column) Table {
 	}
 }
 
+// DiffSchemasが新しいテーブルの追加をDiffTableAddedとして検出することを確認する。
 func TestTableAdded(t *testing.T) {
 	old := &Schema{Tables: []Table{}}
 	new := &Schema{Tables: []Table{
@@ -33,6 +34,7 @@ func TestTableAdded(t *testing.T) {
 	assert.Equal(t, "users", diffs[0].Table)
 }
 
+// DiffSchemasがテーブルの削除をDiffTableDroppedとして検出することを確認する。
 func TestTableDropped(t *testing.T) {
 	old := &Schema{Tables: []Table{
 		makeTable("users", []Column{makeColumn("id", "UUID", false)}),
@@ -44,6 +46,7 @@ func TestTableDropped(t *testing.T) {
 	assert.Equal(t, "users", diffs[0].Table)
 }
 
+// DiffSchemasがカラムの追加をDiffColumnAddedとして検出することを確認する。
 func TestColumnAdded(t *testing.T) {
 	old := &Schema{Tables: []Table{
 		makeTable("users", []Column{makeColumn("id", "UUID", false)}),
@@ -61,6 +64,7 @@ func TestColumnAdded(t *testing.T) {
 	assert.Equal(t, "email", diffs[0].Column.Name)
 }
 
+// DiffSchemasがカラムの削除をDiffColumnDroppedとして検出することを確認する。
 func TestColumnDropped(t *testing.T) {
 	old := &Schema{Tables: []Table{
 		makeTable("users", []Column{
@@ -78,6 +82,7 @@ func TestColumnDropped(t *testing.T) {
 	assert.Equal(t, "email", diffs[0].ColumnName)
 }
 
+// DiffSchemasがカラムの型またはNullable変更をDiffColumnChangedとして検出することを確認する。
 func TestColumnChanged(t *testing.T) {
 	old := &Schema{Tables: []Table{
 		makeTable("users", []Column{makeColumn("name", "TEXT", true)}),
@@ -94,6 +99,7 @@ func TestColumnChanged(t *testing.T) {
 	assert.Equal(t, "VARCHAR", diffs[0].To.DataType)
 }
 
+// 同一スキーマ同士のDiffSchemasが差分なしを返すことを確認する。
 func TestNoChanges(t *testing.T) {
 	schema := &Schema{Tables: []Table{
 		makeTable("users", []Column{makeColumn("id", "UUID", false)}),

@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// NewDlqClientがベースURLの末尾スラッシュを除去してリクエストを正常に送信することを確認する。
 func TestNewDlqClient_TrimsTrailingSlash(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/dlq/test-topic", r.URL.Path)
@@ -34,6 +35,7 @@ func TestNewDlqClient_TrimsTrailingSlash(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// ListMessagesが指定トピックのDLQメッセージ一覧を正常に取得することを確認する。
 func TestListMessages_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
@@ -73,6 +75,7 @@ func TestListMessages_Success(t *testing.T) {
 	assert.Equal(t, dlq.DlqStatusPending, resp.Messages[0].Status)
 }
 
+// ListMessagesがサーバーエラー時にDlqErrorを返すことを確認する。
 func TestListMessages_ErrorStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -94,6 +97,7 @@ func TestListMessages_ErrorStatus(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, dlqErr.StatusCode)
 }
 
+// GetMessageが指定IDのDLQメッセージを正常に取得することを確認する。
 func TestGetMessage_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
@@ -120,6 +124,7 @@ func TestGetMessage_Success(t *testing.T) {
 	assert.Equal(t, dlq.DlqStatusRetrying, msg.Status)
 }
 
+// GetMessageがメッセージ未存在時にDlqErrorを返すことを確認する。
 func TestGetMessage_ErrorStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -137,6 +142,7 @@ func TestGetMessage_ErrorStatus(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, dlqErr.StatusCode)
 }
 
+// RetryMessageが指定IDのDLQメッセージのリトライを正常にリクエストすることを確認する。
 func TestRetryMessage_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -159,6 +165,7 @@ func TestRetryMessage_Success(t *testing.T) {
 	assert.Equal(t, dlq.DlqStatusRetrying, resp.Status)
 }
 
+// RetryMessageがサーバーエラー時にDlqErrorを返すことを確認する。
 func TestRetryMessage_ErrorStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusConflict)
@@ -176,6 +183,7 @@ func TestRetryMessage_ErrorStatus(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, dlqErr.StatusCode)
 }
 
+// DeleteMessageが指定IDのDLQメッセージを正常に削除することを確認する。
 func TestDeleteMessage_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
@@ -190,6 +198,7 @@ func TestDeleteMessage_Success(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// DeleteMessageがメッセージ未存在時にDlqErrorを返すことを確認する。
 func TestDeleteMessage_ErrorStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -207,6 +216,7 @@ func TestDeleteMessage_ErrorStatus(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, dlqErr.StatusCode)
 }
 
+// RetryAllが指定トピックの全DLQメッセージのリトライを正常にリクエストすることを確認する。
 func TestRetryAll_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -222,6 +232,7 @@ func TestRetryAll_Success(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// RetryAllがサーバーエラー時にDlqErrorを返すことを確認する。
 func TestRetryAll_ErrorStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -239,6 +250,7 @@ func TestRetryAll_ErrorStatus(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, dlqErr.StatusCode)
 }
 
+// DlqStatusの定数値が期待する文字列と一致することを確認する。
 func TestDlqStatus_Constants(t *testing.T) {
 	assert.Equal(t, dlq.DlqStatus("PENDING"), dlq.DlqStatusPending)
 	assert.Equal(t, dlq.DlqStatus("RETRYING"), dlq.DlqStatusRetrying)
@@ -246,6 +258,7 @@ func TestDlqStatus_Constants(t *testing.T) {
 	assert.Equal(t, dlq.DlqStatus("DEAD"), dlq.DlqStatusDead)
 }
 
+// DlqErrorのErrorメソッドがステータスコードを含む正しいエラーメッセージを返すことを確認する。
 func TestDlqError_ErrorMessage(t *testing.T) {
 	err := &dlq.DlqError{
 		Op:         "list_messages",
@@ -255,6 +268,7 @@ func TestDlqError_ErrorMessage(t *testing.T) {
 	assert.Equal(t, "dlq list_messages: status 500: internal error", err.Error())
 }
 
+// DlqErrorのErrorメソッドがステータスコード未設定時にシンプルなエラーメッセージを返すことを確認する。
 func TestDlqError_ErrorMessageWithoutStatusCode(t *testing.T) {
 	err := &dlq.DlqError{
 		Op:  "get_message",
@@ -263,6 +277,7 @@ func TestDlqError_ErrorMessageWithoutStatusCode(t *testing.T) {
 	assert.Equal(t, "dlq get_message: connection refused", err.Error())
 }
 
+// DlqErrorのUnwrapメソッドが内包するエラーを正しく返すことを確認する。
 func TestDlqError_Unwrap(t *testing.T) {
 	inner := errors.New("original error")
 	err := &dlq.DlqError{

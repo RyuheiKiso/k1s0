@@ -141,6 +141,7 @@ fn map_redis_error(err: RedisError) -> CacheError {
 mod tests {
     use super::*;
 
+    // Redis エラーが CacheError::ConnectionError に正しく変換されることを確認する。
     #[test]
     fn test_map_redis_error() {
         let err = map_redis_error(RedisError::from((

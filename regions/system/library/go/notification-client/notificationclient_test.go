@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// SendがEmailチャンネルへの通知リクエストに対して正しいレスポンスを返すことを確認する。
 func TestSend_ReturnsResponse(t *testing.T) {
 	c := notificationclient.NewInMemoryClient()
 	resp, err := c.Send(context.Background(), notificationclient.NotificationRequest{
@@ -24,6 +25,7 @@ func TestSend_ReturnsResponse(t *testing.T) {
 	assert.Equal(t, "n-1-msg", resp.MessageID)
 }
 
+// 複数回Sendを呼び出した際に送信済みリクエストが全件記録されることを確認する。
 func TestSend_RecordsSentRequests(t *testing.T) {
 	c := notificationclient.NewInMemoryClient()
 	ctx := context.Background()
@@ -41,11 +43,13 @@ func TestSend_RecordsSentRequests(t *testing.T) {
 	assert.Equal(t, "n-2", sent[1].ID)
 }
 
+// 初期状態でSentRequestsが空スライスを返すことを確認する。
 func TestSentRequests_Empty(t *testing.T) {
 	c := notificationclient.NewInMemoryClient()
 	assert.Empty(t, c.SentRequests())
 }
 
+// SendがPushチャンネルへの通知を正常に送信できることを確認する。
 func TestSend_Push(t *testing.T) {
 	c := notificationclient.NewInMemoryClient()
 	resp, err := c.Send(context.Background(), notificationclient.NotificationRequest{
@@ -58,6 +62,7 @@ func TestSend_Push(t *testing.T) {
 	assert.Equal(t, notificationclient.ChannelPush, c.SentRequests()[0].Channel)
 }
 
+// SendがSlackチャンネルへの通知を正常に送信できることを確認する。
 func TestSend_Slack(t *testing.T) {
 	c := notificationclient.NewInMemoryClient()
 	resp, err := c.Send(context.Background(), notificationclient.NotificationRequest{
@@ -71,6 +76,7 @@ func TestSend_Slack(t *testing.T) {
 	assert.Equal(t, notificationclient.ChannelSlack, c.SentRequests()[0].Channel)
 }
 
+// SendがWebhookチャンネルへの通知を正常に送信できることを確認する。
 func TestSend_Webhook(t *testing.T) {
 	c := notificationclient.NewInMemoryClient()
 	resp, err := c.Send(context.Background(), notificationclient.NotificationRequest{
@@ -84,6 +90,7 @@ func TestSend_Webhook(t *testing.T) {
 	assert.Equal(t, notificationclient.ChannelWebhook, c.SentRequests()[0].Channel)
 }
 
+// SendBatchが複数の通知リクエストをまとめて送信し全レスポンスを返すことを確認する。
 func TestSendBatch_ReturnsResponses(t *testing.T) {
 	c := notificationclient.NewInMemoryClient()
 	ctx := context.Background()

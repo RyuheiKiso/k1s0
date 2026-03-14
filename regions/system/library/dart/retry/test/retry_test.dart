@@ -3,8 +3,8 @@ import 'package:test/test.dart';
 import 'package:k1s0_retry/retry.dart';
 
 void main() {
-  group('RetryConfig', () {
-    test('has sensible defaults', () {
+  group('RetryConfig（リトライ設定）', () {
+    test('適切なデフォルト値を持つこと', () {
       const config = RetryConfig();
       expect(config.maxAttempts, equals(3));
       expect(config.initialDelayMs, equals(100));
@@ -13,7 +13,7 @@ void main() {
       expect(config.jitter, isTrue);
     });
 
-    test('accepts custom values', () {
+    test('カスタム値を受け付けること', () {
       const config = RetryConfig(
         maxAttempts: 5,
         initialDelayMs: 200,
@@ -26,8 +26,8 @@ void main() {
     });
   });
 
-  group('computeDelay', () {
-    test('calculates exponential backoff without jitter', () {
+  group('computeDelay（遅延計算）', () {
+    test('ジッターなしで指数バックオフを計算すること', () {
       const config = RetryConfig(
         initialDelayMs: 100,
         multiplier: 2.0,
@@ -38,7 +38,7 @@ void main() {
       expect(computeDelay(config, 2), equals(400));
     });
 
-    test('caps at maxDelayMs', () {
+    test('maxDelayMsで上限が制限されること', () {
       const config = RetryConfig(
         initialDelayMs: 100,
         maxDelayMs: 300,
@@ -51,7 +51,7 @@ void main() {
       expect(computeDelay(config, 5), equals(300));
     });
 
-    test('applies jitter within 10% range', () {
+    test('10%の範囲内でジッターが適用されること', () {
       const config = RetryConfig(
         initialDelayMs: 1000,
         multiplier: 1.0,
@@ -65,8 +65,8 @@ void main() {
     });
   });
 
-  group('withRetry', () {
-    test('returns on first success', () async {
+  group('withRetry（リトライ実行）', () {
+    test('初回成功時に結果を返すこと', () async {
       var calls = 0;
       final result = await withRetry(
         const RetryConfig(maxAttempts: 3, jitter: false, initialDelayMs: 1),
@@ -79,7 +79,7 @@ void main() {
       expect(calls, equals(1));
     });
 
-    test('retries on failure then succeeds', () async {
+    test('失敗後にリトライして成功すること', () async {
       var calls = 0;
       final result = await withRetry(
         const RetryConfig(maxAttempts: 3, jitter: false, initialDelayMs: 1),
@@ -93,7 +93,7 @@ void main() {
       expect(calls, equals(3));
     });
 
-    test('throws RetryError after exhausting attempts', () async {
+    test('試行回数を使い切った後にRetryErrorがスローされること', () async {
       expect(
         () => withRetry(
           const RetryConfig(maxAttempts: 3, jitter: false, initialDelayMs: 1),
@@ -105,7 +105,7 @@ void main() {
       );
     });
 
-    test('RetryError contains attempt count and last error', () async {
+    test('RetryErrorが試行回数と最後のエラーを保持すること', () async {
       RetryError? caught;
       try {
         await withRetry(
@@ -124,14 +124,14 @@ void main() {
     });
   });
 
-  group('CircuitBreaker', () {
-    test('starts in closed state', () {
+  group('CircuitBreaker（サーキットブレーカー）', () {
+    test('初期状態がクローズドであること', () {
       final cb = CircuitBreaker();
       expect(cb.state, equals(CircuitBreakerState.closed));
       expect(cb.isOpen, isFalse);
     });
 
-    test('opens after reaching failure threshold', () {
+    test('失敗しきい値に達するとオープン状態に遷移すること', () {
       final cb = CircuitBreaker(
         config: const CircuitBreakerConfig(failureThreshold: 3),
       );
@@ -143,7 +143,7 @@ void main() {
       expect(cb.isOpen, isTrue);
     });
 
-    test('success resets failure count in closed state', () {
+    test('クローズド状態で成功すると失敗カウントがリセットされること', () {
       final cb = CircuitBreaker(
         config: const CircuitBreakerConfig(failureThreshold: 3),
       );
@@ -155,7 +155,7 @@ void main() {
       expect(cb.state, equals(CircuitBreakerState.closed));
     });
 
-    test('transitions from half-open to closed after success threshold', () {
+    test('成功しきい値に達するとハーフオープンからクローズドへ遷移すること', () {
       final cb = CircuitBreaker(
         config: const CircuitBreakerConfig(
           failureThreshold: 2,
@@ -173,7 +173,7 @@ void main() {
       expect(cb.state, equals(CircuitBreakerState.closed));
     });
 
-    test('failure in half-open reopens circuit', () {
+    test('ハーフオープン状態での失敗でオープンに戻ること', () {
       final cb = CircuitBreaker(
         config: const CircuitBreakerConfig(
           failureThreshold: 1,
@@ -190,8 +190,8 @@ void main() {
     });
   });
 
-  group('RetryError', () {
-    test('has correct message', () {
+  group('RetryError（リトライエラー）', () {
+    test('正しいメッセージを持つこと', () {
       const err = RetryError(3, 'some error');
       expect(err.attempts, equals(3));
       expect(err.lastError, equals('some error'));

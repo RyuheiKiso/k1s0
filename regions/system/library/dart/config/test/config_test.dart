@@ -33,7 +33,7 @@ String writeConfig(Directory dir, String filename, String content) {
 
 void main() {
   group('loadConfig', () {
-    test('should load a valid config', () {
+    test('有効な設定ファイルを読み込めること', () {
       final dir = Directory.systemTemp.createTempSync('k1s0_');
       final path = writeConfig(dir, 'config.yaml', minimalConfigYaml);
 
@@ -42,14 +42,14 @@ void main() {
       expect(cfg.server.port, 8080);
     });
 
-    test('should throw on file not found', () {
+    test('ファイルが存在しない場合に例外をスローすること', () {
       expect(
         () => loadConfig('/nonexistent/config.yaml'),
         throwsA(isA<FileSystemException>()),
       );
     });
 
-    test('should merge env override', () {
+    test('環境別設定ファイルをマージできること', () {
       final dir = Directory.systemTemp.createTempSync('k1s0_');
       final basePath = writeConfig(dir, 'config.yaml', minimalConfigYaml);
       final envPath = writeConfig(dir, 'config.staging.yaml', '''
@@ -70,7 +70,7 @@ observability:
   });
 
   group('validateConfig', () {
-    test('should pass for valid config', () {
+    test('有効な設定のバリデーションが通ること', () {
       final dir = Directory.systemTemp.createTempSync('k1s0_');
       final path = writeConfig(dir, 'config.yaml', minimalConfigYaml);
 
@@ -78,7 +78,7 @@ observability:
       expect(() => validateConfig(cfg), returnsNormally);
     });
 
-    test('should reject empty app name', () {
+    test('アプリ名が空の場合にバリデーションエラーになること', () {
       final cfg = Config(
         app: AppConfig(name: '', version: '1.0', tier: 'system', environment: 'dev'),
         server: ServerConfig(host: '0.0.0.0', port: 8080),
@@ -95,7 +95,7 @@ observability:
       );
     });
 
-    test('should reject invalid tier', () {
+    test('不正なtierの場合にバリデーションエラーになること', () {
       final cfg = Config(
         app: AppConfig(name: 'test', version: '1.0', tier: 'invalid', environment: 'dev'),
         server: ServerConfig(host: '0.0.0.0', port: 8080),
@@ -112,7 +112,7 @@ observability:
       );
     });
 
-    test('should reject invalid environment', () {
+    test('不正なenvironmentの場合にバリデーションエラーになること', () {
       final cfg = Config(
         app: AppConfig(name: 'test', version: '1.0', tier: 'system', environment: 'invalid'),
         server: ServerConfig(host: '0.0.0.0', port: 8080),
@@ -129,7 +129,7 @@ observability:
       );
     });
 
-    test('should reject invalid port', () {
+    test('不正なポート番号の場合にバリデーションエラーになること', () {
       final cfg = Config(
         app: AppConfig(name: 'test', version: '1.0', tier: 'system', environment: 'dev'),
         server: ServerConfig(host: '0.0.0.0', port: 0),
@@ -146,7 +146,7 @@ observability:
       );
     });
 
-    test('should reject empty jwt issuer', () {
+    test('JWT issuerが空の場合にバリデーションエラーになること', () {
       final cfg = Config(
         app: AppConfig(name: 'test', version: '1.0', tier: 'system', environment: 'dev'),
         server: ServerConfig(host: '0.0.0.0', port: 8080),
@@ -165,7 +165,7 @@ observability:
   });
 
   group('mergeVaultSecrets', () {
-    test('should merge database password', () {
+    test('データベースパスワードをマージできること', () {
       final dir = Directory.systemTemp.createTempSync('k1s0_');
       final path = writeConfig(dir, 'config.yaml', '''
 app:
@@ -201,7 +201,7 @@ auth:
       expect(cfg.database!.password, 'secret123');
     });
 
-    test('should merge redis password', () {
+    test('Redisパスワードをマージできること', () {
       final dir = Directory.systemTemp.createTempSync('k1s0_');
       final path = writeConfig(dir, 'config.yaml', '''
 app:
@@ -234,7 +234,7 @@ auth:
       expect(cfg.redis!.password, 'redis-secret');
     });
 
-    test('should merge oidc client secret', () {
+    test('OIDCクライアントシークレットをマージできること', () {
       final dir = Directory.systemTemp.createTempSync('k1s0_');
       final path = writeConfig(dir, 'config.yaml', '''
 app:
@@ -270,7 +270,7 @@ auth:
       expect(cfg.auth.oidc!.clientSecret, 'oidc-secret');
     });
 
-    test('should merge kafka sasl credentials', () {
+    test('KafkaSASL認証情報をマージできること', () {
       final dir = Directory.systemTemp.createTempSync('k1s0_');
       final path = writeConfig(dir, 'config.yaml', '''
 app:
@@ -316,7 +316,7 @@ auth:
       expect(cfg.kafka!.sasl!.password, 'kafka-pass');
     });
 
-    test('should handle nil optional fields safely', () {
+    test('オプションフィールドがnullでも安全に処理できること', () {
       final dir = Directory.systemTemp.createTempSync('k1s0_');
       final path = writeConfig(dir, 'config.yaml', minimalConfigYaml);
       final cfg = loadConfig(path);
@@ -335,8 +335,8 @@ auth:
     });
   });
 
-  group('full config', () {
-    test('should load and validate full config', () {
+  group('フルコンフィグ', () {
+    test('フル設定ファイルを読み込んでバリデーションが通ること', () {
       final dir = Directory.systemTemp.createTempSync('k1s0_');
       final path = writeConfig(dir, 'config.yaml', '''
 app:

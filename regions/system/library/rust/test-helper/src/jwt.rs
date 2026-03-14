@@ -157,6 +157,7 @@ fn base64url_decode(input: &str) -> Option<Vec<u8>> {
 mod tests {
     use super::*;
 
+    // 管理者トークンが 3 パーツで構成されることを確認する。
     #[test]
     fn test_create_admin_token() {
         let helper = JwtTestHelper::new_hs256("test-secret");
@@ -166,6 +167,7 @@ mod tests {
         assert_eq!(parts.len(), 3);
     }
 
+    // ユーザートークンのクレームに指定した sub と roles が含まれることを確認する。
     #[test]
     fn test_create_user_token() {
         let helper = JwtTestHelper::new_hs256("test-secret");
@@ -175,6 +177,7 @@ mod tests {
         assert_eq!(claims.roles, vec!["user"]);
     }
 
+    // テナント ID を含むカスタムクレームのトークンが正しくデコードされることを確認する。
     #[test]
     fn test_create_token_with_tenant() {
         let helper = JwtTestHelper::new_hs256("secret");
@@ -189,12 +192,14 @@ mod tests {
         assert_eq!(decoded.tenant_id, Some("t-1".to_string()));
     }
 
+    // 不正な形式のトークンをデコードした場合に None が返されることを確認する。
     #[test]
     fn test_decode_invalid_token() {
         let helper = JwtTestHelper::new_hs256("s");
         assert!(helper.decode_claims("invalid").is_none());
     }
 
+    // デフォルトクレームの exp が iat より大きく約 1 時間の有効期限を持つことを確認する。
     #[test]
     fn test_default_claims_expiry() {
         let claims = TestClaims::default();

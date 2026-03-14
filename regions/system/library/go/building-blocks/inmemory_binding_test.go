@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// InMemoryOutputBinding の Init 前後でステータスが Uninitialized → Ready に遷移することを確認する。
 func TestInMemoryOutputBinding_InitAndStatus(t *testing.T) {
 	b := NewInMemoryOutputBinding()
 	ctx := context.Background()
@@ -21,6 +22,7 @@ func TestInMemoryOutputBinding_InitAndStatus(t *testing.T) {
 	}
 }
 
+// InMemoryOutputBinding の Name と Version が正しい値を返すことを確認する。
 func TestInMemoryOutputBinding_Name(t *testing.T) {
 	b := NewInMemoryOutputBinding()
 	if b.Name() != "inmemory-binding" {
@@ -31,6 +33,7 @@ func TestInMemoryOutputBinding_Name(t *testing.T) {
 	}
 }
 
+// InMemoryOutputBinding の Invoke が呼び出し内容を LastInvocation に記録することを確認する。
 func TestInMemoryOutputBinding_InvokeRecords(t *testing.T) {
 	b := NewInMemoryOutputBinding()
 	ctx := context.Background()
@@ -63,6 +66,7 @@ func TestInMemoryOutputBinding_InvokeRecords(t *testing.T) {
 	}
 }
 
+// InMemoryOutputBinding の SetResponse で事前設定したレスポンスが Invoke から返ることを確認する。
 func TestInMemoryOutputBinding_SetResponse(t *testing.T) {
 	b := NewInMemoryOutputBinding()
 	ctx := context.Background()
@@ -79,6 +83,7 @@ func TestInMemoryOutputBinding_SetResponse(t *testing.T) {
 	}
 }
 
+// InMemoryOutputBinding の SetResponse でエラーを設定すると Invoke がそのエラーを返すことを確認する。
 func TestInMemoryOutputBinding_SetResponseError(t *testing.T) {
 	b := NewInMemoryOutputBinding()
 	ctx := context.Background()
@@ -93,6 +98,7 @@ func TestInMemoryOutputBinding_SetResponseError(t *testing.T) {
 	}
 }
 
+// InMemoryOutputBinding の Reset が LastInvocation とレスポンスをクリアすることを確認する。
 func TestInMemoryOutputBinding_Reset(t *testing.T) {
 	b := NewInMemoryOutputBinding()
 	ctx := context.Background()
@@ -116,6 +122,7 @@ func TestInMemoryOutputBinding_Reset(t *testing.T) {
 	}
 }
 
+// InMemoryOutputBinding の Close がステータスを StatusClosed に遷移させることを確認する。
 func TestInMemoryOutputBinding_Close(t *testing.T) {
 	b := NewInMemoryOutputBinding()
 	ctx := context.Background()

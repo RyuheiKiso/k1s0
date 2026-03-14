@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// DROP TABLEのSQLからテーブル削除の破壊的変更が検出されることを確認する。
 func TestDetectDropTable(t *testing.T) {
 	sql := "DROP TABLE users;"
 	changes := DetectBreakingChanges(sql)
@@ -14,6 +15,7 @@ func TestDetectDropTable(t *testing.T) {
 	assert.Equal(t, "users", changes[0].Table)
 }
 
+// DROP COLUMNのSQLからカラム削除の破壊的変更が検出されることを確認する。
 func TestDetectDropColumn(t *testing.T) {
 	sql := "ALTER TABLE users DROP COLUMN email;"
 	changes := DetectBreakingChanges(sql)
@@ -23,6 +25,7 @@ func TestDetectDropColumn(t *testing.T) {
 	assert.Equal(t, "email", changes[0].Column)
 }
 
+// SET NOT NULLのSQLからNOT NULL制約追加の破壊的変更が検出されることを確認する。
 func TestDetectSetNotNull(t *testing.T) {
 	sql := "ALTER TABLE users ALTER COLUMN email SET NOT NULL;"
 	changes := DetectBreakingChanges(sql)
@@ -32,6 +35,7 @@ func TestDetectSetNotNull(t *testing.T) {
 	assert.Equal(t, "email", changes[0].Column)
 }
 
+// SET DATA TYPEのSQLからカラム型変更の破壊的変更が検出されることを確認する。
 func TestDetectTypeChange(t *testing.T) {
 	sql := "ALTER TABLE users ALTER COLUMN age SET DATA TYPE BIGINT;"
 	changes := DetectBreakingChanges(sql)
@@ -42,6 +46,7 @@ func TestDetectTypeChange(t *testing.T) {
 	assert.Equal(t, "BIGINT", changes[0].To)
 }
 
+// RENAME COLUMNのSQLからカラム名変更の破壊的変更が検出されることを確認する。
 func TestDetectRenameColumn(t *testing.T) {
 	sql := "ALTER TABLE users RENAME COLUMN old_name TO new_name;"
 	changes := DetectBreakingChanges(sql)
@@ -52,12 +57,14 @@ func TestDetectRenameColumn(t *testing.T) {
 	assert.Equal(t, "new_name", changes[0].To)
 }
 
+// 非破壊的なSQLに対してDetectBreakingChangesが空のスライスを返すことを確認する。
 func TestNoBreakingChanges(t *testing.T) {
 	sql := "ALTER TABLE users ADD COLUMN email TEXT;"
 	changes := DetectBreakingChanges(sql)
 	assert.Empty(t, changes)
 }
 
+// BreakingChangeのStringメソッドが人間可読な表示文字列を返すことを確認する。
 func TestDisplayFormatting(t *testing.T) {
 	change := BreakingChange{
 		Type:   ColumnDropped,
@@ -67,6 +74,7 @@ func TestDisplayFormatting(t *testing.T) {
 	assert.Equal(t, "Column users.email dropped", change.String())
 }
 
+// 不正なSQLを入力した場合にDetectBreakingChangesが空のスライスを返すことを確認する。
 func TestInvalidSQLReturnsEmpty(t *testing.T) {
 	changes := DetectBreakingChanges("NOT VALID SQL AT ALL !!!")
 	assert.Empty(t, changes)

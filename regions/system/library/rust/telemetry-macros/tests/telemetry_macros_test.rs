@@ -27,6 +27,7 @@ mod tests {
     // - #[k1s0_trace(name = "custom.name")] with name parameter
     // - #[k1s0_trace(skip(a, b), name = "op")] combined parameters
 
+    // proc-macro クレートが正常にコンパイルされ k1s0_trace マクロが利用可能であることを確認する。
     #[test]
     fn proc_macro_crate_compiles() {
         // If this test runs, the proc-macro crate compiled successfully.

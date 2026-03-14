@@ -5,7 +5,7 @@ import 'package:k1s0_app_updater/app_updater.dart';
 
 void main() {
   group('RegistryApiClient', () {
-    test('calls the latest endpoint under /api/v1', () async {
+    test('/api/v1 配下の latest エンドポイントが呼び出されること', () async {
       final client = RegistryApiClient(
         baseUrl: 'https://registry.example.com',
         client: MockClient((request) async {
@@ -37,7 +37,7 @@ void main() {
       expect(latest.version, '2.0.0');
     });
 
-    test('parses versions wrapper response', () async {
+    test('versions ラッパーレスポンスを正しくパースできること', () async {
       final client = RegistryApiClient(
         baseUrl: 'https://registry.example.com',
         client: MockClient((request) async {
@@ -69,7 +69,7 @@ void main() {
       expect(versions.first.version, '2.0.0');
     });
 
-    test('maps download response', () async {
+    test('ダウンロードレスポンスを正しくマッピングできること', () async {
       final client = RegistryApiClient(
         baseUrl: 'https://registry.example.com',
         client: MockClient((request) async {

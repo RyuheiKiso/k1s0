@@ -23,14 +23,14 @@ void main() {
   });
 
   group('getSecret', () {
-    test('returns secret when found', () async {
+    test('シークレットが見つかった場合に返されること', () async {
       client.putSecret(makeSecret('system/db/primary'));
       final secret = await client.getSecret('system/db/primary');
       expect(secret.path, equals('system/db/primary'));
       expect(secret.data['password'], equals('s3cr3t'));
     });
 
-    test('throws VaultError when not found', () async {
+    test('見つからない場合にVaultErrorがスローされること', () async {
       expect(
         () => client.getSecret('missing/path'),
         throwsA(isA<VaultError>()),
@@ -39,13 +39,13 @@ void main() {
   });
 
   group('getSecretValue', () {
-    test('returns value for key', () async {
+    test('指定したキーの値が返されること', () async {
       client.putSecret(makeSecret('system/db'));
       final value = await client.getSecretValue('system/db', 'password');
       expect(value, equals('s3cr3t'));
     });
 
-    test('throws VaultError when key not found', () async {
+    test('キーが見つからない場合にVaultErrorがスローされること', () async {
       client.putSecret(makeSecret('system/db'));
       expect(
         () => client.getSecretValue('system/db', 'missing_key'),
@@ -55,7 +55,7 @@ void main() {
   });
 
   group('listSecrets', () {
-    test('returns matching paths', () async {
+    test('一致するパスが返されること', () async {
       client.putSecret(makeSecret('system/db/primary'));
       client.putSecret(makeSecret('system/db/replica'));
       client.putSecret(makeSecret('business/api/key'));
@@ -64,21 +64,21 @@ void main() {
       expect(paths.every((p) => p.startsWith('system/')), isTrue);
     });
 
-    test('returns empty list when no match', () async {
+    test('一致するパスがない場合に空リストが返されること', () async {
       final paths = await client.listSecrets('nothing/');
       expect(paths, isEmpty);
     });
   });
 
   group('watchSecret', () {
-    test('returns a stream', () {
+    test('ストリームが返されること', () {
       final stream = client.watchSecret('system/db');
       expect(stream, isNotNull);
     });
   });
 
   group('Secret', () {
-    test('stores all fields', () {
+    test('全フィールドが保持されること', () {
       final secret = makeSecret('test/path');
       expect(secret.path, equals('test/path'));
       expect(secret.version, equals(1));
@@ -87,7 +87,7 @@ void main() {
   });
 
   group('SecretRotatedEvent', () {
-    test('stores all fields', () {
+    test('全フィールドが保持されること', () {
       const event = SecretRotatedEvent(path: 'system/db', version: 2);
       expect(event.path, equals('system/db'));
       expect(event.version, equals(2));
@@ -95,13 +95,13 @@ void main() {
   });
 
   group('VaultClientConfig', () {
-    test('has default values', () {
+    test('デフォルト値が設定されていること', () {
       const config = VaultClientConfig(serverUrl: 'http://vault:8080');
       expect(config.cacheTtl, equals(const Duration(minutes: 10)));
       expect(config.cacheMaxCapacity, equals(500));
     });
 
-    test('accepts custom values', () {
+    test('カスタム値が受け入れられること', () {
       const config = VaultClientConfig(
         serverUrl: 'http://vault:8080',
         cacheTtl: Duration(minutes: 5),
@@ -113,13 +113,13 @@ void main() {
   });
 
   group('VaultError', () {
-    test('has code and message', () {
+    test('コードとメッセージが保持されること', () {
       const err = VaultError(VaultErrorCode.notFound, 'test/path');
       expect(err.code, equals(VaultErrorCode.notFound));
       expect(err.message, equals('test/path'));
     });
 
-    test('toString includes code', () {
+    test('toStringにコードが含まれること', () {
       const err = VaultError(VaultErrorCode.permissionDenied, 'secret');
       expect(err.toString(), contains('permissionDenied'));
     });

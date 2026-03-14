@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// CreateJobが新しいジョブを正常に作成し、正しいIDと初期ステータスを返すことを確認する。
 func TestCreateJob_ReturnsJob(t *testing.T) {
 	c := schedulerclient.NewInMemoryClient()
 	job, err := c.CreateJob(context.Background(), schedulerclient.JobRequest{
@@ -25,6 +26,7 @@ func TestCreateJob_ReturnsJob(t *testing.T) {
 	assert.Equal(t, schedulerclient.JobStatusPending, job.Status)
 }
 
+// CancelJobがジョブのステータスをキャンセル済みに更新することを確認する。
 func TestCancelJob_UpdatesStatus(t *testing.T) {
 	c := schedulerclient.NewInMemoryClient()
 	ctx := context.Background()
@@ -40,6 +42,7 @@ func TestCancelJob_UpdatesStatus(t *testing.T) {
 	assert.Equal(t, schedulerclient.JobStatusCancelled, got.Status)
 }
 
+// PauseJobとResumeJobがジョブを一時停止・再開し、ステータスが正しく遷移することを確認する。
 func TestPauseAndResumeJob(t *testing.T) {
 	c := schedulerclient.NewInMemoryClient()
 	ctx := context.Background()
@@ -60,12 +63,14 @@ func TestPauseAndResumeJob(t *testing.T) {
 	assert.Equal(t, schedulerclient.JobStatusPending, got.Status)
 }
 
+// 存在しないジョブIDでGetJobを呼び出した際にエラーが返ることを確認する。
 func TestGetJob_NotFound(t *testing.T) {
 	c := schedulerclient.NewInMemoryClient()
 	_, err := c.GetJob(context.Background(), "nonexistent")
 	assert.Error(t, err)
 }
 
+// ジョブが存在しない状態でListJobsを呼び出すと空のリストが返ることを確認する。
 func TestListJobs_Empty(t *testing.T) {
 	c := schedulerclient.NewInMemoryClient()
 	jobs, err := c.ListJobs(context.Background(), schedulerclient.JobFilter{})
@@ -73,6 +78,7 @@ func TestListJobs_Empty(t *testing.T) {
 	assert.Empty(t, jobs)
 }
 
+// ステータスフィルターを指定してListJobsを呼び出すと、条件に合うジョブのみが返ることを確認する。
 func TestListJobs_WithStatusFilter(t *testing.T) {
 	c := schedulerclient.NewInMemoryClient()
 	ctx := context.Background()
@@ -94,6 +100,7 @@ func TestListJobs_WithStatusFilter(t *testing.T) {
 	assert.Equal(t, schedulerclient.JobStatusPaused, jobs[0].Status)
 }
 
+// GetExecutionsがジョブの実行履歴が存在しない場合に空スライスを返すことを確認する。
 func TestGetExecutions_ReturnsEmpty(t *testing.T) {
 	c := schedulerclient.NewInMemoryClient()
 	execs, err := c.GetExecutions(context.Background(), "job-001")
@@ -101,12 +108,14 @@ func TestGetExecutions_ReturnsEmpty(t *testing.T) {
 	assert.Empty(t, execs)
 }
 
+// 存在しないジョブIDでCancelJobを呼び出した際にエラーが返ることを確認する。
 func TestCancelJob_NotFound(t *testing.T) {
 	c := schedulerclient.NewInMemoryClient()
 	err := c.CancelJob(context.Background(), "nonexistent")
 	assert.Error(t, err)
 }
 
+// Jobsメソッドがインメモリに保存されたジョブのコピーを正しく返すことを確認する。
 func TestJobs_ReturnsCopy(t *testing.T) {
 	c := schedulerclient.NewInMemoryClient()
 	ctx := context.Background()

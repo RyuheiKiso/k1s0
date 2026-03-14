@@ -50,6 +50,7 @@ impl Default for EventBusConfig {
 mod tests {
     use super::*;
 
+    // デフォルト設定でバッファサイズとタイムアウトが正しい初期値になることを確認する。
     #[test]
     fn test_default_config() {
         let config = EventBusConfig::new();
@@ -57,6 +58,7 @@ mod tests {
         assert_eq!(config.get_handler_timeout(), Duration::from_secs(30));
     }
 
+    // ビルダーパターンでバッファサイズとタイムアウトを変更できることを確認する。
     #[test]
     fn test_builder_pattern() {
         let config = EventBusConfig::new()

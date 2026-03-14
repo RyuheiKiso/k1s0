@@ -37,6 +37,7 @@ pub fn to_camel(kebab: &str) -> String {
 mod tests {
     use super::*;
 
+    // ケバブケースをスネークケースに正しく変換できることを確認する。
     #[test]
     fn snake_case() {
         assert_eq!(to_snake("auth-server"), "auth_server");
@@ -44,6 +45,7 @@ mod tests {
         assert_eq!(to_snake("single"), "single");
     }
 
+    // ケバブケースをパスカルケースに正しく変換できることを確認する。
     #[test]
     fn pascal_case() {
         assert_eq!(to_pascal("auth-server"), "AuthServer");
@@ -51,6 +53,7 @@ mod tests {
         assert_eq!(to_pascal("single"), "Single");
     }
 
+    // ケバブケースをキャメルケースに正しく変換できることを確認する。
     #[test]
     fn camel_case() {
         assert_eq!(to_camel("auth-server"), "authServer");

@@ -545,6 +545,7 @@ mod tests {
         }
     }
 
+    // 追加したテナントが get_tenant で正しく取得できることを確認する。
     #[tokio::test]
     async fn test_get_tenant() {
         let client = InMemoryTenantClient::new();
@@ -554,6 +555,7 @@ mod tests {
         assert_eq!(tenant.status, TenantStatus::Active);
     }
 
+    // 存在しないテナント ID の取得が NotFound エラーを返すことを確認する。
     #[tokio::test]
     async fn test_get_tenant_not_found() {
         let client = InMemoryTenantClient::new();
@@ -561,6 +563,7 @@ mod tests {
         assert!(matches!(result, Err(TenantError::NotFound(_))));
     }
 
+    // ステータスでフィルタリングした場合に該当するテナントのみ返ることを確認する。
     #[tokio::test]
     async fn test_list_tenants_by_status() {
         let client = InMemoryTenantClient::with_tenants(vec![
@@ -573,6 +576,7 @@ mod tests {
         assert_eq!(tenants.len(), 2);
     }
 
+    // プランでフィルタリングした場合に該当するテナントのみ返ることを確認する。
     #[tokio::test]
     async fn test_list_tenants_by_plan() {
         let client = InMemoryTenantClient::with_tenants(vec![
@@ -585,6 +589,7 @@ mod tests {
         assert_eq!(tenants[0].id, "T-001");
     }
 
+    // Active テナントに対して is_active が true を返すことを確認する。
     #[tokio::test]
     async fn test_is_active_true() {
         let client = InMemoryTenantClient::new();
@@ -592,6 +597,7 @@ mod tests {
         assert!(client.is_active("T-001").await.unwrap());
     }
 
+    // Suspended テナントに対して is_active が false を返すことを確認する。
     #[tokio::test]
     async fn test_is_active_false() {
         let client = InMemoryTenantClient::new();
@@ -599,6 +605,7 @@ mod tests {
         assert!(!client.is_active("T-001").await.unwrap());
     }
 
+    // テナント設定が get_settings で正しく取得できることを確認する。
     #[tokio::test]
     async fn test_get_settings() {
         let client = InMemoryTenantClient::new();
@@ -608,6 +615,7 @@ mod tests {
         assert_eq!(settings.get("nonexistent"), None);
     }
 
+    // TenantStatus の各バリアントが正しくパターンマッチできることを確認する。
     #[test]
     fn test_tenant_status_variants() {
         assert!(matches!(TenantStatus::Active, TenantStatus::Active));
@@ -615,6 +623,7 @@ mod tests {
         assert!(matches!(TenantStatus::Deleted, TenantStatus::Deleted));
     }
 
+    // TenantFilter のビルダーでステータスとプランが正しく設定されることを確認する。
     #[test]
     fn test_tenant_filter_builder() {
         let filter = TenantFilter::new()
@@ -624,6 +633,7 @@ mod tests {
         assert_eq!(filter.plan, Some("enterprise".to_string()));
     }
 
+    // TenantSettings の get が存在するキーは値を返し存在しないキーは None を返すことを確認する。
     #[test]
     fn test_tenant_settings_get() {
         let mut values = HashMap::new();
@@ -633,6 +643,7 @@ mod tests {
         assert_eq!(settings.get("key2"), None);
     }
 
+    // TenantClientConfig のビルダーでカスタム値が正しく設定されることを確認する。
     #[test]
     fn test_config_builder() {
         use std::time::Duration;
@@ -644,6 +655,7 @@ mod tests {
         assert_eq!(config.cache_max_capacity, 500);
     }
 
+    // テナントを作成した場合に名前・プラン・ステータスが正しく設定されることを確認する。
     #[tokio::test]
     async fn test_create_tenant() {
         let client = InMemoryTenantClient::new();
@@ -660,6 +672,7 @@ mod tests {
         assert!(matches!(tenant.status, TenantStatus::Active));
     }
 
+    // メンバーの追加・一覧取得・削除が正しく動作することを確認する。
     #[tokio::test]
     async fn test_member_management() {
         let client = InMemoryTenantClient::new();
@@ -690,6 +703,7 @@ mod tests {
         assert_eq!(members[0].user_id, "user-2");
     }
 
+    // create_tenant 後のプロビジョニングステータスが Pending であることを確認する。
     #[tokio::test]
     async fn test_provisioning_status() {
         let client = InMemoryTenantClient::new();

@@ -19,6 +19,7 @@ type alwaysUnhealthy struct{}
 func (a *alwaysUnhealthy) Name() string                      { return "unhealthy-check" }
 func (a *alwaysUnhealthy) Check(_ context.Context) error     { return errors.New("down") }
 
+// Checker_AllHealthyが全チェックが正常な場合にStatusHealthyを返すことを検証する。
 func TestChecker_AllHealthy(t *testing.T) {
 	c := health.NewChecker()
 	c.Add(&alwaysHealthy{})
@@ -27,6 +28,7 @@ func TestChecker_AllHealthy(t *testing.T) {
 	assert.Equal(t, health.StatusHealthy, resp.Checks["healthy-check"].Status)
 }
 
+// Checker_OneUnhealthyが1つでも異常なチェックがある場合に全体をStatusUnhealthyとすることを検証する。
 func TestChecker_OneUnhealthy(t *testing.T) {
 	c := health.NewChecker()
 	c.Add(&alwaysHealthy{})
@@ -37,6 +39,7 @@ func TestChecker_OneUnhealthy(t *testing.T) {
 	assert.Equal(t, health.StatusUnhealthy, resp.Checks["unhealthy-check"].Status)
 }
 
+// Checker_NoChecksがチェックが登録されていない場合にStatusHealthyと空のチェックマップを返すことを検証する。
 func TestChecker_NoChecks(t *testing.T) {
 	c := health.NewChecker()
 	resp := c.RunAll(context.Background())
@@ -44,6 +47,7 @@ func TestChecker_NoChecks(t *testing.T) {
 	assert.Empty(t, resp.Checks)
 }
 
+// Checker_TimestampSetがRunAllの結果にゼロでないタイムスタンプが含まれることを検証する。
 func TestChecker_TimestampSet(t *testing.T) {
 	c := health.NewChecker()
 	resp := c.RunAll(context.Background())

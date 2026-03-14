@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// NewSagaClientがエンドポイントURLの末尾スラッシュを除去して正しいパスでリクエストすることを確認する。
 func TestNewSagaClient_TrimsTrailingSlash(t *testing.T) {
 	client := saga.NewSagaClient("http://localhost:8080/")
 	// endpoint は非公開フィールドなので、StartSaga のリクエスト先URLで検証する
@@ -31,6 +32,7 @@ func TestNewSagaClient_TrimsTrailingSlash(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// StartSagaが正しいHTTPリクエストを送信してサーガIDとステータスを返すことを確認する。
 func TestStartSaga_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -66,6 +68,7 @@ func TestStartSaga_Success(t *testing.T) {
 	assert.Equal(t, "STARTED", resp.Status)
 }
 
+// StartSagaがサーバーエラーレスポンスを受け取った場合にSagaErrorを返すことを確認する。
 func TestStartSaga_ErrorStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -85,6 +88,7 @@ func TestStartSaga_ErrorStatus(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, sagaErr.StatusCode)
 }
 
+// GetSagaが指定したサーガIDのステータスと詳細情報を正しく取得することを確認する。
 func TestGetSaga_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
@@ -122,6 +126,7 @@ func TestGetSaga_Success(t *testing.T) {
 	assert.Equal(t, saga.SagaStatusRunning, state.Status)
 }
 
+// GetSagaが404レスポンスを受け取った場合にSagaErrorを返すことを確認する。
 func TestGetSaga_ErrorStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -139,6 +144,7 @@ func TestGetSaga_ErrorStatus(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, sagaErr.StatusCode)
 }
 
+// CancelSagaが正しいエンドポイントにPOSTリクエストを送信してエラーなしで完了することを確認する。
 func TestCancelSaga_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -153,6 +159,7 @@ func TestCancelSaga_Success(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// CancelSagaがConflictレスポンスを受け取った場合にSagaErrorを返すことを確認する。
 func TestCancelSaga_ErrorStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusConflict)
@@ -170,6 +177,7 @@ func TestCancelSaga_ErrorStatus(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, sagaErr.StatusCode)
 }
 
+// SagaStatusの各定数が期待する文字列値に一致することを確認する。
 func TestSagaStatus_Constants(t *testing.T) {
 	assert.Equal(t, saga.SagaStatus("STARTED"), saga.SagaStatusStarted)
 	assert.Equal(t, saga.SagaStatus("RUNNING"), saga.SagaStatusRunning)
@@ -179,6 +187,7 @@ func TestSagaStatus_Constants(t *testing.T) {
 	assert.Equal(t, saga.SagaStatus("CANCELLED"), saga.SagaStatusCancelled)
 }
 
+// SagaErrorがステータスコード付きで正しいエラーメッセージを生成することを確認する。
 func TestSagaError_ErrorMessage(t *testing.T) {
 	err := &saga.SagaError{
 		Op:         "start_saga",
@@ -188,6 +197,7 @@ func TestSagaError_ErrorMessage(t *testing.T) {
 	assert.Equal(t, "saga start_saga: status 500: internal error", err.Error())
 }
 
+// SagaErrorがステータスコードなしの場合に操作名とエラー内容のみを含むメッセージを返すことを確認する。
 func TestSagaError_ErrorMessageWithoutStatusCode(t *testing.T) {
 	err := &saga.SagaError{
 		Op:  "start_saga",
@@ -196,6 +206,7 @@ func TestSagaError_ErrorMessageWithoutStatusCode(t *testing.T) {
 	assert.Equal(t, "saga start_saga: connection refused", err.Error())
 }
 
+// SagaErrorのUnwrapが内包するエラーを正しく返すことを確認する。
 func TestSagaError_Unwrap(t *testing.T) {
 	inner := errors.New("original error")
 	err := &saga.SagaError{
@@ -205,6 +216,7 @@ func TestSagaError_Unwrap(t *testing.T) {
 	assert.Equal(t, inner, errors.Unwrap(err))
 }
 
+// StartSagaがペイロードを含むリクエストを正しく送信してレスポンスを返すことを確認する。
 func TestStartSaga_WithPayload(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req saga.StartSagaRequest

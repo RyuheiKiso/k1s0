@@ -147,6 +147,7 @@ mod tests {
 
     // --- Claims テスト ---
 
+    // Claims の Display 実装が sub と preferred_username を含む文字列を返すことを確認する。
     #[test]
     fn test_claims_display() {
         let claims = Claims {
@@ -171,6 +172,7 @@ mod tests {
         assert!(s.contains("taro"));
     }
 
+    // Claims の audience() が最初のオーディエンス文字列を返すことを確認する。
     #[test]
     fn test_claims_audience() {
         let claims = Claims {
@@ -193,6 +195,7 @@ mod tests {
         assert_eq!(claims.audience(), Some("aud1"));
     }
 
+    // Claims の realm_roles() が realm_access のロール一覧を返すことを確認する。
     #[test]
     fn test_claims_realm_roles() {
         let claims = Claims {
@@ -217,6 +220,7 @@ mod tests {
         assert_eq!(claims.realm_roles(), &["user", "admin"]);
     }
 
+    // Claims の resource_roles() が指定リソースのロール一覧を返すことを確認する。
     #[test]
     fn test_claims_resource_roles() {
         let mut ra = HashMap::new();
@@ -250,6 +254,7 @@ mod tests {
 
     // --- JwksVerifier テスト ---
 
+    // 正しい JWT トークンを検証して Claims を取得できることを確認する。
     #[tokio::test]
     async fn test_verify_token_success() {
         let (priv_key, jwk_key) = generate_test_keypair();
@@ -273,6 +278,7 @@ mod tests {
         assert_eq!(claims.email.as_deref(), Some("taro.yamada@example.com"));
     }
 
+    // 期限切れの JWT トークンを検証するとエラーになることを確認する。
     #[tokio::test]
     async fn test_verify_token_expired() {
         let (priv_key, jwk_key) = generate_test_keypair();
@@ -315,6 +321,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // 発行者が不正な JWT トークンを検証するとエラーになることを確認する。
     #[tokio::test]
     async fn test_verify_token_wrong_issuer() {
         let (priv_key, jwk_key) = generate_test_keypair();
@@ -357,6 +364,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // オーディエンスが不正な JWT トークンを検証するとエラーになることを確認する。
     #[tokio::test]
     async fn test_verify_token_wrong_audience() {
         let (priv_key, jwk_key) = generate_test_keypair();
@@ -399,6 +407,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // 不正な形式のトークン文字列を検証するとエラーになることを確認する。
     #[tokio::test]
     async fn test_verify_token_invalid_token() {
         let (_, jwk_key) = generate_test_keypair();
@@ -417,6 +426,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // JWKS キャッシュの TTL 内では再フェッチが発生しないことを確認する。
     #[tokio::test]
     async fn test_cache_ttl() {
         let (priv_key, jwk_key) = generate_test_keypair();
@@ -447,6 +457,7 @@ mod tests {
         assert_eq!(*count.lock().await, 1); // フェッチ回数は増えない
     }
 
+    // キャッシュを無効化すると次のトークン検証時に再フェッチが発生することを確認する。
     #[tokio::test]
     async fn test_invalidate_cache() {
         let (priv_key, jwk_key) = generate_test_keypair();
@@ -480,6 +491,7 @@ mod tests {
 
     // --- RBAC テスト (verifier 経由) ---
 
+    // JWT 検証後に RBAC パーミッションチェックが正しく機能することを確認する。
     #[tokio::test]
     async fn test_verify_and_check_permission() {
         let (priv_key, jwk_key) = generate_test_keypair();

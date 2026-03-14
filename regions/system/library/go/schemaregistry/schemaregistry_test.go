@@ -19,6 +19,7 @@ func newTestServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, *s
 	return server, &sr.SchemaRegistryConfig{URL: server.URL}
 }
 
+// RegisterSchemaがスキーマを正常に登録し、サーバーから返されたIDを返すことを確認する。
 func TestRegisterSchema(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -36,6 +37,7 @@ func TestRegisterSchema(t *testing.T) {
 	assert.Equal(t, 42, id)
 }
 
+// サーバーが404を返した場合にRegisterSchemaがNotFoundエラーを返すことを確認する。
 func TestRegisterSchema_NotFound(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -49,6 +51,7 @@ func TestRegisterSchema_NotFound(t *testing.T) {
 	assert.True(t, sr.IsNotFound(err))
 }
 
+// GetSchemaByIDがIDに対応するスキーマをスキーマレジストリから取得することを確認する。
 func TestGetSchemaByID(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/schemas/ids/42", r.URL.Path)
@@ -69,6 +72,7 @@ func TestGetSchemaByID(t *testing.T) {
 	assert.Equal(t, `{"type":"record"}`, schema.Schema)
 }
 
+// 存在しないIDでGetSchemaByIDを呼び出した際にNotFoundエラーが返ることを確認する。
 func TestGetSchemaByID_NotFound(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -82,6 +86,7 @@ func TestGetSchemaByID_NotFound(t *testing.T) {
 	assert.True(t, sr.IsNotFound(err))
 }
 
+// GetLatestSchemaがサブジェクトの最新バージョンのスキーマを取得することを確認する。
 func TestGetLatestSchema(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/subjects/user.created.v1-value/versions/latest", r.URL.Path)
@@ -103,6 +108,7 @@ func TestGetLatestSchema(t *testing.T) {
 	assert.Equal(t, 3, schema.Version)
 }
 
+// GetSchemaVersionが指定したバージョン番号のスキーマを取得することを確認する。
 func TestGetSchemaVersion(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/subjects/user.created.v1-value/versions/2", r.URL.Path)
@@ -119,6 +125,7 @@ func TestGetSchemaVersion(t *testing.T) {
 	assert.Equal(t, 2, schema.Version)
 }
 
+// ListSubjectsがスキーマレジストリに登録された全サブジェクトのリストを返すことを確認する。
 func TestListSubjects(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/subjects", r.URL.Path)
@@ -136,6 +143,7 @@ func TestListSubjects(t *testing.T) {
 	assert.Contains(t, subjects, "user.created.v1-value")
 }
 
+// CheckCompatibilityがスキーマの互換性チェックでtrueを返すケースを確認する。
 func TestCheckCompatibility_Compatible(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/compatibility/subjects/user.created.v1-value/versions/latest", r.URL.Path)
@@ -152,6 +160,7 @@ func TestCheckCompatibility_Compatible(t *testing.T) {
 	assert.True(t, compatible)
 }
 
+// CheckCompatibilityがスキーマの互換性チェックでfalseを返すケースを確認する。
 func TestCheckCompatibility_Incompatible(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -167,6 +176,7 @@ func TestCheckCompatibility_Incompatible(t *testing.T) {
 	assert.False(t, compatible)
 }
 
+// HealthCheckがサーバーが正常な場合にエラーなしで成功することを確認する。
 func TestHealthCheck_Healthy(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/", r.URL.Path)
@@ -181,6 +191,7 @@ func TestHealthCheck_Healthy(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// HealthCheckがサーバーが503を返した場合にエラーを返すことを確認する。
 func TestHealthCheck_Unhealthy(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -194,23 +205,27 @@ func TestHealthCheck_Unhealthy(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// SubjectNameがトピック名とサフィックスを結合して正しいサブジェクト名を生成することを確認する。
 func TestSchemaRegistryConfig_SubjectName(t *testing.T) {
 	cfg := &sr.SchemaRegistryConfig{URL: "http://localhost:8081"}
 	assert.Equal(t, "k1s0.system.user.created.v1-value", cfg.SubjectName("k1s0.system.user.created.v1", "value"))
 	assert.Equal(t, "k1s0.system.user.created.v1-key", cfg.SubjectName("k1s0.system.user.created.v1", "key"))
 }
 
+// URLが空のInvalidConfigでNewClientを呼び出した際にエラーが返ることを確認する。
 func TestNewClient_InvalidConfig(t *testing.T) {
 	_, err := sr.NewClient(&sr.SchemaRegistryConfig{URL: ""})
 	assert.Error(t, err)
 }
 
+// NotFoundErrorがエラーメッセージにnot foundを含み、IsNotFoundがtrueを返すことを確認する。
 func TestNotFoundError(t *testing.T) {
 	err := &sr.NotFoundError{Resource: "schema id=42"}
 	assert.Contains(t, err.Error(), "not found")
 	assert.True(t, sr.IsNotFound(err))
 }
 
+// SchemaRegistryErrorがステータスコードとメッセージを含み、IsNotFoundがfalseを返すことを確認する。
 func TestSchemaRegistryError(t *testing.T) {
 	err := &sr.SchemaRegistryError{StatusCode: 500, Message: "internal error"}
 	assert.Contains(t, err.Error(), "500")
@@ -218,6 +233,7 @@ func TestSchemaRegistryError(t *testing.T) {
 	assert.False(t, sr.IsNotFound(err))
 }
 
+// 存在しないサブジェクトでGetLatestSchemaを呼び出した際にNotFoundエラーが返ることを確認する。
 func TestGetLatestSchema_NotFound(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -231,6 +247,7 @@ func TestGetLatestSchema_NotFound(t *testing.T) {
 	assert.True(t, sr.IsNotFound(err))
 }
 
+// 存在しないサブジェクトとバージョンでGetSchemaVersionを呼び出した際にNotFoundエラーが返ることを確認する。
 func TestGetSchemaVersion_NotFound(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -244,6 +261,7 @@ func TestGetSchemaVersion_NotFound(t *testing.T) {
 	assert.True(t, sr.IsNotFound(err))
 }
 
+// サブジェクトが存在しない場合にListSubjectsが空のリストを返すことを確認する。
 func TestListSubjects_Empty(t *testing.T) {
 	server, cfg := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

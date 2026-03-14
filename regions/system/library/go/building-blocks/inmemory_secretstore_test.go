@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// InMemorySecretStore の Init 前後でステータスが Uninitialized → Ready に遷移することを確認する。
 func TestInMemorySecretStore_InitAndStatus(t *testing.T) {
 	s := NewInMemorySecretStore()
 	ctx := context.Background()
@@ -20,6 +21,7 @@ func TestInMemorySecretStore_InitAndStatus(t *testing.T) {
 	}
 }
 
+// InMemorySecretStore の Name と Version が正しい値を返すことを確認する。
 func TestInMemorySecretStore_Name(t *testing.T) {
 	s := NewInMemorySecretStore()
 	if s.Name() != "inmemory-secretstore" {
@@ -30,6 +32,7 @@ func TestInMemorySecretStore_Name(t *testing.T) {
 	}
 }
 
+// InMemorySecretStore に Put したシークレットを Get で正しく取得できることを確認する。
 func TestInMemorySecretStore_GetPut(t *testing.T) {
 	s := NewInMemorySecretStore()
 	ctx := context.Background()
@@ -49,6 +52,7 @@ func TestInMemorySecretStore_GetPut(t *testing.T) {
 	}
 }
 
+// InMemorySecretStore が存在しないキーを Get するとエラーを返すことを確認する。
 func TestInMemorySecretStore_GetNotFound(t *testing.T) {
 	s := NewInMemorySecretStore()
 	ctx := context.Background()
@@ -60,6 +64,7 @@ func TestInMemorySecretStore_GetNotFound(t *testing.T) {
 	}
 }
 
+// InMemorySecretStore の BulkGet が複数のシークレットを一括取得できることを確認する。
 func TestInMemorySecretStore_BulkGet(t *testing.T) {
 	s := NewInMemorySecretStore()
 	ctx := context.Background()
@@ -80,6 +85,7 @@ func TestInMemorySecretStore_BulkGet(t *testing.T) {
 	}
 }
 
+// InMemorySecretStore の BulkGet が存在しないキーを含む場合にエラーを返すことを確認する。
 func TestInMemorySecretStore_BulkGetMissing(t *testing.T) {
 	s := NewInMemorySecretStore()
 	ctx := context.Background()
@@ -92,6 +98,7 @@ func TestInMemorySecretStore_BulkGetMissing(t *testing.T) {
 	}
 }
 
+// InMemorySecretStore の Close がステータスを StatusClosed に遷移させることを確認する。
 func TestInMemorySecretStore_Close(t *testing.T) {
 	s := NewInMemorySecretStore()
 	ctx := context.Background()

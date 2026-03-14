@@ -20,7 +20,7 @@ void main() {
       );
 
   group('record', () {
-    test('adds event to buffer', () async {
+    test('イベントをバッファに追加すること', () async {
       await client.record(makeEvent('create'));
       final events = await client.flush();
       expect(events, hasLength(1));
@@ -29,14 +29,14 @@ void main() {
   });
 
   group('flush', () {
-    test('returns all buffered events', () async {
+    test('バッファ内の全イベントを返すこと', () async {
       await client.record(makeEvent('create'));
       await client.record(makeEvent('update'));
       final events = await client.flush();
       expect(events, hasLength(2));
     });
 
-    test('clears buffer after flush', () async {
+    test('flush 後にバッファがクリアされること', () async {
       await client.record(makeEvent('create'));
       await client.flush();
       final events = await client.flush();
@@ -45,7 +45,7 @@ void main() {
   });
 
   group('AuditEvent', () {
-    test('stores all fields', () {
+    test('全フィールドを保持すること', () {
       final event = makeEvent('delete');
       expect(event.id, equals('evt-1'));
       expect(event.tenantId, equals('tenant-1'));

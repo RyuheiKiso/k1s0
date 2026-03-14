@@ -8,12 +8,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// GenerateKeyが32バイトの暗号化キーを正常に生成することを確認する。
 func TestGenerateKey(t *testing.T) {
 	key, err := encryption.GenerateKey()
 	require.NoError(t, err)
 	assert.Len(t, key, 32)
 }
 
+// EncryptとDecryptが同一キーで暗号化・復号化のラウンドトリップを正常に行うことを確認する。
 func TestEncryptDecrypt_RoundTrip(t *testing.T) {
 	key, err := encryption.GenerateKey()
 	require.NoError(t, err)
@@ -28,6 +30,7 @@ func TestEncryptDecrypt_RoundTrip(t *testing.T) {
 	assert.Equal(t, plaintext, decrypted)
 }
 
+// Decryptが異なるキーで暗号化されたデータの復号化に失敗することを確認する。
 func TestDecrypt_WrongKey(t *testing.T) {
 	key1, _ := encryption.GenerateKey()
 	key2, _ := encryption.GenerateKey()
@@ -39,6 +42,7 @@ func TestDecrypt_WrongKey(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// Decryptが改ざんされた暗号文の復号化に失敗することを確認する。
 func TestDecrypt_TamperedData(t *testing.T) {
 	key, _ := encryption.GenerateKey()
 	ciphertext, _ := encryption.Encrypt(key, []byte("data"))
@@ -49,6 +53,7 @@ func TestDecrypt_TamperedData(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// HashPasswordがパスワードをハッシュ化し、VerifyPasswordが正しいパスワードを検証できることを確認する。
 func TestHashPassword_And_Verify(t *testing.T) {
 	hash, err := encryption.HashPassword("mypassword")
 	require.NoError(t, err)
@@ -58,12 +63,14 @@ func TestHashPassword_And_Verify(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// VerifyPasswordが誤ったパスワードの検証に失敗することを確認する。
 func TestVerifyPassword_Wrong(t *testing.T) {
 	hash, _ := encryption.HashPassword("correct")
 	err := encryption.VerifyPassword("wrong", hash)
 	assert.Error(t, err)
 }
 
+// Encryptが空の平文を正常に暗号化し、復号化後も空データを返すことを確認する。
 func TestEncrypt_EmptyPlaintext(t *testing.T) {
 	key, _ := encryption.GenerateKey()
 	ciphertext, err := encryption.Encrypt(key, []byte{})
@@ -74,6 +81,7 @@ func TestEncrypt_EmptyPlaintext(t *testing.T) {
 	assert.Empty(t, decrypted)
 }
 
+// RSA-OAEPで暗号化・復号化のラウンドトリップが正常に行われることを確認する。
 func TestRSARoundtrip(t *testing.T) {
 	pub, priv, err := encryption.GenerateRSAKeyPair()
 	if err != nil {
@@ -93,6 +101,7 @@ func TestRSARoundtrip(t *testing.T) {
 	}
 }
 
+// RSA復号化で異なる秘密鍵を使用した場合にエラーが返ることを確認する。
 func TestRSAWrongKeyFails(t *testing.T) {
 	pub, _, err := encryption.GenerateRSAKeyPair()
 	if err != nil {
@@ -112,6 +121,7 @@ func TestRSAWrongKeyFails(t *testing.T) {
 	}
 }
 
+// RSAEncryptが無効なPEM文字列を受け取った場合にエラーを返すことを確認する。
 func TestRSAEncryptInvalidPEM(t *testing.T) {
 	_, err := encryption.RSAEncrypt("not-valid-pem", []byte("data"))
 	if err == nil {

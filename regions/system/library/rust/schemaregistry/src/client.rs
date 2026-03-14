@@ -349,6 +349,7 @@ mod tests {
 
     // ---- URL 構築テスト ----
 
+    // ベースURLの末尾スラッシュが除去されることを確認する。
     #[test]
     fn test_base_url_strips_trailing_slash() {
         let config = SchemaRegistryConfig::new("http://schema-registry:8081/");
@@ -356,6 +357,7 @@ mod tests {
         assert_eq!(client.base_url(), "http://schema-registry:8081");
     }
 
+    // 末尾スラッシュなしのURLでもベースURLが正しく返されることを確認する。
     #[test]
     fn test_base_url_no_trailing_slash() {
         let config = SchemaRegistryConfig::new("http://schema-registry:8081");
@@ -363,6 +365,7 @@ mod tests {
         assert_eq!(client.base_url(), "http://schema-registry:8081");
     }
 
+    // タイムアウト設定付きのクライアントが正常に構築されることを確認する。
     #[test]
     fn test_client_construction_with_timeout() {
         let mut config = SchemaRegistryConfig::new("http://localhost:8081");
@@ -373,6 +376,7 @@ mod tests {
 
     // ---- URL 文字列組み立て検証 ----
 
+    // スキーマ登録用のURL形式が正しいことを確認する。
     #[test]
     fn test_register_url_format() {
         let config = SchemaRegistryConfig::new("http://localhost:8081");
@@ -385,6 +389,7 @@ mod tests {
         );
     }
 
+    // スキーマIDによる取得URL形式が正しいことを確認する。
     #[test]
     fn test_schema_by_id_url_format() {
         let config = SchemaRegistryConfig::new("http://localhost:8081");
@@ -393,6 +398,7 @@ mod tests {
         assert_eq!(url, "http://localhost:8081/schemas/ids/42");
     }
 
+    // 最新スキーマ取得URL形式が正しいことを確認する。
     #[test]
     fn test_latest_schema_url_format() {
         let config = SchemaRegistryConfig::new("http://localhost:8081");
@@ -405,6 +411,7 @@ mod tests {
         );
     }
 
+    // バージョン指定でのスキーマ取得URL形式が正しいことを確認する。
     #[test]
     fn test_version_url_format() {
         let config = SchemaRegistryConfig::new("http://localhost:8081");
@@ -421,6 +428,7 @@ mod tests {
         );
     }
 
+    // 互換性チェック用のURL形式が正しいことを確認する。
     #[test]
     fn test_compatibility_url_format() {
         let config = SchemaRegistryConfig::new("http://localhost:8081");
@@ -436,6 +444,7 @@ mod tests {
         );
     }
 
+    // サブジェクト削除用のURL形式が正しいことを確認する。
     #[test]
     fn test_delete_subject_url_format() {
         let config = SchemaRegistryConfig::new("http://localhost:8081");
@@ -444,6 +453,7 @@ mod tests {
         assert_eq!(url, "http://localhost:8081/subjects/stale-topic-value");
     }
 
+    // ヘルスチェック用のURL形式が正しいことを確認する。
     #[test]
     fn test_health_check_url_format() {
         let config = SchemaRegistryConfig::new("http://localhost:8081");
@@ -454,6 +464,7 @@ mod tests {
 
     // ---- Mock を使ったトレイト動作テスト ----
 
+    // モックを使ってスキーマ登録が正しく呼び出されることを確認する。
     #[cfg(feature = "mock")]
     #[tokio::test]
     async fn test_mock_register_schema() {
@@ -475,6 +486,7 @@ mod tests {
         assert_eq!(id, 99);
     }
 
+    // モックを使って最新スキーマ取得が正しく動作することを確認する。
     #[cfg(feature = "mock")]
     #[tokio::test]
     async fn test_mock_get_latest_schema() {
@@ -500,6 +512,7 @@ mod tests {
         assert_eq!(schema.schema_type, SchemaType::Protobuf);
     }
 
+    // モックを使ってヘルスチェックが成功することを確認する。
     #[cfg(feature = "mock")]
     #[tokio::test]
     async fn test_mock_health_check_ok() {
@@ -511,6 +524,7 @@ mod tests {
         mock.health_check().await.unwrap();
     }
 
+    // モックを使ってヘルスチェックが失敗した場合にエラーが返されることを確認する。
     #[cfg(feature = "mock")]
     #[tokio::test]
     async fn test_mock_health_check_unavailable() {
@@ -527,6 +541,7 @@ mod tests {
         assert!(err.to_string().contains("connection refused"));
     }
 
+    // モックを使って存在しないスキーマ取得時に SchemaNotFound エラーが返されることを確認する。
     #[cfg(feature = "mock")]
     #[tokio::test]
     async fn test_mock_schema_not_found() {
@@ -556,6 +571,7 @@ mod tests {
         ));
     }
 
+    // モックを使って互換性なしの場合に false が返されることを確認する。
     #[cfg(feature = "mock")]
     #[tokio::test]
     async fn test_mock_check_compatibility_false() {
@@ -571,6 +587,7 @@ mod tests {
         assert!(!compatible);
     }
 
+    // モックを使ってサブジェクト一覧が正しく返されることを確認する。
     #[cfg(feature = "mock")]
     #[tokio::test]
     async fn test_mock_list_subjects() {
@@ -588,6 +605,7 @@ mod tests {
         assert_eq!(subjects.len(), 2);
     }
 
+    // モックを使ってサブジェクト削除が正しく動作することを確認する。
     #[cfg(feature = "mock")]
     #[tokio::test]
     async fn test_mock_delete_subject() {

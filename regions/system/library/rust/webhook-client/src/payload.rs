@@ -12,6 +12,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    // WebhookPayload のシリアライズ・デシリアライズで全フィールドが正しく復元されることを確認する。
     #[test]
     fn test_serialize_deserialize_roundtrip() {
         let payload = WebhookPayload {

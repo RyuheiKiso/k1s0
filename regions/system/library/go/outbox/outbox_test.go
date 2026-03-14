@@ -87,6 +87,7 @@ func TestNewOutboxMessage(t *testing.T) {
 	assert.True(t, msg.IsProcessable())
 }
 
+// NewOutboxMessageが呼び出しごとに一意なIDを生成することを確認する。
 func TestNewOutboxMessage_UniqueIds(t *testing.T) {
 	payload := json.RawMessage(`{}`)
 	msg1 := outbox.NewOutboxMessage("topic", "key", payload)
@@ -94,6 +95,7 @@ func TestNewOutboxMessage_UniqueIds(t *testing.T) {
 	assert.NotEqual(t, msg1.ID, msg2.ID)
 }
 
+// NewOutboxMessageが生成するCreatedAtとProcessAfterのタイムゾーンがUTCであることを確認する。
 func TestNewOutboxMessage_TimestampIsUTC(t *testing.T) {
 	payload := json.RawMessage(`{}`)
 	msg := outbox.NewOutboxMessage("topic", "key", payload)
@@ -101,6 +103,7 @@ func TestNewOutboxMessage_TimestampIsUTC(t *testing.T) {
 	assert.Equal(t, time.UTC, msg.ProcessAfter.Location())
 }
 
+// MarkDeliveredがメッセージのステータスをDELIVEREDに変更しIsProcessableをfalseにすることを確認する。
 func TestOutboxMessage_MarkDelivered(t *testing.T) {
 	payload := json.RawMessage(`{}`)
 	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
@@ -109,6 +112,7 @@ func TestOutboxMessage_MarkDelivered(t *testing.T) {
 	assert.False(t, msg.IsProcessable())
 }
 
+// MarkFailedがリトライカウントを増加させステータスをFAILEDに変更することを確認する。
 func TestOutboxMessage_MarkFailed_IncrementsRetry(t *testing.T) {
 	payload := json.RawMessage(`{}`)
 	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
@@ -118,6 +122,7 @@ func TestOutboxMessage_MarkFailed_IncrementsRetry(t *testing.T) {
 	assert.Equal(t, "kafka error", msg.LastError)
 }
 
+// MaxRetriesに達した場合にMarkFailedがステータスをDEAD_LETTERに変更することを確認する。
 func TestOutboxMessage_MarkFailed_DeadLetterOnMaxRetries(t *testing.T) {
 	payload := json.RawMessage(`{}`)
 	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
@@ -129,6 +134,7 @@ func TestOutboxMessage_MarkFailed_DeadLetterOnMaxRetries(t *testing.T) {
 	assert.Equal(t, 3, msg.RetryCount)
 }
 
+// MarkFailedが指数バックオフに基づいてProcessAfterを秒単位で設定することを確認する。
 func TestOutboxMessage_MarkFailed_BackoffInSeconds(t *testing.T) {
 	payload := json.RawMessage(`{}`)
 	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
@@ -141,6 +147,7 @@ func TestOutboxMessage_MarkFailed_BackoffInSeconds(t *testing.T) {
 	assert.True(t, msg.ProcessAfter.Before(before.Add(5*time.Second)), "backoff should be in seconds, not minutes")
 }
 
+// IsProcessableがメッセージのステータスと処理待ち時刻に応じて正しい値を返すことを確認する。
 func TestOutboxMessage_IsProcessable(t *testing.T) {
 	payload := json.RawMessage(`{}`)
 
@@ -187,6 +194,7 @@ func TestOutboxError_StoreError(t *testing.T) {
 	assert.ErrorIs(t, err, cause)
 }
 
+// NewPublishErrorが発行エラーのメッセージと原因を含むエラーを生成することを確認する。
 func TestOutboxError_PublishError(t *testing.T) {
 	cause := errors.New("kafka unavailable")
 	err := outbox.NewPublishError("publish failed", cause)
@@ -195,6 +203,7 @@ func TestOutboxError_PublishError(t *testing.T) {
 	assert.ErrorIs(t, err, cause)
 }
 
+// NewSerializationErrorがシリアライズエラーのメッセージと原因を含むエラーを生成することを確認する。
 func TestOutboxError_SerializationError(t *testing.T) {
 	cause := errors.New("invalid json")
 	err := outbox.NewSerializationError("marshal failed", cause)
@@ -203,6 +212,7 @@ func TestOutboxError_SerializationError(t *testing.T) {
 	assert.ErrorIs(t, err, cause)
 }
 
+// NewNotFoundErrorがメッセージIDを含む未検出エラーを生成することを確認する。
 func TestOutboxError_NotFound(t *testing.T) {
 	err := outbox.NewNotFoundError("msg-123")
 	assert.Contains(t, err.Error(), "message not found")
@@ -220,6 +230,7 @@ func TestMockStore_Save(t *testing.T) {
 	require.Len(t, store.savedMessages, 1)
 }
 
+// mockStoreのFetchPendingが保存済みメッセージを正しく返すことを確認する。
 func TestMockStore_FetchPending(t *testing.T) {
 	payload := json.RawMessage(`{}`)
 	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
@@ -231,6 +242,7 @@ func TestMockStore_FetchPending(t *testing.T) {
 	assert.Equal(t, outbox.OutboxStatusPending, result[0].Status)
 }
 
+// mockStoreのUpdateが更新済みメッセージを正しく記録することを確認する。
 func TestMockStore_Update(t *testing.T) {
 	store := &mockStore{}
 	payload := json.RawMessage(`{}`)
@@ -242,6 +254,7 @@ func TestMockStore_Update(t *testing.T) {
 	assert.Equal(t, outbox.OutboxStatusDelivered, store.updatedMsgs[0].Status)
 }
 
+// mockStoreのDeleteDeliveredが設定された削除件数を返すことを確認する。
 func TestMockStore_DeleteDelivered(t *testing.T) {
 	store := &mockStore{deleteCount: 5}
 	count, err := store.DeleteDelivered(context.Background(), 30)
@@ -272,6 +285,7 @@ func TestProcessBatch_Success(t *testing.T) {
 	assert.Equal(t, outbox.OutboxStatusDelivered, store.updatedMsgs[1].Status)
 }
 
+// Publishが失敗した場合にProcessBatchがメッセージをFAILED状態に更新しバッチ全体はエラーにならないことを確認する。
 func TestProcessBatch_PublishFails(t *testing.T) {
 	payload := json.RawMessage(`{}`)
 	msg := outbox.NewOutboxMessage("topic", "key-1", payload)
@@ -291,6 +305,7 @@ func TestProcessBatch_PublishFails(t *testing.T) {
 	assert.Equal(t, "kafka unavailable", store.updatedMsgs[1].LastError)
 }
 
+// ストアのFetchPendingがエラーを返す場合にProcessBatchがエラーを返すことを確認する。
 func TestProcessBatch_StoreError(t *testing.T) {
 	store := &mockStore{getErr: errors.New("db error")}
 	publisher := &mockPublisher{}
@@ -300,6 +315,7 @@ func TestProcessBatch_StoreError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// 処理対象メッセージが空の場合にProcessBatchが0件を返しエラーにならないことを確認する。
 func TestProcessBatch_Empty(t *testing.T) {
 	store := &mockStore{messages: []outbox.OutboxMessage{}}
 	publisher := &mockPublisher{}
@@ -310,6 +326,7 @@ func TestProcessBatch_Empty(t *testing.T) {
 	assert.Equal(t, 0, count)
 }
 
+// ProcessBatchがbatchSizeで指定した件数のみを処理することを確認する。
 func TestProcessBatch_RespectsBatchSize(t *testing.T) {
 	payload := json.RawMessage(`{}`)
 	messages := make([]outbox.OutboxMessage, 5)
@@ -325,6 +342,7 @@ func TestProcessBatch_RespectsBatchSize(t *testing.T) {
 	assert.Equal(t, 3, count) // 3 件のみ処理
 }
 
+// ProcessBatchが複数メッセージを全件処理し各メッセージを2回更新することを確認する。
 func TestProcessBatch_MultipleMessages(t *testing.T) {
 	msgs := []outbox.OutboxMessage{
 		outbox.NewOutboxMessage("topic", "key-1", json.RawMessage(`{"n":1}`)),
@@ -343,6 +361,7 @@ func TestProcessBatch_MultipleMessages(t *testing.T) {
 	assert.Len(t, store.updatedMsgs, 6)
 }
 
+// 一部のメッセージのPublishが失敗した場合に成功件数のみカウントされることを確認する。
 func TestProcessBatch_PartialSuccess(t *testing.T) {
 	// 2 件のメッセージのうち 2 件目が失敗するケース
 	msgs := []outbox.OutboxMessage{
@@ -373,6 +392,7 @@ func (m *mockPublisherFunc) Publish(ctx context.Context, msg *outbox.OutboxMessa
 	return m.fn(ctx, msg)
 }
 
+// batchSizeに0を指定した場合にデフォルトの100が使われ全件処理されることを確認する。
 func TestOutboxProcessor_DefaultBatchSize(t *testing.T) {
 	// batchSize = 0 の場合はデフォルト 100 が使われる
 	payload := json.RawMessage(`{}`)

@@ -79,7 +79,7 @@ void main() {
       expect(tenant.id, equals('T-001'));
     });
 
-    test('createTenant creates active tenant', () async {
+    test('createTenantでアクティブなテナントが作成されること', () async {
       final client = InMemoryTenantClient();
       final tenant = await client.createTenant(
         const CreateTenantRequest(name: 'Test Corp', plan: 'enterprise'),
@@ -89,7 +89,7 @@ void main() {
       expect(tenant.plan, equals('enterprise'));
     });
 
-    test('addMember and listMembers work correctly', () async {
+    test('addMemberとlistMembersが正しく動作すること', () async {
       final client = InMemoryTenantClient();
       final tenant = await client.createTenant(
         const CreateTenantRequest(name: 'T1', plan: 'pro'),
@@ -107,7 +107,7 @@ void main() {
       expect(updated.first.userId, equals('user-2'));
     });
 
-    test('getProvisioningStatus returns pending after creation', () async {
+    test('作成後にgetProvisioningStatusがpendingを返すこと', () async {
       final client = InMemoryTenantClient();
       final tenant = await client.createTenant(
         const CreateTenantRequest(name: 'T2', plan: 'starter'),

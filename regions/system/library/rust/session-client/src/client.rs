@@ -108,6 +108,7 @@ impl SessionClient for InMemorySessionClient {
 mod tests {
     use super::*;
 
+    // セッション作成でユーザー ID・revoked フラグ・ID・トークンが正しく設定されることを確認する。
     #[tokio::test]
     async fn test_create() {
         let client = InMemorySessionClient::new();
@@ -130,6 +131,7 @@ mod tests {
         assert_eq!(fetched.unwrap().id, session.id);
     }
 
+    // 存在しないセッション ID の取得が None を返すことを確認する。
     #[tokio::test]
     async fn test_get_not_found() {
         let client = InMemorySessionClient::new();
@@ -137,6 +139,7 @@ mod tests {
         assert!(result.is_none());
     }
 
+    // リフレッシュ後の有効期限が元のセッションより延長されることを確認する。
     #[tokio::test]
     async fn test_refresh() {
         let client = InMemorySessionClient::new();
@@ -160,6 +163,7 @@ mod tests {
         assert!(refreshed.expires_at > session.expires_at);
     }
 
+    // 存在しないセッションのリフレッシュが NotFound エラーを返すことを確認する。
     #[tokio::test]
     async fn test_refresh_not_found() {
         let client = InMemorySessionClient::new();
@@ -172,6 +176,7 @@ mod tests {
         assert!(matches!(result, Err(SessionError::NotFound(_))));
     }
 
+    // セッションの失効操作で revoked フラグが true になることを確認する。
     #[tokio::test]
     async fn test_revoke() {
         let client = InMemorySessionClient::new();
@@ -190,6 +195,7 @@ mod tests {
         assert!(fetched.revoked);
     }
 
+    // 存在しないセッションの失効が NotFound エラーを返すことを確認する。
     #[tokio::test]
     async fn test_revoke_not_found() {
         let client = InMemorySessionClient::new();
@@ -197,6 +203,7 @@ mod tests {
         assert!(matches!(result, Err(SessionError::NotFound(_))));
     }
 
+    // list_user_sessions が指定ユーザーのセッション数を正しく返すことを確認する。
     #[tokio::test]
     async fn test_list_user_sessions() {
         let client = InMemorySessionClient::new();
@@ -223,6 +230,7 @@ mod tests {
         assert_eq!(sessions.len(), 2);
     }
 
+    // revoke_all がユーザーの全セッションを失効させて件数を返すことを確認する。
     #[tokio::test]
     async fn test_revoke_all() {
         let client = InMemorySessionClient::new();
@@ -244,6 +252,7 @@ mod tests {
         assert!(sessions.iter().all(|s| s.revoked));
     }
 
+    // Default トレイトで生成した InMemorySessionClient が有効であることを確認する。
     #[test]
     fn test_default() {
         let client = InMemorySessionClient::default();

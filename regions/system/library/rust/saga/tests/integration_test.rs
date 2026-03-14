@@ -26,6 +26,7 @@ fn make_start_response(saga_id: &str) -> serde_json::Value {
     })
 }
 
+// サーガが正常に開始され、成功レスポンスが返されることを確認する。
 #[tokio::test]
 async fn test_start_saga_success() {
     let mock_server = MockServer::start().await;
@@ -53,6 +54,7 @@ async fn test_start_saga_success() {
     assert_eq!(resp.status, "STARTED");
 }
 
+// correlation_id を指定してサーガを開始できることを確認する。
 #[tokio::test]
 async fn test_start_saga_with_correlation_id() {
     let mock_server = MockServer::start().await;
@@ -79,6 +81,7 @@ async fn test_start_saga_with_correlation_id() {
     assert_eq!(resp.saga_id, "660e8400-e29b-41d4-a716-446655440001");
 }
 
+// サーバーが500エラーを返した場合にエラーになることを確認する。
 #[tokio::test]
 async fn test_start_saga_server_error_returns_error() {
     let mock_server = MockServer::start().await;
@@ -102,6 +105,7 @@ async fn test_start_saga_server_error_returns_error() {
     assert!(err_msg.contains("500"));
 }
 
+// サーバーが400エラーを返した場合にエラーになることを確認する。
 #[tokio::test]
 async fn test_start_saga_bad_request_returns_error() {
     let mock_server = MockServer::start().await;
@@ -125,6 +129,7 @@ async fn test_start_saga_bad_request_returns_error() {
     assert!(err_msg.contains("400"));
 }
 
+// サーガIDを指定してサーガ状態が正常に取得できることを確認する。
 #[tokio::test]
 async fn test_get_saga_success() {
     let mock_server = MockServer::start().await;
@@ -146,6 +151,7 @@ async fn test_get_saga_success() {
     assert_eq!(state.current_step, 0);
 }
 
+// サーガ状態取得時にすべてのフィールドが正しくデシリアライズされることを確認する。
 #[tokio::test]
 async fn test_get_saga_with_all_fields() {
     let mock_server = MockServer::start().await;
@@ -180,6 +186,7 @@ async fn test_get_saga_with_all_fields() {
     assert_eq!(state.initiated_by.as_deref(), Some("user-admin"));
 }
 
+// 存在しないサーガIDを取得しようとした場合に404エラーが返されることを確認する。
 #[tokio::test]
 async fn test_get_saga_not_found_returns_error() {
     let mock_server = MockServer::start().await;
@@ -197,6 +204,7 @@ async fn test_get_saga_not_found_returns_error() {
     assert!(err_msg.contains("404"));
 }
 
+// レスポンスが不正なJSONの場合にデシリアライズエラーが返されることを確認する。
 #[tokio::test]
 async fn test_get_saga_invalid_json_returns_error() {
     let mock_server = MockServer::start().await;
@@ -213,6 +221,7 @@ async fn test_get_saga_invalid_json_returns_error() {
     assert!(result.is_err());
 }
 
+// サーガが正常にキャンセルできることを確認する。
 #[tokio::test]
 async fn test_cancel_saga_success() {
     let mock_server = MockServer::start().await;
@@ -229,6 +238,7 @@ async fn test_cancel_saga_success() {
     assert!(result.is_ok());
 }
 
+// 存在しないサーガをキャンセルしようとした場合に404エラーが返されることを確認する。
 #[tokio::test]
 async fn test_cancel_saga_not_found_returns_error() {
     let mock_server = MockServer::start().await;
@@ -246,6 +256,7 @@ async fn test_cancel_saga_not_found_returns_error() {
     assert!(err_msg.contains("404"));
 }
 
+// 完了済みサーガのキャンセル時に409コンフリクトエラーが返されることを確認する。
 #[tokio::test]
 async fn test_cancel_saga_conflict_returns_error() {
     let mock_server = MockServer::start().await;
@@ -264,6 +275,7 @@ async fn test_cancel_saga_conflict_returns_error() {
     assert!(err_msg.contains("409"));
 }
 
+// キャンセル時にサーバーが500エラーを返した場合にエラーになることを確認する。
 #[tokio::test]
 async fn test_cancel_saga_server_error_returns_error() {
     let mock_server = MockServer::start().await;
@@ -282,6 +294,7 @@ async fn test_cancel_saga_server_error_returns_error() {
     assert!(err_msg.contains("500"));
 }
 
+// 末尾スラッシュ付きのURIでクライアントを作成しても正しく動作することを確認する。
 #[tokio::test]
 async fn test_client_endpoint_normalization() {
     let mock_server = MockServer::start().await;
@@ -300,6 +313,7 @@ async fn test_client_endpoint_normalization() {
     assert!(result.is_ok());
 }
 
+// initiated_by を指定してサーガを開始できることを確認する。
 #[tokio::test]
 async fn test_start_saga_with_initiated_by() {
     let mock_server = MockServer::start().await;
@@ -326,6 +340,7 @@ async fn test_start_saga_with_initiated_by() {
     assert_eq!(resp.saga_id, "770e8400-e29b-41d4-a716-446655440002");
 }
 
+// 複数のサーガを並行して取得できることを確認する。
 #[tokio::test]
 async fn test_concurrent_requests() {
     let mock_server = MockServer::start().await;

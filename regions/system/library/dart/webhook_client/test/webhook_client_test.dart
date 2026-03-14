@@ -7,13 +7,13 @@ import 'package:k1s0_webhook_client/webhook_client.dart';
 
 void main() {
   group('generateSignature', () {
-    test('produces consistent signature', () {
+    test('同じ入力から一貫したシグネチャが生成されること', () {
       final s1 = generateSignature('secret', 'body');
       final s2 = generateSignature('secret', 'body');
       expect(s1, equals(s2));
     });
 
-    test('different secrets produce different signatures', () {
+    test('異なるシークレットからは異なるシグネチャが生成されること', () {
       final s1 = generateSignature('secret1', 'body');
       final s2 = generateSignature('secret2', 'body');
       expect(s1, isNot(equals(s2)));
@@ -21,18 +21,18 @@ void main() {
   });
 
   group('verifySignature', () {
-    test('returns true for valid signature', () {
+    test('有効なシグネチャの場合にtrueが返されること', () {
       final sig = generateSignature('key', 'data');
       expect(verifySignature('key', 'data', sig), isTrue);
     });
 
-    test('returns false for invalid signature', () {
+    test('無効なシグネチャの場合にfalseが返されること', () {
       expect(verifySignature('key', 'data', 'wrong'), isFalse);
     });
   });
 
   group('InMemoryWebhookClient', () {
-    test('records sent webhooks', () async {
+    test('送信したWebhookが記録されること', () async {
       final client = InMemoryWebhookClient();
       final payload = WebhookPayload(
         eventType: 'test',
@@ -46,7 +46,7 @@ void main() {
   });
 
   group('WebhookPayload', () {
-    test('stores fields', () {
+    test('全フィールドが保持されること', () {
       const payload = WebhookPayload(
         eventType: 'user.created',
         timestamp: '2026-01-01T00:00:00Z',
@@ -66,7 +66,7 @@ void main() {
     // No-op delay for testing (no actual waiting)
     Future<void> noDelay(Duration _) async {}
 
-    test('returns status code on success', () async {
+    test('成功時にステータスコードが返されること', () async {
       final mockClient = MockClient((_) async => http.Response('', 200));
       final client = HttpWebhookClient(
         httpClient: mockClient,
@@ -77,7 +77,7 @@ void main() {
       expect(status, equals(200));
     });
 
-    test('includes Idempotency-Key header', () async {
+    test('Idempotency-Keyヘッダーが付与されること', () async {
       String? capturedKey;
       final mockClient = MockClient((request) async {
         capturedKey = request.headers['idempotency-key'];
@@ -93,7 +93,7 @@ void main() {
       expect(capturedKey, equals('test-uuid-1234'));
     });
 
-    test('includes X-K1s0-Signature header when secret is set', () async {
+    test('シークレット設定時にX-K1s0-Signatureヘッダーが付与されること', () async {
       String? capturedSignature;
       String? capturedBody;
       final mockClient = MockClient((request) async {
@@ -112,7 +112,7 @@ void main() {
       expect(capturedSignature, equals(expectedSig));
     });
 
-    test('does not include X-K1s0-Signature header when secret is not set',
+    test('シークレット未設定時にX-K1s0-Signatureヘッダーが付与されないこと',
         () async {
       String? capturedSignature;
       final mockClient = MockClient((request) async {
@@ -128,7 +128,7 @@ void main() {
       expect(capturedSignature, isNull);
     });
 
-    test('retries on 5xx responses', () async {
+    test('5xxレスポンス時にリトライが実行されること', () async {
       int callCount = 0;
       final mockClient = MockClient((_) async {
         callCount++;
@@ -152,7 +152,7 @@ void main() {
       expect(callCount, equals(3));
     });
 
-    test('retries on 429 responses', () async {
+    test('429レスポンス時にリトライが実行されること', () async {
       int callCount = 0;
       final mockClient = MockClient((_) async {
         callCount++;
@@ -176,7 +176,7 @@ void main() {
       expect(callCount, equals(2));
     });
 
-    test('does not retry on non-429 4xx responses', () async {
+    test('429以外の4xxレスポンス時にリトライが実行されないこと', () async {
       int callCount = 0;
       final mockClient = MockClient((_) async {
         callCount++;
@@ -197,7 +197,7 @@ void main() {
       expect(callCount, equals(1));
     });
 
-    test('throws MAX_RETRIES_EXCEEDED error when retries exhausted', () async {
+    test('リトライ上限に達した場合にMAX_RETRIES_EXCEEDEDエラーがスローされること', () async {
       final mockClient = MockClient((_) async => http.Response('', 500));
       final client = HttpWebhookClient(
         config: WebhookConfig(
@@ -217,7 +217,7 @@ void main() {
       }
     });
 
-    test('retries on network errors', () async {
+    test('ネットワークエラー時にリトライが実行されること', () async {
       int callCount = 0;
       final mockClient = MockClient((_) async {
         callCount++;
@@ -241,7 +241,7 @@ void main() {
       expect(callCount, equals(3));
     });
 
-    test('uses same Idempotency-Key across retries', () async {
+    test('リトライ間で同じIdempotency-Keyが使用されること', () async {
       final capturedKeys = <String>[];
       final mockClient = MockClient((request) async {
         capturedKeys.add(request.headers['idempotency-key'] ?? '');

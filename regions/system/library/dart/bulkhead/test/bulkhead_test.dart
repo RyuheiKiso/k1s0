@@ -15,14 +15,14 @@ void main() {
     bulkhead = Bulkhead(config);
   });
 
-  test('acquire and release', () async {
+  test('acquire と release が正常に動作すること', () async {
     await bulkhead.acquire();
     await bulkhead.acquire();
     bulkhead.release();
     bulkhead.release();
   });
 
-  test('rejects when full after timeout', () async {
+  test('タイムアウト後に満杯の場合は拒否されること', () async {
     await bulkhead.acquire();
     await bulkhead.acquire();
 
@@ -32,7 +32,7 @@ void main() {
     );
   });
 
-  test('waits for slot release', () async {
+  test('スロット解放まで待機すること', () async {
     await bulkhead.acquire();
     await bulkhead.acquire();
 
@@ -54,12 +54,12 @@ void main() {
     bulkhead.release();
   });
 
-  test('call succeeds', () async {
+  test('call が正常に成功すること', () async {
     final result = await bulkhead.call(() async => 42);
     expect(result, equals(42));
   });
 
-  test('call rejects when full', () async {
+  test('満杯の場合に call が拒否されること', () async {
     await bulkhead.acquire();
     await bulkhead.acquire();
 
@@ -72,7 +72,7 @@ void main() {
     bulkhead.release();
   });
 
-  test('concurrent access respects limit', () async {
+  test('同時アクセスが上限を超えないこと', () async {
     var running = 0;
     var maxRunning = 0;
 

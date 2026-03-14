@@ -22,6 +22,7 @@ func newEvent(id, action string) auditclient.AuditEvent {
 	}
 }
 
+// Record したイベントが Flush で全件取得できることを確認する。
 func TestRecord_And_Flush(t *testing.T) {
 	c := auditclient.NewBufferedAuditClient()
 	ctx := context.Background()
@@ -38,6 +39,7 @@ func TestRecord_And_Flush(t *testing.T) {
 	assert.Equal(t, "2", events[1].ID)
 }
 
+// Flush 後にバッファが空になることを確認する。
 func TestFlush_ClearsBuffer(t *testing.T) {
 	c := auditclient.NewBufferedAuditClient()
 	ctx := context.Background()
@@ -50,6 +52,7 @@ func TestFlush_ClearsBuffer(t *testing.T) {
 	assert.Empty(t, events)
 }
 
+// バッファが空の状態で Flush するとエラーなしで空のスライスが返ることを確認する。
 func TestFlush_EmptyBuffer(t *testing.T) {
 	c := auditclient.NewBufferedAuditClient()
 	events, err := c.Flush(context.Background())
@@ -57,6 +60,7 @@ func TestFlush_EmptyBuffer(t *testing.T) {
 	assert.Empty(t, events)
 }
 
+// Record したイベントの全フィールドが Flush 後も変更されずに保持されることを確認する。
 func TestRecord_PreservesFields(t *testing.T) {
 	c := auditclient.NewBufferedAuditClient()
 	ctx := context.Background()

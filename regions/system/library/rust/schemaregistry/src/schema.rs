@@ -112,6 +112,7 @@ pub(crate) fn parse_schema_type(s: &str) -> SchemaType {
 mod tests {
     use super::*;
 
+    // SchemaType の as_str メソッドが正しい文字列を返すことを確認する。
     #[test]
     fn test_schema_type_as_str() {
         assert_eq!(SchemaType::Avro.as_str(), "AVRO");
@@ -119,29 +120,34 @@ mod tests {
         assert_eq!(SchemaType::Protobuf.as_str(), "PROTOBUF");
     }
 
+    // SchemaType の Display 実装が正しい文字列を返すことを確認する。
     #[test]
     fn test_schema_type_display() {
         assert_eq!(SchemaType::Protobuf.to_string(), "PROTOBUF");
         assert_eq!(SchemaType::Avro.to_string(), "AVRO");
     }
 
+    // PROTOBUF 文字列が大文字小文字を問わず正しくパースされることを確認する。
     #[test]
     fn test_parse_schema_type_protobuf() {
         assert_eq!(parse_schema_type("PROTOBUF"), SchemaType::Protobuf);
         assert_eq!(parse_schema_type("protobuf"), SchemaType::Protobuf);
     }
 
+    // JSON 文字列が正しくパースされることを確認する。
     #[test]
     fn test_parse_schema_type_json() {
         assert_eq!(parse_schema_type("JSON"), SchemaType::Json);
     }
 
+    // AVRO および未知の文字列が Avro にフォールバックすることを確認する。
     #[test]
     fn test_parse_schema_type_avro_and_unknown() {
         assert_eq!(parse_schema_type("AVRO"), SchemaType::Avro);
         assert_eq!(parse_schema_type("UNKNOWN"), SchemaType::Avro);
     }
 
+    // RegisteredSchema が正しくクローンできることを確認する。
     #[test]
     fn test_registered_schema_clone() {
         let s = RegisteredSchema {
@@ -157,6 +163,7 @@ mod tests {
         assert_eq!(cloned.schema_type, SchemaType::Protobuf);
     }
 
+    // RegisteredSchema がシリアライズ・デシリアライズを経ても正しい値を保持することを確認する。
     #[test]
     fn test_registered_schema_serialize_deserialize() {
         let s = RegisteredSchema {
@@ -173,6 +180,7 @@ mod tests {
         assert_eq!(back.schema_type, SchemaType::Protobuf);
     }
 
+    // RegisterSchemaRequest の JSON に schemaType フィールドが含まれることを確認する。
     #[test]
     fn test_register_schema_request_serializes_schema_type_field() {
         let req = RegisterSchemaRequest {
@@ -184,6 +192,7 @@ mod tests {
         assert!(json.contains("PROTOBUF"));
     }
 
+    // SchemaType が Copy トレイトで正しくコピーできることを確認する。
     #[test]
     fn test_schema_type_copy() {
         let t = SchemaType::Json;

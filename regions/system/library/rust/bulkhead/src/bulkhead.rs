@@ -81,6 +81,7 @@ mod tests {
         }
     }
 
+    // パーミットを取得するとメトリクスの同時実行数が増加することを確認する。
     #[tokio::test]
     async fn test_acquire_release() {
         let bh = Bulkhead::new(test_config(2));
@@ -92,6 +93,7 @@ mod tests {
         // record_release is called in call(). For raw acquire, current_concurrent stays incremented.
     }
 
+    // 上限に達した状態でパーミット取得するとリジェクトされることを確認する。
     #[tokio::test]
     async fn test_full_rejection() {
         let bh = Bulkhead::new(test_config(1));
@@ -102,6 +104,7 @@ mod tests {
         assert_eq!(bh.metrics().rejection_count, 1);
     }
 
+    // 同時実行上限を超えた別スレッドからの取得が失敗することを確認する。
     #[tokio::test]
     async fn test_concurrent_limit() {
         let bh = Arc::new(Bulkhead::new(test_config(2)));
@@ -116,6 +119,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // call() が正常に実行され結果が返されることを確認する。
     #[tokio::test]
     async fn test_call_success() {
         let bh = Bulkhead::new(test_config(2));
@@ -124,6 +128,7 @@ mod tests {
         assert_eq!(result.unwrap(), 42);
     }
 
+    // バルクヘッドが満杯のとき call() がエラーを返すことを確認する。
     #[tokio::test]
     async fn test_call_rejects_when_full() {
         let bh = Bulkhead::new(test_config(1));
@@ -134,6 +139,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // メトリクスがパーミット取得・リジェクト数を正確に追跡することを確認する。
     #[tokio::test]
     async fn test_metrics() {
         let bh = Bulkhead::new(test_config(1));

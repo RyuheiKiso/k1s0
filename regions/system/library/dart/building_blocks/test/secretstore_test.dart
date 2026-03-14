@@ -3,7 +3,7 @@ import 'package:k1s0_building_blocks/building_blocks.dart';
 
 void main() {
   group('SecretValue', () {
-    test('should create with key, value, and metadata', () {
+    test('key・value・メタデータを指定して生成できること', () {
       const secret = SecretValue(
         key: 'db-password',
         value: 's3cret!',
@@ -15,7 +15,7 @@ void main() {
       expect(secret.metadata, {'store': 'vault', 'version': '2'});
     });
 
-    test('should support empty metadata', () {
+    test('空のメタデータをサポートすること', () {
       const secret = SecretValue(
         key: 'api-key',
         value: 'abc123',
@@ -25,7 +25,7 @@ void main() {
       expect(secret.metadata, isEmpty);
     });
 
-    test('should be immutable (final fields)', () {
+    test('イミュータブルであること（final フィールド）', () {
       const secret = SecretValue(
         key: 'token',
         value: 'xyz',

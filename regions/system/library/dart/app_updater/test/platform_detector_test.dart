@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:k1s0_app_updater/app_updater.dart';
 
 void main() {
-  test('currentPlatform matches dart:io platform', () {
+  test('currentPlatform が dart:io のプラットフォームと一致すること', () {
     final platform = PlatformDetector.currentPlatform;
 
     if (Platform.isWindows) {
@@ -16,7 +16,7 @@ void main() {
     }
   });
 
-  test('currentArch is normalized', () {
+  test('currentArch が正規化されていること', () {
     expect(PlatformDetector.currentArch, anyOf('amd64', 'arm64'));
   });
 }

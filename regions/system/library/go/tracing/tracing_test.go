@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TraceContextをtraceparentヘッダーに変換し、再度パースして同じ値が得られることを確認する。
 func TestTraceparentRoundtrip(t *testing.T) {
 	tc := tracing.TraceContext{
 		TraceID:  "0af7651916cd43dd8448eb211c80319c",
@@ -26,6 +27,7 @@ func TestTraceparentRoundtrip(t *testing.T) {
 	assert.Equal(t, tc.Flags, parsed.Flags)
 }
 
+// 不正なtraceparent文字列に対してFromTraceparentがエラーを返すことを確認する。
 func TestFromTraceparent_Invalid(t *testing.T) {
 	_, err := tracing.FromTraceparent("invalid")
 	require.Error(t, err)
@@ -34,6 +36,7 @@ func TestFromTraceparent_Invalid(t *testing.T) {
 	require.Error(t, err)
 }
 
+// Baggageをヘッダーにシリアライズしてからパースすると元の値が復元できることを確認する。
 func TestBaggageRoundtrip(t *testing.T) {
 	b := tracing.NewBaggage()
 	b.Set("userId", "alice")
@@ -53,12 +56,14 @@ func TestBaggageRoundtrip(t *testing.T) {
 	assert.Equal(t, "t-1", v)
 }
 
+// 空文字列からBaggageFromHeaderを呼び出した場合に空のBaggageが返されることを確認する。
 func TestBaggageFromHeader_Empty(t *testing.T) {
 	b := tracing.BaggageFromHeader("")
 	_, ok := b.Get("any")
 	assert.False(t, ok)
 }
 
+// InjectContextでヘッダーに注入したコンテキストをExtractContextで正しく復元できることを確認する。
 func TestInjectExtract(t *testing.T) {
 	tc := &tracing.TraceContext{
 		TraceID:  "0af7651916cd43dd8448eb211c80319c",
@@ -85,6 +90,7 @@ func TestInjectExtract(t *testing.T) {
 	assert.Equal(t, "req-123", v)
 }
 
+// 空のヘッダーからExtractContextを呼び出した場合にnilとemptyBaggageが返されることを確認する。
 func TestExtractContext_EmptyHeaders(t *testing.T) {
 	headers := make(map[string]string)
 	tc, bag := tracing.ExtractContext(headers)

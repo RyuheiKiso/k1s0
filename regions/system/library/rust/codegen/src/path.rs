@@ -18,12 +18,14 @@ mod tests {
     use super::*;
     use std::path::Path;
 
+    // system ティアでの出力パスが正しく構築されることを確認する。
     #[test]
     fn system_tier() {
         let p = build_output_path(Path::new("/repo"), Tier::System, "auth");
         assert_eq!(p, PathBuf::from("/repo/regions/system/server/rust/auth"));
     }
 
+    // business ティアでの出力パスが正しく構築されることを確認する。
     #[test]
     fn business_tier() {
         let p = build_output_path(Path::new("/repo"), Tier::Business, "order");
@@ -33,6 +35,7 @@ mod tests {
         );
     }
 
+    // service ティアでのハイフン含む名前の出力パスが正しく構築されることを確認する。
     #[test]
     fn service_tier() {
         let p = build_output_path(Path::new("/repo"), Tier::Service, "web-app");

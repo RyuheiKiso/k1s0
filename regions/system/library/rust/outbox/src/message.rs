@@ -125,6 +125,7 @@ impl OutboxMessage {
 mod tests {
     use super::*;
 
+    // OutboxMessage::new が正しい初期状態（Pending・retry_count=0・is_processable=true）で生成されることを確認する。
     #[test]
     fn test_new_message() {
         let payload = serde_json::json!({"order_id": "ord-001"});
@@ -135,6 +136,7 @@ mod tests {
         assert!(msg.is_processable());
     }
 
+    // mark_delivered によりステータスが Delivered に遷移し is_processable が false になることを確認する。
     #[test]
     fn test_mark_delivered() {
         let mut msg = OutboxMessage::new("test.topic", "key", serde_json::json!({}));
@@ -143,6 +145,7 @@ mod tests {
         assert!(!msg.is_processable());
     }
 
+    // mark_failed によりリトライカウントがインクリメントされエラーメッセージが保存されることを確認する。
     #[test]
     fn test_mark_failed_increments_retry() {
         let mut msg = OutboxMessage::new("test.topic", "key", serde_json::json!({}));
@@ -152,6 +155,7 @@ mod tests {
         assert_eq!(msg.last_error.as_deref(), Some("kafka error"));
     }
 
+    // 最大リトライ回数に達した場合にステータスが DeadLetter に遷移することを確認する。
     #[test]
     fn test_mark_failed_dead_letter_on_max_retries() {
         let mut msg = OutboxMessage::new("test.topic", "key", serde_json::json!({}));
@@ -163,6 +167,7 @@ mod tests {
         assert_eq!(msg.retry_count, 3);
     }
 
+    // OutboxStatus が SCREAMING_SNAKE_CASE の JSON 文字列でシリアライズされることを確認する。
     #[test]
     fn test_status_serialization() {
         let status = OutboxStatus::Delivered;

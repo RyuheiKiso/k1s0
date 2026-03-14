@@ -29,6 +29,7 @@ fn make_email_request() -> NotificationRequest {
 // NotificationRequest construction
 // ===========================================================================
 
+// NotificationRequest::new がチャンネル・受信者・本文を正しく設定することを確認する。
 #[test]
 fn request_new_sets_fields_correctly() {
     let req = NotificationRequest::new(
@@ -45,6 +46,7 @@ fn request_new_sets_fields_correctly() {
     assert!(!req.id.is_nil());
 }
 
+// with_subject でサブジェクトが設定されることを確認する。
 #[test]
 fn request_with_subject_sets_subject() {
     let req = NotificationRequest::new(NotificationChannel::Sms, "+1234567890", "Code: 1234")
@@ -52,6 +54,7 @@ fn request_with_subject_sets_subject() {
     assert_eq!(req.subject, Some("Verification".to_string()));
 }
 
+// 各リクエストが一意の ID を持つことを確認する。
 #[test]
 fn each_request_gets_unique_id() {
     let r1 = NotificationRequest::new(NotificationChannel::Email, "a@b.com", "body1");
@@ -63,6 +66,7 @@ fn each_request_gets_unique_id() {
 // NotificationChannel variants
 // ===========================================================================
 
+// 全ての NotificationChannel バリアントが JSON シリアライズ・デシリアライズで正しく往復することを確認する。
 #[test]
 fn channel_enum_all_variants() {
     let channels = vec![
@@ -80,6 +84,7 @@ fn channel_enum_all_variants() {
     }
 }
 
+// NotificationChannel が JSON で往復シリアライズされることを確認する。
 #[test]
 fn channel_serde_roundtrip() {
     let ch = NotificationChannel::Slack;
@@ -92,6 +97,7 @@ fn channel_serde_roundtrip() {
 // NotificationRequest serde
 // ===========================================================================
 
+// NotificationRequest が JSON で往復シリアライズされることを確認する。
 #[test]
 fn request_serde_roundtrip() {
     let req = make_email_request();
@@ -104,6 +110,7 @@ fn request_serde_roundtrip() {
     assert_eq!(deserialized.subject, req.subject);
 }
 
+// NotificationResponse が JSON で往復シリアライズされることを確認する。
 #[test]
 fn response_serde_roundtrip() {
     let resp = ok_response();
@@ -193,6 +200,7 @@ impl NotificationClient for StubNotificationClient {
 // Stub: send (success per channel)
 // ===========================================================================
 
+// スタブクライアントで Email チャンネルへの送信が成功することを確認する。
 #[tokio::test]
 async fn stub_send_email_success() {
     let client = StubNotificationClient::new();
@@ -203,6 +211,7 @@ async fn stub_send_email_success() {
     assert_eq!(client.call_count(), 1);
 }
 
+// スタブクライアントで SMS チャンネルへの送信が成功することを確認する。
 #[tokio::test]
 async fn stub_send_sms_success() {
     let client = StubNotificationClient::new();
@@ -212,6 +221,7 @@ async fn stub_send_sms_success() {
     assert_eq!(result.status, "sent");
 }
 
+// スタブクライアントで Push チャンネルへの送信が成功することを確認する。
 #[tokio::test]
 async fn stub_send_push_success() {
     let client = StubNotificationClient::new();
@@ -224,6 +234,7 @@ async fn stub_send_push_success() {
     assert_eq!(result.status, "sent");
 }
 
+// スタブクライアントで Slack チャンネルへの送信が成功することを確認する。
 #[tokio::test]
 async fn stub_send_slack_success() {
     let client = StubNotificationClient::new();
@@ -233,6 +244,7 @@ async fn stub_send_slack_success() {
     assert_eq!(result.status, "sent");
 }
 
+// スタブクライアントで Webhook チャンネルへの送信が成功することを確認する。
 #[tokio::test]
 async fn stub_send_webhook_channel_success() {
     let client = StubNotificationClient::new();
@@ -249,6 +261,7 @@ async fn stub_send_webhook_channel_success() {
 // Stub: send preserves request id in response
 // ===========================================================================
 
+// レスポンスの ID がリクエストの ID と一致することを確認する。
 #[tokio::test]
 async fn stub_send_response_id_matches_request_id() {
     let client = StubNotificationClient::new();
@@ -262,6 +275,7 @@ async fn stub_send_response_id_matches_request_id() {
 // Stub: send (error cases)
 // ===========================================================================
 
+// send が SendError を返す場合にエラーが正しく伝播することを確認する。
 #[tokio::test]
 async fn stub_send_returns_send_error() {
     let client = StubNotificationClient::failing(NotificationClientError::SendError(
@@ -278,6 +292,7 @@ async fn stub_send_returns_send_error() {
     }
 }
 
+// send が InvalidChannel エラーを返す場合にエラーが正しく伝播することを確認する。
 #[tokio::test]
 async fn stub_send_returns_invalid_channel_error() {
     let client = StubNotificationClient::failing(NotificationClientError::InvalidChannel(
@@ -293,6 +308,7 @@ async fn stub_send_returns_invalid_channel_error() {
     }
 }
 
+// send が Internal エラーを返す場合にエラーが正しく伝播することを確認する。
 #[tokio::test]
 async fn stub_send_returns_internal_error() {
     let client = StubNotificationClient::failing(NotificationClientError::Internal(
@@ -312,6 +328,7 @@ async fn stub_send_returns_internal_error() {
 // Stub: send_batch
 // ===========================================================================
 
+// send_batch が複数のリクエストを全て成功させることを確認する。
 #[tokio::test]
 async fn stub_send_batch_success() {
     let client = StubNotificationClient::new();
@@ -326,6 +343,7 @@ async fn stub_send_batch_success() {
     assert_eq!(client.call_count(), 3);
 }
 
+// send_batch がエラー発生時にエラーを呼び出し元に伝播することを確認する。
 #[tokio::test]
 async fn stub_send_batch_error_propagates() {
     let client = StubNotificationClient::failing(NotificationClientError::SendError(
@@ -344,6 +362,7 @@ async fn stub_send_batch_error_propagates() {
     }
 }
 
+// 空のリクエストリストで send_batch を呼び出した場合に空のレスポンスが返ることを確認する。
 #[tokio::test]
 async fn stub_send_batch_empty_input() {
     let client = StubNotificationClient::new();
@@ -356,6 +375,7 @@ async fn stub_send_batch_empty_input() {
 // Error display
 // ===========================================================================
 
+// SendError の表示文字列にエラーメッセージが含まれることを確認する。
 #[test]
 fn error_display_send_error() {
     let err = NotificationClientError::SendError("timeout".to_string());
@@ -363,6 +383,7 @@ fn error_display_send_error() {
     assert!(msg.contains("timeout"));
 }
 
+// BatchError の表示文字列にエラーメッセージが含まれることを確認する。
 #[test]
 fn error_display_batch_error() {
     let err = NotificationClientError::BatchError("3 failed".to_string());
@@ -370,6 +391,7 @@ fn error_display_batch_error() {
     assert!(msg.contains("3 failed"));
 }
 
+// InvalidChannel の表示文字列にエラーメッセージが含まれることを確認する。
 #[test]
 fn error_display_invalid_channel() {
     let err = NotificationClientError::InvalidChannel("fax".to_string());
@@ -377,6 +399,7 @@ fn error_display_invalid_channel() {
     assert!(msg.contains("fax"));
 }
 
+// Internal の表示文字列にエラーメッセージが含まれることを確認する。
 #[test]
 fn error_display_internal() {
     let err = NotificationClientError::Internal("panic".to_string());

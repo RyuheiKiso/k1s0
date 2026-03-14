@@ -309,6 +309,7 @@ impl MigrationRunner for SqlxMigrationRunner {
 mod tests {
     use super::*;
 
+    // マイグレーションテーブル作成 SQL に必要なカラム定義が含まれることを確認する。
     #[test]
     fn test_create_migrations_table_sql_contains_expected_columns() {
         assert!(CREATE_MIGRATIONS_TABLE.contains("CREATE TABLE IF NOT EXISTS _migrations"));
@@ -318,6 +319,7 @@ mod tests {
         assert!(CREATE_MIGRATIONS_TABLE.contains("applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()"));
     }
 
+    // テーブル名の文字列置換によってカスタムテーブル名が SQL に反映されることを確認する。
     #[test]
     fn test_table_name_substitution() {
         let table_sql = CREATE_MIGRATIONS_TABLE.replace("_migrations", "my_schema_history");
@@ -325,6 +327,7 @@ mod tests {
         assert!(!table_sql.contains("_migrations"));
     }
 
+    // from_pool で生成した設定のデフォルトテーブル名が "_migrations" であることを確認する。
     #[test]
     fn test_from_pool_creates_empty_runner() {
         use std::path::PathBuf;
@@ -334,6 +337,7 @@ mod tests {
         assert_eq!(config.table_name, "_migrations");
     }
 
+    // 適用済みマップが空の場合に全マイグレーションが applied_at = None のステータスになることを確認する。
     #[test]
     fn test_status_logic_with_no_applied() {
         // Simulate status logic: all up_migrations should have applied_at = None
@@ -385,6 +389,7 @@ mod tests {
         }
     }
 
+    // 全マイグレーションが適用済みマップに存在する場合に applied_at が Some になることを確認する。
     #[test]
     fn test_status_logic_with_all_applied() {
         use chrono::Utc;
@@ -436,6 +441,7 @@ mod tests {
         assert!(statuses[0].applied_at.is_some());
     }
 
+    // 適用済みバージョンを除いた未適用マイグレーションが pending として抽出されることを確認する。
     #[test]
     fn test_pending_logic() {
         let up_migrations: BTreeMap<String, (String, String)> = [

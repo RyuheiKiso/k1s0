@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// NewComponentError がコンポーネント名・操作名・メッセージを持つエラーを正しく生成することを確認する。
 func TestNewComponentError(t *testing.T) {
 	err := NewComponentError("statestore", "Get", "key not found", nil)
 	if err.Component != "statestore" {
@@ -19,6 +20,7 @@ func TestNewComponentError(t *testing.T) {
 	}
 }
 
+// ComponentError の Error メソッドがコンポーネント名・操作名・メッセージを含む文字列を返すことを確認する。
 func TestComponentErrorString(t *testing.T) {
 	err := NewComponentError("pubsub", "Publish", "connection failed", nil)
 	s := err.Error()
@@ -33,6 +35,7 @@ func TestComponentErrorString(t *testing.T) {
 	}
 }
 
+// ComponentError の Error メソッドがラップされた内部エラーの内容も含むことを確認する。
 func TestComponentErrorStringWithWrapped(t *testing.T) {
 	inner := errors.New("timeout")
 	err := NewComponentError("statestore", "Set", "operation failed", inner)
@@ -42,6 +45,7 @@ func TestComponentErrorStringWithWrapped(t *testing.T) {
 	}
 }
 
+// ComponentError の Unwrap メソッドがラップされた内部エラーを返すことを確認する。
 func TestComponentErrorUnwrap(t *testing.T) {
 	inner := errors.New("underlying error")
 	err := NewComponentError("binding", "Invoke", "failed", inner)
@@ -50,6 +54,7 @@ func TestComponentErrorUnwrap(t *testing.T) {
 	}
 }
 
+// ComponentError の Unwrap メソッドが内部エラーなしの場合に nil を返すことを確認する。
 func TestComponentErrorUnwrapNil(t *testing.T) {
 	err := NewComponentError("binding", "Read", "no data", nil)
 	if err.Unwrap() != nil {
@@ -57,6 +62,7 @@ func TestComponentErrorUnwrapNil(t *testing.T) {
 	}
 }
 
+// ETagMismatchError の Error メソッドがキー・期待値・実際値を含む文字列を返すことを確認する。
 func TestETagMismatchError(t *testing.T) {
 	err := &ETagMismatchError{
 		Key:      "user:1",
@@ -75,6 +81,7 @@ func TestETagMismatchError(t *testing.T) {
 	}
 }
 
+// ETagMismatchError の Error メソッドが Expected と Actual が nil のとき "<nil>" を含む文字列を返すことを確認する。
 func TestETagMismatchErrorNilETags(t *testing.T) {
 	err := &ETagMismatchError{
 		Key:      "key",

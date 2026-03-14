@@ -34,6 +34,7 @@ func TestSubscribe_And_Publish(t *testing.T) {
 	assert.Equal(t, "1", received[0].ID)
 }
 
+// Publishがサブスクライバーなしの場合にエラーなく完了することを確認する。
 func TestPublish_NoSubscribers(t *testing.T) {
 	bus := eventbus.New()
 	evt := eventbus.Event{ID: "1", EventType: "unknown"}
@@ -41,6 +42,7 @@ func TestPublish_NoSubscribers(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// Unsubscribeが購読を解除し、以降のイベントがハンドラーに届かないことを確認する。
 func TestUnsubscribe(t *testing.T) {
 	bus := eventbus.New()
 	called := false
@@ -54,6 +56,7 @@ func TestUnsubscribe(t *testing.T) {
 	assert.False(t, called)
 }
 
+// 同一イベントタイプに複数ハンドラーを登録した場合、全ハンドラーが呼ばれることを確認する。
 func TestMultipleHandlers(t *testing.T) {
 	bus := eventbus.New()
 	count := 0
@@ -65,6 +68,7 @@ func TestMultipleHandlers(t *testing.T) {
 	assert.Equal(t, 2, count)
 }
 
+// Publishがハンドラーからエラーが返された場合にエラーを伝播することを確認する。
 func TestPublish_HandlerError(t *testing.T) {
 	bus := eventbus.New()
 	bus.Subscribe("evt", func(_ context.Context, _ eventbus.Event) error {
@@ -74,6 +78,7 @@ func TestPublish_HandlerError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// 異なるイベントタイプのハンドラーが互いに干渉せず独立して動作することを確認する。
 func TestDifferentEventTypes_Isolated(t *testing.T) {
 	bus := eventbus.New()
 	var typeA, typeB int
@@ -132,12 +137,14 @@ func TestDomainEvent_Interface(t *testing.T) {
 	assert.Equal(t, now, de.OccurredAt())
 }
 
+// DefaultEventBusConfigがデフォルトのバッファサイズとタイムアウトを返すことを確認する。
 func TestEventBusConfig_Default(t *testing.T) {
 	config := eventbus.DefaultEventBusConfig()
 	assert.Equal(t, 1024, config.BufferSize)
 	assert.Equal(t, 5*time.Second, config.HandlerTimeout)
 }
 
+// NewEventBusがカスタム設定でEventBusインスタンスを正常に生成することを確認する。
 func TestNewEventBus(t *testing.T) {
 	config := eventbus.EventBusConfig{
 		BufferSize:     2048,
@@ -147,6 +154,7 @@ func TestNewEventBus(t *testing.T) {
 	assert.NotNil(t, bus)
 }
 
+// SubscribeTypeで型付き購読をしてPublishするとハンドラーがイベントを受信することを確認する。
 func TestEventBus_SubscribeType_And_Publish(t *testing.T) {
 	bus := eventbus.NewEventBus(eventbus.DefaultEventBusConfig())
 
@@ -167,6 +175,7 @@ func TestEventBus_SubscribeType_And_Publish(t *testing.T) {
 	assert.Equal(t, "alice", handler.received[0].Name)
 }
 
+// Subscribeでイベントタイプを指定せずに購読した場合も正しくイベントを受信することを確認する。
 func TestEventBus_Subscribe_Wildcard(t *testing.T) {
 	bus := eventbus.NewEventBus(eventbus.DefaultEventBusConfig())
 
@@ -186,6 +195,7 @@ func TestEventBus_Subscribe_Wildcard(t *testing.T) {
 	assert.Equal(t, "user-456", handler.received[0].UserID)
 }
 
+// EventBusのUnsubscribeが購読を解除し、以降のイベントがハンドラーに届かないことを確認する。
 func TestEventBus_Unsubscribe(t *testing.T) {
 	bus := eventbus.NewEventBus(eventbus.DefaultEventBusConfig())
 
@@ -206,6 +216,7 @@ func TestEventBus_Unsubscribe(t *testing.T) {
 	assert.Len(t, handler.received, 0)
 }
 
+// EventBusが同一イベントタイプに登録された複数ハンドラーに対してイベントを配信することを確認する。
 func TestEventBus_MultipleHandlers(t *testing.T) {
 	bus := eventbus.NewEventBus(eventbus.DefaultEventBusConfig())
 
@@ -224,6 +235,7 @@ func TestEventBus_MultipleHandlers(t *testing.T) {
 	assert.Len(t, handler2.received, 1)
 }
 
+// EventBusがサブスクライバーなしの状態でPublishしてもエラーが発生しないことを確認する。
 func TestEventBus_NoSubscribers(t *testing.T) {
 	bus := eventbus.NewEventBus(eventbus.DefaultEventBusConfig())
 
@@ -232,6 +244,7 @@ func TestEventBus_NoSubscribers(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// EventBusがハンドラーのエラーをEventBusError型で返すことを確認する。
 func TestEventBus_HandlerError(t *testing.T) {
 	bus := eventbus.NewEventBus(eventbus.DefaultEventBusConfig())
 
@@ -252,6 +265,7 @@ func TestEventBus_HandlerError(t *testing.T) {
 	assert.Equal(t, eventbus.HandlerFailed, busErr.Kind)
 }
 
+// EventBusがタイムアウト設定を超えて処理中のハンドラーをタイムアウトさせることを確認する。
 func TestEventBus_HandlerTimeout(t *testing.T) {
 	config := eventbus.EventBusConfig{
 		BufferSize:     1024,
@@ -281,6 +295,7 @@ func TestEventBus_HandlerTimeout(t *testing.T) {
 	assert.Equal(t, eventbus.HandlerFailed, busErr.Kind)
 }
 
+// EventBusが異なるイベントタイプのハンドラーを互いに干渉なく独立して管理することを確認する。
 func TestEventBus_DifferentEventTypes_Isolated(t *testing.T) {
 	bus := eventbus.NewEventBus(eventbus.DefaultEventBusConfig())
 
@@ -307,6 +322,7 @@ func TestEventBus_DifferentEventTypes_Isolated(t *testing.T) {
 	assert.Equal(t, 0, orderCount)
 }
 
+// EventBusErrorのErrorメソッドがエラーの種類に応じた正しいメッセージを返すことを確認する。
 func TestEventBusError_Formatting(t *testing.T) {
 	err := &eventbus.EventBusError{Kind: eventbus.PublishFailed, Message: "test error"}
 	assert.Equal(t, "publish failed: test error", err.Error())
@@ -318,6 +334,7 @@ func TestEventBusError_Formatting(t *testing.T) {
 	assert.Equal(t, "channel closed", err3.Error())
 }
 
+// EventHandlerFuncアダプターが関数をEventHandlerインターフェースとして利用できることを確認する。
 func TestEventHandlerFunc_Adapter(t *testing.T) {
 	var received UserCreatedEvent
 	handler := eventbus.EventHandlerFunc[UserCreatedEvent](

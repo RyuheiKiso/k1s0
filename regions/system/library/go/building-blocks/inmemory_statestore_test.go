@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// InMemoryStateStore の Init 前後でステータスが Uninitialized → Ready に遷移することを確認する。
 func TestInMemoryStateStore_InitAndStatus(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()
@@ -21,6 +22,7 @@ func TestInMemoryStateStore_InitAndStatus(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore の Name と Version が正しい値を返すことを確認する。
 func TestInMemoryStateStore_Name(t *testing.T) {
 	s := NewInMemoryStateStore()
 	if s.Name() != "inmemory-statestore" {
@@ -31,6 +33,7 @@ func TestInMemoryStateStore_Name(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore に Set した値を Get で正しく取得でき ETag が発行されることを確認する。
 func TestInMemoryStateStore_SetGet(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()
@@ -59,6 +62,7 @@ func TestInMemoryStateStore_SetGet(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore が存在しないキーを Get するとエラーなしで nil を返すことを確認する。
 func TestInMemoryStateStore_GetMissing(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()
@@ -73,6 +77,7 @@ func TestInMemoryStateStore_GetMissing(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore が正しい ETag を指定した Set で更新に成功し新しい ETag を返すことを確認する。
 func TestInMemoryStateStore_SetWithETag(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()
@@ -90,6 +95,7 @@ func TestInMemoryStateStore_SetWithETag(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore が古い ETag を指定した Set で ETagMismatchError を返すことを確認する。
 func TestInMemoryStateStore_SetETagMismatch(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()
@@ -108,6 +114,7 @@ func TestInMemoryStateStore_SetETagMismatch(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore が存在しないキーに ETag 付きで Set すると ETagMismatchError を返すことを確認する。
 func TestInMemoryStateStore_SetETagOnMissingKey(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()
@@ -119,6 +126,7 @@ func TestInMemoryStateStore_SetETagOnMissingKey(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore が正しい ETag を指定した Delete でキーを削除することを確認する。
 func TestInMemoryStateStore_Delete(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()
@@ -136,6 +144,7 @@ func TestInMemoryStateStore_Delete(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore が古い ETag を指定した Delete で ETagMismatchError を返すことを確認する。
 func TestInMemoryStateStore_DeleteETagMismatch(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()
@@ -149,6 +158,7 @@ func TestInMemoryStateStore_DeleteETagMismatch(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore が存在しないキーを ETag なしで Delete してもエラーにならないことを確認する。
 func TestInMemoryStateStore_DeleteMissingKey(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()
@@ -159,6 +169,7 @@ func TestInMemoryStateStore_DeleteMissingKey(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore の BulkSet で複数の値を設定し BulkGet で全件取得できることを確認する。
 func TestInMemoryStateStore_BulkSetGet(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()
@@ -188,6 +199,7 @@ func TestInMemoryStateStore_BulkSetGet(t *testing.T) {
 	}
 }
 
+// InMemoryStateStore の Close がステータスを StatusClosed に遷移させることを確認する。
 func TestInMemoryStateStore_Close(t *testing.T) {
 	s := NewInMemoryStateStore()
 	ctx := context.Background()

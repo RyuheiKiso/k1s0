@@ -110,6 +110,7 @@ pub fn format_lock_key(prefix: &str, key: &str) -> String {
 mod tests {
     use super::*;
 
+    // ロックキーがプレフィックスとキー名を ":" で結合した形式になることを確認する。
     #[test]
     fn test_format_lock_key() {
         assert_eq!(format_lock_key("lock", "myresource"), "lock:myresource");
@@ -119,6 +120,7 @@ mod tests {
         );
     }
 
+    // フルキーがプレフィックスとキーを結合した形式になることを確認する。
     #[test]
     fn test_full_key() {
         let pool_url = "postgres://localhost/test";

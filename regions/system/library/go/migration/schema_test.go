@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Schemaがテーブル・カラム・インデックス・制約を正しく保持することを確認する。
 func TestSchemaConstruction(t *testing.T) {
 	defaultVal := "now()"
 	schema := Schema{

@@ -60,6 +60,7 @@ fn normalize_version(version: &str) -> Vec<u32> {
 mod tests {
     use super::*;
 
+    // バージョン文字列を数値リストに正規化することを確認する。
     #[test]
     fn test_normalize_version() {
         assert_eq!(normalize_version("1.2.3"), vec![1, 2, 3]);

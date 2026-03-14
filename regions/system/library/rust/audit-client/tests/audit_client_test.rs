@@ -5,6 +5,7 @@ use serde_json::json;
 // AuditEvent construction
 // ============================================================
 
+// AuditEvent::new がすべてのフィールドを正しく設定することを確認する。
 #[test]
 fn audit_event_new_sets_all_fields() {
     let event = AuditEvent::new(
@@ -23,6 +24,7 @@ fn audit_event_new_sets_all_fields() {
     assert_eq!(event.metadata["key"], "value");
 }
 
+// 異なる AuditEvent には一意の ID が生成されることを確認する。
 #[test]
 fn audit_event_generates_unique_ids() {
     let e1 = AuditEvent::new("t", "a", "act", "res", "r1", json!({}));
@@ -30,6 +32,7 @@ fn audit_event_generates_unique_ids() {
     assert_ne!(e1.id, e2.id);
 }
 
+// AuditEvent のタイムスタンプが生成時刻の近傍に設定されることを確認する。
 #[test]
 fn audit_event_timestamp_is_set() {
     let event = AuditEvent::new("t", "a", "act", "res", "r1", json!({}));
@@ -39,6 +42,7 @@ fn audit_event_timestamp_is_set() {
     assert!(diff.num_seconds() < 5);
 }
 
+// String 型の引数を受け付けてイベントを生成できることを確認する。
 #[test]
 fn audit_event_accepts_string_owned_args() {
     let event = AuditEvent::new(
@@ -53,6 +57,7 @@ fn audit_event_accepts_string_owned_args() {
     assert_eq!(event.action, "delete");
 }
 
+// ネストされたオブジェクトや配列を含む複雑なメタデータを保持できることを確認する。
 #[test]
 fn audit_event_with_complex_metadata() {
     let metadata = json!({
@@ -69,6 +74,7 @@ fn audit_event_with_complex_metadata() {
     assert_eq!(event.metadata, metadata);
 }
 
+// 空のオブジェクトをメタデータとして持つイベントを生成できることを確認する。
 #[test]
 fn audit_event_with_empty_metadata() {
     let event = AuditEvent::new("t", "a", "act", "res", "r1", json!({}));
@@ -76,12 +82,14 @@ fn audit_event_with_empty_metadata() {
     assert_eq!(event.metadata.as_object().unwrap().len(), 0);
 }
 
+// null をメタデータとして持つイベントを生成できることを確認する。
 #[test]
 fn audit_event_with_null_metadata() {
     let event = AuditEvent::new("t", "a", "act", "res", "r1", json!(null));
     assert!(event.metadata.is_null());
 }
 
+// AuditEvent のクローンが元のイベントと同じフィールドを持つことを確認する。
 #[test]
 fn audit_event_clone() {
     let event = AuditEvent::new("t", "a", "act", "res", "r1", json!({"x": 1}));
@@ -91,6 +99,7 @@ fn audit_event_clone() {
     assert_eq!(event.metadata, cloned.metadata);
 }
 
+// AuditEvent が JSON シリアライズ・デシリアライズでフィールドを保持することを確認する。
 #[test]
 fn audit_event_serialization_roundtrip() {
     let event = AuditEvent::new("t-1", "a-1", "read", "file", "f-1", json!({"size": 42}));
@@ -108,6 +117,7 @@ fn audit_event_serialization_roundtrip() {
 // BufferedAuditClient: record single event
 // ============================================================
 
+// 単一のイベントを記録してフラッシュで取得できることを確認する。
 #[tokio::test]
 async fn record_single_event() {
     let client = BufferedAuditClient::new();
@@ -125,6 +135,7 @@ async fn record_single_event() {
 // BufferedAuditClient: events buffered until flush
 // ============================================================
 
+// 複数のイベントがフラッシュするまでバッファに蓄積されることを確認する。
 #[tokio::test]
 async fn events_buffered_until_flush() {
     let client = BufferedAuditClient::new();
@@ -146,6 +157,7 @@ async fn events_buffered_until_flush() {
 // BufferedAuditClient: flush empties buffer
 // ============================================================
 
+// フラッシュ後にバッファが空になることを確認する。
 #[tokio::test]
 async fn flush_empties_buffer() {
     let client = BufferedAuditClient::new();
@@ -163,6 +175,7 @@ async fn flush_empties_buffer() {
 // BufferedAuditClient: flush on empty buffer
 // ============================================================
 
+// 空のバッファに対してフラッシュすると空のベクターが返ることを確認する。
 #[tokio::test]
 async fn flush_empty_buffer_returns_empty_vec() {
     let client = BufferedAuditClient::new();
@@ -174,6 +187,7 @@ async fn flush_empty_buffer_returns_empty_vec() {
 // BufferedAuditClient: large number of events
 // ============================================================
 
+// 大量のイベントを順序を保ったままバッファリングできることを確認する。
 #[tokio::test]
 async fn buffer_handles_many_events() {
     let client = BufferedAuditClient::new();
@@ -204,6 +218,7 @@ async fn buffer_handles_many_events() {
 // BufferedAuditClient: multiple flush cycles
 // ============================================================
 
+// 複数サイクルのフラッシュがそれぞれのバッチを正しく返すことを確認する。
 #[tokio::test]
 async fn multiple_flush_cycles() {
     let client = BufferedAuditClient::new();
@@ -236,6 +251,7 @@ async fn multiple_flush_cycles() {
 // BufferedAuditClient: Default trait
 // ============================================================
 
+// Default 実装で空のバッファを持つクライアントが生成されることを確認する。
 #[tokio::test]
 async fn default_creates_empty_client() {
     let client = BufferedAuditClient::default();
@@ -247,6 +263,7 @@ async fn default_creates_empty_client() {
 // BufferedAuditClient: event data integrity through buffer
 // ============================================================
 
+// バッファ経由でフラッシュしてもイベントのすべてのデータが保持されることを確認する。
 #[tokio::test]
 async fn event_data_preserved_through_buffer() {
     let client = BufferedAuditClient::new();
@@ -275,6 +292,7 @@ async fn event_data_preserved_through_buffer() {
 // AuditError
 // ============================================================
 
+// SendError のエラーメッセージに原因文字列が含まれることを確認する。
 #[test]
 fn audit_error_send_error_display() {
     let err = AuditError::SendError("connection refused".to_string());
@@ -282,6 +300,7 @@ fn audit_error_send_error_display() {
     assert!(msg.contains("connection refused"));
 }
 
+// Internal エラーのメッセージに詳細文字列が含まれることを確認する。
 #[test]
 fn audit_error_internal_display() {
     let err = AuditError::Internal("unexpected state".to_string());
@@ -289,6 +308,7 @@ fn audit_error_internal_display() {
     assert!(msg.contains("unexpected state"));
 }
 
+// serde エラーから SerializationError への変換が正しく機能することを確認する。
 #[test]
 fn audit_error_serialization_from_serde() {
     // Create a serde_json error by trying to parse invalid JSON
@@ -300,6 +320,7 @@ fn audit_error_serialization_from_serde() {
     }
 }
 
+// AuditError のデバッグ出力にエラー種別と詳細が含まれることを確認する。
 #[test]
 fn audit_error_debug_format() {
     let err = AuditError::SendError("timeout".to_string());

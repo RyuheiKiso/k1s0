@@ -29,6 +29,7 @@ fn create_req_with_meta(user_id: &str, ttl: i64, meta: HashMap<String, String>) 
 // create
 // ===========================================================================
 
+// セッション作成が有効なセッションオブジェクトを返すことを確認する。
 #[tokio::test]
 async fn create_returns_valid_session() {
     let client = InMemorySessionClient::new();
@@ -41,6 +42,7 @@ async fn create_returns_valid_session() {
     assert!(session.expires_at > session.created_at);
 }
 
+// 複数回のセッション作成でそれぞれ一意な ID とトークンが生成されることを確認する。
 #[tokio::test]
 async fn create_generates_unique_ids() {
     let client = InMemorySessionClient::new();
@@ -50,6 +52,7 @@ async fn create_generates_unique_ids() {
     assert_ne!(s1.token, s2.token);
 }
 
+// メタデータ付きでセッションを作成した場合にメタデータが保持されることを確認する。
 #[tokio::test]
 async fn create_with_metadata() {
     let client = InMemorySessionClient::new();
@@ -70,6 +73,7 @@ async fn create_with_metadata() {
 // get
 // ===========================================================================
 
+// 作成済みセッションを ID で取得できることを確認する。
 #[tokio::test]
 async fn get_existing_session() {
     let client = InMemorySessionClient::new();
@@ -81,6 +85,7 @@ async fn get_existing_session() {
     assert_eq!(fetched.token, created.token);
 }
 
+// 存在しないセッション ID の取得が None を返すことを確認する。
 #[tokio::test]
 async fn get_nonexistent_returns_none() {
     let client = InMemorySessionClient::new();
@@ -92,6 +97,7 @@ async fn get_nonexistent_returns_none() {
 // refresh
 // ===========================================================================
 
+// セッションのリフレッシュで有効期限が延長されることを確認する。
 #[tokio::test]
 async fn refresh_extends_expiry() {
     let client = InMemorySessionClient::new();
@@ -109,6 +115,7 @@ async fn refresh_extends_expiry() {
     assert_eq!(refreshed.id, session.id);
 }
 
+// 存在しないセッションのリフレッシュが NotFound エラーを返すことを確認する。
 #[tokio::test]
 async fn refresh_nonexistent_returns_not_found() {
     let client = InMemorySessionClient::new();
@@ -121,6 +128,7 @@ async fn refresh_nonexistent_returns_not_found() {
     assert!(matches!(result, Err(SessionError::NotFound(_))));
 }
 
+// リフレッシュ後に get で取得した場合も新しい有効期限が反映されていることを確認する。
 #[tokio::test]
 async fn refresh_persists_new_expiry() {
     let client = InMemorySessionClient::new();
@@ -142,6 +150,7 @@ async fn refresh_persists_new_expiry() {
 // revoke
 // ===========================================================================
 
+// セッションの失効操作で revoked フラグが true になることを確認する。
 #[tokio::test]
 async fn revoke_marks_session_revoked() {
     let client = InMemorySessionClient::new();
@@ -154,6 +163,7 @@ async fn revoke_marks_session_revoked() {
     assert!(fetched.revoked);
 }
 
+// 存在しないセッションの失効操作が NotFound エラーを返すことを確認する。
 #[tokio::test]
 async fn revoke_nonexistent_returns_not_found() {
     let client = InMemorySessionClient::new();
@@ -165,6 +175,7 @@ async fn revoke_nonexistent_returns_not_found() {
 // list_user_sessions
 // ===========================================================================
 
+// list_user_sessions が指定ユーザーのセッションのみを返すことを確認する。
 #[tokio::test]
 async fn list_user_sessions_filters_by_user() {
     let client = InMemorySessionClient::new();
@@ -177,6 +188,7 @@ async fn list_user_sessions_filters_by_user() {
     assert!(sessions.iter().all(|s| s.user_id == "user-1"));
 }
 
+// 存在しないユーザーのセッション一覧が空リストを返すことを確認する。
 #[tokio::test]
 async fn list_user_sessions_empty_for_unknown_user() {
     let client = InMemorySessionClient::new();
@@ -188,6 +200,7 @@ async fn list_user_sessions_empty_for_unknown_user() {
 // revoke_all
 // ===========================================================================
 
+// revoke_all が指定ユーザーのすべてのセッションを失効させることを確認する。
 #[tokio::test]
 async fn revoke_all_revokes_all_user_sessions() {
     let client = InMemorySessionClient::new();
@@ -206,6 +219,7 @@ async fn revoke_all_revokes_all_user_sessions() {
     assert!(user2.iter().all(|s| !s.revoked));
 }
 
+// 存在しないユーザーへの revoke_all が 0 を返すことを確認する。
 #[tokio::test]
 async fn revoke_all_returns_zero_for_unknown_user() {
     let client = InMemorySessionClient::new();
@@ -213,6 +227,7 @@ async fn revoke_all_returns_zero_for_unknown_user() {
     assert_eq!(count, 0);
 }
 
+// revoke_all が既に失効済みのセッションをスキップして未失効分のみカウントすることを確認する。
 #[tokio::test]
 async fn revoke_all_skips_already_revoked() {
     let client = InMemorySessionClient::new();
@@ -231,6 +246,7 @@ async fn revoke_all_skips_already_revoked() {
 // expiry handling
 // ===========================================================================
 
+// TTL の差に応じてセッションの有効期限が異なることを確認する。
 #[tokio::test]
 async fn session_expiry_is_based_on_ttl() {
     let client = InMemorySessionClient::new();
@@ -240,6 +256,7 @@ async fn session_expiry_is_based_on_ttl() {
     assert!(long.expires_at > short.expires_at);
 }
 
+// セッションの created_at が expires_at より前であることを確認する。
 #[tokio::test]
 async fn session_created_at_is_before_expires_at() {
     let client = InMemorySessionClient::new();
@@ -251,30 +268,35 @@ async fn session_created_at_is_before_expires_at() {
 // error variant coverage
 // ===========================================================================
 
+// NotFound エラーのメッセージにセッション ID が含まれることを確認する。
 #[test]
 fn error_display_not_found() {
     let e = SessionError::NotFound("sess-123".to_string());
     assert!(format!("{e}").contains("sess-123"));
 }
 
+// Expired エラーの表示文字列が空でないことを確認する。
 #[test]
 fn error_display_expired() {
     let e = SessionError::Expired;
     assert!(!format!("{e}").is_empty());
 }
 
+// Revoked エラーの表示文字列が空でないことを確認する。
 #[test]
 fn error_display_revoked() {
     let e = SessionError::Revoked;
     assert!(!format!("{e}").is_empty());
 }
 
+// Connection エラーのメッセージに原因文字列が含まれることを確認する。
 #[test]
 fn error_display_connection() {
     let e = SessionError::Connection("refused".to_string());
     assert!(format!("{e}").contains("refused"));
 }
 
+// Internal エラーのメッセージに原因文字列が含まれることを確認する。
 #[test]
 fn error_display_internal() {
     let e = SessionError::Internal("panic".to_string());
@@ -285,6 +307,7 @@ fn error_display_internal() {
 // Default trait
 // ===========================================================================
 
+// Default トレイトで生成したクライアントが空のセッションストアを持つことを確認する。
 #[tokio::test]
 async fn default_creates_empty_client() {
     let client = InMemorySessionClient::default();

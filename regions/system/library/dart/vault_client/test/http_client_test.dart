@@ -8,7 +8,7 @@ import 'package:k1s0_vault_client/vault_client.dart';
 
 void main() {
   group('HttpVaultClient', () {
-    test('getSecret success', () async {
+    test('getSecretが成功してシークレットを返すこと', () async {
       final mockClient = MockClient((request) async {
         expect(request.url.path, equals('/api/v1/secrets/system/db'));
         return http.Response(
@@ -33,7 +33,7 @@ void main() {
       expect(secret.version, equals(1));
     });
 
-    test('getSecret 404 throws notFound', () async {
+    test('getSecretで404が返された場合にnotFoundエラーがスローされること', () async {
       final mockClient =
           MockClient((_) async => http.Response('Not Found', 404));
       final client = HttpVaultClient(
@@ -49,7 +49,7 @@ void main() {
       );
     });
 
-    test('getSecret 401 throws permissionDenied', () async {
+    test('getSecretで401が返された場合にpermissionDeniedエラーがスローされること', () async {
       final mockClient =
           MockClient((_) async => http.Response('Unauthorized', 401));
       final client = HttpVaultClient(
@@ -65,7 +65,7 @@ void main() {
       );
     });
 
-    test('getSecret 500 throws serverError', () async {
+    test('getSecretで500が返された場合にserverErrorがスローされること', () async {
       final mockClient =
           MockClient((_) async => http.Response('Internal Error', 500));
       final client = HttpVaultClient(
@@ -81,7 +81,7 @@ void main() {
       );
     });
 
-    test('getSecretValue returns specific key', () async {
+    test('getSecretValueで指定したキーの値が返されること', () async {
       final mockClient = MockClient((_) async {
         return http.Response(
           json.encode({
@@ -103,7 +103,7 @@ void main() {
       expect(value, equals('s3cr3t'));
     });
 
-    test('getSecretValue throws notFound for missing key', () async {
+    test('getSecretValueで存在しないキーを指定した場合にnotFoundエラーがスローされること', () async {
       final mockClient = MockClient((_) async {
         return http.Response(
           json.encode({
@@ -127,7 +127,7 @@ void main() {
       );
     });
 
-    test('listSecrets success', () async {
+    test('listSecretsが成功してパス一覧を返すこと', () async {
       final mockClient = MockClient((request) async {
         expect(request.url.queryParameters['prefix'], equals('system/'));
         return http.Response(
@@ -147,7 +147,7 @@ void main() {
       expect(paths, contains('system/api'));
     });
 
-    test('listSecrets failure throws serverError', () async {
+    test('listSecretsが失敗した場合にserverErrorがスローされること', () async {
       final mockClient =
           MockClient((_) async => http.Response('Error', 500));
       final client = HttpVaultClient(
@@ -163,7 +163,7 @@ void main() {
       );
     });
 
-    test('getSecret cache hit avoids second HTTP call', () async {
+    test('getSecretのキャッシュヒット時に2回目のHTTPリクエストが発生しないこと', () async {
       int callCount = 0;
       final mockClient = MockClient((request) async {
         callCount++;
@@ -188,7 +188,7 @@ void main() {
       expect(callCount, equals(1));
     });
 
-    test('uses cacheTtl from config', () async {
+    test('設定のcacheTtlが適用されること', () async {
       int callCount = 0;
       final mockClient = MockClient((request) async {
         callCount++;

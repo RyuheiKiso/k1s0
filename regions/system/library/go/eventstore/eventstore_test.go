@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Appendでイベントをストリームへ追記し、Loadで正しく読み込めることを確認する。
 func TestAppendAndLoad(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
@@ -27,6 +28,7 @@ func TestAppendAndLoad(t *testing.T) {
 	assert.Equal(t, uint64(1), events[0].Version)
 }
 
+// Appendが期待バージョンと現在バージョンが一致しない場合にVERSION_CONFLICTエラーを返すことを確認する。
 func TestAppend_VersionConflict(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
@@ -42,6 +44,7 @@ func TestAppend_VersionConflict(t *testing.T) {
 	assert.Contains(t, err.Error(), "VERSION_CONFLICT")
 }
 
+// Appendが正しい期待バージョンを指定した場合に楽観的ロックを通過してイベントを追記することを確認する。
 func TestAppend_WithExpectedVersion(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
@@ -57,6 +60,7 @@ func TestAppend_WithExpectedVersion(t *testing.T) {
 	assert.Equal(t, uint64(2), version)
 }
 
+// LoadFromが指定バージョン以降のイベントのみを取得することを確認する。
 func TestLoadFrom(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
@@ -73,6 +77,7 @@ func TestLoadFrom(t *testing.T) {
 	assert.Equal(t, uint64(3), events[0].Version)
 }
 
+// Loadが存在しないストリームIDを指定した場合に空スライスを返すことを確認する。
 func TestLoad_EmptyStream(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
@@ -83,6 +88,7 @@ func TestLoad_EmptyStream(t *testing.T) {
 	assert.Empty(t, events)
 }
 
+// Existsがストリームの存在有無を正しく判定することを確認する。
 func TestExists(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
@@ -98,6 +104,7 @@ func TestExists(t *testing.T) {
 	assert.True(t, exists)
 }
 
+// CurrentVersionがストリームの現在バージョンを正しく返すことを確認する。
 func TestCurrentVersion(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
@@ -113,6 +120,7 @@ func TestCurrentVersion(t *testing.T) {
 	assert.Equal(t, uint64(1), version)
 }
 
+// SaveSnapshotでスナップショットを保存し、LoadSnapshotで正しく復元できることを確認する。
 func TestSnapshot_SaveAndLoad(t *testing.T) {
 	store := es.NewInMemorySnapshotStore()
 	ctx := context.Background()
@@ -133,6 +141,7 @@ func TestSnapshot_SaveAndLoad(t *testing.T) {
 	assert.Equal(t, `{"total":100}`, string(loaded.State))
 }
 
+// LoadSnapshotが存在しないストリームIDを指定した場合にnilを返すことを確認する。
 func TestSnapshot_LoadNotFound(t *testing.T) {
 	store := es.NewInMemorySnapshotStore()
 	ctx := context.Background()

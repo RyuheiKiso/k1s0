@@ -54,6 +54,7 @@ fn valid_config() -> Config {
 // merge_yaml tests — complementary to inline tests
 // ===========================================================================
 
+// 深くネストされたマッピングが正しくマージされることを確認する。
 #[test]
 fn merge_yaml_deep_nested_mapping() {
     let mut base: serde_yaml::Value = serde_yaml::from_str(
@@ -80,6 +81,7 @@ a:
     assert_eq!(base["a"]["b"]["e"], serde_yaml::Value::Number(3.into()));
 }
 
+// スカラー値をマッピングで上書きできることを確認する。
 #[test]
 fn merge_yaml_replaces_scalar_with_mapping() {
     let mut base: serde_yaml::Value =
@@ -93,6 +95,7 @@ fn merge_yaml_replaces_scalar_with_mapping() {
     );
 }
 
+// シーケンスはオーバーレイで完全に置き換わることを確認する。
 #[test]
 fn merge_yaml_replaces_sequence_entirely() {
     let mut base: serde_yaml::Value =
@@ -105,6 +108,7 @@ fn merge_yaml_replaces_sequence_entirely() {
     assert_eq!(items[0], serde_yaml::Value::String("x".into()));
 }
 
+// オーバーレイに新しいトップレベルキーを追加できることを確認する。
 #[test]
 fn merge_yaml_adds_new_top_level_key() {
     let mut base: serde_yaml::Value = serde_yaml::from_str("a: 1").unwrap();
@@ -114,6 +118,7 @@ fn merge_yaml_adds_new_top_level_key() {
     assert_eq!(base["b"], serde_yaml::Value::Number(2.into()));
 }
 
+// null のオーバーレイ値でベースの値が null に置き換わることを確認する。
 #[test]
 fn merge_yaml_null_overlay_replaces_value() {
     let mut base: serde_yaml::Value = serde_yaml::from_str("key: value").unwrap();
@@ -126,6 +131,7 @@ fn merge_yaml_null_overlay_replaces_value() {
 // ConfigError display tests
 // ===========================================================================
 
+// ファイル読み込みエラーの表示文字列に適切なメッセージが含まれることを確認する。
 #[test]
 fn config_error_read_file_display() {
     let result = load("/nonexistent/path/config.yaml", None);
@@ -134,6 +140,7 @@ fn config_error_read_file_display() {
     assert!(msg.contains("failed to read file"), "got: {msg}");
 }
 
+// YAML パースエラーの表示文字列に適切なメッセージが含まれることを確認する。
 #[test]
 fn config_error_parse_yaml_display() {
     let f = yaml_file("invalid: [yaml: broken");
@@ -147,6 +154,7 @@ fn config_error_parse_yaml_display() {
 // Validation: database constraints
 // ===========================================================================
 
+// データベースポートが 0 の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_database_zero_port_rejected() {
     let f = yaml_file(
@@ -178,6 +186,7 @@ auth:
     assert!(err.contains("database.port"), "got: {err}");
 }
 
+// max_idle_conns が max_open_conns を超える場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_database_max_idle_exceeds_max_open_rejected() {
     let f = yaml_file(
@@ -214,6 +223,7 @@ auth:
     );
 }
 
+// 無効な ssl_mode を指定した場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_database_invalid_ssl_mode_rejected() {
     let f = yaml_file(
@@ -246,6 +256,7 @@ auth:
     assert!(err.contains("database.ssl_mode"), "got: {err}");
 }
 
+// 有効なデータベース設定でバリデーションが成功することを確認する。
 #[test]
 fn validate_database_valid_config_accepted() {
     let f = yaml_file(
@@ -283,6 +294,7 @@ auth:
 // Validation: gRPC constraints
 // ===========================================================================
 
+// gRPC ポートが 0 の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_grpc_zero_port_rejected() {
     let f = yaml_file(
@@ -310,6 +322,7 @@ auth:
     assert!(err.contains("grpc.port"), "got: {err}");
 }
 
+// gRPC の max_recv_msg_size が 0 の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_grpc_zero_max_recv_msg_size_rejected() {
     let f = yaml_file(
@@ -342,6 +355,7 @@ auth:
 // Validation: redis constraints
 // ===========================================================================
 
+// Redis の pool_size が 0 の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_redis_zero_pool_size_rejected() {
     let f = yaml_file(
@@ -371,6 +385,7 @@ auth:
     assert!(err.contains("redis.pool_size"), "got: {err}");
 }
 
+// Redis セッションの pool_size が 0 の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_redis_session_zero_pool_size_rejected() {
     let f = yaml_file(
@@ -404,6 +419,7 @@ auth:
 // Validation: observability trace/metrics edge cases
 // ===========================================================================
 
+// sample_rate が 0〜1 の範囲外の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_trace_sample_rate_out_of_range_rejected() {
     let f = yaml_file(
@@ -431,6 +447,7 @@ auth:
     assert!(err.contains("sample_rate"), "got: {err}");
 }
 
+// sample_rate が 0.0 の場合にバリデーションが成功することを確認する。
 #[test]
 fn validate_trace_sample_rate_zero_accepted() {
     let f = yaml_file(
@@ -457,6 +474,7 @@ auth:
     assert!(validate(&cfg).is_ok());
 }
 
+// メトリクスパスが "/" で始まらない場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_metrics_path_must_start_with_slash() {
     let f = yaml_file(
@@ -484,6 +502,7 @@ auth:
     assert!(err.contains("must start with '/'"), "got: {err}");
 }
 
+// 無効なログフォーマットを指定した場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_invalid_log_format_rejected() {
     let f = yaml_file(
@@ -513,6 +532,7 @@ auth:
 // Validation: kafka edge cases
 // ===========================================================================
 
+// Kafka ブローカーリストに空文字が含まれる場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_kafka_empty_broker_string_rejected() {
     let f = yaml_file(
@@ -545,6 +565,7 @@ auth:
     assert!(err.contains("brokers must not contain empty"), "got: {err}");
 }
 
+// Kafka パブリッシュトピックリストに空文字が含まれる場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_kafka_empty_topic_name_rejected() {
     let f = yaml_file(
@@ -577,6 +598,7 @@ auth:
     assert!(err.contains("publish must not contain empty"), "got: {err}");
 }
 
+// 無効な SASL メカニズムを指定した場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_kafka_invalid_sasl_mechanism_rejected() {
     let f = yaml_file(
@@ -617,6 +639,7 @@ auth:
 // End-to-end: load + env overlay + validate
 // ===========================================================================
 
+// ベース設定のロード・オーバーレイ適用・バリデーションが一連で動作することを確認する。
 #[test]
 fn end_to_end_load_overlay_validate() {
     let base = yaml_file(minimal_yaml());
@@ -642,6 +665,7 @@ observability:
     assert!(validate(&cfg).is_ok());
 }
 
+// 全ての有効な tier 値で設定のロードとバリデーションが成功することを確認する。
 #[test]
 fn load_with_all_tiers() {
     for tier in &["system", "business", "service"] {
@@ -669,6 +693,7 @@ auth:
     }
 }
 
+// 全ての有効な environment 値で設定のロードとバリデーションが成功することを確認する。
 #[test]
 fn load_with_all_environments() {
     for env in &["dev", "staging", "prod"] {
@@ -703,6 +728,7 @@ auth:
 // Validation: OIDC edge cases
 // ===========================================================================
 
+// OIDC スコープリストに空文字が含まれる場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_oidc_empty_scope_value_rejected() {
     let f = yaml_file(
@@ -741,6 +767,7 @@ auth:
 // Config Clone and Debug
 // ===========================================================================
 
+// 設定構造体が Clone と Debug トレイトを正しく実装していることを確認する。
 #[test]
 fn config_is_cloneable_and_debuggable() {
     let cfg = valid_config();

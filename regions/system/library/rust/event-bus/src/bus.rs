@@ -211,6 +211,7 @@ mod tests {
 
     // --- InMemoryEventBus (レガシー) テスト ---
 
+    // イベントを購読・発行するとハンドラーが呼ばれることを確認する。
     #[tokio::test]
     async fn test_subscribe_and_publish() {
         let bus = InMemoryEventBus::new();
@@ -223,6 +224,7 @@ mod tests {
         assert_eq!(count.load(Ordering::SeqCst), 1);
     }
 
+    // 異なるイベントタイプを発行してもハンドラーが呼ばれないことを確認する。
     #[tokio::test]
     async fn test_handler_not_called_for_different_event_type() {
         let bus = InMemoryEventBus::new();
@@ -235,6 +237,7 @@ mod tests {
         assert_eq!(count.load(Ordering::SeqCst), 0);
     }
 
+    // 同一イベントタイプに複数のハンドラーを登録すると全て呼ばれることを確認する。
     #[tokio::test]
     async fn test_multiple_handlers_for_same_event() {
         let bus = InMemoryEventBus::new();
@@ -250,6 +253,7 @@ mod tests {
         assert_eq!(count2.load(Ordering::SeqCst), 1);
     }
 
+    // 購読解除後はそのイベントタイプのハンドラーが呼ばれないことを確認する。
     #[tokio::test]
     async fn test_unsubscribe_removes_all_handlers_for_event_type() {
         let bus = InMemoryEventBus::new();
@@ -263,6 +267,7 @@ mod tests {
         assert_eq!(count.load(Ordering::SeqCst), 0);
     }
 
+    // 発行したイベントのデータがハンドラーに正しく渡されることを確認する。
     #[tokio::test]
     async fn test_published_event_data_is_correct() {
         let bus = InMemoryEventBus::new();
@@ -305,6 +310,7 @@ mod tests {
 
     // --- EventBus (DDD パターン) テスト ---
 
+    // EventBus が指定した設定で生成されることを確認する。
     #[tokio::test]
     async fn test_eventbus_new_with_config() {
         let config = EventBusConfig::new()
@@ -315,6 +321,7 @@ mod tests {
         assert_eq!(bus.config().get_handler_timeout(), Duration::from_secs(60));
     }
 
+    // EventBus でイベントを購読・発行するとハンドラーが呼ばれることを確認する。
     #[tokio::test]
     async fn test_eventbus_subscribe_and_publish() {
         let bus = EventBus::new(EventBusConfig::new());
@@ -327,6 +334,7 @@ mod tests {
         assert_eq!(count.load(Ordering::SeqCst), 1);
     }
 
+    // EventSubscription を手動で購読解除するとハンドラーが呼ばれなくなることを確認する。
     #[tokio::test]
     async fn test_eventbus_subscription_unsubscribe() {
         let bus = EventBus::new(EventBusConfig::new());
@@ -342,6 +350,7 @@ mod tests {
         assert_eq!(count.load(Ordering::SeqCst), 0);
     }
 
+    // EventSubscription がスコープを抜けると Drop により自動的に購読解除されることを確認する。
     #[tokio::test]
     async fn test_eventbus_subscription_drop_auto_unsubscribe() {
         let bus = EventBus::new(EventBusConfig::new());
@@ -361,6 +370,7 @@ mod tests {
         assert_eq!(count.load(Ordering::SeqCst), 0);
     }
 
+    // ハンドラーがタイムアウトした場合に HandlerFailed エラーが返ることを確認する。
     #[tokio::test]
     async fn test_eventbus_handler_timeout() {
         let config = EventBusConfig::new().handler_timeout(Duration::from_millis(50));
@@ -393,6 +403,7 @@ mod tests {
         }
     }
 
+    // 同一イベントタイプに複数の EventBus サブスクリプションが全て呼ばれることを確認する。
     #[tokio::test]
     async fn test_eventbus_multiple_subscriptions() {
         let bus = EventBus::new(EventBusConfig::new());
@@ -409,6 +420,7 @@ mod tests {
         assert_eq!(count2.load(Ordering::SeqCst), 1);
     }
 
+    // 購読者がいない場合にイベント発行が正常に成功することを確認する。
     #[tokio::test]
     async fn test_eventbus_no_subscribers() {
         let bus = EventBus::new(EventBusConfig::new());
@@ -417,6 +429,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    // ハンドラーがエラーを返した場合に発行がエラーになることを確認する。
     #[tokio::test]
     async fn test_eventbus_handler_error() {
         let bus = EventBus::new(EventBusConfig::new());
@@ -440,6 +453,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // Event が DomainEvent トレイトを正しく実装していることを確認する。
     #[tokio::test]
     async fn test_domain_event_impl() {
         use crate::event::DomainEvent;

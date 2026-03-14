@@ -10,7 +10,7 @@ void main() {
   });
 
   group('send', () {
-    test('returns sent status', () async {
+    test('送信済みステータスが返されること', () async {
       final req = NotificationRequest(
         id: 'n-1',
         channel: NotificationChannel.email,
@@ -23,7 +23,7 @@ void main() {
       expect(resp.id, equals('n-1'));
     });
 
-    test('records sent notifications', () async {
+    test('送信済み通知が記録されること', () async {
       final req = NotificationRequest(
         id: 'n-1',
         channel: NotificationChannel.sms,
@@ -37,7 +37,7 @@ void main() {
   });
 
   group('NotificationRequest', () {
-    test('stores all fields', () {
+    test('全フィールドが保持されること', () {
       const req = NotificationRequest(
         id: 'n-2',
         channel: NotificationChannel.push,
@@ -51,7 +51,7 @@ void main() {
   });
 
   group('slack channel', () {
-    test('sends via slack channel', () async {
+    test('slackチャンネル経由で送信されること', () async {
       final req = NotificationRequest(
         id: 'n-slack',
         channel: NotificationChannel.slack,
@@ -65,7 +65,7 @@ void main() {
   });
 
   group('NotificationResponse', () {
-    test('stores all fields', () {
+    test('全フィールドが保持されること', () {
       const resp = NotificationResponse(
         id: 'n-1',
         status: 'delivered',

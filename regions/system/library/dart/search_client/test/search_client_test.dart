@@ -9,14 +9,14 @@ void main() {
   });
 
   group('createIndex', () {
-    test('creates an index', () async {
+    test('インデックスが作成されること', () async {
       await client.createIndex('products', IndexMapping());
       expect(client.documentCount('products'), equals(0));
     });
   });
 
   group('indexDocument', () {
-    test('indexes a document', () async {
+    test('ドキュメントがインデックスされること', () async {
       await client.createIndex('products', IndexMapping());
       const doc = IndexDocument(
         id: 'p-1',
@@ -27,7 +27,7 @@ void main() {
       expect(result.version, equals(1));
     });
 
-    test('throws on missing index', () async {
+    test('インデックスが存在しない場合に例外がスローされること', () async {
       const doc = IndexDocument(id: '1', fields: {});
       expect(
         () => client.indexDocument('nonexistent', doc),
@@ -37,7 +37,7 @@ void main() {
   });
 
   group('bulkIndex', () {
-    test('bulk indexes documents', () async {
+    test('ドキュメントが一括インデックスされること', () async {
       await client.createIndex('items', IndexMapping());
       final docs = [
         const IndexDocument(id: 'i-1', fields: {'name': 'Item 1'}),
@@ -51,7 +51,7 @@ void main() {
   });
 
   group('search', () {
-    test('searches documents', () async {
+    test('ドキュメントが検索できること', () async {
       await client.createIndex('products', IndexMapping());
       await client.indexDocument('products', const IndexDocument(
         id: 'p-1',
@@ -71,14 +71,14 @@ void main() {
       expect(result.facets, contains('name'));
     });
 
-    test('throws on missing index', () async {
+    test('インデックスが存在しない場合に例外がスローされること', () async {
       expect(
         () => client.search('nonexistent', const SearchQuery(query: 'test')),
         throwsA(isA<SearchError>()),
       );
     });
 
-    test('empty query returns all', () async {
+    test('空のクエリで全件が返ること', () async {
       await client.createIndex('items', IndexMapping());
       await client.indexDocument('items', const IndexDocument(
         id: 'i-1',
@@ -90,7 +90,7 @@ void main() {
   });
 
   group('deleteDocument', () {
-    test('deletes a document', () async {
+    test('ドキュメントが削除されること', () async {
       await client.createIndex('products', IndexMapping());
       await client.indexDocument('products', const IndexDocument(
         id: 'p-1',
@@ -102,13 +102,13 @@ void main() {
   });
 
   group('Filter', () {
-    test('eq factory', () {
+    test('eqファクトリが正しく動作すること', () {
       final f = Filter.eq('status', 'active');
       expect(f.operator, equals('eq'));
       expect(f.field, equals('status'));
     });
 
-    test('range factory', () {
+    test('rangeファクトリが正しく動作すること', () {
       final f = Filter.range('price', 10, 100);
       expect(f.operator, equals('range'));
       expect(f.valueTo, equals(100));
@@ -116,7 +116,7 @@ void main() {
   });
 
   group('SearchError', () {
-    test('toString contains code', () {
+    test('toStringにエラーコードが含まれること', () {
       const err = SearchError('test', SearchErrorCode.indexNotFound);
       expect(err.toString(), contains('indexNotFound'));
     });

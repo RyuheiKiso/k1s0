@@ -39,6 +39,7 @@ impl MessagingConfig {
 mod tests {
     use super::*;
 
+    // 単一ブローカーの場合に brokers_string がそのアドレスをそのまま返すことを確認する。
     #[test]
     fn test_brokers_string_single() {
         let cfg = MessagingConfig {
@@ -50,6 +51,7 @@ mod tests {
         assert_eq!(cfg.brokers_string(), "kafka:9092");
     }
 
+    // 複数ブローカーの場合に brokers_string がカンマ区切りのアドレス文字列を返すことを確認する。
     #[test]
     fn test_brokers_string_multiple() {
         let cfg = MessagingConfig {
@@ -61,6 +63,7 @@ mod tests {
         assert_eq!(cfg.brokers_string(), "kafka-0:9092,kafka-1:9092");
     }
 
+    // JSON デシリアライズ時に MessagingConfig のデフォルト値が正しく設定されることを確認する。
     #[test]
     fn test_deserialize_defaults() {
         let json = r#"{"brokers": ["kafka:9092"]}"#;

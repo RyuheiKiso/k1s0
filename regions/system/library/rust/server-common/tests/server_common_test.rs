@@ -9,114 +9,133 @@ use k1s0_server_common::{
 // ErrorCode tests
 // ============================================================
 
+// カスタム文字列で ErrorCode が作成されることを確認する。
 #[test]
 fn error_code_new_creates_custom_code() {
     let code = ErrorCode::new("SYS_CUSTOM_ERROR");
     assert_eq!(code.as_str(), "SYS_CUSTOM_ERROR");
 }
 
+// not_found で生成したエラーコードが命名規則に従うことを確認する。
 #[test]
 fn error_code_not_found_follows_naming_pattern() {
     let code = ErrorCode::not_found("AUTH");
     assert_eq!(code.as_str(), "SYS_AUTH_NOT_FOUND");
 }
 
+// validation で生成したエラーコードが命名規則に従うことを確認する。
 #[test]
 fn error_code_validation_follows_naming_pattern() {
     let code = ErrorCode::validation("CONFIG");
     assert_eq!(code.as_str(), "SYS_CONFIG_VALIDATION_FAILED");
 }
 
+// internal で生成したエラーコードが命名規則に従うことを確認する。
 #[test]
 fn error_code_internal_follows_naming_pattern() {
     let code = ErrorCode::internal("DLQ");
     assert_eq!(code.as_str(), "SYS_DLQ_INTERNAL_ERROR");
 }
 
+// unauthorized で生成したエラーコードが命名規則に従うことを確認する。
 #[test]
 fn error_code_unauthorized_follows_naming_pattern() {
     let code = ErrorCode::unauthorized("SESSION");
     assert_eq!(code.as_str(), "SYS_SESSION_UNAUTHORIZED");
 }
 
+// forbidden で生成したエラーコードが命名規則に従うことを確認する。
 #[test]
 fn error_code_forbidden_follows_naming_pattern() {
     let code = ErrorCode::forbidden("TENANT");
     assert_eq!(code.as_str(), "SYS_TENANT_PERMISSION_DENIED");
 }
 
+// conflict で生成したエラーコードが命名規則に従うことを確認する。
 #[test]
 fn error_code_conflict_follows_naming_pattern() {
     let code = ErrorCode::conflict("APIREG");
     assert_eq!(code.as_str(), "SYS_APIREG_CONFLICT");
 }
 
+// unprocessable で生成したエラーコードが命名規則に従うことを確認する。
 #[test]
 fn error_code_unprocessable_follows_naming_pattern() {
     let code = ErrorCode::unprocessable("ORDER");
     assert_eq!(code.as_str(), "SYS_ORDER_BUSINESS_RULE_VIOLATION");
 }
 
+// rate_exceeded で生成したエラーコードが命名規則に従うことを確認する。
 #[test]
 fn error_code_rate_exceeded_follows_naming_pattern() {
     let code = ErrorCode::rate_exceeded("API");
     assert_eq!(code.as_str(), "SYS_API_RATE_EXCEEDED");
 }
 
+// service_unavailable で生成したエラーコードが命名規則に従うことを確認する。
 #[test]
 fn error_code_service_unavailable_follows_naming_pattern() {
     let code = ErrorCode::service_unavailable("AUTH");
     assert_eq!(code.as_str(), "SYS_AUTH_SERVICE_UNAVAILABLE");
 }
 
+// ビジネス層の not_found エラーコードが BIZ_ プレフィックスで生成されることを確認する。
 #[test]
 fn error_code_biz_not_found() {
     let code = ErrorCode::biz_not_found("ORDER");
     assert_eq!(code.as_str(), "BIZ_ORDER_NOT_FOUND");
 }
 
+// ビジネス層の validation エラーコードが BIZ_ プレフィックスで生成されることを確認する。
 #[test]
 fn error_code_biz_validation() {
     let code = ErrorCode::biz_validation("PAYMENT");
     assert_eq!(code.as_str(), "BIZ_PAYMENT_VALIDATION_FAILED");
 }
 
+// サービス層の not_found エラーコードが SVC_ プレフィックスで生成されることを確認する。
 #[test]
 fn error_code_svc_not_found() {
     let code = ErrorCode::svc_not_found("INVENTORY");
     assert_eq!(code.as_str(), "SVC_INVENTORY_NOT_FOUND");
 }
 
+// サービス層の validation エラーコードが SVC_ プレフィックスで生成されることを確認する。
 #[test]
 fn error_code_svc_validation() {
     let code = ErrorCode::svc_validation("SHIPPING");
     assert_eq!(code.as_str(), "SVC_SHIPPING_VALIDATION_FAILED");
 }
 
+// サービス名が自動的に大文字変換されることを確認する。
 #[test]
 fn error_code_uppercases_service_name() {
     let code = ErrorCode::not_found("my_service");
     assert_eq!(code.as_str(), "SYS_MY_SERVICE_NOT_FOUND");
 }
 
+// ErrorCode の Display 出力が as_str の値と一致することを確認する。
 #[test]
 fn error_code_display_matches_as_str() {
     let code = ErrorCode::new("SYS_TEST_CODE");
     assert_eq!(format!("{}", code), "SYS_TEST_CODE");
 }
 
+// &str から ErrorCode への変換が正しく機能することを確認する。
 #[test]
 fn error_code_from_str() {
     let code: ErrorCode = "SYS_CUSTOM".into();
     assert_eq!(code.as_str(), "SYS_CUSTOM");
 }
 
+// String から ErrorCode への変換が正しく機能することを確認する。
 #[test]
 fn error_code_from_string() {
     let code: ErrorCode = String::from("SYS_DYNAMIC").into();
     assert_eq!(code.as_str(), "SYS_DYNAMIC");
 }
 
+// 同じ文字列で作成した ErrorCode が等価であり、異なる文字列では非等価であることを確認する。
 #[test]
 fn error_code_equality() {
     let a = ErrorCode::new("SYS_X");
@@ -126,6 +145,7 @@ fn error_code_equality() {
     assert_ne!(a, c);
 }
 
+// ErrorCode がクローンされて元と等価になることを確認する。
 #[test]
 fn error_code_clone() {
     let original = ErrorCode::new("SYS_CLONE_TEST");
@@ -133,6 +153,7 @@ fn error_code_clone() {
     assert_eq!(original, cloned);
 }
 
+// ErrorCode が JSON 文字列としてシリアライズされることを確認する。
 #[test]
 fn error_code_serializes_as_string() {
     let code = ErrorCode::new("SYS_TEST_SERIALIZE");
@@ -144,6 +165,7 @@ fn error_code_serializes_as_string() {
 // ErrorDetail tests
 // ============================================================
 
+// ErrorDetail がフィールド・理由・メッセージで正しく構築されることを確認する。
 #[test]
 fn error_detail_construction() {
     let detail = ErrorDetail::new("email", "format", "invalid email address");
@@ -152,6 +174,7 @@ fn error_detail_construction() {
     assert_eq!(detail.message, "invalid email address");
 }
 
+// ErrorDetail が String 型の引数を受け入れることを確認する。
 #[test]
 fn error_detail_accepts_string_types() {
     let detail = ErrorDetail::new(
@@ -164,6 +187,7 @@ fn error_detail_accepts_string_types() {
     assert_eq!(detail.message, "must be positive");
 }
 
+// ErrorDetail の JSON シリアライズで各フィールドが正しく出力されることを確認する。
 #[test]
 fn error_detail_serialization() {
     let detail = ErrorDetail::new("name", "required", "must not be empty");
@@ -177,6 +201,7 @@ fn error_detail_serialization() {
 // ErrorBody tests
 // ============================================================
 
+// details が空の場合に JSON シリアライズで details フィールドが省略されることを確認する。
 #[test]
 fn error_body_serialization_omits_empty_details() {
     let body = ErrorBody {
@@ -189,6 +214,7 @@ fn error_body_serialization_omits_empty_details() {
     assert!(json.get("details").is_none());
 }
 
+// details が存在する場合に JSON シリアライズで details フィールドが含まれることを確認する。
 #[test]
 fn error_body_serialization_includes_nonempty_details() {
     let body = ErrorBody {
@@ -206,6 +232,7 @@ fn error_body_serialization_includes_nonempty_details() {
 // ErrorResponse tests
 // ============================================================
 
+// ErrorResponse::new でコードとメッセージが正しく設定されることを確認する。
 #[test]
 fn error_response_new_sets_code_and_message() {
     let resp = ErrorResponse::new("SYS_AUTH_UNAUTHORIZED", "not authorized");
@@ -214,6 +241,7 @@ fn error_response_new_sets_code_and_message() {
     assert!(resp.error.details.is_empty());
 }
 
+// ErrorResponse::new で request_id が自動生成されることを確認する。
 #[test]
 fn error_response_new_generates_request_id() {
     let resp = ErrorResponse::new("SYS_TEST", "test");
@@ -222,6 +250,7 @@ fn error_response_new_generates_request_id() {
     assert_eq!(resp.error.request_id.len(), 36);
 }
 
+// ErrorResponse::with_details で詳細情報が含まれることを確認する。
 #[test]
 fn error_response_with_details_includes_details() {
     let details = vec![
@@ -235,6 +264,7 @@ fn error_response_with_details_includes_details() {
     assert_eq!(resp.error.details[1].field, "field_b");
 }
 
+// with_request_id でデフォルトの request_id が上書きされることを確認する。
 #[test]
 fn error_response_with_request_id_overrides_default() {
     let resp =
@@ -242,6 +272,7 @@ fn error_response_with_request_id_overrides_default() {
     assert_eq!(resp.error.request_id, "custom-correlation-id-123");
 }
 
+// ErrorResponse が error キーでラップされた JSON にシリアライズされることを確認する。
 #[test]
 fn error_response_serialization_envelope() {
     let resp = ErrorResponse::new("SYS_CONFIG_KEY_NOT_FOUND", "key not found")
@@ -257,6 +288,7 @@ fn error_response_serialization_envelope() {
     assert!(json["error"].get("details").is_none());
 }
 
+// 詳細情報付き ErrorResponse が JSON に正しくシリアライズされることを確認する。
 #[test]
 fn error_response_with_details_serialization() {
     let details = vec![ErrorDetail::new("namespace", "required", "must not be empty")];
@@ -273,12 +305,14 @@ fn error_response_with_details_serialization() {
 // ServiceError tests
 // ============================================================
 
+// ServiceError::not_found の Display 出力がメッセージと一致することを確認する。
 #[test]
 fn service_error_not_found_display() {
     let err = ServiceError::not_found("CONFIG", "key 'db.host' not found");
     assert_eq!(format!("{}", err), "key 'db.host' not found");
 }
 
+// ServiceError::not_found から ErrorResponse への変換が正しいことを確認する。
 #[test]
 fn service_error_not_found_to_error_response() {
     let err = ServiceError::not_found("CONFIG", "not found");
@@ -288,6 +322,7 @@ fn service_error_not_found_to_error_response() {
     assert!(resp.error.details.is_empty());
 }
 
+// ServiceError::bad_request から ErrorResponse への変換が正しいことを確認する。
 #[test]
 fn service_error_bad_request_to_error_response() {
     let err = ServiceError::bad_request("DLQ", "invalid input");
@@ -297,6 +332,7 @@ fn service_error_bad_request_to_error_response() {
     assert!(resp.error.details.is_empty());
 }
 
+// ServiceError::bad_request_with_details から ErrorResponse に詳細情報が含まれることを確認する。
 #[test]
 fn service_error_bad_request_with_details_to_error_response() {
     let details = vec![
@@ -311,6 +347,7 @@ fn service_error_bad_request_with_details_to_error_response() {
     assert_eq!(resp.error.details[1].field, "size");
 }
 
+// ServiceError::unauthorized から ErrorResponse への変換が正しいことを確認する。
 #[test]
 fn service_error_unauthorized_to_error_response() {
     let err = ServiceError::unauthorized("AUTH", "missing token");
@@ -319,6 +356,7 @@ fn service_error_unauthorized_to_error_response() {
     assert_eq!(resp.error.message, "missing token");
 }
 
+// ServiceError::forbidden から ErrorResponse への変換が正しいことを確認する。
 #[test]
 fn service_error_forbidden_to_error_response() {
     let err = ServiceError::forbidden("TENANT", "not allowed");
@@ -327,6 +365,7 @@ fn service_error_forbidden_to_error_response() {
     assert_eq!(resp.error.message, "not allowed");
 }
 
+// ServiceError::conflict から ErrorResponse への変換が正しいことを確認する。
 #[test]
 fn service_error_conflict_to_error_response() {
     let err = ServiceError::conflict("APIREG", "version already exists");
@@ -336,6 +375,7 @@ fn service_error_conflict_to_error_response() {
     assert!(resp.error.details.is_empty());
 }
 
+// ServiceError::unprocessable_entity から ErrorResponse への変換が正しいことを確認する。
 #[test]
 fn service_error_unprocessable_entity_to_error_response() {
     let err = ServiceError::unprocessable_entity("ACCT", "ledger is closed");
@@ -344,6 +384,7 @@ fn service_error_unprocessable_entity_to_error_response() {
     assert_eq!(resp.error.message, "ledger is closed");
 }
 
+// ServiceError::too_many_requests から ErrorResponse への変換が正しいことを確認する。
 #[test]
 fn service_error_too_many_requests_to_error_response() {
     let err = ServiceError::too_many_requests("API", "rate limit exceeded");
@@ -352,6 +393,7 @@ fn service_error_too_many_requests_to_error_response() {
     assert_eq!(resp.error.message, "rate limit exceeded");
 }
 
+// ServiceError::internal から ErrorResponse への変換が正しいことを確認する。
 #[test]
 fn service_error_internal_to_error_response() {
     let err = ServiceError::internal("DB", "connection pool exhausted");
@@ -360,6 +402,7 @@ fn service_error_internal_to_error_response() {
     assert_eq!(resp.error.message, "connection pool exhausted");
 }
 
+// ServiceError::service_unavailable から ErrorResponse への変換が正しいことを確認する。
 #[test]
 fn service_error_service_unavailable_to_error_response() {
     let err = ServiceError::service_unavailable("AUTH", "maintenance mode");
@@ -368,6 +411,7 @@ fn service_error_service_unavailable_to_error_response() {
     assert_eq!(resp.error.message, "maintenance mode");
 }
 
+// すべての ServiceError バリアントの Display 出力がメッセージと一致することを確認する。
 #[test]
 fn service_error_display_shows_message() {
     let variants: Vec<ServiceError> = vec![
@@ -397,6 +441,7 @@ fn service_error_display_shows_message() {
     }
 }
 
+// ServiceError が std::error::Error トレイトを実装していることを確認する。
 #[test]
 fn service_error_is_std_error() {
     let err = ServiceError::internal("TEST", "something went wrong");
@@ -407,6 +452,7 @@ fn service_error_is_std_error() {
 // ApiResponse tests
 // ============================================================
 
+// ApiResponse がデータを data キーでラップして JSON 出力することを確認する。
 #[test]
 fn api_response_wraps_data() {
     let resp = ApiResponse {
@@ -416,6 +462,7 @@ fn api_response_wraps_data() {
     assert_eq!(json["data"], "hello world");
 }
 
+// ApiResponse が構造体データを正しく JSON シリアライズすることを確認する。
 #[test]
 fn api_response_with_struct() {
     #[derive(serde::Serialize)]
@@ -435,6 +482,7 @@ fn api_response_with_struct() {
     assert_eq!(json["data"]["name"], "Taro");
 }
 
+// ApiResponse がベクター型データを正しく JSON シリアライズすることを確認する。
 #[test]
 fn api_response_with_vec() {
     let resp = ApiResponse {
@@ -448,6 +496,7 @@ fn api_response_with_vec() {
 // PaginatedResponse tests
 // ============================================================
 
+// PaginatedResponse がページネーション情報とアイテムを正しく JSON シリアライズすることを確認する。
 #[test]
 fn paginated_response_serialization() {
     let resp = PaginatedResponse {
@@ -468,6 +517,7 @@ fn paginated_response_serialization() {
     assert_eq!(json["pagination"]["has_next"], true);
 }
 
+// 最終ページの PaginatedResponse で has_next が false になることを確認する。
 #[test]
 fn paginated_response_last_page() {
     let resp = PaginatedResponse {
@@ -484,6 +534,7 @@ fn paginated_response_last_page() {
     assert_eq!(json["pagination"]["page"], 2);
 }
 
+// 空のアイテムリストを持つ PaginatedResponse が正しく JSON 出力されることを確認する。
 #[test]
 fn paginated_response_empty_items() {
     let resp: PaginatedResponse<String> = PaginatedResponse {
@@ -500,6 +551,7 @@ fn paginated_response_empty_items() {
     assert_eq!(json["pagination"]["total_count"], 0);
 }
 
+// 構造体アイテムを持つ PaginatedResponse が正しく JSON シリアライズされることを確認する。
 #[test]
 fn paginated_response_with_struct_items() {
     #[derive(serde::Serialize)]
@@ -531,6 +583,7 @@ fn paginated_response_with_struct_items() {
     assert_eq!(json["items"][1]["key"], "db.port");
 }
 
+// PaginationResponse がクローン後も同じ値を保持することを確認する。
 #[test]
 fn pagination_response_clone() {
     let original = PaginationResponse {
@@ -550,6 +603,7 @@ fn pagination_response_clone() {
 // auth module tests (allow_insecure_no_auth, require_auth_state)
 // ============================================================
 
+// 本番環境では ALLOW_INSECURE_NO_AUTH が true であっても認証なしが拒否されることを確認する。
 #[test]
 fn allow_insecure_no_auth_rejects_production() {
     // Even if env var is set, production should be rejected
@@ -559,6 +613,7 @@ fn allow_insecure_no_auth_rejects_production() {
     std::env::remove_var("ALLOW_INSECURE_NO_AUTH");
 }
 
+// 認証設定が存在する場合に require_auth_state が Some を返すことを確認する。
 #[test]
 fn require_auth_state_returns_some_when_auth_present() {
     let result =
@@ -570,6 +625,7 @@ fn require_auth_state_returns_some_when_auth_present() {
 // Well-known error code module tests
 // ============================================================
 
+// Auth サービスの既知エラーコードが正しい文字列を返すことを確認する。
 #[test]
 fn well_known_error_codes_auth() {
     use k1s0_server_common::error::auth;
@@ -591,6 +647,7 @@ fn well_known_error_codes_auth() {
     );
 }
 
+// Config サービスの既知エラーコードが正しい文字列を返すことを確認する。
 #[test]
 fn well_known_error_codes_config() {
     use k1s0_server_common::error::config;
@@ -617,6 +674,7 @@ fn well_known_error_codes_config() {
     );
 }
 
+// Event Store サービスの既知エラーコードが正しい文字列を返すことを確認する。
 #[test]
 fn well_known_error_codes_event_store() {
     use k1s0_server_common::error::event_store;
@@ -638,6 +696,7 @@ fn well_known_error_codes_event_store() {
     );
 }
 
+// Feature Flag サービスの既知エラーコードが正しい文字列を返すことを確認する。
 #[test]
 fn well_known_error_codes_featureflag() {
     use k1s0_server_common::error::featureflag;

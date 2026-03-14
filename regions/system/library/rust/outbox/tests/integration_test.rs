@@ -3,6 +3,7 @@ use std::sync::Arc;
 use k1s0_outbox::processor::OutboxPublisher;
 use k1s0_outbox::{OutboxError, OutboxMessage, OutboxProcessor, OutboxStatus, OutboxStore};
 
+// OutboxMessage を JSON シリアライズして再デシリアライズした結果が元のデータと一致することを確認する。
 #[test]
 fn test_outbox_message_serialization_roundtrip() {
     let msg = OutboxMessage::new(
@@ -21,6 +22,7 @@ fn test_outbox_message_serialization_roundtrip() {
     assert_eq!(deserialized.id, msg.id);
 }
 
+// mark_processing によりメッセージのステータスが Processing に遷移することを確認する。
 #[test]
 fn test_message_state_pending_to_processing() {
     let mut msg = OutboxMessage::new(
@@ -34,6 +36,7 @@ fn test_message_state_pending_to_processing() {
     assert_eq!(msg.status, OutboxStatus::Processing);
 }
 
+// mark_delivered によりメッセージのステータスが Delivered に遷移し処理不可になることを確認する。
 #[test]
 fn test_message_state_processing_to_delivered() {
     let mut msg = OutboxMessage::new(
@@ -49,6 +52,7 @@ fn test_message_state_processing_to_delivered() {
     assert!(!msg.is_processable());
 }
 
+// mark_failed によりステータスが Failed に遷移しエラー内容が保存されることを確認する。
 #[test]
 fn test_message_state_processing_to_failed() {
     let mut msg = OutboxMessage::new(
@@ -64,6 +68,7 @@ fn test_message_state_processing_to_failed() {
     assert_eq!(msg.retry_count, 1);
 }
 
+// mark_failed のたびにリトライカウントがインクリメントされ最大値で DeadLetter になることを確認する。
 #[test]
 fn test_message_retry_count_increments() {
     let mut msg = OutboxMessage::new(
@@ -87,6 +92,7 @@ fn test_message_retry_count_increments() {
     assert_eq!(msg.status, OutboxStatus::DeadLetter);
 }
 
+// 空のペイロードを持つ OutboxMessage が正しく構築されることを確認する。
 #[test]
 fn test_message_with_empty_payload() {
     let msg = OutboxMessage::new(
@@ -147,6 +153,7 @@ impl OutboxPublisher for SelectivePublisher {
     }
 }
 
+// OutboxProcessor のバッチサイズが fetch_pending に正しく渡されることを確認する。
 #[tokio::test]
 async fn test_processor_batch_size_respected() {
     let mut store = MockTestStore::new();
@@ -163,6 +170,7 @@ async fn test_processor_batch_size_respected() {
     assert_eq!(count, 0);
 }
 
+// バッチ内で一部成功・一部失敗がある場合に成功件数のみがカウントされることを確認する。
 #[tokio::test]
 async fn test_processor_partial_success_batch() {
     let mut store = MockTestStore::new();

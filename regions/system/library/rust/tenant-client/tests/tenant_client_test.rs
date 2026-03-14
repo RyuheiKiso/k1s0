@@ -38,6 +38,7 @@ fn sample_tenants() -> Vec<Tenant> {
 // CRUD: get_tenant
 // ===========================================================================
 
+// 存在するテナント ID を渡した場合に正しいテナント情報が返ることを確認する。
 #[tokio::test]
 async fn get_tenant_returns_existing_tenant() {
     let client = InMemoryTenantClient::with_tenants(sample_tenants());
@@ -48,6 +49,7 @@ async fn get_tenant_returns_existing_tenant() {
     assert_eq!(tenant.plan, "enterprise");
 }
 
+// 存在しないテナント ID を渡した場合に NotFound エラーが返ることを確認する。
 #[tokio::test]
 async fn get_tenant_not_found_returns_error() {
     let client = InMemoryTenantClient::new();
@@ -59,6 +61,7 @@ async fn get_tenant_not_found_returns_error() {
     }
 }
 
+// add_tenant で追加したテナントが get_tenant で取得できることを確認する。
 #[tokio::test]
 async fn get_tenant_after_add_tenant() {
     let client = InMemoryTenantClient::new();
@@ -72,6 +75,7 @@ async fn get_tenant_after_add_tenant() {
 // CRUD: create_tenant
 // ===========================================================================
 
+// テナント作成時に UUID が自動割り当てられ Active ステータスになることを確認する。
 #[tokio::test]
 async fn create_tenant_assigns_uuid_and_active_status() {
     let client = InMemoryTenantClient::new();
@@ -90,6 +94,7 @@ async fn create_tenant_assigns_uuid_and_active_status() {
     assert_eq!(tenant.status, TenantStatus::Active);
 }
 
+// 作成したテナントが get_tenant で取得できることを確認する。
 #[tokio::test]
 async fn create_tenant_is_retrievable() {
     let client = InMemoryTenantClient::new();
@@ -107,6 +112,7 @@ async fn create_tenant_is_retrievable() {
     assert_eq!(fetched.name, "Test Org");
 }
 
+// テナント作成直後のプロビジョニングステータスが Pending であることを確認する。
 #[tokio::test]
 async fn create_tenant_sets_provisioning_pending() {
     let client = InMemoryTenantClient::new();
@@ -123,6 +129,7 @@ async fn create_tenant_sets_provisioning_pending() {
     assert_eq!(status, ProvisioningStatus::Pending);
 }
 
+// 複数のテナントを作成した場合にそれぞれ一意な ID が割り当てられることを確認する。
 #[tokio::test]
 async fn create_multiple_tenants_have_unique_ids() {
     let client = InMemoryTenantClient::new();
@@ -150,6 +157,7 @@ async fn create_multiple_tenants_have_unique_ids() {
 // Filtering: list_tenants
 // ===========================================================================
 
+// フィルターなしの list_tenants がすべてのテナントを返すことを確認する。
 #[tokio::test]
 async fn list_tenants_no_filter_returns_all() {
     let client = InMemoryTenantClient::with_tenants(sample_tenants());
@@ -157,6 +165,7 @@ async fn list_tenants_no_filter_returns_all() {
     assert_eq!(tenants.len(), 5);
 }
 
+// Active ステータスのフィルターで Active テナントのみが返ることを確認する。
 #[tokio::test]
 async fn list_tenants_filter_by_status_active() {
     let client = InMemoryTenantClient::with_tenants(sample_tenants());
@@ -166,6 +175,7 @@ async fn list_tenants_filter_by_status_active() {
     assert!(tenants.iter().all(|t| t.status == TenantStatus::Active));
 }
 
+// Suspended ステータスのフィルターで Suspended テナントのみが返ることを確認する。
 #[tokio::test]
 async fn list_tenants_filter_by_status_suspended() {
     let client = InMemoryTenantClient::with_tenants(sample_tenants());
@@ -175,6 +185,7 @@ async fn list_tenants_filter_by_status_suspended() {
     assert_eq!(tenants[0].id, "T-002");
 }
 
+// Deleted ステータスのフィルターで Deleted テナントのみが返ることを確認する。
 #[tokio::test]
 async fn list_tenants_filter_by_status_deleted() {
     let client = InMemoryTenantClient::with_tenants(sample_tenants());
@@ -184,6 +195,7 @@ async fn list_tenants_filter_by_status_deleted() {
     assert_eq!(tenants[0].id, "T-004");
 }
 
+// プランのフィルターで指定プランのテナントのみが返ることを確認する。
 #[tokio::test]
 async fn list_tenants_filter_by_plan() {
     let client = InMemoryTenantClient::with_tenants(sample_tenants());
@@ -192,6 +204,7 @@ async fn list_tenants_filter_by_plan() {
     assert_eq!(tenants.len(), 2);
 }
 
+// ステータスとプランを組み合わせたフィルターで条件に一致するテナントのみ返ることを確認する。
 #[tokio::test]
 async fn list_tenants_filter_by_status_and_plan() {
     let client = InMemoryTenantClient::with_tenants(sample_tenants());
@@ -203,6 +216,7 @@ async fn list_tenants_filter_by_status_and_plan() {
     assert_eq!(tenants[0].id, "T-003");
 }
 
+// 一致するテナントがない場合に空リストが返ることを確認する。
 #[tokio::test]
 async fn list_tenants_filter_no_match_returns_empty() {
     let client = InMemoryTenantClient::with_tenants(sample_tenants());
@@ -211,6 +225,7 @@ async fn list_tenants_filter_no_match_returns_empty() {
     assert!(tenants.is_empty());
 }
 
+// 空のストアに対して list_tenants を呼び出すと空リストが返ることを確認する。
 #[tokio::test]
 async fn list_tenants_empty_store_returns_empty() {
     let client = InMemoryTenantClient::new();
@@ -222,6 +237,7 @@ async fn list_tenants_empty_store_returns_empty() {
 // is_active
 // ===========================================================================
 
+// Active テナントに対して is_active が true を返すことを確認する。
 #[tokio::test]
 async fn is_active_returns_true_for_active_tenant() {
     let client = InMemoryTenantClient::new();
@@ -229,6 +245,7 @@ async fn is_active_returns_true_for_active_tenant() {
     assert!(client.is_active("T-001").await.unwrap());
 }
 
+// Suspended テナントに対して is_active が false を返すことを確認する。
 #[tokio::test]
 async fn is_active_returns_false_for_suspended_tenant() {
     let client = InMemoryTenantClient::new();
@@ -236,6 +253,7 @@ async fn is_active_returns_false_for_suspended_tenant() {
     assert!(!client.is_active("T-001").await.unwrap());
 }
 
+// Deleted テナントに対して is_active が false を返すことを確認する。
 #[tokio::test]
 async fn is_active_returns_false_for_deleted_tenant() {
     let client = InMemoryTenantClient::new();
@@ -243,6 +261,7 @@ async fn is_active_returns_false_for_deleted_tenant() {
     assert!(!client.is_active("T-001").await.unwrap());
 }
 
+// 存在しないテナントへの is_active が NotFound エラーを返すことを確認する。
 #[tokio::test]
 async fn is_active_not_found_returns_error() {
     let client = InMemoryTenantClient::new();
@@ -254,6 +273,7 @@ async fn is_active_not_found_returns_error() {
 // Settings
 // ===========================================================================
 
+// テナントの設定値が正しく取得できることを確認する。
 #[tokio::test]
 async fn get_settings_returns_tenant_settings() {
     let client = InMemoryTenantClient::new();
@@ -263,6 +283,7 @@ async fn get_settings_returns_tenant_settings() {
     assert_eq!(settings.get("feature_x"), Some("enabled"));
 }
 
+// 設定に存在しないキーを指定した場合に None が返ることを確認する。
 #[tokio::test]
 async fn get_settings_missing_key_returns_none() {
     let client = InMemoryTenantClient::new();
@@ -271,6 +292,7 @@ async fn get_settings_missing_key_returns_none() {
     assert_eq!(settings.get("nonexistent_key"), None);
 }
 
+// 存在しないテナントへの get_settings が NotFound エラーを返すことを確認する。
 #[tokio::test]
 async fn get_settings_not_found_tenant_returns_error() {
     let client = InMemoryTenantClient::new();
@@ -282,6 +304,7 @@ async fn get_settings_not_found_tenant_returns_error() {
 // Member management
 // ===========================================================================
 
+// 既存テナントにメンバーを追加できることを確認する。
 #[tokio::test]
 async fn add_member_to_existing_tenant() {
     let client = InMemoryTenantClient::new();
@@ -302,6 +325,7 @@ async fn add_member_to_existing_tenant() {
     assert_eq!(member.role, "admin");
 }
 
+// 存在しないテナントへのメンバー追加が NotFound エラーを返すことを確認する。
 #[tokio::test]
 async fn add_member_to_nonexistent_tenant_returns_error() {
     let client = InMemoryTenantClient::new();
@@ -309,6 +333,7 @@ async fn add_member_to_nonexistent_tenant_returns_error() {
     assert!(matches!(result, Err(TenantError::NotFound(_))));
 }
 
+// 追加したメンバーが list_members で全件取得できることを確認する。
 #[tokio::test]
 async fn list_members_returns_added_members() {
     let client = InMemoryTenantClient::new();
@@ -334,6 +359,7 @@ async fn list_members_returns_added_members() {
     assert!(user_ids.contains(&"u3"));
 }
 
+// メンバーが追加されていないテナントの list_members が空リストを返すことを確認する。
 #[tokio::test]
 async fn list_members_empty_when_no_members() {
     let client = InMemoryTenantClient::new();
@@ -350,6 +376,7 @@ async fn list_members_empty_when_no_members() {
     assert!(members.is_empty());
 }
 
+// remove_member が指定ユーザーのみを削除し他のメンバーに影響しないことを確認する。
 #[tokio::test]
 async fn remove_member_removes_correct_user() {
     let client = InMemoryTenantClient::new();
@@ -376,6 +403,7 @@ async fn remove_member_removes_correct_user() {
     assert!(user_ids.contains(&"u3"));
 }
 
+// 存在しないメンバーの削除がエラーなしに何もしないことを確認する。
 #[tokio::test]
 async fn remove_nonexistent_member_is_no_op() {
     let client = InMemoryTenantClient::new();
@@ -397,6 +425,7 @@ async fn remove_nonexistent_member_is_no_op() {
 // Provisioning status
 // ===========================================================================
 
+// add_tenant で追加したテナントのプロビジョニングステータスが NotFound になることを確認する。
 #[tokio::test]
 async fn provisioning_status_not_found_for_uncreated_tenant() {
     let client = InMemoryTenantClient::new();
@@ -410,6 +439,7 @@ async fn provisioning_status_not_found_for_uncreated_tenant() {
 // TenantFilter builder
 // ===========================================================================
 
+// TenantFilter::new() がステータスとプランを持たないデフォルト状態で生成されることを確認する。
 #[test]
 fn tenant_filter_default_has_no_filters() {
     let filter = TenantFilter::new();
@@ -417,6 +447,7 @@ fn tenant_filter_default_has_no_filters() {
     assert!(filter.plan.is_none());
 }
 
+// TenantFilter のビルダーをチェーンしてステータスとプランを設定できることを確認する。
 #[test]
 fn tenant_filter_chained_builder() {
     let filter = TenantFilter::new()
@@ -430,6 +461,7 @@ fn tenant_filter_chained_builder() {
 // TenantSettings
 // ===========================================================================
 
+// TenantSettings の生成と get によるキー値取得が正しく動作することを確認する。
 #[test]
 fn tenant_settings_new_and_get() {
     let mut values = HashMap::new();
@@ -441,6 +473,7 @@ fn tenant_settings_new_and_get() {
     assert_eq!(settings.get("key3"), None);
 }
 
+// 空の TenantSettings に対して get が None を返すことを確認する。
 #[test]
 fn tenant_settings_empty() {
     let settings = TenantSettings::new(HashMap::new());
@@ -451,6 +484,7 @@ fn tenant_settings_empty() {
 // TenantClientConfig builder
 // ===========================================================================
 
+// TenantClientConfig のデフォルト値が正しく設定されることを確認する。
 #[test]
 fn config_defaults() {
     let config = TenantClientConfig::new("http://localhost:9090");
@@ -459,6 +493,7 @@ fn config_defaults() {
     assert_eq!(config.cache_max_capacity, 1000);
 }
 
+// TenantClientConfig のビルダーでカスタム値を設定できることを確認する。
 #[test]
 fn config_custom_values() {
     let config = TenantClientConfig::new("http://tenant-server:8080")
@@ -473,6 +508,7 @@ fn config_custom_values() {
 // TenantStatus serde roundtrip
 // ===========================================================================
 
+// TenantStatus を JSON にシリアライズしてデシリアライズしても値が一致することを確認する。
 #[test]
 fn tenant_status_serde_roundtrip() {
     for status in [
@@ -486,6 +522,7 @@ fn tenant_status_serde_roundtrip() {
     }
 }
 
+// TenantStatus が小文字の文字列にシリアライズされることを確認する。
 #[test]
 fn tenant_status_serializes_lowercase() {
     assert_eq!(serde_json::to_string(&TenantStatus::Active).unwrap(), "\"active\"");
@@ -497,6 +534,7 @@ fn tenant_status_serializes_lowercase() {
 // Tenant serde
 // ===========================================================================
 
+// Tenant を JSON にシリアライズしてデシリアライズしても全フィールドが一致することを確認する。
 #[test]
 fn tenant_serde_roundtrip() {
     let tenant = make_tenant("T-001", TenantStatus::Active, "enterprise");
@@ -512,6 +550,7 @@ fn tenant_serde_roundtrip() {
 // InMemoryTenantClient: with_tenants constructor
 // ===========================================================================
 
+// with_tenants コンストラクタで初期データが正しくストアに登録されることを確認する。
 #[tokio::test]
 async fn with_tenants_constructor_populates_store() {
     let tenants = vec![
@@ -531,6 +570,7 @@ async fn with_tenants_constructor_populates_store() {
 // Error display
 // ===========================================================================
 
+// TenantError::NotFound のメッセージにテナント ID が含まれることを確認する。
 #[test]
 fn error_display_not_found() {
     let err = TenantError::NotFound("T-999".to_string());
@@ -538,6 +578,7 @@ fn error_display_not_found() {
     assert!(msg.contains("T-999"));
 }
 
+// TenantError::ServerError のメッセージに原因文字列が含まれることを確認する。
 #[test]
 fn error_display_server_error() {
     let err = TenantError::ServerError("connection refused".to_string());
@@ -545,6 +586,7 @@ fn error_display_server_error() {
     assert!(msg.contains("connection refused"));
 }
 
+// TenantError::Timeout のメッセージに経過時間文字列が含まれることを確認する。
 #[test]
 fn error_display_timeout() {
     let err = TenantError::Timeout("5s elapsed".to_string());
@@ -552,6 +594,7 @@ fn error_display_timeout() {
     assert!(msg.contains("5s elapsed"));
 }
 
+// TenantError::Suspended のメッセージにテナント ID が含まれることを確認する。
 #[test]
 fn error_display_suspended() {
     let err = TenantError::Suspended("T-001".to_string());

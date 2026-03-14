@@ -172,12 +172,14 @@ mod tests {
         }
     }
 
+    // トークンがまだ有効期限内であることを確認する。
     #[test]
     fn test_is_expired_not_yet_expired() {
         let token = ServiceToken::new("tok".to_string(), "Bearer".to_string(), 900);
         assert!(!token.is_expired());
     }
 
+    // トークンの有効期限が切れた直後に期限切れと判定されることを確認する。
     #[test]
     fn test_is_expired_just_expired() {
         // 取得時刻を 901 秒前に設定する
@@ -186,6 +188,7 @@ mod tests {
         assert!(token.is_expired());
     }
 
+    // 経過時間が expires_in と等しい境界値で期限切れとみなされることを確認する。
     #[test]
     fn test_is_expired_exactly_at_boundary() {
         // expires_in と経過時間が等しい場合は期限切れとみなす
@@ -194,6 +197,7 @@ mod tests {
         assert!(token.is_expired());
     }
 
+    // 有効期限まで十分余裕がある場合にリフレッシュ不要と判定されることを確認する。
     #[test]
     fn test_should_refresh_far_from_expiry() {
         // 有効期限まで十分余裕がある場合はリフレッシュ不要
@@ -201,6 +205,7 @@ mod tests {
         assert!(!token.should_refresh(120));
     }
 
+    // リフレッシュ閾値内にある場合にリフレッシュ必要と判定されることを確認する。
     #[test]
     fn test_should_refresh_within_refresh_window() {
         // 有効期限の 120 秒前以内ならリフレッシュが必要
@@ -211,6 +216,7 @@ mod tests {
         assert!(token.should_refresh(120));
     }
 
+    // elapsed + refresh_before_secs が expires_in と等しい境界でリフレッシュが必要なことを確認する。
     #[test]
     fn test_should_refresh_exactly_at_boundary() {
         // elapsed + refresh_before_secs == expires_in の境界
@@ -220,6 +226,7 @@ mod tests {
         assert!(token.should_refresh(120));
     }
 
+    // リフレッシュ閾値を 1 秒下回る場合にリフレッシュ不要と判定されることを確認する。
     #[test]
     fn test_should_refresh_just_before_boundary() {
         // elapsed + refresh_before_secs < expires_in → リフレッシュ不要
@@ -231,6 +238,7 @@ mod tests {
         assert!(!token.should_refresh(120));
     }
 
+    // bearer_header が "Bearer <token>" 形式の文字列を返すことを確認する。
     #[test]
     fn test_bearer_header() {
         let token = ServiceToken::new("my-access-token".to_string(), "Bearer".to_string(), 900);
@@ -239,6 +247,7 @@ mod tests {
 
     // --- SpiffeId テスト ---
 
+    // 正しい SPIFFE URI を解析してフィールドが正しく設定されることを確認する。
     #[test]
     fn test_parse_valid_spiffe_id() {
         let uri = "spiffe://k1s0.internal/ns/system/sa/auth-service";
@@ -249,6 +258,7 @@ mod tests {
         assert_eq!(spiffe.service_account, "auth-service");
     }
 
+    // business ネームスペースを含む SPIFFE URI が正しく解析されることを確認する。
     #[test]
     fn test_parse_business_namespace() {
         let uri = "spiffe://k1s0.internal/ns/business/sa/order-service";
@@ -259,6 +269,7 @@ mod tests {
         assert_eq!(spiffe.service_account, "order-service");
     }
 
+    // "spiffe://" プレフィックスがない URI の解析がエラーになることを確認する。
     #[test]
     fn test_parse_missing_spiffe_prefix() {
         let result = SpiffeId::parse("https://k1s0.internal/ns/system/sa/svc");
@@ -268,6 +279,7 @@ mod tests {
         ));
     }
 
+    // 空文字列の SPIFFE URI 解析がエラーになることを確認する。
     #[test]
     fn test_parse_empty_string() {
         let result = SpiffeId::parse("");
@@ -277,6 +289,7 @@ mod tests {
         ));
     }
 
+    // パスが含まれない SPIFFE URI の解析がエラーになることを確認する。
     #[test]
     fn test_parse_missing_path() {
         let result = SpiffeId::parse("spiffe://k1s0.internal");
@@ -286,6 +299,7 @@ mod tests {
         ));
     }
 
+    // /ns/{ns}/sa/{sa} 形式でないパスの解析がエラーになることを確認する。
     #[test]
     fn test_parse_wrong_path_format() {
         // /ns/{ns}/sa/{sa} 形式でない場合
@@ -296,6 +310,7 @@ mod tests {
         ));
     }
 
+    // ネームスペースが空の SPIFFE URI の解析がエラーになることを確認する。
     #[test]
     fn test_parse_empty_namespace() {
         let result = SpiffeId::parse("spiffe://k1s0.internal/ns//sa/auth-service");
@@ -305,6 +320,7 @@ mod tests {
         ));
     }
 
+    // サービスアカウントが空の SPIFFE URI の解析がエラーになることを確認する。
     #[test]
     fn test_parse_empty_service_account() {
         let result = SpiffeId::parse("spiffe://k1s0.internal/ns/system/sa/");
@@ -314,6 +330,7 @@ mod tests {
         ));
     }
 
+    // トラストドメインが空の SPIFFE URI の解析がエラーになることを確認する。
     #[test]
     fn test_parse_empty_trust_domain() {
         let result = SpiffeId::parse("spiffe:///ns/system/sa/auth-service");
@@ -323,6 +340,7 @@ mod tests {
         ));
     }
 
+    // SPIFFE URI を解析して to_uri() で元の文字列に戻せることを確認する。
     #[test]
     fn test_to_uri_roundtrip() {
         let original = "spiffe://k1s0.internal/ns/system/sa/auth-service";
@@ -330,6 +348,7 @@ mod tests {
         assert_eq!(spiffe.to_uri(), original);
     }
 
+    // to_uri() が期待する SPIFFE URI フォーマットを生成することを確認する。
     #[test]
     fn test_to_uri_format() {
         let spiffe = SpiffeId {
@@ -343,6 +362,7 @@ mod tests {
         );
     }
 
+    // system ネームスペースが system/business/service すべての Tier にアクセスできることを確認する。
     #[test]
     fn test_allows_tier_access_system_to_all() {
         let spiffe = SpiffeId {
@@ -355,6 +375,7 @@ mod tests {
         assert!(spiffe.allows_tier_access("service"));
     }
 
+    // business ネームスペースが business と service の Tier にのみアクセスできることを確認する。
     #[test]
     fn test_allows_tier_access_business_to_business_and_service() {
         let spiffe = SpiffeId {
@@ -367,6 +388,7 @@ mod tests {
         assert!(spiffe.allows_tier_access("service"));
     }
 
+    // service ネームスペースが service Tier にのみアクセスできることを確認する。
     #[test]
     fn test_allows_tier_access_service_to_service_only() {
         let spiffe = SpiffeId {
@@ -379,6 +401,7 @@ mod tests {
         assert!(spiffe.allows_tier_access("service"));
     }
 
+    // 未知のネームスペースがいずれの Tier にもアクセスできないことを確認する。
     #[test]
     fn test_allows_tier_access_unknown_namespace() {
         let spiffe = SpiffeId {
@@ -391,6 +414,7 @@ mod tests {
         assert!(!spiffe.allows_tier_access("service"));
     }
 
+    // 同一 SPIFFE URI から生成した SpiffeId が等しく、異なる URI なら等しくないことを確認する。
     #[test]
     fn test_spiffe_id_equality() {
         let a = SpiffeId::parse("spiffe://k1s0.internal/ns/system/sa/auth-service").unwrap();
@@ -401,6 +425,7 @@ mod tests {
         assert_ne!(a, c);
     }
 
+    // ServiceToken::new が acquired_at を現在時刻に設定することを確認する。
     #[test]
     fn test_service_token_new_sets_acquired_at() {
         let before = Utc::now();

@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// InMemoryPubSub の Init 前後でステータスが Uninitialized → Ready に遷移することを確認する。
 func TestInMemoryPubSub_InitAndStatus(t *testing.T) {
 	ps := NewInMemoryPubSub()
 	ctx := context.Background()
@@ -21,6 +22,7 @@ func TestInMemoryPubSub_InitAndStatus(t *testing.T) {
 	}
 }
 
+// InMemoryPubSub の Name と Version が正しい値を返すことを確認する。
 func TestInMemoryPubSub_Name(t *testing.T) {
 	ps := NewInMemoryPubSub()
 	if ps.Name() != "inmemory-pubsub" {
@@ -31,6 +33,7 @@ func TestInMemoryPubSub_Name(t *testing.T) {
 	}
 }
 
+// InMemoryPubSub で Publish したメッセージが Subscribe したチャネルから受信できることを確認する。
 func TestInMemoryPubSub_PublishSubscribe(t *testing.T) {
 	ps := NewInMemoryPubSub()
 	ctx := context.Background()
@@ -59,6 +62,7 @@ func TestInMemoryPubSub_PublishSubscribe(t *testing.T) {
 	}
 }
 
+// InMemoryPubSub の Publish が受信メッセージの Timestamp を自動的に設定することを確認する。
 func TestInMemoryPubSub_PublishSetsTimestamp(t *testing.T) {
 	ps := NewInMemoryPubSub()
 	ctx := context.Background()
@@ -78,6 +82,7 @@ func TestInMemoryPubSub_PublishSetsTimestamp(t *testing.T) {
 	}
 }
 
+// InMemoryPubSub が同一トピックの複数サブスクライバー全員にメッセージを配信することを確認する。
 func TestInMemoryPubSub_MultipleSubscribers(t *testing.T) {
 	ps := NewInMemoryPubSub()
 	ctx := context.Background()
@@ -97,6 +102,7 @@ func TestInMemoryPubSub_MultipleSubscribers(t *testing.T) {
 	}
 }
 
+// InMemoryPubSub が異なるトピックのサブスクライバーへメッセージを配信しないことを確認する。
 func TestInMemoryPubSub_NoDeliveryToOtherTopics(t *testing.T) {
 	ps := NewInMemoryPubSub()
 	ctx := context.Background()
@@ -112,6 +118,7 @@ func TestInMemoryPubSub_NoDeliveryToOtherTopics(t *testing.T) {
 	}
 }
 
+// InMemoryPubSub の Close がステータスを Closed に遷移させサブスクライバーチャネルを閉じることを確認する。
 func TestInMemoryPubSub_Close(t *testing.T) {
 	ps := NewInMemoryPubSub()
 	ctx := context.Background()

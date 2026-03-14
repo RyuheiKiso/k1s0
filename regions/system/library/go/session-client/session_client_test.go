@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Createが新しいセッションを正常に作成し、ID・トークン・有効期限などを返すことを確認する。
 func TestCreate(t *testing.T) {
 	c := sessionclient.NewInMemorySessionClient()
 	ctx := context.Background()
@@ -28,6 +29,7 @@ func TestCreate(t *testing.T) {
 	assert.True(t, session.ExpiresAt.After(time.Now()))
 }
 
+// GetがセッションIDに対応するセッションを正常に取得することを確認する。
 func TestGet(t *testing.T) {
 	c := sessionclient.NewInMemorySessionClient()
 	ctx := context.Background()
@@ -41,6 +43,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, created.ID, got.ID)
 }
 
+// 存在しないセッションIDでGetを呼び出した際にエラーが返ることを確認する。
 func TestGet_NotFound(t *testing.T) {
 	c := sessionclient.NewInMemorySessionClient()
 	ctx := context.Background()
@@ -49,6 +52,7 @@ func TestGet_NotFound(t *testing.T) {
 	require.Error(t, err)
 }
 
+// Refreshがセッションのトークンを更新し、新しいトークンと延長された有効期限を返すことを確認する。
 func TestRefresh(t *testing.T) {
 	c := sessionclient.NewInMemorySessionClient()
 	ctx := context.Background()
@@ -66,6 +70,7 @@ func TestRefresh(t *testing.T) {
 	assert.True(t, refreshed.ExpiresAt.After(time.Now().Add(3600*time.Second)))
 }
 
+// Revokeがセッションを無効化し、Revokedフラグがtrueに設定されることを確認する。
 func TestRevoke(t *testing.T) {
 	c := sessionclient.NewInMemorySessionClient()
 	ctx := context.Background()
@@ -81,6 +86,7 @@ func TestRevoke(t *testing.T) {
 	assert.True(t, got.Revoked)
 }
 
+// 存在しないセッションIDでRevokeを呼び出した際にエラーが返ることを確認する。
 func TestRevoke_NotFound(t *testing.T) {
 	c := sessionclient.NewInMemorySessionClient()
 	ctx := context.Background()
@@ -89,6 +95,7 @@ func TestRevoke_NotFound(t *testing.T) {
 	require.Error(t, err)
 }
 
+// ListUserSessionsが指定ユーザーのセッションのみを返すことを確認する。
 func TestListUserSessions(t *testing.T) {
 	c := sessionclient.NewInMemorySessionClient()
 	ctx := context.Background()
@@ -102,6 +109,7 @@ func TestListUserSessions(t *testing.T) {
 	assert.Len(t, sessions, 2)
 }
 
+// RevokeAllが指定ユーザーの全セッションを無効化し、無効化件数を返すことを確認する。
 func TestRevokeAll(t *testing.T) {
 	c := sessionclient.NewInMemorySessionClient()
 	ctx := context.Background()

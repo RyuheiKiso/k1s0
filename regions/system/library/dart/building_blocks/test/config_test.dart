@@ -3,7 +3,7 @@ import 'package:k1s0_building_blocks/building_blocks.dart';
 
 void main() {
   group('ComponentConfig', () {
-    test('should create with all fields', () {
+    test('全フィールドを指定して生成できること', () {
       const config = ComponentConfig(
         name: 'redis-store',
         type: 'statestore',
@@ -17,7 +17,7 @@ void main() {
       expect(config.metadata, {'host': 'localhost', 'port': '6379'});
     });
 
-    test('should create without optional fields', () {
+    test('オプションフィールドなしで生成できること', () {
       const config = ComponentConfig(
         name: 'basic',
         type: 'binding',
@@ -29,7 +29,7 @@ void main() {
       expect(config.metadata, isEmpty);
     });
 
-    test('should create from YAML map', () {
+    test('YAML マップから生成できること', () {
       final yaml = <dynamic, dynamic>{
         'name': 'kafka',
         'type': 'pubsub',
@@ -44,7 +44,7 @@ void main() {
       expect(config.metadata, {'broker': 'localhost:9092'});
     });
 
-    test('should create from YAML map without optional fields', () {
+    test('オプションフィールドなしの YAML マップから生成できること', () {
       final yaml = <dynamic, dynamic>{
         'name': 'simple',
         'type': 'secretstore',
@@ -59,7 +59,7 @@ void main() {
   });
 
   group('ComponentsConfig', () {
-    test('should parse valid YAML with multiple components', () {
+    test('複数コンポーネントを含む正常な YAML をパースできること', () {
       const yaml = '''
 components:
   - name: redis-store
@@ -84,7 +84,7 @@ components:
       expect(config.components[1].type, 'pubsub');
     });
 
-    test('should parse empty components array', () {
+    test('空のコンポーネント配列をパースできること', () {
       const yaml = '''
 components: []
 ''';
@@ -93,7 +93,7 @@ components: []
       expect(config.components, isEmpty);
     });
 
-    test('should throw ComponentError when components field is missing', () {
+    test('components フィールドが存在しない場合に ComponentError をスローすること', () {
       const yaml = '''
 name: invalid
 ''';
@@ -104,7 +104,7 @@ name: invalid
       );
     });
 
-    test('should throw ComponentError when components is not a list', () {
+    test('components がリストでない場合に ComponentError をスローすること', () {
       const yaml = '''
 components: "not-a-list"
 ''';
@@ -115,7 +115,7 @@ components: "not-a-list"
       );
     });
 
-    test('should throw ComponentError for empty YAML', () {
+    test('空の YAML の場合に ComponentError をスローすること', () {
       expect(
         () => ComponentsConfig.fromYaml(''),
         throwsA(isA<ComponentError>()),

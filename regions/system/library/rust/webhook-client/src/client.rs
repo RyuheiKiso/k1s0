@@ -255,6 +255,7 @@ mod tests {
         }
     }
 
+    // 200 を返すモックサーバーへの送信が成功することを確認する。
     #[tokio::test]
     async fn test_send_success() {
         let mock_server = MockServer::start().await;
@@ -270,6 +271,7 @@ mod tests {
         assert_eq!(result.unwrap(), 200);
     }
 
+    // send_with_signature が署名ヘッダーとべき等性キーヘッダーを送信することを確認する。
     #[tokio::test]
     async fn test_send_with_signature_uses_k1s0_header() {
         let mock_server = MockServer::start().await;
@@ -288,6 +290,7 @@ mod tests {
         assert_eq!(result.unwrap(), 200);
     }
 
+    // 500 レスポンスに対してリトライが行われ 3 回目に成功することを確認する。
     #[tokio::test]
     async fn test_retry_on_500() {
         let mock_server = MockServer::start().await;
@@ -318,6 +321,7 @@ mod tests {
         assert_eq!(call_count.load(Ordering::SeqCst), 3);
     }
 
+    // 429 レスポンスに対してリトライが行われ 2 回目に成功することを確認する。
     #[tokio::test]
     async fn test_retry_on_429() {
         let mock_server = MockServer::start().await;
@@ -348,6 +352,7 @@ mod tests {
         assert_eq!(call_count.load(Ordering::SeqCst), 2);
     }
 
+    // 400 レスポンスはリトライ対象外で 1 回だけ呼ばれることを確認する。
     #[tokio::test]
     async fn test_no_retry_on_4xx() {
         let mock_server = MockServer::start().await;
@@ -374,6 +379,7 @@ mod tests {
         assert_eq!(call_count.load(Ordering::SeqCst), 1); // リトライなし
     }
 
+    // 最大リトライ数を超えると MaxRetriesExceeded エラーが返されることを確認する。
     #[tokio::test]
     async fn test_max_retries_exceeded() {
         let mock_server = MockServer::start().await;
@@ -402,6 +408,7 @@ mod tests {
         }
     }
 
+    // 送信時のべき等性キーが UUID v4 形式であることを確認する。
     #[tokio::test]
     async fn test_idempotency_key_is_uuid_format() {
         let mock_server = MockServer::start().await;
@@ -434,6 +441,7 @@ mod tests {
         assert_eq!(parts[4].len(), 12);
     }
 
+    // リトライ時に同じべき等性キーが使用されることを確認する。
     #[tokio::test]
     async fn test_idempotency_key_same_across_retries() {
         let mock_server = MockServer::start().await;
@@ -476,6 +484,7 @@ mod tests {
         assert_eq!(collected_keys[1], collected_keys[2]);
     }
 
+    // WebhookConfig のデフォルト値が正しく設定されていることを確認する。
     #[test]
     fn test_default_config() {
         let config = WebhookConfig::default();
@@ -484,6 +493,7 @@ mod tests {
         assert_eq!(config.max_backoff_ms, 10000);
     }
 
+    // リトライ対象ステータスコードの判定が正しく機能することを確認する。
     #[test]
     fn test_is_retryable_status() {
         assert!(is_retryable_status(429));
@@ -496,6 +506,7 @@ mod tests {
         assert!(!is_retryable_status(404));
     }
 
+    // 指数バックオフの計算が上限を超えず適切な範囲内であることを確認する。
     #[test]
     fn test_calculate_backoff() {
         // attempt 0: initialBackoff * 2^0 = 100ms + ジッター

@@ -18,14 +18,14 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  test('calculates the SHA-256 checksum for a file', () async {
+  test('ファイルの SHA-256 チェックサムを計算できること', () async {
     final checksum = await ChecksumVerifier.calculate(testFilePath);
     final expected = sha256.convert('hello world'.codeUnits).toString();
 
     expect(checksum, expected);
   });
 
-  test('verifyOrThrow throws when the checksum is invalid', () async {
+  test('チェックサムが無効な場合に verifyOrThrow が例外をスローすること', () async {
     expect(
       () => ChecksumVerifier.verifyOrThrow(testFilePath, 'invalid'),
       throwsA(isA<ChecksumError>()),

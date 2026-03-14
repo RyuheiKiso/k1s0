@@ -10,7 +10,7 @@ void main() {
   });
 
   group('append/load', () {
-    test('appends and loads events', () async {
+    test('イベントを追記してロードできること', () async {
       await store.append('stream-1', [
         const NewEvent(
           streamId: 'stream-1',
@@ -26,7 +26,7 @@ void main() {
       expect(events[0].eventId, isNotEmpty);
     });
 
-    test('increments version for multiple events', () async {
+    test('複数イベントのバージョンがインクリメントされること', () async {
       await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'E1'),
         const NewEvent(streamId: 's1', eventType: 'E2'),
@@ -41,14 +41,14 @@ void main() {
       expect(events[2].version, equals(3));
     });
 
-    test('returns empty list for nonexistent stream', () async {
+    test('存在しないストリームに対して空のリストを返すこと', () async {
       final events = await store.load('nonexistent');
       expect(events, isEmpty);
     });
   });
 
   group('expectedVersion', () {
-    test('succeeds with correct expected version', () async {
+    test('正しい期待バージョンで追記に成功すること', () async {
       await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'E1'),
       ]);
@@ -60,7 +60,7 @@ void main() {
       expect(version, equals(2));
     });
 
-    test('throws VersionConflictError on mismatch', () async {
+    test('バージョン不一致時にVersionConflictErrorをスローすること', () async {
       await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'E1'),
       ]);
@@ -74,7 +74,7 @@ void main() {
       );
     });
 
-    test('VersionConflictError has expected and actual', () async {
+    test('VersionConflictErrorが期待値と実際のバージョンを持つこと', () async {
       await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'E1'),
         const NewEvent(streamId: 's1', eventType: 'E2'),
@@ -95,7 +95,7 @@ void main() {
   });
 
   group('loadFrom', () {
-    test('loads events from specific version', () async {
+    test('指定したバージョンからイベントをロードできること', () async {
       await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'E1'),
         const NewEvent(streamId: 's1', eventType: 'E2'),
@@ -109,11 +109,11 @@ void main() {
   });
 
   group('exists', () {
-    test('returns false for nonexistent stream', () async {
+    test('存在しないストリームに対してfalseを返すこと', () async {
       expect(await store.exists('nope'), isFalse);
     });
 
-    test('returns true after append', () async {
+    test('追記後にtrueを返すこと', () async {
       await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'E1'),
       ]);
@@ -122,11 +122,11 @@ void main() {
   });
 
   group('currentVersion', () {
-    test('returns 0 for nonexistent stream', () async {
+    test('存在しないストリームに対して0を返すこと', () async {
       expect(await store.currentVersion('nope'), equals(0));
     });
 
-    test('returns latest version', () async {
+    test('最新バージョンを返すこと', () async {
       await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'E1'),
         const NewEvent(streamId: 's1', eventType: 'E2'),
@@ -142,11 +142,11 @@ void main() {
       snapStore = InMemorySnapshotStore();
     });
 
-    test('returns null for nonexistent snapshot', () async {
+    test('存在しないスナップショットに対してnullを返すこと', () async {
       expect(await snapStore.loadSnapshot('nope'), isNull);
     });
 
-    test('saves and loads snapshot', () async {
+    test('スナップショットを保存してロードできること', () async {
       final snap = Snapshot(
         streamId: 's1',
         version: 5,
@@ -160,7 +160,7 @@ void main() {
       expect(loaded.streamId, equals('s1'));
     });
 
-    test('overwrites existing snapshot', () async {
+    test('既存のスナップショットを上書きできること', () async {
       await snapStore.saveSnapshot(Snapshot(
         streamId: 's1',
         version: 3,

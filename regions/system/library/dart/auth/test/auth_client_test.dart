@@ -79,7 +79,7 @@ void main() {
 
   group('AuthClient', () {
     group('login', () {
-      test('should redirect to the authorization endpoint with PKCE params',
+      test('PKCE パラメータ付きで認可エンドポイントにリダイレクトすること',
           () async {
         final client = createClient();
         await client.login();
@@ -100,7 +100,7 @@ void main() {
         expect(uri.queryParameters['state'], equals('mock-state-value'));
       });
 
-      test('should store code_verifier and state', () async {
+      test('code_verifier と state を保存すること', () async {
         final client = createClient();
         await client.login();
 
@@ -109,7 +109,7 @@ void main() {
         expect(tokenStore.getState(), equals('mock-state-value'));
       });
 
-      test('should fetch the OIDC discovery document', () async {
+      test('OIDC ディスカバリドキュメントを取得すること', () async {
         final client = createClient();
         await client.login();
 
@@ -118,7 +118,7 @@ void main() {
     });
 
     group('handleCallback', () {
-      test('should exchange code for tokens', () async {
+      test('コードをトークンに交換すること', () async {
         final client = createClient();
         await client.login();
 
@@ -131,7 +131,7 @@ void main() {
         expect(tokenSet.isValid, isTrue);
       });
 
-      test('should throw on state mismatch', () async {
+      test('state が一致しない場合に例外をスローすること', () async {
         final client = createClient();
         await client.login();
 
@@ -145,7 +145,7 @@ void main() {
         );
       });
 
-      test('should throw when PKCE verifier is missing', () async {
+      test('PKCE ベリファイアが存在しない場合に例外をスローすること', () async {
         final client = createClient();
         tokenStore.setState('mock-state-value');
         // Don't set code verifier
@@ -160,7 +160,7 @@ void main() {
         );
       });
 
-      test('should throw on token request failure', () async {
+      test('トークンリクエストが失敗した場合に例外をスローすること', () async {
         Future<http.Response> failPost(Uri url,
             {Map<String, String>? headers, Object? body}) async {
           httpPostUrls.add(url.toString());
@@ -180,7 +180,7 @@ void main() {
         );
       });
 
-      test('should notify listeners on successful callback', () async {
+      test('コールバック成功時にリスナーに通知すること', () async {
         final client = createClient();
         final states = <bool>[];
         client.onAuthStateChange(states.add);
@@ -191,7 +191,7 @@ void main() {
         expect(states, contains(true));
       });
 
-      test('should clear code verifier and state after successful callback',
+      test('コールバック成功後に code verifier と state をクリアすること',
           () async {
         final client = createClient();
         await client.login();
@@ -201,7 +201,7 @@ void main() {
         expect(tokenStore.getState(), isNull);
       });
 
-      test('should store the token set', () async {
+      test('トークンセットを保存すること', () async {
         final client = createClient();
         await client.login();
         await client.handleCallback('code', 'mock-state-value');
@@ -213,7 +213,7 @@ void main() {
     });
 
     group('getAccessToken', () {
-      test('should return the access token when valid', () async {
+      test('有効なアクセストークンを返すこと', () async {
         tokenStore.setTokenSet(TokenSet(
           accessToken: 'valid-token',
           refreshToken: 'refresh-token',
@@ -226,7 +226,7 @@ void main() {
         expect(token, equals('valid-token'));
       });
 
-      test('should throw when not authenticated', () async {
+      test('未認証の場合に例外をスローすること', () async {
         final client = createClient();
         expect(
           client.getAccessToken,
@@ -238,7 +238,7 @@ void main() {
         );
       });
 
-      test('should auto-refresh when token expires within 60 seconds',
+      test('トークンの有効期限が 60 秒以内の場合に自動リフレッシュすること',
           () async {
         tokenStore.setTokenSet(TokenSet(
           accessToken: 'expiring-token',
@@ -262,7 +262,7 @@ void main() {
     });
 
     group('refreshToken', () {
-      test('should exchange refresh token for new tokens', () async {
+      test('リフレッシュトークンを新しいトークンと交換すること', () async {
         tokenStore.setTokenSet(TokenSet(
           accessToken: 'old-access',
           refreshToken: 'old-refresh',
@@ -278,7 +278,7 @@ void main() {
         expect(newTokenSet.refreshToken, equals('mock-refresh-token'));
       });
 
-      test('should throw when no refresh token is available', () async {
+      test('リフレッシュトークンが存在しない場合に例外をスローすること', () async {
         final client = createClient();
         expect(
           client.refreshToken,
@@ -286,7 +286,7 @@ void main() {
         );
       });
 
-      test('should clear tokens and notify listeners on refresh failure',
+      test('リフレッシュ失敗時にトークンをクリアしてリスナーに通知すること',
           () async {
         tokenStore.setTokenSet(TokenSet(
           accessToken: 'access',
@@ -317,12 +317,12 @@ void main() {
     });
 
     group('isAuthenticated', () {
-      test('should return false when no token set', () {
+      test('トークンセットが存在しない場合に false を返すこと', () {
         final client = createClient();
         expect(client.isAuthenticated, isFalse);
       });
 
-      test('should return true when token is valid', () {
+      test('トークンが有効な場合に true を返すこと', () {
         tokenStore.setTokenSet(TokenSet(
           accessToken: 'token',
           refreshToken: 'refresh',
@@ -333,7 +333,7 @@ void main() {
         expect(client.isAuthenticated, isTrue);
       });
 
-      test('should return false when token has expired', () {
+      test('トークンが期限切れの場合に false を返すこと', () {
         tokenStore.setTokenSet(TokenSet(
           accessToken: 'token',
           refreshToken: 'refresh',
@@ -346,7 +346,7 @@ void main() {
     });
 
     group('logout', () {
-      test('should clear tokens', () async {
+      test('トークンをクリアすること', () async {
         tokenStore.setTokenSet(TokenSet(
           accessToken: 'token',
           refreshToken: 'refresh',
@@ -359,7 +359,7 @@ void main() {
         expect(tokenStore.getTokenSet(), isNull);
       });
 
-      test('should notify listeners', () async {
+      test('リスナーに通知すること', () async {
         tokenStore.setTokenSet(TokenSet(
           accessToken: 'token',
           refreshToken: 'refresh',
@@ -375,7 +375,7 @@ void main() {
       });
 
       test(
-          'should redirect to end_session_endpoint with id_token_hint',
+          'id_token_hint 付きで end_session_endpoint にリダイレクトすること',
           () async {
         tokenStore.setTokenSet(TokenSet(
           accessToken: 'token',
@@ -403,7 +403,7 @@ void main() {
         );
       });
 
-      test('should not redirect when no token set exists', () async {
+      test('トークンセットが存在しない場合はリダイレクトしないこと', () async {
         final client = createClient();
         await client.logout();
 
@@ -412,7 +412,7 @@ void main() {
     });
 
     group('onAuthStateChange', () {
-      test('should register and notify a listener', () async {
+      test('リスナーを登録して通知すること', () async {
         final client = createClient();
         final states = <bool>[];
         client.onAuthStateChange(states.add);
@@ -423,7 +423,7 @@ void main() {
         expect(states, contains(true));
       });
 
-      test('should return an unsubscribe function', () async {
+      test('購読解除関数を返すこと', () async {
         final client = createClient();
         final states = <bool>[];
         final unsubscribe =
@@ -437,7 +437,7 @@ void main() {
         expect(states, isEmpty);
       });
 
-      test('should support multiple listeners', () async {
+      test('複数のリスナーをサポートすること', () async {
         final client = createClient();
         final states1 = <bool>[];
         final states2 = <bool>[];
@@ -453,12 +453,12 @@ void main() {
     });
 
     group('getTokenSet', () {
-      test('should return null when no tokens', () {
+      test('トークンが存在しない場合に null を返すこと', () {
         final client = createClient();
         expect(client.getTokenSet(), isNull);
       });
 
-      test('should return stored token set', () {
+      test('保存されたトークンセットを返すこと', () {
         final ts = TokenSet(
           accessToken: 'a',
           refreshToken: 'r',
@@ -474,7 +474,7 @@ void main() {
     });
 
     group('getAuthorizationUrl', () {
-      test('should return the authorization URL without redirecting', () async {
+      test('リダイレクトせずに認可 URL を返すこと', () async {
         final client = createClient();
         final url = await client.getAuthorizationUrl();
 
@@ -490,7 +490,7 @@ void main() {
     });
 
     group('discovery caching', () {
-      test('should cache the discovery document', () async {
+      test('ディスカバリドキュメントをキャッシュすること', () async {
         final client = createClient();
         await client.login();
         redirectedUrl = null;
@@ -504,7 +504,7 @@ void main() {
     });
 
     group('AuthError', () {
-      test('should have the correct message', () {
+      test('正しいメッセージを持つこと', () {
         final error = AuthError('test error');
         expect(error.message, equals('test error'));
         expect(error.toString(), equals('AuthError: test error'));
@@ -513,7 +513,7 @@ void main() {
   });
 
   group('TokenSet', () {
-    test('isValid should return true for future expiry', () {
+    test('有効期限が未来の場合に isValid が true を返すこと', () {
       final ts = TokenSet(
         accessToken: 'a',
         refreshToken: 'r',
@@ -523,7 +523,7 @@ void main() {
       expect(ts.isValid, isTrue);
     });
 
-    test('isValid should return false for past expiry', () {
+    test('有効期限が過去の場合に isValid が false を返すこと', () {
       final ts = TokenSet(
         accessToken: 'a',
         refreshToken: 'r',
@@ -533,7 +533,7 @@ void main() {
       expect(ts.isValid, isFalse);
     });
 
-    test('isExpiringSoon should return true within threshold', () {
+    test('閾値内の場合に isExpiringSoon が true を返すこと', () {
       final ts = TokenSet(
         accessToken: 'a',
         refreshToken: 'r',
@@ -543,7 +543,7 @@ void main() {
       expect(ts.isExpiringSoon(), isTrue);
     });
 
-    test('isExpiringSoon should return false outside threshold', () {
+    test('閾値外の場合に isExpiringSoon が false を返すこと', () {
       final ts = TokenSet(
         accessToken: 'a',
         refreshToken: 'r',
@@ -553,7 +553,7 @@ void main() {
       expect(ts.isExpiringSoon(), isFalse);
     });
 
-    test('toJson and fromJson should round-trip', () {
+    test('toJson と fromJson でラウンドトリップできること', () {
       final ts = TokenSet(
         accessToken: 'access',
         refreshToken: 'refresh',
@@ -570,7 +570,7 @@ void main() {
   });
 
   group('MemoryTokenStore', () {
-    test('should store and retrieve token set', () {
+    test('トークンセットを保存・取得できること', () {
       final store = MemoryTokenStore();
       final ts = TokenSet(
         accessToken: 'a',
@@ -582,7 +582,7 @@ void main() {
       expect(store.getTokenSet()?.accessToken, equals('a'));
     });
 
-    test('should clear token set', () {
+    test('トークンセットをクリアできること', () {
       final store = MemoryTokenStore();
       store.setTokenSet(TokenSet(
         accessToken: 'a',
@@ -594,19 +594,19 @@ void main() {
       expect(store.getTokenSet(), isNull);
     });
 
-    test('should store and retrieve code verifier', () {
+    test('code verifier を保存・取得できること', () {
       final store = MemoryTokenStore();
       store.setCodeVerifier('test-verifier');
       expect(store.getCodeVerifier(), equals('test-verifier'));
     });
 
-    test('should store and retrieve state', () {
+    test('state を保存・取得できること', () {
       final store = MemoryTokenStore();
       store.setState('test-state');
       expect(store.getState(), equals('test-state'));
     });
 
-    test('clearAll should clear everything', () {
+    test('clearAll で全データをクリアすること', () {
       final store = MemoryTokenStore();
       store.setTokenSet(TokenSet(
         accessToken: 'a',

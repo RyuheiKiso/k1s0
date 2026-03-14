@@ -262,6 +262,7 @@ mod tests {
         }
     }
 
+    // K1s0App のビルドが成功して K1s0AppReady が返されることを確認する。
     #[test]
     fn test_build_returns_ready() {
         let app = K1s0App::new(test_telemetry_config("test-server"))
@@ -271,6 +272,7 @@ mod tests {
         assert_eq!(app.service_name(), "test-server");
     }
 
+    // 追加したヘルスチェックが health_checker に登録されることを確認する。
     #[tokio::test]
     async fn test_health_checks_added() {
         let app = K1s0App::new(test_telemetry_config("test-server"))
@@ -282,6 +284,7 @@ mod tests {
         assert!(resp.checks.contains_key("always-healthy"));
     }
 
+    // wrap 後に /healthz エンドポイントが200を返すことを確認する。
     #[tokio::test]
     async fn test_wrap_adds_healthz() {
         let app = K1s0App::new(test_telemetry_config("test-server"))
@@ -299,6 +302,7 @@ mod tests {
         assert_eq!(resp.status(), http::StatusCode::OK);
     }
 
+    // wrap 後に /metrics エンドポイントが200を返すことを確認する。
     #[tokio::test]
     async fn test_wrap_adds_metrics() {
         let app = K1s0App::new(test_telemetry_config("test-server"))
@@ -316,6 +320,7 @@ mod tests {
         assert_eq!(resp.status(), http::StatusCode::OK);
     }
 
+    // 環境名から Profile が自動検出されることを確認する。
     #[test]
     fn test_profile_auto_detected() {
         let cfg = TelemetryConfig {
@@ -327,6 +332,7 @@ mod tests {
         assert_eq!(app.profile(), &Profile::Prod);
     }
 
+    // 明示的に指定した Profile が環境変数由来の値を上書きすることを確認する。
     #[test]
     fn test_profile_explicit_overrides_env() {
         let cfg = TelemetryConfig {
@@ -341,6 +347,7 @@ mod tests {
         assert_eq!(app.profile(), &Profile::Dev);
     }
 
+    // without_correlation と without_request_id を指定したとき対応するヘッダーが付与されないことを確認する。
     #[tokio::test]
     async fn test_without_options_propagate() {
         let app = K1s0App::new(test_telemetry_config("test-server"))

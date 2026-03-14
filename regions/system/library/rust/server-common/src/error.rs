@@ -894,18 +894,21 @@ pub mod featureflag {
 mod tests {
     use super::*;
 
+    // not_found エラーコードが正しい文字列を生成することを確認する。
     #[test]
     fn test_error_code_not_found() {
         let code = ErrorCode::not_found("CONFIG");
         assert_eq!(code.as_str(), "SYS_CONFIG_NOT_FOUND");
     }
 
+    // validation エラーコードが正しい文字列を生成することを確認する。
     #[test]
     fn test_error_code_validation() {
         let code = ErrorCode::validation("DLQ");
         assert_eq!(code.as_str(), "SYS_DLQ_VALIDATION_FAILED");
     }
 
+    // BIZ_ および SVC_ プレフィックスのエラーコードヘルパーが正しい文字列を生成することを確認する。
     #[test]
     fn test_error_code_biz_and_svc_helpers() {
         assert_eq!(
@@ -926,12 +929,14 @@ mod tests {
         );
     }
 
+    // &str から ErrorCode への変換が正しく機能することを確認する。
     #[test]
     fn test_error_code_from_str() {
         let code = ErrorCode::from("SYS_AUTH_MISSING_CLAIMS");
         assert_eq!(code.as_str(), "SYS_AUTH_MISSING_CLAIMS");
     }
 
+    // ErrorResponse::new でコード・メッセージ・request_id が正しく設定されることを確認する。
     #[test]
     fn test_error_response_new() {
         let resp = ErrorResponse::new("SYS_CONFIG_KEY_NOT_FOUND", "config key not found");
@@ -941,6 +946,7 @@ mod tests {
         assert!(resp.error.details.is_empty());
     }
 
+    // ErrorResponse::with_details で詳細情報が正しく設定されることを確認する。
     #[test]
     fn test_error_response_with_details() {
         let details = vec![
@@ -958,6 +964,7 @@ mod tests {
         assert_eq!(resp.error.details[0].message, "must not be empty");
     }
 
+    // ServiceError::not_found の ErrorResponse 変換でコードが正しいことを確認する。
     #[test]
     fn test_service_error_not_found() {
         let err = ServiceError::not_found("CONFIG", "key 'system.auth/jwt_secret' not found");
@@ -965,6 +972,7 @@ mod tests {
         assert_eq!(resp.error.code.as_str(), "SYS_CONFIG_NOT_FOUND");
     }
 
+    // ServiceError::bad_request_with_details の ErrorResponse 変換で詳細が含まれることを確認する。
     #[test]
     fn test_service_error_bad_request_with_details() {
         let details = vec![ErrorDetail::new("page", "range", "must be >= 1")];
@@ -976,6 +984,7 @@ mod tests {
         assert_eq!(resp.error.details[0].message, "must be >= 1");
     }
 
+    // Auth サービスの既知エラーコードが正しい文字列を返すことを確認する。
     #[test]
     fn test_well_known_auth_codes() {
         assert_eq!(auth::missing_claims().as_str(), "SYS_AUTH_MISSING_CLAIMS");
@@ -990,6 +999,7 @@ mod tests {
         );
     }
 
+    // Config サービスの既知エラーコードが正しい文字列を返すことを確認する。
     #[test]
     fn test_well_known_config_codes() {
         assert_eq!(config::key_not_found().as_str(), "SYS_CONFIG_KEY_NOT_FOUND");
@@ -999,12 +1009,14 @@ mod tests {
         );
     }
 
+    // DLQ サービスの既知エラーコードが正しい文字列を返すことを確認する。
     #[test]
     fn test_well_known_dlq_codes() {
         assert_eq!(dlq::not_found().as_str(), "SYS_DLQ_NOT_FOUND");
         assert_eq!(dlq::process_failed().as_str(), "SYS_DLQ_PROCESS_FAILED");
     }
 
+    // API Registry サービスの既知エラーコードが正しい文字列を返すことを確認する。
     #[test]
     fn test_well_known_api_registry_codes() {
         assert_eq!(api_registry::not_found().as_str(), "SYS_APIREG_NOT_FOUND");
@@ -1015,6 +1027,7 @@ mod tests {
         );
     }
 
+    // ErrorResponse の JSON シリアライズで envelope 構造と各フィールドが正しいことを確認する。
     #[test]
     fn test_error_response_serialization() {
         let resp = ErrorResponse::new("SYS_CONFIG_KEY_NOT_FOUND", "not found");
@@ -1026,6 +1039,7 @@ mod tests {
         assert!(json["error"].get("details").is_none());
     }
 
+    // 詳細情報付き ErrorResponse の JSON シリアライズで details が正しく出力されることを確認する。
     #[test]
     fn test_error_response_with_details_serialization() {
         let details = vec![ErrorDetail::new("field1", "invalid", "error1")];
@@ -1038,6 +1052,7 @@ mod tests {
         assert_eq!(json["error"]["details"][0]["message"], "error1");
     }
 
+    // unprocessable_entity・too_many_requests・service_unavailable の ErrorResponse 変換が正しいことを確認する。
     #[test]
     fn test_new_service_error_variants() {
         let err = ServiceError::unprocessable_entity("ACCT", "ledger is closed");
@@ -1053,12 +1068,14 @@ mod tests {
         assert_eq!(resp.error.code.as_str(), "SYS_AUTH_SERVICE_UNAVAILABLE");
     }
 
+    // Tenant サービスの既知エラーコードが正しい文字列を返すことを確認する。
     #[test]
     fn test_well_known_tenant_codes() {
         assert_eq!(tenant::not_found().as_str(), "SYS_TENANT_NOT_FOUND");
         assert_eq!(tenant::name_conflict().as_str(), "SYS_TENANT_NAME_CONFLICT");
     }
 
+    // Session サービスの既知エラーコードが正しい文字列を返すことを確認する。
     #[test]
     fn test_well_known_session_codes() {
         assert_eq!(session::not_found().as_str(), "SYS_SESSION_NOT_FOUND");

@@ -6,12 +6,14 @@ use k1s0_websocket::{
 // Connection state transition tests
 // ===========================================================================
 
+// 新規クライアントの初期状態が Disconnected であることを確認する。
 #[tokio::test]
 async fn initial_state_is_disconnected() {
     let client = InMemoryWsClient::new();
     assert_eq!(client.state(), ConnectionState::Disconnected);
 }
 
+// connect 呼び出し後に状態が Connected に遷移することを確認する。
 #[tokio::test]
 async fn connect_transitions_to_connected() {
     let mut client = InMemoryWsClient::new();
@@ -19,6 +21,7 @@ async fn connect_transitions_to_connected() {
     assert_eq!(client.state(), ConnectionState::Connected);
 }
 
+// disconnect 呼び出し後に状態が Disconnected に遷移することを確認する。
 #[tokio::test]
 async fn disconnect_transitions_to_disconnected() {
     let mut client = InMemoryWsClient::new();
@@ -27,6 +30,7 @@ async fn disconnect_transitions_to_disconnected() {
     assert_eq!(client.state(), ConnectionState::Disconnected);
 }
 
+// 接続済み状態で再接続すると AlreadyConnected エラーが返されることを確認する。
 #[tokio::test]
 async fn connect_when_already_connected_returns_error() {
     let mut client = InMemoryWsClient::new();
@@ -37,6 +41,7 @@ async fn connect_when_already_connected_returns_error() {
     assert_eq!(client.state(), ConnectionState::Connected);
 }
 
+// 未接続状態で切断すると NotConnected エラーが返されることを確認する。
 #[tokio::test]
 async fn disconnect_when_not_connected_returns_error() {
     let mut client = InMemoryWsClient::new();
@@ -45,6 +50,7 @@ async fn disconnect_when_not_connected_returns_error() {
     assert_eq!(client.state(), ConnectionState::Disconnected);
 }
 
+// 切断後に再接続すると Connected 状態に戻ることを確認する。
 #[tokio::test]
 async fn reconnect_after_disconnect() {
     let mut client = InMemoryWsClient::new();
@@ -58,6 +64,7 @@ async fn reconnect_after_disconnect() {
 // Send / Receive tests
 // ===========================================================================
 
+// テキストメッセージを送信し送信バッファに正しく記録されることを確認する。
 #[tokio::test]
 async fn send_text_message() {
     let mut client = InMemoryWsClient::new();
@@ -72,6 +79,7 @@ async fn send_text_message() {
     assert_eq!(sent, WsMessage::Text("hello".to_string()));
 }
 
+// バイナリメッセージを送信し送信バッファに正しく記録されることを確認する。
 #[tokio::test]
 async fn send_binary_message() {
     let mut client = InMemoryWsClient::new();
@@ -87,6 +95,7 @@ async fn send_binary_message() {
     assert_eq!(sent, WsMessage::Binary(data));
 }
 
+// 受信バッファに追加したテキストメッセージが正しく受信できることを確認する。
 #[tokio::test]
 async fn receive_text_message() {
     let mut client = InMemoryWsClient::new();
@@ -100,6 +109,7 @@ async fn receive_text_message() {
     assert_eq!(msg, WsMessage::Text("world".to_string()));
 }
 
+// 受信バッファに追加したバイナリメッセージが正しく受信できることを確認する。
 #[tokio::test]
 async fn receive_binary_message() {
     let mut client = InMemoryWsClient::new();
@@ -112,6 +122,7 @@ async fn receive_binary_message() {
     assert_eq!(msg, WsMessage::Binary(data));
 }
 
+// 複数のメッセージを送信した場合に FIFO 順で取得できることを確認する。
 #[tokio::test]
 async fn send_and_receive_multiple_messages_in_order() {
     let mut client = InMemoryWsClient::new();
@@ -135,6 +146,7 @@ async fn send_and_receive_multiple_messages_in_order() {
     assert!(client.pop_sent().await.is_none());
 }
 
+// 複数のメッセージを受信バッファに追加した場合に FIFO 順で受信できることを確認する。
 #[tokio::test]
 async fn receive_multiple_messages_in_order() {
     let mut client = InMemoryWsClient::new();
@@ -156,12 +168,14 @@ async fn receive_multiple_messages_in_order() {
 // Buffer behavior tests
 // ===========================================================================
 
+// 初期状態では送信バッファが空であることを確認する。
 #[tokio::test]
 async fn send_buffer_starts_empty() {
     let client = InMemoryWsClient::new();
     assert!(client.pop_sent().await.is_none());
 }
 
+// 受信バッファが空のときに receive がエラーを返すことを確認する。
 #[tokio::test]
 async fn receive_empty_buffer_returns_error() {
     let mut client = InMemoryWsClient::new();
@@ -171,6 +185,7 @@ async fn receive_empty_buffer_returns_error() {
     assert!(matches!(result, Err(WsError::ReceiveError(_))));
 }
 
+// 1 件のメッセージ受信後はバッファが空になり次の receive がエラーになることを確認する。
 #[tokio::test]
 async fn buffer_drains_correctly() {
     let mut client = InMemoryWsClient::new();
@@ -193,6 +208,7 @@ async fn buffer_drains_correctly() {
 // Error cases
 // ===========================================================================
 
+// 未接続状態で送信すると NotConnected エラーが返されることを確認する。
 #[tokio::test]
 async fn send_when_disconnected_returns_error() {
     let client = InMemoryWsClient::new();
@@ -200,6 +216,7 @@ async fn send_when_disconnected_returns_error() {
     assert!(matches!(result, Err(WsError::NotConnected)));
 }
 
+// 未接続状態で受信すると NotConnected エラーが返されることを確認する。
 #[tokio::test]
 async fn receive_when_disconnected_returns_error() {
     let client = InMemoryWsClient::new();
@@ -207,6 +224,7 @@ async fn receive_when_disconnected_returns_error() {
     assert!(matches!(result, Err(WsError::NotConnected)));
 }
 
+// 切断後に送信すると NotConnected エラーが返されることを確認する。
 #[tokio::test]
 async fn send_after_disconnect_returns_error() {
     let mut client = InMemoryWsClient::new();
@@ -217,6 +235,7 @@ async fn send_after_disconnect_returns_error() {
     assert!(matches!(result, Err(WsError::NotConnected)));
 }
 
+// バッファにメッセージがあっても切断後は NotConnected エラーが返されることを確認する。
 #[tokio::test]
 async fn receive_after_disconnect_returns_error() {
     let mut client = InMemoryWsClient::new();
@@ -236,6 +255,7 @@ async fn receive_after_disconnect_returns_error() {
 // Close frame handling tests
 // ===========================================================================
 
+// 理由付きクローズフレームを送信し正しいコードと理由が記録されることを確認する。
 #[tokio::test]
 async fn send_close_frame_with_reason() {
     let mut client = InMemoryWsClient::new();
@@ -256,6 +276,7 @@ async fn send_close_frame_with_reason() {
     }
 }
 
+// 理由なしのクローズフレームを送信し None として記録されることを確認する。
 #[tokio::test]
 async fn send_close_frame_without_reason() {
     let mut client = InMemoryWsClient::new();
@@ -267,6 +288,7 @@ async fn send_close_frame_without_reason() {
     assert_eq!(sent, WsMessage::Close(None));
 }
 
+// クローズフレームを受信バッファに追加し正しく受信できることを確認する。
 #[tokio::test]
 async fn receive_close_frame() {
     let mut client = InMemoryWsClient::new();
@@ -292,6 +314,7 @@ async fn receive_close_frame() {
 // Ping / Pong tests
 // ===========================================================================
 
+// Ping メッセージを送信し送信バッファに正しく記録されることを確認する。
 #[tokio::test]
 async fn send_ping_message() {
     let mut client = InMemoryWsClient::new();
@@ -306,6 +329,7 @@ async fn send_ping_message() {
     assert_eq!(sent, WsMessage::Ping(vec![1, 2, 3]));
 }
 
+// Pong メッセージを受信バッファに追加し正しく受信できることを確認する。
 #[tokio::test]
 async fn receive_pong_message() {
     let mut client = InMemoryWsClient::new();
@@ -323,6 +347,7 @@ async fn receive_pong_message() {
 // WsConfig tests
 // ===========================================================================
 
+// WsConfig のデフォルト値が正しく設定されていることを確認する。
 #[test]
 fn config_default_values() {
     let config = WsConfig::default();
@@ -333,6 +358,7 @@ fn config_default_values() {
     assert!(config.ping_interval_ms.is_none());
 }
 
+// WsConfig::new で URL が正しく設定され他のフィールドがデフォルト値であることを確認する。
 #[test]
 fn config_new_with_url() {
     let config = WsConfig::new("wss://example.com/ws");
@@ -342,6 +368,7 @@ fn config_new_with_url() {
     assert_eq!(config.max_reconnect_attempts, 5);
 }
 
+// メソッドチェーンで設定した全 WsConfig フィールドが正しく反映されることを確認する。
 #[test]
 fn config_builder_chain() {
     let config = WsConfig::new("ws://test.local")
@@ -357,6 +384,7 @@ fn config_builder_chain() {
     assert_eq!(config.ping_interval_ms, Some(15000));
 }
 
+// String 型の URL を WsConfig::new に渡せることを確認する。
 #[test]
 fn config_accepts_string_type() {
     let url = String::from("ws://from-string");
@@ -368,6 +396,7 @@ fn config_accepts_string_type() {
 // WsMessage tests
 // ===========================================================================
 
+// 同じテキストを持つ WsMessage が等しいことを確認する。
 #[test]
 fn message_text_equality() {
     let a = WsMessage::Text("same".to_string());
@@ -375,6 +404,7 @@ fn message_text_equality() {
     assert_eq!(a, b);
 }
 
+// 異なるテキストを持つ WsMessage が不等であることを確認する。
 #[test]
 fn message_text_inequality() {
     let a = WsMessage::Text("hello".to_string());
@@ -382,6 +412,7 @@ fn message_text_inequality() {
     assert_ne!(a, b);
 }
 
+// 同じバイト列を持つバイナリメッセージが等しいことを確認する。
 #[test]
 fn message_binary_equality() {
     let a = WsMessage::Binary(vec![1, 2, 3]);
@@ -389,6 +420,7 @@ fn message_binary_equality() {
     assert_eq!(a, b);
 }
 
+// 異なるバリアントの WsMessage が不等であることを確認する。
 #[test]
 fn message_different_variants_not_equal() {
     let text = WsMessage::Text("hello".to_string());
@@ -396,6 +428,7 @@ fn message_different_variants_not_equal() {
     assert_ne!(text, binary);
 }
 
+// WsMessage のクローンが元と等しいことを確認する。
 #[test]
 fn message_clone() {
     let original = WsMessage::Text("clone me".to_string());
@@ -403,6 +436,7 @@ fn message_clone() {
     assert_eq!(original, cloned);
 }
 
+// 同じコードと理由を持つ CloseFrame が等しいことを確認する。
 #[test]
 fn close_frame_equality() {
     let a = CloseFrame {
@@ -416,6 +450,7 @@ fn close_frame_equality() {
     assert_eq!(a, b);
 }
 
+// コードが異なる CloseFrame が不等であることを確認する。
 #[test]
 fn close_frame_different_codes() {
     let a = CloseFrame {
@@ -433,6 +468,7 @@ fn close_frame_different_codes() {
 // ConnectionState tests
 // ===========================================================================
 
+// 同じ ConnectionState が等しいことを確認する。
 #[test]
 fn connection_state_equality() {
     assert_eq!(ConnectionState::Connected, ConnectionState::Connected);
@@ -442,12 +478,14 @@ fn connection_state_equality() {
     );
 }
 
+// 異なる ConnectionState が不等であることを確認する。
 #[test]
 fn connection_state_inequality() {
     assert_ne!(ConnectionState::Connected, ConnectionState::Disconnected);
     assert_ne!(ConnectionState::Connecting, ConnectionState::Reconnecting);
 }
 
+// 全 ConnectionState バリアントが Debug トレイトを実装し空でない文字列を返すことを確認する。
 #[test]
 fn connection_state_all_variants_debug() {
     // Ensure all variants exist and have Debug
@@ -464,6 +502,7 @@ fn connection_state_all_variants_debug() {
     }
 }
 
+// ConnectionState が Copy トレイトを実装していることを確認する。
 #[test]
 fn connection_state_copy() {
     let state = ConnectionState::Connected;
@@ -475,6 +514,7 @@ fn connection_state_copy() {
 // WsError tests
 // ===========================================================================
 
+// 各 WsError バリアントの表示メッセージが正しいことを確認する。
 #[test]
 fn error_display_messages() {
     let err = WsError::ConnectionError("refused".to_string());
@@ -496,6 +536,7 @@ fn error_display_messages() {
     assert_eq!(format!("{}", err), "closed: bye");
 }
 
+// WsError の Debug フォーマットにバリアント名が含まれることを確認する。
 #[test]
 fn error_debug_format() {
     let err = WsError::NotConnected;
@@ -507,6 +548,7 @@ fn error_debug_format() {
 // Default trait tests
 // ===========================================================================
 
+// InMemoryWsClient::default が初期状態 Disconnected で生成されることを確認する。
 #[test]
 fn in_memory_ws_client_default() {
     let client = InMemoryWsClient::default();

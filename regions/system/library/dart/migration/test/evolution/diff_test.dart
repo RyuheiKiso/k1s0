@@ -11,7 +11,7 @@ Table makeTable(String name, List<Column> columns) {
 
 void main() {
   group('diffSchemas', () {
-    test('detects table added', () {
+    test('テーブルの追加が検出されること', () {
       final oldSchema = Schema(tables: []);
       final newSchema = Schema(tables: [
         makeTable('users', [makeColumn('id', 'UUID', false)]),
@@ -22,7 +22,7 @@ void main() {
       expect((diffs[0] as TableAddedDiff).table.name, 'users');
     });
 
-    test('detects table dropped', () {
+    test('テーブルの削除が検出されること', () {
       final oldSchema = Schema(tables: [
         makeTable('users', [makeColumn('id', 'UUID', false)]),
       ]);
@@ -33,7 +33,7 @@ void main() {
       expect((diffs[0] as TableDroppedDiff).tableName, 'users');
     });
 
-    test('detects column added', () {
+    test('カラムの追加が検出されること', () {
       final oldSchema = Schema(tables: [
         makeTable('users', [makeColumn('id', 'UUID', false)]),
       ]);
@@ -51,7 +51,7 @@ void main() {
       expect(diff.column.name, 'email');
     });
 
-    test('detects column dropped', () {
+    test('カラムの削除が検出されること', () {
       final oldSchema = Schema(tables: [
         makeTable('users', [
           makeColumn('id', 'UUID', false),
@@ -69,7 +69,7 @@ void main() {
       expect(diff.columnName, 'email');
     });
 
-    test('detects column changed', () {
+    test('カラムの変更が検出されること', () {
       final oldSchema = Schema(tables: [
         makeTable('users', [makeColumn('name', 'TEXT', true)]),
       ]);
@@ -86,7 +86,7 @@ void main() {
       expect(diff.to.dataType, 'VARCHAR');
     });
 
-    test('no changes for identical schemas', () {
+    test('同一スキーマの場合に差分がないこと', () {
       final schema = Schema(tables: [
         makeTable('users', [makeColumn('id', 'UUID', false)]),
       ]);

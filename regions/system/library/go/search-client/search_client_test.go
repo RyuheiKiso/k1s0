@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// CreateIndexが新しい検索インデックスを正常に作成することを確認する。
 func TestCreateIndex(t *testing.T) {
 	c := searchclient.NewInMemorySearchClient()
 	ctx := context.Background()
@@ -17,6 +18,7 @@ func TestCreateIndex(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// IndexDocumentがドキュメントを検索インデックスに正常に登録し、IDとバージョンを返すことを確認する。
 func TestIndexDocument(t *testing.T) {
 	c := searchclient.NewInMemorySearchClient()
 	ctx := context.Background()
@@ -32,6 +34,7 @@ func TestIndexDocument(t *testing.T) {
 	assert.Equal(t, int64(1), result.Version)
 }
 
+// 存在しないインデックスにドキュメントを登録しようとした際にエラーが返ることを確認する。
 func TestIndexDocument_IndexNotFound(t *testing.T) {
 	c := searchclient.NewInMemorySearchClient()
 	ctx := context.Background()
@@ -40,6 +43,7 @@ func TestIndexDocument_IndexNotFound(t *testing.T) {
 	require.Error(t, err)
 }
 
+// BulkIndexが複数のドキュメントを一括登録し、成功件数と失敗件数を正しく返すことを確認する。
 func TestBulkIndex(t *testing.T) {
 	c := searchclient.NewInMemorySearchClient()
 	ctx := context.Background()
@@ -57,6 +61,7 @@ func TestBulkIndex(t *testing.T) {
 	assert.Empty(t, result.Failures)
 }
 
+// Searchがクエリに一致するドキュメントを返し、ファセット情報も含めて返すことを確認する。
 func TestSearch(t *testing.T) {
 	c := searchclient.NewInMemorySearchClient()
 	ctx := context.Background()
@@ -83,6 +88,7 @@ func TestSearch(t *testing.T) {
 	assert.Contains(t, result.Facets, "category")
 }
 
+// 存在しないインデックスに対してSearchを呼び出した際にエラーが返ることを確認する。
 func TestSearch_IndexNotFound(t *testing.T) {
 	c := searchclient.NewInMemorySearchClient()
 	ctx := context.Background()
@@ -90,6 +96,7 @@ func TestSearch_IndexNotFound(t *testing.T) {
 	require.Error(t, err)
 }
 
+// DeleteDocumentがインデックスから指定したドキュメントを正常に削除することを確認する。
 func TestDeleteDocument(t *testing.T) {
 	c := searchclient.NewInMemorySearchClient()
 	ctx := context.Background()
@@ -103,6 +110,7 @@ func TestDeleteDocument(t *testing.T) {
 	assert.Equal(t, 0, c.DocumentCount("products"))
 }
 
+// 空のクエリでSearchを呼び出した際にインデックス内の全ドキュメントが返ることを確認する。
 func TestSearch_EmptyQuery(t *testing.T) {
 	c := searchclient.NewInMemorySearchClient()
 	ctx := context.Background()
@@ -116,6 +124,7 @@ func TestSearch_EmptyQuery(t *testing.T) {
 	assert.Equal(t, uint64(1), result.Total)
 }
 
+// IndexMappingのWithFieldメソッドがフィールド定義を正しく追加することを確認する。
 func TestIndexMapping_WithField(t *testing.T) {
 	m := searchclient.NewIndexMapping().
 		WithField("name", "text").

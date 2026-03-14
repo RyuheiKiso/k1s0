@@ -226,11 +226,13 @@ impl SearchClient for GrpcSearchClient {
 mod tests {
     use super::*;
 
+    // スキームなしのアドレスに http:// が付与されることを確認する。
     #[test]
     fn test_normalize_endpoint_adds_scheme() {
         assert_eq!(normalize_endpoint("localhost:8080"), "http://localhost:8080");
     }
 
+    // http:// スキーム付きアドレスがそのまま保持されることを確認する。
     #[test]
     fn test_normalize_endpoint_preserves_http() {
         assert_eq!(
@@ -239,6 +241,7 @@ mod tests {
         );
     }
 
+    // https:// スキーム付きアドレスがそのまま保持されることを確認する。
     #[test]
     fn test_normalize_endpoint_preserves_https() {
         assert_eq!(
@@ -247,6 +250,7 @@ mod tests {
         );
     }
 
+    // 末尾スラッシュが除去されることを確認する。
     #[test]
     fn test_normalize_endpoint_strips_trailing_slash() {
         assert_eq!(
@@ -255,36 +259,42 @@ mod tests {
         );
     }
 
+    // 404ステータスコードが IndexNotFound エラーに変換されることを確認する。
     #[test]
     fn test_parse_search_error_not_found() {
         let err = parse_search_error(404, "index missing");
         assert!(matches!(err, SearchError::IndexNotFound(_)));
     }
 
+    // 400ステータスコードが InvalidQuery エラーに変換されることを確認する。
     #[test]
     fn test_parse_search_error_bad_request() {
         let err = parse_search_error(400, "bad query syntax");
         assert!(matches!(err, SearchError::InvalidQuery(_)));
     }
 
+    // 408ステータスコードが Timeout エラーに変換されることを確認する。
     #[test]
     fn test_parse_search_error_timeout_408() {
         let err = parse_search_error(408, "");
         assert!(matches!(err, SearchError::Timeout));
     }
 
+    // 504ステータスコードが Timeout エラーに変換されることを確認する。
     #[test]
     fn test_parse_search_error_timeout_504() {
         let err = parse_search_error(504, "");
         assert!(matches!(err, SearchError::Timeout));
     }
 
+    // 500ステータスコードが ServerError エラーに変換されることを確認する。
     #[test]
     fn test_parse_search_error_server_error() {
         let err = parse_search_error(500, "internal");
         assert!(matches!(err, SearchError::ServerError(_)));
     }
 
+    // GrpcSearchClient が正しいエンドポイントで生成されることを確認する。
     #[test]
     fn test_new_client() {
         let client = GrpcSearchClient::new("localhost:9200");
@@ -293,6 +303,7 @@ mod tests {
         assert_eq!(client.endpoint, "http://localhost:9200");
     }
 
+    // カスタム HTTP クライアントを使って GrpcSearchClient が生成されることを確認する。
     #[test]
     fn test_with_http_client() {
         let http_client = Client::new();

@@ -17,12 +17,14 @@ func defaultConfig() circuitbreaker.Config {
 	}
 }
 
+// サーキットブレーカーの初期状態がClosedであることを確認する。
 func TestInitialState_Closed(t *testing.T) {
 	cb := circuitbreaker.New(defaultConfig())
 	assert.Equal(t, circuitbreaker.StateClosed, cb.State())
 	assert.False(t, cb.IsOpen())
 }
 
+// 失敗回数がしきい値に達したときにClosedからOpenへ遷移することを確認する。
 func TestClosed_ToOpen_OnFailureThreshold(t *testing.T) {
 	cb := circuitbreaker.New(defaultConfig())
 	for i := 0; i < 3; i++ {
@@ -32,6 +34,7 @@ func TestClosed_ToOpen_OnFailureThreshold(t *testing.T) {
 	assert.True(t, cb.IsOpen())
 }
 
+// タイムアウト経過後にOpenからHalfOpenへ遷移することを確認する。
 func TestOpen_ToHalfOpen_AfterTimeout(t *testing.T) {
 	cfg := defaultConfig()
 	cfg.Timeout = 50 * time.Millisecond
@@ -46,6 +49,7 @@ func TestOpen_ToHalfOpen_AfterTimeout(t *testing.T) {
 	assert.Equal(t, circuitbreaker.StateHalfOpen, cb.State())
 }
 
+// HalfOpen状態で成功回数がしきい値に達したときにClosedへ遷移することを確認する。
 func TestHalfOpen_ToClosed_OnSuccessThreshold(t *testing.T) {
 	cfg := defaultConfig()
 	cfg.Timeout = 50 * time.Millisecond
@@ -62,6 +66,7 @@ func TestHalfOpen_ToClosed_OnSuccessThreshold(t *testing.T) {
 	assert.Equal(t, circuitbreaker.StateClosed, cb.State())
 }
 
+// HalfOpen状態で失敗が発生したときに再びOpenへ遷移することを確認する。
 func TestHalfOpen_ToOpen_OnFailure(t *testing.T) {
 	cfg := defaultConfig()
 	cfg.Timeout = 50 * time.Millisecond
@@ -76,6 +81,7 @@ func TestHalfOpen_ToOpen_OnFailure(t *testing.T) {
 	assert.Equal(t, circuitbreaker.StateOpen, cb.State())
 }
 
+// Open状態でCallを呼んだ場合にErrOpenが返ることを確認する。
 func TestCall_Open_ReturnsErrOpen(t *testing.T) {
 	cb := circuitbreaker.New(defaultConfig())
 	for i := 0; i < 3; i++ {
@@ -85,12 +91,14 @@ func TestCall_Open_ReturnsErrOpen(t *testing.T) {
 	assert.ErrorIs(t, err, circuitbreaker.ErrOpen)
 }
 
+// Closed状態でCallが成功した場合にエラーなしで完了することを確認する。
 func TestCall_Success(t *testing.T) {
 	cb := circuitbreaker.New(defaultConfig())
 	err := cb.Call(func() error { return nil })
 	assert.NoError(t, err)
 }
 
+// Callがエラーを返す関数を実行した場合にそのエラーが伝播することを確認する。
 func TestCall_Failure(t *testing.T) {
 	cb := circuitbreaker.New(defaultConfig())
 	testErr := errors.New("fail")
@@ -98,6 +106,7 @@ func TestCall_Failure(t *testing.T) {
 	assert.ErrorIs(t, err, testErr)
 }
 
+// 成功を記録すると失敗カウントがリセットされ、その後の失敗でOpenにならないことを確認する。
 func TestSuccess_ResetFailureCount(t *testing.T) {
 	cb := circuitbreaker.New(defaultConfig())
 	cb.RecordFailure()

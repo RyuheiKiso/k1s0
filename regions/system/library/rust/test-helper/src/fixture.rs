@@ -43,6 +43,7 @@ impl FixtureBuilder {
 mod tests {
     use super::*;
 
+    // 生成された UUID が 36 文字でハイフンを含む形式であることを確認する。
     #[test]
     fn test_uuid_format() {
         let id = FixtureBuilder::uuid();
@@ -50,6 +51,7 @@ mod tests {
         assert!(id.contains('-'));
     }
 
+    // 生成されたメールアドレスが "@" と "@example.com" を含む形式であることを確認する。
     #[test]
     fn test_email_format() {
         let email = FixtureBuilder::email();
@@ -57,12 +59,14 @@ mod tests {
         assert!(email.ends_with("@example.com"));
     }
 
+    // 生成されたユーザー名が "user-" で始まることを確認する。
     #[test]
     fn test_name_prefix() {
         let name = FixtureBuilder::name();
         assert!(name.starts_with("user-"));
     }
 
+    // 生成された整数が指定した範囲 [10, 20) に収まることを繰り返し確認する。
     #[test]
     fn test_int_range() {
         for _ in 0..100 {
@@ -71,17 +75,20 @@ mod tests {
         }
     }
 
+    // min と max が等しい場合はその値をそのまま返すことを確認する。
     #[test]
     fn test_int_same_min_max() {
         assert_eq!(FixtureBuilder::int(5, 5), 5);
     }
 
+    // 生成されたテナント ID が "tenant-" で始まることを確認する。
     #[test]
     fn test_tenant_id_format() {
         let tid = FixtureBuilder::tenant_id();
         assert!(tid.starts_with("tenant-"));
     }
 
+    // 連続して生成した UUID が互いに異なることを確認する。
     #[test]
     fn test_uniqueness() {
         let a = FixtureBuilder::uuid();

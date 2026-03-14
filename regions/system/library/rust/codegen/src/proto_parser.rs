@@ -126,18 +126,21 @@ message GetAccountResponse {
 }
 "#;
 
+    // proto ファイルからパッケージ名が正しく解析されることを確認する。
     #[test]
     fn parse_package() {
         let svc = parse_proto_content(SAMPLE_PROTO).unwrap();
         assert_eq!(svc.package, "k1s0.business.accounting.v1");
     }
 
+    // proto ファイルからサービス名が正しく解析されることを確認する。
     #[test]
     fn parse_service_name() {
         let svc = parse_proto_content(SAMPLE_PROTO).unwrap();
         assert_eq!(svc.service_name, "AccountingService");
     }
 
+    // proto ファイルから RPC メソッドの一覧が正しく解析されることを確認する。
     #[test]
     fn parse_methods() {
         let svc = parse_proto_content(SAMPLE_PROTO).unwrap();
@@ -148,6 +151,7 @@ message GetAccountResponse {
         assert_eq!(svc.methods[1].name, "GetAccount");
     }
 
+    // proto ファイルからメッセージ定義とフィールドが正しく解析されることを確認する。
     #[test]
     fn parse_messages() {
         let svc = parse_proto_content(SAMPLE_PROTO).unwrap();
@@ -160,6 +164,7 @@ message GetAccountResponse {
         assert_eq!(create_req.fields[0].number, 1);
     }
 
+    // パッケージ宣言がない proto コンテンツを解析した場合にエラーが返されることを確認する。
     #[test]
     fn missing_package_error() {
         let content = "service Foo { rpc Bar(Baz) returns (Qux); }";
@@ -167,6 +172,7 @@ message GetAccountResponse {
         assert!(result.is_err());
     }
 
+    // サービス宣言がない proto コンテンツを解析した場合にエラーが返されることを確認する。
     #[test]
     fn missing_service_error() {
         let content = "package foo.bar;";
@@ -174,6 +180,7 @@ message GetAccountResponse {
         assert!(result.is_err());
     }
 
+    // 最小構成の proto コンテンツが正しく解析されることを確認する。
     #[test]
     fn parse_minimal_proto() {
         let content = r#"
