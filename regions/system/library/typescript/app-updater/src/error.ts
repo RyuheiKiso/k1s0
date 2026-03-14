@@ -1,3 +1,4 @@
+/** アプリアップデーター操作中に発生するエラーの基底クラス */
 export class AppUpdaterError extends Error {
   readonly code: string;
 
@@ -8,6 +9,7 @@ export class AppUpdaterError extends Error {
   }
 }
 
+/** サーバーへの接続エラー */
 export class ConnectionError extends AppUpdaterError {
   constructor(message: string) {
     super(message, 'CONNECTION_ERROR');
@@ -15,6 +17,7 @@ export class ConnectionError extends AppUpdaterError {
   }
 }
 
+/** 設定値が不正な場合のエラー */
 export class InvalidConfigError extends AppUpdaterError {
   constructor(message: string) {
     super(message, 'INVALID_CONFIG');
@@ -22,6 +25,7 @@ export class InvalidConfigError extends AppUpdaterError {
   }
 }
 
+/** レスポンスのパースエラー */
 export class ParseError extends AppUpdaterError {
   constructor(message: string) {
     super(message, 'PARSE_ERROR');
@@ -29,6 +33,7 @@ export class ParseError extends AppUpdaterError {
   }
 }
 
+/** 認証エラー（401） */
 export class UnauthorizedError extends AppUpdaterError {
   constructor(message: string) {
     super(message, 'UNAUTHORIZED');
@@ -36,6 +41,7 @@ export class UnauthorizedError extends AppUpdaterError {
   }
 }
 
+/** 指定したアプリが見つからない場合のエラー（404） */
 export class AppNotFoundError extends AppUpdaterError {
   constructor(message: string) {
     super(message, 'APP_NOT_FOUND');
@@ -43,6 +49,7 @@ export class AppNotFoundError extends AppUpdaterError {
   }
 }
 
+/** 指定したバージョンが見つからない場合のエラー */
 export class VersionNotFoundError extends AppUpdaterError {
   constructor(message: string) {
     super(message, 'VERSION_NOT_FOUND');
@@ -50,6 +57,7 @@ export class VersionNotFoundError extends AppUpdaterError {
   }
 }
 
+/** チェックサム不一致エラー */
 export class ChecksumError extends AppUpdaterError {
   constructor(message: string) {
     super(message, 'CHECKSUM_ERROR');

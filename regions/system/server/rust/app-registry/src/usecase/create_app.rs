@@ -5,22 +5,31 @@ use chrono::Utc;
 use crate::domain::entity::app::App;
 use crate::domain::repository::AppRepository;
 
+/// アプリ新規作成ユースケースの入力データ
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct CreateAppInput {
+    /// アプリ名（必須・空白不可）
     pub name: String,
+    /// アプリの説明
     pub description: Option<String>,
+    /// カテゴリ（必須・空白不可）
     pub category: String,
+    /// アイコン URL
     pub icon_url: Option<String>,
 }
 
+/// アプリ新規作成ユースケースで発生するエラー
 #[derive(Debug, thiserror::Error)]
 pub enum CreateAppError {
+    /// 入力値が不正
     #[error("validation error: {0}")]
     ValidationError(String),
+    /// 内部エラー（DB 障害等）
     #[error("internal error: {0}")]
     Internal(String),
 }
 
+/// アプリを新規登録するユースケース
 pub struct CreateAppUseCase {
     repo: Arc<dyn AppRepository>,
 }

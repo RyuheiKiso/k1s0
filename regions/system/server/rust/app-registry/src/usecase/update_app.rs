@@ -5,25 +5,36 @@ use chrono::Utc;
 use crate::domain::entity::app::App;
 use crate::domain::repository::AppRepository;
 
+/// アプリ更新ユースケースの入力データ
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct UpdateAppInput {
+    /// 更新対象のアプリ ID
     pub id: String,
+    /// 新しいアプリ名（必須・空白不可）
     pub name: String,
+    /// 新しい説明
     pub description: Option<String>,
+    /// 新しいカテゴリ
     pub category: String,
+    /// 新しいアイコン URL
     pub icon_url: Option<String>,
 }
 
+/// アプリ更新ユースケースで発生するエラー
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateAppError {
+    /// 指定した ID のアプリが存在しない
     #[error("app not found: {0}")]
     NotFound(String),
+    /// 入力値が不正
     #[error("validation error: {0}")]
     ValidationError(String),
+    /// 内部エラー（DB 障害等）
     #[error("internal error: {0}")]
     Internal(String),
 }
 
+/// アプリ情報を更新するユースケース
 pub struct UpdateAppUseCase {
     repo: Arc<dyn AppRepository>,
 }

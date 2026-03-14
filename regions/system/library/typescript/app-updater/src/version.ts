@@ -1,5 +1,11 @@
 import type { AppVersionInfo, UpdateType } from './types.js';
 
+/**
+ * バージョン文字列を数値の配列に正規化する
+ *
+ * プレリリースサフィックス（例: "-beta"）は無視して数値のみを抽出する。
+ * 例: "1.2.3-beta" → [1, 2, 3]
+ */
 function normalizeVersion(version: string): number[] {
   return version
     .split('.')
@@ -9,6 +15,11 @@ function normalizeVersion(version: string): number[] {
     });
 }
 
+/**
+ * 2つのバージョン文字列を比較する
+ *
+ * @returns 負の値: left < right、0: 同一、正の値: left > right
+ */
 export function compareVersions(left: string, right: string): number {
   const leftParts = normalizeVersion(left);
   const rightParts = normalizeVersion(right);
@@ -25,6 +36,13 @@ export function compareVersions(left: string, right: string): number {
   return 0;
 }
 
+/**
+ * 現在のバージョンとサーバーのバージョン情報からアップデート種別を判定する
+ *
+ * - 現在バージョンが最低バージョンを下回る、または `mandatory` が true → `'mandatory'`
+ * - 現在バージョンが最新バージョンを下回る → `'optional'`
+ * - それ以外 → `'none'`
+ */
 export function determineUpdateType(
   currentVersion: string,
   versionInfo: AppVersionInfo,

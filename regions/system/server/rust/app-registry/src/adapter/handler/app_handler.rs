@@ -12,6 +12,7 @@ use crate::usecase::create_app::CreateAppInput;
 use crate::usecase::get_download_stats::DownloadStatsSummary;
 use crate::usecase::update_app::UpdateAppInput;
 
+/// アプリ一覧レスポンス
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct AppListResponse {
     pub apps: Vec<App>,
@@ -24,6 +25,7 @@ pub struct AppListResponse {
         (status = 200, description = "Health check OK"),
     )
 )]
+/// ヘルスチェックエンドポイント
 pub async fn healthz() -> impl IntoResponse {
     Json(serde_json::json!({"status": "ok"}))
 }
@@ -36,6 +38,7 @@ pub async fn healthz() -> impl IntoResponse {
         (status = 503, description = "Not ready"),
     )
 )]
+/// レディネスチェックエンドポイント（DB 疎通確認を含む）
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let mut db_status = "skipped";
     let mut overall_ok = true;
@@ -75,6 +78,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         (status = 200, description = "Prometheus metrics"),
     )
 )]
+/// Prometheus メトリクスエンドポイント
 pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
     let body = state.metrics.gather_metrics();
     (
@@ -103,6 +107,7 @@ pub struct ListAppsQuery {
     ),
     security(("bearer_auth" = []))
 )]
+/// アプリ一覧取得ハンドラー（カテゴリ・検索文字列でフィルタリング可能）
 pub async fn list_apps(
     State(state): State<AppState>,
     Query(params): Query<ListAppsQuery>,
@@ -126,6 +131,7 @@ pub async fn list_apps(
     ),
     security(("bearer_auth" = []))
 )]
+/// アプリのダウンロード統計取得ハンドラー
 pub async fn get_download_stats(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -156,6 +162,7 @@ pub async fn get_download_stats(
     ),
     security(("bearer_auth" = []))
 )]
+/// アプリ詳細取得ハンドラー
 pub async fn get_app(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -204,6 +211,7 @@ pub struct UpdateAppRequest {
     ),
     security(("bearer_auth" = []))
 )]
+/// アプリ新規作成ハンドラー
 pub async fn create_app(
     State(state): State<AppState>,
     Json(req): Json<CreateAppRequest>,
@@ -244,6 +252,7 @@ pub async fn create_app(
     ),
     security(("bearer_auth" = []))
 )]
+/// アプリ更新ハンドラー
 pub async fn update_app(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -287,6 +296,7 @@ pub async fn update_app(
     ),
     security(("bearer_auth" = []))
 )]
+/// アプリ削除ハンドラー
 pub async fn delete_app(
     State(state): State<AppState>,
     Path(id): Path<String>,

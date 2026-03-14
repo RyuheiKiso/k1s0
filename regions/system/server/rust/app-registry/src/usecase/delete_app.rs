@@ -2,14 +2,18 @@ use std::sync::Arc;
 
 use crate::domain::repository::AppRepository;
 
+/// アプリ削除ユースケースで発生するエラー
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteAppError {
+    /// 指定した ID のアプリが存在しない
     #[error("app not found: {0}")]
     NotFound(String),
+    /// 内部エラー（DB 障害等）
     #[error("internal error: {0}")]
     Internal(String),
 }
 
+/// アプリを削除するユースケース
 pub struct DeleteAppUseCase {
     repo: Arc<dyn AppRepository>,
 }
