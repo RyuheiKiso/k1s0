@@ -18,6 +18,27 @@ use super::kafka_producer::{
     KafkaSchedulerProducer, NoopSchedulerEventPublisher, SchedulerEventPublisher,
 };
 
+/// シャットダウンシグナルを待機する
+async fn shutdown_signal() -> anyhow::Result<()> {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+
+        let mut terminate = signal(SignalKind::terminate())?;
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = terminate.recv() => {}
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await?;
+    }
+
+    Ok(())
+}
+
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -168,7 +189,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_auth_state = state.auth_state.clone();
 
     let app =
-        crate::adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+        crate::adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone())).layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // --- Cron Scheduler Engine ---
     let cron_engine = CronSchedulerEngine::new(
@@ -190,12 +211,14 @@ pub async fn run() -> anyhow::Result<()> {
 
     let grpc_metrics = metrics;
     let grpc_auth_layer = crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
+    // gRPCサーバーのグレースフルシャットダウン用シグナル
+    let grpc_shutdown = shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
             .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SchedulerServiceServer::new(scheduler_tonic))
-            .serve(grpc_addr)
+            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -205,7 +228,10 @@ pub async fn run() -> anyhow::Result<()> {
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    let rest_future = axum::serve(listener, app);
+    // RESTサーバーのグレースフルシャットダウン設定
+    let rest_future = axum::serve(listener, app).with_graceful_shutdown(async {
+        let _ = shutdown_signal().await;
+    });
 
     tokio::select! {
         result = rest_future => {
@@ -227,6 +253,9 @@ pub async fn run() -> anyhow::Result<()> {
     if let Err(e) = event_publisher.close().await {
         tracing::warn!("failed to close event publisher: {}", e);
     }
+
+    // テレメトリのシャットダウン処理
+    k1s0_telemetry::shutdown();
 
     Ok(())
 }

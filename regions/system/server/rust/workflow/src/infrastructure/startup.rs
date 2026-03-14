@@ -267,12 +267,14 @@ pub async fn run() -> anyhow::Result<()> {
     }
     let grpc_auth_state = handler_state.auth_state.clone();
 
+    // CorrelationLayerを追加してリクエスト間の相関IDを伝播する
     let app = crate::adapter::handler::router(
         handler_state,
         cfg.observability.metrics.enabled,
         &cfg.observability.metrics.path,
     )
-    .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     let rest_addr = resolve_bind_addr(&cfg.server.host, cfg.server.port).await?;
     info!("REST server starting on {}", rest_addr);
@@ -318,8 +320,12 @@ pub async fn run() -> anyhow::Result<()> {
         }
     }
 
+    // Kafkaパブリッシャーをクローズしてからテレメトリをシャットダウンする
     event_publisher.close().await?;
     notification_request_publisher.close().await?;
+
+    // テレメトリのエクスポーターをフラッシュしてシャットダウンする
+    k1s0_telemetry::shutdown();
 
     Ok(())
 }

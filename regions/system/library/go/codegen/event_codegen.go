@@ -1,0 +1,261 @@
+// event_codegen.go: イベント駆動アーキテクチャ向けコード生成機能を提供する。
+// events.yaml の定義を基に、Kafkaプロデューサー・コンシューマー・Outboxマイグレーションを自動生成する。
+// 既存の codegen パッケージに追加するファイル。
+package codegen
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"text/template"
+)
+
+// EventCodegenConfig はイベントコード生成の設定を保持する。
+// events.yaml の構造を Go で表現したもの。
+type EventCodegenConfig struct {
+	// OutputDir は生成ファイルの出力先ディレクトリ。
+	OutputDir string
+	// PackageName は生成コードの Go パッケージ名。
+	PackageName string
+	// Events は生成対象のイベント定義一覧。
+	Events []EventDef
+}
+
+// EventDef はイベントの定義を表す。
+// events.yaml の各イベントエントリに対応する。
+type EventDef struct {
+	// Name はイベント名（例: "UserCreated"）。PascalCase を推奨する。
+	Name string
+	// Topic はKafkaトピック名（例: "user.created"）。
+	Topic string
+	// Fields はイベントのフィールド定義一覧。
+	Fields []EventField
+	// EnableOutbox は Outbox パターンのマイグレーション生成を有効にする。
+	EnableOutbox bool
+}
+
+// EventField はイベントの単一フィールドを表す。
+type EventField struct {
+	// Name はフィールド名（スネークケース、例: "user_id"）。
+	Name string
+	// Type はGoの型名（例: "string", "int64", "time.Time"）。
+	Type string
+	// Optional はフィールドが省略可能かどうかを示す。
+	Optional bool
+}
+
+// EventCodegenResult はイベントコード生成の結果を保持する。
+type EventCodegenResult struct {
+	// CreatedFiles は生成されたファイルのパス一覧。
+	CreatedFiles []string
+}
+
+// GenerateEventCode は EventCodegenConfig に基づいてイベント関連コードを生成する。
+// 以下のファイルを生成する:
+//   - events.go: イベント構造体定義（Proto スタイル）
+//   - producer.go: Kafka プロデューサーラッパー
+//   - consumer.go: Kafka コンシューマーラッパー
+//   - migrations/add_outbox_{name}.sql: Outbox パターン用マイグレーション（EnableOutbox=true の場合）
+func GenerateEventCode(cfg EventCodegenConfig) (*EventCodegenResult, error) {
+	if err := validateEventConfig(cfg); err != nil {
+		return nil, fmt.Errorf("event codegen: invalid config: %w", err)
+	}
+	result := &EventCodegenResult{}
+
+	// events.go を生成する。
+	if err := writeEventTemplate(filepath.Join(cfg.OutputDir, "events.go"), eventStructTemplate, cfg, result); err != nil {
+		return nil, err
+	}
+	// producer.go を生成する。
+	if err := writeEventTemplate(filepath.Join(cfg.OutputDir, "producer.go"), eventProducerTemplate, cfg, result); err != nil {
+		return nil, err
+	}
+	// consumer.go を生成する。
+	if err := writeEventTemplate(filepath.Join(cfg.OutputDir, "consumer.go"), eventConsumerTemplate, cfg, result); err != nil {
+		return nil, err
+	}
+	// EnableOutbox が true のイベントに対して Outbox マイグレーションを生成する。
+	for _, event := range cfg.Events {
+		if event.EnableOutbox {
+			sqlPath := filepath.Join(cfg.OutputDir, "migrations", fmt.Sprintf("add_outbox_%s.sql", strings.ToLower(event.Name)))
+			if err := writeEventTemplate(sqlPath, eventOutboxMigrationTemplate, event, result); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return result, nil
+}
+
+// writeEventTemplate はテンプレート文字列を評価してファイルに書き込む。
+// 既存ファイルはスキップする（冪等性）。
+func writeEventTemplate(outPath, tmplStr string, data any, result *EventCodegenResult) error {
+	// すでにファイルが存在する場合はスキップして冪等性を保証する。
+	if _, err := os.Stat(outPath); err == nil {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
+		return fmt.Errorf("event codegen: mkdir %s: %w", filepath.Dir(outPath), err)
+	}
+	// テンプレート関数マップを登録する。strings.Title は deprecated のため独自実装を使用する。
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"lower":    strings.ToLower,
+		"toCamel":  toCamelCase,
+		"toPascal": toPascalCase,
+	}).Parse(tmplStr)
+	if err != nil {
+		return fmt.Errorf("event codegen: parse template: %w", err)
+	}
+	f, err := os.Create(outPath)
+	if err != nil {
+		return fmt.Errorf("event codegen: create %s: %w", outPath, err)
+	}
+	defer f.Close()
+	if err := tmpl.Execute(f, data); err != nil {
+		return fmt.Errorf("event codegen: execute template: %w", err)
+	}
+	result.CreatedFiles = append(result.CreatedFiles, outPath)
+	return nil
+}
+
+// validateEventConfig は EventCodegenConfig の必須フィールドを検証する。
+func validateEventConfig(cfg EventCodegenConfig) error {
+	if cfg.OutputDir == "" {
+		return fmt.Errorf("output_dir is required")
+	}
+	if cfg.PackageName == "" {
+		return fmt.Errorf("package_name is required")
+	}
+	if len(cfg.Events) == 0 {
+		return fmt.Errorf("at least one event is required")
+	}
+	for _, e := range cfg.Events {
+		if e.Name == "" {
+			return fmt.Errorf("event name is required")
+		}
+		if e.Topic == "" {
+			return fmt.Errorf("event %q: topic is required", e.Name)
+		}
+	}
+	return nil
+}
+
+// toCamelCase は snake_case を camelCase に変換する。
+// 先頭単語は小文字のまま、後続単語の先頭を大文字にする。
+func toCamelCase(s string) string {
+	parts := strings.Split(s, "_")
+	for i := 1; i < len(parts); i++ {
+		if len(parts[i]) > 0 {
+			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
+		}
+	}
+	return strings.Join(parts, "")
+}
+
+// toPascalCase は snake_case を PascalCase に変換する。
+// 全単語の先頭を大文字にして結合する。
+func toPascalCase(s string) string {
+	parts := strings.Split(s, "_")
+	for i := range parts {
+		if len(parts[i]) > 0 {
+			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
+		}
+	}
+	return strings.Join(parts, "")
+}
+
+// eventStructTemplate はイベント構造体を定義する Go コードのテンプレート。
+// 各イベントに OccurredAt フィールドと Topic() メソッドを追加する。
+const eventStructTemplate = `// Code generated by k1s0 event-codegen. DO NOT EDIT.
+package {{.PackageName}}
+
+import "time"
+{{range .Events}}
+// {{.Name}} は {{.Topic}} トピックのイベントを表す。
+type {{.Name}} struct {
+{{- range .Fields}}
+	{{toPascal .Name}} {{.Type}} ` + "`" + `json:"{{.Name}}{{if .Optional}},omitempty{{end}}"` + "`" + `
+{{- end}}
+	OccurredAt time.Time ` + "`" + `json:"occurred_at"` + "`" + `
+}
+
+// Topic は {{.Name}} のKafkaトピック名を返す。
+func (e *{{.Name}}) Topic() string { return "{{.Topic}}" }
+{{end}}`
+
+// eventProducerTemplate はKafkaプロデューサーラッパーのテンプレート。
+// EventProducer インターフェースと各イベントの Publish 関数を生成する。
+const eventProducerTemplate = `// Code generated by k1s0 event-codegen. DO NOT EDIT.
+package {{.PackageName}}
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+)
+
+// EventProducer はイベントをKafkaに発行するプロデューサーインターフェース。
+type EventProducer interface {
+	Publish(ctx context.Context, topic string, key string, payload []byte) error
+}
+{{range .Events}}
+// Publish{{.Name}} は {{.Name}} イベントをKafkaに発行する。
+func Publish{{.Name}}(ctx context.Context, producer EventProducer, event *{{.Name}}) error {
+	if event.OccurredAt.IsZero() {
+		event.OccurredAt = time.Now()
+	}
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("publish {{.Name}}: marshal: %w", err)
+	}
+	return producer.Publish(ctx, "{{.Topic}}", "", payload)
+}
+{{end}}`
+
+// eventConsumerTemplate はKafkaコンシューマーラッパーのテンプレート。
+// EventConsumer インターフェースと各イベントの Subscribe 関数を生成する。
+const eventConsumerTemplate = `// Code generated by k1s0 event-codegen. DO NOT EDIT.
+package {{.PackageName}}
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+)
+
+// EventConsumer はKafkaからイベントを購読するコンシューマーインターフェース。
+type EventConsumer interface {
+	Subscribe(ctx context.Context, topic string, handler func(ctx context.Context, payload []byte) error) error
+}
+{{range .Events}}
+// Subscribe{{.Name}} は {{.Topic}} トピックの {{.Name}} イベントを購読する。
+func Subscribe{{.Name}}(ctx context.Context, consumer EventConsumer, handler func(ctx context.Context, event *{{.Name}}) error) error {
+	return consumer.Subscribe(ctx, "{{.Topic}}", func(ctx context.Context, payload []byte) error {
+		var event {{.Name}}
+		if err := json.Unmarshal(payload, &event); err != nil {
+			return fmt.Errorf("subscribe {{.Name}}: unmarshal: %w", err)
+		}
+		return handler(ctx, &event)
+	})
+}
+{{end}}`
+
+// eventOutboxMigrationTemplate はOutboxパターン用SQLマイグレーションのテンプレート。
+// データは EventDef を渡す。未処理イベント取得用インデックスも合わせて生成する。
+const eventOutboxMigrationTemplate = `-- Code generated by k1s0 event-codegen. DO NOT EDIT.
+-- Outbox テーブル: {{.Name}} イベントの信頼性のある発行を保証する。
+CREATE TABLE IF NOT EXISTS outbox_{{lower .Name}} (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    topic        TEXT NOT NULL DEFAULT '{{.Topic}}',
+    payload      JSONB NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    processed_at TIMESTAMPTZ,
+    error        TEXT
+);
+
+-- 未処理イベントを効率的に取得するためのインデックス。
+CREATE INDEX IF NOT EXISTS idx_outbox_{{lower .Name}}_unprocessed
+    ON outbox_{{lower .Name}} (created_at)
+    WHERE processed_at IS NULL;
+`

@@ -16,6 +16,27 @@ use crate::domain::entity::quota::QuotaPolicy;
 use crate::domain::repository::{CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository};
 use super::config::Config;
 
+/// シャットダウンシグナルを待機する
+async fn shutdown_signal() -> anyhow::Result<()> {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+
+        let mut terminate = signal(SignalKind::terminate())?;
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = terminate.recv() => {}
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await?;
+    }
+
+    Ok(())
+}
+
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -251,7 +272,8 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     let app =
-        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+            .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC server
     use proto::k1s0::system::quota::v1::quota_service_server::QuotaServiceServer;
@@ -261,12 +283,15 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
+    // gRPC グレースフルシャットダウン用シグナル
+    let grpc_shutdown = shutdown_signal();
+
     let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(QuotaServiceServer::new(quota_tonic))
-            .serve(grpc_addr)
+            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -276,7 +301,10 @@ pub async fn run() -> anyhow::Result<()> {
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    let rest_future = axum::serve(listener, app);
+    // REST グレースフルシャットダウンを設定
+    let rest_future = axum::serve(listener, app).with_graceful_shutdown(async {
+        let _ = shutdown_signal().await;
+    });
 
     tokio::select! {
         result = rest_future => {
@@ -290,6 +318,9 @@ pub async fn run() -> anyhow::Result<()> {
             }
         }
     }
+
+    // テレメトリのシャットダウン処理を実行
+    k1s0_telemetry::shutdown();
 
     Ok(())
 }

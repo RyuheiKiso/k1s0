@@ -2,7 +2,7 @@
 // reqwestを使用してREST APIにリクエストを送信する
 
 use crate::traits::AiClient;
-use crate::types::{AiClientError, AiModel, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse};
+use crate::types::{AiClientError, ModelInfo, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse};
 
 // HTTP AIクライアント構造体
 // ベースURLとAPIキーを保持し、reqwestクライアントで通信を行う
@@ -21,7 +21,7 @@ impl HttpAiClient {
         // reqwestクライアントを初期化する
         let client = reqwest::Client::new();
         Self {
-            base_url,
+            base_url: base_url.trim_end_matches('/').to_string(),
             api_key,
             client,
         }
@@ -30,10 +30,9 @@ impl HttpAiClient {
 
 #[async_trait::async_trait]
 impl AiClient for HttpAiClient {
-    /// チャット補完エンドポイントにPOSTリクエストを送信する
+    /// AI ゲートウェイの /v1/complete エンドポイントにPOSTリクエストを送信する
     async fn complete(&self, req: &CompleteRequest) -> Result<CompleteResponse, AiClientError> {
-        // /v1/chat/completions エンドポイントにリクエストを送信する
-        let url = format!("{}/v1/chat/completions", self.base_url);
+        let url = format!("{}/v1/complete", self.base_url);
         let response = self
             .client
             .post(&url)
@@ -60,10 +59,9 @@ impl AiClient for HttpAiClient {
             .map_err(|e| AiClientError::JsonError(e.to_string()))
     }
 
-    /// 埋め込みエンドポイントにPOSTリクエストを送信する
+    /// AI ゲートウェイの /v1/embed エンドポイントにPOSTリクエストを送信する
     async fn embed(&self, req: &EmbedRequest) -> Result<EmbedResponse, AiClientError> {
-        // /v1/embeddings エンドポイントにリクエストを送信する
-        let url = format!("{}/v1/embeddings", self.base_url);
+        let url = format!("{}/v1/embed", self.base_url);
         let response = self
             .client
             .post(&url)
@@ -90,9 +88,8 @@ impl AiClient for HttpAiClient {
             .map_err(|e| AiClientError::JsonError(e.to_string()))
     }
 
-    /// モデル一覧エンドポイントにGETリクエストを送信する
-    async fn list_models(&self) -> Result<Vec<AiModel>, AiClientError> {
-        // /v1/models エンドポイントにリクエストを送信する
+    /// AI ゲートウェイの /v1/models エンドポイントにGETリクエストを送信する
+    async fn list_models(&self) -> Result<Vec<ModelInfo>, AiClientError> {
         let url = format!("{}/v1/models", self.base_url);
         let response = self
             .client
@@ -114,7 +111,7 @@ impl AiClient for HttpAiClient {
 
         // レスポンスボディをJSON形式でデシリアライズする
         response
-            .json::<Vec<AiModel>>()
+            .json::<Vec<ModelInfo>>()
             .await
             .map_err(|e| AiClientError::JsonError(e.to_string()))
     }

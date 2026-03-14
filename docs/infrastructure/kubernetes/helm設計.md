@@ -104,37 +104,71 @@ infra/helm/
 
 ## System Tier Chart 一覧
 
-system tier には以下の 8 つの Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: system` を設定する。
+system tier には以下の 14 つの Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: system` を設定する。
 
 | Chart | 説明 | 言語 | gRPC | Kafka | Redis | Vault secrets |
 | --- | --- | --- | --- | --- | --- | --- |
 | auth | 認証・認可（JWT 検証、ユーザー管理） | Rust | 50051 | ✓ | - | DB パスワード |
 | config | 構成管理（サービス設定の集中管理） | Rust | 50051 | - | - | DB パスワード |
-| saga | Saga オーケストレータ（分散トランザクション） | Rust | 50051 | 有効 | - | DB パスワード |
-| dlq-manager | Dead Letter Queue 管理（失敗メッセージの再処理） | Rust | - | 有効 | - | DB パスワード |
-| bff-proxy | BFF プロキシ（OIDC 認証、セッション管理、リバースプロキシ） | Go | - | - | 有効 | OIDC client secret, Redis パスワード |
+| saga | Saga オーケストレータ（分散トランザクション） | Rust | 50051 | ✓ | - | DB パスワード |
+| dlq-manager | Dead Letter Queue 管理（失敗メッセージの再処理） | Rust | - | ✓ | - | DB パスワード |
+| bff-proxy | BFF プロキシ（OIDC 認証、セッション管理、リバースプロキシ） | Go | - | - | ✓ | OIDC client secret, Redis パスワード |
 | graphql-gateway | GraphQL Gateway（フェデレーション、クエリルーティング） | Rust | - | - | - | JWKS 署名鍵 |
 | kong | API Gateway（DB-backed PostgreSQL モード） | - | - | - | - | DB パスワード（SecretKeyRef） |
 | app-registry | アプリバイナリメタデータ管理・Presigned URL 生成（[アプリ配布基盤設計](../distribution/アプリ配布基盤設計.md)） | Rust | - | - | - | DB パスワード, Ceph RGW クレデンシャル |
+| featureflag | 動的フィーチャーフラグ管理（フラグ評価・ルール配信） | Go | 50056 | ✓ | - | DB パスワード |
+| ratelimit | レート制限（ルールベースのスロットリング） | Go | 50057 | ✓ | - | DB パスワード |
+| tenant | テナント管理（マルチテナント設定・プロビジョニング） | Go | 50058 | ✓ | - | DB パスワード |
+| vault | シークレット管理サービス（Vault ポリシー・ロール管理） | Go | 50059 | - | - | DB パスワード |
+| ai-gateway | LLM ルーティング・プロキシ（マルチプロバイダー対応） | Go | 50061 | - | - | LLM API キー |
+| ai-agent | AI エージェント実行基盤（ツール呼び出し・ワークフロー） | Go | 50062 | ✓ | - | DB パスワード |
+
+## Business Tier Chart 一覧
+
+business tier には以下の Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: business` を設定する。
+
+| Chart | 説明 | 言語 | gRPC | Kafka | Vault secrets |
+| --- | --- | --- | --- | --- | --- |
+| domain-master | ドメインマスタ管理（品目・区分・コードマスタ） | Go | 9210 | ✓ | DB パスワード |
+
+## Service Tier Chart 一覧
+
+service tier には以下の Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: service` を設定する。
+
+| Chart | 説明 | 言語 | gRPC | Kafka | Vault secrets |
+| --- | --- | --- | --- | --- | --- |
+| inventory | 在庫管理（在庫照会・引当・調整） | Go | - | ✓ | DB パスワード |
+| payment | 決済処理（支払・返金・決済状態管理） | Go | - | ✓ | DB パスワード |
+| service-catalog | サービスカタログ（提供サービス定義・価格管理） | Go | - | - | DB パスワード |
 
 ### 実ファイル配置
 
-各 Chart は `infra/helm/services/system/` 配下に配置されている。
+各 Chart は `infra/helm/services/{tier}/` 配下に配置されている。
 
-| Chart | Chart.yaml パス | values.yaml パス |
-|-------|----------------|-----------------|
-| auth | `infra/helm/services/system/auth/Chart.yaml` | `infra/helm/services/system/auth/values.yaml` |
-| config | `infra/helm/services/system/config/Chart.yaml` | `infra/helm/services/system/config/values.yaml` |
-| saga | `infra/helm/services/system/saga/Chart.yaml` | `infra/helm/services/system/saga/values.yaml` |
-| dlq-manager | `infra/helm/services/system/dlq-manager/Chart.yaml` | `infra/helm/services/system/dlq-manager/values.yaml` |
-| bff-proxy | `infra/helm/services/system/bff-proxy/Chart.yaml` | `infra/helm/services/system/bff-proxy/values.yaml` |
-| graphql-gateway | `infra/helm/services/system/graphql-gateway/Chart.yaml` | `infra/helm/services/system/graphql-gateway/values.yaml` |
-| kong | `infra/helm/services/system/kong/Chart.yaml` | `infra/helm/services/system/kong/values.yaml` |
-| app-registry | `infra/helm/services/system/app-registry/Chart.yaml` | `infra/helm/services/system/app-registry/values.yaml` |
+| Tier | Chart | Chart.yaml パス | values.yaml パス |
+|------|-------|----------------|-----------------|
+| system | auth | `infra/helm/services/system/auth/Chart.yaml` | `infra/helm/services/system/auth/values.yaml` |
+| system | config | `infra/helm/services/system/config/Chart.yaml` | `infra/helm/services/system/config/values.yaml` |
+| system | saga | `infra/helm/services/system/saga/Chart.yaml` | `infra/helm/services/system/saga/values.yaml` |
+| system | dlq-manager | `infra/helm/services/system/dlq-manager/Chart.yaml` | `infra/helm/services/system/dlq-manager/values.yaml` |
+| system | bff-proxy | `infra/helm/services/system/bff-proxy/Chart.yaml` | `infra/helm/services/system/bff-proxy/values.yaml` |
+| system | graphql-gateway | `infra/helm/services/system/graphql-gateway/Chart.yaml` | `infra/helm/services/system/graphql-gateway/values.yaml` |
+| system | kong | `infra/helm/services/system/kong/Chart.yaml` | `infra/helm/services/system/kong/values.yaml` |
+| system | app-registry | `infra/helm/services/system/app-registry/Chart.yaml` | `infra/helm/services/system/app-registry/values.yaml` |
+| system | featureflag | `infra/helm/services/system/featureflag/Chart.yaml` | `infra/helm/services/system/featureflag/values.yaml` |
+| system | ratelimit | `infra/helm/services/system/ratelimit/Chart.yaml` | `infra/helm/services/system/ratelimit/values.yaml` |
+| system | tenant | `infra/helm/services/system/tenant/Chart.yaml` | `infra/helm/services/system/tenant/values.yaml` |
+| system | vault | `infra/helm/services/system/vault/Chart.yaml` | `infra/helm/services/system/vault/values.yaml` |
+| system | ai-gateway | `infra/helm/services/system/ai-gateway/Chart.yaml` | `infra/helm/services/system/ai-gateway/values.yaml` |
+| system | ai-agent | `infra/helm/services/system/ai-agent/Chart.yaml` | `infra/helm/services/system/ai-agent/values.yaml` |
+| business | domain-master | `infra/helm/services/business/domain-master/Chart.yaml` | `infra/helm/services/business/domain-master/values.yaml` |
+| service | inventory | `infra/helm/services/service/inventory/Chart.yaml` | `infra/helm/services/service/inventory/values.yaml` |
+| service | payment | `infra/helm/services/service/payment/Chart.yaml` | `infra/helm/services/service/payment/values.yaml` |
+| service | service-catalog | `infra/helm/services/service/service-catalog/Chart.yaml` | `infra/helm/services/service/service-catalog/values.yaml` |
 
 全 Chart は `k1s0-common` Library Chart に依存し、`appVersion: "0.1.0"`（kong は `"3.8.0"`）。
 
-### 各 Chart の values.yaml 重要フィールド差分
+### 各 Chart の values.yaml 重要フィールド差分（System Tier）
 
 | フィールド | auth | config | saga | dlq-manager | bff-proxy | graphql-gateway | kong |
 |-----------|------|--------|------|-------------|-----------|-----------------|------|
@@ -145,6 +179,26 @@ system tier には以下の 8 つの Chart が存在する。全て `k1s0-common
 | `resources.requests.cpu` | 250m | 250m | 250m | 250m | 100m | 250m | 500m |
 | `resources.requests.memory` | 256Mi | 256Mi | 256Mi | 256Mi | 128Mi | 256Mi | 512Mi |
 | `vault.secrets` | DB | DB | DB | DB | OIDC + Redis | JWKS 署名鍵 | SecretKeyRef |
+
+### 新規 System Tier Chart の values.yaml 重要フィールド差分
+
+| フィールド | featureflag | ratelimit | tenant | vault | ai-gateway | ai-agent |
+|-----------|-------------|-----------|--------|-------|------------|----------|
+| `container.port` | 8087 | 8088 | 8089 | 8091 | 8120 | 8121 |
+| `container.grpcPort` | 50056 | 50057 | 50058 | 50059 | 50061 | 50062 |
+| `kafka.enabled` | true | true | true | false | false | true |
+| `vault.role` | system | system | system | system | system | system |
+| `vault.secrets` | DB | DB | DB | DB | API キー | DB |
+
+### Business / Service Tier Chart の values.yaml 重要フィールド差分
+
+| フィールド | domain-master | inventory | payment | service-catalog |
+|-----------|---------------|-----------|---------|-----------------|
+| `container.port` | 8210 | 8311 | 8312 | 8313 |
+| `container.grpcPort` | 9210 | 0 | 0 | 0 |
+| `kafka.enabled` | true | true | true | false |
+| `labels.tier` | business | service | service | service |
+| `vault.role` | business | service | service | service |
 
 ### 共通設定（auth / config / saga / dlq-manager）
 

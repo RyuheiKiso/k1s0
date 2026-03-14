@@ -1,8 +1,10 @@
-> **ステータス: 未実装（設計のみ）**
+> **ステータス: Go 実装済み / Rust 設計のみ**
 
-> **実装形態**: `k1s0-codegen` クレートの `event-codegen` feature として実装。
-> 実装パス: `regions/system/library/rust/codegen/src/event_codegen/`
-> 独立クレートではなく、`k1s0-codegen` クレートの feature モジュールとして提供される。
+> **Go 実装**: `regions/system/library/go/codegen/event_codegen.go`
+> `k1s0-codegen` Go モジュール (`github.com/k1s0-platform/system-library-go-codegen`) の `GenerateEventCode()` 関数として提供。
+>
+> **Rust 実装形態**: `k1s0-codegen` クレートの `event-codegen` feature として実装予定。
+> 実装パス: `regions/system/library/rust/codegen/src/event_codegen/`（未実装）
 
 # イベントコード生成 (event-codegen)
 

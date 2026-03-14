@@ -129,7 +129,9 @@ pub async fn run() -> anyhow::Result<()> {
     };
 
     // --- Router ---
-    let app = graphql_handler::router(jwks_verifier, clients, resolvers, cfg.graphql.clone(), metrics);
+    // CorrelationLayerを追加してリクエスト間の相関IDを伝播する
+    let app = graphql_handler::router(jwks_verifier, clients, resolvers, cfg.graphql.clone(), metrics)
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("graphql-gateway starting on {}", addr);
@@ -140,6 +142,10 @@ pub async fn run() -> anyhow::Result<()> {
         .await?;
 
     info!("graphql-gateway exited");
+
+    // テレメトリのエクスポーターをフラッシュしてシャットダウンする
+    k1s0_telemetry::shutdown();
+
     Ok(())
 }
 

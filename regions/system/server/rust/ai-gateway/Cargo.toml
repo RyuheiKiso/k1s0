@@ -32,6 +32,8 @@ http = "1"
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
 redis = { version = "0.27", features = ["tokio-comp"] }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+# Correlation ID伝播ライブラリ
+k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 k1s0-auth = { path = "../../../library/rust/auth" }
 k1s0-server-common = { path = "../../../library/rust/server-common" }
 tower = { version = "0.5", features = ["util"] }

@@ -19,12 +19,14 @@ spec:
       maxSurge: 1
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        {{- include "k1s0-common.istioAnnotations" . | nindent 8 }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "k1s0-common.labels" . | nindent 8 }}
+        version: {{ .Values.image.tag | default "stable" | quote }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
