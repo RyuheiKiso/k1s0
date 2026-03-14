@@ -16,14 +16,16 @@ Rust サーバー向けの内部共有ライブラリ。`SYS_{SERVICE}_{ERROR}` 
 
 ## 言語サポート
 
-`k1s0-server-common` は **Rust 専用** のライブラリ。  
-Go / TypeScript / Dart には同名ライブラリは提供しない。
+`k1s0-server-common` は以下の言語で実装されている。
 
-他言語では以下で代替する。
+| 言語 | パッケージ名 | 配置パス | 機能範囲 |
+|------|-------------|---------|---------|
+| Rust | `k1s0-server-common` | `regions/system/library/rust/server-common/` | 全機能（axum 統合・ミドルウェア・well-known コード） |
+| Go | `server-common` | `regions/system/library/go/server-common/` | HTTP+gRPC 統合起動基盤 |
+| TypeScript | `@k1s0/server-common` | `regions/system/library/typescript/server-common/` | エラーコード・レスポンス型・well-known コード（クライアント向け） |
+| Dart | `k1s0_server_common` | `regions/system/library/dart/server_common/` | エラーコード・レスポンス型・well-known コード（クライアント向け） |
 
-- エラーコード規約: `SYS_{SERVICE}_{ERROR}` を各言語実装で共通運用
-- エラーレスポンス形状: 各サービスのハンドラー層で `{ "error": { ... } }` を統一
-- OpenAPI/スキーマ連携: 各言語の標準ツールチェーン（Go: swag/chi, TS: zod/openapi, Dart: json_serializable など）で個別実装
+TypeScript / Dart 版はクライアント向けの共通型定義に特化し、axum 統合やミドルウェアスタックは含まない。エラーコード規約（`SYS_{SERVICE}_{ERROR}`）と well-known コード定数は全言語で同一。
 
 ## 公開 API
 
