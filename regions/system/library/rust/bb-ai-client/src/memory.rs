@@ -2,7 +2,7 @@
 // 固定レスポンスを返すことで、外部APIに依存しないテストを実現する
 
 use crate::traits::AiClient;
-use crate::types::{AiClientError, AiModel, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse};
+use crate::types::{AiClientError, ModelInfo, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse};
 use tokio::sync::Mutex;
 
 // テスト用インメモリAIクライアント
@@ -12,14 +12,33 @@ pub struct InMemoryAiClient {
     responses: Mutex<Vec<CompleteResponse>>,
     /// 埋め込み用の固定レスポンスキュー
     embed_responses: Mutex<Vec<EmbedResponse>>,
+    /// モデル一覧
+    models: Vec<ModelInfo>,
 }
 
 impl InMemoryAiClient {
     /// 固定レスポンスを持つInMemoryAiClientを生成する
-    pub fn new(responses: Vec<CompleteResponse>, embed_responses: Vec<EmbedResponse>) -> Self {
+    pub fn new(
+        responses: Vec<CompleteResponse>,
+        embed_responses: Vec<EmbedResponse>,
+    ) -> Self {
         Self {
             responses: Mutex::new(responses),
             embed_responses: Mutex::new(embed_responses),
+            models: vec![],
+        }
+    }
+
+    /// モデル一覧付きのInMemoryAiClientを生成する
+    pub fn with_models(
+        responses: Vec<CompleteResponse>,
+        embed_responses: Vec<EmbedResponse>,
+        models: Vec<ModelInfo>,
+    ) -> Self {
+        Self {
+            responses: Mutex::new(responses),
+            embed_responses: Mutex::new(embed_responses),
+            models,
         }
     }
 }
@@ -50,9 +69,8 @@ impl AiClient for InMemoryAiClient {
         Ok(responses.remove(0))
     }
 
-    /// テスト用の空のモデル一覧を返す
-    async fn list_models(&self) -> Result<Vec<AiModel>, AiClientError> {
-        // テスト用に空のリストを返す
-        Ok(vec![])
+    /// 設定されたモデル一覧を返す
+    async fn list_models(&self) -> Result<Vec<ModelInfo>, AiClientError> {
+        Ok(self.models.clone())
     }
 }

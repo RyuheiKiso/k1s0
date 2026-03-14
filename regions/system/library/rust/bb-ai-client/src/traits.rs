@@ -1,7 +1,7 @@
 // AIクライアントのトレイト定義
 // AIバックエンドとの通信インターフェースを抽象化する
 
-use crate::types::{AiClientError, AiModel, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse};
+use crate::types::{AiClientError, ModelInfo, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse};
 
 // AiClient トレイト: AIバックエンドとの通信インターフェース
 // mock featureが有効な場合、mockallによるモック自動生成を行う
@@ -15,5 +15,5 @@ pub trait AiClient: Send + Sync {
     async fn embed(&self, req: &EmbedRequest) -> Result<EmbedResponse, AiClientError>;
 
     /// 利用可能なモデルの一覧を取得する
-    async fn list_models(&self) -> Result<Vec<AiModel>, AiClientError>;
+    async fn list_models(&self) -> Result<Vec<ModelInfo>, AiClientError>;
 }

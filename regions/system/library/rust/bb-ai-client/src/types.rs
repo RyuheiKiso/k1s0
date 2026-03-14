@@ -1,12 +1,13 @@
 // AIクライアントで使用する型定義
-// リクエスト・レスポンス・エラーの各構造体を定義する
+// Go の types.go と対応するリクエスト・レスポンス・エラーの各構造体を定義する
 
 use serde::{Deserialize, Serialize};
 
 // チャットメッセージを表す構造体（ロールとコンテンツを保持）
+// role は "user", "assistant", "system" のいずれか
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
-    /// メッセージの役割（system, user, assistant など）
+    /// メッセージの役割
     pub role: String,
     /// メッセージの内容
     pub content: String,
@@ -25,8 +26,18 @@ pub struct CompleteRequest {
     /// サンプリング温度（省略可能）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,
-    /// ストリーミングモードを使用するかどうか
-    pub stream: bool,
+    /// ストリーミングモードを使用するかどうか（省略可能）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stream: Option<bool>,
+}
+
+// トークン使用量を保持する構造体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Usage {
+    /// 入力トークン数
+    pub input_tokens: i32,
+    /// 出力トークン数
+    pub output_tokens: i32,
 }
 
 // チャット補完レスポンスの構造体
@@ -38,19 +49,18 @@ pub struct CompleteResponse {
     pub model: String,
     /// 生成されたテキスト内容
     pub content: String,
-    /// 入力に使用されたトークン数
-    pub prompt_tokens: i32,
-    /// 生成に使用されたトークン数
-    pub completion_tokens: i32,
+    /// トークン使用量
+    pub usage: Usage,
 }
 
 // 埋め込みリクエストの構造体
+// Go の EmbedRequest.texts に対応する
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmbedRequest {
     /// 使用する埋め込みモデルID
     pub model: String,
     /// 埋め込み対象のテキスト一覧
-    pub inputs: Vec<String>,
+    pub texts: Vec<String>,
 }
 
 // 埋め込みレスポンスの構造体
@@ -62,22 +72,19 @@ pub struct EmbedResponse {
     pub embeddings: Vec<Vec<f32>>,
 }
 
-// AIモデル情報を表す構造体
+// モデルの基本情報を表す構造体
+// Go の ModelInfo と対応する
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AiModel {
+pub struct ModelInfo {
     /// モデルの一意識別子
     pub id: String,
     /// モデルの表示名
     pub name: String,
-    /// プロバイダー名（openai, anthropic など）
-    pub provider: String,
-    /// コンテキストウィンドウサイズ（トークン数）
-    pub context_window: i32,
-    /// モデルが有効かどうか
-    pub enabled: bool,
+    /// モデルの説明
+    pub description: String,
 }
 
-// AIクライアントのエラー型（thiserrorで実装）
+// AIクライアントのエラー型
 #[derive(Debug, thiserror::Error)]
 pub enum AiClientError {
     /// HTTP通信エラー

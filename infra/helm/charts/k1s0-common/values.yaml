@@ -131,3 +131,27 @@ kafka:
 redis:
   enabled: false
   host: ""
+
+# Istio サービスメッシュ統合（有効時のみ）
+istio:
+  enabled: false
+  sidecar:
+    inject: true
+    proxyConfig:
+      holdApplicationUntilProxyStarts: true
+  timeout: 30s
+  virtualService:
+    enabled: false
+    timeout: ""                          # 未設定時は istio.timeout を使用
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: "5xx,reset,connect-failure"
+  destinationRule:
+    enabled: false
+    circuitBreaker:
+      consecutiveGatewayErrors: 5
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
