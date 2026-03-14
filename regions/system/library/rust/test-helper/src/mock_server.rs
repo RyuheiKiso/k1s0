@@ -148,6 +148,7 @@ pub fn default_mock_routes(server_type: &str) -> HashMap<String, MockRoute> {
 mod tests {
     use super::*;
 
+    // 通知サーバーモックがヘルスと送信ルートを正しく処理しリクエストを記録することを確認する。
     #[test]
     fn test_mock_server_builder_notification() {
         let server = MockServerBuilder::notification_server()
@@ -165,6 +166,7 @@ mod tests {
         assert_eq!(server.request_count(), 2);
     }
 
+    // レートリミットサーバーモックのヘルスルートと未知ルートの動作を確認する。
     #[test]
     fn test_mock_server_builder_ratelimit() {
         let server = MockServerBuilder::ratelimit_server()
@@ -175,6 +177,7 @@ mod tests {
         assert!(server.handle("GET", "/nonexistent").is_none());
     }
 
+    // エラーレスポンスルートが 500 ステータスと "error" を含むボディを返すことを確認する。
     #[test]
     fn test_mock_server_error_response() {
         let server = MockServerBuilder::tenant_server()
@@ -186,6 +189,7 @@ mod tests {
         assert!(body.contains("error"));
     }
 
+    // 記録されたリクエストの内容が正しい順序で保存されることを確認する。
     #[test]
     fn test_recorded_requests() {
         let server = MockServerBuilder::notification_server()
@@ -198,6 +202,7 @@ mod tests {
         assert_eq!(reqs[0], ("GET".to_string(), "/health".to_string()));
     }
 
+    // デフォルトモックルートにヘルスルートが含まれ 200 ステータスを返すことを確認する。
     #[test]
     fn test_default_mock_routes() {
         let routes = default_mock_routes("notification");

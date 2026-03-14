@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Vaultから取得したデータベースパスワードが既存値を上書きしてマージされることを確認する。
 func TestVault_DatabasePasswordMerge(t *testing.T) {
 	cfg := &Config{
 		Database: &DatabaseConfig{Password: "old"},
@@ -16,6 +17,7 @@ func TestVault_DatabasePasswordMerge(t *testing.T) {
 	assert.Equal(t, "vault-db-pass", cfg.Database.Password)
 }
 
+// Vaultから取得したRedisパスワードが既存値を上書きしてマージされることを確認する。
 func TestVault_RedisPasswordMerge(t *testing.T) {
 	cfg := &Config{
 		Redis: &RedisConfig{Password: "old"},
@@ -26,6 +28,7 @@ func TestVault_RedisPasswordMerge(t *testing.T) {
 	assert.Equal(t, "vault-redis-pass", cfg.Redis.Password)
 }
 
+// VaultからKafka SASL認証情報（ユーザー名・パスワード）がマージされることを確認する。
 func TestVault_KafkaSASLMerge(t *testing.T) {
 	cfg := &Config{
 		Kafka: &KafkaConfig{
@@ -44,6 +47,7 @@ func TestVault_KafkaSASLMerge(t *testing.T) {
 	assert.Equal(t, "vault-kafka-pass", cfg.Kafka.SASL.Password)
 }
 
+// VaultからRedisセッションのパスワードがマージされることを確認する。
 func TestVault_RedisSessionPasswordMerge(t *testing.T) {
 	cfg := &Config{
 		RedisSession: &RedisConfig{Password: ""},
@@ -54,6 +58,7 @@ func TestVault_RedisSessionPasswordMerge(t *testing.T) {
 	assert.Equal(t, "vault-session-pass", cfg.RedisSession.Password)
 }
 
+// VaultからOIDCクライアントシークレットがマージされることを確認する。
 func TestVault_OIDCClientSecretMerge(t *testing.T) {
 	cfg := &Config{
 		Auth: AuthConfig{
@@ -71,6 +76,7 @@ func TestVault_OIDCClientSecretMerge(t *testing.T) {
 	assert.Equal(t, "vault-oidc-secret", cfg.Auth.OIDC.ClientSecret)
 }
 
+// 空のシークレットマップを渡したとき既存値が変更されないことを確認する。
 func TestVault_EmptySecrets_NoChange(t *testing.T) {
 	cfg := &Config{
 		Database: &DatabaseConfig{Password: "original"},
@@ -81,6 +87,7 @@ func TestVault_EmptySecrets_NoChange(t *testing.T) {
 	assert.Equal(t, "original", cfg.Redis.Password)
 }
 
+// 全オプションセクションがnilの設定でMergeVaultSecretsがパニックしないことを確認する。
 func TestVault_NilSections_Safe(t *testing.T) {
 	cfg := &Config{}
 	// Should not panic when all optional sections are nil
@@ -99,6 +106,7 @@ func TestVault_NilSections_Safe(t *testing.T) {
 	assert.Nil(t, cfg.Auth.OIDC)
 }
 
+// 一部のシークレットのみ提供した場合、指定分のみ更新され残りは変更されないことを確認する。
 func TestVault_PartialSecrets(t *testing.T) {
 	cfg := &Config{
 		Database: &DatabaseConfig{Password: "old-db"},

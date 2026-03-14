@@ -57,6 +57,7 @@ pub fn aes_decrypt(key: &[u8; 32], ciphertext: &str) -> Result<Vec<u8>, Encrypti
 mod tests {
     use super::*;
 
+    // AES-GCM で暗号化・復号のラウンドトリップが正常に動作することを確認する。
     #[test]
     fn test_encrypt_decrypt_roundtrip() {
         let key = generate_aes_key();
@@ -68,6 +69,7 @@ mod tests {
         assert_eq!(decrypted, plaintext);
     }
 
+    // 異なるキーでの復号が失敗することを確認する。
     #[test]
     fn test_decrypt_with_wrong_key() {
         let key1 = generate_aes_key();
@@ -78,6 +80,7 @@ mod tests {
         assert!(aes_decrypt(&key2, &encrypted).is_err());
     }
 
+    // 改ざんされた暗号文の復号が失敗することを確認する。
     #[test]
     fn test_decrypt_tampered_ciphertext() {
         let key = generate_aes_key();
@@ -92,6 +95,7 @@ mod tests {
         assert!(aes_decrypt(&key, &tampered).is_err());
     }
 
+    // 無効な Base64 文字列の復号が失敗することを確認する。
     #[test]
     fn test_decrypt_invalid_base64() {
         let key = generate_aes_key();

@@ -94,6 +94,7 @@ impl DistributedLock for InMemoryDistributedLock {
 mod tests {
     use super::*;
 
+    // ロックを正常に取得・解放できることを確認する。
     #[tokio::test]
     async fn test_acquire_and_release() {
         let lock = InMemoryDistributedLock::new();
@@ -104,6 +105,7 @@ mod tests {
         assert!(!lock.is_locked("key1").await.unwrap());
     }
 
+    // 同じキーを二重取得しようとすると AlreadyLocked エラーが返ることを確認する。
     #[tokio::test]
     async fn test_double_acquire_returns_already_locked() {
         let lock = InMemoryDistributedLock::new();
@@ -112,6 +114,7 @@ mod tests {
         assert!(matches!(result, Err(LockError::AlreadyLocked(_))));
     }
 
+    // 誤ったトークンでリリースすると TokenMismatch エラーが返ることを確認する。
     #[tokio::test]
     async fn test_release_with_wrong_token_returns_token_mismatch() {
         let lock = InMemoryDistributedLock::new();
@@ -124,6 +127,7 @@ mod tests {
         assert!(matches!(result, Err(LockError::TokenMismatch)));
     }
 
+    // TTL を延長するとロックが保持され続けることを確認する。
     #[tokio::test]
     async fn test_extend_updates_ttl() {
         let lock = InMemoryDistributedLock::new();
@@ -132,6 +136,7 @@ mod tests {
         assert!(lock.is_locked("key1").await.unwrap());
     }
 
+    // TTL 期限切れ後に再取得できることを確認する。
     #[tokio::test]
     async fn test_acquire_after_expiry() {
         let lock = InMemoryDistributedLock::new();

@@ -169,18 +169,21 @@ impl DlqClient {
 mod tests {
     use super::*;
 
+    // DlqClient が指定したエンドポイントで正常に生成されることを確認する。
     #[test]
     fn test_client_creation() {
         let client = DlqClient::new("http://localhost:8080");
         assert_eq!(client.endpoint, "http://localhost:8080");
     }
 
+    // エンドポイント末尾のスラッシュが除去されることを確認する。
     #[test]
     fn test_endpoint_trailing_slash_removed() {
         let client = DlqClient::new("http://localhost:8080/");
         assert_eq!(client.endpoint, "http://localhost:8080");
     }
 
+    // list_messages リクエストのURL構築が正しい形式になることを確認する。
     #[test]
     fn test_list_messages_url() {
         let client = DlqClient::new("http://dlq-server:8080");
@@ -200,6 +203,7 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    // get_message リクエストのURL構築が正しい形式になることを確認する。
     #[test]
     fn test_get_message_url() {
         let client = DlqClient::new("http://dlq-server:8080");
@@ -211,6 +215,7 @@ mod tests {
         );
     }
 
+    // retry_message リクエストのURL構築が正しい形式になることを確認する。
     #[test]
     fn test_retry_message_url() {
         let client = DlqClient::new("http://dlq-server:8080");
@@ -225,6 +230,7 @@ mod tests {
         );
     }
 
+    // retry_all リクエストのURL構築が正しい形式になることを確認する。
     #[test]
     fn test_retry_all_url() {
         let client = DlqClient::new("http://dlq-server:8080");

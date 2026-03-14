@@ -245,6 +245,7 @@ mod tests {
         }
     }
 
+    // デバイス認可リクエストが成功してデバイスコード情報を取得できることを確認する。
     #[tokio::test]
     async fn test_request_device_code_success() {
         let client = DeviceAuthClient::with_http_client(
@@ -285,6 +286,7 @@ mod tests {
         assert_eq!(resp.interval, 5);
     }
 
+    // authorization_pending が続いた後にトークンを取得できることを確認する。
     #[tokio::test]
     async fn test_poll_token_authorization_pending_then_success() {
         let call_count = Arc::new(AtomicU32::new(0));
@@ -333,6 +335,7 @@ mod tests {
         assert!(call_count.load(Ordering::SeqCst) >= 3);
     }
 
+    // slow_down レスポンス後にポーリング間隔が延長されることを確認する。
     #[tokio::test]
     async fn test_poll_token_slow_down() {
         let call_count = Arc::new(AtomicU32::new(0));
@@ -373,6 +376,7 @@ mod tests {
         assert!(start.elapsed() >= Duration::from_secs(6));
     }
 
+    // デバイスコードが期限切れの場合に ExpiredToken エラーが返ることを確認する。
     #[tokio::test]
     async fn test_poll_token_expired_token() {
         let client = DeviceAuthClient::with_http_client(
@@ -395,6 +399,7 @@ mod tests {
         assert!(matches!(result, Err(DeviceFlowError::ExpiredToken)));
     }
 
+    // ユーザーが認可を拒否した場合に AccessDenied エラーが返ることを確認する。
     #[tokio::test]
     async fn test_poll_token_access_denied() {
         let client = DeviceAuthClient::with_http_client(
@@ -417,6 +422,7 @@ mod tests {
         assert!(matches!(result, Err(DeviceFlowError::AccessDenied)));
     }
 
+    // Device Authorization Grant フロー全体が正常に完了することを確認する。
     #[tokio::test]
     async fn test_device_flow_integration() {
         let token_call_count = Arc::new(AtomicU32::new(0));
@@ -489,6 +495,7 @@ mod tests {
         assert_eq!(received_verification_uri, "https://auth.example.com/device");
     }
 
+    // cancel シグナルによってポーリングが中断されることを確認する。
     #[tokio::test]
     async fn test_poll_token_cancellation() {
         let client = DeviceAuthClient::with_http_client(

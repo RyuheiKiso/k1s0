@@ -5,7 +5,7 @@ import 'package:k1s0_app_updater/app_updater.dart';
 
 void main() {
   group('InMemoryAppUpdater', () {
-    test('returns mandatory when current version is below minimum version',
+    test('現在バージョンが最低バージョン未満の場合に mandatory を返すこと',
         () async {
       final updater = InMemoryAppUpdater(
         versionInfo: const AppVersionInfo(
@@ -22,7 +22,7 @@ void main() {
       expect(result.isMandatory, isTrue);
     });
 
-    test('returns optional when latest version is newer but not mandatory',
+    test('最新バージョンが新しいが強制でない場合に optional を返すこと',
         () async {
       final updater = InMemoryAppUpdater(
         versionInfo: const AppVersionInfo(
@@ -38,7 +38,7 @@ void main() {
       expect(result.needsUpdate, isTrue);
     });
 
-    test('returns none when current version is latest', () async {
+    test('現在バージョンが最新の場合に none を返すこと', () async {
       final updater = InMemoryAppUpdater(
         versionInfo: const AppVersionInfo(
           latestVersion: '2.0.0',
@@ -55,7 +55,7 @@ void main() {
   });
 
   group('AppRegistryAppUpdater', () {
-    test('derives minimum version from the latest mandatory release', () async {
+    test('最新の強制リリースから最低バージョンを導出すること', () async {
       var sawAuthorizationHeader = false;
       final client = MockClient((request) async {
         if (request.url.path.endsWith('/latest')) {
@@ -134,7 +134,7 @@ void main() {
       expect(sawAuthorizationHeader, isTrue);
     });
 
-    test('fetchDownloadInfo maps download endpoint response', () async {
+    test('fetchDownloadInfo がダウンロードエンドポイントのレスポンスをマッピングすること', () async {
       final client = MockClient((request) async {
         expect(request.url.path,
             '/api/v1/apps/order-client/versions/2.3.0/download');
@@ -172,7 +172,7 @@ void main() {
       expect(artifact.sizeBytes, 2048);
     });
 
-    test('openStore uses configured launcher callback', () async {
+    test('openStore が設定されたランチャーコールバックを使用すること', () async {
       Uri? launchedUri;
       final updater = AppRegistryAppUpdater(
         AppUpdaterConfig(
@@ -201,7 +201,7 @@ void main() {
   });
 
   group('MockAppUpdater', () {
-    test('records calls and returns callback results', () async {
+    test('呼び出しを記録してコールバック結果を返すこと', () async {
       final mock = MockAppUpdater()
         ..onCheckForUpdate = () async => const UpdateCheckResult(
               type: UpdateType.optional,

@@ -105,6 +105,7 @@ mod tests {
     use super::*;
     use crate::producer::NoOpEventProducer;
 
+    // dlq_topic_name が元のトピック名に .dlq サフィックスを付与することを確認する。
     #[test]
     fn test_dlq_topic_name() {
         assert_eq!(
@@ -113,6 +114,7 @@ mod tests {
         );
     }
 
+    // system tier トピックに対しても dlq_topic_name が正しく .dlq サフィックスを付与することを確認する。
     #[test]
     fn test_dlq_topic_name_system() {
         assert_eq!(
@@ -121,6 +123,7 @@ mod tests {
         );
     }
 
+    // original_topic_name が DLQ トピック名から .dlq サフィックスを除去した元のトピック名を返すことを確認する。
     #[test]
     fn test_original_topic_name() {
         assert_eq!(
@@ -129,6 +132,7 @@ mod tests {
         );
     }
 
+    // .dlq サフィックスのないトピック名に original_topic_name を適用すると None が返ることを確認する。
     #[test]
     fn test_original_topic_name_no_suffix() {
         assert_eq!(
@@ -137,6 +141,7 @@ mod tests {
         );
     }
 
+    // forward_to_dlq がメッセージを DLQ トピックへ正常に転送できることを確認する。
     #[tokio::test]
     async fn test_forward_to_dlq() {
         let producer = NoOpEventProducer;
@@ -151,6 +156,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    // ハンドラーが成功した場合に process_with_dlq_fallback が Ok を返すことを確認する。
     #[tokio::test]
     async fn test_process_with_dlq_fallback_success() {
         let producer = NoOpEventProducer;
@@ -166,6 +172,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    // リトライが全て失敗した場合に process_with_dlq_fallback が DLQ へフォールバックし Ok を返すことを確認する。
     #[tokio::test]
     async fn test_process_with_dlq_fallback_all_retries_fail() {
         let producer = NoOpEventProducer;
@@ -186,6 +193,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    // max_retries を None にした場合にデフォルト（3回）のリトライが実行されることを確認する。
     #[tokio::test]
     async fn test_process_with_dlq_fallback_default_retries() {
         let producer = NoOpEventProducer;

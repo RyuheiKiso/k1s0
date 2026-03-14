@@ -6,7 +6,7 @@ pub use tenant_handler::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, get, post, put};
 use axum::Router;
 
 use crate::adapter::middleware::auth::auth_middleware;
@@ -44,6 +44,10 @@ pub fn router(state: AppState) -> Router {
             .route(
                 "/api/v1/tenants/:id/members",
                 post(tenant_handler::add_member),
+            )
+            .route(
+                "/api/v1/tenants/:id/members/:user_id",
+                put(tenant_handler::update_member_role),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "tenants", "write",
@@ -103,7 +107,8 @@ pub fn router(state: AppState) -> Router {
             )
             .route(
                 "/api/v1/tenants/:id/members/:user_id",
-                delete(tenant_handler::remove_member),
+                put(tenant_handler::update_member_role)
+                    .delete(tenant_handler::remove_member),
             )
     };
 
@@ -140,10 +145,11 @@ mod tests {
             update_tenant_uc: Arc::new(crate::usecase::UpdateTenantUseCase::new(repo.clone())),
             delete_tenant_uc: Arc::new(crate::usecase::DeleteTenantUseCase::new(repo.clone())),
             suspend_tenant_uc: Arc::new(crate::usecase::SuspendTenantUseCase::new(repo.clone())),
-            activate_tenant_uc: Arc::new(crate::usecase::ActivateTenantUseCase::new(repo)),
+            activate_tenant_uc: Arc::new(crate::usecase::ActivateTenantUseCase::new(repo.clone())),
             list_members_uc: Arc::new(crate::usecase::ListMembersUseCase::new(member_repo.clone())),
             add_member_uc: Arc::new(crate::usecase::AddMemberUseCase::new(member_repo.clone())),
-            remove_member_uc: Arc::new(crate::usecase::RemoveMemberUseCase::new(member_repo)),
+            remove_member_uc: Arc::new(crate::usecase::RemoveMemberUseCase::new(member_repo.clone())),
+            update_member_role_uc: Arc::new(crate::usecase::UpdateMemberRoleUseCase::new(member_repo, repo)),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new(
                 "k1s0-tenant-server-test",
             )),

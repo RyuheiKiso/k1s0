@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:math';
 
 import 'package:http/http.dart' as http;
@@ -48,6 +49,7 @@ abstract class WebhookClient {
 
 /// HTTP-based webhook client with retry, idempotency, and signature support.
 class HttpWebhookClient implements WebhookClient {
+  static const _loggerName = 'k1s0.webhook_client.HttpWebhookClient';
   final String? secret;
   final WebhookConfig config;
   final http.Client _httpClient;
@@ -96,18 +98,20 @@ class HttpWebhookClient implements WebhookClient {
         );
         final jitter = (_random.nextDouble() * backoff).toInt();
         final delay = backoff + jitter;
-        print(
+        developer.log(
           '[webhook-client] Retry attempt $attempt/${config.maxRetries} '
           'for $url after ${delay}ms',
+          name: _loggerName,
         );
         await _delayFn(Duration(milliseconds: delay));
       }
 
       try {
-        print(
+        developer.log(
           '[webhook-client] Sending webhook to $url '
           '(attempt ${attempt + 1}/${config.maxRetries + 1}, '
           'idempotency-key=$idempotencyKey)',
+          name: _loggerName,
         );
 
         final response = await _httpClient.post(
@@ -119,8 +123,10 @@ class HttpWebhookClient implements WebhookClient {
         lastStatus = response.statusCode;
 
         if (_isRetryable(lastStatus)) {
-          print(
+          developer.log(
             '[webhook-client] Retryable status $lastStatus from $url',
+            name: _loggerName,
+            level: 900,
           );
           lastError = WebhookError(
             'Webhook request to $url returned status $lastStatus',
@@ -132,9 +138,12 @@ class HttpWebhookClient implements WebhookClient {
         return lastStatus;
       } catch (e) {
         lastError = e;
-        print(
+        developer.log(
           '[webhook-client] Network error on attempt '
           '${attempt + 1}/${config.maxRetries + 1} for $url: $e',
+          name: _loggerName,
+          error: e,
+          level: 1000,
         );
       }
     }

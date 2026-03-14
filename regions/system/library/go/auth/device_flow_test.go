@@ -15,6 +15,7 @@ import (
 
 // --- Device Flow テスト ---
 
+// RequestDeviceCode がデバイスコードと検証 URI を正常に取得できることを確認する。
 func TestDeviceAuthClient_RequestDeviceCode_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
@@ -47,6 +48,7 @@ func TestDeviceAuthClient_RequestDeviceCode_Success(t *testing.T) {
 	assert.Equal(t, 5, resp.Interval)
 }
 
+// PollToken が authorization_pending を受け取り、その後トークン取得に成功することを確認する。
 func TestDeviceAuthClient_PollToken_AuthorizationPendingThenSuccess(t *testing.T) {
 	var callCount int32
 
@@ -86,6 +88,7 @@ func TestDeviceAuthClient_PollToken_AuthorizationPendingThenSuccess(t *testing.T
 	assert.GreaterOrEqual(t, atomic.LoadInt32(&callCount), int32(3))
 }
 
+// PollToken が slow_down エラーを受け取った後にポーリング間隔を延長することを確認する。
 func TestDeviceAuthClient_PollToken_SlowDown(t *testing.T) {
 	var callCount int32
 
@@ -120,6 +123,7 @@ func TestDeviceAuthClient_PollToken_SlowDown(t *testing.T) {
 	assert.GreaterOrEqual(t, elapsed, 5*time.Second)
 }
 
+// PollToken がトークン有効期限切れエラーを受け取ると DeviceFlowError を返すことを確認する。
 func TestDeviceAuthClient_PollToken_ExpiredToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -138,6 +142,7 @@ func TestDeviceAuthClient_PollToken_ExpiredToken(t *testing.T) {
 	assert.Equal(t, "expired_token", dfe.ErrorCode)
 }
 
+// PollToken がアクセス拒否エラーを受け取ると DeviceFlowError を返すことを確認する。
 func TestDeviceAuthClient_PollToken_AccessDenied(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -156,6 +161,7 @@ func TestDeviceAuthClient_PollToken_AccessDenied(t *testing.T) {
 	assert.Equal(t, "access_denied", dfe.ErrorCode)
 }
 
+// DeviceFlow がデバイスコード取得からトークン取得までの一連のフローを正常に完了することを確認する。
 func TestDeviceAuthClient_DeviceFlow_Integration(t *testing.T) {
 	var tokenCallCount int32
 
@@ -218,6 +224,7 @@ func TestDeviceAuthClient_DeviceFlow_Integration(t *testing.T) {
 	assert.Equal(t, "https://auth.example.com/device", receivedVerificationURI)
 }
 
+// PollToken がコンテキストキャンセル時にエラーを返してポーリングを中断することを確認する。
 func TestDeviceAuthClient_PollToken_ContextCancellation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)

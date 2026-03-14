@@ -27,6 +27,7 @@ fn make_doc(id: &str, name: &str, price: i64) -> IndexDocument {
 // index_document
 // ===========================================================================
 
+// 1件のドキュメントをインデックスできることを確認する。
 #[tokio::test]
 async fn index_single_document() {
     let client = InMemorySearchClient::new();
@@ -41,6 +42,7 @@ async fn index_single_document() {
     assert_eq!(client.document_count("products").await, 1);
 }
 
+// 複数ドキュメントをインデックスするたびにバージョンが増加することを確認する。
 #[tokio::test]
 async fn index_multiple_documents_increments_version() {
     let client = InMemorySearchClient::new();
@@ -62,6 +64,7 @@ async fn index_multiple_documents_increments_version() {
 // search
 // ===========================================================================
 
+// 空のクエリで検索するとすべてのドキュメントが返されることを確認する。
 #[tokio::test]
 async fn search_empty_query_returns_all() {
     let client = InMemorySearchClient::new();
@@ -82,6 +85,7 @@ async fn search_empty_query_returns_all() {
     assert_eq!(result.total, 2);
 }
 
+// クエリテキストに一致するドキュメントのみが検索結果に返されることを確認する。
 #[tokio::test]
 async fn search_filters_by_query_text() {
     let client = InMemorySearchClient::new();
@@ -102,6 +106,7 @@ async fn search_filters_by_query_text() {
     assert_eq!(result.total, 1);
 }
 
+// ファセット付きで検索するとファセット情報が結果に含まれることを確認する。
 #[tokio::test]
 async fn search_with_facets() {
     let client = InMemorySearchClient::new();
@@ -116,6 +121,7 @@ async fn search_with_facets() {
     assert!(result.facets.contains_key("category"));
 }
 
+// 存在しないインデックスを検索すると IndexNotFound エラーが返されることを確認する。
 #[tokio::test]
 async fn search_nonexistent_index_returns_error() {
     let client = InMemorySearchClient::new();
@@ -125,6 +131,7 @@ async fn search_nonexistent_index_returns_error() {
     assert!(matches!(result, Err(SearchError::IndexNotFound(_))));
 }
 
+// ページネーションで指定したサイズ分だけ結果が返されることを確認する。
 #[tokio::test]
 async fn search_pagination() {
     let client = InMemorySearchClient::new();
@@ -147,6 +154,7 @@ async fn search_pagination() {
 // delete_document
 // ===========================================================================
 
+// ドキュメント削除後にインデックスから除去されることを確認する。
 #[tokio::test]
 async fn delete_removes_document() {
     let client = InMemorySearchClient::new();
@@ -161,6 +169,7 @@ async fn delete_removes_document() {
     assert_eq!(client.document_count("idx").await, 0);
 }
 
+// 存在しないドキュメントの削除が無操作で正常終了することを確認する。
 #[tokio::test]
 async fn delete_nonexistent_doc_is_noop() {
     let client = InMemorySearchClient::new();
@@ -169,6 +178,7 @@ async fn delete_nonexistent_doc_is_noop() {
     client.delete_document("idx", "ghost").await.unwrap();
 }
 
+// 存在しないインデックスへの削除が無操作で正常終了することを確認する。
 #[tokio::test]
 async fn delete_from_nonexistent_index_is_noop() {
     let client = InMemorySearchClient::new();
@@ -182,6 +192,7 @@ async fn delete_from_nonexistent_index_is_noop() {
 // bulk_index
 // ===========================================================================
 
+// 一括インデックスですべてのドキュメントが正常に登録されることを確認する。
 #[tokio::test]
 async fn bulk_index_inserts_all() {
     let client = InMemorySearchClient::new();
@@ -199,6 +210,7 @@ async fn bulk_index_inserts_all() {
     assert_eq!(client.document_count("idx").await, 3);
 }
 
+// 空のドキュメントリストで一括インデックスを実行しても正常終了することを確認する。
 #[tokio::test]
 async fn bulk_index_empty_vec() {
     let client = InMemorySearchClient::new();
@@ -212,6 +224,7 @@ async fn bulk_index_empty_vec() {
 // create_index
 // ===========================================================================
 
+// インデックス作成後に空の検索結果が返されることを確認する。
 #[tokio::test]
 async fn create_index_makes_searchable() {
     let client = InMemorySearchClient::new();
@@ -228,6 +241,7 @@ async fn create_index_makes_searchable() {
 // query builder
 // ===========================================================================
 
+// SearchQuery のデフォルト値が正しく設定されることを確認する。
 #[test]
 fn search_query_builder_defaults() {
     let q = SearchQuery::new("test");
@@ -238,6 +252,7 @@ fn search_query_builder_defaults() {
     assert_eq!(q.size, 20);
 }
 
+// フィルター・ファセット・ページネーションを指定して SearchQuery が正しく構築されることを確認する。
 #[test]
 fn search_query_builder_with_filters() {
     let q = SearchQuery::new("shoes")
@@ -260,6 +275,7 @@ fn search_query_builder_with_filters() {
 // IndexDocument builder
 // ===========================================================================
 
+// IndexDocument ビルダーでIDとフィールドが正しく設定されることを確認する。
 #[test]
 fn index_document_builder() {
     let doc = IndexDocument::new("id-1")
@@ -274,6 +290,7 @@ fn index_document_builder() {
 // IndexMapping builder
 // ===========================================================================
 
+// IndexMapping ビルダーでフィールドが正しく登録されることを確認する。
 #[test]
 fn index_mapping_builder() {
     let m = IndexMapping::new()
@@ -284,6 +301,7 @@ fn index_mapping_builder() {
     assert!(m.fields["title"].indexed);
 }
 
+// IndexMapping のデフォルト値でフィールドが空であることを確認する。
 #[test]
 fn index_mapping_default() {
     let m = IndexMapping::default();
@@ -294,6 +312,7 @@ fn index_mapping_default() {
 // Filter constructors
 // ===========================================================================
 
+// Filter::eq で等値フィルターが正しく構築されることを確認する。
 #[test]
 fn filter_eq() {
     let f = Filter::eq("status", "active");
@@ -303,18 +322,21 @@ fn filter_eq() {
     assert!(f.value_to.is_none());
 }
 
+// Filter::lt で未満フィルターが正しく構築されることを確認する。
 #[test]
 fn filter_lt() {
     let f = Filter::lt("age", 30);
     assert_eq!(f.operator, "lt");
 }
 
+// Filter::gt で超過フィルターが正しく構築されることを確認する。
 #[test]
 fn filter_gt() {
     let f = Filter::gt("score", 80);
     assert_eq!(f.operator, "gt");
 }
 
+// Filter::range で範囲フィルターが正しく構築されることを確認する。
 #[test]
 fn filter_range() {
     let f = Filter::range("price", 10, 100);
@@ -327,24 +349,28 @@ fn filter_range() {
 // error variant coverage
 // ===========================================================================
 
+// IndexNotFound エラーの Display 出力にインデックス名が含まれることを確認する。
 #[test]
 fn error_display_index_not_found() {
     let e = SearchError::IndexNotFound("test".to_string());
     assert!(format!("{e}").contains("test"));
 }
 
+// InvalidQuery エラーの Display 出力に詳細が含まれることを確認する。
 #[test]
 fn error_display_invalid_query() {
     let e = SearchError::InvalidQuery("bad".to_string());
     assert!(format!("{e}").contains("bad"));
 }
 
+// ServerError エラーの Display 出力に詳細が含まれることを確認する。
 #[test]
 fn error_display_server_error() {
     let e = SearchError::ServerError("oops".to_string());
     assert!(format!("{e}").contains("oops"));
 }
 
+// Timeout エラーの Display 出力が空でないことを確認する。
 #[test]
 fn error_display_timeout() {
     let e = SearchError::Timeout;
@@ -355,6 +381,7 @@ fn error_display_timeout() {
 // BulkFailure
 // ===========================================================================
 
+// BulkFailure のフィールドが正しく設定されることを確認する。
 #[test]
 fn bulk_failure_fields() {
     use k1s0_search_client::BulkFailure;

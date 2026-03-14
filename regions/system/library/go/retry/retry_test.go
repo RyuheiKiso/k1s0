@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// WithRetryが初回試行で成功した場合にリトライなしで結果を返すことを確認する。
 func TestWithRetry_SucceedsOnFirstAttempt(t *testing.T) {
 	config := &retry.RetryConfig{
 		MaxAttempts:  3,
@@ -27,6 +28,7 @@ func TestWithRetry_SucceedsOnFirstAttempt(t *testing.T) {
 	assert.Equal(t, "success", result)
 }
 
+// WithRetryが2回失敗した後3回目の試行で成功することを確認する。
 func TestWithRetry_SucceedsOnThirdAttempt(t *testing.T) {
 	var counter atomic.Int32
 	config := &retry.RetryConfig{
@@ -48,6 +50,7 @@ func TestWithRetry_SucceedsOnThirdAttempt(t *testing.T) {
 	assert.Equal(t, int32(3), counter.Load())
 }
 
+// 全リトライが失敗した場合にRetryErrorと試行回数が正しく返ることを確認する。
 func TestWithRetry_Exhausted(t *testing.T) {
 	config := &retry.RetryConfig{
 		MaxAttempts:  3,
@@ -66,6 +69,7 @@ func TestWithRetry_Exhausted(t *testing.T) {
 	assert.Contains(t, retryErr.LastError.Error(), "always fails")
 }
 
+// コンテキストがキャンセルされた場合にWithRetryがリトライを中断してエラーを返すことを確認する。
 func TestWithRetry_ContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var counter atomic.Int32
@@ -88,6 +92,7 @@ func TestWithRetry_ContextCancelled(t *testing.T) {
 	assert.ErrorIs(t, err, context.Canceled)
 }
 
+// ComputeDelayが指数バックオフで遅延時間を正しく計算することを確認する。
 func TestComputeDelay_Exponential(t *testing.T) {
 	config := &retry.RetryConfig{
 		MaxAttempts:  5,
@@ -101,6 +106,7 @@ func TestComputeDelay_Exponential(t *testing.T) {
 	assert.Equal(t, 400*time.Millisecond, config.ComputeDelay(2))
 }
 
+// ジッターなし設定時にComputeDelayが同一試行番号で常に同じ遅延を返すことを確認する。
 func TestComputeDelay_NoJitter(t *testing.T) {
 	config := &retry.RetryConfig{
 		MaxAttempts:  3,
@@ -115,6 +121,7 @@ func TestComputeDelay_NoJitter(t *testing.T) {
 	assert.Equal(t, 150*time.Millisecond, d1)
 }
 
+// サーキットブレーカーが失敗閾値に達するとオープン状態になることを確認する。
 func TestCircuitBreaker_OpensAfterThreshold(t *testing.T) {
 	cb := retry.NewCircuitBreaker(&retry.CircuitBreakerConfig{
 		FailureThreshold: 3,
@@ -130,6 +137,7 @@ func TestCircuitBreaker_OpensAfterThreshold(t *testing.T) {
 	assert.True(t, cb.IsOpen())
 }
 
+// オープンタイムアウト経過後にサーキットブレーカーがハーフオープン状態に遷移することを確認する。
 func TestCircuitBreaker_TransitionsToHalfOpen(t *testing.T) {
 	cb := retry.NewCircuitBreaker(&retry.CircuitBreakerConfig{
 		FailureThreshold: 2,
@@ -146,6 +154,7 @@ func TestCircuitBreaker_TransitionsToHalfOpen(t *testing.T) {
 	assert.Equal(t, retry.StateHalfOpen, cb.GetState())
 }
 
+// ハーフオープン状態で必要な成功回数を記録するとサーキットブレーカーがクローズ状態に戻ることを確認する。
 func TestCircuitBreaker_ClosesAfterSuccesses(t *testing.T) {
 	cb := retry.NewCircuitBreaker(&retry.CircuitBreakerConfig{
 		FailureThreshold: 2,

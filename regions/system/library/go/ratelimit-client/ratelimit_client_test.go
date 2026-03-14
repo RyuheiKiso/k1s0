@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// レートリミット内のリクエストにCheckがAllowedを返すことを確認する。
 func TestCheck_Allowed(t *testing.T) {
 	c := ratelimitclient.NewInMemoryClient()
 	status, err := c.Check(context.Background(), "test-key", 1)
@@ -18,6 +19,7 @@ func TestCheck_Allowed(t *testing.T) {
 	assert.Nil(t, status.RetryAfterSecs)
 }
 
+// レートリミットを超過した場合にCheckがDeniedとRetryAfterを返すことを確認する。
 func TestCheck_Denied(t *testing.T) {
 	c := ratelimitclient.NewInMemoryClient()
 	c.SetPolicy("limited-key", ratelimitclient.RateLimitPolicy{
@@ -38,6 +40,7 @@ func TestCheck_Denied(t *testing.T) {
 	assert.NotNil(t, status.RetryAfterSecs)
 }
 
+// Consumeが成功してRemainingカウントと使用済みカウントを正しく更新することを確認する。
 func TestConsume_Success(t *testing.T) {
 	c := ratelimitclient.NewInMemoryClient()
 	result, err := c.Consume(context.Background(), "test-key", 1)
@@ -46,6 +49,7 @@ func TestConsume_Success(t *testing.T) {
 	assert.Equal(t, uint32(1), c.UsedCount("test-key"))
 }
 
+// レートリミットを超えてConsumeを呼び出した場合にエラーが返ることを確認する。
 func TestConsume_ExceedsLimit(t *testing.T) {
 	c := ratelimitclient.NewInMemoryClient()
 	c.SetPolicy("small-key", ratelimitclient.RateLimitPolicy{
@@ -62,6 +66,7 @@ func TestConsume_ExceedsLimit(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// GetLimitが未登録キーに対してデフォルトポリシーを返すことを確認する。
 func TestGetLimit_DefaultPolicy(t *testing.T) {
 	c := ratelimitclient.NewInMemoryClient()
 	policy, err := c.GetLimit(context.Background(), "unknown-key")
@@ -71,6 +76,7 @@ func TestGetLimit_DefaultPolicy(t *testing.T) {
 	assert.Equal(t, "token_bucket", policy.Algorithm)
 }
 
+// SetPolicyで設定したカスタムポリシーをGetLimitが正しく返すことを確認する。
 func TestGetLimit_CustomPolicy(t *testing.T) {
 	c := ratelimitclient.NewInMemoryClient()
 	c.SetPolicy("tenant:T1", ratelimitclient.RateLimitPolicy{
@@ -88,6 +94,7 @@ func TestGetLimit_CustomPolicy(t *testing.T) {
 	assert.Equal(t, "sliding_window", policy.Algorithm)
 }
 
+// Checkが複数コストのリクエストに対して残量を正しく計算することを確認する。
 func TestCheck_MultipleCosts(t *testing.T) {
 	c := ratelimitclient.NewInMemoryClient()
 	c.SetPolicy("cost-key", ratelimitclient.RateLimitPolicy{

@@ -217,6 +217,7 @@ impl GraphQlClient for InMemoryGraphQlClient {
 mod tests {
     use super::*;
 
+    // インメモリクライアントで登録済みクエリを execute するとデータが返ることを確認する。
     #[tokio::test]
     async fn test_inmemory_execute() {
         let client = InMemoryGraphQlClient::new();
@@ -233,6 +234,7 @@ mod tests {
         assert!(resp.errors.is_none());
     }
 
+    // 未登録クエリを execute すると data が None で返ることを確認する。
     #[tokio::test]
     async fn test_inmemory_not_found() {
         let client = InMemoryGraphQlClient::new();
@@ -241,6 +243,7 @@ mod tests {
         assert!(resp.data.is_none());
     }
 
+    // インメモリクライアントで登録済みミューテーションを execute_mutation するとデータが返ることを確認する。
     #[tokio::test]
     async fn test_inmemory_mutation() {
         let client = InMemoryGraphQlClient::new();
@@ -257,6 +260,7 @@ mod tests {
         assert!(resp.data.is_some());
     }
 
+    // ClientError の各バリアントが正しいパターンに分類されることを確認する。
     #[test]
     fn test_error_variants() {
         let err = ClientError::RequestError("timeout".to_string());
@@ -272,12 +276,14 @@ mod tests {
         assert!(matches!(err, ClientError::NotFound(_)));
     }
 
+    // Default トレイトで InMemoryGraphQlClient が正常に生成されることを確認する。
     #[test]
     fn test_default() {
         let client = InMemoryGraphQlClient::default();
         assert!(Arc::strong_count(&client.responses) == 1);
     }
 
+    // インメモリクライアントでサブスクリプションイベントがストリームから取得できることを確認する。
     #[tokio::test]
     async fn test_inmemory_subscribe() {
         use tokio_stream::StreamExt;

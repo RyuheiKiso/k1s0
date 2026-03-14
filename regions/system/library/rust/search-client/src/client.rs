@@ -159,6 +159,7 @@ mod tests {
     use super::*;
     use crate::document::BulkFailure;
 
+    // ドキュメントをインデックスして検索クエリで取得できることを確認する。
     #[tokio::test]
     async fn test_index_and_search() {
         let client = InMemorySearchClient::new();
@@ -180,6 +181,7 @@ mod tests {
         assert_eq!(search_result.took_ms, 1);
     }
 
+    // 複数ドキュメントを一括インデックスして件数が正しいことを確認する。
     #[tokio::test]
     async fn test_bulk_index() {
         let client = InMemorySearchClient::new();
@@ -199,6 +201,7 @@ mod tests {
         assert_eq!(client.document_count("items").await, 2);
     }
 
+    // ドキュメントを削除すると検索結果から除外されることを確認する。
     #[tokio::test]
     async fn test_delete_document() {
         let client = InMemorySearchClient::new();
@@ -220,6 +223,7 @@ mod tests {
         assert_eq!(client.document_count("products").await, 0);
     }
 
+    // 存在しないインデックスを検索すると IndexNotFound エラーが返されることを確認する。
     #[tokio::test]
     async fn test_search_index_not_found() {
         let client = InMemorySearchClient::new();
@@ -228,6 +232,7 @@ mod tests {
         assert!(matches!(result, Err(SearchError::IndexNotFound(_))));
     }
 
+    // 各 SearchError バリアントが正しいパターンに一致することを確認する。
     #[tokio::test]
     async fn test_search_error_variants() {
         let err = SearchError::IndexNotFound("missing".to_string());
@@ -243,6 +248,7 @@ mod tests {
         assert!(matches!(err, SearchError::Timeout));
     }
 
+    // SearchQuery ビルダーでフィルター・ファセット・ページネーションが正しく設定されることを確認する。
     #[test]
     fn test_search_query_builder() {
         use crate::query::Filter;
@@ -260,6 +266,7 @@ mod tests {
         assert_eq!(query.page, 0);
     }
 
+    // IndexDocument ビルダーでIDとフィールドが正しく設定されることを確認する。
     #[test]
     fn test_index_document_builder() {
         let doc = IndexDocument::new("prod-001")
@@ -270,6 +277,7 @@ mod tests {
         assert_eq!(doc.fields.len(), 2);
     }
 
+    // IndexMapping ビルダーでフィールド定義が正しく登録されることを確認する。
     #[test]
     fn test_index_mapping_builder() {
         let mapping = IndexMapping::new()
@@ -282,6 +290,7 @@ mod tests {
         assert!(mapping.fields["name"].indexed);
     }
 
+    // 各 Filter コンストラクターが正しい operator を持つことを確認する。
     #[test]
     fn test_filter_constructors() {
         use crate::query::Filter;
@@ -300,6 +309,7 @@ mod tests {
         assert!(range.value_to.is_some());
     }
 
+    // BulkFailure の id と error フィールドが正しく設定されることを確認する。
     #[test]
     fn test_bulk_failure() {
         let failure = BulkFailure {

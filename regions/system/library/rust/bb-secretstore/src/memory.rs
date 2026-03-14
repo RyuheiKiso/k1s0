@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use tokio::sync::RwLock;
 use tracing::info;
 
-use k1s0_building_blocks::{Component, ComponentError, ComponentStatus};
+use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 
 use crate::traits::{SecretStore, SecretValue};
 use crate::SecretStoreError;
@@ -125,6 +125,7 @@ impl SecretStore for InMemorySecretStore {
 mod tests {
     use super::*;
 
+    // InMemorySecretStore の初期化後にステータスが Ready になることを確認する。
     #[tokio::test]
     async fn test_init_and_status() {
         let store = InMemorySecretStore::new("test-secrets");
@@ -133,6 +134,7 @@ mod tests {
         assert_eq!(store.status().await, ComponentStatus::Ready);
     }
 
+    // シークレットを追加して正しく取得できることを確認する。
     #[tokio::test]
     async fn test_put_and_get_secret() {
         let store = InMemorySecretStore::new("test-secrets");
@@ -144,6 +146,7 @@ mod tests {
         assert!(secret.metadata.is_empty());
     }
 
+    // 存在しないキーを取得しようとすると NotFound エラーになることを確認する。
     #[tokio::test]
     async fn test_get_secret_not_found() {
         let store = InMemorySecretStore::new("test-secrets");
@@ -151,6 +154,7 @@ mod tests {
         assert!(matches!(result, Err(SecretStoreError::NotFound(_))));
     }
 
+    // 複数のシークレットを一括取得し、存在するキーのみ返されることを確認する。
     #[tokio::test]
     async fn test_bulk_get() {
         let store = InMemorySecretStore::new("test-secrets");
@@ -167,6 +171,7 @@ mod tests {
         assert_eq!(secrets.get("api/key").unwrap().value, "key123");
     }
 
+    // メタデータ付きシークレットを追加して正しく取得できることを確認する。
     #[tokio::test]
     async fn test_put_secret_with_metadata() {
         let store = InMemorySecretStore::new("test-secrets");
@@ -180,6 +185,7 @@ mod tests {
         assert_eq!(secret.metadata.get("version").unwrap(), "2");
     }
 
+    // クローズ後にストアがクリアされステータスが Closed になることを確認する。
     #[tokio::test]
     async fn test_close_clears_store() {
         let store = InMemorySecretStore::new("test-secrets");
@@ -188,6 +194,7 @@ mod tests {
         assert_eq!(store.status().await, ComponentStatus::Closed);
     }
 
+    // メタデータにバックエンドが "memory" として設定されていることを確認する。
     #[tokio::test]
     async fn test_metadata() {
         let store = InMemorySecretStore::new("test-secrets");
@@ -195,6 +202,7 @@ mod tests {
         assert_eq!(meta.get("backend").unwrap(), "memory");
     }
 
+    // コンポーネントタイプが "secretstore" であることを確認する。
     #[tokio::test]
     async fn test_component_type() {
         let store = InMemorySecretStore::new("test-secrets");

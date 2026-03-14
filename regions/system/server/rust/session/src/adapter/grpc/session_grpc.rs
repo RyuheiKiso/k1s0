@@ -367,6 +367,7 @@ mod tests {
     use super::*;
     use crate::domain::entity::session::Session;
     use crate::domain::repository::session_repository::MockSessionRepository;
+    use crate::adapter::repository::session_metadata_postgres::NoopSessionMetadataRepository;
     use crate::infrastructure::kafka_producer::NoopSessionEventPublisher;
     use chrono::{Duration, Utc};
     use std::collections::HashMap;
@@ -394,6 +395,7 @@ mod tests {
         SessionGrpcService::new(
             Arc::new(CreateSessionUseCase::new(
                 repo.clone(),
+                Arc::new(NoopSessionMetadataRepository),
                 Arc::new(NoopSessionEventPublisher),
                 3600,
                 86400,
@@ -402,9 +404,10 @@ mod tests {
             Arc::new(RefreshSessionUseCase::new(repo.clone(), 86400)),
             Arc::new(RevokeSessionUseCase::new(
                 repo.clone(),
+                Arc::new(NoopSessionMetadataRepository),
                 Arc::new(NoopSessionEventPublisher),
             )),
-            Arc::new(RevokeAllSessionsUseCase::new(repo.clone())),
+            Arc::new(RevokeAllSessionsUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository))),
             Arc::new(ListUserSessionsUseCase::new(repo)),
             3600,
         )

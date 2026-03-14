@@ -81,7 +81,7 @@ OutboxMessage _createTestMessage({
 
 void main() {
   group('createOutboxMessage', () {
-    test('creates message with correct fields', () {
+    test('正しいフィールドを持つメッセージが生成されること', () {
       final msg = createOutboxMessage('test-topic', 'test-key', '{"id":"1"}');
       expect(msg.topic, equals('test-topic'));
       expect(msg.partitionKey, equals('test-key'));
@@ -94,7 +94,7 @@ void main() {
       expect(msg.processAfter.isUtc, isTrue);
     });
 
-    test('generates unique IDs', () {
+    test('一意なIDが生成されること', () {
       final msg1 = createOutboxMessage('t', 'k', 'p');
       final msg2 = createOutboxMessage('t', 'k', 'p');
       expect(msg1.id, isNot(equals(msg2.id)));
@@ -102,7 +102,7 @@ void main() {
   });
 
   group('markProcessing', () {
-    test('sets status to processing', () {
+    test('ステータスがprocessingに設定されること', () {
       final msg = createOutboxMessage('topic', 'key', '{}');
       msg.markProcessing();
       expect(msg.status, equals(OutboxStatus.processing));
@@ -110,7 +110,7 @@ void main() {
   });
 
   group('markDelivered', () {
-    test('sets status to delivered', () {
+    test('ステータスがdeliveredに設定されること', () {
       final msg = createOutboxMessage('topic', 'key', '{}');
       msg.markProcessing();
       msg.markDelivered();
@@ -120,7 +120,7 @@ void main() {
   });
 
   group('markFailed', () {
-    test('increments retryCount and sets failed status', () {
+    test('retryCountが増加しステータスがfailedに設定されること', () {
       final msg = createOutboxMessage('topic', 'key', '{}');
       msg.markFailed('kafka error');
       expect(msg.retryCount, equals(1));
@@ -128,7 +128,7 @@ void main() {
       expect(msg.lastError, equals('kafka error'));
     });
 
-    test('sets deadLetter on max retries', () {
+    test('最大リトライ数に達するとdeadLetterに設定されること', () {
       final msg = createOutboxMessage('topic', 'key', '{}');
       msg.maxRetries = 3;
       msg.markFailed('error 1');
@@ -138,7 +138,7 @@ void main() {
       expect(msg.retryCount, equals(3));
     });
 
-    test('uses exponential backoff in seconds', () {
+    test('指数バックオフが秒単位で適用されること', () {
       final msg = createOutboxMessage('topic', 'key', '{}');
       final before = DateTime.now().toUtc();
       msg.markFailed('error');
@@ -157,28 +157,28 @@ void main() {
   });
 
   group('isProcessable', () {
-    test('returns true for pending with processAfter in past', () {
+    test('processAfterが過去のpendingメッセージはtrueを返すこと', () {
       final msg = createOutboxMessage('topic', 'key', '{}');
       expect(msg.isProcessable, isTrue);
     });
 
-    test('returns true for failed with processAfter in past', () {
+    test('processAfterが過去のfailedメッセージはtrueを返すこと', () {
       final msg = _createTestMessage(status: OutboxStatus.failed);
       msg.processAfter = DateTime.now().toUtc().subtract(const Duration(seconds: 1));
       expect(msg.isProcessable, isTrue);
     });
 
-    test('returns false for delivered', () {
+    test('deliveredメッセージはfalseを返すこと', () {
       final msg = _createTestMessage(status: OutboxStatus.delivered);
       expect(msg.isProcessable, isFalse);
     });
 
-    test('returns false for deadLetter', () {
+    test('deadLetterメッセージはfalseを返すこと', () {
       final msg = _createTestMessage(status: OutboxStatus.deadLetter);
       expect(msg.isProcessable, isFalse);
     });
 
-    test('returns false when processAfter is in the future', () {
+    test('processAfterが未来の場合はfalseを返すこと', () {
       final msg = createOutboxMessage('topic', 'key', '{}');
       msg.processAfter = DateTime.now().toUtc().add(const Duration(minutes: 1));
       expect(msg.isProcessable, isFalse);
@@ -186,78 +186,78 @@ void main() {
   });
 
   group('canTransitionTo', () {
-    test('pending -> processing is valid', () {
+    test('pending -> processingの遷移が有効であること', () {
       expect(
           canTransitionTo(OutboxStatus.pending, OutboxStatus.processing),
           isTrue);
     });
 
-    test('pending -> delivered is invalid', () {
+    test('pending -> deliveredの遷移が無効であること', () {
       expect(
           canTransitionTo(OutboxStatus.pending, OutboxStatus.delivered),
           isFalse);
     });
 
-    test('pending -> failed is invalid', () {
+    test('pending -> failedの遷移が無効であること', () {
       expect(canTransitionTo(OutboxStatus.pending, OutboxStatus.failed),
           isFalse);
     });
 
-    test('processing -> delivered is valid', () {
+    test('processing -> deliveredの遷移が有効であること', () {
       expect(
           canTransitionTo(OutboxStatus.processing, OutboxStatus.delivered),
           isTrue);
     });
 
-    test('processing -> failed is valid', () {
+    test('processing -> failedの遷移が有効であること', () {
       expect(
           canTransitionTo(OutboxStatus.processing, OutboxStatus.failed),
           isTrue);
     });
 
-    test('processing -> deadLetter is valid', () {
+    test('processing -> deadLetterの遷移が有効であること', () {
       expect(
           canTransitionTo(OutboxStatus.processing, OutboxStatus.deadLetter),
           isTrue);
     });
 
-    test('processing -> pending is invalid', () {
+    test('processing -> pendingの遷移が無効であること', () {
       expect(
           canTransitionTo(OutboxStatus.processing, OutboxStatus.pending),
           isFalse);
     });
 
-    test('failed -> processing is valid', () {
+    test('failed -> processingの遷移が有効であること', () {
       expect(
           canTransitionTo(OutboxStatus.failed, OutboxStatus.processing),
           isTrue);
     });
 
-    test('failed -> delivered is invalid', () {
+    test('failed -> deliveredの遷移が無効であること', () {
       expect(
           canTransitionTo(OutboxStatus.failed, OutboxStatus.delivered),
           isFalse);
     });
 
-    test('delivered -> pending is invalid', () {
+    test('delivered -> pendingの遷移が無効であること', () {
       expect(
           canTransitionTo(OutboxStatus.delivered, OutboxStatus.pending),
           isFalse);
     });
 
-    test('delivered -> processing is invalid', () {
+    test('delivered -> processingの遷移が無効であること', () {
       expect(
           canTransitionTo(OutboxStatus.delivered, OutboxStatus.processing),
           isFalse);
     });
 
-    test('delivered -> failed is invalid', () {
+    test('delivered -> failedの遷移が無効であること', () {
       expect(
           canTransitionTo(OutboxStatus.delivered, OutboxStatus.failed),
           isFalse);
     });
 
-    test('deadLetter -> pending is invalid', () {
+    test('deadLetter -> pendingの遷移が無効であること', () {
       expect(
           canTransitionTo(OutboxStatus.deadLetter, OutboxStatus.pending),
           isFalse);
@@ -273,7 +273,7 @@ void main() {
       publisher = MockPublisher();
     });
 
-    test('processBatch processes successful messages', () async {
+    test('processBatchで成功メッセージが処理されること', () async {
       final msg1 = _createTestMessage(id: 'msg-1');
       final msg2 = _createTestMessage(id: 'msg-2');
       store.messages = [msg1, msg2];
@@ -296,7 +296,7 @@ void main() {
       expect(store.updatedMessages[3].status, equals(OutboxStatus.delivered));
     });
 
-    test('processBatch marks failed on publish error', () async {
+    test('processBatchでpublishエラー時にfailedとマークされること', () async {
       final msg = _createTestMessage(id: 'msg-fail');
       store.messages = [msg];
       publisher.error = Exception('publish failed');
@@ -313,7 +313,7 @@ void main() {
       expect(store.updatedMessages[1].lastError, isNotNull);
     });
 
-    test('processBatch marks deadLetter after max retries', () async {
+    test('processBatchで最大リトライ後にdeadLetterとマークされること', () async {
       final msg = _createTestMessage(id: 'msg-dead', maxRetries: 1);
       store.messages = [msg];
       publisher.error = Exception('always fail');
@@ -327,7 +327,7 @@ void main() {
       expect(store.updatedMessages[1].retryCount, equals(1));
     });
 
-    test('processBatch throws on store fetchPending error', () async {
+    test('processBatchでfetchPendingエラー時に例外がスローされること', () async {
       store.fetchError = Exception('db connection failed');
 
       final processor = OutboxProcessor(store, publisher);
@@ -337,7 +337,7 @@ void main() {
       );
     });
 
-    test('processBatch returns 0 for empty batch', () async {
+    test('processBatchで空バッチの場合0が返されること', () async {
       store.messages = [];
 
       final processor = OutboxProcessor(store, publisher);
@@ -347,7 +347,7 @@ void main() {
       expect(publisher.published, isEmpty);
     });
 
-    test('processBatch respects batchSize', () async {
+    test('processBatchでbatchSizeが考慮されること', () async {
       store.messages = List.generate(
         10,
         (i) => _createTestMessage(id: 'msg-$i'),
@@ -360,7 +360,7 @@ void main() {
       expect(publisher.published, hasLength(3));
     });
 
-    test('default batchSize is 100 when 0 or negative', () async {
+    test('0または負の値の場合batchSizeのデフォルトが100になること', () async {
       store.messages = [];
 
       final processor1 = OutboxProcessor(store, publisher, batchSize: 0);
@@ -372,14 +372,14 @@ void main() {
   });
 
   group('OutboxStore interface', () {
-    test('save stores message', () async {
+    test('saveでメッセージが保存されること', () async {
       final store = MockStore();
       final msg = createOutboxMessage('topic', 'key', '{}');
       await store.save(msg);
       expect(store.savedMessages, hasLength(1));
     });
 
-    test('deleteDelivered returns count', () async {
+    test('deleteDeliveredで削除件数が返されること', () async {
       final store = MockStore();
       store.deletedCount = 5;
       final count = await store.deleteDelivered(30);
@@ -388,19 +388,19 @@ void main() {
   });
 
   group('OutboxError', () {
-    test('toString includes code', () {
+    test('toStringにエラーコードが含まれること', () {
       const err = OutboxError(OutboxErrorCode.storeError);
       expect(err.toString(), contains('storeError'));
     });
 
-    test('toString includes message', () {
+    test('toStringにメッセージが含まれること', () {
       const err =
           OutboxError(OutboxErrorCode.publishError, message: 'kafka down');
       expect(err.toString(), contains('publishError'));
       expect(err.toString(), contains('kafka down'));
     });
 
-    test('toString includes cause', () {
+    test('toStringに原因が含まれること', () {
       final cause = Exception('db error');
       final err = OutboxError(OutboxErrorCode.storeError,
           message: 'connection failed', cause: cause);
@@ -409,7 +409,7 @@ void main() {
       expect(err.toString(), contains('db error'));
     });
 
-    test('supports all error codes', () {
+    test('全エラーコードがサポートされること', () {
       for (final code in OutboxErrorCode.values) {
         final err = OutboxError(code, message: 'test');
         expect(err.code, equals(code));

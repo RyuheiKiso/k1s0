@@ -139,6 +139,7 @@ pub fn detect_breaking_changes(sql: &str) -> Vec<BreakingChange> {
 mod tests {
     use super::*;
 
+    // DROP TABLE 文が破壊的変更（TableDropped）として検出されることを確認する。
     #[test]
     fn test_detect_drop_table() {
         let sql = "DROP TABLE users;";
@@ -152,6 +153,7 @@ mod tests {
         );
     }
 
+    // DROP COLUMN 文が破壊的変更（ColumnDropped）として検出されることを確認する。
     #[test]
     fn test_detect_drop_column() {
         let sql = "ALTER TABLE users DROP COLUMN email;";
@@ -166,6 +168,7 @@ mod tests {
         );
     }
 
+    // SET NOT NULL 変更が破壊的変更（NotNullAdded）として検出されることを確認する。
     #[test]
     fn test_detect_set_not_null() {
         let sql = "ALTER TABLE users ALTER COLUMN email SET NOT NULL;";
@@ -180,6 +183,7 @@ mod tests {
         );
     }
 
+    // カラムの型変更が破壊的変更（ColumnTypeChanged）として検出されることを確認する。
     #[test]
     fn test_detect_type_change() {
         let sql = "ALTER TABLE users ALTER COLUMN age SET DATA TYPE BIGINT;";
@@ -195,6 +199,7 @@ mod tests {
         }
     }
 
+    // RENAME COLUMN 文が破壊的変更（ColumnRenamed）として検出されることを確認する。
     #[test]
     fn test_detect_rename_column() {
         let sql = "ALTER TABLE users RENAME COLUMN old_name TO new_name;";
@@ -210,6 +215,7 @@ mod tests {
         );
     }
 
+    // ADD COLUMN のような非破壊的変更は detect_breaking_changes で検出されないことを確認する。
     #[test]
     fn test_no_breaking_changes() {
         let sql = "ALTER TABLE users ADD COLUMN email TEXT;";
@@ -217,6 +223,7 @@ mod tests {
         assert!(changes.is_empty());
     }
 
+    // BreakingChange の Display 実装が期待する文字列フォーマットを出力することを確認する。
     #[test]
     fn test_display_formatting() {
         let change = BreakingChange::ColumnDropped {
@@ -226,6 +233,7 @@ mod tests {
         assert_eq!(change.to_string(), "Column users.email dropped");
     }
 
+    // 不正な SQL を渡すと detect_breaking_changes が空のリストを返すことを確認する。
     #[test]
     fn test_invalid_sql_returns_empty() {
         let changes = detect_breaking_changes("NOT VALID SQL AT ALL !!!");

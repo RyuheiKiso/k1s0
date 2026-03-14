@@ -45,6 +45,7 @@ pub fn validate_generated(output_dir: &Path) -> ValidationResult {
 mod tests {
     use super::*;
 
+    // 空ディレクトリでバリデーションを実行するとエラーが返されることを確認する。
     #[test]
     fn empty_dir_has_errors() {
         let tmp = tempfile::tempdir().unwrap();
@@ -53,6 +54,7 @@ mod tests {
         assert_eq!(result.errors.len(), 3);
     }
 
+    // 必須ファイルが揃ったディレクトリでバリデーションが成功することを確認する。
     #[test]
     fn valid_dir_passes() {
         let tmp = tempfile::tempdir().unwrap();
@@ -65,6 +67,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    // main.rs が欠けている場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn missing_main_rs() {
         let tmp = tempfile::tempdir().unwrap();
@@ -77,6 +80,7 @@ mod tests {
         assert!(result.errors.iter().any(|e| e.contains("main.rs")));
     }
 
+    // オプションファイルが欠けている場合に警告が返されることを確認する。
     #[test]
     fn warnings_for_optional_files() {
         let tmp = tempfile::tempdir().unwrap();

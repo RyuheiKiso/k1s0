@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use tracing::info;
 use uuid::Uuid;
 
-use k1s0_building_blocks::{Component, ComponentError, ComponentStatus};
+use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 use k1s0_cache::CacheClient;
 
 use crate::traits::{StateEntry, StateStore};

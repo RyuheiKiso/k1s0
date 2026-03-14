@@ -109,6 +109,7 @@ impl EventEnvelope {
 mod tests {
     use super::*;
 
+    // EventMetadata::new がイベント種別・発行元・スキーマバージョンを正しく初期化することを確認する。
     #[test]
     fn test_event_metadata_new() {
         let meta = EventMetadata::new("auth.login", "auth-server");
@@ -119,6 +120,7 @@ mod tests {
         assert!(meta.trace_id.is_none());
     }
 
+    // with_trace_id と with_correlation_id でトレース ID と相関 ID が設定されることを確認する。
     #[test]
     fn test_event_metadata_with_trace_id() {
         let meta = EventMetadata::new("auth.login", "auth-server")
@@ -128,6 +130,7 @@ mod tests {
         assert_eq!(meta.correlation_id.as_deref(), Some("corr-001"));
     }
 
+    // to_unix_millis と from_unix_millis の変換が往復で正しく機能することを確認する。
     #[test]
     fn test_event_metadata_unix_millis_conversion() {
         let meta = EventMetadata::new("auth.login", "auth-server");
@@ -136,6 +139,7 @@ mod tests {
         assert_eq!(restored.timestamp_millis(), millis);
     }
 
+    // EventEnvelope::json が JSON ペイロードを正しくシリアライズしてエンベロープを生成することを確認する。
     #[test]
     fn test_event_envelope_json() {
         let payload = serde_json::json!({"user_id": "user-1", "event": "login"});
@@ -147,6 +151,7 @@ mod tests {
         assert!(envelope.metadata.is_empty());
     }
 
+    // EventMetadata を JSON シリアライズ・デシリアライズした結果が元のデータと一致することを確認する。
     #[test]
     fn test_event_metadata_serialization_roundtrip() {
         let meta = EventMetadata::new("test.event", "test-service");
@@ -156,6 +161,7 @@ mod tests {
     }
 
     #[cfg(feature = "protobuf")]
+    // Protobuf ペイロードで EventEnvelope が正しく生成されることを確認する。
     #[test]
     fn test_event_envelope_protobuf() {
         #[derive(Clone, PartialEq, prost::Message)]

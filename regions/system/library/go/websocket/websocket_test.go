@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Connectが切断状態のクライアントを接続状態に遷移させることを確認する。
 func TestConnect(t *testing.T) {
 	c := websocket.NewInMemoryWsClient()
 	ctx := context.Background()
@@ -20,6 +21,7 @@ func TestConnect(t *testing.T) {
 	assert.Equal(t, websocket.StateConnected, c.State())
 }
 
+// Connectが既に接続済みのクライアントに対してエラーを返すことを確認する。
 func TestConnect_AlreadyConnected(t *testing.T) {
 	c := websocket.NewInMemoryWsClient()
 	ctx := context.Background()
@@ -29,6 +31,7 @@ func TestConnect_AlreadyConnected(t *testing.T) {
 	require.Error(t, err)
 }
 
+// Disconnectが接続中のクライアントを切断状態に遷移させることを確認する。
 func TestDisconnect(t *testing.T) {
 	c := websocket.NewInMemoryWsClient()
 	ctx := context.Background()
@@ -39,6 +42,7 @@ func TestDisconnect(t *testing.T) {
 	assert.Equal(t, websocket.StateDisconnected, c.State())
 }
 
+// Disconnectが既に切断済みのクライアントに対してエラーを返すことを確認する。
 func TestDisconnect_AlreadyDisconnected(t *testing.T) {
 	c := websocket.NewInMemoryWsClient()
 	ctx := context.Background()
@@ -47,6 +51,7 @@ func TestDisconnect_AlreadyDisconnected(t *testing.T) {
 	require.Error(t, err)
 }
 
+// Sendでメッセージを送信しInjectMessageで注入したメッセージをReceiveで受信できることを確認する。
 func TestSendReceive(t *testing.T) {
 	c := websocket.NewInMemoryWsClient()
 	ctx := context.Background()
@@ -71,6 +76,7 @@ func TestSendReceive(t *testing.T) {
 	assert.Equal(t, []byte("world"), received.Payload)
 }
 
+// Sendが未接続状態のクライアントに対してエラーを返すことを確認する。
 func TestSend_NotConnected(t *testing.T) {
 	c := websocket.NewInMemoryWsClient()
 	ctx := context.Background()
@@ -79,6 +85,7 @@ func TestSend_NotConnected(t *testing.T) {
 	require.Error(t, err)
 }
 
+// Receiveが未接続状態のクライアントに対してエラーを返すことを確認する。
 func TestReceive_NotConnected(t *testing.T) {
 	c := websocket.NewInMemoryWsClient()
 	ctx := context.Background()
@@ -87,6 +94,7 @@ func TestReceive_NotConnected(t *testing.T) {
 	require.Error(t, err)
 }
 
+// DefaultConfigがデフォルトのWebSocket接続設定を正しく返すことを確認する。
 func TestDefaultConfig(t *testing.T) {
 	cfg := websocket.DefaultConfig()
 	assert.Equal(t, "ws://localhost", cfg.URL)

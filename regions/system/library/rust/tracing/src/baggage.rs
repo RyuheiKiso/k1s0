@@ -45,6 +45,7 @@ impl Baggage {
 mod tests {
     use super::*;
 
+    // Baggage にキーと値をセットし正しく取得できることを確認する。
     #[test]
     fn test_set_and_get() {
         let mut baggage = Baggage::new();
@@ -53,6 +54,7 @@ mod tests {
         assert_eq!(baggage.get("missing"), None);
     }
 
+    // 単一エントリを持つ Baggage がヘッダー文字列に正しく変換されることを確認する。
     #[test]
     fn test_to_header() {
         let mut baggage = Baggage::new();
@@ -61,6 +63,7 @@ mod tests {
         assert_eq!(header, "key1=val1");
     }
 
+    // 複数エントリのヘッダー変換でキーがソートされて出力されることを確認する。
     #[test]
     fn test_to_header_multiple_sorted() {
         let mut baggage = Baggage::new();
@@ -70,6 +73,7 @@ mod tests {
         assert_eq!(header, "a=1,b=2");
     }
 
+    // ヘッダー文字列を解析して Baggage のエントリが正しく復元されることを確認する。
     #[test]
     fn test_from_header() {
         let baggage = Baggage::from_header("key1=val1,key2=val2");
@@ -78,12 +82,14 @@ mod tests {
         assert_eq!(baggage.len(), 2);
     }
 
+    // 空文字列を解析した場合に Baggage が空になることを確認する。
     #[test]
     fn test_from_header_empty() {
         let baggage = Baggage::from_header("");
         assert!(baggage.is_empty());
     }
 
+    // キーと値の前後にスペースがある場合もトリムして正しく解析されることを確認する。
     #[test]
     fn test_from_header_with_spaces() {
         let baggage = Baggage::from_header("key1 = val1 , key2 = val2");
@@ -91,6 +97,7 @@ mod tests {
         assert_eq!(baggage.get("key2"), Some("val2"));
     }
 
+    // Baggage をヘッダーに変換し再解析した結果が元の値と一致することを確認する。
     #[test]
     fn test_roundtrip() {
         let mut original = Baggage::new();
@@ -100,6 +107,7 @@ mod tests {
         assert_eq!(parsed.get("tenant"), Some("acme"));
     }
 
+    // 空の Baggage は is_empty が true で len が 0 であり、エントリ追加後に変化することを確認する。
     #[test]
     fn test_is_empty_and_len() {
         let mut baggage = Baggage::new();
@@ -111,6 +119,7 @@ mod tests {
         assert_eq!(baggage.len(), 1);
     }
 
+    // デフォルト構築した Baggage が空であることを確認する。
     #[test]
     fn test_default() {
         let baggage = Baggage::default();

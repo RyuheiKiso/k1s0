@@ -4,6 +4,9 @@ use std::sync::Arc;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
+use crate::adapter::repository::session_metadata_postgres::{
+    SaveSessionMetadataInput, SessionMetadataRepository,
+};
 use crate::domain::entity::session::Session;
 use crate::domain::repository::SessionRepository;
 use crate::domain::service::SessionDomainService;
@@ -30,6 +33,7 @@ pub struct CreateSessionOutput {
 
 pub struct CreateSessionUseCase {
     repo: Arc<dyn SessionRepository>,
+    metadata_repo: Arc<dyn SessionMetadataRepository>,
     event_publisher: Arc<dyn SessionEventPublisher>,
     default_ttl: i64,
     max_ttl: i64,
@@ -38,12 +42,14 @@ pub struct CreateSessionUseCase {
 impl CreateSessionUseCase {
     pub fn new(
         repo: Arc<dyn SessionRepository>,
+        metadata_repo: Arc<dyn SessionMetadataRepository>,
         event_publisher: Arc<dyn SessionEventPublisher>,
         default_ttl: i64,
         max_ttl: i64,
     ) -> Self {
         Self {
             repo,
+            metadata_repo,
             event_publisher,
             default_ttl,
             max_ttl,
@@ -100,6 +106,23 @@ impl CreateSessionUseCase {
             .await
             .map_err(|e| SessionError::Internal(e.to_string()))?;
 
+        // Save session metadata for audit/session listing
+        if let Ok(user_uuid) = Uuid::parse_str(&session.user_id) {
+            if let Ok(session_uuid) = Uuid::parse_str(&session.id) {
+                let meta_input = SaveSessionMetadataInput {
+                    session_id: session_uuid,
+                    user_id: user_uuid,
+                    device_id: Some(input.device_id.clone()),
+                    device_name: input.device_name.clone(),
+                    device_type: input.device_type.clone(),
+                    ip_address: input.ip_address.clone(),
+                    user_agent: input.user_agent.clone(),
+                    expires_at: session.expires_at,
+                };
+                let _ = self.metadata_repo.save_metadata(&meta_input).await;
+            }
+        }
+
         Ok(CreateSessionOutput { session })
     }
 }
@@ -107,6 +130,7 @@ impl CreateSessionUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adapter::repository::session_metadata_postgres::NoopSessionMetadataRepository;
     use crate::domain::repository::session_repository::MockSessionRepository;
     use crate::infrastructure::kafka_producer::MockSessionEventPublisher;
 
@@ -120,7 +144,13 @@ mod tests {
             .expect_publish_session_created()
             .returning(|_| Ok(()));
 
-        let uc = CreateSessionUseCase::new(Arc::new(mock), Arc::new(mock_publisher), 3600, 86400);
+        let uc = CreateSessionUseCase::new(
+            Arc::new(mock),
+            Arc::new(NoopSessionMetadataRepository),
+            Arc::new(mock_publisher),
+            3600,
+            86400,
+        );
         let input = CreateSessionInput {
             user_id: "user-1".to_string(),
             device_id: "device-1".to_string(),
@@ -148,6 +178,7 @@ mod tests {
 
         let uc = CreateSessionUseCase::new(
             Arc::new(mock),
+            Arc::new(NoopSessionMetadataRepository),
             Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
             3600,
             86400,
@@ -172,6 +203,7 @@ mod tests {
         let mock = MockSessionRepository::new();
         let uc = CreateSessionUseCase::new(
             Arc::new(mock),
+            Arc::new(NoopSessionMetadataRepository),
             Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
             3600,
             86400,
@@ -200,6 +232,7 @@ mod tests {
 
         let uc = CreateSessionUseCase::new(
             Arc::new(mock),
+            Arc::new(NoopSessionMetadataRepository),
             Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
             3600,
             86400,
@@ -246,6 +279,7 @@ mod tests {
 
         let uc = CreateSessionUseCase::new(
             Arc::new(mock),
+            Arc::new(NoopSessionMetadataRepository),
             Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
             3600,
             86400,

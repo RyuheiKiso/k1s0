@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// JwtTestHelperのCreateAdminTokenが管理者ロールを持つJWTトークンを生成することを確認する。
 func TestJwtTestHelper_CreateAdminToken(t *testing.T) {
 	h := testhelper.NewJwtTestHelper("test-secret")
 	token := h.CreateAdminToken()
@@ -18,6 +19,7 @@ func TestJwtTestHelper_CreateAdminToken(t *testing.T) {
 	assert.Equal(t, []string{"admin"}, claims.Roles)
 }
 
+// JwtTestHelperのCreateUserTokenが指定したユーザーIDとロールを持つJWTトークンを生成することを確認する。
 func TestJwtTestHelper_CreateUserToken(t *testing.T) {
 	h := testhelper.NewJwtTestHelper("test-secret")
 	token := h.CreateUserToken("user-123", []string{"user", "reader"})
@@ -27,6 +29,7 @@ func TestJwtTestHelper_CreateUserToken(t *testing.T) {
 	assert.Equal(t, []string{"user", "reader"}, claims.Roles)
 }
 
+// JwtTestHelperのCreateTokenがテナントIDを含むJWTトークンを正しく生成することを確認する。
 func TestJwtTestHelper_CreateTokenWithTenant(t *testing.T) {
 	h := testhelper.NewJwtTestHelper("secret")
 	token := h.CreateToken(testhelper.TestClaims{
@@ -41,12 +44,14 @@ func TestJwtTestHelper_CreateTokenWithTenant(t *testing.T) {
 	assert.Greater(t, claims.Exp, claims.Iat)
 }
 
+// 無効なJWTトークンに対してDecodeClaimsがエラーを返すことを確認する。
 func TestJwtTestHelper_DecodeInvalidToken(t *testing.T) {
 	h := testhelper.NewJwtTestHelper("s")
 	_, err := h.DecodeClaims("invalid")
 	assert.Error(t, err)
 }
 
+// MockServerBuilderが通知サーバーのモックを正しくビルドしてリクエストを処理することを確認する。
 func TestMockServerBuilder_Notification(t *testing.T) {
 	server := testhelper.NewMockServerBuilder().
 		NotificationServer().
@@ -66,6 +71,7 @@ func TestMockServerBuilder_Notification(t *testing.T) {
 	assert.Equal(t, 2, server.RequestCount())
 }
 
+// ContainerBuilderが複数のコンテナ設定を正しく構築することを確認する。
 func TestContainerBuilder(t *testing.T) {
 	containers := testhelper.NewContainerBuilder().
 		WithPostgres().
@@ -80,12 +86,14 @@ func TestContainerBuilder(t *testing.T) {
 	assert.True(t, containers.Keycloak)
 }
 
+// 登録されていないパスへのリクエストに対してモックサーバーがfalseを返すことを確認する。
 func TestMockServerBuilder_NotFound(t *testing.T) {
 	server := testhelper.NewRatelimitServerMock().WithHealthOK().Build()
 	_, _, ok := server.Handle("GET", "/nonexistent")
 	assert.False(t, ok)
 }
 
+// FixtureBuilderのUUIDが正しい形式のUUID文字列を生成することを確認する。
 func TestFixtureBuilder_UUID(t *testing.T) {
 	fb := testhelper.FixtureBuilder{}
 	id := fb.UUID()
@@ -93,18 +101,21 @@ func TestFixtureBuilder_UUID(t *testing.T) {
 	assert.Contains(t, id, "-")
 }
 
+// FixtureBuilderのEmailがexample.comドメインのメールアドレスを生成することを確認する。
 func TestFixtureBuilder_Email(t *testing.T) {
 	fb := testhelper.FixtureBuilder{}
 	email := fb.Email()
 	assert.Contains(t, email, "@example.com")
 }
 
+// FixtureBuilderのNameがuser-プレフィックスを持つ名前を生成することを確認する。
 func TestFixtureBuilder_Name(t *testing.T) {
 	fb := testhelper.FixtureBuilder{}
 	name := fb.Name()
 	assert.Contains(t, name, "user-")
 }
 
+// FixtureBuilderのIntが指定した範囲内の整数を生成することを確認する。
 func TestFixtureBuilder_Int(t *testing.T) {
 	fb := testhelper.FixtureBuilder{}
 	for i := 0; i < 100; i++ {
@@ -114,17 +125,20 @@ func TestFixtureBuilder_Int(t *testing.T) {
 	}
 }
 
+// FixtureBuilderのIntで最小値と最大値が同じ場合にその値を返すことを確認する。
 func TestFixtureBuilder_IntSameMinMax(t *testing.T) {
 	fb := testhelper.FixtureBuilder{}
 	assert.Equal(t, 5, fb.Int(5, 5))
 }
 
+// FixtureBuilderのTenantIDがtenant-プレフィックスを持つIDを生成することを確認する。
 func TestFixtureBuilder_TenantID(t *testing.T) {
 	fb := testhelper.FixtureBuilder{}
 	tid := fb.TenantID()
 	assert.Contains(t, tid, "tenant-")
 }
 
+// AssertionHelperのJSONContainsが期待するJSONキーと値が含まれる場合にエラーを返さないことを確認する。
 func TestAssertionHelper_JSONContains(t *testing.T) {
 	ah := testhelper.AssertionHelper{}
 	err := ah.JSONContains(
@@ -134,12 +148,14 @@ func TestAssertionHelper_JSONContains(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// AssertionHelperのJSONContainsが値が一致しない場合にエラーを返すことを確認する。
 func TestAssertionHelper_JSONContainsMismatch(t *testing.T) {
 	ah := testhelper.AssertionHelper{}
 	err := ah.JSONContains(`{"id":"1"}`, `{"id":"2"}`)
 	assert.Error(t, err)
 }
 
+// AssertionHelperのJSONContainsがネストされたJSONの部分一致を正しく検証することを確認する。
 func TestAssertionHelper_JSONContainsNested(t *testing.T) {
 	ah := testhelper.AssertionHelper{}
 	err := ah.JSONContains(
@@ -149,6 +165,7 @@ func TestAssertionHelper_JSONContainsNested(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// AssertionHelperのEventEmittedが指定したイベントタイプの存在有無を正しく検証することを確認する。
 func TestAssertionHelper_EventEmitted(t *testing.T) {
 	ah := testhelper.AssertionHelper{}
 	events := []map[string]interface{}{

@@ -79,12 +79,14 @@ impl std::fmt::Display for TraceId {
 mod tests {
     use super::*;
 
+    // 新しく生成した CorrelationId が空文字でないことを確認する。
     #[test]
     fn test_correlation_id_new() {
         let id = CorrelationId::new();
         assert!(!id.as_str().is_empty());
     }
 
+    // 複数回生成した CorrelationId が異なる値であることを確認する。
     #[test]
     fn test_correlation_id_unique() {
         let id1 = CorrelationId::new();
@@ -92,18 +94,21 @@ mod tests {
         assert_ne!(id1, id2);
     }
 
+    // 文字列から CorrelationId を生成してその値が保持されることを確認する。
     #[test]
     fn test_correlation_id_from_string() {
         let id = CorrelationId::from_string("req-abc-123");
         assert_eq!(id.as_str(), "req-abc-123");
     }
 
+    // CorrelationId の Display 実装が正しい文字列を返すことを確認する。
     #[test]
     fn test_correlation_id_display() {
         let id = CorrelationId::from_string("test-id-001");
         assert_eq!(format!("{}", id), "test-id-001");
     }
 
+    // 新しく生成した TraceId が 32 文字の16進数文字列であることを確認する。
     #[test]
     fn test_trace_id_new() {
         let id = TraceId::new();
@@ -111,6 +116,7 @@ mod tests {
         assert!(id.as_str().chars().all(|c| c.is_ascii_hexdigit()));
     }
 
+    // 複数回生成した TraceId が異なる値であることを確認する。
     #[test]
     fn test_trace_id_unique() {
         let id1 = TraceId::new();
@@ -118,6 +124,7 @@ mod tests {
         assert_ne!(id1, id2);
     }
 
+    // 有効な32文字16進数文字列から TraceId を生成できることを確認する。
     #[test]
     fn test_trace_id_from_valid_string() {
         let valid = "4bf92f3577b34da6a3ce929d0e0e4736";
@@ -126,12 +133,14 @@ mod tests {
         assert_eq!(id.unwrap().as_str(), valid);
     }
 
+    // 無効な文字列から TraceId を生成しようとすると None が返されることを確認する。
     #[test]
     fn test_trace_id_from_invalid_string() {
         assert!(TraceId::from_string("too-short").is_none());
         assert!(TraceId::from_string("not-valid-hexadecimal-characters-!").is_none());
     }
 
+    // CorrelationId のシリアライズ・デシリアライズが元の値を保持することを確認する。
     #[test]
     fn test_serialization_roundtrip() {
         let id = CorrelationId::from_string("corr-001");
@@ -140,12 +149,14 @@ mod tests {
         assert_eq!(id, deserialized);
     }
 
+    // Default 実装で生成した CorrelationId が空でないことを確認する。
     #[test]
     fn test_correlation_id_default() {
         let id = CorrelationId::default();
         assert!(!id.as_str().is_empty());
     }
 
+    // 同じ値の CorrelationId が HashSet に 1 件のみ格納されることを確認する。
     #[test]
     fn test_correlation_id_hash() {
         use std::collections::HashSet;
@@ -157,6 +168,7 @@ mod tests {
         assert_eq!(set.len(), 1);
     }
 
+    // TraceId の Display 実装が元の文字列を返すことを確認する。
     #[test]
     fn test_trace_id_display() {
         let raw = "4bf92f3577b34da6a3ce929d0e0e4736";
@@ -164,6 +176,7 @@ mod tests {
         assert_eq!(format!("{}", id), raw);
     }
 
+    // Default 実装で生成した TraceId が有効な32文字16進数であることを確認する。
     #[test]
     fn test_trace_id_default() {
         let id = TraceId::default();
@@ -171,6 +184,7 @@ mod tests {
         assert!(id.as_str().chars().all(|c| c.is_ascii_hexdigit()));
     }
 
+    // 31 文字と 33 文字の文字列から TraceId を生成しようとすると None が返されることを確認する。
     #[test]
     fn test_trace_id_from_wrong_length() {
         // 31文字（1文字短い）
@@ -181,6 +195,7 @@ mod tests {
         assert!(TraceId::from_string(long).is_none());
     }
 
+    // 大文字の16進数文字列からも TraceId を生成できることを確認する。
     #[test]
     fn test_trace_id_from_uppercase_hex() {
         // 大文字16進数も有効
@@ -189,6 +204,7 @@ mod tests {
         assert!(id.is_some());
     }
 
+    // TraceId のシリアライズ・デシリアライズが元の値を保持することを確認する。
     #[test]
     fn test_trace_id_serialization_roundtrip() {
         let id = TraceId::from_string("4bf92f3577b34da6a3ce929d0e0e4736").unwrap();

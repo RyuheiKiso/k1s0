@@ -193,12 +193,16 @@ pub async fn run() -> anyhow::Result<()> {
             .with_watch_sender(watch_tx.clone()),
     );
     let activate_tenant_uc = Arc::new(
-        crate::usecase::ActivateTenantUseCase::new(tenant_repo)
+        crate::usecase::ActivateTenantUseCase::new(tenant_repo.clone())
             .with_watch_sender(watch_tx.clone()),
     );
     let add_member_uc = Arc::new(crate::usecase::AddMemberUseCase::new(member_repo.clone()));
     let remove_member_uc = Arc::new(crate::usecase::RemoveMemberUseCase::new(member_repo.clone()));
     let list_members_uc = Arc::new(crate::usecase::ListMembersUseCase::new(member_repo.clone()));
+    let update_member_role_uc = Arc::new(crate::usecase::UpdateMemberRoleUseCase::new(
+        member_repo.clone(),
+        tenant_repo.clone(),
+    ));
     let get_provisioning_status_uc =
         Arc::new(crate::usecase::GetProvisioningStatusUseCase::new(member_repo));
 
@@ -254,6 +258,7 @@ pub async fn run() -> anyhow::Result<()> {
         list_members_uc,
         add_member_uc,
         remove_member_uc,
+        update_member_role_uc,
         metrics: metrics.clone(),
         auth_state: None,
         db_pool: db_pool_for_health,
@@ -405,6 +410,16 @@ impl MemberRepository for InMemoryMemberRepository {
         let len_before = members.len();
         members.retain(|m| !(m.tenant_id == *tenant_id && m.user_id == *user_id));
         Ok(members.len() < len_before)
+    }
+
+    async fn update_role(&self, tenant_id: &Uuid, user_id: &Uuid, role: &str) -> anyhow::Result<Option<TenantMember>> {
+        let mut members = self.members.write().await;
+        if let Some(member) = members.iter_mut().find(|m| m.tenant_id == *tenant_id && m.user_id == *user_id) {
+            member.role = role.to_string();
+            Ok(Some(member.clone()))
+        } else {
+            Ok(None)
+        }
     }
 
     async fn find_job(&self, job_id: &Uuid) -> anyhow::Result<Option<ProvisioningJob>> {

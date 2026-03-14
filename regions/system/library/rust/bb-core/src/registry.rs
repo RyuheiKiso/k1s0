@@ -125,6 +125,7 @@ mod tests {
         }
     }
 
+    // コンポーネントを登録して名前で取得できることを確認する。
     #[tokio::test]
     async fn test_register_and_get() {
         let registry = ComponentRegistry::new();
@@ -136,6 +137,7 @@ mod tests {
         assert_eq!(retrieved.unwrap().name(), "test-1");
     }
 
+    // 同名のコンポーネントを重複登録するとエラーが返ることを確認する。
     #[tokio::test]
     async fn test_register_duplicate() {
         let registry = ComponentRegistry::new();
@@ -146,12 +148,14 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // 存在しない名前でコンポーネントを取得すると None が返ることを確認する。
     #[tokio::test]
     async fn test_get_not_found() {
         let registry = ComponentRegistry::new();
         assert!(registry.get("missing").await.is_none());
     }
 
+    // init_all が登録済みの全コンポーネントを初期化することを確認する。
     #[tokio::test]
     async fn test_init_all() {
         let registry = ComponentRegistry::new();
@@ -166,6 +170,7 @@ mod tests {
         registry.init_all().await.unwrap();
     }
 
+    // close_all が登録済みの全コンポーネントをクローズすることを確認する。
     #[tokio::test]
     async fn test_close_all() {
         let registry = ComponentRegistry::new();
@@ -176,6 +181,7 @@ mod tests {
         registry.close_all().await.unwrap();
     }
 
+    // status_all が全コンポーネントのステータスを返すことを確認する。
     #[tokio::test]
     async fn test_status_all() {
         let registry = ComponentRegistry::new();

@@ -39,6 +39,7 @@ func writeMigrationFiles(t *testing.T, files map[string]string) string {
 	return dir
 }
 
+// PostgressMigrationRunnerの初期化時に_migrationsテーブルが作成されることを確認する。
 func TestPostgresMigrationRunner_EnsureTableCreated(t *testing.T) {
 	db := newTestDB(t)
 	dir := writeMigrationFiles(t, map[string]string{
@@ -58,6 +59,7 @@ func TestPostgresMigrationRunner_EnsureTableCreated(t *testing.T) {
 	assert.Equal(t, 0, count)
 }
 
+// PostgresMigrationRunnerのRunUpが全マイグレーションを正しく適用することを確認する。
 func TestPostgresMigrationRunner_RunUp(t *testing.T) {
 	db := newTestDB(t)
 	dir := writeMigrationFiles(t, map[string]string{
@@ -77,6 +79,7 @@ func TestPostgresMigrationRunner_RunUp(t *testing.T) {
 	assert.Empty(t, report.Errors)
 }
 
+// PostgresMigrationRunnerのRunUpが冪等に動作し、2回目の実行では適用数が0になることを確認する。
 func TestPostgresMigrationRunner_RunUpIdempotent(t *testing.T) {
 	db := newTestDB(t)
 	dir := writeMigrationFiles(t, map[string]string{
@@ -96,6 +99,7 @@ func TestPostgresMigrationRunner_RunUpIdempotent(t *testing.T) {
 	assert.Equal(t, 0, report.AppliedCount)
 }
 
+// PostgresMigrationRunnerのStatusがRunUp前後で正しいAppliedAt状態を返すことを確認する。
 func TestPostgresMigrationRunner_Status(t *testing.T) {
 	db := newTestDB(t)
 	dir := writeMigrationFiles(t, map[string]string{
@@ -124,6 +128,7 @@ func TestPostgresMigrationRunner_Status(t *testing.T) {
 	assert.NotNil(t, statuses[0].AppliedAt)
 }
 
+// PostgresMigrationRunnerのPendingがRunUp前後で正しい未適用マイグレーション一覧を返すことを確認する。
 func TestPostgresMigrationRunner_Pending(t *testing.T) {
 	db := newTestDB(t)
 	dir := writeMigrationFiles(t, map[string]string{
@@ -149,6 +154,7 @@ func TestPostgresMigrationRunner_Pending(t *testing.T) {
 	assert.Empty(t, pending)
 }
 
+// 存在しないマイグレーションディレクトリを指定した場合にエラーが返ることを確認する。
 func TestPostgresMigrationRunner_InvalidDir(t *testing.T) {
 	db := newTestDB(t)
 	cfg := NewMigrationConfig("/nonexistent/path", "")

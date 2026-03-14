@@ -140,6 +140,7 @@ mod tests {
         }
     }
 
+    // has_role がロールの有無を正しく判定することを確認する。
     #[test]
     fn test_has_role() {
         let claims = make_claims(vec!["user", "order_manager"], HashMap::new(), vec![]);
@@ -150,6 +151,7 @@ mod tests {
         assert!(!has_role(&claims, "sys_admin"));
     }
 
+    // has_resource_role がリソースロールの有無を正しく判定することを確認する。
     #[test]
     fn test_has_resource_role() {
         let mut ra = HashMap::new();
@@ -162,6 +164,7 @@ mod tests {
         assert!(!has_resource_role(&claims, "user-service", "read"));
     }
 
+    // check_permission がリソースロールに基づいてアクセス可否を返すことを確認する。
     #[test]
     fn test_check_permission_basic() {
         let mut ra = HashMap::new();
@@ -173,6 +176,7 @@ mod tests {
         assert!(!check_permission(&claims, "order-service", "delete"));
     }
 
+    // has_permission が check_permission の別名として同じ結果を返すことを確認する。
     #[test]
     fn test_has_permission_alias() {
         let mut ra = HashMap::new();
@@ -182,6 +186,7 @@ mod tests {
         assert!(!has_permission(&claims, "order-service", "write"));
     }
 
+    // sys_admin ロールを持つユーザーがすべてのリソースの全操作を許可されることを確認する。
     #[test]
     fn test_check_permission_sys_admin() {
         let claims = make_claims(vec!["sys_admin"], HashMap::new(), vec![]);
@@ -191,6 +196,7 @@ mod tests {
         assert!(check_permission(&claims, "any-resource", "delete"));
     }
 
+    // リソース admin ロールを持つ場合はそのリソースへの全操作が許可されることを確認する。
     #[test]
     fn test_check_permission_resource_admin() {
         let mut ra = HashMap::new();
@@ -202,6 +208,7 @@ mod tests {
         assert!(check_permission(&claims, "order-service", "delete"));
     }
 
+    // system Tier を持つユーザーが全 Tier へのアクセスを許可されることを確認する。
     #[test]
     fn test_has_tier_access_system_grants_all() {
         let claims = make_claims(vec![], HashMap::new(), vec!["system"]);
@@ -212,6 +219,7 @@ mod tests {
         assert!(has_tier_access(&claims, "System")); // case insensitive
     }
 
+    // business Tier を持つユーザーが business と service のみアクセスできることを確認する。
     #[test]
     fn test_has_tier_access_business_grants_business_and_service() {
         let claims = make_claims(vec![], HashMap::new(), vec!["business"]);
@@ -222,6 +230,7 @@ mod tests {
         assert!(has_tier_access(&claims, "Business")); // case insensitive
     }
 
+    // service Tier を持つユーザーが service のみアクセスできることを確認する。
     #[test]
     fn test_has_tier_access_service_grants_service_only() {
         let claims = make_claims(vec![], HashMap::new(), vec!["service"]);
@@ -232,6 +241,7 @@ mod tests {
         assert!(has_tier_access(&claims, "Service")); // case insensitive
     }
 
+    // 複数の Tier を持つ場合にそれぞれの Tier へのアクセスが許可されることを確認する。
     #[test]
     fn test_has_tier_access_multiple_tiers() {
         let claims = make_claims(vec![], HashMap::new(), vec!["business", "service"]);
@@ -241,6 +251,7 @@ mod tests {
         assert!(has_tier_access(&claims, "service"));
     }
 
+    // tier_access が None の場合にすべての Tier へのアクセスが拒否されることを確認する。
     #[test]
     fn test_has_tier_access_empty() {
         let claims = Claims {
@@ -265,6 +276,7 @@ mod tests {
         assert!(!has_tier_access(&claims, "service"));
     }
 
+    // 不明な required_tier を指定した場合に has_tier_access が false を返すことを確認する。
     #[test]
     fn test_has_tier_access_unknown_required_tier() {
         let claims = make_claims(vec![], HashMap::new(), vec!["system"]);
@@ -272,6 +284,7 @@ mod tests {
         assert!(!has_tier_access(&claims, "unknown"));
     }
 
+    // 不明なユーザー Tier を持つ場合にすべての Tier へのアクセスが拒否されることを確認する。
     #[test]
     fn test_has_tier_access_unknown_user_tier() {
         let claims = make_claims(vec![], HashMap::new(), vec!["unknown"]);
@@ -281,6 +294,7 @@ mod tests {
         assert!(!has_tier_access(&claims, "service"));
     }
 
+    // 許可された Tier に対して validate_tier_access が Ok を返すことを確認する。
     #[test]
     fn test_validate_tier_access_ok() {
         use crate::rbac::validate_tier_access;
@@ -291,6 +305,7 @@ mod tests {
         assert!(validate_tier_access(&claims, "service").is_ok());
     }
 
+    // 許可されていない Tier に対して validate_tier_access がエラーを返すことを確認する。
     #[test]
     fn test_validate_tier_access_denied() {
         use crate::rbac::validate_tier_access;
@@ -301,6 +316,7 @@ mod tests {
         assert!(validate_tier_access(&claims, "service").is_ok());
     }
 
+    // tier_access が None の場合にすべての Tier で validate_tier_access がエラーを返すことを確認する。
     #[test]
     fn test_validate_tier_access_empty_denied() {
         use crate::rbac::validate_tier_access;

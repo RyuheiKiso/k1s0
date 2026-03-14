@@ -21,6 +21,7 @@ func makeTenant(id string, status tenantclient.TenantStatus, plan string) tenant
 	}
 }
 
+// 存在するテナントIDでGetTenantが正しくテナント情報を返すことを確認する。
 func TestGetTenant_Found(t *testing.T) {
 	c := tenantclient.NewInMemoryTenantClient()
 	c.AddTenant(makeTenant("T-001", tenantclient.TenantStatusActive, "enterprise"))
@@ -30,6 +31,7 @@ func TestGetTenant_Found(t *testing.T) {
 	assert.Equal(t, tenantclient.TenantStatusActive, tenant.Status)
 }
 
+// 存在しないテナントIDでGetTenantがエラーを返すことを確認する。
 func TestGetTenant_NotFound(t *testing.T) {
 	c := tenantclient.NewInMemoryTenantClient()
 	_, err := c.GetTenant(context.Background(), "T-999")
@@ -37,6 +39,7 @@ func TestGetTenant_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "tenant not found")
 }
 
+// ステータスフィルターを指定してListTenantsが該当するテナントのみ返すことを確認する。
 func TestListTenants_FilterByStatus(t *testing.T) {
 	c := tenantclient.NewInMemoryTenantClientWithTenants([]tenantclient.Tenant{
 		makeTenant("T-001", tenantclient.TenantStatusActive, "enterprise"),
@@ -49,6 +52,7 @@ func TestListTenants_FilterByStatus(t *testing.T) {
 	assert.Len(t, tenants, 2)
 }
 
+// プランフィルターを指定してListTenantsが該当するテナントのみ返すことを確認する。
 func TestListTenants_FilterByPlan(t *testing.T) {
 	c := tenantclient.NewInMemoryTenantClientWithTenants([]tenantclient.Tenant{
 		makeTenant("T-001", tenantclient.TenantStatusActive, "enterprise"),
@@ -61,6 +65,7 @@ func TestListTenants_FilterByPlan(t *testing.T) {
 	assert.Equal(t, "T-001", tenants[0].ID)
 }
 
+// フィルターなしでListTenantsが全テナントを返すことを確認する。
 func TestListTenants_NoFilter(t *testing.T) {
 	c := tenantclient.NewInMemoryTenantClientWithTenants([]tenantclient.Tenant{
 		makeTenant("T-001", tenantclient.TenantStatusActive, "enterprise"),
@@ -71,6 +76,7 @@ func TestListTenants_NoFilter(t *testing.T) {
 	assert.Len(t, tenants, 2)
 }
 
+// アクティブなテナントに対してIsActiveがtrueを返すことを確認する。
 func TestIsActive_True(t *testing.T) {
 	c := tenantclient.NewInMemoryTenantClient()
 	c.AddTenant(makeTenant("T-001", tenantclient.TenantStatusActive, "basic"))
@@ -79,6 +85,7 @@ func TestIsActive_True(t *testing.T) {
 	assert.True(t, active)
 }
 
+// 停止中のテナントに対してIsActiveがfalseを返すことを確認する。
 func TestIsActive_False(t *testing.T) {
 	c := tenantclient.NewInMemoryTenantClient()
 	c.AddTenant(makeTenant("T-001", tenantclient.TenantStatusSuspended, "basic"))
@@ -87,6 +94,7 @@ func TestIsActive_False(t *testing.T) {
 	assert.False(t, active)
 }
 
+// GetSettingsがテナントの設定値を正しく取得できることを確認する。
 func TestGetSettings(t *testing.T) {
 	c := tenantclient.NewInMemoryTenantClient()
 	c.AddTenant(makeTenant("T-001", tenantclient.TenantStatusActive, "basic"))
@@ -99,6 +107,7 @@ func TestGetSettings(t *testing.T) {
 	assert.False(t, ok)
 }
 
+// TenantSettingsのGetが存在するキーに対して正しい値を返すことを確認する。
 func TestTenantSettings_Get(t *testing.T) {
 	s := tenantclient.TenantSettings{Values: map[string]string{"key": "val"}}
 	v, ok := s.Get("key")
@@ -106,6 +115,7 @@ func TestTenantSettings_Get(t *testing.T) {
 	assert.Equal(t, "val", v)
 }
 
+// InMemoryTenantClientのCreateTenantが新しいテナントを正しく作成することを確認する。
 func TestInMemoryTenantClient_CreateTenant(t *testing.T) {
 	client := tenantclient.NewInMemoryTenantClient()
 	tenant, err := client.CreateTenant(context.Background(), tenantclient.CreateTenantRequest{
@@ -117,6 +127,7 @@ func TestInMemoryTenantClient_CreateTenant(t *testing.T) {
 	assert.Equal(t, tenantclient.TenantStatusActive, tenant.Status)
 }
 
+// InMemoryTenantClientのメンバー追加・一覧・削除が正しく動作することを確認する。
 func TestInMemoryTenantClient_MemberManagement(t *testing.T) {
 	client := tenantclient.NewInMemoryTenantClient()
 	tenant, _ := client.CreateTenant(context.Background(), tenantclient.CreateTenantRequest{Name: "T1", Plan: "pro"})
@@ -137,6 +148,7 @@ func TestInMemoryTenantClient_MemberManagement(t *testing.T) {
 	assert.Equal(t, "user-2", members[0].UserID)
 }
 
+// 新規テナントのプロビジョニングステータスが初期状態でPendingであることを確認する。
 func TestInMemoryTenantClient_ProvisioningStatus(t *testing.T) {
 	client := tenantclient.NewInMemoryTenantClient()
 	tenant, _ := client.CreateTenant(context.Background(), tenantclient.CreateTenantRequest{Name: "T2", Plan: "starter"})

@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+// ParseComponentsConfig が有効な YAML からコンポーネント設定を正しくパースすることを確認する。
 func TestParseComponentsConfigValid(t *testing.T) {
 	yamlData := []byte(`
 components:
@@ -43,6 +44,7 @@ components:
 	}
 }
 
+// ParseComponentsConfig が無効な YAML に対してエラーを返すことを確認する。
 func TestParseComponentsConfigInvalid(t *testing.T) {
 	invalidYAML := []byte(`{{{invalid yaml`)
 	_, err := ParseComponentsConfig(invalidYAML)
@@ -51,6 +53,7 @@ func TestParseComponentsConfigInvalid(t *testing.T) {
 	}
 }
 
+// ParseComponentsConfig が空のコンポーネントリストを持つ YAML を正しくパースすることを確認する。
 func TestParseComponentsConfigEmpty(t *testing.T) {
 	yamlData := []byte(`components: []`)
 	config, err := ParseComponentsConfig(yamlData)
@@ -62,6 +65,7 @@ func TestParseComponentsConfigEmpty(t *testing.T) {
 	}
 }
 
+// LoadComponentsConfig が存在しないファイルパスを指定するとエラーを返すことを確認する。
 func TestLoadComponentsConfigMissingFile(t *testing.T) {
 	_, err := LoadComponentsConfig("/nonexistent/path/components.yaml")
 	if err == nil {

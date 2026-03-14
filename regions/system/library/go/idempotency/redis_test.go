@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// RedisStoreSetGetAndDuplicateがRedisストアでのレコード登録・取得・重複エラーを正しく処理することを検証する。
 func TestRedisStoreSetGetAndDuplicate(t *testing.T) {
 	srv, err := miniredis.Run()
 	require.NoError(t, err)
@@ -35,6 +36,7 @@ func TestRedisStoreSetGetAndDuplicate(t *testing.T) {
 	assert.Contains(t, err.Error(), "DUPLICATE")
 }
 
+// RedisStoreMarkCompletedAndFailedがRedisストアでCompleted・Failed状態への遷移を正しく処理することを検証する。
 func TestRedisStoreMarkCompletedAndFailed(t *testing.T) {
 	srv, err := miniredis.Run()
 	require.NoError(t, err)

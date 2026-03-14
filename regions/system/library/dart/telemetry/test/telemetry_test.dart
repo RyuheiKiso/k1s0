@@ -5,7 +5,7 @@ import 'package:k1s0_telemetry/telemetry.dart';
 
 void main() {
   group('TelemetryConfig', () {
-    test('should create config with required fields', () {
+    test('必須フィールドで設定が作成されること', () {
       final cfg = TelemetryConfig(
         serviceName: 'test-service',
         version: '1.0.0',
@@ -22,7 +22,7 @@ void main() {
       expect(cfg.logLevel, 'info');
     });
 
-    test('should create config with all fields', () {
+    test('全フィールドで設定が作成されること', () {
       final cfg = TelemetryConfig(
         serviceName: 'order-server',
         version: '2.0.0',
@@ -44,7 +44,7 @@ void main() {
   });
 
   group('initTelemetry', () {
-    test('should set Logger.root level to FINE for debug', () {
+    test('debugログレベルでLogger.rootがFINEに設定されること', () {
       final cfg = TelemetryConfig(
         serviceName: 'test-service',
         version: '1.0.0',
@@ -57,7 +57,7 @@ void main() {
       expect(Logger.root.level, Level.FINE);
     });
 
-    test('should set Logger.root level to INFO for info', () {
+    test('infoログレベルでLogger.rootがINFOに設定されること', () {
       final cfg = TelemetryConfig(
         serviceName: 'test-service',
         version: '1.0.0',
@@ -70,7 +70,7 @@ void main() {
       expect(Logger.root.level, Level.INFO);
     });
 
-    test('should set Logger.root level to WARNING for warn', () {
+    test('warnログレベルでLogger.rootがWARNINGに設定されること', () {
       final cfg = TelemetryConfig(
         serviceName: 'test-service',
         version: '1.0.0',
@@ -83,7 +83,7 @@ void main() {
       expect(Logger.root.level, Level.WARNING);
     });
 
-    test('should set Logger.root level to SEVERE for error', () {
+    test('errorログレベルでLogger.rootがSEVEREに設定されること', () {
       final cfg = TelemetryConfig(
         serviceName: 'test-service',
         version: '1.0.0',
@@ -96,7 +96,7 @@ void main() {
       expect(Logger.root.level, Level.SEVERE);
     });
 
-    test('should default to INFO for unknown log level', () {
+    test('未知のログレベルでINFOにデフォルト設定されること', () {
       final cfg = TelemetryConfig(
         serviceName: 'test-service',
         version: '1.0.0',
@@ -109,7 +109,7 @@ void main() {
       expect(Logger.root.level, Level.INFO);
     });
 
-    test('should produce structured log output', () {
+    test('構造化ログが出力されること', () {
       final logEntries = <LogRecord>[];
       Logger.root.onRecord.listen(logEntries.add);
 
@@ -133,7 +133,7 @@ void main() {
   });
 
   group('createLogger', () {
-    test('should create a Logger with serviceName from config', () {
+    test('設定のサービス名でLoggerが作成されること', () {
       final cfg = TelemetryConfig(
         serviceName: 'MyService',
         version: '1.0.0',
@@ -144,7 +144,7 @@ void main() {
       expect(logger.name, 'MyService');
     });
 
-    test('should create different loggers with different configs', () {
+    test('異なる設定で異なるLoggerが作成されること', () {
       final cfg1 = TelemetryConfig(
         serviceName: 'ServiceA',
         version: '1.0.0',
@@ -162,7 +162,7 @@ void main() {
       expect(logger1.name, isNot(logger2.name));
     });
 
-    test('should return a functional logger', () {
+    test('機能するLoggerが返されること', () {
       final cfg = TelemetryConfig(
         serviceName: 'FunctionalTest',
         version: '1.0.0',

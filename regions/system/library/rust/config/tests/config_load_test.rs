@@ -50,6 +50,7 @@ auth:
 // Load: basic scenarios
 // ===========================================================================
 
+// 最小構成の設定ファイルが正しくロードされることを確認する。
 #[test]
 fn load_minimal_config_succeeds() {
     let f = yaml_file(minimal_yaml());
@@ -66,6 +67,7 @@ fn load_minimal_config_succeeds() {
     assert!(cfg.grpc.is_none());
 }
 
+// 存在しないファイルをロードした場合に読み込みエラーが返されることを確認する。
 #[test]
 fn load_nonexistent_file_returns_read_error() {
     let result = load("/nonexistent/does-not-exist.yaml", None);
@@ -74,6 +76,7 @@ fn load_nonexistent_file_returns_read_error() {
     assert!(msg.contains("failed to read file"), "got: {msg}");
 }
 
+// 存在しない環境オーバーレイファイルを指定した場合に読み込みエラーが返されることを確認する。
 #[test]
 fn load_nonexistent_env_file_returns_read_error() {
     let base = yaml_file(minimal_yaml());
@@ -86,6 +89,7 @@ fn load_nonexistent_env_file_returns_read_error() {
     assert!(msg.contains("failed to read file"), "got: {msg}");
 }
 
+// 不正な YAML ファイルをロードした場合にパースエラーが返されることを確認する。
 #[test]
 fn load_malformed_yaml_returns_parse_error() {
     let f = yaml_file("not: [valid: yaml: {{");
@@ -99,6 +103,7 @@ fn load_malformed_yaml_returns_parse_error() {
 // Load with env overlay: merge behaviour
 // ===========================================================================
 
+// 環境オーバーレイがスカラーフィールドを正しく上書きすることを確認する。
 #[test]
 fn env_overlay_overrides_scalar_fields() {
     let base = yaml_file(minimal_yaml());
@@ -123,6 +128,7 @@ observability:
     assert_eq!(cfg.observability.log.level, "warn");
 }
 
+// 環境オーバーレイで言及されていないフィールドがベース値のまま保持されることを確認する。
 #[test]
 fn env_overlay_preserves_unmentioned_fields() {
     let base = yaml_file(minimal_yaml());
@@ -145,6 +151,7 @@ app:
     assert_eq!(cfg.auth.jwt.issuer, "http://localhost:8180/realms/k1s0");
 }
 
+// 環境オーバーレイでベースにないオプションセクションを追加できることを確認する。
 #[test]
 fn env_overlay_adds_optional_section() {
     let base = yaml_file(minimal_yaml());
@@ -174,6 +181,7 @@ database:
 // merge_yaml: direct function tests
 // ===========================================================================
 
+// オーバーレイでベースのマッピングキーが保持されることを確認する。
 #[test]
 fn merge_yaml_preserves_base_mapping_keys() {
     let mut base: serde_yaml::Value = serde_yaml::from_str(
@@ -207,6 +215,7 @@ app:
     );
 }
 
+// 空のオーバーレイを適用してもベース設定が変更されないことを確認する。
 #[test]
 fn merge_yaml_empty_overlay_leaves_base_unchanged() {
     let mut base: serde_yaml::Value = serde_yaml::from_str("key: value").unwrap();
@@ -216,6 +225,7 @@ fn merge_yaml_empty_overlay_leaves_base_unchanged() {
     assert_eq!(base, original);
 }
 
+// オーバーレイによって配列が完全に置き換わることを確認する。
 #[test]
 fn merge_yaml_replaces_array_entirely() {
     let mut base: serde_yaml::Value =
@@ -227,6 +237,7 @@ fn merge_yaml_replaces_array_entirely() {
     assert_eq!(items[0], serde_yaml::Value::String("x".into()));
 }
 
+// 深くネストされた YAML 構造が正しくマージされることを確認する。
 #[test]
 fn merge_yaml_deeply_nested() {
     let mut base: serde_yaml::Value = serde_yaml::from_str(
@@ -268,6 +279,7 @@ a:
 // Validate: valid full config with all optional sections
 // ===========================================================================
 
+// 全オプションセクションを含む完全な設定でバリデーションが成功することを確認する。
 #[test]
 fn validate_full_config_with_all_sections() {
     let f = yaml_file(
@@ -350,6 +362,7 @@ auth:
 // Validate: boundary value tests
 // ===========================================================================
 
+// sample_rate の境界値 (0.0 および 1.0) でバリデーションが成功することを確認する。
 #[test]
 fn validate_trace_sample_rate_at_boundaries() {
     // 0.0 is valid
@@ -385,6 +398,7 @@ auth:
     assert!(validate(&cfg2).is_ok());
 }
 
+// sample_rate が負の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_trace_sample_rate_negative_rejected() {
     let f = yaml_file(
@@ -407,6 +421,7 @@ auth:
 // Validate: kafka with SASL_SSL and all fields
 // ===========================================================================
 
+// SASL_SSL かつ有効な SASL 設定の場合にバリデーションが成功することを確認する。
 #[test]
 fn validate_kafka_sasl_ssl_with_valid_sasl() {
     let f = yaml_file(
@@ -438,6 +453,7 @@ auth:
     assert!(validate(&cfg).is_ok());
 }
 
+// TLS の ca_cert_path が空白の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validate_kafka_empty_tls_ca_cert_path_rejected() {
     let f = yaml_file(
@@ -474,6 +490,7 @@ auth:
 // End-to-end: load + overlay + vault merge + validate
 // ===========================================================================
 
+// ロード・オーバーレイ適用・Vault シークレットマージ・バリデーションが一連で動作することを確認する。
 #[test]
 fn end_to_end_load_overlay_vault_validate() {
     let base = yaml_file(
@@ -535,6 +552,7 @@ observability:
     assert!(validate(&cfg).is_ok());
 }
 
+// 全種類のシークレットが一度にマージされることを確認する。
 #[test]
 fn vault_merge_with_all_secret_types() {
     let f = yaml_file(
@@ -612,6 +630,7 @@ auth:
 // ConfigError: Debug formatting
 // ===========================================================================
 
+// バリデーションエラーの表示文字列に適切なメッセージが含まれることを確認する。
 #[test]
 fn config_error_validation_display() {
     let f = yaml_file(minimal_yaml());
@@ -623,6 +642,7 @@ fn config_error_validation_display() {
     assert!(msg.contains("app.name"), "got: {msg}");
 }
 
+// 設定エラーが Debug トレイトを実装していることを確認する。
 #[test]
 fn config_error_is_debuggable() {
     let f = yaml_file(minimal_yaml());

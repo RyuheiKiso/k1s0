@@ -10,7 +10,7 @@ void main() {
     databaseUrl: 'postgres://localhost:5432/test',
   );
 
-  group('PostgresMigrationRunner contract (via InMemory)', () {
+  group('PostgresMigrationRunnerのコントラクト（InMemory経由）', () {
     late InMemoryMigrationRunner runner;
 
     setUp(() {
@@ -43,31 +43,31 @@ void main() {
       );
     });
 
-    test('runUp applies all pending migrations', () async {
+    test('runUpで全ての未適用マイグレーションが適用されること', () async {
       final report = await runner.runUp();
       expect(report.appliedCount, equals(2));
       expect(report.errors, isEmpty);
     });
 
-    test('runUp is idempotent', () async {
+    test('runUpが冪等であること', () async {
       await runner.runUp();
       final report2 = await runner.runUp();
       expect(report2.appliedCount, equals(0));
     });
 
-    test('pending returns unapplied migrations', () async {
+    test('pendingで未適用マイグレーションが返されること', () async {
       final pending = await runner.pending();
       expect(pending, hasLength(2));
       expect(pending.first.version, equals('001'));
     });
 
-    test('pending returns empty after runUp', () async {
+    test('runUp後にpendingが空になること', () async {
       await runner.runUp();
       final pending = await runner.pending();
       expect(pending, isEmpty);
     });
 
-    test('status returns all migration statuses', () async {
+    test('statusで全マイグレーションのステータスが返されること', () async {
       await runner.runUp();
       final statuses = await runner.status();
       expect(statuses, hasLength(2));
@@ -75,7 +75,7 @@ void main() {
       expect(statuses[0].appliedAt, isNotNull);
     });
 
-    test('runDown rolls back specified steps', () async {
+    test('runDownで指定ステップ数がロールバックされること', () async {
       await runner.runUp();
       final report = await runner.runDown(1);
       expect(report.appliedCount, equals(1));
@@ -84,7 +84,7 @@ void main() {
       expect(pending.first.version, equals('002'));
     });
 
-    test('runDown with more steps than applied stops gracefully', () async {
+    test('runDownで適用済み数を超えた場合も正常に停止すること', () async {
       await runner.runUp();
       final report = await runner.runDown(10);
       expect(report.appliedCount, equals(2));
@@ -92,7 +92,7 @@ void main() {
   });
 
   group('MigrationFile.parseFilename', () {
-    test('parses up migration filename', () {
+    test('upマイグレーションのファイル名がパースされること', () {
       final result = MigrationFile.parseFilename('001_create_users.up.sql');
       expect(result, isNotNull);
       expect(result!.version, equals('001'));
@@ -100,7 +100,7 @@ void main() {
       expect(result.direction, equals(MigrationDirection.up));
     });
 
-    test('parses down migration filename', () {
+    test('downマイグレーションのファイル名がパースされること', () {
       final result = MigrationFile.parseFilename('002_add_email.down.sql');
       expect(result, isNotNull);
       expect(result!.version, equals('002'));
@@ -108,21 +108,21 @@ void main() {
       expect(result.direction, equals(MigrationDirection.down));
     });
 
-    test('returns null for invalid filename', () {
+    test('無効なファイル名の場合nullが返されること', () {
       expect(MigrationFile.parseFilename('not_a_migration.txt'), isNull);
       expect(MigrationFile.parseFilename('noversion.up.sql'), isNull);
     });
   });
 
   group('MigrationFile.computeChecksum', () {
-    test('returns consistent checksum', () {
+    test('一貫したチェックサムが返されること', () {
       const content = 'CREATE TABLE test (id UUID);';
       final cs1 = MigrationFile.computeChecksum(content);
       final cs2 = MigrationFile.computeChecksum(content);
       expect(cs1, equals(cs2));
     });
 
-    test('returns different checksum for different content', () {
+    test('異なる内容では異なるチェックサムが返されること', () {
       final cs1 = MigrationFile.computeChecksum('SELECT 1');
       final cs2 = MigrationFile.computeChecksum('SELECT 2');
       expect(cs1, isNot(equals(cs2)));

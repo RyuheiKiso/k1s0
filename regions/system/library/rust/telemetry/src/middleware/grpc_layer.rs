@@ -163,6 +163,7 @@ where
 mod tests {
     use super::*;
 
+    // gRPC パスからサービス名とメソッド名が正しく抽出されることを確認する。
     #[test]
     fn test_extract_grpc_service_method() {
         let (svc, method) =
@@ -171,6 +172,7 @@ mod tests {
         assert_eq!(method, "ValidateToken");
     }
 
+    // スラッシュを含まないパスを渡した場合に "unknown" とパス全体が返ることを確認する。
     #[test]
     fn test_extract_grpc_service_method_no_slash() {
         let (svc, method) = extract_grpc_service_method("NoSlash");
@@ -178,6 +180,7 @@ mod tests {
         assert_eq!(method, "NoSlash");
     }
 
+    // 先頭スラッシュ付きの "/Service/Method" 形式から正しく抽出されることを確認する。
     #[test]
     fn test_extract_grpc_service_method_leading_slash_only() {
         let (svc, method) = extract_grpc_service_method("/Service/Method");

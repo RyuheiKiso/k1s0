@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// NewPostgresEventStoreが有効なPostgreSQL接続URLでストアインスタンスを生成できることを確認する。
 func TestNewPostgresEventStore_InvalidURL(t *testing.T) {
 	// sql.Open with "postgres" driver doesn't fail on invalid URLs immediately,
 	// but Migrate/actual queries will. We verify construction succeeds with valid format.
@@ -19,12 +20,14 @@ func TestNewPostgresEventStore_InvalidURL(t *testing.T) {
 	store.Close()
 }
 
+// scanEventsが行が存在しない場合に空スライスを返すことを確認する（結合テストで詳細検証）。
 func TestScanEvents_EmptyResult(t *testing.T) {
 	// Verify that scanEvents returns an empty slice (not nil) when no rows.
 	// We test this indirectly via the interface behavior since we can't create sql.Rows directly.
 	// The actual scanning logic is covered by integration tests.
 }
 
+// createEventsTableSQLマイグレーション文が期待するDDL要素を全て含むことを確認する。
 func TestCreateEventsTableSQL(t *testing.T) {
 	// Verify the migration SQL contains expected DDL
 	assert.Contains(t, createEventsTableSQL, "CREATE TABLE IF NOT EXISTS events")

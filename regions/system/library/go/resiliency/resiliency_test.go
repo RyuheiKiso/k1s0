@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Executeがポリシーなしで正常実行された場合に結果をそのまま返すことを確認する。
 func TestExecute_Success(t *testing.T) {
 	policy := ResiliencyPolicy{}
 	dec := NewResiliencyDecorator(policy)
@@ -24,6 +25,7 @@ func TestExecute_Success(t *testing.T) {
 	assert.Equal(t, 42, result)
 }
 
+// リトライポリシー設定時にExecuteが一時的な失敗を経て成功することを確認する。
 func TestExecute_RetrySuccess(t *testing.T) {
 	policy := ResiliencyPolicy{
 		Retry: &RetryConfig{
@@ -48,6 +50,7 @@ func TestExecute_RetrySuccess(t *testing.T) {
 	assert.Equal(t, int32(3), counter.Load())
 }
 
+// 最大リトライ回数を超えた場合にmax_retries_exceededエラーが返ることを確認する。
 func TestExecute_MaxRetriesExceeded(t *testing.T) {
 	policy := ResiliencyPolicy{
 		Retry: &RetryConfig{
@@ -68,6 +71,7 @@ func TestExecute_MaxRetriesExceeded(t *testing.T) {
 	assert.Equal(t, "max_retries_exceeded", rErr.Kind)
 }
 
+// タイムアウトポリシー設定時に処理時間超過でtimeoutエラーが返ることを確認する。
 func TestExecute_Timeout(t *testing.T) {
 	policy := ResiliencyPolicy{
 		Timeout: 50 * time.Millisecond,
@@ -85,6 +89,7 @@ func TestExecute_Timeout(t *testing.T) {
 	assert.Equal(t, "timeout", rErr.Kind)
 }
 
+// 失敗閾値を超えた後にサーキットブレーカーがオープンしcircuit_openエラーを返すことを確認する。
 func TestExecute_CircuitBreakerOpens(t *testing.T) {
 	policy := ResiliencyPolicy{
 		CircuitBreaker: &CircuitBreakerConfig{
@@ -113,6 +118,7 @@ func TestExecute_CircuitBreakerOpens(t *testing.T) {
 	assert.Equal(t, "circuit_open", rErr.Kind)
 }
 
+// バルクヘッドが満杯の場合にbulkhead_fullエラーが返ることを確認する。
 func TestExecute_BulkheadFull(t *testing.T) {
 	policy := ResiliencyPolicy{
 		Bulkhead: &BulkheadConfig{
@@ -149,6 +155,7 @@ func TestExecute_BulkheadFull(t *testing.T) {
 	assert.Equal(t, "bulkhead_full", rErr.Kind)
 }
 
+// calculateBackoffが指数バックオフで遅延を計算し上限値でキャップされることを確認する。
 func TestCalculateBackoff(t *testing.T) {
 	base := 100 * time.Millisecond
 	max := 5 * time.Second

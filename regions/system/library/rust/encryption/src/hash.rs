@@ -31,6 +31,7 @@ pub fn verify_password(password: &str, hash: &str) -> Result<bool, EncryptionErr
 mod tests {
     use super::*;
 
+    // パスワードをハッシュ化し正しいパスワードで検証が成功することを確認する。
     #[test]
     fn test_hash_and_verify_correct_password() {
         let password = "my-secure-password";
@@ -38,12 +39,14 @@ mod tests {
         assert!(verify_password(password, &hashed).unwrap());
     }
 
+    // 誤ったパスワードでのハッシュ検証が失敗することを確認する。
     #[test]
     fn test_verify_wrong_password() {
         let hashed = hash_password("correct-password").unwrap();
         assert!(!verify_password("wrong-password", &hashed).unwrap());
     }
 
+    // 同じパスワードでもランダムソルトにより異なるハッシュが生成されることを確認する。
     #[test]
     fn test_hash_produces_different_outputs() {
         let password = "same-password";
@@ -53,6 +56,7 @@ mod tests {
         assert_ne!(hash1, hash2);
     }
 
+    // ハッシュ文字列が Argon2id アルゴリズムの識別子で始まることを確認する。
     #[test]
     fn test_hash_contains_argon2id_identifier() {
         let hashed = hash_password("test-password").unwrap();

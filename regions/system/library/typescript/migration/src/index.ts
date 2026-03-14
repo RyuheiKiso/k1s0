@@ -1,3 +1,9 @@
+export * from './schema.js';
+export { generateDownSql } from './reverse.js';
+export { detectBreakingChanges, formatBreakingChange, type BreakingChange } from './analyzer.js';
+export { diffSchemas, type SchemaDiff } from './diff.js';
+export { tomlToCreateSql } from './declarative.js';
+
 export { PgMigrationRunner } from './pg-runner.js';
 
 import { createHash } from 'node:crypto';

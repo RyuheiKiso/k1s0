@@ -9,7 +9,7 @@ void main() {
   });
 
   group('Session', () {
-    test('creates with required fields', () {
+    test('必須フィールドでセッションが生成されること', () {
       final session = Session(
         id: '1',
         userId: 'u1',
@@ -22,7 +22,7 @@ void main() {
       expect(session.metadata, isEmpty);
     });
 
-    test('copyWith creates modified copy', () {
+    test('copyWithで変更されたコピーが生成されること', () {
       final session = Session(
         id: '1',
         userId: 'u1',
@@ -37,7 +37,7 @@ void main() {
   });
 
   group('CreateSessionRequest', () {
-    test('creates with fields', () {
+    test('フィールドを指定してリクエストが生成されること', () {
       const req = CreateSessionRequest(userId: 'u1', ttlSeconds: 3600);
       expect(req.userId, equals('u1'));
       expect(req.ttlSeconds, equals(3600));
@@ -46,7 +46,7 @@ void main() {
   });
 
   group('InMemorySessionClient', () {
-    test('create returns session with generated id', () async {
+    test('createで生成IDを持つセッションが返ること', () async {
       final session = await client.create(
         const CreateSessionRequest(userId: 'user1', ttlSeconds: 3600),
       );
@@ -56,7 +56,7 @@ void main() {
       expect(session.revoked, isFalse);
     });
 
-    test('create with metadata', () async {
+    test('メタデータ付きでセッションが作成されること', () async {
       final session = await client.create(
         const CreateSessionRequest(
           userId: 'user1',
@@ -67,7 +67,7 @@ void main() {
       expect(session.metadata['device'], equals('mobile'));
     });
 
-    test('get returns existing session', () async {
+    test('getで既存のセッションが返ること', () async {
       final created = await client.create(
         const CreateSessionRequest(userId: 'user1', ttlSeconds: 3600),
       );
@@ -76,12 +76,12 @@ void main() {
       expect(fetched!.userId, equals('user1'));
     });
 
-    test('get returns null for nonexistent', () async {
+    test('存在しないセッションのgetでnullが返ること', () async {
       final result = await client.get('nonexistent');
       expect(result, isNull);
     });
 
-    test('refresh updates expiry and token', () async {
+    test('refreshで有効期限とトークンが更新されること', () async {
       final created = await client.create(
         const CreateSessionRequest(userId: 'user1', ttlSeconds: 60),
       );
@@ -93,14 +93,14 @@ void main() {
       expect(refreshed.expiresAt.isAfter(created.expiresAt), isTrue);
     });
 
-    test('refresh throws for nonexistent session', () async {
+    test('存在しないセッションのrefreshで例外がスローされること', () async {
       expect(
         () => client.refresh(const RefreshSessionRequest(id: 'bad', ttlSeconds: 60)),
         throwsStateError,
       );
     });
 
-    test('revoke marks session as revoked', () async {
+    test('revokeでセッションが失効状態になること', () async {
       final created = await client.create(
         const CreateSessionRequest(userId: 'user1', ttlSeconds: 3600),
       );
@@ -109,11 +109,11 @@ void main() {
       expect(fetched!.revoked, isTrue);
     });
 
-    test('revoke nonexistent does nothing', () async {
+    test('存在しないセッションのrevokeが何もしないこと', () async {
       await client.revoke('nonexistent');
     });
 
-    test('listUserSessions returns user sessions', () async {
+    test('listUserSessionsでユーザーのセッション一覧が返ること', () async {
       await client.create(const CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
       await client.create(const CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
       await client.create(const CreateSessionRequest(userId: 'u2', ttlSeconds: 60));
@@ -121,7 +121,7 @@ void main() {
       expect(sessions, hasLength(2));
     });
 
-    test('revokeAll revokes all user sessions', () async {
+    test('revokeAllでユーザーの全セッションが失効されること', () async {
       await client.create(const CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
       await client.create(const CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
       await client.create(const CreateSessionRequest(userId: 'u2', ttlSeconds: 60));
@@ -131,7 +131,7 @@ void main() {
       expect(sessions.every((s) => s.revoked), isTrue);
     });
 
-    test('revokeAll returns 0 for no matching sessions', () async {
+    test('該当セッションがない場合にrevokeAllが0を返すこと', () async {
       final count = await client.revokeAll('nobody');
       expect(count, equals(0));
     });

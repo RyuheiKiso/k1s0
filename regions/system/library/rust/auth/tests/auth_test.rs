@@ -76,6 +76,7 @@ fn build_minimal_claims(sub: &str) -> Claims {
 // has_role tests
 // ============================================================
 
+// 存在するロールに対して has_role が true を返すことを確認する。
 #[test]
 fn has_role_returns_true_for_existing_role() {
     let claims = build_claims("user-1", vec!["user", "editor"], vec![], vec![]);
@@ -83,6 +84,7 @@ fn has_role_returns_true_for_existing_role() {
     assert!(has_role(&claims, "editor"));
 }
 
+// 存在しないロールに対して has_role が false を返すことを確認する。
 #[test]
 fn has_role_returns_false_for_missing_role() {
     let claims = build_claims("user-1", vec!["user"], vec![], vec![]);
@@ -90,12 +92,14 @@ fn has_role_returns_false_for_missing_role() {
     assert!(!has_role(&claims, "sys_admin"));
 }
 
+// realm_access が None の場合に has_role が false を返すことを確認する。
 #[test]
 fn has_role_returns_false_when_realm_access_is_none() {
     let claims = build_minimal_claims("user-1");
     assert!(!has_role(&claims, "user"));
 }
 
+// ロールリストが空の場合に has_role が false を返すことを確認する。
 #[test]
 fn has_role_with_empty_roles() {
     let claims = build_claims("user-1", vec![], vec![], vec![]);
@@ -106,6 +110,7 @@ fn has_role_with_empty_roles() {
 // has_resource_role tests
 // ============================================================
 
+// 一致するリソースとロールに対して has_resource_role が true を返すことを確認する。
 #[test]
 fn has_resource_role_returns_true_for_matching_resource_and_role() {
     let claims = build_claims(
@@ -118,6 +123,7 @@ fn has_resource_role_returns_true_for_matching_resource_and_role() {
     assert!(has_resource_role(&claims, "order-service", "write"));
 }
 
+// 存在しないロールに対して has_resource_role が false を返すことを確認する。
 #[test]
 fn has_resource_role_returns_false_for_wrong_role() {
     let claims = build_claims(
@@ -129,6 +135,7 @@ fn has_resource_role_returns_false_for_wrong_role() {
     assert!(!has_resource_role(&claims, "order-service", "delete"));
 }
 
+// 存在しないリソースに対して has_resource_role が false を返すことを確認する。
 #[test]
 fn has_resource_role_returns_false_for_wrong_resource() {
     let claims = build_claims(
@@ -140,6 +147,7 @@ fn has_resource_role_returns_false_for_wrong_resource() {
     assert!(!has_resource_role(&claims, "user-service", "read"));
 }
 
+// resource_access が None の場合に has_resource_role が false を返すことを確認する。
 #[test]
 fn has_resource_role_returns_false_when_resource_access_is_none() {
     let claims = build_minimal_claims("user-1");
@@ -150,6 +158,7 @@ fn has_resource_role_returns_false_when_resource_access_is_none() {
 // check_permission tests
 // ============================================================
 
+// リソースロールに基づいて check_permission がアクセスを許可することを確認する。
 #[test]
 fn check_permission_grants_via_resource_role() {
     let claims = build_claims(
@@ -163,6 +172,7 @@ fn check_permission_grants_via_resource_role() {
     assert!(!check_permission(&claims, "order-service", "delete"));
 }
 
+// sys_admin ロールを持つユーザーはすべてのリソースへのアクセスが許可されることを確認する。
 #[test]
 fn check_permission_sys_admin_grants_all() {
     let claims = build_claims("admin-1", vec!["sys_admin"], vec![], vec![]);
@@ -172,6 +182,7 @@ fn check_permission_sys_admin_grants_all() {
     assert!(check_permission(&claims, "another-resource", "admin"));
 }
 
+// realm の admin ロールを持つユーザーはすべてのリソースへのアクセスが許可されることを確認する。
 #[test]
 fn check_permission_realm_admin_grants_all() {
     let claims = build_claims("admin-2", vec!["admin"], vec![], vec![]);
@@ -179,6 +190,7 @@ fn check_permission_realm_admin_grants_all() {
     assert!(check_permission(&claims, "user-service", "write"));
 }
 
+// リソース admin ロールを持つ場合はそのリソースへのすべての操作が許可されることを確認する。
 #[test]
 fn check_permission_resource_admin_grants_all_on_that_resource() {
     let claims = build_claims(
@@ -194,6 +206,7 @@ fn check_permission_resource_admin_grants_all_on_that_resource() {
     assert!(!check_permission(&claims, "user-service", "read"));
 }
 
+// 一致するロールがない場合に check_permission がアクセスを拒否することを確認する。
 #[test]
 fn check_permission_denies_when_no_matching_role() {
     let claims = build_claims(
@@ -206,6 +219,7 @@ fn check_permission_denies_when_no_matching_role() {
     assert!(!check_permission(&claims, "payment-service", "read"));
 }
 
+// ロールが一切ない場合に check_permission がアクセスを拒否することを確認する。
 #[test]
 fn check_permission_denies_with_no_roles_at_all() {
     let claims = build_minimal_claims("user-1");
@@ -216,6 +230,7 @@ fn check_permission_denies_with_no_roles_at_all() {
 // has_permission tests (alias)
 // ============================================================
 
+// has_permission が check_permission の別名として同じ結果を返すことを確認する。
 #[test]
 fn has_permission_is_alias_for_check_permission() {
     let claims = build_claims(
@@ -238,6 +253,7 @@ fn has_permission_is_alias_for_check_permission() {
 // has_tier_access tests
 // ============================================================
 
+// 許可された Tier に対して has_tier_access が true を返すことを確認する。
 #[test]
 fn has_tier_access_returns_true_for_allowed_tier() {
     let claims = build_claims("user-1", vec![], vec![], vec!["system", "business"]);
@@ -245,6 +261,7 @@ fn has_tier_access_returns_true_for_allowed_tier() {
     assert!(has_tier_access(&claims, "business"));
 }
 
+// 許可されていない Tier に対して has_tier_access が false を返すことを確認する。
 #[test]
 fn has_tier_access_returns_false_for_disallowed_tier() {
     let claims = build_claims("user-1", vec![], vec![], vec!["system"]);
@@ -252,6 +269,7 @@ fn has_tier_access_returns_false_for_disallowed_tier() {
     assert!(!has_tier_access(&claims, "service"));
 }
 
+// has_tier_access が大文字小文字を区別せずに Tier を比較することを確認する。
 #[test]
 fn has_tier_access_is_case_insensitive() {
     let claims = build_claims("user-1", vec![], vec![], vec!["system", "Business"]);
@@ -261,12 +279,14 @@ fn has_tier_access_is_case_insensitive() {
     assert!(has_tier_access(&claims, "BUSINESS"));
 }
 
+// tier_access が None の場合に has_tier_access が false を返すことを確認する。
 #[test]
 fn has_tier_access_returns_false_when_tier_access_is_none() {
     let claims = build_minimal_claims("user-1");
     assert!(!has_tier_access(&claims, "system"));
 }
 
+// tier_access リストが空の場合に has_tier_access が false を返すことを確認する。
 #[test]
 fn has_tier_access_returns_false_for_empty_tier_list() {
     let claims = build_claims("user-1", vec![], vec![], vec![]);
@@ -277,6 +297,7 @@ fn has_tier_access_returns_false_for_empty_tier_list() {
 // Claims construction and accessor tests
 // ============================================================
 
+// Claims の audience() が複数オーディエンスの最初の要素を返すことを確認する。
 #[test]
 fn claims_audience_returns_first_audience() {
     let claims = Claims {
@@ -298,24 +319,28 @@ fn claims_audience_returns_first_audience() {
     assert_eq!(claims.audience(), Some("aud1"));
 }
 
+// オーディエンスリストが空の場合に Claims の audience() が None を返すことを確認する。
 #[test]
 fn claims_audience_returns_none_when_empty() {
     let claims = build_minimal_claims("u");
     assert!(claims.audience().is_none());
 }
 
+// realm_access が None の場合に realm_roles() が空スライスを返すことを確認する。
 #[test]
 fn claims_realm_roles_returns_empty_slice_when_none() {
     let claims = build_minimal_claims("u");
     assert!(claims.realm_roles().is_empty());
 }
 
+// Claims の realm_roles() が設定されたロール一覧を返すことを確認する。
 #[test]
 fn claims_realm_roles_returns_roles() {
     let claims = build_claims("u", vec!["a", "b", "c"], vec![], vec![]);
     assert_eq!(claims.realm_roles(), &["a", "b", "c"]);
 }
 
+// 未登録リソースに対して resource_roles() が空スライスを返すことを確認する。
 #[test]
 fn claims_resource_roles_returns_empty_for_unknown_resource() {
     let claims = build_claims(
@@ -327,6 +352,7 @@ fn claims_resource_roles_returns_empty_for_unknown_resource() {
     assert!(claims.resource_roles("unknown-service").is_empty());
 }
 
+// 登録済みリソースに対して resource_roles() がそのロール一覧を返すことを確認する。
 #[test]
 fn claims_resource_roles_returns_roles_for_known_resource() {
     let claims = build_claims(
@@ -338,18 +364,21 @@ fn claims_resource_roles_returns_roles_for_known_resource() {
     assert_eq!(claims.resource_roles("order-service"), &["read", "write"]);
 }
 
+// tier_access が None の場合に tier_access_list() が空スライスを返すことを確認する。
 #[test]
 fn claims_tier_access_list_returns_empty_when_none() {
     let claims = build_minimal_claims("u");
     assert!(claims.tier_access_list().is_empty());
 }
 
+// Claims の tier_access_list() が設定された Tier 一覧を返すことを確認する。
 #[test]
 fn claims_tier_access_list_returns_tiers() {
     let claims = build_claims("u", vec![], vec![], vec!["system", "business"]);
     assert_eq!(claims.tier_access_list(), &["system", "business"]);
 }
 
+// Claims の Display 出力に sub フィールドの値が含まれることを確認する。
 #[test]
 fn claims_display_contains_sub() {
     let claims = build_claims("user-xyz", vec![], vec![], vec![]);
@@ -361,6 +390,7 @@ fn claims_display_contains_sub() {
 // actor / actor_from_claims tests
 // ============================================================
 
+// preferred_username が設定されている場合に actor() がそれを返すことを確認する。
 #[test]
 fn claims_actor_prefers_preferred_username() {
     let mut claims = build_minimal_claims("sub-id");
@@ -369,6 +399,7 @@ fn claims_actor_prefers_preferred_username() {
     assert_eq!(claims.actor(), Some("taro"));
 }
 
+// preferred_username が None の場合に actor() がメールアドレスにフォールバックすることを確認する。
 #[test]
 fn claims_actor_falls_back_to_email() {
     let mut claims = build_minimal_claims("sub-id");
@@ -377,12 +408,14 @@ fn claims_actor_falls_back_to_email() {
     assert_eq!(claims.actor(), Some("taro@example.com"));
 }
 
+// preferred_username と email が共に None の場合に actor() が sub にフォールバックすることを確認する。
 #[test]
 fn claims_actor_falls_back_to_sub() {
     let claims = build_minimal_claims("sub-id");
     assert_eq!(claims.actor(), Some("sub-id"));
 }
 
+// preferred_username が空文字列の場合に actor() がメールアドレスにフォールバックすることを確認する。
 #[test]
 fn claims_actor_skips_empty_preferred_username() {
     let mut claims = build_minimal_claims("sub-id");
@@ -391,6 +424,7 @@ fn claims_actor_skips_empty_preferred_username() {
     assert_eq!(claims.actor(), Some("user@test.com"));
 }
 
+// username と email が共に空文字列の場合に actor() が sub を返すことを確認する。
 #[test]
 fn claims_actor_skips_empty_email_and_username() {
     let mut claims = build_minimal_claims("sub-id");
@@ -399,6 +433,7 @@ fn claims_actor_skips_empty_email_and_username() {
     assert_eq!(claims.actor(), Some("sub-id"));
 }
 
+// すべてのフィールドが空の場合に actor() が None を返すことを確認する。
 #[test]
 fn claims_actor_returns_none_when_all_empty() {
     let mut claims = build_minimal_claims("");
@@ -407,6 +442,7 @@ fn claims_actor_returns_none_when_all_empty() {
     assert!(claims.actor().is_none());
 }
 
+// actor_from_claims が Claims のアクター名を返すことを確認する。
 #[test]
 fn actor_from_claims_returns_actor_name() {
     let mut claims = build_minimal_claims("user-1");
@@ -414,11 +450,13 @@ fn actor_from_claims_returns_actor_name() {
     assert_eq!(actor_from_claims(Some(&claims)), "taro");
 }
 
+// Claims が None の場合に actor_from_claims が "system" を返すことを確認する。
 #[test]
 fn actor_from_claims_returns_system_when_none() {
     assert_eq!(actor_from_claims(None), "system");
 }
 
+// すべてのフィールドが空の Claims では actor_from_claims が "system" を返すことを確認する。
 #[test]
 fn actor_from_claims_returns_system_when_all_fields_empty() {
     let mut claims = build_minimal_claims("");
@@ -431,6 +469,7 @@ fn actor_from_claims_returns_system_when_all_fields_empty() {
 // Combined RBAC scenario tests
 // ============================================================
 
+// 一般ユーザーが特定のロールとリソースアクセス権を持つ場合の総合シナリオを確認する。
 #[test]
 fn combined_scenario_regular_user_with_specific_permissions() {
     let claims = build_claims(
@@ -468,6 +507,7 @@ fn combined_scenario_regular_user_with_specific_permissions() {
     assert!(!has_tier_access(&claims, "service"));
 }
 
+// sys_admin ユーザーがすべてのリソースと Tier に完全アクセスできることを確認する。
 #[test]
 fn combined_scenario_sys_admin_has_full_access() {
     let claims = build_claims(
@@ -485,6 +525,7 @@ fn combined_scenario_sys_admin_has_full_access() {
     assert!(has_tier_access(&claims, "service"));
 }
 
+// ロールを一切持たない最小構成ユーザーがすべてのアクセスを拒否されることを確認する。
 #[test]
 fn combined_scenario_minimal_user_has_no_access() {
     let claims = build_minimal_claims("user-minimal");
@@ -495,6 +536,7 @@ fn combined_scenario_minimal_user_has_no_access() {
     assert!(!has_tier_access(&claims, "system"));
 }
 
+// 複数のリソースアクセスエントリが個別に正しく評価されることを確認する。
 #[test]
 fn multiple_resource_access_entries() {
     let claims = build_claims(

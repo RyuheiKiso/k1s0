@@ -100,12 +100,14 @@ mod tests {
 
     use super::*;
 
+    // per_page が 200 で成功し 201 でエラーになることを確認する。
     #[test]
     fn test_validate_pagination_range_200() {
         assert!(validate_pagination("pagination", 1, 200).is_ok());
         assert!(validate_pagination("pagination", 1, 201).is_err());
     }
 
+    // UTC 日時の日付範囲検証で順序が正しい場合成功し逆順の場合エラーになることを確認する。
     #[test]
     fn test_validate_date_range_datetime_utc() {
         let start = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
@@ -114,6 +116,7 @@ mod tests {
         assert!(validate_date_range("date_range", end, start).is_err());
     }
 
+    // validate! マクロが複数の無効な入力からエラーを収集することを確認する。
     #[test]
     fn test_validate_macro_collects_errors() {
         let mut errors = ValidationErrors::new();

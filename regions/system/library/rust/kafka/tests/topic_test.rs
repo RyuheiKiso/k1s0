@@ -9,6 +9,7 @@ use k1s0_kafka::TopicConfig;
 // TopicConfig naming validation
 // ===========================================================================
 
+// 5セグメントの正しい k1s0 トピック名が validate_name で true と判定されることを確認する。
 #[test]
 fn valid_topic_name_full_5_segments() {
     let cfg = TopicConfig {
@@ -20,6 +21,7 @@ fn valid_topic_name_full_5_segments() {
     assert!(cfg.validate_name());
 }
 
+// 4セグメントちょうどの正しい k1s0 トピック名が validate_name で true と判定されることを確認する。
 #[test]
 fn valid_topic_name_exactly_4_segments() {
     let cfg = TopicConfig {
@@ -31,6 +33,7 @@ fn valid_topic_name_exactly_4_segments() {
     assert!(cfg.validate_name());
 }
 
+// business tier を持つ正しい k1s0 トピック名が validate_name で true と判定されることを確認する。
 #[test]
 fn valid_topic_name_business_tier() {
     let cfg = TopicConfig {
@@ -42,6 +45,7 @@ fn valid_topic_name_business_tier() {
     assert!(cfg.validate_name());
 }
 
+// service tier を持つ正しい k1s0 トピック名が validate_name で true と判定されることを確認する。
 #[test]
 fn valid_topic_name_service_tier() {
     let cfg = TopicConfig {
@@ -53,6 +57,7 @@ fn valid_topic_name_service_tier() {
     assert!(cfg.validate_name());
 }
 
+// 多数のセグメントを持つ k1s0 トピック名も validate_name で true と判定されることを確認する。
 #[test]
 fn valid_topic_name_many_segments() {
     let cfg = TopicConfig {
@@ -64,6 +69,7 @@ fn valid_topic_name_many_segments() {
     assert!(cfg.validate_name());
 }
 
+// k1s0 以外のプレフィックスを持つトピック名が validate_name で false と判定されることを確認する。
 #[test]
 fn invalid_topic_name_wrong_prefix() {
     let cfg = TopicConfig {
@@ -75,6 +81,7 @@ fn invalid_topic_name_wrong_prefix() {
     assert!(!cfg.validate_name());
 }
 
+// 3セグメントしかないトピック名が validate_name で false と判定されることを確認する。
 #[test]
 fn invalid_topic_name_too_few_segments_3() {
     let cfg = TopicConfig {
@@ -86,6 +93,7 @@ fn invalid_topic_name_too_few_segments_3() {
     assert!(!cfg.validate_name());
 }
 
+// 2セグメントしかないトピック名が validate_name で false と判定されることを確認する。
 #[test]
 fn invalid_topic_name_too_few_segments_2() {
     let cfg = TopicConfig {
@@ -97,6 +105,7 @@ fn invalid_topic_name_too_few_segments_2() {
     assert!(!cfg.validate_name());
 }
 
+// 単一セグメント（k1s0 のみ）のトピック名が validate_name で false と判定されることを確認する。
 #[test]
 fn invalid_topic_name_single_segment() {
     let cfg = TopicConfig {
@@ -108,6 +117,7 @@ fn invalid_topic_name_single_segment() {
     assert!(!cfg.validate_name());
 }
 
+// 空文字列のトピック名が validate_name で false と判定されることを確認する。
 #[test]
 fn invalid_topic_name_empty() {
     let cfg = TopicConfig {
@@ -123,6 +133,7 @@ fn invalid_topic_name_empty() {
 // TopicConfig serde defaults via JSON deserialization
 // ===========================================================================
 
+// JSON デシリアライズ時にデフォルトのパーティション数（3）が設定されることを確認する。
 #[test]
 fn deserialize_defaults_partitions() {
     let json = r#"{"name": "k1s0.system.auth.login.v1"}"#;
@@ -130,6 +141,7 @@ fn deserialize_defaults_partitions() {
     assert_eq!(cfg.partitions, 3);
 }
 
+// JSON デシリアライズ時にデフォルトのレプリケーションファクター（3）が設定されることを確認する。
 #[test]
 fn deserialize_defaults_replication_factor() {
     let json = r#"{"name": "k1s0.system.auth.login.v1"}"#;
@@ -137,6 +149,7 @@ fn deserialize_defaults_replication_factor() {
     assert_eq!(cfg.replication_factor, 3);
 }
 
+// JSON デシリアライズ時にデフォルトの保持期間が 7 日分のミリ秒であることを確認する。
 #[test]
 fn deserialize_defaults_retention_ms_is_7_days() {
     let json = r#"{"name": "k1s0.system.auth.login.v1"}"#;
@@ -144,6 +157,7 @@ fn deserialize_defaults_retention_ms_is_7_days() {
     assert_eq!(cfg.retention_ms, 7 * 24 * 60 * 60 * 1000);
 }
 
+// JSON で明示的に指定した値がデフォルト値を上書きしてデシリアライズされることを確認する。
 #[test]
 fn deserialize_explicit_values_override_defaults() {
     let json = r#"{
@@ -162,6 +176,7 @@ fn deserialize_explicit_values_override_defaults() {
 // TopicConfig serialization roundtrip
 // ===========================================================================
 
+// TopicConfig をシリアライズして再デシリアライズした結果が元の値と一致することを確認する。
 #[test]
 fn serialization_roundtrip() {
     let original = TopicConfig {
@@ -182,6 +197,7 @@ fn serialization_roundtrip() {
 // TopicPartitionInfo
 // ===========================================================================
 
+// TopicPartitionInfo が正しいフィールド値で構築されることを確認する。
 #[test]
 fn topic_partition_info_construction() {
     let info = k1s0_kafka::TopicPartitionInfo {
@@ -198,6 +214,7 @@ fn topic_partition_info_construction() {
     assert_eq!(info.in_sync_replicas, info.replicas);
 }
 
+// ISR（同期レプリカ）がレプリカ全体より少ない場合のパーティション情報が正しく保持されることを確認する。
 #[test]
 fn topic_partition_info_partial_isr() {
     let info = k1s0_kafka::TopicPartitionInfo {

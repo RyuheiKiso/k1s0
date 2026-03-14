@@ -75,6 +75,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    // 余分なキーを無視して JSON の部分一致アサーションが成功することを確認する。
     #[test]
     fn test_json_contains_simple() {
         AssertionHelper::assert_json_contains(
@@ -83,6 +84,7 @@ mod tests {
         );
     }
 
+    // ネストされた JSON オブジェクトの部分一致が正しく動作することを確認する。
     #[test]
     fn test_json_contains_nested() {
         AssertionHelper::assert_json_contains(
@@ -91,12 +93,14 @@ mod tests {
         );
     }
 
+    // 値が一致しない JSON で部分一致アサーションがパニックすることを確認する。
     #[test]
     #[should_panic(expected = "JSON partial match failed")]
     fn test_json_contains_mismatch() {
         AssertionHelper::assert_json_contains(r#"{"id":"1"}"#, r#"{"id":"2"}"#);
     }
 
+    // イベント一覧に指定したタイプのイベントが含まれることを検証できることを確認する。
     #[test]
     fn test_event_emitted() {
         let events = vec![
@@ -107,6 +111,7 @@ mod tests {
         AssertionHelper::assert_event_emitted(&events, "updated");
     }
 
+    // 存在しないイベントタイプを検証すると "not found" でパニックすることを確認する。
     #[test]
     #[should_panic(expected = "not found")]
     fn test_event_not_emitted() {
@@ -114,17 +119,20 @@ mod tests {
         AssertionHelper::assert_event_emitted(&events, "deleted");
     }
 
+    // 指定パスの値が非 null であることを検証するアサーションが成功することを確認する。
     #[test]
     fn test_assert_not_null() {
         AssertionHelper::assert_not_null(r#"{"data":{"id":"1"}}"#, "data.id");
     }
 
+    // 存在しないパスを検証すると "non-null" でパニックすることを確認する。
     #[test]
     #[should_panic(expected = "non-null")]
     fn test_assert_not_null_missing() {
         AssertionHelper::assert_not_null(r#"{"data":{}}"#, "data.id");
     }
 
+    // JSON 配列を対象とした部分一致アサーションが正しく機能することを確認する。
     #[test]
     fn test_json_contains_array() {
         AssertionHelper::assert_json_contains(

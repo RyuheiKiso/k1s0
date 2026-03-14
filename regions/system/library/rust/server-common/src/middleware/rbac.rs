@@ -109,6 +109,7 @@ mod tests {
 
     // --- System tier tests ---
 
+    // sys_admin がシステム層のすべてのアクションを許可されることを確認する。
     #[test]
     fn test_sys_admin_all_allowed() {
         let roles = vec!["sys_admin".to_string()];
@@ -117,6 +118,7 @@ mod tests {
         assert!(check_permission(Tier::System, &roles, "admin"));
     }
 
+    // sys_operator がシステム層で read と write のみ許可されることを確認する。
     #[test]
     fn test_sys_operator_read_write() {
         let roles = vec!["sys_operator".to_string()];
@@ -125,6 +127,7 @@ mod tests {
         assert!(!check_permission(Tier::System, &roles, "admin"));
     }
 
+    // sys_auditor がシステム層で read のみ許可されることを確認する。
     #[test]
     fn test_sys_auditor_read_only() {
         let roles = vec!["sys_auditor".to_string()];
@@ -135,6 +138,7 @@ mod tests {
 
     // --- Business tier tests ---
 
+    // biz_admin がビジネス層のすべてのアクションを許可されることを確認する。
     #[test]
     fn test_biz_admin_all_allowed() {
         let roles = vec!["biz_admin".to_string()];
@@ -143,6 +147,7 @@ mod tests {
         assert!(check_permission(Tier::Business, &roles, "admin"));
     }
 
+    // biz_operator がビジネス層で read と write のみ許可されることを確認する。
     #[test]
     fn test_biz_operator_read_write() {
         let roles = vec!["biz_operator".to_string()];
@@ -151,6 +156,7 @@ mod tests {
         assert!(!check_permission(Tier::Business, &roles, "admin"));
     }
 
+    // biz_auditor がビジネス層で read のみ許可されることを確認する。
     #[test]
     fn test_biz_auditor_read_only() {
         let roles = vec!["biz_auditor".to_string()];
@@ -159,6 +165,7 @@ mod tests {
         assert!(!check_permission(Tier::Business, &roles, "admin"));
     }
 
+    // sys_admin がビジネス層でもフォールバックとしてすべてのアクションを許可されることを確認する。
     #[test]
     fn test_sys_admin_fallback_in_business_tier() {
         let roles = vec!["sys_admin".to_string()];
@@ -169,6 +176,7 @@ mod tests {
 
     // --- Service tier tests ---
 
+    // svc_admin がサービス層のすべてのアクションを許可されることを確認する。
     #[test]
     fn test_svc_admin_all_allowed() {
         let roles = vec!["svc_admin".to_string()];
@@ -177,6 +185,7 @@ mod tests {
         assert!(check_permission(Tier::Service, &roles, "admin"));
     }
 
+    // svc_operator がサービス層で read と write のみ許可されることを確認する。
     #[test]
     fn test_svc_operator_read_write() {
         let roles = vec!["svc_operator".to_string()];
@@ -185,6 +194,7 @@ mod tests {
         assert!(!check_permission(Tier::Service, &roles, "admin"));
     }
 
+    // svc_viewer がサービス層で read のみ許可されることを確認する。
     #[test]
     fn test_svc_viewer_read_only() {
         let roles = vec!["svc_viewer".to_string()];
@@ -193,6 +203,7 @@ mod tests {
         assert!(!check_permission(Tier::Service, &roles, "admin"));
     }
 
+    // sys_admin がサービス層でもフォールバックとしてすべてのアクションを許可されることを確認する。
     #[test]
     fn test_sys_admin_fallback_in_service_tier() {
         let roles = vec!["sys_admin".to_string()];
@@ -201,6 +212,7 @@ mod tests {
         assert!(check_permission(Tier::Service, &roles, "admin"));
     }
 
+    // 未知のロールではすべての層でアクセスが拒否されることを確認する。
     #[test]
     fn test_unknown_role() {
         let roles = vec!["user".to_string()];
@@ -209,6 +221,7 @@ mod tests {
         assert!(!check_permission(Tier::Service, &roles, "read"));
     }
 
+    // ロールが空の場合にすべての層でアクセスが拒否されることを確認する。
     #[test]
     fn test_empty_roles() {
         let roles: Vec<String> = vec![];

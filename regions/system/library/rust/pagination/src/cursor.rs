@@ -47,6 +47,7 @@ pub fn decode_cursor(cursor: &str) -> Result<(String, String), PerPageValidation
 mod tests {
     use super::*;
 
+    // エンコードとデコードが正しくラウンドトリップすることを確認する。
     #[test]
     fn test_encode_decode_roundtrip() {
         let sort_key = "2024-01-15T10:30:00Z";
@@ -57,17 +58,20 @@ mod tests {
         assert_eq!(decoded_id, id);
     }
 
+    // 無効なBase64カーソルのデコードがエラーを返すことを確認する。
     #[test]
     fn test_decode_invalid_cursor() {
         assert!(decode_cursor("!!!not-base64!!!").is_err());
     }
 
+    // セパレーターがないBase64文字列のデコードがエラーを返すことを確認する。
     #[test]
     fn test_decode_missing_separator() {
         let encoded = STANDARD.encode(b"noseparator");
         assert!(decode_cursor(&encoded).is_err());
     }
 
+    // CursorRequestがデフォルト値で正しく構築されることを確認する。
     #[test]
     fn test_cursor_request_default() {
         let req = CursorRequest {
@@ -78,6 +82,7 @@ mod tests {
         assert_eq!(req.limit, 20);
     }
 
+    // CursorMetaのフィールドが正しく設定されることを確認する。
     #[test]
     fn test_cursor_meta() {
         let meta = CursorMeta {

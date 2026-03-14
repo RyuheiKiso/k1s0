@@ -37,6 +37,7 @@ pub fn extract_context(headers: &HashMap<String, String>) -> (Option<TraceContex
 mod tests {
     use super::*;
 
+    // コンテキストと Baggage を注入して抽出し全フィールドが一致することを確認する。
     #[test]
     fn test_inject_extract_roundtrip() {
         let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 1);
@@ -58,6 +59,7 @@ mod tests {
         assert_eq!(extracted_baggage.get("userId"), Some("alice"));
     }
 
+    // Baggage なしで注入した場合に baggage ヘッダーが生成されないことを確認する。
     #[test]
     fn test_inject_without_baggage() {
         let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 0);
@@ -68,6 +70,7 @@ mod tests {
         assert!(!headers.contains_key("baggage"));
     }
 
+    // 空のヘッダーマップから抽出すると ctx が None で Baggage が空になることを確認する。
     #[test]
     fn test_extract_empty_headers() {
         let headers = HashMap::new();

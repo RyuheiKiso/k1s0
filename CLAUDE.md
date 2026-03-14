@@ -50,3 +50,7 @@
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+
+## コメント規約
+
+- 各コードの上に日本語でコメントを記載すること。コードの目的、理由、動作を説明する。

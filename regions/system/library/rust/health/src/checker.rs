@@ -106,6 +106,7 @@ mod tests {
         }
     }
 
+    // ヘルシーなチェックのみの場合に全体ステータスが Healthy であることを確認する。
     #[tokio::test]
     async fn test_all_healthy() {
         let mut checker = CompositeHealthChecker::new();
@@ -116,6 +117,7 @@ mod tests {
         assert_eq!(response.checks.len(), 1);
     }
 
+    // 異常チェックが1件ある場合に全体ステータスが Unhealthy になることを確認する。
     #[tokio::test]
     async fn test_one_unhealthy() {
         let mut checker = CompositeHealthChecker::new();
@@ -135,6 +137,7 @@ mod tests {
         );
     }
 
+    // チェックが0件の場合に全体ステータスが Healthy で結果が空であることを確認する。
     #[tokio::test]
     async fn test_empty_checker() {
         let checker = CompositeHealthChecker::new();
@@ -143,6 +146,7 @@ mod tests {
         assert!(response.checks.is_empty());
     }
 
+    // readyz が run_all のエイリアスとして同一の結果を返すことを確認する。
     #[tokio::test]
     async fn test_readyz_is_alias_of_run_all() {
         let mut checker = CompositeHealthChecker::new();
@@ -153,6 +157,7 @@ mod tests {
         assert_eq!(readyz.checks.len(), 1);
     }
 
+    // healthz が常に status="ok" を返すことを確認する。
     #[test]
     fn test_healthz_always_ok() {
         let checker = CompositeHealthChecker::new();

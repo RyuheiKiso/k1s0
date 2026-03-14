@@ -79,6 +79,7 @@ pub fn k1s0_trace(args: TokenStream, input: TokenStream) -> TokenStream {
 
 #[cfg(test)]
 mod tests {
+    // proc-macro クレートが正常にビルドされることを確認するプレースホルダーテスト。
     #[test]
     fn ui_placeholder() {
         // proc-macro crate tests are limited; real validation happens

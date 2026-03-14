@@ -8,15 +8,15 @@ void main() {
     client = InMemoryQuotaClient();
   });
 
-  group('check', () {
-    test('returns allowed for within-limit request', () async {
+  group('check（使用量チェック）', () {
+    test('制限以内のリクエストで許可が返ること', () async {
       final status = await client.check('q1', 100);
       expect(status.allowed, isTrue);
       expect(status.remaining, equals(1000));
       expect(status.limit, equals(1000));
     });
 
-    test('returns not allowed when exceeded', () async {
+    test('クォータ超過時に不許可が返ること', () async {
       await client.increment('q1', 900);
       final status = await client.check('q1', 200);
       expect(status.allowed, isFalse);
@@ -24,8 +24,8 @@ void main() {
     });
   });
 
-  group('increment', () {
-    test('accumulates usage', () async {
+  group('increment（使用量加算）', () {
+    test('使用量が累積されること', () async {
       await client.increment('q1', 300);
       final usage = await client.increment('q1', 200);
       expect(usage.used, equals(500));
@@ -33,8 +33,8 @@ void main() {
     });
   });
 
-  group('getUsage', () {
-    test('returns current usage', () async {
+  group('getUsage（使用量取得）', () {
+    test('現在の使用量が返ること', () async {
       await client.increment('q1', 100);
       final usage = await client.getUsage('q1');
       expect(usage.used, equals(100));
@@ -42,15 +42,15 @@ void main() {
     });
   });
 
-  group('getPolicy', () {
-    test('returns default policy', () async {
+  group('getPolicy（ポリシー取得）', () {
+    test('デフォルトポリシーが返ること', () async {
       final policy = await client.getPolicy('q1');
       expect(policy.quotaId, equals('q1'));
       expect(policy.limit, equals(1000));
       expect(policy.period, equals(QuotaPeriod.daily));
     });
 
-    test('returns custom policy', () async {
+    test('カスタムポリシーが返ること', () async {
       client.setPolicy(
         'q1',
         const QuotaPolicy(
@@ -66,27 +66,27 @@ void main() {
     });
   });
 
-  group('CachedQuotaClient', () {
-    test('delegates check', () async {
+  group('CachedQuotaClient（キャッシュ付きクライアント）', () {
+    test('checkを委譲すること', () async {
       final cached = CachedQuotaClient(client, const Duration(minutes: 1));
       final status = await cached.check('q1', 100);
       expect(status.allowed, isTrue);
     });
 
-    test('delegates increment', () async {
+    test('incrementを委譲すること', () async {
       final cached = CachedQuotaClient(client, const Duration(minutes: 1));
       final usage = await cached.increment('q1', 100);
       expect(usage.used, equals(100));
     });
 
-    test('delegates getUsage', () async {
+    test('getUsageを委譲すること', () async {
       final cached = CachedQuotaClient(client, const Duration(minutes: 1));
       await cached.increment('q1', 50);
       final usage = await cached.getUsage('q1');
       expect(usage.used, equals(50));
     });
 
-    test('caches policy', () async {
+    test('ポリシーをキャッシュすること', () async {
       final cached = CachedQuotaClient(client, const Duration(minutes: 1));
       final p1 = await cached.getPolicy('q1');
       client.setPolicy(
@@ -103,8 +103,8 @@ void main() {
     });
   });
 
-  group('QuotaExceededError', () {
-    test('contains quotaId and remaining', () {
+  group('QuotaExceededError（クォータ超過エラー）', () {
+    test('quotaIdとremainingを保持すること', () {
       final error = QuotaExceededError('q1', 0);
       expect(error.quotaId, equals('q1'));
       expect(error.remaining, equals(0));
@@ -112,8 +112,8 @@ void main() {
     });
   });
 
-  group('QuotaStatus', () {
-    test('stores all fields', () {
+  group('QuotaStatus（クォータ状態）', () {
+    test('全フィールドを保持すること', () {
       final now = DateTime.now();
       final status = QuotaStatus(
         allowed: true,

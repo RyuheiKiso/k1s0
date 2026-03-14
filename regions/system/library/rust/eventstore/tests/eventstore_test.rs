@@ -12,6 +12,7 @@ fn make_event(stream_id: &StreamId, event_type: &str) -> EventEnvelope {
     )
 }
 
+// イベントを追記してロードすると正しいイベント一覧とバージョンが返ることを確認する。
 #[tokio::test]
 async fn test_append_and_load_events() {
     let store = InMemoryEventStore::new();
@@ -32,6 +33,7 @@ async fn test_append_and_load_events() {
     assert_eq!(loaded[1].version, 2);
 }
 
+// イベント追記前は exists が false を返すことを確認する。
 #[tokio::test]
 async fn test_exists_false_before_append() {
     let store = InMemoryEventStore::new();
@@ -40,6 +42,7 @@ async fn test_exists_false_before_append() {
     assert!(!store.exists(&stream_id).await.unwrap());
 }
 
+// イベント追記後は exists が true を返すことを確認する。
 #[tokio::test]
 async fn test_exists_true_after_append() {
     let store = InMemoryEventStore::new();
@@ -51,6 +54,7 @@ async fn test_exists_true_after_append() {
     assert!(store.exists(&stream_id).await.unwrap());
 }
 
+// 指定バージョン以降のイベントのみをロードできることを確認する。
 #[tokio::test]
 async fn test_load_from_version() {
     let store = InMemoryEventStore::new();
@@ -71,6 +75,7 @@ async fn test_load_from_version() {
     assert_eq!(loaded[1].version, 3);
 }
 
+// 不正な期待バージョンを指定すると VersionConflict エラーが返ることを確認する。
 #[tokio::test]
 async fn test_version_conflict_on_wrong_expected() {
     let store = InMemoryEventStore::new();
@@ -93,6 +98,7 @@ async fn test_version_conflict_on_wrong_expected() {
     ));
 }
 
+// 正しい期待バージョンを指定すると楽観的ロックが成功することを確認する。
 #[tokio::test]
 async fn test_version_conflict_not_raised_with_correct_version() {
     let store = InMemoryEventStore::new();
@@ -109,6 +115,7 @@ async fn test_version_conflict_not_raised_with_correct_version() {
     assert_eq!(version, 2);
 }
 
+// イベント追記後に current_version が正しいバージョン番号を返すことを確認する。
 #[tokio::test]
 async fn test_current_version_after_appends() {
     let store = InMemoryEventStore::new();
@@ -128,6 +135,7 @@ async fn test_current_version_after_appends() {
     assert_eq!(store.current_version(&stream_id).await.unwrap(), 3);
 }
 
+// スナップショットを保存してロードすると正しい状態とバージョンが取得できることを確認する。
 #[tokio::test]
 async fn test_snapshot_save_and_load() {
     let store = InMemorySnapshotStore::new();
@@ -149,6 +157,7 @@ async fn test_snapshot_save_and_load() {
     assert_eq!(loaded.state, serde_json::json!({"status": "shipped"}));
 }
 
+// 存在しないストリームをロードすると空のイベント一覧が返ることを確認する。
 #[tokio::test]
 async fn test_load_nonexistent_stream_returns_empty() {
     let store = InMemoryEventStore::new();
@@ -158,6 +167,7 @@ async fn test_load_nonexistent_stream_returns_empty() {
     assert!(events.is_empty());
 }
 
+// 複数のイベントを一度に追記するとバージョンが連続してインクリメントされることを確認する。
 #[tokio::test]
 async fn test_append_multiple_events_increments_version() {
     let store = InMemoryEventStore::new();

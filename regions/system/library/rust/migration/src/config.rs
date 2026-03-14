@@ -26,6 +26,7 @@ impl MigrationConfig {
 mod tests {
     use super::*;
 
+    // MigrationConfig のデフォルトテーブル名が "_migrations" であることを確認する。
     #[test]
     fn test_default_table_name() {
         let config = MigrationConfig::new(
@@ -35,6 +36,7 @@ mod tests {
         assert_eq!(config.table_name, "_migrations");
     }
 
+    // with_table_name でカスタムテーブル名を設定できることを確認する。
     #[test]
     fn test_custom_table_name() {
         let config = MigrationConfig::new(

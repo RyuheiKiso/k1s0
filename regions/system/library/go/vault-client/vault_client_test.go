@@ -33,6 +33,7 @@ func makeSecret(path string) vaultclient.Secret {
 	}
 }
 
+// GetSecretが存在するシークレットを正常に取得できることを確認する。
 func TestGetSecret_Found(t *testing.T) {
 	c := vaultclient.NewInMemoryVaultClient(makeConfig())
 	c.PutSecret(makeSecret("system/db/primary"))
@@ -42,6 +43,7 @@ func TestGetSecret_Found(t *testing.T) {
 	assert.Equal(t, "s3cr3t", s.Data["password"])
 }
 
+// GetSecretが存在しないパスに対してNOT_FOUNDエラーを返すことを確認する。
 func TestGetSecret_NotFound(t *testing.T) {
 	c := vaultclient.NewInMemoryVaultClient(makeConfig())
 	_, err := c.GetSecret(context.Background(), "missing/path")
@@ -51,6 +53,7 @@ func TestGetSecret_NotFound(t *testing.T) {
 	assert.Equal(t, "NOT_FOUND", ve.Code)
 }
 
+// GetSecretValueが指定したキーのシークレット値を正常に取得できることを確認する。
 func TestGetSecretValue_Found(t *testing.T) {
 	c := vaultclient.NewInMemoryVaultClient(makeConfig())
 	c.PutSecret(makeSecret("system/db"))
@@ -59,6 +62,7 @@ func TestGetSecretValue_Found(t *testing.T) {
 	assert.Equal(t, "s3cr3t", v)
 }
 
+// GetSecretValueが存在しないキーに対してエラーを返すことを確認する。
 func TestGetSecretValue_KeyNotFound(t *testing.T) {
 	c := vaultclient.NewInMemoryVaultClient(makeConfig())
 	c.PutSecret(makeSecret("system/db"))
@@ -66,6 +70,7 @@ func TestGetSecretValue_KeyNotFound(t *testing.T) {
 	require.Error(t, err)
 }
 
+// ListSecretsが指定したプレフィックスに一致するシークレット一覧を返すことを確認する。
 func TestListSecrets(t *testing.T) {
 	c := vaultclient.NewInMemoryVaultClient(makeConfig())
 	c.PutSecret(makeSecret("system/db/primary"))
@@ -77,6 +82,7 @@ func TestListSecrets(t *testing.T) {
 	assert.Len(t, paths, 2)
 }
 
+// ListSecretsが一致するシークレットがない場合に空のリストを返すことを確認する。
 func TestListSecrets_Empty(t *testing.T) {
 	c := vaultclient.NewInMemoryVaultClient(makeConfig())
 	paths, err := c.ListSecrets(context.Background(), "nothing/")
@@ -84,6 +90,7 @@ func TestListSecrets_Empty(t *testing.T) {
 	assert.Empty(t, paths)
 }
 
+// WatchSecretがシークレット変更を監視するチャネルを返すことを確認する。
 func TestWatchSecret_ReturnsChannel(t *testing.T) {
 	c := vaultclient.NewInMemoryVaultClient(makeConfig())
 	ch, err := c.WatchSecret(context.Background(), "system/db")
@@ -91,16 +98,19 @@ func TestWatchSecret_ReturnsChannel(t *testing.T) {
 	assert.NotNil(t, ch)
 }
 
+// VaultErrorのError()メソッドがコードとメッセージを結合した文字列を返すことを確認する。
 func TestVaultError_Format(t *testing.T) {
 	err := vaultclient.NewNotFoundError("system/missing")
 	assert.Equal(t, "NOT_FOUND: system/missing", err.Error())
 }
 
+// NewPermissionDeniedErrorがPERMISSION_DENIEDコードを持つエラーを生成することを確認する。
 func TestVaultError_PermissionDenied(t *testing.T) {
 	err := vaultclient.NewPermissionDeniedError("system/secret")
 	assert.Equal(t, "PERMISSION_DENIED", err.Code)
 }
 
+// サーバーエラー・タイムアウト・リース期限切れの各ファクトリ関数が正しいエラーコードを設定することを確認する。
 func TestVaultError_ServerTimeoutLeaseFactories(t *testing.T) {
 	serverErr := vaultclient.NewServerError("backend down")
 	timeoutErr := vaultclient.NewTimeoutError("deadline exceeded")
@@ -111,6 +121,7 @@ func TestVaultError_ServerTimeoutLeaseFactories(t *testing.T) {
 	assert.Equal(t, "LEASE_EXPIRED", leaseErr.Code)
 }
 
+// IsServerError・IsTimeoutError・IsLeaseExpiredErrorの各判定関数が正しく動作することを確認する。
 func TestVaultError_IsHelpers(t *testing.T) {
 	assert.True(t, vaultclient.IsServerError(vaultclient.NewServerError("x")))
 	assert.False(t, vaultclient.IsServerError(vaultclient.NewNotFoundError("x")))
@@ -122,6 +133,7 @@ func TestVaultError_IsHelpers(t *testing.T) {
 	assert.False(t, vaultclient.IsLeaseExpiredError(vaultclient.NewPermissionDeniedError("x")))
 }
 
+// Secret構造体のフィールドが正しく設定されることを確認する。
 func TestSecret_Fields(t *testing.T) {
 	s := makeSecret("test/path")
 	assert.Equal(t, "test/path", s.Path)
@@ -131,6 +143,7 @@ func TestSecret_Fields(t *testing.T) {
 
 // --- HttpVaultClient tests ---
 
+// HttpVaultClientがHTTPサーバーからシークレットを正常に取得できることを確認する。
 func TestHttpVaultClientGetSecret(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v1/secrets/system/db" {
@@ -155,6 +168,7 @@ func TestHttpVaultClientGetSecret(t *testing.T) {
 	assert.Equal(t, int64(1), secret.Version)
 }
 
+// HttpVaultClientが404レスポンス時にNOT_FOUNDエラーを返すことを確認する。
 func TestHttpVaultClientNotFound(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -169,6 +183,7 @@ func TestHttpVaultClientNotFound(t *testing.T) {
 	assert.Equal(t, "NOT_FOUND", vErr.Code)
 }
 
+// HttpVaultClientが403レスポンス時にPERMISSION_DENIEDエラーを返すことを確認する。
 func TestHttpVaultClientPermissionDenied(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
@@ -183,6 +198,7 @@ func TestHttpVaultClientPermissionDenied(t *testing.T) {
 	assert.Equal(t, "PERMISSION_DENIED", vErr.Code)
 }
 
+// HttpVaultClientがシークレットの特定キーの値を取得し、存在しないキーでエラーを返すことを確認する。
 func TestHttpVaultClientGetSecretValue(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -204,6 +220,7 @@ func TestHttpVaultClientGetSecretValue(t *testing.T) {
 	require.Error(t, err)
 }
 
+// HttpVaultClientがHTTPサーバーからシークレット一覧を正常に取得できることを確認する。
 func TestHttpVaultClientListSecrets(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v1/secrets" {
@@ -223,6 +240,7 @@ func TestHttpVaultClientListSecrets(t *testing.T) {
 	assert.Contains(t, paths, "system/api")
 }
 
+// HttpVaultClientが同一パスへの2回目以降のGetSecretリクエストをキャッシュから返すことを確認する。
 func TestHttpVaultClientCache(t *testing.T) {
 	callCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -250,6 +268,7 @@ func TestHttpVaultClientCache(t *testing.T) {
 	assert.Equal(t, 1, callCount, "second call should use cache")
 }
 
+// HttpVaultClientのWatchSecretがチャネルを返しコンテキストキャンセルで終了することを確認する。
 func TestHttpVaultClientWatchSecret(t *testing.T) {
 	client := vaultclient.NewHttpVaultClient(vaultclient.VaultClientConfig{ServerURL: "http://localhost:0"})
 	ctx, cancel := context.WithCancel(context.Background())

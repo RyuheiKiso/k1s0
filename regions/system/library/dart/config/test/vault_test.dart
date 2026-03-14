@@ -28,7 +28,7 @@ Config minimalConfig({
 
 void main() {
   group('mergeVaultSecrets', () {
-    test('should merge database.password', () {
+    test('database.passwordをマージできること', () {
       final cfg = minimalConfig(
         database: DatabaseConfig(
           host: 'localhost',
@@ -42,7 +42,7 @@ void main() {
       expect(cfg.database!.password, 'vault-db-pass');
     });
 
-    test('should merge redis.password', () {
+    test('redis.passwordをマージできること', () {
       final cfg = minimalConfig(
         redis: RedisConfig(host: 'localhost', port: 6379, password: 'old'),
       );
@@ -50,7 +50,7 @@ void main() {
       expect(cfg.redis!.password, 'vault-redis-pass');
     });
 
-    test('should merge kafka.sasl credentials', () {
+    test('kafka.sasl認証情報をマージできること', () {
       final cfg = minimalConfig(
         kafka: KafkaConfig(
           brokers: ['localhost:9092'],
@@ -72,7 +72,7 @@ void main() {
       expect(cfg.kafka!.sasl!.password, 'vault-kafka-pass');
     });
 
-    test('should merge redis_session.password', () {
+    test('redis_session.passwordをマージできること', () {
       final cfg = minimalConfig(
         redisSession:
             RedisConfig(host: 'localhost', port: 6380, password: ''),
@@ -82,7 +82,7 @@ void main() {
       expect(cfg.redisSession!.password, 'vault-session-pass');
     });
 
-    test('should merge oidc.client_secret', () {
+    test('oidc.client_secretをマージできること', () {
       final cfg = minimalConfig(
         auth: AuthConfig(
           jwt: JwtConfig(issuer: 'http://localhost', audience: 'test'),
@@ -100,7 +100,7 @@ void main() {
       expect(cfg.auth.oidc!.clientSecret, 'vault-oidc-secret');
     });
 
-    test('should not change config when secrets are empty', () {
+    test('シークレットが空の場合に設定を変更しないこと', () {
       final cfg = minimalConfig(
         database: DatabaseConfig(
           host: 'localhost',
@@ -117,7 +117,7 @@ void main() {
       expect(cfg.redis!.password, 'original');
     });
 
-    test('should handle nil sections safely', () {
+    test('nullのセクションがあっても安全に処理できること', () {
       final cfg = minimalConfig();
       // All optional sections are null - should not throw
       mergeVaultSecrets(cfg, {
@@ -135,7 +135,7 @@ void main() {
       expect(cfg.auth.oidc, isNull);
     });
 
-    test('should merge only existing partial secrets', () {
+    test('指定されたシークレットのみをマージできること', () {
       final cfg = minimalConfig(
         database: DatabaseConfig(
           host: 'localhost',

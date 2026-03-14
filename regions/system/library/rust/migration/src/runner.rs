@@ -242,6 +242,7 @@ mod tests {
         )
     }
 
+    // run_up が全ての未適用マイグレーション 3 件を適用することを確認する。
     #[tokio::test]
     async fn test_run_up_applies_all() {
         let runner = create_runner();
@@ -250,6 +251,7 @@ mod tests {
         assert!(report.errors.is_empty());
     }
 
+    // run_up を 2 回実行しても 2 回目は 0 件適用で冪等に動作することを確認する。
     #[tokio::test]
     async fn test_run_up_idempotent() {
         let runner = create_runner();
@@ -258,6 +260,7 @@ mod tests {
         assert_eq!(report.applied_count, 0);
     }
 
+    // run_down(1) が最後に適用されたマイグレーションを 1 件ロールバックすることを確認する。
     #[tokio::test]
     async fn test_run_down() {
         let runner = create_runner();
@@ -270,6 +273,7 @@ mod tests {
         assert_eq!(pending[0].version, "20240201000001");
     }
 
+    // run_down(2) が 2 件のマイグレーションをロールバックすることを確認する。
     #[tokio::test]
     async fn test_run_down_multiple_steps() {
         let runner = create_runner();
@@ -281,6 +285,7 @@ mod tests {
         assert_eq!(pending.len(), 2);
     }
 
+    // run_down に適用済み件数を超えるステップ数を指定すると全件ロールバックされることを確認する。
     #[tokio::test]
     async fn test_run_down_more_than_applied() {
         let runner = create_runner();
@@ -289,6 +294,7 @@ mod tests {
         assert_eq!(report.applied_count, 3);
     }
 
+    // 初期状態では status の全エントリが applied_at = None であることを確認する。
     #[tokio::test]
     async fn test_status_all_pending() {
         let runner = create_runner();
@@ -299,6 +305,7 @@ mod tests {
         }
     }
 
+    // run_up 後は status の全エントリが applied_at = Some になることを確認する。
     #[tokio::test]
     async fn test_status_after_apply() {
         let runner = create_runner();
@@ -310,6 +317,7 @@ mod tests {
         }
     }
 
+    // 初期状態で pending が全 3 件を正しいバージョン順で返すことを確認する。
     #[tokio::test]
     async fn test_pending_returns_unapplied() {
         let runner = create_runner();
@@ -320,6 +328,7 @@ mod tests {
         assert_eq!(pending[2].version, "20240201000001");
     }
 
+    // run_up 後は pending が空になることを確認する。
     #[tokio::test]
     async fn test_pending_empty_after_apply() {
         let runner = create_runner();
@@ -328,6 +337,7 @@ mod tests {
         assert!(pending.is_empty());
     }
 
+    // 存在しないディレクトリを指定して InMemoryMigrationRunner::new するとエラーになることを確認する。
     #[test]
     fn test_directory_not_found() {
         let config =

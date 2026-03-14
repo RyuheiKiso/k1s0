@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use tokio::sync::RwLock;
 use tracing::info;
 
-use k1s0_building_blocks::{Component, ComponentError, ComponentStatus};
+use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 
 use crate::traits::{BindingData, BindingResponse, InputBinding, OutputBinding};
 use crate::BindingError;
@@ -164,6 +164,7 @@ impl OutputBinding for InMemoryOutputBinding {
 mod tests {
     use super::*;
 
+    // InMemoryInputBinding の初期化でステータスが Ready に遷移することを確認する。
     #[tokio::test]
     async fn test_input_binding_init() {
         let binding = InMemoryInputBinding::new("test-input");
@@ -172,6 +173,7 @@ mod tests {
         assert_eq!(binding.status().await, ComponentStatus::Ready);
     }
 
+    // キューにデータを追加して read で取得できることを確認する。
     #[tokio::test]
     async fn test_input_binding_read() {
         let binding = InMemoryInputBinding::new("test-input");
@@ -186,6 +188,7 @@ mod tests {
         assert_eq!(data.data, b"hello");
     }
 
+    // 空のキューから read するとエラーが返ることを確認する。
     #[tokio::test]
     async fn test_input_binding_read_empty() {
         let binding = InMemoryInputBinding::new("test-input");
@@ -193,6 +196,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // キューが FIFO 順序でデータを返すことを確認する。
     #[tokio::test]
     async fn test_input_binding_fifo() {
         let binding = InMemoryInputBinding::new("test-input");
@@ -215,6 +219,7 @@ mod tests {
         assert_eq!(d2.data, b"second");
     }
 
+    // InMemoryOutputBinding の初期化でステータスが Ready に遷移することを確認する。
     #[tokio::test]
     async fn test_output_binding_init() {
         let binding = InMemoryOutputBinding::new("test-output");
@@ -223,6 +228,7 @@ mod tests {
         assert_eq!(binding.status().await, ComponentStatus::Ready);
     }
 
+    // invoke が呼び出し結果をレスポンスとして返し呼び出し履歴を記録することを確認する。
     #[tokio::test]
     async fn test_output_binding_invoke() {
         let binding = InMemoryOutputBinding::new("test-output");
@@ -235,6 +241,7 @@ mod tests {
         assert_eq!(invocations[0].1, b"data");
     }
 
+    // メタデータ付きで invoke するとレスポンスにメタデータが含まれることを確認する。
     #[tokio::test]
     async fn test_output_binding_invoke_with_metadata() {
         let binding = InMemoryOutputBinding::new("test-output");
@@ -248,6 +255,7 @@ mod tests {
         assert_eq!(response.metadata.get("key").unwrap(), "value");
     }
 
+    // InMemoryInputBinding のクローズでステータスが Closed に遷移することを確認する。
     #[tokio::test]
     async fn test_input_binding_close() {
         let binding = InMemoryInputBinding::new("test-input");
@@ -256,6 +264,7 @@ mod tests {
         assert_eq!(binding.status().await, ComponentStatus::Closed);
     }
 
+    // InMemoryOutputBinding のクローズでステータスが Closed に遷移することを確認する。
     #[tokio::test]
     async fn test_output_binding_close() {
         let binding = InMemoryOutputBinding::new("test-output");
@@ -264,6 +273,7 @@ mod tests {
         assert_eq!(binding.status().await, ComponentStatus::Closed);
     }
 
+    // InMemoryInputBinding のメタデータに backend と direction が含まれることを確認する。
     #[tokio::test]
     async fn test_input_binding_metadata() {
         let binding = InMemoryInputBinding::new("test-input");
@@ -272,6 +282,7 @@ mod tests {
         assert_eq!(meta.get("direction").unwrap(), "input");
     }
 
+    // InMemoryOutputBinding のメタデータに backend と direction が含まれることを確認する。
     #[tokio::test]
     async fn test_output_binding_metadata() {
         let binding = InMemoryOutputBinding::new("test-output");
@@ -280,12 +291,14 @@ mod tests {
         assert_eq!(meta.get("direction").unwrap(), "output");
     }
 
+    // InMemoryInputBinding の component_type が "binding.input" を返すことを確認する。
     #[tokio::test]
     async fn test_input_binding_component_type() {
         let binding = InMemoryInputBinding::new("test-input");
         assert_eq!(binding.component_type(), "binding.input");
     }
 
+    // InMemoryOutputBinding の component_type が "binding.output" を返すことを確認する。
     #[tokio::test]
     async fn test_output_binding_component_type() {
         let binding = InMemoryOutputBinding::new("test-output");

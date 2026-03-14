@@ -19,7 +19,6 @@ StateStore Building Block ライブラリ。キーバリュー型の状態管理
 | `ETag` | 構造体 | 楽観ロック用バージョンタグ |
 | `StateStoreError` | enum | `KeyNotFound`・`ETagMismatch`・`ConnectionFailed`・`SerializeFailed` |
 | `RedisStateStore` | 構造体 | Redis 実装（k1s0-cache ラッパー） |
-| `PostgresStateStore` | 構造体 | PostgreSQL 実装 |
 | `InMemoryStateStore` | 構造体 | InMemory 実装（テスト用） |
 
 ## Rust 実装
@@ -33,18 +32,20 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = []
 redis = ["k1s0-cache"]
-postgres = ["sqlx"]
-mock = []
+mock = ["mockall"]
 
 [dependencies]
 async-trait = "0.1"
+k1s0-bb-core = { path = "../bb-core" }
+k1s0-cache = { path = "../cache", optional = true }
+serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 tokio = { version = "1", features = ["sync"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-k1s0-cache = { path = "../cache", optional = true }
-sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"], optional = true }
+tracing = "0.1"
+uuid = { version = "1", features = ["v4"] }
+mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -58,12 +59,10 @@ tokio = { version = "1", features = ["full"] }
 bb-statestore/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）
-│   ├── traits.rs       # StateStore トレイト定義
-│   ├── entry.rs        # StateEntry・ETag
+│   ├── traits.rs       # StateStore トレイト定義・StateEntry・ETag
 │   ├── error.rs        # StateStoreError
 │   ├── redis.rs        # RedisStateStore（feature = "redis"）
-│   ├── postgres.rs     # PostgresStateStore（feature = "postgres"）
-│   └── in_memory.rs    # InMemoryStateStore
+│   └── memory.rs       # InMemoryStateStore
 └── Cargo.toml
 ```
 
@@ -152,7 +151,7 @@ match store.set("user:123", serde_json::json!({}), Some(&etag)).await {
 
 ## Go 実装
 
-**配置先**: `regions/system/library/go/statestore/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/go/building-blocks/`
 
 **主要インターフェース**:
 
@@ -165,16 +164,17 @@ import "context"
 type StateStore interface {
     buildingblocks.Component
     Get(ctx context.Context, key string) (*StateEntry, error)
-    Set(ctx context.Context, key string, value []byte, etag *ETag) (*ETag, error)
+    // req.ETag が非 nil の場合は CAS 操作（ETag 不一致で ETagMismatchError）。
+    Set(ctx context.Context, req *SetRequest) (*ETag, error)
     Delete(ctx context.Context, key string, etag *ETag) error
     BulkGet(ctx context.Context, keys []string) ([]*StateEntry, error)
-    BulkSet(ctx context.Context, entries []*SetRequest) ([]*ETag, error)
+    BulkSet(ctx context.Context, requests []*SetRequest) ([]*ETag, error)
 }
 
 type StateEntry struct {
     Key   string `json:"key"`
     Value []byte `json:"value"`
-    ETag  ETag   `json:"etag"`
+    ETag  *ETag  `json:"etag,omitempty"`
 }
 
 type ETag struct {
@@ -184,7 +184,7 @@ type ETag struct {
 type SetRequest struct {
     Key   string
     Value []byte
-    ETag  *ETag
+    ETag  *ETag // nil = 無条件書き込み（Last-Writer-Wins）
 }
 
 type ErrorKind int
@@ -207,19 +207,20 @@ func (e *StateStoreError) Unwrap() error
 
 // --- 実装 ---
 
-type RedisStateStore struct { /* k1s0-cache ラッパー */ }
-func NewRedisStateStore() *RedisStateStore
+// RedisStateStore: CacheClient インターフェース経由で注入（k1s0-cache 互換）。ETag は key:__etag サフィックスキーで管理。
+type RedisStateStore struct{}
+func NewRedisStateStore(name string, client CacheClient) *RedisStateStore
 
-type PostgresStateStore struct { /* PostgreSQL */ }
-func NewPostgresStateStore() *PostgresStateStore
-
-type InMemoryStateStore struct { /* テスト用 */ }
+// InMemoryStateStore: テスト・開発用（外部 Redis 不要）。
+type InMemoryStateStore struct{}
 func NewInMemoryStateStore() *InMemoryStateStore
 ```
 
 ## TypeScript 実装
 
-**配置先**: `regions/system/library/typescript/statestore/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/typescript/building-blocks/`
+
+> **現在の実装**: `InMemoryStateStore` のみ。本番バックエンド（Redis）は Go/Rust 側で提供する。
 
 **主要 API**:
 
@@ -261,16 +262,16 @@ export interface StateStore extends Component {
   ): Promise<string[]>;
 }
 
-export class RedisStateStore implements StateStore { /* ... */ }
-export class PostgresStateStore implements StateStore { /* ... */ }
-export class InMemoryStateStore implements StateStore { /* ... */ }
+export class InMemoryStateStore implements StateStore { /* テスト・開発用 */ }
 ```
 
 **カバレッジ目標**: 90%以上
 
 ## Dart 実装
 
-**配置先**: `regions/system/library/dart/statestore/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/dart/building-blocks/`
+
+> **現在の実装**: `InMemoryStateStore` のみ。本番バックエンドは Go/Rust 側で提供する。
 
 **主要 API**:
 
@@ -305,9 +306,7 @@ abstract class StateStore implements Component {
   Future<List<String>> bulkSet(List<Map<String, dynamic>> entries);
 }
 
-class RedisStateStore implements StateStore { /* k1s0-cache ラッパー */ }
-class PostgresStateStore implements StateStore { /* PostgreSQL */ }
-class InMemoryStateStore implements StateStore { /* テスト用 */ }
+class InMemoryStateStore implements StateStore { /* テスト・開発用 */ }
 ```
 
 **カバレッジ目標**: 90%以上

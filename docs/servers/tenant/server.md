@@ -70,6 +70,7 @@ system tier の Tenant Server は以下の機能を提供する。
 | DELETE | `/api/v1/tenants/:id` | テナント削除 | `tenants/admin` |
 | GET | `/api/v1/tenants/:id/members` | テナントメンバー一覧 | `tenants/read` |
 | POST | `/api/v1/tenants/:id/members` | テナントメンバー追加 | `tenants/write` |
+| PUT | `/api/v1/tenants/:id/members/:user_id` | テナントメンバーロール更新 | `tenants/write` |
 | DELETE | `/api/v1/tenants/:id/members/:user_id` | テナントメンバー削除 | `tenants/admin` |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
@@ -402,6 +403,60 @@ ID 指定でテナントの詳細を取得する。
 }
 ```
 
+#### PUT /api/v1/tenants/:id/members/:user_id
+
+テナントメンバーのロールを更新する。
+
+**リクエスト**
+
+```json
+{
+  "role": "admin"
+}
+```
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `role` | string | Yes | 新しいロール（`owner` / `admin` / `member` / `viewer`） |
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "id": "990e8400-e29b-41d4-a716-446655440010",
+  "user_id": "660e8400-e29b-41d4-a716-446655440001",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "role": "admin",
+  "joined_at": "2026-02-23T10:05:00.000+00:00"
+}
+```
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_TENANT_MEMBER_NOT_FOUND",
+    "message": "member not found",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
+**レスポンス（400 Bad Request）**
+
+```json
+{
+  "error": {
+    "code": "SYS_TENANT_VALIDATION_ERROR",
+    "message": "invalid role: 'superuser'",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
 #### DELETE /api/v1/tenants/:id/members/:user_id
 
 テナントからメンバーを削除する。Keycloak realm からもユーザーを削除する。
@@ -654,7 +709,7 @@ Step 4: テナントステータスを active に遷移
 | domain/entity | `Tenant`, `TenantMember`, `TenantProvisioningJob`, `TenantStatus` | エンティティ定義・状態遷移 |
 | domain/repository | `TenantRepository`, `TenantMemberRepository` | リポジトリトレイト |
 | domain/service | `TenantDomainService` | テナント名重複チェック、ステータス遷移バリデーション |
-| usecase | `CreateTenantUseCase`, `GetTenantUseCase`, `ListTenantsUseCase`, `UpdateTenantUseCase`, `SuspendTenantUseCase`, `ActivateTenantUseCase`, `DeleteTenantUseCase`, `ListMembersUseCase`, `AddMemberUseCase`, `RemoveMemberUseCase`, `GetProvisioningStatusUseCase` | ユースケース |
+| usecase | `CreateTenantUseCase`, `GetTenantUseCase`, `ListTenantsUseCase`, `UpdateTenantUseCase`, `SuspendTenantUseCase`, `ActivateTenantUseCase`, `DeleteTenantUseCase`, `ListMembersUseCase`, `AddMemberUseCase`, `UpdateMemberRoleUseCase`, `RemoveMemberUseCase`, `GetProvisioningStatusUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー, gRPC ハンドラー | プロトコル変換（axum / tonic） |
 | adapter/repository | `tenant_postgres.rs` | PostgreSQL リポジトリ実装 |
 | infrastructure | `keycloak_admin.rs`, `kafka_producer.rs`, `saga_client.rs` | 外部連携（Keycloak/Kafka/Saga） |

@@ -7,6 +7,7 @@ use k1s0_distributed_lock::{DistributedLock, InMemoryDistributedLock, LockError,
 // acquire and release basic flow
 // ---------------------------------------------------------------------------
 
+// ロックを取得・解放する基本フローが正常に動作することを確認する。
 #[tokio::test]
 async fn test_acquire_and_release_basic_flow() {
     let lock = InMemoryDistributedLock::new();
@@ -20,6 +21,7 @@ async fn test_acquire_and_release_basic_flow() {
     assert!(!lock.is_locked("resource-1").await.unwrap());
 }
 
+// ロック取得のたびに一意のトークンが生成されることを確認する。
 #[tokio::test]
 async fn test_acquire_returns_unique_tokens() {
     let lock = InMemoryDistributedLock::new();
@@ -39,6 +41,7 @@ async fn test_acquire_returns_unique_tokens() {
 // double acquire returns AlreadyLocked
 // ---------------------------------------------------------------------------
 
+// 既にロック済みのキーを再取得すると AlreadyLocked エラーが返ることを確認する。
 #[tokio::test]
 async fn test_double_acquire_returns_already_locked() {
     let lock = InMemoryDistributedLock::new();
@@ -54,6 +57,7 @@ async fn test_double_acquire_returns_already_locked() {
     }
 }
 
+// 異なるキーは互いに独立して取得できることを確認する。
 #[tokio::test]
 async fn test_different_keys_can_be_acquired_independently() {
     let lock = InMemoryDistributedLock::new();
@@ -72,6 +76,7 @@ async fn test_different_keys_can_be_acquired_independently() {
 // extend updates TTL
 // ---------------------------------------------------------------------------
 
+// TTL を延長するとロックが期限切れせずに保持されることを確認する。
 #[tokio::test]
 async fn test_extend_updates_ttl() {
     let lock = InMemoryDistributedLock::new();
@@ -89,6 +94,7 @@ async fn test_extend_updates_ttl() {
     lock.release(guard).await.unwrap();
 }
 
+// 誤ったトークンで延長すると TokenMismatch エラーが返ることを確認する。
 #[tokio::test]
 async fn test_extend_with_wrong_token_returns_token_mismatch() {
     let lock = InMemoryDistributedLock::new();
@@ -103,6 +109,7 @@ async fn test_extend_with_wrong_token_returns_token_mismatch() {
     assert!(matches!(result, Err(LockError::TokenMismatch)));
 }
 
+// 存在しないロックを延長しようとすると LockNotFound エラーが返ることを確認する。
 #[tokio::test]
 async fn test_extend_nonexistent_lock_returns_not_found() {
     let lock = InMemoryDistributedLock::new();
@@ -120,6 +127,7 @@ async fn test_extend_nonexistent_lock_returns_not_found() {
 // acquire after expiry succeeds
 // ---------------------------------------------------------------------------
 
+// TTL 期限切れ後に同じキーを再取得できることを確認する。
 #[tokio::test]
 async fn test_acquire_after_expiry_succeeds() {
     let lock = InMemoryDistributedLock::new();
@@ -141,6 +149,7 @@ async fn test_acquire_after_expiry_succeeds() {
     lock.release(guard2).await.unwrap();
 }
 
+// TTL 期限切れ後に is_locked が false を返すことを確認する。
 #[tokio::test]
 async fn test_is_locked_returns_false_after_expiry() {
     let lock = InMemoryDistributedLock::new();
@@ -159,6 +168,7 @@ async fn test_is_locked_returns_false_after_expiry() {
 // release non-existent lock
 // ---------------------------------------------------------------------------
 
+// 未取得のロックをリリースすると LockNotFound エラーが返ることを確認する。
 #[tokio::test]
 async fn test_release_nonexistent_lock_returns_lock_not_found() {
     let lock = InMemoryDistributedLock::new();
@@ -176,6 +186,7 @@ async fn test_release_nonexistent_lock_returns_lock_not_found() {
     }
 }
 
+// 誤ったトークンでリリースすると TokenMismatch エラーが返ることを確認する。
 #[tokio::test]
 async fn test_release_with_wrong_token_returns_token_mismatch() {
     let lock = InMemoryDistributedLock::new();
@@ -195,6 +206,7 @@ async fn test_release_with_wrong_token_returns_token_mismatch() {
 // concurrent lock attempts
 // ---------------------------------------------------------------------------
 
+// 同時並行でロック取得を試みた場合に1つだけ成功することを確認する。
 #[tokio::test]
 async fn test_concurrent_acquire_only_one_succeeds() {
     let lock = Arc::new(InMemoryDistributedLock::new());
@@ -236,6 +248,7 @@ async fn futures_collect(
     results
 }
 
+// ロックの取得・解放サイクルを繰り返しても正常に動作することを確認する。
 #[tokio::test]
 async fn test_concurrent_acquire_and_release_cycle() {
     let lock = Arc::new(InMemoryDistributedLock::new());
@@ -252,12 +265,14 @@ async fn test_concurrent_acquire_and_release_cycle() {
 // is_locked edge cases
 // ---------------------------------------------------------------------------
 
+// 一度も取得されていないキーに対して is_locked が false を返すことを確認する。
 #[tokio::test]
 async fn test_is_locked_returns_false_for_never_acquired() {
     let lock = InMemoryDistributedLock::new();
     assert!(!lock.is_locked("nonexistent").await.unwrap());
 }
 
+// ロック解放後に is_locked が false を返すことを確認する。
 #[tokio::test]
 async fn test_is_locked_returns_false_after_release() {
     let lock = InMemoryDistributedLock::new();
@@ -273,6 +288,7 @@ async fn test_is_locked_returns_false_after_release() {
 // Default trait
 // ---------------------------------------------------------------------------
 
+// Default トレイトで生成したロックが正常に機能することを確認する。
 #[tokio::test]
 async fn test_default_trait_creates_usable_lock() {
     let lock = InMemoryDistributedLock::default();

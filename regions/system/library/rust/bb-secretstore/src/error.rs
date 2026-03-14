@@ -11,5 +11,5 @@ pub enum SecretStoreError {
     #[error("認証エラー: {0}")]
     Authentication(String),
     #[error("コンポーネントエラー: {0}")]
-    Component(#[from] k1s0_building_blocks::ComponentError),
+    Component(#[from] k1s0_bb_core::ComponentError),
 }

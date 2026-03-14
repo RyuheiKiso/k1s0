@@ -1,0 +1,107 @@
+// k1s0 決済サービス gRPC 定義。
+// 決済の開始・取得・一覧・完了・失敗・返金を提供する。
+syntax = "proto3";
+
+package k1s0.service.payment.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/payment/v1;paymentv1";
+
+import "google/protobuf/timestamp.proto";
+import "k1s0/system/common/v1/types.proto";
+
+service PaymentService {
+  // 決済開始
+  rpc InitiatePayment(InitiatePaymentRequest) returns (InitiatePaymentResponse);
+  // 決済取得
+  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse);
+  // 決済一覧
+  rpc ListPayments(ListPaymentsRequest) returns (ListPaymentsResponse);
+  // 決済完了
+  rpc CompletePayment(CompletePaymentRequest) returns (CompletePaymentResponse);
+  // 決済失敗
+  rpc FailPayment(FailPaymentRequest) returns (FailPaymentResponse);
+  // 決済返金
+  rpc RefundPayment(RefundPaymentRequest) returns (RefundPaymentResponse);
+}
+
+// ---------- メッセージ型 ----------
+
+// 決済
+message Payment {
+  string id = 1;
+  string order_id = 2;
+  string customer_id = 3;
+  int64 amount = 4;
+  string currency = 5;
+  string status = 6;
+  optional string payment_method = 7;
+  optional string transaction_id = 8;
+  optional string error_code = 9;
+  optional string error_message = 10;
+  int32 version = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+// ---------- リクエスト/レスポンス ----------
+
+message InitiatePaymentRequest {
+  string order_id = 1;
+  string customer_id = 2;
+  int64 amount = 3;
+  string currency = 4;
+  optional string payment_method = 5;
+}
+
+message InitiatePaymentResponse {
+  Payment payment = 1;
+}
+
+message GetPaymentRequest {
+  string payment_id = 1;
+}
+
+message GetPaymentResponse {
+  Payment payment = 1;
+}
+
+message ListPaymentsRequest {
+  optional string order_id = 1;
+  optional string customer_id = 2;
+  optional string status = 3;
+  k1s0.system.common.v1.Pagination pagination = 4;
+}
+
+message ListPaymentsResponse {
+  repeated Payment payments = 1;
+  int64 total_count = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 3;
+}
+
+message CompletePaymentRequest {
+  string payment_id = 1;
+  string transaction_id = 2;
+}
+
+message CompletePaymentResponse {
+  Payment payment = 1;
+}
+
+message FailPaymentRequest {
+  string payment_id = 1;
+  string error_code = 2;
+  string error_message = 3;
+}
+
+message FailPaymentResponse {
+  Payment payment = 1;
+}
+
+message RefundPaymentRequest {
+  string payment_id = 1;
+  optional string reason = 2;
+}
+
+message RefundPaymentResponse {
+  Payment payment = 1;
+}

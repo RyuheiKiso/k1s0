@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// TestMessageCreation は Message の各フィールドが正しく設定されることを確認する。
 func TestMessageCreation(t *testing.T) {
 	now := time.Now()
 	m := Message{
@@ -18,6 +19,12 @@ func TestMessageCreation(t *testing.T) {
 	if m.Topic != "orders" {
 		t.Errorf("expected Topic 'orders', got %q", m.Topic)
 	}
+	if string(m.Data) != `{"id": 1}` {
+		t.Errorf("expected Data %q, got %q", `{"id": 1}`, string(m.Data))
+	}
+	if m.Metadata["source"] != "api" {
+		t.Errorf("expected Metadata[source] %q, got %q", "api", m.Metadata["source"])
+	}
 	if m.ID != "msg-001" {
 		t.Errorf("expected ID 'msg-001', got %q", m.ID)
 	}
@@ -26,6 +33,7 @@ func TestMessageCreation(t *testing.T) {
 	}
 }
 
+// TestMessageJSONRoundtrip は Message の JSON シリアライズ・デシリアライズが正しく動作することを確認する。
 func TestMessageJSONRoundtrip(t *testing.T) {
 	now := time.Date(2025, 1, 15, 10, 30, 0, 0, time.UTC)
 	m := Message{
@@ -55,6 +63,7 @@ func TestMessageJSONRoundtrip(t *testing.T) {
 	}
 }
 
+// TestMessageJSONOmitEmptyMetadata は Metadata が nil のとき JSON フィールドが省略されることを確認する。
 func TestMessageJSONOmitEmptyMetadata(t *testing.T) {
 	m := Message{Topic: "t", Data: []byte("d"), ID: "1", Timestamp: time.Now()}
 	data, err := json.Marshal(m)

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Evaluateが有効なフラグを評価して有効状態とバリアント名を返すことを確認する。
 func TestEvaluate_EnabledFlag(t *testing.T) {
 	client := ff.NewInMemoryFeatureFlagClient()
 	client.SetFlag(&ff.FeatureFlag{
@@ -28,6 +29,7 @@ func TestEvaluate_EnabledFlag(t *testing.T) {
 	assert.Equal(t, "on", *result.Variant)
 }
 
+// Evaluateが無効なフラグを評価してFLAG_DISABLEDを返しバリアントがnilであることを確認する。
 func TestEvaluate_DisabledFlag(t *testing.T) {
 	client := ff.NewInMemoryFeatureFlagClient()
 	client.SetFlag(&ff.FeatureFlag{
@@ -43,6 +45,7 @@ func TestEvaluate_DisabledFlag(t *testing.T) {
 	assert.Nil(t, result.Variant)
 }
 
+// Evaluateが存在しないフラグキーを指定した場合にFLAG_NOT_FOUNDエラーを返すことを確認する。
 func TestEvaluate_FlagNotFound(t *testing.T) {
 	client := ff.NewInMemoryFeatureFlagClient()
 
@@ -51,6 +54,7 @@ func TestEvaluate_FlagNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "FLAG_NOT_FOUND")
 }
 
+// GetFlagが指定したフラグキーのFeatureFlagオブジェクトを正常に取得することを確認する。
 func TestGetFlag(t *testing.T) {
 	client := ff.NewInMemoryFeatureFlagClient()
 	client.SetFlag(&ff.FeatureFlag{
@@ -66,6 +70,7 @@ func TestGetFlag(t *testing.T) {
 	assert.Equal(t, "ダークモード機能", flag.Description)
 }
 
+// GetFlagが存在しないフラグキーを指定した場合にFLAG_NOT_FOUNDエラーを返すことを確認する。
 func TestGetFlag_NotFound(t *testing.T) {
 	client := ff.NewInMemoryFeatureFlagClient()
 
@@ -74,6 +79,7 @@ func TestGetFlag_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "FLAG_NOT_FOUND")
 }
 
+// IsEnabledがフラグの有効・無効状態を正しいブール値で返すことを確認する。
 func TestIsEnabled(t *testing.T) {
 	client := ff.NewInMemoryFeatureFlagClient()
 	client.SetFlag(&ff.FeatureFlag{
@@ -96,6 +102,7 @@ func TestIsEnabled(t *testing.T) {
 	assert.False(t, enabled)
 }
 
+// EvaluationContextのビルダーメソッドがユーザーID・テナントID・カスタム属性を正しく設定することを確認する。
 func TestEvaluationContext(t *testing.T) {
 	ctx := ff.NewEvaluationContext().
 		WithUserID("user-1").

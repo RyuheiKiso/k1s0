@@ -12,4 +12,13 @@ pub trait TeamRepository: Send + Sync {
 
     /// チーム ID でチームを取得する。
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<Team>>;
+
+    /// チームを作成する。
+    async fn create(&self, team: &Team) -> anyhow::Result<Team>;
+
+    /// チームを更新する。
+    async fn update(&self, team: &Team) -> anyhow::Result<Team>;
+
+    /// チームを削除する。
+    async fn delete(&self, id: Uuid) -> anyhow::Result<bool>;
 }

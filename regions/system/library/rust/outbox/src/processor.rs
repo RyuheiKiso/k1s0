@@ -103,6 +103,7 @@ mod tests {
         }
     }
 
+    // 処理待ちメッセージが空の場合に process_batch が 0 を返すことを確認する。
     #[tokio::test]
     async fn test_process_batch_empty() {
         let mut store = MockOutboxStore::new();
@@ -113,6 +114,7 @@ mod tests {
         assert_eq!(count, 0);
     }
 
+    // メッセージが正常に発行された場合に process_batch が 1 を返しストアが 2 回更新されることを確認する。
     #[tokio::test]
     async fn test_process_batch_success() {
         let msg = OutboxMessage::new(
@@ -136,6 +138,7 @@ mod tests {
         assert_eq!(count, 1);
     }
 
+    // パブリッシュが失敗した場合に process_batch が 0 を返しストアが 2 回更新されることを確認する。
     #[tokio::test]
     async fn test_process_batch_publish_failure() {
         let msg = OutboxMessage::new(
@@ -159,6 +162,7 @@ mod tests {
         assert_eq!(count, 0); // 失敗したので 0
     }
 
+    // キャンセルトークンがキャンセルされると run が正常終了することを確認する。
     #[tokio::test]
     async fn test_run_stops_when_cancelled() {
         let mut store = MockOutboxStore::new();

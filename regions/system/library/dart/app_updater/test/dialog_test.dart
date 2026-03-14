@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:k1s0_app_updater/app_updater.dart';
 
 void main() {
-  testWidgets('optional update dialog can be dismissed', (tester) async {
+  testWidgets('任意更新ダイアログを閉じることができること', (tester) async {
     final updater = InMemoryAppUpdater(
       versionInfo: const AppVersionInfo(
         latestVersion: '2.1.0',
@@ -48,7 +48,7 @@ void main() {
     expect(find.text('後で'), findsOneWidget);
   });
 
-  testWidgets('mandatory update dialog hides dismiss action', (tester) async {
+  testWidgets('強制更新ダイアログでは閉じるアクションが非表示になること', (tester) async {
     final updater = InMemoryAppUpdater(
       versionInfo: const AppVersionInfo(
         latestVersion: '3.0.0',

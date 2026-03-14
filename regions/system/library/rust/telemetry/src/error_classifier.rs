@@ -38,48 +38,56 @@ mod tests {
 
     impl std::error::Error for TestError {}
 
+    // timeout キーワードを含むエラーが Transient と分類されることを確認する。
     #[test]
     fn test_transient_timeout() {
         let err = TestError("connection timeout after 30s".to_string());
         assert_eq!(classify_error(&err), ErrorSeverity::Transient);
     }
 
+    // connection キーワードを含むエラーが Transient と分類されることを確認する。
     #[test]
     fn test_transient_connection() {
         let err = TestError("connection refused".to_string());
         assert_eq!(classify_error(&err), ErrorSeverity::Transient);
     }
 
+    // unavailable キーワードを含むエラーが Transient と分類されることを確認する。
     #[test]
     fn test_transient_unavailable() {
         let err = TestError("service unavailable".to_string());
         assert_eq!(classify_error(&err), ErrorSeverity::Transient);
     }
 
+    // "not found" キーワードを含むエラーが Permanent と分類されることを確認する。
     #[test]
     fn test_permanent_not_found() {
         let err = TestError("resource not found".to_string());
         assert_eq!(classify_error(&err), ErrorSeverity::Permanent);
     }
 
+    // invalid キーワードを含むエラーが Permanent と分類されることを確認する。
     #[test]
     fn test_permanent_invalid() {
         let err = TestError("invalid request parameter".to_string());
         assert_eq!(classify_error(&err), ErrorSeverity::Permanent);
     }
 
+    // unauthorized キーワードを含むエラーが Permanent と分類されることを確認する。
     #[test]
     fn test_permanent_unauthorized() {
         let err = TestError("unauthorized access".to_string());
         assert_eq!(classify_error(&err), ErrorSeverity::Permanent);
     }
 
+    // 分類キーワードを含まないエラーが Unknown と分類されることを確認する。
     #[test]
     fn test_unknown() {
         let err = TestError("something went wrong".to_string());
         assert_eq!(classify_error(&err), ErrorSeverity::Unknown);
     }
 
+    // キーワードの大文字小文字を区別せずに分類されることを確認する。
     #[test]
     fn test_case_insensitive() {
         let err = TestError("CONNECTION TIMEOUT".to_string());

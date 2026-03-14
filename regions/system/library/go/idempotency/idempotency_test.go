@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// SetAndGetがべき等レコードを保存し、同じキーで取得できることを検証する。
 func TestSetAndGet(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
@@ -26,6 +27,7 @@ func TestSetAndGet(t *testing.T) {
 	assert.Equal(t, idempotency.StatusPending, got.Status)
 }
 
+// SetDuplicateが同一キーのレコードを重複登録しようとするとDUPLICATEエラーを返すことを検証する。
 func TestSetDuplicate(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
@@ -38,6 +40,7 @@ func TestSetDuplicate(t *testing.T) {
 	assert.Contains(t, err.Error(), "DUPLICATE")
 }
 
+// GetNotFoundが存在しないキーに対してnilとエラーなしを返すことを検証する。
 func TestGetNotFound(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
@@ -47,6 +50,7 @@ func TestGetNotFound(t *testing.T) {
 	assert.Nil(t, got)
 }
 
+// MarkCompletedがレコードをCompleted状態に更新しレスポンスとステータスコードを保存することを検証する。
 func TestMarkCompleted(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
@@ -66,6 +70,7 @@ func TestMarkCompleted(t *testing.T) {
 	assert.Empty(t, got.Error)
 }
 
+// MarkFailedがレコードをFailed状態に更新しエラーメッセージを保存することを検証する。
 func TestMarkFailed(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
@@ -84,6 +89,7 @@ func TestMarkFailed(t *testing.T) {
 	assert.Nil(t, got.Response)
 }
 
+// MarkCompletedNotFoundが存在しないキーに対してNOT_FOUNDエラーを返すことを検証する。
 func TestMarkCompletedNotFound(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
@@ -93,6 +99,7 @@ func TestMarkCompletedNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "NOT_FOUND")
 }
 
+// MarkFailedNotFoundが存在しないキーに対してNOT_FOUNDエラーを返すことを検証する。
 func TestMarkFailedNotFound(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
@@ -102,6 +109,7 @@ func TestMarkFailedNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "NOT_FOUND")
 }
 
+// ExpiredRecordがTTL経過後にレコードが取得できなくなることを検証する。
 func TestExpiredRecord(t *testing.T) {
 	store := idempotency.NewInMemoryIdempotencyStore()
 	ctx := context.Background()
@@ -121,6 +129,7 @@ func TestExpiredRecord(t *testing.T) {
 	assert.Nil(t, got)
 }
 
+// RecordIsExpiredがIsExpiredメソッドのTTLなし・未来・過去の各ケースを正しく判定することを検証する。
 func TestRecordIsExpired(t *testing.T) {
 	r1 := idempotency.NewIdempotencyRecord("k1", nil)
 	assert.False(t, r1.IsExpired())

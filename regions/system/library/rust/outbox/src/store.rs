@@ -25,6 +25,7 @@ mod tests {
     use super::*;
     use crate::message::{OutboxMessage, OutboxStatus};
 
+    // モックストアの save がメッセージを正常に保存できることを確認する。
     #[tokio::test]
     async fn test_mock_save_success() {
         let mut mock = MockOutboxStore::new();
@@ -35,6 +36,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    // モックストアの fetch_pending が指定した limit で Pending メッセージを返すことを確認する。
     #[tokio::test]
     async fn test_mock_fetch_pending() {
         let mut mock = MockOutboxStore::new();
@@ -53,6 +55,7 @@ mod tests {
         assert_eq!(messages[0].status, OutboxStatus::Pending);
     }
 
+    // モックストアの update がメッセージのステータス変更を正常に更新できることを確認する。
     #[tokio::test]
     async fn test_mock_update() {
         let mut mock = MockOutboxStore::new();
@@ -64,6 +67,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    // モックストアの delete_delivered が指定した日数以上前の配信済みメッセージを削除できることを確認する。
     #[tokio::test]
     async fn test_mock_delete_delivered() {
         let mut mock = MockOutboxStore::new();

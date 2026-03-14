@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// ロックの取得が成功し、キーとトークンを持つLockGuardが返ることを確認する。
 func TestAcquire_Success(t *testing.T) {
 	l := distributedlock.NewInMemoryLock()
 	ctx := context.Background()
@@ -19,6 +20,7 @@ func TestAcquire_Success(t *testing.T) {
 	assert.NotEmpty(t, guard.Token)
 }
 
+// 同じキーに対して2回Acquireを呼んだ場合にErrAlreadyLockedが返ることを確認する。
 func TestAcquire_Duplicate(t *testing.T) {
 	l := distributedlock.NewInMemoryLock()
 	ctx := context.Background()
@@ -29,6 +31,7 @@ func TestAcquire_Duplicate(t *testing.T) {
 	assert.ErrorIs(t, err, distributedlock.ErrAlreadyLocked)
 }
 
+// ロックのTTLが切れた後に同じキーで再取得できることを確認する。
 func TestAcquire_AfterExpiry(t *testing.T) {
 	l := distributedlock.NewInMemoryLock()
 	ctx := context.Background()
@@ -42,6 +45,7 @@ func TestAcquire_AfterExpiry(t *testing.T) {
 	assert.NotEmpty(t, guard.Token)
 }
 
+// 正しいLockGuardでReleaseを呼んだ場合にロックが解放されることを確認する。
 func TestRelease_Success(t *testing.T) {
 	l := distributedlock.NewInMemoryLock()
 	ctx := context.Background()
@@ -54,6 +58,7 @@ func TestRelease_Success(t *testing.T) {
 	assert.False(t, locked)
 }
 
+// トークンが一致しないLockGuardでReleaseを呼んだ場合にErrTokenMismatchが返ることを確認する。
 func TestRelease_TokenMismatch(t *testing.T) {
 	l := distributedlock.NewInMemoryLock()
 	ctx := context.Background()
@@ -64,6 +69,7 @@ func TestRelease_TokenMismatch(t *testing.T) {
 	assert.ErrorIs(t, err, distributedlock.ErrTokenMismatch)
 }
 
+// 存在しないキーのLockGuardでReleaseを呼んだ場合にErrLockNotFoundが返ることを確認する。
 func TestRelease_NotFound(t *testing.T) {
 	l := distributedlock.NewInMemoryLock()
 	ctx := context.Background()
@@ -72,6 +78,7 @@ func TestRelease_NotFound(t *testing.T) {
 	assert.ErrorIs(t, err, distributedlock.ErrLockNotFound)
 }
 
+// IsLockedがロック前はfalse、取得後はtrueを返すことを確認する。
 func TestIsLocked(t *testing.T) {
 	l := distributedlock.NewInMemoryLock()
 	ctx := context.Background()

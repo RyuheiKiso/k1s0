@@ -5,7 +5,7 @@ pub mod version_handler;
 use std::sync::Arc;
 
 use axum::middleware;
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, get, post, put};
 use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -15,8 +15,9 @@ pub use k1s0_server_common::{ErrorBody, ErrorResponse};
 use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::make_rbac_middleware;
 use crate::usecase::{
-    CreateVersionUseCase, DeleteVersionUseCase, GenerateDownloadUrlUseCase, GetAppUseCase,
-    GetDownloadStatsUseCase, GetLatestUseCase, ListAppsUseCase, ListVersionsUseCase,
+    CreateAppUseCase, CreateVersionUseCase, DeleteAppUseCase, DeleteVersionUseCase,
+    GenerateDownloadUrlUseCase, GetAppUseCase, GetDownloadStatsUseCase, GetLatestUseCase,
+    ListAppsUseCase, ListVersionsUseCase, UpdateAppUseCase,
 };
 
 /// ValidateTokenUseCase はトークン検証のためのユースケース。
@@ -66,6 +67,9 @@ impl ValidateTokenUseCase {
 pub struct AppState {
     pub list_apps_uc: Arc<ListAppsUseCase>,
     pub get_app_uc: Arc<GetAppUseCase>,
+    pub create_app_uc: Arc<CreateAppUseCase>,
+    pub update_app_uc: Arc<UpdateAppUseCase>,
+    pub delete_app_uc: Arc<DeleteAppUseCase>,
     pub list_versions_uc: Arc<ListVersionsUseCase>,
     pub create_version_uc: Arc<CreateVersionUseCase>,
     pub delete_version_uc: Arc<DeleteVersionUseCase>,
@@ -86,6 +90,9 @@ pub struct AppState {
         app_handler::list_apps,
         app_handler::get_app,
         app_handler::get_download_stats,
+        app_handler::create_app,
+        app_handler::update_app,
+        app_handler::delete_app,
         version_handler::list_versions,
         version_handler::create_version,
         version_handler::delete_version,
@@ -139,6 +146,11 @@ pub fn router(state: AppState) -> Router {
 
     // Write routes: require "apps" / "write" permission (publisher/admin)
     let app_write_routes = Router::new()
+        .route("/api/v1/apps", post(app_handler::create_app))
+        .route(
+            "/api/v1/apps/:id",
+            put(app_handler::update_app).delete(app_handler::delete_app),
+        )
         .route(
             "/api/v1/apps/:id/versions",
             post(version_handler::create_version),

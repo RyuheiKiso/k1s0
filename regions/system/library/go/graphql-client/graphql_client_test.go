@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Executeがインメモリクライアントで設定済みのレスポンスを正常に返すことを検証する。
 func TestExecute(t *testing.T) {
 	c := graphqlclient.NewInMemoryGraphQlClient()
 	ctx := context.Background()
@@ -30,6 +31,7 @@ func TestExecute(t *testing.T) {
 	assert.Empty(t, resp.Errors)
 }
 
+// Execute_NotConfiguredがレスポンス未設定のオペレーションに対してエラーを返すことを検証する。
 func TestExecute_NotConfigured(t *testing.T) {
 	c := graphqlclient.NewInMemoryGraphQlClient()
 	ctx := context.Background()
@@ -42,6 +44,7 @@ func TestExecute_NotConfigured(t *testing.T) {
 	require.Error(t, err)
 }
 
+// ExecuteMutationがインメモリクライアントでミューテーションのレスポンスを正常に返すことを検証する。
 func TestExecuteMutation(t *testing.T) {
 	c := graphqlclient.NewInMemoryGraphQlClient()
 	ctx := context.Background()
@@ -60,6 +63,7 @@ func TestExecuteMutation(t *testing.T) {
 	assert.Empty(t, resp.Errors)
 }
 
+// SetResponse_Overwriteが同一オペレーション名のレスポンスを上書きできることを検証する。
 func TestSetResponse_Overwrite(t *testing.T) {
 	c := graphqlclient.NewInMemoryGraphQlClient()
 	ctx := context.Background()
@@ -74,6 +78,7 @@ func TestSetResponse_Overwrite(t *testing.T) {
 	assert.Equal(t, "second", data)
 }
 
+// InMemoryGraphQlClient_Subscribeがサブスクリプションイベントをチャネル経由で順番に配信することを検証する。
 func TestInMemoryGraphQlClient_Subscribe(t *testing.T) {
 	client := graphqlclient.NewInMemoryGraphQlClient()
 	events := []any{
@@ -99,6 +104,7 @@ func TestInMemoryGraphQlClient_Subscribe(t *testing.T) {
 
 // --- ClientError tests ---
 
+// ClientError_ErrorがClientErrorの各コンストラクタで生成されたエラーが期待通りのメッセージ文字列を返すことを検証する。
 func TestClientError_Error(t *testing.T) {
 	tests := []struct {
 		err      *graphqlclient.ClientError
@@ -114,6 +120,7 @@ func TestClientError_Error(t *testing.T) {
 	}
 }
 
+// ClientError_KindがClientErrorの各コンストラクタで正しいKindが設定されることを検証する。
 func TestClientError_Kind(t *testing.T) {
 	assert.Equal(t, graphqlclient.ClientErrorRequest, graphqlclient.NewRequestError("x").Kind)
 	assert.Equal(t, graphqlclient.ClientErrorDeserialization, graphqlclient.NewDeserializationError("x").Kind)
@@ -121,6 +128,7 @@ func TestClientError_Kind(t *testing.T) {
 	assert.Equal(t, graphqlclient.ClientErrorNotFound, graphqlclient.NewNotFoundError("x").Kind)
 }
 
+// ClientError_ImplementsErrorがClientErrorがerrorインターフェースを実装していることを検証する。
 func TestClientError_ImplementsError(t *testing.T) {
 	var err error = graphqlclient.NewRequestError("test")
 	assert.Error(t, err)
@@ -128,6 +136,7 @@ func TestClientError_ImplementsError(t *testing.T) {
 
 // --- GraphQlHttpClient tests ---
 
+// GraphQlHttpClient_ExecuteがHTTPサーバーへのクエリリクエストを正常に実行しレスポンスをパースすることを検証する。
 func TestGraphQlHttpClient_Execute(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -154,6 +163,7 @@ func TestGraphQlHttpClient_Execute(t *testing.T) {
 	assert.Empty(t, resp.Errors)
 }
 
+// GraphQlHttpClient_ExecuteMutationがHTTPサーバーへのミューテーションリクエストを正常に実行することを検証する。
 func TestGraphQlHttpClient_ExecuteMutation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -171,6 +181,7 @@ func TestGraphQlHttpClient_ExecuteMutation(t *testing.T) {
 	require.NotNil(t, resp.Data)
 }
 
+// GraphQlHttpClient_CustomHeadersがリクエストにカスタムHTTPヘッダーを正しく付与することを検証する。
 func TestGraphQlHttpClient_CustomHeaders(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
@@ -191,6 +202,7 @@ func TestGraphQlHttpClient_CustomHeaders(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// GraphQlHttpClient_ServerErrorがサーバーから500エラーが返った場合にRequestErrorを返すことを検証する。
 func TestGraphQlHttpClient_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -209,6 +221,7 @@ func TestGraphQlHttpClient_ServerError(t *testing.T) {
 	assert.Contains(t, clientErr.Message, "500")
 }
 
+// GraphQlHttpClient_InvalidJSONがレスポンスボディのJSONパースに失敗した場合にDeserializationErrorを返すことを検証する。
 func TestGraphQlHttpClient_InvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -226,6 +239,7 @@ func TestGraphQlHttpClient_InvalidJSON(t *testing.T) {
 	assert.Equal(t, graphqlclient.ClientErrorDeserialization, clientErr.Kind)
 }
 
+// GraphQlHttpClient_GraphQlErrorsがレスポンスにGraphQLエラーが含まれる場合にエラーフィールドを正しくパースすることを検証する。
 func TestGraphQlHttpClient_GraphQlErrors(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -241,6 +255,7 @@ func TestGraphQlHttpClient_GraphQlErrors(t *testing.T) {
 	assert.Equal(t, "field not found", resp.Errors[0].Message)
 }
 
+// GraphQlHttpClient_Subscribe_NotSupportedがHTTPクライアントでSubscribeを呼ぶとエラーを返すことを検証する。
 func TestGraphQlHttpClient_Subscribe_NotSupported(t *testing.T) {
 	client := graphqlclient.NewGraphQlHttpClient("http://localhost", nil)
 	ch, err := client.Subscribe(context.Background(), graphqlclient.GraphQlQuery{Query: "subscription { x }"})
@@ -253,6 +268,7 @@ func TestGraphQlHttpClient_Subscribe_NotSupported(t *testing.T) {
 	assert.Contains(t, clientErr.Message, "does not support subscriptions")
 }
 
+// GraphQlHttpClient_ConnectionRefusedが接続拒否時にRequestErrorを返すことを検証する。
 func TestGraphQlHttpClient_ConnectionRefused(t *testing.T) {
 	client := graphqlclient.NewGraphQlHttpClient("http://127.0.0.1:1", nil)
 	query := graphqlclient.GraphQlQuery{Query: "{ ping }"}
@@ -264,6 +280,7 @@ func TestGraphQlHttpClient_ConnectionRefused(t *testing.T) {
 	assert.Equal(t, graphqlclient.ClientErrorRequest, clientErr.Kind)
 }
 
+// GraphQlHttpClient_ImplementsInterfaceがGraphQlHttpClientがGraphQlClientインターフェースを実装していることを検証する。
 func TestGraphQlHttpClient_ImplementsInterface(t *testing.T) {
 	var _ graphqlclient.GraphQlClient = graphqlclient.NewGraphQlHttpClient("http://localhost", nil)
 }

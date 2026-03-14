@@ -19,9 +19,10 @@ pub use k1s0_server_common::{ErrorBody, ErrorResponse};
 use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::make_rbac_middleware;
 use crate::usecase::{
-    DeleteServiceUseCase, GetScorecardUseCase, GetServiceUseCase, HealthStatusUseCase,
-    ListServicesUseCase, ManageDependenciesUseCase, ManageDocsUseCase, RegisterServiceUseCase,
-    SearchServicesUseCase, UpdateServiceUseCase,
+    CreateTeamUseCase, DeleteServiceUseCase, DeleteTeamUseCase, GetScorecardUseCase,
+    GetServiceUseCase, GetTeamUseCase, HealthStatusUseCase, ListServicesUseCase,
+    ManageDependenciesUseCase, ManageDocsUseCase, RegisterServiceUseCase, SearchServicesUseCase,
+    UpdateServiceUseCase, UpdateTeamUseCase,
 };
 
 /// ValidateTokenUseCase はトークン検証のためのユースケース。
@@ -79,6 +80,10 @@ pub struct AppState {
     pub get_scorecard_uc: Arc<GetScorecardUseCase>,
     pub search_services_uc: Arc<SearchServicesUseCase>,
     pub list_teams_uc: Arc<crate::usecase::list_teams::ListTeamsUseCase>,
+    pub get_team_uc: Arc<GetTeamUseCase>,
+    pub create_team_uc: Arc<CreateTeamUseCase>,
+    pub update_team_uc: Arc<UpdateTeamUseCase>,
+    pub delete_team_uc: Arc<DeleteTeamUseCase>,
     pub validate_token_uc: Arc<ValidateTokenUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub db_pool: Option<sqlx::PgPool>,
@@ -152,6 +157,7 @@ pub fn router(state: AppState) -> Router {
     // Team read routes
     let team_read_routes = Router::new()
         .route("/api/v1/teams", get(team::list_teams))
+        .route("/api/v1/teams/{team_id}", get(team::get_team))
         .route(
             "/api/v1/teams/{team_id}/services",
             get(team::get_team_services),
@@ -180,11 +186,24 @@ pub fn router(state: AppState) -> Router {
             make_rbac_middleware("services", "write"),
         ));
 
+    // Team write routes: require "teams" / "write" permission
+    let team_write_routes = Router::new()
+        .route("/api/v1/teams", post(team::create_team))
+        .route(
+            "/api/v1/teams/{team_id}",
+            put(team::update_team).delete(team::delete_team),
+        )
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            make_rbac_middleware("teams", "write"),
+        ));
+
     // Protected routes share auth_middleware for Bearer token validation
     let protected = Router::new()
         .merge(service_read_routes)
         .merge(team_read_routes)
         .merge(service_write_routes)
+        .merge(team_write_routes)
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,

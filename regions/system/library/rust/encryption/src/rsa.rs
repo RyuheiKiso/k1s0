@@ -47,6 +47,7 @@ pub fn rsa_decrypt(private_key_pem: &str, ciphertext: &[u8]) -> Result<Vec<u8>, 
 mod tests {
     use super::*;
 
+    // RSA-OAEP で暗号化・復号のラウンドトリップが正常に動作することを確認する。
     #[test]
     fn test_rsa_roundtrip() {
         let (pub_pem, priv_pem) = generate_rsa_key_pair().unwrap();
@@ -56,6 +57,7 @@ mod tests {
         assert_eq!(decrypted, plaintext);
     }
 
+    // 異なる秘密鍵での RSA 復号が失敗することを確認する。
     #[test]
     fn test_rsa_wrong_key_fails() {
         let (pub_pem, _) = generate_rsa_key_pair().unwrap();
@@ -65,12 +67,14 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // 無効な PEM 文字列を使った RSA 暗号化がエラーになることを確認する。
     #[test]
     fn test_rsa_encrypt_invalid_pem() {
         let result = rsa_encrypt("not-a-valid-pem", b"data");
         assert!(matches!(result, Err(EncryptionError::RsaEncryptFailed(_))));
     }
 
+    // 無効な PEM 文字列を使った RSA 復号がエラーになることを確認する。
     #[test]
     fn test_rsa_decrypt_invalid_pem() {
         let result = rsa_decrypt("not-a-valid-pem", b"data");

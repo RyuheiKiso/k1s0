@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('InMemorySchedulerClient', () {
-    test('creates a job', () async {
+    test('ジョブが作成されること', () async {
       final client = InMemorySchedulerClient();
       final job = await client.createJob(JobRequest(
         name: 'daily-report',
@@ -17,7 +17,7 @@ void main() {
       expect(job.status, equals(JobStatus.pending));
     });
 
-    test('cancels a job', () async {
+    test('ジョブがキャンセルされること', () async {
       final client = InMemorySchedulerClient();
       final job = await client.createJob(JobRequest(
         name: 'test',
@@ -28,7 +28,7 @@ void main() {
       expect(got.status, equals(JobStatus.cancelled));
     });
 
-    test('pauses and resumes a job', () async {
+    test('ジョブが一時停止および再開されること', () async {
       final client = InMemorySchedulerClient();
       final job = await client.createJob(JobRequest(
         name: 'test',
@@ -41,12 +41,12 @@ void main() {
       expect((await client.getJob(job.id)).status, equals(JobStatus.pending));
     });
 
-    test('throws on get non-existent job', () async {
+    test('存在しないジョブ取得時に例外がスローされること', () async {
       final client = InMemorySchedulerClient();
       expect(() => client.getJob('nonexistent'), throwsA(isA<SchedulerError>()));
     });
 
-    test('lists jobs with status filter', () async {
+    test('ステータスフィルターでジョブ一覧が取得できること', () async {
       final client = InMemorySchedulerClient();
       await client.createJob(JobRequest(
         name: 'job-a',
@@ -64,7 +64,7 @@ void main() {
       expect(paused[0].status, equals(JobStatus.paused));
     });
 
-    test('lists jobs with name prefix filter', () async {
+    test('名前プレフィックスフィルターでジョブ一覧が取得できること', () async {
       final client = InMemorySchedulerClient();
       await client.createJob(JobRequest(
         name: 'daily-report',
@@ -81,13 +81,13 @@ void main() {
       expect(daily[0].name, equals('daily-report'));
     });
 
-    test('returns empty executions', () async {
+    test('実行履歴が空で返ること', () async {
       final client = InMemorySchedulerClient();
       final execs = await client.getExecutions('job-001');
       expect(execs, isEmpty);
     });
 
-    test('schedule variants', () {
+    test('スケジュールのバリアントが正しく生成されること', () {
       final cron = Schedule.cron('0 * * * *');
       expect(cron, isA<CronSchedule>());
 
@@ -98,12 +98,12 @@ void main() {
       expect(interval, isA<IntervalSchedule>());
     });
 
-    test('throws on cancel non-existent job', () async {
+    test('存在しないジョブのキャンセル時に例外がスローされること', () async {
       final client = InMemorySchedulerClient();
       expect(() => client.cancelJob('none'), throwsA(isA<SchedulerError>()));
     });
 
-    test('job completed event', () {
+    test('ジョブ完了イベントが正しく生成されること', () {
       final event = JobCompletedEvent(
         jobId: 'job-1',
         executionId: 'exec-1',

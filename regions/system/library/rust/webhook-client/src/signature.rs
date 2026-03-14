@@ -31,6 +31,7 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
 mod tests {
     use super::*;
 
+    // HMAC-SHA256 で署名を生成し同じシークレットで検証が成功することを確認する。
     #[test]
     fn test_generate_and_verify_roundtrip() {
         let secret = "my-secret-key";
@@ -39,6 +40,7 @@ mod tests {
         assert!(verify_signature(secret, body, &sig));
     }
 
+    // 誤ったシークレットで検証すると失敗することを確認する。
     #[test]
     fn test_verify_with_wrong_secret() {
         let body = b"hello world";
@@ -46,6 +48,7 @@ mod tests {
         assert!(!verify_signature("wrong-secret", body, &sig));
     }
 
+    // ボディが改ざんされた場合に検証が失敗することを確認する。
     #[test]
     fn test_verify_with_tampered_body() {
         let secret = "my-secret-key";
@@ -53,6 +56,7 @@ mod tests {
         assert!(!verify_signature(secret, b"tampered body", &sig));
     }
 
+    // 生成された署名が 16 進数文字のみで構成された 64 文字の文字列であることを確認する。
     #[test]
     fn test_signature_is_hex_encoded() {
         let sig = generate_signature("secret", b"data");

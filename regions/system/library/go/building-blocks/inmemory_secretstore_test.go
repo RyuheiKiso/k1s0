@@ -1,0 +1,113 @@
+package buildingblocks
+
+import (
+	"context"
+	"testing"
+)
+
+// InMemorySecretStore の Init 前後でステータスが Uninitialized → Ready に遷移することを確認する。
+func TestInMemorySecretStore_InitAndStatus(t *testing.T) {
+	s := NewInMemorySecretStore()
+	ctx := context.Background()
+
+	if s.Status(ctx) != StatusUninitialized {
+		t.Errorf("expected StatusUninitialized, got %s", s.Status(ctx))
+	}
+	if err := s.Init(ctx, Metadata{}); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+	if s.Status(ctx) != StatusReady {
+		t.Errorf("expected StatusReady, got %s", s.Status(ctx))
+	}
+}
+
+// InMemorySecretStore の Name と Version が正しい値を返すことを確認する。
+func TestInMemorySecretStore_Name(t *testing.T) {
+	s := NewInMemorySecretStore()
+	if s.Name() != "inmemory-secretstore" {
+		t.Errorf("unexpected Name: %q", s.Name())
+	}
+	if s.Version() != "1.0.0" {
+		t.Errorf("unexpected Version: %q", s.Version())
+	}
+}
+
+// InMemorySecretStore に Put したシークレットを Get で正しく取得できることを確認する。
+func TestInMemorySecretStore_GetPut(t *testing.T) {
+	s := NewInMemorySecretStore()
+	ctx := context.Background()
+	_ = s.Init(ctx, Metadata{})
+
+	s.Put("db-password", "secret123")
+
+	got, err := s.Get(ctx, "db-password")
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	if got.Key != "db-password" {
+		t.Errorf("expected Key 'db-password', got %q", got.Key)
+	}
+	if got.Value != "secret123" {
+		t.Errorf("expected Value 'secret123', got %q", got.Value)
+	}
+}
+
+// InMemorySecretStore が存在しないキーを Get するとエラーを返すことを確認する。
+func TestInMemorySecretStore_GetNotFound(t *testing.T) {
+	s := NewInMemorySecretStore()
+	ctx := context.Background()
+	_ = s.Init(ctx, Metadata{})
+
+	_, err := s.Get(ctx, "missing")
+	if err == nil {
+		t.Fatal("expected error for missing key")
+	}
+}
+
+// InMemorySecretStore の BulkGet が複数のシークレットを一括取得できることを確認する。
+func TestInMemorySecretStore_BulkGet(t *testing.T) {
+	s := NewInMemorySecretStore()
+	ctx := context.Background()
+	_ = s.Init(ctx, Metadata{})
+
+	s.Put("k1", "v1")
+	s.Put("k2", "v2")
+
+	results, err := s.BulkGet(ctx, []string{"k1", "k2"})
+	if err != nil {
+		t.Fatalf("BulkGet failed: %v", err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if results[0].Value != "v1" || results[1].Value != "v2" {
+		t.Errorf("unexpected values: %v, %v", results[0].Value, results[1].Value)
+	}
+}
+
+// InMemorySecretStore の BulkGet が存在しないキーを含む場合にエラーを返すことを確認する。
+func TestInMemorySecretStore_BulkGetMissing(t *testing.T) {
+	s := NewInMemorySecretStore()
+	ctx := context.Background()
+	_ = s.Init(ctx, Metadata{})
+
+	s.Put("k1", "v1")
+	_, err := s.BulkGet(ctx, []string{"k1", "missing"})
+	if err == nil {
+		t.Fatal("expected error for missing key in BulkGet")
+	}
+}
+
+// InMemorySecretStore の Close がステータスを StatusClosed に遷移させることを確認する。
+func TestInMemorySecretStore_Close(t *testing.T) {
+	s := NewInMemorySecretStore()
+	ctx := context.Background()
+	_ = s.Init(ctx, Metadata{})
+
+	if err := s.Close(ctx); err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
+	if s.Status(ctx) != StatusClosed {
+		t.Errorf("expected StatusClosed, got %s", s.Status(ctx))
+	}
+}

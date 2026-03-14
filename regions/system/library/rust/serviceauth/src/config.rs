@@ -79,6 +79,7 @@ impl ServiceAuthConfig {
 mod tests {
     use super::*;
 
+    // new() で必須フィールドが正しく設定されることを確認する。
     #[test]
     fn test_new_sets_required_fields() {
         let config = ServiceAuthConfig::new(
@@ -93,18 +94,21 @@ mod tests {
         assert!(config.jwks_uri.is_none());
     }
 
+    // refresh_before_secs のデフォルト値が 120 秒であることを確認する。
     #[test]
     fn test_default_refresh_before_secs() {
         let config = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec");
         assert_eq!(config.refresh_before_secs, 120);
     }
 
+    // timeout_secs のデフォルト値が 10 秒であることを確認する。
     #[test]
     fn test_default_timeout_secs() {
         let config = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec");
         assert_eq!(config.timeout_secs, 10);
     }
 
+    // with_jwks_uri() で JWKS URI が設定されることを確認する。
     #[test]
     fn test_with_jwks_uri() {
         let config = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec")
@@ -115,6 +119,7 @@ mod tests {
         );
     }
 
+    // with_refresh_before_secs() でリフレッシュ秒数が変更されることを確認する。
     #[test]
     fn test_with_refresh_before_secs() {
         let config = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec")
@@ -122,6 +127,7 @@ mod tests {
         assert_eq!(config.refresh_before_secs, 60);
     }
 
+    // with_timeout_secs() でタイムアウト秒数が変更されることを確認する。
     #[test]
     fn test_with_timeout_secs() {
         let config = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec")
@@ -129,6 +135,7 @@ mod tests {
         assert_eq!(config.timeout_secs, 30);
     }
 
+    // JSON に省略フィールドがある場合でも serde のデフォルト値が適用されることを確認する。
     #[test]
     fn test_serde_defaults_applied() {
         // JSON に refresh_before_secs と timeout_secs が含まれない場合でもデフォルトが使われる
@@ -144,6 +151,7 @@ mod tests {
         assert!(config.jwks_uri.is_none());
     }
 
+    // 設定を JSON にシリアライズしてデシリアライズしても全フィールドが一致することを確認する。
     #[test]
     fn test_serde_roundtrip() {
         let original = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec")

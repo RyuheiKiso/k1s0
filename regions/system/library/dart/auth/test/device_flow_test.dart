@@ -30,7 +30,7 @@ void main() {
 
   group('DeviceAuthClient', () {
     group('requestDeviceCode', () {
-      test('should return DeviceCodeResponse on success', () async {
+      test('成功時に DeviceCodeResponse を返すこと', () async {
         final client = createClient(
           httpPost: (url, {headers, body}) async {
             postUrls.add(url.toString());
@@ -67,7 +67,7 @@ void main() {
     });
 
     group('pollToken', () {
-      test('should poll with authorization_pending then return token',
+      test('authorization_pending を経てトークンを返すこと',
           () async {
         var callCount = 0;
 
@@ -112,7 +112,7 @@ void main() {
         expect(callCount, greaterThanOrEqualTo(3));
       }, timeout: Timeout(Duration(seconds: 30)));
 
-      test('should increase interval on slow_down', () async {
+      test('slow_down 受信時にインターバルを延長すること', () async {
         var callCount = 0;
         final callTimestamps = <DateTime>[];
 
@@ -150,7 +150,7 @@ void main() {
         expect(elapsed.inSeconds, greaterThanOrEqualTo(10));
       }, timeout: Timeout(Duration(seconds: 30)));
 
-      test('should throw DeviceFlowError on expired_token', () async {
+      test('expired_token 受信時に DeviceFlowError をスローすること', () async {
         final client = createClient(
           httpPost: (url, {headers, body}) async {
             return http.Response(
@@ -170,7 +170,7 @@ void main() {
         );
       });
 
-      test('should throw DeviceFlowError on access_denied', () async {
+      test('access_denied 受信時に DeviceFlowError をスローすること', () async {
         final client = createClient(
           httpPost: (url, {headers, body}) async {
             return http.Response(
@@ -190,7 +190,7 @@ void main() {
         );
       });
 
-      test('should cancel polling when cancelled future completes', () async {
+      test('キャンセル Future 完了時にポーリングを中止すること', () async {
         final client = createClient(
           httpPost: (url, {headers, body}) async {
             return http.Response(
@@ -222,7 +222,7 @@ void main() {
     });
 
     group('deviceFlow', () {
-      test('should execute the full device flow', () async {
+      test('デバイスフローの全フローを実行できること', () async {
         var tokenCallCount = 0;
 
         final client = createClient(
@@ -289,7 +289,7 @@ void main() {
     });
 
     group('DeviceFlowError', () {
-      test('should have correct errorCode and message', () {
+      test('正しい errorCode とメッセージを持つこと', () {
         final error = DeviceFlowError('expired_token', 'Device code expired');
         expect(error.errorCode, equals('expired_token'));
         expect(error.description, equals('Device code expired'));
@@ -297,7 +297,7 @@ void main() {
         expect(error.toString(), contains('Device code expired'));
       });
 
-      test('should work without description', () {
+      test('description なしでも動作すること', () {
         final error = DeviceFlowError('access_denied');
         expect(error.errorCode, equals('access_denied'));
         expect(error.description, isNull);

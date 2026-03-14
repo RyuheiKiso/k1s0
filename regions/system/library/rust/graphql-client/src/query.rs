@@ -54,6 +54,7 @@ pub struct ErrorLocation {
 mod tests {
     use super::*;
 
+    // クエリビルダーで全フィールド（クエリ文字列・変数・オペレーション名）を設定できることを確認する。
     #[test]
     fn test_query_builder() {
         let q = GraphQlQuery::new("{ users { id name } }")
@@ -65,6 +66,7 @@ mod tests {
         assert_eq!(q.operation_name.unwrap(), "GetUsers");
     }
 
+    // GraphQlQuery::new の最小構成で variables と operation_name が未設定であることを確認する。
     #[test]
     fn test_query_minimal() {
         let q = GraphQlQuery::new("{ health }");
@@ -72,6 +74,7 @@ mod tests {
         assert!(q.operation_name.is_none());
     }
 
+    // data フィールドを持つ GraphQL レスポンス JSON が正しくデシリアライズされることを確認する。
     #[test]
     fn test_response_with_data() {
         let json = r#"{"data":{"user":{"id":"1","name":"test"}},"errors":null}"#;
@@ -80,6 +83,7 @@ mod tests {
         assert!(resp.errors.is_none());
     }
 
+    // errors フィールドを持つ GraphQL レスポンス JSON が正しくデシリアライズされることを確認する。
     #[test]
     fn test_response_with_errors() {
         let json = r#"{"data":null,"errors":[{"message":"not found","locations":[{"line":1,"column":3}],"path":["user"]}]}"#;
@@ -91,6 +95,7 @@ mod tests {
         assert_eq!(errors[0].locations.as_ref().unwrap()[0].line, 1);
     }
 
+    // 変数未設定クエリのシリアライズで query フィールドのみが含まれることを確認する。
     #[test]
     fn test_query_serialization() {
         let q = GraphQlQuery::new("{ users { id } }");

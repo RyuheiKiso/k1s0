@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+// BindingData の Data と Metadata フィールドが正しく設定されることを確認する。
 func TestBindingDataCreation(t *testing.T) {
 	bd := BindingData{
 		Data:     []byte("input-data"),
@@ -17,6 +18,7 @@ func TestBindingDataCreation(t *testing.T) {
 	}
 }
 
+// BindingData をゼロ値で生成すると Data と Metadata が nil であることを確認する。
 func TestBindingDataEmpty(t *testing.T) {
 	bd := BindingData{}
 	if bd.Data != nil {
@@ -27,6 +29,7 @@ func TestBindingDataEmpty(t *testing.T) {
 	}
 }
 
+// BindingResponse の Data と Metadata フィールドが正しく設定されることを確認する。
 func TestBindingResponseCreation(t *testing.T) {
 	br := BindingResponse{
 		Data:     []byte("response-data"),
@@ -40,6 +43,7 @@ func TestBindingResponseCreation(t *testing.T) {
 	}
 }
 
+// BindingResponse をゼロ値で生成すると Data と Metadata が nil であることを確認する。
 func TestBindingResponseEmpty(t *testing.T) {
 	br := BindingResponse{}
 	if br.Data != nil {

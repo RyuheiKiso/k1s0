@@ -196,12 +196,14 @@ events:
 "#
     }
 
+    // 有効なイベント設定でバリデーションが成功することを確認する。
     #[test]
     fn valid_config_passes() {
         let config = parse_event_config_str(valid_yaml()).unwrap();
         assert!(validate_event_config(&config).is_ok());
     }
 
+    // domain が空の場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn empty_domain_fails() {
         let yaml = valid_yaml().replace("domain: accounting", "domain: \"\"");
@@ -210,6 +212,7 @@ events:
         assert!(err.to_string().contains("domain"));
     }
 
+    // 無効な tier 値を指定した場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn invalid_tier_fails() {
         let yaml = valid_yaml().replace("tier: business", "tier: invalid");
@@ -218,6 +221,7 @@ events:
         assert!(err.to_string().contains("tier"));
     }
 
+    // 無効な language 値を指定した場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn invalid_language_fails() {
         let yaml = valid_yaml().replace("language: rust", "language: python");
@@ -226,6 +230,7 @@ events:
         assert!(err.to_string().contains("language"));
     }
 
+    // スキーマフィールドに存在しない partition_key を指定した場合にエラーになることを確認する。
     #[test]
     fn invalid_partition_key_fails() {
         let yaml = valid_yaml().replace("partition_key: item_id", "partition_key: nonexistent");
@@ -234,6 +239,7 @@ events:
         assert!(err.to_string().contains("partition_key"));
     }
 
+    // 無効な proto3 フィールド型を指定した場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn invalid_field_type_fails() {
         let yaml = valid_yaml().replace("type: string", "type: varchar");
@@ -242,6 +248,7 @@ events:
         assert!(err.to_string().contains("proto3 type"));
     }
 
+    // 同じイベント名が重複した場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn duplicate_event_name_fails() {
         let yaml = r#"
@@ -272,6 +279,7 @@ events:
         assert!(err.to_string().contains("duplicate"));
     }
 
+    // フィールド番号が重複した場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn duplicate_field_number_fails() {
         let yaml = r#"
@@ -297,6 +305,7 @@ events:
         assert!(err.to_string().contains("duplicate field number"));
     }
 
+    // ハンドラー名がスネークケースでない場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn non_snake_case_handler_fails() {
         let yaml = valid_yaml().replace(
@@ -308,6 +317,7 @@ events:
         assert!(err.to_string().contains("snake_case"));
     }
 
+    // ケバブケース判定関数が各種入力に対して正しく動作することを確認する。
     #[test]
     fn kebab_case_checks() {
         assert!(is_kebab_case("hello"));
@@ -319,6 +329,7 @@ events:
         assert!(!is_kebab_case(""));
     }
 
+    // イベント名のバリデーション関数が各種入力に対して正しく動作することを確認する。
     #[test]
     fn event_name_checks() {
         assert!(is_event_name("item.created"));
@@ -330,6 +341,7 @@ events:
         assert!(!is_event_name("Item.Created"));
     }
 
+    // スネークケース判定関数が各種入力に対して正しく動作することを確認する。
     #[test]
     fn snake_case_checks() {
         assert!(is_snake_case("hello"));

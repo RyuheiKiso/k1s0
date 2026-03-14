@@ -40,6 +40,7 @@ pub enum SchemaRegistryError {
 mod tests {
     use super::*;
 
+    // バージョン指定の SchemaNotFound エラーメッセージにサブジェクトとバージョンが含まれることを確認する。
     #[test]
     fn test_schema_not_found_with_version() {
         let err = SchemaRegistryError::SchemaNotFound {
@@ -51,6 +52,7 @@ mod tests {
         assert!(msg.contains("3"));
     }
 
+    // バージョン未指定の SchemaNotFound エラーメッセージにサブジェクト名が含まれることを確認する。
     #[test]
     fn test_schema_not_found_without_version() {
         let err = SchemaRegistryError::SchemaNotFound {
@@ -62,6 +64,7 @@ mod tests {
         assert!(msg.contains("None"));
     }
 
+    // CompatibilityViolation エラーメッセージにサブジェクトと理由が含まれることを確認する。
     #[test]
     fn test_compatibility_violation() {
         let err = SchemaRegistryError::CompatibilityViolation {
@@ -73,12 +76,14 @@ mod tests {
         assert!(msg.contains("removed required field"));
     }
 
+    // InvalidSchema エラーメッセージに詳細が含まれることを確認する。
     #[test]
     fn test_invalid_schema() {
         let err = SchemaRegistryError::InvalidSchema("missing syntax declaration".to_string());
         assert!(err.to_string().contains("missing syntax declaration"));
     }
 
+    // serde_json エラーから Serialization エラーへの変換が正しく機能することを確認する。
     #[test]
     fn test_serialization_error_from_serde() {
         let raw = "{invalid json}";
@@ -87,6 +92,7 @@ mod tests {
         assert!(err.to_string().contains("Serialization error"));
     }
 
+    // Unavailable エラーメッセージに接続エラーの詳細が含まれることを確認する。
     #[test]
     fn test_unavailable() {
         let err = SchemaRegistryError::Unavailable("connection refused".to_string());

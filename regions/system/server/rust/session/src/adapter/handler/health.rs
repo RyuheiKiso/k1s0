@@ -97,15 +97,16 @@ mod tests {
         AppState {
             create_uc: Arc::new(CreateSessionUseCase::new(
                 repo.clone(),
+                Arc::new(NoopSessionMetadataRepository),
                 publisher.clone(),
                 3600,
                 86400,
             )),
             get_uc: Arc::new(GetSessionUseCase::new(repo.clone())),
             refresh_uc: Arc::new(RefreshSessionUseCase::new(repo.clone(), 86400)),
-            revoke_uc: Arc::new(RevokeSessionUseCase::new(repo.clone(), publisher.clone())),
+            revoke_uc: Arc::new(RevokeSessionUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository), publisher.clone())),
             list_uc: Arc::new(ListUserSessionsUseCase::new(repo.clone())),
-            revoke_all_uc: Arc::new(RevokeAllSessionsUseCase::new(repo)),
+            revoke_all_uc: Arc::new(RevokeAllSessionsUseCase::new(repo, Arc::new(NoopSessionMetadataRepository))),
             metadata_repo: Arc::new(NoopSessionMetadataRepository),
             event_publisher: publisher,
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("session-test")),

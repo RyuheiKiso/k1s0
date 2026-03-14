@@ -11,4 +11,13 @@ pub trait AppRepository: Send + Sync {
 
     /// アプリ ID でアプリ情報を取得する。
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<App>>;
+
+    /// アプリを新規登録する。
+    async fn create(&self, app: &App) -> anyhow::Result<App>;
+
+    /// アプリ情報を更新する。
+    async fn update(&self, app: &App) -> anyhow::Result<App>;
+
+    /// アプリを削除する。削除成功なら true を返す。
+    async fn delete(&self, id: &str) -> anyhow::Result<bool>;
 }

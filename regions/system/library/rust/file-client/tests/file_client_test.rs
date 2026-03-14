@@ -16,6 +16,7 @@ fn make_client() -> InMemoryFileClient {
 // Config
 // ---------------------------------------------------------------------------
 
+// サーバーモードの設定がデフォルト値（タイムアウト30秒、S3フィールドが未設定）で生成されることを確認する。
 #[test]
 fn config_server_mode_defaults() {
     let cfg = FileClientConfig::server_mode("http://localhost:9000");
@@ -26,6 +27,7 @@ fn config_server_mode_defaults() {
     assert_eq!(cfg.timeout, Duration::from_secs(30));
 }
 
+// ダイレクトモードの設定でS3エンドポイント・バケット・リージョンが正しく設定されることを確認する。
 #[test]
 fn config_direct_mode_fields() {
     let cfg = FileClientConfig::direct_mode("http://minio:9000", "my-bucket", "us-east-1");
@@ -35,6 +37,7 @@ fn config_direct_mode_fields() {
     assert_eq!(cfg.region, Some("us-east-1".to_string()));
 }
 
+// with_timeout でタイムアウトをデフォルト値から上書きできることを確認する。
 #[test]
 fn config_with_timeout_overrides_default() {
     let cfg = FileClientConfig::server_mode("http://localhost:8080")
@@ -46,6 +49,7 @@ fn config_with_timeout_overrides_default() {
 // Upload URL generation
 // ---------------------------------------------------------------------------
 
+// アップロードURL生成でメソッドが PUT になることを確認する。
 #[tokio::test]
 async fn generate_upload_url_returns_put_method() {
     let client = make_client();
@@ -56,6 +60,7 @@ async fn generate_upload_url_returns_put_method() {
     assert_eq!(url.method, "PUT");
 }
 
+// アップロードURL生成で返却されるURLにファイルパスが含まれることを確認する。
 #[tokio::test]
 async fn generate_upload_url_contains_path() {
     let client = make_client();
@@ -66,6 +71,7 @@ async fn generate_upload_url_contains_path() {
     assert!(url.url.contains("images/photo.jpg"));
 }
 
+// アップロードURL生成で有効期限が現在時刻より未来に設定されることを確認する。
 #[tokio::test]
 async fn generate_upload_url_sets_expiration_in_future() {
     let before = chrono::Utc::now();
@@ -77,6 +83,7 @@ async fn generate_upload_url_sets_expiration_in_future() {
     assert!(url.expires_at > before);
 }
 
+// アップロードURL生成後にファイルメタデータがストアに登録されることを確認する。
 #[tokio::test]
 async fn generate_upload_url_registers_file_in_store() {
     let client = make_client();
@@ -94,6 +101,7 @@ async fn generate_upload_url_registers_file_in_store() {
 // Download URL generation
 // ---------------------------------------------------------------------------
 
+// 登録済みファイルのダウンロードURLが GET メソッドでパスを含むことを確認する。
 #[tokio::test]
 async fn generate_download_url_for_existing_file() {
     let client = make_client();
@@ -110,6 +118,7 @@ async fn generate_download_url_for_existing_file() {
     assert!(url.url.contains("report.pdf"));
 }
 
+// 存在しないファイルのダウンロードURLを生成すると NotFound エラーが返ることを確認する。
 #[tokio::test]
 async fn generate_download_url_not_found_for_missing_file() {
     let client = make_client();
@@ -125,6 +134,7 @@ async fn generate_download_url_not_found_for_missing_file() {
 // Delete
 // ---------------------------------------------------------------------------
 
+// 登録済みファイルの削除が成功し、その後メタデータが取得できなくなることを確認する。
 #[tokio::test]
 async fn delete_existing_file_succeeds() {
     let client = make_client();
@@ -140,6 +150,7 @@ async fn delete_existing_file_succeeds() {
     assert!(result.is_err());
 }
 
+// 存在しないファイルを削除すると NotFound エラーが返ることを確認する。
 #[tokio::test]
 async fn delete_nonexistent_file_returns_not_found() {
     let client = make_client();
@@ -148,6 +159,7 @@ async fn delete_nonexistent_file_returns_not_found() {
     assert!(matches!(result.unwrap_err(), FileClientError::NotFound(_)));
 }
 
+// 削除後に同一パスへ再アップロードすると最新のメタデータに更新されることを確認する。
 #[tokio::test]
 async fn delete_then_upload_same_path() {
     let client = make_client();
@@ -169,6 +181,7 @@ async fn delete_then_upload_same_path() {
 // Get Metadata
 // ---------------------------------------------------------------------------
 
+// アップロード後のメタデータ取得でパスとコンテントタイプが正しいことを確認する。
 #[tokio::test]
 async fn get_metadata_returns_correct_content_type() {
     let client = make_client();
@@ -182,6 +195,7 @@ async fn get_metadata_returns_correct_content_type() {
     assert_eq!(meta.path, "img/banner.png");
 }
 
+// 存在しないファイルのメタデータ取得で NotFound エラーが返ることを確認する。
 #[tokio::test]
 async fn get_metadata_not_found() {
     let client = make_client();
@@ -193,6 +207,7 @@ async fn get_metadata_not_found() {
 // List
 // ---------------------------------------------------------------------------
 
+// 一覧取得でプレフィックスに一致するファイルのみが返ることを確認する。
 #[tokio::test]
 async fn list_filters_by_prefix() {
     let client = make_client();
@@ -215,6 +230,7 @@ async fn list_filters_by_prefix() {
     assert!(files.iter().all(|f| f.path.starts_with("prefix/")));
 }
 
+// 空プレフィックスで一覧取得すると全ファイルが返ることを確認する。
 #[tokio::test]
 async fn list_empty_prefix_returns_all() {
     let client = make_client();
@@ -232,6 +248,7 @@ async fn list_empty_prefix_returns_all() {
     assert_eq!(files.len(), 2);
 }
 
+// 一致するファイルがないプレフィックスで一覧取得すると空リストが返ることを確認する。
 #[tokio::test]
 async fn list_no_matches_returns_empty() {
     let client = make_client();
@@ -243,6 +260,7 @@ async fn list_no_matches_returns_empty() {
 // Copy
 // ---------------------------------------------------------------------------
 
+// コピー操作でコピー先にファイルメタデータが作成されることを確認する。
 #[tokio::test]
 async fn copy_creates_file_at_destination() {
     let client = make_client();
@@ -261,6 +279,7 @@ async fn copy_creates_file_at_destination() {
     assert_eq!(meta.content_type, "text/plain");
 }
 
+// コピー操作でコンテントタイプがコピー先にも引き継がれることを確認する。
 #[tokio::test]
 async fn copy_preserves_content_type() {
     let client = make_client();
@@ -279,6 +298,7 @@ async fn copy_preserves_content_type() {
     assert_eq!(src_meta.content_type, dst_meta.content_type);
 }
 
+// 存在しないファイルをコピーすると NotFound エラーが返ることを確認する。
 #[tokio::test]
 async fn copy_source_not_found() {
     let client = make_client();
@@ -286,6 +306,7 @@ async fn copy_source_not_found() {
     assert!(matches!(result.unwrap_err(), FileClientError::NotFound(_)));
 }
 
+// コピー後もコピー元ファイルが引き続き存在することを確認する。
 #[tokio::test]
 async fn copy_does_not_remove_source() {
     let client = make_client();
@@ -305,6 +326,7 @@ async fn copy_does_not_remove_source() {
 // stored_files helper
 // ---------------------------------------------------------------------------
 
+// stored_files がアップロード・削除操作に応じてストアの現在状態を正しく反映することを確認する。
 #[tokio::test]
 async fn stored_files_reflects_current_state() {
     let client = make_client();
@@ -324,6 +346,7 @@ async fn stored_files_reflects_current_state() {
 // PresignedUrl / FileMetadata struct checks
 // ---------------------------------------------------------------------------
 
+// インメモリクライアントが生成する署名付きURLのヘッダーが空であることを確認する。
 #[tokio::test]
 async fn presigned_url_has_empty_headers_for_inmemory() {
     let client = make_client();
@@ -334,6 +357,7 @@ async fn presigned_url_has_empty_headers_for_inmemory() {
     assert!(url.headers.is_empty());
 }
 
+// アップロード直後のファイルメタデータのサイズが 0 であることを確認する。
 #[tokio::test]
 async fn file_metadata_initial_size_is_zero() {
     let client = make_client();
@@ -350,6 +374,7 @@ async fn file_metadata_initial_size_is_zero() {
 // Error variant checks
 // ---------------------------------------------------------------------------
 
+// 各エラーバリアントの表示文字列に元のメッセージが含まれることを確認する。
 #[test]
 fn error_display_messages() {
     let err = FileClientError::NotFound("missing.txt".to_string());
@@ -375,6 +400,7 @@ fn error_display_messages() {
 // Overwrite semantics: upload same path twice
 // ---------------------------------------------------------------------------
 
+// 同一パスへの再アップロードがメタデータを上書きし、エントリが1件のみであることを確認する。
 #[tokio::test]
 async fn upload_same_path_overwrites_metadata() {
     let client = make_client();

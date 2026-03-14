@@ -241,6 +241,7 @@ async fn reset_at_is_in_the_future() {
 // error variant coverage
 // ===========================================================================
 
+// LimitExceededエラーの表示メッセージに待機秒数が含まれることを確認する。
 #[test]
 fn error_display_limit_exceeded() {
     let e = RateLimitError::LimitExceeded {
@@ -250,6 +251,7 @@ fn error_display_limit_exceeded() {
     assert!(msg.contains("42"));
 }
 
+// KeyNotFoundエラーの表示メッセージにキー名が含まれることを確認する。
 #[test]
 fn error_display_key_not_found() {
     let e = RateLimitError::KeyNotFound {
@@ -259,6 +261,7 @@ fn error_display_key_not_found() {
     assert!(msg.contains("missing"));
 }
 
+// ServerErrorの表示メッセージにエラー内容が含まれることを確認する。
 #[test]
 fn error_display_server_error() {
     let e = RateLimitError::ServerError("boom".to_string());
@@ -266,6 +269,7 @@ fn error_display_server_error() {
     assert!(msg.contains("boom"));
 }
 
+// Timeoutエラーの表示メッセージが空でないことを確認する。
 #[test]
 fn error_display_timeout() {
     let e = RateLimitError::Timeout;

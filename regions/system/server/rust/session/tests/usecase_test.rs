@@ -9,6 +9,7 @@ use k1s0_session_server::domain::entity::session::Session;
 use k1s0_session_server::domain::repository::SessionRepository;
 use k1s0_session_server::error::SessionError;
 use k1s0_session_server::infrastructure::kafka_producer::SessionEventPublisher;
+use k1s0_session_server::adapter::repository::session_metadata_postgres::NoopSessionMetadataRepository;
 use k1s0_session_server::usecase::create_session::{CreateSessionInput, CreateSessionUseCase};
 use k1s0_session_server::usecase::get_session::{GetSessionInput, GetSessionUseCase};
 use k1s0_session_server::usecase::list_user_sessions::{ListUserSessionsInput, ListUserSessionsUseCase};
@@ -162,7 +163,7 @@ mod create_session {
     async fn success_creates_new_session() {
         let repo = Arc::new(StubSessionRepository::new());
         let publisher = Arc::new(StubSessionEventPublisher::new());
-        let uc = CreateSessionUseCase::new(repo.clone(), publisher.clone(), 3600, 86400);
+        let uc = CreateSessionUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository), publisher.clone(), 3600, 86400);
 
         let input = CreateSessionInput {
             user_id: "user-1".to_string(),
@@ -198,7 +199,7 @@ mod create_session {
     async fn uses_default_ttl_when_none() {
         let repo = Arc::new(StubSessionRepository::new());
         let publisher = Arc::new(StubSessionEventPublisher::new());
-        let uc = CreateSessionUseCase::new(repo, publisher, 3600, 86400);
+        let uc = CreateSessionUseCase::new(repo, Arc::new(NoopSessionMetadataRepository), publisher, 3600, 86400);
 
         let input = CreateSessionInput {
             user_id: "user-2".to_string(),
@@ -222,7 +223,7 @@ mod create_session {
     async fn rejects_ttl_exceeding_max() {
         let repo = Arc::new(StubSessionRepository::new());
         let publisher = Arc::new(StubSessionEventPublisher::new());
-        let uc = CreateSessionUseCase::new(repo, publisher, 3600, 86400);
+        let uc = CreateSessionUseCase::new(repo, Arc::new(NoopSessionMetadataRepository), publisher, 3600, 86400);
 
         let input = CreateSessionInput {
             user_id: "user-3".to_string(),
@@ -244,7 +245,7 @@ mod create_session {
     async fn rejects_empty_device_id() {
         let repo = Arc::new(StubSessionRepository::new());
         let publisher = Arc::new(StubSessionEventPublisher::new());
-        let uc = CreateSessionUseCase::new(repo, publisher, 3600, 86400);
+        let uc = CreateSessionUseCase::new(repo, Arc::new(NoopSessionMetadataRepository), publisher, 3600, 86400);
 
         let input = CreateSessionInput {
             user_id: "user-4".to_string(),
@@ -272,7 +273,7 @@ mod create_session {
         ];
         let repo = Arc::new(StubSessionRepository::with_sessions(sessions));
         let publisher = Arc::new(StubSessionEventPublisher::new());
-        let uc = CreateSessionUseCase::new(repo.clone(), publisher, 3600, 86400);
+        let uc = CreateSessionUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository), publisher, 3600, 86400);
 
         let input = CreateSessionInput {
             user_id: "user-busy".to_string(),
@@ -304,7 +305,7 @@ mod create_session {
         ];
         let repo = Arc::new(StubSessionRepository::with_sessions(sessions));
         let publisher = Arc::new(StubSessionEventPublisher::new());
-        let uc = CreateSessionUseCase::new(repo.clone(), publisher, 3600, 86400);
+        let uc = CreateSessionUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository), publisher, 3600, 86400);
 
         let input = CreateSessionInput {
             user_id: "user-x".to_string(),
@@ -558,7 +559,7 @@ mod revoke_session {
         let session = make_session("sess-1", "user-1", false);
         let repo = Arc::new(StubSessionRepository::with_sessions(vec![session]));
         let publisher = Arc::new(StubSessionEventPublisher::new());
-        let uc = RevokeSessionUseCase::new(repo.clone(), publisher.clone());
+        let uc = RevokeSessionUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository), publisher.clone());
 
         let result = uc
             .execute(&RevokeSessionInput {
@@ -581,7 +582,7 @@ mod revoke_session {
     async fn not_found() {
         let repo = Arc::new(StubSessionRepository::new());
         let publisher = Arc::new(StubSessionEventPublisher::new());
-        let uc = RevokeSessionUseCase::new(repo, publisher);
+        let uc = RevokeSessionUseCase::new(repo, Arc::new(NoopSessionMetadataRepository), publisher);
 
         let result = uc
             .execute(&RevokeSessionInput {
@@ -596,7 +597,7 @@ mod revoke_session {
         let session = make_session("sess-1", "user-1", true);
         let repo = Arc::new(StubSessionRepository::with_sessions(vec![session]));
         let publisher = Arc::new(StubSessionEventPublisher::new());
-        let uc = RevokeSessionUseCase::new(repo, publisher);
+        let uc = RevokeSessionUseCase::new(repo, Arc::new(NoopSessionMetadataRepository), publisher);
 
         let result = uc
             .execute(&RevokeSessionInput {
@@ -621,7 +622,7 @@ mod revoke_all_sessions {
             make_session("s3", "user-1", true), // already revoked
         ];
         let repo = Arc::new(StubSessionRepository::with_sessions(sessions));
-        let uc = RevokeAllSessionsUseCase::new(repo.clone());
+        let uc = RevokeAllSessionsUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository));
 
         let result = uc
             .execute(&RevokeAllSessionsInput {
@@ -640,7 +641,7 @@ mod revoke_all_sessions {
     #[tokio::test]
     async fn returns_zero_when_no_sessions() {
         let repo = Arc::new(StubSessionRepository::new());
-        let uc = RevokeAllSessionsUseCase::new(repo);
+        let uc = RevokeAllSessionsUseCase::new(repo, Arc::new(NoopSessionMetadataRepository));
 
         let result = uc
             .execute(&RevokeAllSessionsInput {
@@ -659,7 +660,7 @@ mod revoke_all_sessions {
             make_session("s2", "user-1", true),
         ];
         let repo = Arc::new(StubSessionRepository::with_sessions(sessions));
-        let uc = RevokeAllSessionsUseCase::new(repo);
+        let uc = RevokeAllSessionsUseCase::new(repo, Arc::new(NoopSessionMetadataRepository));
 
         let result = uc
             .execute(&RevokeAllSessionsInput {
@@ -678,7 +679,7 @@ mod revoke_all_sessions {
             make_session("s2", "user-2", false),
         ];
         let repo = Arc::new(StubSessionRepository::with_sessions(sessions));
-        let uc = RevokeAllSessionsUseCase::new(repo.clone());
+        let uc = RevokeAllSessionsUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository));
 
         uc.execute(&RevokeAllSessionsInput {
             user_id: "user-1".to_string(),
@@ -749,7 +750,7 @@ mod lifecycle {
 
         // 1. Create session
         let create_uc =
-            CreateSessionUseCase::new(repo.clone(), publisher.clone(), 3600, 86400);
+            CreateSessionUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository), publisher.clone(), 3600, 86400);
         let create_result = create_uc
             .execute(&CreateSessionInput {
                 user_id: "user-lifecycle".to_string(),
@@ -811,7 +812,7 @@ mod lifecycle {
         assert!(refresh_result.session.is_valid());
 
         // 6. Revoke session
-        let revoke_uc = RevokeSessionUseCase::new(repo.clone(), publisher.clone());
+        let revoke_uc = RevokeSessionUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository), publisher.clone());
         revoke_uc
             .execute(&RevokeSessionInput {
                 id: session_id.clone(),
@@ -859,7 +860,7 @@ mod lifecycle {
 
         // Create 3 sessions
         let create_uc =
-            CreateSessionUseCase::new(repo.clone(), publisher.clone(), 3600, 86400);
+            CreateSessionUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository), publisher.clone(), 3600, 86400);
         for i in 0..3 {
             create_uc
                 .execute(&CreateSessionInput {
@@ -878,7 +879,7 @@ mod lifecycle {
         }
 
         // Revoke all
-        let revoke_all_uc = RevokeAllSessionsUseCase::new(repo.clone());
+        let revoke_all_uc = RevokeAllSessionsUseCase::new(repo.clone(), Arc::new(NoopSessionMetadataRepository));
         let result = revoke_all_uc
             .execute(&RevokeAllSessionsInput {
                 user_id: "user-bulk".to_string(),

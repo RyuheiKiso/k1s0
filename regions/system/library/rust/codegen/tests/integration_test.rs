@@ -25,6 +25,7 @@ fn full_config() -> ScaffoldConfig {
     }
 }
 
+// 最小構成のスキャフォールドで期待されるファイルが生成されることを確認する。
 #[test]
 fn minimal_scaffold_creates_expected_files() {
     let dir = tempfile::tempdir().unwrap();
@@ -69,6 +70,7 @@ fn minimal_scaffold_creates_expected_files() {
     assert!(!output.join("migrations/001_initial.up.sql").exists());
 }
 
+// フル構成のスキャフォールドで gRPC および DB 関連ファイルが生成されることを確認する。
 #[test]
 fn full_scaffold_creates_grpc_and_db_files() {
     let dir = tempfile::tempdir().unwrap();
@@ -90,6 +92,7 @@ fn full_scaffold_creates_grpc_and_db_files() {
     assert!(result.skipped.is_empty());
 }
 
+// 同じ設定で 2 回生成した場合に既存ファイルがスキップされることを確認する。
 #[test]
 fn idempotent_second_run_skips_existing() {
     let dir = tempfile::tempdir().unwrap();
@@ -104,6 +107,7 @@ fn idempotent_second_run_skips_existing() {
     assert_eq!(second.skipped.len(), created_count);
 }
 
+// 生成された Cargo.toml が有効な TOML 形式であることを確認する。
 #[test]
 fn cargo_toml_is_valid_toml() {
     let dir = tempfile::tempdir().unwrap();
@@ -119,6 +123,7 @@ fn cargo_toml_is_valid_toml() {
     );
 }
 
+// 生成された config.yaml が有効な YAML 形式であることを確認する。
 #[test]
 fn config_yaml_is_valid_yaml() {
     let dir = tempfile::tempdir().unwrap();
@@ -135,6 +140,7 @@ fn config_yaml_is_valid_yaml() {
     );
 }
 
+// 無効なサービス名を指定した場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn validation_rejects_invalid_names() {
     let configs = vec![
@@ -158,6 +164,7 @@ fn validation_rejects_invalid_names() {
     }
 }
 
+// ティアとサービス名から出力パスが正しく計算されることを確認する。
 #[test]
 fn output_path_calculation() {
     use k1s0_codegen::build_output_path;

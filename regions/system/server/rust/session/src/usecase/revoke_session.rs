@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::adapter::repository::session_metadata_postgres::SessionMetadataRepository;
 use crate::domain::repository::SessionRepository;
 use crate::error::SessionError;
 use crate::infrastructure::kafka_producer::SessionEventPublisher;
@@ -11,16 +12,19 @@ pub struct RevokeSessionInput {
 
 pub struct RevokeSessionUseCase {
     repo: Arc<dyn SessionRepository>,
+    metadata_repo: Arc<dyn SessionMetadataRepository>,
     event_publisher: Arc<dyn SessionEventPublisher>,
 }
 
 impl RevokeSessionUseCase {
     pub fn new(
         repo: Arc<dyn SessionRepository>,
+        metadata_repo: Arc<dyn SessionMetadataRepository>,
         event_publisher: Arc<dyn SessionEventPublisher>,
     ) -> Self {
         Self {
             repo,
+            metadata_repo,
             event_publisher,
         }
     }
@@ -43,6 +47,11 @@ impl RevokeSessionUseCase {
             .await
             .map_err(|e| SessionError::Internal(e.to_string()))?;
 
+        // Mark metadata as revoked
+        if let Ok(session_uuid) = uuid::Uuid::parse_str(&session.id) {
+            let _ = self.metadata_repo.mark_revoked(session_uuid).await;
+        }
+
         Ok(())
     }
 }
@@ -50,6 +59,7 @@ impl RevokeSessionUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adapter::repository::session_metadata_postgres::NoopSessionMetadataRepository;
     use crate::domain::entity::session::Session;
     use crate::domain::repository::session_repository::MockSessionRepository;
     use crate::infrastructure::kafka_producer::MockSessionEventPublisher;
@@ -86,7 +96,11 @@ mod tests {
             .withf(|session_id, user_id| session_id == "sess-1" && user_id == "user-1")
             .returning(|_, _| Ok(()));
 
-        let uc = RevokeSessionUseCase::new(Arc::new(mock), Arc::new(mock_publisher));
+        let uc = RevokeSessionUseCase::new(
+            Arc::new(mock),
+            Arc::new(NoopSessionMetadataRepository),
+            Arc::new(mock_publisher),
+        );
         let result = uc
             .execute(&RevokeSessionInput {
                 id: "sess-1".to_string(),
@@ -102,6 +116,7 @@ mod tests {
 
         let uc = RevokeSessionUseCase::new(
             Arc::new(mock),
+            Arc::new(NoopSessionMetadataRepository),
             Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
         );
         let result = uc
@@ -123,6 +138,7 @@ mod tests {
 
         let uc = RevokeSessionUseCase::new(
             Arc::new(mock),
+            Arc::new(NoopSessionMetadataRepository),
             Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
         );
         let result = uc

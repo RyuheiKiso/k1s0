@@ -31,7 +31,7 @@ void main() {
   });
 
   group('TelemetryMiddleware', () {
-    test('should log incoming requests', () async {
+    test('受信リクエストがログに記録されること', () async {
       final middleware = TelemetryMiddleware(logger: logger);
       final handler = const Pipeline()
           .addMiddleware(middleware.middleware)
@@ -55,7 +55,7 @@ void main() {
       expect(logMessage, contains('200'));
     });
 
-    test('should measure response time', () async {
+    test('レスポンス時間が計測されること', () async {
       final middleware = TelemetryMiddleware(logger: logger);
       final handler = const Pipeline()
           .addMiddleware(middleware.middleware)
@@ -81,7 +81,7 @@ void main() {
       expect(logMessage, contains('ms'));
     });
 
-    test('should handle error responses', () async {
+    test('エラーレスポンスが適切に処理されること', () async {
       final middleware = TelemetryMiddleware(logger: logger);
       final handler = const Pipeline()
           .addMiddleware(middleware.middleware)
@@ -107,7 +107,7 @@ void main() {
       expect(logMessage, contains('500'));
     });
 
-    test('should propagate trace-id header', () async {
+    test('トレースIDヘッダーが伝播されること', () async {
       final middleware = TelemetryMiddleware(logger: logger);
       String? capturedTraceId;
 
@@ -131,7 +131,7 @@ void main() {
       expect(response.headers['x-trace-id'], 'abc-123-def');
     });
 
-    test('should generate trace-id when not provided', () async {
+    test('トレースIDが指定されない場合に自動生成されること', () async {
       final middleware = TelemetryMiddleware(logger: logger);
       String? capturedTraceId;
 
@@ -155,7 +155,7 @@ void main() {
       expect(response.headers['x-trace-id'], capturedTraceId);
     });
 
-    test('should handle exceptions in inner handler', () async {
+    test('内部ハンドラーの例外が適切に処理されること', () async {
       final middleware = TelemetryMiddleware(logger: logger);
       final handler = const Pipeline()
           .addMiddleware(middleware.middleware)

@@ -9,12 +9,11 @@ default = []
 mock = ["mockall"]
 
 [dependencies]
-async-trait = "0.1"
-serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.9"
-thiserror = "2"
-tokio = { version = "1", features = ["sync"] }
-tracing = "0.1"
+k1s0-bb-core = { path = "../bb-core" }
+k1s0-bb-binding = { path = "../bb-binding" }
+k1s0-bb-pubsub = { path = "../bb-pubsub" }
+k1s0-bb-secretstore = { path = "../bb-secretstore" }
+k1s0-bb-statestore = { path = "../bb-statestore" }
 mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]

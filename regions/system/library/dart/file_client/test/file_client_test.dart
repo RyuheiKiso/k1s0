@@ -10,7 +10,7 @@ void main() {
   });
 
   group('generateUploadUrl', () {
-    test('returns upload URL', () async {
+    test('アップロードURLを返すこと', () async {
       final url = await client.generateUploadUrl(
         'uploads/test.png',
         'image/png',
@@ -22,7 +22,7 @@ void main() {
   });
 
   group('generateDownloadUrl', () {
-    test('returns download URL for existing file', () async {
+    test('既存ファイルのダウンロードURLを返すこと', () async {
       await client.generateUploadUrl(
         'uploads/test.png',
         'image/png',
@@ -36,7 +36,7 @@ void main() {
       expect(url.method, equals('GET'));
     });
 
-    test('throws for non-existent file', () async {
+    test('存在しないファイルでエラーを投げること', () async {
       expect(
         () => client.generateDownloadUrl(
           'nonexistent.txt',
@@ -48,7 +48,7 @@ void main() {
   });
 
   group('delete', () {
-    test('removes existing file', () async {
+    test('既存ファイルを削除すること', () async {
       await client.generateUploadUrl(
         'uploads/test.png',
         'image/png',
@@ -63,7 +63,7 @@ void main() {
   });
 
   group('getMetadata', () {
-    test('returns metadata for existing file', () async {
+    test('既存ファイルのメタデータを返すこと', () async {
       await client.generateUploadUrl(
         'uploads/test.png',
         'image/png',
@@ -76,7 +76,7 @@ void main() {
   });
 
   group('list', () {
-    test('returns files matching prefix', () async {
+    test('プレフィックスに一致するファイル一覧を返すこと', () async {
       await client.generateUploadUrl(
         'uploads/a.png',
         'image/png',
@@ -98,7 +98,7 @@ void main() {
   });
 
   group('copy', () {
-    test('copies file to new path', () async {
+    test('ファイルを新しいパスにコピーすること', () async {
       await client.generateUploadUrl(
         'uploads/test.png',
         'image/png',
@@ -110,7 +110,7 @@ void main() {
       expect(meta.path, equals('archive/test.png'));
     });
 
-    test('throws for non-existent source', () async {
+    test('存在しないコピー元でエラーを投げること', () async {
       expect(
         () => client.copy('nonexistent.txt', 'dest.txt'),
         throwsA(isA<FileClientError>()),
@@ -119,7 +119,7 @@ void main() {
   });
 
   group('storedFiles', () {
-    test('initially empty', () {
+    test('初期状態で空であること', () {
       expect(client.storedFiles, isEmpty);
     });
   });

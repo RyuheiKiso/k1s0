@@ -23,7 +23,7 @@ void main() {
   });
 
   group('SchemaRegistryConfig', () {
-    test('subjectName returns correct value', () {
+    test('subjectNameが正しい値を返すこと', () {
       expect(
         SchemaRegistryConfig.subjectName(
             'k1s0.system.user.created.v1', 'value'),
@@ -36,14 +36,14 @@ void main() {
       );
     });
 
-    test('validate throws on empty URL', () {
+    test('URLが空のとき検証で例外がスローされること', () {
       final config = SchemaRegistryConfig(url: '');
       expect(() => config.validate(), throwsA(isA<SchemaRegistryError>()));
     });
   });
 
   group('HttpSchemaRegistryClient.registerSchema', () {
-    test('returns schema id on success', () async {
+    test('成功時にスキーマIDが返ること', () async {
       when(() => mockClient.post(
             any(),
             headers: any(named: 'headers'),
@@ -60,7 +60,7 @@ void main() {
       expect(id, equals(42));
     });
 
-    test('throws NotFoundError on 404', () async {
+    test('404レスポンス時にNotFoundErrorがスローされること', () async {
       when(() => mockClient.post(
             any(),
             headers: any(named: 'headers'),
@@ -80,7 +80,7 @@ void main() {
   });
 
   group('HttpSchemaRegistryClient.getSchemaById', () {
-    test('returns schema on success', () async {
+    test('成功時にスキーマが返ること', () async {
       when(() => mockClient.get(
             any(),
             headers: any(named: 'headers'),
@@ -99,7 +99,7 @@ void main() {
       expect(schema.schema, equals('{"type":"record"}'));
     });
 
-    test('throws NotFoundError on 404', () async {
+    test('404レスポンス時にNotFoundErrorがスローされること', () async {
       when(() => mockClient.get(
             any(),
             headers: any(named: 'headers'),
@@ -118,7 +118,7 @@ void main() {
   });
 
   group('HttpSchemaRegistryClient.getLatestSchema', () {
-    test('returns latest schema on success', () async {
+    test('成功時に最新スキーマが返ること', () async {
       when(() => mockClient.get(
             any(),
             headers: any(named: 'headers'),
@@ -139,7 +139,7 @@ void main() {
       expect(schema.version, equals(3));
     });
 
-    test('throws NotFoundError on 404', () async {
+    test('404レスポンス時にNotFoundErrorがスローされること', () async {
       when(() => mockClient.get(
             any(),
             headers: any(named: 'headers'),
@@ -158,7 +158,7 @@ void main() {
   });
 
   group('HttpSchemaRegistryClient.getSchemaVersion', () {
-    test('returns specific version on success', () async {
+    test('成功時に指定バージョンのスキーマが返ること', () async {
       when(() => mockClient.get(
             any(),
             headers: any(named: 'headers'),
@@ -180,7 +180,7 @@ void main() {
       expect(schema.version, equals(2));
     });
 
-    test('throws NotFoundError on 404', () async {
+    test('404レスポンス時にNotFoundErrorがスローされること', () async {
       when(() => mockClient.get(
             any(),
             headers: any(named: 'headers'),
@@ -199,7 +199,7 @@ void main() {
   });
 
   group('HttpSchemaRegistryClient.listSubjects', () {
-    test('returns list of subjects on success', () async {
+    test('成功時にサブジェクト一覧が返ること', () async {
       when(() => mockClient.get(
             any(),
             headers: any(named: 'headers'),
@@ -217,7 +217,7 @@ void main() {
       expect(subjects, contains('user.created.v1-value'));
     });
 
-    test('returns empty list when no subjects', () async {
+    test('サブジェクトが存在しない場合に空リストが返ること', () async {
       when(() => mockClient.get(
             any(),
             headers: any(named: 'headers'),
@@ -234,7 +234,7 @@ void main() {
   });
 
   group('HttpSchemaRegistryClient.checkCompatibility', () {
-    test('returns true when compatible', () async {
+    test('互換性がある場合にtrueが返ること', () async {
       when(() => mockClient.post(
             any(),
             headers: any(named: 'headers'),
@@ -252,7 +252,7 @@ void main() {
       expect(compatible, isTrue);
     });
 
-    test('returns false when incompatible', () async {
+    test('互換性がない場合にfalseが返ること', () async {
       when(() => mockClient.post(
             any(),
             headers: any(named: 'headers'),
@@ -272,7 +272,7 @@ void main() {
   });
 
   group('HttpSchemaRegistryClient.healthCheck', () {
-    test('succeeds on 200', () async {
+    test('200レスポンス時に正常終了すること', () async {
       when(() => mockClient.get(
             any(),
             headers: any(named: 'headers'),
@@ -286,7 +286,7 @@ void main() {
       await client.healthCheck();
     });
 
-    test('throws on non-200', () async {
+    test('200以外のレスポンス時に例外がスローされること', () async {
       when(() => mockClient.get(
             any(),
             headers: any(named: 'headers'),
@@ -305,22 +305,22 @@ void main() {
   });
 
   group('Error types', () {
-    test('NotFoundError is created correctly', () {
+    test('NotFoundErrorが正しく生成されること', () {
       const err = NotFoundError('schema id=42');
       expect(err.toString(), contains('not found'));
       expect(err.resource, equals('schema id=42'));
     });
 
-    test('isNotFound returns true for NotFoundError', () {
+    test('NotFoundErrorに対してisNotFoundがtrueを返すこと', () {
       expect(isNotFound(const NotFoundError('test')), isTrue);
     });
 
-    test('isNotFound returns false for other errors', () {
+    test('NotFoundError以外に対してisNotFoundがfalseを返すこと', () {
       expect(isNotFound(const SchemaRegistryError(500, 'error')), isFalse);
       expect(isNotFound(null), isFalse);
     });
 
-    test('SchemaRegistryError has correct fields', () {
+    test('SchemaRegistryErrorが正しいフィールドを持つこと', () {
       const err = SchemaRegistryError(500, 'internal error');
       expect(err.statusCode, equals(500));
       expect(err.message, equals('internal error'));

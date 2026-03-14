@@ -37,6 +37,7 @@ impl std::error::Error for SimpleError {}
 // ErrorSeverity classification — complementary edge cases
 // ===========================================================================
 
+// transient と permanent 両方のキーワードを含む場合に最初にマッチした種別が返ることを確認する。
 #[test]
 fn classify_mixed_transient_and_permanent_keywords_first_match_wins() {
     // "connection" appears first -> Transient
@@ -44,30 +45,35 @@ fn classify_mixed_transient_and_permanent_keywords_first_match_wins() {
     assert_eq!(classify_error(&err), ErrorSeverity::Transient);
 }
 
+// 長いメッセージに timeout キーワードが含まれる場合に Transient と分類されることを確認する。
 #[test]
 fn classify_transient_timeout_in_longer_message() {
     let err = SimpleError("operation failed with timeout after waiting 30 seconds".to_string());
     assert_eq!(classify_error(&err), ErrorSeverity::Transient);
 }
 
+// 長いメッセージに unauthorized キーワードが含まれる場合に Permanent と分類されることを確認する。
 #[test]
 fn classify_permanent_unauthorized_in_longer_message() {
     let err = SimpleError("user attempted unauthorized access to admin resource".to_string());
     assert_eq!(classify_error(&err), ErrorSeverity::Permanent);
 }
 
+// 分類キーワードを含まないエラーが Unknown と分類されることを確認する。
 #[test]
 fn classify_unknown_for_generic_error() {
     let err = SimpleError("internal server error".to_string());
     assert_eq!(classify_error(&err), ErrorSeverity::Unknown);
 }
 
+// 空のエラーメッセージが Unknown と分類されることを確認する。
 #[test]
 fn classify_empty_error_message() {
     let err = SimpleError(String::new());
     assert_eq!(classify_error(&err), ErrorSeverity::Unknown);
 }
 
+// ErrorSeverity が Debug/Clone/PartialEq を正しく実装していることを確認する。
 #[test]
 fn error_severity_debug_and_clone() {
     let s = ErrorSeverity::Transient;
@@ -82,6 +88,7 @@ fn error_severity_debug_and_clone() {
 // TelemetryConfig — boundary values
 // ===========================================================================
 
+// sample_rate に 0.0 を設定した TelemetryConfig が正しく保持されることを確認する。
 #[test]
 fn telemetry_config_zero_sample_rate() {
     let cfg = TelemetryConfig {
@@ -97,6 +104,7 @@ fn telemetry_config_zero_sample_rate() {
     assert_eq!(cfg.sample_rate, 0.0);
 }
 
+// log_format に "text" を設定した TelemetryConfig が正しく保持されることを確認する。
 #[test]
 fn telemetry_config_text_log_format() {
     let cfg = TelemetryConfig {
@@ -117,6 +125,7 @@ fn telemetry_config_text_log_format() {
 // parse_log_level — boundary (not duplicating inline tests)
 // ===========================================================================
 
+// parse_log_level が大文字入力を受け付けず INFO にフォールバックすることを確認する。
 #[test]
 fn parse_log_level_case_sensitive() {
     // Uppercase not matched — falls back to INFO
@@ -128,6 +137,7 @@ fn parse_log_level_case_sensitive() {
 // Metrics — RED pattern end-to-end
 // ===========================================================================
 
+// HTTP の RED パターン（Rate・Error・Duration）がメトリクスに正しく記録されることを確認する。
 #[test]
 fn metrics_http_red_pattern() {
     let m = Metrics::new("red-test");
@@ -152,6 +162,7 @@ fn metrics_http_red_pattern() {
     assert!(output.contains("500"));
 }
 
+// gRPC の RED パターンがメトリクスに正しく記録されることを確認する。
 #[test]
 fn metrics_grpc_red_pattern() {
     let m = Metrics::new("grpc-red-test");
@@ -174,6 +185,7 @@ fn metrics_grpc_red_pattern() {
 // Metrics — DB, Kafka, Cache (not covered in inline tests)
 // ===========================================================================
 
+// DB クエリのレイテンシが db_query_duration_seconds メトリクスに記録されることを確認する。
 #[test]
 fn metrics_db_query_duration() {
     let m = Metrics::new("db-test");
@@ -184,6 +196,7 @@ fn metrics_db_query_duration() {
     assert!(output.contains("db_query_duration_seconds"));
 }
 
+// Kafka のメッセージ送受信カウンタがメトリクスに記録されることを確認する。
 #[test]
 fn metrics_kafka_produce_consume() {
     let m = Metrics::new("kafka-test");
@@ -196,6 +209,7 @@ fn metrics_kafka_produce_consume() {
     assert!(output.contains("kafka_messages_consumed_total"));
 }
 
+// キャッシュヒット・ミスのカウンタがメトリクスに記録されることを確認する。
 #[test]
 fn metrics_cache_hit_miss() {
     let m = Metrics::new("cache-test");
@@ -208,6 +222,7 @@ fn metrics_cache_hit_miss() {
     assert!(output.contains("cache_misses_total"));
 }
 
+// 観測値なしで gather_metrics を呼び出してもパニックしないことを確認する。
 #[test]
 fn metrics_gather_without_observations_is_valid() {
     let m = Metrics::new("empty-test");
@@ -221,6 +236,7 @@ fn metrics_gather_without_observations_is_valid() {
 // Metrics — multiple services don't interfere
 // ===========================================================================
 
+// 異なるサービス名の Metrics インスタンスが互いに干渉しないことを確認する。
 #[test]
 fn metrics_separate_registries() {
     let m1 = Metrics::new("service-a");

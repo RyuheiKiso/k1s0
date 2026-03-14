@@ -26,6 +26,7 @@ pub fn parse_event_config_str(yaml: &str) -> Result<EventConfig, CodegenError> {
 mod tests {
     use super::*;
 
+    // 有効な YAML 文字列からイベント設定が正しく解析されることを確認する。
     #[test]
     fn parse_valid_yaml() {
         let yaml = r#"
@@ -48,6 +49,7 @@ events:
         assert_eq!(config.events.len(), 1);
     }
 
+    // 無効な YAML 文字列を解析した場合にエラーが返されることを確認する。
     #[test]
     fn parse_invalid_yaml() {
         let yaml = "not: valid: yaml: [";
@@ -55,6 +57,7 @@ events:
         assert!(result.is_err());
     }
 
+    // 必須フィールドが欠落した YAML を解析した場合にエラーが返されることを確認する。
     #[test]
     fn parse_missing_required_field() {
         let yaml = r#"

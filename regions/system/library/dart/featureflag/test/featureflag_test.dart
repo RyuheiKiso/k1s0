@@ -10,7 +10,7 @@ void main() {
   });
 
   group('InMemoryFeatureFlagClient.evaluate', () {
-    test('evaluate enabled flag returns enabled', () async {
+    test('有効なフラグの評価がenabledを返すこと', () async {
       client.setFlag(const FeatureFlag(
         id: 'flag-1',
         flagKey: 'new-feature',
@@ -23,7 +23,7 @@ void main() {
       expect(result.reason, equals('ENABLED'));
     });
 
-    test('evaluate disabled flag returns disabled', () async {
+    test('無効なフラグの評価がdisabledを返すこと', () async {
       client.setFlag(const FeatureFlag(
         id: 'flag-2',
         flagKey: 'old-feature',
@@ -36,13 +36,13 @@ void main() {
       expect(result.reason, equals('DISABLED'));
     });
 
-    test('evaluate nonexistent flag returns FLAG_NOT_FOUND reason', () async {
+    test('存在しないフラグの評価がFLAG_NOT_FOUNDを返すこと', () async {
       final result = await client.evaluate('unknown-flag', context);
       expect(result.enabled, isFalse);
       expect(result.reason, equals('FLAG_NOT_FOUND'));
     });
 
-    test('evaluate flag with variants returns variant value', () async {
+    test('バリアント付きフラグの評価がバリアント値を返すこと', () async {
       client.setFlag(const FeatureFlag(
         id: 'flag-3',
         flagKey: 'ab-test',
@@ -61,7 +61,7 @@ void main() {
   });
 
   group('InMemoryFeatureFlagClient.isEnabled', () {
-    test('isEnabled returns true for enabled flag', () async {
+    test('isEnabledが有効なフラグに対してtrueを返すこと', () async {
       client.setFlag(const FeatureFlag(
         id: 'flag-1',
         flagKey: 'enabled-flag',
@@ -73,7 +73,7 @@ void main() {
       expect(result, isTrue);
     });
 
-    test('isEnabled returns false for disabled flag', () async {
+    test('isEnabledが無効なフラグに対してfalseを返すこと', () async {
       client.setFlag(const FeatureFlag(
         id: 'flag-2',
         flagKey: 'disabled-flag',
@@ -87,7 +87,7 @@ void main() {
   });
 
   group('InMemoryFeatureFlagClient.getFlag', () {
-    test('getFlag returns flag when it exists', () async {
+    test('getFlagが存在するフラグを返すこと', () async {
       const flag = FeatureFlag(
         id: 'flag-1',
         flagKey: 'my-flag',
@@ -102,14 +102,14 @@ void main() {
       expect(result.enabled, isTrue);
     });
 
-    test('getFlag returns null when flag does not exist', () async {
+    test('getFlagがフラグが存在しない場合にnullを返すこと', () async {
       final result = await client.getFlag('nonexistent');
       expect(result, isNull);
     });
   });
 
   group('FeatureFlagNotFoundException', () {
-    test('has correct message', () {
+    test('正しいメッセージを持つこと', () {
       const err = FeatureFlagNotFoundException('my-flag');
       expect(err.flagKey, equals('my-flag'));
       expect(err.toString(), contains('my-flag'));

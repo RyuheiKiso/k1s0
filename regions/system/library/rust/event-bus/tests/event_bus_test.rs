@@ -120,6 +120,7 @@ impl EventHandler for SlowHandler {
 // InMemoryEventBus tests (legacy API)
 // ===========================================================================
 
+// レガシー API でイベントを購読・発行する基本フローが動作することを確認する。
 #[tokio::test]
 async fn legacy_subscribe_and_publish_basic_flow() {
     let bus = InMemoryEventBus::new();
@@ -132,6 +133,7 @@ async fn legacy_subscribe_and_publish_basic_flow() {
     assert_eq!(count.load(Ordering::SeqCst), 1);
 }
 
+// レガシー API でハンドラーが発行イベントのデータを正しく受け取ることを確認する。
 #[tokio::test]
 async fn legacy_handler_receives_correct_event_data() {
     let bus = InMemoryEventBus::new();
@@ -150,6 +152,7 @@ async fn legacy_handler_receives_correct_event_data() {
     assert_eq!(events[0].payload, payload);
 }
 
+// レガシー API で複数の購読者が同一イベントを受け取ることを確認する。
 #[tokio::test]
 async fn legacy_multiple_subscribers_receive_same_event() {
     let bus = InMemoryEventBus::new();
@@ -168,6 +171,7 @@ async fn legacy_multiple_subscribers_receive_same_event() {
     assert_eq!(count3.load(Ordering::SeqCst), 1);
 }
 
+// レガシー API で異なるイベントタイプを発行してもハンドラーが呼ばれないことを確認する。
 #[tokio::test]
 async fn legacy_handler_not_called_for_different_event_type() {
     let bus = InMemoryEventBus::new();
@@ -180,6 +184,7 @@ async fn legacy_handler_not_called_for_different_event_type() {
     assert_eq!(count.load(Ordering::SeqCst), 0);
 }
 
+// レガシー API で購読解除後にイベントが配信されなくなることを確認する。
 #[tokio::test]
 async fn legacy_unsubscribe_stops_delivery() {
     let bus = InMemoryEventBus::new();
@@ -202,6 +207,7 @@ async fn legacy_unsubscribe_stops_delivery() {
     assert_eq!(count.load(Ordering::SeqCst), 1);
 }
 
+// レガシー API で購読者がいない場合にイベント発行が正常に成功することを確認する。
 #[tokio::test]
 async fn legacy_publish_with_no_subscribers_succeeds() {
     let bus = InMemoryEventBus::new();
@@ -211,6 +217,7 @@ async fn legacy_publish_with_no_subscribers_succeeds() {
     assert!(result.is_ok());
 }
 
+// レガシー API でハンドラーのエラーが発行元に伝播することを確認する。
 #[tokio::test]
 async fn legacy_handler_error_propagates() {
     let bus = InMemoryEventBus::new();
@@ -227,6 +234,7 @@ async fn legacy_handler_error_propagates() {
     }
 }
 
+// レガシー API で複数回イベントを発行するたびにハンドラーが呼ばれることを確認する。
 #[tokio::test]
 async fn legacy_multiple_publishes_increment_count() {
     let bus = InMemoryEventBus::new();
@@ -242,6 +250,7 @@ async fn legacy_multiple_publishes_increment_count() {
     assert_eq!(count.load(Ordering::SeqCst), 5);
 }
 
+// レガシー API の Default コンストラクタで生成したバスが正常に動作することを確認する。
 #[tokio::test]
 async fn legacy_default_constructor() {
     let bus = InMemoryEventBus::default();
@@ -258,6 +267,7 @@ async fn legacy_default_constructor() {
 // EventBus (DDD pattern) tests
 // ===========================================================================
 
+// EventBusConfig のデフォルト値が正しいことを確認する。
 #[tokio::test]
 async fn eventbus_config_defaults() {
     let config = EventBusConfig::new();
@@ -265,6 +275,7 @@ async fn eventbus_config_defaults() {
     assert_eq!(config.get_handler_timeout(), Duration::from_secs(30));
 }
 
+// EventBusConfig のビルダーパターンで設定を変更できることを確認する。
 #[tokio::test]
 async fn eventbus_config_builder() {
     let config = EventBusConfig::new()
@@ -274,6 +285,7 @@ async fn eventbus_config_builder() {
     assert_eq!(config.get_handler_timeout(), Duration::from_secs(120));
 }
 
+// EventBusConfig の Default トレイトが正しいデフォルト値を返すことを確認する。
 #[tokio::test]
 async fn eventbus_config_default_trait() {
     let config = EventBusConfig::default();
@@ -281,6 +293,7 @@ async fn eventbus_config_default_trait() {
     assert_eq!(config.get_handler_timeout(), Duration::from_secs(30));
 }
 
+// EventBus 生成時に指定した設定が config() メソッドで取得できることを確認する。
 #[tokio::test]
 async fn eventbus_new_exposes_config() {
     let config = EventBusConfig::new().buffer_size(512);
@@ -288,6 +301,7 @@ async fn eventbus_new_exposes_config() {
     assert_eq!(bus.config().get_buffer_size(), 512);
 }
 
+// EventBus でイベントを購読・発行するとハンドラーが呼ばれることを確認する。
 #[tokio::test]
 async fn eventbus_subscribe_and_publish() {
     let bus = EventBus::new(EventBusConfig::new());
@@ -304,6 +318,7 @@ async fn eventbus_subscribe_and_publish() {
     assert_eq!(count.load(Ordering::SeqCst), 1);
 }
 
+// EventBus でハンドラーが発行イベントのペイロードを正しく受け取ることを確認する。
 #[tokio::test]
 async fn eventbus_handler_receives_event_data() {
     let bus = EventBus::new(EventBusConfig::new());
@@ -321,6 +336,7 @@ async fn eventbus_handler_receives_event_data() {
     assert_eq!(events[0].payload, payload);
 }
 
+// EventBus で複数の購読者が同一イベントを受け取ることを確認する。
 #[tokio::test]
 async fn eventbus_multiple_subscribers_receive_same_event() {
     let bus = EventBus::new(EventBusConfig::new());
@@ -337,6 +353,7 @@ async fn eventbus_multiple_subscribers_receive_same_event() {
     assert_eq!(c2.load(Ordering::SeqCst), 1);
 }
 
+// EventBus でイベントタイプによるフィルタリングが正しく機能することを確認する。
 #[tokio::test]
 async fn eventbus_event_type_filtering() {
     let bus = EventBus::new(EventBusConfig::new());
@@ -353,6 +370,7 @@ async fn eventbus_event_type_filtering() {
     assert_eq!(c_b.load(Ordering::SeqCst), 0);
 }
 
+// EventBus で購読解除後にイベントが配信されなくなることを確認する。
 #[tokio::test]
 async fn eventbus_unsubscribe_stops_delivery() {
     let bus = EventBus::new(EventBusConfig::new());
@@ -375,6 +393,7 @@ async fn eventbus_unsubscribe_stops_delivery() {
     assert_eq!(count.load(Ordering::SeqCst), 1);
 }
 
+// 一つの購読を解除しても他の購読者はイベントを受け取り続けることを確認する。
 #[tokio::test]
 async fn eventbus_unsubscribe_one_keeps_others() {
     let bus = EventBus::new(EventBusConfig::new());
@@ -394,6 +413,7 @@ async fn eventbus_unsubscribe_one_keeps_others() {
     assert_eq!(c2.load(Ordering::SeqCst), 1);
 }
 
+// EventSubscription が Drop されると自動的に購読解除されることを確認する。
 #[tokio::test]
 async fn eventbus_subscription_drop_auto_unsubscribes() {
     let bus = EventBus::new(EventBusConfig::new());
@@ -413,6 +433,7 @@ async fn eventbus_subscription_drop_auto_unsubscribes() {
     assert_eq!(count.load(Ordering::SeqCst), 0);
 }
 
+// ハンドラーがタイムアウト設定を超えた場合に HandlerFailed エラーが返ることを確認する。
 #[tokio::test]
 async fn eventbus_handler_timeout() {
     let config = EventBusConfig::new().handler_timeout(Duration::from_millis(50));
@@ -435,6 +456,7 @@ async fn eventbus_handler_timeout() {
     }
 }
 
+// タイムアウト内に完了するハンドラーの発行が正常に成功することを確認する。
 #[tokio::test]
 async fn eventbus_handler_within_timeout_succeeds() {
     let config = EventBusConfig::new().handler_timeout(Duration::from_secs(5));
@@ -452,6 +474,7 @@ async fn eventbus_handler_within_timeout_succeeds() {
     assert!(result.is_ok());
 }
 
+// EventBus でハンドラーのエラーが発行元に伝播することを確認する。
 #[tokio::test]
 async fn eventbus_handler_error_propagates() {
     let bus = EventBus::new(EventBusConfig::new());
@@ -468,6 +491,7 @@ async fn eventbus_handler_error_propagates() {
     }
 }
 
+// EventBus で購読者がいない場合にイベント発行が正常に成功することを確認する。
 #[tokio::test]
 async fn eventbus_publish_no_subscribers_succeeds() {
     let bus = EventBus::new(EventBusConfig::new());
@@ -477,6 +501,7 @@ async fn eventbus_publish_no_subscribers_succeeds() {
     assert!(result.is_ok());
 }
 
+// EventBus で複数の購読者と並行発行が正しく動作することを確認する。
 #[tokio::test]
 async fn eventbus_concurrent_publish_subscribe() {
     let bus = Arc::new(EventBus::new(EventBusConfig::new()));
@@ -533,6 +558,7 @@ async fn eventbus_concurrent_publish_subscribe() {
 // Event / DomainEvent tests
 // ===========================================================================
 
+// Event::new で生成したイベントが毎回一意の ID を持つことを確認する。
 #[tokio::test]
 async fn event_new_has_unique_id() {
     let e1 = Event::new("test".to_string(), json!({}));
@@ -540,12 +566,14 @@ async fn event_new_has_unique_id() {
     assert_ne!(e1.id, e2.id);
 }
 
+// Event::new で生成したイベントの aggregate_id が空文字であることを確認する。
 #[tokio::test]
 async fn event_new_has_empty_aggregate_id() {
     let event = Event::new("test".to_string(), json!({}));
     assert_eq!(event.aggregate_id, "");
 }
 
+// Event::with_aggregate_id でイベントタイプと集約 ID が正しく設定されることを確認する。
 #[tokio::test]
 async fn event_with_aggregate_id() {
     let event =
@@ -554,6 +582,7 @@ async fn event_with_aggregate_id() {
     assert_eq!(event.aggregate_id, "user-42");
 }
 
+// Event が DomainEvent トレイトのメソッドを正しく実装していることを確認する。
 #[tokio::test]
 async fn event_domain_event_trait() {
     let event = Event::with_aggregate_id(
@@ -567,6 +596,7 @@ async fn event_domain_event_trait() {
     assert!(event.occurred_at() <= chrono::Utc::now());
 }
 
+// Event 生成時のタイムスタンプが現在時刻に近いことを確認する。
 #[tokio::test]
 async fn event_timestamp_is_recent() {
     let before = chrono::Utc::now();
@@ -577,6 +607,7 @@ async fn event_timestamp_is_recent() {
     assert!(event.timestamp <= after);
 }
 
+// Event のクローンが元のイベントと同一の内容を持つことを確認する。
 #[tokio::test]
 async fn event_clone() {
     let event = Event::new("clone.test".to_string(), json!({"a": 1}));
@@ -590,6 +621,7 @@ async fn event_clone() {
 // EventBusError tests
 // ===========================================================================
 
+// EventBusError の各バリアントの Display メッセージが正しいことを確認する。
 #[test]
 fn error_display_messages() {
     let err = EventBusError::PublishFailed("timeout".to_string());
@@ -602,6 +634,7 @@ fn error_display_messages() {
     assert_eq!(format!("{}", err), "channel closed");
 }
 
+// EventBusError の Debug フォーマットがバリアント名を含むことを確認する。
 #[test]
 fn error_debug_format() {
     let err = EventBusError::ChannelClosed;

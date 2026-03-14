@@ -21,6 +21,7 @@ fn fast_config(max_concurrent: usize) -> BulkheadConfig {
 // Concurrent execution limit
 // ===========================================================================
 
+// 上限以内のパーミット取得がすべて成功することを確認する。
 #[tokio::test]
 async fn acquire_within_limit_succeeds() {
     let bh = Bulkhead::new(fast_config(3));
@@ -33,6 +34,7 @@ async fn acquire_within_limit_succeeds() {
     assert_eq!(m.current_concurrent, 3);
 }
 
+// 1件のパーミット取得でメトリクスが正しく更新されることを確認する。
 #[tokio::test]
 async fn single_permit_acquire_and_release() {
     let bh = Bulkhead::new(fast_config(1));
@@ -50,6 +52,7 @@ async fn single_permit_acquire_and_release() {
 // Rejection when at capacity
 // ===========================================================================
 
+// 上限到達時のパーミット取得が Full エラーになることを確認する。
 #[tokio::test]
 async fn rejected_when_at_capacity() {
     let bh = Bulkhead::new(fast_config(1));
@@ -64,6 +67,7 @@ async fn rejected_when_at_capacity() {
     }
 }
 
+// 複数回のリジェクトがメトリクスの rejection_count に正しく計上されることを確認する。
 #[tokio::test]
 async fn multiple_rejections_counted() {
     let bh = Bulkhead::new(fast_config(1));
@@ -76,6 +80,7 @@ async fn multiple_rejections_counted() {
     assert_eq!(bh.metrics().rejection_count, 3);
 }
 
+// バルクヘッドが満杯のとき call() が Full エラーを返すことを確認する。
 #[tokio::test]
 async fn rejection_via_call_when_full() {
     let bh = Bulkhead::new(fast_config(1));
@@ -95,6 +100,7 @@ async fn rejection_via_call_when_full() {
 // Release permits after completion
 // ===========================================================================
 
+// call() 正常完了後にパーミットが解放され再取得できることを確認する。
 #[tokio::test]
 async fn call_releases_permit_after_success() {
     let bh = Bulkhead::new(fast_config(1));
@@ -110,6 +116,7 @@ async fn call_releases_permit_after_success() {
     let _p = bh.acquire().await.unwrap();
 }
 
+// call() 内部エラー後もパーミットが解放され再取得できることを確認する。
 #[tokio::test]
 async fn call_releases_permit_after_inner_error() {
     let bh = Bulkhead::new(fast_config(1));
@@ -125,6 +132,7 @@ async fn call_releases_permit_after_inner_error() {
     let _p = bh.acquire().await.unwrap();
 }
 
+// 連続した call() 呼び出しでパーミットが再利用されることを確認する。
 #[tokio::test]
 async fn sequential_calls_reuse_permits() {
     let bh = Bulkhead::new(fast_config(1));
@@ -140,6 +148,7 @@ async fn sequential_calls_reuse_permits() {
 // Wait / timeout behavior
 // ===========================================================================
 
+// タイムアウト内にパーミットが解放されれば取得が成功することを確認する。
 #[tokio::test]
 async fn waits_for_permit_within_timeout() {
     let bh = Arc::new(Bulkhead::new(test_config(1, 500)));
@@ -159,6 +168,7 @@ async fn waits_for_permit_within_timeout() {
     assert!(result.is_ok());
 }
 
+// タイムアウト内にパーミットが解放されない場合に取得が失敗することを確認する。
 #[tokio::test]
 async fn times_out_waiting_for_permit() {
     let bh = Arc::new(Bulkhead::new(test_config(1, 50)));
@@ -175,6 +185,7 @@ async fn times_out_waiting_for_permit() {
 // call() tests
 // ===========================================================================
 
+// call() が成功時に正しい戻り値を返すことを確認する。
 #[tokio::test]
 async fn call_success_returns_value() {
     let bh = Bulkhead::new(fast_config(2));
@@ -183,6 +194,7 @@ async fn call_success_returns_value() {
     assert_eq!(result.unwrap(), "hello");
 }
 
+// call() が内部エラーを Inner エラーとしてラップして返すことを確認する。
 #[tokio::test]
 async fn call_propagates_inner_error() {
     let bh = Bulkhead::new(fast_config(2));
@@ -199,6 +211,7 @@ async fn call_propagates_inner_error() {
 // Metrics tracking
 // ===========================================================================
 
+// 初期状態でメトリクスの各カウンタがゼロであることを確認する。
 #[tokio::test]
 async fn metrics_initial_state() {
     let bh = Bulkhead::new(fast_config(5));
@@ -207,6 +220,7 @@ async fn metrics_initial_state() {
     assert_eq!(m.rejection_count, 0);
 }
 
+// パーミット取得のたびに current_concurrent が増加することを確認する。
 #[tokio::test]
 async fn metrics_track_acquire() {
     let bh = Bulkhead::new(fast_config(3));
@@ -218,6 +232,7 @@ async fn metrics_track_acquire() {
     assert_eq!(bh.metrics().current_concurrent, 2);
 }
 
+// リジェクト発生のたびに rejection_count が増加することを確認する。
 #[tokio::test]
 async fn metrics_track_rejections() {
     let bh = Bulkhead::new(fast_config(1));
@@ -229,6 +244,7 @@ async fn metrics_track_rejections() {
     assert_eq!(bh.metrics().rejection_count, 2);
 }
 
+// call() 完了後に current_concurrent がゼロに戻ることを確認する。
 #[tokio::test]
 async fn metrics_track_call_lifecycle() {
     let bh = Bulkhead::new(fast_config(2));
@@ -246,6 +262,7 @@ async fn metrics_track_call_lifecycle() {
 // Config validation / defaults
 // ===========================================================================
 
+// デフォルト設定の max_concurrent_calls と max_wait_duration が適切な値であることを確認する。
 #[test]
 fn default_config_has_sane_values() {
     let config = BulkheadConfig::default();
@@ -253,6 +270,7 @@ fn default_config_has_sane_values() {
     assert_eq!(config.max_wait_duration, Duration::from_millis(500));
 }
 
+// 設定をクローンすると同一の値を持つことを確認する。
 #[test]
 fn config_clone_is_equal() {
     let config = BulkheadConfig {
@@ -268,6 +286,7 @@ fn config_clone_is_equal() {
 // Concurrent access safety
 // ===========================================================================
 
+// 並行取得が上限に達した後の追加取得が失敗することを確認する。
 #[tokio::test]
 async fn concurrent_acquires_respect_limit() {
     let bh = Arc::new(Bulkhead::new(fast_config(5)));
@@ -290,6 +309,7 @@ async fn concurrent_acquires_respect_limit() {
     assert!(result.is_err());
 }
 
+// 上限内の並行 call() がすべて成功することを確認する。
 #[tokio::test]
 async fn concurrent_calls_within_limit() {
     let bh = Arc::new(Bulkhead::new(fast_config(10)));
@@ -313,6 +333,7 @@ async fn concurrent_calls_within_limit() {
 // Error display
 // ===========================================================================
 
+// Full エラーの Display 出力が期待するメッセージを含むことを確認する。
 #[test]
 fn error_display_full() {
     let err: BulkheadError = BulkheadError::Full { max_concurrent: 5 };
@@ -322,12 +343,14 @@ fn error_display_full() {
     );
 }
 
+// Inner エラーの Display 出力が内部エラーメッセージを正しく表示することを確認する。
 #[test]
 fn error_display_inner() {
     let err: BulkheadError<String> = BulkheadError::Inner("service down".to_string());
     assert_eq!(format!("{}", err), "service down");
 }
 
+// エラーが Debug トレイトを実装し "Full" を含む文字列を出力することを確認する。
 #[test]
 fn error_is_debug() {
     let err: BulkheadError = BulkheadError::Full { max_concurrent: 3 };

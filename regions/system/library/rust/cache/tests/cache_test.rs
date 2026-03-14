@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use k1s0_cache::{CacheClient, InMemoryCacheClient};
 
+// キャッシュにデータをセットして正常に取得できることを確認する。
 #[tokio::test]
 async fn test_set_and_get() {
     let cache = InMemoryCacheClient::new();
@@ -10,6 +11,7 @@ async fn test_set_and_get() {
     assert_eq!(result, Some("value1".to_string()));
 }
 
+// 存在しないキーを取得した場合に None が返ることを確認する。
 #[tokio::test]
 async fn test_get_nonexistent_returns_none() {
     let cache = InMemoryCacheClient::new();
@@ -17,6 +19,7 @@ async fn test_get_nonexistent_returns_none() {
     assert_eq!(result, None);
 }
 
+// 存在するキーを削除してその後取得できないことを確認する。
 #[tokio::test]
 async fn test_delete_existing_key() {
     let cache = InMemoryCacheClient::new();
@@ -27,6 +30,7 @@ async fn test_delete_existing_key() {
     assert_eq!(result, None);
 }
 
+// 存在しないキーを削除した場合に false が返ることを確認する。
 #[tokio::test]
 async fn test_delete_nonexistent_returns_false() {
     let cache = InMemoryCacheClient::new();
@@ -34,6 +38,7 @@ async fn test_delete_nonexistent_returns_false() {
     assert!(!deleted);
 }
 
+// キーの存在確認が正しく true および false を返すことを検証する。
 #[tokio::test]
 async fn test_exists_true_and_false() {
     let cache = InMemoryCacheClient::new();
@@ -42,6 +47,7 @@ async fn test_exists_true_and_false() {
     assert!(!cache.exists("nonexistent").await.unwrap());
 }
 
+// TTL 付きでセットしたデータが期限切れ後に取得できなくなることを確認する。
 #[tokio::test]
 async fn test_set_with_ttl_expires() {
     let cache = InMemoryCacheClient::new();
@@ -59,6 +65,7 @@ async fn test_set_with_ttl_expires() {
     assert_eq!(result, None);
 }
 
+// キーが存在しない場合に set_nx が成功して値がセットされることを確認する。
 #[tokio::test]
 async fn test_set_nx_succeeds_when_not_exists() {
     let cache = InMemoryCacheClient::new();
@@ -71,6 +78,7 @@ async fn test_set_nx_succeeds_when_not_exists() {
     assert_eq!(value, Some("value1".to_string()));
 }
 
+// キーが既に存在する場合に set_nx が失敗して元の値が保持されることを確認する。
 #[tokio::test]
 async fn test_set_nx_fails_when_exists() {
     let cache = InMemoryCacheClient::new();
@@ -84,6 +92,7 @@ async fn test_set_nx_fails_when_exists() {
     assert_eq!(value, Some("value1".to_string()));
 }
 
+// expire でキーの TTL を更新し、期限切れ後に値が消えることを確認する。
 #[tokio::test]
 async fn test_expire_updates_ttl() {
     let cache = InMemoryCacheClient::new();
@@ -104,6 +113,7 @@ async fn test_expire_updates_ttl() {
     assert_eq!(result, None);
 }
 
+// 既存のキーに新しい値をセットすると上書きされることを確認する。
 #[tokio::test]
 async fn test_overwrite_existing_key() {
     let cache = InMemoryCacheClient::new();

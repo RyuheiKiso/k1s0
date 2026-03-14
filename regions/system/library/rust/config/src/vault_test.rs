@@ -49,6 +49,7 @@ fn minimal_config() -> Config {
     }
 }
 
+// Vault シークレットからデータベースパスワードが正しくマージされることを確認する。
 #[test]
 fn test_vault_database_password_merge() {
     let mut cfg = minimal_config();
@@ -68,6 +69,7 @@ fn test_vault_database_password_merge() {
     assert_eq!(cfg.database.unwrap().password, "vault-db-pass");
 }
 
+// Vault シークレットから Redis パスワードが正しくマージされることを確認する。
 #[test]
 fn test_vault_redis_password_merge() {
     let mut cfg = minimal_config();
@@ -83,6 +85,7 @@ fn test_vault_redis_password_merge() {
     assert_eq!(cfg.redis.unwrap().password, Some("vault-redis-pass".into()));
 }
 
+// Vault シークレットから Kafka SASL ユーザー名とパスワードが正しくマージされることを確認する。
 #[test]
 fn test_vault_kafka_sasl_merge() {
     let mut cfg = minimal_config();
@@ -111,6 +114,7 @@ fn test_vault_kafka_sasl_merge() {
     assert_eq!(sasl.password, "vault-kafka-pass");
 }
 
+// Vault シークレットから Redis セッションパスワードが正しくマージされることを確認する。
 #[test]
 fn test_vault_redis_session_password_merge() {
     let mut cfg = minimal_config();
@@ -129,6 +133,7 @@ fn test_vault_redis_session_password_merge() {
     );
 }
 
+// Vault シークレットから OIDC クライアントシークレットが正しくマージされることを確認する。
 #[test]
 fn test_vault_oidc_client_secret_merge() {
     let mut cfg = minimal_config();
@@ -149,6 +154,7 @@ fn test_vault_oidc_client_secret_merge() {
     );
 }
 
+// 空のシークレットマップを渡した場合に設定値が変更されないことを確認する。
 #[test]
 fn test_vault_empty_secrets_no_change() {
     let mut cfg = minimal_config();
@@ -179,6 +185,7 @@ fn test_vault_empty_secrets_no_change() {
     );
 }
 
+// オプションセクションが None の場合でもシークレットのマージがパニックしないことを確認する。
 #[test]
 fn test_vault_nil_sections_safe() {
     let mut cfg = minimal_config();
@@ -200,6 +207,7 @@ fn test_vault_nil_sections_safe() {
     assert!(cfg.auth.oidc.is_none());
 }
 
+// 一部のシークレットのみ提供された場合に対応するフィールドだけ更新されることを確認する。
 #[test]
 fn test_vault_partial_secrets() {
     let mut cfg = minimal_config();

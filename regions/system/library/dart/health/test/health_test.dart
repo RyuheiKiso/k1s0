@@ -20,21 +20,21 @@ class AlwaysUnhealthy implements HealthCheck {
 
 void main() {
   group('HealthChecker', () {
-    test('returns healthy when no checks', () async {
+    test('チェックがない場合にhealthyを返すこと', () async {
       final checker = HealthChecker();
       final resp = await checker.runAll();
       expect(resp.status, equals(HealthStatus.healthy));
       expect(resp.checks, isEmpty);
     });
 
-    test('returns healthy when all checks pass', () async {
+    test('全チェックが成功した場合にhealthyを返すこと', () async {
       final checker = HealthChecker()..add(AlwaysHealthy());
       final resp = await checker.runAll();
       expect(resp.status, equals(HealthStatus.healthy));
       expect(resp.checks['always-healthy']?.status, equals(HealthStatus.healthy));
     });
 
-    test('returns unhealthy when a check fails', () async {
+    test('いずれかのチェックが失敗した場合にunhealthyを返すこと', () async {
       final checker = HealthChecker()
         ..add(AlwaysHealthy())
         ..add(AlwaysUnhealthy());
@@ -43,7 +43,7 @@ void main() {
       expect(resp.checks['always-unhealthy']?.status, equals(HealthStatus.unhealthy));
     });
 
-    test('includes timestamp', () async {
+    test('タイムスタンプを含むこと', () async {
       final checker = HealthChecker();
       final resp = await checker.runAll();
       expect(resp.timestamp, isA<DateTime>());
@@ -51,7 +51,7 @@ void main() {
   });
 
   group('CheckResult', () {
-    test('stores status and message', () {
+    test('ステータスとメッセージを保持すること', () {
       const result = CheckResult(status: HealthStatus.degraded, message: 'slow');
       expect(result.status, equals(HealthStatus.degraded));
       expect(result.message, equals('slow'));

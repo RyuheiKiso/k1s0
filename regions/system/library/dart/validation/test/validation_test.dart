@@ -4,111 +4,111 @@ import 'package:k1s0_validation/validation.dart';
 
 void main() {
   group('validateEmail', () {
-    test('accepts valid email', () {
+    test('有効なメールアドレスを受け入れること', () {
       expect(() => validateEmail('user@example.com'), returnsNormally);
     });
 
-    test('accepts email with dots', () {
+    test('ドットを含むメールアドレスを受け入れること', () {
       expect(() => validateEmail('first.last@example.co.jp'), returnsNormally);
     });
 
-    test('rejects email without @', () {
+    test('@なしのメールアドレスを拒否すること', () {
       expect(() => validateEmail('invalid'), throwsA(isA<ValidationError>()));
     });
 
-    test('rejects email without domain', () {
+    test('ドメインなしのメールアドレスを拒否すること', () {
       expect(() => validateEmail('user@'), throwsA(isA<ValidationError>()));
     });
   });
 
   group('validateUuid', () {
-    test('accepts valid UUID v4', () {
+    test('有効なUUID v4を受け入れること', () {
       expect(() => validateUuid('550e8400-e29b-41d4-a716-446655440000'), returnsNormally);
     });
 
-    test('rejects invalid UUID', () {
+    test('無効なUUIDを拒否すること', () {
       expect(() => validateUuid('not-a-uuid'), throwsA(isA<ValidationError>()));
     });
 
-    test('rejects UUID v1 format', () {
+    test('UUID v1形式を拒否すること', () {
       expect(() => validateUuid('550e8400-e29b-11d4-a716-446655440000'), throwsA(isA<ValidationError>()));
     });
   });
 
   group('validateUrl', () {
-    test('accepts https URL', () {
+    test('https URLを受け入れること', () {
       expect(() => validateUrl('https://example.com'), returnsNormally);
     });
 
-    test('accepts http URL', () {
+    test('http URLを受け入れること', () {
       expect(() => validateUrl('http://example.com/path'), returnsNormally);
     });
 
-    test('rejects URL without scheme', () {
+    test('スキームなしのURLを拒否すること', () {
       expect(() => validateUrl('example.com'), throwsA(isA<ValidationError>()));
     });
 
-    test('rejects ftp URL', () {
+    test('ftp URLを拒否すること', () {
       expect(() => validateUrl('ftp://example.com'), throwsA(isA<ValidationError>()));
     });
   });
 
   group('validateTenantId', () {
-    test('accepts valid tenant ID', () {
+    test('有効なテナントIDを受け入れること', () {
       expect(() => validateTenantId('my-tenant-1'), returnsNormally);
     });
 
-    test('rejects too short', () {
+    test('短すぎるテナントIDを拒否すること', () {
       expect(() => validateTenantId('ab'), throwsA(isA<ValidationError>()));
     });
 
-    test('rejects uppercase', () {
+    test('大文字を含むテナントIDを拒否すること', () {
       expect(() => validateTenantId('MyTenant'), throwsA(isA<ValidationError>()));
     });
 
-    test('rejects special characters', () {
+    test('特殊文字を含むテナントIDを拒否すること', () {
       expect(() => validateTenantId('my_tenant!'), throwsA(isA<ValidationError>()));
     });
   });
 
   group('ValidationError', () {
-    test('has correct fields and toString', () {
+    test('フィールドとtoStringが正しいこと', () {
       const err = ValidationError('email', 'bad');
       expect(err.field, equals('email'));
       expect(err.message, equals('bad'));
       expect(err.toString(), contains('email'));
     });
 
-    test('has code field', () {
+    test('codeフィールドが設定されること', () {
       const err = ValidationError('email', 'bad', code: 'INVALID_EMAIL');
       expect(err.code, equals('INVALID_EMAIL'));
     });
 
-    test('default code is derived from field', () {
+    test('デフォルトのcodeがフィールド名から導出されること', () {
       const err = ValidationError('email', 'bad');
       expect(err.code, equals('INVALID_EMAIL'));
     });
   });
 
   group('validatePagination', () {
-    test('accepts valid pagination', () {
+    test('有効なページネーションを受け入れること', () {
       expect(() => validatePagination(1, 10), returnsNormally);
       expect(() => validatePagination(1, 1), returnsNormally);
       expect(() => validatePagination(1, 100), returnsNormally);
       expect(() => validatePagination(999, 50), returnsNormally);
     });
 
-    test('rejects page < 1', () {
+    test('ページ番号が1未満の場合を拒否すること', () {
       expect(() => validatePagination(0, 10), throwsA(isA<ValidationError>()));
       expect(() => validatePagination(-1, 10), throwsA(isA<ValidationError>()));
     });
 
-    test('rejects perPage out of range', () {
+    test('1ページあたりの件数が範囲外の場合を拒否すること', () {
       expect(() => validatePagination(1, 0), throwsA(isA<ValidationError>()));
       expect(() => validatePagination(1, 101), throwsA(isA<ValidationError>()));
     });
 
-    test('error has correct code', () {
+    test('エラーに正しいコードが設定されること', () {
       try {
         validatePagination(0, 10);
       } on ValidationError catch (e) {
@@ -123,24 +123,24 @@ void main() {
   });
 
   group('validateDateRange', () {
-    test('accepts valid date range', () {
+    test('有効な日付範囲を受け入れること', () {
       final start = DateTime(2024, 1, 1);
       final end = DateTime(2024, 12, 31);
       expect(() => validateDateRange(start, end), returnsNormally);
     });
 
-    test('accepts equal dates', () {
+    test('開始日と終了日が同じ場合を受け入れること', () {
       final dt = DateTime(2024, 6, 15);
       expect(() => validateDateRange(dt, dt), returnsNormally);
     });
 
-    test('rejects start after end', () {
+    test('開始日が終了日より後の場合を拒否すること', () {
       final start = DateTime(2024, 12, 31);
       final end = DateTime(2024, 1, 1);
       expect(() => validateDateRange(start, end), throwsA(isA<ValidationError>()));
     });
 
-    test('error has correct code', () {
+    test('エラーに正しいコードが設定されること', () {
       try {
         validateDateRange(DateTime(2024, 12, 31), DateTime(2024, 1, 1));
       } on ValidationError catch (e) {
@@ -150,13 +150,13 @@ void main() {
   });
 
   group('ValidationErrors', () {
-    test('empty collection has no errors', () {
+    test('空のコレクションにエラーがないこと', () {
       final errors = ValidationErrors();
       expect(errors.hasErrors(), isFalse);
       expect(errors.getErrors(), isEmpty);
     });
 
-    test('adding errors works', () {
+    test('エラーの追加が正しく動作すること', () {
       final errors = ValidationErrors();
       errors.add(const ValidationError('email', 'bad', code: 'INVALID_EMAIL'));
       errors.add(const ValidationError('page', 'bad', code: 'INVALID_PAGE'));

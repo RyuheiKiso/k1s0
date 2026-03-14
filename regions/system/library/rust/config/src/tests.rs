@@ -72,6 +72,7 @@ fn make_base_config() -> Config {
     }
 }
 
+// YAML ファイルから設定を正常にロードできることを確認する。
 #[test]
 fn test_load() {
     let mut f = NamedTempFile::new().unwrap();
@@ -81,6 +82,7 @@ fn test_load() {
     assert_eq!(cfg.server.port, 8080);
 }
 
+// 存在しないファイルをロードした場合にエラーが返されることを確認する。
 #[test]
 fn test_load_file_not_found() {
     let result = load("/nonexistent/config.yaml", None);
@@ -89,6 +91,7 @@ fn test_load_file_not_found() {
     assert!(err.contains("failed to read file"));
 }
 
+// 無効な YAML ファイルをロードした場合にエラーが返されることを確認する。
 #[test]
 fn test_load_invalid_yaml() {
     let mut f = NamedTempFile::new().unwrap();
@@ -97,6 +100,7 @@ fn test_load_invalid_yaml() {
     assert!(result.is_err());
 }
 
+// 環境オーバーレイファイルを使って設定値が上書きされることを確認する。
 #[test]
 fn test_load_with_env_override() {
     let mut base = NamedTempFile::new().unwrap();
@@ -127,6 +131,7 @@ observability:
     assert_eq!(cfg.app.name, "test-server"); // base value preserved
 }
 
+// 有効な設定でバリデーションが成功することを確認する。
 #[test]
 fn test_validate_valid_config() {
     let mut f = NamedTempFile::new().unwrap();
@@ -135,6 +140,7 @@ fn test_validate_valid_config() {
     assert!(validate(&cfg).is_ok());
 }
 
+// app.name が空の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn test_validate_missing_name() {
     let cfg = Config {
@@ -183,6 +189,7 @@ fn test_validate_missing_name() {
     assert!(validate(&cfg).is_err());
 }
 
+// 無効な tier 値を指定した場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn test_validate_invalid_tier() {
     let cfg = Config {
@@ -231,6 +238,7 @@ fn test_validate_invalid_tier() {
     assert!(validate(&cfg).is_err());
 }
 
+// 無効な environment 値を指定した場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn test_validate_invalid_environment() {
     let cfg = Config {
@@ -279,6 +287,7 @@ fn test_validate_invalid_environment() {
     assert!(validate(&cfg).is_err());
 }
 
+// server.port が 0 の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn test_validate_zero_port() {
     let cfg = Config {
@@ -327,6 +336,7 @@ fn test_validate_zero_port() {
     assert!(validate(&cfg).is_err());
 }
 
+// 無効なログレベルを指定した場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn test_validate_invalid_log_level() {
     let mut cfg = make_base_config();
@@ -334,6 +344,7 @@ fn test_validate_invalid_log_level() {
     assert!(validate(&cfg).is_err());
 }
 
+// トレースが有効でエンドポイントがない場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn test_validate_trace_enabled_requires_endpoint() {
     let mut cfg = make_base_config();
@@ -342,6 +353,7 @@ fn test_validate_trace_enabled_requires_endpoint() {
     assert!(validate(&cfg).is_err());
 }
 
+// メトリクスが有効でパスがない場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn test_validate_metrics_enabled_requires_path() {
     let mut cfg = make_base_config();
@@ -350,6 +362,7 @@ fn test_validate_metrics_enabled_requires_path() {
     assert!(validate(&cfg).is_err());
 }
 
+// SASL_SSL 設定で SASL が未設定の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn test_validate_kafka_sasl_ssl_requires_sasl() {
     let mut cfg = make_base_config();
@@ -367,6 +380,7 @@ fn test_validate_kafka_sasl_ssl_requires_sasl() {
     assert!(validate(&cfg).is_err());
 }
 
+// Kafka トピックが空の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn test_validate_kafka_topics_required() {
     let mut cfg = make_base_config();
@@ -384,6 +398,7 @@ fn test_validate_kafka_topics_required() {
     assert!(validate(&cfg).is_err());
 }
 
+// OIDC スコープが空の場合にバリデーションエラーが返されることを確認する。
 #[test]
 fn test_validate_oidc_scopes_required() {
     let mut cfg = make_base_config();
@@ -399,6 +414,7 @@ fn test_validate_oidc_scopes_required() {
     assert!(validate(&cfg).is_err());
 }
 
+// Vault シークレットからデータベースパスワードが正しくマージされることを確認する。
 #[test]
 fn test_merge_vault_secrets_database() {
     let mut f = NamedTempFile::new().unwrap();
@@ -442,6 +458,7 @@ auth:
     assert_eq!(cfg.database.unwrap().password, "secret123");
 }
 
+// Vault シークレットから Redis パスワードが正しくマージされることを確認する。
 #[test]
 fn test_merge_vault_secrets_redis() {
     let mut f = NamedTempFile::new().unwrap();
@@ -485,6 +502,7 @@ auth:
     );
 }
 
+// Vault シークレットから OIDC クライアントシークレットが正しくマージされることを確認する。
 #[test]
 fn test_merge_vault_secrets_oidc() {
     let mut f = NamedTempFile::new().unwrap();
@@ -534,6 +552,7 @@ auth:
     );
 }
 
+// オプションセクションが None の場合に Vault シークレットのマージがパニックしないことを確認する。
 #[test]
 fn test_merge_vault_secrets_nil_fields() {
     let mut f = NamedTempFile::new().unwrap();
@@ -550,6 +569,7 @@ fn test_merge_vault_secrets_nil_fields() {
     assert!(cfg.auth.oidc.is_none());
 }
 
+// 全オプションセクションを含む完全な設定ファイルが正しくロードされることを確認する。
 #[test]
 fn test_load_full_config() {
     let mut f = NamedTempFile::new().unwrap();

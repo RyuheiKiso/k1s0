@@ -162,6 +162,7 @@ pub fn format_lock_key(prefix: &str, key: &str) -> String {
 mod tests {
     use super::*;
 
+    // ロックキーがプレフィックスとキー名を ":" で結合した形式になることを確認する。
     #[test]
     fn test_format_lock_key() {
         assert_eq!(format_lock_key("lock", "myresource"), "lock:myresource");
@@ -171,6 +172,7 @@ mod tests {
         );
     }
 
+    // Redis エラーが LockError::Internal にマッピングされることを確認する。
     #[test]
     fn test_map_redis_error_to_lock_error() {
         let err = map_redis_error(RedisError::from((
@@ -185,12 +187,14 @@ mod tests {
         }
     }
 
+    // Lua リリーススクリプトが GET と DEL 命令を含むことを確認する。
     #[test]
     fn test_release_script_contains_get_and_del() {
         assert!(RELEASE_SCRIPT.contains("redis.call(\"get\""));
         assert!(RELEASE_SCRIPT.contains("redis.call(\"del\""));
     }
 
+    // Lua 延長スクリプトが GET と PEXPIRE 命令を含むことを確認する。
     #[test]
     fn test_extend_script_contains_get_and_pexpire() {
         assert!(EXTEND_SCRIPT.contains("redis.call(\"get\""));

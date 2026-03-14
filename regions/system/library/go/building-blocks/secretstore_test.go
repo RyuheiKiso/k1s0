@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// Secret の Key・Value・Metadata フィールドが正しく設定されることを確認する。
 func TestSecretCreation(t *testing.T) {
 	s := Secret{
 		Key:      "db-password",
@@ -22,6 +23,7 @@ func TestSecretCreation(t *testing.T) {
 	}
 }
 
+// Secret の JSON シリアライズ・デシリアライズが全フィールドを正しく復元することを確認する。
 func TestSecretJSONRoundtrip(t *testing.T) {
 	s := Secret{
 		Key:      "api-key",
@@ -45,6 +47,7 @@ func TestSecretJSONRoundtrip(t *testing.T) {
 	}
 }
 
+// Secret の Metadata が nil のとき JSON フィールドが省略されることを確認する。
 func TestSecretJSONOmitEmptyMetadata(t *testing.T) {
 	s := Secret{Key: "key", Value: "val"}
 	data, err := json.Marshal(s)

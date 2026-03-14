@@ -13,15 +13,15 @@ void main() {
     ));
   });
 
-  group('initial state', () {
-    test('starts closed', () {
+  group('初期状態', () {
+    test('クローズド状態で開始すること', () {
       expect(breaker.state, equals(CircuitState.closed));
       expect(breaker.isOpen, isFalse);
     });
   });
 
-  group('failure tracking', () {
-    test('opens after threshold failures', () {
+  group('失敗の追跡', () {
+    test('閾値を超える失敗でオープン状態に遷移すること', () {
       breaker.recordFailure();
       breaker.recordFailure();
       expect(breaker.state, equals(CircuitState.closed));
@@ -29,7 +29,7 @@ void main() {
       expect(breaker.state, equals(CircuitState.open));
     });
 
-    test('resets failure count on success', () {
+    test('成功時に失敗カウントをリセットすること', () {
       breaker.recordFailure();
       breaker.recordFailure();
       breaker.recordSuccess();
@@ -39,12 +39,12 @@ void main() {
   });
 
   group('call', () {
-    test('executes function when closed', () async {
+    test('クローズド状態で関数を実行できること', () async {
       final result = await breaker.call(() async => 42);
       expect(result, equals(42));
     });
 
-    test('throws when open', () async {
+    test('オープン状態で例外をスローすること', () async {
       for (var i = 0; i < 3; i++) {
         breaker.recordFailure();
       }
@@ -54,7 +54,7 @@ void main() {
       );
     });
 
-    test('records failure on exception', () async {
+    test('例外発生時に失敗を記録すること', () async {
       for (var i = 0; i < 3; i++) {
         try {
           await breaker.call(() async => throw Exception('fail'));
@@ -64,8 +64,8 @@ void main() {
     });
   });
 
-  group('half-open', () {
-    test('transitions to half-open after timeout', () async {
+  group('ハーフオープン', () {
+    test('タイムアウト後にハーフオープン状態へ遷移すること', () async {
       for (var i = 0; i < 3; i++) {
         breaker.recordFailure();
       }

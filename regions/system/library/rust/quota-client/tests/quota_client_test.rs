@@ -9,6 +9,7 @@ use k1s0_quota_client::{
 // Config
 // ---------------------------------------------------------------------------
 
+// QuotaClientConfigのデフォルト値が正しく設定されることを確認する。
 #[test]
 fn config_new_defaults() {
     let cfg = QuotaClientConfig::new("http://quota-server:8080");
@@ -17,12 +18,14 @@ fn config_new_defaults() {
     assert_eq!(cfg.policy_cache_ttl, Duration::from_secs(60));
 }
 
+// with_timeoutでタイムアウトが正しく設定されることを確認する。
 #[test]
 fn config_with_timeout() {
     let cfg = QuotaClientConfig::new("http://localhost:9000").with_timeout(Duration::from_secs(30));
     assert_eq!(cfg.timeout, Duration::from_secs(30));
 }
 
+// with_policy_cache_ttlでポリシーキャッシュTTLが正しく設定されることを確認する。
 #[test]
 fn config_with_policy_cache_ttl() {
     let cfg = QuotaClientConfig::new("http://localhost:9000")
@@ -30,6 +33,7 @@ fn config_with_policy_cache_ttl() {
     assert_eq!(cfg.policy_cache_ttl, Duration::from_secs(300));
 }
 
+// ビルダーメソッドのチェーンが正しく機能することを確認する。
 #[test]
 fn config_builder_chaining() {
     let cfg = QuotaClientConfig::new("http://localhost:9000")
@@ -43,6 +47,7 @@ fn config_builder_chaining() {
 // Model types
 // ---------------------------------------------------------------------------
 
+// QuotaPeriodの各バリアントが正しくデバッグ表示されることを確認する。
 #[test]
 fn quota_period_variants() {
     let h = QuotaPeriod::Hourly;
@@ -56,6 +61,7 @@ fn quota_period_variants() {
     assert!(format!("{:?}", c).contains("7200"));
 }
 
+// QuotaPeriodがJSONでシリアライズ・デシリアライズできることを確認する。
 #[test]
 fn quota_period_serde_roundtrip() {
     let periods = vec![
@@ -71,6 +77,7 @@ fn quota_period_serde_roundtrip() {
     }
 }
 
+// QuotaPolicyがJSONでシリアライズ・デシリアライズできることを確認する。
 #[test]
 fn quota_policy_serde_roundtrip() {
     let policy = QuotaPolicy {
@@ -88,6 +95,7 @@ fn quota_policy_serde_roundtrip() {
 // Error variants
 // ---------------------------------------------------------------------------
 
+// 各エラーバリアントの表示メッセージが適切な情報を含むことを確認する。
 #[test]
 fn error_display_messages() {
     let err = QuotaClientError::ConnectionError("timeout".to_string());

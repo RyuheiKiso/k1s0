@@ -13,14 +13,14 @@ void main() {
       store = InMemoryEventStore();
     });
 
-    test('append returns new version', () async {
+    test('appendが新しいバージョンを返すこと', () async {
       final version = await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'Created', payload: {'x': 1}),
       ]);
       expect(version, equals(1));
     });
 
-    test('append with expectedVersion conflict throws VersionConflictError', () async {
+    test('expectedVersionの競合時にVersionConflictErrorをスローすること', () async {
       await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'Created'),
       ]);
@@ -32,7 +32,7 @@ void main() {
       );
     });
 
-    test('loadFrom returns events from specified version', () async {
+    test('loadFromが指定バージョン以降のイベントを返すこと', () async {
       await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'E1'),
         const NewEvent(streamId: 's1', eventType: 'E2'),
@@ -43,7 +43,7 @@ void main() {
       expect(events.first.version, equals(2));
     });
 
-    test('exists returns false then true', () async {
+    test('existsが追記前にfalse、追記後にtrueを返すこと', () async {
       expect(await store.exists('s1'), isFalse);
       await store.append('s1', [
         const NewEvent(streamId: 's1', eventType: 'E1'),
@@ -51,7 +51,7 @@ void main() {
       expect(await store.exists('s1'), isTrue);
     });
 
-    test('currentVersion returns 0 for empty stream', () async {
+    test('currentVersionが空のストリームに対して0を返すこと', () async {
       expect(await store.currentVersion('nope'), equals(0));
     });
   });
@@ -63,11 +63,11 @@ void main() {
       store = InMemorySnapshotStore();
     });
 
-    test('loadSnapshot returns null for unknown stream', () async {
+    test('loadSnapshotが未知のストリームに対してnullを返すこと', () async {
       expect(await store.loadSnapshot('unknown'), isNull);
     });
 
-    test('saveSnapshot and loadSnapshot round-trip', () async {
+    test('saveSnapshotとloadSnapshotのラウンドトリップが正常に動作すること', () async {
       final snap = Snapshot(
         streamId: 's1',
         version: 10,
@@ -81,7 +81,7 @@ void main() {
       expect(loaded.state, equals({'count': 42}));
     });
 
-    test('saveSnapshot overwrites existing snapshot', () async {
+    test('saveSnapshotが既存のスナップショットを上書きすること', () async {
       await store.saveSnapshot(Snapshot(
         streamId: 's1',
         version: 5,

@@ -68,6 +68,7 @@ pub fn generate_down_sql(up_sql: &str) -> Result<String, MigrationError> {
 mod tests {
     use super::*;
 
+    // CREATE TABLE 文から DROP TABLE IF EXISTS … CASCADE; が生成されることを確認する。
     #[test]
     fn test_create_table_generates_drop() {
         let up = "CREATE TABLE users (id UUID PRIMARY KEY, name TEXT NOT NULL);";
@@ -75,6 +76,7 @@ mod tests {
         assert!(down.contains("DROP TABLE IF EXISTS users CASCADE;"));
     }
 
+    // ADD COLUMN 文から ALTER TABLE … DROP COLUMN … が生成されることを確認する。
     #[test]
     fn test_add_column_generates_drop_column() {
         let up = "ALTER TABLE users ADD COLUMN email TEXT;";
@@ -82,6 +84,7 @@ mod tests {
         assert!(down.contains("ALTER TABLE users DROP COLUMN email;"));
     }
 
+    // CREATE INDEX 文から DROP INDEX IF EXISTS … が生成されることを確認する。
     #[test]
     fn test_create_index_generates_drop_index() {
         let up = "CREATE INDEX idx_users_name ON users (name);";
@@ -89,6 +92,7 @@ mod tests {
         assert!(down.contains("DROP INDEX IF EXISTS idx_users_name;"));
     }
 
+    // CREATE UNIQUE INDEX 文から DROP INDEX IF EXISTS … が生成されることを確認する。
     #[test]
     fn test_create_unique_index_generates_drop_index() {
         let up = "CREATE UNIQUE INDEX idx_users_email ON users (email);";
@@ -96,6 +100,7 @@ mod tests {
         assert!(down.contains("DROP INDEX IF EXISTS idx_users_email;"));
     }
 
+    // 複数の UP 文から逆順の DOWN 文が生成されることを確認する。
     #[test]
     fn test_multiple_statements_reversed() {
         let up = "CREATE TABLE users (id UUID PRIMARY KEY);\nCREATE INDEX idx_users_id ON users (id);";
@@ -106,6 +111,7 @@ mod tests {
         assert!(lines[1].contains("DROP TABLE"));
     }
 
+    // 空文字列の SQL に generate_down_sql を適用すると空文字列が返ることを確認する。
     #[test]
     fn test_empty_sql() {
         let down = generate_down_sql("").unwrap();

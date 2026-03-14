@@ -39,6 +39,7 @@ func newTokenServer(t *testing.T, token string, expiresIn int) (*httptest.Server
 
 // --- ServiceToken Tests ---
 
+// ServiceTokenのIsExpiredメソッドが期限切れトークンと有効トークンを正しく判定することを確認する。
 func TestServiceToken_IsExpired(t *testing.T) {
 	expired := &sa.ServiceToken{ExpiresAt: time.Now().Add(-1 * time.Second)}
 	assert.True(t, expired.IsExpired())
@@ -47,6 +48,7 @@ func TestServiceToken_IsExpired(t *testing.T) {
 	assert.False(t, valid.IsExpired())
 }
 
+// ServiceTokenのShouldRefreshメソッドがリフレッシュ閾値に基づいて正しく判定することを確認する。
 func TestServiceToken_ShouldRefresh(t *testing.T) {
 	// 29 秒後に期限切れ → リフレッシュすべき
 	soon := &sa.ServiceToken{ExpiresAt: time.Now().Add(29 * time.Second)}
@@ -57,6 +59,7 @@ func TestServiceToken_ShouldRefresh(t *testing.T) {
 	assert.False(t, later.ShouldRefresh())
 }
 
+// ServiceTokenのBearerHeaderメソッドがBearer形式のヘッダー文字列を正しく生成することを確認する。
 func TestServiceToken_BearerHeader(t *testing.T) {
 	token := &sa.ServiceToken{AccessToken: "my-token-123"}
 	assert.Equal(t, "Bearer my-token-123", token.BearerHeader())
@@ -64,6 +67,7 @@ func TestServiceToken_BearerHeader(t *testing.T) {
 
 // --- SpiffeId Tests ---
 
+// ParseSpiffeIdが有効なSPIFFE IDを解析してトラストドメイン・名前空間・サービスアカウントを取得することを確認する。
 func TestParseSpiffeId_Valid(t *testing.T) {
 	spiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/system/sa/auth-service")
 	require.NoError(t, err)
@@ -72,12 +76,14 @@ func TestParseSpiffeId_Valid(t *testing.T) {
 	assert.Equal(t, "auth-service", spiffe.ServiceAccount)
 }
 
+// ParseSpiffeIdで解析したSpiffeIdのStringメソッドが元のSPIFFE URI文字列を返すことを確認する。
 func TestParseSpiffeId_String(t *testing.T) {
 	spiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/business/sa/order-service")
 	require.NoError(t, err)
 	assert.Equal(t, "spiffe://k1s0.internal/ns/business/sa/order-service", spiffe.String())
 }
 
+// AllowsTierAccessがシステム階層のアクセス許可を正しく判定することを確認する。
 func TestParseSpiffeId_AllowsTierAccess(t *testing.T) {
 	systemSpiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/system/sa/auth-service")
 	require.NoError(t, err)
@@ -90,6 +96,7 @@ func TestParseSpiffeId_AllowsTierAccess(t *testing.T) {
 	assert.False(t, businessSpiffe.AllowsTierAccess("system"))
 }
 
+// ParseSpiffeIdが無効なSPIFFE ID文字列に対してエラーを返すことを確認する。
 func TestParseSpiffeId_Invalid(t *testing.T) {
 	tests := []string{
 		"",
@@ -105,6 +112,7 @@ func TestParseSpiffeId_Invalid(t *testing.T) {
 
 // --- GetToken Tests ---
 
+// GetTokenがトークンエンドポイントからアクセストークンを正常に取得することを確認する。
 func TestGetToken_Success(t *testing.T) {
 	_, cfg := newTokenServer(t, "access-token-123", 3600)
 	client := sa.NewClient(cfg)
@@ -116,6 +124,7 @@ func TestGetToken_Success(t *testing.T) {
 	assert.False(t, token.IsExpired())
 }
 
+// サーバーが401を返した場合にGetTokenがエラーを返すことを確認する。
 func TestGetToken_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -135,6 +144,7 @@ func TestGetToken_ServerError(t *testing.T) {
 
 // --- GetCachedToken Tests ---
 
+// GetCachedTokenが複数回呼び出されてもトークンエンドポイントへのリクエストが1回のみであることを確認する。
 func TestGetCachedToken_CachesToken(t *testing.T) {
 	var callCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -164,6 +174,7 @@ func TestGetCachedToken_CachesToken(t *testing.T) {
 	assert.Equal(t, int32(1), callCount.Load())
 }
 
+// GetCachedTokenが複数ゴルーチンから同時に呼び出された場合でも安全にトークンをキャッシュすることを確認する。
 func TestGetCachedToken_Concurrent(t *testing.T) {
 	var callCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -211,6 +222,7 @@ func TestGetCachedToken_Concurrent(t *testing.T) {
 
 // --- ValidateSpiffeId Tests ---
 
+// ValidateSpiffeIdが有効なSPIFFE IDと一致する名前空間を正しく検証することを確認する。
 func TestValidateSpiffeId_Valid(t *testing.T) {
 	_, cfg := newTokenServer(t, "token", 3600)
 	client := sa.NewClient(cfg)
@@ -220,6 +232,7 @@ func TestValidateSpiffeId_Valid(t *testing.T) {
 	assert.Equal(t, "system", spiffe.Namespace)
 }
 
+// ValidateSpiffeIdが期待する名前空間と異なる場合にnamespace mismatchエラーを返すことを確認する。
 func TestValidateSpiffeId_WrongNamespace(t *testing.T) {
 	_, cfg := newTokenServer(t, "token", 3600)
 	client := sa.NewClient(cfg)
@@ -229,6 +242,7 @@ func TestValidateSpiffeId_WrongNamespace(t *testing.T) {
 	assert.Contains(t, err.Error(), "namespace mismatch")
 }
 
+// ValidateSpiffeIdが不正なSPIFFE ID形式に対してエラーを返すことを確認する。
 func TestValidateSpiffeId_InvalidFormat(t *testing.T) {
 	_, cfg := newTokenServer(t, "token", 3600)
 	client := sa.NewClient(cfg)
@@ -237,12 +251,14 @@ func TestValidateSpiffeId_InvalidFormat(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// ExpiresAtがゼロ値のServiceTokenが常に期限切れと判定されることを確認する。
 func TestServiceToken_IsExpired_ZeroTime(t *testing.T) {
 	// ゼロ値の ExpiresAt は常に期限切れ
 	token := &sa.ServiceToken{}
 	assert.True(t, token.IsExpired())
 }
 
+// ShouldRefreshが30秒の境界値で正しくリフレッシュ要否を判定することを確認する。
 func TestServiceToken_ShouldRefresh_Boundary(t *testing.T) {
 	// 29 秒後 → リフレッシュ閾値 30 秒以内: true
 	under := &sa.ServiceToken{ExpiresAt: time.Now().Add(29 * time.Second)}
@@ -252,12 +268,14 @@ func TestServiceToken_ShouldRefresh_Boundary(t *testing.T) {
 	assert.False(t, over.ShouldRefresh())
 }
 
+// ServiceTokenのScopeフィールドとBearerHeaderメソッドが正しく動作することを確認する。
 func TestServiceToken_Scope(t *testing.T) {
 	token := &sa.ServiceToken{AccessToken: "tok", Scope: "openid profile"}
 	assert.Equal(t, "openid profile", token.Scope)
 	assert.Equal(t, "Bearer tok", token.BearerHeader())
 }
 
+// ConfigにAudienceが設定されている場合にGetTokenがaudienceパラメータをリクエストに含めることを確認する。
 func TestGetToken_WithAudience(t *testing.T) {
 	var capturedBody string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -284,6 +302,7 @@ func TestGetToken_WithAudience(t *testing.T) {
 	assert.Equal(t, "k1s0-api", capturedBody)
 }
 
+// GetCachedTokenが期限切れトークンを自動的に再取得することを確認する。
 func TestGetCachedToken_RefreshesExpiredToken(t *testing.T) {
 	var callCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -311,6 +330,7 @@ func TestGetCachedToken_RefreshesExpiredToken(t *testing.T) {
 	assert.Equal(t, int32(1), callCount.Load())
 }
 
+// トークンエンドポイントが500を返した場合にGetCachedTokenがエラーを返すことを確認する。
 func TestGetCachedToken_ReturnsErrorOnTokenFail(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -327,6 +347,7 @@ func TestGetCachedToken_ReturnsErrorOnTokenFail(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// ParseSpiffeIdがサービス階層のSPIFFE IDを正しく解析することを確認する。
 func TestParseSpiffeId_ServiceTier(t *testing.T) {
 	spiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/service/sa/payment-service")
 	require.NoError(t, err)

@@ -16,6 +16,7 @@ fn make_dlq_message(id: &str) -> serde_json::Value {
     })
 }
 
+// DLQ メッセージ一覧取得が正常に成功することを確認する。
 #[tokio::test]
 async fn test_list_messages_success() {
     let mock_server = MockServer::start().await;
@@ -41,6 +42,7 @@ async fn test_list_messages_success() {
     assert_eq!(resp.page, 1);
 }
 
+// DLQ メッセージ一覧にデータが含まれる場合に正しく取得できることを確認する。
 #[tokio::test]
 async fn test_list_messages_with_data() {
     let mock_server = MockServer::start().await;
@@ -67,6 +69,7 @@ async fn test_list_messages_with_data() {
     assert_eq!(resp.total, 2);
 }
 
+// ページネーションパラメータが正しくリクエストに反映されることを確認する。
 #[tokio::test]
 async fn test_list_messages_pagination() {
     let mock_server = MockServer::start().await;
@@ -94,6 +97,7 @@ async fn test_list_messages_pagination() {
     assert_eq!(resp.messages.len(), 1);
 }
 
+// DLQ メッセージの詳細取得が正常に成功することを確認する。
 #[tokio::test]
 async fn test_get_message_success() {
     let mock_server = MockServer::start().await;
@@ -113,6 +117,7 @@ async fn test_get_message_success() {
     assert_eq!(msg.status, DlqStatus::Pending);
 }
 
+// 存在しないメッセージを取得すると 404 エラーが返ることを確認する。
 #[tokio::test]
 async fn test_get_message_not_found_returns_error() {
     let mock_server = MockServer::start().await;
@@ -130,6 +135,7 @@ async fn test_get_message_not_found_returns_error() {
     assert!(err_msg.contains("404"));
 }
 
+// サーバーが 500 エラーを返した場合にエラーが伝播することを確認する。
 #[tokio::test]
 async fn test_get_message_server_error_returns_error() {
     let mock_server = MockServer::start().await;
@@ -147,6 +153,7 @@ async fn test_get_message_server_error_returns_error() {
     assert!(err_msg.contains("500"));
 }
 
+// DLQ メッセージの再処理リクエストが正常に成功することを確認する。
 #[tokio::test]
 async fn test_retry_message_success() {
     let mock_server = MockServer::start().await;
@@ -168,6 +175,7 @@ async fn test_retry_message_success() {
     assert_eq!(resp.status, DlqStatus::Retrying);
 }
 
+// 既に再処理中のメッセージを再処理しようとすると 409 エラーが返ることを確認する。
 #[tokio::test]
 async fn test_retry_message_conflict_returns_error() {
     let mock_server = MockServer::start().await;
@@ -185,6 +193,7 @@ async fn test_retry_message_conflict_returns_error() {
     assert!(err_msg.contains("409"));
 }
 
+// 存在しないメッセージを再処理しようとすると 404 エラーが返ることを確認する。
 #[tokio::test]
 async fn test_retry_message_not_found_returns_error() {
     let mock_server = MockServer::start().await;
@@ -202,6 +211,7 @@ async fn test_retry_message_not_found_returns_error() {
     assert!(err_msg.contains("404"));
 }
 
+// DLQ メッセージの削除が正常に成功することを確認する。
 #[tokio::test]
 async fn test_delete_message_success() {
     let mock_server = MockServer::start().await;
@@ -217,6 +227,7 @@ async fn test_delete_message_success() {
     assert!(result.is_ok());
 }
 
+// 存在しないメッセージを削除しようとすると 404 エラーが返ることを確認する。
 #[tokio::test]
 async fn test_delete_message_not_found_returns_error() {
     let mock_server = MockServer::start().await;
@@ -234,6 +245,7 @@ async fn test_delete_message_not_found_returns_error() {
     assert!(err_msg.contains("404"));
 }
 
+// トピック内の全 DLQ メッセージの一括再処理が正常に成功することを確認する。
 #[tokio::test]
 async fn test_retry_all_success() {
     let mock_server = MockServer::start().await;
@@ -251,6 +263,7 @@ async fn test_retry_all_success() {
     assert!(result.is_ok());
 }
 
+// 一括再処理でサーバーエラーが発生した場合にエラーが返ることを確認する。
 #[tokio::test]
 async fn test_retry_all_server_error_returns_error() {
     let mock_server = MockServer::start().await;
@@ -268,6 +281,7 @@ async fn test_retry_all_server_error_returns_error() {
     assert!(err_msg.contains("500"));
 }
 
+// DLQ メッセージが存在しないトピックで空のレスポンスが返ることを確認する。
 #[tokio::test]
 async fn test_list_messages_empty_response() {
     let mock_server = MockServer::start().await;
@@ -292,6 +306,7 @@ async fn test_list_messages_empty_response() {
     assert!(resp.messages.is_empty());
 }
 
+// 異なるステータスを持つ DLQ メッセージが正しくデシリアライズされることを確認する。
 #[tokio::test]
 async fn test_list_messages_multiple_statuses() {
     let mock_server = MockServer::start().await;

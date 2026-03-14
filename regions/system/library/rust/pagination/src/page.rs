@@ -96,6 +96,7 @@ impl<T> PageResponse<T> {
 mod tests {
     use super::*;
 
+    // PageResponseが正しく生成され、総ページ数が計算されることを確認する。
     #[test]
     fn test_page_response_new() {
         let request = PageRequest {
@@ -112,6 +113,7 @@ mod tests {
         assert_eq!(response.items.len(), 3);
     }
 
+    // 総件数がper_pageで割り切れるときのtotal_pagesが正確であることを確認する。
     #[test]
     fn test_page_response_exact_pages() {
         let request = PageRequest {
@@ -123,6 +125,7 @@ mod tests {
         assert_eq!(response.total_pages, 2);
     }
 
+    // PageResponseからメタデータが正しく取得できることを確認する。
     #[test]
     fn test_page_response_meta() {
         let request = PageRequest {
@@ -137,6 +140,7 @@ mod tests {
         assert_eq!(meta.total_pages, 3);
     }
 
+    // 有効なper_page値（1、50、100）がバリデーションを通過することを確認する。
     #[test]
     fn test_validate_per_page_valid() {
         assert!(validate_per_page(1).is_ok());
@@ -144,16 +148,19 @@ mod tests {
         assert!(validate_per_page(100).is_ok());
     }
 
+    // per_pageが0の場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn test_validate_per_page_zero() {
         assert!(validate_per_page(0).is_err());
     }
 
+    // per_pageが最大値（100）を超えた場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn test_validate_per_page_over_max() {
         assert!(validate_per_page(101).is_err());
     }
 
+    // PaginationMetaの各フィールドが正しく保持されることを確認する。
     #[test]
     fn test_pagination_meta_fields() {
         let meta = PaginationMeta {
@@ -166,6 +173,7 @@ mod tests {
         assert_eq!(meta.total_pages, 10);
     }
 
+    // PageRequestのデフォルト値がpage=1、per_page=20であることを確認する。
     #[test]
     fn test_page_request_default() {
         let req = PageRequest::default();
@@ -173,6 +181,7 @@ mod tests {
         assert_eq!(req.per_page, 20);
     }
 
+    // default_page_request関数がデフォルトのPageRequestを返すことを確認する。
     #[test]
     fn test_default_page_request_function() {
         let req = default_page_request();
@@ -180,6 +189,7 @@ mod tests {
         assert_eq!(req.per_page, 20);
     }
 
+    // 1ページ目のオフセットが0であることを確認する。
     #[test]
     fn test_page_request_offset_first_page() {
         let req = PageRequest {
@@ -189,6 +199,7 @@ mod tests {
         assert_eq!(req.offset(), 0);
     }
 
+    // 2ページ目のオフセットがper_pageと等しいことを確認する。
     #[test]
     fn test_page_request_offset_second_page() {
         let req = PageRequest {
@@ -198,6 +209,7 @@ mod tests {
         assert_eq!(req.offset(), 20);
     }
 
+    // 3ページ目のオフセットが正しく計算されることを確認する。
     #[test]
     fn test_page_request_offset_third_page() {
         let req = PageRequest {
@@ -207,6 +219,7 @@ mod tests {
         assert_eq!(req.offset(), 20);
     }
 
+    // 次のページが存在するときhas_nextがtrueを返すことを確認する。
     #[test]
     fn test_has_next_true() {
         let req = PageRequest {
@@ -216,6 +229,7 @@ mod tests {
         assert!(req.has_next(25));
     }
 
+    // ページ数と総件数がちょうど一致する場合has_nextがfalseを返すことを確認する。
     #[test]
     fn test_has_next_false_exact() {
         let req = PageRequest {
@@ -226,6 +240,7 @@ mod tests {
         assert!(!req.has_next(20));
     }
 
+    // 最終ページを超えた場合has_nextがfalseを返すことを確認する。
     #[test]
     fn test_has_next_false_last_page() {
         let req = PageRequest {
@@ -235,6 +250,7 @@ mod tests {
         assert!(!req.has_next(25));
     }
 
+    // まだアイテムが残っている場合has_nextがtrueを返すことを確認する。
     #[test]
     fn test_has_next_more_items_remaining() {
         let req = PageRequest {

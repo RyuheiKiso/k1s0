@@ -24,12 +24,14 @@ fn default_config() -> CircuitBreakerConfig {
 // State transition tests
 // ===========================================================================
 
+// サーキットブレーカーの初期状態が Closed であることを確認する。
 #[tokio::test]
 async fn initial_state_is_closed() {
     let cb = CircuitBreaker::new(default_config());
     assert_eq!(cb.state().await, CircuitBreakerState::Closed);
 }
 
+// 失敗回数が閾値に達した後に Closed から Open へ遷移することを確認する。
 #[tokio::test]
 async fn closed_to_open_after_failure_threshold() {
     let cb = CircuitBreaker::new(fast_config(3, 1, 100));
@@ -44,6 +46,7 @@ async fn closed_to_open_after_failure_threshold() {
     assert_eq!(cb.state().await, CircuitBreakerState::Open);
 }
 
+// タイムアウト経過後に Open から HalfOpen へ遷移することを確認する。
 #[tokio::test]
 async fn open_to_half_open_after_timeout() {
     let cb = CircuitBreaker::new(fast_config(1, 1, 50));
@@ -55,6 +58,7 @@ async fn open_to_half_open_after_timeout() {
     assert_eq!(cb.state().await, CircuitBreakerState::HalfOpen);
 }
 
+// HalfOpen 状態で成功回数が閾値に達した後に Closed へ遷移することを確認する。
 #[tokio::test]
 async fn half_open_to_closed_after_success_threshold() {
     let cb = CircuitBreaker::new(fast_config(1, 2, 50));
@@ -73,6 +77,7 @@ async fn half_open_to_closed_after_success_threshold() {
     assert_eq!(cb.state().await, CircuitBreakerState::Closed);
 }
 
+// HalfOpen 状態で失敗が発生した場合に再び Open へ戻ることを確認する。
 #[tokio::test]
 async fn half_open_to_open_on_failure() {
     let cb = CircuitBreaker::new(fast_config(1, 2, 50));
@@ -86,6 +91,7 @@ async fn half_open_to_open_on_failure() {
     assert_eq!(cb.state().await, CircuitBreakerState::Open);
 }
 
+// Closed → Open → HalfOpen → Closed の完全な状態遷移サイクルを検証する。
 #[tokio::test]
 async fn full_cycle_closed_open_half_open_closed() {
     let cb = CircuitBreaker::new(fast_config(2, 1, 50));
@@ -104,6 +110,7 @@ async fn full_cycle_closed_open_half_open_closed() {
     assert_eq!(cb.state().await, CircuitBreakerState::Closed);
 }
 
+// タイムアウト前は Open 状態が維持されることを確認する。
 #[tokio::test]
 async fn stays_open_before_timeout_elapses() {
     let cb = CircuitBreaker::new(fast_config(1, 1, 200));
@@ -120,6 +127,7 @@ async fn stays_open_before_timeout_elapses() {
 // call() tests
 // ===========================================================================
 
+// call が成功した場合に値が正しく返されることを確認する。
 #[tokio::test]
 async fn call_success_returns_value() {
     let cb = CircuitBreaker::new(default_config());
@@ -127,6 +135,7 @@ async fn call_success_returns_value() {
     assert_eq!(result.unwrap(), 42);
 }
 
+// call が失敗した場合に Inner エラーが返されることを確認する。
 #[tokio::test]
 async fn call_failure_returns_inner_error() {
     let cb = CircuitBreaker::new(default_config());
@@ -139,6 +148,7 @@ async fn call_failure_returns_inner_error() {
     }
 }
 
+// Open 状態のとき call がリジェクトされることを確認する。
 #[tokio::test]
 async fn call_rejected_when_open() {
     let cb = CircuitBreaker::new(default_config());
@@ -151,6 +161,7 @@ async fn call_rejected_when_open() {
     assert!(matches!(result, Err(CircuitBreakerError::Open)));
 }
 
+// HalfOpen 状態のとき call が許可され成功後に Closed へ遷移することを確認する。
 #[tokio::test]
 async fn call_allowed_in_half_open() {
     let cb = CircuitBreaker::new(fast_config(1, 1, 50));
@@ -165,6 +176,7 @@ async fn call_allowed_in_half_open() {
     assert_eq!(cb.state().await, CircuitBreakerState::Closed);
 }
 
+// HalfOpen 状態で call が失敗した場合に Open へ再遷移することを確認する。
 #[tokio::test]
 async fn call_failure_in_half_open_reopens() {
     let cb = CircuitBreaker::new(fast_config(1, 2, 50));
@@ -184,6 +196,7 @@ async fn call_failure_in_half_open_reopens() {
 // Failure counting / threshold edge cases
 // ===========================================================================
 
+// 失敗回数が閾値未満の場合は Closed 状態が維持されることを確認する。
 #[tokio::test]
 async fn failures_below_threshold_stay_closed() {
     let cb = CircuitBreaker::new(fast_config(5, 1, 100));
@@ -194,6 +207,7 @@ async fn failures_below_threshold_stay_closed() {
     assert_eq!(cb.state().await, CircuitBreakerState::Closed);
 }
 
+// 閾値が 1 の場合は最初の失敗で即座に Open になることを確認する。
 #[tokio::test]
 async fn threshold_of_one_opens_immediately() {
     let cb = CircuitBreaker::new(fast_config(1, 1, 100));
@@ -201,6 +215,7 @@ async fn threshold_of_one_opens_immediately() {
     assert_eq!(cb.state().await, CircuitBreakerState::Open);
 }
 
+// Closed 状態での成功記録は状態に影響を与えないことを確認する。
 #[tokio::test]
 async fn successes_in_closed_do_not_affect_state() {
     let cb = CircuitBreaker::new(default_config());
@@ -214,6 +229,7 @@ async fn successes_in_closed_do_not_affect_state() {
 // Config validation / defaults
 // ===========================================================================
 
+// デフォルト設定が適切な値を持つことを確認する。
 #[test]
 fn default_config_has_sane_values() {
     let config = CircuitBreakerConfig::default();
@@ -222,6 +238,7 @@ fn default_config_has_sane_values() {
     assert_eq!(config.timeout, Duration::from_secs(30));
 }
 
+// 設定をクローンした場合に同じ値が保持されることを確認する。
 #[test]
 fn config_clone_is_equal() {
     let config = CircuitBreakerConfig {
@@ -239,6 +256,7 @@ fn config_clone_is_equal() {
 // Metrics tracking
 // ===========================================================================
 
+// メトリクスの初期状態が全てゼロかつ Closed であることを確認する。
 #[tokio::test]
 async fn metrics_initial_state() {
     let cb = CircuitBreaker::new(default_config());
@@ -248,6 +266,7 @@ async fn metrics_initial_state() {
     assert_eq!(m.state, "Closed");
 }
 
+// メトリクスが成功数と失敗数を正しく記録することを確認する。
 #[tokio::test]
 async fn metrics_track_successes_and_failures() {
     let cb = CircuitBreaker::new(default_config());
@@ -261,6 +280,7 @@ async fn metrics_track_successes_and_failures() {
     assert_eq!(m.failure_count, 1);
 }
 
+// メトリクスの状態フィールドが状態遷移に応じて更新されることを確認する。
 #[tokio::test]
 async fn metrics_reflect_state_changes() {
     let cb = CircuitBreaker::new(fast_config(1, 1, 50));
@@ -283,6 +303,7 @@ async fn metrics_reflect_state_changes() {
     assert_eq!(m.state, "Closed");
 }
 
+// call を通じた成功と失敗がメトリクスに蓄積されることを確認する。
 #[tokio::test]
 async fn metrics_accumulate_through_call() {
     let cb = CircuitBreaker::new(default_config());
@@ -300,6 +321,7 @@ async fn metrics_accumulate_through_call() {
 // Concurrent access safety
 // ===========================================================================
 
+// 並行して失敗を記録した場合に正しく Open へ遷移することを確認する。
 #[tokio::test]
 async fn concurrent_failures_transition_correctly() {
     let cb = Arc::new(CircuitBreaker::new(fast_config(10, 1, 100)));
@@ -320,6 +342,7 @@ async fn concurrent_failures_transition_correctly() {
     assert_eq!(m.failure_count, 10);
 }
 
+// Open 状態のとき並行する全ての call がリジェクトされることを確認する。
 #[tokio::test]
 async fn concurrent_calls_when_open_all_rejected() {
     let cb = Arc::new(CircuitBreaker::new(fast_config(1, 1, 5000)));
@@ -346,18 +369,21 @@ async fn concurrent_calls_when_open_all_rejected() {
 // Error display
 // ===========================================================================
 
+// Open エラーの表示文字列が正しいことを確認する。
 #[test]
 fn error_display_open() {
     let err: CircuitBreakerError<String> = CircuitBreakerError::Open;
     assert_eq!(format!("{}", err), "circuit breaker is open");
 }
 
+// Inner エラーの表示文字列が内部エラーを含むことを確認する。
 #[test]
 fn error_display_inner() {
     let err: CircuitBreakerError<String> = CircuitBreakerError::Inner("db down".to_string());
     assert_eq!(format!("{}", err), "inner error: db down");
 }
 
+// エラーが Debug トレイトを実装していることを確認する。
 #[test]
 fn error_is_debug() {
     let err: CircuitBreakerError<String> = CircuitBreakerError::Open;

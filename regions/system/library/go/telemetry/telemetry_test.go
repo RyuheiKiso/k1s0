@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// トレースエンドポイントなしでInitTelemetryが正常に初期化されることを確認する。
 func TestInitTelemetry_WithoutTraceEndpoint(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName: "test-service",
@@ -31,6 +32,7 @@ func TestInitTelemetry_WithoutTraceEndpoint(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// トレースエンドポイントを指定した場合にInitTelemetryがTracerProviderを生成することを確認する。
 func TestInitTelemetry_WithTraceEndpoint(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName:   "test-service",
@@ -53,6 +55,7 @@ func TestInitTelemetry_WithTraceEndpoint(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// NewLoggerがDebugレベルのログを有効にしたロガーを生成することを確認する。
 func TestNewLogger_DebugLevel(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName: "test-service",
@@ -68,6 +71,7 @@ func TestNewLogger_DebugLevel(t *testing.T) {
 	assert.True(t, logger.Enabled(context.Background(), slog.LevelDebug))
 }
 
+// NewLoggerがInfoレベルのログを有効にし、Debugレベルを無効にすることを確認する。
 func TestNewLogger_InfoLevel(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName: "test-service",
@@ -84,6 +88,7 @@ func TestNewLogger_InfoLevel(t *testing.T) {
 	assert.False(t, logger.Enabled(context.Background(), slog.LevelDebug))
 }
 
+// NewLoggerがWarnレベルのログを有効にし、Infoレベルを無効にすることを確認する。
 func TestNewLogger_WarnLevel(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName: "test-service",
@@ -100,6 +105,7 @@ func TestNewLogger_WarnLevel(t *testing.T) {
 	assert.False(t, logger.Enabled(context.Background(), slog.LevelInfo))
 }
 
+// NewLoggerがErrorレベルのログを有効にし、Warnレベルを無効にすることを確認する。
 func TestNewLogger_ErrorLevel(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName: "test-service",
@@ -116,6 +122,7 @@ func TestNewLogger_ErrorLevel(t *testing.T) {
 	assert.False(t, logger.Enabled(context.Background(), slog.LevelWarn))
 }
 
+// NewLoggerがテキスト形式のフォーマットでロガーを生成することを確認する。
 func TestNewLogger_TextFormat(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName: "test-service",
@@ -132,6 +139,7 @@ func TestNewLogger_TextFormat(t *testing.T) {
 	assert.False(t, logger.Enabled(context.Background(), slog.LevelDebug))
 }
 
+// スパンなしのコンテキストでLogWithTraceがロガーを返すことを確認する。
 func TestLogWithTrace_WithoutSpan(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName: "test-service",
@@ -149,6 +157,7 @@ func TestLogWithTrace_WithoutSpan(t *testing.T) {
 	require.NotNil(t, result)
 }
 
+// アクティブなスパンを持つコンテキストでLogWithTraceがトレース情報を含むロガーを返すことを確認する。
 func TestLogWithTrace_WithSpan(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName: "test-service",
@@ -174,6 +183,7 @@ func TestLogWithTrace_WithSpan(t *testing.T) {
 	require.NotNil(t, result)
 }
 
+// TracerProviderがnilの場合にProviderのShutdownがエラーなく完了することを確認する。
 func TestProvider_Shutdown_NilTracerProvider(t *testing.T) {
 	p := &Provider{
 		tracerProvider: nil,
@@ -183,6 +193,7 @@ func TestProvider_Shutdown_NilTracerProvider(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// スパンなしの場合にTraceHandlerが正しく動作することを確認する。
 func TestTraceHandler_WithoutSpan(t *testing.T) {
 	handler := slog.NewJSONHandler(nil, &slog.HandlerOptions{Level: slog.LevelDebug})
 	th := TraceHandler(handler)
@@ -191,6 +202,7 @@ func TestTraceHandler_WithoutSpan(t *testing.T) {
 	assert.True(t, th.Enabled(context.Background(), slog.LevelDebug))
 }
 
+// TraceHandlerのWithAttrsが*traceHandler型を返すことを確認する。
 func TestTraceHandler_WithAttrs(t *testing.T) {
 	handler := slog.NewJSONHandler(nil, &slog.HandlerOptions{Level: slog.LevelDebug})
 	th := TraceHandler(handler)
@@ -201,6 +213,7 @@ func TestTraceHandler_WithAttrs(t *testing.T) {
 	assert.True(t, ok, "WithAttrs should return a *traceHandler")
 }
 
+// TraceHandlerのWithGroupが*traceHandler型を返すことを確認する。
 func TestTraceHandler_WithGroup(t *testing.T) {
 	handler := slog.NewJSONHandler(nil, &slog.HandlerOptions{Level: slog.LevelDebug})
 	th := TraceHandler(handler)
@@ -211,6 +224,7 @@ func TestTraceHandler_WithGroup(t *testing.T) {
 	assert.True(t, ok, "WithGroup should return a *traceHandler")
 }
 
+// TelemetryConfigの各フィールドが正しく設定・取得できることを確認する。
 func TestTelemetryConfig_Fields(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName:   "my-service",

@@ -43,6 +43,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    // イベントを記録してフラッシュで取得できることを確認する。
     #[tokio::test]
     async fn test_record_and_flush() {
         let client = BufferedAuditClient::new();
@@ -65,6 +66,7 @@ mod tests {
         assert_eq!(flushed[0].action, "create");
     }
 
+    // フラッシュ後にバッファが空になることを確認する。
     #[tokio::test]
     async fn test_flush_empties_buffer() {
         let client = BufferedAuditClient::new();
@@ -82,6 +84,7 @@ mod tests {
         assert!(flushed.is_empty());
     }
 
+    // 複数のイベントが順序を保ってバッファリングされることを確認する。
     #[tokio::test]
     async fn test_multiple_events_buffering() {
         let client = BufferedAuditClient::new();

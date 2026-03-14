@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// GenerateUploadURLがアップロード用の署名済みURLを正常に生成することを検証する。
 func TestGenerateUploadURL(t *testing.T) {
 	c := fileclient.NewInMemoryFileClient()
 	url, err := c.GenerateUploadURL(context.Background(), "uploads/test.png", "image/png", time.Hour)
@@ -18,6 +19,7 @@ func TestGenerateUploadURL(t *testing.T) {
 	assert.Equal(t, "PUT", url.Method)
 }
 
+// GenerateDownloadURLがダウンロード用の署名済みURLを正常に生成することを検証する。
 func TestGenerateDownloadURL(t *testing.T) {
 	c := fileclient.NewInMemoryFileClient()
 	ctx := context.Background()
@@ -28,12 +30,14 @@ func TestGenerateDownloadURL(t *testing.T) {
 	assert.Equal(t, "GET", url.Method)
 }
 
+// GenerateDownloadURLが存在しないファイルに対してエラーを返すことを検証する。
 func TestGenerateDownloadURL_NotFound(t *testing.T) {
 	c := fileclient.NewInMemoryFileClient()
 	_, err := c.GenerateDownloadURL(context.Background(), "nonexistent.txt", 5*time.Minute)
 	assert.Error(t, err)
 }
 
+// Deleteがファイルを正常に削除し、その後アクセスできなくなることを検証する。
 func TestDelete(t *testing.T) {
 	c := fileclient.NewInMemoryFileClient()
 	ctx := context.Background()
@@ -44,6 +48,7 @@ func TestDelete(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// GetMetadataがファイルのパスとコンテントタイプを正しく返すことを検証する。
 func TestGetMetadata(t *testing.T) {
 	c := fileclient.NewInMemoryFileClient()
 	ctx := context.Background()
@@ -54,6 +59,7 @@ func TestGetMetadata(t *testing.T) {
 	assert.Equal(t, "image/png", meta.ContentType)
 }
 
+// Listが指定プレフィックスに一致するファイルのみを返すことを検証する。
 func TestList(t *testing.T) {
 	c := fileclient.NewInMemoryFileClient()
 	ctx := context.Background()
@@ -65,6 +71,7 @@ func TestList(t *testing.T) {
 	assert.Len(t, files, 2)
 }
 
+// Copyがファイルを別のパスに正常にコピーし、メタデータを保持することを検証する。
 func TestCopy(t *testing.T) {
 	c := fileclient.NewInMemoryFileClient()
 	ctx := context.Background()
@@ -76,12 +83,14 @@ func TestCopy(t *testing.T) {
 	assert.Equal(t, "image/png", meta.ContentType)
 }
 
+// Copyが存在しないファイルのコピー時にエラーを返すことを検証する。
 func TestCopy_NotFound(t *testing.T) {
 	c := fileclient.NewInMemoryFileClient()
 	err := c.Copy(context.Background(), "nonexistent.txt", "dest.txt")
 	assert.Error(t, err)
 }
 
+// StoredFilesが初期状態で空のマップを返すことを検証する。
 func TestStoredFiles_Empty(t *testing.T) {
 	c := fileclient.NewInMemoryFileClient()
 	assert.Empty(t, c.StoredFiles())

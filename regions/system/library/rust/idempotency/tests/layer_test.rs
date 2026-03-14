@@ -35,6 +35,7 @@ async fn send_request(app: Router, key: Option<&str>) -> (u16, String) {
     (status, body_str)
 }
 
+// Idempotency-Key ヘッダーなしのリクエストがそのまま通過することを確認する。
 #[tokio::test]
 async fn test_no_idempotency_key_passes_through() {
     let store = Arc::new(InMemoryIdempotencyStore::new());
@@ -43,6 +44,7 @@ async fn test_no_idempotency_key_passes_through() {
     assert_eq!(body, "created");
 }
 
+// Idempotency-Key ヘッダーを持つ初回リクエストが正常に処理されることを確認する。
 #[tokio::test]
 async fn test_first_request_with_key_passes_through() {
     let store = Arc::new(InMemoryIdempotencyStore::new());
@@ -51,6 +53,7 @@ async fn test_first_request_with_key_passes_through() {
     assert_eq!(body, "created");
 }
 
+// 同一キーで2回目のリクエストがキャッシュされたレスポンスを返すことを確認する。
 #[tokio::test]
 async fn test_duplicate_request_returns_cached_response() {
     let store = Arc::new(InMemoryIdempotencyStore::new());
@@ -64,6 +67,7 @@ async fn test_duplicate_request_returns_cached_response() {
     assert_eq!(body2, "created");
 }
 
+// 2回目のリクエストのレスポンスに x-idempotent-replayed ヘッダーが付与されることを確認する。
 #[tokio::test]
 async fn test_duplicate_response_has_replayed_header() {
     let store = Arc::new(InMemoryIdempotencyStore::new());
@@ -92,6 +96,7 @@ async fn test_duplicate_response_has_replayed_header() {
     );
 }
 
+// 異なるキーを持つリクエストが互いに干渉せず独立して処理されることを確認する。
 #[tokio::test]
 async fn test_different_keys_are_independent() {
     let store = Arc::new(InMemoryIdempotencyStore::new());
@@ -102,6 +107,7 @@ async fn test_different_keys_are_independent() {
     assert_eq!(s2, 200);
 }
 
+// リクエスト完了後にストアのレコードが Completed ステータスとレスポンス情報を持つことを確認する。
 #[tokio::test]
 async fn test_store_records_completed_status() {
     let store = Arc::new(InMemoryIdempotencyStore::new());
@@ -117,6 +123,7 @@ async fn test_store_records_completed_status() {
     assert!(record.response_body.is_some());
 }
 
+// ハンドラーが 5xx を返した場合にストアのレコードが Failed ステータスになることを確認する。
 #[tokio::test]
 async fn test_failed_handler_records_failed_status() {
     let store = Arc::new(InMemoryIdempotencyStore::new());
@@ -146,6 +153,7 @@ async fn test_failed_handler_records_failed_status() {
     assert_eq!(record.response_status, Some(500));
 }
 
+// 前回が Failed なリクエストに対して同一キーで再試行できることを確認する。
 #[tokio::test]
 async fn test_failed_request_allows_retry() {
     let store = Arc::new(InMemoryIdempotencyStore::new());

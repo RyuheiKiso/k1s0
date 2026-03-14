@@ -193,6 +193,7 @@ impl KafkaConfigBuilder {
 mod tests {
     use super::*;
 
+    // 単一ブローカーの場合に bootstrap_servers がそのアドレスをそのまま返すことを確認する。
     #[test]
     fn test_bootstrap_servers_single() {
         let cfg = KafkaConfig::builder()
@@ -203,6 +204,7 @@ mod tests {
         assert_eq!(cfg.bootstrap_servers(), "kafka:9092");
     }
 
+    // 複数ブローカーの場合に bootstrap_servers がカンマ区切りのアドレス文字列を返すことを確認する。
     #[test]
     fn test_bootstrap_servers_multiple() {
         let cfg = KafkaConfig {
@@ -219,6 +221,7 @@ mod tests {
         assert_eq!(cfg.bootstrap_servers(), "kafka-0:9092,kafka-1:9092");
     }
 
+    // PLAINTEXT プロトコルの場合に uses_tls が false を返すことを確認する。
     #[test]
     fn test_uses_tls_plaintext() {
         let cfg = KafkaConfig::builder()
@@ -230,6 +233,7 @@ mod tests {
         assert!(!cfg.uses_tls());
     }
 
+    // SSL プロトコルの場合に uses_tls が true を返すことを確認する。
     #[test]
     fn test_uses_tls_ssl() {
         let cfg = KafkaConfig::builder()
@@ -241,6 +245,7 @@ mod tests {
         assert!(cfg.uses_tls());
     }
 
+    // SASL_SSL プロトコルの場合に uses_tls が true を返すことを確認する。
     #[test]
     fn test_uses_tls_sasl_ssl() {
         let cfg = KafkaConfig::builder()
@@ -252,6 +257,7 @@ mod tests {
         assert!(cfg.uses_tls());
     }
 
+    // SASL_PLAINTEXT プロトコルの場合に uses_tls が false を返すことを確認する。
     #[test]
     fn test_uses_tls_sasl_plaintext() {
         let cfg = KafkaConfig::builder()
@@ -263,6 +269,7 @@ mod tests {
         assert!(!cfg.uses_tls());
     }
 
+    // JSON デシリアライズ時にセキュリティプロトコルと接続タイムアウトのデフォルト値が設定されることを確認する。
     #[test]
     fn test_deserialize_defaults() {
         let json = r#"{"brokers": ["kafka:9092"], "consumer_group": "test-group"}"#;
@@ -271,6 +278,7 @@ mod tests {
         assert_eq!(cfg.connection_timeout_ms, 5000);
     }
 
+    // JSON デシリアライズ時にリクエストタイムアウトと最大メッセージサイズのデフォルト値が設定されることを確認する。
     #[test]
     fn test_deserialize_request_timeout_default() {
         let json = r#"{"brokers": ["kafka:9092"], "consumer_group": "test-group"}"#;
@@ -279,6 +287,7 @@ mod tests {
         assert_eq!(cfg.max_message_bytes, 1_000_000);
     }
 
+    // SASL 認証情報が client_properties に正しく含まれることを確認する。
     #[test]
     fn test_client_properties_with_sasl() {
         let cfg = KafkaConfig::builder()
@@ -304,12 +313,14 @@ mod tests {
         assert_eq!(props.get("sasl.password"), Some(&"secret1".to_string()));
     }
 
+    // ブローカーが空のままビルドするとエラーになることを確認する。
     #[test]
     fn test_bootstrap_servers_empty_via_builder() {
         let err = KafkaConfig::builder().build().unwrap_err();
         assert!(matches!(err, KafkaError::ConfigurationError(_)));
     }
 
+    // ビルダーでコンシューマーグループと SASL_SSL プロトコルを設定した場合に正しく構築されることを確認する。
     #[test]
     fn test_builder_with_consumer_group() {
         let cfg = KafkaConfig::builder()
@@ -322,6 +333,7 @@ mod tests {
         assert!(cfg.uses_tls());
     }
 
+    // ビルダーでカスタムタイムアウトを指定した場合に正しく設定されることを確認する。
     #[test]
     fn test_builder_custom_timeouts() {
         let cfg = KafkaConfig::builder()
@@ -335,6 +347,7 @@ mod tests {
         assert_eq!(cfg.request_timeout_ms, 60000);
     }
 
+    // コンシューマーグループなしでビルドするとエラーになることを確認する。
     #[test]
     fn test_builder_without_consumer_group() {
         let err = KafkaConfig::builder()

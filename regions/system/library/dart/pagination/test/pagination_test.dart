@@ -4,19 +4,19 @@ import 'package:k1s0_pagination/pagination.dart';
 
 void main() {
   group('PageRequest', () {
-    test('stores page and perPage', () {
+    test('pageとperPageが保持されること', () {
       const req = PageRequest(page: 1, perPage: 10);
       expect(req.page, equals(1));
       expect(req.perPage, equals(10));
     });
 
-    test('defaultRequest returns page=1, perPage=20', () {
+    test('defaultRequestがpage=1, perPage=20を返すこと', () {
       final req = PageRequest.defaultRequest();
       expect(req.page, equals(1));
       expect(req.perPage, equals(20));
     });
 
-    test('offset is (page-1) * perPage', () {
+    test('offsetが(page-1) * perPageで計算されること', () {
       const req1 = PageRequest(page: 1, perPage: 10);
       expect(req1.offset, equals(0));
 
@@ -27,14 +27,14 @@ void main() {
       expect(req3.offset, equals(25));
     });
 
-    test('hasNext returns true when more pages exist', () {
+    test('次のページが存在する場合hasNextがtrueを返すこと', () {
       const req = PageRequest(page: 1, perPage: 10);
       expect(req.hasNext(25), isTrue);
       expect(req.hasNext(10), isFalse);
       expect(req.hasNext(11), isTrue);
     });
 
-    test('hasNext returns false on last page', () {
+    test('最終ページではhasNextがfalseを返すこと', () {
       const req = PageRequest(page: 3, perPage: 10);
       expect(req.hasNext(30), isFalse);
       expect(req.hasNext(31), isTrue);
@@ -42,7 +42,7 @@ void main() {
   });
 
   group('PageResponse', () {
-    test('creates with correct totalPages', () {
+    test('正しいtotalPagesで生成されること', () {
       const req = PageRequest(page: 1, perPage: 10);
       final resp = PageResponse<String>.create(['a', 'b'], 25, req);
       expect(resp.items, equals(['a', 'b']));
@@ -50,20 +50,20 @@ void main() {
       expect(resp.totalPages, equals(3));
     });
 
-    test('handles exact division', () {
+    test('割り切れる件数の場合に正しいページ数が計算されること', () {
       const req = PageRequest(page: 1, perPage: 5);
       final resp = PageResponse<int>.create([1, 2, 3, 4, 5], 10, req);
       expect(resp.totalPages, equals(2));
     });
 
-    test('handles empty items', () {
+    test('アイテムが空の場合に正しく処理されること', () {
       const req = PageRequest(page: 1, perPage: 10);
       final resp = PageResponse<String>.create([], 0, req);
       expect(resp.totalPages, equals(0));
       expect(resp.items, isEmpty);
     });
 
-    test('meta returns PaginationMeta', () {
+    test('metaがPaginationMetaを返すこと', () {
       const req = PageRequest(page: 2, perPage: 10);
       final resp = PageResponse<String>.create(['a'], 25, req);
       final meta = resp.meta;
@@ -75,7 +75,7 @@ void main() {
   });
 
   group('cursor', () {
-    test('encode and decode round-trip', () {
+    test('エンコードとデコードのラウンドトリップが正しく動作すること', () {
       const sortKey = '2024-01-15';
       const id = 'abc-123';
       final cursor = encodeCursor(sortKey, id);
@@ -84,19 +84,19 @@ void main() {
       expect(result.id, equals(id));
     });
 
-    test('produces base64url string', () {
+    test('base64url形式の文字列が生成されること', () {
       final cursor = encodeCursor('key', 'test-id');
       expect(cursor, isNotEmpty);
       expect(cursor, isNot(contains(' ')));
     });
 
-    test('CursorRequest stores fields', () {
+    test('CursorRequestがフィールドを保持すること', () {
       const req = CursorRequest(cursor: 'abc', limit: 20);
       expect(req.cursor, equals('abc'));
       expect(req.limit, equals(20));
     });
 
-    test('CursorMeta stores fields', () {
+    test('CursorMetaがフィールドを保持すること', () {
       const meta = CursorMeta(nextCursor: 'next', hasMore: true);
       expect(meta.nextCursor, equals('next'));
       expect(meta.hasMore, isTrue);
@@ -104,17 +104,17 @@ void main() {
   });
 
   group('validatePerPage', () {
-    test('accepts valid values', () {
+    test('有効な値を受け付けること', () {
       expect(validatePerPage(1), equals(1));
       expect(validatePerPage(50), equals(50));
       expect(validatePerPage(100), equals(100));
     });
 
-    test('rejects zero', () {
+    test('0を拒否すること', () {
       expect(() => validatePerPage(0), throwsA(isA<PerPageValidationException>()));
     });
 
-    test('rejects over max', () {
+    test('最大値を超えた場合に拒否すること', () {
       expect(() => validatePerPage(101), throwsA(isA<PerPageValidationException>()));
     });
   });

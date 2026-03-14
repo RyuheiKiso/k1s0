@@ -47,6 +47,7 @@ func makeVerifier(t *testing.T) (*JWKSVerifier, string) {
 
 // --- UnaryServerInterceptor テスト ---
 
+// UnaryServerInterceptor がメタデータのないコンテキストで Unauthenticated エラーを返すことを確認する。
 func TestUnaryInterceptor_NoMetadata(t *testing.T) {
 	verifier, _ := makeVerifier(t)
 	interceptor := UnaryServerInterceptor(verifier)
@@ -62,6 +63,7 @@ func TestUnaryInterceptor_NoMetadata(t *testing.T) {
 	assert.Equal(t, codes.Unauthenticated, st.Code())
 }
 
+// UnaryServerInterceptor が authorization ヘッダーのないメタデータで Unauthenticated エラーを返すことを確認する。
 func TestUnaryInterceptor_NoAuthorizationHeader(t *testing.T) {
 	verifier, _ := makeVerifier(t)
 	interceptor := UnaryServerInterceptor(verifier)
@@ -78,6 +80,7 @@ func TestUnaryInterceptor_NoAuthorizationHeader(t *testing.T) {
 	assert.Equal(t, codes.Unauthenticated, st.Code())
 }
 
+// UnaryServerInterceptor が Bearer プレフィックスのない authorization ヘッダーで Unauthenticated エラーを返すことを確認する。
 func TestUnaryInterceptor_NoBearerPrefix(t *testing.T) {
 	verifier, tokenStr := makeVerifier(t)
 	interceptor := UnaryServerInterceptor(verifier)
@@ -94,6 +97,7 @@ func TestUnaryInterceptor_NoBearerPrefix(t *testing.T) {
 	assert.Equal(t, codes.Unauthenticated, st.Code())
 }
 
+// UnaryServerInterceptor が無効なトークンで Unauthenticated エラーを返すことを確認する。
 func TestUnaryInterceptor_InvalidToken(t *testing.T) {
 	verifier, _ := makeVerifier(t)
 	interceptor := UnaryServerInterceptor(verifier)
@@ -110,6 +114,7 @@ func TestUnaryInterceptor_InvalidToken(t *testing.T) {
 	assert.Equal(t, codes.Unauthenticated, st.Code())
 }
 
+// UnaryServerInterceptor が有効なトークンを検証しクレームをコンテキストに設定してハンドラーへ渡すことを確認する。
 func TestUnaryInterceptor_ValidToken_ClaimsInContext(t *testing.T) {
 	verifier, tokenStr := makeVerifier(t)
 	interceptor := UnaryServerInterceptor(verifier)
@@ -134,6 +139,7 @@ func TestUnaryInterceptor_ValidToken_ClaimsInContext(t *testing.T) {
 
 // --- StreamServerInterceptor テスト ---
 
+// StreamServerInterceptor がメタデータのないストリームコンテキストで Unauthenticated エラーを返すことを確認する。
 func TestStreamInterceptor_NoMetadata(t *testing.T) {
 	verifier, _ := makeVerifier(t)
 	interceptor := StreamServerInterceptor(verifier)
@@ -150,6 +156,7 @@ func TestStreamInterceptor_NoMetadata(t *testing.T) {
 	assert.Equal(t, codes.Unauthenticated, st.Code())
 }
 
+// StreamServerInterceptor が有効なトークンを検証しクレームをストリームコンテキストに設定することを確認する。
 func TestStreamInterceptor_ValidToken_ClaimsInContext(t *testing.T) {
 	verifier, tokenStr := makeVerifier(t)
 	interceptor := StreamServerInterceptor(verifier)
@@ -172,6 +179,7 @@ func TestStreamInterceptor_ValidToken_ClaimsInContext(t *testing.T) {
 	assert.Equal(t, "user-uuid-1234", capturedClaims.Sub)
 }
 
+// StreamServerInterceptor が無効なトークンで Unauthenticated エラーを返すことを確認する。
 func TestStreamInterceptor_InvalidToken(t *testing.T) {
 	verifier, _ := makeVerifier(t)
 	interceptor := StreamServerInterceptor(verifier)
@@ -191,6 +199,7 @@ func TestStreamInterceptor_InvalidToken(t *testing.T) {
 
 // --- wrappedServerStream テスト ---
 
+// wrappedServerStream の Context メソッドが注入された新しいコンテキストを返すことを確認する。
 func TestWrappedServerStream_Context(t *testing.T) {
 	originalCtx := context.Background()
 	newCtx := context.WithValue(originalCtx, ClaimsContextKey, &Claims{Sub: "test"})

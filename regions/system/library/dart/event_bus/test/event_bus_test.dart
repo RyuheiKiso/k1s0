@@ -65,7 +65,7 @@ void main() {
     });
 
     group('subscribe and publish', () {
-      test('handler receives matching event', () async {
+      test('ハンドラーが一致するイベントを受信すること', () async {
         final received = <Event>[];
         bus.subscribe('user.created', (e) async => received.add(e));
         await bus.publish(makeEvent('user.created'));
@@ -73,14 +73,14 @@ void main() {
         expect(received.first.eventType, equals('user.created'));
       });
 
-      test('handler does not receive non-matching event', () async {
+      test('ハンドラーが一致しないイベントを受信しないこと', () async {
         final received = <Event>[];
         bus.subscribe('user.created', (e) async => received.add(e));
         await bus.publish(makeEvent('user.deleted'));
         expect(received, isEmpty);
       });
 
-      test('multiple handlers for same event', () async {
+      test('同じイベントに複数のハンドラーを登録できること', () async {
         var count = 0;
         bus.subscribe('test', (e) async => count++);
         bus.subscribe('test', (e) async => count++);
@@ -90,7 +90,7 @@ void main() {
     });
 
     group('unsubscribe', () {
-      test('removes all handlers for event type', () async {
+      test('イベントタイプの全ハンドラーが削除されること', () async {
         final received = <Event>[];
         bus.subscribe('test', (e) async => received.add(e));
         bus.unsubscribe('test');
@@ -100,14 +100,14 @@ void main() {
     });
 
     group('Event', () {
-      test('stores all fields', () {
+      test('全フィールドが正しく保存されること', () {
         final event = makeEvent('test');
         expect(event.id, equals('evt-1'));
         expect(event.eventType, equals('test'));
         expect(event.payload, containsPair('key', 'value'));
       });
 
-      test('implements DomainEvent', () {
+      test('DomainEventインターフェースを実装していること', () {
         final event = makeEvent('test');
         expect(event, isA<DomainEvent>());
         expect(event.aggregateId, equals('agg-1'));
@@ -126,7 +126,7 @@ void main() {
     });
 
     group('publish / subscribe', () {
-      test('subscribed handler receives matching event', () async {
+      test('サブスクライブされたハンドラーが一致するイベントを受信すること', () async {
         final handler = CollectingHandler<DomainEvent>();
         bus.subscribe('user.created', handler);
         final event = TestDomainEvent('user.created');
@@ -135,14 +135,14 @@ void main() {
         expect(handler.received.first, same(event));
       });
 
-      test('handler does not receive non-matching event', () async {
+      test('ハンドラーが一致しないイベントを受信しないこと', () async {
         final handler = CollectingHandler<DomainEvent>();
         bus.subscribe('user.created', handler);
         await bus.publish(TestDomainEvent('order.placed'));
         expect(handler.received, isEmpty);
       });
 
-      test('multiple handlers for same event type', () async {
+      test('同じイベントタイプに複数のハンドラーを登録できること', () async {
         final h1 = CollectingHandler<DomainEvent>();
         final h2 = CollectingHandler<DomainEvent>();
         bus.subscribe('test', h1);
@@ -152,20 +152,20 @@ void main() {
         expect(h2.received, hasLength(1));
       });
 
-      test('publish with no handlers does not throw', () async {
+      test('ハンドラーが登録されていない場合にパブリッシュしてもエラーにならないこと', () async {
         await bus.publish(TestDomainEvent('unknown'));
       });
     });
 
     group('EventSubscription', () {
-      test('subscribe returns EventSubscription', () {
+      test('subscribeがEventSubscriptionを返すこと', () {
         final handler = CollectingHandler<DomainEvent>();
         final sub = bus.subscribe('test', handler);
         expect(sub.eventType, equals('test'));
         expect(sub.isActive, isTrue);
       });
 
-      test('unsubscribe removes handler', () async {
+      test('unsubscribeでハンドラーが削除されること', () async {
         final handler = CollectingHandler<DomainEvent>();
         final sub = bus.subscribe('test', handler);
         sub.unsubscribe();
@@ -174,7 +174,7 @@ void main() {
         expect(handler.received, isEmpty);
       });
 
-      test('unsubscribe removes only the specific handler', () async {
+      test('unsubscribeで特定のハンドラーのみ削除されること', () async {
         final h1 = CollectingHandler<DomainEvent>();
         final h2 = CollectingHandler<DomainEvent>();
         final sub1 = bus.subscribe('test', h1);
@@ -187,7 +187,7 @@ void main() {
     });
 
     group('EventBusConfig', () {
-      test('works with default config', () async {
+      test('デフォルト設定で正常に動作すること', () async {
         final defaultBus = EventBus();
         final handler = CollectingHandler<DomainEvent>();
         defaultBus.subscribe('test', handler);
@@ -195,7 +195,7 @@ void main() {
         expect(handler.received, hasLength(1));
       });
 
-      test('works with custom config', () async {
+      test('カスタム設定で正常に動作すること', () async {
         final customBus =
             EventBus(const EventBusConfig(bufferSize: 100, handlerTimeoutMs: 1000));
         final handler = CollectingHandler<DomainEvent>();
@@ -204,7 +204,7 @@ void main() {
         expect(handler.received, hasLength(1));
       });
 
-      test('handler timeout throws HANDLER_FAILED', () async {
+      test('ハンドラーのタイムアウト時にHANDLER_FAILEDエラーがスローされること', () async {
         final slowBus =
             EventBus(const EventBusConfig(handlerTimeoutMs: 50));
         slowBus.subscribe<DomainEvent>(
@@ -223,7 +223,7 @@ void main() {
     });
 
     group('EventBusError', () {
-      test('HANDLER_FAILED when handler throws', () async {
+      test('ハンドラーがスローした場合にHANDLER_FAILEDエラーが発生すること', () async {
         bus.subscribe<DomainEvent>('test', FailingHandler());
         expect(
           () => bus.publish(TestDomainEvent('test')),
@@ -235,7 +235,7 @@ void main() {
         );
       });
 
-      test('CHANNEL_CLOSED on publish after close', () {
+      test('クローズ後にパブリッシュするとCHANNEL_CLOSEDエラーが発生すること', () {
         bus.close();
         expect(
           () => bus.publish(TestDomainEvent('test')),
@@ -247,7 +247,7 @@ void main() {
         );
       });
 
-      test('CHANNEL_CLOSED on subscribe after close', () {
+      test('クローズ後にサブスクライブするとCHANNEL_CLOSEDエラーが発生すること', () {
         bus.close();
         expect(
           () => bus.subscribe('test', CollectingHandler<DomainEvent>()),
@@ -259,7 +259,7 @@ void main() {
         );
       });
 
-      test('error properties are correct', () {
+      test('エラーのプロパティが正しい値を持つこと', () {
         const err = EventBusError(
           'test message',
           EventBusErrorCode.publishFailed,
@@ -270,7 +270,7 @@ void main() {
         expect(err.toString(), contains('PUBLISH_FAILED'));
       });
 
-      test('all error codes have correct string representation', () {
+      test('全エラーコードが正しい文字列表現を持つこと', () {
         expect(
           const EventBusError('', EventBusErrorCode.publishFailed).codeString,
           equals('PUBLISH_FAILED'),
@@ -287,7 +287,7 @@ void main() {
     });
 
     group('DomainEvent', () {
-      test('TestDomainEvent has correct properties', () {
+      test('TestDomainEventが正しいプロパティを持つこと', () {
         final event = TestDomainEvent('user.created', aggregateId: 'user-123');
         expect(event.eventType, equals('user.created'));
         expect(event.aggregateId, equals('user-123'));

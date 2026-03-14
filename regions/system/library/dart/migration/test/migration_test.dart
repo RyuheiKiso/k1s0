@@ -46,7 +46,7 @@ InMemoryMigrationRunner createRunner() {
 
 void main() {
   group('parseFilename', () {
-    test('parses up migration', () {
+    test('upマイグレーションのファイル名がパースされること', () {
       final result =
           MigrationFile.parseFilename('20240101000001_create_users.up.sql');
       expect(result, isNotNull);
@@ -55,7 +55,7 @@ void main() {
       expect(result.direction, equals(MigrationDirection.up));
     });
 
-    test('parses down migration', () {
+    test('downマイグレーションのファイル名がパースされること', () {
       final result =
           MigrationFile.parseFilename('20240101000001_create_users.down.sql');
       expect(result, isNotNull);
@@ -64,7 +64,7 @@ void main() {
       expect(result.direction, equals(MigrationDirection.down));
     });
 
-    test('returns null for invalid filenames', () {
+    test('無効なファイル名の場合nullが返されること', () {
       expect(MigrationFile.parseFilename('invalid.sql'), isNull);
       expect(MigrationFile.parseFilename('no_direction.sql'), isNull);
       expect(MigrationFile.parseFilename('_.up.sql'), isNull);
@@ -72,7 +72,7 @@ void main() {
   });
 
   group('checksum', () {
-    test('is deterministic', () {
+    test('同じ内容では常に同じチェックサムが返されること', () {
       const content = 'CREATE TABLE users (id SERIAL PRIMARY KEY);';
       expect(
         MigrationFile.computeChecksum(content),
@@ -80,7 +80,7 @@ void main() {
       );
     });
 
-    test('differs for different content', () {
+    test('異なる内容ではチェックサムが異なること', () {
       expect(
         MigrationFile.computeChecksum('CREATE TABLE users;'),
         isNot(equals(MigrationFile.computeChecksum('CREATE TABLE orders;'))),
@@ -89,29 +89,29 @@ void main() {
   });
 
   group('MigrationError', () {
-    test('creates with message', () {
+    test('メッセージを指定して生成できること', () {
       final err = MigrationError('test error');
       expect(err.message, equals('test error'));
     });
 
-    test('creates connectionFailed', () {
+    test('connectionFailedエラーが生成されること', () {
       final err = MigrationError.connectionFailed('failed');
       expect(err.code, equals('CONNECTION_FAILED'));
     });
 
-    test('creates checksumMismatch', () {
+    test('checksumMismatchエラーが生成されること', () {
       final err = MigrationError.checksumMismatch('v1', 'abc', 'def');
       expect(err.code, equals('CHECKSUM_MISMATCH'));
     });
 
-    test('creates directoryNotFound', () {
+    test('directoryNotFoundエラーが生成されること', () {
       final err = MigrationError.directoryNotFound('/tmp');
       expect(err.code, equals('DIRECTORY_NOT_FOUND'));
     });
   });
 
   group('MigrationConfig', () {
-    test('default table name', () {
+    test('デフォルトのテーブル名が設定されること', () {
       const config = MigrationConfig(
         migrationsDir: '.',
         databaseUrl: 'memory://',
@@ -119,7 +119,7 @@ void main() {
       expect(config.tableName, equals('_migrations'));
     });
 
-    test('custom table name', () {
+    test('カスタムテーブル名が設定できること', () {
       const config = MigrationConfig(
         migrationsDir: '.',
         databaseUrl: 'memory://',
@@ -136,19 +136,19 @@ void main() {
       runner = createRunner();
     });
 
-    test('runUp applies all', () async {
+    test('runUpで全マイグレーションが適用されること', () async {
       final report = await runner.runUp();
       expect(report.appliedCount, equals(3));
       expect(report.errors, isEmpty);
     });
 
-    test('runUp is idempotent', () async {
+    test('runUpが冪等であること', () async {
       await runner.runUp();
       final report = await runner.runUp();
       expect(report.appliedCount, equals(0));
     });
 
-    test('runDown rolls back one step', () async {
+    test('runDownで1ステップがロールバックされること', () async {
       await runner.runUp();
       final report = await runner.runDown(1);
       expect(report.appliedCount, equals(1));
@@ -158,7 +158,7 @@ void main() {
       expect(p[0].version, equals('20240201000001'));
     });
 
-    test('runDown rolls back multiple steps', () async {
+    test('runDownで複数ステップがロールバックされること', () async {
       await runner.runUp();
       final report = await runner.runDown(2);
       expect(report.appliedCount, equals(2));
@@ -167,13 +167,13 @@ void main() {
       expect(p.length, equals(2));
     });
 
-    test('runDown handles more than applied', () async {
+    test('runDownで適用済み数を超えた場合も正しく処理されること', () async {
       await runner.runUp();
       final report = await runner.runDown(10);
       expect(report.appliedCount, equals(3));
     });
 
-    test('status shows all pending initially', () async {
+    test('初期状態でstatusが全てpendingを示すこと', () async {
       final statuses = await runner.status();
       expect(statuses.length, equals(3));
       for (final s in statuses) {
@@ -181,7 +181,7 @@ void main() {
       }
     });
 
-    test('status shows all applied after runUp', () async {
+    test('runUp後にstatusが全て適用済みを示すこと', () async {
       await runner.runUp();
       final statuses = await runner.status();
       expect(statuses.length, equals(3));
@@ -190,7 +190,7 @@ void main() {
       }
     });
 
-    test('pending returns all unapplied', () async {
+    test('pendingで未適用マイグレーションが全て返されること', () async {
       final p = await runner.pending();
       expect(p.length, equals(3));
       expect(p[0].version, equals('20240101000001'));
@@ -198,7 +198,7 @@ void main() {
       expect(p[2].version, equals('20240201000001'));
     });
 
-    test('pending returns empty after full apply', () async {
+    test('全適用後にpendingが空になること', () async {
       await runner.runUp();
       final p = await runner.pending();
       expect(p, isEmpty);

@@ -121,6 +121,7 @@ mod tests {
     use http::Request;
     use tower::ServiceExt;
 
+    // /healthz エンドポイントが200を返すことを確認する。
     #[tokio::test]
     async fn test_healthz_returns_ok() {
         let stack = K1s0Stack::new("test-server");
@@ -135,6 +136,7 @@ mod tests {
         assert_eq!(resp.status(), http::StatusCode::OK);
     }
 
+    // メトリクス設定付きで /metrics エンドポイントが200を返すことを確認する。
     #[tokio::test]
     async fn test_metrics_endpoint() {
         let metrics = Arc::new(Metrics::new("test-server"));
@@ -150,6 +152,7 @@ mod tests {
         assert_eq!(resp.status(), http::StatusCode::OK);
     }
 
+    // without_correlation を指定したとき x-correlation-id ヘッダーが付与されないことを確認する。
     #[tokio::test]
     async fn test_without_correlation_disables_layer() {
         let stack = K1s0Stack::new("test-server").without_correlation();
@@ -166,6 +169,7 @@ mod tests {
         assert!(!resp.headers().contains_key("x-correlation-id"));
     }
 
+    // 各環境名文字列が正しい Profile に変換されることを確認する。
     #[test]
     fn test_profile_from_env() {
         assert_eq!(Profile::from_env("prod"), Profile::Prod);

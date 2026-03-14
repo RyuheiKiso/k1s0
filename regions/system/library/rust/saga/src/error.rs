@@ -20,18 +20,21 @@ pub enum SagaError {
 mod tests {
     use super::*;
 
+    // NetworkError の Display 出力が正しいことを確認する。
     #[test]
     fn test_network_error_display() {
         let err = SagaError::NetworkError("connection refused".to_string());
         assert_eq!(err.to_string(), "saga network error: connection refused");
     }
 
+    // DeserializeError の Display 出力が正しいことを確認する。
     #[test]
     fn test_deserialize_error_display() {
         let err = SagaError::DeserializeError("invalid JSON".to_string());
         assert_eq!(err.to_string(), "saga deserialize error: invalid JSON");
     }
 
+    // ApiError の Display 出力にステータスコードとメッセージが含まれることを確認する。
     #[test]
     fn test_api_error_display() {
         let err = SagaError::ApiError {

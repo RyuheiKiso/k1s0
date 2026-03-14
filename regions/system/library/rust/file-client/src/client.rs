@@ -352,6 +352,7 @@ mod tests {
         FileClientConfig::server_mode("http://file-server:8080")
     }
 
+    // アップロードURL生成でURLにパスが含まれ、メソッドが PUT であることを確認する。
     #[tokio::test]
     async fn test_generate_upload_url() {
         let client = InMemoryFileClient::new(test_config());
@@ -363,6 +364,7 @@ mod tests {
         assert_eq!(result.method, "PUT");
     }
 
+    // ダウンロードURL生成でURLにパスが含まれ、メソッドが GET であることを確認する。
     #[tokio::test]
     async fn test_generate_download_url() {
         let client = InMemoryFileClient::new(test_config());
@@ -378,6 +380,7 @@ mod tests {
         assert_eq!(result.method, "GET");
     }
 
+    // 存在しないファイルのダウンロードURLを生成するとエラーが返ることを確認する。
     #[tokio::test]
     async fn test_download_url_not_found() {
         let client = InMemoryFileClient::new(test_config());
@@ -387,6 +390,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // ファイル削除後にメタデータ取得がエラーになることを確認する。
     #[tokio::test]
     async fn test_delete() {
         let client = InMemoryFileClient::new(test_config());
@@ -399,6 +403,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // アップロード後のメタデータ取得でパスとコンテントタイプが正しいことを確認する。
     #[tokio::test]
     async fn test_get_metadata() {
         let client = InMemoryFileClient::new(test_config());
@@ -411,6 +416,7 @@ mod tests {
         assert_eq!(meta.content_type, "image/png");
     }
 
+    // 一覧取得でプレフィックスに一致するファイルのみが返ることを確認する。
     #[tokio::test]
     async fn test_list() {
         let client = InMemoryFileClient::new(test_config());
@@ -430,6 +436,7 @@ mod tests {
         assert_eq!(files.len(), 2);
     }
 
+    // コピー操作でコピー先にコンテントタイプが引き継がれることを確認する。
     #[tokio::test]
     async fn test_copy() {
         let client = InMemoryFileClient::new(test_config());
@@ -445,6 +452,7 @@ mod tests {
         assert_eq!(meta.content_type, "image/png");
     }
 
+    // 存在しないファイルをコピーするとエラーが返ることを確認する。
     #[tokio::test]
     async fn test_copy_not_found() {
         let client = InMemoryFileClient::new(test_config());
@@ -452,6 +460,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // with_timeout でタイムアウトと server_url が正しく設定されることを確認する。
     #[tokio::test]
     async fn test_config_with_timeout() {
         let config = FileClientConfig::server_mode("http://localhost:8080")

@@ -309,6 +309,7 @@ mod tests {
 
     // --- validate_spiffe_id テスト ---
 
+    // 正しい SPIFFE ID と期待するネームスペースが一致する場合に検証が成功することを確認する。
     #[test]
     fn test_validate_spiffe_id_success() {
         let client = make_client("https://auth.example.com/token");
@@ -320,6 +321,7 @@ mod tests {
         assert_eq!(spiffe.service_account, "auth-service");
     }
 
+    // SPIFFE ID のネームスペースが期待値と一致しない場合にエラーが返ることを確認する。
     #[test]
     fn test_validate_spiffe_id_namespace_mismatch() {
         let client = make_client("https://auth.example.com/token");
@@ -337,6 +339,7 @@ mod tests {
         }
     }
 
+    // 不正な URI を渡した場合に SPIFFE 検証エラーが返ることを確認する。
     #[test]
     fn test_validate_spiffe_id_invalid_uri() {
         let client = make_client("https://auth.example.com/token");
@@ -347,6 +350,7 @@ mod tests {
         ));
     }
 
+    // business ネームスペースの SPIFFE ID が正しく検証されることを確認する。
     #[test]
     fn test_validate_spiffe_id_business_namespace() {
         let client = make_client("https://auth.example.com/token");
@@ -359,6 +363,7 @@ mod tests {
 
     // --- HttpServiceAuthClient 生成テスト ---
 
+    // HttpServiceAuthClient が正常に生成できることを確認する。
     #[test]
     fn test_new_client_success() {
         let config = ServiceAuthConfig::new(
@@ -370,6 +375,7 @@ mod tests {
         assert!(client.is_ok());
     }
 
+    // JWKS URI を設定したクライアントが正常に生成され jwks_uri が設定されることを確認する。
     #[test]
     fn test_new_client_with_jwks_uri() {
         let config = ServiceAuthConfig::new(
@@ -386,6 +392,7 @@ mod tests {
 
     // --- verify_token エラーケース（JWKS URI なし）---
 
+    // JWKS URI が未設定の場合に verify_token がエラーを返すことを確認する。
     #[tokio::test]
     async fn test_verify_token_no_jwks_uri() {
         let config = ServiceAuthConfig::new(

@@ -8,15 +8,15 @@ void main() {
     client = InMemoryRateLimitClient();
   });
 
-  group('check', () {
-    test('returns allowed when under limit', () async {
+  group('check（レート確認）', () {
+    test('制限以内のリクエストで許可が返ること', () async {
       final status = await client.check('test-key', 1);
       expect(status.allowed, isTrue);
       expect(status.remaining, equals(99));
       expect(status.retryAfterSecs, isNull);
     });
 
-    test('returns denied when over limit', () async {
+    test('制限超過時に拒否が返ること', () async {
       client.setPolicy('limited', const RateLimitPolicy(
         key: 'limited',
         limit: 2,
@@ -32,14 +32,14 @@ void main() {
     });
   });
 
-  group('consume', () {
-    test('consumes and returns remaining', () async {
+  group('consume（レート消費）', () {
+    test('消費後に残余数が返ること', () async {
       final result = await client.consume('test-key', 1);
       expect(result.remaining, equals(99));
       expect(client.getUsedCount('test-key'), equals(1));
     });
 
-    test('throws when exceeding limit', () async {
+    test('制限超過時に例外がスローされること', () async {
       client.setPolicy('small', const RateLimitPolicy(
         key: 'small',
         limit: 1,
@@ -55,15 +55,15 @@ void main() {
     });
   });
 
-  group('getLimit', () {
-    test('returns default policy', () async {
+  group('getLimit（制限取得）', () {
+    test('デフォルトポリシーが返ること', () async {
       final policy = await client.getLimit('unknown');
       expect(policy.limit, equals(100));
       expect(policy.windowSecs, equals(3600));
       expect(policy.algorithm, equals('token_bucket'));
     });
 
-    test('returns custom policy', () async {
+    test('カスタムポリシーが返ること', () async {
       client.setPolicy('tenant:T1', const RateLimitPolicy(
         key: 'tenant:T1',
         limit: 50,
@@ -78,8 +78,8 @@ void main() {
     });
   });
 
-  group('RateLimitError', () {
-    test('contains code and message', () {
+  group('RateLimitError（レート制限エラー）', () {
+    test('コードとメッセージを保持すること', () {
       const error = RateLimitError('exceeded', code: 'LIMIT_EXCEEDED', retryAfterSecs: 30);
       expect(error.code, equals('LIMIT_EXCEEDED'));
       expect(error.retryAfterSecs, equals(30));
@@ -87,8 +87,8 @@ void main() {
     });
   });
 
-  group('RateLimitStatus', () {
-    test('stores all fields', () {
+  group('RateLimitStatus（レート制限状態）', () {
+    test('全フィールドを保持すること', () {
       final status = RateLimitStatus(
         allowed: true,
         remaining: 50,

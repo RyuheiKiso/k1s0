@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// 存在しないキーに対してGetを呼んだ場合にエラーなしでnilが返ることを確認する。
 func TestGet_NotFound(t *testing.T) {
 	c := cache.NewInMemoryCacheClient()
 	val, err := c.Get(context.Background(), "missing")
@@ -17,6 +18,7 @@ func TestGet_NotFound(t *testing.T) {
 	assert.Nil(t, val)
 }
 
+// SetとGetが正常に動作し、保存した値を取得できることを確認する。
 func TestSetAndGet(t *testing.T) {
 	c := cache.NewInMemoryCacheClient()
 	ctx := context.Background()
@@ -30,6 +32,7 @@ func TestSetAndGet(t *testing.T) {
 	assert.Equal(t, "value1", *val)
 }
 
+// TTL付きでSetしたキーが期限切れ後にnilを返すことを確認する。
 func TestSet_WithTTL_Expires(t *testing.T) {
 	c := cache.NewInMemoryCacheClient()
 	ctx := context.Background()
@@ -49,6 +52,7 @@ func TestSet_WithTTL_Expires(t *testing.T) {
 	assert.Nil(t, val)
 }
 
+// Deleteがキーを正常に削除し、2回目の削除でfalseを返すことを確認する。
 func TestDelete(t *testing.T) {
 	c := cache.NewInMemoryCacheClient()
 	ctx := context.Background()
@@ -64,6 +68,7 @@ func TestDelete(t *testing.T) {
 	assert.False(t, deleted)
 }
 
+// Existsがキーの存在有無を正しく返すことを確認する。
 func TestExists(t *testing.T) {
 	c := cache.NewInMemoryCacheClient()
 	ctx := context.Background()
@@ -79,6 +84,7 @@ func TestExists(t *testing.T) {
 	assert.True(t, exists)
 }
 
+// SetNXがキーが存在しない場合のみ値をセットし、既存キーには上書きしないことを確認する。
 func TestSetNX(t *testing.T) {
 	c := cache.NewInMemoryCacheClient()
 	ctx := context.Background()
@@ -96,6 +102,7 @@ func TestSetNX(t *testing.T) {
 	assert.Equal(t, "value1", *val)
 }
 
+// SetNXがTTL期限切れのキーに対して再度セットできることを確認する。
 func TestSetNX_ExpiredKey(t *testing.T) {
 	c := cache.NewInMemoryCacheClient()
 	ctx := context.Background()
@@ -113,6 +120,7 @@ func TestSetNX_ExpiredKey(t *testing.T) {
 	assert.Equal(t, "new", *val)
 }
 
+// Expireでキーに有効期限を設定し、期限切れ後にキーが消えることを確認する。
 func TestExpire(t *testing.T) {
 	c := cache.NewInMemoryCacheClient()
 	ctx := context.Background()
@@ -129,6 +137,7 @@ func TestExpire(t *testing.T) {
 	assert.Nil(t, val)
 }
 
+// 存在しないキーにExpireを呼んだ場合にfalseが返ることを確認する。
 func TestExpire_NonExistentKey(t *testing.T) {
 	c := cache.NewInMemoryCacheClient()
 	ctx := context.Background()

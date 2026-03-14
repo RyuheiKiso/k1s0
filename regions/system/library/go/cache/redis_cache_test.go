@@ -14,6 +14,7 @@ import (
 // We use go-redis's ring client with no servers to simulate behavior,
 // but for proper unit tests we use miniredis.
 
+// prefixedKeyがプレフィックスなしの場合にキーをそのまま返すことを確認する。
 func TestRedisCacheClient_PrefixedKey(t *testing.T) {
 	client := NewRedisCacheClient(nil)
 	assert.Equal(t, "mykey", client.prefixedKey("mykey"))
@@ -22,16 +23,19 @@ func TestRedisCacheClient_PrefixedKey(t *testing.T) {
 	assert.Equal(t, "app:mykey", clientWithPrefix.prefixedKey("mykey"))
 }
 
+// 空文字のプレフィックスが設定された場合にキーをそのまま返すことを確認する。
 func TestRedisCacheClient_PrefixedKey_Empty(t *testing.T) {
 	client := NewRedisCacheClient(nil, WithKeyPrefix(""))
 	assert.Equal(t, "mykey", client.prefixedKey("mykey"))
 }
 
+// 不正なURLからRedisCacheClientを生成するとエラーが返ることを確認する。
 func TestNewRedisCacheClientFromURL_InvalidURL(t *testing.T) {
 	_, err := NewRedisCacheClientFromURL("not-a-valid-url")
 	require.Error(t, err)
 }
 
+// 有効なRedis URLからRedisCacheClientを正常に生成できることを確認する。
 func TestNewRedisCacheClientFromURL_ValidURL(t *testing.T) {
 	client, err := NewRedisCacheClientFromURL("redis://localhost:6379/0")
 	require.NoError(t, err)
@@ -53,6 +57,7 @@ func setupMiniredis(t *testing.T) (*RedisCacheClient, func()) {
 	return client, func() { rdb.Close() }
 }
 
+// Redis接続エラー時にGetがエラーを返しnilを返すことを確認する。
 func TestRedisCacheClient_Get_ConnectionError(t *testing.T) {
 	client, cleanup := setupMiniredis(t)
 	defer cleanup()
@@ -63,6 +68,7 @@ func TestRedisCacheClient_Get_ConnectionError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// Redis接続エラー時にSetがエラーを返すことを確認する。
 func TestRedisCacheClient_Set_ConnectionError(t *testing.T) {
 	client, cleanup := setupMiniredis(t)
 	defer cleanup()
@@ -72,6 +78,7 @@ func TestRedisCacheClient_Set_ConnectionError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// Redis接続エラー時にDeleteがエラーを返すことを確認する。
 func TestRedisCacheClient_Delete_ConnectionError(t *testing.T) {
 	client, cleanup := setupMiniredis(t)
 	defer cleanup()
@@ -80,6 +87,7 @@ func TestRedisCacheClient_Delete_ConnectionError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// Redis接続エラー時にExistsがエラーを返すことを確認する。
 func TestRedisCacheClient_Exists_ConnectionError(t *testing.T) {
 	client, cleanup := setupMiniredis(t)
 	defer cleanup()
@@ -88,6 +96,7 @@ func TestRedisCacheClient_Exists_ConnectionError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// Redis接続エラー時にSetNXがエラーを返すことを確認する。
 func TestRedisCacheClient_SetNX_ConnectionError(t *testing.T) {
 	client, cleanup := setupMiniredis(t)
 	defer cleanup()
@@ -96,6 +105,7 @@ func TestRedisCacheClient_SetNX_ConnectionError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// Redis接続エラー時にExpireがエラーを返すことを確認する。
 func TestRedisCacheClient_Expire_ConnectionError(t *testing.T) {
 	client, cleanup := setupMiniredis(t)
 	defer cleanup()

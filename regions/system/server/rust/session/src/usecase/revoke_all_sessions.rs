@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::adapter::repository::session_metadata_postgres::SessionMetadataRepository;
 use crate::domain::repository::SessionRepository;
 use crate::error::SessionError;
 
@@ -15,11 +16,18 @@ pub struct RevokeAllSessionsOutput {
 
 pub struct RevokeAllSessionsUseCase {
     repo: Arc<dyn SessionRepository>,
+    metadata_repo: Arc<dyn SessionMetadataRepository>,
 }
 
 impl RevokeAllSessionsUseCase {
-    pub fn new(repo: Arc<dyn SessionRepository>) -> Self {
-        Self { repo }
+    pub fn new(
+        repo: Arc<dyn SessionRepository>,
+        metadata_repo: Arc<dyn SessionMetadataRepository>,
+    ) -> Self {
+        Self {
+            repo,
+            metadata_repo,
+        }
     }
 
     pub async fn execute(
@@ -33,6 +41,12 @@ impl RevokeAllSessionsUseCase {
             if !session.revoked {
                 session.revoke();
                 self.repo.save(&session).await?;
+
+                // Mark metadata as revoked
+                if let Ok(session_uuid) = uuid::Uuid::parse_str(&session.id) {
+                    let _ = self.metadata_repo.mark_revoked(session_uuid).await;
+                }
+
                 count += 1;
             }
         }
@@ -44,6 +58,7 @@ impl RevokeAllSessionsUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adapter::repository::session_metadata_postgres::NoopSessionMetadataRepository;
     use crate::domain::entity::session::Session;
     use crate::domain::repository::session_repository::MockSessionRepository;
     use chrono::{Duration, Utc};
@@ -79,7 +94,10 @@ mod tests {
         });
         mock.expect_save().returning(|_| Ok(()));
 
-        let uc = RevokeAllSessionsUseCase::new(Arc::new(mock));
+        let uc = RevokeAllSessionsUseCase::new(
+            Arc::new(mock),
+            Arc::new(NoopSessionMetadataRepository),
+        );
         let result = uc
             .execute(&RevokeAllSessionsInput {
                 user_id: "user-1".to_string(),
@@ -94,7 +112,10 @@ mod tests {
         let mut mock = MockSessionRepository::new();
         mock.expect_find_by_user_id().returning(|_| Ok(vec![]));
 
-        let uc = RevokeAllSessionsUseCase::new(Arc::new(mock));
+        let uc = RevokeAllSessionsUseCase::new(
+            Arc::new(mock),
+            Arc::new(NoopSessionMetadataRepository),
+        );
         let result = uc
             .execute(&RevokeAllSessionsInput {
                 user_id: "user-2".to_string(),

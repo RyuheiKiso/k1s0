@@ -39,6 +39,7 @@ impl ComponentsConfig {
 mod tests {
     use super::*;
 
+    // 有効な YAML 文字列から ComponentsConfig を正しくパースできることを確認する。
     #[test]
     fn test_from_yaml_valid() {
         let yaml = r#"
@@ -66,6 +67,7 @@ components:
         assert!(config.components[1].metadata.is_empty());
     }
 
+    // 不正な YAML 文字列を渡すとパースエラーが返ることを確認する。
     #[test]
     fn test_from_yaml_invalid() {
         let yaml = "not: valid: yaml: [";
@@ -73,6 +75,7 @@ components:
         assert!(result.is_err());
     }
 
+    // 存在しないファイルパスを指定するとエラーが返ることを確認する。
     #[test]
     fn test_from_file_not_found() {
         let result = ComponentsConfig::from_file(std::path::Path::new("/nonexistent/path.yaml"));

@@ -86,7 +86,7 @@ for lang in "${LANG_ARRAY[@]}"; do
               -e "s/{{ service_pascal }}/$SERVICE_PASCAL/g" \
               "$tmpl" > "$OUT_DIR/$base"
         done
-        for tmpl in "$TEMPLATE_DIR/rust/src"/*.tera 2>/dev/null; do
+        for tmpl in "$TEMPLATE_DIR/rust/src"/*.tera; do
           [[ -f "$tmpl" ]] || continue
           base=$(basename "$tmpl" .tera)
           sed -e "s/{{ service_name }}/$SERVICE/g" \
@@ -112,7 +112,7 @@ for lang in "${LANG_ARRAY[@]}"; do
               -e "s/{{ service_pascal }}/$SERVICE_PASCAL/g" \
               "$tmpl" > "$OUT_DIR/$base"
         done
-        for tmpl in "$TEMPLATE_DIR/typescript/src"/*.tera 2>/dev/null; do
+        for tmpl in "$TEMPLATE_DIR/typescript/src"/*.tera; do
           [[ -f "$tmpl" ]] || continue
           base=$(basename "$tmpl" .tera)
           sed -e "s/{{ service_name }}/$SERVICE/g" \
@@ -138,7 +138,7 @@ for lang in "${LANG_ARRAY[@]}"; do
               -e "s/{{ service_pascal }}/$SERVICE_PASCAL/g" \
               "$tmpl" > "$OUT_DIR/$base"
         done
-        for tmpl in "$TEMPLATE_DIR/dart/lib/src"/*.tera 2>/dev/null; do
+        for tmpl in "$TEMPLATE_DIR/dart/lib/src"/*.tera; do
           [[ -f "$tmpl" ]] || continue
           base=$(basename "$tmpl" .tera)
           sed -e "s/{{ service_name }}/$SERVICE/g" \

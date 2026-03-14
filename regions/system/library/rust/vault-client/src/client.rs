@@ -104,6 +104,7 @@ mod tests {
         }
     }
 
+    // put したシークレットが get_secret で正しく取得できることを確認する。
     #[tokio::test]
     async fn test_get_secret_found() {
         let client = InMemoryVaultClient::with_config(make_config());
@@ -113,6 +114,7 @@ mod tests {
         assert_eq!(secret.data.get("password").unwrap(), "s3cr3t");
     }
 
+    // 未登録パスの get_secret が NotFound エラーを返すことを確認する。
     #[tokio::test]
     async fn test_get_secret_not_found() {
         let client = InMemoryVaultClient::with_config(make_config());
@@ -120,6 +122,7 @@ mod tests {
         assert!(matches!(err, VaultError::NotFound(_)));
     }
 
+    // get_secret_value でシークレットの特定キーの値が取得できることを確認する。
     #[tokio::test]
     async fn test_get_secret_value() {
         let client = InMemoryVaultClient::with_config(make_config());
@@ -131,6 +134,7 @@ mod tests {
         assert_eq!(value, "s3cr3t");
     }
 
+    // 存在しないキーへの get_secret_value が NotFound エラーを返すことを確認する。
     #[tokio::test]
     async fn test_get_secret_value_key_not_found() {
         let client = InMemoryVaultClient::with_config(make_config());
@@ -142,6 +146,7 @@ mod tests {
         assert!(matches!(err, VaultError::NotFound(_)));
     }
 
+    // プレフィックスに一致するシークレットのパス一覧が正しく返されることを確認する。
     #[tokio::test]
     async fn test_list_secrets() {
         let client = InMemoryVaultClient::with_config(make_config());
@@ -154,6 +159,7 @@ mod tests {
         assert!(paths.iter().all(|p| p.starts_with("system/")));
     }
 
+    // 一致するシークレットがない場合に空リストが返されることを確認する。
     #[tokio::test]
     async fn test_list_secrets_empty() {
         let client = InMemoryVaultClient::with_config(make_config());
@@ -161,6 +167,7 @@ mod tests {
         assert!(paths.is_empty());
     }
 
+    // watch_secret が有効な受信チャンネルを返すことを確認する。
     #[tokio::test]
     async fn test_watch_secret_returns_receiver() {
         let client = InMemoryVaultClient::with_config(make_config());
@@ -168,36 +175,42 @@ mod tests {
         drop(rx);
     }
 
+    // VaultError::NotFound バリアントが正しく生成されることを確認する。
     #[test]
     fn test_vault_error_not_found() {
         let err = VaultError::NotFound("system/missing".to_string());
         assert!(matches!(err, VaultError::NotFound(_)));
     }
 
+    // VaultError::PermissionDenied バリアントが正しく生成されることを確認する。
     #[test]
     fn test_vault_error_permission_denied() {
         let err = VaultError::PermissionDenied("system/secret".to_string());
         assert!(matches!(err, VaultError::PermissionDenied(_)));
     }
 
+    // VaultError::ServerError バリアントが正しく生成されることを確認する。
     #[test]
     fn test_vault_error_server_error() {
         let err = VaultError::ServerError("internal".to_string());
         assert!(matches!(err, VaultError::ServerError(_)));
     }
 
+    // VaultError::Timeout バリアントが正しく生成されることを確認する。
     #[test]
     fn test_vault_error_timeout() {
         let err = VaultError::Timeout;
         assert!(matches!(err, VaultError::Timeout));
     }
 
+    // VaultError::LeaseExpired バリアントが正しく生成されることを確認する。
     #[test]
     fn test_vault_error_lease_expired() {
         let err = VaultError::LeaseExpired("system/db".to_string());
         assert!(matches!(err, VaultError::LeaseExpired(_)));
     }
 
+    // シークレットの data フィールドのキーへのアクセスと version が正しいことを確認する。
     #[test]
     fn test_secret_data_access() {
         let secret = make_secret("system/db");
@@ -206,6 +219,7 @@ mod tests {
         assert_eq!(secret.version, 1);
     }
 
+    // ビルダーパターンで設定した値が正しく VaultClientConfig に反映されることを確認する。
     #[test]
     fn test_config_builder() {
         let config = VaultClientConfig::new("http://localhost:8080")
@@ -216,6 +230,7 @@ mod tests {
         assert_eq!(config.cache_max_capacity, 100);
     }
 
+    // VaultClientConfig のデフォルト値が TTL 600 秒・容量 500 であることを確認する。
     #[test]
     fn test_config_defaults() {
         let config = VaultClientConfig::new("http://vault:8080");
@@ -223,6 +238,7 @@ mod tests {
         assert_eq!(config.cache_max_capacity, 500);
     }
 
+    // SecretRotatedEvent の path と version が正しく設定されることを確認する。
     #[test]
     fn test_secret_rotated_event() {
         let event = crate::secret::SecretRotatedEvent {

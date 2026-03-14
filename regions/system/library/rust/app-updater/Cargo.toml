@@ -1,0 +1,17 @@
+[package]
+name = "k1s0-app-updater"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+reqwest = { version = "0.12", features = ["json"] }
+sha2 = "0.10"
+tokio = { version = "1", features = ["fs"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+tempfile = "3"

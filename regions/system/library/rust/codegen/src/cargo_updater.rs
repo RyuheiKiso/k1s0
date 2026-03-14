@@ -114,6 +114,7 @@ mod tests {
         path
     }
 
+    // シンプルな依存クレートを Cargo.toml に追加できることを確認する。
     #[test]
     fn add_simple_dependency() {
         let tmp = tempfile::tempdir().unwrap();
@@ -131,6 +132,7 @@ mod tests {
         assert!(content.contains("serde"));
     }
 
+    // 既存の依存クレートを追加しようとした場合にスキップされることを確認する。
     #[test]
     fn skip_existing_dependency() {
         let tmp = tempfile::tempdir().unwrap();
@@ -149,6 +151,7 @@ mod tests {
         assert!(!changed);
     }
 
+    // フィーチャー付きの依存クレートを Cargo.toml に追加できることを確認する。
     #[test]
     fn add_dependency_with_features() {
         let tmp = tempfile::tempdir().unwrap();
@@ -166,6 +169,7 @@ mod tests {
         assert!(content.contains("derive"));
     }
 
+    // パス指定の依存クレートを Cargo.toml に追加できることを確認する。
     #[test]
     fn add_path_dependency() {
         let tmp = tempfile::tempdir().unwrap();
@@ -183,6 +187,7 @@ mod tests {
         assert!(content.contains("../my-lib"));
     }
 
+    // 新しいフィーチャーを Cargo.toml に追加できることを確認する。
     #[test]
     fn add_feature_new() {
         let tmp = tempfile::tempdir().unwrap();
@@ -194,6 +199,7 @@ mod tests {
         assert!(content.contains("dep:serde"));
     }
 
+    // 既存のフィーチャーを追加しようとした場合にスキップされることを確認する。
     #[test]
     fn skip_existing_feature() {
         let tmp = tempfile::tempdir().unwrap();
@@ -205,6 +211,7 @@ mod tests {
         assert!(!changed);
     }
 
+    // [dependencies] セクションがない場合に自動生成されることを確認する。
     #[test]
     fn add_dependency_creates_dependencies_section() {
         let tmp = tempfile::tempdir().unwrap();

@@ -94,6 +94,7 @@ impl WsClient for InMemoryWsClient {
 mod tests {
     use super::*;
 
+    // 接続・切断の状態遷移が Disconnected → Connected → Disconnected の順で正しいことを確認する。
     #[tokio::test]
     async fn test_connect_disconnect() {
         let mut client = InMemoryWsClient::new();
@@ -106,6 +107,7 @@ mod tests {
         assert_eq!(client.state(), ConnectionState::Disconnected);
     }
 
+    // 接続済み状態で再接続すると AlreadyConnected エラーが返されることを確認する。
     #[tokio::test]
     async fn test_double_connect() {
         let mut client = InMemoryWsClient::new();
@@ -114,6 +116,7 @@ mod tests {
         assert!(matches!(result, Err(WsError::AlreadyConnected)));
     }
 
+    // 未接続状態で切断すると NotConnected エラーが返されることを確認する。
     #[tokio::test]
     async fn test_disconnect_when_not_connected() {
         let mut client = InMemoryWsClient::new();
@@ -121,6 +124,7 @@ mod tests {
         assert!(matches!(result, Err(WsError::NotConnected)));
     }
 
+    // メッセージの受信と送信が正しく機能することを確認する。
     #[tokio::test]
     async fn test_send_receive() {
         let mut client = InMemoryWsClient::new();
@@ -141,6 +145,7 @@ mod tests {
         assert_eq!(sent, WsMessage::Text("world".to_string()));
     }
 
+    // 未接続状態で送信すると NotConnected エラーが返されることを確認する。
     #[tokio::test]
     async fn test_send_when_disconnected() {
         let client = InMemoryWsClient::new();
@@ -148,6 +153,7 @@ mod tests {
         assert!(matches!(result, Err(WsError::NotConnected)));
     }
 
+    // 未接続状態で受信すると NotConnected エラーが返されることを確認する。
     #[tokio::test]
     async fn test_receive_when_disconnected() {
         let client = InMemoryWsClient::new();
@@ -155,6 +161,7 @@ mod tests {
         assert!(matches!(result, Err(WsError::NotConnected)));
     }
 
+    // 受信バッファが空のときに receive が ReceiveError を返すことを確認する。
     #[tokio::test]
     async fn test_receive_empty_buffer() {
         let mut client = InMemoryWsClient::new();
@@ -163,6 +170,7 @@ mod tests {
         assert!(matches!(result, Err(WsError::ReceiveError(_))));
     }
 
+    // 各 WsError バリアントがパターンマッチで正しく識別できることを確認する。
     #[test]
     fn test_error_variants() {
         let err = WsError::ConnectionError("refused".to_string());
@@ -178,6 +186,7 @@ mod tests {
         assert!(matches!(err, WsError::Closed(_)));
     }
 
+    // InMemoryWsClient::default が初期状態 Disconnected で生成されることを確認する。
     #[test]
     fn test_default() {
         let client = InMemoryWsClient::default();

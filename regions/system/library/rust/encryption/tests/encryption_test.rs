@@ -5,6 +5,7 @@ use k1s0_encryption::{
 
 // ─── AES ────────────────────────────────────────────────────────────────────
 
+// AES-GCM による暗号化・復号のラウンドトリップが正常に動作することを確認する。
 #[test]
 fn aes_encrypt_decrypt_roundtrip() {
     let key = generate_aes_key();
@@ -16,6 +17,7 @@ fn aes_encrypt_decrypt_roundtrip() {
     assert_eq!(decrypted, plaintext);
 }
 
+// バイナリデータの AES-GCM 暗号化・復号が正常に動作することを確認する。
 #[test]
 fn aes_encrypt_decrypt_roundtrip_binary_data() {
     let key = generate_aes_key();
@@ -27,6 +29,7 @@ fn aes_encrypt_decrypt_roundtrip_binary_data() {
     assert_eq!(decrypted, plaintext);
 }
 
+// 異なる AES キーでの復号が失敗することを確認する。
 #[test]
 fn aes_decrypt_with_wrong_key_fails() {
     let key1 = generate_aes_key();
@@ -39,6 +42,7 @@ fn aes_decrypt_with_wrong_key_fails() {
     assert!(result.is_err());
 }
 
+// 空データの AES-GCM 暗号化・復号が正常に動作することを確認する。
 #[test]
 fn aes_encrypt_decrypt_empty_data() {
     let key = generate_aes_key();
@@ -50,6 +54,7 @@ fn aes_encrypt_decrypt_empty_data() {
     assert_eq!(decrypted, plaintext.to_vec());
 }
 
+// 同じ平文を暗号化するたびにランダム nonce により異なる暗号文が生成されることを確認する。
 #[test]
 fn aes_encrypt_produces_different_ciphertexts_for_same_input() {
     let key = generate_aes_key();
@@ -62,6 +67,7 @@ fn aes_encrypt_produces_different_ciphertexts_for_same_input() {
     assert_ne!(encrypted1, encrypted2);
 }
 
+// 無効な Base64 文字列の AES 復号がエラーになることを確認する。
 #[test]
 fn aes_decrypt_invalid_base64_returns_error() {
     let key = generate_aes_key();
@@ -69,6 +75,7 @@ fn aes_decrypt_invalid_base64_returns_error() {
     assert!(result.is_err());
 }
 
+// nonce サイズより短い暗号文の復号がエラーになることを確認する。
 #[test]
 fn aes_decrypt_too_short_ciphertext_returns_error() {
     let key = generate_aes_key();
@@ -78,6 +85,7 @@ fn aes_decrypt_too_short_ciphertext_returns_error() {
     assert!(result.is_err());
 }
 
+// 大容量データ（1MB）の AES-GCM 暗号化・復号が正常に動作することを確認する。
 #[test]
 fn aes_large_data_roundtrip() {
     let key = generate_aes_key();
@@ -89,6 +97,7 @@ fn aes_large_data_roundtrip() {
     assert_eq!(decrypted, plaintext);
 }
 
+// 生成された AES キーが毎回一意であることを確認する。
 #[test]
 fn aes_different_keys_are_unique() {
     let k1 = generate_aes_key();
@@ -98,6 +107,7 @@ fn aes_different_keys_are_unique() {
 
 // ─── RSA ────────────────────────────────────────────────────────────────────
 
+// RSA-OAEP による暗号化・復号のラウンドトリップが正常に動作することを確認する。
 #[test]
 fn rsa_encrypt_decrypt_roundtrip() {
     let (pub_pem, priv_pem) = generate_rsa_key_pair().unwrap();
@@ -109,6 +119,7 @@ fn rsa_encrypt_decrypt_roundtrip() {
     assert_eq!(decrypted, plaintext);
 }
 
+// 異なる RSA 秘密鍵での復号が失敗することを確認する。
 #[test]
 fn rsa_decrypt_with_wrong_key_fails() {
     let (pub_pem, _) = generate_rsa_key_pair().unwrap();
@@ -120,6 +131,7 @@ fn rsa_decrypt_with_wrong_key_fails() {
     assert!(result.is_err());
 }
 
+// RSA 鍵ペア生成が有効な PEM 形式を返すことを確認する。
 #[test]
 fn rsa_key_generation_produces_valid_pem() {
     let (pub_pem, priv_pem) = generate_rsa_key_pair().unwrap();
@@ -128,6 +140,7 @@ fn rsa_key_generation_produces_valid_pem() {
     assert!(priv_pem.starts_with("-----BEGIN PRIVATE KEY-----"));
 }
 
+// 空データの RSA 暗号化・復号が正常に動作することを確認する。
 #[test]
 fn rsa_encrypt_empty_data() {
     let (pub_pem, priv_pem) = generate_rsa_key_pair().unwrap();
@@ -139,18 +152,21 @@ fn rsa_encrypt_empty_data() {
     assert_eq!(decrypted, plaintext.to_vec());
 }
 
+// 無効な PEM 文字列での RSA 暗号化がエラーになることを確認する。
 #[test]
 fn rsa_encrypt_invalid_pem_returns_error() {
     let result = rsa_encrypt("not-a-valid-pem", b"data");
     assert!(matches!(result, Err(EncryptionError::RsaEncryptFailed(_))));
 }
 
+// 無効な PEM 文字列での RSA 復号がエラーになることを確認する。
 #[test]
 fn rsa_decrypt_invalid_pem_returns_error() {
     let result = rsa_decrypt("not-a-valid-pem", b"data");
     assert!(matches!(result, Err(EncryptionError::RsaDecryptFailed(_))));
 }
 
+// ゴミデータの RSA 復号がエラーになることを確認する。
 #[test]
 fn rsa_decrypt_garbage_ciphertext_returns_error() {
     let (_, priv_pem) = generate_rsa_key_pair().unwrap();
@@ -158,6 +174,7 @@ fn rsa_decrypt_garbage_ciphertext_returns_error() {
     assert!(result.is_err());
 }
 
+// OAEP ランダムパディングにより同一平文でも毎回異なる暗号文が生成されることを確認する。
 #[test]
 fn rsa_encrypt_produces_different_ciphertexts() {
     let (pub_pem, _) = generate_rsa_key_pair().unwrap();
@@ -172,6 +189,7 @@ fn rsa_encrypt_produces_different_ciphertexts() {
 
 // ─── Hash (Argon2id) ────────────────────────────────────────────────────────
 
+// パスワードハッシュ化後に正しいパスワードで検証が成功することを確認する。
 #[test]
 fn hash_password_and_verify_succeeds() {
     let password = "my-secure-password";
@@ -179,12 +197,14 @@ fn hash_password_and_verify_succeeds() {
     assert!(verify_password(password, &hashed).unwrap());
 }
 
+// 誤ったパスワードでのハッシュ検証が false を返すことを確認する。
 #[test]
 fn hash_verify_wrong_password_fails() {
     let hashed = hash_password("correct-password").unwrap();
     assert!(!verify_password("wrong-password", &hashed).unwrap());
 }
 
+// 異なるパスワードが異なるハッシュを生成することを確認する。
 #[test]
 fn hash_different_passwords_produce_different_hashes() {
     let h1 = hash_password("password-one").unwrap();
@@ -192,6 +212,7 @@ fn hash_different_passwords_produce_different_hashes() {
     assert_ne!(h1, h2);
 }
 
+// 同じパスワードでもランダムソルトにより異なるハッシュが生成され、両方の検証が成功することを確認する。
 #[test]
 fn hash_same_password_produces_different_hashes_due_to_salt() {
     let password = "same-password";
@@ -203,12 +224,14 @@ fn hash_same_password_produces_different_hashes_due_to_salt() {
     assert!(verify_password(password, &h2).unwrap());
 }
 
+// 生成されたハッシュが Argon2id 識別子で始まることを確認する。
 #[test]
 fn hash_contains_argon2id_identifier() {
     let hashed = hash_password("test-password").unwrap();
     assert!(hashed.starts_with("$argon2id$"));
 }
 
+// 空のパスワードのハッシュ化と検証が正常に動作することを確認する。
 #[test]
 fn hash_empty_password() {
     let hashed = hash_password("").unwrap();
@@ -216,12 +239,14 @@ fn hash_empty_password() {
     assert!(!verify_password("non-empty", &hashed).unwrap());
 }
 
+// 無効なハッシュ文字列での検証がエラーになることを確認する。
 #[test]
 fn hash_verify_invalid_hash_string_returns_error() {
     let result = verify_password("password", "not-a-valid-hash");
     assert!(result.is_err());
 }
 
+// Unicode 文字を含むパスワードのハッシュ化と検証が正常に動作することを確認する。
 #[test]
 fn hash_unicode_password() {
     let password = "p@$$w0rd-\u{1F512}-\u{00E9}\u{00F1}\u{00FC}";
@@ -231,6 +256,7 @@ fn hash_unicode_password() {
 
 // ─── Error Display ──────────────────────────────────────────────────────────
 
+// 各 EncryptionError バリアントの Display メッセージが正しく出力されることを確認する。
 #[test]
 fn encryption_error_display() {
     let err = EncryptionError::EncryptFailed("test error".to_string());

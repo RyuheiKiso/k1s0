@@ -44,6 +44,7 @@ pub fn end_span(_handle: SpanHandle) {
 mod tests {
     use super::*;
 
+    // スパンを開始し名前が正しく設定されイベントが空の状態で終了できることを確認する。
     #[test]
     fn test_start_and_end_span() {
         let span = start_span("test-operation");
@@ -52,6 +53,7 @@ mod tests {
         end_span(span);
     }
 
+    // スパンにイベントを追加し名前と属性が正しく記録されることを確認する。
     #[test]
     fn test_add_event() {
         let mut span = start_span("my-span");
@@ -68,6 +70,7 @@ mod tests {
         end_span(span);
     }
 
+    // 空の属性マップでイベントを追加した場合に正しく記録されることを確認する。
     #[test]
     fn test_add_event_empty_attrs() {
         let mut span = start_span("test-span");
@@ -77,6 +80,7 @@ mod tests {
         end_span(span);
     }
 
+    // SpanHandle::new で生成されたスパンの全フィールドが初期値であることを確認する。
     #[test]
     fn test_span_handle_new() {
         let span = SpanHandle::new("op");

@@ -110,6 +110,7 @@ mod tests {
         }
     }
 
+    // 新しいテーブルが追加された場合に TableAdded の差分が検出されることを確認する。
     #[test]
     fn test_table_added() {
         let old = Schema { tables: vec![] };
@@ -121,6 +122,7 @@ mod tests {
         assert!(matches!(&diffs[0], SchemaDiff::TableAdded(t) if t.name == "users"));
     }
 
+    // テーブルが削除された場合に TableDropped の差分が検出されることを確認する。
     #[test]
     fn test_table_dropped() {
         let old = Schema {
@@ -132,6 +134,7 @@ mod tests {
         assert!(matches!(&diffs[0], SchemaDiff::TableDropped(name) if name == "users"));
     }
 
+    // カラムが追加された場合に ColumnAdded の差分が検出されることを確認する。
     #[test]
     fn test_column_added() {
         let old = Schema {
@@ -153,6 +156,7 @@ mod tests {
         );
     }
 
+    // カラムが削除された場合に ColumnDropped の差分が検出されることを確認する。
     #[test]
     fn test_column_dropped() {
         let old = Schema {
@@ -174,6 +178,7 @@ mod tests {
         );
     }
 
+    // カラムの型や制約が変更された場合に ColumnChanged の差分が検出されることを確認する。
     #[test]
     fn test_column_changed() {
         let old = Schema {
@@ -196,6 +201,7 @@ mod tests {
         );
     }
 
+    // 同一スキーマを比較した場合に差分が検出されないことを確認する。
     #[test]
     fn test_no_changes() {
         let schema = Schema {

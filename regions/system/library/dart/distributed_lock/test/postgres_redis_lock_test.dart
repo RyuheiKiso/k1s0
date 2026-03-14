@@ -5,20 +5,20 @@ import 'package:k1s0_distributed_lock/distributed_lock.dart';
 // require live infrastructure. These tests verify the contract via InMemory.
 
 void main() {
-  group('DistributedLock contract (InMemory)', () {
+  group('DistributedLockコントラクト (InMemory)', () {
     late InMemoryDistributedLock lock;
 
     setUp(() {
       lock = InMemoryDistributedLock();
     });
 
-    test('acquire returns LockGuard with correct key', () async {
+    test('acquireが正しいキーを持つLockGuardを返すこと', () async {
       final guard = await lock.acquire('test-key', const Duration(seconds: 30));
       expect(guard.key, equals('test-key'));
       expect(guard.token, isNotEmpty);
     });
 
-    test('acquire throws LockException when lock is held', () async {
+    test('ロックが保持されている場合にacquireがLockExceptionをスローすること', () async {
       await lock.acquire('test-key', const Duration(seconds: 30));
       expect(
         () => lock.acquire('test-key', const Duration(seconds: 30)),
@@ -26,14 +26,14 @@ void main() {
       );
     });
 
-    test('release allows re-acquire', () async {
+    test('releaseの後に再取得できること', () async {
       final guard = await lock.acquire('test-key', const Duration(seconds: 30));
       await lock.release(guard);
       final guard2 = await lock.acquire('test-key', const Duration(seconds: 30));
       expect(guard2.key, equals('test-key'));
     });
 
-    test('release with wrong token throws LockException', () async {
+    test('不正なトークンでreleaseするとLockExceptionをスローすること', () async {
       await lock.acquire('test-key', const Duration(seconds: 30));
       final fakeGuard = LockGuard(key: 'test-key', token: 'invalid-token');
       expect(
@@ -42,22 +42,22 @@ void main() {
       );
     });
 
-    test('isLocked returns false for unheld key', () async {
+    test('isLockedがロックされていないキーに対してfalseを返すこと', () async {
       expect(await lock.isLocked('no-key'), isFalse);
     });
 
-    test('isLocked returns true for held lock', () async {
+    test('isLockedがロック保持中のキーに対してtrueを返すこと', () async {
       await lock.acquire('test-key', const Duration(seconds: 30));
       expect(await lock.isLocked('test-key'), isTrue);
     });
 
-    test('isLocked returns false after release', () async {
+    test('isLockedがrelease後にfalseを返すこと', () async {
       final guard = await lock.acquire('test-key', const Duration(seconds: 30));
       await lock.release(guard);
       expect(await lock.isLocked('test-key'), isFalse);
     });
 
-    test('multiple keys are independent', () async {
+    test('複数のキーが互いに独立していること', () async {
       final guard1 = await lock.acquire('key1', const Duration(seconds: 30));
       final guard2 = await lock.acquire('key2', const Duration(seconds: 30));
       expect(guard1.key, equals('key1'));

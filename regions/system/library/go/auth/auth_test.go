@@ -102,6 +102,7 @@ func generateTestToken(t *testing.T, privKey *rsa.PrivateKey, opts ...func(jwt.T
 
 // --- Claims テスト ---
 
+// extractClaims が JWT トークンから全クレームフィールドを正しく抽出することを確認する。
 func TestExtractClaims(t *testing.T) {
 	privKey, _ := testKeyPair(t)
 	tokenStr := generateTestToken(t, privKey)
@@ -128,6 +129,7 @@ func TestExtractClaims(t *testing.T) {
 	assert.Equal(t, []string{"system", "business", "service"}, claims.TierAccess)
 }
 
+// Claims の IsExpired メソッドが期限切れと有効なトークンを正しく判定することを確認する。
 func TestClaims_IsExpired(t *testing.T) {
 	claims := &Claims{Exp: time.Now().Add(-1 * time.Hour).Unix()}
 	assert.True(t, claims.IsExpired())
@@ -136,6 +138,7 @@ func TestClaims_IsExpired(t *testing.T) {
 	assert.False(t, claims2.IsExpired())
 }
 
+// Claims の String メソッドが Subject やユーザー名を含む文字列を返すことを確認する。
 func TestClaims_String(t *testing.T) {
 	claims := &Claims{
 		Sub:               "user-1",
@@ -151,6 +154,7 @@ func TestClaims_String(t *testing.T) {
 
 // --- JWKS Verifier テスト ---
 
+// JWKSVerifier が有効なトークンを検証してクレームを正しく返すことを確認する。
 func TestJWKSVerifier_VerifyToken_Success(t *testing.T) {
 	privKey, keySet := testKeyPair(t)
 	tokenStr := generateTestToken(t, privKey)
@@ -171,6 +175,7 @@ func TestJWKSVerifier_VerifyToken_Success(t *testing.T) {
 	assert.Equal(t, "taro.yamada", claims.PreferredUsername)
 }
 
+// JWKSVerifier が期限切れトークンの検証でエラーを返すことを確認する。
 func TestJWKSVerifier_VerifyToken_ExpiredToken(t *testing.T) {
 	privKey, keySet := testKeyPair(t)
 	tokenStr := generateTestToken(t, privKey, func(token jwt.Token) {
@@ -190,6 +195,7 @@ func TestJWKSVerifier_VerifyToken_ExpiredToken(t *testing.T) {
 	assert.Contains(t, err.Error(), "token validation failed")
 }
 
+// JWKSVerifier が不正な Issuer を持つトークンの検証でエラーを返すことを確認する。
 func TestJWKSVerifier_VerifyToken_WrongIssuer(t *testing.T) {
 	privKey, keySet := testKeyPair(t)
 	tokenStr := generateTestToken(t, privKey, func(token jwt.Token) {
@@ -208,6 +214,7 @@ func TestJWKSVerifier_VerifyToken_WrongIssuer(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// JWKSVerifier が不正な Audience を持つトークンの検証でエラーを返すことを確認する。
 func TestJWKSVerifier_VerifyToken_WrongAudience(t *testing.T) {
 	privKey, keySet := testKeyPair(t)
 	tokenStr := generateTestToken(t, privKey, func(token jwt.Token) {
@@ -226,6 +233,7 @@ func TestJWKSVerifier_VerifyToken_WrongAudience(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// JWKSVerifier が TTL 内で JWKS キーをキャッシュして再フェッチを行わないことを確認する。
 func TestJWKSVerifier_CacheTTL(t *testing.T) {
 	privKey, keySet := testKeyPair(t)
 	tokenStr := generateTestToken(t, privKey)
@@ -253,6 +261,7 @@ func TestJWKSVerifier_CacheTTL(t *testing.T) {
 	assert.Equal(t, 1, fetchCount) // フェッチ回数は増えない
 }
 
+// JWKSVerifier の InvalidateCache がキャッシュを無効化し次回の検証で再フェッチが発生することを確認する。
 func TestJWKSVerifier_InvalidateCache(t *testing.T) {
 	privKey, keySet := testKeyPair(t)
 	tokenStr := generateTestToken(t, privKey)
@@ -294,6 +303,7 @@ func (c *countingFetcherWrapper) FetchKeys(ctx context.Context, jwksURL string) 
 
 // --- RBAC テスト ---
 
+// HasRole がクレームの RealmAccess ロールに指定ロールが含まれるか正しく判定することを確認する。
 func TestHasRole(t *testing.T) {
 	claims := &Claims{
 		RealmAccess: RealmAccess{
@@ -307,6 +317,7 @@ func TestHasRole(t *testing.T) {
 	assert.False(t, HasRole(claims, "sys_admin"))
 }
 
+// HasResourceRole が特定リソースの ResourceAccess ロールに指定ロールが含まれるか正しく判定することを確認する。
 func TestHasResourceRole(t *testing.T) {
 	claims := &Claims{
 		ResourceAccess: map[string]Access{
@@ -320,6 +331,7 @@ func TestHasResourceRole(t *testing.T) {
 	assert.False(t, HasResourceRole(claims, "user-service", "read"))
 }
 
+// HasPermission がリソースへのアクセス権を持つクレームに対して true を返すことを確認する。
 func TestHasPermission(t *testing.T) {
 	claims := &Claims{
 		RealmAccess: RealmAccess{
@@ -335,6 +347,7 @@ func TestHasPermission(t *testing.T) {
 	assert.False(t, HasPermission(claims, "order-service", "delete"))
 }
 
+// HasPermission が sys_admin ロールを持つクレームに対して全リソース・全操作で true を返すことを確認する。
 func TestHasPermission_SysAdmin(t *testing.T) {
 	claims := &Claims{
 		RealmAccess: RealmAccess{
@@ -348,6 +361,7 @@ func TestHasPermission_SysAdmin(t *testing.T) {
 	assert.True(t, HasPermission(claims, "any-resource", "delete"))
 }
 
+// HasPermission がリソースに admin ロールを持つクレームに対してそのリソースの全操作で true を返すことを確認する。
 func TestHasPermission_ResourceAdmin(t *testing.T) {
 	claims := &Claims{
 		RealmAccess: RealmAccess{
@@ -364,6 +378,7 @@ func TestHasPermission_ResourceAdmin(t *testing.T) {
 	assert.True(t, HasPermission(claims, "order-service", "delete"))
 }
 
+// HasTierAccess がクレームの TierAccess に指定ティアが含まれるか大文字小文字を区別せず正しく判定することを確認する。
 func TestHasTierAccess(t *testing.T) {
 	claims := &Claims{
 		TierAccess: []string{"system", "business"},
@@ -375,6 +390,7 @@ func TestHasTierAccess(t *testing.T) {
 	assert.False(t, HasTierAccess(claims, "service"))
 }
 
+// HasTierAccess が TierAccess が nil のクレームに対して false を返すことを確認する。
 func TestHasTierAccess_Empty(t *testing.T) {
 	claims := &Claims{
 		TierAccess: nil,
@@ -385,6 +401,7 @@ func TestHasTierAccess_Empty(t *testing.T) {
 
 // --- Middleware テスト ---
 
+// AuthMiddleware が Authorization ヘッダーのないリクエストに 401 を返すことを確認する。
 func TestAuthMiddleware_NoAuthHeader(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -413,6 +430,7 @@ func TestAuthMiddleware_NoAuthHeader(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
+// AuthMiddleware が有効なトークンを持つリクエストを通過させクレームをコンテキストに設定することを確認する。
 func TestAuthMiddleware_ValidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -445,6 +463,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+// AuthMiddleware が無効なトークンを持つリクエストに 401 を返すことを確認する。
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -473,6 +492,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
+// RequireRole が必要なロールを持つクレームのリクエストを正常に通過させることを確認する。
 func TestRequireRole_Authorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -503,6 +523,7 @@ func TestRequireRole_Authorized(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+// RequireRole が必要なロールを持たないクレームのリクエストに 403 を返すことを確認する。
 func TestRequireRole_Forbidden(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -533,6 +554,7 @@ func TestRequireRole_Forbidden(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
+// RequirePermission が必要なリソース権限を持つクレームのリクエストを正常に通過させることを確認する。
 func TestRequirePermission_Authorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -563,6 +585,7 @@ func TestRequirePermission_Authorized(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+// RequirePermission が必要なリソース権限を持たないクレームのリクエストに 403 を返すことを確認する。
 func TestRequirePermission_Forbidden(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -593,6 +616,7 @@ func TestRequirePermission_Forbidden(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
+// RequireTierAccess が必要なティアアクセスを持つクレームのリクエストを正常に通過させることを確認する。
 func TestRequireTierAccess_Authorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -623,6 +647,7 @@ func TestRequireTierAccess_Authorized(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+// RequireTierAccess が必要なティアアクセスを持たないクレームのリクエストに 403 を返すことを確認する。
 func TestRequireTierAccess_Forbidden(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -657,6 +682,7 @@ func TestRequireTierAccess_Forbidden(t *testing.T) {
 
 // --- extractBearerToken テスト ---
 
+// extractBearerToken が有効な Bearer トークンを Authorization ヘッダーから正しく抽出することを確認する。
 func TestExtractBearerToken_Valid(t *testing.T) {
 	req := httptest.NewRequest("GET", "/", nil)
 	req.Header.Set("Authorization", "Bearer mytoken123")
@@ -666,6 +692,7 @@ func TestExtractBearerToken_Valid(t *testing.T) {
 	assert.Equal(t, "mytoken123", token)
 }
 
+// extractBearerToken が Authorization ヘッダーが存在しない場合に ErrMissingToken を返すことを確認する。
 func TestExtractBearerToken_Missing(t *testing.T) {
 	req := httptest.NewRequest("GET", "/", nil)
 
@@ -674,6 +701,7 @@ func TestExtractBearerToken_Missing(t *testing.T) {
 	assert.Equal(t, ErrMissingToken, err)
 }
 
+// extractBearerToken が Bearer 以外のスキームを持つ Authorization ヘッダーに ErrInvalidAuthHeader を返すことを確認する。
 func TestExtractBearerToken_InvalidFormat(t *testing.T) {
 	req := httptest.NewRequest("GET", "/", nil)
 	req.Header.Set("Authorization", "Basic abc123")
@@ -683,6 +711,7 @@ func TestExtractBearerToken_InvalidFormat(t *testing.T) {
 	assert.Equal(t, ErrInvalidAuthHeader, err)
 }
 
+// extractBearerToken が Bearer の後にトークン値がない場合に ErrMissingToken を返すことを確認する。
 func TestExtractBearerToken_EmptyToken(t *testing.T) {
 	req := httptest.NewRequest("GET", "/", nil)
 	req.Header.Set("Authorization", "Bearer ")
@@ -694,6 +723,7 @@ func TestExtractBearerToken_EmptyToken(t *testing.T) {
 
 // --- GetClaimsFromContext テスト ---
 
+// GetClaimsFromContext がコンテキストに格納されたクレームを正しく取得することを確認する。
 func TestGetClaimsFromContext(t *testing.T) {
 	claims := &Claims{Sub: "user-1"}
 	ctx := context.WithValue(context.Background(), ClaimsContextKey, claims)
@@ -703,6 +733,7 @@ func TestGetClaimsFromContext(t *testing.T) {
 	assert.Equal(t, "user-1", got.Sub)
 }
 
+// GetClaimsFromContext がクレームを含まないコンテキストに対して false を返すことを確認する。
 func TestGetClaimsFromContext_Empty(t *testing.T) {
 	_, ok := GetClaimsFromContext(context.Background())
 	assert.False(t, ok)

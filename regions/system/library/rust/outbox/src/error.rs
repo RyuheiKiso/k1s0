@@ -18,6 +18,7 @@ pub enum OutboxError {
 mod tests {
     use super::*;
 
+    // StoreError の表示文字列にエラーメッセージが含まれることを確認する。
     #[test]
     fn test_store_error() {
         let err = OutboxError::StoreError("connection refused".to_string());

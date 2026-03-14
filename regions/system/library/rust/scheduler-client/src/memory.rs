@@ -141,6 +141,7 @@ mod tests {
     use serde_json::json;
     use std::time::Duration;
 
+    // ジョブを作成しスナップショットで正しく確認できることを確認する。
     #[tokio::test]
     async fn test_create_and_snapshot_jobs() {
         let client = InMemorySchedulerClient::new();
@@ -163,6 +164,7 @@ mod tests {
         assert!(jobs.contains_key("job-001"));
     }
 
+    // ジョブを一時停止・再開・キャンセルした際にステータスが正しく変化することを確認する。
     #[tokio::test]
     async fn test_pause_resume_cancel() {
         let client = InMemorySchedulerClient::new();

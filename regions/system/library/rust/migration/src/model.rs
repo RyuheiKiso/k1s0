@@ -71,6 +71,7 @@ impl MigrationFile {
 mod tests {
     use super::*;
 
+    // UP マイグレーションのファイル名が正しくパースされることを確認する。
     #[test]
     fn test_parse_up_migration() {
         let result = MigrationFile::parse_filename("20240101000001_create_users.up.sql");
@@ -81,6 +82,7 @@ mod tests {
         assert_eq!(dir, MigrationDirection::Up);
     }
 
+    // DOWN マイグレーションのファイル名が正しくパースされることを確認する。
     #[test]
     fn test_parse_down_migration() {
         let result = MigrationFile::parse_filename("20240101000001_create_users.down.sql");
@@ -91,6 +93,7 @@ mod tests {
         assert_eq!(dir, MigrationDirection::Down);
     }
 
+    // 不正なファイル名は parse_filename が None を返すことを確認する。
     #[test]
     fn test_parse_invalid_filename() {
         assert!(MigrationFile::parse_filename("invalid.sql").is_none());
@@ -98,6 +101,7 @@ mod tests {
         assert!(MigrationFile::parse_filename("_.up.sql").is_none());
     }
 
+    // 同じ内容のチェックサムが毎回同じ値を返す（決定論的）ことを確認する。
     #[test]
     fn test_checksum_deterministic() {
         let content = "CREATE TABLE users (id SERIAL PRIMARY KEY);";
@@ -106,6 +110,7 @@ mod tests {
         assert_eq!(c1, c2);
     }
 
+    // 異なる内容のチェックサムが異なる値を返すことを確認する。
     #[test]
     fn test_checksum_differs_for_different_content() {
         let c1 = MigrationFile::checksum("CREATE TABLE users;");
@@ -113,6 +118,7 @@ mod tests {
         assert_ne!(c1, c2);
     }
 
+    // MigrationReport が適用件数 0・空エラーリストで初期化できることを確認する。
     #[test]
     fn test_migration_report_defaults() {
         let report = MigrationReport {
@@ -124,6 +130,7 @@ mod tests {
         assert!(report.errors.is_empty());
     }
 
+    // PendingMigration がバージョンと名前を正しく保持することを確認する。
     #[test]
     fn test_pending_migration() {
         let pending = PendingMigration {
@@ -134,6 +141,7 @@ mod tests {
         assert_eq!(pending.name, "create_users");
     }
 
+    // applied_at が Some の MigrationStatus が適用済みを表すことを確認する。
     #[test]
     fn test_migration_status_with_applied_at() {
         let status = MigrationStatus {
@@ -145,6 +153,7 @@ mod tests {
         assert!(status.applied_at.is_some());
     }
 
+    // applied_at が None の MigrationStatus が未適用を表すことを確認する。
     #[test]
     fn test_migration_status_without_applied_at() {
         let status = MigrationStatus {

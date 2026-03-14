@@ -16,6 +16,7 @@ use std::collections::HashMap;
 // Span lifecycle — external consumer perspective
 // ===========================================================================
 
+// スパンに複数のイベントを追加し正しく記録されることを確認する。
 #[test]
 fn span_lifecycle_with_multiple_events() {
     let mut span = start_span("multi-event-op");
@@ -38,6 +39,7 @@ fn span_lifecycle_with_multiple_events() {
     end_span(span); // should not panic
 }
 
+// スパン生成時に指定した名前が保持されることを確認する。
 #[test]
 fn span_name_preserved() {
     let span = start_span("db.query.find_user");
@@ -45,6 +47,7 @@ fn span_name_preserved() {
     end_span(span);
 }
 
+// 新規スパンの trace_id、span_id、attributes、events がすべて空であることを確認する。
 #[test]
 fn span_handle_fields_default_empty() {
     let span = start_span("op");
@@ -59,6 +62,7 @@ fn span_handle_fields_default_empty() {
 // Baggage — overwrite and multi-entry
 // ===========================================================================
 
+// 同じキーを再度セットした場合に値が上書きされ件数が増えないことを確認する。
 #[test]
 fn baggage_overwrite_key() {
     let mut b = Baggage::new();
@@ -68,6 +72,7 @@ fn baggage_overwrite_key() {
     assert_eq!(b.len(), 1);
 }
 
+// 複数エントリを持つ Baggage のヘッダーへのシリアライズと復元が正しいことを確認する。
 #[test]
 fn baggage_multiple_entries_header_roundtrip() {
     let mut b = Baggage::new();
@@ -84,6 +89,7 @@ fn baggage_multiple_entries_header_roundtrip() {
     assert_eq!(parsed.len(), 3);
 }
 
+// "=" を含まないエントリはスキップされ有効なエントリのみが解析されることを確認する。
 #[test]
 fn baggage_from_header_ignores_entries_without_equals() {
     let b = Baggage::from_header("valid=ok,no_equals_here");
@@ -96,6 +102,7 @@ fn baggage_from_header_ignores_entries_without_equals() {
 // TraceContext — boundary cases
 // ===========================================================================
 
+// flags が 0xff のときに traceparent の末尾が "-ff" になることを確認する。
 #[test]
 fn trace_context_flags_all_bits() {
     let ctx = TraceContext::new(
@@ -110,12 +117,14 @@ fn trace_context_flags_all_bits() {
     assert_eq!(parsed.flags, 0xff);
 }
 
+// パーツ数が 4 でない traceparent 文字列の解析が None を返すことを確認する。
 #[test]
 fn trace_context_from_traceparent_wrong_part_count() {
     assert!(TraceContext::from_traceparent("00-abc-def").is_none());
     assert!(TraceContext::from_traceparent("00-a-b-c-d-e").is_none());
 }
 
+// trace_id や parent_id が規定の長さでない場合の解析が None を返すことを確認する。
 #[test]
 fn trace_context_from_traceparent_wrong_lengths() {
     // trace_id too short (31 hex chars instead of 32)
@@ -130,6 +139,7 @@ fn trace_context_from_traceparent_wrong_lengths() {
     .is_none());
 }
 
+// 同じフィールド値を持つ TraceContext が等しく、異なる flags を持つと不等になることを確認する。
 #[test]
 fn trace_context_equality() {
     let a = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 1);
@@ -144,6 +154,7 @@ fn trace_context_equality() {
 // inject_context / extract_context — top-level API
 // ===========================================================================
 
+// コンテキストと Baggage をヘッダーに注入し正しく復元できることを確認する。
 #[test]
 fn inject_extract_roundtrip_with_baggage() {
     let ctx = TraceContext::new("abcdef1234567890abcdef1234567890", "1234567890abcdef", 1);
@@ -166,6 +177,7 @@ fn inject_extract_roundtrip_with_baggage() {
     assert_eq!(extracted_baggage.get("env"), Some("prod"));
 }
 
+// Baggage なしで注入した場合に baggage ヘッダーが追加されないことを確認する。
 #[test]
 fn inject_without_baggage_no_baggage_header() {
     let ctx = TraceContext::new("abcdef1234567890abcdef1234567890", "1234567890abcdef", 0);
@@ -176,6 +188,7 @@ fn inject_without_baggage_no_baggage_header() {
     assert!(!headers.contains_key("baggage"));
 }
 
+// 空の Baggage を渡した場合に baggage ヘッダーが追加されないことを確認する。
 #[test]
 fn inject_with_empty_baggage_no_baggage_header() {
     let ctx = TraceContext::new("abcdef1234567890abcdef1234567890", "1234567890abcdef", 0);
@@ -188,6 +201,7 @@ fn inject_with_empty_baggage_no_baggage_header() {
     assert!(!headers.contains_key("baggage"));
 }
 
+// 空のヘッダーマップからコンテキスト抽出すると ctx が None で Baggage が空であることを確認する。
 #[test]
 fn extract_from_empty_headers() {
     let headers = HashMap::new();
@@ -196,6 +210,7 @@ fn extract_from_empty_headers() {
     assert!(baggage.is_empty());
 }
 
+// baggage ヘッダーのみ存在する場合に ctx が None で Baggage が解析されることを確認する。
 #[test]
 fn extract_with_only_baggage_header() {
     let mut headers = HashMap::new();
@@ -205,6 +220,7 @@ fn extract_with_only_baggage_header() {
     assert_eq!(baggage.get("key"), Some("val"));
 }
 
+// 無効な traceparent ヘッダーからの抽出で ctx が None になることを確認する。
 #[test]
 fn extract_with_invalid_traceparent() {
     let mut headers = HashMap::new();
@@ -218,6 +234,7 @@ fn extract_with_invalid_traceparent() {
 // Cross-module integration: span + inject/extract
 // ===========================================================================
 
+// サービス間でコンテキストを伝播させる分散トレースのシナリオが正しく動作することを確認する。
 #[test]
 fn simulate_distributed_trace_propagation() {
     // Service A: create span and propagate context

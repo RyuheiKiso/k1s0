@@ -9,6 +9,7 @@ use serde_json::json;
 // JwtTestHelper tests
 // ============================================================
 
+// HS256 を用いて JwtTestHelper を生成し、管理者トークンが空でないことを確認する。
 #[test]
 fn jwt_helper_new_hs256_creates_instance() {
     let helper = JwtTestHelper::new_hs256("my-secret");
@@ -16,6 +17,7 @@ fn jwt_helper_new_hs256_creates_instance() {
     assert!(!token.is_empty());
 }
 
+// `new` エイリアスが `new_hs256` と同等に動作することを確認する。
 #[test]
 fn jwt_helper_new_alias_works() {
     let helper = JwtTestHelper::new("my-secret");
@@ -23,6 +25,7 @@ fn jwt_helper_new_alias_works() {
     assert!(!token.is_empty());
 }
 
+// 管理者トークンが header.payload.signature の 3 パーツで構成されることを確認する。
 #[test]
 fn jwt_admin_token_has_three_parts() {
     let helper = JwtTestHelper::new_hs256("secret");
@@ -31,6 +34,7 @@ fn jwt_admin_token_has_three_parts() {
     assert_eq!(parts.len(), 3, "JWT should have 3 parts: header.payload.signature");
 }
 
+// 管理者トークンの sub が "admin" であり roles に "admin" が含まれることを確認する。
 #[test]
 fn jwt_admin_token_has_admin_role() {
     let helper = JwtTestHelper::new_hs256("secret");
@@ -40,6 +44,7 @@ fn jwt_admin_token_has_admin_role() {
     assert!(claims.roles.contains(&"admin".to_string()));
 }
 
+// ユーザートークンの sub と roles が指定した値と一致することを確認する。
 #[test]
 fn jwt_user_token_has_correct_sub_and_roles() {
     let helper = JwtTestHelper::new_hs256("test-secret");
@@ -50,6 +55,7 @@ fn jwt_user_token_has_correct_sub_and_roles() {
     assert_eq!(claims.roles, roles);
 }
 
+// カスタムクレームにテナント ID を含むトークンが正しくデコードされることを確認する。
 #[test]
 fn jwt_custom_token_with_tenant_id() {
     let helper = JwtTestHelper::new_hs256("secret");
@@ -66,6 +72,7 @@ fn jwt_custom_token_with_tenant_id() {
     assert_eq!(decoded.roles, vec!["service"]);
 }
 
+// テナント ID なしのクレームでトークンを生成した場合に tenant_id が None になることを確認する。
 #[test]
 fn jwt_custom_token_without_tenant_id() {
     let helper = JwtTestHelper::new_hs256("secret");
@@ -80,6 +87,7 @@ fn jwt_custom_token_without_tenant_id() {
     assert!(decoded.tenant_id.is_none());
 }
 
+// 不正な形式の JWT をデコードした場合に None が返されることを確認する。
 #[test]
 fn jwt_decode_invalid_token_returns_none() {
     let helper = JwtTestHelper::new_hs256("secret");
@@ -88,6 +96,7 @@ fn jwt_decode_invalid_token_returns_none() {
     assert!(helper.decode_claims("").is_none());
 }
 
+// デフォルトクレームの exp が iat より大きく約 1 時間後であることを確認する。
 #[test]
 fn jwt_default_claims_has_valid_expiry() {
     let claims = TestClaims::default();
@@ -97,6 +106,7 @@ fn jwt_default_claims_has_valid_expiry() {
     assert!(diff >= 3599 && diff <= 3601);
 }
 
+// 異なるシークレットで生成したトークンの署名部分が異なることを確認する。
 #[test]
 fn jwt_different_secrets_produce_different_tokens() {
     let helper1 = JwtTestHelper::new_hs256("secret-1");
@@ -122,6 +132,7 @@ fn jwt_different_secrets_produce_different_tokens() {
 // FixtureBuilder tests
 // ============================================================
 
+// 生成された UUID が 36 文字でハイフン区切りの正しい形式であることを確認する。
 #[test]
 fn fixture_uuid_has_valid_format() {
     let id = FixtureBuilder::uuid();
@@ -137,6 +148,7 @@ fn fixture_uuid_has_valid_format() {
     assert_eq!(parts[4].len(), 12);
 }
 
+// 複数回呼び出しで一意の UUID が生成されることを確認する。
 #[test]
 fn fixture_uuid_generates_unique_values() {
     let ids: Vec<String> = (0..10).map(|_| FixtureBuilder::uuid()).collect();
@@ -147,6 +159,7 @@ fn fixture_uuid_generates_unique_values() {
     }
 }
 
+// 生成されたメールアドレスが "test-" 始まりで "@example.com" 終わりの形式であることを確認する。
 #[test]
 fn fixture_email_has_valid_format() {
     let email = FixtureBuilder::email();
@@ -155,6 +168,7 @@ fn fixture_email_has_valid_format() {
     assert!(email.contains('@'));
 }
 
+// 複数回呼び出しで一意のメールアドレスが生成されることを確認する。
 #[test]
 fn fixture_email_generates_unique_values() {
     let a = FixtureBuilder::email();
@@ -162,6 +176,7 @@ fn fixture_email_generates_unique_values() {
     assert_ne!(a, b);
 }
 
+// 生成されたユーザー名が "user-" プレフィックスを持つことを確認する。
 #[test]
 fn fixture_name_has_prefix() {
     let name = FixtureBuilder::name();
@@ -169,6 +184,7 @@ fn fixture_name_has_prefix() {
     assert!(name.len() > 5);
 }
 
+// 生成された整数が指定した範囲内に収まることを確認する。
 #[test]
 fn fixture_int_within_range() {
     for _ in 0..100 {
@@ -177,16 +193,19 @@ fn fixture_int_within_range() {
     }
 }
 
+// min と max が等しい場合は min の値がそのまま返されることを確認する。
 #[test]
 fn fixture_int_min_equals_max_returns_min() {
     assert_eq!(FixtureBuilder::int(42, 42), 42);
 }
 
+// min が max より大きい場合は min の値が返されることを確認する。
 #[test]
 fn fixture_int_min_greater_than_max_returns_min() {
     assert_eq!(FixtureBuilder::int(10, 5), 10);
 }
 
+// 広範囲の整数生成で値が範囲内に収まることを確認する。
 #[test]
 fn fixture_int_large_range() {
     for _ in 0..50 {
@@ -195,6 +214,7 @@ fn fixture_int_large_range() {
     }
 }
 
+// 生成されたテナント ID が "tenant-" プレフィックスを持つことを確認する。
 #[test]
 fn fixture_tenant_id_has_prefix() {
     let tid = FixtureBuilder::tenant_id();
@@ -202,6 +222,7 @@ fn fixture_tenant_id_has_prefix() {
     assert!(tid.len() > 7);
 }
 
+// 複数回呼び出しで一意のテナント ID が生成されることを確認する。
 #[test]
 fn fixture_tenant_id_unique() {
     let a = FixtureBuilder::tenant_id();
@@ -213,6 +234,7 @@ fn fixture_tenant_id_unique() {
 // MockServer / MockServerBuilder tests
 // ============================================================
 
+// 通知サーバーモックにヘルスチェックルートを追加し、正しいステータスを返すことを確認する。
 #[test]
 fn mock_server_builder_notification_with_health() {
     let server = MockServerBuilder::notification_server()
@@ -224,24 +246,28 @@ fn mock_server_builder_notification_with_health() {
     assert!(body.contains("ok"));
 }
 
+// レートリミットサーバービルダーのサーバータイプが "ratelimit" であることを確認する。
 #[test]
 fn mock_server_builder_ratelimit_type() {
     let builder = MockServerBuilder::ratelimit_server();
     assert_eq!(builder.server_type(), "ratelimit");
 }
 
+// テナントサーバービルダーのサーバータイプが "tenant" であることを確認する。
 #[test]
 fn mock_server_builder_tenant_type() {
     let builder = MockServerBuilder::tenant_server();
     assert_eq!(builder.server_type(), "tenant");
 }
 
+// 通知サーバービルダーのサーバータイプが "notification" であることを確認する。
 #[test]
 fn mock_server_builder_notification_type() {
     let builder = MockServerBuilder::notification_server();
     assert_eq!(builder.server_type(), "notification");
 }
 
+// 成功レスポンスルートが登録され、200 ステータスと期待したボディを返すことを確認する。
 #[test]
 fn mock_server_success_response() {
     let server = MockServerBuilder::notification_server()
@@ -253,6 +279,7 @@ fn mock_server_success_response() {
     assert!(body.contains("sent"));
 }
 
+// エラーレスポンスルートが登録され、指定したエラーステータスを返すことを確認する。
 #[test]
 fn mock_server_error_response() {
     let server = MockServerBuilder::tenant_server()
@@ -264,6 +291,7 @@ fn mock_server_error_response() {
     assert!(body.contains("error"));
 }
 
+// 未登録ルートへのリクエストで None が返されることを確認する。
 #[test]
 fn mock_server_unregistered_route_returns_none() {
     let server = MockServerBuilder::ratelimit_server()
@@ -273,6 +301,7 @@ fn mock_server_unregistered_route_returns_none() {
     assert!(server.handle("POST", "/health").is_none()); // wrong method
 }
 
+// モックサーバーがリクエストを記録し、カウントが正しく増加することを確認する。
 #[test]
 fn mock_server_records_requests() {
     let server = MockServerBuilder::notification_server()
@@ -293,6 +322,7 @@ fn mock_server_records_requests() {
     assert_eq!(server.request_count(), 3);
 }
 
+// 記録されたリクエストのメソッドとパスが正しい順序で保存されていることを確認する。
 #[test]
 fn mock_server_recorded_requests_content() {
     let server = MockServerBuilder::notification_server()
@@ -308,6 +338,7 @@ fn mock_server_recorded_requests_content() {
     assert_eq!(reqs[1], ("POST".to_string(), "/api/send".to_string()));
 }
 
+// モックサーバーのベース URL が "http://" で始まることを確認する。
 #[test]
 fn mock_server_base_url() {
     let server = MockServerBuilder::notification_server().build();
@@ -315,6 +346,7 @@ fn mock_server_base_url() {
     assert!(url.starts_with("http://"));
 }
 
+// 複数のルートを登録したモックサーバーがそれぞれ正しいステータスを返すことを確認する。
 #[test]
 fn mock_server_multiple_routes() {
     let server = MockServerBuilder::notification_server()
@@ -330,6 +362,7 @@ fn mock_server_multiple_routes() {
     assert_eq!(server.handle("POST", "/fail").unwrap().0, 503);
 }
 
+// メソッドチェーンでビルダーを構築した後のリクエストカウントが 0 であることを確認する。
 #[test]
 fn mock_server_builder_chaining() {
     // Verify fluent API works
@@ -343,6 +376,7 @@ fn mock_server_builder_chaining() {
     assert_eq!(server.request_count(), 0);
 }
 
+// デフォルトモックルートにヘルスチェックルートが含まれ正しい値を持つことを確認する。
 #[test]
 fn default_mock_routes_contains_health() {
     let routes = k1s0_test_helper::mock_server::default_mock_routes("my-service");
@@ -358,6 +392,7 @@ fn default_mock_routes_contains_health() {
 // AssertionHelper tests
 // ============================================================
 
+// 余分なキーを含む JSON が期待値の全キーを包含していることを確認する。
 #[test]
 fn assertion_json_contains_simple_match() {
     AssertionHelper::assert_json_contains(
@@ -366,6 +401,7 @@ fn assertion_json_contains_simple_match() {
     );
 }
 
+// ネストされた JSON オブジェクトの部分一致が正しく機能することを確認する。
 #[test]
 fn assertion_json_contains_nested_match() {
     AssertionHelper::assert_json_contains(
@@ -374,6 +410,7 @@ fn assertion_json_contains_nested_match() {
     );
 }
 
+// JSON 配列の部分一致アサーションが正しく機能することを確認する。
 #[test]
 fn assertion_json_contains_array_match() {
     AssertionHelper::assert_json_contains(
@@ -382,18 +419,21 @@ fn assertion_json_contains_array_match() {
     );
 }
 
+// 値が一致しない場合に "JSON partial match failed" でパニックすることを確認する。
 #[test]
 #[should_panic(expected = "JSON partial match failed")]
 fn assertion_json_contains_mismatch_panics() {
     AssertionHelper::assert_json_contains(r#"{"id":"1"}"#, r#"{"id":"2"}"#);
 }
 
+// 期待値のキーが実際の JSON に存在しない場合にパニックすることを確認する。
 #[test]
 #[should_panic(expected = "JSON partial match failed")]
 fn assertion_json_contains_missing_key_panics() {
     AssertionHelper::assert_json_contains(r#"{"id":"1"}"#, r#"{"id":"1","name":"test"}"#);
 }
 
+// イベント一覧に指定タイプのイベントが含まれていることを検証できることを確認する。
 #[test]
 fn assertion_event_emitted_finds_event() {
     let events = vec![
@@ -404,6 +444,7 @@ fn assertion_event_emitted_finds_event() {
     AssertionHelper::assert_event_emitted(&events, "order_shipped");
 }
 
+// 存在しないイベントタイプを検証すると "not found" でパニックすることを確認する。
 #[test]
 #[should_panic(expected = "not found")]
 fn assertion_event_emitted_missing_panics() {
@@ -411,18 +452,21 @@ fn assertion_event_emitted_missing_panics() {
     AssertionHelper::assert_event_emitted(&events, "deleted");
 }
 
+// 指定パスに非 null 値が存在する場合にアサーションが成功することを確認する。
 #[test]
 fn assertion_not_null_with_value() {
     AssertionHelper::assert_not_null(r#"{"data":{"id":"abc","name":"test"}}"#, "data.id");
     AssertionHelper::assert_not_null(r#"{"data":{"id":"abc","name":"test"}}"#, "data.name");
 }
 
+// 存在しないパスを指定した場合に "non-null" でパニックすることを確認する。
 #[test]
 #[should_panic(expected = "non-null")]
 fn assertion_not_null_with_missing_path_panics() {
     AssertionHelper::assert_not_null(r#"{"data":{}}"#, "data.missing_field");
 }
 
+// 値が null の場合に "non-null" でパニックすることを確認する。
 #[test]
 #[should_panic(expected = "non-null")]
 fn assertion_not_null_with_null_value_panics() {
