@@ -19,8 +19,8 @@ export function loadComponentsConfig(path: string): ComponentsConfig {
 }
 
 export function parseComponentsConfig(yaml_content: string): ComponentsConfig {
-  const config = parse(yaml_content) as ComponentsConfig;
-  if (!config.components || !Array.isArray(config.components)) {
+  const config = parse(yaml_content) as ComponentsConfig | null;
+  if (!config || !config.components || !Array.isArray(config.components)) {
     throw new ComponentError('config', 'parse', 'components field is required and must be an array');
   }
   return config;

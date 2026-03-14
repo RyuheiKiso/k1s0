@@ -19,8 +19,6 @@ Binding Building Block ライブラリ。外部リソースへの入出力を統
 | `BindingRequest` | 構造体 | バインディングリクエスト（operation・data・metadata） |
 | `BindingResponse` | 構造体 | バインディングレスポンス（data・metadata） |
 | `BindingError` | enum | `OperationFailed`・`ConnectionFailed`・`UnsupportedOperation`・`TimeoutError` |
-| `PostgresBinding` | 構造体 | PostgreSQL 入出力バインディング |
-| `S3Binding` | 構造体 | S3 出力バインディング |
 | `HttpBinding` | 構造体 | HTTP 出力バインディング |
 | `InMemoryBinding` | 構造体 | InMemory 実装（テスト用、入出力両対応） |
 
@@ -35,19 +33,18 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-postgres = ["sqlx"]
-s3 = ["aws-sdk-s3"]
+default = []
 http = ["reqwest"]
-mock = []
+mock = ["mockall"]
 
 [dependencies]
 async-trait = "0.1"
-thiserror = "2"
-tokio = { version = "1", features = ["sync", "time"] }
+k1s0-bb-core = { path = "../bb-core" }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"], optional = true }
-aws-sdk-s3 = { version = "1", optional = true }
+thiserror = "2"
+tokio = { version = "1", features = ["sync"] }
+tracing = "0.1"
+mockall = { version = "0.13", optional = true }
 reqwest = { version = "0.12", features = ["json"], optional = true }
 
 [dev-dependencies]
@@ -62,13 +59,10 @@ tokio = { version = "1", features = ["full"] }
 bb-binding/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）
-│   ├── traits.rs       # InputBinding・OutputBinding トレイト定義
-│   ├── request.rs      # BindingRequest・BindingResponse
+│   ├── traits.rs       # InputBinding・OutputBinding トレイト定義・BindingRequest・BindingResponse
 │   ├── error.rs        # BindingError
-│   ├── postgres.rs     # PostgresBinding（feature = "postgres"）
-│   ├── s3.rs           # S3Binding（feature = "s3"）
-│   ├── http.rs         # HttpBinding（feature = "http"）
-│   └── in_memory.rs    # InMemoryBinding
+│   ├── http.rs         # HttpOutputBinding（feature = "http"）
+│   └── memory.rs       # InMemoryInputBinding・InMemoryOutputBinding
 └── Cargo.toml
 ```
 
@@ -129,9 +123,7 @@ pub struct BindingResponse {
 
 | バインディング | サポートオペレーション | 入力 | 出力 |
 |--------------|---------------------|------|------|
-| PostgresBinding | `query`・`exec`・`create`・`close` | Yes（CDC イベント） | Yes |
-| S3Binding | `get`・`put`・`delete`・`list` | No | Yes |
-| HttpBinding | `get`・`post`・`put`・`delete` | No | Yes |
+| HttpBinding | `GET`・`POST`・`PUT`・`DELETE`・`PATCH` | No | Yes |
 
 **使用例**:
 
@@ -160,7 +152,7 @@ let response = binding.invoke(&request).await?;
 
 ## Go 実装
 
-**配置先**: `regions/system/library/go/binding/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/go/building-blocks/`
 
 **主要インターフェース**:
 
@@ -213,24 +205,31 @@ func (e *BindingError) Unwrap() error
 
 // --- 実装 ---
 
-type PostgresBinding struct { /* PostgreSQL */ }
-func NewPostgresBinding() *PostgresBinding
+// HTTPOutputBinding: net/http を使用。operation = HTTP メソッド。metadata["url"] 必須。
+type HTTPOutputBinding struct{}
+func NewHTTPOutputBinding(client *http.Client) *HTTPOutputBinding
 
-type S3Binding struct { /* S3 */ }
-func NewS3Binding() *S3Binding
+// FileOutputBinding: FileClientIface 経由で注入（k1s0-file-client 互換）。
+// operations: "upload-url"・"download-url"・"delete"・"list"・"copy"
+type FileOutputBinding struct{}
+func NewFileOutputBinding(name string, client FileClientIface) *FileOutputBinding
 
-type HttpBinding struct { /* HTTP */ }
-func NewHttpBinding() *HttpBinding
-
-// InMemoryOutputBinding は呼び出しを記録するテスト用 OutputBinding。
+// InMemoryOutputBinding: 呼び出し履歴を記録するテスト用 OutputBinding。
 // LastInvocation() / SetResponse() / Reset() ヘルパーを提供する。
-type InMemoryOutputBinding struct { /* テスト用 */ }
+type InMemoryOutputBinding struct{}
 func NewInMemoryOutputBinding() *InMemoryOutputBinding
+
+// InMemoryInputBinding: FIFO キューからデータを読み取るテスト用 InputBinding。
+// Push() ヘルパーでキューにデータを追加する。
+type InMemoryInputBinding struct{}
+func NewInMemoryInputBinding() *InMemoryInputBinding
 ```
 
 ## TypeScript 実装
 
-**配置先**: `regions/system/library/typescript/binding/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/typescript/building-blocks/`
+
+> **現在の実装**: `InMemoryInputBinding`・`InMemoryOutputBinding` のみ。本番バックエンド（HTTP・File）は Go/Rust 側で提供する。
 
 **主要 API**:
 
@@ -274,17 +273,17 @@ export interface OutputBinding extends Component {
   close(): Promise<void>;
 }
 
-export class PostgresBinding implements InputBinding, OutputBinding { /* ... */ }
-export class S3Binding implements OutputBinding { /* ... */ }
-export class HttpBinding implements OutputBinding { /* ... */ }
-export class InMemoryBinding implements InputBinding, OutputBinding { /* ... */ }
+export class InMemoryInputBinding implements InputBinding { /* テスト・開発用（push() ヘルパー付き） */ }
+export class InMemoryOutputBinding implements OutputBinding { /* テスト・開発用（lastInvocation() / setResponse() / reset() 付き） */ }
 ```
 
 **カバレッジ目標**: 85%以上
 
 ## Dart 実装
 
-**配置先**: `regions/system/library/dart/binding/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/dart/building-blocks/`
+
+> **現在の実装**: `InMemoryInputBinding`・`InMemoryOutputBinding` のみ。本番バックエンドは Go/Rust 側で提供する。
 
 **主要 API**:
 
@@ -332,10 +331,8 @@ abstract class OutputBinding implements Component {
   Future<void> close();
 }
 
-class PostgresBinding implements InputBinding, OutputBinding { /* PostgreSQL */ }
-class S3Binding implements OutputBinding { /* S3 */ }
-class HttpBinding implements OutputBinding { /* HTTP */ }
-class InMemoryBinding implements InputBinding, OutputBinding { /* テスト用 */ }
+class InMemoryInputBinding implements InputBinding { /* テスト・開発用（push() ヘルパー付き） */ }
+class InMemoryOutputBinding implements OutputBinding { /* テスト・開発用（lastInvocation() / setResponse() / reset() 付き） */ }
 ```
 
 **カバレッジ目標**: 85%以上
