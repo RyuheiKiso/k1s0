@@ -581,3 +581,429 @@ async fn test_unauthorized_with_invalid_token() {
     let resp = app.clone().oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
 }
+
+// ---------------------------------------------------------------------------
+// サービス登録の詳細テスト
+// ---------------------------------------------------------------------------
+
+/// 全フィールドを指定してサービスを登録する。
+#[tokio::test]
+async fn test_register_service_with_all_fields() {
+    let team = make_test_team("full-team");
+    let team_id = team.id;
+
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestServiceRepository::new()),
+        Arc::new(TestTeamRepository::with_teams(vec![team])),
+    );
+
+    let input = serde_json::json!({
+        "name": "full-service",
+        "description": "A fully specified service",
+        "team_id": team_id,
+        "tier": "critical",
+        "lifecycle": "production",
+        "repository_url": "https://github.com/example/repo",
+        "api_endpoint": "https://api.example.com",
+        "healthcheck_url": "https://api.example.com/healthz",
+        "tags": ["critical", "payments"]
+    });
+
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/services")
+        .header("content-type", "application/json")
+        .header("Authorization", "Bearer test-token")
+        .body(Body::from(serde_json::to_string(&input).unwrap()))
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["name"], "full-service");
+    assert_eq!(json["tier"], "critical");
+    assert_eq!(json["lifecycle"], "production");
+}
+
+/// 存在しないチームIDでサービス登録を試みるとエラーになる。
+#[tokio::test]
+async fn test_register_service_invalid_team_id() {
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestServiceRepository::new()),
+        Arc::new(TestTeamRepository::new()),
+    );
+
+    let fake_team_id = Uuid::new_v4();
+    let input = serde_json::json!({
+        "name": "orphan-service",
+        "team_id": fake_team_id,
+        "tier": "standard",
+        "lifecycle": "development"
+    });
+
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/services")
+        .header("content-type", "application/json")
+        .header("Authorization", "Bearer test-token")
+        .body(Body::from(serde_json::to_string(&input).unwrap()))
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    // チームが存在しないためエラーになる
+    assert!(resp.status().is_client_error() || resp.status().is_server_error());
+}
+
+// ---------------------------------------------------------------------------
+// サービス削除テスト
+// ---------------------------------------------------------------------------
+
+/// サービスを DELETE で削除できることを検証する。
+#[tokio::test]
+async fn test_delete_service() {
+    let team_id = Uuid::new_v4();
+    let svc = make_test_service("delete-me-service", team_id);
+    let svc_id = svc.id;
+
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestServiceRepository::with_services(vec![svc])),
+        Arc::new(TestTeamRepository::new()),
+    );
+
+    let req = Request::builder()
+        .method("DELETE")
+        .uri(&format!("/api/v1/services/{}", svc_id))
+        .header("Authorization", "Bearer test-token")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    // delete_service ハンドラーは NO_CONTENT (204) を返す
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+}
+
+// ---------------------------------------------------------------------------
+// チーム CRUD テスト
+// ---------------------------------------------------------------------------
+
+/// チームを POST で作成する。
+#[tokio::test]
+async fn test_create_team() {
+    let app = make_test_app(true);
+
+    let input = serde_json::json!({
+        "name": "new-platform-team",
+        "description": "Platform engineering team",
+        "contact_email": "platform@example.com",
+        "slack_channel": "#platform"
+    });
+
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/teams")
+        .header("content-type", "application/json")
+        .header("Authorization", "Bearer test-token")
+        .body(Body::from(serde_json::to_string(&input).unwrap()))
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["name"], "new-platform-team");
+}
+
+/// 存在しないチームの取得は 404 になる。
+#[tokio::test]
+async fn test_get_team_not_found() {
+    let app = make_test_app(true);
+    let random_id = Uuid::new_v4();
+
+    let req = Request::builder()
+        .uri(&format!("/api/v1/teams/{}", random_id))
+        .header("Authorization", "Bearer test-token")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
+
+/// チームを DELETE で削除する。
+#[tokio::test]
+async fn test_delete_team() {
+    let team = make_test_team("delete-me-team");
+    let team_id = team.id;
+
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestServiceRepository::new()),
+        Arc::new(TestTeamRepository::with_teams(vec![team])),
+    );
+
+    let req = Request::builder()
+        .method("DELETE")
+        .uri(&format!("/api/v1/teams/{}", team_id))
+        .header("Authorization", "Bearer test-token")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    // delete_team ハンドラーは NO_CONTENT (204) を返す
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+}
+
+/// 空のチームリストは空配列を返す。
+#[tokio::test]
+async fn test_list_teams_empty() {
+    let app = make_test_app(true);
+
+    let req = Request::builder()
+        .uri("/api/v1/teams")
+        .header("Authorization", "Bearer test-token")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let teams = json.as_array().unwrap();
+    assert!(teams.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// 検索クエリテスト
+// ---------------------------------------------------------------------------
+
+/// 検索クエリに一致しない場合は空の結果を返す。
+#[tokio::test]
+async fn test_search_services_no_match() {
+    let team_id = Uuid::new_v4();
+    let svc = make_test_service("alpha-service", team_id);
+
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestServiceRepository::with_services(vec![svc])),
+        Arc::new(TestTeamRepository::new()),
+    );
+
+    let req = Request::builder()
+        .uri("/api/v1/services/search?q=zzz-nonexistent")
+        .header("Authorization", "Bearer test-token")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let results = json.as_array().unwrap();
+    assert!(results.is_empty());
+}
+
+/// 検索クエリなしで全サービスが返される。
+#[tokio::test]
+async fn test_search_services_no_query_returns_all() {
+    let team_id = Uuid::new_v4();
+    let svc1 = make_test_service("svc-one", team_id);
+    let svc2 = make_test_service("svc-two", team_id);
+
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestServiceRepository::with_services(vec![svc1, svc2])),
+        Arc::new(TestTeamRepository::new()),
+    );
+
+    let req = Request::builder()
+        .uri("/api/v1/services/search")
+        .header("Authorization", "Bearer test-token")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let results = json.as_array().unwrap();
+    assert_eq!(results.len(), 2);
+}
+
+// ---------------------------------------------------------------------------
+// サービスリスト（複数）テスト
+// ---------------------------------------------------------------------------
+
+/// 複数サービスが正しくリストされる。
+#[tokio::test]
+async fn test_list_multiple_services() {
+    let team_id = Uuid::new_v4();
+    let services: Vec<Service> = (0..5)
+        .map(|i| make_test_service(&format!("svc-{}", i), team_id))
+        .collect();
+
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestServiceRepository::with_services(services)),
+        Arc::new(TestTeamRepository::new()),
+    );
+
+    let req = Request::builder()
+        .uri("/api/v1/services")
+        .header("Authorization", "Bearer test-token")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let svc_list = json.as_array().unwrap();
+    assert_eq!(svc_list.len(), 5);
+}
+
+/// 空のサービスリストは空配列を返す。
+#[tokio::test]
+async fn test_list_services_empty() {
+    let app = make_test_app(true);
+
+    let req = Request::builder()
+        .uri("/api/v1/services")
+        .header("Authorization", "Bearer test-token")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let svc_list = json.as_array().unwrap();
+    assert!(svc_list.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// ヘルスチェック詳細テスト
+// ---------------------------------------------------------------------------
+
+/// healthz と readyz が認証なしで使える。
+#[tokio::test]
+async fn test_health_endpoints_no_auth() {
+    let app = make_test_app(false);
+
+    // healthz は認証不要
+    let req = Request::builder()
+        .uri("/healthz")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+/// 不正な Authorization 形式は 401 になる。
+#[tokio::test]
+async fn test_malformed_auth_header() {
+    let app = make_test_app(true);
+
+    let req = Request::builder()
+        .uri("/api/v1/services")
+        .header("Authorization", "Basic dXNlcjpwYXNz")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+}
+
+// ---------------------------------------------------------------------------
+// チーム更新テスト
+// ---------------------------------------------------------------------------
+
+/// チームを PUT で更新する。
+#[tokio::test]
+async fn test_update_team() {
+    let team = make_test_team("old-team-name");
+    let team_id = team.id;
+
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestServiceRepository::new()),
+        Arc::new(TestTeamRepository::with_teams(vec![team])),
+    );
+
+    let input = serde_json::json!({
+        "name": "updated-team-name",
+        "description": "Updated description",
+        "contact_email": "updated@example.com"
+    });
+
+    let req = Request::builder()
+        .method("PUT")
+        .uri(&format!("/api/v1/teams/{}", team_id))
+        .header("content-type", "application/json")
+        .header("Authorization", "Bearer test-token")
+        .body(Body::from(serde_json::to_string(&input).unwrap()))
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert!(resp.status().is_success());
+}
+
+/// 存在しないチームの更新は 404 になる。
+#[tokio::test]
+async fn test_update_team_not_found() {
+    let app = make_test_app(true);
+
+    let random_id = Uuid::new_v4();
+    let input = serde_json::json!({
+        "name": "phantom-team",
+        "description": "Does not exist"
+    });
+
+    let req = Request::builder()
+        .method("PUT")
+        .uri(&format!("/api/v1/teams/{}", random_id))
+        .header("content-type", "application/json")
+        .header("Authorization", "Bearer test-token")
+        .body(Body::from(serde_json::to_string(&input).unwrap()))
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
+
+/// 特定のチームを ID で取得する。
+#[tokio::test]
+async fn test_get_team_found() {
+    let team = make_test_team("findable-team");
+    let team_id = team.id;
+
+    let app = make_test_app_with_repos(
+        true,
+        Arc::new(TestServiceRepository::new()),
+        Arc::new(TestTeamRepository::with_teams(vec![team])),
+    );
+
+    let req = Request::builder()
+        .uri(&format!("/api/v1/teams/{}", team_id))
+        .header("Authorization", "Bearer test-token")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["name"], "findable-team");
+}

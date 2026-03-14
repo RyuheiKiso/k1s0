@@ -89,4 +89,96 @@ mod tests {
         let debug_str = format!("{:?}", err);
         assert!(debug_str.contains("ConnectionError"));
     }
+
+    // PublishError の表示文字列が期待するフォーマットであることを確認する。
+    #[test]
+    fn test_publish_error_display() {
+        let err = MessagingError::PublishError("message too large".to_string());
+        assert_eq!(err.to_string(), "publish error: message too large");
+    }
+
+    // ConsumeError の表示文字列が期待するフォーマットであることを確認する。
+    #[test]
+    fn test_consume_error_display() {
+        let err = MessagingError::ConsumeError("partition revoked".to_string());
+        assert_eq!(err.to_string(), "consume error: partition revoked");
+    }
+
+    // CommitError の表示文字列が期待するフォーマットであることを確認する。
+    #[test]
+    fn test_commit_error_display() {
+        let err = MessagingError::CommitError("offset out of range".to_string());
+        assert_eq!(err.to_string(), "commit error: offset out of range");
+    }
+
+    // すべてのエラーバリアントが std::error::Error トレイトを実装していることを確認する。
+    #[test]
+    fn test_all_variants_implement_error_trait() {
+        fn assert_error<E: std::error::Error>(_: &E) {}
+
+        assert_error(&MessagingError::ProducerError("test".to_string()));
+        assert_error(&MessagingError::ConsumerError("test".to_string()));
+        assert_error(&MessagingError::SerializationError("test".to_string()));
+        assert_error(&MessagingError::DeserializationError("test".to_string()));
+        assert_error(&MessagingError::ConnectionError("test".to_string()));
+        assert_error(&MessagingError::TimeoutError("test".to_string()));
+        assert_error(&MessagingError::PublishError("test".to_string()));
+        assert_error(&MessagingError::ConsumeError("test".to_string()));
+        assert_error(&MessagingError::CommitError("test".to_string()));
+    }
+
+    // 各エラーバリアントの Debug 出力にバリアント名が含まれることを確認する。
+    #[test]
+    fn test_all_variants_debug_contains_variant_name() {
+        let variants: Vec<(&str, MessagingError)> = vec![
+            (
+                "ProducerError",
+                MessagingError::ProducerError("x".to_string()),
+            ),
+            (
+                "ConsumerError",
+                MessagingError::ConsumerError("x".to_string()),
+            ),
+            (
+                "SerializationError",
+                MessagingError::SerializationError("x".to_string()),
+            ),
+            (
+                "DeserializationError",
+                MessagingError::DeserializationError("x".to_string()),
+            ),
+            (
+                "ConnectionError",
+                MessagingError::ConnectionError("x".to_string()),
+            ),
+            (
+                "TimeoutError",
+                MessagingError::TimeoutError("x".to_string()),
+            ),
+            (
+                "PublishError",
+                MessagingError::PublishError("x".to_string()),
+            ),
+            (
+                "ConsumeError",
+                MessagingError::ConsumeError("x".to_string()),
+            ),
+            (
+                "CommitError",
+                MessagingError::CommitError("x".to_string()),
+            ),
+        ];
+
+        for (name, err) in variants {
+            let debug = format!("{:?}", err);
+            assert!(debug.contains(name), "Debug for {} should contain variant name", name);
+        }
+    }
+
+    // 空文字列のエラーメッセージでも表示フォーマットが正しいことを確認する。
+    #[test]
+    fn test_error_with_empty_message() {
+        let err = MessagingError::ProducerError(String::new());
+        assert_eq!(err.to_string(), "producer error: ");
+    }
 }

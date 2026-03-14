@@ -151,6 +151,33 @@ mod tests {
         assert!(config.jwks_uri.is_none());
     }
 
+    // ビルダーメソッドをチェーンして全オプションを設定できることを確認する。
+    #[test]
+    fn test_builder_chain() {
+        let config = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec")
+            .with_jwks_uri("https://auth.example.com/certs")
+            .with_refresh_before_secs(60)
+            .with_timeout_secs(30);
+        assert_eq!(
+            config.jwks_uri.as_deref(),
+            Some("https://auth.example.com/certs")
+        );
+        assert_eq!(config.refresh_before_secs, 60);
+        assert_eq!(config.timeout_secs, 30);
+    }
+
+    // ServiceAuthConfig の Clone が全フィールドを正しくコピーすることを確認する。
+    #[test]
+    fn test_config_clone() {
+        let original = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec")
+            .with_jwks_uri("https://auth.example.com/certs");
+        let cloned = original.clone();
+        assert_eq!(cloned.token_endpoint, original.token_endpoint);
+        assert_eq!(cloned.client_id, original.client_id);
+        assert_eq!(cloned.client_secret, original.client_secret);
+        assert_eq!(cloned.jwks_uri, original.jwks_uri);
+    }
+
     // 設定を JSON にシリアライズしてデシリアライズしても全フィールドが一致することを確認する。
     #[test]
     fn test_serde_roundtrip() {

@@ -404,4 +404,147 @@ mod tests {
         let result = client.verify_token("dummy-token").await;
         assert!(matches!(result, Err(ServiceAuthError::InvalidToken(_))));
     }
+
+    // verify_token のエラーメッセージに JWKS URI 未設定の旨が含まれることを確認する。
+    #[tokio::test]
+    async fn test_verify_token_no_jwks_uri_error_message() {
+        let client = make_client("https://auth.example.com/token");
+        let result = client.verify_token("any-token").await;
+        if let Err(ServiceAuthError::InvalidToken(msg)) = result {
+            assert!(msg.contains("JWKS URI"));
+        } else {
+            panic!("Expected InvalidToken error");
+        }
+    }
+
+    // 空文字列の SPIFFE ID の検証がエラーになることを確認する。
+    #[test]
+    fn test_validate_spiffe_id_empty_string() {
+        let client = make_client("https://auth.example.com/token");
+        let result = client.validate_spiffe_id("", "system");
+        assert!(matches!(
+            result,
+            Err(ServiceAuthError::SpiffeValidationFailed(_))
+        ));
+    }
+
+    // service ネームスペースの SPIFFE ID が正しく検証されることを確認する。
+    #[test]
+    fn test_validate_spiffe_id_service_namespace() {
+        let client = make_client("https://auth.example.com/token");
+        let result = client.validate_spiffe_id(
+            "spiffe://k1s0.internal/ns/service/sa/notification-service",
+            "service",
+        );
+        assert!(result.is_ok());
+        let spiffe = result.unwrap();
+        assert_eq!(spiffe.namespace, "service");
+        assert_eq!(spiffe.service_account, "notification-service");
+        assert_eq!(spiffe.trust_domain, "k1s0.internal");
+    }
+
+    // 検証成功時のスキーマから trust_domain が正しく取得できることを確認する。
+    #[test]
+    fn test_validate_spiffe_id_trust_domain_extraction() {
+        let client = make_client("https://auth.example.com/token");
+        let result = client.validate_spiffe_id(
+            "spiffe://custom.domain.io/ns/system/sa/my-service",
+            "system",
+        );
+        assert!(result.is_ok());
+        let spiffe = result.unwrap();
+        assert_eq!(spiffe.trust_domain, "custom.domain.io");
+    }
+
+    // ネームスペースのみ異なる SPIFFE ID の検証が失敗し、エラーメッセージに両方のネームスペースが含まれることを確認する。
+    #[test]
+    fn test_validate_spiffe_id_namespace_mismatch_error_details() {
+        let client = make_client("https://auth.example.com/token");
+        let result = client.validate_spiffe_id(
+            "spiffe://k1s0.internal/ns/service/sa/my-service",
+            "system",
+        );
+        assert!(result.is_err());
+        if let Err(ServiceAuthError::SpiffeValidationFailed(msg)) = result {
+            assert!(msg.contains("system"));
+            assert!(msg.contains("service"));
+        }
+    }
+
+    // HttpServiceAuthClient のカスタムタイムアウト設定が正常に動作することを確認する。
+    #[test]
+    fn test_new_client_custom_timeout() {
+        let config = ServiceAuthConfig::new(
+            "https://auth.example.com/token",
+            "test-service",
+            "test-secret",
+        )
+        .with_timeout_secs(60);
+        let client = HttpServiceAuthClient::new(config);
+        assert!(client.is_ok());
+        let c = client.unwrap();
+        assert_eq!(c.config.timeout_secs, 60);
+    }
+
+    // HttpServiceAuthClient のカスタムリフレッシュ設定が保持されることを確認する。
+    #[test]
+    fn test_new_client_custom_refresh_before_secs() {
+        let config = ServiceAuthConfig::new(
+            "https://auth.example.com/token",
+            "test-service",
+            "test-secret",
+        )
+        .with_refresh_before_secs(300);
+        let client = HttpServiceAuthClient::new(config).unwrap();
+        assert_eq!(client.config.refresh_before_secs, 300);
+    }
+
+    // ServiceClaims がシリアライズ・デシリアライズで正しく往復することを確認する。
+    #[test]
+    fn test_service_claims_serialization_roundtrip() {
+        let claims = ServiceClaims {
+            sub: "test-service".to_string(),
+            client_id: Some("test-client".to_string()),
+            scope: Some("openid profile".to_string()),
+            iss: "https://auth.example.com/realms/k1s0".to_string(),
+            exp: 1700000000,
+            iat: 1699999000,
+        };
+        let json = serde_json::to_string(&claims).unwrap();
+        let restored: ServiceClaims = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.sub, "test-service");
+        assert_eq!(restored.client_id.as_deref(), Some("test-client"));
+        assert_eq!(restored.scope.as_deref(), Some("openid profile"));
+        assert_eq!(restored.iss, claims.iss);
+        assert_eq!(restored.exp, claims.exp);
+        assert_eq!(restored.iat, claims.iat);
+    }
+
+    // ServiceClaims の client_id と scope が None でも正しくデシリアライズされることを確認する。
+    #[test]
+    fn test_service_claims_optional_fields_none() {
+        let json = r#"{
+            "sub": "svc",
+            "iss": "https://auth.example.com",
+            "exp": 1700000000,
+            "iat": 1699999000
+        }"#;
+        let claims: ServiceClaims = serde_json::from_str(json).unwrap();
+        assert_eq!(claims.sub, "svc");
+        assert!(claims.client_id.is_none());
+        assert!(claims.scope.is_none());
+    }
+
+    // HttpServiceAuthClient が初期状態でトークンキャッシュが空であることを確認する。
+    #[tokio::test]
+    async fn test_new_client_empty_token_cache() {
+        let config = ServiceAuthConfig::new(
+            "https://auth.example.com/token",
+            "test-service",
+            "test-secret",
+        );
+        let client = HttpServiceAuthClient::new(config).unwrap();
+        let cache = client.token_cache.read().await;
+        assert!(cache.is_none());
+    }
 }

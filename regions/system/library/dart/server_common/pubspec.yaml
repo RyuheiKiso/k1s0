@@ -1,0 +1,13 @@
+name: k1s0_server_common
+version: 0.1.0
+description: k1s0 サーバー共通基盤 - エラーコード体系とレスポンス型
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  uuid: ^4.4.0
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0

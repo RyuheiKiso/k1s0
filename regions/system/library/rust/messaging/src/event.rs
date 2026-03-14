@@ -160,6 +160,81 @@ mod tests {
         assert_eq!(meta, deserialized);
     }
 
+    // EventMetadata の event_id が毎回異なる UUID を生成することを確認する。
+    #[test]
+    fn test_event_metadata_unique_event_ids() {
+        let meta1 = EventMetadata::new("test.event", "test-service");
+        let meta2 = EventMetadata::new("test.event", "test-service");
+        assert_ne!(meta1.event_id, meta2.event_id);
+    }
+
+    // EventMetadata の schema_version がデフォルトで 1 であることを確認する。
+    #[test]
+    fn test_event_metadata_default_schema_version() {
+        let meta = EventMetadata::new("user.created", "user-service");
+        assert_eq!(meta.schema_version, 1);
+    }
+
+    // correlation_id のみを設定した場合に trace_id が None のままであることを確認する。
+    #[test]
+    fn test_event_metadata_correlation_id_only() {
+        let meta = EventMetadata::new("order.placed", "order-service")
+            .with_correlation_id("corr-xyz");
+        assert!(meta.trace_id.is_none());
+        assert_eq!(meta.correlation_id.as_deref(), Some("corr-xyz"));
+    }
+
+    // EventEnvelope::json でヘッダーと metadata が空で初期化されることを確認する。
+    #[test]
+    fn test_event_envelope_json_empty_headers_and_metadata() {
+        let payload = serde_json::json!({"key": "value"});
+        let envelope =
+            EventEnvelope::json("topic", "key", &payload).unwrap();
+        assert!(envelope.headers.is_empty());
+        assert!(envelope.metadata.is_empty());
+    }
+
+    // EventEnvelope::json でシリアライズ不可能な値がエラーを返すことはないが、
+    // 有効なペイロードが正しくシリアライズされることを確認する。
+    #[test]
+    fn test_event_envelope_json_complex_payload() {
+        let payload = serde_json::json!({
+            "users": [
+                {"id": 1, "name": "Alice"},
+                {"id": 2, "name": "Bob"}
+            ],
+            "count": 2,
+            "active": true
+        });
+        let envelope = EventEnvelope::json("complex.topic", "key-1", &payload).unwrap();
+        let deserialized: serde_json::Value = serde_json::from_slice(&envelope.payload).unwrap();
+        assert_eq!(deserialized["count"], 2);
+        assert_eq!(deserialized["users"][0]["name"], "Alice");
+    }
+
+    // from_unix_millis に負の値を渡しても正しく変換されることを確認する（1970年以前の日時）。
+    #[test]
+    fn test_event_metadata_from_unix_millis_negative() {
+        // 1970年以前の日時も変換可能
+        let result = EventMetadata::from_unix_millis(-1000);
+        assert!(result.is_some());
+    }
+
+    // from_unix_millis に 0 を渡すと 1970-01-01T00:00:00Z が返ることを確認する。
+    #[test]
+    fn test_event_metadata_from_unix_millis_zero() {
+        let result = EventMetadata::from_unix_millis(0).unwrap();
+        assert_eq!(result.timestamp_millis(), 0);
+    }
+
+    // EventMetadata が PartialEq を実装し、同一フィールドで等しいと判定されることを確認する。
+    #[test]
+    fn test_event_metadata_partial_eq() {
+        let meta = EventMetadata::new("test", "svc");
+        let cloned = meta.clone();
+        assert_eq!(meta, cloned);
+    }
+
     #[cfg(feature = "protobuf")]
     // Protobuf ペイロードで EventEnvelope が正しく生成されることを確認する。
     #[test]
