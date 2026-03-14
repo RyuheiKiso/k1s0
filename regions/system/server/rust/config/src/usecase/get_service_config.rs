@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::domain::entity::config_entry::ServiceConfigResult;
+use crate::domain::error::ConfigRepositoryError;
 use crate::domain::repository::ConfigRepository;
 
 /// GetServiceConfigError はサービス設定取得に関するエラーを表す。
@@ -24,6 +25,7 @@ impl GetServiceConfigUseCase {
     }
 
     /// サービス名で設定値を一括取得する。
+    /// 型安全なパターンマッチングでリポジトリエラーを分類する。
     pub async fn execute(
         &self,
         service_name: &str,
@@ -32,13 +34,11 @@ impl GetServiceConfigUseCase {
             .config_repo
             .find_by_service_name(service_name)
             .await
-            .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
+            .map_err(|e| match e {
+                ConfigRepositoryError::ServiceNotFound(_) => {
                     GetServiceConfigError::NotFound(service_name.to_string())
-                } else {
-                    GetServiceConfigError::Internal(msg)
                 }
+                other => GetServiceConfigError::Internal(other.to_string()),
             })?;
 
         if result.entries.is_empty() {
@@ -97,11 +97,16 @@ mod tests {
         assert_eq!(config.entries.len(), 3);
     }
 
+    /// サービスが見つからない場合は ServiceNotFound エラーを返す（型安全なエラー使用）
     #[tokio::test]
     async fn test_get_service_config_not_found() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_service_name()
-            .returning(|_| Err(anyhow::anyhow!("service not found")));
+            .returning(|_| {
+                Err(ConfigRepositoryError::ServiceNotFound(
+                    "nonexistent-service".to_string(),
+                ))
+            });
 
         let uc = GetServiceConfigUseCase::new(Arc::new(mock));
         let result = uc.execute("nonexistent-service").await;
@@ -133,11 +138,16 @@ mod tests {
         }
     }
 
+    /// インフラストラクチャエラーの場合は Internal エラーを返す（型安全なエラー使用）
     #[tokio::test]
     async fn test_get_service_config_internal_error() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_service_name()
-            .returning(|_| Err(anyhow::anyhow!("connection refused")));
+            .returning(|_| {
+                Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                    "connection refused"
+                )))
+            });
 
         let uc = GetServiceConfigUseCase::new(Arc::new(mock));
         let result = uc.execute("auth-server").await;

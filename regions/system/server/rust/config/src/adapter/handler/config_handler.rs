@@ -273,6 +273,7 @@ mod tests {
     use crate::domain::entity::config_entry::{
         ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
     };
+    use crate::domain::error::ConfigRepositoryError;
     use crate::domain::repository::config_repository::MockConfigRepository;
     use crate::domain::repository::config_schema_repository::MockConfigSchemaRepository;
     use axum::body::Body;
@@ -522,7 +523,12 @@ mod tests {
         mock.expect_find_by_namespace_and_key()
             .returning(|_, _| Ok(Some(make_test_entry())));
         mock.expect_update()
-            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("version conflict: current=4")));
+            .returning(|_, _, _, _, _, _| {
+                Err(ConfigRepositoryError::VersionConflict {
+                    expected: 3,
+                    current: 4,
+                })
+            });
 
         let state = make_app_state(mock);
         let app = router(state);
@@ -642,7 +648,11 @@ mod tests {
     async fn test_get_service_config_not_found() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_service_name()
-            .returning(|_| Err(anyhow::anyhow!("service not found")));
+            .returning(|_| {
+                Err(ConfigRepositoryError::ServiceNotFound(
+                    "nonexistent-service".to_string(),
+                ))
+            });
 
         let state = make_app_state(mock);
         let app = router(state);

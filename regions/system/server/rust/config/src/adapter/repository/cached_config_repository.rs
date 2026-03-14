@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use crate::domain::entity::config_change_log::ConfigChangeLog;
 use crate::domain::entity::config_entry::{ConfigEntry, ConfigListResult, ServiceConfigResult};
+use crate::domain::error::ConfigRepositoryError;
 use crate::domain::repository::ConfigRepository;
 use crate::infrastructure::cache::ConfigCache;
 
@@ -48,7 +49,7 @@ impl ConfigRepository for CachedConfigRepository {
         &self,
         namespace: &str,
         key: &str,
-    ) -> anyhow::Result<Option<ConfigEntry>> {
+    ) -> Result<Option<ConfigEntry>, ConfigRepositoryError> {
         // キャッシュヒット確認
         if let Some(cached) = self.cache.get(namespace, key).await {
             if let Some(ref m) = self.metrics {
@@ -79,7 +80,7 @@ impl ConfigRepository for CachedConfigRepository {
         page: i32,
         page_size: i32,
         search: Option<String>,
-    ) -> anyhow::Result<ConfigListResult> {
+    ) -> Result<ConfigListResult, ConfigRepositoryError> {
         self.inner
             .list_by_namespace(namespace, page, page_size, search)
             .await
@@ -94,7 +95,7 @@ impl ConfigRepository for CachedConfigRepository {
         expected_version: i32,
         description: Option<String>,
         updated_by: &str,
-    ) -> anyhow::Result<ConfigEntry> {
+    ) -> Result<ConfigEntry, ConfigRepositoryError> {
         let result = self
             .inner
             .update(
@@ -114,7 +115,7 @@ impl ConfigRepository for CachedConfigRepository {
     }
 
     /// delete は inner に委譲し、成功時にキャッシュを invalidate する。
-    async fn delete(&self, namespace: &str, key: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError> {
         let deleted = self.inner.delete(namespace, key).await?;
 
         // 削除成功時はキャッシュを invalidate
@@ -129,12 +130,12 @@ impl ConfigRepository for CachedConfigRepository {
     async fn find_by_service_name(
         &self,
         service_name: &str,
-    ) -> anyhow::Result<ServiceConfigResult> {
+    ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
         self.inner.find_by_service_name(service_name).await
     }
 
     /// record_change_log はキャッシュを使わず inner に委譲する。
-    async fn record_change_log(&self, log: &ConfigChangeLog) -> anyhow::Result<()> {
+    async fn record_change_log(&self, log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError> {
         self.inner.record_change_log(log).await
     }
 

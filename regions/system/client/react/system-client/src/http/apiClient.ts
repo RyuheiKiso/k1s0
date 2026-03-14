@@ -3,9 +3,11 @@ import axios, { type AxiosInstance, type AxiosError } from 'axios';
 interface ApiClientOptions {
   baseURL: string;
   timeout?: number;
+  // 401 未認証エラー時に呼び出されるコールバック（リダイレクト等の処理を呼び出し側で制御可能にする）
+  onUnauthorized?: () => void;
 }
 
-export function createApiClient({ baseURL, timeout = 30000 }: ApiClientOptions): AxiosInstance {
+export function createApiClient({ baseURL, timeout = 30000, onUnauthorized }: ApiClientOptions): AxiosInstance {
   const client = axios.create({
     baseURL,
     timeout,
@@ -30,10 +32,9 @@ export function createApiClient({ baseURL, timeout = 30000 }: ApiClientOptions):
     (error: AxiosError) => {
       const status = error.response?.status;
 
+      // 401 未認証時はコールバックを呼び出す（呼び出し側でリダイレクト等を制御）
       if (status === 401) {
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login';
-        }
+        onUnauthorized?.();
       } else if (status === 403) {
         console.error('[API] 403 Forbidden:', error.config?.url);
       } else if (status != null && status >= 500) {

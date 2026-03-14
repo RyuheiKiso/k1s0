@@ -125,7 +125,9 @@ regions/service/{service_name}/client/react/
     "eslint-plugin-import": "^2.31.0",
     "prettier": "^3.4.0",
     "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "@types/react-dom": "^19.0.0",
+    "yaml": "^2.4.0",
+    "deepmerge": "^4.3.0"
   }
 }
 ```
@@ -171,6 +173,20 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import { readFileSync, existsSync } from 'fs';
+import { parse } from 'yaml';
+import deepmerge from 'deepmerge';
+
+/// 環境変数から実行環境を取得（デフォルト: development）
+const env = process.env.APP_ENV ?? 'development';
+
+/// ベース設定を YAML から読み込む
+const base = parse(readFileSync('config/config.yaml', 'utf-8'));
+
+/// 環境別オーバーレイ設定が存在する場合のみ読み込んでマージする
+const overlayPath = `config/config.${env}.yaml`;
+const overlay = existsSync(overlayPath) ? parse(readFileSync(overlayPath, 'utf-8')) : {};
+const config = deepmerge(base, overlay);
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -179,11 +195,14 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    __APP_CONFIG__: JSON.stringify(config),
+  },
   server: {
     port: 3000,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
+      [config.proxy.path]: {
+        target: config.proxy.target,
         changeOrigin: true,
       },
     },
@@ -329,7 +348,7 @@ export function App() {
 BFF + HttpOnly Cookie 認証に対応した axios インスタンス。トークンは BFF がサーバーサイドで管理するため、クライアントから直接扱わない（[認証認可設計](../../architecture/auth/認証認可設計.md) D-013 参照）。
 
 ```typescript
-import axios from 'axios';
+import { createApiClient } from 'system-client';
 
 /**
  * API クライアント
@@ -337,52 +356,20 @@ import axios from 'axios';
  * - baseURL: BFF のプロキシエンドポイント
  * - withCredentials: Cookie を自動送信（BFF + HttpOnly Cookie 方式）
  * - CSRF トークン: BFF が発行する X-CSRF-Token をリクエストヘッダーに付与
+ * - onUnauthorized: 401 エラー時のコールバック（テスト時に window.location 依存を排除可能）
  */
-const apiClient = axios.create({
+const apiClient = createApiClient({
   baseURL: '/api',
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
+  onUnauthorized: () => {
+    window.location.href = '/auth/login';
   },
 });
-
-// CSRF トークンをリクエストヘッダーに付与
-apiClient.interceptors.request.use((config) => {
-  const csrfToken = document.querySelector<HTMLMetaElement>(
-    'meta[name="csrf-token"]',
-  )?.content;
-  if (csrfToken) {
-    config.headers['X-CSRF-Token'] = csrfToken;
-  }
-  return config;
-});
-
-// レスポンスインターセプター: エラーハンドリング
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (axios.isAxiosError(error)) {
-      switch (error.response?.status) {
-        case 401:
-          // 認証エラー: ログインページへリダイレクト
-          window.location.href = '/auth/login';
-          break;
-        case 403:
-          // 権限エラー: アクセス拒否
-          console.error('アクセスが拒否されました');
-          break;
-        case 500:
-          // サーバーエラー
-          console.error('サーバーエラーが発生しました');
-          break;
-      }
-    }
-    return Promise.reject(error);
-  },
-);
 
 export { apiClient };
 ```
+
+> **Note:** `createApiClient` は system-client パッケージが提供する Axios ファクトリ関数。
+> `onUnauthorized` コールバックにより、401 エラー時の動作を呼び出し側で制御でき、テスト時は spy/mock に差し替え可能。
 
 ### src/lib/query-client.ts
 

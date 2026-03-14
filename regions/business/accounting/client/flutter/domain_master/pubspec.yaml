@@ -16,6 +16,13 @@ dependencies:
   go_router: ^14.2.7
   # Dio による HTTP クライアント
   dio: ^5.7.0
+  # YAML 設定ファイル読み込み
+  yaml: ^3.1.2
+
+flutter:
+  assets:
+    - config/config.yaml
+    - config/config.development.yaml
 
 dev_dependencies:
   flutter_test:

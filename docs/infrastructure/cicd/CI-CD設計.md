@@ -578,7 +578,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: fs
           scan-ref: .
@@ -586,26 +586,63 @@ jobs:
           format: table
           exit-code: 1
 
+  # package-aware: 各言語のモジュールを自動探索してスキャンする
   dependency-check:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - lang: rust
-            cmd: "cargo audit"
-          - lang: node
-            cmd: "npm audit --audit-level=high"
     steps:
       - uses: actions/checkout@v4
-      - name: Run dependency check (${{ matrix.lang }})
-        run: ${{ matrix.cmd }}
+      - name: Go セットアップ
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      - name: Go vulncheck インストール
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Rust セットアップ
+        uses: dtolnay/rust-toolchain@stable
+      - name: cargo-audit インストール
+        run: cargo install cargo-audit
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Flutter セットアップ
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: ripgrep インストール
+        run: sudo apt-get install -y ripgrep
+      # 各言語は continue-on-error で独立実行し、最後に結果を集約する
+      - name: Go 脆弱性スキャン
+        id: go-vulncheck
+        continue-on-error: true
+        run: bash scripts/security/go-vulncheck.sh
+      - name: Rust 脆弱性監査
+        id: cargo-audit
+        continue-on-error: true
+        run: bash scripts/security/cargo-audit.sh
+      - name: npm 脆弱性監査
+        id: npm-audit
+        continue-on-error: true
+        run: bash scripts/security/npm-audit.sh
+      - name: Dart 依存チェック
+        id: dart-outdated
+        continue-on-error: true
+        run: bash scripts/security/dart-outdated.sh
+      - name: スキャン結果の集約
+        run: |
+          if [ "${{ steps.go-vulncheck.outcome }}" = "failure" ] || \
+             [ "${{ steps.cargo-audit.outcome }}" = "failure" ] || \
+             [ "${{ steps.npm-audit.outcome }}" = "failure" ]; then
+            echo "::error::One or more security scans failed"
+            exit 1
+          fi
 
   image-scan:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
     steps:
       - name: Scan latest images
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: image
           image-ref: harbor.internal.example.com/k1s0-service/order:latest

@@ -1,0 +1,21 @@
+# アプリケーション基本設定
+app:
+  name: "app-catalog"
+  version: "0.1.0"
+  env: "development"
+
+# API接続設定: APIサーバーへの接続情報
+api:
+  base_url: "http://localhost:8080"
+  timeout: 30
+  retry:
+    max_attempts: 3
+    backoff_ms: 1000
+
+# プロキシ設定: 開発サーバーからAPIへのリクエスト転送
+proxy:
+  path: "/api"
+  target: "http://localhost:8080"
+
+# フィーチャーフラグ: 機能の有効/無効を制御
+features: {}

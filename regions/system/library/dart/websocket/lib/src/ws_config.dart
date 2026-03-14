@@ -12,11 +12,4 @@ class WsConfig {
     this.reconnectDelay = const Duration(seconds: 1),
     this.pingInterval,
   });
-
-  static WsConfig get defaults => const WsConfig(
-        url: 'ws://localhost',
-        reconnect: true,
-        maxReconnectAttempts: 5,
-        reconnectDelay: Duration(seconds: 1),
-      );
 }

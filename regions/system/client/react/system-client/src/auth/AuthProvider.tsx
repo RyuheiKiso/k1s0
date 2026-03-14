@@ -28,7 +28,11 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const apiClient = createApiClient({ baseURL: apiBaseURL });
+  // 401 未認証エラー時にログインページへリダイレクトするコールバックを設定
+  const apiClient = createApiClient({
+    baseURL: apiBaseURL,
+    onUnauthorized: () => { window.location.href = '/auth/login'; },
+  });
 
   // 初期化時にセッション確認
   useEffect(() => {

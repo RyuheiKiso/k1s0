@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { InMemoryWsClient, defaultConfig } from '../src/index.js';
+import { InMemoryWsClient, createConfig } from '../src/index.js';
 import type { WsMessage } from '../src/index.js';
 
 describe('InMemoryWsClient', () => {
@@ -55,9 +55,9 @@ describe('InMemoryWsClient', () => {
     await expect(client.receive()).rejects.toThrow('Not connected');
   });
 
-  it('defaultConfig が正しい値を返す', () => {
-    const cfg = defaultConfig();
-    expect(cfg.url).toBe('ws://localhost');
+  it('createConfig が正しい値を返す', () => {
+    const cfg = createConfig('ws://test.example.com');
+    expect(cfg.url).toBe('ws://test.example.com');
     expect(cfg.reconnect).toBe(true);
     expect(cfg.maxReconnectAttempts).toBe(5);
     expect(cfg.reconnectDelayMs).toBe(1000);

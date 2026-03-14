@@ -9,7 +9,11 @@ import type {
   VersionListResponse,
 } from './types';
 
-const api = createApiClient({ baseURL: '/api/v1' });
+// 未認証時のリダイレクト処理をコールバックで注入する
+const api = createApiClient({
+  baseURL: '/api/v1',
+  onUnauthorized: () => { window.location.href = '/auth/login'; },
+});
 
 export async function fetchApps(params?: AppListParams): Promise<App[]> {
   const { data } = await api.get<AppListResponse>('/apps', { params });

@@ -36,7 +36,7 @@
 
 | フィールド | 型 | デフォルト | 説明 |
 |-----------|---|----------|------|
-| `url` | `string` | `"ws://localhost"` | WebSocket エンドポイント URL |
+| `url` | `string` | （必須） | WebSocket エンドポイント URL |
 | `reconnect` | `bool` | `true` | 自動再接続の有効/無効 |
 | `maxReconnectAttempts` | `int` | `5` | 最大再接続試行回数 |
 | `reconnectDelayMs` | `int` | `1000` | 再接続間隔（ミリ秒） |
@@ -330,7 +330,7 @@ type Config struct {
     PingIntervalMs       *int64
 }
 
-// DefaultConfig はデフォルト設定を返す。
+// DefaultConfig はデフォルト設定を返す。URL は呼び出し側が必ず指定すること。
 func DefaultConfig() Config
 ```
 
@@ -416,7 +416,7 @@ msg, _ := testClient.Receive(ctx)
 ```
 websocket/src/
 ├── index.ts         # 公開 API（再エクスポート）
-├── types.ts         # WsConfig・WsMessage・ConnectionState・MessageType・defaultConfig
+├── types.ts         # WsConfig・WsMessage・ConnectionState・MessageType・createConfig
 ├── client.ts        # WsClient インターフェース・InMemoryWsClient
 └── native_client.ts # NativeWsClient（本番用）
 ```
@@ -442,7 +442,7 @@ export interface WsConfig {
   pingIntervalMs?: number;
 }
 
-export function defaultConfig(): WsConfig;
+export function createConfig(url: string, overrides?: Partial<Omit<WsConfig, 'url'>>): WsConfig;
 
 // client.ts
 export interface WsClient {
@@ -466,16 +466,14 @@ export class NativeWsClient implements WsClient {
 **使用例**:
 
 ```typescript
-import { NativeWsClient, InMemoryWsClient, defaultConfig } from '@k1s0/websocket';
+import { NativeWsClient, InMemoryWsClient, createConfig } from '@k1s0/websocket';
 import type { WsMessage } from '@k1s0/websocket';
 
 // 本番用クライアント
-const config = {
-  ...defaultConfig(),
-  url: 'wss://notification-server:8080/ws',
+const config = createConfig('wss://notification-server:8080/ws', {
   maxReconnectAttempts: 10,
   reconnectDelayMs: 5000,
-};
+});
 const client = new NativeWsClient(config);
 await client.connect();
 
@@ -550,7 +548,6 @@ class WsConfig {
   final Duration? pingInterval;          // default: null
 
   const WsConfig({required this.url, ...});
-  static WsConfig get defaults;
 }
 
 // ws_client.dart
@@ -633,6 +630,7 @@ print('受信: ${received.textPayload}');
 | WsMessage::Close（Rust） | 引数なし | `Option<CloseFrame>` 付き |
 | WsMessage::Ping/Pong（Rust） | 引数なし | `Vec<u8>` ペイロード付き |
 | Go 型名 | `WsConfig` / `WsMessage` | `Config` / `Message`（プレフィックスなし） |
+| WsConfig デフォルト URL | `ws://localhost` | なし（URL は必須パラメータ） |
 
 ## テスト戦略
 

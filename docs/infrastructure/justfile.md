@@ -66,6 +66,11 @@ just proto
 | `build-ts` | TypeScript: `npm run build` |
 | `proto` | Proto コード生成 (`scripts/generate-proto.sh`) |
 | `ci` | CI 全実行 (`lint` + `test` + `build`) |
+| `security` | 全言語セキュリティスキャン (`security-go` + `security-rust` + `security-ts` + `security-dart`) |
+| `security-go` | Go: `govulncheck ./...`（全モジュール自動探索） |
+| `security-rust` | Rust: `cargo audit`（CLI/ + regions/system/ ワークスペース） |
+| `security-ts` | TypeScript: `npm audit --audit-level=high`（全 package-lock.json 自動探索） |
+| `security-dart` | Dart/Flutter: `pub outdated`（advisory、全 pubspec.yaml 自動探索） |
 
 ## CI との整合性
 

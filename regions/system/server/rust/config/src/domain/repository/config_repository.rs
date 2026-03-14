@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 use crate::domain::entity::config_change_log::ConfigChangeLog;
 use crate::domain::entity::config_entry::{ConfigEntry, ConfigListResult, ServiceConfigResult};
+use crate::domain::error::ConfigRepositoryError;
 
 /// ConfigRepository は設定値の永続化のためのリポジトリトレイト。
 /// 実装は PostgreSQL を通じて設定値を管理する。
+/// 戻り値は型安全な ConfigRepositoryError を使用する。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ConfigRepository: Send + Sync {
@@ -12,7 +14,7 @@ pub trait ConfigRepository: Send + Sync {
         &self,
         namespace: &str,
         key: &str,
-    ) -> anyhow::Result<Option<ConfigEntry>>;
+    ) -> Result<Option<ConfigEntry>, ConfigRepositoryError>;
 
     /// namespace 内の設定値一覧を取得する。
     async fn list_by_namespace(
@@ -21,7 +23,7 @@ pub trait ConfigRepository: Send + Sync {
         page: i32,
         page_size: i32,
         search: Option<String>,
-    ) -> anyhow::Result<ConfigListResult>;
+    ) -> Result<ConfigListResult, ConfigRepositoryError>;
 
     /// 設定値を更新する（楽観的排他制御付き）。
     /// expected_version と現在のバージョンが一致しない場合はエラーを返す。
@@ -33,17 +35,17 @@ pub trait ConfigRepository: Send + Sync {
         expected_version: i32,
         description: Option<String>,
         updated_by: &str,
-    ) -> anyhow::Result<ConfigEntry>;
+    ) -> Result<ConfigEntry, ConfigRepositoryError>;
 
     /// 設定値を削除する。
-    async fn delete(&self, namespace: &str, key: &str) -> anyhow::Result<bool>;
+    async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError>;
 
     /// サービス名に紐づく設定値を一括取得する。
     async fn find_by_service_name(&self, service_name: &str)
-        -> anyhow::Result<ServiceConfigResult>;
+        -> Result<ServiceConfigResult, ConfigRepositoryError>;
 
     /// 設定変更ログを記録する。
-    async fn record_change_log(&self, log: &ConfigChangeLog) -> anyhow::Result<()>;
+    async fn record_change_log(&self, log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError>;
 
 }
 

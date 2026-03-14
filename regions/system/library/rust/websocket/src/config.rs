@@ -7,23 +7,15 @@ pub struct WsConfig {
     pub ping_interval_ms: Option<u64>,
 }
 
-impl Default for WsConfig {
-    fn default() -> Self {
+impl WsConfig {
+    /// URL を指定して WsConfig を生成する。その他のフィールドはデフォルト値を使用する。
+    pub fn new(url: impl Into<String>) -> Self {
         Self {
-            url: "ws://localhost".to_string(),
+            url: url.into(),
             reconnect: true,
             max_reconnect_attempts: 5,
             reconnect_delay_ms: 1000,
             ping_interval_ms: None,
-        }
-    }
-}
-
-impl WsConfig {
-    pub fn new(url: impl Into<String>) -> Self {
-        Self {
-            url: url.into(),
-            ..Default::default()
         }
     }
 
@@ -51,17 +43,6 @@ impl WsConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // WsConfig のデフォルト値が正しく設定されていることを確認する。
-    #[test]
-    fn test_default() {
-        let cfg = WsConfig::default();
-        assert_eq!(cfg.url, "ws://localhost");
-        assert!(cfg.reconnect);
-        assert_eq!(cfg.max_reconnect_attempts, 5);
-        assert_eq!(cfg.reconnect_delay_ms, 1000);
-        assert!(cfg.ping_interval_ms.is_none());
-    }
 
     // ビルダーメソッドチェーンで全フィールドを設定した WsConfig が正しい値を持つことを確認する。
     #[test]

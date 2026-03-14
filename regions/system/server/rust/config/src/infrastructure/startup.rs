@@ -361,6 +361,7 @@ use crate::domain::entity::config_entry::{
     ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
 };
 use crate::domain::entity::config_schema::ConfigSchema;
+use crate::domain::error::ConfigRepositoryError;
 use tokio::sync::RwLock;
 
 /// InMemoryConfigRepository は開発用のインメモリ設定リポジトリ。
@@ -378,11 +379,12 @@ impl InMemoryConfigRepository {
 
 #[async_trait::async_trait]
 impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
+    /// namespace と key で設定値を取得する（インメモリ実装）。
     async fn find_by_namespace_and_key(
         &self,
         namespace: &str,
         key: &str,
-    ) -> anyhow::Result<Option<ConfigEntry>> {
+    ) -> Result<Option<ConfigEntry>, ConfigRepositoryError> {
         let entries = self.entries.read().await;
         Ok(entries
             .iter()
@@ -390,13 +392,14 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
             .cloned())
     }
 
+    /// namespace 内の設定値一覧を取得する（インメモリ実装）。
     async fn list_by_namespace(
         &self,
         namespace: &str,
         page: i32,
         page_size: i32,
         search: Option<String>,
-    ) -> anyhow::Result<ConfigListResult> {
+    ) -> Result<ConfigListResult, ConfigRepositoryError> {
         let entries = self.entries.read().await;
         let mut filtered: Vec<_> = entries
             .iter()
@@ -432,6 +435,7 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
         })
     }
 
+    /// 設定値を更新する（インメモリ実装、楽観的排他制御付き）。
     async fn update(
         &self,
         namespace: &str,
@@ -440,7 +444,7 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
         expected_version: i32,
         description: Option<String>,
         updated_by: &str,
-    ) -> anyhow::Result<ConfigEntry> {
+    ) -> Result<ConfigEntry, ConfigRepositoryError> {
         let mut entries = self.entries.write().await;
         let entry = entries
             .iter_mut()
@@ -448,8 +452,12 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
 
         match entry {
             Some(e) => {
+                // バージョン不一致: 楽観的排他制御エラー
                 if e.version != expected_version {
-                    return Err(anyhow::anyhow!("version conflict: current={}", e.version));
+                    return Err(ConfigRepositoryError::VersionConflict {
+                        expected: expected_version,
+                        current: e.version,
+                    });
                 }
                 e.value_json = value_json.clone();
                 e.version += 1;
@@ -460,21 +468,27 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
                 e.updated_at = chrono::Utc::now();
                 Ok(e.clone())
             }
-            None => Err(anyhow::anyhow!("config not found: {}/{}", namespace, key)),
+            // キーが存在しない: NotFound エラー
+            None => Err(ConfigRepositoryError::NotFound {
+                namespace: namespace.to_string(),
+                key: key.to_string(),
+            }),
         }
     }
 
-    async fn delete(&self, namespace: &str, key: &str) -> anyhow::Result<bool> {
+    /// 設定値を削除する（インメモリ実装）。
+    async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError> {
         let mut entries = self.entries.write().await;
         let len_before = entries.len();
         entries.retain(|e| !(e.namespace == namespace && e.key == key));
         Ok(entries.len() < len_before)
     }
 
+    /// サービス名に紐づく設定値を一括取得する（インメモリ実装）。
     async fn find_by_service_name(
         &self,
         service_name: &str,
-    ) -> anyhow::Result<ServiceConfigResult> {
+    ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
         let entries = self.entries.read().await;
         let primary_keyword = service_name.split('-').next().unwrap_or(service_name);
         let matched: Vec<ServiceConfigEntry> = entries
@@ -493,7 +507,9 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
             .collect();
 
         if matched.is_empty() {
-            return Err(anyhow::anyhow!("service not found: {}", service_name));
+            return Err(ConfigRepositoryError::ServiceNotFound(
+                service_name.to_string(),
+            ));
         }
 
         Ok(ServiceConfigResult {
@@ -502,7 +518,8 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
         })
     }
 
-    async fn record_change_log(&self, _log: &ConfigChangeLog) -> anyhow::Result<()> {
+    /// 設定変更ログを記録する（インメモリ実装、開発用のため捨てる）。
+    async fn record_change_log(&self, _log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError> {
         // In-memory: ログは捨てる（開発用）
         Ok(())
     }

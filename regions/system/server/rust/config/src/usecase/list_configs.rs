@@ -78,6 +78,7 @@ impl ListConfigsUseCase {
 mod tests {
     use super::*;
     use crate::domain::entity::config_entry::{ConfigEntry, Pagination};
+    use crate::domain::error::ConfigRepositoryError;
     use crate::domain::repository::config_repository::MockConfigRepository;
     use chrono::Utc;
     use uuid::Uuid;
@@ -223,11 +224,16 @@ mod tests {
         }
     }
 
+    /// インフラストラクチャエラーの場合は Internal エラーを返す（型安全なエラー使用）
     #[tokio::test]
     async fn test_list_configs_internal_error() {
         let mut mock = MockConfigRepository::new();
         mock.expect_list_by_namespace()
-            .returning(|_, _, _, _| Err(anyhow::anyhow!("connection refused")));
+            .returning(|_, _, _, _| {
+                Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                    "connection refused"
+                )))
+            });
 
         let uc = ListConfigsUseCase::new(Arc::new(mock));
         let params = ListConfigsParams {

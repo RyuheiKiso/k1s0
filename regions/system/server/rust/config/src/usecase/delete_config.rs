@@ -85,6 +85,7 @@ impl DeleteConfigUseCase {
 mod tests {
     use super::*;
     use crate::domain::entity::config_entry::ConfigEntry;
+    use crate::domain::error::ConfigRepositoryError;
     use crate::domain::repository::config_repository::MockConfigRepository;
     use chrono::Utc;
     use uuid::Uuid;
@@ -148,13 +149,18 @@ mod tests {
         }
     }
 
+    /// インフラストラクチャエラーの場合は Internal エラーを返す（型安全なエラー使用）
     #[tokio::test]
     async fn test_delete_config_internal_error() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
             .returning(|_, _| Ok(None));
         mock.expect_delete()
-            .returning(|_, _| Err(anyhow::anyhow!("connection refused")));
+            .returning(|_, _| {
+                Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                    "connection refused"
+                )))
+            });
 
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
         let result = uc
@@ -209,7 +215,11 @@ mod tests {
             .returning(move |_, _| Ok(Some(entry.clone())));
         mock.expect_delete().returning(|_, _| Ok(true));
         mock.expect_record_change_log()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_| {
+                Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                    "db error"
+                )))
+            });
 
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
         let result = uc

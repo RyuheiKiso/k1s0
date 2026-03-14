@@ -20,7 +20,8 @@ export function ConfigEditorPage({
 }: ConfigEditorPageProps) {
   const resolvedServiceName = serviceName ?? service ?? '';
   const resolvedClient = useMemo(
-    () => client ?? createApiClient({ baseURL: apiBaseURL }),
+    // 未認証時のリダイレクト処理をコールバックで注入する
+    () => client ?? createApiClient({ baseURL: apiBaseURL, onUnauthorized: () => { window.location.href = '/auth/login'; } }),
     [apiBaseURL, client],
   );
   const [activeCategory, setActiveCategory] = useState('');

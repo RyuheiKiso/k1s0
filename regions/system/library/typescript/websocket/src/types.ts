@@ -15,11 +15,13 @@ export interface WsConfig {
   pingIntervalMs?: number;
 }
 
-export function defaultConfig(): WsConfig {
+/// WebSocket 設定を生成する。URL は必須。
+export function createConfig(url: string, overrides?: Partial<Omit<WsConfig, 'url'>>): WsConfig {
   return {
-    url: 'ws://localhost',
-    reconnect: true,
-    maxReconnectAttempts: 5,
-    reconnectDelayMs: 1000,
+    url,
+    reconnect: overrides?.reconnect ?? true,
+    maxReconnectAttempts: overrides?.maxReconnectAttempts ?? 5,
+    reconnectDelayMs: overrides?.reconnectDelayMs ?? 1000,
+    pingIntervalMs: overrides?.pingIntervalMs,
   };
 }

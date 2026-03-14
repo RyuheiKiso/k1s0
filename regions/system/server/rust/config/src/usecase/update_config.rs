@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::domain::entity::config_entry::ConfigEntry;
+use crate::domain::error::ConfigRepositoryError;
 use crate::domain::repository::{ConfigRepository, ConfigSchemaRepository};
 use crate::domain::service::ConfigDomainService;
 use crate::infrastructure::kafka_producer::{ConfigChangedEvent, KafkaProducer};
@@ -127,6 +128,7 @@ impl UpdateConfigUseCase {
             .ok()
             .flatten();
 
+        // 型安全なエラーパターンマッチングでリポジトリエラーを変換する
         let updated_entry = self
             .config_repo
             .update(
@@ -138,18 +140,14 @@ impl UpdateConfigUseCase {
                 &input.updated_by,
             )
             .await
-            .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
+            .map_err(|e| match e {
+                ConfigRepositoryError::NotFound { .. } => {
                     UpdateConfigError::NotFound(input.namespace.clone(), input.key.clone())
-                } else if msg.contains("version conflict") {
-                    UpdateConfigError::VersionConflict {
-                        expected: input.version,
-                        current: parse_current_version(&msg).unwrap_or(0),
-                    }
-                } else {
-                    UpdateConfigError::Internal(msg)
                 }
+                ConfigRepositoryError::VersionConflict { expected, current } => {
+                    UpdateConfigError::VersionConflict { expected, current }
+                }
+                other => UpdateConfigError::Internal(other.to_string()),
             })?;
 
         // 監査ログ記録（ベストエフォート）
@@ -273,19 +271,6 @@ fn validate_value_against_schema(
     Ok(())
 }
 
-/// エラーメッセージから current version を取得するヘルパー。
-fn parse_current_version(msg: &str) -> Option<i32> {
-    // "version conflict: current=4" のような形式を想定
-    msg.split("current=")
-        .nth(1)
-        .and_then(|s| s.split_whitespace().next())
-        .and_then(|s| {
-            s.trim_end_matches(|c: char| !c.is_ascii_digit())
-                .parse()
-                .ok()
-        })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -359,13 +344,19 @@ mod tests {
         assert_eq!(entry.updated_by, expected.updated_by);
     }
 
+    /// 設定値が存在しない場合は NotFound エラーを返す（型安全なパターンマッチ）
     #[tokio::test]
     async fn test_update_config_not_found() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
             .returning(|_, _| Ok(None));
         mock.expect_update()
-            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("config not found")));
+            .returning(|_, _, _, _, _, _| {
+                Err(ConfigRepositoryError::NotFound {
+                    namespace: "system.auth.database".to_string(),
+                    key: "max_connections".to_string(),
+                })
+            });
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         let result = uc.execute(&make_update_input()).await;
@@ -380,13 +371,19 @@ mod tests {
         }
     }
 
+    /// バージョン不一致の場合は VersionConflict エラーを返す（型安全なパターンマッチ）
     #[tokio::test]
     async fn test_update_config_version_conflict() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
             .returning(|_, _| Ok(Some(make_old_entry())));
         mock.expect_update()
-            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("version conflict: current=4")));
+            .returning(|_, _, _, _, _, _| {
+                Err(ConfigRepositoryError::VersionConflict {
+                    expected: 3,
+                    current: 4,
+                })
+            });
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         let result = uc.execute(&make_update_input()).await;
@@ -401,13 +398,18 @@ mod tests {
         }
     }
 
+    /// インフラストラクチャエラーの場合は Internal エラーを返す
     #[tokio::test]
     async fn test_update_config_internal_error() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
             .returning(|_, _| Ok(None));
         mock.expect_update()
-            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("connection refused")));
+            .returning(|_, _, _, _, _, _| {
+                Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                    "connection refused"
+                )))
+            });
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         let result = uc.execute(&make_update_input()).await;
@@ -463,19 +465,6 @@ mod tests {
             UpdateConfigError::Validation(msg) => assert!(msg.contains("key is required")),
             e => unreachable!("unexpected error in test: {:?}", e),
         }
-    }
-
-    #[test]
-    fn test_parse_current_version() {
-        assert_eq!(
-            parse_current_version("version conflict: current=4"),
-            Some(4)
-        );
-        assert_eq!(
-            parse_current_version("version conflict: current=10"),
-            Some(10)
-        );
-        assert_eq!(parse_current_version("no version info"), None);
     }
 
     // --- Kafka 通知関連テスト ---
@@ -540,14 +529,19 @@ mod tests {
         assert_eq!(event.version, 4);
     }
 
+    /// 更新失敗時は watch イベントが送信されないことを確認する（型安全なエラー使用）
     #[tokio::test]
     async fn test_update_config_watch_not_sent_on_failure() {
-        // 更新失敗時は watch イベントが送信されないことを確認する
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
             .returning(|_, _| Ok(None));
         mock.expect_update()
-            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("config not found")));
+            .returning(|_, _, _, _, _, _| {
+                Err(ConfigRepositoryError::NotFound {
+                    namespace: "system.auth.database".to_string(),
+                    key: "max_connections".to_string(),
+                })
+            });
 
         let (tx, mut rx) = tokio::sync::broadcast::channel::<ConfigChangeEvent>(16);
         let uc = UpdateConfigUseCase::new_with_watch(Arc::new(mock), tx);
@@ -615,7 +609,11 @@ mod tests {
         mock.expect_update()
             .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
         mock.expect_record_change_log()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_| {
+                Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                    "db error"
+                )))
+            });
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         let result = uc.execute(&make_update_input()).await;

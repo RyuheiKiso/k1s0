@@ -27,7 +27,7 @@ internal/
     trace_middleware.go  # トレースミドルウェア
     metrics_middleware.go # Prometheus メトリクス
   oauth/
-    client.go            # Discovery, token exchange, refresh
+    client.go            # Discovery, token exchange, refresh（OAuthClient interface を実装）
     pkce.go              # code_verifier/code_challenge 生成
   session/
     redis_store.go       # セッション保存/取得/削除
@@ -54,6 +54,23 @@ internal/
 3. Redis にセッション保存後、`session_id` Cookie を返却。
 4. `ANY /api/*path` でセッション検証し、Bearer トークンを付与して上流へ転送。
 5. 期限切れ時は refresh token で自動更新。失敗時は `BFF_PROXY_TOKEN_EXPIRED`。
+
+## OAuthClient インターフェース
+
+`AuthHandler` はテスト容易性のために具象型 `*oauth.Client` ではなく `OAuthClient` インターフェースに依存する。
+`*oauth.Client` はこのインターフェースを暗黙的に満たすため、プロダクションコードの変更は不要。
+
+```go
+// handler/auth_handler.go
+type OAuthClient interface {
+    AuthCodeURL(state, codeChallenge string) (string, error)
+    ExchangeCode(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
+    ExtractSubject(ctx context.Context, idToken string) (string, error)
+    LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error)
+}
+```
+
+テスト時は関数フィールド方式の `mockOAuthClient` で振る舞いを差し替える（`auth_flow_test.go` 参照）。
 
 ## エラー実装ポリシー
 

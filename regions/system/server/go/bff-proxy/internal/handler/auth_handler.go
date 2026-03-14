@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"log/slog"
@@ -25,9 +26,22 @@ const (
 	verifierCookieName = "k1s0_pkce_verifier"
 )
 
+// OAuthClient は OAuth2/OIDC プロバイダー操作のインターフェース。
+// テスト時にモック差し替えを可能にする。
+type OAuthClient interface {
+	// AuthCodeURL は認可コードフローの URL を構築する。
+	AuthCodeURL(state, codeChallenge string) (string, error)
+	// ExchangeCode は認可コードをトークンに交換する。
+	ExchangeCode(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
+	// ExtractSubject は ID トークンから subject を抽出する。
+	ExtractSubject(ctx context.Context, idToken string) (string, error)
+	// LogoutURL は IdP のログアウト URL を返す。
+	LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error)
+}
+
 // AuthHandler handles the OAuth2/OIDC browser flow.
 type AuthHandler struct {
-	oauthClient   *oauth.Client
+	oauthClient   OAuthClient
 	sessionStore  session.Store
 	sessionTTL    time.Duration
 	postLogoutURI string
@@ -37,7 +51,7 @@ type AuthHandler struct {
 
 // NewAuthHandler creates a new AuthHandler.
 func NewAuthHandler(
-	oauthClient *oauth.Client,
+	oauthClient OAuthClient,
 	sessionStore session.Store,
 	sessionTTL time.Duration,
 	postLogoutURI string,

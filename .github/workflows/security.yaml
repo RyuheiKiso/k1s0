@@ -23,19 +23,79 @@ jobs:
 
   dependency-check:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - lang: go
-            cmd: "govulncheck ./..."
-          - lang: rust
-            cmd: "cargo audit"
-          - lang: node
-            cmd: "npm audit --audit-level=high"
     steps:
       - uses: actions/checkout@v4
-      - name: Run dependency check (${{ matrix.lang }})
-        run: ${{ matrix.cmd }}
+
+      # Go ツールチェインのセットアップ
+      - name: Go セットアップ
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      # govulncheck コマンドのインストール
+      - name: Go vulncheck インストール
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      # Rust ツールチェインのセットアップ
+      - name: Rust セットアップ
+        uses: dtolnay/rust-toolchain@stable
+      # cargo-audit コマンドのインストール
+      - name: cargo-audit インストール
+        run: cargo install cargo-audit
+
+      # Node.js ランタイムのセットアップ
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Flutter/Dart SDK のセットアップ
+      - name: Flutter セットアップ
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      # ファイル探索に必要な ripgrep のインストール
+      - name: ripgrep インストール
+        run: sudo apt-get install -y ripgrep
+
+      # 各言語のスキャンは独立して実行する（途中失敗で後続がスキップされないように）
+      # Go モジュールの脆弱性スキャン
+      - name: Go 脆弱性スキャン
+        id: go-vulncheck
+        continue-on-error: true
+        run: bash scripts/security/go-vulncheck.sh
+
+      # Rust クレートの脆弱性監査
+      - name: Rust 脆弱性監査
+        id: cargo-audit
+        continue-on-error: true
+        run: bash scripts/security/cargo-audit.sh
+
+      # npm パッケージの脆弱性監査
+      - name: npm 脆弱性監査
+        id: npm-audit
+        continue-on-error: true
+        run: bash scripts/security/npm-audit.sh
+
+      # Dart/Flutter パッケージの古い依存チェック（advisory）
+      - name: Dart 依存チェック
+        id: dart-outdated
+        continue-on-error: true
+        run: bash scripts/security/dart-outdated.sh
+
+      # いずれかのスキャンが失敗した場合にジョブ全体を失敗させる
+      - name: スキャン結果の集約
+        run: |
+          echo "Go: ${{ steps.go-vulncheck.outcome }}"
+          echo "Rust: ${{ steps.cargo-audit.outcome }}"
+          echo "npm: ${{ steps.npm-audit.outcome }}"
+          echo "Dart: ${{ steps.dart-outdated.outcome }}"
+          if [ "${{ steps.go-vulncheck.outcome }}" = "failure" ] || \
+             [ "${{ steps.cargo-audit.outcome }}" = "failure" ] || \
+             [ "${{ steps.npm-audit.outcome }}" = "failure" ]; then
+            echo "::error::One or more security scans failed"
+            exit 1
+          fi
 
   image-scan:
     runs-on: ubuntu-latest

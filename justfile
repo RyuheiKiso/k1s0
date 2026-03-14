@@ -224,3 +224,24 @@ gen-sdk service proto="api/proto":
 
 # CI 全実行（lint + test + build）
 ci: lint test build
+
+# --- Security ---
+
+# 全言語セキュリティスキャン
+security: security-go security-rust security-ts security-dart
+
+# Go 脆弱性スキャン
+security-go:
+    bash scripts/security/go-vulncheck.sh
+
+# Rust 脆弱性監査
+security-rust:
+    bash scripts/security/cargo-audit.sh
+
+# TypeScript/npm 脆弱性監査
+security-ts:
+    bash scripts/security/npm-audit.sh
+
+# Dart/Flutter 依存チェック
+security-dart:
+    bash scripts/security/dart-outdated.sh

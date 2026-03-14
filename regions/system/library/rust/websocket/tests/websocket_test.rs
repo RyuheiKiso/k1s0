@@ -347,11 +347,11 @@ async fn receive_pong_message() {
 // WsConfig tests
 // ===========================================================================
 
-// WsConfig のデフォルト値が正しく設定されていることを確認する。
+// WsConfig::new でデフォルト値が正しく設定されていることを確認する。
 #[test]
 fn config_default_values() {
-    let config = WsConfig::default();
-    assert_eq!(config.url, "ws://localhost");
+    let config = WsConfig::new("ws://test.example.com");
+    assert_eq!(config.url, "ws://test.example.com");
     assert!(config.reconnect);
     assert_eq!(config.max_reconnect_attempts, 5);
     assert_eq!(config.reconnect_delay_ms, 1000);
