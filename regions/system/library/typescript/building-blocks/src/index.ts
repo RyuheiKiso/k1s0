@@ -39,3 +39,6 @@ export { InMemoryInputBinding, InMemoryOutputBinding } from './inmemory_binding.
 
 // バインディング呼び出し記録の型を公開する（テスト検証用）
 export type { BindingInvocation } from './inmemory_binding.js';
+
+// ComponentRegistry（コンポーネント登録・管理）を公開する
+export { ComponentRegistry } from './registry.js';
