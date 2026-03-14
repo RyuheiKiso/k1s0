@@ -27,6 +27,8 @@ members = [
     "server/rust/tenant",
     "server/rust/vault",
     "server/rust/workflow",
+    "server/rust/ai-gateway",
+    "server/rust/ai-agent",
     # Libraries (39)
     "library/rust/audit-client",
     "library/rust/auth",
@@ -80,6 +82,7 @@ members = [
     "library/rust/bb-statestore",
     "library/rust/bb-secretstore",
     "library/rust/bb-binding",
+    "library/rust/bb-ai-client",
 ]
 
 [workspace.package]

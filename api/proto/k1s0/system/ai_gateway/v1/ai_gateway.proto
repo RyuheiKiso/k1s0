@@ -1,0 +1,146 @@
+// k1s0 AI ゲートウェイサービス gRPC 定義。
+// 複数の AI プロバイダーへの統一的なアクセスを提供する。
+// テキスト補完、ストリーミング、埋め込み生成、モデル管理、使用量追跡を含む。
+syntax = "proto3";
+
+package k1s0.system.ai_gateway.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/ai_gateway/v1;aigatewayv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+// AI ゲートウェイサービス: AI モデルへの補完・埋め込みリクエストを仲介する
+service AiGatewayService {
+  // テキスト補完リクエストを実行する
+  rpc Complete(CompleteRequest) returns (CompleteResponse);
+  // ストリーミング形式でテキスト補完を実行する
+  rpc CompleteStream(CompleteRequest) returns (stream StreamChunk);
+  // テキスト埋め込みベクトルを生成する
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+  // 利用可能な AI モデル一覧を取得する
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+  // テナントごとの使用量を取得する
+  rpc GetUsage(GetUsageRequest) returns (GetUsageResponse);
+}
+
+// 補完リクエスト: AI モデルに送信するメッセージと設定を含む
+message CompleteRequest {
+  // 使用する AI モデルの識別子
+  string model = 1;
+  // 補完に使用するメッセージ履歴
+  repeated Message messages = 2;
+  // 生成する最大トークン数
+  int32 max_tokens = 3;
+  // 生成のランダム性を制御する温度パラメータ（0.0〜2.0）
+  float temperature = 4;
+  // ストリーミングモードを有効にするかどうか
+  bool stream = 5;
+  // リクエスト元のテナント識別子
+  string tenant_id = 6;
+}
+
+// メッセージ: 会話内の単一メッセージ（ロールと内容）
+message Message {
+  // メッセージの役割（system / user / assistant）
+  string role = 1;
+  // メッセージの本文
+  string content = 2;
+}
+
+// 補完レスポンス: AI モデルからの生成結果とトークン使用量
+message CompleteResponse {
+  // レスポンスの一意識別子
+  string id = 1;
+  // 使用されたモデル名
+  string model = 2;
+  // 生成されたテキスト内容
+  string content = 3;
+  // 入力に使用されたトークン数
+  int32 prompt_tokens = 4;
+  // 出力に使用されたトークン数
+  int32 completion_tokens = 5;
+}
+
+// ストリーミングチャンク: ストリーミング補完の部分的なレスポンス
+message StreamChunk {
+  // ストリームの一意識別子
+  string id = 1;
+  // 差分テキスト
+  string delta = 2;
+  // ストリームが完了したかどうか
+  bool finished = 3;
+}
+
+// 埋め込みリクエスト: テキストのベクトル化を要求する
+message EmbedRequest {
+  // 埋め込みに使用するモデル名
+  string model = 1;
+  // ベクトル化する入力テキストのリスト
+  repeated string inputs = 2;
+  // リクエスト元のテナント識別子
+  string tenant_id = 3;
+}
+
+// 埋め込みレスポンス: 生成されたベクトルを含む
+message EmbedResponse {
+  // 使用されたモデル名
+  string model = 1;
+  // 生成された埋め込みベクトルのリスト
+  repeated Embedding embeddings = 2;
+}
+
+// 埋め込み: 単一入力に対するベクトル表現
+message Embedding {
+  // 入力テキストのインデックス
+  int32 index = 1;
+  // 埋め込みベクトルの値
+  repeated float values = 2;
+}
+
+// AI モデル情報: 利用可能なモデルの詳細
+message AiModel {
+  // モデルの一意識別子
+  string id = 1;
+  // モデルの表示名
+  string name = 2;
+  // プロバイダー名（openai / anthropic / google 等）
+  string provider = 3;
+  // コンテキストウィンドウのトークン数
+  int32 context_window = 4;
+  // モデルが有効かどうか
+  bool enabled = 5;
+}
+
+// モデル一覧リクエスト: プロバイダーでフィルタリング可能
+message ListModelsRequest {
+  // プロバイダーでフィルタリング（空の場合は全件取得）
+  string provider_filter = 1;
+}
+
+// モデル一覧レスポンス: 利用可能なモデルのリスト
+message ListModelsResponse {
+  // AI モデルのリスト
+  repeated AiModel models = 1;
+}
+
+// 使用量取得リクエスト: テナントの期間指定使用量を取得する
+message GetUsageRequest {
+  // 使用量を取得するテナント識別子
+  string tenant_id = 1;
+  // 集計開始日（YYYY-MM-DD 形式）
+  string start_date = 2;
+  // 集計終了日（YYYY-MM-DD 形式）
+  string end_date = 3;
+}
+
+// 使用量レスポンス: テナントのトークン使用量とコスト
+message GetUsageResponse {
+  // テナント識別子
+  string tenant_id = 1;
+  // 入力トークンの合計使用量
+  int64 total_prompt_tokens = 2;
+  // 出力トークンの合計使用量
+  int64 total_completion_tokens = 3;
+  // 合計コスト（USD）
+  double total_cost_usd = 4;
+}
