@@ -11,5 +11,5 @@ pub enum BindingError {
     #[error("接続エラー: {0}")]
     Connection(String),
     #[error("コンポーネントエラー: {0}")]
-    Component(#[from] k1s0_building_blocks::ComponentError),
+    Component(#[from] k1s0_bb_core::ComponentError),
 }

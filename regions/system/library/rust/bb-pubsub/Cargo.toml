@@ -11,7 +11,7 @@ kafka = ["k1s0-messaging", "k1s0-kafka"]
 
 [dependencies]
 async-trait = "0.1"
-k1s0-building-blocks = { path = "../building-blocks" }
+k1s0-bb-core = { path = "../bb-core" }
 k1s0-messaging = { path = "../messaging", optional = true }
 k1s0-kafka = { path = "../kafka", optional = true }
 serde = { version = "1", features = ["derive"] }

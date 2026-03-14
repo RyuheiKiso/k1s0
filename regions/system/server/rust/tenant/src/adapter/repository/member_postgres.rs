@@ -127,6 +127,19 @@ impl MemberRepository for MemberPostgresRepository {
         Ok(result.rows_affected() > 0)
     }
 
+    async fn update_role(&self, tenant_id: &Uuid, user_id: &Uuid, role: &str) -> anyhow::Result<Option<TenantMember>> {
+        let result = sqlx::query_as::<_, MemberRow>(
+            "UPDATE tenant.tenant_members SET role = $3 WHERE tenant_id = $1 AND user_id = $2 \
+             RETURNING id, tenant_id, user_id, role, joined_at",
+        )
+        .bind(tenant_id)
+        .bind(user_id)
+        .bind(role)
+        .fetch_optional(self.pool.as_ref())
+        .await?;
+        Ok(result.map(Into::into))
+    }
+
     async fn find_job(&self, _job_id: &Uuid) -> anyhow::Result<Option<ProvisioningJob>> {
         // Provisioning jobs テーブルは将来のマイグレーションで作成予定。
         // 現時点では None を返す。

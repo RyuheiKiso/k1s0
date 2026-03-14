@@ -137,4 +137,66 @@ impl AppRepository for AppPostgresRepository {
 
         Ok(row.map(|r| r.into()))
     }
+
+    async fn create(&self, app: &App) -> anyhow::Result<App> {
+        let start = std::time::Instant::now();
+
+        sqlx::query(
+            "INSERT INTO app_registry.apps (id, name, description, category, icon_url, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        )
+        .bind(&app.id)
+        .bind(&app.name)
+        .bind(&app.description)
+        .bind(&app.category)
+        .bind(&app.icon_url)
+        .bind(app.created_at)
+        .bind(app.updated_at)
+        .execute(&self.pool)
+        .await?;
+
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("create", "apps", start.elapsed().as_secs_f64());
+        }
+
+        Ok(app.clone())
+    }
+
+    async fn update(&self, app: &App) -> anyhow::Result<App> {
+        let start = std::time::Instant::now();
+
+        sqlx::query(
+            "UPDATE app_registry.apps SET name = $2, description = $3, category = $4, \
+             icon_url = $5, updated_at = $6 WHERE id = $1",
+        )
+        .bind(&app.id)
+        .bind(&app.name)
+        .bind(&app.description)
+        .bind(&app.category)
+        .bind(&app.icon_url)
+        .bind(app.updated_at)
+        .execute(&self.pool)
+        .await?;
+
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("update", "apps", start.elapsed().as_secs_f64());
+        }
+
+        Ok(app.clone())
+    }
+
+    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+        let start = std::time::Instant::now();
+
+        let result = sqlx::query("DELETE FROM app_registry.apps WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("delete", "apps", start.elapsed().as_secs_f64());
+        }
+
+        Ok(result.rows_affected() > 0)
+    }
 }

@@ -138,6 +138,16 @@ impl MemberRepository for StubMemberRepository {
         Ok(members.len() < len_before)
     }
 
+    async fn update_role(&self, tenant_id: &Uuid, user_id: &Uuid, role: &str) -> anyhow::Result<Option<TenantMember>> {
+        let mut members = self.members.write().await;
+        if let Some(member) = members.iter_mut().find(|m| m.tenant_id == *tenant_id && m.user_id == *user_id) {
+            member.role = role.to_string();
+            Ok(Some(member.clone()))
+        } else {
+            Ok(None)
+        }
+    }
+
     async fn find_job(&self, job_id: &Uuid) -> anyhow::Result<Option<ProvisioningJob>> {
         let jobs = self.jobs.read().await;
         Ok(jobs.iter().find(|j| j.id == *job_id).cloned())

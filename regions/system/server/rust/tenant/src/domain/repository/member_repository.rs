@@ -14,6 +14,7 @@ pub trait MemberRepository: Send + Sync {
     ) -> anyhow::Result<Option<TenantMember>>;
     async fn add(&self, member: &TenantMember) -> anyhow::Result<()>;
     async fn remove(&self, tenant_id: &Uuid, user_id: &Uuid) -> anyhow::Result<bool>;
+    async fn update_role(&self, tenant_id: &Uuid, user_id: &Uuid, role: &str) -> anyhow::Result<Option<TenantMember>>;
     async fn find_job(&self, job_id: &Uuid) -> anyhow::Result<Option<ProvisioningJob>>;
 }
 

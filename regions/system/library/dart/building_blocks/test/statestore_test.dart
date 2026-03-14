@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:building_blocks/building_blocks.dart';
+import 'package:k1s0_building_blocks/building_blocks.dart';
 
 void main() {
-  group('StateEntry', () => {
+  group('StateEntry', () {
     test('should create with key, value, and etag', () {
       final entry = StateEntry(
         key: 'user:123',

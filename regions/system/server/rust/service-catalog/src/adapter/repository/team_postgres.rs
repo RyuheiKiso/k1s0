@@ -92,4 +92,68 @@ impl TeamRepository for TeamPostgresRepository {
 
         Ok(row.map(|r| r.into()))
     }
+
+    async fn create(&self, team: &Team) -> anyhow::Result<Team> {
+        let start = std::time::Instant::now();
+
+        let row = sqlx::query_as::<_, TeamRow>(
+            "INSERT INTO service_catalog.teams (id, name, description, contact_email, slack_channel, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7) \
+             RETURNING id, name, description, contact_email, slack_channel, created_at, updated_at",
+        )
+        .bind(team.id)
+        .bind(&team.name)
+        .bind(&team.description)
+        .bind(&team.contact_email)
+        .bind(&team.slack_channel)
+        .bind(team.created_at)
+        .bind(team.updated_at)
+        .fetch_one(&self.pool)
+        .await?;
+
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("create", "teams", start.elapsed().as_secs_f64());
+        }
+
+        Ok(row.into())
+    }
+
+    async fn update(&self, team: &Team) -> anyhow::Result<Team> {
+        let start = std::time::Instant::now();
+
+        let row = sqlx::query_as::<_, TeamRow>(
+            "UPDATE service_catalog.teams SET name = $2, description = $3, contact_email = $4, \
+             slack_channel = $5, updated_at = $6 WHERE id = $1 \
+             RETURNING id, name, description, contact_email, slack_channel, created_at, updated_at",
+        )
+        .bind(team.id)
+        .bind(&team.name)
+        .bind(&team.description)
+        .bind(&team.contact_email)
+        .bind(&team.slack_channel)
+        .bind(team.updated_at)
+        .fetch_one(&self.pool)
+        .await?;
+
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("update", "teams", start.elapsed().as_secs_f64());
+        }
+
+        Ok(row.into())
+    }
+
+    async fn delete(&self, id: Uuid) -> anyhow::Result<bool> {
+        let start = std::time::Instant::now();
+
+        let result = sqlx::query("DELETE FROM service_catalog.teams WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("delete", "teams", start.elapsed().as_secs_f64());
+        }
+
+        Ok(result.rows_affected() > 0)
+    }
 }

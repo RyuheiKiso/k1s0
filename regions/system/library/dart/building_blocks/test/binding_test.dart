@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:building_blocks/building_blocks.dart';
+import 'package:k1s0_building_blocks/building_blocks.dart';
 
 void main() {
-  group('BindingData', () => {
+  group('BindingData', () {
     test('should create with data and metadata', () {
       final bd = BindingData(
         data: Uint8List.fromList([1, 2, 3]),
@@ -25,7 +25,7 @@ void main() {
     });
   });
 
-  group('BindingResponse', () => {
+  group('BindingResponse', () {
     test('should create with data and metadata', () {
       final resp = BindingResponse(
         data: Uint8List.fromList([10, 20]),

@@ -166,6 +166,10 @@ pub async fn run() -> anyhow::Result<()> {
     let get_scorecard_uc = Arc::new(crate::usecase::GetScorecardUseCase::new(scorecard_repo.clone()));
     let search_services_uc = Arc::new(crate::usecase::SearchServicesUseCase::new(service_repo.clone()));
     let list_teams_uc = Arc::new(crate::usecase::ListTeamsUseCase::new(team_repo.clone()));
+    let get_team_uc = Arc::new(crate::usecase::GetTeamUseCase::new(team_repo.clone()));
+    let create_team_uc = Arc::new(crate::usecase::CreateTeamUseCase::new(team_repo.clone()));
+    let update_team_uc = Arc::new(crate::usecase::UpdateTeamUseCase::new(team_repo.clone()));
+    let delete_team_uc = Arc::new(crate::usecase::DeleteTeamUseCase::new(team_repo.clone()));
 
     let validate_token_uc = Arc::new(ValidateTokenUseCase::new(
         token_verifier,
@@ -198,6 +202,10 @@ pub async fn run() -> anyhow::Result<()> {
         get_scorecard_uc,
         search_services_uc,
         list_teams_uc,
+        get_team_uc,
+        create_team_uc,
+        update_team_uc,
+        delete_team_uc,
         validate_token_uc,
         metrics: metrics.clone(),
         db_pool,
@@ -289,6 +297,24 @@ impl crate::domain::repository::TeamRepository for StubTeamRepository {
         _id: uuid::Uuid,
     ) -> anyhow::Result<Option<crate::domain::entity::team::Team>> {
         Ok(None)
+    }
+
+    async fn create(
+        &self,
+        team: &crate::domain::entity::team::Team,
+    ) -> anyhow::Result<crate::domain::entity::team::Team> {
+        Ok(team.clone())
+    }
+
+    async fn update(
+        &self,
+        team: &crate::domain::entity::team::Team,
+    ) -> anyhow::Result<crate::domain::entity::team::Team> {
+        Ok(team.clone())
+    }
+
+    async fn delete(&self, _id: uuid::Uuid) -> anyhow::Result<bool> {
+        Ok(false)
     }
 }
 

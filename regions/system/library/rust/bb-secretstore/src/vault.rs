@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use tokio::sync::RwLock;
 use tracing::info;
 
-use k1s0_building_blocks::{Component, ComponentError, ComponentStatus};
+use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 use k1s0_vault_client::VaultClient;
 
 use crate::traits::{SecretStore, SecretValue};

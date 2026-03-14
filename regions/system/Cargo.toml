@@ -73,7 +73,8 @@ members = [
     "library/rust/vault-client",
     "library/rust/webhook-client",
     "library/rust/websocket",
-    # Building Blocks (5)
+    # Building Blocks (6)
+    "library/rust/bb-core",
     "library/rust/building-blocks",
     "library/rust/bb-pubsub",
     "library/rust/bb-statestore",

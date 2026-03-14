@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:building_blocks/building_blocks.dart';
+import 'package:k1s0_building_blocks/building_blocks.dart';
 
 void main() {
-  group('Message', () => {
+  group('Message', () {
     test('should create with all required fields', () {
       final msg = Message(
         topic: 'orders',

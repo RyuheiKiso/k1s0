@@ -1,10 +1,10 @@
 import 'package:test/test.dart';
-import 'package:building_blocks/building_blocks.dart';
+import 'package:k1s0_building_blocks/building_blocks.dart';
 
 void main() {
-  group('ComponentConfig', () => {
+  group('ComponentConfig', () {
     test('should create with all fields', () {
-      final config = ComponentConfig(
+      const config = ComponentConfig(
         name: 'redis-store',
         type: 'statestore',
         version: '1.0',
@@ -18,7 +18,7 @@ void main() {
     });
 
     test('should create without optional fields', () {
-      final config = ComponentConfig(
+      const config = ComponentConfig(
         name: 'basic',
         type: 'binding',
       );
@@ -58,7 +58,7 @@ void main() {
     });
   });
 
-  group('ComponentsConfig', () => {
+  group('ComponentsConfig', () {
     test('should parse valid YAML with multiple components', () {
       const yaml = '''
 components:

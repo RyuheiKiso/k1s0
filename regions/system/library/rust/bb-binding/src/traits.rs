@@ -21,7 +21,7 @@ pub struct BindingResponse {
 /// InputBinding は外部ソースからデータを受信する入力バインディングの抽象インターフェース。
 /// Component トレイトを拡張する。
 #[async_trait]
-pub trait InputBinding: k1s0_building_blocks::Component {
+pub trait InputBinding: k1s0_bb_core::Component {
     /// データを読み取る。
     async fn read(&self) -> Result<BindingData, BindingError>;
 }
@@ -29,7 +29,7 @@ pub trait InputBinding: k1s0_building_blocks::Component {
 /// OutputBinding は外部サービスにデータを送信する出力バインディングの抽象インターフェース。
 /// Component トレイトを拡張する。
 #[async_trait]
-pub trait OutputBinding: k1s0_building_blocks::Component {
+pub trait OutputBinding: k1s0_bb_core::Component {
     /// 操作を呼び出す。
     async fn invoke(
         &self,

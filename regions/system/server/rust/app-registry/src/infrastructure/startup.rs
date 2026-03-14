@@ -128,6 +128,9 @@ pub async fn run() -> anyhow::Result<()> {
     // Use cases
     let list_apps_uc = Arc::new(usecase::ListAppsUseCase::new(app_repo.clone()));
     let get_app_uc = Arc::new(usecase::GetAppUseCase::new(app_repo.clone()));
+    let create_app_uc = Arc::new(usecase::CreateAppUseCase::new(app_repo.clone()));
+    let update_app_uc = Arc::new(usecase::UpdateAppUseCase::new(app_repo.clone()));
+    let delete_app_uc = Arc::new(usecase::DeleteAppUseCase::new(app_repo.clone()));
     let list_versions_uc = Arc::new(usecase::ListVersionsUseCase::new(
         app_repo.clone(),
         version_repo.clone(),
@@ -163,6 +166,9 @@ pub async fn run() -> anyhow::Result<()> {
     let state = AppState {
         list_apps_uc,
         get_app_uc,
+        create_app_uc,
+        update_app_uc,
+        delete_app_uc,
         list_versions_uc,
         create_version_uc,
         delete_version_uc,
@@ -218,6 +224,24 @@ impl crate::domain::repository::AppRepository for StubAppRepository {
         _id: &str,
     ) -> anyhow::Result<Option<crate::domain::entity::app::App>> {
         Ok(None)
+    }
+
+    async fn create(
+        &self,
+        app: &crate::domain::entity::app::App,
+    ) -> anyhow::Result<crate::domain::entity::app::App> {
+        Ok(app.clone())
+    }
+
+    async fn update(
+        &self,
+        app: &crate::domain::entity::app::App,
+    ) -> anyhow::Result<crate::domain::entity::app::App> {
+        Ok(app.clone())
+    }
+
+    async fn delete(&self, _id: &str) -> anyhow::Result<bool> {
+        Ok(false)
     }
 }
 

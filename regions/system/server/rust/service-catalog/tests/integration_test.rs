@@ -147,6 +147,28 @@ impl TeamRepository for TestTeamRepository {
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<Team>> {
         Ok(self.teams.read().await.iter().find(|t| t.id == id).cloned())
     }
+
+    async fn create(&self, team: &Team) -> anyhow::Result<Team> {
+        self.teams.write().await.push(team.clone());
+        Ok(team.clone())
+    }
+
+    async fn update(&self, team: &Team) -> anyhow::Result<Team> {
+        let mut teams = self.teams.write().await;
+        if let Some(existing) = teams.iter_mut().find(|t| t.id == team.id) {
+            *existing = team.clone();
+            Ok(team.clone())
+        } else {
+            anyhow::bail!("team not found")
+        }
+    }
+
+    async fn delete(&self, id: Uuid) -> anyhow::Result<bool> {
+        let mut teams = self.teams.write().await;
+        let len_before = teams.len();
+        teams.retain(|t| t.id != id);
+        Ok(teams.len() < len_before)
+    }
 }
 
 struct TestDependencyRepository;
@@ -266,6 +288,18 @@ fn make_test_app_with_repos(
             k1s0_service_catalog::usecase::SearchServicesUseCase::new(service_repo.clone()),
         ),
         list_teams_uc: Arc::new(k1s0_service_catalog::usecase::ListTeamsUseCase::new(
+            team_repo.clone(),
+        )),
+        get_team_uc: Arc::new(k1s0_service_catalog::usecase::GetTeamUseCase::new(
+            team_repo.clone(),
+        )),
+        create_team_uc: Arc::new(k1s0_service_catalog::usecase::CreateTeamUseCase::new(
+            team_repo.clone(),
+        )),
+        update_team_uc: Arc::new(k1s0_service_catalog::usecase::UpdateTeamUseCase::new(
+            team_repo.clone(),
+        )),
+        delete_team_uc: Arc::new(k1s0_service_catalog::usecase::DeleteTeamUseCase::new(
             team_repo.clone(),
         )),
         validate_token_uc: Arc::new(ValidateTokenUseCase::new(

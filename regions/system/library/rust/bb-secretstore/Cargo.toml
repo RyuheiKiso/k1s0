@@ -11,7 +11,7 @@ vault = ["k1s0-vault-client"]
 
 [dependencies]
 async-trait = "0.1"
-k1s0-building-blocks = { path = "../building-blocks" }
+k1s0-bb-core = { path = "../bb-core" }
 k1s0-vault-client = { path = "../vault-client", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

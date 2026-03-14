@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:building_blocks/building_blocks.dart';
+import 'package:k1s0_building_blocks/building_blocks.dart';
 
 class _MockComponent extends Component {
   @override
@@ -28,7 +28,7 @@ class _MockComponent extends Component {
 }
 
 void main() {
-  group('ComponentStatus', () => {
+  group('ComponentStatus', () {
     test('should have all expected values', () {
       expect(ComponentStatus.values.length, 5);
       expect(ComponentStatus.values, contains(ComponentStatus.uninitialized));

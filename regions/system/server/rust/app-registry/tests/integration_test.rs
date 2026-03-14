@@ -82,6 +82,27 @@ impl AppRepository for TestAppRepository {
         let apps = self.apps.read().await;
         Ok(apps.iter().find(|a| a.id == id).cloned())
     }
+
+    async fn create(&self, app: &App) -> anyhow::Result<App> {
+        let mut apps = self.apps.write().await;
+        apps.push(app.clone());
+        Ok(app.clone())
+    }
+
+    async fn update(&self, app: &App) -> anyhow::Result<App> {
+        let mut apps = self.apps.write().await;
+        if let Some(existing) = apps.iter_mut().find(|a| a.id == app.id) {
+            *existing = app.clone();
+        }
+        Ok(app.clone())
+    }
+
+    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+        let mut apps = self.apps.write().await;
+        let len_before = apps.len();
+        apps.retain(|a| a.id != id);
+        Ok(apps.len() < len_before)
+    }
 }
 
 struct TestVersionRepository {
@@ -177,6 +198,15 @@ async fn make_test_app_with_repos(
             app_repo.clone(),
         )),
         get_app_uc: Arc::new(k1s0_app_registry::usecase::GetAppUseCase::new(
+            app_repo.clone(),
+        )),
+        create_app_uc: Arc::new(k1s0_app_registry::usecase::CreateAppUseCase::new(
+            app_repo.clone(),
+        )),
+        update_app_uc: Arc::new(k1s0_app_registry::usecase::UpdateAppUseCase::new(
+            app_repo.clone(),
+        )),
+        delete_app_uc: Arc::new(k1s0_app_registry::usecase::DeleteAppUseCase::new(
             app_repo.clone(),
         )),
         list_versions_uc: Arc::new(k1s0_app_registry::usecase::ListVersionsUseCase::new(

@@ -81,6 +81,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let create_uc = Arc::new(crate::usecase::CreateSessionUseCase::new(
         repo.clone(),
+        metadata_repo.clone(),
         event_publisher.clone(),
         cfg.session.default_ttl_seconds,
         cfg.session.max_ttl_seconds,
@@ -92,10 +93,14 @@ pub async fn run() -> anyhow::Result<()> {
     ));
     let revoke_uc = Arc::new(crate::usecase::RevokeSessionUseCase::new(
         repo.clone(),
+        metadata_repo.clone(),
         event_publisher.clone(),
     ));
     let list_uc = Arc::new(crate::usecase::ListUserSessionsUseCase::new(repo.clone()));
-    let revoke_all_uc = Arc::new(crate::usecase::RevokeAllSessionsUseCase::new(repo));
+    let revoke_all_uc = Arc::new(crate::usecase::RevokeAllSessionsUseCase::new(
+        repo,
+        metadata_repo.clone(),
+    ));
 
     // --- Kafka consumer (optional, background task) ---
     if let Some(ref kafka_cfg) = cfg.kafka {

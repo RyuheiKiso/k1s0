@@ -7,7 +7,6 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::adapter;
-use crate::domain;
 use crate::infrastructure;
 use crate::proto;
 use crate::usecase;

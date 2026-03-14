@@ -22,7 +22,7 @@ pub trait MessageHandler: Send + Sync {
 /// PubSub はパブリッシュ・サブスクライブ機能の抽象インターフェース。
 /// Component トレイトを拡張する。
 #[async_trait]
-pub trait PubSub: k1s0_building_blocks::Component {
+pub trait PubSub: k1s0_bb_core::Component {
     /// トピックにメッセージをパブリッシュする。
     async fn publish(
         &self,

@@ -17,8 +17,8 @@ use crate::usecase::{
     CreateTenantError, CreateTenantInput, CreateTenantUseCase, DeleteTenantError,
     DeleteTenantUseCase, GetTenantError, GetTenantUseCase, ListMembersError, ListMembersUseCase,
     ListTenantsError, ListTenantsUseCase, RemoveMemberError, RemoveMemberUseCase,
-    SuspendTenantError, SuspendTenantUseCase, UpdateTenantError, UpdateTenantInput,
-    UpdateTenantUseCase,
+    SuspendTenantError, SuspendTenantUseCase, UpdateMemberRoleError, UpdateMemberRoleInput,
+    UpdateMemberRoleUseCase, UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase,
 };
 
 fn not_found_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
@@ -79,6 +79,7 @@ pub struct AppState {
     pub list_members_uc: Arc<ListMembersUseCase>,
     pub add_member_uc: Arc<AddMemberUseCase>,
     pub remove_member_uc: Arc<RemoveMemberUseCase>,
+    pub update_member_role_uc: Arc<UpdateMemberRoleUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<TenantAuthState>,
     pub db_pool: Option<Arc<sqlx::PgPool>>,
@@ -138,6 +139,11 @@ pub struct MemberResponse {
 #[derive(Debug, Deserialize)]
 pub struct AddMemberRequest {
     pub user_id: String,
+    pub role: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateMemberRoleRequest {
     pub role: String,
 }
 
@@ -716,5 +722,67 @@ pub async fn remove_member(
             member_not_found_response("member not found").into_response()
         }
         Err(RemoveMemberError::Internal(msg)) => internal_response(msg).into_response(),
+    }
+}
+
+/// PUT /api/v1/tenants/:tenant_id/members/:user_id
+pub async fn update_member_role(
+    State(state): State<AppState>,
+    Path((tenant_id, user_id)): Path<(String, String)>,
+    Json(req): Json<UpdateMemberRoleRequest>,
+) -> impl IntoResponse {
+    let tenant_uuid = match Uuid::parse_str(&tenant_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return bad_request_response(
+                codes::tenant::validation_error(),
+                format!("invalid tenant id: {}", tenant_id),
+            )
+            .into_response()
+        }
+    };
+
+    let user_uuid = match Uuid::parse_str(&user_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return bad_request_response(
+                codes::tenant::validation_error(),
+                format!("invalid user id: {}", user_id),
+            )
+            .into_response()
+        }
+    };
+
+    let input = UpdateMemberRoleInput {
+        tenant_id: tenant_uuid,
+        user_id: user_uuid,
+        role: req.role,
+    };
+
+    match state.update_member_role_uc.execute(input).await {
+        Ok(member) => {
+            let resp = MemberResponse {
+                id: member.id.to_string(),
+                tenant_id: member.tenant_id.to_string(),
+                user_id: member.user_id.to_string(),
+                role: member.role,
+                joined_at: member.joined_at.to_rfc3339(),
+            };
+            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+        }
+        Err(UpdateMemberRoleError::NotFound) => {
+            member_not_found_response("member not found").into_response()
+        }
+        Err(UpdateMemberRoleError::TenantNotFound) => {
+            not_found_response("tenant not found").into_response()
+        }
+        Err(UpdateMemberRoleError::InvalidRole(role)) => {
+            bad_request_response(
+                codes::tenant::validation_error(),
+                format!("invalid role: {}", role),
+            )
+            .into_response()
+        }
+        Err(UpdateMemberRoleError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }
