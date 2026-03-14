@@ -1,0 +1,17 @@
+app:
+  name: k1s0-ai-agent-server
+  version: "0.1.0"
+  environment: docker
+server:
+  host: "0.0.0.0"
+  port: 8080
+  grpc_port: 50062
+
+auth:
+  jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+  issuer: "http://keycloak:8080/realms/k1s0"
+  audience: "k1s0-api"
+  jwks_cache_ttl_secs: 300
+
+ai_gateway:
+  internal_endpoint: "http://ai-gateway:8080"

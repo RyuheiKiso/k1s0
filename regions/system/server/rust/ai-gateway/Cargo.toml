@@ -1,0 +1,47 @@
+[package]
+name = "k1s0-ai-gateway-server"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "k1s0_ai_gateway_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "k1s0-ai-gateway-server"
+path = "src/main.rs"
+test = false
+
+[dependencies]
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+axum = { version = "0.7", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1"
+thiserror = "2"
+async-trait = "0.1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+http = "1"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
+redis = { version = "0.27", features = ["tokio-comp"] }
+k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+k1s0-auth = { path = "../../../library/rust/auth" }
+k1s0-server-common = { path = "../../../library/rust/server-common" }
+tower = { version = "0.5", features = ["util"] }
+reqwest = { version = "0.12", features = ["json"] }
+regex = "1"
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[dev-dependencies]
+mockall = "0.13"
+tokio-test = "0.4"
+axum-test = "16"

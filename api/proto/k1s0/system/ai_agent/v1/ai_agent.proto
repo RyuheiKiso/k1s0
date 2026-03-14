@@ -1,0 +1,108 @@
+// k1s0 AI エージェントサービス gRPC 定義。
+// AI エージェントの実行管理を提供する。
+// エージェント実行、ストリーミングイベント、キャンセル、ステップレビューを含む。
+syntax = "proto3";
+
+package k1s0.system.ai_agent.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/ai_agent/v1;aiagentv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+// AI エージェントサービス: エージェントの実行とステップ管理を行う
+service AiAgentService {
+  // エージェントを実行し、結果を返す
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+  // エージェントを実行し、ストリーミング形式でイベントを返す
+  rpc ExecuteStream(ExecuteRequest) returns (stream ExecutionEvent);
+  // 実行中のエージェントをキャンセルする
+  rpc CancelExecution(CancelExecutionRequest) returns (CancelExecutionResponse);
+  // 実行ステップをレビュー（承認/却下）する
+  rpc ReviewStep(ReviewStepRequest) returns (ReviewStepResponse);
+}
+
+// エージェント実行リクエスト: エージェントへの入力とコンテキストを含む
+message ExecuteRequest {
+  // 実行するエージェントの識別子
+  string agent_id = 1;
+  // エージェントへの入力テキスト
+  string input = 2;
+  // セッション識別子（会話の継続に使用）
+  string session_id = 3;
+  // リクエスト元のテナント識別子
+  string tenant_id = 4;
+  // エージェント実行に渡す追加コンテキスト
+  map<string, string> context = 5;
+}
+
+// エージェント実行レスポンス: 実行結果とステップ情報を含む
+message ExecuteResponse {
+  // 実行の一意識別子
+  string execution_id = 1;
+  // 実行状態（running / completed / failed / cancelled）
+  string status = 2;
+  // エージェントの最終出力
+  string output = 3;
+  // 実行されたステップのリスト
+  repeated ExecutionStep steps = 4;
+}
+
+// 実行イベント: ストリーミング中に送信される個別イベント
+message ExecutionEvent {
+  // 実行の一意識別子
+  string execution_id = 1;
+  // イベント種別（step_start / step_end / tool_call / output / error）
+  string event_type = 2;
+  // イベントデータ（JSON 形式）
+  string data = 3;
+  // 関連するステップのインデックス
+  int32 step_index = 4;
+}
+
+// 実行ステップ: エージェントが実行した個別ステップの詳細
+message ExecutionStep {
+  // ステップのインデックス番号
+  int32 index = 1;
+  // ステップ種別（thinking / tool_call / output）
+  string step_type = 2;
+  // ステップへの入力
+  string input = 3;
+  // ステップの出力
+  string output = 4;
+  // 使用されたツール名（tool_call の場合）
+  string tool_name = 5;
+  // ステップの状態（pending / running / completed / failed）
+  string status = 6;
+}
+
+// 実行キャンセルリクエスト: 実行中のエージェントを停止する
+message CancelExecutionRequest {
+  // キャンセルする実行の識別子
+  string execution_id = 1;
+}
+
+// 実行キャンセルレスポンス: キャンセル結果
+message CancelExecutionResponse {
+  // キャンセルが成功したかどうか
+  bool success = 1;
+}
+
+// ステップレビューリクエスト: 人間によるステップの承認・却下
+message ReviewStepRequest {
+  // レビュー対象の実行識別子
+  string execution_id = 1;
+  // レビュー対象のステップインデックス
+  int32 step_index = 2;
+  // ステップを承認するかどうか
+  bool approved = 3;
+  // レビューコメント
+  string feedback = 4;
+}
+
+// ステップレビューレスポンス: レビュー後の実行状態
+message ReviewStepResponse {
+  // 実行の識別子
+  string execution_id = 1;
+  // 実行が再開されたかどうか
+  bool resumed = 2;
+}

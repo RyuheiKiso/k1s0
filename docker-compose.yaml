@@ -686,6 +686,46 @@ services:
       - ./regions/system/server/rust/workflow/config:/app/config
     healthcheck: *rust-healthcheck
 
+  ai-gateway-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/ai-gateway/Dockerfile
+    profiles: [system]
+    ports:
+      - "${AI_GATEWAY_REST_HOST_PORT:-8120}:8080"
+      - "${AI_GATEWAY_GRPC_HOST_PORT:-50061}:50061"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/ai-gateway/config:/app/config
+    healthcheck: *rust-healthcheck
+
+  ai-agent-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/ai-agent/Dockerfile
+    profiles: [system]
+    ports:
+      - "${AI_AGENT_REST_HOST_PORT:-8121}:8080"
+      - "${AI_AGENT_GRPC_HOST_PORT:-50062}:50062"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ALLOW_INSECURE_NO_AUTH=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-gateway-rust:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/ai-agent/config:/app/config
+    healthcheck: *rust-healthcheck
+
   graphql-gateway-rust:
     build:
       context: .
