@@ -49,6 +49,8 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 
 # 内部ライブラリ
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+# Correlation ID伝播ライブラリ
+k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 
 [build-dependencies]
 tonic-build = "0.12"

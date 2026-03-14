@@ -13,6 +13,27 @@ use super::s3_client::S3Client;
 use crate::domain;
 use crate::usecase;
 
+/// シャットダウンシグナルを待機する
+async fn shutdown_signal() -> anyhow::Result<()> {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+
+        let mut terminate = signal(SignalKind::terminate())?;
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = terminate.recv() => {}
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await?;
+    }
+
+    Ok(())
+}
+
 pub async fn run() -> anyhow::Result<()> {
     // Load config
     let config_path =
@@ -181,14 +202,21 @@ pub async fn run() -> anyhow::Result<()> {
     };
 
     // Router
-    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics));
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics))
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // REST server
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    // REST グレースフルシャットダウン設定
+    axum::serve(listener, app)
+        .with_graceful_shutdown(async { let _ = shutdown_signal().await; })
+        .await?;
+    // テレメトリのシャットダウン処理
+    k1s0_telemetry::shutdown();
 
     Ok(())
 }

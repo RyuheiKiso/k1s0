@@ -41,6 +41,10 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 tracing-opentelemetry = "0.28"
 
+# 社内ライブラリ
+k1s0-telemetry = { path = "../../../library/rust/telemetry" }
+k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
+
 # ユーティリティ
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
@@ -106,10 +110,77 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 3. persistence::connect(&cfg.database) + sqlx::migrate!
 4. KafkaProducer::new(&cfg.kafka)  ※Kafka 使用時
 5. DI（サービス固有のユースケース・リポジトリ注入）
-6. REST サーバー起動（axum::Router + axum::serve）
+6. REST サーバー起動（axum::Router + axum::serve + CorrelationLayer）
 7. gRPC サーバー起動（tonic::transport::Server）
 8. graceful_shutdown（SIGTERM/SIGINT 待機）
+9. k1s0_telemetry::shutdown()（OpenTelemetry フラッシュ）
 ```
+
+---
+
+## Graceful Shutdown パターン {#graceful-shutdown}
+
+全 Rust サーバーは以下のシグナル処理を実装する。
+
+### shutdown_signal() 実装
+
+```rust
+async fn shutdown_signal() -> anyhow::Result<()> {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+        let mut terminate = signal(SignalKind::terminate())?;
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = terminate.recv() => {}
+        }
+    }
+    #[cfg(not(unix))]
+    { tokio::signal::ctrl_c().await?; }
+    Ok(())
+}
+```
+
+- Unix: SIGTERM + SIGINT（Ctrl-C）を待機
+- Windows: SIGINT（Ctrl-C）のみ
+
+### REST + gRPC の並行 Graceful Shutdown
+
+```rust
+let grpc_shutdown = shutdown_signal();
+let grpc_future = async move {
+    tonic::transport::Server::builder()
+        // ...
+        .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+        .await
+};
+
+let rest_future = axum::serve(listener, app)
+    .with_graceful_shutdown(async { let _ = shutdown_signal().await; });
+
+tokio::select! {
+    result = rest_future => { /* error handling */ }
+    result = grpc_future => { /* error handling */ }
+}
+
+k1s0_telemetry::shutdown();  // テレメトリを最後にフラッシュ
+```
+
+### CorrelationLayer の適用
+
+全サーバーの REST アプリケーションに `CorrelationLayer` を追加する（MetricsLayer の外側に配置）:
+
+```rust
+let app = handler::router(state)
+    .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    .layer(k1s0_correlation::layer::CorrelationLayer::new());  // 最外層
+```
+
+CorrelationLayer は受信リクエストに対して:
+1. `X-Correlation-Id` ヘッダーを解析（なければ UUID v4 を自動生成）
+2. `X-Trace-Id` ヘッダーを解析（あれば伝播）
+3. `CorrelationContext` を `Extensions` に格納（ハンドラーから取得可能）
+4. レスポンスヘッダーに `X-Correlation-Id` / `X-Trace-Id` を自動付与
 
 ---
 

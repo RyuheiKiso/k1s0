@@ -460,6 +460,47 @@ void main() {
 }
 ```
 
+## Rust HTTP ミドルウェア（CorrelationLayer）
+
+### feature の有効化
+
+```toml
+k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
+```
+
+### 使用例
+
+```rust
+let app = handler::router(state)
+    .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    .layer(k1s0_correlation::layer::CorrelationLayer::new()); // 最外層
+```
+
+### 動作
+
+1. **リクエスト受信時**
+   - `X-Correlation-Id` ヘッダーがあれば解析、なければ UUID v4 を自動生成
+   - `X-Trace-Id` ヘッダーがあれば解析して伝播（不正な値は無視）
+   - `CorrelationContext` を `request.extensions()` に格納
+
+2. **レスポンス返却時**
+   - `X-Correlation-Id` をレスポンスヘッダーに自動付与
+   - `X-Trace-Id` があればレスポンスヘッダーに付与
+
+### ハンドラーでの取得
+
+```rust
+use axum::Extension;
+use k1s0_correlation::CorrelationContext;
+
+async fn my_handler(
+    Extension(ctx): Extension<CorrelationContext>,
+) -> impl IntoResponse {
+    let correlation_id = ctx.correlation_id.as_str();
+    // ...
+}
+```
+
 ## 関連ドキュメント
 
 - [system-library-概要](../_common/概要.md) -- ライブラリ一覧・テスト方針

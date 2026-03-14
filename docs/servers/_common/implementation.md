@@ -432,6 +432,36 @@ async fn get_user(
 // ... 他のハンドラーも同様のパターンで実装
 ```
 
+## CorrelationLayer の適用
+
+全 Rust サーバーは REST ルーター作成時に `k1s0_correlation::layer::CorrelationLayer` を適用する。
+
+### Cargo.toml
+
+```toml
+k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
+```
+
+### 実装例
+
+```rust
+let app = handler::router(state)
+    .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    .layer(k1s0_correlation::layer::CorrelationLayer::new());
+```
+
+### レイヤー適用順序
+
+axum の `.layer()` は後から追加したものが外側（リクエスト処理で最初）になる。
+
+| 順序 | レイヤー | 役割 |
+|------|---------|------|
+| 最外層（最後に追加） | `CorrelationLayer` | 相関 ID の解析・生成・伝播 |
+| 中層 | `MetricsLayer` | HTTP メトリクス計測 |
+| 内層 | Router | ビジネスロジック |
+
+---
+
 ### gRPC サービス定義（Rust）
 
 ```rust
