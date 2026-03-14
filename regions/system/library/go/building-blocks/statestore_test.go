@@ -37,6 +37,9 @@ func TestStateEntryCreation(t *testing.T) {
 	if entry.Key != "user:1" {
 		t.Errorf("expected Key 'user:1', got %q", entry.Key)
 	}
+	if string(entry.Value) != `{"name":"alice"}` {
+		t.Errorf("expected Value %q, got %q", `{"name":"alice"}`, string(entry.Value))
+	}
 	if entry.ETag.Value != "e1" {
 		t.Errorf("expected ETag value 'e1', got %q", entry.ETag.Value)
 	}
@@ -87,6 +90,9 @@ func TestSetRequestCreation(t *testing.T) {
 	}
 	if req.Key != "session:abc" {
 		t.Errorf("expected Key 'session:abc', got %q", req.Key)
+	}
+	if string(req.Value) != "session-data" {
+		t.Errorf("expected Value %q, got %q", "session-data", string(req.Value))
 	}
 	if req.ETag.Value != "prev" {
 		t.Errorf("expected ETag value 'prev', got %q", req.ETag.Value)

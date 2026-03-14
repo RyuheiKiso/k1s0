@@ -165,16 +165,17 @@ import "context"
 type StateStore interface {
     buildingblocks.Component
     Get(ctx context.Context, key string) (*StateEntry, error)
-    Set(ctx context.Context, key string, value []byte, etag *ETag) (*ETag, error)
+    // req.ETag が非 nil の場合は CAS 操作（ETag 不一致で ETagMismatchError）。
+    Set(ctx context.Context, req *SetRequest) (*ETag, error)
     Delete(ctx context.Context, key string, etag *ETag) error
     BulkGet(ctx context.Context, keys []string) ([]*StateEntry, error)
-    BulkSet(ctx context.Context, entries []*SetRequest) ([]*ETag, error)
+    BulkSet(ctx context.Context, requests []*SetRequest) ([]*ETag, error)
 }
 
 type StateEntry struct {
     Key   string `json:"key"`
     Value []byte `json:"value"`
-    ETag  ETag   `json:"etag"`
+    ETag  *ETag  `json:"etag,omitempty"`
 }
 
 type ETag struct {
@@ -184,7 +185,7 @@ type ETag struct {
 type SetRequest struct {
     Key   string
     Value []byte
-    ETag  *ETag
+    ETag  *ETag // nil = 無条件書き込み（Last-Writer-Wins）
 }
 
 type ErrorKind int

@@ -169,30 +169,28 @@ package binding
 
 import "context"
 
+// BindingData は InputBinding の受信データを表す。
+type BindingData struct {
+    Data     []byte
+    Metadata map[string]string
+}
+
+// BindingResponse は OutputBinding の応答を表す。
+type BindingResponse struct {
+    Data     []byte
+    Metadata map[string]string
+}
+
 // InputBinding は外部リソースからのイベント受信インターフェース。
 type InputBinding interface {
     buildingblocks.Component
-    Read(ctx context.Context) (<-chan *BindingRequest, error)
-    Close(ctx context.Context) error
+    Read(ctx context.Context) (*BindingData, error)
 }
 
 // OutputBinding は外部リソースへの操作実行インターフェース。
 type OutputBinding interface {
     buildingblocks.Component
-    Invoke(ctx context.Context, request *BindingRequest) (*BindingResponse, error)
-    Operations() []string
-    Close(ctx context.Context) error
-}
-
-type BindingRequest struct {
-    Operation string            `json:"operation"`
-    Data      []byte            `json:"data"`
-    Metadata  map[string]string `json:"metadata"`
-}
-
-type BindingResponse struct {
-    Data     []byte            `json:"data"`
-    Metadata map[string]string `json:"metadata"`
+    Invoke(ctx context.Context, operation string, data []byte, metadata map[string]string) (*BindingResponse, error)
 }
 
 type ErrorKind int
@@ -224,8 +222,10 @@ func NewS3Binding() *S3Binding
 type HttpBinding struct { /* HTTP */ }
 func NewHttpBinding() *HttpBinding
 
-type InMemoryBinding struct { /* テスト用 */ }
-func NewInMemoryBinding() *InMemoryBinding
+// InMemoryOutputBinding は呼び出しを記録するテスト用 OutputBinding。
+// LastInvocation() / SetResponse() / Reset() ヘルパーを提供する。
+type InMemoryOutputBinding struct { /* テスト用 */ }
+func NewInMemoryOutputBinding() *InMemoryOutputBinding
 ```
 
 ## TypeScript 実装

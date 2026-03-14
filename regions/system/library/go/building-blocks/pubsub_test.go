@@ -18,6 +18,12 @@ func TestMessageCreation(t *testing.T) {
 	if m.Topic != "orders" {
 		t.Errorf("expected Topic 'orders', got %q", m.Topic)
 	}
+	if string(m.Data) != `{"id": 1}` {
+		t.Errorf("expected Data %q, got %q", `{"id": 1}`, string(m.Data))
+	}
+	if m.Metadata["source"] != "api" {
+		t.Errorf("expected Metadata[source] %q, got %q", "api", m.Metadata["source"])
+	}
 	if m.ID != "msg-001" {
 		t.Errorf("expected ID 'msg-001', got %q", m.ID)
 	}

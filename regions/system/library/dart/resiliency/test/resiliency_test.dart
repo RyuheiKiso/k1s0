@@ -3,13 +3,13 @@ import 'package:k1s0_resiliency/resiliency.dart';
 
 void main() {
   group('ResiliencyDecorator', () {
-    test('should execute successfully', () async {
+    test('正常実行: ポリシーなしで処理が成功すること', () async {
       final decorator = ResiliencyDecorator(const ResiliencyPolicy());
       final result = await decorator.execute(() async => 42);
       expect(result, equals(42));
     });
 
-    test('should retry on failure', () async {
+    test('リトライ: 失敗後に再試行して成功すること', () async {
       final decorator = ResiliencyDecorator(const ResiliencyPolicy(
         retry: RetryConfig(
           maxAttempts: 3,
@@ -29,7 +29,7 @@ void main() {
       expect(counter, equals(3));
     });
 
-    test('should throw MaxRetriesExceededError', () async {
+    test('リトライ上限: 最大試行回数を超えると MaxRetriesExceededError が発生すること', () async {
       final decorator = ResiliencyDecorator(const ResiliencyPolicy(
         retry: RetryConfig(
           maxAttempts: 2,
@@ -44,7 +44,7 @@ void main() {
       );
     });
 
-    test('should timeout', () async {
+    test('タイムアウト: 指定時間内に完了しない場合に TimeoutError が発生すること', () async {
       final decorator = ResiliencyDecorator(const ResiliencyPolicy(
         timeout: Duration(milliseconds: 50),
       ));
@@ -58,7 +58,7 @@ void main() {
       );
     });
 
-    test('should open circuit breaker after failures', () async {
+    test('サーキットブレーカー: 連続失敗後にオープン状態へ遷移し CircuitBreakerOpenError が発生すること', () async {
       final decorator = ResiliencyDecorator(const ResiliencyPolicy(
         circuitBreaker: CircuitBreakerConfig(
           failureThreshold: 3,
@@ -67,21 +67,21 @@ void main() {
         ),
       ));
 
-      // Trip the circuit
+      // しきい値分だけ失敗させてサーキットブレーカーをトリップさせる
       for (var i = 0; i < 3; i++) {
         try {
           await decorator.execute(() async => throw Exception('fail'));
         } catch (_) {}
       }
 
-      // Next call should fail with circuit open
+      // オープン状態では次の呼び出しが即座に拒否される
       expect(
         () => decorator.execute(() async => 42),
         throwsA(isA<CircuitBreakerOpenError>()),
       );
     });
 
-    test('should reject when bulkhead is full', () async {
+    test('バルクヘッド: 同時実行数が上限に達すると BulkheadFullError が発生すること', () async {
       final decorator = ResiliencyDecorator(const ResiliencyPolicy(
         bulkhead: BulkheadConfig(
           maxConcurrentCalls: 1,
@@ -89,7 +89,7 @@ void main() {
         ),
       ));
 
-      // Occupy the single slot
+      // 唯一のスロットを長時間占有する
       final longRunning = decorator.execute(() async {
         await Future<void>.delayed(const Duration(milliseconds: 500));
         return 1;
@@ -97,6 +97,7 @@ void main() {
 
       await Future<void>.delayed(const Duration(milliseconds: 10));
 
+      // スロットが埋まっているため次の呼び出しは拒否される
       expect(
         () => decorator.execute(() async => 2),
         throwsA(isA<BulkheadFullError>()),
@@ -107,7 +108,7 @@ void main() {
   });
 
   group('withResiliency', () {
-    test('should work as convenience function', () async {
+    test('便利関数: ポリシーを適用して正常実行できること', () async {
       final result =
           await withResiliency(const ResiliencyPolicy(), () async => 42);
       expect(result, equals(42));

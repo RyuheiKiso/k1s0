@@ -166,9 +166,9 @@ import "context"
 // PubSub はメッセージング抽象化インターフェース。
 type PubSub interface {
     buildingblocks.Component
-    Publish(ctx context.Context, topic string, message *Message) error
+    // msg.Topic に宛てた発行。トピックは Message 内に含む。
+    Publish(ctx context.Context, msg *Message) error
     Subscribe(ctx context.Context, topic string) (<-chan *Message, error)
-    Close(ctx context.Context) error
 }
 
 // Message はメッセージデータを表す。

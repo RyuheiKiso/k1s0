@@ -45,6 +45,7 @@ config/
 ├── merge.go         # mergeFromFile + deepMerge（非公開）
 ├── vault.go         # MergeVaultSecrets
 ├── vault_test.go    # Vault テスト
+├── watch.go         # WatchConfigClient（gRPC ストリーミング）
 └── go.mod
 ```
 
@@ -53,6 +54,8 @@ config/
 ```
 gopkg.in/yaml.v3       # YAML パース
 github.com/go-playground/validator/v10  # バリデーション
+google.golang.org/grpc                  # WatchConfigClient 用
+github.com/k1s0-platform/api            # proto 生成コード（replace で api/proto を参照）
 ```
 
 **主要コード**:
@@ -1400,6 +1403,57 @@ auth:
   });
 }
 ```
+
+## WatchConfigClient（Go）
+
+設定変更をリアルタイムで受信するための gRPC Server-Side Streaming クライアント。`watch.go` に実装。
+
+```go
+// ConfigChangeEvent は設定変更の通知イベント。
+type ConfigChangeEvent struct {
+    Namespace  string
+    Key        string
+    OldValue   []byte
+    NewValue   []byte
+    ChangeType string // "CREATED" / "UPDATED" / "DELETED"
+}
+
+// WatchConfigClient は ConfigService.WatchConfig RPC のクライアントラッパー。
+type WatchConfigClient struct { /* grpc.ClientConn + ConfigServiceClient */ }
+
+// NewWatchConfigClient は target への gRPC 接続を確立してクライアントを返す。
+func NewWatchConfigClient(ctx context.Context, target string, opts ...grpc.DialOption) (*WatchConfigClient, error)
+
+// Watch は指定 namespace の変更を受信するチャンネルを返す。
+// ctx キャンセルまたはストリーム終了でチャンネルが閉じられる。
+func (w *WatchConfigClient) Watch(ctx context.Context, namespaces []string) (<-chan ConfigChangeEvent, error)
+
+// Close は gRPC 接続を閉じる。
+func (w *WatchConfigClient) Close() error
+```
+
+**使用例**:
+
+```go
+client, err := config.NewWatchConfigClient(ctx, "config-server:50051")
+if err != nil {
+    log.Fatal(err)
+}
+defer client.Close()
+
+ch, err := client.Watch(ctx, []string{"system.auth", "system.database"})
+if err != nil {
+    log.Fatal(err)
+}
+for event := range ch {
+    log.Printf("[%s] %s/%s changed (%s)", event.ChangeType, event.Namespace, event.Key, event.NewValue)
+}
+```
+
+> **proto 依存**: `api/proto/gen/go/k1s0/system/config/v1` を `replace` ディレクティブで参照。
+> `go.mod` に `replace github.com/k1s0-platform/api => ../../../../../api/proto` を追加する。
+
+---
 
 ## 関連ドキュメント
 

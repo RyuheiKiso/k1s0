@@ -74,12 +74,24 @@ type Metadata struct {
     Properties map[string]string
 }
 
+// ComponentStatus はコンポーネントの現在状態を表す。
+type ComponentStatus string
+
+const (
+    StatusUninitialized ComponentStatus = "uninitialized"
+    StatusReady         ComponentStatus = "ready"
+    StatusDegraded      ComponentStatus = "degraded"
+    StatusClosed        ComponentStatus = "closed"
+    StatusError         ComponentStatus = "error"
+)
+
 // Component は全 Building Block が実装すべき基底インターフェース。
 type Component interface {
     Name() string
     Version() string
     Init(ctx context.Context, metadata Metadata) error
     Close(ctx context.Context) error
+    Status(ctx context.Context) ComponentStatus
 }
 ```
 
