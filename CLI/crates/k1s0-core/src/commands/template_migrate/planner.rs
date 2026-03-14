@@ -6,7 +6,7 @@ use anyhow::{anyhow, Context, Result};
 use regex::Regex;
 use tempfile::TempDir;
 
-use crate::commands::generate::execute::{render_scaffold_preview, resolve_template_dir};
+use crate::commands::generate::template::{render_scaffold_preview, resolve_template_dir};
 
 use super::differ::three_way_merge;
 use super::parser::{collect_project_files, compute_checksum, snapshot_dir};

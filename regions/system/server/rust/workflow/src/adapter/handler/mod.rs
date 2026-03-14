@@ -1,7 +1,13 @@
+// ハンドラモジュール
+// DTO定義、ワークフロー・インスタンス・タスクの各ハンドラ、ヘルスチェックを公開する
+
+pub mod dto;
 pub mod health;
+pub mod instance_handler;
+pub mod task_handler;
 pub mod workflow_handler;
 
-pub use workflow_handler::AppState;
+pub use dto::AppState;
 
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -12,7 +18,7 @@ use axum::Router;
 use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::require_permission;
 
-/// REST API router.
+/// REST APIルーターを構築する
 pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Router {
     // 認証不要のエンドポイント
     let mut public_routes = Router::new()
@@ -22,30 +28,31 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         public_routes = public_routes.route(metrics_path, get(metrics_handler));
     }
 
+    // 期限超過タスクチェック用の内部エンドポイント
     let internal_routes = Router::new().route(
         "/internal/tasks/check-overdue",
-        post(workflow_handler::check_overdue_tasks),
+        post(task_handler::check_overdue_tasks),
     );
 
     // 認証が設定されている場合は RBAC 付きルーティング
     let api_routes = if let Some(ref auth_state) = state.auth_state {
-        // GET -> workflows/read
+        // GET -> workflows/read 権限が必要なルート
         let read_routes = Router::new()
             .route("/api/v1/workflows", get(workflow_handler::list_workflows))
             .route("/api/v1/workflows/:id", get(workflow_handler::get_workflow))
-            .route("/api/v1/instances", get(workflow_handler::list_instances))
-            .route("/api/v1/instances/:id", get(workflow_handler::get_instance))
+            .route("/api/v1/instances", get(instance_handler::list_instances))
+            .route("/api/v1/instances/:id", get(instance_handler::get_instance))
             .route(
                 "/api/v1/instances/:id/status",
-                get(workflow_handler::get_instance_status),
+                get(instance_handler::get_instance_status),
             )
-            .route("/api/v1/tasks", get(workflow_handler::list_tasks))
+            .route("/api/v1/tasks", get(task_handler::list_tasks))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "workflows",
                 "read",
             )));
 
-        // POST/PUT/execute/approve/reject/reassign -> workflows/write
+        // POST/PUT/execute/approve/reject/reassign -> workflows/write 権限が必要なルート
         let write_routes = Router::new()
             .route("/api/v1/workflows", post(workflow_handler::create_workflow))
             .route(
@@ -54,26 +61,26 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
             )
             .route(
                 "/api/v1/workflows/:id/execute",
-                post(workflow_handler::execute_workflow),
+                post(instance_handler::execute_workflow),
             )
             .route(
                 "/api/v1/tasks/:id/approve",
-                post(workflow_handler::approve_task),
+                post(task_handler::approve_task),
             )
             .route(
                 "/api/v1/tasks/:id/reject",
-                post(workflow_handler::reject_task),
+                post(task_handler::reject_task),
             )
             .route(
                 "/api/v1/tasks/:id/reassign",
-                post(workflow_handler::reassign_task),
+                post(task_handler::reassign_task),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "workflows",
                 "write",
             )));
 
-        // DELETE/cancel -> workflows/admin
+        // DELETE/cancel -> workflows/admin 権限が必要なルート
         let admin_routes = Router::new()
             .route(
                 "/api/v1/workflows/:id",
@@ -81,7 +88,7 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
             )
             .route(
                 "/api/v1/instances/:id/cancel",
-                post(workflow_handler::cancel_instance),
+                post(instance_handler::cancel_instance),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "workflows",
@@ -111,30 +118,30 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
             )
             .route(
                 "/api/v1/workflows/:id/execute",
-                post(workflow_handler::execute_workflow),
+                post(instance_handler::execute_workflow),
             )
-            .route("/api/v1/instances", get(workflow_handler::list_instances))
-            .route("/api/v1/instances/:id", get(workflow_handler::get_instance))
+            .route("/api/v1/instances", get(instance_handler::list_instances))
+            .route("/api/v1/instances/:id", get(instance_handler::get_instance))
             .route(
                 "/api/v1/instances/:id/status",
-                get(workflow_handler::get_instance_status),
+                get(instance_handler::get_instance_status),
             )
             .route(
                 "/api/v1/instances/:id/cancel",
-                post(workflow_handler::cancel_instance),
+                post(instance_handler::cancel_instance),
             )
-            .route("/api/v1/tasks", get(workflow_handler::list_tasks))
+            .route("/api/v1/tasks", get(task_handler::list_tasks))
             .route(
                 "/api/v1/tasks/:id/approve",
-                post(workflow_handler::approve_task),
+                post(task_handler::approve_task),
             )
             .route(
                 "/api/v1/tasks/:id/reject",
-                post(workflow_handler::reject_task),
+                post(task_handler::reject_task),
             )
             .route(
                 "/api/v1/tasks/:id/reassign",
-                post(workflow_handler::reassign_task),
+                post(task_handler::reassign_task),
             )
     };
 
@@ -144,6 +151,7 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         .with_state(state)
 }
 
+/// メトリクスエンドポイントのハンドラ
 async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
     let body = state.metrics.gather_metrics();
     (

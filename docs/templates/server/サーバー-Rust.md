@@ -1440,7 +1440,7 @@ BFF テンプレートは以下の条件で生成される:
 
 ### 生成ロジック
 
-`execute.rs` の `execute_generate_at()` / `execute_generate_with_config()` において、以下の条件で BFF ディレクトリが追加生成される:
+`execute.rs` の `execute_generate_at()` / `execute_generate_with_config()` および `template.rs` の `render_scaffold_preview()` において、以下の条件で BFF ディレクトリが追加生成される:
 
 ```rust
 if config.kind == Kind::Server

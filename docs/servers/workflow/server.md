@@ -929,15 +929,16 @@ CREATE INDEX idx_workflow_tasks_due_at ON workflow.workflow_tasks(due_at)
                     ┌─────────────────────────────────────────────────┐
                     │                    adapter 層                    │
                     │  ┌──────────────────────────────────────────┐   │
-                    │  │ REST Handler (workflow_handler.rs)       │   │
-                    │  │  healthz / readyz / metrics              │   │
-                    │  │  list_workflows / create_workflow        │   │
-                    │  │  get_workflow / update_workflow          │   │
-                    │  │  delete_workflow                         │   │
-                    │  │  execute_workflow / list_instances        │   │
-                    │  │  get_instance / cancel_instance          │   │
-                    │  │  list_tasks / approve_task               │   │
-                    │  │  reject_task / reassign_task             │   │
+                    │  │ REST Handler                              │   │
+                    │  │  dto.rs — AppState + DTO構造体            │   │
+                    │  │  workflow_handler.rs                      │   │
+                    │  │    create/get/list/update/delete_workflow │   │
+                    │  │  instance_handler.rs                      │   │
+                    │  │    execute_workflow / list/get/cancel     │   │
+                    │  │  task_handler.rs                          │   │
+                    │  │    list/approve/reject/reassign_task      │   │
+                    │  │  health.rs                                │   │
+                    │  │    healthz / readyz / metrics             │   │
                     │  ├──────────────────────────────────────────┤   │
                     │  │ gRPC Handler (workflow_grpc.rs)          │   │
                     │  │  StartInstance / GetInstance             │   │
