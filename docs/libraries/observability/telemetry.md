@@ -802,6 +802,85 @@ final handler = const Pipeline()
 |:--:|:----:|:----------:|:----:|
 | `MetricsHandler()` -> `http.Handler` | `gather_metrics()` -> `String` | `getMetrics()` -> `string` | `toPrometheusText()` -> `String` |
 
+## Trace Helper
+
+OpenTelemetry SDK スパン管理の便利関数群。`telemetry` ライブラリと同一パッケージに含まれ、スパン開始・属性設定・エラー記録を簡潔に記述できる。
+
+> `tracing` ライブラリ（W3C TraceContext/Baggage 伝播）とは役割が異なる。tracing はヘッダー伝播、trace_helper はスパン生成・操作を担当する。
+
+### 公開 API
+
+| 関数 / デコレータ | Go | TypeScript | Dart |
+|---|---|---|---|
+| スパンラップ（エラーなし戻り値） | `Trace(ctx, tracer, span, fn)` | `withTrace(tracer, span, fn)` | `traceFunction(tracer, span, fn)` |
+| スパンラップ（戻り値あり） | `TraceWithResult[T](ctx, tracer, span, fn)` | — | `traceMethod(tracer, span, fn)` |
+| スパン開始（手動） | `StartSpan(ctx, tracer, span)` | — | — |
+| メソッドデコレータ | — | `@Trace(tracer, span?)` | — |
+| 現在のスパン取得 | — | `getCurrentSpan()` | — |
+| 属性追加 | `AddSpanAttributes(ctx, attrs...)` | `addSpanAttribute(key, value)` | — |
+| エラー記録 | `RecordError(ctx, err)` | — | — |
+
+### Go 実装
+
+**配置先**: `regions/system/library/go/telemetry/trace_helper.go`
+
+```go
+// 戻り値なし関数のトレース
+err := telemetry.Trace(ctx, "myservice", "doSomething", func(ctx context.Context) error {
+    return doSomething(ctx)
+})
+
+// 戻り値あり関数のトレース
+result, err := telemetry.TraceWithResult(ctx, "myservice", "fetchUser", func(ctx context.Context) (*User, error) {
+    return repo.FindUser(ctx, id)
+})
+
+// 手動スパン管理
+ctx, span := telemetry.StartSpan(ctx, "myservice", "operation")
+defer span.End()
+telemetry.AddSpanAttributes(ctx, attribute.String("user.id", userID))
+```
+
+### TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/telemetry/src/trace.ts`
+
+```typescript
+// 関数ラップ
+const result = await withTrace('myservice', 'fetchUser', async (span) => {
+  span.setAttribute('user.id', userId);
+  return await repo.findUser(userId);
+});
+
+// クラスメソッドデコレータ
+class UserService {
+  @Trace('myservice')
+  async getUser(id: string) { ... }
+
+  @Trace('myservice', 'custom-span-name')
+  async updateUser(id: string) { ... }
+}
+```
+
+### Dart 実装
+
+**配置先**: `regions/system/library/dart/telemetry/lib/src/trace_helper.dart`
+
+Dart は OpenTelemetry SDK が未成熟なため、ログベースの軽量実装（実行時間計測 + Logger 出力）を採用する。
+
+```dart
+// 非同期関数のトレース
+final result = await traceFunction('myservice', 'fetchUser', () async {
+  return await repo.findUser(userId);
+});
+print('duration: ${result.duration.inMilliseconds}ms');
+
+// 同期関数のトレース
+final result = traceMethod('myservice', 'computeHash', () {
+  return computeHash(data);
+});
+```
+
 ## 関連ドキュメント
 
 - [system-library-概要](../_common/概要.md) -- ライブラリ一覧・テスト方針

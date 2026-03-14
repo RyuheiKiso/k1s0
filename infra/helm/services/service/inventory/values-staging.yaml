@@ -1,0 +1,28 @@
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+
+config:
+  data:
+    config.yaml: |
+      app:
+        environment: staging
+      database:
+        host: postgres.k1s0-service.svc.cluster.local
+        ssl_mode: require
+      observability:
+        log:
+          level: info
+        trace:
+          sample_rate: 0.5
