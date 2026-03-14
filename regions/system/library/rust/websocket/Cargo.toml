@@ -6,6 +6,8 @@ edition = "2021"
 [features]
 default = []
 mock = ["dep:mockall"]
+# native フィーチャーで tokio-tungstenite を使用した本番用 WebSocket クライアントを有効化する
+native = ["dep:tokio-tungstenite", "dep:futures-util", "tokio/time", "tokio/rt", "tokio/macros"]
 
 [dependencies]
 async-trait = "0.1"
@@ -13,6 +15,8 @@ serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 tokio = { version = "1", features = ["sync"] }
 mockall = { version = "0.13", optional = true }
+tokio-tungstenite = { version = "0.26", optional = true, features = ["native-tls"] }
+futures-util = { version = "0.3", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

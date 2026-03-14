@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	dlq "github.com/k1s0-platform/system-library-go-dlq"
+	dlq "github.com/k1s0-platform/system-library-go-dlq-client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
