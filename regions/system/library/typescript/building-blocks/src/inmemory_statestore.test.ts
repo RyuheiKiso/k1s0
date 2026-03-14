@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { InMemoryStateStore } from './inmemory_statestore.js';
 import { ETagMismatchError } from './errors.js';
 
+// InMemoryStateStore のテスト: ETag を使った楽観的ロック、一括操作、削除など状態ストアの全機能を検証する。
 describe('InMemoryStateStore', () => {
   let store: InMemoryStateStore;
 

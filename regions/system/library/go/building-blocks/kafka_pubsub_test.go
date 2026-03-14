@@ -36,6 +36,7 @@ type mockKafkaConsumer struct {
 	closed   bool
 }
 
+// newMockKafkaConsumer はハンドラーマップを初期化した mockKafkaConsumer を生成する。
 func newMockKafkaConsumer() *mockKafkaConsumer {
 	return &mockKafkaConsumer{handlers: make(map[string]KafkaEventHandler)}
 }
@@ -62,6 +63,7 @@ func (m *mockKafkaConsumer) deliver(ctx context.Context, topic string, env Kafka
 	return h(ctx, env)
 }
 
+// TestKafkaPubSub_InitAndStatus は Init 前後でステータスが Uninitialized → Ready に遷移することを検証する。
 func TestKafkaPubSub_InitAndStatus(t *testing.T) {
 	ps := NewKafkaPubSub("kafka", &mockKafkaProducer{}, newMockKafkaConsumer())
 	ctx := context.Background()
@@ -77,6 +79,7 @@ func TestKafkaPubSub_InitAndStatus(t *testing.T) {
 	}
 }
 
+// TestKafkaPubSub_NameVersion は Name と Version が正しい値を返すことを検証する。
 func TestKafkaPubSub_NameVersion(t *testing.T) {
 	ps := NewKafkaPubSub("my-kafka", &mockKafkaProducer{}, nil)
 	if ps.Name() != "my-kafka" {
@@ -87,6 +90,7 @@ func TestKafkaPubSub_NameVersion(t *testing.T) {
 	}
 }
 
+// TestKafkaPubSub_Publish はメッセージを Publish するとプロデューサーへ正しいエンベロープが渡されることを検証する。
 func TestKafkaPubSub_Publish(t *testing.T) {
 	producer := &mockKafkaProducer{}
 	ps := NewKafkaPubSub("kafka", producer, nil)
@@ -116,6 +120,7 @@ func TestKafkaPubSub_Publish(t *testing.T) {
 	}
 }
 
+// TestKafkaPubSub_PublishError はプロデューサーがエラーを返す場合に Publish がエラーになることを検証する。
 func TestKafkaPubSub_PublishError(t *testing.T) {
 	producer := &mockKafkaProducer{err: errors.New("kafka error")}
 	ps := NewKafkaPubSub("kafka", producer, nil)
@@ -128,6 +133,7 @@ func TestKafkaPubSub_PublishError(t *testing.T) {
 	}
 }
 
+// TestKafkaPubSub_Subscribe はサブスクライブ後にメッセージが配信されチャネルから受信できることを検証する。
 func TestKafkaPubSub_Subscribe(t *testing.T) {
 	consumer := newMockKafkaConsumer()
 	ps := NewKafkaPubSub("kafka", &mockKafkaProducer{}, consumer)
@@ -161,6 +167,7 @@ func TestKafkaPubSub_Subscribe(t *testing.T) {
 	}
 }
 
+// TestKafkaPubSub_SubscribeWithoutConsumer はコンシューマーが nil のときに Subscribe がエラーになることを検証する。
 func TestKafkaPubSub_SubscribeWithoutConsumer(t *testing.T) {
 	ps := NewKafkaPubSub("kafka", &mockKafkaProducer{}, nil)
 	ctx := context.Background()
@@ -172,6 +179,7 @@ func TestKafkaPubSub_SubscribeWithoutConsumer(t *testing.T) {
 	}
 }
 
+// TestKafkaPubSub_Close は Close 後にステータスが StatusClosed になり、プロデューサーとコンシューマーが両方クローズされることを検証する。
 func TestKafkaPubSub_Close(t *testing.T) {
 	producer := &mockKafkaProducer{}
 	consumer := newMockKafkaConsumer()
@@ -193,6 +201,7 @@ func TestKafkaPubSub_Close(t *testing.T) {
 	}
 }
 
+// TestKafkaPubSub_CloseProducerOnly はコンシューマーなしの場合でも Close が正常に完了しプロデューサーがクローズされることを検証する。
 func TestKafkaPubSub_CloseProducerOnly(t *testing.T) {
 	producer := &mockKafkaProducer{}
 	ps := NewKafkaPubSub("kafka", producer, nil)

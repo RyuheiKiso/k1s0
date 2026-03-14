@@ -7,6 +7,7 @@ import (
 	"testing"
 )
 
+// TestFileSecretStore_InitAndStatus は Init 前後でステータスが Uninitialized → Ready に遷移することを検証する。
 func TestFileSecretStore_InitAndStatus(t *testing.T) {
 	s := NewFileSecretStore(t.TempDir())
 	ctx := context.Background()
@@ -22,6 +23,7 @@ func TestFileSecretStore_InitAndStatus(t *testing.T) {
 	}
 }
 
+// TestFileSecretStore_NameVersion は Name と Version が正しい値を返すことを検証する。
 func TestFileSecretStore_NameVersion(t *testing.T) {
 	s := NewFileSecretStore(t.TempDir())
 	if s.Name() != "file-secretstore" {
@@ -32,6 +34,7 @@ func TestFileSecretStore_NameVersion(t *testing.T) {
 	}
 }
 
+// TestFileSecretStore_Get はファイルからシークレット値を読み込み、末尾の改行が除去されることを検証する。
 func TestFileSecretStore_Get(t *testing.T) {
 	dir := t.TempDir()
 	// ファイルにシークレット値を書き込む（末尾改行付き）。
@@ -56,6 +59,7 @@ func TestFileSecretStore_Get(t *testing.T) {
 	}
 }
 
+// TestFileSecretStore_GetTrimsCRLF は Windows 形式の CRLF 改行コードが除去されることを検証する。
 func TestFileSecretStore_GetTrimsCRLF(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "key"), []byte("value\r\n"), 0600); err != nil {
@@ -75,6 +79,7 @@ func TestFileSecretStore_GetTrimsCRLF(t *testing.T) {
 	}
 }
 
+// TestFileSecretStore_GetNotFound は存在しないファイルを取得しようとするとエラーになることを検証する。
 func TestFileSecretStore_GetNotFound(t *testing.T) {
 	s := NewFileSecretStore(t.TempDir())
 	ctx := context.Background()
@@ -86,6 +91,7 @@ func TestFileSecretStore_GetNotFound(t *testing.T) {
 	}
 }
 
+// TestFileSecretStore_BulkGet は複数のファイルからシークレット値を一括取得できることを検証する。
 func TestFileSecretStore_BulkGet(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "k1"), []byte("v1"), 0600); err != nil {
@@ -111,6 +117,7 @@ func TestFileSecretStore_BulkGet(t *testing.T) {
 	}
 }
 
+// TestFileSecretStore_BulkGetMissing は一括取得時に一つでも存在しないファイルがある場合にエラーになることを検証する。
 func TestFileSecretStore_BulkGetMissing(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "k1"), []byte("v1"), 0600); err != nil {
@@ -127,6 +134,7 @@ func TestFileSecretStore_BulkGetMissing(t *testing.T) {
 	}
 }
 
+// TestFileSecretStore_Close は Close 後にステータスが StatusClosed に遷移することを検証する。
 func TestFileSecretStore_Close(t *testing.T) {
 	s := NewFileSecretStore(t.TempDir())
 	ctx := context.Background()

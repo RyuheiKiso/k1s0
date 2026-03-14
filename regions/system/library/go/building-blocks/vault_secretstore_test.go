@@ -24,6 +24,7 @@ func (m *mockVaultClient) GetSecret(_ context.Context, path string) (VaultSecret
 	return vs, nil
 }
 
+// TestVaultSecretStore_InitAndStatus は Init 前後でステータスが Uninitialized → Ready に遷移することを検証する。
 func TestVaultSecretStore_InitAndStatus(t *testing.T) {
 	client := &mockVaultClient{secrets: map[string]VaultSecret{}}
 	s := NewVaultSecretStore("vault", client)
@@ -40,6 +41,7 @@ func TestVaultSecretStore_InitAndStatus(t *testing.T) {
 	}
 }
 
+// TestVaultSecretStore_NameVersion は Name と Version が正しい値を返すことを検証する。
 func TestVaultSecretStore_NameVersion(t *testing.T) {
 	client := &mockVaultClient{secrets: map[string]VaultSecret{}}
 	s := NewVaultSecretStore("my-vault", client)
@@ -51,6 +53,7 @@ func TestVaultSecretStore_NameVersion(t *testing.T) {
 	}
 }
 
+// TestVaultSecretStore_GetSingleKey は Vault シークレットに単一キーがある場合、その値をそのまま返すことを検証する。
 func TestVaultSecretStore_GetSingleKey(t *testing.T) {
 	client := &mockVaultClient{
 		secrets: map[string]VaultSecret{
@@ -74,6 +77,7 @@ func TestVaultSecretStore_GetSingleKey(t *testing.T) {
 	}
 }
 
+// TestVaultSecretStore_GetMultipleKeys は Vault シークレットに複数キーがある場合、"key=value" 形式で結合された値を返すことを検証する。
 func TestVaultSecretStore_GetMultipleKeys(t *testing.T) {
 	client := &mockVaultClient{
 		secrets: map[string]VaultSecret{
@@ -97,6 +101,7 @@ func TestVaultSecretStore_GetMultipleKeys(t *testing.T) {
 	}
 }
 
+// TestVaultSecretStore_GetError は Vault クライアントがエラーを返す場合に Get がエラーになることを検証する。
 func TestVaultSecretStore_GetError(t *testing.T) {
 	wantErr := errors.New("vault unavailable")
 	client := &mockVaultClient{err: wantErr}
@@ -110,6 +115,7 @@ func TestVaultSecretStore_GetError(t *testing.T) {
 	}
 }
 
+// TestVaultSecretStore_BulkGet は複数の Vault パスからシークレット値を一括取得できることを検証する。
 func TestVaultSecretStore_BulkGet(t *testing.T) {
 	client := &mockVaultClient{
 		secrets: map[string]VaultSecret{
@@ -133,6 +139,7 @@ func TestVaultSecretStore_BulkGet(t *testing.T) {
 	}
 }
 
+// TestVaultSecretStore_Close は Close 後にステータスが StatusClosed に遷移することを検証する。
 func TestVaultSecretStore_Close(t *testing.T) {
 	client := &mockVaultClient{secrets: map[string]VaultSecret{}}
 	s := NewVaultSecretStore("vault", client)

@@ -1,7 +1,9 @@
 import 'package:test/test.dart';
 import 'package:k1s0_building_blocks/building_blocks.dart';
 
+// InMemorySecretStore のテストエントリポイント。
 void main() {
+  // InMemorySecretStore のテスト: シークレットの保存・取得・一括取得・上書きの動作を検証する。
   group('InMemorySecretStore', () {
     late InMemorySecretStore store;
 

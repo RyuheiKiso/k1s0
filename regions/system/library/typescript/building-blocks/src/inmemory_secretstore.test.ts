@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { InMemorySecretStore } from './inmemory_secretstore.js';
 import { ComponentError } from './errors.js';
 
+// InMemorySecretStore のテスト: シークレットの保存・取得・一括取得・上書きの動作を検証する。
 describe('InMemorySecretStore', () => {
   let store: InMemorySecretStore;
 

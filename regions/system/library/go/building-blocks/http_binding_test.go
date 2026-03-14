@@ -8,6 +8,7 @@ import (
 	"testing"
 )
 
+// TestHTTPOutputBinding_InitAndStatus は Init 前後でステータスが Uninitialized → Ready に遷移することを検証する。
 func TestHTTPOutputBinding_InitAndStatus(t *testing.T) {
 	b := NewHTTPOutputBinding(nil)
 	ctx := context.Background()
@@ -23,6 +24,7 @@ func TestHTTPOutputBinding_InitAndStatus(t *testing.T) {
 	}
 }
 
+// TestHTTPOutputBinding_NameVersion は Name と Version が正しい値を返すことを検証する。
 func TestHTTPOutputBinding_NameVersion(t *testing.T) {
 	b := NewHTTPOutputBinding(nil)
 	if b.Name() != "http-binding" {
@@ -33,6 +35,7 @@ func TestHTTPOutputBinding_NameVersion(t *testing.T) {
 	}
 }
 
+// TestHTTPOutputBinding_InvokeGET は GET リクエストを送信しレスポンスボディとステータスコードが正しく返ることを検証する。
 func TestHTTPOutputBinding_InvokeGET(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -59,6 +62,7 @@ func TestHTTPOutputBinding_InvokeGET(t *testing.T) {
 	}
 }
 
+// TestHTTPOutputBinding_InvokePOST は POST リクエストでボディと Content-Type ヘッダーが正しくサーバーへ送信されることを検証する。
 func TestHTTPOutputBinding_InvokePOST(t *testing.T) {
 	var receivedBody []byte
 	var receivedCT string
@@ -91,6 +95,7 @@ func TestHTTPOutputBinding_InvokePOST(t *testing.T) {
 	}
 }
 
+// TestHTTPOutputBinding_DefaultContentType は content-type 未指定でボディありのリクエストに application/octet-stream が設定されることを検証する。
 func TestHTTPOutputBinding_DefaultContentType(t *testing.T) {
 	var receivedCT string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +115,7 @@ func TestHTTPOutputBinding_DefaultContentType(t *testing.T) {
 	}
 }
 
+// TestHTTPOutputBinding_CustomHeader は url と content-type 以外のメタデータがカスタムリクエストヘッダーとして転送されることを検証する。
 func TestHTTPOutputBinding_CustomHeader(t *testing.T) {
 	var receivedHeader string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -132,6 +138,7 @@ func TestHTTPOutputBinding_CustomHeader(t *testing.T) {
 	}
 }
 
+// TestHTTPOutputBinding_MissingURL はメタデータに url が含まれない場合にエラーになることを検証する。
 func TestHTTPOutputBinding_MissingURL(t *testing.T) {
 	b := NewHTTPOutputBinding(nil)
 	ctx := context.Background()
@@ -143,6 +150,7 @@ func TestHTTPOutputBinding_MissingURL(t *testing.T) {
 	}
 }
 
+// TestHTTPOutputBinding_4xxError はサーバーが 4xx を返す場合にエラーになることを検証する。
 func TestHTTPOutputBinding_4xxError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -160,6 +168,7 @@ func TestHTTPOutputBinding_4xxError(t *testing.T) {
 	}
 }
 
+// TestHTTPOutputBinding_5xxError はサーバーが 5xx を返す場合にエラーになることを検証する。
 func TestHTTPOutputBinding_5xxError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -176,6 +185,7 @@ func TestHTTPOutputBinding_5xxError(t *testing.T) {
 	}
 }
 
+// TestHTTPOutputBinding_Close は Close 後にステータスが StatusClosed に遷移することを検証する。
 func TestHTTPOutputBinding_Close(t *testing.T) {
 	b := NewHTTPOutputBinding(nil)
 	ctx := context.Background()

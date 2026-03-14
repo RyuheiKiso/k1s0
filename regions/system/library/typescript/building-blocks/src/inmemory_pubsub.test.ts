@@ -11,6 +11,7 @@ function makeHandler(): { handler: MessageHandler; messages: Message[] } {
   };
 }
 
+// InMemoryPubSub のテスト: トピックへのパブリッシュ・サブスクライブ・アンサブスクライブの動作を検証する。
 describe('InMemoryPubSub', () => {
   let ps: InMemoryPubSub;
 

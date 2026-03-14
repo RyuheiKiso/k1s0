@@ -12,7 +12,9 @@ class _RecordingHandler implements MessageHandler {
   }
 }
 
+// InMemoryPubSub のテストエントリポイント。
 void main() {
+  // InMemoryPubSub のテスト: トピックへのパブリッシュ・サブスクライブ・アンサブスクライブの動作を検証する。
   group('InMemoryPubSub', () {
     late InMemoryPubSub ps;
 

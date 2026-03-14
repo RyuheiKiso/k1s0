@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// TestEnvSecretStore_InitAndStatus は Init 前後でステータスが Uninitialized → Ready に遷移することを検証する。
 func TestEnvSecretStore_InitAndStatus(t *testing.T) {
 	s := NewEnvSecretStore("")
 	ctx := context.Background()
@@ -20,6 +21,7 @@ func TestEnvSecretStore_InitAndStatus(t *testing.T) {
 	}
 }
 
+// TestEnvSecretStore_NameVersion は Name と Version が正しい値を返すことを検証する。
 func TestEnvSecretStore_NameVersion(t *testing.T) {
 	s := NewEnvSecretStore("APP_")
 	if s.Name() != "env-secretstore" {
@@ -30,6 +32,7 @@ func TestEnvSecretStore_NameVersion(t *testing.T) {
 	}
 }
 
+// TestEnvSecretStore_Get はプレフィックス付き環境変数からシークレット値を取得できることを検証する。
 func TestEnvSecretStore_Get(t *testing.T) {
 	t.Setenv("APP_DB_PASSWORD", "secret123")
 
@@ -49,6 +52,7 @@ func TestEnvSecretStore_Get(t *testing.T) {
 	}
 }
 
+// TestEnvSecretStore_GetNoPrefix はプレフィックスなしの場合でも環境変数をそのまま取得できることを検証する。
 func TestEnvSecretStore_GetNoPrefix(t *testing.T) {
 	t.Setenv("MY_KEY", "myvalue")
 
@@ -65,6 +69,7 @@ func TestEnvSecretStore_GetNoPrefix(t *testing.T) {
 	}
 }
 
+// TestEnvSecretStore_GetNotFound は存在しない環境変数を取得するとエラーになることを検証する。
 func TestEnvSecretStore_GetNotFound(t *testing.T) {
 	s := NewEnvSecretStore("APP_")
 	ctx := context.Background()
@@ -76,6 +81,7 @@ func TestEnvSecretStore_GetNotFound(t *testing.T) {
 	}
 }
 
+// TestEnvSecretStore_BulkGet は複数の環境変数を一括取得できることを検証する。
 func TestEnvSecretStore_BulkGet(t *testing.T) {
 	t.Setenv("SVC_KEY1", "val1")
 	t.Setenv("SVC_KEY2", "val2")
@@ -96,6 +102,7 @@ func TestEnvSecretStore_BulkGet(t *testing.T) {
 	}
 }
 
+// TestEnvSecretStore_BulkGetMissing は一括取得時に一つでも存在しないキーがある場合にエラーになることを検証する。
 func TestEnvSecretStore_BulkGetMissing(t *testing.T) {
 	t.Setenv("SVC2_KEY1", "val1")
 
@@ -109,6 +116,7 @@ func TestEnvSecretStore_BulkGetMissing(t *testing.T) {
 	}
 }
 
+// TestEnvSecretStore_Close は Close 後にステータスが StatusClosed に遷移することを検証する。
 func TestEnvSecretStore_Close(t *testing.T) {
 	s := NewEnvSecretStore("")
 	ctx := context.Background()

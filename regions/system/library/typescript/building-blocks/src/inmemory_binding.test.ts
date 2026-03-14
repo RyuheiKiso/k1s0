@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { InMemoryInputBinding, InMemoryOutputBinding } from './inmemory_binding.js';
 import { ComponentError } from './errors.js';
 
+// InMemoryInputBinding のテスト: インメモリキューからデータを読み取る入力バインディングの動作を検証する。
 describe('InMemoryInputBinding', () => {
   let binding: InMemoryInputBinding;
 
@@ -20,7 +21,7 @@ describe('InMemoryInputBinding', () => {
 
   it('close 後は closed になりキューがクリアされる', async () => {
     await binding.init();
-    binding.push({ data: new Uint8Array([1]) });
+    binding.push({ data: new Uint8Array([1]), metadata: {} });
     await binding.close();
     expect(await binding.status()).toBe('closed');
   });
@@ -58,6 +59,7 @@ describe('InMemoryInputBinding', () => {
   });
 });
 
+// InMemoryOutputBinding のテスト: invoke の呼び出し履歴記録とモックレスポンス設定機能を検証する。
 describe('InMemoryOutputBinding', () => {
   let binding: InMemoryOutputBinding;
 
@@ -120,7 +122,7 @@ describe('InMemoryOutputBinding', () => {
 
   it('setResponse でモックレスポンスを設定できる', async () => {
     await binding.init();
-    binding.setResponse({ data: new Uint8Array([99]) });
+    binding.setResponse({ data: new Uint8Array([99]), metadata: {} });
     const resp = await binding.invoke('op', new Uint8Array([1]));
     expect(resp.data).toEqual(new Uint8Array([99]));
   });
@@ -145,7 +147,7 @@ describe('InMemoryOutputBinding', () => {
 
   it('reset で履歴とモック設定をクリアできる', async () => {
     await binding.init();
-    binding.setResponse({ data: new Uint8Array([99]) });
+    binding.setResponse({ data: new Uint8Array([99]), metadata: {} });
     await binding.invoke('op', new Uint8Array([1]));
 
     binding.reset();

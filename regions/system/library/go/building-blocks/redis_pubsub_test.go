@@ -17,6 +17,7 @@ type mockRedisPubSubClient struct {
 	closed   bool
 }
 
+// newMockRedisPubSubClient はハンドラーマップを初期化した mockRedisPubSubClient を生成する。
 func newMockRedisPubSubClient() *mockRedisPubSubClient {
 	return &mockRedisPubSubClient{
 		handlers: make(map[string]func(ctx context.Context, payload []byte) error),
@@ -49,6 +50,7 @@ func (m *mockRedisPubSubClient) deliver(ctx context.Context, topic string, paylo
 	return h(ctx, payload)
 }
 
+// TestRedisPubSub_InitAndStatus は Init 前後でステータスが Uninitialized → Ready に遷移することを検証する。
 func TestRedisPubSub_InitAndStatus(t *testing.T) {
 	ps := NewRedisPubSub("redis-ps", newMockRedisPubSubClient())
 	ctx := context.Background()
@@ -64,6 +66,7 @@ func TestRedisPubSub_InitAndStatus(t *testing.T) {
 	}
 }
 
+// TestRedisPubSub_NameVersion は Name と Version が正しい値を返すことを検証する。
 func TestRedisPubSub_NameVersion(t *testing.T) {
 	ps := NewRedisPubSub("my-redis-ps", newMockRedisPubSubClient())
 	if ps.Name() != "my-redis-ps" {
@@ -74,6 +77,7 @@ func TestRedisPubSub_NameVersion(t *testing.T) {
 	}
 }
 
+// TestRedisPubSub_Publish はメッセージを Publish してもエラーが発生しないことを検証する。
 func TestRedisPubSub_Publish(t *testing.T) {
 	client := newMockRedisPubSubClient()
 	ps := NewRedisPubSub("redis-ps", client)
@@ -86,6 +90,7 @@ func TestRedisPubSub_Publish(t *testing.T) {
 	}
 }
 
+// TestRedisPubSub_PublishError は Redis クライアントが Publish エラーを返す場合にエラーになることを検証する。
 func TestRedisPubSub_PublishError(t *testing.T) {
 	client := newMockRedisPubSubClient()
 	client.pubErr = errors.New("redis error")
@@ -99,6 +104,7 @@ func TestRedisPubSub_PublishError(t *testing.T) {
 	}
 }
 
+// TestRedisPubSub_Subscribe はサブスクライブ後にメッセージが配信されチャネルから受信できることを検証する。
 func TestRedisPubSub_Subscribe(t *testing.T) {
 	client := newMockRedisPubSubClient()
 	ps := NewRedisPubSub("redis-ps", client)
@@ -130,6 +136,7 @@ func TestRedisPubSub_Subscribe(t *testing.T) {
 	}
 }
 
+// TestRedisPubSub_SubscribeError は Redis クライアントが Subscribe エラーを返す場合にエラーになることを検証する。
 func TestRedisPubSub_SubscribeError(t *testing.T) {
 	client := newMockRedisPubSubClient()
 	client.subErr = errors.New("subscribe failed")
@@ -143,6 +150,7 @@ func TestRedisPubSub_SubscribeError(t *testing.T) {
 	}
 }
 
+// TestRedisPubSub_BufferDropOnFull はチャネルバッファが満杯のときにメッセージがドロップされてもパニックが発生しないことを検証する。
 func TestRedisPubSub_BufferDropOnFull(t *testing.T) {
 	client := newMockRedisPubSubClient()
 	ps := NewRedisPubSub("redis-ps", client)
@@ -152,7 +160,7 @@ func TestRedisPubSub_BufferDropOnFull(t *testing.T) {
 	ch, _ := ps.Subscribe(ctx, "t")
 
 	// バッファ（64件）を超えるメッセージを送りドロップが起きてもパニックしないことを確認する。
-	for i := 0; i < 70; i++ {
+	for range 70 {
 		_ = client.deliver(ctx, "t", []byte("msg"))
 	}
 
@@ -162,6 +170,7 @@ func TestRedisPubSub_BufferDropOnFull(t *testing.T) {
 	}
 }
 
+// TestRedisPubSub_Close は Close 後にステータスが StatusClosed になりクライアントがクローズされることを検証する。
 func TestRedisPubSub_Close(t *testing.T) {
 	client := newMockRedisPubSubClient()
 	ps := NewRedisPubSub("redis-ps", client)

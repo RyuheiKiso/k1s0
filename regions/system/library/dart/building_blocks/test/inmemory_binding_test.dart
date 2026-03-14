@@ -2,7 +2,9 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:k1s0_building_blocks/building_blocks.dart';
 
+// InMemoryInputBinding と InMemoryOutputBinding の統合テストエントリポイント。
 void main() {
+  // InMemoryInputBinding のテスト: インメモリキューからデータを FIFO 順に読み取る動作を検証する。
   group('InMemoryInputBinding', () {
     late InMemoryInputBinding binding;
 
@@ -61,6 +63,7 @@ void main() {
     });
   });
 
+  // InMemoryOutputBinding のテスト: invoke の呼び出し履歴記録とモックレスポンス設定機能を検証する。
   group('InMemoryOutputBinding', () {
     late InMemoryOutputBinding binding;
 

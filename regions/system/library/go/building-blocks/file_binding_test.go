@@ -51,6 +51,7 @@ func (m *mockFileClient) Copy(_ context.Context, _, _ string) error {
 	return m.err
 }
 
+// TestFileOutputBinding_InitAndStatus は Init 前後でステータスが Uninitialized → Ready に遷移することを検証する。
 func TestFileOutputBinding_InitAndStatus(t *testing.T) {
 	b := NewFileOutputBinding("file-binding", &mockFileClient{})
 	ctx := context.Background()
@@ -66,6 +67,7 @@ func TestFileOutputBinding_InitAndStatus(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_NameVersion は Name と Version が正しい値を返すことを検証する。
 func TestFileOutputBinding_NameVersion(t *testing.T) {
 	b := NewFileOutputBinding("my-files", &mockFileClient{})
 	if b.Name() != "my-files" {
@@ -76,6 +78,7 @@ func TestFileOutputBinding_NameVersion(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_UploadURL は upload-url オペレーションで PUT メソッドの署名付き URL が返ることを検証する。
 func TestFileOutputBinding_UploadURL(t *testing.T) {
 	b := NewFileOutputBinding("files", &mockFileClient{})
 	ctx := context.Background()
@@ -98,6 +101,7 @@ func TestFileOutputBinding_UploadURL(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_UploadURLMissingPath は upload-url オペレーションで path が未指定の場合にエラーになることを検証する。
 func TestFileOutputBinding_UploadURLMissingPath(t *testing.T) {
 	b := NewFileOutputBinding("files", &mockFileClient{})
 	ctx := context.Background()
@@ -109,6 +113,7 @@ func TestFileOutputBinding_UploadURLMissingPath(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_DownloadURL は download-url オペレーションで GET メソッドの署名付き URL が返ることを検証する。
 func TestFileOutputBinding_DownloadURL(t *testing.T) {
 	b := NewFileOutputBinding("files", &mockFileClient{})
 	ctx := context.Background()
@@ -128,6 +133,7 @@ func TestFileOutputBinding_DownloadURL(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_DownloadURLMissingPath は download-url オペレーションで path が未指定の場合にエラーになることを検証する。
 func TestFileOutputBinding_DownloadURLMissingPath(t *testing.T) {
 	b := NewFileOutputBinding("files", &mockFileClient{})
 	ctx := context.Background()
@@ -139,6 +145,7 @@ func TestFileOutputBinding_DownloadURLMissingPath(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_Delete は delete オペレーションでファイルを削除しレスポンスデータが nil であることを検証する。
 func TestFileOutputBinding_Delete(t *testing.T) {
 	b := NewFileOutputBinding("files", &mockFileClient{})
 	ctx := context.Background()
@@ -153,6 +160,7 @@ func TestFileOutputBinding_Delete(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_DeleteMissingPath は delete オペレーションで path が未指定の場合にエラーになることを検証する。
 func TestFileOutputBinding_DeleteMissingPath(t *testing.T) {
 	b := NewFileOutputBinding("files", &mockFileClient{})
 	ctx := context.Background()
@@ -164,6 +172,7 @@ func TestFileOutputBinding_DeleteMissingPath(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_List は list オペレーションでプレフィックス配下のファイル一覧を取得できることを検証する。
 func TestFileOutputBinding_List(t *testing.T) {
 	client := &mockFileClient{
 		files: []*FileInfo{
@@ -192,6 +201,7 @@ func TestFileOutputBinding_List(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_Copy は copy オペレーションでファイルをコピーしレスポンスデータが nil であることを検証する。
 func TestFileOutputBinding_Copy(t *testing.T) {
 	b := NewFileOutputBinding("files", &mockFileClient{})
 	ctx := context.Background()
@@ -209,6 +219,7 @@ func TestFileOutputBinding_Copy(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_CopyMissingParams は copy オペレーションで dst が未指定の場合にエラーになることを検証する。
 func TestFileOutputBinding_CopyMissingParams(t *testing.T) {
 	b := NewFileOutputBinding("files", &mockFileClient{})
 	ctx := context.Background()
@@ -220,6 +231,7 @@ func TestFileOutputBinding_CopyMissingParams(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_UnsupportedOperation はサポートされていないオペレーションを指定するとエラーになることを検証する。
 func TestFileOutputBinding_UnsupportedOperation(t *testing.T) {
 	b := NewFileOutputBinding("files", &mockFileClient{})
 	ctx := context.Background()
@@ -231,6 +243,7 @@ func TestFileOutputBinding_UnsupportedOperation(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_ClientError はクライアントがエラーを返す場合に Invoke がエラーになることを検証する。
 func TestFileOutputBinding_ClientError(t *testing.T) {
 	client := &mockFileClient{err: errors.New("s3 error")}
 	b := NewFileOutputBinding("files", client)
@@ -243,6 +256,7 @@ func TestFileOutputBinding_ClientError(t *testing.T) {
 	}
 }
 
+// TestFileOutputBinding_Close は Close 後にステータスが StatusClosed に遷移することを検証する。
 func TestFileOutputBinding_Close(t *testing.T) {
 	b := NewFileOutputBinding("files", &mockFileClient{})
 	ctx := context.Background()

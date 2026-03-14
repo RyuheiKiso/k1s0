@@ -13,6 +13,7 @@ type mockCacheClient struct {
 	err   error
 }
 
+// newMockCacheClient はストアマップを初期化した mockCacheClient を生成する。
 func newMockCacheClient() *mockCacheClient {
 	return &mockCacheClient{store: make(map[string]string)}
 }
@@ -53,6 +54,7 @@ func (m *mockCacheClient) Exists(_ context.Context, key string) (bool, error) {
 	return ok, nil
 }
 
+// TestRedisStateStore_InitAndStatus は Init 前後でステータスが Uninitialized → Ready に遷移することを検証する。
 func TestRedisStateStore_InitAndStatus(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()
@@ -68,6 +70,7 @@ func TestRedisStateStore_InitAndStatus(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_NameVersion は Name と Version が正しい値を返すことを検証する。
 func TestRedisStateStore_NameVersion(t *testing.T) {
 	s := NewRedisStateStore("my-redis", newMockCacheClient())
 	if s.Name() != "my-redis" {
@@ -78,6 +81,7 @@ func TestRedisStateStore_NameVersion(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_SetGet は値を Set した後に Get で同じ値と ETag を取得できることを検証する。
 func TestRedisStateStore_SetGet(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()
@@ -106,6 +110,7 @@ func TestRedisStateStore_SetGet(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_GetMissing は存在しないキーを Get するとエラーなしで nil が返ることを検証する。
 func TestRedisStateStore_GetMissing(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()
@@ -120,6 +125,7 @@ func TestRedisStateStore_GetMissing(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_SetWithETag は正しい ETag を指定して Set すると新しい ETag が発行されることを検証する。
 func TestRedisStateStore_SetWithETag(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()
@@ -136,6 +142,7 @@ func TestRedisStateStore_SetWithETag(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_SetETagMismatch は古い ETag で Set すると ETagMismatchError が返ることを検証する。
 func TestRedisStateStore_SetETagMismatch(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()
@@ -153,6 +160,7 @@ func TestRedisStateStore_SetETagMismatch(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_SetETagOnMissingKey は存在しないキーに ETag 付きで Set すると ETagMismatchError が返ることを検証する。
 func TestRedisStateStore_SetETagOnMissingKey(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()
@@ -168,6 +176,7 @@ func TestRedisStateStore_SetETagOnMissingKey(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_Delete は正しい ETag を指定して Delete するとキーが削除されることを検証する。
 func TestRedisStateStore_Delete(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()
@@ -185,6 +194,7 @@ func TestRedisStateStore_Delete(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_DeleteETagMismatch は古い ETag で Delete すると ETagMismatchError が返ることを検証する。
 func TestRedisStateStore_DeleteETagMismatch(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()
@@ -202,6 +212,7 @@ func TestRedisStateStore_DeleteETagMismatch(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_DeleteMissingKey は ETag なしで存在しないキーを Delete してもエラーが発生しないことを検証する。
 func TestRedisStateStore_DeleteMissingKey(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()
@@ -213,6 +224,7 @@ func TestRedisStateStore_DeleteMissingKey(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_BulkSetGet は複数の値を BulkSet した後に BulkGet で全て取得できることを検証する。
 func TestRedisStateStore_BulkSetGet(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()
@@ -242,6 +254,7 @@ func TestRedisStateStore_BulkSetGet(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_GetError は Redis クライアントがエラーを返す場合に Get がエラーになることを検証する。
 func TestRedisStateStore_GetError(t *testing.T) {
 	client := newMockCacheClient()
 	client.err = errors.New("redis error")
@@ -255,6 +268,7 @@ func TestRedisStateStore_GetError(t *testing.T) {
 	}
 }
 
+// TestRedisStateStore_Close は Close 後にステータスが StatusClosed に遷移することを検証する。
 func TestRedisStateStore_Close(t *testing.T) {
 	s := NewRedisStateStore("redis", newMockCacheClient())
 	ctx := context.Background()

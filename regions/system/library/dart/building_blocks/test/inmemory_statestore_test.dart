@@ -2,7 +2,9 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:k1s0_building_blocks/building_blocks.dart';
 
+// InMemoryStateStore のテストエントリポイント。
 void main() {
+  // InMemoryStateStore のテスト: ETag を使った楽観的ロック、一括操作、削除など状態ストアの全機能を検証する。
   group('InMemoryStateStore', () {
     late InMemoryStateStore store;
 
