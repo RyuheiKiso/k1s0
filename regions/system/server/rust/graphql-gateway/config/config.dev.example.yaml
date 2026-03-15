@@ -1,0 +1,40 @@
+app:
+  name: "graphql-gateway"
+  version: "0.1.0"
+  environment: "development"
+
+server:
+  host: "0.0.0.0"
+  port: 8095
+
+graphql:
+  introspection: true
+  playground: true
+  max_depth: 10
+  max_complexity: 1000
+
+auth:
+  jwks_url: "http://localhost:8080/jwks"
+
+backends:
+  tenant:
+    address: "http://localhost:9091"
+    timeout_ms: 3000
+  featureflag:
+    address: "http://localhost:9092"
+    timeout_ms: 3000
+  config:
+    address: "http://localhost:9093"
+    timeout_ms: 3000
+
+observability:
+  log:
+    level: "debug"
+    format: "text"
+  trace:
+    enabled: false
+    endpoint: "localhost:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: false
+    path: "/metrics"

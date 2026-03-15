@@ -7,20 +7,20 @@ edition = "2021"
 opentelemetry = "0.27"
 opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.27", features = ["tonic"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+tracing = {workspace = true}
+tracing-subscriber = {workspace = true}
 tracing-opentelemetry = "0.28"
 prometheus = "0.13"
 
 # Instrumentation support (optional)
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"], optional = true }
+sqlx = {workspace = true, optional = true}
 k1s0-telemetry-macros = { path = "../telemetry-macros", optional = true }
 
 # Tower Layer support (optional)
-axum = { version = "0.7", optional = true }
+axum = {workspace = true, optional = true}
 http = { version = "1", optional = true }
-tonic = { version = "0.12", optional = true }
-tower = { version = "0.5", features = ["util"], optional = true }
+tonic = {workspace = true, optional = true}
+tower = {workspace = true, optional = true}
 pin-project-lite = { version = "0.2", optional = true }
 
 [features]
@@ -33,9 +33,9 @@ kafka-instrument = []
 full = ["axum-layer", "grpc-layer"]
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
-axum = "0.7"
+tokio = {workspace = true}
+axum = {workspace = true}
 http = "1"
-tonic = "0.12"
-tower = { version = "0.5", features = ["util"] }
+tonic = {workspace = true}
+tower = {workspace = true}
 pin-project-lite = "0.2"

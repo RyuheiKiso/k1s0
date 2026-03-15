@@ -119,7 +119,8 @@ struct ApiDoc;
 
 /// Build the REST API router.
 pub fn router(state: AppState) -> Router {
-    // Read routes: require "apps" / "read" permission
+    // 読み取りルート: "apps" / "read" 権限を要求
+    // ダウンロード統計（stats）も参照操作のため read 権限に含める
     let app_read_routes = Router::new()
         .route("/api/v1/apps", get(app_handler::list_apps))
         .route("/api/v1/apps/:id", get(app_handler::get_app))
@@ -132,19 +133,13 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/apps/:id/versions/:version/download",
             get(download_handler::download_version),
         )
-        .route_layer(middleware::from_fn_with_state(
-            state.clone(),
-            make_rbac_middleware("apps", "read"),
-        ));
-
-    let app_admin_routes = Router::new()
         .route(
             "/api/v1/apps/:id/stats",
             get(app_handler::get_download_stats),
         )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
-            make_rbac_middleware("apps", "admin"),
+            make_rbac_middleware("apps", "read"),
         ));
 
     // Write routes: require "apps" / "write" permission (publisher/admin)
@@ -167,17 +162,16 @@ pub fn router(state: AppState) -> Router {
             make_rbac_middleware("apps", "write"),
         ));
 
-    // Protected routes share auth_middleware for Bearer token validation
+    // 認証済みルートは auth_middleware で Bearer トークン検証を共有
     let protected = Router::new()
         .merge(app_read_routes)
-        .merge(app_admin_routes)
         .merge(app_write_routes)
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
         ));
 
-    // Public endpoints (no auth required)
+    // 公開エンドポイント（認証不要）
     let public = Router::new()
         .route("/healthz", get(app_handler::healthz))
         .route("/readyz", get(app_handler::readyz))

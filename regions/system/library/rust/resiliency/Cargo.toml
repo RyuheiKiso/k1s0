@@ -8,17 +8,17 @@ metrics = ["opentelemetry"]
 hot-reload = ["k1s0-featureflag", "serde", "serde_json"]
 
 [dependencies]
-async-trait = "0.1"
-thiserror = "2"
-tokio = { version = "1", features = ["sync", "time", "macros"] }
-tracing = "0.1"
+async-trait = {workspace = true}
+thiserror = {workspace = true}
+tokio = {workspace = true}
+tracing = {workspace = true}
 opentelemetry = { version = "0.27", optional = true }
 k1s0-bulkhead = { path = "../bulkhead" }
 k1s0-retry = { path = "../retry" }
 k1s0-circuit-breaker = { path = "../circuit-breaker" }
-serde = { version = "1", features = ["derive"], optional = true }
-serde_json = { version = "1", optional = true }
+serde = {workspace = true, optional = true}
+serde_json = {workspace = true, optional = true}
 k1s0-featureflag = { path = "../featureflag", optional = true }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = {workspace = true}

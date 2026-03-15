@@ -28,7 +28,12 @@
 | `HasResourceRole` / `has_resource_role` | `(claims, resource, role) -> bool` | リソースロール保有チェック |
 | `CheckPermission` / `check_permission` | `(claims, resource, action) -> bool` | リソース × アクション権限チェック（推奨） |
 | `HasPermission` / `has_permission` | `(claims, resource, action) -> bool` | 後方互換エイリアス（`CheckPermission` を内部呼び出し） |
-| `HasTierAccess` / `has_tier_access` | `(claims, tier) -> bool` | tier_access チェック |
+| `HasTierAccess` / `has_tier_access` | `(claims, tier) -> bool` | tier_access 階層チェック（下記参照） |
+
+> **Tier 階層モデル**: `has_tier_access` は階層的な権限モデルを適用する。上位 tier を持つユーザーは下位 tier にもアクセス可能。
+> - `system`(0) → system, business, service すべてにアクセス可能
+> - `business`(1) → business, service にアクセス可能
+> - `service`(2) → service のみアクセス可能
 
 ### ミドルウェア（HTTP / gRPC 認証ハンドラ）
 

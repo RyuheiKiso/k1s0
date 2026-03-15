@@ -1,9 +1,4 @@
 {
   "mcpServers": {
-    "codex": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["@openai/codex", "mcp-server", "-c", "sandbox_mode=workspace-write", "-c", "approval_policy=never"]
-    }
   }
 }

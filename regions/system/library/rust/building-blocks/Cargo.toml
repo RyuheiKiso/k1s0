@@ -14,7 +14,7 @@ k1s0-bb-binding = { path = "../bb-binding" }
 k1s0-bb-pubsub = { path = "../bb-pubsub" }
 k1s0-bb-secretstore = { path = "../bb-secretstore" }
 k1s0-bb-statestore = { path = "../bb-statestore" }
-mockall = { version = "0.13", optional = true }
+mockall = {workspace = true, optional = true}
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = {workspace = true}

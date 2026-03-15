@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serde = { version = "1", features = ["derive"] }
+serde = {workspace = true}
 tera = "1"
-thiserror = "2"
+thiserror = {workspace = true}
 regex = { version = "1", optional = true }
 toml_edit = { version = "0.22", optional = true }
-serde_yaml = { version = "0.9", optional = true }
+serde_yaml = {workspace = true, optional = true}
 
 [features]
 proto = ["dep:regex"]
@@ -20,4 +20,4 @@ event-codegen = ["dep:serde_yaml"]
 [dev-dependencies]
 tempfile = "3"
 toml = "0.8"
-serde_yaml = "0.9"
+serde_yaml = {workspace = true}

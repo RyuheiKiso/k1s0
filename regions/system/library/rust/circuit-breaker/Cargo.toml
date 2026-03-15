@@ -8,11 +8,11 @@ metrics = ["opentelemetry"]
 mock = ["mockall"]
 
 [dependencies]
-async-trait = "0.1"
-thiserror = "2"
-tokio = { version = "1", features = ["sync", "time", "macros"] }
+async-trait = {workspace = true}
+thiserror = {workspace = true}
+tokio = {workspace = true}
 opentelemetry = { version = "0.27", optional = true }
-mockall = { version = "0.13", optional = true }
+mockall = {workspace = true, optional = true}
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = {workspace = true}

@@ -14,18 +14,18 @@ test = false
 
 [dependencies]
 # Web framework
-axum = { version = "0.7", features = ["macros"] }
-tokio = { version = "1", features = ["full"] }
-tower = "0.5"
-tower-http = { version = "0.6", features = ["trace", "cors"] }
+axum = {workspace = true}
+tokio = {workspace = true}
+tower = {workspace = true}
+tower-http = {workspace = true}
 
 # Serialization
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_yaml = "0.9"
+serde = {workspace = true}
+serde_json = {workspace = true}
+serde_yaml = {workspace = true}
 
 # DB
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+sqlx = {workspace = true}
 
 # S3 (Ceph RGW)
 aws-sdk-s3 = "1"
@@ -34,16 +34,16 @@ aws-credential-types = "1"
 aws-smithy-types = "1"
 
 # Utilities
-uuid = { version = "1", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }
-anyhow = "1"
-thiserror = "2"
-async-trait = "0.1"
+uuid = {workspace = true}
+chrono = {workspace = true}
+anyhow = {workspace = true}
+thiserror = {workspace = true}
+async-trait = {workspace = true}
 sha2 = "0.10"
 
 # Logging / Tracing
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+tracing = {workspace = true}
+tracing-subscriber = {workspace = true}
 
 # Auth library (JWKS verifier)
 k1s0-auth = { path = "../../../library/rust/auth" }
@@ -56,17 +56,17 @@ k1s0-correlation = { path = "../../../library/rust/correlation", features = ["to
 k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum", "utoipa", "shutdown"] }
 
 # OpenAPI
-utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
-utoipa-swagger-ui = { version = "8", features = ["axum"] }
+utoipa = {workspace = true}
+utoipa-swagger-ui = {workspace = true}
 
 [features]
 db-tests = []
 
 [dev-dependencies]
-mockall = "0.13"
-tokio-test = "0.4"
+mockall = {workspace = true}
+tokio-test = {workspace = true}
 axum-test = "16"
-tower = { version = "0.5", features = ["util"] }
+tower = {workspace = true}
 testcontainers = "0.23"
 testcontainers-modules = { version = "0.11", features = ["postgres"] }
 wiremock = "0.6"

@@ -10,16 +10,16 @@ mock = ["mockall"]
 kafka = ["k1s0-messaging", "k1s0-kafka"]
 
 [dependencies]
-async-trait = "0.1"
+async-trait = {workspace = true}
 k1s0-bb-core = { path = "../bb-core" }
 k1s0-messaging = { path = "../messaging", optional = true }
 k1s0-kafka = { path = "../kafka", optional = true }
-serde = { version = "1", features = ["derive"] }
-thiserror = "2"
-tokio = { version = "1", features = ["sync"] }
-tracing = "0.1"
-uuid = { version = "1", features = ["v4"] }
-mockall = { version = "0.13", optional = true }
+serde = {workspace = true}
+thiserror = {workspace = true}
+tokio = {workspace = true}
+tracing = {workspace = true}
+uuid = {workspace = true}
+mockall = {workspace = true, optional = true}
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = {workspace = true}

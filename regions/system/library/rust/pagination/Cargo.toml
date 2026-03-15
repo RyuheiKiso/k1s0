@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serde = { version = "1", features = ["derive"] }
+serde = {workspace = true}
 base64 = "0.22"
-thiserror = "2"
+thiserror = {workspace = true}
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = {workspace = true}
