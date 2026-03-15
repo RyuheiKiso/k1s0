@@ -781,10 +781,10 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 
 | 言語   | キャッシュ対象                | アクション                |
 | ------ | ----------------------------- | ------------------------- |
-| Go     | `~/go/pkg/mod`               | `actions/cache`           |
-| Rust   | `~/.cargo`, `target/`        | `actions/cache`           |
-| Node   | `node_modules/`              | `actions/setup-node` 内蔵 |
-| Dart   | `~/.pub-cache`               | `actions/cache`           |
+| Go     | `~/go/pkg/mod`               | `actions/setup-go@v5` 内蔵 (`cache-dependency-path: go.work.sum`) |
+| Rust   | `~/.cargo`, `target/`        | `Swatinem/rust-cache@v2` (`workspaces: regions/system, CLI`) |
+| Node   | npm グローバルキャッシュ      | `actions/setup-node@v4` 内蔵 (`cache: 'npm'`) |
+| Dart   | `~/.pub-cache`               | `actions/cache@v4` (`key: dart-pub-${{ hashFiles('**/pubspec.lock') }}`) |
 | Docker | Docker layer cache           | `cache-from: type=gha`   |
 
 ---
