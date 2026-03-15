@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
+import {
+  CONFLICT_KEEP_USER,
+  CONFLICT_RESOLUTION_HEADING,
+  CONFLICT_SKIP_FILE,
+  CONFLICT_USE_TEMPLATE,
+  MIGRATION_SUCCESS,
+  VERSION_LABEL_PREFIX,
+} from '../constants/messages';
 import { useAuth } from '../lib/auth';
 import { toDisplayPath } from '../lib/paths';
 import {
@@ -185,7 +193,7 @@ export default function TemplateMigratePage() {
       }
 
       setStatus('success');
-      setSuccessMessage(`テンプレート移行が正常に完了しました。${refreshNote}`);
+      setSuccessMessage(`${MIGRATION_SUCCESS}${refreshNote}`);
     } catch (error) {
       setStatus('error');
       setErrorMessage(String(error));
@@ -304,7 +312,7 @@ export default function TemplateMigratePage() {
               <p>名前: {selectedTarget.manifest.metadata.name}</p>
               <p>種別: {selectedTarget.manifest.spec.template.type}</p>
               <p>言語: {selectedTarget.manifest.spec.template.language}</p>
-              <p>バージョン: v{selectedTarget.manifest.spec.template.version}</p>
+              <p>{VERSION_LABEL_PREFIX} v{selectedTarget.manifest.spec.template.version}</p>
               <p>最新: v{selectedTarget.available_version}</p>
               <p>パス: {toDisplayPath(activeWorkspaceRoot, selectedTarget.path)}</p>
             </div>
@@ -453,7 +461,7 @@ export default function TemplateMigratePage() {
 
                         {conflictHunks.length > 0 && (
                           <div className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4">
-                            <p className="text-sm font-medium text-rose-100">コンフリクト解決</p>
+                            <p className="text-sm font-medium text-rose-100">{CONFLICT_RESOLUTION_HEADING}</p>
                             {conflictHunks.map((hunk, index) => (
                               <ConflictPreview key={index} index={index} hunk={hunk} />
                             ))}
@@ -463,21 +471,21 @@ export default function TemplateMigratePage() {
                                 onClick={() => handleConflictResolution(change.path, 'template')}
                                 className="rounded-xl bg-rose-500/80 px-3 py-2 text-sm font-medium text-white transition hover:bg-rose-500"
                               >
-                                テンプレートを使用
+                                {CONFLICT_USE_TEMPLATE}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleConflictResolution(change.path, 'user')}
                                 className="rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10"
                               >
-                                ユーザーの変更を保持
+                                {CONFLICT_KEEP_USER}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleConflictResolution(change.path, 'skip')}
                                 className="rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10"
                               >
-                                ファイルをスキップ
+                                {CONFLICT_SKIP_FILE}
                               </button>
                             </div>
                           </div>

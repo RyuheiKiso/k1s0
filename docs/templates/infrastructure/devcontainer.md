@@ -79,7 +79,7 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
   "features": {
 {% if language == "go" %}
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.23"
+      "version": "1.24"
     },
 {% endif %}
 {% if language == "rust" %}
@@ -193,7 +193,7 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
 
 | 言語 / フレームワーク | feature                                          | バージョン |
 | --------------------- | ------------------------------------------------ | ---------- |
-| Go                    | `ghcr.io/devcontainers/features/go:1`            | 1.23       |
+| Go                    | `ghcr.io/devcontainers/features/go:1`            | 1.24       |
 | Rust                  | `ghcr.io/devcontainers/features/rust:1`          | 1.93       |
 | TypeScript / React    | `ghcr.io/devcontainers/features/node:1`          | 22         |
 | Dart / Flutter        | `ghcr.io/devcontainers/features/node:1`          | 22         |
@@ -368,7 +368,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 生成されるファイル:
 
 **`.devcontainer/devcontainer.json`**:
-- features: Go 1.23 + Python 3.12 + Docker-in-Docker + kubectl/Helm
+- features: Go 1.24 + Python 3.12 + Docker-in-Docker + kubectl/Helm
 - extensions: `golang.go` + 共通拡張機能
 - settings: Go 固有設定（golangci-lint, formatOnSave）
 - forwardPorts: 8080, 50051, 5432, 6379, 6380, 16686, 4317, 4318, 3100, 9090, 3200, 8200, 8180
@@ -478,7 +478,7 @@ Dev Container テンプレートで使用する言語・ツールのバージョ
 
 | 言語/ツール | バージョン | 同期先                                                                |
 | ----------- | ---------- | --------------------------------------------------------------------- |
-| Go          | 1.23       | [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md), [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md)    |
+| Go          | 1.24       | [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md), [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md)    |
 | Rust        | 1.93       | [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md), [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md) |
 | Node.js     | 22         | [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md), [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md)    |
 | Python      | 3.12       | [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md)                               |

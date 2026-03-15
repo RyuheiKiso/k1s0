@@ -268,7 +268,7 @@ pub async fn run() -> anyhow::Result<()> {
     });
 
     let shutdown_future = async move {
-        shutdown_signal().await?;
+        k1s0_server_common::shutdown::shutdown_signal().await.map_err(|e| anyhow::anyhow!("{}", e))?;
         let _ = shutdown_tx.send(true);
         Ok::<(), anyhow::Error>(())
     };
@@ -289,26 +289,6 @@ pub async fn run() -> anyhow::Result<()> {
 
     // テレメトリのエクスポーターをフラッシュしてシャットダウンする
     k1s0_telemetry::shutdown();
-
-    Ok(())
-}
-
-async fn shutdown_signal() -> anyhow::Result<()> {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{signal, SignalKind};
-
-        let mut terminate = signal(SignalKind::terminate())?;
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = terminate.recv() => {}
-        }
-    }
-
-    #[cfg(not(unix))]
-    {
-        tokio::signal::ctrl_c().await?;
-    }
 
     Ok(())
 }

@@ -9,15 +9,15 @@ default = []
 mock = ["mockall"]
 
 [dependencies]
-async-trait = "0.1"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
-tokio = { version = "1", features = ["sync"] }
-tracing = "0.1"
-reqwest = { version = "0.12", features = ["json", "stream"] }
-mockall = { version = "0.13", optional = true }
+async-trait = {workspace = true}
+serde = {workspace = true}
+serde_json = {workspace = true}
+thiserror = {workspace = true}
+tokio = {workspace = true}
+tracing = {workspace = true}
+reqwest = {workspace = true, features = ["stream"]}
+mockall = {workspace = true, optional = true}
 k1s0-bb-core = { path = "../bb-core" }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = {workspace = true}

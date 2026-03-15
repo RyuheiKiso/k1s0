@@ -251,32 +251,36 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = "0.7"
-tokio = { version = "1", features = ["full"] }
-serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.9"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-opentelemetry = "0.24"
-opentelemetry-otlp = "0.17"
-opentelemetry_sdk = "0.24"
-tower = "0.5"
-tower-http = { version = "0.6", features = ["cors", "trace"] }
-thiserror = "2"
+# workspace.dependencies で定義済みの依存は workspace = true で参照する
+# バージョンは regions/system/Cargo.toml の [workspace.dependencies] で一元管理
+axum = {workspace = true}
+tokio = {workspace = true}
+serde = {workspace = true}
+serde_yaml = {workspace = true}
+tracing = {workspace = true}
+tracing-subscriber = {workspace = true}
+tower = {workspace = true}
+tower-http = {workspace = true}
+thiserror = {workspace = true}
+anyhow = {workspace = true}
+async-trait = {workspace = true}
+uuid = {workspace = true}
+chrono = {workspace = true}
 {% if api_styles is containing("rest") %}
-utoipa = { version = "5", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "8", features = ["axum"] }
+utoipa = {workspace = true}
+utoipa-swagger-ui = {workspace = true}
 {% endif %}
 {% if api_styles is containing("grpc") %}
-tonic = "0.12"
-prost = "0.13"
+tonic = {workspace = true}
+prost = {workspace = true}
+prost-types = {workspace = true}
 {% endif %}
 {% if api_styles is containing("graphql") %}
 async-graphql = "7"
 async-graphql-axum = "7"
 {% endif %}
 {% if has_database %}
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "{{ database_type }}"] }
+sqlx = {workspace = true, features = ["migrate"]}
 {% endif %}
 {% if has_kafka %}
 rdkafka = { version = "0.36", features = ["cmake-build"] }
@@ -285,13 +289,19 @@ rdkafka = { version = "0.36", features = ["cmake-build"] }
 redis = { version = "0.27", features = ["tokio-comp"] }
 {% endif %}
 
+# 社内ライブラリ
+k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
+k1s0-auth = { path = "../../../library/rust/auth" }
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum", "shutdown"] }
+
 [dev-dependencies]
-mockall = "0.13"
-tokio = { version = "1", features = ["test-util", "macros"] }
+mockall = {workspace = true}
+tokio-test = {workspace = true}
 
 {% if api_styles is containing("grpc") %}
 [build-dependencies]
-tonic-build = "0.12"
+tonic-build = {workspace = true}
 {% endif %}
 ```
 

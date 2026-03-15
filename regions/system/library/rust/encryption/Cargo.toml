@@ -8,11 +8,11 @@ aes-gcm = "0.10"
 rand = "0.8"
 argon2 = "0.5"
 password-hash = { version = "0.5", features = ["rand_core"] }
-thiserror = "2"
+thiserror = {workspace = true}
 base64 = "0.22"
 rsa = { version = "0.9", features = ["sha2", "pem"] }
 sha2 = "0.10"
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = {workspace = true}
 base64 = "0.22"

@@ -28,16 +28,16 @@ describe('useAuth', () => {
     expect(result.current.user).toBeNull();
   });
 
-  it('login を呼び出せる', async () => {
+  it('login を呼び出せる（引数なしのリダイレクト型）', () => {
     const loginMock = vi.fn();
     const mockValue = createMockAuthValue({ login: loginMock });
     const { result } = renderHook(() => useAuth(), { wrapper: createWrapper(mockValue) });
 
-    await act(async () => {
-      await result.current.login({ username: 'user@example.com', password: 'password' });
+    act(() => {
+      result.current.login();
     });
 
-    expect(loginMock).toHaveBeenCalledWith({ username: 'user@example.com', password: 'password' });
+    expect(loginMock).toHaveBeenCalled();
   });
 
   it('logout を呼び出せる', async () => {

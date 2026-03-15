@@ -4,7 +4,7 @@
 
 - ランタイム: Kubernetes
 - Service: ClusterIP（HTTP 8080）
-- Ingress: `/auth/*`, `/api/*` を bff-proxy にルーティング
+- Ingress: `/auth/*`（login, callback, session, exchange, logout）, `/api/*` を bff-proxy にルーティング
 - 依存: Redis（Sentinel 対応）, OIDC Provider, 上流 API
 
 ## 設定方式
@@ -54,6 +54,6 @@ upstream:
 ## ロールアウト
 
 1. bff-proxy を先行デプロイ。
-2. `/auth/login` と `/auth/callback` の疎通確認。
+2. `/auth/login`, `/auth/callback`, `/auth/session`, `/auth/exchange` の疎通確認。
 3. `/api/*` プロキシ経由で上流 API の認可確認。
 4. 監視（401/403/5xx, トークン更新失敗率）を確認して切り替え完了。

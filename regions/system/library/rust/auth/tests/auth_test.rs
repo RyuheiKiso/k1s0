@@ -260,12 +260,21 @@ fn has_tier_access_returns_true_for_allowed_tier() {
     assert!(has_tier_access(&claims, "business"));
 }
 
-// 許可されていない Tier に対して has_tier_access が false を返すことを確認する。
+// 階層モデル: system tier は全 tier にアクセス可能であることを確認する。
+// service tier のみ持つユーザーは上位 tier（system, business）にアクセスできない。
 #[test]
-fn has_tier_access_returns_false_for_disallowed_tier() {
-    let claims = build_claims("user-1", vec![], vec![], vec!["system"]);
-    assert!(!has_tier_access(&claims, "business"));
-    assert!(!has_tier_access(&claims, "service"));
+fn has_tier_access_respects_hierarchy() {
+    // system は最上位 → 全 tier にアクセス可能
+    let system_claims = build_claims("user-1", vec![], vec![], vec!["system"]);
+    assert!(has_tier_access(&system_claims, "system"));
+    assert!(has_tier_access(&system_claims, "business"));
+    assert!(has_tier_access(&system_claims, "service"));
+
+    // service のみ → 上位 tier にはアクセス不可
+    let service_claims = build_claims("user-2", vec![], vec![], vec!["service"]);
+    assert!(!has_tier_access(&service_claims, "system"));
+    assert!(!has_tier_access(&service_claims, "business"));
+    assert!(has_tier_access(&service_claims, "service"));
 }
 
 // has_tier_access が大文字小文字を区別せずに Tier を比較することを確認する。
@@ -495,10 +504,10 @@ fn combined_scenario_regular_user_with_specific_permissions() {
     assert!(check_permission(&claims, "config-service", "read"));
     assert!(!check_permission(&claims, "payment-service", "read"));
 
-    // Tier checks
+    // Tier checks: business tier は business + service にアクセス可能（階層モデル）
     assert!(has_tier_access(&claims, "system"));
     assert!(has_tier_access(&claims, "business"));
-    assert!(!has_tier_access(&claims, "service"));
+    assert!(has_tier_access(&claims, "service"));
 }
 
 // sys_admin ユーザーがすべてのリソースと Tier に完全アクセスできることを確認する。

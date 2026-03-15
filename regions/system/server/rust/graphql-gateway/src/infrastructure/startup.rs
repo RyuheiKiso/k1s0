@@ -141,7 +141,9 @@ pub async fn run() -> anyhow::Result<()> {
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(async {
+            let _ = k1s0_server_common::shutdown::shutdown_signal().await;
+        })
         .await?;
 
     info!("graphql-gateway exited");
@@ -152,23 +154,3 @@ pub async fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn shutdown_signal() {
-    use tokio::signal;
-
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    tokio::select! {
-        _ = signal::ctrl_c() => {},
-        _ = terminate => {},
-    }
-    info!("shutdown signal received");
-}

@@ -13,38 +13,38 @@ path = "src/main.rs"
 test = false
 
 [dependencies]
-tonic = "0.12"
-prost = "0.13"
-prost-types = "0.13"
-axum = { version = "0.7", features = ["macros"] }
-tokio = { version = "1", features = ["full"] }
-tower = "0.5"
-tower-http = { version = "0.6", features = ["trace", "cors"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_yaml = "0.9"
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
-uuid = { version = "1", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }
-anyhow = "1"
-thiserror = "2"
-async-trait = "0.1"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+tonic = {workspace = true}
+prost = {workspace = true}
+prost-types = {workspace = true}
+axum = {workspace = true}
+tokio = {workspace = true}
+tower = {workspace = true}
+tower-http = {workspace = true}
+serde = {workspace = true}
+serde_json = {workspace = true}
+serde_yaml = {workspace = true}
+sqlx = {workspace = true}
+uuid = {workspace = true}
+chrono = {workspace = true}
+anyhow = {workspace = true}
+thiserror = {workspace = true}
+async-trait = {workspace = true}
+tracing = {workspace = true}
+tracing-subscriber = {workspace = true}
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 k1s0-auth = { path = "../../../library/rust/auth" }
-k1s0-server-common = { path = "../../../library/rust/server-common" }
-utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
-utoipa-swagger-ui = { version = "8", features = ["axum"] }
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["shutdown"] }
+utoipa = {workspace = true}
+utoipa-swagger-ui = {workspace = true}
 rdkafka = { version = "0.37", features = ["cmake-build"] }
 moka = { version = "0.12", features = ["future"] }
 opensearch = "2.2"
 
 [build-dependencies]
-tonic-build = "0.12"
+tonic-build = {workspace = true}
 
 [dev-dependencies]
-mockall = "0.13"
-tokio-test = "0.4"
+mockall = {workspace = true}
+tokio-test = {workspace = true}
 axum-test = "16"

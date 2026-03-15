@@ -1,5 +1,6 @@
 ---
 source: crates/k1s0-cli/tests/snapshot_tests.rs
+assertion_line: 290
 expression: sorted
 ---
 - ".prettierrc"
@@ -11,6 +12,7 @@ expression: sorted
 - nginx.conf
 - package.json
 - src/app/App.tsx
+- src/app/route-tree.gen.ts
 - src/config/__generated__/config-types.ts
 - src/lib/api-client.ts
 - src/lib/query-client.ts

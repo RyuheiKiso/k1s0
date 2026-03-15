@@ -22,6 +22,64 @@ class CsrfTokenInterceptor extends Interceptor {
   }
 }
 
+/// セッションクッキーインターセプター（モバイル向け）
+/// Set-Cookie ヘッダーからセッションクッキーを抽出し、後続リクエストに自動付与する。
+/// Flutter Web ではブラウザが Cookie を自動管理するため不要だが、
+/// モバイルでは Dio が Cookie を扱わないため手動で管理する。
+class SessionCookieInterceptor extends Interceptor {
+  /// 保持中のセッション ID
+  String? sessionId;
+
+  /// セッションクッキー名
+  final String cookieName;
+
+  SessionCookieInterceptor({this.cookieName = 'k1s0_session'});
+
+  @override
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) {
+    // セッション ID が保持されている場合はリクエストに Cookie ヘッダーを付与する
+    if (sessionId != null) {
+      final existing = options.headers['Cookie'] as String?;
+      final sessionCookie = '$cookieName=$sessionId';
+      options.headers['Cookie'] =
+          existing != null ? '$existing; $sessionCookie' : sessionCookie;
+    }
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(
+    Response response,
+    ResponseInterceptorHandler handler,
+  ) {
+    // Set-Cookie ヘッダーからセッションクッキーを抽出して保持する
+    _extractSessionCookie(response.headers);
+    handler.next(response);
+  }
+
+  /// Set-Cookie ヘッダーからセッション ID を抽出する
+  void _extractSessionCookie(Headers headers) {
+    final setCookies = headers['set-cookie'];
+    if (setCookies == null) return;
+    for (final cookie in setCookies) {
+      if (cookie.startsWith('$cookieName=')) {
+        final value = cookie.split(';').first.substring(cookieName.length + 1);
+        if (value.isNotEmpty) {
+          sessionId = value;
+        }
+      }
+    }
+  }
+
+  /// セッションをクリアする（ログアウト時に使用）
+  void clearSession() {
+    sessionId = null;
+  }
+}
+
 class ApiClient {
   ApiClient._();
 
@@ -30,6 +88,7 @@ class ApiClient {
     Duration connectTimeout = const Duration(seconds: 30),
     Duration receiveTimeout = const Duration(seconds: 30),
     CsrfTokenProvider? csrfTokenProvider,
+    SessionCookieInterceptor? sessionCookieInterceptor,
   }) {
     final dio = Dio(
       BaseOptions(
@@ -41,6 +100,11 @@ class ApiClient {
         },
       ),
     );
+
+    // セッションクッキーインターセプター（モバイルでのセッション管理に必要）
+    if (sessionCookieInterceptor != null) {
+      dio.interceptors.add(sessionCookieInterceptor);
+    }
 
     // CSRF トークンインターセプター
     if (csrfTokenProvider != null) {

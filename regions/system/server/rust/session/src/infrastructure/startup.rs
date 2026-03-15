@@ -17,27 +17,6 @@ use crate::domain::entity::session::Session;
 use crate::domain::repository::SessionRepository;
 use crate::error::SessionError;
 
-/// シャットダウンシグナルを待機する
-async fn shutdown_signal() -> anyhow::Result<()> {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{signal, SignalKind};
-
-        let mut terminate = signal(SignalKind::terminate())?;
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = terminate.recv() => {}
-        }
-    }
-
-    #[cfg(not(unix))]
-    {
-        tokio::signal::ctrl_c().await?;
-    }
-
-    Ok(())
-}
-
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -294,7 +273,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let grpc_metrics = metrics;
     // gRPC グレースフルシャットダウン用シグナル
-    let grpc_shutdown = shutdown_signal();
+    let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
@@ -312,7 +291,7 @@ pub async fn run() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(addr).await?;
     // REST グレースフルシャットダウン設定
     let rest_future = axum::serve(listener, app).with_graceful_shutdown(async {
-        let _ = shutdown_signal().await;
+        let _ = k1s0_server_common::shutdown::shutdown_signal().await;
     });
 
     tokio::select! {

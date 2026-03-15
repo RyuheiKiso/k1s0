@@ -1,0 +1,5 @@
+app:
+  name: "dlq-manager"
+  environment: "dev"
+server:
+  port: 8080

@@ -19,27 +19,6 @@ async fn resolve_bind_addr(host: &str, port: u16) -> anyhow::Result<SocketAddr> 
         .ok_or_else(|| anyhow::anyhow!("failed to resolve bind address {host}:{port}"))
 }
 
-/// グレースフルシャットダウンシグナルを待機する。
-async fn shutdown_signal() -> anyhow::Result<()> {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{signal, SignalKind};
-
-        let mut terminate = signal(SignalKind::terminate())?;
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = terminate.recv() => {}
-        }
-    }
-
-    #[cfg(not(unix))]
-    {
-        tokio::signal::ctrl_c().await?;
-    }
-
-    Ok(())
-}
-
 /// AI Gatewayサーバーのメインエントリポイント。
 /// 設定ファイルを読み込み、依存関係を構築し、REST/gRPCサーバーを起動する。
 pub async fn run() -> anyhow::Result<()> {
@@ -203,7 +182,7 @@ pub async fn run() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     axum::serve(listener, app)
         .with_graceful_shutdown(async {
-            let _ = shutdown_signal().await;
+            let _ = k1s0_server_common::shutdown::shutdown_signal().await;
         })
         .await?;
 

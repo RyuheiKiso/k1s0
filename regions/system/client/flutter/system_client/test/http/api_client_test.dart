@@ -41,6 +41,22 @@ void main() {
           .toList();
       expect(customInterceptors.length, equals(2));
     });
+
+    test('sessionCookieInterceptor ありでは3つのインターセプターが追加される', () {
+      final sessionInterceptor = SessionCookieInterceptor();
+      final client = ApiClient.create(
+        baseUrl: 'https://api.example.com',
+        csrfTokenProvider: () async => 'test-token',
+        sessionCookieInterceptor: sessionInterceptor,
+      );
+      final customInterceptors = client.interceptors
+          .where((i) =>
+              i is InterceptorsWrapper ||
+              i is CsrfTokenInterceptor ||
+              i is SessionCookieInterceptor)
+          .toList();
+      expect(customInterceptors.length, equals(3));
+    });
   });
 
   group('CsrfTokenInterceptor', () {
@@ -93,6 +109,95 @@ void main() {
       );
 
       expect(options.headers.containsKey('X-CSRF-Token'), isFalse);
+    });
+  });
+
+  group('SessionCookieInterceptor', () {
+    test('初期状態では sessionId は null', () {
+      final interceptor = SessionCookieInterceptor();
+      expect(interceptor.sessionId, isNull);
+    });
+
+    test('sessionId が設定されている場合はリクエストに Cookie ヘッダーを付与する', () {
+      final interceptor = SessionCookieInterceptor();
+      interceptor.sessionId = 'test-session-123';
+
+      final options = RequestOptions(path: '/test');
+      interceptor.onRequest(options, RequestInterceptorHandler());
+
+      expect(
+        options.headers['Cookie'],
+        equals('k1s0_session=test-session-123'),
+      );
+    });
+
+    test('既存の Cookie ヘッダーがある場合はセミコロンで連結する', () {
+      final interceptor = SessionCookieInterceptor();
+      interceptor.sessionId = 'test-session-123';
+
+      final options = RequestOptions(path: '/test');
+      options.headers['Cookie'] = 'other=value';
+      interceptor.onRequest(options, RequestInterceptorHandler());
+
+      expect(
+        options.headers['Cookie'],
+        equals('other=value; k1s0_session=test-session-123'),
+      );
+    });
+
+    test('Set-Cookie ヘッダーからセッション ID を抽出する', () {
+      final interceptor = SessionCookieInterceptor();
+
+      final headers = Headers();
+      headers.set(
+        'set-cookie',
+        ['k1s0_session=extracted-session-456; Path=/; HttpOnly'],
+      );
+
+      final response = Response(
+        requestOptions: RequestOptions(path: '/test'),
+        headers: headers,
+      );
+      interceptor.onResponse(response, ResponseInterceptorHandler());
+
+      expect(interceptor.sessionId, equals('extracted-session-456'));
+    });
+
+    test('関連しない Set-Cookie ヘッダーは無視する', () {
+      final interceptor = SessionCookieInterceptor();
+
+      final headers = Headers();
+      headers.set('set-cookie', ['other_cookie=value; Path=/']);
+
+      final response = Response(
+        requestOptions: RequestOptions(path: '/test'),
+        headers: headers,
+      );
+      interceptor.onResponse(response, ResponseInterceptorHandler());
+
+      expect(interceptor.sessionId, isNull);
+    });
+
+    test('clearSession でセッション ID がクリアされる', () {
+      final interceptor = SessionCookieInterceptor();
+      interceptor.sessionId = 'some-session';
+      interceptor.clearSession();
+
+      expect(interceptor.sessionId, isNull);
+    });
+
+    test('カスタムクッキー名で動作する', () {
+      final interceptor =
+          SessionCookieInterceptor(cookieName: 'custom_session');
+      interceptor.sessionId = 'custom-123';
+
+      final options = RequestOptions(path: '/test');
+      interceptor.onRequest(options, RequestInterceptorHandler());
+
+      expect(
+        options.headers['Cookie'],
+        equals('custom_session=custom-123'),
+      );
     });
   });
 }

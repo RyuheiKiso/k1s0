@@ -10,14 +10,14 @@ use std::sync::Arc;
 
 use axum::Router;
 use axum::middleware;
-use axum::routing::{delete, get, post, put};
+use axum::routing::get;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 pub use k1s0_server_common::{ErrorBody, ErrorResponse};
 
 use crate::adapter::middleware::auth::auth_middleware;
-use crate::adapter::middleware::rbac::make_rbac_middleware;
+use crate::adapter::middleware::rbac::make_method_rbac_middleware;
 use crate::usecase::{
     CreateTeamUseCase, DeleteServiceUseCase, DeleteTeamUseCase, GetScorecardUseCase,
     GetServiceUseCase, GetTeamUseCase, HealthStatusUseCase, ListServicesUseCase,
@@ -132,81 +132,75 @@ pub struct AppState {
 )]
 struct ApiDoc;
 
-/// Build the REST API router.
+/// REST API ルーターを構築する。
+/// 同一パスの GET/PUT/DELETE を1つの .route() に統合し、
+/// HTTP メソッドに基づいて read/write 権限を自動判定する。
 pub fn router(state: AppState) -> Router {
-    // Read routes: require "services" / "read" permission
-    let service_read_routes = Router::new()
-        .route("/api/v1/services", get(service::list_services))
-        .route("/api/v1/services/{id}", get(service::get_service))
+    // サービスルート: GET→read, POST/PUT/DELETE→write をメソッドベースで判定
+    let service_routes = Router::new()
         .route(
-            "/api/v1/services/{id}/dependencies",
-            get(dependency::list_dependencies),
+            "/api/v1/services",
+            get(service::list_services).post(service::register_service),
         )
-        .route("/api/v1/services/{id}/health", get(health::get_health))
-        .route("/api/v1/services/{id}/docs", get(doc::list_docs))
         .route(
-            "/api/v1/services/{id}/scorecard",
+            "/api/v1/services/:id",
+            get(service::get_service)
+                .put(service::update_service)
+                .delete(service::delete_service),
+        )
+        .route(
+            "/api/v1/services/:id/dependencies",
+            get(dependency::list_dependencies).put(dependency::set_dependencies),
+        )
+        .route(
+            "/api/v1/services/:id/health",
+            get(health::get_health).post(health::report_health),
+        )
+        .route(
+            "/api/v1/services/:id/docs",
+            get(doc::list_docs).put(doc::set_docs),
+        )
+        .route(
+            "/api/v1/services/:id/scorecard",
             get(scorecard::get_scorecard),
         )
         .route("/api/v1/services/search", get(search::search_services))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
-            make_rbac_middleware("services", "read"),
+            make_method_rbac_middleware("services"),
         ));
 
-    // Team read routes
-    let team_read_routes = Router::new()
-        .route("/api/v1/teams", get(team::list_teams))
-        .route("/api/v1/teams/{team_id}", get(team::get_team))
+    // チームルート: GET→read, POST/PUT/DELETE→write をメソッドベースで判定
+    let team_routes = Router::new()
         .route(
-            "/api/v1/teams/{team_id}/services",
+            "/api/v1/teams",
+            get(team::list_teams).post(team::create_team),
+        )
+        .route(
+            "/api/v1/teams/:team_id",
+            get(team::get_team)
+                .put(team::update_team)
+                .delete(team::delete_team),
+        )
+        .route(
+            "/api/v1/teams/:team_id/services",
             get(team::get_team_services),
         )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
-            make_rbac_middleware("teams", "read"),
+            make_method_rbac_middleware("teams"),
         ));
 
-    // Write routes: require "services" / "write" permission
-    let service_write_routes = Router::new()
-        .route("/api/v1/services", post(service::register_service))
-        .route("/api/v1/services/{id}", put(service::update_service))
-        .route("/api/v1/services/{id}", delete(service::delete_service))
-        .route(
-            "/api/v1/services/{id}/dependencies",
-            put(dependency::set_dependencies),
-        )
-        .route("/api/v1/services/{id}/health", post(health::report_health))
-        .route("/api/v1/services/{id}/docs", put(doc::set_docs))
-        .route_layer(middleware::from_fn_with_state(
-            state.clone(),
-            make_rbac_middleware("services", "write"),
-        ));
-
-    // Team write routes: require "teams" / "write" permission
-    let team_write_routes = Router::new()
-        .route("/api/v1/teams", post(team::create_team))
-        .route(
-            "/api/v1/teams/{team_id}",
-            put(team::update_team).delete(team::delete_team),
-        )
-        .route_layer(middleware::from_fn_with_state(
-            state.clone(),
-            make_rbac_middleware("teams", "write"),
-        ));
-
-    // Protected routes share auth_middleware for Bearer token validation
+    // 認証済みルートは auth_middleware で Bearer トークン検証を共有
     let protected = Router::new()
-        .merge(service_read_routes)
-        .merge(team_read_routes)
-        .merge(service_write_routes)
-        .merge(team_write_routes)
+        .merge(service_routes)
+        .merge(team_routes)
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
         ));
 
-    // Public endpoints (no auth required)
+    // 公開エンドポイント（認証不要）
     let public = Router::new()
         .route("/healthz", get(service::healthz))
         .route("/readyz", get(service::readyz))

@@ -40,6 +40,9 @@ fn check_permission_static(roles: &[String], resource: &str, action: &str) -> bo
 }
 
 /// make_rbac_middleware はリソースとアクションを受け取り、RBAC チェックを行うクロージャを返す。
+/// 現在はメソッドベースの make_method_rbac_middleware を使用しているが、
+/// 特定アクション固定のルートが必要な場合に備えて保持。
+#[allow(dead_code)]
 pub fn make_rbac_middleware(
     resource: &'static str,
     action: &'static str,
@@ -50,6 +53,25 @@ pub fn make_rbac_middleware(
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
 + Clone {
     move |State(state): State<AppState>, req: Request<axum::body::Body>, next: Next| {
+        Box::pin(rbac_check(state, req, next, resource, action))
+    }
+}
+
+/// HTTP メソッドに基づいてアクションを自動判定する RBAC ミドルウェア。
+/// GET → "read"、POST/PUT/DELETE → "write" として権限チェックを行う。
+pub fn make_method_rbac_middleware(
+    resource: &'static str,
+) -> impl Fn(
+    State<AppState>,
+    Request<axum::body::Body>,
+    Next,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
++ Clone {
+    move |State(state): State<AppState>, req: Request<axum::body::Body>, next: Next| {
+        let action = match *req.method() {
+            axum::http::Method::GET | axum::http::Method::HEAD => "read",
+            _ => "write",
+        };
         Box::pin(rbac_check(state, req, next, resource, action))
     }
 }

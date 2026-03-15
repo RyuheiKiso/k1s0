@@ -10,14 +10,14 @@ mock = ["mockall"]
 http = ["reqwest"]
 
 [dependencies]
-async-trait = "0.1"
+async-trait = {workspace = true}
 k1s0-bb-core = { path = "../bb-core" }
-serde = { version = "1", features = ["derive"] }
-thiserror = "2"
-tokio = { version = "1", features = ["sync"] }
-tracing = "0.1"
-mockall = { version = "0.13", optional = true }
-reqwest = { version = "0.12", features = ["json"], optional = true }
+serde = {workspace = true}
+thiserror = {workspace = true}
+tokio = {workspace = true}
+tracing = {workspace = true}
+mockall = {workspace = true, optional = true}
+reqwest = {workspace = true, optional = true}
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = {workspace = true}

@@ -424,18 +424,22 @@ pub fn router(state: AppState) -> Router {
         .route("/metrics", get(health::metrics_handler));
 
     let api_routes = if let Some(ref auth_state) = state.auth_state {
-        // 認証有効時: read/write 権限を分離してミドルウェアを適用
-        let read_routes = Router::new()
-            .route("/api/v1/orders", get(list_orders))
-            .route("/api/v1/orders/:order_id", get(get_order))
-            .route_layer(require_permission(Tier::Service, "order", "read"));
+        // 認証有効時: HTTP メソッドに基づいて read/write 権限を自動判定
+        // NOTE: 同一パスの GET/POST/PUT/DELETE は1つの .route() に統合すること。
+        // 別ルーターに分割して merge すると Axum がルートを上書きし 404 になる。
+        let api = Router::new()
+            .route("/api/v1/orders", get(list_orders).post(create_order))
+            .route(
+                "/api/v1/orders/:order_id",
+                get(get_order),
+            )
+            .route(
+                "/api/v1/orders/:order_id/status",
+                put(update_order_status),
+            )
+            .route_layer(make_method_rbac_middleware("order"));
 
-        let write_routes = Router::new()
-            .route("/api/v1/orders", post(create_order))
-            .route("/api/v1/orders/:order_id/status", put(update_order_status))
-            .route_layer(require_permission(Tier::Service, "order", "write"));
-
-        read_routes.merge(write_routes)
+        api
             .layer(from_fn_with_state(auth_state.clone(), auth_middleware))
     } else {
         // 認証無効時: 全エンドポイントを認証なしで公開

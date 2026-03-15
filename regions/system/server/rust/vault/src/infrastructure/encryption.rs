@@ -51,6 +51,12 @@ impl MasterKey {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    /// 環境変数を操作するテストの並行実行を防ぐためのロック。
+    /// std::env::set_var/remove_var はプロセスグローバルなので、
+    /// 並行テストで競合すると flaky failure になる。
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     fn make_test_key() -> MasterKey {
         // 全ゼロ鍵で簡易テスト（32 バイト = 64 hex chars）
@@ -110,6 +116,8 @@ mod tests {
 
     #[test]
     fn test_from_env_default_key() {
+        // 環境変数操作の競合を防ぐためロックを取得
+        let _guard = ENV_LOCK.lock().unwrap();
         // VAULT_MASTER_KEY が未設定の場合、ゼロ鍵が使われる
         std::env::remove_var("VAULT_MASTER_KEY");
         let result = MasterKey::from_env();
@@ -118,15 +126,16 @@ mod tests {
 
     #[test]
     fn test_from_env_invalid_hex() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("VAULT_MASTER_KEY", "not-valid-hex");
         let result = MasterKey::from_env();
         assert!(result.is_err());
-        // クリーンアップ
         std::env::remove_var("VAULT_MASTER_KEY");
     }
 
     #[test]
     fn test_from_env_wrong_length() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("VAULT_MASTER_KEY", "aabb"); // 2 bytes, not 32
         let result = MasterKey::from_env();
         assert!(result.is_err());

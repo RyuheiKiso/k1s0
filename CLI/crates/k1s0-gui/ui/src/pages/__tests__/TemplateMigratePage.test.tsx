@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {
+  CONFLICT_RESOLUTION_HEADING,
+  CONFLICT_USE_TEMPLATE,
+  MIGRATION_SUCCESS,
+  VERSION_LABEL_PREFIX,
+} from '../../constants/messages';
 import { mockInvoke } from '../../test/mocks';
 import { renderWithProviders } from '../../test/render';
 import TemplateMigratePage from '../TemplateMigratePage';
@@ -85,10 +91,10 @@ describe('TemplateMigratePage', () => {
 
     await user.click(screen.getByTestId('btn-template-preview'));
 
-    expect(await screen.findByText(/Conflict resolution/)).toBeInTheDocument();
+    expect(await screen.findByText(new RegExp(CONFLICT_RESOLUTION_HEADING))).toBeInTheDocument();
     expect(screen.getByTestId('btn-template-apply')).toBeDisabled();
 
-    await user.click(screen.getByText('Use template'));
+    await user.click(screen.getByText(CONFLICT_USE_TEMPLATE));
     expect(screen.getByTestId('btn-template-apply')).not.toBeDisabled();
 
     await user.click(screen.getByTestId('btn-template-apply'));
@@ -184,11 +190,11 @@ describe('TemplateMigratePage', () => {
 
     await waitFor(() =>
       expect(screen.getByTestId('template-success-message')).toHaveTextContent(
-        'Template migration completed successfully.',
+        MIGRATION_SUCCESS,
       ),
     );
     await waitFor(() => expect(screen.queryByTestId('btn-template-apply')).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText('Version: v1.5.0')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(`${VERSION_LABEL_PREFIX} v1.5.0`)).toBeInTheDocument());
 
     const scanCalls = mockInvoke.mock.calls.filter(([command]) => command === 'scan_template_migration_targets');
     expect(scanCalls).toHaveLength(2);

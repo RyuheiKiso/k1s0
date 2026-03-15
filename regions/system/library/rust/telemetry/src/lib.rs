@@ -40,6 +40,95 @@ pub struct TelemetryConfig {
     pub log_format: String,
 }
 
+/// TelemetryConfig を段階的に構築するビルダー。
+/// サービスの startup.rs で繰り返される10行のボイラープレートを1チェーンに圧縮する。
+pub struct TelemetryConfigBuilder {
+    service_name: String,
+    version: String,
+    tier: String,
+    environment: String,
+    trace_endpoint: Option<String>,
+    sample_rate: f64,
+    log_level: String,
+    log_format: String,
+}
+
+impl TelemetryConfigBuilder {
+    /// 新しいビルダーを作成する（サービス名は必須）
+    pub fn new(service_name: impl Into<String>) -> Self {
+        Self {
+            service_name: service_name.into(),
+            version: "0.1.0".to_string(),
+            tier: "system".to_string(),
+            environment: "dev".to_string(),
+            trace_endpoint: None,
+            sample_rate: 1.0,
+            log_level: "info".to_string(),
+            log_format: "text".to_string(),
+        }
+    }
+
+    /// バージョンを設定する
+    pub fn version(mut self, version: impl Into<String>) -> Self {
+        self.version = version.into();
+        self
+    }
+
+    /// ティアを設定する（system / business / service）
+    pub fn tier(mut self, tier: impl Into<String>) -> Self {
+        self.tier = tier.into();
+        self
+    }
+
+    /// 環境名を設定する
+    pub fn environment(mut self, environment: impl Into<String>) -> Self {
+        self.environment = environment.into();
+        self
+    }
+
+    /// トレースエンドポイントを有効フラグに基づいて条件付きで設定する
+    pub fn trace(mut self, enabled: bool, endpoint: impl Into<String>, sample_rate: f64) -> Self {
+        self.trace_endpoint = enabled.then(|| endpoint.into());
+        self.sample_rate = sample_rate;
+        self
+    }
+
+    /// ログ設定を一括で設定する
+    pub fn log(mut self, level: impl Into<String>, format: impl Into<String>) -> Self {
+        self.log_level = level.into();
+        self.log_format = format.into();
+        self
+    }
+
+    /// TelemetryConfig を構築する
+    pub fn build(self) -> TelemetryConfig {
+        TelemetryConfig {
+            service_name: self.service_name,
+            version: self.version,
+            tier: self.tier,
+            environment: self.environment,
+            trace_endpoint: self.trace_endpoint,
+            sample_rate: self.sample_rate,
+            log_level: self.log_level,
+            log_format: self.log_format,
+        }
+    }
+
+    /// TelemetryConfig を構築し、同時に init_telemetry を呼び出す
+    pub fn init(self) -> Result<TelemetryConfig, Box<dyn std::error::Error>> {
+        let config = self.build();
+        init_telemetry(&config)?;
+        Ok(config)
+    }
+}
+
+impl TelemetryConfig {
+    /// ビルダーを作成する便利メソッド
+    pub fn builder(service_name: impl Into<String>) -> TelemetryConfigBuilder {
+        TelemetryConfigBuilder::new(service_name)
+    }
+}
+
 /// init_telemetry は OpenTelemetry TracerProvider と tracing-subscriber を初期化する。
 /// trace_endpoint が指定されている場合、OTLP gRPC エクスポータを設定する。
 pub fn init_telemetry(cfg: &TelemetryConfig) -> Result<(), Box<dyn std::error::Error>> {

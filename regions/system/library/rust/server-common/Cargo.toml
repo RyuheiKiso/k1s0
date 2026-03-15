@@ -8,7 +8,8 @@ description = "Shared server infrastructure: structured error codes, error respo
 default = []
 axum = ["dep:axum"]
 utoipa = ["dep:utoipa"]
-middleware = ["axum", "dep:tower", "dep:http", "dep:pin-project-lite", "dep:k1s0-telemetry", "dep:k1s0-correlation", "dep:k1s0-health", "dep:tokio"]
+shutdown = ["dep:tokio"]
+middleware = ["axum", "shutdown", "dep:tower", "dep:http", "dep:pin-project-lite", "dep:k1s0-telemetry", "dep:k1s0-correlation", "dep:k1s0-health"]
 database = ["middleware", "dep:sqlx", "dep:k1s0-migration"]
 auth = ["middleware", "dep:k1s0-auth"]
 grpc-auth = ["auth", "dep:tonic"]
@@ -16,35 +17,35 @@ kafka-setup = ["middleware", "dep:k1s0-kafka"]
 config-loader = ["dep:serde_yaml"]
 
 [dependencies]
-anyhow = "1"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
-tracing = "0.1"
-uuid = { version = "1", features = ["v4"] }
-axum = { version = "0.7", optional = true }
-utoipa = { version = "5", optional = true }
-tower = { version = "0.5", features = ["util"], optional = true }
+anyhow = {workspace = true}
+serde = {workspace = true}
+serde_json = {workspace = true}
+thiserror = {workspace = true}
+tracing = {workspace = true}
+uuid = {workspace = true}
+axum = {workspace = true, optional = true}
+utoipa = {workspace = true, optional = true}
+tower = {workspace = true, optional = true}
 http = { version = "1", optional = true }
 pin-project-lite = { version = "0.2", optional = true }
 k1s0-telemetry = { path = "../telemetry", features = ["axum-layer"], optional = true }
 k1s0-correlation = { path = "../correlation", features = ["tower-layer"], optional = true }
 k1s0-health = { path = "../health", optional = true }
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"], optional = true }
+sqlx = {workspace = true, optional = true}
 k1s0-migration = { path = "../migration", features = ["postgres"], optional = true }
 k1s0-auth = { path = "../auth", optional = true }
 k1s0-kafka = { path = "../kafka", optional = true }
-serde_yaml = { version = "0.9", optional = true }
-tonic = { version = "0.12", optional = true }
-tokio = { version = "1", features = ["signal"], optional = true }
+serde_yaml = {workspace = true, optional = true}
+tonic = {workspace = true, optional = true}
+tokio = {workspace = true, optional = true}
 
 [dev-dependencies]
-async-trait = "0.1"
-tokio = { version = "1", features = ["full"] }
-tower = { version = "0.5", features = ["util"] }
+async-trait = {workspace = true}
+tokio = {workspace = true}
+tower = {workspace = true}
 http = "1"
 pin-project-lite = "0.2"
 k1s0-telemetry = { path = "../telemetry", features = ["axum-layer"] }
 k1s0-correlation = { path = "../correlation", features = ["tower-layer"] }
 k1s0-health = { path = "../health" }
-axum = "0.7"
+axum = {workspace = true}

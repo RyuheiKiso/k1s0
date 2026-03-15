@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { type UseFormSetValue, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { BFF_LANGUAGE_VALIDATION_ERROR } from '../constants/messages';
 import {
   API_STYLE_VALUES,
   BFF_LANGUAGE_VALUES,
@@ -493,7 +494,7 @@ export function useGenerateForm(
       }
 
       if (showBffControls && generateBff && !detail.bff_language) {
-        setError('bffLanguage', { type: 'manual', message: 'BFF言語を選択してください。' });
+        setError('bffLanguage', { type: 'manual', message: BFF_LANGUAGE_VALIDATION_ERROR });
         return;
       }
 

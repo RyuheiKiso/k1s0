@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import MockAdapter from 'axios-mock-adapter';
-import { createApiClient } from './apiClient';
+import { createApiClient, setCsrfToken } from './apiClient';
 
 describe('createApiClient', () => {
   it('Axios インスタンスを返す', () => {
@@ -23,6 +23,45 @@ describe('createApiClient', () => {
   it('Content-Type ヘッダーが設定される', () => {
     const client = createApiClient({ baseURL: 'https://api.example.com' });
     expect(client.defaults.headers['Content-Type']).toBe('application/json');
+  });
+});
+
+describe('setCsrfToken', () => {
+  beforeEach(() => {
+    // テスト前にトークンをリセットする
+    setCsrfToken(null);
+  });
+
+  afterEach(() => {
+    setCsrfToken(null);
+  });
+
+  it('プログラム的に設定した CSRF トークンがリクエストヘッダーに付与される', async () => {
+    setCsrfToken('session-csrf-token-123');
+
+    const client = createApiClient({ baseURL: 'https://api.example.com' });
+    const mock = new MockAdapter(client);
+    mock.onGet('/test').reply(200);
+
+    const response = await client.get('/test');
+    expect(response.config.headers['X-CSRF-Token']).toBe('session-csrf-token-123');
+
+    mock.restore();
+  });
+
+  it('null を設定するとトークンがクリアされる', async () => {
+    setCsrfToken('old-token');
+    setCsrfToken(null);
+
+    const client = createApiClient({ baseURL: 'https://api.example.com' });
+    const mock = new MockAdapter(client);
+    mock.onGet('/test').reply(200);
+
+    const response = await client.get('/test');
+    // meta タグもないため、CSRF ヘッダーは未設定
+    expect(response.config.headers['X-CSRF-Token']).toBeUndefined();
+
+    mock.restore();
   });
 });
 

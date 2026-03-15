@@ -18,6 +18,7 @@ nul
 **/target/
 **/Cargo.lock
 !CLI/Cargo.lock
+!regions/system/Cargo.lock
 
 # Go (sum is committed, vendor is not)
 vendor/
@@ -37,6 +38,8 @@ vendor/
 .env
 .env.local
 .env.*.local
+**/config/config.dev.yaml
+**/config/config.local.yaml
 
 # Docker
 docker-compose.override.yaml

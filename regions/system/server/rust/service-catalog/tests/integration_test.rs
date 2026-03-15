@@ -414,19 +414,15 @@ async fn test_get_service_found() {
     let svc_id = svc.id;
     let svc_name = svc.name.clone();
 
-    let service_repo = Arc::new(TestServiceRepository::with_services(vec![svc]));
     let app = make_test_app_with_repos(
         true,
-        service_repo.clone(),
+        Arc::new(TestServiceRepository::with_services(vec![svc])),
         Arc::new(TestTeamRepository::new()),
     );
 
-    // NOTE: GET /api/v1/services/{id} returns 404 due to axum router merge conflict
-    // between service_read_routes and service_write_routes both defining /api/v1/services/{id}.
-    // This is a known issue in the router configuration that needs to be fixed separately.
-    // For now, verify via list endpoint + repository.
+    // GET /api/v1/services/:id で直接サービスを取得する
     let req = Request::builder()
-        .uri("/api/v1/services")
+        .uri(format!("/api/v1/services/{}", svc_id))
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();
@@ -437,17 +433,7 @@ async fn test_get_service_found() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    let services = json.as_array().unwrap();
-    let found = services
-        .iter()
-        .find(|s| s["id"] == svc_id.to_string())
-        .unwrap();
-    assert_eq!(found["name"], svc_name);
-
-    // Verify the GetServiceUseCase resolves correctly via repository
-    let result = service_repo.find_by_id(svc_id).await.unwrap();
-    assert!(result.is_some());
-    assert_eq!(result.unwrap().name, svc_name);
+    assert_eq!(json["name"], svc_name);
 }
 
 #[tokio::test]

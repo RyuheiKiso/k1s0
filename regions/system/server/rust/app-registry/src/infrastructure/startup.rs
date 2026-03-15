@@ -11,27 +11,6 @@ use crate::adapter::repository::download_stats_postgres::DownloadStatsPostgresRe
 use crate::adapter::repository::version_postgres::VersionPostgresRepository;
 use crate::usecase;
 
-/// シャットダウンシグナルを待機する
-async fn shutdown_signal() -> anyhow::Result<()> {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{signal, SignalKind};
-
-        let mut terminate = signal(SignalKind::terminate())?;
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = terminate.recv() => {}
-        }
-    }
-
-    #[cfg(not(unix))]
-    {
-        tokio::signal::ctrl_c().await?;
-    }
-
-    Ok(())
-}
-
 pub async fn run() -> anyhow::Result<()> {
     // Load config
     let config_path =
@@ -210,7 +189,7 @@ pub async fn run() -> anyhow::Result<()> {
     // REST グレースフルシャットダウン設定
     axum::serve(listener, app)
         .with_graceful_shutdown(async {
-            let _ = shutdown_signal().await;
+            let _ = k1s0_server_common::shutdown::shutdown_signal().await;
         })
         .await?;
     // テレメトリのシャットダウン処理

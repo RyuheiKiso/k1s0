@@ -1,0 +1,49 @@
+app:
+  name: "k1s0-master-maintenance-server"
+  version: "0.1.0"
+  environment: "development"
+
+server:
+  host: "127.0.0.1"
+  port: 8110
+  grpc_port: 50051
+
+database:
+  host: "127.0.0.1"
+  port: 5432
+  name: "k1s0_system"
+  schema: "master_maintenance"
+  user: "dev"
+  password: "${DB_PASSWORD}"
+  ssl_mode: "disable"
+  max_connections: 10
+  max_idle_conns: 2
+  conn_max_lifetime: 300
+
+auth:
+  jwks_url: "http://127.0.0.1:8180/realms/k1s0/protocol/openid-connect/certs"
+  issuer: "http://127.0.0.1:8180/realms/k1s0"
+  audience: "react-spa"
+  jwks_cache_ttl_secs: 300
+
+rule_engine:
+  max_rules_per_table: 100
+  evaluation_timeout_ms: 5000
+  cache_ttl_seconds: 300
+
+import:
+  max_file_size_mb: 50
+  max_rows_per_import: 100000
+  batch_size: 500
+
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: false
+    endpoint: ""
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"

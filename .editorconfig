@@ -1,0 +1,70 @@
+# EditorConfig — プロジェクト全体のエディタ設定を統一する
+# https://editorconfig.org
+
+# ルートファイルであることを宣言（上位ディレクトリの .editorconfig を無視）
+root = true
+
+# 全ファイル共通: UTF-8 + LF + 末尾改行 + 末尾空白除去
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Go: タブインデント（gofmt 準拠）
+[*.go]
+indent_style = tab
+indent_size = 4
+
+# Rust: スペース4（rustfmt 準拠）
+[*.rs]
+indent_style = space
+indent_size = 4
+
+# TypeScript / JavaScript / JSON: スペース2
+[*.{ts,tsx,js,jsx,json}]
+indent_style = space
+indent_size = 2
+
+# Dart: スペース2（dart format 準拠）
+[*.dart]
+indent_style = space
+indent_size = 2
+
+# YAML / TOML: スペース2
+[*.{yaml,yml,toml}]
+indent_style = space
+indent_size = 2
+
+# Markdown: 末尾空白を保持（改行に使用される場合がある）
+[*.md]
+trim_trailing_whitespace = false
+
+# Makefile / justfile: タブインデント（必須）
+[{Makefile,justfile}]
+indent_style = tab
+
+# Protocol Buffers: スペース2
+[*.proto]
+indent_style = space
+indent_size = 2
+
+# HTML / CSS: スペース2
+[*.{html,css,scss}]
+indent_style = space
+indent_size = 2
+
+# Shell scripts: スペース2
+[*.{sh,bash}]
+indent_style = space
+indent_size = 2
+
+# Terraform: スペース2（HCL 標準）
+[*.{tf,tfvars}]
+indent_style = space
+indent_size = 2
+
+# Docker: スペース2
+[Dockerfile*]
+indent_style = space
+indent_size = 2

@@ -105,7 +105,7 @@ func main() {
 ```go
 module {{ go_module }}
 
-go 1.23
+go 1.24
 
 require (
     github.com/99designs/gqlgen v0.17.45
@@ -376,7 +376,7 @@ upstream:
 
 ```dockerfile
 # === Build Stage ===
-FROM golang:1.23-bookworm AS builder
+FROM golang:1.24-bookworm AS builder
 
 WORKDIR /app
 COPY go.mod go.sum ./

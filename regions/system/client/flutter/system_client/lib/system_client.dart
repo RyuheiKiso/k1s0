@@ -1,8 +1,10 @@
 library system_client;
 
 export 'src/auth/auth_state.dart';
-export 'src/auth/auth_provider.dart';
-export 'src/http/api_client.dart';
+export 'src/auth/auth_provider.dart'
+    show AuthNotifier, authProvider, authApiBaseUrlProvider, authCallbackSchemeProvider, webAuthCallbackProvider, WebAuthCallback;
+export 'src/http/api_client.dart'
+    show ApiClient, CsrfTokenInterceptor, CsrfTokenProvider, SessionCookieInterceptor;
 export 'src/routing/auth_guard.dart';
 export 'src/widgets/app_button.dart';
 export 'src/widgets/app_scaffold.dart';

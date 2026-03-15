@@ -1,27 +1,17 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { AuthContext, type User } from './AuthContext';
-import { createApiClient } from '../http/apiClient';
+import { createApiClient, setCsrfToken } from '../http/apiClient';
 
 interface AuthProviderProps {
   children: ReactNode;
   apiBaseURL?: string;
 }
 
-interface UserResponse {
+// BFF /auth/session のレスポンス型
+interface SessionResponse {
   id: string;
-  username: string;
-  roles?: string[];
-  realm_access?: {
-    roles?: string[];
-  };
-}
-
-function normalizeUser(user: UserResponse): User {
-  return {
-    id: user.id,
-    username: user.username,
-    roles: user.roles ?? user.realm_access?.roles ?? [],
-  };
+  authenticated: boolean;
+  csrf_token: string;
 }
 
 export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProps) {
@@ -31,15 +21,26 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
   // 401 未認証エラー時にログインページへリダイレクトするコールバックを設定
   const apiClient = createApiClient({
     baseURL: apiBaseURL,
-    onUnauthorized: () => { window.location.href = '/auth/login'; },
+    onUnauthorized: () => { window.location.href = `${apiBaseURL}/auth/login`; },
   });
 
-  // 初期化時にセッション確認
+  // 初期化時にセッション確認（BFF の /auth/session エンドポイントを使用）
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await apiClient.get<UserResponse>('/auth/me');
-        setUser(normalizeUser(response.data));
+        const response = await apiClient.get<SessionResponse>('/auth/session');
+        const data = response.data;
+        if (data.authenticated) {
+          // CSRF トークンを apiClient に設定し、以降のリクエストで自動送信する
+          setCsrfToken(data.csrf_token);
+          setUser({
+            id: data.id,
+            username: data.id,
+            roles: [],
+          });
+        } else {
+          setUser(null);
+        }
       } catch {
         setUser(null);
       } finally {
@@ -51,19 +52,15 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(
-    async ({ username, password }: { username: string; password: string }) => {
-      const response = await apiClient.post<UserResponse>('/auth/login', {
-        username,
-        password,
-      });
-      setUser(normalizeUser(response.data));
-    },
-    [apiClient],
-  );
+  // BFF の OAuth2/OIDC 認可コードフローへリダイレクトする
+  const login = useCallback(() => {
+    window.location.href = `${apiBaseURL}/auth/login`;
+  }, [apiBaseURL]);
 
+  // ログアウト時に CSRF トークンもクリアする
   const logout = useCallback(async () => {
     await apiClient.post('/auth/logout');
+    setCsrfToken(null);
     setUser(null);
   }, [apiClient]);
 

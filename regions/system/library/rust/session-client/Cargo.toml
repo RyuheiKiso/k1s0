@@ -8,16 +8,14 @@ default = []
 mock = ["dep:mockall"]
 
 [dependencies]
-async-trait = "0.1"
-thiserror = "2"
-serde = { version = "1", features = ["derive"] }
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1", features = ["v4"] }
-tokio = { version = "1", features = ["sync"] }
+async-trait = {workspace = true}
+thiserror = {workspace = true}
+serde = {workspace = true}
+chrono = {workspace = true}
+uuid = {workspace = true}
+tokio = {workspace = true}
+mockall = {workspace = true, optional = true}
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = {workspace = true}
 
-[dependencies.mockall]
-version = "0.13"
-optional = true

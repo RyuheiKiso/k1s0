@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-thiserror = "2"
+thiserror = {workspace = true}
 regex = "1"
-uuid = { version = "1", features = ["v4"] }
+uuid = {workspace = true}
 url = "2"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = {workspace = true}
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = {workspace = true}

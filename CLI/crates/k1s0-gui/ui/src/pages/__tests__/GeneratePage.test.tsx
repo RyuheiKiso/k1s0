@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {
+  BFF_GENERATE_LABEL,
+  BFF_GENERATE_YES,
+  BFF_LANGUAGE_LABEL,
+  BFF_LANGUAGE_VALIDATION_ERROR,
+  BFF_OPT_IN_YES,
+} from '../../constants/messages';
 import { mockInvoke } from '../../test/mocks';
 import { renderWithProviders } from '../../test/render';
 import GeneratePage from '../GeneratePage';
@@ -193,16 +200,16 @@ describe('GeneratePage', () => {
     await reachServiceServerDetailStep(user);
 
     await user.click(screen.getByLabelText('GraphQL'));
-    await user.click(screen.getByLabelText('Yes'));
+    await user.click(screen.getByLabelText(BFF_OPT_IN_YES));
     await user.click(screen.getByTestId('btn-next'));
 
-    expect(screen.getByTestId('detail-error')).toHaveTextContent('Select a BFF language.');
+    expect(screen.getByTestId('detail-error')).toHaveTextContent(BFF_LANGUAGE_VALIDATION_ERROR);
 
     await user.click(screen.getByLabelText('Rust'));
     await user.click(screen.getByTestId('btn-next'));
 
     expect(screen.getByTestId('step-confirm')).toBeInTheDocument();
-    expect(screen.getByText('Generate BFF: yes')).toBeInTheDocument();
-    expect(screen.getByText('BFF language: Rust')).toBeInTheDocument();
+    expect(screen.getByText(`${BFF_GENERATE_LABEL} ${BFF_GENERATE_YES}`)).toBeInTheDocument();
+    expect(screen.getByText(`${BFF_LANGUAGE_LABEL} Rust`)).toBeInTheDocument();
   });
 });

@@ -60,6 +60,8 @@ CLI/
 │           ├── src/
 │           │   ├── App.tsx
 │           │   ├── router.tsx
+│           │   ├── constants/              # 文言定数（テストと実装の同期用）
+│           │   │   └── messages.ts         # 全UI文言の一元管理
 │           │   ├── pages/
 │           │   │   ├── InitPage.tsx         # プロジェクト初期化
 │           │   │   ├── GeneratePage.tsx     # ひな形生成ウィザード（オーケストレーター）

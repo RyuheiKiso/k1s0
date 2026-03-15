@@ -55,7 +55,7 @@ k1s0-telemetry = { path = "../../../../../system/library/rust/telemetry", featur
 k1s0-auth = { path = "../../../../../system/library/rust/auth" }
 
 # Server common (error codes, auth middleware, RBAC, gRPC auth)
-k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["axum", "grpc-auth"] }
+k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["axum", "grpc-auth", "shutdown"] }
 
 # OpenAPI
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
