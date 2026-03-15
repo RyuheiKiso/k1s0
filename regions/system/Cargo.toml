@@ -90,7 +90,7 @@ rust-version = "1.93"
 
 # ワークスペース共通依存: バージョンとfeatureを一元管理する
 [workspace.dependencies]
-axum = { version = "0.7", features = ["macros"] }
+axum = { version = "0.8", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["trace", "cors"] }
@@ -115,10 +115,9 @@ utoipa-swagger-ui = { version = "8", features = ["axum"] }
 mockall = "0.13"
 tokio-test = "0.4"
 
-# ワークスペース共通リント: プロダクションコードでの unwrap() 使用を警告する
-# TODO: warn → deny に段階的に昇格し、unwrap() を expect() / ? 演算子に置換する
+# ワークスペース共通リント: プロダクションコードでの unwrap() 使用を禁止する
 [workspace.lints.clippy]
-unwrap_used = "warn"
+unwrap_used = "deny"
 
 [profile.dev]
 debug = 1

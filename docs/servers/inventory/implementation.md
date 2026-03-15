@@ -65,7 +65,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7", features = ["macros"] }
+axum = { version = "0.8", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
@@ -90,7 +90,7 @@ k1s0-server-common = { path = "../../../../../system/library/rust/server-common"
 mockall = "0.13"
 tokio-test = "0.4"
 tower = { version = "0.5", features = ["util"] }
-axum-test = "16"
+axum-test = "17"
 ```
 
 ---

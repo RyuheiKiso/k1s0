@@ -1104,7 +1104,7 @@ prost = "0.13"
 prost-types = "0.13"
 
 # Web フレームワーク
-axum = { version = "0.7", features = ["macros"] }
+axum = { version = "0.8", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
@@ -1151,7 +1151,7 @@ tonic-build = "0.12"
 [dev-dependencies]
 mockall = "0.13"
 tokio-test = "0.4"
-axum-test = "16"
+axum-test = "17"
 tower = { version = "0.5", features = ["util"] }
 tempfile = "3"
 ```

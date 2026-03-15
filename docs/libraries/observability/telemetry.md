@@ -212,7 +212,7 @@ tracing-opentelemetry = "0.28"
 prometheus = "0.13"
 
 # Tower Layer support (optional)
-axum = { version = "0.7", optional = true }
+axum = { version = "0.8", optional = true }
 http = { version = "1", optional = true }
 tonic = { version = "0.12", optional = true }
 tower = { version = "0.5", features = ["util"], optional = true }
@@ -226,7 +226,7 @@ full = ["axum-layer", "grpc-layer"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-axum = "0.7"
+axum = "0.8"
 http = "1"
 tonic = "0.12"
 tower = { version = "0.5", features = ["util"] }

@@ -20,7 +20,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | ----------------- | ----------------- | --------------------------- | ------------------------ |
 | CI                | `ci.yaml`         | PR 作成・更新時             | lint → test → build     |
 | Deploy            | `deploy.yaml`     | main マージ時               | image push → deploy     |
-| Proto Check       | `proto.yaml`      | `api/proto/**` 変更時       | proto lint + breaking    |
+| Proto Check       | `proto.yaml`      | `api/proto/**` 変更時       | proto lint + breaking（ci.yaml の lint-proto ジョブでも実行） |
 | Security Scan     | `security.yaml`   | 日次 + PR 時                | 脆弱性スキャン           |
 | Kong Config Sync  | `kong-sync.yaml`  | main マージ時 (`infra/kong/**` 変更) | dev → staging → prod    |
 | OpenAPI Lint      | `api-lint.yaml`   | push (`**/api/openapi/**`)  | OpenAPI バリデーション & SDK 生成 |

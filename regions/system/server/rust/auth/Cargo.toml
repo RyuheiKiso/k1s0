@@ -80,7 +80,7 @@ db-tests = []
 [dev-dependencies]
 mockall = {workspace = true}
 tokio-test = {workspace = true}
-axum-test = "16"
+axum-test = "17"
 tower = {workspace = true}
 testcontainers = "0.23"
 testcontainers-modules = { version = "0.11", features = ["postgres"] }
