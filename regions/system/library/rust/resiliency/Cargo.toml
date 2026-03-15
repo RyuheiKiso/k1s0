@@ -22,3 +22,6 @@ k1s0-featureflag = { path = "../featureflag", optional = true }
 
 [dev-dependencies]
 tokio = {workspace = true}
+
+[lints]
+workspace = true

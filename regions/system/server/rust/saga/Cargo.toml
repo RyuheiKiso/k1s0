@@ -72,3 +72,6 @@ tokio-test = {workspace = true}
 axum-test = "16"
 tower = {workspace = true}
 tempfile = "3"
+
+[lints]
+workspace = true

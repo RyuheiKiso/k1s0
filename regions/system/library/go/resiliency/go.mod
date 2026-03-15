@@ -1,6 +1,6 @@
 module github.com/k1s0-platform/system-library-go-resiliency
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/k1s0-platform/system-library-go-bulkhead v0.0.0

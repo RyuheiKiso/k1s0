@@ -7,3 +7,6 @@ edition = "2021"
 
 [dev-dependencies]
 # なし（純粋なロジックのみ）
+
+[lints]
+workspace = true

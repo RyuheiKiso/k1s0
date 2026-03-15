@@ -26,3 +26,6 @@ rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
 [dev-dependencies]
 tokio = {workspace = true}
 async-trait = {workspace = true}
+
+[lints]
+workspace = true

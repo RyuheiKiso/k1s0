@@ -79,3 +79,6 @@ db-tests = []
 mockall = {workspace = true}
 tokio-test = {workspace = true}
 tower = {workspace = true}
+
+[lints]
+workspace = true

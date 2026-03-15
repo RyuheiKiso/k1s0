@@ -24,3 +24,6 @@ toml = { version = "0.8", optional = true }
 
 [dev-dependencies]
 tokio = {workspace = true}
+
+[lints]
+workspace = true

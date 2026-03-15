@@ -7,7 +7,7 @@
   "features": {
 {% if language == "go" %}
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.23"
+      "version": "1.24"
     },
 {% endif %}
 {% if language == "rust" %}

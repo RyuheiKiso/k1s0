@@ -1,6 +1,6 @@
 module github.com/k1s0-platform/system-library-go-health
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/redis/go-redis/v9 v9.18.0

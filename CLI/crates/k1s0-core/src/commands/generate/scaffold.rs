@@ -58,7 +58,7 @@ func main() {{
     // go.mod
     fs::write(
         output_path.join("go.mod"),
-        format!("module {service_name}\n\ngo 1.21\n"),
+        format!("module {service_name}\n\ngo 1.24\n"),
     )?;
 
     // Dockerfile
@@ -380,7 +380,7 @@ pub(super) fn generate_library(config: &GenerateConfig, output_path: &Path) -> R
         Language::Go => {
             fs::write(
                 output_path.join("go.mod"),
-                format!("module {lib_name}\n\ngo 1.21\n"),
+                format!("module {lib_name}\n\ngo 1.24\n"),
             )?;
             fs::write(
                 output_path.join(format!("{}.go", lib_name.replace('-', "_"))),
@@ -619,7 +619,7 @@ routes:
 
 fn generate_go_dockerfile(service_name: &str) -> String {
     format!(
-        r#"FROM golang:1.21-alpine AS builder
+        r#"FROM golang:1.24-bookworm AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download

@@ -1,6 +1,6 @@
 module github.com/k1s0-platform/system-library-go-eventstore
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/lib/pq v1.11.2

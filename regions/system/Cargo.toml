@@ -115,6 +115,11 @@ utoipa-swagger-ui = { version = "8", features = ["axum"] }
 mockall = "0.13"
 tokio-test = "0.4"
 
+# ワークスペース共通リント: プロダクションコードでの unwrap() 使用を警告する
+# TODO: warn → deny に段階的に昇格し、unwrap() を expect() / ? 演算子に置換する
+[workspace.lints.clippy]
+unwrap_used = "warn"
+
 [profile.dev]
 debug = 1
 

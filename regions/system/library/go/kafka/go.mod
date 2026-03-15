@@ -1,6 +1,6 @@
 module github.com/k1s0-platform/system-library-go-kafka
 
-go 1.23.0
+go 1.24.0
 
 require github.com/stretchr/testify v1.10.0
 

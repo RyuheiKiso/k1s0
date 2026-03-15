@@ -48,3 +48,6 @@ tonic-build = {workspace = true}
 mockall = {workspace = true}
 tokio-test = {workspace = true}
 axum-test = "16"
+
+[lints]
+workspace = true

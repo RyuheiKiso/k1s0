@@ -7,7 +7,14 @@ WORKDIR /app
 # Copy the entire system directory to resolve path dependencies
 COPY . .
 
-RUN cargo build --release -p k1s0-service-catalog
+# ローカル開発用ビルド引数: 認証バイパスを有効化するには
+# CARGO_FEATURES="k1s0-server-common/dev-auth-bypass" を指定する
+ARG CARGO_FEATURES=""
+RUN if [ -n "${CARGO_FEATURES}" ]; then \
+      cargo build --release -p k1s0-service-catalog --features "${CARGO_FEATURES}"; \
+    else \
+      cargo build --release -p k1s0-service-catalog; \
+    fi
 
 FROM busybox:1.36.1-musl AS busybox
 

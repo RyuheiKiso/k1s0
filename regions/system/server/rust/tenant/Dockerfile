@@ -4,7 +4,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY . .
-RUN cargo build --release -p k1s0-tenant-server
+# ローカル開発用ビルド引数: 認証バイパスを有効化するには
+# CARGO_FEATURES="k1s0-server-common/dev-auth-bypass" を指定する
+ARG CARGO_FEATURES=""
+RUN if [ -n "${CARGO_FEATURES}" ]; then \
+      cargo build --release -p k1s0-tenant-server --features "${CARGO_FEATURES}"; \
+    else \
+      cargo build --release -p k1s0-tenant-server; \
+    fi
 
 FROM busybox:1.36.1-musl AS busybox
 

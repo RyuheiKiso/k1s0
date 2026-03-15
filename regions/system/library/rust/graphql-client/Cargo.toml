@@ -21,3 +21,6 @@ reqwest = {workspace = true, optional = true}
 [dev-dependencies]
 tokio = {workspace = true}
 tokio-stream = "0.1"
+
+[lints]
+workspace = true
