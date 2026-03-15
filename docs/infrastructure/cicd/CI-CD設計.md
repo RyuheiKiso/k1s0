@@ -789,6 +789,95 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 
 ---
 
+## モジュールレジストリ（modules.yaml）
+
+リポジトリルートの `modules.yaml` が全モジュールの唯一の情報源（Single Source of Truth）として機能する。CI・justfile のハードコードされたスキップリストを廃止し、このファイルで一元管理する。
+
+### フィールド定義
+
+| フィールド | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| `path` | string | 必須 | モジュールのディレクトリパス |
+| `lang` | string | 必須 | 言語（`rust`, `go`, `ts`, `dart`） |
+| `status` | string | 必須 | `stable` / `experimental` / `archived` |
+| `type` | string | 必須 | `server` / `library` / `client` / `cli` / `workspace` / `proto` |
+| `workspace` | string | 任意 | Cargo/Go ワークスペースルートパス |
+| `skip-ci` | bool | 任意 | `true` の場合 CI のリント・テスト・ビルドをスキップ |
+
+### フィルタリングスクリプト
+
+`scripts/list-modules.sh` で `modules.yaml` をフィルタリングする。`yq` がある場合はそちらを使用し、なければ bash フォールバックで動作する。
+
+```bash
+# stable な Rust サーバーのみ取得
+scripts/list-modules.sh --lang rust --status stable --type server
+
+# CI 対象の全 Go モジュール（skip-ci を除外）
+scripts/list-modules.sh --lang go --no-skip-ci
+
+# experimental モジュールの一覧
+scripts/list-modules.sh --status experimental
+```
+
+### CI バリデーション
+
+`ci.yaml` の `validate-modules` ジョブがディスク上のマニフェストと `modules.yaml` の差分を検出し、未登録モジュールを warning で通知する。
+
+## Reusable Workflow アーキテクチャ
+
+サービス別 CI/Deploy ワークフローの重複を排除するため、3つの reusable workflow を定義している。
+
+### `_rust-service-ci.yaml`
+
+Rust サービス用の共通 CI パイプライン（lint → test → build）。
+
+| 入力 | 必須 | 説明 |
+|------|------|------|
+| `service-path` | 必須 | サービスのディレクトリパス |
+| `package-name` | 必須 | Cargo パッケージ名 |
+| `workspace-path` | 必須 | Cargo workspace のルートパス |
+| `rust-version` | 任意 | Rust ツールチェインバージョン（デフォルト: 1.93） |
+| `standalone` | 任意 | ワークスペースの `-p` フラグを使わないモード（デフォルト: false） |
+
+### `_go-service-ci.yaml`
+
+Go サービス用の共通 CI パイプライン（lint → test → build）。
+
+| 入力 | 必須 | 説明 |
+|------|------|------|
+| `service-path` | 必須 | サービスのディレクトリパス |
+| `go-version` | 任意 | Go バージョン（デフォルト: 1.24） |
+| `golangci-lint-version` | 任意 | golangci-lint バージョン（デフォルト: v1.64.8） |
+
+### `_service-deploy.yaml`
+
+サービスデプロイ用の共通パイプライン（build-push → deploy-dev → deploy-staging → deploy-prod）。
+
+| 入力 | 必須 | 説明 |
+|------|------|------|
+| `service-name` | 必須 | サービス名（Helm リリース名） |
+| `context-path` | 必須 | Docker ビルドコンテキストのパス |
+| `registry-project` | 必須 | Harbor レジストリ内のプロジェクト名 |
+| `helm-chart-path` | 必須 | Helm チャートの相対パス |
+| `namespace` | 必須 | Kubernetes namespace |
+| `dockerfile` | 任意 | カスタム Dockerfile パス |
+| `prod-url` | 任意 | prod 環境の URL |
+| `health-check-method` | 任意 | `busybox`（Rust）/ `port-forward`（Go） |
+
+### 新サービス追加手順
+
+1. `modules.yaml` にモジュールエントリを追加
+2. `.github/workflows/{サービス名}-ci.yaml`（~20行）を作成し、reusable workflow を呼び出す
+3. `.github/workflows/{サービス名}-deploy.yaml`（~25行）を作成し、reusable workflow を呼び出す
+
+## ワークスペースレベルビルド
+
+CI の Rust/Go ビルドは個別マニフェスト反復ではなくワークスペース一括操作を採用し、起動回数を O(n) → O(1) に削減している。
+
+- **Rust**: `cargo fmt/clippy/test/build --manifest-path regions/system/Cargo.toml --workspace` + `--exclude` で experimental クレートを除外
+- **Go**: `go build ./...` で `go.work` 経由の一括ビルド
+- **影響範囲検出時**: `detect-affected-modules.sh` + `AFFECTED_MODULES` 環境変数で影響モジュールのみを個別実行（差分ビルド）
+
 ## 関連ドキュメント
 
 - [tier-architecture.md](../../architecture/overview/tier-architecture.md) — Tier アーキテクチャの詳細
