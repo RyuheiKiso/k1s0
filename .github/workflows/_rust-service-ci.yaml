@@ -1,0 +1,93 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/_rust-service-ci.yaml
+# Rust サービス用の再利用可能 CI ワークフロー
+# 各サービス CI から workflow_call で呼び出される
+name: _rust-service-ci
+
+on:
+  workflow_call:
+    inputs:
+      # サービスのディレクトリパス（例: regions/system/server/rust/auth）
+      service-path:
+        required: true
+        type: string
+      # Cargo パッケージ名（例: k1s0-auth-server）
+      package-name:
+        required: true
+        type: string
+      # Cargo workspace のルートパス（例: regions/system）
+      workspace-path:
+        required: true
+        type: string
+      # Rust ツールチェインバージョン（Dockerイメージ戦略.md / devcontainer設計.md と同期）
+      rust-version:
+        required: false
+        type: string
+        default: "1.93"
+      # ワークスペースの -p フラグを使わず、サービス独自の Cargo.toml でビルドするか
+      standalone:
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  # フォーマットチェック + Clippy 静的解析
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.rust-version }}
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.workspace-path }}
+      - name: Format check
+        run: cargo fmt --manifest-path ${{ inputs.service-path }}/Cargo.toml --all -- --check
+      # standalone モード: サービスの Cargo.toml を直接使用
+      - name: Clippy (standalone)
+        if: inputs.standalone
+        run: cargo clippy --manifest-path ${{ inputs.service-path }}/Cargo.toml --all-targets -- -D warnings
+      # workspace モード: ワークスペースの Cargo.toml + -p でパッケージ指定
+      - name: Clippy (workspace)
+        if: ${{ !inputs.standalone }}
+        run: cargo clippy --manifest-path ${{ inputs.workspace-path }}/Cargo.toml -p ${{ inputs.package-name }} --all-targets -- -D warnings
+
+  # ユニットテスト実行
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.rust-version }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.workspace-path }}
+      - name: Run tests (standalone)
+        if: inputs.standalone
+        run: cargo test --manifest-path ${{ inputs.service-path }}/Cargo.toml --all
+      - name: Run tests (workspace)
+        if: ${{ !inputs.standalone }}
+        run: cargo test --manifest-path ${{ inputs.workspace-path }}/Cargo.toml -p ${{ inputs.package-name }} --all
+
+  # リリースビルド検証
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.rust-version }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.workspace-path }}
+      - name: Build (standalone)
+        if: inputs.standalone
+        run: cargo build --manifest-path ${{ inputs.service-path }}/Cargo.toml --all-targets
+      - name: Build (workspace)
+        if: ${{ !inputs.standalone }}
+        run: cargo build --manifest-path ${{ inputs.workspace-path }}/Cargo.toml -p ${{ inputs.package-name }} --all-targets

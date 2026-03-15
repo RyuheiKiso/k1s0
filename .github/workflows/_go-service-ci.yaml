@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/_go-service-ci.yaml
+# Go サービス用の再利用可能 CI ワークフロー
+# 各サービス CI から workflow_call で呼び出される
+name: _go-service-ci
+
+on:
+  workflow_call:
+    inputs:
+      # サービスのディレクトリパス（例: regions/system/server/go/bff-proxy）
+      service-path:
+        required: true
+        type: string
+      # Go バージョン（devcontainer設計.md と同期）
+      go-version:
+        required: false
+        type: string
+        default: "1.24"
+      # golangci-lint バージョン
+      golangci-lint-version:
+        required: false
+        type: string
+        default: "v1.64.8"
+
+jobs:
+  # Go vet + golangci-lint 静的解析
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache-dependency-path: ${{ inputs.service-path }}/go.sum
+      - name: Install golangci-lint
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@${{ inputs.golangci-lint-version }}
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Vet
+        run: go vet ./...
+        working-directory: ${{ inputs.service-path }}
+      - name: Lint
+        run: golangci-lint run ./...
+        working-directory: ${{ inputs.service-path }}
+
+  # ユニットテスト実行（race detector 有効）
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache-dependency-path: ${{ inputs.service-path }}/go.sum
+      - name: Run tests
+        run: go test ./... -race -count=1
+        working-directory: ${{ inputs.service-path }}
+
+  # ビルド検証
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache-dependency-path: ${{ inputs.service-path }}/go.sum
+      - name: Build
+        run: go build ./...
+        working-directory: ${{ inputs.service-path }}

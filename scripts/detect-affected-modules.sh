@@ -13,8 +13,24 @@ set -euo pipefail
 BASE_BRANCH="${1:-main}"
 LANG_FILTER="${2:-}"
 
-# 変更されたファイルの一覧を取得（マージベースとの差分、失敗時は直前コミットとの差分）
-changed_files=$(git diff --name-only "${BASE_BRANCH}"...HEAD 2>/dev/null || git diff --name-only HEAD~1)
+# ベースブランチを明示的に fetch してマージベースを確実に取得する
+# CI 環境では shallow clone のためベースブランチが存在しない場合がある
+if ! git rev-parse --verify "origin/${BASE_BRANCH}" >/dev/null 2>&1; then
+  git fetch origin "${BASE_BRANCH}" --depth=1 2>/dev/null || true
+fi
+
+# マージベースを取得して正確な差分を算出する
+# マージベース取得失敗時は HEAD~1 にフォールバックし、その旨を警告する
+merge_base=$(git merge-base "origin/${BASE_BRANCH}" HEAD 2>/dev/null) || {
+  echo "::warning::merge-base の取得に失敗しました。HEAD~1 にフォールバックします。" >&2
+  merge_base=$(git rev-parse HEAD~1 2>/dev/null) || {
+    echo "::error::差分の比較基準を取得できません。リポジトリの fetch-depth を確認してください。" >&2
+    exit 1
+  }
+}
+
+# 変更されたファイルの一覧を取得（マージベースとの差分）
+changed_files=$(git diff --name-only "${merge_base}" HEAD)
 
 # モジュールルートを特定するマニフェストファイル（言語ごと）
 declare -A MANIFEST_FILES=(
