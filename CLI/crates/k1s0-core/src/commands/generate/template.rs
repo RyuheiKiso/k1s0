@@ -172,8 +172,8 @@ fn generate_inline_scaffold(config: &GenerateConfig, output_path: &Path) -> Resu
 /// 以下の条件をすべて満たす場合のみ生成する:
 /// - kind が Server
 /// - tier が Service
-/// - api_styles に GraphQL を含む
-/// - bff_language が指定されている
+/// - `api_styles` に GraphQL を含む
+/// - `bff_language` が指定されている
 fn render_bff_if_needed(
     config: &GenerateConfig,
     template_dir: &Path,
@@ -274,7 +274,7 @@ fn normalize_database_layout(config: &GenerateConfig, output_path: &Path) -> Res
 
 /// ライブラリ scaffold のレイアウトを正規化する（Dart のみ）。
 ///
-/// Dart ライブラリのエントリポイントファイル名を snake_case に統一する。
+/// Dart ライブラリのエントリポイントファイル名を `snake_case` に統一する。
 fn normalize_library_layout(config: &GenerateConfig, output_path: &Path) -> Result<()> {
     if !matches!(config.lang_fw, LangFw::Language(Language::Dart)) {
         return Ok(());
@@ -307,7 +307,7 @@ fn normalize_library_layout(config: &GenerateConfig, output_path: &Path) -> Resu
     Ok(())
 }
 
-/// 文字列を snake_case に変換するヘルパー関数。
+/// 文字列を `snake_case` に変換するヘルパー関数。
 fn to_snake_case(value: &str) -> String {
     let mut snake = String::with_capacity(value.len());
     let mut previous_was_separator = false;

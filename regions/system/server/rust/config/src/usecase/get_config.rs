@@ -100,12 +100,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_config_internal_error() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| {
-                Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
-                    "connection refused"
-                )))
-            });
+        mock.expect_find_by_namespace_and_key().returning(|_, _| {
+            Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                "connection refused"
+            )))
+        });
 
         let uc = GetConfigUseCase::new(Arc::new(mock));
         let result = uc.execute("system.auth.database", "max_connections").await;

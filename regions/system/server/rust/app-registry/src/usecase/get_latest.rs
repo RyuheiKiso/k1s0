@@ -100,7 +100,9 @@ mod tests {
         });
 
         let uc = GetLatestUseCase::new(Arc::new(app_repo), Arc::new(version_repo));
-        let result = uc.execute("cli", Some(&Platform::Linux), Some("amd64")).await;
+        let result = uc
+            .execute("cli", Some(&Platform::Linux), Some("amd64"))
+            .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().version, "2.0.0");
     }
@@ -124,7 +126,9 @@ mod tests {
         version_repo.expect_list_by_app().returning(|_| Ok(vec![]));
 
         let uc = GetLatestUseCase::new(Arc::new(app_repo), Arc::new(version_repo));
-        let result = uc.execute("cli", Some(&Platform::Macos), Some("arm64")).await;
+        let result = uc
+            .execute("cli", Some(&Platform::Macos), Some("arm64"))
+            .await;
         assert!(matches!(result, Err(GetLatestError::VersionNotFound(_))));
     }
 }

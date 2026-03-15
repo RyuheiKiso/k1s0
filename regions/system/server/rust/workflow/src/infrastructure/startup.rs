@@ -3,10 +3,6 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use crate::adapter::grpc::WorkflowGrpcService;
-use crate::domain::repository::WorkflowDefinitionRepository;
-use crate::domain::repository::WorkflowInstanceRepository;
-use crate::domain::repository::WorkflowTaskRepository;
 use super::config::Config;
 use super::in_memory::{
     InMemoryWorkflowDefinitionRepository, InMemoryWorkflowInstanceRepository,
@@ -20,6 +16,10 @@ use super::notification_request_producer::{
     NotificationRequestPublisher,
 };
 use super::scheduler_registration::register_overdue_check_job;
+use crate::adapter::grpc::WorkflowGrpcService;
+use crate::domain::repository::WorkflowDefinitionRepository;
+use crate::domain::repository::WorkflowInstanceRepository;
+use crate::domain::repository::WorkflowTaskRepository;
 
 async fn resolve_bind_addr(host: &str, port: u16) -> anyhow::Result<SocketAddr> {
     tokio::net::lookup_host((host, port))
@@ -77,6 +77,7 @@ pub async fn run() -> anyhow::Result<()> {
     );
 
     // --- Repository / Event Publisher ---
+    #[allow(clippy::type_complexity)]
     let (def_repo, inst_repo, task_repo, workflow_pool): (
         Arc<dyn WorkflowDefinitionRepository>,
         Arc<dyn WorkflowInstanceRepository>,
@@ -95,9 +96,7 @@ pub async fn run() -> anyhow::Result<()> {
         info!("connected to PostgreSQL database");
 
         (
-            Arc::new(crate::adapter::repository::DefinitionPostgresRepository::new(
-                pool.clone(),
-            )),
+            Arc::new(crate::adapter::repository::DefinitionPostgresRepository::new(pool.clone())),
             Arc::new(crate::adapter::repository::InstancePostgresRepository::new(
                 pool.clone(),
             )),
@@ -165,7 +164,9 @@ pub async fn run() -> anyhow::Result<()> {
     });
     let get_inst_uc = Arc::new(crate::usecase::GetInstanceUseCase::new(inst_repo.clone()));
     let list_inst_uc = Arc::new(crate::usecase::ListInstancesUseCase::new(inst_repo.clone()));
-    let cancel_inst_uc = Arc::new(crate::usecase::CancelInstanceUseCase::new(inst_repo.clone()));
+    let cancel_inst_uc = Arc::new(crate::usecase::CancelInstanceUseCase::new(
+        inst_repo.clone(),
+    ));
     let list_tasks_uc = Arc::new(crate::usecase::ListTasksUseCase::new(task_repo.clone()));
     let approve_task_uc = Arc::new(if let Some(pool) = workflow_pool.clone() {
         crate::usecase::ApproveTaskUseCase::with_pool(
@@ -288,7 +289,8 @@ pub async fn run() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;
-    let grpc_auth_layer = crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
+    let grpc_auth_layer =
+        crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
     let grpc_shutdown = shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()

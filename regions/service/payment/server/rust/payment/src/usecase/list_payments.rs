@@ -50,10 +50,7 @@ mod tests {
             .expect_find_all()
             .times(1)
             .returning(move |_| Ok(payments_clone.clone()));
-        mock_repo
-            .expect_count()
-            .times(1)
-            .returning(|_| Ok(1));
+        mock_repo.expect_count().times(1).returning(|_| Ok(1));
 
         let uc = ListPaymentsUseCase::new(Arc::new(mock_repo));
         let filter = PaymentFilter::default();
@@ -71,10 +68,7 @@ mod tests {
             .expect_find_all()
             .times(1)
             .returning(|_| Ok(vec![]));
-        mock_repo
-            .expect_count()
-            .times(1)
-            .returning(|_| Ok(0));
+        mock_repo.expect_count().times(1).returning(|_| Ok(0));
 
         let uc = ListPaymentsUseCase::new(Arc::new(mock_repo));
         let filter = PaymentFilter::default();

@@ -11,11 +11,17 @@ pub struct InMemoryWorkflowDefinitionRepository {
     definitions: tokio::sync::RwLock<HashMap<String, WorkflowDefinition>>,
 }
 
-impl InMemoryWorkflowDefinitionRepository {
-    pub fn new() -> Self {
+impl Default for InMemoryWorkflowDefinitionRepository {
+    fn default() -> Self {
         Self {
             definitions: tokio::sync::RwLock::new(HashMap::new()),
         }
+    }
+}
+
+impl InMemoryWorkflowDefinitionRepository {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
@@ -69,11 +75,17 @@ pub struct InMemoryWorkflowInstanceRepository {
     instances: tokio::sync::RwLock<HashMap<String, WorkflowInstance>>,
 }
 
-impl InMemoryWorkflowInstanceRepository {
-    pub fn new() -> Self {
+impl Default for InMemoryWorkflowInstanceRepository {
+    fn default() -> Self {
         Self {
             instances: tokio::sync::RwLock::new(HashMap::new()),
         }
+    }
+}
+
+impl InMemoryWorkflowInstanceRepository {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
@@ -125,11 +137,17 @@ pub struct InMemoryWorkflowTaskRepository {
     tasks: tokio::sync::RwLock<HashMap<String, WorkflowTask>>,
 }
 
-impl InMemoryWorkflowTaskRepository {
-    pub fn new() -> Self {
+impl Default for InMemoryWorkflowTaskRepository {
+    fn default() -> Self {
         Self {
             tasks: tokio::sync::RwLock::new(HashMap::new()),
         }
+    }
+}
+
+impl InMemoryWorkflowTaskRepository {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 

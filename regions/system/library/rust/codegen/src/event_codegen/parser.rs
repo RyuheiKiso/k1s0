@@ -17,9 +17,8 @@ pub fn parse_event_config(path: &Path) -> Result<EventConfig, CodegenError> {
 
 /// Parse an `events.yaml` string into an `EventConfig`.
 pub fn parse_event_config_str(yaml: &str) -> Result<EventConfig, CodegenError> {
-    serde_yaml::from_str(yaml).map_err(|e| {
-        CodegenError::Validation(format!("failed to parse events.yaml: {e}"))
-    })
+    serde_yaml::from_str(yaml)
+        .map_err(|e| CodegenError::Validation(format!("failed to parse events.yaml: {e}")))
 }
 
 #[cfg(test)]

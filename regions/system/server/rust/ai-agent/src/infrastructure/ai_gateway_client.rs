@@ -5,7 +5,7 @@ use async_trait::async_trait;
 
 use k1s0_bb_ai_client::traits::AiClient;
 use k1s0_bb_ai_client::types::{
-    AiClientError, AiModel, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse,
+    AiClientError, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse, ModelInfo,
 };
 use k1s0_bb_ai_client::HttpAiClient;
 
@@ -38,7 +38,7 @@ impl AiClient for AiGatewayClient {
     }
 
     /// モデル一覧取得をAI Gatewayに委譲する
-    async fn list_models(&self) -> Result<Vec<AiModel>, AiClientError> {
+    async fn list_models(&self) -> Result<Vec<ModelInfo>, AiClientError> {
         self.inner.list_models().await
     }
 }

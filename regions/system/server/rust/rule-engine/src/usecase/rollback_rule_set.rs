@@ -56,10 +56,7 @@ impl RollbackRuleSetUseCase {
         }
     }
 
-    pub async fn execute(
-        &self,
-        id: &Uuid,
-    ) -> Result<RollbackRuleSetOutput, RollbackRuleSetError> {
+    pub async fn execute(&self, id: &Uuid) -> Result<RollbackRuleSetOutput, RollbackRuleSetError> {
         let mut rule_set = self
             .rule_set_repo
             .find_by_id(id)

@@ -23,10 +23,7 @@ impl ManageDocsUseCase {
     }
 
     /// 指定サービスのドキュメント一覧を取得する。
-    pub async fn list(
-        &self,
-        service_id: Uuid,
-    ) -> Result<Vec<ServiceDoc>, ManageDocsError> {
+    pub async fn list(&self, service_id: Uuid) -> Result<Vec<ServiceDoc>, ManageDocsError> {
         self.doc_repo
             .list_by_service(service_id)
             .await

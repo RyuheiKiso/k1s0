@@ -125,9 +125,7 @@ async fn search_with_facets() {
 #[tokio::test]
 async fn search_nonexistent_index_returns_error() {
     let client = InMemorySearchClient::new();
-    let result = client
-        .search("missing", SearchQuery::new("test"))
-        .await;
+    let result = client.search("missing", SearchQuery::new("test")).await;
     assert!(matches!(result, Err(SearchError::IndexNotFound(_))));
 }
 
@@ -182,10 +180,7 @@ async fn delete_nonexistent_doc_is_noop() {
 #[tokio::test]
 async fn delete_from_nonexistent_index_is_noop() {
     let client = InMemorySearchClient::new();
-    client
-        .delete_document("no-index", "ghost")
-        .await
-        .unwrap();
+    client.delete_document("no-index", "ghost").await.unwrap();
 }
 
 // ===========================================================================

@@ -120,7 +120,10 @@ pub async fn get_table(
 
     let mut payload = serde_json::to_value(table).unwrap();
     if let Some(object) = payload.as_object_mut() {
-        object.insert("columns".to_string(), serde_json::to_value(columns).unwrap());
+        object.insert(
+            "columns".to_string(),
+            serde_json::to_value(columns).unwrap(),
+        );
     }
 
     Ok(Json(payload))
@@ -159,7 +162,10 @@ pub async fn update_table(
     Query(ds_query): Query<DomainScopeQuery>,
     Json(input): Json<UpdateTableDefinition>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let table = state.manage_tables_uc.update_table(&name, &input, ds_query.domain_scope.as_deref()).await?;
+    let table = state
+        .manage_tables_uc
+        .update_table(&name, &input, ds_query.domain_scope.as_deref())
+        .await?;
     Ok(Json(serde_json::to_value(table).unwrap()))
 }
 
@@ -168,7 +174,10 @@ pub async fn delete_table(
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<StatusCode, AppError> {
-    state.manage_tables_uc.delete_table(&name, ds_query.domain_scope.as_deref()).await?;
+    state
+        .manage_tables_uc
+        .delete_table(&name, ds_query.domain_scope.as_deref())
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -177,7 +186,10 @@ pub async fn get_table_schema(
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let schema = state.manage_tables_uc.get_table_schema(&name, ds_query.domain_scope.as_deref()).await?;
+    let schema = state
+        .manage_tables_uc
+        .get_table_schema(&name, ds_query.domain_scope.as_deref())
+        .await?;
     Ok(Json(schema))
 }
 
@@ -186,7 +198,10 @@ pub async fn list_columns(
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let columns = state.manage_columns_uc.list_columns(&name, ds_query.domain_scope.as_deref()).await?;
+    let columns = state
+        .manage_columns_uc
+        .list_columns(&name, ds_query.domain_scope.as_deref())
+        .await?;
     Ok(Json(serde_json::to_value(columns).unwrap()))
 }
 

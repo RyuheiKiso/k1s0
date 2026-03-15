@@ -1,8 +1,8 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -121,9 +121,13 @@ pub async fn list_services(
     };
 
     match state.list_services_uc.execute(filters).await {
-        Ok(services) => (StatusCode::OK, Json(serde_json::to_value(services).unwrap())).into_response(),
+        Ok(services) => (
+            StatusCode::OK,
+            Json(serde_json::to_value(services).unwrap()),
+        )
+            .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -139,18 +143,17 @@ pub async fn list_services(
     ),
     security(("bearer_auth" = []))
 )]
-pub async fn get_service(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn get_service(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.get_service_uc.execute(id).await {
-        Ok(service) => (StatusCode::OK, Json(serde_json::to_value(service).unwrap())).into_response(),
+        Ok(service) => {
+            (StatusCode::OK, Json(serde_json::to_value(service).unwrap())).into_response()
+        }
         Err(crate::usecase::get_service::GetServiceError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified service was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -172,17 +175,21 @@ pub async fn register_service(
     Json(input): Json<RegisterServiceInput>,
 ) -> impl IntoResponse {
     match state.register_service_uc.execute(input).await {
-        Ok(service) => (StatusCode::CREATED, Json(serde_json::to_value(service).unwrap())).into_response(),
+        Ok(service) => (
+            StatusCode::CREATED,
+            Json(serde_json::to_value(service).unwrap()),
+        )
+            .into_response(),
         Err(crate::usecase::register_service::RegisterServiceError::TeamNotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified team was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::register_service::RegisterServiceError::InvalidInput(msg)) => {
-            let err = ErrorResponse::new("SYS_SCAT_002", &msg);
+            let err = ErrorResponse::new("SYS_SCAT_002", msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -206,17 +213,19 @@ pub async fn update_service(
     Json(input): Json<UpdateServiceInput>,
 ) -> impl IntoResponse {
     match state.update_service_uc.execute(id, input).await {
-        Ok(service) => (StatusCode::OK, Json(serde_json::to_value(service).unwrap())).into_response(),
+        Ok(service) => {
+            (StatusCode::OK, Json(serde_json::to_value(service).unwrap())).into_response()
+        }
         Err(crate::usecase::update_service::UpdateServiceError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified service was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::update_service::UpdateServiceError::InvalidInput(msg)) => {
-            let err = ErrorResponse::new("SYS_SCAT_002", &msg);
+            let err = ErrorResponse::new("SYS_SCAT_002", msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -243,7 +252,7 @@ pub async fn delete_service(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

@@ -148,18 +148,10 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 }
 
 /// QuotaConfig 縺ｯ繧ｯ繧ｩ繝ｼ繧ｿ邂｡逅・崋譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct QuotaConfig {
     #[serde(default)]
     pub reset_schedule: ResetScheduleConfig,
-}
-
-impl Default for QuotaConfig {
-    fn default() -> Self {
-        Self {
-            reset_schedule: ResetScheduleConfig::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -187,7 +179,7 @@ fn default_monthly_cron() -> String {
     "0 0 1 * *".to_string()
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -196,15 +188,6 @@ pub struct ObservabilityConfig {
     pub trace: TraceConfig,
     #[serde(default)]
     pub metrics: MetricsConfig,
-}
-impl Default for ObservabilityConfig {
-    fn default() -> Self {
-        Self {
-            log: LogConfig::default(),
-            trace: TraceConfig::default(),
-            metrics: MetricsConfig::default(),
-        }
-    }
 }
 #[derive(Debug, Clone, Deserialize)]
 pub struct LogConfig {

@@ -94,7 +94,7 @@ pub fn run() -> Result<()> {
                     output_format = match &output_format {
                         DepsOutputFormat::Mermaid(_) => DepsOutputFormat::Mermaid(path_buf),
                         DepsOutputFormat::Both(_) => DepsOutputFormat::Both(path_buf),
-                        other => other.clone(),
+                        DepsOutputFormat::Terminal => DepsOutputFormat::Terminal,
                     };
                     step = Step::Confirm;
                 }

@@ -17,6 +17,7 @@ impl SubjectType {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "tenant" => Some(SubjectType::Tenant),
@@ -41,6 +42,7 @@ impl Period {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "daily" => Some(Period::Daily),
@@ -115,11 +117,8 @@ impl QuotaUsage {
         period_end: DateTime<Utc>,
         reset_at: DateTime<Utc>,
     ) -> Self {
-        let remaining = if used >= policy.limit {
-            0
-        } else {
-            policy.limit - used
-        };
+        // 使用量が制限を超えた場合は0、それ以外は残量を計算
+        let remaining = policy.limit.saturating_sub(used);
         let usage_percent = if policy.limit == 0 {
             100.0
         } else {

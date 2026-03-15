@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use tracing::instrument;
 use crate::domain::model::Session;
 use crate::infrastructure::grpc::SessionGrpcClient;
+use std::sync::Arc;
+use tracing::instrument;
 
 pub struct SessionQueryResolver {
     client: Arc<SessionGrpcClient>,

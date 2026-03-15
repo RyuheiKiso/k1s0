@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use crate::domain::entity::config_change_log::ConfigChangeLog;
 use crate::domain::entity::config_entry::{ConfigEntry, ConfigListResult, ServiceConfigResult};
 use crate::domain::error::ConfigRepositoryError;
 use crate::domain::repository::ConfigRepository;
 use crate::infrastructure::cache::ConfigCache;
+use async_trait::async_trait;
 
 /// CachedConfigRepository は ConfigRepository をキャッシュでラップする。
 /// find_by_namespace_and_key でキャッシュヒット時はDBアクセスをスキップする。
@@ -138,14 +138,13 @@ impl ConfigRepository for CachedConfigRepository {
     async fn record_change_log(&self, log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError> {
         self.inner.record_change_log(log).await
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::repository::ConfigRepository;
     use crate::domain::repository::config_repository::MockConfigRepository;
+    use crate::domain::repository::ConfigRepository;
     use chrono::Utc;
     use uuid::Uuid;
 

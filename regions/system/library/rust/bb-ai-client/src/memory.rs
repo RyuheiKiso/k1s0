@@ -2,7 +2,9 @@
 // 固定レスポンスを返すことで、外部APIに依存しないテストを実現する
 
 use crate::traits::AiClient;
-use crate::types::{AiClientError, ModelInfo, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse};
+use crate::types::{
+    AiClientError, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse, ModelInfo,
+};
 use tokio::sync::Mutex;
 
 // テスト用インメモリAIクライアント
@@ -18,10 +20,7 @@ pub struct InMemoryAiClient {
 
 impl InMemoryAiClient {
     /// 固定レスポンスを持つInMemoryAiClientを生成する
-    pub fn new(
-        responses: Vec<CompleteResponse>,
-        embed_responses: Vec<EmbedResponse>,
-    ) -> Self {
+    pub fn new(responses: Vec<CompleteResponse>, embed_responses: Vec<EmbedResponse>) -> Self {
         Self {
             responses: Mutex::new(responses),
             embed_responses: Mutex::new(embed_responses),

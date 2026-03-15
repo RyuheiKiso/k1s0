@@ -6,15 +6,16 @@ use tokio::sync::RwLock;
 use tracing::info;
 
 use crate::adapter;
-use crate::domain;
 use crate::infrastructure;
 use crate::proto;
 use crate::usecase;
 
+use super::config::Config;
 use crate::adapter::grpc::QuotaGrpcService;
 use crate::domain::entity::quota::QuotaPolicy;
-use crate::domain::repository::{CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository};
-use super::config::Config;
+use crate::domain::repository::{
+    CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository,
+};
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -271,9 +272,9 @@ pub async fn run() -> anyhow::Result<()> {
         state = state.with_auth(auth_st);
     }
 
-    let app =
-        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
-            .layer(k1s0_correlation::layer::CorrelationLayer::new());
+    let app = adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC server
     use proto::k1s0::system::quota::v1::quota_service_server::QuotaServiceServer;
@@ -291,7 +292,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(QuotaServiceServer::new(quota_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

@@ -140,7 +140,7 @@ async fn all_healthy_checks_returns_up() {
 
     assert_eq!(response.status, HealthStatus::Healthy);
     assert_eq!(response.checks.len(), 3);
-    for (_, result) in &response.checks {
+    for result in response.checks.values() {
         assert_eq!(result.status, HealthStatus::Healthy);
     }
 }
@@ -367,7 +367,10 @@ async fn response_has_non_empty_timestamp() {
     let response = checker.run_all().await;
     assert!(!response.timestamp.is_empty());
     // Should be parseable as a number (unix timestamp seconds)
-    let _ts: u64 = response.timestamp.parse().expect("timestamp should be numeric");
+    let _ts: u64 = response
+        .timestamp
+        .parse()
+        .expect("timestamp should be numeric");
 }
 
 // ─── Check Result Message ───────────────────────────────────────────────────

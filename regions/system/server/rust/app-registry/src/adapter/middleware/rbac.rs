@@ -93,9 +93,21 @@ mod tests {
 
     #[test]
     fn test_admin_can_do_everything() {
-        assert!(check_permission_static(&["admin".to_string()], "apps", "read"));
-        assert!(check_permission_static(&["admin".to_string()], "apps", "write"));
-        assert!(check_permission_static(&["admin".to_string()], "apps", "admin"));
+        assert!(check_permission_static(
+            &["admin".to_string()],
+            "apps",
+            "read"
+        ));
+        assert!(check_permission_static(
+            &["admin".to_string()],
+            "apps",
+            "write"
+        ));
+        assert!(check_permission_static(
+            &["admin".to_string()],
+            "apps",
+            "admin"
+        ));
     }
 
     #[test]
@@ -119,8 +131,16 @@ mod tests {
 
     #[test]
     fn test_viewer_can_only_read() {
-        assert!(check_permission_static(&["user".to_string()], "apps", "read"));
-        assert!(!check_permission_static(&["user".to_string()], "apps", "write"));
+        assert!(check_permission_static(
+            &["user".to_string()],
+            "apps",
+            "read"
+        ));
+        assert!(!check_permission_static(
+            &["user".to_string()],
+            "apps",
+            "write"
+        ));
     }
 
     #[test]

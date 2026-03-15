@@ -1,6 +1,5 @@
 use crate::adapter::handler::error::from_anyhow;
 use crate::adapter::handler::AppState;
-use k1s0_auth::actor_from_claims;
 use crate::domain::entity::master_category::{CreateMasterCategory, UpdateMasterCategory};
 use axum::{
     extract::{Extension, Path, Query, State},
@@ -8,6 +7,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use k1s0_auth::actor_from_claims;
 use k1s0_auth::Claims;
 use k1s0_server_common::ServiceError;
 use serde::Deserialize;

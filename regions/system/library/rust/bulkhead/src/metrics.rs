@@ -34,9 +34,7 @@ impl BulkheadMetricsRecorder {
             rejection_count: AtomicU64::new(0),
             current_concurrent: AtomicU64::new(0),
             #[cfg(feature = "metrics")]
-            otel_rejection_counter: meter
-                .u64_counter("bulkhead_rejections_total")
-                .build(),
+            otel_rejection_counter: meter.u64_counter("bulkhead_rejections_total").build(),
             #[cfg(feature = "metrics")]
             otel_concurrent_gauge: meter
                 .i64_up_down_counter("bulkhead_concurrent_calls")

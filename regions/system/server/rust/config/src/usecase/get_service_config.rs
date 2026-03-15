@@ -101,12 +101,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_service_config_not_found() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_find_by_service_name()
-            .returning(|_| {
-                Err(ConfigRepositoryError::ServiceNotFound(
-                    "nonexistent-service".to_string(),
-                ))
-            });
+        mock.expect_find_by_service_name().returning(|_| {
+            Err(ConfigRepositoryError::ServiceNotFound(
+                "nonexistent-service".to_string(),
+            ))
+        });
 
         let uc = GetServiceConfigUseCase::new(Arc::new(mock));
         let result = uc.execute("nonexistent-service").await;
@@ -142,12 +141,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_service_config_internal_error() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_find_by_service_name()
-            .returning(|_| {
-                Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
-                    "connection refused"
-                )))
-            });
+        mock.expect_find_by_service_name().returning(|_| {
+            Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                "connection refused"
+            )))
+        });
 
         let uc = GetServiceConfigUseCase::new(Arc::new(mock));
         let result = uc.execute("auth-server").await;

@@ -1,6 +1,7 @@
 //! テスト: JWT JWKS 検証 + RBAC
 
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     use crate::claims::{Audience, Claims, RealmAccess, RoleSet};
     use crate::rbac::{

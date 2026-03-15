@@ -29,7 +29,10 @@ impl ActivateTenantUseCase {
         }
     }
 
-    pub fn with_watch_sender(mut self, sender: tokio::sync::broadcast::Sender<TenantChangeEvent>) -> Self {
+    pub fn with_watch_sender(
+        mut self,
+        sender: tokio::sync::broadcast::Sender<TenantChangeEvent>,
+    ) -> Self {
         self.watch_sender = Some(sender);
         self
     }

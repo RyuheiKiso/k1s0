@@ -67,10 +67,7 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
                 "/api/v1/tasks/:id/approve",
                 post(task_handler::approve_task),
             )
-            .route(
-                "/api/v1/tasks/:id/reject",
-                post(task_handler::reject_task),
-            )
+            .route("/api/v1/tasks/:id/reject", post(task_handler::reject_task))
             .route(
                 "/api/v1/tasks/:id/reassign",
                 post(task_handler::reassign_task),
@@ -135,10 +132,7 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
                 "/api/v1/tasks/:id/approve",
                 post(task_handler::approve_task),
             )
-            .route(
-                "/api/v1/tasks/:id/reject",
-                post(task_handler::reject_task),
-            )
+            .route("/api/v1/tasks/:id/reject", post(task_handler::reject_task))
             .route(
                 "/api/v1/tasks/:id/reassign",
                 post(task_handler::reassign_task),

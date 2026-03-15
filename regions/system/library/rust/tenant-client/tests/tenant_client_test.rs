@@ -525,9 +525,18 @@ fn tenant_status_serde_roundtrip() {
 // TenantStatus が小文字の文字列にシリアライズされることを確認する。
 #[test]
 fn tenant_status_serializes_lowercase() {
-    assert_eq!(serde_json::to_string(&TenantStatus::Active).unwrap(), "\"active\"");
-    assert_eq!(serde_json::to_string(&TenantStatus::Suspended).unwrap(), "\"suspended\"");
-    assert_eq!(serde_json::to_string(&TenantStatus::Deleted).unwrap(), "\"deleted\"");
+    assert_eq!(
+        serde_json::to_string(&TenantStatus::Active).unwrap(),
+        "\"active\""
+    );
+    assert_eq!(
+        serde_json::to_string(&TenantStatus::Suspended).unwrap(),
+        "\"suspended\""
+    );
+    assert_eq!(
+        serde_json::to_string(&TenantStatus::Deleted).unwrap(),
+        "\"deleted\""
+    );
 }
 
 // ===========================================================================

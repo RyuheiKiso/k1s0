@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use super::config::{Config, parse_pool_duration};
+use super::health_collector::HealthCollector;
 use crate::adapter::handler::{self, AppState, ValidateTokenUseCase};
 use crate::adapter::repository::dependency_postgres::DependencyPostgresRepository;
 use crate::adapter::repository::doc_postgres::DocPostgresRepository;
@@ -10,14 +12,12 @@ use crate::adapter::repository::health_postgres::HealthPostgresRepository;
 use crate::adapter::repository::scorecard_postgres::ScorecardPostgresRepository;
 use crate::adapter::repository::service_postgres::ServicePostgresRepository;
 use crate::adapter::repository::team_postgres::TeamPostgresRepository;
-use super::config::{Config, parse_pool_duration};
-use super::health_collector::HealthCollector;
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
     #[cfg(unix)]
     {
-        use tokio::signal::unix::{signal, SignalKind};
+        use tokio::signal::unix::{SignalKind, signal};
 
         let mut terminate = signal(SignalKind::terminate())?;
         tokio::select! {
@@ -65,18 +65,17 @@ pub async fn run() -> anyhow::Result<()> {
     );
 
     // Token verifier (JWKS verifier if configured, stub otherwise)
-    let token_verifier: Arc<dyn super::TokenVerifier> =
-        if let Some(jwks_config) = &cfg.auth.jwks {
-            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-                &jwks_config.url,
-                &cfg.auth.jwt.issuer,
-                &cfg.auth.jwt.audience,
-                std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
-            ));
-            Arc::new(super::JwksVerifierAdapter::new(jwks_verifier))
-        } else {
-            Arc::new(StubTokenVerifier)
-        };
+    let token_verifier: Arc<dyn super::TokenVerifier> = if let Some(jwks_config) = &cfg.auth.jwks {
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &jwks_config.url,
+            &cfg.auth.jwt.issuer,
+            &cfg.auth.jwt.audience,
+            std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
+        ));
+        Arc::new(super::JwksVerifierAdapter::new(jwks_verifier))
+    } else {
+        Arc::new(StubTokenVerifier)
+    };
 
     // Database pool (optional)
     let db_pool = if let Some(ref db_config) = cfg.database {
@@ -109,7 +108,9 @@ pub async fn run() -> anyhow::Result<()> {
     };
 
     // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-service-catalog"));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-service-catalog",
+    ));
 
     // Repositories
     let service_repo: Arc<dyn crate::domain::repository::ServiceRepository> =
@@ -173,19 +174,33 @@ pub async fn run() -> anyhow::Result<()> {
         };
 
     // Use cases
-    let list_services_uc = Arc::new(crate::usecase::ListServicesUseCase::new(service_repo.clone()));
+    let list_services_uc = Arc::new(crate::usecase::ListServicesUseCase::new(
+        service_repo.clone(),
+    ));
     let get_service_uc = Arc::new(crate::usecase::GetServiceUseCase::new(service_repo.clone()));
     let register_service_uc = Arc::new(crate::usecase::RegisterServiceUseCase::new(
         service_repo.clone(),
         team_repo.clone(),
     ));
-    let update_service_uc = Arc::new(crate::usecase::UpdateServiceUseCase::new(service_repo.clone()));
-    let delete_service_uc = Arc::new(crate::usecase::DeleteServiceUseCase::new(service_repo.clone()));
-    let manage_deps_uc = Arc::new(crate::usecase::ManageDependenciesUseCase::new(dep_repo.clone()));
-    let health_status_uc = Arc::new(crate::usecase::HealthStatusUseCase::new(health_repo.clone()));
+    let update_service_uc = Arc::new(crate::usecase::UpdateServiceUseCase::new(
+        service_repo.clone(),
+    ));
+    let delete_service_uc = Arc::new(crate::usecase::DeleteServiceUseCase::new(
+        service_repo.clone(),
+    ));
+    let manage_deps_uc = Arc::new(crate::usecase::ManageDependenciesUseCase::new(
+        dep_repo.clone(),
+    ));
+    let health_status_uc = Arc::new(crate::usecase::HealthStatusUseCase::new(
+        health_repo.clone(),
+    ));
     let manage_docs_uc = Arc::new(crate::usecase::ManageDocsUseCase::new(doc_repo.clone()));
-    let get_scorecard_uc = Arc::new(crate::usecase::GetScorecardUseCase::new(scorecard_repo.clone()));
-    let search_services_uc = Arc::new(crate::usecase::SearchServicesUseCase::new(service_repo.clone()));
+    let get_scorecard_uc = Arc::new(crate::usecase::GetScorecardUseCase::new(
+        scorecard_repo.clone(),
+    ));
+    let search_services_uc = Arc::new(crate::usecase::SearchServicesUseCase::new(
+        service_repo.clone(),
+    ));
     let list_teams_uc = Arc::new(crate::usecase::ListTeamsUseCase::new(team_repo.clone()));
     let get_team_uc = Arc::new(crate::usecase::GetTeamUseCase::new(team_repo.clone()));
     let create_team_uc = Arc::new(crate::usecase::CreateTeamUseCase::new(team_repo.clone()));
@@ -244,7 +259,9 @@ pub async fn run() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     // REST グレースフルシャットダウン設定
     axum::serve(listener, app)
-        .with_graceful_shutdown(async { let _ = shutdown_signal().await; })
+        .with_graceful_shutdown(async {
+            let _ = shutdown_signal().await;
+        })
         .await?;
     // テレメトリのシャットダウン処理
     k1s0_telemetry::shutdown();

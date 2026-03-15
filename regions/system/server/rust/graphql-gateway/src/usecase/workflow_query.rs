@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use tracing::instrument;
 use crate::domain::model::{WorkflowDefinition, WorkflowInstance, WorkflowTask};
 use crate::infrastructure::grpc::WorkflowGrpcClient;
+use std::sync::Arc;
+use tracing::instrument;
 
 pub struct WorkflowQueryResolver {
     client: Arc<WorkflowGrpcClient>,
@@ -13,7 +13,10 @@ impl WorkflowQueryResolver {
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn get_workflow(&self, workflow_id: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    pub async fn get_workflow(
+        &self,
+        workflow_id: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>> {
         self.client.get_workflow(workflow_id).await
     }
 
@@ -26,11 +29,16 @@ impl WorkflowQueryResolver {
     ) -> anyhow::Result<Vec<WorkflowDefinition>> {
         let page_size = first.unwrap_or(20);
         let page = after.map(|a| a + 1).unwrap_or(1);
-        self.client.list_workflows(enabled_only, Some(page_size), Some(page)).await
+        self.client
+            .list_workflows(enabled_only, Some(page_size), Some(page))
+            .await
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn get_instance(&self, instance_id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
+    pub async fn get_instance(
+        &self,
+        instance_id: &str,
+    ) -> anyhow::Result<Option<WorkflowInstance>> {
         self.client.get_instance(instance_id).await
     }
 
@@ -45,7 +53,15 @@ impl WorkflowQueryResolver {
     ) -> anyhow::Result<Vec<WorkflowInstance>> {
         let page_size = first.unwrap_or(20);
         let page = after.map(|a| a + 1).unwrap_or(1);
-        self.client.list_instances(status, workflow_id, initiator_id, Some(page_size), Some(page)).await
+        self.client
+            .list_instances(
+                status,
+                workflow_id,
+                initiator_id,
+                Some(page_size),
+                Some(page),
+            )
+            .await
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -60,6 +76,15 @@ impl WorkflowQueryResolver {
     ) -> anyhow::Result<Vec<WorkflowTask>> {
         let page_size = first.unwrap_or(20);
         let page = after.map(|a| a + 1).unwrap_or(1);
-        self.client.list_tasks(assignee_id, status, instance_id, overdue_only, Some(page_size), Some(page)).await
+        self.client
+            .list_tasks(
+                assignee_id,
+                status,
+                instance_id,
+                overdue_only,
+                Some(page_size),
+                Some(page),
+            )
+            .await
     }
 }

@@ -3,14 +3,12 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use crate::adapter;
+use super::config::{parse_pool_duration, Config};
+use super::s3_client::S3Client;
 use crate::adapter::handler::{self, AppState, ValidateTokenUseCase};
 use crate::adapter::repository::app_postgres::AppPostgresRepository;
 use crate::adapter::repository::download_stats_postgres::DownloadStatsPostgresRepository;
 use crate::adapter::repository::version_postgres::VersionPostgresRepository;
-use super::config::{Config, parse_pool_duration};
-use super::s3_client::S3Client;
-use crate::domain;
 use crate::usecase;
 
 /// シャットダウンシグナルを待機する
@@ -65,18 +63,17 @@ pub async fn run() -> anyhow::Result<()> {
     );
 
     // Token verifier (JWKS verifier if configured, stub otherwise)
-    let token_verifier: Arc<dyn super::TokenVerifier> =
-        if let Some(jwks_config) = &cfg.auth.jwks {
-            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-                &jwks_config.url,
-                &cfg.auth.jwt.issuer,
-                &cfg.auth.jwt.audience,
-                std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
-            ));
-            Arc::new(super::JwksVerifierAdapter::new(jwks_verifier))
-        } else {
-            Arc::new(StubTokenVerifier)
-        };
+    let token_verifier: Arc<dyn super::TokenVerifier> = if let Some(jwks_config) = &cfg.auth.jwks {
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &jwks_config.url,
+            &cfg.auth.jwt.issuer,
+            &cfg.auth.jwt.audience,
+            std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
+        ));
+        Arc::new(super::JwksVerifierAdapter::new(jwks_verifier))
+    } else {
+        Arc::new(StubTokenVerifier)
+    };
 
     // Database pool (optional)
     let db_pool = if let Some(ref db_config) = cfg.database {
@@ -109,22 +106,21 @@ pub async fn run() -> anyhow::Result<()> {
     };
 
     // S3 client (for Ceph RGW presigned URLs)
-    let s3_client = Arc::new(
-        S3Client::new(&cfg.s3.endpoint, &cfg.s3.bucket, &cfg.s3.region).await,
-    );
+    let s3_client = Arc::new(S3Client::new(&cfg.s3.endpoint, &cfg.s3.bucket, &cfg.s3.region).await);
 
     // Metrics
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-app-registry"));
 
     // Repositories
-    let app_repo: Arc<dyn crate::domain::repository::AppRepository> = if let Some(ref pool) = db_pool {
-        Arc::new(AppPostgresRepository::with_metrics(
-            pool.clone(),
-            metrics.clone(),
-        ))
-    } else {
-        Arc::new(StubAppRepository)
-    };
+    let app_repo: Arc<dyn crate::domain::repository::AppRepository> =
+        if let Some(ref pool) = db_pool {
+            Arc::new(AppPostgresRepository::with_metrics(
+                pool.clone(),
+                metrics.clone(),
+            ))
+        } else {
+            Arc::new(StubAppRepository)
+        };
 
     let version_repo: Arc<dyn crate::domain::repository::VersionRepository> =
         if let Some(ref pool) = db_pool {
@@ -213,7 +209,9 @@ pub async fn run() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     // REST グレースフルシャットダウン設定
     axum::serve(listener, app)
-        .with_graceful_shutdown(async { let _ = shutdown_signal().await; })
+        .with_graceful_shutdown(async {
+            let _ = shutdown_signal().await;
+        })
         .await?;
     // テレメトリのシャットダウン処理
     k1s0_telemetry::shutdown();

@@ -923,12 +923,8 @@ mod start_instance {
         let task_repo = Arc::new(StubTaskRepo::new());
         let publisher = Arc::new(StubEventPublisher);
 
-        let uc = StartInstanceUseCase::new(
-            def_repo,
-            inst_repo.clone(),
-            task_repo.clone(),
-            publisher,
-        );
+        let uc =
+            StartInstanceUseCase::new(def_repo, inst_repo.clone(), task_repo.clone(), publisher);
 
         let input = StartInstanceInput {
             workflow_id: "wf_001".to_string(),
@@ -946,10 +942,7 @@ mod start_instance {
         assert_eq!(output.instance.workflow_name, "purchase-approval");
         assert_eq!(output.instance.title, "PC Purchase");
         assert_eq!(output.instance.initiator_id, "user-001");
-        assert_eq!(
-            output.instance.current_step_id,
-            Some("step-1".to_string())
-        );
+        assert_eq!(output.instance.current_step_id, Some("step-1".to_string()));
         assert!(output.instance.completed_at.is_none());
         assert!(output.first_task.is_some());
 
@@ -1348,12 +1341,7 @@ mod approve_task {
         let def_repo = Arc::new(StubDefinitionRepo::with_definitions(vec![def]));
         let publisher = Arc::new(StubEventPublisher);
 
-        let uc = ApproveTaskUseCase::new(
-            task_repo.clone(),
-            inst_repo.clone(),
-            def_repo,
-            publisher,
-        );
+        let uc = ApproveTaskUseCase::new(task_repo.clone(), inst_repo.clone(), def_repo, publisher);
 
         let input = ApproveTaskInput {
             task_id: "task_001".to_string(),
@@ -1383,10 +1371,7 @@ mod approve_task {
 
         // Verify instance was updated with new step
         let instances = inst_repo.instances.read().await;
-        assert_eq!(
-            instances[0].current_step_id,
-            Some("step-2".to_string())
-        );
+        assert_eq!(instances[0].current_step_id, Some("step-2".to_string()));
     }
 
     #[tokio::test]
@@ -1644,12 +1629,7 @@ mod reject_task {
         let def_repo = Arc::new(StubDefinitionRepo::with_definitions(vec![def]));
         let publisher = Arc::new(StubEventPublisher);
 
-        let uc = RejectTaskUseCase::new(
-            task_repo.clone(),
-            inst_repo.clone(),
-            def_repo,
-            publisher,
-        );
+        let uc = RejectTaskUseCase::new(task_repo.clone(), inst_repo.clone(), def_repo, publisher);
 
         let input = RejectTaskInput {
             task_id: "task_001".to_string(),
@@ -1672,10 +1652,7 @@ mod reject_task {
         // Verify instance still running with step-1
         let instances = inst_repo.instances.read().await;
         assert_eq!(instances[0].status, "running");
-        assert_eq!(
-            instances[0].current_step_id,
-            Some("step-1".to_string())
-        );
+        assert_eq!(instances[0].current_step_id, Some("step-1".to_string()));
 
         // Verify new task created
         let tasks = task_repo.tasks.read().await;

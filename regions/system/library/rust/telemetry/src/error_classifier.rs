@@ -14,8 +14,7 @@ pub fn classify_error(err: &dyn std::error::Error) -> ErrorSeverity {
     let msg = err.to_string().to_lowercase();
     if msg.contains("timeout") || msg.contains("connection") || msg.contains("unavailable") {
         ErrorSeverity::Transient
-    } else if msg.contains("not found") || msg.contains("invalid") || msg.contains("unauthorized")
-    {
+    } else if msg.contains("not found") || msg.contains("invalid") || msg.contains("unauthorized") {
         ErrorSeverity::Permanent
     } else {
         ErrorSeverity::Unknown

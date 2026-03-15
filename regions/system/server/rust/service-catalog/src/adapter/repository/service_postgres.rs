@@ -28,7 +28,10 @@ struct ServiceRow {
 
 impl From<ServiceRow> for Service {
     fn from(row: ServiceRow) -> Self {
-        let tier = row.tier.parse::<ServiceTier>().unwrap_or(ServiceTier::Standard);
+        let tier = row
+            .tier
+            .parse::<ServiceTier>()
+            .unwrap_or(ServiceTier::Standard);
         let lifecycle = row
             .lifecycle
             .parse::<ServiceLifecycle>()

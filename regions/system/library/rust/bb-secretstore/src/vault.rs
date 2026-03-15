@@ -8,8 +8,8 @@ use tracing::info;
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 use k1s0_vault_client::VaultClient;
 
-use crate::traits::{SecretStore, SecretValue};
 use crate::SecretStoreError;
+use crate::traits::{SecretStore, SecretValue};
 
 /// VaultSecretStore は HashiCorp Vault ベースの SecretStore 実装。
 /// k1s0-vault-client の VaultClient をラップする。
@@ -78,8 +78,7 @@ impl SecretStore for VaultSecretStore {
         let value = if secret.data.len() == 1 {
             secret.data.values().next().unwrap().clone()
         } else {
-            serde_json::to_string(&secret.data)
-                .unwrap_or_else(|_| format!("{:?}", secret.data))
+            serde_json::to_string(&secret.data).unwrap_or_else(|_| format!("{:?}", secret.data))
         };
 
         let mut metadata = HashMap::new();

@@ -3,12 +3,12 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
 
+use super::config::{parse_pool_duration, Config};
+use super::encryption::MasterKey;
 use crate::adapter::grpc::VaultGrpcService;
 use crate::adapter::handler::{self, AppState};
 use crate::domain::entity::secret::Secret;
 use crate::domain::repository::{AccessLogRepository, SecretStore};
-use super::config::{Config, parse_pool_duration};
-use super::encryption::MasterKey;
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -81,8 +81,9 @@ pub async fn run() -> anyhow::Result<()> {
         info!(vault_addr = %addr, "connecting to HashiCorp Vault KV v2");
         let vault_client = crate::adapter::gateway::VaultKvClient::new(&addr, &token)?;
         let vault_client = Arc::new(vault_client);
-        let store: Arc<dyn SecretStore> =
-            Arc::new(crate::adapter::repository::vault_secret_store::VaultSecretStore::new(vault_client));
+        let store: Arc<dyn SecretStore> = Arc::new(
+            crate::adapter::repository::vault_secret_store::VaultSecretStore::new(vault_client),
+        );
         let audit: Arc<dyn AccessLogRepository> = Arc::new(NoopAccessLogRepository);
         info!("HashiCorp Vault backend ready");
         (store, audit, None)
@@ -232,7 +233,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(VaultServiceServer::new(vault_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

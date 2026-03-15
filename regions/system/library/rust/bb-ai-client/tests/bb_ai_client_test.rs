@@ -2,9 +2,8 @@
 // InMemoryAiClient を使用して外部依存なしでテストする
 
 use k1s0_bb_ai_client::{
-    AiClient, InMemoryAiClient,
-    ChatMessage, CompleteRequest, CompleteResponse,
-    EmbedRequest, EmbedResponse, ModelInfo, Usage,
+    AiClient, ChatMessage, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse,
+    InMemoryAiClient, ModelInfo, Usage,
 };
 
 // InMemoryAiClient の complete が正しくレスポンスを返すこと
@@ -61,13 +60,11 @@ async fn test_in_memory_embed() {
 // InMemoryAiClient の list_models がモデル一覧を返すこと
 #[tokio::test]
 async fn test_in_memory_list_models() {
-    let models = vec![
-        ModelInfo {
-            id: "model-1".to_string(),
-            name: "Model One".to_string(),
-            description: "A test model".to_string(),
-        },
-    ];
+    let models = vec![ModelInfo {
+        id: "model-1".to_string(),
+        name: "Model One".to_string(),
+        description: "A test model".to_string(),
+    }];
     let client = InMemoryAiClient::with_models(vec![], vec![], models);
     let result = client.list_models().await.unwrap();
     assert_eq!(result.len(), 1);
@@ -88,7 +85,10 @@ async fn test_in_memory_empty_queue_returns_error() {
     let result = client.complete(&req).await;
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(matches!(err, k1s0_bb_ai_client::AiClientError::Unavailable(_)));
+    assert!(matches!(
+        err,
+        k1s0_bb_ai_client::AiClientError::Unavailable(_)
+    ));
 }
 
 // AiClientError の Display が正しく動作すること

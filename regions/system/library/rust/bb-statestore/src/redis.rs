@@ -9,8 +9,8 @@ use uuid::Uuid;
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 use k1s0_cache::CacheClient;
 
-use crate::traits::{StateEntry, StateStore};
 use crate::StateStoreError;
+use crate::traits::{StateEntry, StateStore};
 
 /// RedisStateStore は Redis ベースの StateStore 実装。
 /// k1s0-cache の CacheClient をラップする。
@@ -118,8 +118,8 @@ impl StateStore for RedisStateStore {
             }
         }
 
-        let value_str =
-            String::from_utf8(value.to_vec()).map_err(|e| StateStoreError::Serialization(e.to_string()))?;
+        let value_str = String::from_utf8(value.to_vec())
+            .map_err(|e| StateStoreError::Serialization(e.to_string()))?;
         self.client
             .set(key, &value_str, None)
             .await
@@ -172,10 +172,7 @@ impl StateStore for RedisStateStore {
         Ok(entries)
     }
 
-    async fn bulk_set(
-        &self,
-        entries: &[(&str, &[u8])],
-    ) -> Result<Vec<String>, StateStoreError> {
+    async fn bulk_set(&self, entries: &[(&str, &[u8])]) -> Result<Vec<String>, StateStoreError> {
         let mut etags = Vec::with_capacity(entries.len());
         for (key, value) in entries {
             let etag = self.set(key, value, None).await?;

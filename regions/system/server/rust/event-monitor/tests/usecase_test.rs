@@ -9,9 +9,7 @@ use k1s0_event_monitor_server::domain::entity::event_record::EventRecord;
 use k1s0_event_monitor_server::domain::entity::flow_definition::{
     FlowDefinition, FlowSlo, FlowStep,
 };
-use k1s0_event_monitor_server::domain::entity::flow_instance::{
-    FlowInstance, FlowInstanceStatus,
-};
+use k1s0_event_monitor_server::domain::entity::flow_instance::{FlowInstance, FlowInstanceStatus};
 use k1s0_event_monitor_server::domain::repository::{
     EventRecordRepository, FlowDefinitionRepository, FlowInstanceRepository,
 };
@@ -40,9 +38,7 @@ use k1s0_event_monitor_server::usecase::get_kpi_summary::{
 use k1s0_event_monitor_server::usecase::get_slo_burn_rate::{
     GetSloBurnRateError, GetSloBurnRateUseCase,
 };
-use k1s0_event_monitor_server::usecase::get_slo_status::{
-    GetSloStatusError, GetSloStatusUseCase,
-};
+use k1s0_event_monitor_server::usecase::get_slo_status::{GetSloStatusError, GetSloStatusUseCase};
 use k1s0_event_monitor_server::usecase::list_events::{
     ListEventsError, ListEventsInput, ListEventsUseCase,
 };
@@ -126,12 +122,12 @@ impl EventRecordRepository for StubEventRecordRepository {
         let records = self.records.read().await;
         let filtered: Vec<EventRecord> = records
             .iter()
-            .filter(|r| domain.as_ref().map_or(true, |d| &r.domain == d))
-            .filter(|r| event_type.as_ref().map_or(true, |et| &r.event_type == et))
-            .filter(|r| source.as_ref().map_or(true, |s| &r.source == s))
-            .filter(|r| from.map_or(true, |f| r.timestamp >= f))
-            .filter(|r| to.map_or(true, |t| r.timestamp <= t))
-            .filter(|r| status.as_ref().map_or(true, |s| &r.status == s))
+            .filter(|r| domain.as_ref().is_none_or(|d| &r.domain == d))
+            .filter(|r| event_type.as_ref().is_none_or(|et| &r.event_type == et))
+            .filter(|r| source.as_ref().is_none_or(|s| &r.source == s))
+            .filter(|r| from.is_none_or(|f| r.timestamp >= f))
+            .filter(|r| to.is_none_or(|t| r.timestamp <= t))
+            .filter(|r| status.as_ref().is_none_or(|s| &r.status == s))
             .cloned()
             .collect();
 
@@ -222,7 +218,7 @@ impl FlowDefinitionRepository for StubFlowDefinitionRepository {
         let flows = self.flows.read().await;
         let filtered: Vec<FlowDefinition> = flows
             .iter()
-            .filter(|f| domain.as_ref().map_or(true, |d| &f.domain == d))
+            .filter(|f| domain.as_ref().is_none_or(|d| &f.domain == d))
             .cloned()
             .collect();
 
@@ -247,9 +243,7 @@ impl FlowDefinitionRepository for StubFlowDefinitionRepository {
         let flows = self.flows.read().await;
         Ok(flows
             .iter()
-            .filter(|f| {
-                f.domain == domain && f.steps.iter().any(|s| s.event_type == event_type)
-            })
+            .filter(|f| f.domain == domain && f.steps.iter().any(|s| s.event_type == event_type))
             .cloned()
             .collect())
     }
@@ -508,7 +502,12 @@ fn make_flow_with_id(id: Uuid, name: &str, domain: &str) -> FlowDefinition {
     }
 }
 
-fn make_event_record(correlation_id: &str, event_type: &str, source: &str, domain: &str) -> EventRecord {
+fn make_event_record(
+    correlation_id: &str,
+    event_type: &str,
+    source: &str,
+    domain: &str,
+) -> EventRecord {
     EventRecord::new(
         correlation_id.to_string(),
         event_type.to_string(),
@@ -850,10 +849,7 @@ async fn test_update_flow_not_found() {
 
     let result = uc.execute(&input).await;
     assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        UpdateFlowError::NotFound(_)
-    ));
+    assert!(matches!(result.unwrap_err(), UpdateFlowError::NotFound(_)));
 }
 
 #[tokio::test]
@@ -908,10 +904,7 @@ async fn test_delete_flow_not_found() {
 
     let result = uc.execute(&Uuid::new_v4()).await;
     assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        DeleteFlowError::NotFound(_)
-    ));
+    assert!(matches!(result.unwrap_err(), DeleteFlowError::NotFound(_)));
 }
 
 #[tokio::test]
@@ -1074,7 +1067,12 @@ async fn test_list_flows_internal_error() {
 async fn test_get_flow_instance_success() {
     let instance_id = Uuid::new_v4();
     let flow_id = Uuid::new_v4();
-    let instance = make_instance_with_id(instance_id, flow_id, "corr-001", FlowInstanceStatus::InProgress);
+    let instance = make_instance_with_id(
+        instance_id,
+        flow_id,
+        "corr-001",
+        FlowInstanceStatus::InProgress,
+    );
     let repo = Arc::new(StubFlowInstanceRepository::with_instances(vec![instance]));
 
     let uc = GetFlowInstanceUseCase::new(repo);
@@ -1152,7 +1150,13 @@ async fn test_get_flow_instances_success() {
 async fn test_get_flow_instances_pagination() {
     let flow_id = Uuid::new_v4();
     let instances: Vec<FlowInstance> = (1..=5)
-        .map(|i| make_instance(flow_id, &format!("corr-{:03}", i), FlowInstanceStatus::Completed))
+        .map(|i| {
+            make_instance(
+                flow_id,
+                &format!("corr-{:03}", i),
+                FlowInstanceStatus::Completed,
+            )
+        })
         .collect();
     let repo = Arc::new(StubFlowInstanceRepository::with_instances(instances));
 
@@ -1201,7 +1205,12 @@ async fn test_get_flow_instances_internal_error() {
 async fn test_list_events_success() {
     let records = vec![
         make_event_record("corr-001", "OrderCreated", "order-service", "service.order"),
-        make_event_record("corr-002", "PaymentProcessed", "payment-service", "service.payment"),
+        make_event_record(
+            "corr-002",
+            "PaymentProcessed",
+            "payment-service",
+            "service.payment",
+        ),
     ];
     let repo = Arc::new(StubEventRecordRepository::with_records(records));
 
@@ -1230,7 +1239,12 @@ async fn test_list_events_success() {
 async fn test_list_events_with_domain_filter() {
     let records = vec![
         make_event_record("corr-001", "OrderCreated", "order-service", "service.order"),
-        make_event_record("corr-002", "PaymentProcessed", "payment-service", "service.payment"),
+        make_event_record(
+            "corr-002",
+            "PaymentProcessed",
+            "payment-service",
+            "service.payment",
+        ),
         make_event_record("corr-003", "OrderShipped", "order-service", "service.order"),
     ];
     let repo = Arc::new(StubEventRecordRepository::with_records(records));
@@ -1336,7 +1350,12 @@ async fn test_list_events_internal_error() {
 async fn test_trace_by_correlation_success_without_flow() {
     let records = vec![
         make_event_record("corr-001", "OrderCreated", "order-service", "service.order"),
-        make_event_record("corr-001", "PaymentProcessed", "payment-service", "service.payment"),
+        make_event_record(
+            "corr-001",
+            "PaymentProcessed",
+            "payment-service",
+            "service.payment",
+        ),
     ];
     let event_repo = Arc::new(StubEventRecordRepository::with_records(records));
     let flow_def_repo = Arc::new(StubFlowDefinitionRepository::new());
@@ -1360,9 +1379,12 @@ async fn test_trace_by_correlation_success_with_flow() {
     let flow_id = Uuid::new_v4();
     let flow = make_flow_with_id(flow_id, "order_flow", "service.order");
 
-    let records = vec![
-        make_event_record("corr-001", "OrderCreated", "order-service", "service.order"),
-    ];
+    let records = vec![make_event_record(
+        "corr-001",
+        "OrderCreated",
+        "order-service",
+        "service.order",
+    )];
     let event_repo = Arc::new(StubEventRecordRepository::with_records(records));
     let flow_def_repo = Arc::new(StubFlowDefinitionRepository::with_flows(vec![flow]));
     let instance = make_instance(flow_id, "corr-001", FlowInstanceStatus::Completed);
@@ -1453,10 +1475,7 @@ async fn test_get_flow_kpi_not_found() {
 
     let result = uc.execute(&Uuid::new_v4(), "24h").await;
     assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        GetFlowKpiError::NotFound(_)
-    ));
+    assert!(matches!(result.unwrap_err(), GetFlowKpiError::NotFound(_)));
 }
 
 #[tokio::test]
@@ -1570,9 +1589,9 @@ async fn test_get_kpi_summary_slo_violations() {
     let mut instances: Vec<FlowInstance> = (0..90)
         .map(|_| make_instance_with_duration(flow_id, FlowInstanceStatus::Completed, 1000))
         .collect();
-    instances.extend((0..10).map(|_| {
-        make_instance_with_duration(flow_id, FlowInstanceStatus::Failed, 500)
-    }));
+    instances.extend(
+        (0..10).map(|_| make_instance_with_duration(flow_id, FlowInstanceStatus::Failed, 500)),
+    );
     let flow_inst_repo = Arc::new(StubFlowInstanceRepository::with_instances(instances));
 
     let uc = GetKpiSummaryUseCase::new(flow_def_repo, flow_inst_repo);
@@ -1620,9 +1639,8 @@ async fn test_get_slo_status_with_violation() {
     let mut instances: Vec<FlowInstance> = (0..80)
         .map(|_| make_instance(flow_id, "corr", FlowInstanceStatus::Completed))
         .collect();
-    instances.extend((0..20).map(|_| {
-        make_instance(flow_id, "corr-fail", FlowInstanceStatus::Failed)
-    }));
+    instances
+        .extend((0..20).map(|_| make_instance(flow_id, "corr-fail", FlowInstanceStatus::Failed)));
     let flow_inst_repo = Arc::new(StubFlowInstanceRepository::with_instances(instances));
 
     let uc = GetSloStatusUseCase::new(flow_def_repo, flow_inst_repo);
@@ -1690,9 +1708,8 @@ async fn test_get_slo_burn_rate_alert_firing() {
     let mut instances: Vec<FlowInstance> = (0..50)
         .map(|_| make_instance(flow_id, "corr", FlowInstanceStatus::Completed))
         .collect();
-    instances.extend((0..50).map(|_| {
-        make_instance(flow_id, "corr-fail", FlowInstanceStatus::Failed)
-    }));
+    instances
+        .extend((0..50).map(|_| make_instance(flow_id, "corr-fail", FlowInstanceStatus::Failed)));
     let flow_inst_repo = Arc::new(StubFlowInstanceRepository::with_instances(instances));
 
     let uc = GetSloBurnRateUseCase::new(flow_def_repo, flow_inst_repo);
@@ -1817,8 +1834,22 @@ async fn test_execute_replay_multiple_correlation_ids() {
 async fn test_preview_replay_success() {
     let flow_id = Uuid::new_v4();
     let records = vec![
-        make_event_record_with_flow("corr-001", "OrderCreated", "order-service", "service.order", flow_id, 0),
-        make_event_record_with_flow("corr-001", "PaymentProcessed", "payment-service", "service.payment", flow_id, 1),
+        make_event_record_with_flow(
+            "corr-001",
+            "OrderCreated",
+            "order-service",
+            "service.order",
+            flow_id,
+            0,
+        ),
+        make_event_record_with_flow(
+            "corr-001",
+            "PaymentProcessed",
+            "payment-service",
+            "service.payment",
+            flow_id,
+            1,
+        ),
     ];
     let event_repo = Arc::new(StubEventRecordRepository::with_records(records));
 
@@ -2037,13 +2068,25 @@ async fn test_multiple_flows_kpi_summary_isolation() {
     // flow1: 100% success, flow2: 50% success
     let mut instances = Vec::new();
     for _ in 0..10 {
-        instances.push(make_instance_with_duration(flow_id1, FlowInstanceStatus::Completed, 1000));
+        instances.push(make_instance_with_duration(
+            flow_id1,
+            FlowInstanceStatus::Completed,
+            1000,
+        ));
     }
     for _ in 0..5 {
-        instances.push(make_instance_with_duration(flow_id2, FlowInstanceStatus::Completed, 500));
+        instances.push(make_instance_with_duration(
+            flow_id2,
+            FlowInstanceStatus::Completed,
+            500,
+        ));
     }
     for _ in 0..5 {
-        instances.push(make_instance_with_duration(flow_id2, FlowInstanceStatus::Failed, 300));
+        instances.push(make_instance_with_duration(
+            flow_id2,
+            FlowInstanceStatus::Failed,
+            300,
+        ));
     }
     let flow_inst_repo = Arc::new(StubFlowInstanceRepository::with_instances(instances));
 
@@ -2052,11 +2095,19 @@ async fn test_multiple_flows_kpi_summary_isolation() {
     let result = uc.execute("24h").await.unwrap();
     assert_eq!(result.total_flows, 2);
 
-    let order_flow = result.flows.iter().find(|f| f.flow_name == "order_flow").unwrap();
+    let order_flow = result
+        .flows
+        .iter()
+        .find(|f| f.flow_name == "order_flow")
+        .unwrap();
     assert!((order_flow.completion_rate - 1.0).abs() < f64::EPSILON);
     assert!(!order_flow.slo_violated);
 
-    let payment_flow = result.flows.iter().find(|f| f.flow_name == "payment_flow").unwrap();
+    let payment_flow = result
+        .flows
+        .iter()
+        .find(|f| f.flow_name == "payment_flow")
+        .unwrap();
     assert!((payment_flow.completion_rate - 0.5).abs() < f64::EPSILON);
     assert!(payment_flow.slo_violated);
 }

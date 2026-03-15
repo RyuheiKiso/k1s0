@@ -634,7 +634,11 @@ mod tests {
     fn test_list_versions_url_format() {
         let config = SchemaRegistryConfig::new("http://localhost:8081");
         let client = HttpSchemaRegistryClient::new(config).unwrap();
-        let url = format!("{}/subjects/{}/versions", client.base_url(), "my-topic-value");
+        let url = format!(
+            "{}/subjects/{}/versions",
+            client.base_url(),
+            "my-topic-value"
+        );
         assert_eq!(
             url,
             "http://localhost:8081/subjects/my-topic-value/versions"
@@ -662,10 +666,7 @@ mod tests {
     fn test_base_url_https() {
         let config = SchemaRegistryConfig::new("https://schema-registry.example.com:443");
         let client = HttpSchemaRegistryClient::new(config).unwrap();
-        assert_eq!(
-            client.base_url(),
-            "https://schema-registry.example.com:443"
-        );
+        assert_eq!(client.base_url(), "https://schema-registry.example.com:443");
     }
 
     // タイムアウトを 1 秒に設定したクライアントが正常に構築されることを確認する。
@@ -692,19 +693,17 @@ mod tests {
     #[tokio::test]
     async fn test_mock_get_schema_by_id() {
         let mut mock = MockSchemaRegistryClient::new();
-        mock.expect_get_schema_by_id()
-            .times(1)
-            .returning(|id| {
-                Box::pin(async move {
-                    Ok(RegisteredSchema {
-                        id,
-                        subject: "test-value".to_string(),
-                        version: 1,
-                        schema: "syntax = \"proto3\";".to_string(),
-                        schema_type: SchemaType::Protobuf,
-                    })
+        mock.expect_get_schema_by_id().times(1).returning(|id| {
+            Box::pin(async move {
+                Ok(RegisteredSchema {
+                    id,
+                    subject: "test-value".to_string(),
+                    version: 1,
+                    schema: "syntax = \"proto3\";".to_string(),
+                    schema_type: SchemaType::Protobuf,
                 })
-            });
+            })
+        });
 
         let schema = mock.get_schema_by_id(42).await.unwrap();
         assert_eq!(schema.id, 42);

@@ -34,10 +34,7 @@ impl ListFlowsUseCase {
         Self { repo }
     }
 
-    pub async fn execute(
-        &self,
-        input: &ListFlowsInput,
-    ) -> Result<ListFlowsOutput, ListFlowsError> {
+    pub async fn execute(&self, input: &ListFlowsInput) -> Result<ListFlowsOutput, ListFlowsError> {
         let (flows, total_count) = self
             .repo
             .find_all_paginated(input.page, input.page_size, input.domain.clone())

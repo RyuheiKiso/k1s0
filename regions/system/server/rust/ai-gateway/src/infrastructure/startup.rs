@@ -6,10 +6,10 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use super::config::Config;
 use crate::domain::repository::ModelRepository;
 use crate::domain::repository::RoutingRuleRepository;
 use crate::domain::repository::UsageRepository;
-use super::config::Config;
 
 /// バインドアドレスを解決する。
 async fn resolve_bind_addr(host: &str, port: u16) -> anyhow::Result<SocketAddr> {
@@ -95,9 +95,7 @@ pub async fn run() -> anyhow::Result<()> {
             Arc::new(crate::adapter::repository::UsagePostgresRepository::new(
                 pool.clone(),
             )),
-            Arc::new(
-                crate::adapter::repository::RoutingRulePostgresRepository::new(pool),
-            ),
+            Arc::new(crate::adapter::repository::RoutingRulePostgresRepository::new(pool)),
         )
     } else {
         info!("no database config found, using in-memory repositories");
@@ -114,10 +112,7 @@ pub async fn run() -> anyhow::Result<()> {
         super::llm_client::LlmClient::new(llm_cfg.base_url.clone(), llm_cfg.api_key.clone())
     } else {
         info!("LLM設定なし、デフォルトURL使用");
-        super::llm_client::LlmClient::new(
-            "https://api.openai.com/v1".to_string(),
-            String::new(),
-        )
+        super::llm_client::LlmClient::new("https://api.openai.com/v1".to_string(), String::new())
     });
 
     // --- ドメインサービスの構築 ---

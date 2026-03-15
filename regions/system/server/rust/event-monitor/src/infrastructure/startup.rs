@@ -6,7 +6,8 @@ use chrono::{DateTime, Utc};
 use tracing::info;
 use uuid::Uuid;
 
-use crate::adapter;
+use super::config::Config;
+use super::dlq_client::{DlqManagerClient, NoopDlqClient};
 use crate::adapter::grpc::EventMonitorGrpcService;
 use crate::adapter::repository::event_record_postgres::EventRecordPostgresRepository;
 use crate::adapter::repository::flow_definition_postgres::FlowDefinitionPostgresRepository;
@@ -14,9 +15,9 @@ use crate::adapter::repository::flow_instance_postgres::FlowInstancePostgresRepo
 use crate::domain::entity::event_record::EventRecord;
 use crate::domain::entity::flow_definition::FlowDefinition;
 use crate::domain::entity::flow_instance::{FlowInstance, FlowInstanceStatus};
-use crate::domain::repository::{EventRecordRepository, FlowDefinitionRepository, FlowInstanceRepository};
-use super::config::Config;
-use super::dlq_client::{DlqManagerClient, NoopDlqClient};
+use crate::domain::repository::{
+    EventRecordRepository, FlowDefinitionRepository, FlowInstanceRepository,
+};
 use crate::usecase;
 
 /// シャットダウンシグナルを待機する
@@ -128,16 +129,14 @@ pub async fn run() -> anyhow::Result<()> {
     let update_flow_uc = Arc::new(usecase::UpdateFlowUseCase::new(flow_def_repo.clone()));
     let delete_flow_uc = Arc::new(usecase::DeleteFlowUseCase::new(flow_def_repo.clone()));
     let list_flows_uc = Arc::new(usecase::ListFlowsUseCase::new(flow_def_repo.clone()));
-    let get_flow_instances_uc =
-        Arc::new(usecase::GetFlowInstancesUseCase::new(flow_inst_repo.clone()));
+    let get_flow_instances_uc = Arc::new(usecase::GetFlowInstancesUseCase::new(
+        flow_inst_repo.clone(),
+    ));
     let get_flow_instance_uc =
         Arc::new(usecase::GetFlowInstanceUseCase::new(flow_inst_repo.clone()));
     let get_flow_kpi_uc = Arc::new(
-        usecase::GetFlowKpiUseCase::new(
-            flow_def_repo.clone(),
-            flow_inst_repo.clone(),
-        )
-        .with_cache(kpi_cache.clone()),
+        usecase::GetFlowKpiUseCase::new(flow_def_repo.clone(), flow_inst_repo.clone())
+            .with_cache(kpi_cache.clone()),
     );
     let get_kpi_summary_uc = Arc::new(usecase::GetKpiSummaryUseCase::new(
         flow_def_repo.clone(),
@@ -235,7 +234,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(EventMonitorServiceServer::new(grpc_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

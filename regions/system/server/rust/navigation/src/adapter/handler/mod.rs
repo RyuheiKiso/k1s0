@@ -19,7 +19,10 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
     let mut router = Router::new()
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
-        .route("/api/v1/navigation", get(navigation_handler::get_navigation));
+        .route(
+            "/api/v1/navigation",
+            get(navigation_handler::get_navigation),
+        );
 
     if metrics_enabled {
         router = router.route(metrics_path, get(metrics_handler));

@@ -37,7 +37,10 @@ impl DeleteFlagUseCase {
         }
     }
 
-    pub fn with_watch_sender(mut self, sender: tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>) -> Self {
+    pub fn with_watch_sender(
+        mut self,
+        sender: tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>,
+    ) -> Self {
         self.watch_sender = Some(sender);
         self
     }

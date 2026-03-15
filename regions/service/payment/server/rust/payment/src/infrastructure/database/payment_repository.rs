@@ -184,12 +184,11 @@ impl PaymentRepository for PaymentPostgresRepository {
         let row = match row {
             Some(r) => r,
             None => {
-                let exists: bool = sqlx::query_scalar(
-                    "SELECT EXISTS(SELECT 1 FROM payments WHERE id = $1)",
-                )
-                .bind(id)
-                .fetch_one(&mut *tx)
-                .await?;
+                let exists: bool =
+                    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM payments WHERE id = $1)")
+                        .bind(id)
+                        .fetch_one(&mut *tx)
+                        .await?;
 
                 if exists {
                     return Err(PaymentError::VersionConflict(id.to_string()).into());
@@ -270,12 +269,11 @@ impl PaymentRepository for PaymentPostgresRepository {
         let row = match row {
             Some(r) => r,
             None => {
-                let exists: bool = sqlx::query_scalar(
-                    "SELECT EXISTS(SELECT 1 FROM payments WHERE id = $1)",
-                )
-                .bind(id)
-                .fetch_one(&mut *tx)
-                .await?;
+                let exists: bool =
+                    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM payments WHERE id = $1)")
+                        .bind(id)
+                        .fetch_one(&mut *tx)
+                        .await?;
 
                 if exists {
                     return Err(PaymentError::VersionConflict(id.to_string()).into());
@@ -323,11 +321,7 @@ impl PaymentRepository for PaymentPostgresRepository {
         row.try_into()
     }
 
-    async fn refund(
-        &self,
-        id: Uuid,
-        expected_version: i32,
-    ) -> anyhow::Result<Payment> {
+    async fn refund(&self, id: Uuid, expected_version: i32) -> anyhow::Result<Payment> {
         let mut tx = self.pool.begin().await?;
         let now = Utc::now();
 
@@ -351,12 +345,11 @@ impl PaymentRepository for PaymentPostgresRepository {
         let row = match row {
             Some(r) => r,
             None => {
-                let exists: bool = sqlx::query_scalar(
-                    "SELECT EXISTS(SELECT 1 FROM payments WHERE id = $1)",
-                )
-                .bind(id)
-                .fetch_one(&mut *tx)
-                .await?;
+                let exists: bool =
+                    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM payments WHERE id = $1)")
+                        .bind(id)
+                        .fetch_one(&mut *tx)
+                        .await?;
 
                 if exists {
                     return Err(PaymentError::VersionConflict(id.to_string()).into());
@@ -492,7 +485,10 @@ impl TryFrom<PaymentRow> for Payment {
             customer_id: row.customer_id,
             amount: row.amount,
             currency: row.currency,
-            status: row.status.parse::<PaymentStatus>().map_err(|e| anyhow::anyhow!("{}", e))?,
+            status: row
+                .status
+                .parse::<PaymentStatus>()
+                .map_err(|e| anyhow::anyhow!("{}", e))?,
             payment_method: row.payment_method,
             transaction_id: row.transaction_id,
             error_code: row.error_code,

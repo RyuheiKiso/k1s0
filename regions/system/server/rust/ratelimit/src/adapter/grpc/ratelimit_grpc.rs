@@ -168,6 +168,7 @@ pub struct RateLimitGrpcService {
 }
 
 impl RateLimitGrpcService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         check_uc: Arc<CheckRateLimitUseCase>,
         create_uc: Arc<CreateRuleUseCase>,

@@ -14,5 +14,6 @@ pub trait HealthRepository: Send + Sync {
     async fn upsert(&self, health: &HealthStatus) -> anyhow::Result<()>;
 
     /// 全サービスの最新ヘルスステータス一覧を取得する。
+    #[allow(dead_code)]
     async fn list_all_latest(&self) -> anyhow::Result<Vec<HealthStatus>>;
 }

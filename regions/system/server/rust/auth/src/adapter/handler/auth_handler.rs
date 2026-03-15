@@ -213,7 +213,7 @@ pub async fn list_users(
     match state.list_users_uc.execute(&params).await {
         Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
     }

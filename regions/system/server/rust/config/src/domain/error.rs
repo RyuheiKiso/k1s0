@@ -5,15 +5,9 @@ use std::fmt;
 #[derive(Debug)]
 pub enum ConfigRepositoryError {
     /// 指定された namespace/key の設定値が見つからない
-    NotFound {
-        namespace: String,
-        key: String,
-    },
+    NotFound { namespace: String, key: String },
     /// 楽観的排他制御によるバージョン不一致
-    VersionConflict {
-        expected: i32,
-        current: i32,
-    },
+    VersionConflict { expected: i32, current: i32 },
     /// 指定されたサービス名に紐づく設定が見つからない
     ServiceNotFound(String),
     /// DB接続エラー等のインフラストラクチャエラー

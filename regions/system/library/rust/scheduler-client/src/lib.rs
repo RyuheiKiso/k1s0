@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_job_status_all_variants() {
-        let statuses = vec![
+        let statuses = [
             JobStatus::Pending,
             JobStatus::Running,
             JobStatus::Completed,

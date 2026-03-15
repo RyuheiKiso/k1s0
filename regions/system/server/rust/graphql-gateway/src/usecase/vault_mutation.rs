@@ -1,10 +1,8 @@
+use crate::domain::model::{DeleteSecretPayload, RotateSecretPayload, SetSecretPayload, UserError};
+use crate::infrastructure::grpc::VaultGrpcClient;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::instrument;
-use crate::domain::model::{
-    DeleteSecretPayload, RotateSecretPayload, SetSecretPayload, UserError,
-};
-use crate::infrastructure::grpc::VaultGrpcClient;
 
 pub struct VaultMutationResolver {
     client: Arc<VaultGrpcClient>,
@@ -26,13 +24,20 @@ impl VaultMutationResolver {
             Err(e) => SetSecretPayload {
                 path: None,
                 version: None,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }
 
     #[instrument(skip(self, data), fields(service = "graphql-gateway"))]
-    pub async fn rotate_secret(&self, path: &str, data: HashMap<String, String>) -> RotateSecretPayload {
+    pub async fn rotate_secret(
+        &self,
+        path: &str,
+        data: HashMap<String, String>,
+    ) -> RotateSecretPayload {
         match self.client.rotate_secret(path, data).await {
             Ok((p, new_version, rotated)) => RotateSecretPayload {
                 path: Some(p),
@@ -44,7 +49,10 @@ impl VaultMutationResolver {
                 path: None,
                 new_version: None,
                 rotated: false,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }
@@ -58,7 +66,10 @@ impl VaultMutationResolver {
             },
             Err(e) => DeleteSecretPayload {
                 success: false,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }

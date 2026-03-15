@@ -125,6 +125,7 @@ fn json_bytes_to_prost_struct(bytes: &[u8]) -> Option<prost_types::Struct> {
     Some(json_to_prost_struct(&value))
 }
 
+#[allow(clippy::result_large_err)]
 fn prost_struct_to_json_bytes(payload: Option<prost_types::Struct>) -> Result<Vec<u8>, Status> {
     let payload = payload
         .as_ref()

@@ -38,7 +38,7 @@ impl ListRulesUseCase {
 
     pub async fn execute(&self, input: &ListRulesInput) -> Result<ListRulesOutput, ListRulesError> {
         let page = input.page.max(1);
-        let page_size = input.page_size.max(1).min(200);
+        let page_size = input.page_size.clamp(1, 200);
         let (rules, total_count) = self
             .repo
             .find_page(page, page_size, input.scope.clone(), input.enabled_only)

@@ -99,7 +99,7 @@ impl OrderService for OrderGrpcService {
             .as_deref()
             .map(|s| s.parse::<OrderStatus>())
             .transpose()
-            .map_err(|e| Status::invalid_argument(e))?;
+            .map_err(Status::invalid_argument)?;
         let page = req.pagination.as_ref().map(|p| p.page).unwrap_or(1).max(1);
         let page_size = req
             .pagination
@@ -123,10 +123,7 @@ impl OrderService for OrderGrpcService {
 
         let has_next = (page as i64 * page_size as i64) < total_count;
         Ok(Response::new(ListOrdersResponse {
-            orders: orders
-                .into_iter()
-                .map(|o| proto_order(o, vec![]))
-                .collect(),
+            orders: orders.into_iter().map(|o| proto_order(o, vec![])).collect(),
             total_count,
             pagination: Some(PaginationResult {
                 total_count: total_count as i32,

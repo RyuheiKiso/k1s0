@@ -130,11 +130,12 @@ impl InventoryRepository for InventoryPostgresRepository {
         let row = match row {
             Some(r) => r,
             None => {
-                let exists: bool =
-                    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM inventory_items WHERE id = $1)")
-                        .bind(id)
-                        .fetch_one(&mut *tx)
-                        .await?;
+                let exists: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM inventory_items WHERE id = $1)",
+                )
+                .bind(id)
+                .fetch_one(&mut *tx)
+                .await?;
 
                 if exists {
                     return Err(InventoryError::VersionConflict(id.to_string()).into());
@@ -216,11 +217,12 @@ impl InventoryRepository for InventoryPostgresRepository {
         let row = match row {
             Some(r) => r,
             None => {
-                let exists: bool =
-                    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM inventory_items WHERE id = $1)")
-                        .bind(id)
-                        .fetch_one(&mut *tx)
-                        .await?;
+                let exists: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM inventory_items WHERE id = $1)",
+                )
+                .bind(id)
+                .fetch_one(&mut *tx)
+                .await?;
 
                 if exists {
                     return Err(InventoryError::VersionConflict(id.to_string()).into());
@@ -299,11 +301,12 @@ impl InventoryRepository for InventoryPostgresRepository {
         match row {
             Some(r) => Ok(InventoryItem::from(r)),
             None => {
-                let exists: bool =
-                    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM inventory_items WHERE id = $1)")
-                        .bind(id)
-                        .fetch_one(&self.pool)
-                        .await?;
+                let exists: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM inventory_items WHERE id = $1)",
+                )
+                .bind(id)
+                .fetch_one(&self.pool)
+                .await?;
 
                 if exists {
                     Err(InventoryError::VersionConflict(id.to_string()).into())

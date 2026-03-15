@@ -17,6 +17,7 @@ impl ServiceCatalogMutationResolver {
         Self { client }
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn register_service(
         &self,
@@ -59,6 +60,7 @@ impl ServiceCatalogMutationResolver {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn update_service(
         &self,

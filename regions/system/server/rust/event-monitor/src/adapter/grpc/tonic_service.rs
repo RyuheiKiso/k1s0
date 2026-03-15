@@ -6,13 +6,14 @@ use crate::proto::k1s0::system::common::v1::{
     PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
 };
 use crate::proto::k1s0::system::event_monitor::v1::{
-    event_monitor_service_server::EventMonitorService,
-    CreateFlowRequest as ProtoCreateFlowRequest, CreateFlowResponse as ProtoCreateFlowResponse,
-    DeleteFlowRequest as ProtoDeleteFlowRequest, DeleteFlowResponse as ProtoDeleteFlowResponse,
-    EventRecord as ProtoEventRecord, ExecuteReplayRequest as ProtoExecuteReplayRequest,
+    event_monitor_service_server::EventMonitorService, BottleneckStep as ProtoBottleneckStep,
+    BurnRateWindow as ProtoBurnRateWindow, CreateFlowRequest as ProtoCreateFlowRequest,
+    CreateFlowResponse as ProtoCreateFlowResponse, DeleteFlowRequest as ProtoDeleteFlowRequest,
+    DeleteFlowResponse as ProtoDeleteFlowResponse, EventRecord as ProtoEventRecord,
+    ExecuteReplayRequest as ProtoExecuteReplayRequest,
     ExecuteReplayResponse as ProtoExecuteReplayResponse, FlowDefinition as ProtoFlowDefinition,
-    FlowKpi as ProtoFlowKpi, FlowKpiSummary as ProtoFlowKpiSummary,
-    FlowSlo as ProtoFlowSlo, FlowStep as ProtoFlowStep, FlowSummary as ProtoFlowSummary,
+    FlowKpi as ProtoFlowKpi, FlowKpiSummary as ProtoFlowKpiSummary, FlowSlo as ProtoFlowSlo,
+    FlowStep as ProtoFlowStep, FlowSummary as ProtoFlowSummary,
     GetFlowKpiRequest as ProtoGetFlowKpiRequest, GetFlowKpiResponse as ProtoGetFlowKpiResponse,
     GetFlowRequest as ProtoGetFlowRequest, GetFlowResponse as ProtoGetFlowResponse,
     GetKpiSummaryRequest as ProtoGetKpiSummaryRequest,
@@ -20,18 +21,15 @@ use crate::proto::k1s0::system::event_monitor::v1::{
     GetSloBurnRateRequest as ProtoGetSloBurnRateRequest,
     GetSloBurnRateResponse as ProtoGetSloBurnRateResponse,
     GetSloStatusRequest as ProtoGetSloStatusRequest,
-    GetSloStatusResponse as ProtoGetSloStatusResponse,
-    ListEventsRequest as ProtoListEventsRequest, ListEventsResponse as ProtoListEventsResponse,
-    ListFlowsRequest as ProtoListFlowsRequest, ListFlowsResponse as ProtoListFlowsResponse,
-    PendingStep as ProtoPendingStep,
+    GetSloStatusResponse as ProtoGetSloStatusResponse, ListEventsRequest as ProtoListEventsRequest,
+    ListEventsResponse as ProtoListEventsResponse, ListFlowsRequest as ProtoListFlowsRequest,
+    ListFlowsResponse as ProtoListFlowsResponse, PendingStep as ProtoPendingStep,
     PreviewReplayRequest as ProtoPreviewReplayRequest,
     PreviewReplayResponse as ProtoPreviewReplayResponse,
-    TraceByCorrelationRequest as ProtoTraceByCorrelationRequest,
-    TraceByCorrelationResponse as ProtoTraceByCorrelationResponse,
-    UpdateFlowRequest as ProtoUpdateFlowRequest, UpdateFlowResponse as ProtoUpdateFlowResponse,
-    BottleneckStep as ProtoBottleneckStep, BurnRateWindow as ProtoBurnRateWindow,
     ReplayFlowPreview as ProtoReplayFlowPreview, SloFlowStatus as ProtoSloFlowStatus,
-    SloStatus as ProtoSloStatus, TraceEvent as ProtoTraceEvent,
+    SloStatus as ProtoSloStatus, TraceByCorrelationRequest as ProtoTraceByCorrelationRequest,
+    TraceByCorrelationResponse as ProtoTraceByCorrelationResponse, TraceEvent as ProtoTraceEvent,
+    UpdateFlowRequest as ProtoUpdateFlowRequest, UpdateFlowResponse as ProtoUpdateFlowResponse,
 };
 
 use super::event_monitor_grpc::{EventMonitorGrpcService, GrpcError};
@@ -54,7 +52,9 @@ fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> Option<ProtoTimestam
     })
 }
 
-fn to_proto_flow(flow: crate::domain::entity::flow_definition::FlowDefinition) -> ProtoFlowDefinition {
+fn to_proto_flow(
+    flow: crate::domain::entity::flow_definition::FlowDefinition,
+) -> ProtoFlowDefinition {
     ProtoFlowDefinition {
         id: flow.id.to_string(),
         name: flow.name,
@@ -120,7 +120,14 @@ impl EventMonitorService for EventMonitorServiceTonic {
 
         let (events, total_count, has_next) = self
             .inner
-            .list_events(page, page_size, inner.domain, inner.event_type, inner.source, inner.status)
+            .list_events(
+                page,
+                page_size,
+                inner.domain,
+                inner.event_type,
+                inner.source,
+                inner.status,
+            )
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -259,7 +266,11 @@ impl EventMonitorService for EventMonitorServiceTonic {
                 .map(|s| crate::domain::entity::flow_definition::FlowStep {
                     event_type: s.event_type,
                     source: s.source.clone(),
-                    source_filter: if s.source.is_empty() { None } else { Some(s.source) },
+                    source_filter: if s.source.is_empty() {
+                        None
+                    } else {
+                        Some(s.source)
+                    },
                     timeout_seconds: s.timeout_seconds,
                     description: s.description,
                 })
@@ -310,7 +321,11 @@ impl EventMonitorService for EventMonitorServiceTonic {
                         .map(|s| crate::domain::entity::flow_definition::FlowStep {
                             event_type: s.event_type,
                             source: s.source.clone(),
-                            source_filter: if s.source.is_empty() { None } else { Some(s.source) },
+                            source_filter: if s.source.is_empty() {
+                                None
+                            } else {
+                                Some(s.source)
+                            },
                             timeout_seconds: s.timeout_seconds,
                             description: s.description,
                         })
@@ -392,7 +407,9 @@ impl EventMonitorService for EventMonitorServiceTonic {
                 current_success_rate: output.slo_status.current_success_rate,
                 is_violated: output.slo_status.is_violated,
                 burn_rate: output.slo_status.burn_rate,
-                estimated_budget_exhaustion_hours: output.slo_status.estimated_budget_exhaustion_hours,
+                estimated_budget_exhaustion_hours: output
+                    .slo_status
+                    .estimated_budget_exhaustion_hours,
             }),
         }))
     }
@@ -477,7 +494,7 @@ impl EventMonitorService for EventMonitorServiceTonic {
                 })
                 .collect(),
             alert_status: output.alert_status,
-            alert_fired_at: output.alert_fired_at.and_then(|t| to_proto_timestamp(t)),
+            alert_fired_at: output.alert_fired_at.and_then(to_proto_timestamp),
         }))
     }
 

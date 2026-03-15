@@ -50,7 +50,11 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
 
-    async fn find_by_name(&self, name: &str, domain_scope: Option<&str>) -> anyhow::Result<Option<TableDefinition>> {
+    async fn find_by_name(
+        &self,
+        name: &str,
+        domain_scope: Option<&str>,
+    ) -> anyhow::Result<Option<TableDefinition>> {
         let row = if let Some(ds) = domain_scope {
             sqlx::query_as::<_, TableDefinitionRow>(
                 "SELECT * FROM master_maintenance.table_definitions WHERE name = $1 AND domain_scope = $2",

@@ -12,7 +12,7 @@ use crate::template::TemplateEngine;
 /// Helm Chart テンプレートをレンダリングする。
 ///
 /// helm テンプレートディレクトリ配下の `.tera` ファイルを走査し、
-/// TemplateContext を使ってレンダリングした結果を出力ディレクトリに書き込む。
+/// `TemplateContext` を使ってレンダリングした結果を出力ディレクトリに書き込む。
 ///
 /// # Errors
 ///

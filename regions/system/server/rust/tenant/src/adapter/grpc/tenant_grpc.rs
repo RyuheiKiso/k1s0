@@ -6,8 +6,7 @@ use crate::usecase::{
     CreateTenantInput, CreateTenantUseCase, DeleteTenantError, DeleteTenantUseCase,
     GetProvisioningStatusUseCase, GetTenantUseCase, ListMembersError, ListMembersUseCase,
     ListTenantsUseCase, RemoveMemberUseCase, SuspendTenantError, SuspendTenantUseCase,
-    UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase,
-    TenantChangeEvent,
+    TenantChangeEvent, UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase,
 };
 
 use super::watch_stream::WatchTenantStreamHandler;
@@ -221,6 +220,7 @@ pub struct TenantGrpcService {
 
 impl TenantGrpcService {
     #[allow(dead_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         create_tenant_uc: Arc<CreateTenantUseCase>,
         get_tenant_uc: Arc<GetTenantUseCase>,
@@ -250,6 +250,7 @@ impl TenantGrpcService {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new_with_watch(
         create_tenant_uc: Arc<CreateTenantUseCase>,
         get_tenant_uc: Arc<GetTenantUseCase>,

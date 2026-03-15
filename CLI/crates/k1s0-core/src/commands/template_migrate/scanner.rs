@@ -17,7 +17,7 @@ pub fn scan_targets(root: &Path) -> Result<Vec<MigrationTarget>> {
     for entry in WalkDir::new(root)
         .follow_links(false)
         .into_iter()
-        .filter_map(|entry| entry.ok())
+        .filter_map(Result::ok)
     {
         if entry.file_name() != MANIFEST_FILE_NAME {
             continue;

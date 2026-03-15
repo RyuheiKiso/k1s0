@@ -255,28 +255,19 @@ mod tests {
     #[test]
     fn sys_auditor_cannot_write() {
         let claims = make_claims(vec!["sys_auditor"]);
-        assert!(!has_navigation_permission(
-            &claims,
-            NavigationAction::Write
-        ));
+        assert!(!has_navigation_permission(&claims, NavigationAction::Write));
     }
 
     #[test]
     fn sys_operator_can_write() {
         let claims = make_claims(vec!["sys_operator"]);
-        assert!(has_navigation_permission(
-            &claims,
-            NavigationAction::Write
-        ));
+        assert!(has_navigation_permission(&claims, NavigationAction::Write));
     }
 
     #[test]
     fn sys_admin_can_write() {
         let claims = make_claims(vec!["sys_admin"]);
-        assert!(has_navigation_permission(
-            &claims,
-            NavigationAction::Write
-        ));
+        assert!(has_navigation_permission(&claims, NavigationAction::Write));
     }
 
     // --- Admin 権限 ---
@@ -284,28 +275,19 @@ mod tests {
     #[test]
     fn sys_auditor_cannot_admin() {
         let claims = make_claims(vec!["sys_auditor"]);
-        assert!(!has_navigation_permission(
-            &claims,
-            NavigationAction::Admin
-        ));
+        assert!(!has_navigation_permission(&claims, NavigationAction::Admin));
     }
 
     #[test]
     fn sys_operator_cannot_admin() {
         let claims = make_claims(vec!["sys_operator"]);
-        assert!(!has_navigation_permission(
-            &claims,
-            NavigationAction::Admin
-        ));
+        assert!(!has_navigation_permission(&claims, NavigationAction::Admin));
     }
 
     #[test]
     fn sys_admin_can_admin() {
         let claims = make_claims(vec!["sys_admin"]);
-        assert!(has_navigation_permission(
-            &claims,
-            NavigationAction::Admin
-        ));
+        assert!(has_navigation_permission(&claims, NavigationAction::Admin));
     }
 
     // --- Edge cases ---
@@ -314,27 +296,15 @@ mod tests {
     fn no_roles_denied() {
         let claims = make_claims(vec![]);
         assert!(!has_navigation_permission(&claims, NavigationAction::Read));
-        assert!(!has_navigation_permission(
-            &claims,
-            NavigationAction::Write
-        ));
-        assert!(!has_navigation_permission(
-            &claims,
-            NavigationAction::Admin
-        ));
+        assert!(!has_navigation_permission(&claims, NavigationAction::Write));
+        assert!(!has_navigation_permission(&claims, NavigationAction::Admin));
     }
 
     #[test]
     fn multiple_roles_highest_wins() {
         let claims = make_claims(vec!["sys_auditor", "sys_operator"]);
         assert!(has_navigation_permission(&claims, NavigationAction::Read));
-        assert!(has_navigation_permission(
-            &claims,
-            NavigationAction::Write
-        ));
-        assert!(!has_navigation_permission(
-            &claims,
-            NavigationAction::Admin
-        ));
+        assert!(has_navigation_permission(&claims, NavigationAction::Write));
+        assert!(!has_navigation_permission(&claims, NavigationAction::Admin));
     }
 }

@@ -158,7 +158,11 @@ pub async fn list_executions(
     };
 
     match state.list_executions_uc.execute(req).await {
-        Ok(resp) => (StatusCode::OK, Json(serde_json::json!({"executions": resp.executions}))).into_response(),
+        Ok(resp) => (
+            StatusCode::OK,
+            Json(serde_json::json!({"executions": resp.executions})),
+        )
+            .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({"error": e.to_string()})),

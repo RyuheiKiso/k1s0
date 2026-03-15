@@ -66,7 +66,7 @@ pub async fn upload_file(
         }) => {
             let err = ErrorResponse::new(
                 codes::file::size_exceeded(),
-                &format!("file size exceeds limit: {} > {}", actual, max),
+                format!("file size exceeds limit: {} > {}", actual, max),
             );
             (StatusCode::PAYLOAD_TOO_LARGE, Json(err)).into_response()
         }
@@ -283,26 +283,21 @@ pub async fn complete_upload(
     use crate::usecase::complete_upload::CompleteUploadInput;
 
     if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
-        match state
+        if let Ok(file) = state
             .get_file_metadata_uc
             .execute(&GetFileMetadataInput {
                 file_id: id.clone(),
             })
             .await
         {
-            Ok(file) => {
-                if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                    &file.tenant_id,
-                    request_tenant_id,
-                ) {
-                    let err = ErrorResponse::new(
-                        codes::file::access_denied(),
-                        "access denied for tenant",
-                    );
-                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                }
+            if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                &file.tenant_id,
+                request_tenant_id,
+            ) {
+                let err =
+                    ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
             }
-            Err(_) => {}
         }
     }
 
@@ -336,26 +331,21 @@ pub async fn download_url(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
-        match state
+        if let Ok(file) = state
             .get_file_metadata_uc
             .execute(&GetFileMetadataInput {
                 file_id: id.clone(),
             })
             .await
         {
-            Ok(file) => {
-                if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                    &file.tenant_id,
-                    request_tenant_id,
-                ) {
-                    let err = ErrorResponse::new(
-                        codes::file::access_denied(),
-                        "access denied for tenant",
-                    );
-                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                }
+            if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                &file.tenant_id,
+                request_tenant_id,
+            ) {
+                let err =
+                    ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
             }
-            Err(_) => {}
         }
     }
 
@@ -403,26 +393,21 @@ pub async fn update_file_tags(
     use crate::usecase::update_file_tags::UpdateFileTagsInput;
 
     if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
-        match state
+        if let Ok(file) = state
             .get_file_metadata_uc
             .execute(&GetFileMetadataInput {
                 file_id: id.clone(),
             })
             .await
         {
-            Ok(file) => {
-                if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                    &file.tenant_id,
-                    request_tenant_id,
-                ) {
-                    let err = ErrorResponse::new(
-                        codes::file::access_denied(),
-                        "access denied for tenant",
-                    );
-                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                }
+            if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                &file.tenant_id,
+                request_tenant_id,
+            ) {
+                let err =
+                    ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
             }
-            Err(_) => {}
         }
     }
 

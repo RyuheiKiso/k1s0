@@ -39,14 +39,12 @@ pub async fn list_versions(
     match state.list_versions_uc.execute(&id).await {
         Ok(versions) => (StatusCode::OK, Json(VersionListResponse { versions })).into_response(),
         Err(crate::usecase::list_versions::ListVersionsError::AppNotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_APPS_APP_NOT_FOUND",
-                "The specified app was not found",
-            );
+            let err =
+                ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -98,13 +96,16 @@ pub async fn create_version(
     };
 
     match state.create_version_uc.execute(&version).await {
-        Ok(created) => (StatusCode::CREATED, Json(CreateVersionResponse {
-            id: created.id,
-            created_at: created.created_at,
-        }))
+        Ok(created) => (
+            StatusCode::CREATED,
+            Json(CreateVersionResponse {
+                id: created.id,
+                created_at: created.created_at,
+            }),
+        )
             .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_CREATE_VERSION_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_CREATE_VERSION_FAILED", e.to_string());
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
     }
@@ -157,10 +158,8 @@ pub async fn delete_version(
     {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(crate::usecase::delete_version::DeleteVersionError::AppNotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_APPS_APP_NOT_FOUND",
-                "The specified app was not found",
-            );
+            let err =
+                ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::delete_version::DeleteVersionError::VersionNotFound(_, _)) => {
@@ -178,7 +177,7 @@ pub async fn delete_version(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

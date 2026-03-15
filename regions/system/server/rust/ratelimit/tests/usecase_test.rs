@@ -11,13 +11,13 @@ use k1s0_ratelimit_server::domain::entity::{Algorithm, RateLimitDecision, RateLi
 use k1s0_ratelimit_server::domain::repository::{
     RateLimitRepository, RateLimitStateStore, UsageSnapshot,
 };
+use k1s0_ratelimit_server::usecase::create_rule::CreateRuleInput;
+use k1s0_ratelimit_server::usecase::list_rules::ListRulesInput;
+use k1s0_ratelimit_server::usecase::update_rule::UpdateRuleInput;
 use k1s0_ratelimit_server::usecase::{
     CheckRateLimitUseCase, CreateRuleUseCase, DeleteRuleUseCase, GetRuleUseCase, GetUsageUseCase,
     ListRulesUseCase, ResetRateLimitInput, ResetRateLimitUseCase, UpdateRuleUseCase,
 };
-use k1s0_ratelimit_server::usecase::create_rule::CreateRuleInput;
-use k1s0_ratelimit_server::usecase::list_rules::ListRulesInput;
-use k1s0_ratelimit_server::usecase::update_rule::UpdateRuleInput;
 
 // ============================================================
 // Stub リポジトリ実装
@@ -101,7 +101,11 @@ impl RateLimitRepository for StubRateLimitRepository {
             .collect();
         let total = filtered.len() as u64;
         let start = ((page - 1) * page_size) as usize;
-        let page_items: Vec<_> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        let page_items: Vec<_> = filtered
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((page_items, total))
     }
 
@@ -169,7 +173,11 @@ impl StubRateLimitStateStore {
     }
 
     /// カウンターをインクリメントしてデシジョンを返すヘルパー。
-    async fn check_common(&self, limit: i64, window_secs: i64) -> anyhow::Result<RateLimitDecision> {
+    async fn check_common(
+        &self,
+        limit: i64,
+        window_secs: i64,
+    ) -> anyhow::Result<RateLimitDecision> {
         if self.should_error {
             return Err(anyhow::anyhow!("state store unavailable"));
         }
@@ -186,7 +194,11 @@ impl StubRateLimitStateStore {
                 "rate limit exceeded".to_string(),
             ))
         } else {
-            Ok(RateLimitDecision::allowed(effective_limit, remaining, reset_at))
+            Ok(RateLimitDecision::allowed(
+                effective_limit,
+                remaining,
+                reset_at,
+            ))
         }
     }
 }
@@ -267,7 +279,13 @@ impl RateLimitStateStore for StubRateLimitStateStore {
 // ============================================================
 
 /// テスト用ルールを作成するヘルパー。
-fn make_rule(scope: &str, pattern: &str, limit: u32, window: u32, algo: Algorithm) -> RateLimitRule {
+fn make_rule(
+    scope: &str,
+    pattern: &str,
+    limit: u32,
+    window: u32,
+    algo: Algorithm,
+) -> RateLimitRule {
     RateLimitRule::new(scope.to_string(), pattern.to_string(), limit, window, algo)
 }
 
@@ -295,7 +313,10 @@ async fn check_rate_limit_with_stub_single_rule_allowed() {
 async fn check_rate_limit_exact_match_takes_priority_over_wildcard() {
     let wildcard_rule = make_rule("api", "*", 100, 60, Algorithm::TokenBucket);
     let exact_rule = make_rule("api", "user-vip", 1000, 60, Algorithm::FixedWindow);
-    let repo = Arc::new(StubRateLimitRepository::with_rules(vec![wildcard_rule, exact_rule]));
+    let repo = Arc::new(StubRateLimitRepository::with_rules(vec![
+        wildcard_rule,
+        exact_rule,
+    ]));
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
@@ -312,7 +333,10 @@ async fn check_rate_limit_exact_match_takes_priority_over_wildcard() {
 async fn check_rate_limit_falls_back_to_wildcard_when_no_exact_match() {
     let wildcard_rule = make_rule("api", "*", 50, 60, Algorithm::SlidingWindow);
     let specific_rule = make_rule("api", "admin-user", 200, 60, Algorithm::TokenBucket);
-    let repo = Arc::new(StubRateLimitRepository::with_rules(vec![wildcard_rule, specific_rule]));
+    let repo = Arc::new(StubRateLimitRepository::with_rules(vec![
+        wildcard_rule,
+        specific_rule,
+    ]));
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
@@ -725,7 +749,10 @@ async fn list_rules_with_stub_enabled_only_filter() {
     let mut disabled_rule = make_rule("api", "disabled", 100, 60, Algorithm::TokenBucket);
     disabled_rule.enabled = false;
     let enabled_rule = make_rule("api", "enabled", 100, 60, Algorithm::TokenBucket);
-    let repo = Arc::new(StubRateLimitRepository::with_rules(vec![disabled_rule, enabled_rule]));
+    let repo = Arc::new(StubRateLimitRepository::with_rules(vec![
+        disabled_rule,
+        enabled_rule,
+    ]));
     let uc = ListRulesUseCase::new(repo);
 
     let result = uc

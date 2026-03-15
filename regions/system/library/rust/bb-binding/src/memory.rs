@@ -6,8 +6,8 @@ use tracing::info;
 
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 
-use crate::traits::{BindingData, BindingResponse, InputBinding, OutputBinding};
 use crate::BindingError;
+use crate::traits::{BindingData, BindingResponse, InputBinding, OutputBinding};
 
 /// InMemoryInputBinding はテスト・開発用のインメモリ InputBinding 実装。
 pub struct InMemoryInputBinding {
@@ -85,6 +85,8 @@ impl InputBinding for InMemoryInputBinding {
 pub struct InMemoryOutputBinding {
     name: String,
     status: RwLock<ComponentStatus>,
+    // 呼び出し履歴を保持するフィールド（操作名、データ、メタデータのタプル）。
+    #[allow(clippy::type_complexity)]
     invocations: RwLock<Vec<(String, Vec<u8>, HashMap<String, String>)>>,
 }
 

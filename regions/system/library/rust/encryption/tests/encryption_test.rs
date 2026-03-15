@@ -1,6 +1,6 @@
 use k1s0_encryption::{
-    aes_decrypt, aes_encrypt, generate_aes_key, generate_rsa_key_pair, hash_password,
-    rsa_decrypt, rsa_encrypt, verify_password, EncryptionError,
+    aes_decrypt, aes_encrypt, generate_aes_key, generate_rsa_key_pair, hash_password, rsa_decrypt,
+    rsa_encrypt, verify_password, EncryptionError,
 };
 
 // ─── AES ────────────────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ fn aes_decrypt_invalid_base64_returns_error() {
 fn aes_decrypt_too_short_ciphertext_returns_error() {
     let key = generate_aes_key();
     // base64 of a few bytes (less than 12-byte nonce)
-    let short = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &[1, 2, 3]);
+    let short = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, [1, 2, 3]);
     let result = aes_decrypt(&key, &short);
     assert!(result.is_err());
 }

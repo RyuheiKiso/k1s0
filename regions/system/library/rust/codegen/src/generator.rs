@@ -22,7 +22,10 @@ pub struct GenerateResult {
 ///
 /// The output root directory must be provided (the server directory itself).
 /// Files that already exist are skipped (idempotent).
-pub fn generate(config: &ScaffoldConfig, output_dir: &Path) -> Result<GenerateResult, CodegenError> {
+pub fn generate(
+    config: &ScaffoldConfig,
+    output_dir: &Path,
+) -> Result<GenerateResult, CodegenError> {
     config.validate()?;
 
     let tera = create_tera_engine().map_err(|e| CodegenError::Template {
@@ -72,14 +75,7 @@ pub fn generate(config: &ScaffoldConfig, output_dir: &Path) -> Result<GenerateRe
 
     // gRPC-only files
     if config.has_grpc() {
-        render_file(
-            &tera,
-            "build_rs",
-            &ctx,
-            output_dir,
-            "build.rs",
-            &mut result,
-        )?;
+        render_file(&tera, "build_rs", &ctx, output_dir, "build.rs", &mut result)?;
 
         let proto_path = format!(
             "api/proto/k1s0/{}/{}/v1/{}.proto",
@@ -141,10 +137,12 @@ fn render_file(
         return Ok(());
     }
 
-    let rendered = tera.render(template_name, ctx).map_err(|e| CodegenError::Template {
-        template: template_name.to_string(),
-        source: e,
-    })?;
+    let rendered = tera
+        .render(template_name, ctx)
+        .map_err(|e| CodegenError::Template {
+            template: template_name.to_string(),
+            source: e,
+        })?;
 
     ensure_parent(&full_path)?;
     fs::write(&full_path, rendered).map_err(|e| CodegenError::Io {

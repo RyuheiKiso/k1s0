@@ -162,7 +162,11 @@ fn domain_table_to_proto(
 }
 
 fn optional_str(s: &str) -> Option<&str> {
-    if s.is_empty() { None } else { Some(s) }
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
+    }
 }
 
 fn current_trace_id() -> Option<String> {
@@ -951,7 +955,12 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .ok_or_else(|| Status::invalid_argument("data is required"))?;
         let updated = self
             .manage_columns_uc
-            .update_column(&req.table_name, &req.column_name, &struct_to_json(data), None)
+            .update_column(
+                &req.table_name,
+                &req.column_name,
+                &struct_to_json(data),
+                None,
+            )
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(UpdateColumnResponse {

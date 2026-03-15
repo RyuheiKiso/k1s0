@@ -29,6 +29,7 @@ mod tests {
 
     // proc-macro クレートが正常にコンパイルされ k1s0_trace マクロが利用可能であることを確認する。
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn proc_macro_crate_compiles() {
         // If this test runs, the proc-macro crate compiled successfully.
         // The k1s0_trace macro is available for use by downstream crates.

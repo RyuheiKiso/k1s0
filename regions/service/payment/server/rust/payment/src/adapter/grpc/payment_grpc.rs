@@ -95,7 +95,7 @@ impl PaymentService for PaymentGrpcService {
             .as_deref()
             .map(|s| s.parse::<PaymentStatus>())
             .transpose()
-            .map_err(|e| Status::invalid_argument(e))?;
+            .map_err(Status::invalid_argument)?;
         let page = req.pagination.as_ref().map(|p| p.page).unwrap_or(1).max(1);
         let page_size = req
             .pagination
@@ -120,10 +120,7 @@ impl PaymentService for PaymentGrpcService {
 
         let has_next = (page as i64 * page_size as i64) < total_count;
         Ok(Response::new(ListPaymentsResponse {
-            payments: payments
-                .into_iter()
-                .map(proto_payment)
-                .collect(),
+            payments: payments.into_iter().map(proto_payment).collect(),
             total_count,
             pagination: Some(PaginationResult {
                 total_count: total_count as i32,

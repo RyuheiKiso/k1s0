@@ -36,7 +36,7 @@ impl ListEventsUseCase {
         input: &ListEventsInput,
     ) -> Result<ListEventsOutput, ListEventsError> {
         let page = input.page.max(1);
-        let page_size = input.page_size.max(1).min(200);
+        let page_size = input.page_size.clamp(1, 200);
 
         let (events, total_count) = self
             .event_repo

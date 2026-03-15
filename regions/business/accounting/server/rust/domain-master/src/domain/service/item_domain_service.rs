@@ -85,12 +85,10 @@ mod tests {
         let result = ItemDomainService::check_circular_parent(&repo, id, id).await;
 
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("cannot be its own parent")
-        );
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("cannot be its own parent"));
     }
 
     /// 有効な親チェーン: A → B (B の親は None) → 循環なし。

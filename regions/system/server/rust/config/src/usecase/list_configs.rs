@@ -228,12 +228,11 @@ mod tests {
     #[tokio::test]
     async fn test_list_configs_internal_error() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_list_by_namespace()
-            .returning(|_, _, _, _| {
-                Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
-                    "connection refused"
-                )))
-            });
+        mock.expect_list_by_namespace().returning(|_, _, _, _| {
+            Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                "connection refused"
+            )))
+        });
 
         let uc = ListConfigsUseCase::new(Arc::new(mock));
         let params = ListConfigsParams {

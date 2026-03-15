@@ -417,9 +417,7 @@ async fn decorator_no_timeout_when_fast() {
         .build();
     let decorator = ResiliencyDecorator::new(policy);
 
-    let result = decorator
-        .execute(|| async { Ok::<_, TestError>(42) })
-        .await;
+    let result = decorator.execute(|| async { Ok::<_, TestError>(42) }).await;
 
     assert_eq!(result.unwrap(), 42);
     assert_eq!(decorator.metrics().timeout_events(), 0);
@@ -466,9 +464,7 @@ async fn decorator_circuit_breaker_stays_closed_on_success() {
 
     // Successful calls should keep circuit closed
     for _ in 0..10 {
-        let result = decorator
-            .execute(|| async { Ok::<_, TestError>(1) })
-            .await;
+        let result = decorator.execute(|| async { Ok::<_, TestError>(1) }).await;
         assert!(result.is_ok());
     }
 
@@ -501,9 +497,7 @@ async fn decorator_bulkhead_limits_concurrency() {
     // Wait for the first task to acquire the permit
     tokio::time::sleep(Duration::from_millis(10)).await;
 
-    let result = decorator
-        .execute(|| async { Ok::<_, TestError>(2) })
-        .await;
+    let result = decorator.execute(|| async { Ok::<_, TestError>(2) }).await;
     assert!(matches!(result, Err(ResiliencyError::BulkheadFull { .. })));
 
     let _ = handle.await;
@@ -530,9 +524,7 @@ async fn decorator_bulkhead_rejection_metrics() {
 
     tokio::time::sleep(Duration::from_millis(10)).await;
 
-    let _ = decorator
-        .execute(|| async { Ok::<_, TestError>(()) })
-        .await;
+    let _ = decorator.execute(|| async { Ok::<_, TestError>(()) }).await;
 
     assert_eq!(decorator.metrics().bulkhead_rejections(), 1);
 
@@ -656,9 +648,7 @@ fn error_circuit_open_display() {
 // BulkheadFullエラーの表示メッセージに最大同時実行数が含まれることを確認する。
 #[test]
 fn error_bulkhead_full_display() {
-    let err = ResiliencyError::BulkheadFull {
-        max_concurrent: 10,
-    };
+    let err = ResiliencyError::BulkheadFull { max_concurrent: 10 };
     let msg = err.to_string();
     assert!(msg.contains("10"));
 }

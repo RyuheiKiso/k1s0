@@ -160,7 +160,7 @@ pub async fn delete_flag(
         Err(DeleteFlagError::NotFound(_)) => error_response(
             StatusCode::NOT_FOUND,
             codes::featureflag::not_found(),
-            &format!("flag not found: {}", key),
+            format!("flag not found: {}", key),
         ),
         Err(DeleteFlagError::Internal(msg)) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,

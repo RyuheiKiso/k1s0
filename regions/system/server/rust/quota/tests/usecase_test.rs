@@ -11,21 +11,25 @@ use k1s0_quota_server::domain::repository::{
 use k1s0_quota_server::infrastructure::kafka_producer::{
     QuotaEventPublisher, QuotaExceededEvent, QuotaThresholdReachedEvent,
 };
-use k1s0_quota_server::usecase::create_quota_policy::{CreateQuotaPolicyInput, CreateQuotaPolicyUseCase, CreateQuotaPolicyError};
-use k1s0_quota_server::usecase::delete_quota_policy::{DeleteQuotaPolicyUseCase, DeleteQuotaPolicyError};
-use k1s0_quota_server::usecase::get_quota_policy::{GetQuotaPolicyUseCase, GetQuotaPolicyError};
-use k1s0_quota_server::usecase::get_quota_usage::{GetQuotaUsageUseCase, GetQuotaUsageError};
+use k1s0_quota_server::usecase::create_quota_policy::{
+    CreateQuotaPolicyError, CreateQuotaPolicyInput, CreateQuotaPolicyUseCase,
+};
+use k1s0_quota_server::usecase::delete_quota_policy::{
+    DeleteQuotaPolicyError, DeleteQuotaPolicyUseCase,
+};
+use k1s0_quota_server::usecase::get_quota_policy::{GetQuotaPolicyError, GetQuotaPolicyUseCase};
+use k1s0_quota_server::usecase::get_quota_usage::{GetQuotaUsageError, GetQuotaUsageUseCase};
 use k1s0_quota_server::usecase::increment_quota_usage::{
-    IncrementQuotaUsageInput, IncrementQuotaUsageUseCase, IncrementQuotaUsageError,
+    IncrementQuotaUsageError, IncrementQuotaUsageInput, IncrementQuotaUsageUseCase,
 };
 use k1s0_quota_server::usecase::list_quota_policies::{
-    ListQuotaPoliciesInput, ListQuotaPoliciesUseCase, ListQuotaPoliciesError,
+    ListQuotaPoliciesError, ListQuotaPoliciesInput, ListQuotaPoliciesUseCase,
 };
 use k1s0_quota_server::usecase::reset_quota_usage::{
-    ResetQuotaUsageInput, ResetQuotaUsageUseCase, ResetQuotaUsageError,
+    ResetQuotaUsageError, ResetQuotaUsageInput, ResetQuotaUsageUseCase,
 };
 use k1s0_quota_server::usecase::update_quota_policy::{
-    UpdateQuotaPolicyInput, UpdateQuotaPolicyUseCase, UpdateQuotaPolicyError,
+    UpdateQuotaPolicyError, UpdateQuotaPolicyInput, UpdateQuotaPolicyUseCase,
 };
 
 // ---------------------------------------------------------------------------
@@ -91,7 +95,11 @@ impl QuotaPolicyRepository for StubPolicyRepository {
         let all: Vec<QuotaPolicy> = policies.values().cloned().collect();
         let total = all.len() as u64;
         let start = ((page.saturating_sub(1)) * page_size) as usize;
-        let items: Vec<QuotaPolicy> = all.into_iter().skip(start).take(page_size as usize).collect();
+        let items: Vec<QuotaPolicy> = all
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((items, total))
     }
 
@@ -1029,11 +1037,7 @@ mod increment_quota_usage {
         let policy_repo = Arc::new(StubPolicyRepository::with_policy(&policy).await);
         let usage_repo = Arc::new(StubUsageRepository::with_usage(&policy.id, 5000).await);
         let event_pub = Arc::new(StubEventPublisher::new());
-        let uc = IncrementQuotaUsageUseCase::new(
-            policy_repo,
-            usage_repo,
-            event_pub.clone(),
-        );
+        let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub.clone());
 
         let input = IncrementQuotaUsageInput {
             quota_id: policy.id.clone(),
@@ -1083,11 +1087,7 @@ mod increment_quota_usage {
         let policy_repo = Arc::new(StubPolicyRepository::with_policy(&policy).await);
         let usage_repo = Arc::new(StubUsageRepository::with_usage(&policy.id, 10000).await);
         let event_pub = Arc::new(StubEventPublisher::new());
-        let uc = IncrementQuotaUsageUseCase::new(
-            policy_repo,
-            usage_repo,
-            event_pub.clone(),
-        );
+        let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub.clone());
 
         let input = IncrementQuotaUsageInput {
             quota_id: policy.id.clone(),
@@ -1099,7 +1099,10 @@ mod increment_quota_usage {
         assert!(result.is_err());
         match result.unwrap_err() {
             IncrementQuotaUsageError::Exceeded {
-                used, limit, quota_id, ..
+                used,
+                limit,
+                quota_id,
+                ..
             } => {
                 assert_eq!(used, 10000);
                 assert_eq!(limit, 10000);
@@ -1175,11 +1178,7 @@ mod increment_quota_usage {
         // Current usage is 79, increment by 1 => 80 => crosses 80% threshold
         let usage_repo = Arc::new(StubUsageRepository::with_usage(&policy.id, 79).await);
         let event_pub = Arc::new(StubEventPublisher::new());
-        let uc = IncrementQuotaUsageUseCase::new(
-            policy_repo,
-            usage_repo,
-            event_pub.clone(),
-        );
+        let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub.clone());
 
         let input = IncrementQuotaUsageInput {
             quota_id: policy.id.clone(),

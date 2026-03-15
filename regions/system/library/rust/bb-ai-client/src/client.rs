@@ -2,7 +2,9 @@
 // reqwestを使用してREST APIにリクエストを送信する
 
 use crate::traits::AiClient;
-use crate::types::{AiClientError, ModelInfo, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse};
+use crate::types::{
+    AiClientError, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse, ModelInfo,
+};
 
 // HTTP AIクライアント構造体
 // ベースURLとAPIキーを保持し、reqwestクライアントで通信を行う

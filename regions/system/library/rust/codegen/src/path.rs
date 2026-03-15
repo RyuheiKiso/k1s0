@@ -29,10 +29,7 @@ mod tests {
     #[test]
     fn business_tier() {
         let p = build_output_path(Path::new("/repo"), Tier::Business, "order");
-        assert_eq!(
-            p,
-            PathBuf::from("/repo/regions/business/server/rust/order")
-        );
+        assert_eq!(p, PathBuf::from("/repo/regions/business/server/rust/order"));
     }
 
     // service ティアでのハイフン含む名前の出力パスが正しく構築されることを確認する。

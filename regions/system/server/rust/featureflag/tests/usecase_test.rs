@@ -6,13 +6,9 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use k1s0_featureflag_server::domain::entity::evaluation::EvaluationContext;
-use k1s0_featureflag_server::domain::entity::feature_flag::{
-    FeatureFlag, FlagRule, FlagVariant,
-};
+use k1s0_featureflag_server::domain::entity::feature_flag::{FeatureFlag, FlagRule, FlagVariant};
 use k1s0_featureflag_server::domain::entity::flag_audit_log::FlagAuditLog;
-use k1s0_featureflag_server::domain::repository::{
-    FeatureFlagRepository, FlagAuditLogRepository,
-};
+use k1s0_featureflag_server::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
 use k1s0_featureflag_server::infrastructure::kafka_producer::FlagEventPublisher;
 use k1s0_featureflag_server::usecase::create_flag::{
     CreateFlagError, CreateFlagInput, CreateFlagUseCase,
@@ -934,8 +930,16 @@ async fn evaluate_flag_rule_eq_match() {
         "feature.eq-rule",
         true,
         vec![
-            FlagVariant { name: "control".to_string(), value: "false".to_string(), weight: 50 },
-            FlagVariant { name: "treatment".to_string(), value: "true".to_string(), weight: 50 },
+            FlagVariant {
+                name: "control".to_string(),
+                value: "false".to_string(),
+                weight: 50,
+            },
+            FlagVariant {
+                name: "treatment".to_string(),
+                value: "true".to_string(),
+                weight: 50,
+            },
         ],
         vec![FlagRule {
             attribute: "user_id".to_string(),
@@ -962,9 +966,11 @@ async fn evaluate_flag_rule_eq_no_match_falls_to_weighted() {
     let flag = make_flag_with_rules(
         "feature.eq-nomatch",
         true,
-        vec![
-            FlagVariant { name: "control".to_string(), value: "false".to_string(), weight: 100 },
-        ],
+        vec![FlagVariant {
+            name: "control".to_string(),
+            value: "false".to_string(),
+            weight: 100,
+        }],
         vec![FlagRule {
             attribute: "user_id".to_string(),
             operator: "eq".to_string(),
@@ -993,9 +999,11 @@ async fn evaluate_flag_rule_contains_match() {
     let flag = make_flag_with_rules(
         "feature.contains-rule",
         true,
-        vec![
-            FlagVariant { name: "beta".to_string(), value: "true".to_string(), weight: 100 },
-        ],
+        vec![FlagVariant {
+            name: "beta".to_string(),
+            value: "true".to_string(),
+            weight: 100,
+        }],
         vec![FlagRule {
             attribute: "user_id".to_string(),
             operator: "contains".to_string(),
@@ -1021,9 +1029,11 @@ async fn evaluate_flag_rule_contains_no_match() {
     let flag = make_flag_with_rules(
         "feature.contains-nomatch",
         true,
-        vec![
-            FlagVariant { name: "stable".to_string(), value: "false".to_string(), weight: 100 },
-        ],
+        vec![FlagVariant {
+            name: "stable".to_string(),
+            value: "false".to_string(),
+            weight: 100,
+        }],
         vec![FlagRule {
             attribute: "user_id".to_string(),
             operator: "contains".to_string(),
@@ -1052,9 +1062,11 @@ async fn evaluate_flag_rule_in_match() {
     let flag = make_flag_with_rules(
         "feature.in-rule",
         true,
-        vec![
-            FlagVariant { name: "premium".to_string(), value: "true".to_string(), weight: 100 },
-        ],
+        vec![FlagVariant {
+            name: "premium".to_string(),
+            value: "true".to_string(),
+            weight: 100,
+        }],
         vec![FlagRule {
             attribute: "tenant_id".to_string(),
             operator: "in".to_string(),
@@ -1084,9 +1096,11 @@ async fn evaluate_flag_rule_in_no_match() {
     let flag = make_flag_with_rules(
         "feature.in-nomatch",
         true,
-        vec![
-            FlagVariant { name: "free".to_string(), value: "false".to_string(), weight: 100 },
-        ],
+        vec![FlagVariant {
+            name: "free".to_string(),
+            value: "false".to_string(),
+            weight: 100,
+        }],
         vec![FlagRule {
             attribute: "tenant_id".to_string(),
             operator: "in".to_string(),
@@ -1122,9 +1136,11 @@ async fn evaluate_flag_rule_custom_attribute() {
     let flag = make_flag_with_rules(
         "feature.custom-attr",
         true,
-        vec![
-            FlagVariant { name: "enterprise".to_string(), value: "true".to_string(), weight: 100 },
-        ],
+        vec![FlagVariant {
+            name: "enterprise".to_string(),
+            value: "true".to_string(),
+            weight: 100,
+        }],
         vec![FlagRule {
             attribute: "plan".to_string(),
             operator: "eq".to_string(),
@@ -1152,9 +1168,11 @@ async fn evaluate_flag_rule_unknown_operator_skips() {
     let flag = make_flag_with_rules(
         "feature.unknown-op",
         true,
-        vec![
-            FlagVariant { name: "default".to_string(), value: "true".to_string(), weight: 100 },
-        ],
+        vec![FlagVariant {
+            name: "default".to_string(),
+            value: "true".to_string(),
+            weight: 100,
+        }],
         vec![FlagRule {
             attribute: "user_id".to_string(),
             operator: "regex".to_string(), // unsupported
@@ -1183,9 +1201,11 @@ async fn evaluate_flag_rule_missing_attribute_skips() {
     let flag = make_flag_with_rules(
         "feature.missing-attr",
         true,
-        vec![
-            FlagVariant { name: "fallback".to_string(), value: "true".to_string(), weight: 100 },
-        ],
+        vec![FlagVariant {
+            name: "fallback".to_string(),
+            value: "true".to_string(),
+            weight: 100,
+        }],
         vec![FlagRule {
             attribute: "region".to_string(),
             operator: "eq".to_string(),
@@ -1215,8 +1235,16 @@ async fn evaluate_flag_multiple_rules_first_match_wins() {
         "feature.multi-rule",
         true,
         vec![
-            FlagVariant { name: "vip".to_string(), value: "true".to_string(), weight: 50 },
-            FlagVariant { name: "beta".to_string(), value: "true".to_string(), weight: 50 },
+            FlagVariant {
+                name: "vip".to_string(),
+                value: "true".to_string(),
+                weight: 50,
+            },
+            FlagVariant {
+                name: "beta".to_string(),
+                value: "true".to_string(),
+                weight: 50,
+            },
         ],
         vec![
             FlagRule {
@@ -1254,9 +1282,11 @@ async fn evaluate_flag_rule_variant_not_in_variants_list_skips() {
     let flag = make_flag_with_rules(
         "feature.orphan-variant",
         true,
-        vec![
-            FlagVariant { name: "real".to_string(), value: "true".to_string(), weight: 100 },
-        ],
+        vec![FlagVariant {
+            name: "real".to_string(),
+            value: "true".to_string(),
+            weight: 100,
+        }],
         vec![FlagRule {
             attribute: "user_id".to_string(),
             operator: "eq".to_string(),
@@ -1286,8 +1316,16 @@ async fn evaluate_flag_weighted_selection_deterministic() {
         "feature.weighted",
         true,
         vec![
-            FlagVariant { name: "a".to_string(), value: "a".to_string(), weight: 50 },
-            FlagVariant { name: "b".to_string(), value: "b".to_string(), weight: 50 },
+            FlagVariant {
+                name: "a".to_string(),
+                value: "a".to_string(),
+                weight: 50,
+            },
+            FlagVariant {
+                name: "b".to_string(),
+                value: "b".to_string(),
+                weight: 50,
+            },
         ],
     );
     let repo = Arc::new(StubFlagRepository::with_flags(vec![flag]));
@@ -1446,8 +1484,16 @@ async fn flag_evaluate_with_rules_workflow() {
         description: "A/B test".to_string(),
         enabled: true,
         variants: vec![
-            FlagVariant { name: "control".to_string(), value: "false".to_string(), weight: 50 },
-            FlagVariant { name: "treatment".to_string(), value: "true".to_string(), weight: 50 },
+            FlagVariant {
+                name: "control".to_string(),
+                value: "false".to_string(),
+                weight: 50,
+            },
+            FlagVariant {
+                name: "treatment".to_string(),
+                value: "true".to_string(),
+                weight: 50,
+            },
         ],
     };
     create_uc.execute(&create_input).await.unwrap();
@@ -1459,14 +1505,12 @@ async fn flag_evaluate_with_rules_workflow() {
         enabled: None,
         description: None,
         variants: None,
-        rules: Some(vec![
-            FlagRule {
-                attribute: "tenant_id".to_string(),
-                operator: "in".to_string(),
-                value: "premium-1, premium-2".to_string(),
-                variant: "treatment".to_string(),
-            },
-        ]),
+        rules: Some(vec![FlagRule {
+            attribute: "tenant_id".to_string(),
+            operator: "in".to_string(),
+            value: "premium-1, premium-2".to_string(),
+            variant: "treatment".to_string(),
+        }]),
     };
     update_uc.execute(&update_input).await.unwrap();
 

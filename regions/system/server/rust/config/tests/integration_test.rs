@@ -183,7 +183,6 @@ impl ConfigRepository for TestConfigRepository {
     async fn record_change_log(&self, _log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError> {
         Ok(())
     }
-
 }
 
 fn make_test_entry(

@@ -8,9 +8,9 @@ pub mod team;
 
 use std::sync::Arc;
 
+use axum::Router;
 use axum::middleware;
 use axum::routing::{delete, get, post, put};
-use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -176,10 +176,7 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/services/{id}/dependencies",
             put(dependency::set_dependencies),
         )
-        .route(
-            "/api/v1/services/{id}/health",
-            post(health::report_health),
-        )
+        .route("/api/v1/services/{id}/health", post(health::report_health))
         .route("/api/v1/services/{id}/docs", put(doc::set_docs))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),

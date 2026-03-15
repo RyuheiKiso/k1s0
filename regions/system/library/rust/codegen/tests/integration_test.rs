@@ -55,11 +55,7 @@ fn minimal_scaffold_creates_expected_files() {
         "src/infrastructure/mod.rs",
     ];
     for f in &expected {
-        assert!(
-            output.join(f).exists(),
-            "expected file missing: {}",
-            f
-        );
+        assert!(output.join(f).exists(), "expected file missing: {}", f);
     }
 
     // gRPC files should NOT exist

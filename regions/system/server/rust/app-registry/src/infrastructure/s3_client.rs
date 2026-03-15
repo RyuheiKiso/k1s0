@@ -16,8 +16,7 @@ impl S3Client {
         let credentials = aws_credential_types::provider::SharedCredentialsProvider::new(
             aws_credential_types::Credentials::new(
                 std::env::var("AWS_ACCESS_KEY_ID").unwrap_or_else(|_| "minioadmin".to_string()),
-                std::env::var("AWS_SECRET_ACCESS_KEY")
-                    .unwrap_or_else(|_| "minioadmin".to_string()),
+                std::env::var("AWS_SECRET_ACCESS_KEY").unwrap_or_else(|_| "minioadmin".to_string()),
                 None,
                 None,
                 "env",

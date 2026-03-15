@@ -4,6 +4,10 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use super::config::Config;
+use super::kafka_producer::{
+    KafkaSessionProducer, NoopSessionEventPublisher, SessionEventPublisher,
+};
 use crate::adapter::grpc::SessionGrpcService;
 use crate::adapter::repository::session_metadata_postgres::{
     NoopSessionMetadataRepository, SessionMetadataPostgresRepository, SessionMetadataRepository,
@@ -12,10 +16,6 @@ use crate::adapter::repository::session_redis::RedisSessionRepository;
 use crate::domain::entity::session::Session;
 use crate::domain::repository::SessionRepository;
 use crate::error::SessionError;
-use super::config::Config;
-use super::kafka_producer::{
-    KafkaSessionProducer, NoopSessionEventPublisher, SessionEventPublisher,
-};
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -80,8 +80,7 @@ pub async fn run() -> anyhow::Result<()> {
     // --- Session Metadata Repository: PostgreSQL or Noop fallback ---
     let metadata_repo: Arc<dyn SessionMetadataRepository> = if let Some(ref db_cfg) = cfg.database {
         info!("connecting to PostgreSQL for session metadata");
-        let pool =
-            super::database::create_pool(&db_cfg.url, db_cfg.max_connections).await?;
+        let pool = super::database::create_pool(&db_cfg.url, db_cfg.max_connections).await?;
         info!("PostgreSQL connection pool established");
         Arc::new(SessionMetadataPostgresRepository::new(Arc::new(pool)))
     } else {
@@ -125,10 +124,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     // --- Kafka consumer (optional, background task) ---
     if let Some(ref kafka_cfg) = cfg.kafka {
-        match super::kafka_consumer::SessionKafkaConsumer::new(
-            kafka_cfg,
-            revoke_all_uc.clone(),
-        ) {
+        match super::kafka_consumer::SessionKafkaConsumer::new(kafka_cfg, revoke_all_uc.clone()) {
             Ok(consumer) => {
                 let consumer = consumer.with_metrics(Arc::new(
                     k1s0_telemetry::metrics::Metrics::new("k1s0-session-server"),
@@ -228,7 +224,9 @@ pub async fn run() -> anyhow::Result<()> {
         let write_routes = axum::Router::new()
             .route(
                 "/api/v1/users/:user_id/sessions",
-                axum::routing::delete(crate::adapter::handler::session_handler::revoke_all_sessions),
+                axum::routing::delete(
+                    crate::adapter::handler::session_handler::revoke_all_sessions,
+                ),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "sessions", "write",
@@ -301,7 +299,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SessionServiceServer::new(session_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -335,7 +335,9 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 async fn metrics_handler(
-    axum::extract::State(state): axum::extract::State<crate::adapter::handler::session_handler::AppState>,
+    axum::extract::State(state): axum::extract::State<
+        crate::adapter::handler::session_handler::AppState,
+    >,
 ) -> impl axum::response::IntoResponse {
     let body = state.metrics.gather_metrics();
     (

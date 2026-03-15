@@ -107,10 +107,7 @@ mod tests {
         assert_eq!(envelope.headers.len(), 2);
         assert_eq!(envelope.headers[0].0, "content-type");
         assert_eq!(envelope.metadata.get("trace_id").unwrap(), "abc-123");
-        assert_eq!(
-            envelope.metadata.get("correlation_id").unwrap(),
-            "corr-456"
-        );
+        assert_eq!(envelope.metadata.get("correlation_id").unwrap(), "corr-456");
     }
 
     // metadata にトレース情報を設定し伝播されることを確認する。

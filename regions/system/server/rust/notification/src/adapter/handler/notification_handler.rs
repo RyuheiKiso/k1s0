@@ -50,17 +50,17 @@ pub async fn send_notification(
         Err(SendNotificationError::ChannelNotFound(id)) => error_response(
             StatusCode::NOT_FOUND,
             codes::notification::channel_not_found(),
-            &format!("channel not found: {}", id),
+            format!("channel not found: {}", id),
         ),
         Err(SendNotificationError::TemplateNotFound(id)) => error_response(
             StatusCode::NOT_FOUND,
             codes::notification::template_not_found(),
-            &format!("template not found: {}", id),
+            format!("template not found: {}", id),
         ),
         Err(SendNotificationError::ChannelDisabled(id)) => error_response(
             StatusCode::BAD_REQUEST,
             codes::notification::channel_disabled(),
-            &format!("channel disabled: {}", id),
+            format!("channel disabled: {}", id),
         ),
         Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -143,7 +143,7 @@ pub async fn get_notification(
         Ok(None) => error_response(
             StatusCode::NOT_FOUND,
             codes::notification::not_found(),
-            &format!("notification not found: {}", id),
+            format!("notification not found: {}", id),
         ),
         Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,

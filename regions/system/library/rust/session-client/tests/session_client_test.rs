@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use k1s0_session_client::{
-    CreateSessionRequest, InMemorySessionClient, RefreshSessionRequest, SessionClient,
-    SessionError,
+    CreateSessionRequest, InMemorySessionClient, RefreshSessionRequest, SessionClient, SessionError,
 };
 
 // ---------------------------------------------------------------------------
@@ -17,7 +16,11 @@ fn create_req(user_id: &str, ttl: i64) -> CreateSessionRequest {
     }
 }
 
-fn create_req_with_meta(user_id: &str, ttl: i64, meta: HashMap<String, String>) -> CreateSessionRequest {
+fn create_req_with_meta(
+    user_id: &str,
+    ttl: i64,
+    meta: HashMap<String, String>,
+) -> CreateSessionRequest {
     CreateSessionRequest {
         user_id: user_id.to_string(),
         ttl_seconds: ttl,

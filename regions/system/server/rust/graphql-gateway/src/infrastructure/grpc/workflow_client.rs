@@ -43,9 +43,7 @@ impl WorkflowGrpcClient {
         })
     }
 
-    fn step_from_proto(
-        s: proto::k1s0::system::workflow::v1::WorkflowStep,
-    ) -> WorkflowStep {
+    fn step_from_proto(s: proto::k1s0::system::workflow::v1::WorkflowStep) -> WorkflowStep {
         WorkflowStep {
             step_id: s.step_id,
             name: s.name,
@@ -96,9 +94,7 @@ impl WorkflowGrpcClient {
         }
     }
 
-    fn task_from_proto(
-        t: proto::k1s0::system::workflow::v1::WorkflowTask,
-    ) -> WorkflowTask {
+    fn task_from_proto(t: proto::k1s0::system::workflow::v1::WorkflowTask) -> WorkflowTask {
         WorkflowTask {
             id: t.id,
             instance_id: t.instance_id,
@@ -139,11 +135,9 @@ impl WorkflowGrpcClient {
         &self,
         workflow_id: &str,
     ) -> anyhow::Result<Option<WorkflowDefinition>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::GetWorkflowRequest {
-                workflow_id: workflow_id.to_owned(),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::workflow::v1::GetWorkflowRequest {
+            workflow_id: workflow_id.to_owned(),
+        });
 
         match self.client.clone().get_workflow(request).await {
             Ok(resp) => {
@@ -154,10 +148,7 @@ impl WorkflowGrpcClient {
                 Ok(Some(Self::definition_from_proto(d)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!(
-                "WorkflowService.GetWorkflow failed: {}",
-                e
-            )),
+            Err(e) => Err(anyhow::anyhow!("WorkflowService.GetWorkflow failed: {}", e)),
         }
     }
 
@@ -168,15 +159,14 @@ impl WorkflowGrpcClient {
         page_size: Option<i32>,
         page: Option<i32>,
     ) -> anyhow::Result<Vec<WorkflowDefinition>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::ListWorkflowsRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::workflow::v1::ListWorkflowsRequest {
                 enabled_only,
                 pagination: Some(proto::k1s0::system::common::v1::Pagination {
                     page: page.unwrap_or(1),
                     page_size: page_size.unwrap_or(20),
                 }),
-            },
-        );
+            });
 
         let resp = self
             .client
@@ -201,14 +191,13 @@ impl WorkflowGrpcClient {
         enabled: bool,
         steps: &[WorkflowStepInput],
     ) -> anyhow::Result<WorkflowDefinition> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::CreateWorkflowRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::workflow::v1::CreateWorkflowRequest {
                 name: name.to_owned(),
                 description: description.to_owned(),
                 enabled,
                 steps: Self::steps_to_proto(steps),
-            },
-        );
+            });
 
         let d = self
             .client
@@ -232,19 +221,16 @@ impl WorkflowGrpcClient {
         enabled: Option<bool>,
         steps: Option<&[WorkflowStepInput]>,
     ) -> anyhow::Result<WorkflowDefinition> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::UpdateWorkflowRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::workflow::v1::UpdateWorkflowRequest {
                 workflow_id: workflow_id.to_owned(),
                 name: name.map(|s| s.to_owned()),
                 description: description.map(|s| s.to_owned()),
                 enabled,
-                steps: steps.map(|s| {
-                    proto::k1s0::system::workflow::v1::WorkflowSteps {
-                        items: Self::steps_to_proto(s),
-                    }
+                steps: steps.map(|s| proto::k1s0::system::workflow::v1::WorkflowSteps {
+                    items: Self::steps_to_proto(s),
                 }),
-            },
-        );
+            });
 
         let d = self
             .client
@@ -261,11 +247,10 @@ impl WorkflowGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn delete_workflow(&self, workflow_id: &str) -> anyhow::Result<bool> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::DeleteWorkflowRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::workflow::v1::DeleteWorkflowRequest {
                 workflow_id: workflow_id.to_owned(),
-            },
-        );
+            });
 
         let resp = self
             .client
@@ -288,16 +273,15 @@ impl WorkflowGrpcClient {
         initiator_id: &str,
         context_json: Option<&str>,
     ) -> anyhow::Result<WorkflowInstance> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::StartInstanceRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::workflow::v1::StartInstanceRequest {
                 workflow_id: workflow_id.to_owned(),
                 title: title.to_owned(),
                 initiator_id: initiator_id.to_owned(),
                 context_json: context_json
                     .map(|s| s.as_bytes().to_vec())
                     .unwrap_or_default(),
-            },
-        );
+            });
 
         let resp = self
             .client
@@ -333,11 +317,9 @@ impl WorkflowGrpcClient {
         &self,
         instance_id: &str,
     ) -> anyhow::Result<Option<WorkflowInstance>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::GetInstanceRequest {
-                instance_id: instance_id.to_owned(),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::workflow::v1::GetInstanceRequest {
+            instance_id: instance_id.to_owned(),
+        });
 
         match self.client.clone().get_instance(request).await {
             Ok(resp) => {
@@ -348,10 +330,7 @@ impl WorkflowGrpcClient {
                 Ok(Some(Self::instance_from_proto(i)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!(
-                "WorkflowService.GetInstance failed: {}",
-                e
-            )),
+            Err(e) => Err(anyhow::anyhow!("WorkflowService.GetInstance failed: {}", e)),
         }
     }
 
@@ -364,8 +343,8 @@ impl WorkflowGrpcClient {
         page_size: Option<i32>,
         page: Option<i32>,
     ) -> anyhow::Result<Vec<WorkflowInstance>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::ListInstancesRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::workflow::v1::ListInstancesRequest {
                 status: status.unwrap_or_default().to_owned(),
                 workflow_id: workflow_id.unwrap_or_default().to_owned(),
                 initiator_id: initiator_id.unwrap_or_default().to_owned(),
@@ -373,8 +352,7 @@ impl WorkflowGrpcClient {
                     page: page.unwrap_or(1),
                     page_size: page_size.unwrap_or(20),
                 }),
-            },
-        );
+            });
 
         let resp = self
             .client
@@ -397,12 +375,11 @@ impl WorkflowGrpcClient {
         instance_id: &str,
         reason: Option<&str>,
     ) -> anyhow::Result<WorkflowInstance> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::CancelInstanceRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::workflow::v1::CancelInstanceRequest {
                 instance_id: instance_id.to_owned(),
                 reason: reason.map(|s| s.to_owned()),
-            },
-        );
+            });
 
         let i = self
             .client
@@ -429,18 +406,16 @@ impl WorkflowGrpcClient {
         page_size: Option<i32>,
         page: Option<i32>,
     ) -> anyhow::Result<Vec<WorkflowTask>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::ListTasksRequest {
-                assignee_id: assignee_id.unwrap_or_default().to_owned(),
-                status: status.unwrap_or_default().to_owned(),
-                instance_id: instance_id.unwrap_or_default().to_owned(),
-                overdue_only,
-                pagination: Some(proto::k1s0::system::common::v1::Pagination {
-                    page: page.unwrap_or(1),
-                    page_size: page_size.unwrap_or(20),
-                }),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::workflow::v1::ListTasksRequest {
+            assignee_id: assignee_id.unwrap_or_default().to_owned(),
+            status: status.unwrap_or_default().to_owned(),
+            instance_id: instance_id.unwrap_or_default().to_owned(),
+            overdue_only,
+            pagination: Some(proto::k1s0::system::common::v1::Pagination {
+                page: page.unwrap_or(1),
+                page_size: page_size.unwrap_or(20),
+            }),
+        });
 
         let resp = self
             .client
@@ -461,14 +436,12 @@ impl WorkflowGrpcClient {
         reason: Option<&str>,
         actor_id: &str,
     ) -> anyhow::Result<(WorkflowTask, Option<String>)> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::ReassignTaskRequest {
-                task_id: task_id.to_owned(),
-                new_assignee_id: new_assignee_id.to_owned(),
-                reason: reason.map(|s| s.to_owned()),
-                actor_id: actor_id.to_owned(),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::workflow::v1::ReassignTaskRequest {
+            task_id: task_id.to_owned(),
+            new_assignee_id: new_assignee_id.to_owned(),
+            reason: reason.map(|s| s.to_owned()),
+            actor_id: actor_id.to_owned(),
+        });
 
         let resp = self
             .client
@@ -493,13 +466,11 @@ impl WorkflowGrpcClient {
         actor_id: &str,
         comment: Option<&str>,
     ) -> anyhow::Result<(String, String, Option<String>, String)> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::ApproveTaskRequest {
-                task_id: task_id.to_owned(),
-                actor_id: actor_id.to_owned(),
-                comment: comment.map(|s| s.to_owned()),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::workflow::v1::ApproveTaskRequest {
+            task_id: task_id.to_owned(),
+            actor_id: actor_id.to_owned(),
+            comment: comment.map(|s| s.to_owned()),
+        });
 
         let resp = self
             .client
@@ -524,13 +495,11 @@ impl WorkflowGrpcClient {
         actor_id: &str,
         comment: Option<&str>,
     ) -> anyhow::Result<(String, String, Option<String>, String)> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::workflow::v1::RejectTaskRequest {
-                task_id: task_id.to_owned(),
-                actor_id: actor_id.to_owned(),
-                comment: comment.map(|s| s.to_owned()),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::workflow::v1::RejectTaskRequest {
+            task_id: task_id.to_owned(),
+            actor_id: actor_id.to_owned(),
+            comment: comment.map(|s| s.to_owned()),
+        });
 
         let resp = self
             .client
@@ -569,4 +538,3 @@ fn optional_timestamp_to_rfc3339(
     ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
         .map(|dt| dt.to_rfc3339())
 }
-

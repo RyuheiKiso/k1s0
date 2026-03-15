@@ -216,10 +216,7 @@ struct User {
 async fn execute_with_typed_deserialization() {
     let client = InMemoryGraphQlClient::new();
     client
-        .register_response(
-            "{ user }",
-            serde_json::json!({"id": "u1", "name": "Alice"}),
-        )
+        .register_response("{ user }", serde_json::json!({"id": "u1", "name": "Alice"}))
         .await;
 
     let query = GraphQlQuery::new("{ user }");
@@ -329,10 +326,7 @@ async fn subscribe_unregistered_returns_empty_stream() {
 async fn subscribe_uses_query_as_key_when_no_operation_name() {
     let client = InMemoryGraphQlClient::new();
     client
-        .register_subscription_events(
-            "subscription { tick }",
-            vec![serde_json::json!({"n": 1})],
-        )
+        .register_subscription_events("subscription { tick }", vec![serde_json::json!({"n": 1})])
         .await;
 
     let sub = GraphQlQuery::new("subscription { tick }");

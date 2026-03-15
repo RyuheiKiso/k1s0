@@ -8,8 +8,8 @@ use crate::domain;
 use crate::infrastructure;
 use crate::usecase;
 
-use crate::adapter::handler::{self, AppState};
 use super::config::{Config, DatabaseConfig};
+use crate::adapter::handler::{self, AppState};
 use crate::MIGRATOR;
 use k1s0_server_common::middleware::auth_middleware::AuthState;
 use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
@@ -178,7 +178,9 @@ pub async fn run() -> anyhow::Result<()> {
     });
 
     let shutdown_future = async move {
-        shutdown_signal().await.map_err(|e| anyhow::anyhow!("{}", e))?;
+        shutdown_signal()
+            .await
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
         let _ = shutdown_grpc_tx.send(true);
         let _ = shutdown_tx.send(true);
         Ok::<(), anyhow::Error>(())

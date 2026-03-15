@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 
-use crate::traits::{Message, MessageHandler, PubSub};
 use crate::PubSubError;
+use crate::traits::{Message, MessageHandler, PubSub};
 
 struct Subscription {
     topic: String,
@@ -133,8 +133,8 @@ impl PubSub for InMemoryPubSub {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     struct CountingHandler {
         count: Arc<AtomicUsize>,
@@ -180,16 +180,10 @@ mod tests {
         let sub_id = pubsub.subscribe("test-topic", handler).await.unwrap();
         assert!(!sub_id.is_empty());
 
-        pubsub
-            .publish("test-topic", b"hello", None)
-            .await
-            .unwrap();
+        pubsub.publish("test-topic", b"hello", None).await.unwrap();
         assert_eq!(count.load(Ordering::SeqCst), 1);
 
-        pubsub
-            .publish("other-topic", b"world", None)
-            .await
-            .unwrap();
+        pubsub.publish("other-topic", b"world", None).await.unwrap();
         assert_eq!(count.load(Ordering::SeqCst), 1);
     }
 
@@ -207,10 +201,7 @@ mod tests {
         let sub_id = pubsub.subscribe("test-topic", handler).await.unwrap();
         pubsub.unsubscribe(&sub_id).await.unwrap();
 
-        pubsub
-            .publish("test-topic", b"hello", None)
-            .await
-            .unwrap();
+        pubsub.publish("test-topic", b"hello", None).await.unwrap();
         assert_eq!(count.load(Ordering::SeqCst), 0);
     }
 

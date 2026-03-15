@@ -223,8 +223,7 @@ pub async fn run() -> anyhow::Result<()> {
         auth_state: auth_state.clone(),
     };
     // CorrelationLayerを追加してリクエスト間の相関IDを伝播する
-    let app = handler::router(state)
-        .layer(k1s0_correlation::layer::CorrelationLayer::new());
+    let app = handler::router(state).layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // 11. gRPC Service
     use crate::proto::k1s0::system::mastermaintenance::v1::master_maintenance_service_server::MasterMaintenanceServiceServer;
@@ -284,9 +283,7 @@ pub async fn run() -> anyhow::Result<()> {
             }
         }
         result = grpc_future => {
-            if let Err(e) = result {
-                return Err(e);
-            }
+            result?;
         }
     }
 

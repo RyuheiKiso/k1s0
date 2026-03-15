@@ -59,7 +59,7 @@ impl EventStreamRepository for StreamPostgresRepository {
             .await?;
 
         let page = page.max(1);
-        let page_size = page_size.max(1).min(200);
+        let page_size = page_size.clamp(1, 200);
         let offset = ((page - 1) * page_size) as i64;
 
         let rows = sqlx::query_as::<_, EventStreamRow>(

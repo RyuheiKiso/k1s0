@@ -80,10 +80,7 @@ fn load_nonexistent_file_returns_read_error() {
 #[test]
 fn load_nonexistent_env_file_returns_read_error() {
     let base = yaml_file(minimal_yaml());
-    let result = load(
-        base.path().to_str().unwrap(),
-        Some("/nonexistent/env.yaml"),
-    );
+    let result = load(base.path().to_str().unwrap(), Some("/nonexistent/env.yaml"));
     assert!(result.is_err());
     let msg = result.unwrap_err().to_string();
     assert!(msg.contains("failed to read file"), "got: {msg}");
@@ -228,8 +225,7 @@ fn merge_yaml_empty_overlay_leaves_base_unchanged() {
 // オーバーレイによって配列が完全に置き換わることを確認する。
 #[test]
 fn merge_yaml_replaces_array_entirely() {
-    let mut base: serde_yaml::Value =
-        serde_yaml::from_str("items:\n  - a\n  - b\n  - c").unwrap();
+    let mut base: serde_yaml::Value = serde_yaml::from_str("items:\n  - a\n  - b\n  - c").unwrap();
     let overlay: serde_yaml::Value = serde_yaml::from_str("items:\n  - x").unwrap();
     merge_yaml(&mut base, &overlay);
     let items = base["items"].as_sequence().unwrap();

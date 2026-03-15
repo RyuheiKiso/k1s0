@@ -9,14 +9,14 @@ use crate::infrastructure;
 use crate::proto;
 use crate::usecase;
 
+use super::config::Config;
+use super::grpc_caller::{ServiceRegistry, TonicGrpcCaller};
 use crate::adapter::grpc::{SagaGrpcService, SagaServiceTonic};
 use crate::adapter::handler::{self, AppState};
 use crate::adapter::repository::saga_postgres::SagaPostgresRepository;
 use crate::adapter::repository::workflow_in_memory::InMemoryWorkflowRepository;
 use crate::adapter::repository::workflow_postgres::WorkflowPostgresRepository;
 use crate::domain::repository::WorkflowRepository;
-use super::config::Config;
-use super::grpc_caller::{ServiceRegistry, TonicGrpcCaller};
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -228,7 +228,9 @@ pub async fn run() -> anyhow::Result<()> {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-saga-server"));
 
     // Router
-    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone())).layer(k1s0_correlation::layer::CorrelationLayer::new());
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC server (configured via server.grpc_port)
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
@@ -241,7 +243,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SagaServiceServer::new(saga_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

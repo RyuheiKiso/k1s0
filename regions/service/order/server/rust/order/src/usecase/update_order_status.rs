@@ -84,9 +84,7 @@ mod tests {
             .returning(move |_, _, _, _| Ok(confirmed_clone.clone()));
 
         let uc = UpdateOrderStatusUseCase::new(Arc::new(mock_repo));
-        let result = uc
-            .execute(order_id, &OrderStatus::Confirmed, "admin")
-            .await;
+        let result = uc.execute(order_id, &OrderStatus::Confirmed, "admin").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, OrderStatus::Confirmed);
     }
@@ -105,9 +103,7 @@ mod tests {
             .returning(move |_| Ok(Some(order_clone.clone())));
 
         let uc = UpdateOrderStatusUseCase::new(Arc::new(mock_repo));
-        let result = uc
-            .execute(order_id, &OrderStatus::Pending, "admin")
-            .await;
+        let result = uc.execute(order_id, &OrderStatus::Pending, "admin").await;
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -136,9 +132,7 @@ mod tests {
             .returning(move |_, _, _, _| Ok(cancelled_clone.clone()));
 
         let uc = UpdateOrderStatusUseCase::new(Arc::new(mock_repo));
-        let result = uc
-            .execute(order_id, &OrderStatus::Cancelled, "admin")
-            .await;
+        let result = uc.execute(order_id, &OrderStatus::Cancelled, "admin").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, OrderStatus::Cancelled);
     }

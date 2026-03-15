@@ -45,11 +45,10 @@ impl NavigationGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_navigation(&self, bearer_token: &str) -> anyhow::Result<Navigation> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::navigation::v1::GetNavigationRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::navigation::v1::GetNavigationRequest {
                 bearer_token: bearer_token.to_owned(),
-            },
-        );
+            });
 
         let resp = self
             .client

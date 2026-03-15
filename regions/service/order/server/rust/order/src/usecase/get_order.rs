@@ -29,7 +29,7 @@ impl GetOrderUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::order::{OrderStatus};
+    use crate::domain::entity::order::OrderStatus;
     use crate::domain::repository::order_repository::MockOrderRepository;
     use chrono::Utc;
 

@@ -8,25 +8,21 @@ use k1s0_file_server::domain::entity::file::FileMetadata;
 use k1s0_file_server::domain::repository::{FileMetadataRepository, FileStorageRepository};
 use k1s0_file_server::infrastructure::kafka_producer::FileEventPublisher;
 use k1s0_file_server::usecase::complete_upload::{
-    CompleteUploadInput, CompleteUploadError, CompleteUploadUseCase,
+    CompleteUploadError, CompleteUploadInput, CompleteUploadUseCase,
 };
-use k1s0_file_server::usecase::delete_file::{
-    DeleteFileInput, DeleteFileError, DeleteFileUseCase,
-};
+use k1s0_file_server::usecase::delete_file::{DeleteFileError, DeleteFileInput, DeleteFileUseCase};
 use k1s0_file_server::usecase::generate_download_url::{
-    GenerateDownloadUrlInput, GenerateDownloadUrlError, GenerateDownloadUrlUseCase,
+    GenerateDownloadUrlError, GenerateDownloadUrlInput, GenerateDownloadUrlUseCase,
 };
 use k1s0_file_server::usecase::generate_upload_url::{
-    GenerateUploadUrlInput, GenerateUploadUrlError, GenerateUploadUrlUseCase,
+    GenerateUploadUrlError, GenerateUploadUrlInput, GenerateUploadUrlUseCase,
 };
 use k1s0_file_server::usecase::get_file_metadata::{
-    GetFileMetadataInput, GetFileMetadataError, GetFileMetadataUseCase,
+    GetFileMetadataError, GetFileMetadataInput, GetFileMetadataUseCase,
 };
-use k1s0_file_server::usecase::list_files::{
-    ListFilesInput, ListFilesError, ListFilesUseCase,
-};
+use k1s0_file_server::usecase::list_files::{ListFilesError, ListFilesInput, ListFilesUseCase};
 use k1s0_file_server::usecase::update_file_tags::{
-    UpdateFileTagsInput, UpdateFileTagsError, UpdateFileTagsUseCase,
+    UpdateFileTagsError, UpdateFileTagsInput, UpdateFileTagsUseCase,
 };
 
 // ---------------------------------------------------------------------------
@@ -896,9 +892,7 @@ mod list_files {
     async fn pagination_has_next() {
         let metadata = Arc::new(StubMetadataRepository::new());
         for i in 0..5 {
-            metadata
-                .seed(pending_file(&format!("file_{:03}", i)))
-                .await;
+            metadata.seed(pending_file(&format!("file_{:03}", i))).await;
         }
 
         let uc = ListFilesUseCase::new(metadata);

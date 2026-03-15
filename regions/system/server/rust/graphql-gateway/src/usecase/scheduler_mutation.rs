@@ -1,10 +1,10 @@
-use std::sync::Arc;
-use tracing::instrument;
 use crate::domain::model::{
-    CreateJobPayload, DeleteJobPayload, JobExecution, PauseJobPayload,
-    ResumeJobPayload, TriggerJobPayload, UpdateJobPayload, UserError,
+    CreateJobPayload, DeleteJobPayload, JobExecution, PauseJobPayload, ResumeJobPayload,
+    TriggerJobPayload, UpdateJobPayload, UserError,
 };
 use crate::infrastructure::grpc::SchedulerGrpcClient;
+use std::sync::Arc;
+use tracing::instrument;
 
 pub struct SchedulerMutationResolver {
     client: Arc<SchedulerGrpcClient>,
@@ -25,12 +25,33 @@ impl SchedulerMutationResolver {
         target_type: &str,
         target: &str,
     ) -> CreateJobPayload {
-        match self.client.create_job(name, description, cron_expression, timezone, target_type, target).await {
-            Ok(job) => CreateJobPayload { job: Some(job), errors: vec![] },
-            Err(e) => CreateJobPayload { job: None, errors: vec![UserError { field: None, message: e.to_string() }] },
+        match self
+            .client
+            .create_job(
+                name,
+                description,
+                cron_expression,
+                timezone,
+                target_type,
+                target,
+            )
+            .await
+        {
+            Ok(job) => CreateJobPayload {
+                job: Some(job),
+                errors: vec![],
+            },
+            Err(e) => CreateJobPayload {
+                job: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            },
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn update_job(
         &self,
@@ -42,33 +63,81 @@ impl SchedulerMutationResolver {
         target_type: Option<&str>,
         target: Option<&str>,
     ) -> UpdateJobPayload {
-        match self.client.update_job(job_id, name, description, cron_expression, timezone, target_type, target).await {
-            Ok(job) => UpdateJobPayload { job: Some(job), errors: vec![] },
-            Err(e) => UpdateJobPayload { job: None, errors: vec![UserError { field: None, message: e.to_string() }] },
+        match self
+            .client
+            .update_job(
+                job_id,
+                name,
+                description,
+                cron_expression,
+                timezone,
+                target_type,
+                target,
+            )
+            .await
+        {
+            Ok(job) => UpdateJobPayload {
+                job: Some(job),
+                errors: vec![],
+            },
+            Err(e) => UpdateJobPayload {
+                job: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            },
         }
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn delete_job(&self, job_id: &str) -> DeleteJobPayload {
         match self.client.delete_job(job_id).await {
-            Ok(success) => DeleteJobPayload { success, errors: vec![] },
-            Err(e) => DeleteJobPayload { success: false, errors: vec![UserError { field: None, message: e.to_string() }] },
+            Ok(success) => DeleteJobPayload {
+                success,
+                errors: vec![],
+            },
+            Err(e) => DeleteJobPayload {
+                success: false,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            },
         }
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn pause_job(&self, job_id: &str) -> PauseJobPayload {
         match self.client.pause_job(job_id).await {
-            Ok(job) => PauseJobPayload { job: Some(job), errors: vec![] },
-            Err(e) => PauseJobPayload { job: None, errors: vec![UserError { field: None, message: e.to_string() }] },
+            Ok(job) => PauseJobPayload {
+                job: Some(job),
+                errors: vec![],
+            },
+            Err(e) => PauseJobPayload {
+                job: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            },
         }
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn resume_job(&self, job_id: &str) -> ResumeJobPayload {
         match self.client.resume_job(job_id).await {
-            Ok(job) => ResumeJobPayload { job: Some(job), errors: vec![] },
-            Err(e) => ResumeJobPayload { job: None, errors: vec![UserError { field: None, message: e.to_string() }] },
+            Ok(job) => ResumeJobPayload {
+                job: Some(job),
+                errors: vec![],
+            },
+            Err(e) => ResumeJobPayload {
+                job: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            },
         }
     }
 
@@ -90,7 +159,10 @@ impl SchedulerMutationResolver {
             },
             Err(e) => TriggerJobPayload {
                 execution: None,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }

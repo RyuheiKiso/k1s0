@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use crate::adapter::graphql_handler::{self, GatewayClients, GatewayResolvers};
 use super::auth::JwksVerifier;
 use super::config::Config;
 use super::grpc::{
@@ -11,6 +10,7 @@ use super::grpc::{
     NotificationGrpcClient, SchedulerGrpcClient, ServiceCatalogGrpcClient, SessionGrpcClient,
     TenantGrpcClient, VaultGrpcClient, WorkflowGrpcClient,
 };
+use crate::adapter::graphql_handler::{self, GatewayClients, GatewayResolvers};
 use crate::usecase::{
     AuthMutationResolver, AuthQueryResolver, ConfigQueryResolver, FeatureFlagQueryResolver,
     NavigationQueryResolver, NotificationMutationResolver, NotificationQueryResolver,
@@ -64,8 +64,7 @@ pub async fn run() -> anyhow::Result<()> {
     let auth_client = Arc::new(AuthGrpcClient::connect(&cfg.backends.auth).await?);
     let session_client = Arc::new(SessionGrpcClient::connect(&cfg.backends.session).await?);
     let vault_client = Arc::new(VaultGrpcClient::connect(&cfg.backends.vault).await?);
-    let scheduler_client =
-        Arc::new(SchedulerGrpcClient::connect(&cfg.backends.scheduler).await?);
+    let scheduler_client = Arc::new(SchedulerGrpcClient::connect(&cfg.backends.scheduler).await?);
     let notification_client =
         Arc::new(NotificationGrpcClient::connect(&cfg.backends.notification).await?);
     let workflow_client = Arc::new(WorkflowGrpcClient::connect(&cfg.backends.workflow).await?);
@@ -104,9 +103,7 @@ pub async fn run() -> anyhow::Result<()> {
         vault_mutation: Arc::new(VaultMutationResolver::new(vault_client.clone())),
         scheduler_query: Arc::new(SchedulerQueryResolver::new(scheduler_client.clone())),
         scheduler_mutation: Arc::new(SchedulerMutationResolver::new(scheduler_client.clone())),
-        notification_query: Arc::new(NotificationQueryResolver::new(
-            notification_client.clone(),
-        )),
+        notification_query: Arc::new(NotificationQueryResolver::new(notification_client.clone())),
         notification_mutation: Arc::new(NotificationMutationResolver::new(
             notification_client.clone(),
         )),
@@ -130,8 +127,14 @@ pub async fn run() -> anyhow::Result<()> {
 
     // --- Router ---
     // CorrelationLayerを追加してリクエスト間の相関IDを伝播する
-    let app = graphql_handler::router(jwks_verifier, clients, resolvers, cfg.graphql.clone(), metrics)
-        .layer(k1s0_correlation::layer::CorrelationLayer::new());
+    let app = graphql_handler::router(
+        jwks_verifier,
+        clients,
+        resolvers,
+        cfg.graphql.clone(),
+        metrics,
+    )
+    .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("graphql-gateway starting on {}", addr);

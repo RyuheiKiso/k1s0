@@ -50,7 +50,9 @@ pub fn generate_types(config: &EventConfig) -> String {
 /// Generate the `src/events/producer.rs` file with producer functions.
 pub fn generate_producer(config: &EventConfig) -> String {
     let mut lines = Vec::new();
-    lines.push("use k1s0_messaging::{EventEnvelope, EventMetadata, KafkaEventProducer};".to_string());
+    lines.push(
+        "use k1s0_messaging::{EventEnvelope, EventMetadata, KafkaEventProducer};".to_string(),
+    );
 
     let has_outbox = config.events.iter().any(|e| e.outbox);
     if has_outbox {
@@ -77,9 +79,7 @@ pub fn generate_producer(config: &EventConfig) -> String {
         ));
         lines.push("    let metadata = EventMetadata::new(topic.to_string());".to_string());
         lines.push("    let envelope = EventEnvelope::new(metadata, event);".to_string());
-        lines.push(
-            "    producer.send(topic, &partition_key, &envelope).await?;".to_string(),
-        );
+        lines.push("    producer.send(topic, &partition_key, &envelope).await?;".to_string());
         lines.push("    Ok(())".to_string());
         lines.push("}".to_string());
         lines.push(String::new());
@@ -98,9 +98,7 @@ pub fn generate_producer(config: &EventConfig) -> String {
                 "    let partition_key = event.{}.clone();",
                 event.partition_key
             ));
-            lines.push(
-                "    let payload = serde_json::to_vec(&event)?;".to_string(),
-            );
+            lines.push("    let payload = serde_json::to_vec(&event)?;".to_string());
             lines.push(
                 "    let message = OutboxMessage::new(topic.to_string(), partition_key, payload);"
                     .to_string(),
@@ -264,8 +262,7 @@ events:
     fn consumer_handler_output() {
         let config = sample_config();
         let event = &config.events[0];
-        let handler =
-            generate_consumer_handler(&config, event, &event.consumers[0].handler);
+        let handler = generate_consumer_handler(&config, event, &event.consumers[0].handler);
         assert!(handler.contains("pub async fn on_accounting_master_item_created("));
         assert!(handler.contains("MasterItemCreated"));
     }

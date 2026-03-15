@@ -120,7 +120,11 @@ pub async fn export_records(
 ) -> Result<impl IntoResponse, AppError> {
     let result = state
         .import_export_uc
-        .export_records(&name, query.format.as_deref(), query.domain_scope.as_deref())
+        .export_records(
+            &name,
+            query.format.as_deref(),
+            query.domain_scope.as_deref(),
+        )
         .await?;
 
     if let Some(file) = result.file {

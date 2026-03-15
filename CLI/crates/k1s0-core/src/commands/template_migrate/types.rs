@@ -122,10 +122,10 @@ impl TemplateManifest {
 
         let mut cli_config = CliConfig::default();
         if let Some(docker_registry) = &self.spec.parameters.docker_registry {
-            cli_config.docker_registry = docker_registry.clone();
+            cli_config.docker_registry.clone_from(docker_registry);
         }
         if let Some(go_module_base) = &self.spec.parameters.go_module_base {
-            cli_config.go_module_base = go_module_base.clone();
+            cli_config.go_module_base.clone_from(go_module_base);
         }
 
         Ok((config, cli_config))
@@ -352,17 +352,13 @@ impl TemplateCustomizations {
 /// マージ戦略。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum MergeStrategy {
     Merge,
     Template,
     User,
+    #[default]
     Ask,
-}
-
-impl Default for MergeStrategy {
-    fn default() -> Self {
-        Self::Ask
-    }
 }
 
 /// マイグレーション対象。

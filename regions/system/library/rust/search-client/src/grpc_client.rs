@@ -90,10 +90,7 @@ impl SearchClient for GrpcSearchClient {
             return Ok(());
         }
 
-        let resp_body = resp
-            .text()
-            .await
-            .unwrap_or_default();
+        let resp_body = resp.text().await.unwrap_or_default();
         Err(parse_search_error(status, &resp_body))
     }
 
@@ -114,10 +111,7 @@ impl SearchClient for GrpcSearchClient {
             .map_err(|e| map_reqwest_error("index_document", e))?;
 
         let status = resp.status().as_u16();
-        let resp_body = resp
-            .text()
-            .await
-            .unwrap_or_default();
+        let resp_body = resp.text().await.unwrap_or_default();
 
         if status != 200 && status != 201 {
             return Err(parse_search_error(status, &resp_body));
@@ -134,10 +128,7 @@ impl SearchClient for GrpcSearchClient {
         index: &str,
         docs: Vec<IndexDocument>,
     ) -> Result<BulkResult, SearchError> {
-        let url = format!(
-            "{}/api/v1/indexes/{}/documents/_bulk",
-            self.endpoint, index
-        );
+        let url = format!("{}/api/v1/indexes/{}/documents/_bulk", self.endpoint, index);
 
         let body = serde_json::json!({ "documents": docs });
 
@@ -150,10 +141,7 @@ impl SearchClient for GrpcSearchClient {
             .map_err(|e| map_reqwest_error("bulk_index", e))?;
 
         let status = resp.status().as_u16();
-        let resp_body = resp
-            .text()
-            .await
-            .unwrap_or_default();
+        let resp_body = resp.text().await.unwrap_or_default();
 
         if status != 200 && status != 201 {
             return Err(parse_search_error(status, &resp_body));
@@ -181,10 +169,7 @@ impl SearchClient for GrpcSearchClient {
             .map_err(|e| map_reqwest_error("search", e))?;
 
         let status = resp.status().as_u16();
-        let resp_body = resp
-            .text()
-            .await
-            .unwrap_or_default();
+        let resp_body = resp.text().await.unwrap_or_default();
 
         if status != 200 {
             return Err(parse_search_error(status, &resp_body));
@@ -214,10 +199,7 @@ impl SearchClient for GrpcSearchClient {
             return Ok(());
         }
 
-        let resp_body = resp
-            .text()
-            .await
-            .unwrap_or_default();
+        let resp_body = resp.text().await.unwrap_or_default();
         Err(parse_search_error(status, &resp_body))
     }
 }
@@ -229,7 +211,10 @@ mod tests {
     // スキームなしのアドレスに http:// が付与されることを確認する。
     #[test]
     fn test_normalize_endpoint_adds_scheme() {
-        assert_eq!(normalize_endpoint("localhost:8080"), "http://localhost:8080");
+        assert_eq!(
+            normalize_endpoint("localhost:8080"),
+            "http://localhost:8080"
+        );
     }
 
     // http:// スキーム付きアドレスがそのまま保持されることを確認する。

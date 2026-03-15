@@ -11,13 +11,13 @@ use crate::infrastructure;
 use crate::proto;
 use crate::usecase;
 
+use super::config::Config;
+use super::kafka_producer::{KafkaRuleProducer, NoopRuleEventPublisher, RuleEventPublisher};
 use crate::adapter::grpc::RuleEngineGrpcService;
 use crate::domain::entity::rule::{EvaluationLog, Rule, RuleSet, RuleSetVersion};
 use crate::domain::repository::{
     EvaluationLogRepository, RuleRepository, RuleSetRepository, RuleSetVersionRepository,
 };
-use super::config::Config;
-use super::kafka_producer::{KafkaRuleProducer, NoopRuleEventPublisher, RuleEventPublisher};
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -163,8 +163,7 @@ pub async fn run() -> anyhow::Result<()> {
         rule_repo.clone(),
         eval_log_repo.clone(),
     ));
-    let list_evaluation_logs_uc =
-        Arc::new(usecase::ListEvaluationLogsUseCase::new(eval_log_repo));
+    let list_evaluation_logs_uc = Arc::new(usecase::ListEvaluationLogsUseCase::new(eval_log_repo));
 
     let grpc_svc = Arc::new(RuleEngineGrpcService::new(
         create_rule_uc.clone(),
@@ -204,8 +203,9 @@ pub async fn run() -> anyhow::Result<()> {
         state = state.with_auth(auth_st);
     }
 
-    let app =
-        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone())).layer(k1s0_correlation::layer::CorrelationLayer::new());
+    let app = adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC server
     use proto::k1s0::system::rule_engine::v1::rule_engine_service_server::RuleEngineServiceServer;
@@ -222,7 +222,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(RuleEngineServiceServer::new(grpc_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -294,7 +296,11 @@ impl RuleRepository for InMemoryRuleRepository {
         all.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         let total = all.len() as u64;
         let start = ((page.saturating_sub(1)) * page_size) as usize;
-        let items: Vec<Rule> = all.into_iter().skip(start).take(page_size as usize).collect();
+        let items: Vec<Rule> = all
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((items, total))
     }
 
@@ -373,7 +379,11 @@ impl RuleSetRepository for InMemoryRuleSetRepository {
         all.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         let total = all.len() as u64;
         let start = ((page.saturating_sub(1)) * page_size) as usize;
-        let items: Vec<RuleSet> = all.into_iter().skip(start).take(page_size as usize).collect();
+        let items: Vec<RuleSet> = all
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((items, total))
     }
 

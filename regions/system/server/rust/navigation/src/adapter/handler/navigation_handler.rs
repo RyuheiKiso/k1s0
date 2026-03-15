@@ -61,8 +61,7 @@ fn parse_authorization_header(headers: &HeaderMap) -> Result<&str, &'static str>
         .to_str()
         .map_err(|_| "authorization header is not valid UTF-8")?;
 
-    extract_bearer_token(raw_value)
-        .ok_or("authorization header must use a non-empty Bearer token")
+    extract_bearer_token(raw_value).ok_or("authorization header must use a non-empty Bearer token")
 }
 
 fn extract_bearer_token(value: &str) -> Option<&str> {
@@ -107,39 +106,43 @@ mod tests {
 
     #[tokio::test]
     async fn rest_endpoint_returns_public_navigation_without_token() {
-        let app = router(state_with_config(NavigationConfig {
-            version: 1,
-            guards: vec![Guard {
-                id: "auth_required".to_string(),
-                guard_type: GuardType::AuthRequired,
-                redirect_to: "/login".to_string(),
-                roles: vec![],
-            }],
-            routes: vec![
-                Route {
-                    id: "public".to_string(),
-                    path: "/".to_string(),
-                    component_id: Some("PublicPage".to_string()),
-                    guards: vec![],
-                    transition: None,
-                    transition_duration_ms: 300,
-                    redirect_to: None,
-                    children: vec![],
-                    params: vec![],
-                },
-                Route {
-                    id: "private".to_string(),
-                    path: "/dashboard".to_string(),
-                    component_id: Some("DashboardPage".to_string()),
-                    guards: vec!["auth_required".to_string()],
-                    transition: None,
-                    transition_duration_ms: 300,
-                    redirect_to: None,
-                    children: vec![],
-                    params: vec![],
-                },
-            ],
-        }), true, "/metrics");
+        let app = router(
+            state_with_config(NavigationConfig {
+                version: 1,
+                guards: vec![Guard {
+                    id: "auth_required".to_string(),
+                    guard_type: GuardType::AuthRequired,
+                    redirect_to: "/login".to_string(),
+                    roles: vec![],
+                }],
+                routes: vec![
+                    Route {
+                        id: "public".to_string(),
+                        path: "/".to_string(),
+                        component_id: Some("PublicPage".to_string()),
+                        guards: vec![],
+                        transition: None,
+                        transition_duration_ms: 300,
+                        redirect_to: None,
+                        children: vec![],
+                        params: vec![],
+                    },
+                    Route {
+                        id: "private".to_string(),
+                        path: "/dashboard".to_string(),
+                        component_id: Some("DashboardPage".to_string()),
+                        guards: vec!["auth_required".to_string()],
+                        transition: None,
+                        transition_duration_ms: 300,
+                        redirect_to: None,
+                        children: vec![],
+                        params: vec![],
+                    },
+                ],
+            }),
+            true,
+            "/metrics",
+        );
 
         let response = app
             .oneshot(
@@ -162,21 +165,25 @@ mod tests {
 
     #[tokio::test]
     async fn rest_endpoint_accepts_bearer_header() {
-        let app = router(state_with_config(NavigationConfig {
-            version: 1,
-            guards: vec![],
-            routes: vec![Route {
-                id: "public".to_string(),
-                path: "/".to_string(),
-                component_id: Some("PublicPage".to_string()),
+        let app = router(
+            state_with_config(NavigationConfig {
+                version: 1,
                 guards: vec![],
-                transition: None,
-                transition_duration_ms: 300,
-                redirect_to: None,
-                children: vec![],
-                params: vec![],
-            }],
-        }), true, "/metrics");
+                routes: vec![Route {
+                    id: "public".to_string(),
+                    path: "/".to_string(),
+                    component_id: Some("PublicPage".to_string()),
+                    guards: vec![],
+                    transition: None,
+                    transition_duration_ms: 300,
+                    redirect_to: None,
+                    children: vec![],
+                    params: vec![],
+                }],
+            }),
+            true,
+            "/metrics",
+        );
 
         let response = app
             .oneshot(

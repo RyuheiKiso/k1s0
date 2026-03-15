@@ -82,7 +82,7 @@ fn default_grpc_port() -> u16 {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -90,15 +90,6 @@ pub struct ObservabilityConfig {
     pub trace: TraceConfig,
     #[serde(default)]
     pub metrics: MetricsConfig,
-}
-impl Default for ObservabilityConfig {
-    fn default() -> Self {
-        Self {
-            log: LogConfig::default(),
-            trace: TraceConfig::default(),
-            metrics: MetricsConfig::default(),
-        }
-    }
 }
 #[derive(Debug, Clone, Deserialize)]
 pub struct LogConfig {
@@ -208,18 +199,9 @@ mod tests {
 
     #[test]
     fn test_parse_pool_duration() {
-        assert_eq!(
-            parse_pool_duration("5m"),
-            Some(Duration::from_secs(300))
-        );
-        assert_eq!(
-            parse_pool_duration("30s"),
-            Some(Duration::from_secs(30))
-        );
-        assert_eq!(
-            parse_pool_duration("1h"),
-            Some(Duration::from_secs(3600))
-        );
+        assert_eq!(parse_pool_duration("5m"), Some(Duration::from_secs(300)));
+        assert_eq!(parse_pool_duration("30s"), Some(Duration::from_secs(30)));
+        assert_eq!(parse_pool_duration("1h"), Some(Duration::from_secs(3600)));
         assert_eq!(parse_pool_duration(""), None);
     }
 }

@@ -8,13 +8,13 @@ use crate::domain;
 use crate::proto;
 use crate::usecase;
 
+use super::cache::RuleCache;
+use super::config::Config;
+use super::redis_store::RedisRateLimitStore;
 use crate::adapter::grpc::RateLimitGrpcService;
 use crate::adapter::handler::{self, AppState};
 use crate::adapter::repository::cached_ratelimit_repository::CachedRateLimitRepository;
 use crate::adapter::repository::ratelimit_postgres::RateLimitPostgresRepository;
-use super::cache::RuleCache;
-use super::config::Config;
-use super::redis_store::RedisRateLimitStore;
 
 fn parse_pool_duration(value: &str) -> Option<std::time::Duration> {
     let trimmed = value.trim();
@@ -254,7 +254,8 @@ pub async fn run() -> anyhow::Result<()> {
     let tonic_svc = adapter::grpc::RateLimitServiceTonic::new(grpc_svc);
 
     // Router
-    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
         .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC server (port 50051)
@@ -269,7 +270,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(RateLimitServiceServer::new(tonic_svc))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -370,14 +373,14 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         let scope = scope.as_deref();
         let mut filtered: Vec<_> = rules
             .iter()
-            .filter(|r| scope.map_or(true, |s| r.scope == s))
+            .filter(|r| scope.is_none_or(|s| r.scope == s))
             .filter(|r| !enabled_only || r.enabled)
             .cloned()
             .collect();
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
 
         let page = page.max(1);
-        let page_size = page_size.max(1).min(200);
+        let page_size = page_size.clamp(1, 200);
         let total = filtered.len() as u64;
         let start = ((page - 1) * page_size) as usize;
         let paged = filtered

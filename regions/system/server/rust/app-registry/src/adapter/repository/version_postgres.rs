@@ -124,11 +124,7 @@ impl VersionRepository for VersionPostgresRepository {
         .await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration(
-                "create",
-                "app_versions",
-                start.elapsed().as_secs_f64(),
-            );
+            m.record_db_query_duration("create", "app_versions", start.elapsed().as_secs_f64());
         }
 
         row.try_into()
@@ -156,11 +152,7 @@ impl VersionRepository for VersionPostgresRepository {
         .await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration(
-                "delete",
-                "app_versions",
-                start.elapsed().as_secs_f64(),
-            );
+            m.record_db_query_duration("delete", "app_versions", start.elapsed().as_secs_f64());
         }
 
         if result.rows_affected() == 0 {

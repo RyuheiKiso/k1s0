@@ -352,10 +352,7 @@ async fn inmemory_secret_with_many_keys() {
     client.put_secret(make_secret_with_data("system/postgres", &pairs));
 
     for (k, v) in &pairs {
-        let val = client
-            .get_secret_value("system/postgres", k)
-            .await
-            .unwrap();
+        let val = client.get_secret_value("system/postgres", k).await.unwrap();
         assert_eq!(val, *v);
     }
 }

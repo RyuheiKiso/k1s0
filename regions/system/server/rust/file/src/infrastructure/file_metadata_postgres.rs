@@ -70,7 +70,7 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
         page_size: u32,
     ) -> anyhow::Result<(Vec<FileMetadata>, u64)> {
         let page = page.max(1);
-        let page_size = page_size.max(1).min(200);
+        let page_size = page_size.clamp(1, 200);
         let offset = i64::from((page - 1) * page_size);
 
         let mut count_qb = QueryBuilder::<Postgres>::new(format!(

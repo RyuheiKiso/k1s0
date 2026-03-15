@@ -4,6 +4,9 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use super::cache::IndexCache;
+use super::config::Config;
+use super::kafka_producer::{KafkaSearchProducer, NoopSearchEventPublisher, SearchEventPublisher};
 use crate::adapter::grpc::SearchGrpcService;
 use crate::adapter::repository::{
     CachedSearchRepository, SearchOpenSearchRepository, SearchPostgresRepository,
@@ -12,11 +15,6 @@ use crate::domain::entity::search_index::{
     PaginationResult, SearchDocument, SearchIndex, SearchQuery, SearchResult,
 };
 use crate::domain::repository::SearchRepository;
-use super::cache::IndexCache;
-use super::config::Config;
-use super::kafka_producer::{
-    KafkaSearchProducer, NoopSearchEventPublisher, SearchEventPublisher,
-};
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -123,7 +121,9 @@ pub async fn run() -> anyhow::Result<()> {
         event_publisher.clone(),
     ));
     let search_uc = Arc::new(crate::usecase::SearchUseCase::new(search_repo.clone()));
-    let delete_document_uc = Arc::new(crate::usecase::DeleteDocumentUseCase::new(search_repo.clone()));
+    let delete_document_uc = Arc::new(crate::usecase::DeleteDocumentUseCase::new(
+        search_repo.clone(),
+    ));
     let list_indices_uc = Arc::new(crate::usecase::ListIndicesUseCase::new(search_repo));
 
     // --- Kafka consumer (optional, background task) ---
@@ -251,7 +251,9 @@ pub async fn run() -> anyhow::Result<()> {
         let admin_routes = axum::Router::new()
             .route(
                 "/api/v1/search/index/:index_name/:id",
-                axum::routing::delete(crate::adapter::handler::search_handler::delete_document_from_index),
+                axum::routing::delete(
+                    crate::adapter::handler::search_handler::delete_document_from_index,
+                ),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "search", "write",
@@ -279,7 +281,9 @@ pub async fn run() -> anyhow::Result<()> {
             )
             .route(
                 "/api/v1/search/index/:index_name/:id",
-                axum::routing::delete(crate::adapter::handler::search_handler::delete_document_from_index),
+                axum::routing::delete(
+                    crate::adapter::handler::search_handler::delete_document_from_index,
+                ),
             )
             .route(
                 "/api/v1/search/indices",
@@ -312,7 +316,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SearchServiceServer::new(search_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -347,7 +353,9 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 async fn metrics_handler(
-    axum::extract::State(state): axum::extract::State<crate::adapter::handler::search_handler::AppState>,
+    axum::extract::State(state): axum::extract::State<
+        crate::adapter::handler::search_handler::AppState,
+    >,
 ) -> impl axum::response::IntoResponse {
     let body = state.metrics.gather_metrics();
     (

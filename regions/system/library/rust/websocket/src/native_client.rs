@@ -234,7 +234,10 @@ async fn reconnect_loop(
         *state.write().unwrap() = ConnectionState::Reconnecting;
 
         // 再接続前に待機する
-        tokio::time::sleep(tokio::time::Duration::from_millis(config.reconnect_delay_ms)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(
+            config.reconnect_delay_ms,
+        ))
+        .await;
 
         match connect_async(&config.url).await {
             Ok((ws, _)) => {
@@ -304,11 +307,9 @@ fn ws_to_tungstenite(msg: WsMessage) -> Result<TungsteniteMessage, WsError> {
         WsMessage::Ping(b) => Ok(TungsteniteMessage::Ping(b.into())),
         WsMessage::Pong(b) => Ok(TungsteniteMessage::Pong(b.into())),
         WsMessage::Close(frame) => {
-            let close_frame = frame.map(|f| {
-                tokio_tungstenite::tungstenite::protocol::CloseFrame {
-                    code: f.code.into(),
-                    reason: f.reason.into(),
-                }
+            let close_frame = frame.map(|f| tokio_tungstenite::tungstenite::protocol::CloseFrame {
+                code: f.code.into(),
+                reason: f.reason.into(),
             });
             Ok(TungsteniteMessage::Close(close_frame))
         }

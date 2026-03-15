@@ -1,8 +1,8 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use uuid::Uuid;
 
@@ -19,10 +19,7 @@ use crate::domain::entity::health::HealthStatus;
     ),
     security(("bearer_auth" = []))
 )]
-pub async fn get_health(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn get_health(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.health_status_uc.get(id).await {
         Ok(Some(health)) => {
             (StatusCode::OK, Json(serde_json::to_value(health).unwrap())).into_response()
@@ -32,7 +29,7 @@ pub async fn get_health(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -56,7 +53,7 @@ pub async fn report_health(
     match state.health_status_uc.report(&health).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

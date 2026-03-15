@@ -5,11 +5,18 @@ use std::sync::Arc;
 use tracing::info;
 
 use crate::adapter;
-use crate::domain;
 use crate::infrastructure;
 use crate::proto;
 use crate::usecase;
 
+use super::config::Config;
+use super::delivery::{
+    EmailDeliveryClient, PushDeliveryClient, SlackDeliveryClient, SmsDeliveryClient,
+    WebhookDeliveryClient,
+};
+use super::kafka_producer::{
+    KafkaNotificationProducer, NoopNotificationEventPublisher, NotificationEventPublisher,
+};
 use crate::adapter::grpc::NotificationGrpcService;
 use crate::adapter::repository::channel_postgres::ChannelPostgresRepository;
 use crate::adapter::repository::notification_log_postgres::NotificationLogPostgresRepository;
@@ -21,14 +28,6 @@ use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
 use crate::domain::repository::NotificationTemplateRepository;
 use crate::domain::service::DeliveryClient;
-use super::config::Config;
-use super::delivery::{
-    EmailDeliveryClient, PushDeliveryClient, SlackDeliveryClient, SmsDeliveryClient,
-    WebhookDeliveryClient,
-};
-use super::kafka_producer::{
-    KafkaNotificationProducer, NoopNotificationEventPublisher, NotificationEventPublisher,
-};
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -320,9 +319,9 @@ pub async fn run() -> anyhow::Result<()> {
         state = state.with_auth(auth_st);
     }
 
-    let app =
-        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
-            .layer(k1s0_correlation::layer::CorrelationLayer::new());
+    let app = adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC グレースフルシャットダウン用シグナル
     let grpc_shutdown = shutdown_signal();
@@ -333,7 +332,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(NotificationServiceServer::new(notification_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

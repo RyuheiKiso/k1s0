@@ -13,7 +13,11 @@ pub trait TableDefinitionRepository: Send + Sync {
         active_only: bool,
         domain_filter: &DomainFilter,
     ) -> anyhow::Result<Vec<TableDefinition>>;
-    async fn find_by_name(&self, name: &str, domain_scope: Option<&str>) -> anyhow::Result<Option<TableDefinition>>;
+    async fn find_by_name(
+        &self,
+        name: &str,
+        domain_scope: Option<&str>,
+    ) -> anyhow::Result<Option<TableDefinition>>;
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<TableDefinition>>;
     async fn create(
         &self,

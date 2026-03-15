@@ -98,11 +98,10 @@ impl CircuitBreaker {
         inner.failure_count += 1;
         inner.last_failure_time = Some(Instant::now());
 
-        if inner.state == CircuitBreakerState::HalfOpen {
-            inner.state = CircuitBreakerState::Open;
-            inner.success_count = 0;
-            self.metrics.set_state(CircuitBreakerState::Open);
-        } else if inner.failure_count >= self.config.failure_threshold {
+        // HalfOpen状態または失敗回数が閾値を超えた場合はOpen状態に遷移する
+        if inner.state == CircuitBreakerState::HalfOpen
+            || inner.failure_count >= self.config.failure_threshold
+        {
             inner.state = CircuitBreakerState::Open;
             inner.success_count = 0;
             self.metrics.set_state(CircuitBreakerState::Open);

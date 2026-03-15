@@ -21,12 +21,11 @@ pub const BACKUP_DIR_NAME: &str = ".k1s0-backup";
 /// ファイルの読み込みまたはパースに失敗した場合にエラーを返す。
 pub fn parse_manifest(path: &Path) -> Result<TemplateManifest> {
     let content = fs::read_to_string(path)?;
-    match serde_yaml::from_str::<TemplateManifest>(&content) {
-        Ok(manifest) => Ok(manifest),
-        Err(_) => {
-            let legacy: LegacyTemplateManifest = serde_yaml::from_str(&content)?;
-            Ok(legacy.into_manifest(path))
-        }
+    if let Ok(manifest) = serde_yaml::from_str::<TemplateManifest>(&content) {
+        Ok(manifest)
+    } else {
+        let legacy: LegacyTemplateManifest = serde_yaml::from_str(&content)?;
+        Ok(legacy.into_manifest(path))
     }
 }
 
@@ -248,7 +247,7 @@ mod tests {
         let path = temp.path().join(MANIFEST_FILE_NAME);
         fs::write(
             &path,
-            r#"
+            r"
 template_type: server
 language: rust
 version: 1.2.0
@@ -256,7 +255,7 @@ checksum: sha256:abc
 customization:
   ignore_paths:
     - src/domain/**
-"#,
+",
         )
         .unwrap();
 

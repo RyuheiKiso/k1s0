@@ -32,6 +32,7 @@ mod testcontainers_db_tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Docker (testcontainers)"]
     async fn test_rate_limit_rule_crud() {
         let (pool, _container) = setup_pool().await;
         let repo = RateLimitPostgresRepository::new(pool);
@@ -54,6 +55,7 @@ mod testcontainers_db_tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Docker (testcontainers)"]
     async fn test_find_rate_limit_rule_by_id() {
         let (pool, _container) = setup_pool().await;
         let repo = RateLimitPostgresRepository::new(pool);
@@ -75,6 +77,7 @@ mod testcontainers_db_tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Docker (testcontainers)"]
     async fn test_find_rate_limit_rule_by_name() {
         let (pool, _container) = setup_pool().await;
         let repo = RateLimitPostgresRepository::new(pool);
@@ -98,6 +101,7 @@ mod testcontainers_db_tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Docker (testcontainers)"]
     async fn test_find_all_rate_limit_rules() {
         let (pool, _container) = setup_pool().await;
         let repo = RateLimitPostgresRepository::new(pool);
@@ -118,6 +122,7 @@ mod testcontainers_db_tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Docker (testcontainers)"]
     async fn test_update_rate_limit_rule() {
         let (pool, _container) = setup_pool().await;
         let repo = RateLimitPostgresRepository::new(pool);
@@ -142,6 +147,7 @@ mod testcontainers_db_tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Docker (testcontainers)"]
     async fn test_delete_rate_limit_rule() {
         let (pool, _container) = setup_pool().await;
         let repo = RateLimitPostgresRepository::new(pool);

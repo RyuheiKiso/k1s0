@@ -371,7 +371,7 @@ mod tests {
         let cargo_change = plan
             .changes
             .iter()
-            .find(|change| change.path == PathBuf::from("Cargo.toml"))
+            .find(|change| change.path == Path::new("Cargo.toml"))
             .unwrap();
         match &cargo_change.merge_result {
             MergeResult::Clean(content) => {

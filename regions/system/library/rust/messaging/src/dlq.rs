@@ -46,12 +46,13 @@ pub async fn forward_to_dlq(
 ) -> Result<(), MessagingError> {
     let dlq_topic = dlq_topic_name(original_topic);
 
-    let mut headers = Vec::new();
-    headers.push((
-        "original_topic".to_string(),
-        original_topic.as_bytes().to_vec(),
-    ));
-    headers.push(("error".to_string(), error_message.as_bytes().to_vec()));
+    let headers = vec![
+        (
+            "original_topic".to_string(),
+            original_topic.as_bytes().to_vec(),
+        ),
+        ("error".to_string(), error_message.as_bytes().to_vec()),
+    ];
 
     let envelope = EventEnvelope {
         topic: dlq_topic,
@@ -135,10 +136,7 @@ mod tests {
     // .dlq サフィックスのないトピック名に original_topic_name を適用すると None が返ることを確認する。
     #[test]
     fn test_original_topic_name_no_suffix() {
-        assert_eq!(
-            original_topic_name("k1s0.service.order.created.v1"),
-            None
-        );
+        assert_eq!(original_topic_name("k1s0.service.order.created.v1"), None);
     }
 
     // forward_to_dlq がメッセージを DLQ トピックへ正常に転送できることを確認する。
@@ -237,7 +235,9 @@ mod tests {
                 async move {
                     let count = c.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                     if count == 0 {
-                        Err(MessagingError::ConsumerError("first attempt fail".to_string()))
+                        Err(MessagingError::ConsumerError(
+                            "first attempt fail".to_string(),
+                        ))
                     } else {
                         Ok(())
                     }

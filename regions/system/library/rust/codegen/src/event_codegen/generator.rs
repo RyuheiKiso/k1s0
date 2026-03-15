@@ -133,12 +133,7 @@ fn generate_go_stubs(
 ) -> Result<(), CodegenError> {
     // internal/events/producer.go
     let producer = generate_go_producer_stub(config);
-    write_file(
-        output_dir,
-        "internal/events/producer.go",
-        &producer,
-        result,
-    )?;
+    write_file(output_dir, "internal/events/producer.go", &producer, result)?;
 
     // Consumer handler stubs
     for event in &config.events {
@@ -304,12 +299,14 @@ events:
             })
             .collect();
 
-        assert!(created_names.contains(&"proto/accounting/events/v1/master_item_created.proto".to_string()));
+        assert!(created_names
+            .contains(&"proto/accounting/events/v1/master_item_created.proto".to_string()));
         assert!(created_names.contains(&"src/events/mod.rs".to_string()));
         assert!(created_names.contains(&"src/events/types.rs".to_string()));
         assert!(created_names.contains(&"src/events/producer.rs".to_string()));
         assert!(created_names.contains(&"src/events/consumers/mod.rs".to_string()));
-        assert!(created_names.contains(&"src/events/consumers/on_accounting_master_item_created.rs".to_string()));
+        assert!(created_names
+            .contains(&"src/events/consumers/on_accounting_master_item_created.rs".to_string()));
         assert!(created_names.contains(&"migrations/001_create_outbox.up.sql".to_string()));
         assert!(created_names.contains(&"migrations/001_create_outbox.down.sql".to_string()));
         assert!(created_names.contains(&"config/schema-registry.yaml".to_string()));
@@ -367,7 +364,9 @@ events:
             .collect();
 
         assert!(created_names.contains(&"internal/events/producer.go".to_string()));
-        assert!(created_names.contains(&"internal/events/consumers/on_accounting_master_item_created.go".to_string()));
+        assert!(created_names.contains(
+            &"internal/events/consumers/on_accounting_master_item_created.go".to_string()
+        ));
     }
 
     #[test]

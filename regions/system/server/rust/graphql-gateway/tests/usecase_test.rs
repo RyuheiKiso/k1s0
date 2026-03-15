@@ -1,16 +1,14 @@
-use std::collections::HashMap;
 use async_trait::async_trait;
+use std::collections::HashMap;
 use tokio::sync::RwLock;
 
 use k1s0_graphql_gateway_server::domain::model::{
-    decode_cursor, encode_cursor, ConfigEntry, CreateTenantPayload, FeatureFlag, PageInfo,
-    Tenant, TenantConnection, TenantEdge, TenantStatus,
+    decode_cursor, encode_cursor, CatalogService, CatalogServiceConnection, ConfigEntry,
+    CreateTenantPayload, DeleteServicePayload, FeatureFlag, GuardType, MetadataEntry, Navigation,
+    NavigationGuard, NavigationRoute, PageInfo, ParamType, RegisterServicePayload, RouteParam,
+    ServiceHealth as CatalogServiceHealth, Tenant, TenantConnection, TenantEdge, TenantStatus,
+    TransitionConfig as NavTransitionConfig, TransitionType, UpdateServicePayload,
     UpdateTenantPayload, UserError,
-    CatalogService, CatalogServiceConnection, ServiceHealth as CatalogServiceHealth,
-    MetadataEntry,
-    Navigation, NavigationRoute, NavigationGuard, TransitionConfig as NavTransitionConfig,
-    RouteParam, GuardType, TransitionType, ParamType,
-    RegisterServicePayload, UpdateServicePayload, DeleteServicePayload,
 };
 
 // ---------------------------------------------------------------------------
@@ -32,8 +30,7 @@ trait TenantClient: Send + Sync {
 
 #[async_trait]
 trait ConfigClient: Send + Sync {
-    async fn get_config(&self, namespace: &str, key: &str)
-        -> anyhow::Result<Option<ConfigEntry>>;
+    async fn get_config(&self, namespace: &str, key: &str) -> anyhow::Result<Option<ConfigEntry>>;
 }
 
 #[async_trait]
@@ -47,6 +44,7 @@ trait NavigationClient: Send + Sync {
     async fn get_navigation(&self, bearer_token: &str) -> anyhow::Result<Navigation>;
 }
 
+#[allow(clippy::too_many_arguments)]
 #[async_trait]
 trait ServiceCatalogClient: Send + Sync {
     async fn get_service(&self, service_id: &str) -> anyhow::Result<Option<CatalogService>>;
@@ -160,7 +158,10 @@ impl TenantClient for StubTenantClient {
             return Err(anyhow::anyhow!("stub grpc error"));
         }
         let tenant = Tenant {
-            id: format!("tenant_{}", uuid::Uuid::new_v4().to_string().replace('-', "")),
+            id: format!(
+                "tenant_{}",
+                uuid::Uuid::new_v4().to_string().replace('-', "")
+            ),
             name: name.to_string(),
             status: TenantStatus::Active,
             created_at: chrono::Utc::now().to_rfc3339(),
@@ -234,11 +235,7 @@ impl StubConfigClient {
 
 #[async_trait]
 impl ConfigClient for StubConfigClient {
-    async fn get_config(
-        &self,
-        namespace: &str,
-        key: &str,
-    ) -> anyhow::Result<Option<ConfigEntry>> {
+    async fn get_config(&self, namespace: &str, key: &str) -> anyhow::Result<Option<ConfigEntry>> {
         if self.should_fail {
             return Err(anyhow::anyhow!("stub grpc error"));
         }
@@ -295,8 +292,7 @@ impl FeatureFlagClient for StubFeatureFlagClient {
         let mut result: Vec<FeatureFlag> = flags.iter().cloned().collect();
         if let Some(env) = environment {
             result.retain(|f| {
-                f.target_environments.is_empty()
-                    || f.target_environments.iter().any(|e| e == env)
+                f.target_environments.is_empty() || f.target_environments.iter().any(|e| e == env)
             });
         }
         Ok(result)
@@ -525,7 +521,11 @@ impl ServiceCatalogClient for StubServiceCatalogClient {
         }
         let statuses = self.health_statuses.read().await;
         let result = if let Some(id) = service_id {
-            statuses.iter().filter(|h| h.service_id == id).cloned().collect()
+            statuses
+                .iter()
+                .filter(|h| h.service_id == id)
+                .cloned()
+                .collect()
         } else {
             statuses.iter().cloned().collect()
         };
@@ -550,10 +550,7 @@ async fn resolve_get_config(
 }
 
 /// Mirrors TenantQueryResolver.get_tenant logic
-async fn resolve_get_tenant(
-    client: &dyn TenantClient,
-    id: &str,
-) -> anyhow::Result<Option<Tenant>> {
+async fn resolve_get_tenant(client: &dyn TenantClient, id: &str) -> anyhow::Result<Option<Tenant>> {
     client.get_tenant(id).await
 }
 
@@ -686,10 +683,13 @@ async fn resolve_list_services(
     search: Option<&str>,
 ) -> anyhow::Result<CatalogServiceConnection> {
     let page_size = first.unwrap_or(20);
-    client.list_services(1, page_size, tier, status, search).await
+    client
+        .list_services(1, page_size, tier, status, search)
+        .await
 }
 
 /// Mirrors ServiceCatalogMutationResolver.register_service logic
+#[allow(clippy::too_many_arguments)]
 async fn resolve_register_service(
     client: &dyn ServiceCatalogClient,
     name: &str,
@@ -731,6 +731,7 @@ async fn resolve_register_service(
 }
 
 /// Mirrors ServiceCatalogMutationResolver.update_service logic
+#[allow(clippy::too_many_arguments)]
 async fn resolve_update_service(
     client: &dyn ServiceCatalogClient,
     service_id: &str,
@@ -886,8 +887,7 @@ mod cursor_tests {
     #[test]
     fn decode_valid_base64_but_wrong_format_returns_none() {
         use base64::Engine;
-        let encoded =
-            base64::engine::general_purpose::STANDARD.encode("not_a_cursor:42");
+        let encoded = base64::engine::general_purpose::STANDARD.encode("not_a_cursor:42");
         assert_eq!(decode_cursor(&encoded), None);
     }
 
@@ -906,7 +906,10 @@ mod tenant_status_tests {
 
     #[test]
     fn from_active() {
-        assert_eq!(TenantStatus::from("ACTIVE".to_string()), TenantStatus::Active);
+        assert_eq!(
+            TenantStatus::from("ACTIVE".to_string()),
+            TenantStatus::Active
+        );
     }
 
     #[test]
@@ -935,10 +938,7 @@ mod tenant_status_tests {
 
     #[test]
     fn from_empty_defaults_to_active() {
-        assert_eq!(
-            TenantStatus::from(String::new()),
-            TenantStatus::Active
-        );
+        assert_eq!(TenantStatus::from(String::new()), TenantStatus::Active);
     }
 }
 
@@ -1049,7 +1049,10 @@ mod tenant_query {
         let client = StubTenantClient::new();
         for i in 0..5 {
             client
-                .seed(sample_tenant(&format!("t-{:03}", i), &format!("Tenant {}", i)))
+                .seed(sample_tenant(
+                    &format!("t-{:03}", i),
+                    &format!("Tenant {}", i),
+                ))
                 .await;
         }
 
@@ -1070,7 +1073,10 @@ mod tenant_query {
         let client = StubTenantClient::new();
         for i in 0..5 {
             client
-                .seed(sample_tenant(&format!("t-{:03}", i), &format!("Tenant {}", i)))
+                .seed(sample_tenant(
+                    &format!("t-{:03}", i),
+                    &format!("Tenant {}", i),
+                ))
                 .await;
         }
 
@@ -1080,8 +1086,9 @@ mod tenant_query {
         let after_cursor = first_page.page_info.end_cursor.clone();
 
         // Get second page using cursor
-        let second_page =
-            resolve_list_tenants(&client, Some(2), after_cursor).await.unwrap();
+        let second_page = resolve_list_tenants(&client, Some(2), after_cursor)
+            .await
+            .unwrap();
         assert_eq!(second_page.edges.len(), 2);
         assert!(second_page.page_info.has_previous_page);
     }
@@ -1186,8 +1193,7 @@ mod tenant_mutation {
         let client = StubTenantClient::new();
         client.seed(sample_tenant("t-001", "Corp")).await;
 
-        let payload =
-            resolve_update_tenant(&client, "t-001", None, Some("SUSPENDED")).await;
+        let payload = resolve_update_tenant(&client, "t-001", None, Some("SUSPENDED")).await;
         assert!(payload.tenant.is_some());
         assert!(payload.errors.is_empty());
 
@@ -1199,8 +1205,7 @@ mod tenant_mutation {
     async fn update_tenant_not_found_returns_user_error() {
         let client = StubTenantClient::new();
 
-        let payload =
-            resolve_update_tenant(&client, "nonexistent", Some("New Name"), None).await;
+        let payload = resolve_update_tenant(&client, "nonexistent", Some("New Name"), None).await;
         assert!(payload.tenant.is_none());
         assert_eq!(payload.errors.len(), 1);
         assert!(payload.errors[0].message.contains("tenant not found"));
@@ -1210,8 +1215,7 @@ mod tenant_mutation {
     async fn update_tenant_error_returns_user_error() {
         let client = StubTenantClient::failing();
 
-        let payload =
-            resolve_update_tenant(&client, "t-001", Some("New Name"), None).await;
+        let payload = resolve_update_tenant(&client, "t-001", Some("New Name"), None).await;
         assert!(payload.tenant.is_none());
         assert_eq!(payload.errors.len(), 1);
         assert!(payload.errors[0].message.contains("stub grpc error"));
@@ -1222,13 +1226,8 @@ mod tenant_mutation {
         let client = StubTenantClient::new();
         client.seed(sample_tenant("t-001", "Old")).await;
 
-        let payload = resolve_update_tenant(
-            &client,
-            "t-001",
-            Some("Updated"),
-            Some("SUSPENDED"),
-        )
-        .await;
+        let payload =
+            resolve_update_tenant(&client, "t-001", Some("Updated"), Some("SUSPENDED")).await;
         assert!(payload.tenant.is_some());
         let tenant = payload.tenant.unwrap();
         assert_eq!(tenant.name, "Updated");
@@ -1444,7 +1443,10 @@ mod navigation_query {
         assert_eq!(nav.routes.len(), 1);
         assert_eq!(nav.routes[0].id, "route-1");
         assert_eq!(nav.routes[0].path, "/dashboard");
-        assert_eq!(nav.routes[0].component_id, Some("DashboardPage".to_string()));
+        assert_eq!(
+            nav.routes[0].component_id,
+            Some("DashboardPage".to_string())
+        );
     }
 
     #[tokio::test]
@@ -1583,12 +1585,10 @@ mod navigation_query {
                     guard_ids: vec![],
                     children: vec![],
                     transition: None,
-                    params: vec![
-                        RouteParam {
-                            name: "id".to_string(),
-                            param_type: ParamType::UuidType,
-                        },
-                    ],
+                    params: vec![RouteParam {
+                        name: "id".to_string(),
+                        param_type: ParamType::UuidType,
+                    }],
                     redirect_to: None,
                 }],
                 guards: vec![],
@@ -1697,8 +1697,7 @@ mod service_catalog_query {
         business_svc.tier = "business".to_string();
         client.seed_service(business_svc).await;
 
-        let result =
-            resolve_list_services(&client, Some(20), Some("system"), None, None).await;
+        let result = resolve_list_services(&client, Some(20), Some("system"), None, None).await;
         assert!(result.is_ok());
         let conn = result.unwrap();
         assert_eq!(conn.services.len(), 1);

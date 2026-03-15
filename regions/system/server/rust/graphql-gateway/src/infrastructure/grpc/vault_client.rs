@@ -44,15 +44,11 @@ impl VaultGrpcClient {
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn get_secret_metadata(
-        &self,
-        path: &str,
-    ) -> anyhow::Result<Option<SecretMetadata>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::vault::v1::GetSecretMetadataRequest {
+    pub async fn get_secret_metadata(&self, path: &str) -> anyhow::Result<Option<SecretMetadata>> {
+        let request =
+            tonic::Request::new(proto::k1s0::system::vault::v1::GetSecretMetadataRequest {
                 path: path.to_owned(),
-            },
-        );
+            });
 
         match self.client.clone().get_secret_metadata(request).await {
             Ok(resp) => {
@@ -75,10 +71,9 @@ impl VaultGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn list_secrets(&self, prefix: Option<&str>) -> anyhow::Result<Vec<String>> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::vault::v1::ListSecretsRequest {
-                prefix: prefix.unwrap_or_default().to_owned(),
-            });
+        let request = tonic::Request::new(proto::k1s0::system::vault::v1::ListSecretsRequest {
+            prefix: prefix.unwrap_or_default().to_owned(),
+        });
 
         let resp = self
             .client
@@ -97,12 +92,10 @@ impl VaultGrpcClient {
         offset: Option<i32>,
         limit: Option<i32>,
     ) -> anyhow::Result<Vec<VaultAuditLogEntry>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::vault::v1::ListAuditLogsRequest {
-                offset: offset.unwrap_or(0),
-                limit: limit.unwrap_or(50),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::vault::v1::ListAuditLogsRequest {
+            offset: offset.unwrap_or(0),
+            limit: limit.unwrap_or(50),
+        });
 
         let resp = self
             .client
@@ -136,11 +129,10 @@ impl VaultGrpcClient {
         path: &str,
         data: HashMap<String, String>,
     ) -> anyhow::Result<(String, i64, String)> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::vault::v1::SetSecretRequest {
-                path: path.to_owned(),
-                data,
-            });
+        let request = tonic::Request::new(proto::k1s0::system::vault::v1::SetSecretRequest {
+            path: path.to_owned(),
+            data,
+        });
 
         let resp = self
             .client
@@ -163,12 +155,10 @@ impl VaultGrpcClient {
         path: &str,
         data: HashMap<String, String>,
     ) -> anyhow::Result<(String, i64, bool)> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::vault::v1::RotateSecretRequest {
-                path: path.to_owned(),
-                data,
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::vault::v1::RotateSecretRequest {
+            path: path.to_owned(),
+            data,
+        });
 
         let resp = self
             .client
@@ -182,17 +172,11 @@ impl VaultGrpcClient {
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn delete_secret(
-        &self,
-        path: &str,
-        versions: Vec<i64>,
-    ) -> anyhow::Result<bool> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::vault::v1::DeleteSecretRequest {
-                path: path.to_owned(),
-                versions,
-            },
-        );
+    pub async fn delete_secret(&self, path: &str, versions: Vec<i64>) -> anyhow::Result<bool> {
+        let request = tonic::Request::new(proto::k1s0::system::vault::v1::DeleteSecretRequest {
+            path: path.to_owned(),
+            versions,
+        });
 
         let resp = self
             .client

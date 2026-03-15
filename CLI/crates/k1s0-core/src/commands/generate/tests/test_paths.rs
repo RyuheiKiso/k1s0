@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::commands::generate::paths::{build_output_path, build_ci_workflow_path};
+use crate::commands::generate::paths::{build_ci_workflow_path, build_output_path};
 use crate::commands::generate::types::{
     DetailConfig, Framework, GenerateConfig, Kind, LangFw, Language, Rdbms, Tier,
 };

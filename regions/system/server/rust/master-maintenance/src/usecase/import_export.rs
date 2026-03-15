@@ -190,8 +190,7 @@ impl ImportExportUseCase {
             }),
             "xlsx" => Some(ExportedFile {
                 file_name: format!("{}.xlsx", table_name),
-                content_type:
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                content_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 bytes: Self::export_as_xlsx(&export_columns, &records)?,
             }),
             _ => unreachable!(),
@@ -237,7 +236,8 @@ impl ImportExportUseCase {
             other => anyhow::bail!("unsupported import file extension: {}", other),
         };
 
-        self.import_records(table_name, &data, started_by, domain_scope).await
+        self.import_records(table_name, &data, started_by, domain_scope)
+            .await
     }
 
     fn parse_import_records(
@@ -339,8 +339,10 @@ impl ImportExportUseCase {
     }
 
     fn export_as_csv(columns: &[ColumnDefinition], records: &[Value]) -> anyhow::Result<String> {
-        let ordered_columns: Vec<&str> =
-            columns.iter().map(|column| column.column_name.as_str()).collect();
+        let ordered_columns: Vec<&str> = columns
+            .iter()
+            .map(|column| column.column_name.as_str())
+            .collect();
         let mut writer = csv::Writer::from_writer(Vec::new());
         writer.write_record(&ordered_columns)?;
 
@@ -430,7 +432,12 @@ impl ImportExportUseCase {
 }
 
 fn normalize_export_format(format: Option<&str>) -> anyhow::Result<&'static str> {
-    match format.unwrap_or("json").trim().to_ascii_lowercase().as_str() {
+    match format
+        .unwrap_or("json")
+        .trim()
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "" | "json" => Ok("json"),
         "csv" => Ok("csv"),
         "xlsx" | "xls" => Ok("xlsx"),
@@ -586,6 +593,9 @@ mod tests {
             .collect();
 
         assert_eq!(rows[0], vec![String::from("id"), String::from("name")]);
-        assert_eq!(rows[1], vec![String::from("dept-1"), String::from("Platform")]);
+        assert_eq!(
+            rows[1],
+            vec![String::from("dept-1"), String::from("Platform")]
+        );
     }
 }

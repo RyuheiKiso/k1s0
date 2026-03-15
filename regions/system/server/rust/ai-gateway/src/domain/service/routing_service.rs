@@ -108,8 +108,24 @@ mod tests {
     #[tokio::test]
     async fn test_select_model_cost_strategy() {
         let models = vec![
-            AiModel::new("m1".into(), "expensive".into(), "p".into(), 4096, true, 0.10, 0.20),
-            AiModel::new("m2".into(), "cheap".into(), "p".into(), 4096, true, 0.01, 0.02),
+            AiModel::new(
+                "m1".into(),
+                "expensive".into(),
+                "p".into(),
+                4096,
+                true,
+                0.10,
+                0.20,
+            ),
+            AiModel::new(
+                "m2".into(),
+                "cheap".into(),
+                "p".into(),
+                4096,
+                true,
+                0.01,
+                0.02,
+            ),
         ];
         let svc = RoutingService::new(
             Arc::new(MockModelRepo { models }),
@@ -121,9 +137,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_select_model_with_routing_rule() {
-        let models = vec![
-            AiModel::new("m1".into(), "model-1".into(), "p".into(), 4096, true, 0.03, 0.06),
-        ];
+        let models = vec![AiModel::new(
+            "m1".into(),
+            "model-1".into(),
+            "p".into(),
+            4096,
+            true,
+            0.03,
+            0.06,
+        )];
         let rule = RoutingRule::new("r1".into(), "m1".into(), 1, "cost".into());
         let svc = RoutingService::new(
             Arc::new(MockModelRepo { models }),

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use futures_util::StreamExt;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::StreamConsumer;
 use rdkafka::message::Message;
-use futures_util::StreamExt;
 use tracing::{info, warn};
 
 use crate::domain::entity::event_record::EventRecord;
@@ -105,8 +105,7 @@ impl EventKafkaConsumer {
                 match header.key {
                     "correlation_id" => {
                         if let Some(v) = header.value {
-                            correlation_id =
-                                std::str::from_utf8(v).unwrap_or_default().to_string();
+                            correlation_id = std::str::from_utf8(v).unwrap_or_default().to_string();
                         }
                     }
                     "trace_id" => {
@@ -145,9 +144,7 @@ impl EventKafkaConsumer {
             .await?;
         let all_flows = self.flow_def_repo.find_all().await?;
 
-        if let Some((flow_id, step_index)) =
-            FlowMatchingService::match_event(&event, &all_flows)
-        {
+        if let Some((flow_id, step_index)) = FlowMatchingService::match_event(&event, &all_flows) {
             event.flow_id = Some(flow_id);
             event.flow_step_index = Some(step_index);
 

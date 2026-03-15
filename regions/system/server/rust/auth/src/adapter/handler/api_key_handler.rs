@@ -75,7 +75,7 @@ pub async fn create_api_key(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -106,7 +106,7 @@ pub async fn get_api_key(State(state): State<AppState>, Path(id): Path<Uuid>) ->
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -133,7 +133,7 @@ pub async fn list_api_keys(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -165,7 +165,7 @@ pub async fn revoke_api_key(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

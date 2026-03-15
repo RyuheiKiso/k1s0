@@ -36,9 +36,7 @@ async fn rbac_check(
     let claims = req
         .extensions()
         .get::<k1s0_auth::Claims>()
-        .ok_or_else(|| {
-            ServiceError::unauthorized("AUTH", "Missing authentication claims")
-        })?;
+        .ok_or_else(|| ServiceError::unauthorized("AUTH", "Missing authentication claims"))?;
 
     let roles = claims.realm_roles();
 

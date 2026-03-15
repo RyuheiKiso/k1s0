@@ -22,10 +22,6 @@ pub trait ItemRepository: Send + Sync {
         input: &CreateMasterItem,
         created_by: &str,
     ) -> anyhow::Result<MasterItem>;
-    async fn update(
-        &self,
-        id: Uuid,
-        input: &UpdateMasterItem,
-    ) -> anyhow::Result<MasterItem>;
+    async fn update(&self, id: Uuid, input: &UpdateMasterItem) -> anyhow::Result<MasterItem>;
     async fn delete(&self, id: Uuid) -> anyhow::Result<()>;
 }

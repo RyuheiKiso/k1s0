@@ -72,12 +72,11 @@ impl FlowInstanceRepository for FlowInstancePostgresRepository {
         .fetch_all(self.pool.as_ref())
         .await?;
 
-        let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM event_monitor.flow_instances WHERE flow_id = $1",
-        )
-        .bind(flow_id)
-        .fetch_one(self.pool.as_ref())
-        .await?;
+        let count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM event_monitor.flow_instances WHERE flow_id = $1")
+                .bind(flow_id)
+                .fetch_one(self.pool.as_ref())
+                .await?;
 
         Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
     }

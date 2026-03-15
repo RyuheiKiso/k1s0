@@ -14,7 +14,9 @@ use crate::usecase::get_slo_burn_rate::{GetSloBurnRateError, GetSloBurnRateUseCa
 use crate::usecase::get_slo_status::GetSloStatusUseCase;
 use crate::usecase::list_events::{ListEventsInput, ListEventsUseCase};
 use crate::usecase::list_flows::{ListFlowsInput, ListFlowsUseCase};
-use crate::usecase::preview_replay::{PreviewReplayError, PreviewReplayInput, PreviewReplayUseCase};
+use crate::usecase::preview_replay::{
+    PreviewReplayError, PreviewReplayInput, PreviewReplayUseCase,
+};
 use crate::usecase::trace_by_correlation::{TraceByCorrelationError, TraceByCorrelationUseCase};
 use crate::usecase::update_flow::{UpdateFlowError, UpdateFlowInput, UpdateFlowUseCase};
 

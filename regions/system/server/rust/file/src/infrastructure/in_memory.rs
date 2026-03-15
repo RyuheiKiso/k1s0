@@ -7,11 +7,17 @@ pub struct InMemoryFileMetadataRepository {
     files: tokio::sync::RwLock<HashMap<String, FileMetadata>>,
 }
 
-impl InMemoryFileMetadataRepository {
-    pub fn new() -> Self {
+impl Default for InMemoryFileMetadataRepository {
+    fn default() -> Self {
         Self {
             files: tokio::sync::RwLock::new(HashMap::new()),
         }
+    }
+}
+
+impl InMemoryFileMetadataRepository {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
@@ -89,6 +95,13 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
 }
 
 pub struct InMemoryFileStorageRepository;
+
+/// InMemoryFileStorageRepository の Default 実装（clippy::new_without_default 対応）
+impl Default for InMemoryFileStorageRepository {
+    fn default() -> Self {
+        Self
+    }
+}
 
 impl InMemoryFileStorageRepository {
     pub fn new() -> Self {

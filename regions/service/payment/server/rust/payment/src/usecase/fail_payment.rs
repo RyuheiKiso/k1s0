@@ -27,10 +27,7 @@ impl FailPaymentUseCase {
             .ok_or_else(|| PaymentError::NotFound(payment_id.to_string()))?;
 
         // ステータス遷移バリデーション
-        PaymentDomainService::validate_status_transition(
-            &existing.status,
-            &PaymentStatus::Failed,
-        )?;
+        PaymentDomainService::validate_status_transition(&existing.status, &PaymentStatus::Failed)?;
 
         // ステータス更新（Outbox イベントも同一トランザクション内で挿入される）
         let updated = self
@@ -112,9 +109,7 @@ mod tests {
             .returning(move |_| Ok(Some(payment_clone.clone())));
 
         let uc = FailPaymentUseCase::new(Arc::new(mock_repo));
-        let result = uc
-            .execute(payment_id, "ERROR", "some error")
-            .await;
+        let result = uc.execute(payment_id, "ERROR", "some error").await;
         assert!(result.is_err());
         assert!(result
             .unwrap_err()

@@ -424,7 +424,7 @@ mod tests {
         let targets = resolve_targets(&config, tmp.path()).unwrap();
         assert_eq!(
             targets,
-            vec![rust_path.to_string_lossy().replace('\\', "/").to_string()]
+            vec![rust_path.to_string_lossy().replace('\\', "/")]
         );
     }
 }

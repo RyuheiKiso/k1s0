@@ -61,7 +61,11 @@ impl ExecuteReplayUseCase {
                 .collect();
             if !in_progress.is_empty() {
                 return Err(ExecuteReplayError::ReplayInProgress(
-                    in_progress.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "),
+                    in_progress
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", "),
                 ));
             }
         }
@@ -155,7 +159,10 @@ mod tests {
             dry_run: false,
         };
         let result = uc.execute(&input).await;
-        assert!(matches!(result, Err(ExecuteReplayError::ReplayInProgress(_))));
+        assert!(matches!(
+            result,
+            Err(ExecuteReplayError::ReplayInProgress(_))
+        ));
     }
 
     #[tokio::test]

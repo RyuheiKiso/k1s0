@@ -50,11 +50,10 @@ impl ServiceCatalogGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_service(&self, service_id: &str) -> anyhow::Result<Option<CatalogService>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::servicecatalog::v1::GetServiceRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::servicecatalog::v1::GetServiceRequest {
                 service_id: service_id.to_owned(),
-            },
-        );
+            });
 
         match self.client.clone().get_service(request).await {
             Ok(resp) => {
@@ -95,20 +94,14 @@ impl ServiceCatalogGrpcClient {
             .clone()
             .list_services(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("ServiceCatalogService.ListServices failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("ServiceCatalogService.ListServices failed: {}", e))?
             .into_inner();
 
-        let services = resp
-            .services
-            .into_iter()
-            .map(service_from_proto)
-            .collect();
+        let services = resp.services.into_iter().map(service_from_proto).collect();
 
         let (total_count, has_next) = resp
             .pagination
-            .map(|p| (p.total_count as i32, p.has_next))
+            .map(|p| (p.total_count, p.has_next))
             .unwrap_or((0, false));
 
         Ok(CatalogServiceConnection {
@@ -118,6 +111,7 @@ impl ServiceCatalogGrpcClient {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn register_service(
         &self,
@@ -150,9 +144,7 @@ impl ServiceCatalogGrpcClient {
             .clone()
             .register_service(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("ServiceCatalogService.RegisterService failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("ServiceCatalogService.RegisterService failed: {}", e))?
             .into_inner()
             .service
             .ok_or_else(|| anyhow::anyhow!("empty service in register response"))?;
@@ -160,6 +152,7 @@ impl ServiceCatalogGrpcClient {
         Ok(service_from_proto(svc))
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn update_service(
         &self,
@@ -190,9 +183,7 @@ impl ServiceCatalogGrpcClient {
             .clone()
             .update_service(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("ServiceCatalogService.UpdateService failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("ServiceCatalogService.UpdateService failed: {}", e))?
             .into_inner()
             .service
             .ok_or_else(|| anyhow::anyhow!("empty service in update response"))?;
@@ -213,9 +204,7 @@ impl ServiceCatalogGrpcClient {
             .clone()
             .delete_service(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("ServiceCatalogService.DeleteService failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("ServiceCatalogService.DeleteService failed: {}", e))?
             .into_inner();
 
         Ok(resp.success)
@@ -237,9 +226,7 @@ impl ServiceCatalogGrpcClient {
             .clone()
             .health_check(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("ServiceCatalogService.HealthCheck failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("ServiceCatalogService.HealthCheck failed: {}", e))?
             .into_inner();
 
         Ok(resp.services.into_iter().map(health_from_proto).collect())
@@ -279,9 +266,7 @@ fn health_from_proto(h: ProtoServiceHealth) -> ServiceHealth {
     }
 }
 
-fn timestamp_to_rfc3339(
-    ts: Option<proto::k1s0::system::common::v1::Timestamp>,
-) -> String {
+fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
     ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()

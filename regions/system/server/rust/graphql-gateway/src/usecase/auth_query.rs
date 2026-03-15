@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use tracing::instrument;
 use crate::domain::model::{AuditLogConnection, PermissionCheck, Role, User};
 use crate::infrastructure::grpc::AuthGrpcClient;
+use std::sync::Arc;
+use tracing::instrument;
 
 pub struct AuthQueryResolver {
     client: Arc<AuthGrpcClient>,
@@ -27,7 +27,9 @@ impl AuthQueryResolver {
     ) -> anyhow::Result<Vec<User>> {
         let page_size = first.unwrap_or(20);
         let page = after.map(|a| a + 1).unwrap_or(1);
-        self.client.list_users(Some(page_size), Some(page), search, enabled).await
+        self.client
+            .list_users(Some(page_size), Some(page), search, enabled)
+            .await
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -43,7 +45,9 @@ impl AuthQueryResolver {
         resource: &str,
         roles: &[String],
     ) -> anyhow::Result<PermissionCheck> {
-        self.client.check_permission(user_id, permission, resource, roles).await
+        self.client
+            .check_permission(user_id, permission, resource, roles)
+            .await
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -57,9 +61,14 @@ impl AuthQueryResolver {
     ) -> anyhow::Result<AuditLogConnection> {
         let page_size = first.unwrap_or(20);
         let page = after.map(|a| a + 1).unwrap_or(1);
-        let (logs, total_count, has_next) = self.client.search_audit_logs(
-            Some(page_size), Some(page), user_id, event_type, result,
-        ).await?;
-        Ok(AuditLogConnection { logs, total_count, has_next })
+        let (logs, total_count, has_next) = self
+            .client
+            .search_audit_logs(Some(page_size), Some(page), user_id, event_type, result)
+            .await?;
+        Ok(AuditLogConnection {
+            logs,
+            total_count,
+            has_next,
+        })
     }
 }

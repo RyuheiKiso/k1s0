@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn test_default_outbox_true() {
-        let yaml = r#"
+        let yaml = r"
 name: test.event
 version: 1
 description: test
@@ -140,7 +140,7 @@ schema:
     - name: id
       type: string
       number: 1
-"#;
+";
         let event: EventDefinition = serde_yaml::from_str(yaml).unwrap();
         assert!(event.outbox);
     }

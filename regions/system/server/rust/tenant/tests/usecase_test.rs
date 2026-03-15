@@ -7,7 +7,9 @@ use uuid::Uuid;
 
 use k1s0_tenant_server::domain::entity::tenant::{Plan, TenantStatus};
 use k1s0_tenant_server::domain::entity::tenant_member::MemberRole;
-use k1s0_tenant_server::domain::entity::{ProvisioningJob, ProvisioningStatus, Tenant, TenantMember};
+use k1s0_tenant_server::domain::entity::{
+    ProvisioningJob, ProvisioningStatus, Tenant, TenantMember,
+};
 use k1s0_tenant_server::domain::repository::{MemberRepository, TenantRepository};
 use k1s0_tenant_server::infrastructure::kafka_producer::TenantEventPublisher;
 use k1s0_tenant_server::infrastructure::keycloak_admin::KeycloakAdmin;
@@ -138,9 +140,17 @@ impl MemberRepository for StubMemberRepository {
         Ok(members.len() < len_before)
     }
 
-    async fn update_role(&self, tenant_id: &Uuid, user_id: &Uuid, role: &str) -> anyhow::Result<Option<TenantMember>> {
+    async fn update_role(
+        &self,
+        tenant_id: &Uuid,
+        user_id: &Uuid,
+        role: &str,
+    ) -> anyhow::Result<Option<TenantMember>> {
         let mut members = self.members.write().await;
-        if let Some(member) = members.iter_mut().find(|m| m.tenant_id == *tenant_id && m.user_id == *user_id) {
+        if let Some(member) = members
+            .iter_mut()
+            .find(|m| m.tenant_id == *tenant_id && m.user_id == *user_id)
+        {
             member.role = role.to_string();
             Ok(Some(member.clone()))
         } else {
@@ -161,10 +171,18 @@ struct StubSagaClient;
 
 #[async_trait]
 impl SagaClient for StubSagaClient {
-    async fn start_provisioning_saga(&self, _tenant_id: &str, _tenant_name: &str) -> anyhow::Result<()> {
+    async fn start_provisioning_saga(
+        &self,
+        _tenant_id: &str,
+        _tenant_name: &str,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn start_deprovisioning_saga(&self, _tenant_id: &str, _tenant_name: &str) -> anyhow::Result<()> {
+    async fn start_deprovisioning_saga(
+        &self,
+        _tenant_id: &str,
+        _tenant_name: &str,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -949,7 +967,11 @@ mod list_members {
         let tid2 = Uuid::new_v4();
         let members = vec![
             TenantMember::new(tid1, Uuid::new_v4(), MemberRole::Owner.as_str().to_string()),
-            TenantMember::new(tid2, Uuid::new_v4(), MemberRole::Member.as_str().to_string()),
+            TenantMember::new(
+                tid2,
+                Uuid::new_v4(),
+                MemberRole::Member.as_str().to_string(),
+            ),
         ];
         let repo = Arc::new(StubMemberRepository::with_members(members));
         let uc = ListMembersUseCase::new(repo);
@@ -1026,8 +1048,8 @@ mod lifecycle {
         let event_pub = Arc::new(StubEventPublisher::new());
 
         // 1. Create
-        let create_uc = CreateTenantUseCase::new(repo.clone())
-            .with_event_publisher(event_pub.clone());
+        let create_uc =
+            CreateTenantUseCase::new(repo.clone()).with_event_publisher(event_pub.clone());
         let tenant = create_uc
             .execute(CreateTenantInput {
                 name: "lifecycle-test".to_string(),
@@ -1046,8 +1068,8 @@ mod lifecycle {
         assert_eq!(tenant.status, TenantStatus::Active);
 
         // 3. Update
-        let update_uc = UpdateTenantUseCase::new(repo.clone())
-            .with_event_publisher(event_pub.clone());
+        let update_uc =
+            UpdateTenantUseCase::new(repo.clone()).with_event_publisher(event_pub.clone());
         let tenant = update_uc
             .execute(UpdateTenantInput {
                 id,
@@ -1060,8 +1082,8 @@ mod lifecycle {
         assert_eq!(tenant.plan, Plan::Enterprise);
 
         // 4. Suspend
-        let suspend_uc = SuspendTenantUseCase::new(repo.clone())
-            .with_event_publisher(event_pub.clone());
+        let suspend_uc =
+            SuspendTenantUseCase::new(repo.clone()).with_event_publisher(event_pub.clone());
         let tenant = suspend_uc.execute(id).await.unwrap();
         assert_eq!(tenant.status, TenantStatus::Suspended);
 
@@ -1070,8 +1092,8 @@ mod lifecycle {
         assert_eq!(tenant.status, TenantStatus::Active);
 
         // 6. Delete
-        let delete_uc = DeleteTenantUseCase::new(repo.clone())
-            .with_event_publisher(event_pub.clone());
+        let delete_uc =
+            DeleteTenantUseCase::new(repo.clone()).with_event_publisher(event_pub.clone());
         let tenant = delete_uc.execute(id).await.unwrap();
         assert_eq!(tenant.status, TenantStatus::Deleted);
 

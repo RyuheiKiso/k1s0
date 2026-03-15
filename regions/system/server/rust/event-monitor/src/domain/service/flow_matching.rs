@@ -89,7 +89,7 @@ mod tests {
             true,
         );
         let event = make_event("PaymentProcessed", "payment-service");
-        let result = FlowMatchingService::match_event(&event, &[flow.clone()]);
+        let result = FlowMatchingService::match_event(&event, std::slice::from_ref(&flow));
         assert!(result.is_some());
         let (flow_id, step_index) = result.unwrap();
         assert_eq!(flow_id, flow.id);
@@ -122,16 +122,8 @@ mod tests {
 
     #[test]
     fn test_match_event_first_matching_flow() {
-        let flow1 = make_flow(
-            "flow1",
-            vec![("OrderCreated", "order-service")],
-            true,
-        );
-        let flow2 = make_flow(
-            "flow2",
-            vec![("OrderCreated", "order-service")],
-            true,
-        );
+        let flow1 = make_flow("flow1", vec![("OrderCreated", "order-service")], true);
+        let flow2 = make_flow("flow2", vec![("OrderCreated", "order-service")], true);
         let event = make_event("OrderCreated", "order-service");
         let result = FlowMatchingService::match_event(&event, &[flow1.clone(), flow2]);
         assert!(result.is_some());
@@ -183,7 +175,7 @@ mod tests {
             updated_at: now,
         };
         let event = make_event("OrderCreated", "any-random-service");
-        let result = FlowMatchingService::match_event(&event, &[flow.clone()]);
+        let result = FlowMatchingService::match_event(&event, std::slice::from_ref(&flow));
         assert!(result.is_some());
         assert_eq!(result.unwrap().0, flow.id);
     }

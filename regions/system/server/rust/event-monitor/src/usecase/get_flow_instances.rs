@@ -67,15 +67,16 @@ mod tests {
     async fn paginated() {
         let flow_id = Uuid::new_v4();
         let mut mock = MockFlowInstanceRepository::new();
-        mock.expect_find_by_flow_id_paginated().returning(move |_, _, _| {
-            Ok((
-                vec![
-                    FlowInstance::new(flow_id, "corr-1".to_string()),
-                    FlowInstance::new(flow_id, "corr-2".to_string()),
-                ],
-                5,
-            ))
-        });
+        mock.expect_find_by_flow_id_paginated()
+            .returning(move |_, _, _| {
+                Ok((
+                    vec![
+                        FlowInstance::new(flow_id, "corr-1".to_string()),
+                        FlowInstance::new(flow_id, "corr-2".to_string()),
+                    ],
+                    5,
+                ))
+            });
 
         let uc = GetFlowInstancesUseCase::new(Arc::new(mock));
         let input = GetFlowInstancesInput {

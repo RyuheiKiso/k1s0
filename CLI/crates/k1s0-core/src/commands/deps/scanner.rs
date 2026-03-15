@@ -901,13 +901,13 @@ k1s0-messaging = { path = "../../library/rust/messaging" }
         fs::create_dir_all(&bff_dir).unwrap();
         fs::write(
             bff_dir.join("go.mod"),
-            r#"
+            r"
 module bff-proxy
 
 require (
     k1s0/regions/system/library/go/observability v0.0.0
 )
-"#,
+",
         )
         .unwrap();
 

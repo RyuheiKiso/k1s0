@@ -101,8 +101,14 @@ mod tests {
         assert_eq!(ServiceTier::Standard.to_string(), "standard");
         assert_eq!(ServiceTier::Internal.to_string(), "internal");
 
-        assert_eq!("critical".parse::<ServiceTier>().unwrap(), ServiceTier::Critical);
-        assert_eq!("STANDARD".parse::<ServiceTier>().unwrap(), ServiceTier::Standard);
+        assert_eq!(
+            "critical".parse::<ServiceTier>().unwrap(),
+            ServiceTier::Critical
+        );
+        assert_eq!(
+            "STANDARD".parse::<ServiceTier>().unwrap(),
+            ServiceTier::Standard
+        );
         assert!("unknown".parse::<ServiceTier>().is_err());
     }
 

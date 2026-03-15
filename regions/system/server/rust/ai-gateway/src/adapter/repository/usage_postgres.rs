@@ -50,12 +50,7 @@ impl UsageRepository for UsagePostgresRepository {
     }
 
     /// 指定テナントの期間内使用量レコードを取得する。
-    async fn find_by_tenant(
-        &self,
-        tenant_id: &str,
-        start: &str,
-        end: &str,
-    ) -> Vec<UsageRecord> {
+    async fn find_by_tenant(&self, tenant_id: &str, start: &str, end: &str) -> Vec<UsageRecord> {
         if let Some(ref pool) = self.pool {
             let rows = sqlx::query_as::<_, UsageRow>(
                 "SELECT id, tenant_id, model_id, prompt_tokens, completion_tokens, cost_usd, created_at FROM ai_usage_records WHERE tenant_id = $1 AND created_at >= $2::timestamptz AND created_at <= $3::timestamptz ORDER BY created_at DESC",

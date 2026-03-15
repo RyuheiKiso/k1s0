@@ -123,7 +123,7 @@ mod tests {
     // フルキーがプレフィックスとキーを結合した形式になることを確認する。
     #[test]
     fn test_full_key() {
-        let pool_url = "postgres://localhost/test";
+        let _pool_url = "postgres://localhost/test";
         // PgPool はテストでは作れないため、format だけ検証
         let prefix = "lock";
         let key = "scheduler:job-123";

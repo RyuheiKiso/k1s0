@@ -29,8 +29,10 @@ pub struct ProtoField {
 }
 
 pub fn parse_proto(path: &std::path::Path) -> Result<ProtoService, CodegenError> {
-    let content = std::fs::read_to_string(path)
-        .map_err(|e| CodegenError::Io { path: path.to_path_buf(), source: e })?;
+    let content = std::fs::read_to_string(path).map_err(|e| CodegenError::Io {
+        path: path.to_path_buf(),
+        source: e,
+    })?;
     parse_proto_content(&content)
 }
 

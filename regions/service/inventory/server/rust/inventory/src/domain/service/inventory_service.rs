@@ -6,10 +6,7 @@ pub struct InventoryDomainService;
 
 impl InventoryDomainService {
     /// 在庫予約のバリデーション。
-    pub fn validate_reserve(
-        item: &InventoryItem,
-        quantity: i32,
-    ) -> Result<(), InventoryError> {
+    pub fn validate_reserve(item: &InventoryItem, quantity: i32) -> Result<(), InventoryError> {
         if quantity <= 0 {
             return Err(InventoryError::ValidationFailed(
                 "quantity must be greater than zero".to_string(),
@@ -25,10 +22,7 @@ impl InventoryDomainService {
     }
 
     /// 在庫解放のバリデーション。
-    pub fn validate_release(
-        item: &InventoryItem,
-        quantity: i32,
-    ) -> Result<(), InventoryError> {
+    pub fn validate_release(item: &InventoryItem, quantity: i32) -> Result<(), InventoryError> {
         if quantity <= 0 {
             return Err(InventoryError::ValidationFailed(
                 "quantity must be greater than zero".to_string(),
@@ -163,9 +157,7 @@ mod tests {
 
     #[test]
     fn test_validate_create_success() {
-        assert!(
-            InventoryDomainService::validate_create("PROD-001", "WH-EAST", 100).is_ok()
-        );
+        assert!(InventoryDomainService::validate_create("PROD-001", "WH-EAST", 100).is_ok());
     }
 
     #[test]

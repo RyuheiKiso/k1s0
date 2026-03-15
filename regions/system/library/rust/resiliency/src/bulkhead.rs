@@ -20,10 +20,11 @@ impl Bulkhead {
     }
 
     pub async fn acquire(&self) -> Result<tokio::sync::OwnedSemaphorePermit, ResiliencyError> {
-        self.inner.acquire().await.map_err(|_| {
-            ResiliencyError::BulkheadFull {
+        self.inner
+            .acquire()
+            .await
+            .map_err(|_| ResiliencyError::BulkheadFull {
                 max_concurrent: self.max_concurrent,
-            }
-        })
+            })
     }
 }

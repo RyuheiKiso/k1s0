@@ -27,10 +27,7 @@ impl ManageDependenciesUseCase {
     }
 
     /// 指定サービスの依存関係を取得する。
-    pub async fn list(
-        &self,
-        service_id: Uuid,
-    ) -> Result<Vec<Dependency>, ManageDependenciesError> {
+    pub async fn list(&self, service_id: Uuid) -> Result<Vec<Dependency>, ManageDependenciesError> {
         self.dep_repo
             .list_by_service(service_id)
             .await
@@ -85,9 +82,7 @@ impl ManageDependenciesUseCase {
     fn has_cycle(adjacency: &HashMap<Uuid, HashSet<Uuid>>) -> bool {
         let all_nodes: HashSet<Uuid> = adjacency
             .iter()
-            .flat_map(|(src, targets)| {
-                std::iter::once(*src).chain(targets.iter().copied())
-            })
+            .flat_map(|(src, targets)| std::iter::once(*src).chain(targets.iter().copied()))
             .collect();
 
         // 0 = unvisited, 1 = in-progress, 2 = done

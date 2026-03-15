@@ -51,7 +51,10 @@ pub async fn create_rule(
     Json(input): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
-    let rule = state.manage_rules_uc.create_rule(&input, &actor, None).await?;
+    let rule = state
+        .manage_rules_uc
+        .create_rule(&input, &actor, None)
+        .await?;
     publish_change_event(
         &state,
         serde_json::json!({

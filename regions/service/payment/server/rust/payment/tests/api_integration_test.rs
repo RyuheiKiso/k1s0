@@ -107,11 +107,7 @@ impl PaymentRepository for InMemoryPaymentRepository {
     }
 
     /// 決済を返金する（楽観ロック付き）。
-    async fn refund(
-        &self,
-        id: Uuid,
-        expected_version: i32,
-    ) -> anyhow::Result<Payment> {
+    async fn refund(&self, id: Uuid, expected_version: i32) -> anyhow::Result<Payment> {
         let mut payments = self.payments.write().await;
         let payment = payments
             .iter_mut()
@@ -177,7 +173,12 @@ fn build_app() -> axum::Router {
 async fn test_healthz() {
     let app = build_app();
     let response = app
-        .oneshot(Request::builder().uri("/healthz").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/healthz")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);

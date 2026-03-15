@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use tracing::instrument;
 use crate::domain::model::{NotificationChannel, NotificationLog, NotificationTemplate};
 use crate::infrastructure::grpc::NotificationGrpcClient;
+use std::sync::Arc;
+use tracing::instrument;
 
 pub struct NotificationQueryResolver {
     client: Arc<NotificationGrpcClient>,
@@ -13,7 +13,10 @@ impl NotificationQueryResolver {
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn get_notification(&self, notification_id: &str) -> anyhow::Result<Option<NotificationLog>> {
+    pub async fn get_notification(
+        &self,
+        notification_id: &str,
+    ) -> anyhow::Result<Option<NotificationLog>> {
         self.client.get_notification(notification_id).await
     }
 
@@ -25,7 +28,9 @@ impl NotificationQueryResolver {
         page: Option<i32>,
         page_size: Option<i32>,
     ) -> anyhow::Result<Vec<NotificationLog>> {
-        self.client.list_notifications(channel_id, status, page, page_size).await
+        self.client
+            .list_notifications(channel_id, status, page, page_size)
+            .await
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -41,7 +46,9 @@ impl NotificationQueryResolver {
         page: Option<i32>,
         page_size: Option<i32>,
     ) -> anyhow::Result<Vec<NotificationChannel>> {
-        self.client.list_channels(channel_type, enabled_only, page, page_size).await
+        self.client
+            .list_channels(channel_type, enabled_only, page, page_size)
+            .await
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -56,6 +63,8 @@ impl NotificationQueryResolver {
         page: Option<i32>,
         page_size: Option<i32>,
     ) -> anyhow::Result<Vec<NotificationTemplate>> {
-        self.client.list_templates(channel_type, page, page_size).await
+        self.client
+            .list_templates(channel_type, page, page_size)
+            .await
     }
 }

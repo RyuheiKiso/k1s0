@@ -49,9 +49,7 @@ impl SchedulerGrpcClient {
         }
     }
 
-    fn execution_from_proto(
-        e: proto::k1s0::system::scheduler::v1::JobExecution,
-    ) -> JobExecution {
+    fn execution_from_proto(e: proto::k1s0::system::scheduler::v1::JobExecution) -> JobExecution {
         JobExecution {
             id: e.id,
             job_id: e.job_id,
@@ -76,11 +74,9 @@ impl SchedulerGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_job(&self, job_id: &str) -> anyhow::Result<Option<Job>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::scheduler::v1::GetJobRequest {
-                job_id: job_id.to_owned(),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::scheduler::v1::GetJobRequest {
+            job_id: job_id.to_owned(),
+        });
 
         match self.client.clone().get_job(request).await {
             Ok(resp) => {
@@ -102,15 +98,13 @@ impl SchedulerGrpcClient {
         page_size: Option<i32>,
         page: Option<i32>,
     ) -> anyhow::Result<Vec<Job>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::scheduler::v1::ListJobsRequest {
-                status: status.unwrap_or_default().to_owned(),
-                pagination: Some(proto::k1s0::system::common::v1::Pagination {
-                    page: page.unwrap_or(1),
-                    page_size: page_size.unwrap_or(50),
-                }),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::scheduler::v1::ListJobsRequest {
+            status: status.unwrap_or_default().to_owned(),
+            pagination: Some(proto::k1s0::system::common::v1::Pagination {
+                page: page.unwrap_or(1),
+                page_size: page_size.unwrap_or(50),
+            }),
+        });
 
         let resp = self
             .client
@@ -133,17 +127,15 @@ impl SchedulerGrpcClient {
         target_type: &str,
         target: &str,
     ) -> anyhow::Result<Job> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::scheduler::v1::CreateJobRequest {
-                name: name.to_owned(),
-                description: description.to_owned(),
-                cron_expression: cron_expression.to_owned(),
-                timezone: timezone.to_owned(),
-                target_type: target_type.to_owned(),
-                target: target.to_owned(),
-                payload: None,
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::scheduler::v1::CreateJobRequest {
+            name: name.to_owned(),
+            description: description.to_owned(),
+            cron_expression: cron_expression.to_owned(),
+            timezone: timezone.to_owned(),
+            target_type: target_type.to_owned(),
+            target: target.to_owned(),
+            payload: None,
+        });
 
         let j = self
             .client
@@ -158,6 +150,7 @@ impl SchedulerGrpcClient {
         Ok(Self::job_from_proto(j))
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn update_job(
         &self,
@@ -183,30 +176,22 @@ impl SchedulerGrpcClient {
             .job
             .ok_or_else(|| anyhow::anyhow!("job not found: {}", job_id))?;
 
-        let request = tonic::Request::new(
-            proto::k1s0::system::scheduler::v1::UpdateJobRequest {
-                job_id: job_id.to_owned(),
-                name: name
-                    .map(|s| s.to_owned())
-                    .unwrap_or(current.name),
-                description: description
-                    .map(|s| s.to_owned())
-                    .unwrap_or(current.description),
-                cron_expression: cron_expression
-                    .map(|s| s.to_owned())
-                    .unwrap_or(current.cron_expression),
-                timezone: timezone
-                    .map(|s| s.to_owned())
-                    .unwrap_or(current.timezone),
-                target_type: target_type
-                    .map(|s| s.to_owned())
-                    .unwrap_or(current.target_type),
-                target: target
-                    .map(|s| s.to_owned())
-                    .unwrap_or(current.target),
-                payload: None,
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::scheduler::v1::UpdateJobRequest {
+            job_id: job_id.to_owned(),
+            name: name.map(|s| s.to_owned()).unwrap_or(current.name),
+            description: description
+                .map(|s| s.to_owned())
+                .unwrap_or(current.description),
+            cron_expression: cron_expression
+                .map(|s| s.to_owned())
+                .unwrap_or(current.cron_expression),
+            timezone: timezone.map(|s| s.to_owned()).unwrap_or(current.timezone),
+            target_type: target_type
+                .map(|s| s.to_owned())
+                .unwrap_or(current.target_type),
+            target: target.map(|s| s.to_owned()).unwrap_or(current.target),
+            payload: None,
+        });
 
         let j = self
             .client
@@ -223,11 +208,9 @@ impl SchedulerGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn delete_job(&self, job_id: &str) -> anyhow::Result<bool> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::scheduler::v1::DeleteJobRequest {
-                job_id: job_id.to_owned(),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::scheduler::v1::DeleteJobRequest {
+            job_id: job_id.to_owned(),
+        });
 
         let resp = self
             .client
@@ -242,11 +225,9 @@ impl SchedulerGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn pause_job(&self, job_id: &str) -> anyhow::Result<Job> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::scheduler::v1::PauseJobRequest {
-                job_id: job_id.to_owned(),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::scheduler::v1::PauseJobRequest {
+            job_id: job_id.to_owned(),
+        });
 
         let j = self
             .client
@@ -263,11 +244,9 @@ impl SchedulerGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn resume_job(&self, job_id: &str) -> anyhow::Result<Job> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::scheduler::v1::ResumeJobRequest {
-                job_id: job_id.to_owned(),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::scheduler::v1::ResumeJobRequest {
+            job_id: job_id.to_owned(),
+        });
 
         let j = self
             .client
@@ -287,11 +266,9 @@ impl SchedulerGrpcClient {
         &self,
         job_id: &str,
     ) -> anyhow::Result<(String, String, String, String)> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::scheduler::v1::TriggerJobRequest {
-                job_id: job_id.to_owned(),
-            },
-        );
+        let request = tonic::Request::new(proto::k1s0::system::scheduler::v1::TriggerJobRequest {
+            job_id: job_id.to_owned(),
+        });
 
         let resp = self
             .client
@@ -314,11 +291,10 @@ impl SchedulerGrpcClient {
         &self,
         execution_id: &str,
     ) -> anyhow::Result<Option<JobExecution>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::scheduler::v1::GetJobExecutionRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::scheduler::v1::GetJobExecutionRequest {
                 execution_id: execution_id.to_owned(),
-            },
-        );
+            });
 
         match self.client.clone().get_job_execution(request).await {
             Ok(resp) => {
@@ -344,8 +320,8 @@ impl SchedulerGrpcClient {
         page: Option<i32>,
         status: Option<&str>,
     ) -> anyhow::Result<Vec<JobExecution>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::scheduler::v1::ListExecutionsRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::scheduler::v1::ListExecutionsRequest {
                 job_id: job_id.to_owned(),
                 pagination: Some(proto::k1s0::system::common::v1::Pagination {
                     page: page.unwrap_or(1),
@@ -354,8 +330,7 @@ impl SchedulerGrpcClient {
                 status: status.map(|s| s.to_owned()),
                 from: None,
                 to: None,
-            },
-        );
+            });
 
         let resp = self
             .client

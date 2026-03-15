@@ -28,9 +28,7 @@ use k1s0_rule_engine_server::usecase::list_rules::{ListRulesInput, ListRulesUseC
 use k1s0_rule_engine_server::usecase::publish_rule_set::PublishRuleSetUseCase;
 use k1s0_rule_engine_server::usecase::rollback_rule_set::RollbackRuleSetUseCase;
 use k1s0_rule_engine_server::usecase::update_rule::{UpdateRuleInput, UpdateRuleUseCase};
-use k1s0_rule_engine_server::usecase::update_rule_set::{
-    UpdateRuleSetInput, UpdateRuleSetUseCase,
-};
+use k1s0_rule_engine_server::usecase::update_rule_set::{UpdateRuleSetInput, UpdateRuleSetUseCase};
 
 // ============================================================
 // Stub implementations
@@ -145,7 +143,11 @@ impl RuleRepository for StubRuleRepository {
             return Err(anyhow::anyhow!("stub db error"));
         }
         let rules = self.rules.read().await;
-        Ok(rules.iter().filter(|r| ids.contains(&r.id)).cloned().collect())
+        Ok(rules
+            .iter()
+            .filter(|r| ids.contains(&r.id))
+            .cloned()
+            .collect())
     }
 }
 
@@ -169,6 +171,7 @@ impl StubRuleSetRepository {
         }
     }
 
+    #[allow(dead_code)]
     fn with_error() -> Self {
         Self {
             rule_sets: RwLock::new(Vec::new()),
@@ -426,7 +429,12 @@ impl RuleEventPublisher for StubEventPublisher {
 // Helpers
 // ============================================================
 
-fn make_rule(name: &str, priority: i32, condition: serde_json::Value, result: serde_json::Value) -> Rule {
+fn make_rule(
+    name: &str,
+    priority: i32,
+    condition: serde_json::Value,
+    result: serde_json::Value,
+) -> Rule {
     let now = Utc::now();
     Rule {
         id: Uuid::new_v4(),
@@ -442,12 +450,7 @@ fn make_rule(name: &str, priority: i32, condition: serde_json::Value, result: se
     }
 }
 
-fn make_rule_set(
-    name: &str,
-    domain: &str,
-    mode: EvaluationMode,
-    rule_ids: Vec<Uuid>,
-) -> RuleSet {
+fn make_rule_set(name: &str, domain: &str, mode: EvaluationMode, rule_ids: Vec<Uuid>) -> RuleSet {
     let now = Utc::now();
     RuleSet {
         id: Uuid::new_v4(),
@@ -524,7 +527,9 @@ async fn create_rule_invalid_priority_too_low() {
         then_result: serde_json::json!({}),
     };
     let err = uc.execute(&input).await.unwrap_err();
-    assert!(err.to_string().contains("priority must be between 1 and 1000"));
+    assert!(err
+        .to_string()
+        .contains("priority must be between 1 and 1000"));
 }
 
 #[tokio::test]
@@ -901,7 +906,12 @@ async fn create_rule_set_invalid_evaluation_mode() {
 
 #[tokio::test]
 async fn create_rule_set_already_exists() {
-    let existing = make_rule_set("existing-set", "pricing", EvaluationMode::FirstMatch, vec![]);
+    let existing = make_rule_set(
+        "existing-set",
+        "pricing",
+        EvaluationMode::FirstMatch,
+        vec![],
+    );
     let repo = Arc::new(StubRuleSetRepository::with_rule_sets(vec![existing]));
     let uc = CreateRuleSetUseCase::with_publisher(repo, make_publisher());
 
@@ -1232,7 +1242,12 @@ async fn evaluate_dry_run_does_not_write_log() {
     );
     let rule_id = rule.id;
 
-    let rule_set = make_rule_set("test-set", "test", EvaluationMode::FirstMatch, vec![rule_id]);
+    let rule_set = make_rule_set(
+        "test-set",
+        "test",
+        EvaluationMode::FirstMatch,
+        vec![rule_id],
+    );
 
     let rule_repo = Arc::new(StubRuleRepository::with_rules(vec![rule]));
     let rule_set_repo = Arc::new(StubRuleSetRepository::with_rule_sets(vec![rule_set]));
@@ -1316,7 +1331,10 @@ async fn evaluate_disabled_rules_are_skipped() {
         vec![disabled_id, enabled_id],
     );
 
-    let rule_repo = Arc::new(StubRuleRepository::with_rules(vec![disabled_rule, enabled_rule]));
+    let rule_repo = Arc::new(StubRuleRepository::with_rules(vec![
+        disabled_rule,
+        enabled_rule,
+    ]));
     let rule_set_repo = Arc::new(StubRuleSetRepository::with_rule_sets(vec![rule_set]));
     let eval_log_repo = Arc::new(StubEvaluationLogRepository::new());
 
@@ -1358,7 +1376,9 @@ async fn evaluate_rules_sorted_by_priority() {
 
     let rule_set = make_rule_set("priority-set", "test", EvaluationMode::AllMatch, ids);
 
-    let rule_repo = Arc::new(StubRuleRepository::with_rules(vec![rule_low, rule_high, rule_mid]));
+    let rule_repo = Arc::new(StubRuleRepository::with_rules(vec![
+        rule_low, rule_high, rule_mid,
+    ]));
     let rule_set_repo = Arc::new(StubRuleSetRepository::with_rule_sets(vec![rule_set]));
     let eval_log_repo = Arc::new(StubEvaluationLogRepository::new());
 
@@ -1373,7 +1393,10 @@ async fn evaluate_rules_sorted_by_priority() {
     let result = uc.execute(&input).await.unwrap();
 
     assert_eq!(result.matched_rules.len(), 3);
-    assert_eq!(result.matched_rules[0].priority, 1, "highest priority first");
+    assert_eq!(
+        result.matched_rules[0].priority, 1,
+        "highest priority first"
+    );
     assert_eq!(result.matched_rules[1].priority, 50);
     assert_eq!(result.matched_rules[2].priority, 100);
 }
@@ -1399,7 +1422,12 @@ async fn evaluate_complex_condition_with_combinators() {
     );
     let rule_id = rule.id;
 
-    let rule_set = make_rule_set("promo", "pricing", EvaluationMode::FirstMatch, vec![rule_id]);
+    let rule_set = make_rule_set(
+        "promo",
+        "pricing",
+        EvaluationMode::FirstMatch,
+        vec![rule_id],
+    );
 
     let rule_repo = Arc::new(StubRuleRepository::with_rules(vec![rule]));
     let rule_set_repo = Arc::new(StubRuleSetRepository::with_rule_sets(vec![rule_set]));
@@ -1437,7 +1465,12 @@ async fn evaluate_complex_condition_no_match() {
     );
     let rule_id = rule.id;
 
-    let mut rule_set = make_rule_set("promo", "pricing", EvaluationMode::FirstMatch, vec![rule_id]);
+    let mut rule_set = make_rule_set(
+        "promo",
+        "pricing",
+        EvaluationMode::FirstMatch,
+        vec![rule_id],
+    );
     rule_set.default_result = serde_json::json!({"discount": 0.0});
 
     let rule_repo = Arc::new(StubRuleRepository::with_rules(vec![rule]));
@@ -1471,7 +1504,12 @@ async fn evaluate_with_in_operator() {
     );
     let rule_id = rule.id;
 
-    let rule_set = make_rule_set("shipping", "logistics", EvaluationMode::FirstMatch, vec![rule_id]);
+    let rule_set = make_rule_set(
+        "shipping",
+        "logistics",
+        EvaluationMode::FirstMatch,
+        vec![rule_id],
+    );
 
     let rule_repo = Arc::new(StubRuleRepository::with_rules(vec![rule]));
     let rule_set_repo = Arc::new(StubRuleSetRepository::with_rule_sets(vec![rule_set]));
@@ -1500,7 +1538,12 @@ async fn evaluate_with_contains_operator() {
     );
     let rule_id = rule.id;
 
-    let rule_set = make_rule_set("classify", "catalog", EvaluationMode::FirstMatch, vec![rule_id]);
+    let rule_set = make_rule_set(
+        "classify",
+        "catalog",
+        EvaluationMode::FirstMatch,
+        vec![rule_id],
+    );
 
     let rule_repo = Arc::new(StubRuleRepository::with_rules(vec![rule]));
     let rule_set_repo = Arc::new(StubRuleSetRepository::with_rule_sets(vec![rule_set]));
@@ -1574,7 +1617,8 @@ async fn publish_rule_set_success() {
     let rs_repo = Arc::new(StubRuleSetRepository::with_rule_sets(vec![rule_set]));
     let ver_repo = Arc::new(StubRuleSetVersionRepository::new());
 
-    let uc = PublishRuleSetUseCase::with_publisher(rs_repo.clone(), ver_repo.clone(), make_publisher());
+    let uc =
+        PublishRuleSetUseCase::with_publisher(rs_repo.clone(), ver_repo.clone(), make_publisher());
 
     let result = uc.execute(&rs_id).await.unwrap();
     assert_eq!(result.published_version, 1);
@@ -1656,7 +1700,10 @@ async fn rollback_rule_set_success() {
     let sets = rs_repo.rule_sets.read().await;
     assert_eq!(sets[0].current_version, 1);
     assert_eq!(sets[0].rule_ids, vec![rule_id_v1]);
-    assert_eq!(sets[0].default_result, serde_json::json!({"action": "v1_default"}));
+    assert_eq!(
+        sets[0].default_result,
+        serde_json::json!({"action": "v1_default"})
+    );
 }
 
 #[tokio::test]
@@ -1739,11 +1786,7 @@ async fn list_evaluation_logs_after_evaluation() {
     let rule_set_repo = Arc::new(StubRuleSetRepository::with_rule_sets(vec![rule_set]));
     let eval_log_repo = Arc::new(StubEvaluationLogRepository::new());
 
-    let eval_uc = EvaluateUseCase::new(
-        rule_set_repo,
-        rule_repo,
-        eval_log_repo.clone(),
-    );
+    let eval_uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo.clone());
 
     // Execute evaluation (non-dry-run)
     let eval_input = EvaluateInput {
@@ -1795,7 +1838,8 @@ async fn end_to_end_create_publish_evaluate_rollback() {
         .unwrap();
 
     // 2. Create a rule set
-    let create_rs_uc = CreateRuleSetUseCase::with_publisher(rule_set_repo.clone(), publisher.clone());
+    let create_rs_uc =
+        CreateRuleSetUseCase::with_publisher(rule_set_repo.clone(), publisher.clone());
     let rule_set = create_rs_uc
         .execute(&CreateRuleSetInput {
             name: "discounts".to_string(),
@@ -1847,7 +1891,8 @@ async fn end_to_end_create_publish_evaluate_rollback() {
         .await
         .unwrap();
 
-    let update_rs_uc = UpdateRuleSetUseCase::with_publisher(rule_set_repo.clone(), publisher.clone());
+    let update_rs_uc =
+        UpdateRuleSetUseCase::with_publisher(rule_set_repo.clone(), publisher.clone());
     update_rs_uc
         .execute(&UpdateRuleSetInput {
             id: rule_set.id,

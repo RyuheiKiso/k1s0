@@ -508,7 +508,8 @@ mod tests {
     // SpiffeId の parse が "sa" でなく別のプレフィックスを含む URI を拒否することを確認する。
     #[test]
     fn test_spiffe_parse_wrong_sa_prefix() {
-        let result = SpiffeId::parse("spiffe://k1s0.internal/ns/system/service-account/auth-service");
+        let result =
+            SpiffeId::parse("spiffe://k1s0.internal/ns/system/service-account/auth-service");
         assert!(result.is_err());
     }
 

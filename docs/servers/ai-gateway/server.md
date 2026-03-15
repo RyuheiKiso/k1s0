@@ -36,6 +36,12 @@ system tier のAI Gatewayサーバーは以下の機能を提供する。
 
 配置: `regions/system/server/rust/ai-gateway/`
 
+### CI ステータス
+
+> **実験系クレート**: ai-gateway は stable CI ゲート（lint-rust / test-rust / build-rust）から除外されている。
+> `check-ai-experimental` ジョブ（`continue-on-error: true`）で可視性を維持しつつ、CI 全体のグリーンには影響しない。
+> bb-ai-client との型整合が安定次第、stable ゲートに復帰予定。
+
 ---
 
 ## 設計方針

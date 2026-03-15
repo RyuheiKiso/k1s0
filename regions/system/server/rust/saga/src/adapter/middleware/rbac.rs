@@ -13,9 +13,9 @@ use k1s0_auth::Claims;
 /// auth_middleware の後に使用すること。
 ///
 /// saga サーバーの RBAC マッピング:
-/// - GET                   -> sagas/read
-/// - POST/cancel/compensate -> sagas/write
-/// (admin route なし)
+///   - GET                   -> sagas/read
+///   - POST/cancel/compensate -> sagas/write
+///   - (admin route なし)
 pub fn require_permission(
     resource: &'static str,
     action: &'static str,

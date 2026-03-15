@@ -776,13 +776,11 @@ pub async fn update_member_role(
         Err(UpdateMemberRoleError::TenantNotFound) => {
             not_found_response("tenant not found").into_response()
         }
-        Err(UpdateMemberRoleError::InvalidRole(role)) => {
-            bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid role: {}", role),
-            )
-            .into_response()
-        }
+        Err(UpdateMemberRoleError::InvalidRole(role)) => bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid role: {}", role),
+        )
+        .into_response(),
         Err(UpdateMemberRoleError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }

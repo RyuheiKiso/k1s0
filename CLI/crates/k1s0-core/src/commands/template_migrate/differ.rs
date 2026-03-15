@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use similar::{ChangeTag, DiffTag, TextDiff};
 
 use super::types::{ConflictHunk, MergeResult};
@@ -106,7 +108,7 @@ pub fn format_diff(old: &str, new: &str) -> String {
             ChangeTag::Insert => "+",
             ChangeTag::Equal => " ",
         };
-        output.push_str(&format!("{sign}{change}"));
+        let _ = write!(output, "{sign}{change}");
     }
     output
 }
@@ -183,6 +185,7 @@ fn atoms_overlap(left: &ChangeAtom, right: &ChangeAtom) -> bool {
     }
 }
 
+#[allow(clippy::result_large_err)]
 fn merge_cluster(
     cluster: &ChangeCluster,
     base_lines: &[&str],

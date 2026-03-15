@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
-use tracing::{info, error};
+use tracing::{error, info};
 
-use crate::component::{Component, ComponentStatus};
 use crate::ComponentError;
+use crate::component::{Component, ComponentStatus};
 
 /// ComponentRegistry はビルディングブロックの登録・管理を行うレジストリ。
 pub struct ComponentRegistry {

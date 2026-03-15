@@ -33,6 +33,7 @@ mod testcontainers_db_tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Docker (testcontainers)"]
     async fn test_audit_log_crud_with_real_db() {
         let (pool, _container) = setup_pool().await;
         let repo = AuditLogPostgresRepository::new(pool);
@@ -70,6 +71,7 @@ mod testcontainers_db_tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Docker (testcontainers)"]
     async fn test_audit_log_search_pagination_with_real_db() {
         let (pool, _container) = setup_pool().await;
         let repo = AuditLogPostgresRepository::new(pool);
@@ -116,6 +118,7 @@ mod testcontainers_db_tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Docker (testcontainers)"]
     async fn test_audit_log_search_by_event_type_with_real_db() {
         let (pool, _container) = setup_pool().await;
         let repo = AuditLogPostgresRepository::new(pool);

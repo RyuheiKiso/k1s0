@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use tracing::instrument;
 use crate::domain::model::{AuditLog, RecordAuditLogPayload, UserError};
 use crate::infrastructure::grpc::AuthGrpcClient;
+use std::sync::Arc;
+use tracing::instrument;
 
 pub struct AuthMutationResolver {
     client: Arc<AuthGrpcClient>,
@@ -12,6 +12,7 @@ impl AuthMutationResolver {
         Self { client }
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn record_audit_log(
         &self,
@@ -25,10 +26,21 @@ impl AuthMutationResolver {
         resource_id: Option<&str>,
         trace_id: Option<&str>,
     ) -> RecordAuditLogPayload {
-        match self.client.record_audit_log(
-            event_type, user_id, ip_address, user_agent,
-            resource, action, result, resource_id.unwrap_or(""), trace_id.unwrap_or(""),
-        ).await {
+        match self
+            .client
+            .record_audit_log(
+                event_type,
+                user_id,
+                ip_address,
+                user_agent,
+                resource,
+                action,
+                result,
+                resource_id.unwrap_or(""),
+                trace_id.unwrap_or(""),
+            )
+            .await
+        {
             Ok((id, created_at)) => RecordAuditLogPayload {
                 audit_log: Some(AuditLog {
                     id,
@@ -47,7 +59,10 @@ impl AuthMutationResolver {
             },
             Err(e) => RecordAuditLogPayload {
                 audit_log: None,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }

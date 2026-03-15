@@ -88,8 +88,12 @@ impl EvaluateUseCase {
         let now = chrono::Utc::now();
         let evaluation_id = Uuid::new_v4();
 
-        let (matched_rules, result, default_applied) =
-            Self::evaluate_rules(&rules, &rule_set.evaluation_mode, &input.input, &rule_set.default_result)?;
+        let (matched_rules, result, default_applied) = Self::evaluate_rules(
+            &rules,
+            &rule_set.evaluation_mode,
+            &input.input,
+            &rule_set.default_result,
+        )?;
 
         // Log evaluation (unless dry_run)
         if !input.dry_run {
@@ -142,10 +146,10 @@ impl EvaluateUseCase {
 
         for rule in rules {
             let condition = ConditionParser::parse(&rule.when_condition)
-                .map_err(|e| EvaluateError::EvaluationError(e))?;
+                .map_err(EvaluateError::EvaluationError)?;
 
             let is_match = ConditionEvaluator::evaluate(&condition, input)
-                .map_err(|e| EvaluateError::EvaluationError(e))?;
+                .map_err(EvaluateError::EvaluationError)?;
 
             if is_match {
                 matched.push(MatchedRuleInfo {

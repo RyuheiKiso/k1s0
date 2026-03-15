@@ -32,7 +32,11 @@ impl OrderRepository for InMemoryOrderRepository {
 
     async fn find_items_by_order_id(&self, order_id: Uuid) -> anyhow::Result<Vec<OrderItem>> {
         let items = self.items.read().await;
-        Ok(items.iter().filter(|i| i.order_id == order_id).cloned().collect())
+        Ok(items
+            .iter()
+            .filter(|i| i.order_id == order_id)
+            .cloned()
+            .collect())
     }
 
     async fn find_all(&self, _filter: &OrderFilter) -> anyhow::Result<Vec<Order>> {
@@ -52,7 +56,11 @@ impl OrderRepository for InMemoryOrderRepository {
     ) -> anyhow::Result<(Order, Vec<OrderItem>)> {
         let now = chrono::Utc::now();
         let order_id = Uuid::new_v4();
-        let total: i64 = input.items.iter().map(|i| i.quantity as i64 * i.unit_price).sum();
+        let total: i64 = input
+            .items
+            .iter()
+            .map(|i| i.quantity as i64 * i.unit_price)
+            .sum();
         let order = Order {
             id: order_id,
             customer_id: input.customer_id.clone(),
@@ -157,7 +165,12 @@ fn build_app() -> axum::Router {
 async fn test_healthz() {
     let app = build_app();
     let response = app
-        .oneshot(Request::builder().uri("/healthz").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/healthz")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);

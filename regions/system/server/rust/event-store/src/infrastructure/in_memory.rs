@@ -17,6 +17,13 @@ impl InMemoryEventStreamRepository {
     }
 }
 
+// Default トレイト実装: new() に委譲する
+impl Default for InMemoryEventStreamRepository {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait::async_trait]
 impl EventStreamRepository for InMemoryEventStreamRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<EventStream>> {
@@ -29,7 +36,7 @@ impl EventStreamRepository for InMemoryEventStreamRepository {
         let all: Vec<EventStream> = streams.values().cloned().collect();
         let total = all.len() as u64;
         let page = page.max(1);
-        let page_size = page_size.max(1).min(200);
+        let page_size = page_size.clamp(1, 200);
         let offset = ((page - 1) * page_size) as usize;
         let paged: Vec<EventStream> = all
             .into_iter()
@@ -71,6 +78,13 @@ impl InMemoryEventRepository {
             events: tokio::sync::RwLock::new(Vec::new()),
             sequence_counter: tokio::sync::RwLock::new(0),
         }
+    }
+}
+
+// Default トレイト実装: new() に委譲する
+impl Default for InMemoryEventRepository {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -137,7 +151,7 @@ impl EventRepository for InMemoryEventRepository {
             .collect();
         let total = filtered.len() as u64;
         let page = page.max(1);
-        let page_size = page_size.max(1).min(200);
+        let page_size = page_size.clamp(1, 200);
         let offset = ((page - 1) * page_size) as usize;
         let paged: Vec<_> = filtered
             .into_iter()
@@ -176,6 +190,13 @@ impl InMemorySnapshotRepository {
         Self {
             snapshots: tokio::sync::RwLock::new(Vec::new()),
         }
+    }
+}
+
+// Default トレイト実装: new() に委譲する
+impl Default for InMemorySnapshotRepository {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

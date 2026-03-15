@@ -49,7 +49,12 @@ impl InventoryService for InventoryGrpcService {
         let req = request.into_inner();
         let item = self
             .reserve_stock_uc
-            .execute(&req.product_id, &req.warehouse_id, req.quantity, &req.order_id)
+            .execute(
+                &req.product_id,
+                &req.warehouse_id,
+                req.quantity,
+                &req.order_id,
+            )
             .await
             .map_err(map_anyhow_to_status)?;
 

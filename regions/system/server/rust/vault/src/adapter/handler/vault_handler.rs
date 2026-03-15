@@ -195,7 +195,7 @@ pub async fn get_secret(
             Json(
                 serde_json::to_value(ErrorResponse::new(
                     "SYS_VAULT_NOT_FOUND",
-                    &format!("secret not found: {}", path),
+                    format!("secret not found: {}", path),
                 ))
                 .unwrap(),
             ),
@@ -246,7 +246,7 @@ pub async fn delete_secret(
             Json(
                 serde_json::to_value(ErrorResponse::new(
                     "SYS_VAULT_NOT_FOUND",
-                    &format!("secret not found: {}", path),
+                    format!("secret not found: {}", path),
                 ))
                 .unwrap(),
             ),
@@ -299,7 +299,7 @@ pub async fn get_secret_metadata(
             Json(
                 serde_json::to_value(ErrorResponse::new(
                     "SYS_VAULT_NOT_FOUND",
-                    &format!("secret not found: {}", path),
+                    format!("secret not found: {}", path),
                 ))
                 .unwrap(),
             ),
@@ -376,7 +376,7 @@ pub async fn rotate_secret(
             Json(
                 serde_json::to_value(ErrorResponse::new(
                     "SYS_VAULT_NOT_FOUND",
-                    &format!("secret not found: {}", path),
+                    format!("secret not found: {}", path),
                 ))
                 .unwrap(),
             ),

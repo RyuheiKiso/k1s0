@@ -54,7 +54,12 @@ pub async fn reserve_stock(
 ) -> Result<impl IntoResponse, ServiceError> {
     let item = state
         .reserve_stock_uc
-        .execute(&body.product_id, &body.warehouse_id, body.quantity, &body.order_id)
+        .execute(
+            &body.product_id,
+            &body.warehouse_id,
+            body.quantity,
+            &body.order_id,
+        )
         .await
         .map_err(map_inventory_error)?;
 

@@ -500,7 +500,7 @@ mod tests {
     #[test]
     fn test_write_generated_types_to_targets_from_file() {
         let schema_file = write_schema_file(
-            r#"
+            r"
 version: 1
 service: my-service
 namespace_prefix: service.myservice
@@ -514,7 +514,7 @@ categories:
         label: Flag
         type: boolean
         default: false
-"#,
+",
         );
         let temp = tempdir().unwrap();
         let ts_dir = temp.path().join("react");
@@ -545,7 +545,7 @@ categories:
     #[test]
     fn test_generate_types_from_file_rejects_invalid_schema() {
         let schema_file = write_schema_file(
-            r#"
+            r"
 version: 1
 service: bad-service
 namespace_prefix: service.bad
@@ -557,7 +557,7 @@ categories:
     fields:
       - key: flag
         label: Flag
-"#,
+",
         );
 
         let error =

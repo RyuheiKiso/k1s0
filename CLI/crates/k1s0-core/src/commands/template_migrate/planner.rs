@@ -222,10 +222,10 @@ fn is_effectively_no_change(
     match merge_result {
         MergeResult::NoChange => true,
         MergeResult::Clean(content) => {
-            if !desired_exists {
-                ours.is_none()
-            } else {
+            if desired_exists {
                 ours == Some(content.as_str())
+            } else {
+                ours.is_none()
             }
         }
         MergeResult::Conflict(_) => false,
@@ -258,8 +258,7 @@ fn resolve_merge_strategy(customizations: &TemplateCustomizations, path: &Path) 
         .iter()
         .filter(|(pattern, _)| pattern_matches(pattern, &normalized))
         .max_by_key(|(pattern, _)| (usize::from(pattern.as_str() == normalized), pattern.len()))
-        .map(|(_, strategy)| strategy.clone())
-        .unwrap_or(MergeStrategy::Ask)
+        .map_or(MergeStrategy::Ask, |(_, strategy)| strategy.clone())
 }
 
 fn pattern_matches(pattern: &str, normalized_path: &str) -> bool {

@@ -87,7 +87,9 @@ mod tests {
         assert_error(&ServiceAuthError::TokenAcquisition("test".to_string()));
         assert_error(&ServiceAuthError::TokenExpired);
         assert_error(&ServiceAuthError::InvalidToken("test".to_string()));
-        assert_error(&ServiceAuthError::SpiffeValidationFailed("test".to_string()));
+        assert_error(&ServiceAuthError::SpiffeValidationFailed(
+            "test".to_string(),
+        ));
         assert_error(&ServiceAuthError::OidcDiscovery("test".to_string()));
         assert_error(&ServiceAuthError::Http("test".to_string()));
     }
@@ -96,17 +98,33 @@ mod tests {
     #[test]
     fn test_all_variants_debug() {
         let variants: Vec<(&str, ServiceAuthError)> = vec![
-            ("TokenAcquisition", ServiceAuthError::TokenAcquisition("x".to_string())),
+            (
+                "TokenAcquisition",
+                ServiceAuthError::TokenAcquisition("x".to_string()),
+            ),
             ("TokenExpired", ServiceAuthError::TokenExpired),
-            ("InvalidToken", ServiceAuthError::InvalidToken("x".to_string())),
-            ("SpiffeValidationFailed", ServiceAuthError::SpiffeValidationFailed("x".to_string())),
-            ("OidcDiscovery", ServiceAuthError::OidcDiscovery("x".to_string())),
+            (
+                "InvalidToken",
+                ServiceAuthError::InvalidToken("x".to_string()),
+            ),
+            (
+                "SpiffeValidationFailed",
+                ServiceAuthError::SpiffeValidationFailed("x".to_string()),
+            ),
+            (
+                "OidcDiscovery",
+                ServiceAuthError::OidcDiscovery("x".to_string()),
+            ),
             ("Http", ServiceAuthError::Http("x".to_string())),
         ];
 
         for (name, err) in variants {
             let debug = format!("{:?}", err);
-            assert!(debug.contains(name), "Debug for {} should contain variant name", name);
+            assert!(
+                debug.contains(name),
+                "Debug for {} should contain variant name",
+                name
+            );
         }
     }
 }

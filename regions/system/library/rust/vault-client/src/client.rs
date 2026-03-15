@@ -23,6 +23,13 @@ pub struct InMemoryVaultClient {
     store: Mutex<HashMap<String, Secret>>,
 }
 
+/// InMemoryVaultClient のデフォルト実装（new() と同じ）。
+impl Default for InMemoryVaultClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InMemoryVaultClient {
     pub fn new() -> Self {
         Self::with_config(VaultClientConfig::default())

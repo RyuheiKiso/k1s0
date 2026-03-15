@@ -71,10 +71,7 @@ impl AiGatewayGrpcService {
     }
 
     /// テキスト補完を実行する。
-    pub async fn complete(
-        &self,
-        req: GrpcCompleteRequest,
-    ) -> Result<CompleteOutput, GrpcError> {
+    pub async fn complete(&self, req: GrpcCompleteRequest) -> Result<CompleteOutput, GrpcError> {
         let input = CompleteInput {
             model: req.model,
             messages: req

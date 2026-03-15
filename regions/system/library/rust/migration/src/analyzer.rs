@@ -101,9 +101,7 @@ pub fn detect_breaking_changes(sql: &str) -> Vec<BreakingChange> {
                                         column: column_name.to_string(),
                                     });
                                 }
-                                AlterColumnOperation::SetDataType {
-                                    data_type, ..
-                                } => {
+                                AlterColumnOperation::SetDataType { data_type, .. } => {
                                     changes.push(BreakingChange::ColumnTypeChanged {
                                         table: table.clone(),
                                         column: column_name.to_string(),
@@ -190,7 +188,9 @@ mod tests {
         let changes = detect_breaking_changes(sql);
         assert_eq!(changes.len(), 1);
         match &changes[0] {
-            BreakingChange::ColumnTypeChanged { table, column, to, .. } => {
+            BreakingChange::ColumnTypeChanged {
+                table, column, to, ..
+            } => {
                 assert_eq!(table, "users");
                 assert_eq!(column, "age");
                 assert_eq!(to, "BIGINT");

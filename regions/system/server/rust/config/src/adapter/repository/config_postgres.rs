@@ -209,10 +209,11 @@ impl ConfigRepository for ConfigPostgresRepository {
         }
 
         match row {
-            Some(row) => Ok(Some(
-                row_to_config_entry(row)
-                    .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?,
-            )),
+            Some(row) => {
+                Ok(Some(row_to_config_entry(row).map_err(|e| {
+                    ConfigRepositoryError::Infrastructure(e.into())
+                })?))
+            }
             None => Ok(None),
         }
     }
@@ -542,5 +543,4 @@ impl ConfigRepository for ConfigPostgresRepository {
 
         Ok(())
     }
-
 }

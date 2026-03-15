@@ -1,7 +1,7 @@
-use async_trait::async_trait;
 use crate::domain::entity::config_change_log::ConfigChangeLog;
 use crate::domain::entity::config_entry::{ConfigEntry, ConfigListResult, ServiceConfigResult};
 use crate::domain::error::ConfigRepositoryError;
+use async_trait::async_trait;
 
 /// ConfigRepository は設定値の永続化のためのリポジトリトレイト。
 /// 実装は PostgreSQL を通じて設定値を管理する。
@@ -41,12 +41,13 @@ pub trait ConfigRepository: Send + Sync {
     async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError>;
 
     /// サービス名に紐づく設定値を一括取得する。
-    async fn find_by_service_name(&self, service_name: &str)
-        -> Result<ServiceConfigResult, ConfigRepositoryError>;
+    async fn find_by_service_name(
+        &self,
+        service_name: &str,
+    ) -> Result<ServiceConfigResult, ConfigRepositoryError>;
 
     /// 設定変更ログを記録する。
     async fn record_change_log(&self, log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError>;
-
 }
 
 #[cfg(test)]

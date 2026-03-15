@@ -3,7 +3,9 @@ use std::sync::Arc;
 use crate::domain::entity::event_record::EventRecord;
 use crate::domain::entity::flow_definition::FlowStep;
 use crate::domain::entity::flow_instance::FlowInstance;
-use crate::domain::repository::{EventRecordRepository, FlowDefinitionRepository, FlowInstanceRepository};
+use crate::domain::repository::{
+    EventRecordRepository, FlowDefinitionRepository, FlowInstanceRepository,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum TraceByCorrelationError {
@@ -74,7 +76,10 @@ impl TraceByCorrelationUseCase {
             .skip(current_idx + 1)
             .map(|(i, step)| PendingStepInfo {
                 event_type: step.event_type.clone(),
-                source: step.source_filter.clone().unwrap_or_else(|| step.source.clone()),
+                source: step
+                    .source_filter
+                    .clone()
+                    .unwrap_or_else(|| step.source.clone()),
                 step_index: i as i32,
                 timeout_seconds: step.timeout_seconds,
                 waiting_since_seconds: elapsed_since_start,

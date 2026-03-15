@@ -86,7 +86,7 @@ impl DistributedLock for InMemoryDistributedLock {
 
     async fn is_locked(&self, key: &str) -> Result<bool, LockError> {
         let locks = self.locks.lock().await;
-        Ok(locks.get(key).map_or(false, |e| !e.is_expired()))
+        Ok(locks.get(key).is_some_and(|e| !e.is_expired()))
     }
 }
 

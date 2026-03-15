@@ -82,7 +82,11 @@ impl NotificationChannelRepository for StubChannelRepo {
             .collect();
         let total = filtered.len() as u64;
         let start = ((page - 1) * page_size) as usize;
-        let page_items: Vec<_> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        let page_items: Vec<_> = filtered
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((page_items, total))
     }
 
@@ -183,7 +187,11 @@ impl NotificationTemplateRepository for StubTemplateRepo {
             .collect();
         let total = filtered.len() as u64;
         let start = ((page - 1) * page_size) as usize;
-        let page_items: Vec<_> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        let page_items: Vec<_> = filtered
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((page_items, total))
     }
 
@@ -260,7 +268,11 @@ impl NotificationLogRepository for StubLogRepo {
 
     async fn find_by_channel_id(&self, channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
         let logs = self.logs.read().await;
-        Ok(logs.iter().filter(|l| l.channel_id == channel_id).cloned().collect())
+        Ok(logs
+            .iter()
+            .filter(|l| l.channel_id == channel_id)
+            .cloned()
+            .collect())
     }
 
     async fn find_all_paginated(
@@ -290,7 +302,11 @@ impl NotificationLogRepository for StubLogRepo {
             .collect();
         let total = filtered.len() as u64;
         let start = ((page - 1) * page_size) as usize;
-        let page_items: Vec<_> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        let page_items: Vec<_> = filtered
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((page_items, total))
     }
 
@@ -336,9 +352,16 @@ impl StubDeliveryClient {
 
 #[async_trait]
 impl DeliveryClient for StubDeliveryClient {
-    async fn send(&self, _recipient: &str, _subject: &str, _body: &str) -> Result<(), DeliveryError> {
+    async fn send(
+        &self,
+        _recipient: &str,
+        _subject: &str,
+        _body: &str,
+    ) -> Result<(), DeliveryError> {
         if self.should_fail {
-            Err(DeliveryError::ConnectionFailed("connection timeout".to_string()))
+            Err(DeliveryError::ConnectionFailed(
+                "connection timeout".to_string(),
+            ))
         } else {
             Ok(())
         }
@@ -385,7 +408,9 @@ fn make_failed_log(channel_id: &str) -> NotificationLog {
 
 mod create_channel {
     use super::*;
-    use k1s0_notification_server::usecase::create_channel::{CreateChannelInput, CreateChannelError};
+    use k1s0_notification_server::usecase::create_channel::{
+        CreateChannelError, CreateChannelInput,
+    };
 
     #[tokio::test]
     async fn success_creates_email_channel() {
@@ -443,7 +468,11 @@ mod create_channel {
                 enabled: true,
             };
             let result = uc.execute(&input).await;
-            assert!(result.is_ok(), "should succeed for channel_type={}", channel_type);
+            assert!(
+                result.is_ok(),
+                "should succeed for channel_type={}",
+                channel_type
+            );
         }
     }
 
@@ -621,7 +650,9 @@ mod list_channels {
 
 mod update_channel {
     use super::*;
-    use k1s0_notification_server::usecase::update_channel::{UpdateChannelInput, UpdateChannelError};
+    use k1s0_notification_server::usecase::update_channel::{
+        UpdateChannelError, UpdateChannelInput,
+    };
 
     #[tokio::test]
     async fn success_updates_name_and_enabled() {
@@ -768,7 +799,9 @@ mod delete_channel {
 
 mod create_template {
     use super::*;
-    use k1s0_notification_server::usecase::create_template::{CreateTemplateInput, CreateTemplateError};
+    use k1s0_notification_server::usecase::create_template::{
+        CreateTemplateError, CreateTemplateInput,
+    };
 
     #[tokio::test]
     async fn success_creates_template_with_subject() {
@@ -786,7 +819,10 @@ mod create_template {
         let template = result.unwrap();
         assert_eq!(template.name, "welcome-email");
         assert_eq!(template.channel_type, "email");
-        assert_eq!(template.subject_template.as_deref(), Some("Welcome {{name}}"));
+        assert_eq!(
+            template.subject_template.as_deref(),
+            Some("Welcome {{name}}")
+        );
         assert!(template.id.starts_with("tpl_"));
 
         let stored = repo.templates.read().await;
@@ -921,10 +957,7 @@ mod list_templates {
 
     #[tokio::test]
     async fn success_returns_all_templates() {
-        let templates = vec![
-            make_template("t1", "email"),
-            make_template("t2", "slack"),
-        ];
+        let templates = vec![make_template("t1", "email"), make_template("t2", "slack")];
         let repo = Arc::new(StubTemplateRepo::with_templates(templates));
         let uc = ListTemplatesUseCase::new(repo);
 
@@ -976,7 +1009,9 @@ mod list_templates {
 
 mod update_template {
     use super::*;
-    use k1s0_notification_server::usecase::update_template::{UpdateTemplateInput, UpdateTemplateError};
+    use k1s0_notification_server::usecase::update_template::{
+        UpdateTemplateError, UpdateTemplateInput,
+    };
 
     #[tokio::test]
     async fn success_updates_name_and_body() {
@@ -1121,7 +1156,7 @@ mod delete_template {
 mod send_notification {
     use super::*;
     use k1s0_notification_server::usecase::send_notification::{
-        SendNotificationInput, SendNotificationError,
+        SendNotificationError, SendNotificationInput,
     };
 
     #[tokio::test]
@@ -1274,11 +1309,7 @@ mod send_notification {
         let log_repo = Arc::new(StubLogRepo::new());
         let template_repo = Arc::new(StubTemplateRepo::new());
 
-        let uc = SendNotificationUseCase::with_template_repo(
-            channel_repo,
-            log_repo,
-            template_repo,
-        );
+        let uc = SendNotificationUseCase::with_template_repo(channel_repo, log_repo, template_repo);
         let input = SendNotificationInput {
             channel_id,
             template_id: Some("tpl_missing".to_string()),
@@ -1306,11 +1337,8 @@ mod send_notification {
         let mut clients: HashMap<String, Arc<dyn DeliveryClient>> = HashMap::new();
         clients.insert("email".to_string(), Arc::new(StubDeliveryClient::success()));
 
-        let uc = SendNotificationUseCase::with_delivery_clients(
-            channel_repo,
-            log_repo.clone(),
-            clients,
-        );
+        let uc =
+            SendNotificationUseCase::with_delivery_clients(channel_repo, log_repo.clone(), clients);
         let input = SendNotificationInput {
             channel_id,
             template_id: None,
@@ -1339,11 +1367,8 @@ mod send_notification {
         let mut clients: HashMap<String, Arc<dyn DeliveryClient>> = HashMap::new();
         clients.insert("slack".to_string(), Arc::new(StubDeliveryClient::failing()));
 
-        let uc = SendNotificationUseCase::with_delivery_clients(
-            channel_repo,
-            log_repo.clone(),
-            clients,
-        );
+        let uc =
+            SendNotificationUseCase::with_delivery_clients(channel_repo, log_repo.clone(), clients);
         let input = SendNotificationInput {
             channel_id,
             template_id: None,
@@ -1360,7 +1385,11 @@ mod send_notification {
 
         let logs = log_repo.logs.read().await;
         assert_eq!(logs[0].status, "failed");
-        assert!(logs[0].error_message.as_ref().unwrap().contains("connection timeout"));
+        assert!(logs[0]
+            .error_message
+            .as_ref()
+            .unwrap()
+            .contains("connection timeout"));
     }
 
     #[tokio::test]
@@ -1374,11 +1403,8 @@ mod send_notification {
         let mut clients: HashMap<String, Arc<dyn DeliveryClient>> = HashMap::new();
         clients.insert("email".to_string(), Arc::new(StubDeliveryClient::success()));
 
-        let uc = SendNotificationUseCase::with_delivery_clients(
-            channel_repo,
-            log_repo.clone(),
-            clients,
-        );
+        let uc =
+            SendNotificationUseCase::with_delivery_clients(channel_repo, log_repo.clone(), clients);
         let input = SendNotificationInput {
             channel_id,
             template_id: None,
@@ -1393,7 +1419,11 @@ mod send_notification {
         assert_eq!(result.unwrap().status, "failed");
 
         let logs = log_repo.logs.read().await;
-        assert!(logs[0].error_message.as_ref().unwrap().contains("no delivery client"));
+        assert!(logs[0]
+            .error_message
+            .as_ref()
+            .unwrap()
+            .contains("no delivery client"));
     }
 
     #[tokio::test]
@@ -1502,7 +1532,7 @@ mod send_notification {
 mod retry_notification {
     use super::*;
     use k1s0_notification_server::usecase::retry_notification::{
-        RetryNotificationInput, RetryNotificationError,
+        RetryNotificationError, RetryNotificationInput,
     };
 
     #[tokio::test]

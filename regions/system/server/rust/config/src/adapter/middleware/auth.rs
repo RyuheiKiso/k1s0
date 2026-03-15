@@ -47,7 +47,7 @@ pub async fn auth_middleware(
 
     match state.verifier.verify_token(&token).await {
         Ok(claims) => {
-            if let Err(_) = k1s0_auth::validate_tier_access(&claims, CONFIG_SERVER_TIER) {
+            if k1s0_auth::validate_tier_access(&claims, CONFIG_SERVER_TIER).is_err() {
                 return (
                     StatusCode::FORBIDDEN,
                     Json(serde_json::json!({

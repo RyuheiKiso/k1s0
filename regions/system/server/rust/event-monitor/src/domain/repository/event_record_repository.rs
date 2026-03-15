@@ -10,6 +10,7 @@ pub trait EventRecordRepository: Send + Sync {
     async fn create(&self, record: &EventRecord) -> anyhow::Result<()>;
     #[allow(dead_code)]
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<EventRecord>>;
+    #[allow(clippy::too_many_arguments)]
     async fn find_all_paginated(
         &self,
         page: u32,

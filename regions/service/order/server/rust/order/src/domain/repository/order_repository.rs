@@ -1,6 +1,4 @@
-use crate::domain::entity::order::{
-    CreateOrder, Order, OrderFilter, OrderItem, OrderStatus,
-};
+use crate::domain::entity::order::{CreateOrder, Order, OrderFilter, OrderItem, OrderStatus};
 use crate::domain::entity::outbox::OutboxEvent;
 use async_trait::async_trait;
 use uuid::Uuid;

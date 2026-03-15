@@ -30,10 +30,7 @@ pub fn router(state: AppState) -> Router {
 
     let api_routes = if let Some(ref auth_state) = state.auth_state {
         let read_routes = Router::new()
-            .route(
-                "/api/v1/inventory",
-                get(inventory_handler::list_inventory),
-            )
+            .route("/api/v1/inventory", get(inventory_handler::list_inventory))
             .route(
                 "/api/v1/inventory/:inventory_id",
                 get(inventory_handler::get_inventory),
@@ -66,10 +63,7 @@ pub fn router(state: AppState) -> Router {
             .layer(from_fn_with_state(auth_state.clone(), auth_middleware))
     } else {
         Router::new()
-            .route(
-                "/api/v1/inventory",
-                get(inventory_handler::list_inventory),
-            )
+            .route("/api/v1/inventory", get(inventory_handler::list_inventory))
             .route(
                 "/api/v1/inventory/:inventory_id",
                 get(inventory_handler::get_inventory),

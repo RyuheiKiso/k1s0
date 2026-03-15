@@ -8,6 +8,7 @@ use k1s0_core::commands::generate::config_types::{
     GeneratedTypesTarget,
 };
 
+#[allow(clippy::missing_errors_doc)]
 pub fn run() -> Result<()> {
     println!("\n--- Generate Config Types ---\n");
 
@@ -42,9 +43,8 @@ pub fn run() -> Result<()> {
         output_dirs.push(("dart".to_string(), PathBuf::from(output_dir)));
     }
 
-    let push = match prompt::yes_no_prompt("Push schema to config server?")? {
-        Some(value) => value,
-        None => return Ok(()),
+    let Some(push) = prompt::yes_no_prompt("Push schema to config server?")? else {
+        return Ok(());
     };
 
     let server_url = if push {

@@ -15,6 +15,13 @@ impl std::fmt::Display for DomainError {
 /// ConfigDomainService はドメインルールのバリデーションを提供する。
 pub struct ConfigDomainService;
 
+/// ConfigDomainService の Default 実装（clippy::new_without_default 対応）
+impl Default for ConfigDomainService {
+    fn default() -> Self {
+        Self
+    }
+}
+
 impl ConfigDomainService {
     pub fn new() -> Self {
         Self
@@ -77,5 +84,4 @@ mod tests {
             }
         }
     }
-
 }

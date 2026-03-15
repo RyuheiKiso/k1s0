@@ -10,7 +10,9 @@ use anyhow::Result;
 use std::path::Path;
 
 use crate::commands::migrate::apply::execute_migrate_up;
-use crate::commands::migrate::types::{DbConnection, Language, MigrateRange, MigrateTarget, MigrateUpConfig};
+use crate::commands::migrate::types::{
+    DbConnection, Language, MigrateRange, MigrateTarget, MigrateUpConfig,
+};
 
 use super::types::PortAssignments;
 

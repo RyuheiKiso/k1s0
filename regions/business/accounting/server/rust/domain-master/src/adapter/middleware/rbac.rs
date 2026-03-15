@@ -77,16 +77,13 @@ impl Action {
 
 /// ユーザーの Claims からビジネスロールの最上位を取得する。
 pub fn highest_role(claims: &Claims) -> Option<BusinessRole> {
-    claims
-        .realm_access
-        .as_ref()
-        .and_then(|access| {
-            access
-                .roles
-                .iter()
-                .filter_map(|r| BusinessRole::parse_role(r))
-                .max()
-        })
+    claims.realm_access.as_ref().and_then(|access| {
+        access
+            .roles
+            .iter()
+            .filter_map(|r| BusinessRole::parse_role(r))
+            .max()
+    })
 }
 
 /// 指定アクションに対して十分なロールを持っているか判定する。
@@ -185,14 +182,21 @@ mod tests {
 
     #[test]
     fn test_highest_role_picks_max() {
-        let claims = make_claims_with_roles(vec!["biz_accounting_viewer", "biz_accounting_manager"]);
-        assert_eq!(highest_role(&claims), Some(BusinessRole::BizAccountingManager));
+        let claims =
+            make_claims_with_roles(vec!["biz_accounting_viewer", "biz_accounting_manager"]);
+        assert_eq!(
+            highest_role(&claims),
+            Some(BusinessRole::BizAccountingManager)
+        );
     }
 
     #[test]
     fn test_highest_role_admin() {
         let claims = make_claims_with_roles(vec!["biz_accounting_admin", "biz_accounting_viewer"]);
-        assert_eq!(highest_role(&claims), Some(BusinessRole::BizAccountingAdmin));
+        assert_eq!(
+            highest_role(&claims),
+            Some(BusinessRole::BizAccountingAdmin)
+        );
     }
 
     #[test]
@@ -233,8 +237,17 @@ mod tests {
 
     #[test]
     fn test_action_minimum_role() {
-        assert_eq!(Action::Read.minimum_role(), BusinessRole::BizAccountingViewer);
-        assert_eq!(Action::Write.minimum_role(), BusinessRole::BizAccountingManager);
-        assert_eq!(Action::Admin.minimum_role(), BusinessRole::BizAccountingAdmin);
+        assert_eq!(
+            Action::Read.minimum_role(),
+            BusinessRole::BizAccountingViewer
+        );
+        assert_eq!(
+            Action::Write.minimum_role(),
+            BusinessRole::BizAccountingManager
+        );
+        assert_eq!(
+            Action::Admin.minimum_role(),
+            BusinessRole::BizAccountingAdmin
+        );
     }
 }
