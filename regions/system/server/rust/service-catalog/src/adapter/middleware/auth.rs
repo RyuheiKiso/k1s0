@@ -1,9 +1,9 @@
 use axum::{
+    Json,
     extract::State,
     http::{Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
-    Json,
 };
 use k1s0_server_common::ErrorResponse;
 

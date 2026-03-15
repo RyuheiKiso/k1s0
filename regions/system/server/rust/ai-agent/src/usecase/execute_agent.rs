@@ -54,10 +54,7 @@ impl ExecuteAgentUseCase {
     }
 
     /// エージェントを取得し、ReActエンジンで実行する
-    pub async fn execute(
-        &self,
-        req: ExecuteAgentRequest,
-    ) -> anyhow::Result<ExecuteAgentResponse> {
+    pub async fn execute(&self, req: ExecuteAgentRequest) -> anyhow::Result<ExecuteAgentResponse> {
         // エージェント定義を取得する
         let agent = self
             .agent_repo
@@ -95,10 +92,7 @@ impl ExecuteAgentUseCase {
         {
             Ok(steps) => {
                 // 最後のステップの出力を実行結果として取得する
-                let output = steps
-                    .last()
-                    .map(|s| s.output.clone())
-                    .unwrap_or_default();
+                let output = steps.last().map(|s| s.output.clone()).unwrap_or_default();
                 execution.steps = steps;
                 execution.output = Some(output);
                 execution.status = ExecutionStatus::Completed;

@@ -72,14 +72,14 @@ mod tests {
         assert_eq!(ports.keycloak, 8180);
     }
 
-    /// 未使用のポートは is_port_in_use で false を返す。
+    /// 未使用のポートは `is_port_in_use` で false を返す。
     #[test]
     fn test_is_port_in_use_free_port() {
         // 高番号のポートは通常空いている
         assert!(!is_port_in_use(59123));
     }
 
-    /// 使用中のポートは is_port_in_use で true を返す。
+    /// 使用中のポートは `is_port_in_use` で true を返す。
     #[test]
     fn test_is_port_in_use_occupied() {
         // ポートをバインドしてから確認
@@ -88,7 +88,7 @@ mod tests {
         assert!(is_port_in_use(port));
     }
 
-    /// resolve_ports はデフォルトポートが空いていればそのまま返す。
+    /// `resolve_ports` はデフォルトポートが空いていればそのまま返す。
     #[test]
     fn test_resolve_ports_uses_defaults_when_free() {
         // 高番号のポートをデフォルトにして確認
@@ -106,7 +106,7 @@ mod tests {
         assert_eq!(resolved, defaults);
     }
 
-    /// resolve_ports は使用中のポートを回避する。
+    /// `resolve_ports` は使用中のポートを回避する。
     #[test]
     fn test_resolve_ports_avoids_occupied() {
         // ポートを占有
@@ -129,7 +129,7 @@ mod tests {
         assert!(resolved.postgres > 59300);
     }
 
-    /// find_available_port は使用中のポートをスキップする。
+    /// `find_available_port` は使用中のポートをスキップする。
     #[test]
     fn test_find_available_port() {
         let port = find_available_port(59500);

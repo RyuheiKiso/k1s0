@@ -72,7 +72,11 @@ impl HealthRepository for HealthPostgresRepository {
         .await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("get_latest", "health_status", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "get_latest",
+                "health_status",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         Ok(row.map(|r| r.into()))
@@ -117,7 +121,11 @@ impl HealthRepository for HealthPostgresRepository {
         .await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("list_all_latest", "health_status", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "list_all_latest",
+                "health_status",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         Ok(rows.into_iter().map(|r| r.into()).collect())

@@ -5,10 +5,10 @@ use axum::{
     Extension, Json,
 };
 
+use super::{AppState, ErrorDetail, ErrorResponse};
 use crate::adapter::presentation::{
     ConfigEditorSchemaDto, ConfigFieldType, UpsertConfigSchemaRequestDto,
 };
-use super::{AppState, ErrorDetail, ErrorResponse};
 
 #[utoipa::path(
     get,
@@ -24,15 +24,20 @@ pub async fn list_config_schemas(State(state): State<AppState>) -> impl IntoResp
             .map(ConfigEditorSchemaDto::try_from)
             .collect::<Result<Vec<_>, _>>()
         {
-            Ok(response) => (StatusCode::OK, Json(serde_json::to_value(response).unwrap()))
+            Ok(response) => (
+                StatusCode::OK,
+                Json(serde_json::to_value(response).unwrap()),
+            )
                 .into_response(),
             Err(err) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::to_value(ErrorResponse::new(
-                    "SYS_CONFIG_SCHEMA_INVALID",
-                    &format!("invalid persisted config schema: {}", err),
-                ))
-                .unwrap()),
+                Json(
+                    serde_json::to_value(ErrorResponse::new(
+                        "SYS_CONFIG_SCHEMA_INVALID",
+                        &format!("invalid persisted config schema: {}", err),
+                    ))
+                    .unwrap(),
+                ),
             )
                 .into_response(),
         },
@@ -55,16 +60,20 @@ pub async fn get_config_schema(
 ) -> impl IntoResponse {
     match state.get_config_schema_uc.execute(&service_name).await {
         Ok(schema) => match ConfigEditorSchemaDto::try_from(&schema) {
-            Ok(response) => {
-                (StatusCode::OK, Json(serde_json::to_value(response).unwrap())).into_response()
-            }
+            Ok(response) => (
+                StatusCode::OK,
+                Json(serde_json::to_value(response).unwrap()),
+            )
+                .into_response(),
             Err(err) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::to_value(ErrorResponse::new(
-                    "SYS_CONFIG_SCHEMA_INVALID",
-                    &format!("invalid persisted config schema: {}", err),
-                ))
-                .unwrap()),
+                Json(
+                    serde_json::to_value(ErrorResponse::new(
+                        "SYS_CONFIG_SCHEMA_INVALID",
+                        &format!("invalid persisted config schema: {}", err),
+                    ))
+                    .unwrap(),
+                ),
             )
                 .into_response(),
         },
@@ -117,16 +126,20 @@ pub async fn upsert_config_schema(
 
     match state.upsert_config_schema_uc.execute(&input).await {
         Ok(schema) => match ConfigEditorSchemaDto::try_from(&schema) {
-            Ok(response) => {
-                (StatusCode::OK, Json(serde_json::to_value(response).unwrap())).into_response()
-            }
+            Ok(response) => (
+                StatusCode::OK,
+                Json(serde_json::to_value(response).unwrap()),
+            )
+                .into_response(),
             Err(err) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::to_value(ErrorResponse::new(
-                    "SYS_CONFIG_SCHEMA_INVALID",
-                    &format!("invalid persisted config schema: {}", err),
-                ))
-                .unwrap()),
+                Json(
+                    serde_json::to_value(ErrorResponse::new(
+                        "SYS_CONFIG_SCHEMA_INVALID",
+                        &format!("invalid persisted config schema: {}", err),
+                    ))
+                    .unwrap(),
+                ),
             )
                 .into_response(),
         },

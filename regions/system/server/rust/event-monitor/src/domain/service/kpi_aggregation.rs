@@ -17,8 +17,7 @@ impl KpiAggregationService {
         let total_failed = instances
             .iter()
             .filter(|i| {
-                i.status == FlowInstanceStatus::Failed
-                    || i.status == FlowInstanceStatus::Timeout
+                i.status == FlowInstanceStatus::Failed || i.status == FlowInstanceStatus::Timeout
             })
             .count() as i64;
         let total_in_progress = instances

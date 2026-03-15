@@ -10,9 +10,9 @@ use crate::usecase::delete_config::{DeleteConfigError, DeleteConfigUseCase};
 use crate::usecase::get_config::{GetConfigError, GetConfigUseCase};
 use crate::usecase::get_config_schema::{GetConfigSchemaError, GetConfigSchemaUseCase};
 use crate::usecase::get_service_config::{GetServiceConfigError, GetServiceConfigUseCase};
+use crate::usecase::list_config_schemas::{ListConfigSchemasError, ListConfigSchemasUseCase};
 use crate::usecase::list_configs::{ListConfigsError, ListConfigsParams, ListConfigsUseCase};
 use crate::usecase::update_config::{UpdateConfigError, UpdateConfigInput, UpdateConfigUseCase};
-use crate::usecase::list_config_schemas::{ListConfigSchemasError, ListConfigSchemasUseCase};
 use crate::usecase::upsert_config_schema::{UpsertConfigSchemaInput, UpsertConfigSchemaUseCase};
 use crate::usecase::watch_config::WatchConfigUseCase;
 
@@ -311,9 +311,7 @@ impl ConfigGrpcService {
         })
     }
 
-    pub async fn list_config_schemas(
-        &self,
-    ) -> Result<pb::ListConfigSchemasResponse, GrpcError> {
+    pub async fn list_config_schemas(&self) -> Result<pb::ListConfigSchemasResponse, GrpcError> {
         let uc = self.list_config_schemas_uc.as_ref().ok_or_else(|| {
             GrpcError::Internal("list_config_schemas usecase is not configured".to_string())
         })?;

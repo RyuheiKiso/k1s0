@@ -122,6 +122,7 @@ impl CrudRecordsUseCase {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn list_records(
         &self,
         table_name: &str,
@@ -162,7 +163,8 @@ impl CrudRecordsUseCase {
                 }
             } else {
                 for record in &mut records {
-                    *record = filter_record_by_mode(record, &column_defs, RecordVisibility::List, None);
+                    *record =
+                        filter_record_by_mode(record, &column_defs, RecordVisibility::List, None);
                 }
             }
         } else {
@@ -197,7 +199,11 @@ impl CrudRecordsUseCase {
         self.record_repo
             .find_by_id(&table, &columns, record_id)
             .await
-            .map(|record| record.map(|value| filter_record_by_mode(&value, &columns, RecordVisibility::Form, None)))
+            .map(|record| {
+                record.map(|value| {
+                    filter_record_by_mode(&value, &columns, RecordVisibility::Form, None)
+                })
+            })
     }
 
     pub async fn table_permissions(
@@ -303,7 +309,11 @@ impl CrudRecordsUseCase {
             operation: "UPDATE".to_string(),
             before_data: before.clone(),
             after_data: Some(record.clone()),
-            changed_columns: Some(changed_columns_for_update(before.as_ref(), &record, &columns)),
+            changed_columns: Some(changed_columns_for_update(
+                before.as_ref(),
+                &record,
+                &columns,
+            )),
             changed_by: updated_by.to_string(),
             change_reason: None,
             trace_id,

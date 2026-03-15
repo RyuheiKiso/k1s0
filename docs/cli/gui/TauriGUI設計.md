@@ -62,7 +62,14 @@ CLI/
 │           │   ├── router.tsx
 │           │   ├── pages/
 │           │   │   ├── InitPage.tsx         # プロジェクト初期化
-│           │   │   ├── GeneratePage.tsx     # ひな形生成ウィザード
+│           │   │   ├── GeneratePage.tsx     # ひな形生成ウィザード（オーケストレーター）
+│           │   │   ├── generate/           # 生成ウィザードの各ステップ
+│           │   │   │   ├── StepKind.tsx    #   Step 0: 種別選択
+│           │   │   │   ├── StepTier.tsx    #   Step 1: ティア選択
+│           │   │   │   ├── StepPlacement.tsx #  Step 2: 配置選択
+│           │   │   │   ├── StepLangFw.tsx  #   Step 3: 言語/FW選択
+│           │   │   │   ├── StepDetail.tsx  #   Step 4: 詳細オプション
+│           │   │   │   └── StepConfirm.tsx #   Step 5: 確認・実行
 │           │   │   ├── TemplateMigratePage.tsx # テンプレートマイグレーション
 │           │   │   ├── ConfigTypesPage.tsx  # 設定スキーマ型生成
 │           │   │   ├── NavigationTypesPage.tsx # ナビゲーション型生成

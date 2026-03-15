@@ -208,12 +208,7 @@ mod tests {
             .unwrap();
         let resp = svc.oneshot(req).await.unwrap();
 
-        let tid = resp
-            .headers()
-            .get("x-trace-id")
-            .unwrap()
-            .to_str()
-            .unwrap();
+        let tid = resp.headers().get("x-trace-id").unwrap().to_str().unwrap();
         assert_eq!(tid, trace);
     }
 

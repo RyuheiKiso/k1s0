@@ -140,12 +140,14 @@ impl NotificationGrpcClient {
             .clone()
             .list_notifications(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.ListNotifications failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.ListNotifications failed: {}", e))?
             .into_inner();
 
-        Ok(resp.notifications.into_iter().map(Self::log_from_proto).collect())
+        Ok(resp
+            .notifications
+            .into_iter()
+            .map(Self::log_from_proto)
+            .collect())
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -174,9 +176,7 @@ impl NotificationGrpcClient {
             .clone()
             .send_notification(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.SendNotification failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.SendNotification failed: {}", e))?
             .into_inner();
 
         Ok((resp.notification_id, resp.status, resp.created_at))
@@ -198,9 +198,7 @@ impl NotificationGrpcClient {
             .clone()
             .retry_notification(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.RetryNotification failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.RetryNotification failed: {}", e))?
             .into_inner()
             .notification
             .ok_or_else(|| anyhow::anyhow!("empty notification in retry response"))?;
@@ -212,11 +210,10 @@ impl NotificationGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_channel(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::notification::v1::GetChannelRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::notification::v1::GetChannelRequest {
                 id: id.to_owned(),
-            },
-        );
+            });
 
         match self.client.clone().get_channel(request).await {
             Ok(resp) => {
@@ -242,26 +239,27 @@ impl NotificationGrpcClient {
         page: Option<i32>,
         page_size: Option<i32>,
     ) -> anyhow::Result<Vec<NotificationChannel>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::notification::v1::ListChannelsRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::notification::v1::ListChannelsRequest {
                 channel_type: channel_type.map(|s| s.to_owned()),
                 enabled_only,
                 page: page.unwrap_or(1) as u32,
                 page_size: page_size.unwrap_or(20) as u32,
-            },
-        );
+            });
 
         let resp = self
             .client
             .clone()
             .list_channels(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.ListChannels failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.ListChannels failed: {}", e))?
             .into_inner();
 
-        Ok(resp.channels.into_iter().map(Self::channel_from_proto).collect())
+        Ok(resp
+            .channels
+            .into_iter()
+            .map(Self::channel_from_proto)
+            .collect())
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -286,9 +284,7 @@ impl NotificationGrpcClient {
             .clone()
             .create_channel(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.CreateChannel failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.CreateChannel failed: {}", e))?
             .into_inner()
             .channel
             .ok_or_else(|| anyhow::anyhow!("empty channel in create response"))?;
@@ -308,7 +304,7 @@ impl NotificationGrpcClient {
             proto::k1s0::system::notification::v1::UpdateChannelRequest {
                 id: id.to_owned(),
                 name: name.map(|s| s.to_owned()),
-                enabled: enabled,
+                enabled,
                 config_json: config_json.map(|s| s.to_owned()),
             },
         );
@@ -318,9 +314,7 @@ impl NotificationGrpcClient {
             .clone()
             .update_channel(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.UpdateChannel failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.UpdateChannel failed: {}", e))?
             .into_inner()
             .channel
             .ok_or_else(|| anyhow::anyhow!("empty channel in update response"))?;
@@ -331,9 +325,7 @@ impl NotificationGrpcClient {
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn delete_channel(&self, id: &str) -> anyhow::Result<bool> {
         let request = tonic::Request::new(
-            proto::k1s0::system::notification::v1::DeleteChannelRequest {
-                id: id.to_owned(),
-            },
+            proto::k1s0::system::notification::v1::DeleteChannelRequest { id: id.to_owned() },
         );
 
         let resp = self
@@ -341,9 +333,7 @@ impl NotificationGrpcClient {
             .clone()
             .delete_channel(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.DeleteChannel failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.DeleteChannel failed: {}", e))?
             .into_inner();
 
         Ok(resp.success)
@@ -353,11 +343,10 @@ impl NotificationGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_template(&self, id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
-        let request = tonic::Request::new(
-            proto::k1s0::system::notification::v1::GetTemplateRequest {
+        let request =
+            tonic::Request::new(proto::k1s0::system::notification::v1::GetTemplateRequest {
                 id: id.to_owned(),
-            },
-        );
+            });
 
         match self.client.clone().get_template(request).await {
             Ok(resp) => {
@@ -395,12 +384,14 @@ impl NotificationGrpcClient {
             .clone()
             .list_templates(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.ListTemplates failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.ListTemplates failed: {}", e))?
             .into_inner();
 
-        Ok(resp.templates.into_iter().map(Self::template_from_proto).collect())
+        Ok(resp
+            .templates
+            .into_iter()
+            .map(Self::template_from_proto)
+            .collect())
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -425,9 +416,7 @@ impl NotificationGrpcClient {
             .clone()
             .create_template(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.CreateTemplate failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.CreateTemplate failed: {}", e))?
             .into_inner()
             .template
             .ok_or_else(|| anyhow::anyhow!("empty template in create response"))?;
@@ -457,9 +446,7 @@ impl NotificationGrpcClient {
             .clone()
             .update_template(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.UpdateTemplate failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.UpdateTemplate failed: {}", e))?
             .into_inner()
             .template
             .ok_or_else(|| anyhow::anyhow!("empty template in update response"))?;
@@ -470,9 +457,7 @@ impl NotificationGrpcClient {
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn delete_template(&self, id: &str) -> anyhow::Result<bool> {
         let request = tonic::Request::new(
-            proto::k1s0::system::notification::v1::DeleteTemplateRequest {
-                id: id.to_owned(),
-            },
+            proto::k1s0::system::notification::v1::DeleteTemplateRequest { id: id.to_owned() },
         );
 
         let resp = self
@@ -480,9 +465,7 @@ impl NotificationGrpcClient {
             .clone()
             .delete_template(request)
             .await
-            .map_err(|e| {
-                anyhow::anyhow!("NotificationService.DeleteTemplate failed: {}", e)
-            })?
+            .map_err(|e| anyhow::anyhow!("NotificationService.DeleteTemplate failed: {}", e))?
             .into_inner();
 
         Ok(resp.success)
@@ -496,4 +479,3 @@ impl NotificationGrpcClient {
         Ok(())
     }
 }
-

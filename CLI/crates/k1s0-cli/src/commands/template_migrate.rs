@@ -35,9 +35,8 @@ fn run_execute_flow() -> Result<()> {
         return Ok(());
     };
 
-    let mut plan = match step_preview(&target)? {
-        Some(plan) => plan,
-        None => return Ok(()),
+    let Some(mut plan) = step_preview(&target)? else {
+        return Ok(());
     };
 
     if plan.has_conflicts() {
@@ -141,7 +140,7 @@ fn step_preview(target: &MigrationTarget) -> Result<Option<MigrationPlan>> {
             (_, MergeResult::Conflict(_)) => {
                 println!("     コンフリクト: ユーザー変更とテンプレート変更が競合");
             }
-            (ChangeType::Deleted, _) => {}
+            (ChangeType::Deleted, _) | (_, MergeResult::NoChange) => {}
             (_, MergeResult::Clean(new_content)) => {
                 let old_path = target.path.join(&change.path);
                 let old_content = if old_path.exists() {
@@ -154,7 +153,6 @@ fn step_preview(target: &MigrationTarget) -> Result<Option<MigrationPlan>> {
                     println!("     {line}");
                 }
             }
-            (_, MergeResult::NoChange) => {}
         }
     }
 

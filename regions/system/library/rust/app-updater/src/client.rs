@@ -74,18 +74,15 @@ impl AppUpdater for AppRegistryAppUpdater {
             builder = builder.timeout(timeout);
         }
 
-        let response = builder.send().await.map_err(|e| {
-            AppUpdaterError::Connection(e.to_string())
-        })?;
+        let response = builder
+            .send()
+            .await
+            .map_err(|e| AppUpdaterError::Connection(e.to_string()))?;
 
         // HTTP ステータスコードに応じてエラーに変換する
         match response.status().as_u16() {
             401 => return Err(AppUpdaterError::Unauthorized),
-            404 => {
-                return Err(AppUpdaterError::AppNotFound(
-                    self.config.app_id.clone(),
-                ))
-            }
+            404 => return Err(AppUpdaterError::AppNotFound(self.config.app_id.clone())),
             s if s >= 400 => {
                 return Err(AppUpdaterError::Connection(format!(
                     "server returned status {s}"

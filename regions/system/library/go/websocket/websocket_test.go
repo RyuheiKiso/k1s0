@@ -94,12 +94,21 @@ func TestReceive_NotConnected(t *testing.T) {
 	require.Error(t, err)
 }
 
-// DefaultConfigがデフォルトのWebSocket接続設定を正しく返すことを確認する。
+// DefaultConfigがデフォルトのWebSocket接続設定を正しく返すことを確認する。URLはデフォルトで空文字列。
 func TestDefaultConfig(t *testing.T) {
 	cfg := websocket.DefaultConfig()
-	assert.Equal(t, "ws://localhost", cfg.URL)
+	// URL はデフォルト値を持たず、呼び出し側が明示的に指定する前提
+	assert.Equal(t, "", cfg.URL)
 	assert.True(t, cfg.Reconnect)
 	assert.Equal(t, 5, cfg.MaxReconnectAttempts)
 	assert.Equal(t, int64(1000), cfg.ReconnectDelayMs)
 	assert.Nil(t, cfg.PingIntervalMs)
+}
+
+// DefaultConfigにURLを明示的に設定して使用するパターンを確認する。
+func TestDefaultConfig_WithExplicitURL(t *testing.T) {
+	cfg := websocket.DefaultConfig()
+	cfg.URL = "ws://test.example.com"
+	assert.Equal(t, "ws://test.example.com", cfg.URL)
+	assert.True(t, cfg.Reconnect)
 }

@@ -112,10 +112,14 @@ pub async fn list_apps(
     State(state): State<AppState>,
     Query(params): Query<ListAppsQuery>,
 ) -> impl IntoResponse {
-    match state.list_apps_uc.execute(params.category, params.search).await {
+    match state
+        .list_apps_uc
+        .execute(params.category, params.search)
+        .await
+    {
         Ok(apps) => (StatusCode::OK, Json(AppListResponse { apps })).into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -139,14 +143,12 @@ pub async fn get_download_stats(
     match state.get_download_stats_uc.execute(&id).await {
         Ok(stats) => (StatusCode::OK, Json(stats)).into_response(),
         Err(crate::usecase::get_download_stats::GetDownloadStatsError::AppNotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_APPS_APP_NOT_FOUND",
-                "The specified app was not found",
-            );
+            let err =
+                ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -163,21 +165,16 @@ pub async fn get_download_stats(
     security(("bearer_auth" = []))
 )]
 /// アプリ詳細取得ハンドラー
-pub async fn get_app(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
+pub async fn get_app(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     match state.get_app_uc.execute(&id).await {
         Ok(app) => (StatusCode::OK, Json(serde_json::to_value(app).unwrap())).into_response(),
         Err(crate::usecase::get_app::GetAppError::NotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_APPS_APP_NOT_FOUND",
-                "The specified app was not found",
-            );
+            let err =
+                ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -234,7 +231,7 @@ pub async fn create_app(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -269,10 +266,8 @@ pub async fn update_app(
     match state.update_app_uc.execute(input).await {
         Ok(app) => (StatusCode::OK, Json(serde_json::to_value(app).unwrap())).into_response(),
         Err(crate::usecase::UpdateAppError::NotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_APPS_APP_NOT_FOUND",
-                "The specified app was not found",
-            );
+            let err =
+                ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::UpdateAppError::ValidationError(msg)) => {
@@ -280,7 +275,7 @@ pub async fn update_app(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -304,14 +299,12 @@ pub async fn delete_app(
     match state.delete_app_uc.execute(&id).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(crate::usecase::DeleteAppError::NotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_APPS_APP_NOT_FOUND",
-                "The specified app was not found",
-            );
+            let err =
+                ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

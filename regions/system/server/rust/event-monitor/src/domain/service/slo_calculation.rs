@@ -225,10 +225,8 @@ mod tests {
         let mut all = good.clone();
         all.extend(bad);
 
-        let windows = SloCalculationService::calculate_burn_rate(
-            &flow,
-            &[("1h", &all), ("24h", &good)],
-        );
+        let windows =
+            SloCalculationService::calculate_burn_rate(&flow, &[("1h", &all), ("24h", &good)]);
         assert_eq!(windows.len(), 2);
         assert!(windows[0].burn_rate > 0.0);
         assert_eq!(windows[1].burn_rate, 0.0);

@@ -114,7 +114,7 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         enabled_only: bool,
     ) -> anyhow::Result<(Vec<RateLimitRule>, u64)> {
         let page = page.max(1);
-        let page_size = page_size.max(1).min(200);
+        let page_size = page_size.clamp(1, 200);
         let offset = ((page - 1) * page_size) as i64;
         let scope_ref = scope.as_deref();
 

@@ -231,6 +231,7 @@ mod tests {
 
     /// テスト用のモック HTTP クライアント。
     struct MockHttpClient {
+        #[allow(clippy::type_complexity)]
         handler: Box<dyn Fn(&str, &[(&str, &str)]) -> (u16, String) + Send + Sync>,
     }
 

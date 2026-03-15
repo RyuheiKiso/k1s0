@@ -3,20 +3,16 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use super::cache::SchemaCache;
+use super::config::Config;
+use super::database::create_pool;
+use super::kafka::{KafkaSchemaEventPublisher, NoopSchemaEventPublisher, SchemaEventPublisher};
 use crate::adapter;
 use crate::adapter::grpc::{ApiRegistryGrpcService, ApiRegistryServiceTonic};
 use crate::adapter::repository::cached_schema_repository::CachedSchemaRepository;
 use crate::adapter::repository::schema_postgres::SchemaPostgresRepository;
 use crate::adapter::repository::version_postgres::VersionPostgresRepository;
-use crate::domain::repository::{
-    ApiSchemaRepository, ApiSchemaVersionRepository,
-};
-use super::cache::SchemaCache;
-use super::config::Config;
-use super::database::create_pool;
-use super::kafka::{
-    KafkaSchemaEventPublisher, NoopSchemaEventPublisher, SchemaEventPublisher,
-};
+use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
 use crate::proto::k1s0::system::apiregistry::v1::api_registry_service_server::ApiRegistryServiceServer;
 use crate::usecase;
 
@@ -134,19 +130,16 @@ pub async fn run() -> anyhow::Result<()> {
     };
 
     // Schema validator factory
-    let validator_factory: Arc<
-        dyn super::validator::SchemaValidatorFactory,
-    > = if let Some(ref validator_cfg) = cfg.validator {
-        Arc::new(
-            super::validator::ConfigurableSchemaValidatorFactory::new(
+    let validator_factory: Arc<dyn super::validator::SchemaValidatorFactory> =
+        if let Some(ref validator_cfg) = cfg.validator {
+            Arc::new(super::validator::ConfigurableSchemaValidatorFactory::new(
                 validator_cfg.openapi_spec_validator_path.clone(),
                 validator_cfg.buf_path.clone(),
                 validator_cfg.timeout_seconds,
-            ),
-        )
-    } else {
-        Arc::new(super::validator::DefaultSchemaValidatorFactory)
-    };
+            ))
+        } else {
+            Arc::new(super::validator::DefaultSchemaValidatorFactory)
+        };
 
     // Use cases
     let list_schemas_uc = Arc::new(usecase::ListSchemasUseCase::new(schema_repo.clone()));
@@ -231,8 +224,8 @@ pub async fn run() -> anyhow::Result<()> {
         state = state.with_auth(auth_st);
     }
 
-    let app =
-        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    let app = adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
         .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC service
@@ -260,7 +253,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(ApiRegistryServiceServer::new(tonic_svc))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

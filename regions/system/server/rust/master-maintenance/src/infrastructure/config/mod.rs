@@ -221,7 +221,7 @@ fn default_batch_size() -> usize {
     500
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -229,15 +229,6 @@ pub struct ObservabilityConfig {
     pub trace: TraceConfig,
     #[serde(default)]
     pub metrics: MetricsConfig,
-}
-impl Default for ObservabilityConfig {
-    fn default() -> Self {
-        Self {
-            log: LogConfig::default(),
-            trace: TraceConfig::default(),
-            metrics: MetricsConfig::default(),
-        }
-    }
 }
 #[derive(Debug, Clone, Deserialize)]
 pub struct LogConfig {

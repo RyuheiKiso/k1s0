@@ -23,6 +23,7 @@ pub struct FileMetadata {
 }
 
 impl FileMetadata {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: String,
         filename: String,

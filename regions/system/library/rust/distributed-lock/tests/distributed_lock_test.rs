@@ -12,7 +12,10 @@ use k1s0_distributed_lock::{DistributedLock, InMemoryDistributedLock, LockError,
 async fn test_acquire_and_release_basic_flow() {
     let lock = InMemoryDistributedLock::new();
 
-    let guard = lock.acquire("resource-1", Duration::from_secs(10)).await.unwrap();
+    let guard = lock
+        .acquire("resource-1", Duration::from_secs(10))
+        .await
+        .unwrap();
     assert_eq!(guard.key, "resource-1");
     assert!(!guard.token.is_empty());
     assert!(lock.is_locked("resource-1").await.unwrap());
@@ -26,11 +29,17 @@ async fn test_acquire_and_release_basic_flow() {
 async fn test_acquire_returns_unique_tokens() {
     let lock = InMemoryDistributedLock::new();
 
-    let g1 = lock.acquire("key-a", Duration::from_secs(10)).await.unwrap();
+    let g1 = lock
+        .acquire("key-a", Duration::from_secs(10))
+        .await
+        .unwrap();
     let g1_token = g1.token.clone();
     lock.release(g1).await.unwrap();
 
-    let g2 = lock.acquire("key-a", Duration::from_secs(10)).await.unwrap();
+    let g2 = lock
+        .acquire("key-a", Duration::from_secs(10))
+        .await
+        .unwrap();
     // Tokens should differ between separate acquisitions
     assert_ne!(g1_token, g2.token);
 
@@ -46,7 +55,10 @@ async fn test_acquire_returns_unique_tokens() {
 async fn test_double_acquire_returns_already_locked() {
     let lock = InMemoryDistributedLock::new();
 
-    let _guard = lock.acquire("key-1", Duration::from_secs(10)).await.unwrap();
+    let _guard = lock
+        .acquire("key-1", Duration::from_secs(10))
+        .await
+        .unwrap();
     let result = lock.acquire("key-1", Duration::from_secs(10)).await;
 
     assert!(result.is_err());
@@ -62,8 +74,14 @@ async fn test_double_acquire_returns_already_locked() {
 async fn test_different_keys_can_be_acquired_independently() {
     let lock = InMemoryDistributedLock::new();
 
-    let g1 = lock.acquire("key-a", Duration::from_secs(10)).await.unwrap();
-    let g2 = lock.acquire("key-b", Duration::from_secs(10)).await.unwrap();
+    let g1 = lock
+        .acquire("key-a", Duration::from_secs(10))
+        .await
+        .unwrap();
+    let g2 = lock
+        .acquire("key-b", Duration::from_secs(10))
+        .await
+        .unwrap();
 
     assert!(lock.is_locked("key-a").await.unwrap());
     assert!(lock.is_locked("key-b").await.unwrap());
@@ -82,7 +100,10 @@ async fn test_extend_updates_ttl() {
     let lock = InMemoryDistributedLock::new();
 
     // Acquire with a very short TTL
-    let guard = lock.acquire("key-1", Duration::from_millis(50)).await.unwrap();
+    let guard = lock
+        .acquire("key-1", Duration::from_millis(50))
+        .await
+        .unwrap();
 
     // Extend with a long TTL
     lock.extend(&guard, Duration::from_secs(60)).await.unwrap();
@@ -99,7 +120,10 @@ async fn test_extend_updates_ttl() {
 async fn test_extend_with_wrong_token_returns_token_mismatch() {
     let lock = InMemoryDistributedLock::new();
 
-    let _guard = lock.acquire("key-1", Duration::from_secs(10)).await.unwrap();
+    let _guard = lock
+        .acquire("key-1", Duration::from_secs(10))
+        .await
+        .unwrap();
     let fake_guard = LockGuard {
         key: "key-1".to_string(),
         token: "wrong-token".to_string(),
@@ -143,7 +167,10 @@ async fn test_acquire_after_expiry_succeeds() {
     assert!(!lock.is_locked("key-1").await.unwrap());
 
     // Re-acquire should succeed
-    let guard2 = lock.acquire("key-1", Duration::from_secs(10)).await.unwrap();
+    let guard2 = lock
+        .acquire("key-1", Duration::from_secs(10))
+        .await
+        .unwrap();
     assert!(lock.is_locked("key-1").await.unwrap());
 
     lock.release(guard2).await.unwrap();
@@ -191,7 +218,10 @@ async fn test_release_nonexistent_lock_returns_lock_not_found() {
 async fn test_release_with_wrong_token_returns_token_mismatch() {
     let lock = InMemoryDistributedLock::new();
 
-    let _guard = lock.acquire("key-1", Duration::from_secs(10)).await.unwrap();
+    let _guard = lock
+        .acquire("key-1", Duration::from_secs(10))
+        .await
+        .unwrap();
 
     let fake_guard = LockGuard {
         key: "key-1".to_string(),
@@ -224,7 +254,10 @@ async fn test_concurrent_acquire_only_one_succeeds() {
     let successes = results.iter().filter(|r| r.is_ok()).count();
     let failures = results.iter().filter(|r| r.is_err()).count();
 
-    assert_eq!(successes, 1, "exactly one concurrent acquire should succeed");
+    assert_eq!(
+        successes, 1,
+        "exactly one concurrent acquire should succeed"
+    );
     assert_eq!(failures, 9, "remaining concurrent acquires should fail");
 
     // Verify all failures are AlreadyLocked
@@ -254,7 +287,10 @@ async fn test_concurrent_acquire_and_release_cycle() {
     let lock = Arc::new(InMemoryDistributedLock::new());
 
     for _ in 0..20 {
-        let guard = lock.acquire("cycle-key", Duration::from_secs(10)).await.unwrap();
+        let guard = lock
+            .acquire("cycle-key", Duration::from_secs(10))
+            .await
+            .unwrap();
         lock.release(guard).await.unwrap();
     }
 
@@ -277,7 +313,10 @@ async fn test_is_locked_returns_false_for_never_acquired() {
 async fn test_is_locked_returns_false_after_release() {
     let lock = InMemoryDistributedLock::new();
 
-    let guard = lock.acquire("key-1", Duration::from_secs(10)).await.unwrap();
+    let guard = lock
+        .acquire("key-1", Duration::from_secs(10))
+        .await
+        .unwrap();
     assert!(lock.is_locked("key-1").await.unwrap());
 
     lock.release(guard).await.unwrap();
@@ -293,7 +332,10 @@ async fn test_is_locked_returns_false_after_release() {
 async fn test_default_trait_creates_usable_lock() {
     let lock = InMemoryDistributedLock::default();
 
-    let guard = lock.acquire("key-1", Duration::from_secs(10)).await.unwrap();
+    let guard = lock
+        .acquire("key-1", Duration::from_secs(10))
+        .await
+        .unwrap();
     assert!(lock.is_locked("key-1").await.unwrap());
     lock.release(guard).await.unwrap();
 }

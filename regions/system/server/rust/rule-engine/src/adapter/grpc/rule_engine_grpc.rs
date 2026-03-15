@@ -5,7 +5,9 @@ use uuid::Uuid;
 
 use crate::domain::entity::rule::{Rule, RuleSet};
 use crate::usecase::create_rule::{CreateRuleError, CreateRuleInput, CreateRuleUseCase};
-use crate::usecase::create_rule_set::{CreateRuleSetError, CreateRuleSetInput, CreateRuleSetUseCase};
+use crate::usecase::create_rule_set::{
+    CreateRuleSetError, CreateRuleSetInput, CreateRuleSetUseCase,
+};
 use crate::usecase::delete_rule::{DeleteRuleError, DeleteRuleUseCase};
 use crate::usecase::delete_rule_set::{DeleteRuleSetError, DeleteRuleSetUseCase};
 use crate::usecase::evaluate::{EvaluateError, EvaluateInput, EvaluateUseCase};
@@ -16,7 +18,9 @@ use crate::usecase::list_rules::{ListRulesError, ListRulesInput, ListRulesUseCas
 use crate::usecase::publish_rule_set::{PublishRuleSetError, PublishRuleSetUseCase};
 use crate::usecase::rollback_rule_set::{RollbackRuleSetError, RollbackRuleSetUseCase};
 use crate::usecase::update_rule::{UpdateRuleError, UpdateRuleInput, UpdateRuleUseCase};
-use crate::usecase::update_rule_set::{UpdateRuleSetError, UpdateRuleSetInput, UpdateRuleSetUseCase};
+use crate::usecase::update_rule_set::{
+    UpdateRuleSetError, UpdateRuleSetInput, UpdateRuleSetUseCase,
+};
 
 #[derive(Debug, Clone)]
 pub struct RuleData {
@@ -135,13 +139,13 @@ impl RuleEngineGrpcService {
         let page = if page <= 0 { 1 } else { page as u32 };
         let page_size = if page_size <= 0 { 20 } else { page_size as u32 };
 
-        let rule_set_uuid = match rule_set_id.as_deref() {
-            Some(id) => Some(
-                Uuid::parse_str(id)
-                    .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule_set_id: {}", id)))?,
-            ),
-            None => None,
-        };
+        let rule_set_uuid =
+            match rule_set_id.as_deref() {
+                Some(id) => Some(Uuid::parse_str(id).map_err(|_| {
+                    GrpcError::InvalidArgument(format!("invalid rule_set_id: {}", id))
+                })?),
+                None => None,
+            };
 
         let output = self
             .list_rules_uc
@@ -262,10 +266,15 @@ impl RuleEngineGrpcService {
         let uid = Uuid::parse_str(&id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule id: {}", id)))?;
 
-        self.delete_rule_uc.execute(&uid).await.map_err(|e| match e {
-            DeleteRuleError::NotFound(id) => GrpcError::NotFound(format!("rule not found: {}", id)),
-            DeleteRuleError::Internal(msg) => GrpcError::Internal(msg),
-        })?;
+        self.delete_rule_uc
+            .execute(&uid)
+            .await
+            .map_err(|e| match e {
+                DeleteRuleError::NotFound(id) => {
+                    GrpcError::NotFound(format!("rule not found: {}", id))
+                }
+                DeleteRuleError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
 
         Ok((true, format!("rule {} deleted", id)))
     }
@@ -326,8 +335,9 @@ impl RuleEngineGrpcService {
         let default_result: serde_json::Value = if default_result_json.is_empty() {
             serde_json::json!({})
         } else {
-            serde_json::from_slice(&default_result_json)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid default_result_json: {}", e)))?
+            serde_json::from_slice(&default_result_json).map_err(|e| {
+                GrpcError::InvalidArgument(format!("invalid default_result_json: {}", e))
+            })?
         };
 
         let rule_uuids: Result<Vec<Uuid>, _> =
@@ -370,25 +380,24 @@ impl RuleEngineGrpcService {
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {}", id)))?;
 
         let default_result = match default_result_json {
-            Some(bytes) if !bytes.is_empty() => Some(
-                serde_json::from_slice(&bytes).map_err(|e| {
+            Some(bytes) if !bytes.is_empty() => {
+                Some(serde_json::from_slice(&bytes).map_err(|e| {
                     GrpcError::InvalidArgument(format!("invalid default_result_json: {}", e))
-                })?,
-            ),
+                })?)
+            }
             _ => None,
         };
 
-        let rule_id_uuids = if rule_ids.is_empty() {
-            None
-        } else {
-            let uuids: Result<Vec<Uuid>, _> =
-                rule_ids.iter().map(|id| Uuid::parse_str(id)).collect();
-            Some(
-                uuids.map_err(|_| {
+        let rule_id_uuids =
+            if rule_ids.is_empty() {
+                None
+            } else {
+                let uuids: Result<Vec<Uuid>, _> =
+                    rule_ids.iter().map(|id| Uuid::parse_str(id)).collect();
+                Some(uuids.map_err(|_| {
                     GrpcError::InvalidArgument("invalid rule_ids format".to_string())
-                })?,
-            )
-        };
+                })?)
+            };
 
         let rs = self
             .update_rule_set_uc

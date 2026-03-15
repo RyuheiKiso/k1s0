@@ -267,8 +267,7 @@ fn error_response_with_details_includes_details() {
 // with_request_id でデフォルトの request_id が上書きされることを確認する。
 #[test]
 fn error_response_with_request_id_overrides_default() {
-    let resp =
-        ErrorResponse::new("SYS_TEST", "test").with_request_id("custom-correlation-id-123");
+    let resp = ErrorResponse::new("SYS_TEST", "test").with_request_id("custom-correlation-id-123");
     assert_eq!(resp.error.request_id, "custom-correlation-id-123");
 }
 
@@ -291,7 +290,11 @@ fn error_response_serialization_envelope() {
 // 詳細情報付き ErrorResponse が JSON に正しくシリアライズされることを確認する。
 #[test]
 fn error_response_with_details_serialization() {
-    let details = vec![ErrorDetail::new("namespace", "required", "must not be empty")];
+    let details = vec![ErrorDetail::new(
+        "namespace",
+        "required",
+        "must not be empty",
+    )];
     let resp = ErrorResponse::with_details("SYS_CONFIG_VALIDATION_FAILED", "invalid", details)
         .with_request_id("req-456");
     let json = serde_json::to_value(&resp).unwrap();

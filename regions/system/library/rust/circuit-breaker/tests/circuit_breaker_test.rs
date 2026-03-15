@@ -8,7 +8,11 @@ use std::time::Duration;
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn fast_config(failure_threshold: u32, success_threshold: u32, timeout_ms: u64) -> CircuitBreakerConfig {
+fn fast_config(
+    failure_threshold: u32,
+    success_threshold: u32,
+    timeout_ms: u64,
+) -> CircuitBreakerConfig {
     CircuitBreakerConfig {
         failure_threshold,
         success_threshold,

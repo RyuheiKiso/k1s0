@@ -33,7 +33,10 @@ fn span_lifecycle_with_multiple_events() {
 
     assert_eq!(span.events.len(), 3);
     assert_eq!(span.events[0].name, "step-start");
-    assert_eq!(span.events[1].attributes.get("detail"), Some(&"processing".to_string()));
+    assert_eq!(
+        span.events[1].attributes.get("detail"),
+        Some(&"processing".to_string())
+    );
     assert_eq!(span.events[2].attributes.len(), 0);
 
     end_span(span); // should not panic
@@ -105,11 +108,7 @@ fn baggage_from_header_ignores_entries_without_equals() {
 // flags が 0xff のときに traceparent の末尾が "-ff" になることを確認する。
 #[test]
 fn trace_context_flags_all_bits() {
-    let ctx = TraceContext::new(
-        "0af7651916cd43dd8448eb211c80319c",
-        "b7ad6b7169203331",
-        0xff,
-    );
+    let ctx = TraceContext::new("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331", 0xff);
     let tp = ctx.to_traceparent();
     assert!(tp.ends_with("-ff"));
 
@@ -224,7 +223,10 @@ fn extract_with_only_baggage_header() {
 #[test]
 fn extract_with_invalid_traceparent() {
     let mut headers = HashMap::new();
-    headers.insert("traceparent".to_string(), "not-a-valid-traceparent".to_string());
+    headers.insert(
+        "traceparent".to_string(),
+        "not-a-valid-traceparent".to_string(),
+    );
     let (ctx, baggage) = extract_context(&headers);
     assert!(ctx.is_none());
     assert!(baggage.is_empty());

@@ -5,8 +5,8 @@ use chrono::Utc;
 use tracing::{info, warn};
 
 use crate::domain::entity::health::{HealthState, HealthStatus};
-use crate::domain::repository::{HealthRepository, ServiceRepository};
 use crate::domain::repository::service_repository::ServiceListFilters;
+use crate::domain::repository::{HealthRepository, ServiceRepository};
 
 /// HealthCollectorConfig はヘルスコレクターの設定を表す。
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -90,33 +90,25 @@ impl HealthCollector {
             };
 
             let start = std::time::Instant::now();
-            let (state, message, response_time_ms) = match self
-                .http_client
-                .get(&healthcheck_url)
-                .send()
-                .await
-            {
-                Ok(resp) => {
-                    let elapsed = start.elapsed().as_millis() as i64;
-                    if resp.status().is_success() {
-                        (HealthState::Healthy, None, Some(elapsed))
-                    } else {
-                        (
-                            HealthState::Degraded,
-                            Some(format!("HTTP {}", resp.status())),
-                            Some(elapsed),
-                        )
+            let (state, message, response_time_ms) =
+                match self.http_client.get(&healthcheck_url).send().await {
+                    Ok(resp) => {
+                        let elapsed = start.elapsed().as_millis() as i64;
+                        if resp.status().is_success() {
+                            (HealthState::Healthy, None, Some(elapsed))
+                        } else {
+                            (
+                                HealthState::Degraded,
+                                Some(format!("HTTP {}", resp.status())),
+                                Some(elapsed),
+                            )
+                        }
                     }
-                }
-                Err(e) => {
-                    let elapsed = start.elapsed().as_millis() as i64;
-                    (
-                        HealthState::Unhealthy,
-                        Some(e.to_string()),
-                        Some(elapsed),
-                    )
-                }
-            };
+                    Err(e) => {
+                        let elapsed = start.elapsed().as_millis() as i64;
+                        (HealthState::Unhealthy, Some(e.to_string()), Some(elapsed))
+                    }
+                };
 
             let health = HealthStatus {
                 service_id: service.id,

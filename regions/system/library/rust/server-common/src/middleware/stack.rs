@@ -104,13 +104,11 @@ impl K1s0Stack {
             router
         };
 
-        let router = if let Some(metrics) = self.metrics {
+        if let Some(metrics) = self.metrics {
             router.layer(MetricsLayer::new(metrics))
         } else {
             router
-        };
-
-        router
+        }
     }
 }
 

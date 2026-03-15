@@ -3,10 +3,6 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use crate::adapter;
-use crate::adapter::grpc::EventStoreGrpcService;
-use crate::adapter::handler::{self, AppState};
-use crate::domain::repository::{EventRepository, EventStreamRepository, SnapshotRepository};
 use super::config::Config;
 use super::in_memory::{
     InMemoryEventRepository, InMemoryEventStreamRepository, InMemorySnapshotRepository,
@@ -15,6 +11,9 @@ use super::kafka::EventPublisher;
 use super::persistence::{
     EventPostgresRepository, SnapshotPostgresRepository, StreamPostgresRepository,
 };
+use crate::adapter::grpc::EventStoreGrpcService;
+use crate::adapter::handler::{self, AppState};
+use crate::domain::repository::{EventRepository, EventStreamRepository, SnapshotRepository};
 use crate::usecase;
 
 /// シャットダウンシグナルを待機する
@@ -185,11 +184,12 @@ pub async fn run() -> anyhow::Result<()> {
             }
         }),
     )?;
-    let grpc_auth_state = auth_state
-        .as_ref()
-        .map(|s| crate::adapter::grpc::EventStoreGrpcAuthState {
-            verifier: s.verifier.clone(),
-        });
+    let grpc_auth_state =
+        auth_state
+            .as_ref()
+            .map(|s| crate::adapter::grpc::EventStoreGrpcAuthState {
+                verifier: s.verifier.clone(),
+            });
 
     // List use cases
     let list_events_uc = Arc::new(usecase::ListEventsUseCase::new(event_repo.clone()));
@@ -216,7 +216,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     // tonic wrapper
     use crate::proto::k1s0::system::eventstore::v1::event_store_service_server::EventStoreServiceServer;
-    let event_store_tonic = crate::adapter::grpc::EventStoreServiceTonic::new(grpc_svc, grpc_auth_state);
+    let event_store_tonic =
+        crate::adapter::grpc::EventStoreServiceTonic::new(grpc_svc, grpc_auth_state);
 
     // Router (CorrelationLayer で相関IDを伝播)
     let app = handler::router(state)
@@ -231,7 +232,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(EventStoreServiceServer::new(event_store_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

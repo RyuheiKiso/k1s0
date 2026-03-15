@@ -18,23 +18,19 @@ use crate::domain::model::graphql_context::{
     ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
 };
 use crate::domain::model::{
-    AuditLogConnection, CatalogService, CatalogServiceConnection, ConfigEntry,
-    CreateJobPayload, CreateSessionPayload, CreateTenantPayload, CreateWorkflowPayload,
-    DeleteJobPayload, DeleteSecretPayload, DeleteServicePayload, DeleteWorkflowPayload,
-    FeatureFlag, Job, JobExecution, Navigation, NotificationChannel, NotificationLog,
-    NotificationTemplate, PermissionCheck, RecordAuditLogPayload, RefreshSessionPayload,
-    RegisterServicePayload, RevokeAllSessionsPayload, RevokeSessionPayload, Role,
-    RotateSecretPayload, SecretMetadata, SendNotificationPayload, ServiceHealth,
-    Session, SetFeatureFlagPayload, SetSecretPayload, Tenant, TenantConnection,
-    TenantStatus, UpdateJobPayload, UpdateServicePayload, UpdateTenantPayload,
-    UpdateWorkflowPayload, User, UserError, VaultAuditLogEntry, WorkflowDefinition,
-    WorkflowInstance, WorkflowTask,
-    CreateChannelPayload, UpdateChannelPayload, DeleteChannelPayload,
-    CreateTemplatePayload, UpdateTemplatePayload, DeleteTemplatePayload,
-    PauseJobPayload, ResumeJobPayload, TriggerJobPayload,
-    StartInstancePayload, CancelInstancePayload,
-    ReassignTaskPayload, ApproveTaskPayload, RejectTaskPayload,
-    RetryNotificationPayload,
+    ApproveTaskPayload, AuditLogConnection, CancelInstancePayload, CatalogService,
+    CatalogServiceConnection, ConfigEntry, CreateChannelPayload, CreateJobPayload,
+    CreateSessionPayload, CreateTemplatePayload, CreateTenantPayload, CreateWorkflowPayload,
+    DeleteChannelPayload, DeleteJobPayload, DeleteSecretPayload, DeleteServicePayload,
+    DeleteTemplatePayload, DeleteWorkflowPayload, FeatureFlag, Job, JobExecution, Navigation,
+    NotificationChannel, NotificationLog, NotificationTemplate, PauseJobPayload, PermissionCheck,
+    ReassignTaskPayload, RecordAuditLogPayload, RefreshSessionPayload, RegisterServicePayload,
+    RejectTaskPayload, ResumeJobPayload, RetryNotificationPayload, RevokeAllSessionsPayload,
+    RevokeSessionPayload, Role, RotateSecretPayload, SecretMetadata, SendNotificationPayload,
+    ServiceHealth, Session, SetFeatureFlagPayload, SetSecretPayload, StartInstancePayload, Tenant,
+    TenantConnection, TenantStatus, TriggerJobPayload, UpdateChannelPayload, UpdateJobPayload,
+    UpdateServicePayload, UpdateTemplatePayload, UpdateTenantPayload, UpdateWorkflowPayload, User,
+    UserError, VaultAuditLogEntry, WorkflowDefinition, WorkflowInstance, WorkflowTask,
 };
 use crate::infrastructure::auth::JwksVerifier;
 use crate::infrastructure::config::GraphQLConfig;
@@ -492,12 +488,7 @@ impl QueryRoot {
         search: Option<String>,
     ) -> FieldResult<CatalogServiceConnection> {
         self.service_catalog_query
-            .list_services(
-                first,
-                tier.as_deref(),
-                status.as_deref(),
-                search.as_deref(),
-            )
+            .list_services(first, tier.as_deref(), status.as_deref(), search.as_deref())
             .await
             .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
@@ -648,11 +639,7 @@ impl QueryRoot {
 
     // --- Scheduler queries ---
 
-    async fn job(
-        &self,
-        _ctx: &Context<'_>,
-        job_id: async_graphql::ID,
-    ) -> FieldResult<Option<Job>> {
+    async fn job(&self, _ctx: &Context<'_>, job_id: async_graphql::ID) -> FieldResult<Option<Job>> {
         self.scheduler_query
             .get_job(job_id.as_str())
             .await
@@ -836,6 +823,7 @@ impl QueryRoot {
             .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn workflow_tasks(
         &self,
         _ctx: &Context<'_>,
@@ -1248,7 +1236,12 @@ impl MutationRoot {
         ensure_write_permission(ctx)?;
         Ok(self
             .notification_mutation
-            .create_channel(&input.name, &input.channel_type, &input.config_json, input.enabled)
+            .create_channel(
+                &input.name,
+                &input.channel_type,
+                &input.config_json,
+                input.enabled,
+            )
             .await)
     }
 
@@ -1276,10 +1269,7 @@ impl MutationRoot {
         id: async_graphql::ID,
     ) -> FieldResult<DeleteChannelPayload> {
         ensure_write_permission(ctx)?;
-        Ok(self
-            .notification_mutation
-            .delete_channel(id.as_str())
-            .await)
+        Ok(self.notification_mutation.delete_channel(id.as_str()).await)
     }
 
     async fn create_template(

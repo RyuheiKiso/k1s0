@@ -32,11 +32,7 @@ fn make_email_request() -> NotificationRequest {
 // NotificationRequest::new がチャンネル・受信者・本文を正しく設定することを確認する。
 #[test]
 fn request_new_sets_fields_correctly() {
-    let req = NotificationRequest::new(
-        NotificationChannel::Email,
-        "alice@example.com",
-        "Welcome!",
-    );
+    let req = NotificationRequest::new(NotificationChannel::Email, "alice@example.com", "Welcome!");
     assert_eq!(req.channel, NotificationChannel::Email);
     assert_eq!(req.recipient, "alice@example.com");
     assert_eq!(req.body, "Welcome!");
@@ -238,8 +234,7 @@ async fn stub_send_push_success() {
 #[tokio::test]
 async fn stub_send_slack_success() {
     let client = StubNotificationClient::new();
-    let req =
-        NotificationRequest::new(NotificationChannel::Slack, "#alerts", "Server is down!");
+    let req = NotificationRequest::new(NotificationChannel::Slack, "#alerts", "Server is down!");
     let result = client.send(req).await.unwrap();
     assert_eq!(result.status, "sent");
 }
@@ -349,9 +344,11 @@ async fn stub_send_batch_error_propagates() {
     let client = StubNotificationClient::failing(NotificationClientError::SendError(
         "connection refused".to_string(),
     ));
-    let requests = vec![
-        NotificationRequest::new(NotificationChannel::Email, "a@example.com", "body"),
-    ];
+    let requests = vec![NotificationRequest::new(
+        NotificationChannel::Email,
+        "a@example.com",
+        "body",
+    )];
     let result = client.send_batch(requests).await;
     assert!(result.is_err());
     match result.unwrap_err() {

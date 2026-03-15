@@ -1,8 +1,8 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -46,7 +46,7 @@ pub async fn list_teams(State(state): State<AppState>) -> impl IntoResponse {
     match state.list_teams_uc.execute().await {
         Ok(teams) => (StatusCode::OK, Json(serde_json::to_value(teams).unwrap())).into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -71,9 +71,13 @@ pub async fn get_team_services(
     };
 
     match state.list_services_uc.execute(filters).await {
-        Ok(services) => (StatusCode::OK, Json(serde_json::to_value(services).unwrap())).into_response(),
+        Ok(services) => (
+            StatusCode::OK,
+            Json(serde_json::to_value(services).unwrap()),
+        )
+            .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -91,7 +95,7 @@ pub async fn get_team(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetTeamError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &msg);
+            let err = ErrorResponse::new("SYS_SCAT_005", msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -116,11 +120,11 @@ pub async fn create_team(
         )
             .into_response(),
         Err(CreateTeamError::Validation(msg)) => {
-            let err = ErrorResponse::new("SYS_SCAT_004", &msg);
+            let err = ErrorResponse::new("SYS_SCAT_004", msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(CreateTeamError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &msg);
+            let err = ErrorResponse::new("SYS_SCAT_005", msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -147,11 +151,11 @@ pub async fn update_team(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(UpdateTeamError::Validation(msg)) => {
-            let err = ErrorResponse::new("SYS_SCAT_004", &msg);
+            let err = ErrorResponse::new("SYS_SCAT_004", msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(UpdateTeamError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &msg);
+            let err = ErrorResponse::new("SYS_SCAT_005", msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -169,7 +173,7 @@ pub async fn delete_team(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeleteTeamError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &msg);
+            let err = ErrorResponse::new("SYS_SCAT_005", msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

@@ -5,6 +5,7 @@ use serde_json::Value;
 
 #[async_trait]
 pub trait DynamicRecordRepository: Send + Sync {
+    #[allow(clippy::too_many_arguments)]
     async fn find_all(
         &self,
         table_def: &TableDefinition,

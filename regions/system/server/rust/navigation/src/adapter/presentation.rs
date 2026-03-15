@@ -148,7 +148,10 @@ mod tests {
         assert_eq!(response.routes[0].id, "test");
         assert_eq!(response.routes[0].guard_ids, vec!["auth"]);
         assert_eq!(
-            response.routes[0].transition.as_ref().map(|t| t.duration_ms),
+            response.routes[0]
+                .transition
+                .as_ref()
+                .map(|t| t.duration_ms),
             Some(450)
         );
     }

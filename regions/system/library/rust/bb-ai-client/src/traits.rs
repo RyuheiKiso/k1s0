@@ -1,7 +1,9 @@
 // AIクライアントのトレイト定義
 // AIバックエンドとの通信インターフェースを抽象化する
 
-use crate::types::{AiClientError, ModelInfo, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse};
+use crate::types::{
+    AiClientError, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse, ModelInfo,
+};
 
 // AiClient トレイト: AIバックエンドとの通信インターフェース
 // mock featureが有効な場合、mockallによるモック自動生成を行う

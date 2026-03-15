@@ -89,7 +89,7 @@ jobs:
           mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
           for manifest in "${manifests[@]}"; do
             case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml)
+              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
                 continue
                 ;;
             esac
@@ -102,7 +102,7 @@ jobs:
           mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
           for manifest in "${manifests[@]}"; do
             case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml)
+              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
                 continue
                 ;;
             esac
@@ -207,7 +207,7 @@ jobs:
           mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
           for manifest in "${manifests[@]}"; do
             case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml)
+              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
                 continue
                 ;;
             esac
@@ -302,7 +302,7 @@ jobs:
           mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
           for manifest in "${manifests[@]}"; do
             case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml)
+              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
                 continue
                 ;;
             esac
@@ -366,6 +366,30 @@ jobs:
             echo "=== docker build domain-master ==="
             docker build -f regions/business/accounting/server/rust/domain-master/Dockerfile -t ci-domain-master .
           fi
+
+  # --- 実験系 ai-* クレート（continue-on-error で可視性を維持） ---
+  check-ai-experimental:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.93
+        with:
+          components: clippy
+      - name: Check ai-agent
+        continue-on-error: true
+        run: cargo check --manifest-path regions/system/server/rust/ai-agent/Cargo.toml --all-targets
+      - name: Check ai-gateway
+        continue-on-error: true
+        run: cargo check --manifest-path regions/system/server/rust/ai-gateway/Cargo.toml --all-targets
+      - name: Clippy ai-agent
+        continue-on-error: true
+        run: cargo clippy --manifest-path regions/system/server/rust/ai-agent/Cargo.toml --all-targets -- -D warnings
+      - name: Clippy ai-gateway
+        continue-on-error: true
+        run: cargo clippy --manifest-path regions/system/server/rust/ai-gateway/Cargo.toml --all-targets -- -D warnings
 
   # NOTE: proto チェックは専用ワークフロー proto.yaml で実行する。
   # ci.yaml の detect-changes で proto 変更を検出し、proto.yaml が独立してトリガーされる。

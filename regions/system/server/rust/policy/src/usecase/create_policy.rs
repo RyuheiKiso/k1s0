@@ -75,7 +75,7 @@ impl CreatePolicyUseCase {
             input.rego_content.clone(),
         );
         policy.package_path = PolicyDomainService::normalize_package_path(&input.package_path);
-        policy.bundle_id = input.bundle_id.clone();
+        policy.bundle_id = input.bundle_id;
 
         self.repo
             .create(&policy)

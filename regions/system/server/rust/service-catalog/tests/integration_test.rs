@@ -6,7 +6,7 @@ use chrono::Utc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
-use k1s0_service_catalog::adapter::handler::{router, AppState, ValidateTokenUseCase};
+use k1s0_service_catalog::adapter::handler::{AppState, ValidateTokenUseCase, router};
 use k1s0_service_catalog::domain::entity::claims::{Claims, RealmAccess};
 use k1s0_service_catalog::domain::entity::dependency::Dependency;
 use k1s0_service_catalog::domain::entity::health::HealthStatus;
@@ -77,7 +77,13 @@ impl ServiceRepository for TestServiceRepository {
     }
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<Service>> {
-        Ok(self.services.read().await.iter().find(|s| s.id == id).cloned())
+        Ok(self
+            .services
+            .read()
+            .await
+            .iter()
+            .find(|s| s.id == id)
+            .cloned())
     }
 
     async fn create(&self, service: &Service) -> anyhow::Result<Service> {
@@ -217,11 +223,7 @@ impl DocRepository for TestDocRepository {
         Ok(vec![])
     }
 
-    async fn set_docs(
-        &self,
-        _service_id: Uuid,
-        _docs: Vec<ServiceDoc>,
-    ) -> anyhow::Result<()> {
+    async fn set_docs(&self, _service_id: Uuid, _docs: Vec<ServiceDoc>) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -260,12 +262,10 @@ fn make_test_app_with_repos(
         get_service_uc: Arc::new(k1s0_service_catalog::usecase::GetServiceUseCase::new(
             service_repo.clone(),
         )),
-        register_service_uc: Arc::new(
-            k1s0_service_catalog::usecase::RegisterServiceUseCase::new(
-                service_repo.clone(),
-                team_repo.clone(),
-            ),
-        ),
+        register_service_uc: Arc::new(k1s0_service_catalog::usecase::RegisterServiceUseCase::new(
+            service_repo.clone(),
+            team_repo.clone(),
+        )),
         update_service_uc: Arc::new(k1s0_service_catalog::usecase::UpdateServiceUseCase::new(
             service_repo.clone(),
         )),
@@ -284,9 +284,9 @@ fn make_test_app_with_repos(
         get_scorecard_uc: Arc::new(k1s0_service_catalog::usecase::GetScorecardUseCase::new(
             scorecard_repo,
         )),
-        search_services_uc: Arc::new(
-            k1s0_service_catalog::usecase::SearchServicesUseCase::new(service_repo.clone()),
-        ),
+        search_services_uc: Arc::new(k1s0_service_catalog::usecase::SearchServicesUseCase::new(
+            service_repo.clone(),
+        )),
         list_teams_uc: Arc::new(k1s0_service_catalog::usecase::ListTeamsUseCase::new(
             team_repo.clone(),
         )),
@@ -456,7 +456,7 @@ async fn test_get_service_not_found() {
     let random_id = Uuid::new_v4();
 
     let req = Request::builder()
-        .uri(&format!("/api/v1/services/{}", random_id))
+        .uri(format!("/api/v1/services/{}", random_id))
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();
@@ -677,7 +677,7 @@ async fn test_delete_service() {
 
     let req = Request::builder()
         .method("DELETE")
-        .uri(&format!("/api/v1/services/{}", svc_id))
+        .uri(format!("/api/v1/services/{}", svc_id))
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();
@@ -726,7 +726,7 @@ async fn test_get_team_not_found() {
     let random_id = Uuid::new_v4();
 
     let req = Request::builder()
-        .uri(&format!("/api/v1/teams/{}", random_id))
+        .uri(format!("/api/v1/teams/{}", random_id))
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();
@@ -748,7 +748,7 @@ async fn test_delete_team() {
 
     let req = Request::builder()
         .method("DELETE")
-        .uri(&format!("/api/v1/teams/{}", team_id))
+        .uri(format!("/api/v1/teams/{}", team_id))
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();
@@ -950,7 +950,7 @@ async fn test_update_team() {
 
     let req = Request::builder()
         .method("PUT")
-        .uri(&format!("/api/v1/teams/{}", team_id))
+        .uri(format!("/api/v1/teams/{}", team_id))
         .header("content-type", "application/json")
         .header("Authorization", "Bearer test-token")
         .body(Body::from(serde_json::to_string(&input).unwrap()))
@@ -972,7 +972,7 @@ async fn test_update_team_not_found() {
 
     let req = Request::builder()
         .method("PUT")
-        .uri(&format!("/api/v1/teams/{}", random_id))
+        .uri(format!("/api/v1/teams/{}", random_id))
         .header("content-type", "application/json")
         .header("Authorization", "Bearer test-token")
         .body(Body::from(serde_json::to_string(&input).unwrap()))
@@ -994,7 +994,7 @@ async fn test_get_team_found() {
     );
 
     let req = Request::builder()
-        .uri(&format!("/api/v1/teams/{}", team_id))
+        .uri(format!("/api/v1/teams/{}", team_id))
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();

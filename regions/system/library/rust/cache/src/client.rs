@@ -12,7 +12,7 @@ pub struct CacheEntry {
 impl CacheEntry {
     pub fn is_expired(&self) -> bool {
         self.expires_at
-            .map_or(false, |exp| exp <= std::time::Instant::now())
+            .is_some_and(|exp| exp <= std::time::Instant::now())
     }
 }
 

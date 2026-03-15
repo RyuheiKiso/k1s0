@@ -122,12 +122,7 @@ impl KeycloakClient {
         let token_url = self.config.admin_token_url();
         let form = self.config.admin_token_form();
 
-        let resp = self
-            .http_client
-            .post(&token_url)
-            .form(&form)
-            .send()
-            .await?;
+        let resp = self.http_client.post(&token_url).form(&form).send().await?;
 
         let body: serde_json::Value = resp.error_for_status()?.json().await?;
         let token = body["access_token"]

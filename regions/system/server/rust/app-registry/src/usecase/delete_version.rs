@@ -56,14 +56,15 @@ impl DeleteVersionUseCase {
             .await
             .map_err(|e| DeleteVersionError::Internal(e.to_string()))?;
 
-        let selected = resolve_version(&versions, version, platform, arch).map_err(|error| match error {
-            VersionSelectionError::NotFound => {
-                DeleteVersionError::VersionNotFound(app_id.to_string(), version.to_string())
-            }
-            VersionSelectionError::Ambiguous => {
-                DeleteVersionError::AmbiguousVersion(app_id.to_string(), version.to_string())
-            }
-        })?;
+        let selected =
+            resolve_version(&versions, version, platform, arch).map_err(|error| match error {
+                VersionSelectionError::NotFound => {
+                    DeleteVersionError::VersionNotFound(app_id.to_string(), version.to_string())
+                }
+                VersionSelectionError::Ambiguous => {
+                    DeleteVersionError::AmbiguousVersion(app_id.to_string(), version.to_string())
+                }
+            })?;
 
         self.version_repo
             .delete(app_id, version, &selected.platform, &selected.arch)

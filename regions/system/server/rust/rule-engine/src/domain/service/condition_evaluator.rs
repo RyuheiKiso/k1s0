@@ -57,7 +57,10 @@ impl ConditionEvaluator {
         }
     }
 
-    fn resolve_field<'a>(context: &'a serde_json::Value, path: &str) -> Option<&'a serde_json::Value> {
+    fn resolve_field<'a>(
+        context: &'a serde_json::Value,
+        path: &str,
+    ) -> Option<&'a serde_json::Value> {
         let mut current = context;
         for part in path.split('.') {
             current = current.get(part)?;
@@ -102,7 +105,8 @@ impl ConditionEvaluator {
         actual: Option<&serde_json::Value>,
         expected: Option<&serde_json::Value>,
     ) -> Result<bool, String> {
-        let actual_val = actual.ok_or_else(|| "actual value is null for 'in' operator".to_string())?;
+        let actual_val =
+            actual.ok_or_else(|| "actual value is null for 'in' operator".to_string())?;
         let arr = expected
             .and_then(|v| v.as_array())
             .ok_or_else(|| "expected value for 'in' operator must be an array".to_string())?;

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { createApiClient } from 'system-client';
 
 /**
  * API クライアント
@@ -6,48 +6,14 @@ import axios from 'axios';
  * - baseURL: BFF のプロキシエンドポイント
  * - withCredentials: Cookie を自動送信（BFF + HttpOnly Cookie 方式）
  * - CSRF トークン: BFF が発行する X-CSRF-Token をリクエストヘッダーに付与
+ * - onUnauthorized: 401 エラー時のコールバック（テスト時に差し替え可能）
  */
-const apiClient = axios.create({
+const apiClient = createApiClient({
   baseURL: '/api',
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
+  // 未認証時はログインページへリダイレクトする
+  onUnauthorized: () => {
+    window.location.href = '/auth/login';
   },
 });
-
-// CSRF トークンをリクエストヘッダーに付与
-apiClient.interceptors.request.use((config) => {
-  const csrfToken = document.querySelector<HTMLMetaElement>(
-    'meta[name="csrf-token"]',
-  )?.content;
-  if (csrfToken) {
-    config.headers['X-CSRF-Token'] = csrfToken;
-  }
-  return config;
-});
-
-// レスポンスインターセプター: エラーハンドリング
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (axios.isAxiosError(error)) {
-      switch (error.response?.status) {
-        case 401:
-          // 認証エラー: ログインページへリダイレクト
-          window.location.href = '/auth/login';
-          break;
-        case 403:
-          // 権限エラー: アクセス拒否
-          console.error('アクセスが拒否されました');
-          break;
-        case 500:
-          // サーバーエラー
-          console.error('サーバーエラーが発生しました');
-          break;
-      }
-    }
-    return Promise.reject(error);
-  },
-);
 
 export { apiClient };

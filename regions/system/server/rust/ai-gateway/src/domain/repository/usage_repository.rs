@@ -14,10 +14,5 @@ pub trait UsageRepository: Send + Sync {
 
     /// 指定テナントの期間内使用量レコードを取得する。
     /// start, end はISO 8601形式の日時文字列。
-    async fn find_by_tenant(
-        &self,
-        tenant_id: &str,
-        start: &str,
-        end: &str,
-    ) -> Vec<UsageRecord>;
+    async fn find_by_tenant(&self, tenant_id: &str, start: &str, end: &str) -> Vec<UsageRecord>;
 }

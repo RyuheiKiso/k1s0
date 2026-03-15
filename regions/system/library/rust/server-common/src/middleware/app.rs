@@ -134,9 +134,9 @@ impl K1s0App {
 
     fn build_inner(self) -> Result<K1s0AppReady, Box<dyn std::error::Error>> {
         let service_name = self.telemetry_config.service_name.clone();
-        let profile = self.profile.unwrap_or_else(|| {
-            Profile::from_env(&self.telemetry_config.environment)
-        });
+        let profile = self
+            .profile
+            .unwrap_or_else(|| Profile::from_env(&self.telemetry_config.environment));
 
         let metrics = Arc::new(Metrics::new(&service_name));
 

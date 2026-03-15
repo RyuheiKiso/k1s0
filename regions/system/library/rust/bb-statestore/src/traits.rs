@@ -34,8 +34,5 @@ pub trait StateStore: k1s0_bb_core::Component {
     async fn bulk_get(&self, keys: &[&str]) -> Result<Vec<StateEntry>, StateStoreError>;
 
     /// 複数キーを一括設定し、新しい ETag のリストを返す。
-    async fn bulk_set(
-        &self,
-        entries: &[(&str, &[u8])],
-    ) -> Result<Vec<String>, StateStoreError>;
+    async fn bulk_set(&self, entries: &[(&str, &[u8])]) -> Result<Vec<String>, StateStoreError>;
 }

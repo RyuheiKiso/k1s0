@@ -17,13 +17,14 @@ pub async fn auth_middleware(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, ServiceError> {
-    let token = extract_bearer_token(&req).ok_or_else(|| {
-        ServiceError::unauthorized("AUTH", "Missing bearer token")
-    })?;
+    let token = extract_bearer_token(&req)
+        .ok_or_else(|| ServiceError::unauthorized("AUTH", "Missing bearer token"))?;
 
-    let claims = state.verifier.verify_token(&token).await.map_err(|_| {
-        ServiceError::unauthorized("AUTH", "Invalid or expired token")
-    })?;
+    let claims = state
+        .verifier
+        .verify_token(&token)
+        .await
+        .map_err(|_| ServiceError::unauthorized("AUTH", "Invalid or expired token"))?;
 
     req.extensions_mut().insert(claims);
     Ok(next.run(req).await)

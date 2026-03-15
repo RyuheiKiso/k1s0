@@ -14,11 +14,7 @@ impl CompletePaymentUseCase {
         Self { payment_repo }
     }
 
-    pub async fn execute(
-        &self,
-        payment_id: Uuid,
-        transaction_id: &str,
-    ) -> anyhow::Result<Payment> {
+    pub async fn execute(&self, payment_id: Uuid, transaction_id: &str) -> anyhow::Result<Payment> {
         let existing = self
             .payment_repo
             .find_by_id(payment_id)

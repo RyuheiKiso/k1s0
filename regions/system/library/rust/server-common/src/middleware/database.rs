@@ -51,7 +51,9 @@ impl DatabaseSetup {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(self.config.max_connections)
             .min_connections(self.config.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(self.config.connect_timeout_secs))
+            .acquire_timeout(std::time::Duration::from_secs(
+                self.config.connect_timeout_secs,
+            ))
             .connect(&url)
             .await?;
         Ok(pool)

@@ -5,10 +5,10 @@ use tracing::info;
 
 use super::config::Config;
 use super::navigation_loader::YamlNavigationConfigLoader;
-use crate::usecase;
-use crate::usecase::get_navigation::JwksNavigationTokenVerifier;
 use crate::adapter;
 use crate::proto;
+use crate::usecase;
+use crate::usecase::get_navigation::JwksNavigationTokenVerifier;
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -75,18 +75,20 @@ pub async fn run() -> anyhow::Result<()> {
     // Token verifier (optional)
     let verifier: Option<Arc<dyn usecase::get_navigation::NavigationTokenVerifier>> =
         k1s0_server_common::require_auth_state(
-        "navigation-server",
-        &cfg.app.environment,
-        cfg.auth.as_ref().map(|auth_cfg| {
-            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier");
-            Arc::new(JwksNavigationTokenVerifier::new(Arc::new(k1s0_auth::JwksVerifier::new(
-                &auth_cfg.jwks_url,
-                &auth_cfg.issuer,
-                &auth_cfg.audience,
-                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-            )))) as Arc<dyn usecase::get_navigation::NavigationTokenVerifier>
-        }),
-    )?;
+            "navigation-server",
+            &cfg.app.environment,
+            cfg.auth.as_ref().map(|auth_cfg| {
+                info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier");
+                Arc::new(JwksNavigationTokenVerifier::new(Arc::new(
+                    k1s0_auth::JwksVerifier::new(
+                        &auth_cfg.jwks_url,
+                        &auth_cfg.issuer,
+                        &auth_cfg.audience,
+                        std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+                    ),
+                ))) as Arc<dyn usecase::get_navigation::NavigationTokenVerifier>
+            }),
+        )?;
 
     // Use case
     let get_navigation_uc = Arc::new(usecase::GetNavigationUseCase::new(loader, verifier));
@@ -110,8 +112,8 @@ pub async fn run() -> anyhow::Result<()> {
         cfg.observability.metrics.enabled,
         &cfg.observability.metrics.path,
     )
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
-        .layer(k1s0_correlation::layer::CorrelationLayer::new());
+    .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC server
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
@@ -124,7 +126,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(NavigationServiceServer::new(navigation_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

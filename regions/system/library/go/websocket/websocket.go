@@ -43,10 +43,9 @@ type WsConfig struct {
 	PingIntervalMs       *int64
 }
 
-// DefaultConfig はデフォルト設定を返す。
+// DefaultConfig はデフォルト設定を返す。URL は呼び出し側が必ず指定すること。
 func DefaultConfig() WsConfig {
 	return WsConfig{
-		URL:                  "ws://localhost",
 		Reconnect:            true,
 		MaxReconnectAttempts: 5,
 		ReconnectDelayMs:     1000,

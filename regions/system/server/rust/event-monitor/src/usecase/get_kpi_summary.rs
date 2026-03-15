@@ -149,9 +149,7 @@ mod tests {
         let mut inst_mock = MockFlowInstanceRepository::new();
         inst_mock
             .expect_find_by_flow_id_paginated()
-            .returning(move |id, _, _| {
-                Ok((vec![make_completed_instance(*id)], 1))
-            });
+            .returning(move |id, _, _| Ok((vec![make_completed_instance(*id)], 1)));
 
         let uc = GetKpiSummaryUseCase::new(Arc::new(def_mock), Arc::new(inst_mock));
         let result = uc.execute("24h").await;

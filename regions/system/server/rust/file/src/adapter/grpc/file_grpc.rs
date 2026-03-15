@@ -112,6 +112,7 @@ impl FileGrpcService {
         Ok((output.files, output.total_count))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn generate_upload_url(
         &self,
         filename: String,

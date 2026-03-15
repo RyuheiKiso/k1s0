@@ -46,6 +46,7 @@ enum Step {
 /// # Errors
 ///
 /// プロンプトの入出力に失敗した場合、またはマイグレーション操作に失敗した場合にエラーを返す。
+#[allow(clippy::too_many_lines)]
 pub fn run() -> Result<()> {
     println!("\n--- マイグレーション管理 ---\n");
 
@@ -156,7 +157,7 @@ pub fn run() -> Result<()> {
                             );
                             if let Some(true) = prompt::yes_no_prompt("インストールしますか？")?
                             {
-                                install_tool(&target.language)?
+                                install_tool(&target.language)?;
                             } else {
                                 println!("キャンセルしました。");
                                 return Ok(());
@@ -216,7 +217,7 @@ pub fn run() -> Result<()> {
                             );
                             if let Some(true) = prompt::yes_no_prompt("インストールしますか？")?
                             {
-                                install_tool(&target.language)?
+                                install_tool(&target.language)?;
                             } else {
                                 println!("キャンセルしました。");
                                 return Ok(());
@@ -336,6 +337,7 @@ fn step_select_target(targets: &[MigrateTarget]) -> Result<Option<usize>> {
 
 /// サービス選択（「すべて」オプション付き）。
 /// 戻り値: Some(None) = すべて, Some(Some(idx)) = 個別, None = Esc
+#[allow(clippy::option_option)]
 fn step_select_target_or_all(targets: &[MigrateTarget]) -> Result<Option<Option<usize>>> {
     if targets.is_empty() {
         println!("マイグレーション対象のサービスが見つかりません。");

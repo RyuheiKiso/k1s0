@@ -6,20 +6,19 @@ use crate::proto::k1s0::system::common::v1::{
     PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
 };
 use crate::proto::k1s0::system::rule_engine::v1::{
-    rule_engine_service_server::RuleEngineService,
-    CreateRuleRequest as ProtoCreateRuleRequest, CreateRuleResponse as ProtoCreateRuleResponse,
+    rule_engine_service_server::RuleEngineService, CreateRuleRequest as ProtoCreateRuleRequest,
+    CreateRuleResponse as ProtoCreateRuleResponse,
     CreateRuleSetRequest as ProtoCreateRuleSetRequest,
     CreateRuleSetResponse as ProtoCreateRuleSetResponse,
     DeleteRuleRequest as ProtoDeleteRuleRequest, DeleteRuleResponse as ProtoDeleteRuleResponse,
     DeleteRuleSetRequest as ProtoDeleteRuleSetRequest,
-    DeleteRuleSetResponse as ProtoDeleteRuleSetResponse,
-    EvaluateRequest as ProtoEvaluateRequest, EvaluateResponse as ProtoEvaluateResponse,
-    GetRuleRequest as ProtoGetRuleRequest, GetRuleResponse as ProtoGetRuleResponse,
-    GetRuleSetRequest as ProtoGetRuleSetRequest, GetRuleSetResponse as ProtoGetRuleSetResponse,
-    ListRuleSetsRequest as ProtoListRuleSetsRequest,
-    ListRuleSetsResponse as ProtoListRuleSetsResponse,
-    ListRulesRequest as ProtoListRulesRequest, ListRulesResponse as ProtoListRulesResponse,
-    MatchedRule as ProtoMatchedRule, PublishRuleSetRequest as ProtoPublishRuleSetRequest,
+    DeleteRuleSetResponse as ProtoDeleteRuleSetResponse, EvaluateRequest as ProtoEvaluateRequest,
+    EvaluateResponse as ProtoEvaluateResponse, GetRuleRequest as ProtoGetRuleRequest,
+    GetRuleResponse as ProtoGetRuleResponse, GetRuleSetRequest as ProtoGetRuleSetRequest,
+    GetRuleSetResponse as ProtoGetRuleSetResponse, ListRuleSetsRequest as ProtoListRuleSetsRequest,
+    ListRuleSetsResponse as ProtoListRuleSetsResponse, ListRulesRequest as ProtoListRulesRequest,
+    ListRulesResponse as ProtoListRulesResponse, MatchedRule as ProtoMatchedRule,
+    PublishRuleSetRequest as ProtoPublishRuleSetRequest,
     PublishRuleSetResponse as ProtoPublishRuleSetResponse,
     RollbackRuleSetRequest as ProtoRollbackRuleSetRequest,
     RollbackRuleSetResponse as ProtoRollbackRuleSetResponse, Rule as ProtoRule,
@@ -98,7 +97,11 @@ impl RuleEngineService for RuleEngineServiceTonic {
         request: Request<ProtoGetRuleRequest>,
     ) -> Result<Response<ProtoGetRuleResponse>, Status> {
         let inner = request.into_inner();
-        let data = self.inner.get_rule(inner.id).await.map_err(Into::<Status>::into)?;
+        let data = self
+            .inner
+            .get_rule(inner.id)
+            .await
+            .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoGetRuleResponse {
             rule: Some(to_proto_rule(data)),
         }))
@@ -283,7 +286,10 @@ impl RuleEngineService for RuleEngineServiceTonic {
             .delete_rule_set(inner.id)
             .await
             .map_err(Into::<Status>::into)?;
-        Ok(Response::new(ProtoDeleteRuleSetResponse { success, message }))
+        Ok(Response::new(ProtoDeleteRuleSetResponse {
+            success,
+            message,
+        }))
     }
 
     async fn publish_rule_set(
@@ -349,7 +355,9 @@ impl RuleEngineService for RuleEngineServiceTonic {
     }
 }
 
-fn to_proto_evaluate_response(output: crate::usecase::evaluate::EvaluateOutput) -> ProtoEvaluateResponse {
+fn to_proto_evaluate_response(
+    output: crate::usecase::evaluate::EvaluateOutput,
+) -> ProtoEvaluateResponse {
     ProtoEvaluateResponse {
         evaluation_id: output.evaluation_id.to_string(),
         rule_set: output.rule_set,

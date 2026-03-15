@@ -67,7 +67,11 @@ impl DependencyRepository for DependencyPostgresRepository {
         .await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("list_by_service", "dependencies", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "list_by_service",
+                "dependencies",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         Ok(rows.into_iter().map(|r| r.into()).collect())
@@ -105,7 +109,11 @@ impl DependencyRepository for DependencyPostgresRepository {
         tx.commit().await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("set_dependencies", "dependencies", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "set_dependencies",
+                "dependencies",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         Ok(())

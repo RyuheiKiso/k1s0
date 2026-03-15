@@ -28,11 +28,7 @@ impl KafkaTracing {
 
         let string_headers: HashMap<String, String> = headers
             .iter()
-            .filter_map(|(k, v)| {
-                String::from_utf8(v.clone())
-                    .ok()
-                    .map(|s| (k.clone(), s))
-            })
+            .filter_map(|(k, v)| String::from_utf8(v.clone()).ok().map(|s| (k.clone(), s)))
             .collect();
 
         let context = global::get_text_map_propagator(|p| p.extract(&string_headers));

@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use tracing::instrument;
 use crate::domain::model::{Job, JobExecution};
 use crate::infrastructure::grpc::SchedulerGrpcClient;
+use std::sync::Arc;
+use tracing::instrument;
 
 pub struct SchedulerQueryResolver {
     client: Arc<SchedulerGrpcClient>,
@@ -26,11 +26,16 @@ impl SchedulerQueryResolver {
     ) -> anyhow::Result<Vec<Job>> {
         let page_size = first.unwrap_or(20);
         let page = after.map(|a| a + 1).unwrap_or(1);
-        self.client.list_jobs(status, Some(page_size), Some(page)).await
+        self.client
+            .list_jobs(status, Some(page_size), Some(page))
+            .await
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn get_job_execution(&self, execution_id: &str) -> anyhow::Result<Option<JobExecution>> {
+    pub async fn get_job_execution(
+        &self,
+        execution_id: &str,
+    ) -> anyhow::Result<Option<JobExecution>> {
         self.client.get_job_execution(execution_id).await
     }
 
@@ -44,6 +49,8 @@ impl SchedulerQueryResolver {
     ) -> anyhow::Result<Vec<JobExecution>> {
         let page_size = first.unwrap_or(20);
         let page = after.map(|a| a + 1).unwrap_or(1);
-        self.client.list_executions(job_id, Some(page_size), Some(page), status).await
+        self.client
+            .list_executions(job_id, Some(page_size), Some(page), status)
+            .await
     }
 }

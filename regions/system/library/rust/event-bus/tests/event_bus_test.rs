@@ -528,9 +528,7 @@ async fn eventbus_concurrent_publish_subscribe() {
         }
 
         let sub = bus
-            .subscribe(Arc::new(ConcurrentHandler {
-                count: count_clone,
-            }))
+            .subscribe(Arc::new(ConcurrentHandler { count: count_clone }))
             .await;
         subs.push(sub);
     }

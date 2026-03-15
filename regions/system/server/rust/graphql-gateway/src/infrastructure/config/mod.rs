@@ -108,7 +108,7 @@ impl Default for AuthConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct BackendsConfig {
     #[serde(default)]
     pub tenant: BackendConfig,
@@ -132,24 +132,6 @@ pub struct BackendsConfig {
     pub notification: BackendConfig,
     #[serde(default)]
     pub workflow: BackendConfig,
-}
-
-impl Default for BackendsConfig {
-    fn default() -> Self {
-        Self {
-            tenant: BackendConfig::default(),
-            featureflag: BackendConfig::default(),
-            config: BackendConfig::default(),
-            navigation: BackendConfig::default(),
-            service_catalog: BackendConfig::default(),
-            auth: BackendConfig::default(),
-            session: BackendConfig::default(),
-            vault: BackendConfig::default(),
-            scheduler: BackendConfig::default(),
-            notification: BackendConfig::default(),
-            workflow: BackendConfig::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -179,7 +161,7 @@ impl Default for BackendConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -188,15 +170,6 @@ pub struct ObservabilityConfig {
     pub trace: TraceConfig,
     #[serde(default)]
     pub metrics: MetricsConfig,
-}
-impl Default for ObservabilityConfig {
-    fn default() -> Self {
-        Self {
-            log: LogConfig::default(),
-            trace: TraceConfig::default(),
-            metrics: MetricsConfig::default(),
-        }
-    }
 }
 #[derive(Debug, Clone, Deserialize)]
 pub struct LogConfig {

@@ -445,7 +445,7 @@ mod tests {
 
     #[test]
     fn test_validate_valid_schema() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 service: my-service
 namespace_prefix: service.myservice
@@ -459,7 +459,7 @@ categories:
         label: Flag
         type: boolean
         default: false
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert_eq!(errors, 0);
@@ -467,7 +467,7 @@ categories:
 
     #[test]
     fn test_validate_missing_type() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 service: my-service
 namespace_prefix: service.myservice
@@ -479,7 +479,7 @@ categories:
     fields:
       - key: max_retry
         label: Max Retry
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
@@ -487,7 +487,7 @@ categories:
 
     #[test]
     fn test_validate_invalid_service_name_with_json_schema() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 service: MyService
 namespace_prefix: service.myservice
@@ -500,7 +500,7 @@ categories:
       - key: flag
         label: Flag
         type: boolean
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
@@ -508,7 +508,7 @@ categories:
 
     #[test]
     fn test_validate_namespace_mismatch() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 service: my-service
 namespace_prefix: service.myservice
@@ -521,7 +521,7 @@ categories:
       - key: flag
         label: Flag
         type: boolean
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
@@ -529,7 +529,7 @@ categories:
 
     #[test]
     fn test_validate_duplicate_category_ids() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 service: my-service
 namespace_prefix: service.myservice
@@ -550,7 +550,7 @@ categories:
       - key: flag_two
         label: Flag Two
         type: boolean
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
@@ -558,7 +558,7 @@ categories:
 
     #[test]
     fn test_validate_duplicate_keys() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 service: my-service
 namespace_prefix: service.myservice
@@ -574,7 +574,7 @@ categories:
       - key: flag
         label: Flag 2
         type: boolean
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
@@ -582,7 +582,7 @@ categories:
 
     #[test]
     fn test_validate_enum_missing_options() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 service: my-service
 namespace_prefix: service.myservice
@@ -595,7 +595,7 @@ categories:
       - key: log_level
         label: Log Level
         type: enum
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_config_schema(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);

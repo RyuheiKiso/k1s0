@@ -87,6 +87,7 @@ dependencies:
   freezed_annotation: ^2.4.0
   json_annotation: ^4.9.0
   dio: ^5.7.0
+  yaml: ^3.1.2
 
 dev_dependencies:
   flutter_test:
@@ -96,6 +97,13 @@ dev_dependencies:
   json_serializable: ^6.8.0
   mocktail: ^1.0.0
   flutter_lints: ^5.0.0
+
+flutter:
+  assets:
+    - config/config.yaml
+    - config/config.development.yaml
+    - config/config.staging.yaml
+    - config/config.production.yaml
 ```
 
 ### analysis_options.yaml
@@ -137,11 +145,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:{{ service_name_snake }}/app/router.dart';
+import 'package:{{ service_name_snake }}/config/app_config.dart';
+import 'package:{{ service_name_snake }}/config/config_provider.dart';
 
-void main() {
+/// アプリケーションのエントリポイント
+/// YAML設定ファイルを読み込んでからProviderScopeにoverrideして起動する
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  /// 環境変数APP_ENVから実行環境を取得する（デフォルトはdevelopment）
+  const env = String.fromEnvironment('APP_ENV', defaultValue: 'development');
+
+  /// YAML設定ファイルを読み込む
+  final config = await AppConfig.load(env);
+
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    ProviderScope(
+      overrides: [appConfigProvider.overrideWithValue(config)],
+      child: const MyApp(),
     ),
   );
 }
@@ -261,17 +282,11 @@ import 'package:flutter/foundation.dart';
 class DioClient {
   DioClient._();
 
-  static final Dio _dio = _createDio();
-
-  static Dio get instance => _dio;
-
-  static Dio _createDio() {
+  /// 指定されたベースURLでDioインスタンスを生成する
+  static Dio create({required String baseUrl}) {
     final dio = Dio(
       BaseOptions(
-        baseUrl: const String.fromEnvironment(
-          'API_BASE_URL',
-          defaultValue: 'http://localhost:8080/api',
-        ),
+        baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 30),
         sendTimeout: const Duration(seconds: 30),

@@ -89,9 +89,7 @@ mod tests {
             .returning(move |_, _, _, _| Ok(reserved_clone.clone()));
 
         let uc = ReserveStockUseCase::new(Arc::new(mock_repo));
-        let result = uc
-            .execute("PROD-001", "WH-EAST", 10, "ORD-001")
-            .await;
+        let result = uc.execute("PROD-001", "WH-EAST", 10, "ORD-001").await;
         assert!(result.is_ok());
         let updated = result.unwrap();
         assert_eq!(updated.qty_available, 90);
@@ -111,9 +109,7 @@ mod tests {
             .returning(move |_, _| Ok(Some(item_clone.clone())));
 
         let uc = ReserveStockUseCase::new(Arc::new(mock_repo));
-        let result = uc
-            .execute("PROD-001", "WH-EAST", 10, "ORD-001")
-            .await;
+        let result = uc.execute("PROD-001", "WH-EAST", 10, "ORD-001").await;
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -131,9 +127,7 @@ mod tests {
             .returning(|_, _| Ok(None));
 
         let uc = ReserveStockUseCase::new(Arc::new(mock_repo));
-        let result = uc
-            .execute("PROD-999", "WH-EAST", 10, "ORD-001")
-            .await;
+        let result = uc.execute("PROD-999", "WH-EAST", 10, "ORD-001").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not found"));
     }

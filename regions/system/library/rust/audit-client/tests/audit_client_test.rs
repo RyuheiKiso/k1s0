@@ -271,7 +271,14 @@ async fn event_data_preserved_through_buffer() {
         "ip": "10.0.0.1",
         "nested": {"deep": true}
     });
-    let event = AuditEvent::new("tenant-abc", "actor-xyz", "update", "config", "cfg-99", metadata.clone());
+    let event = AuditEvent::new(
+        "tenant-abc",
+        "actor-xyz",
+        "update",
+        "config",
+        "cfg-99",
+        metadata.clone(),
+    );
     let original_id = event.id;
     let original_timestamp = event.timestamp;
 

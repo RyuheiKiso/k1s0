@@ -31,7 +31,11 @@ fn jwt_admin_token_has_three_parts() {
     let helper = JwtTestHelper::new_hs256("secret");
     let token = helper.create_admin_token();
     let parts: Vec<&str> = token.split('.').collect();
-    assert_eq!(parts.len(), 3, "JWT should have 3 parts: header.payload.signature");
+    assert_eq!(
+        parts.len(),
+        3,
+        "JWT should have 3 parts: header.payload.signature"
+    );
 }
 
 // 管理者トークンの sub が "admin" であり roles に "admin" が含まれることを確認する。
@@ -103,7 +107,7 @@ fn jwt_default_claims_has_valid_expiry() {
     assert!(claims.exp > claims.iat);
     // Should have ~1 hour expiry
     let diff = claims.exp - claims.iat;
-    assert!(diff >= 3599 && diff <= 3601);
+    assert!((3599..=3601).contains(&diff));
 }
 
 // 異なるシークレットで生成したトークンの署名部分が異なることを確認する。
@@ -189,7 +193,7 @@ fn fixture_name_has_prefix() {
 fn fixture_int_within_range() {
     for _ in 0..100 {
         let val = FixtureBuilder::int(1, 10);
-        assert!(val >= 1 && val < 10, "val={} should be in [1, 10)", val);
+        assert!((1..10).contains(&val), "val={} should be in [1, 10)", val);
     }
 }
 
@@ -210,7 +214,7 @@ fn fixture_int_min_greater_than_max_returns_min() {
 fn fixture_int_large_range() {
     for _ in 0..50 {
         let val = FixtureBuilder::int(0, 1_000_000);
-        assert!(val >= 0 && val < 1_000_000);
+        assert!((0..1_000_000).contains(&val));
     }
 }
 

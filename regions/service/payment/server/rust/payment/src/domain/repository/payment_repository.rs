@@ -36,11 +36,7 @@ pub trait PaymentRepository: Send + Sync {
     ) -> anyhow::Result<Payment>;
 
     /// 決済を返金する（楽観ロック付き）。
-    async fn refund(
-        &self,
-        id: Uuid,
-        expected_version: i32,
-    ) -> anyhow::Result<Payment>;
+    async fn refund(&self, id: Uuid, expected_version: i32) -> anyhow::Result<Payment>;
 
     /// Outbox イベントを挿入する。
     async fn insert_outbox_event(

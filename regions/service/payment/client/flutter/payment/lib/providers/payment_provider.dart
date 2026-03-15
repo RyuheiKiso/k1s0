@@ -1,18 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 
+import '../config/config_provider.dart';
 import '../models/payment.dart';
 import '../repositories/payment_repository.dart';
 import '../utils/dio_client.dart';
 
 /// DioインスタンスのProvider
-/// アプリ全体で共有されるHTTPクライアントを提供する
+/// YAML設定ファイルから読み込んだベースURLを使用してHTTPクライアントを生成する
 final dioProvider = Provider<Dio>((ref) {
-  /// 環境変数またはデフォルトのベースURLを使用する
-  return DioClient.create(baseUrl: const String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://localhost:8080',
-  ));
+  /// 設定プロバイダーからAPI設定を取得する
+  final config = ref.watch(appConfigProvider);
+  return DioClient.create(baseUrl: config.api.baseUrl);
 });
 
 /// リポジトリのProvider

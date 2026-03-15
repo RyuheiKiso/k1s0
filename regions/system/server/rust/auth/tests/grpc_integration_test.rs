@@ -2,19 +2,19 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use k1s0_auth_server::adapter::grpc::auth_grpc::{AuthGrpcService, GrpcError};
+use k1s0_auth_server::domain::entity::claims::{Claims, RealmAccess};
+use k1s0_auth_server::domain::entity::user::{Pagination, Role, User, UserListResult, UserRoles};
+use k1s0_auth_server::domain::repository::UserRepository;
+use k1s0_auth_server::infrastructure::TokenVerifier;
 use k1s0_auth_server::proto::k1s0::system::auth::v1::{
     CheckPermissionRequest, GetUserRequest, GetUserRolesRequest, ListUsersRequest,
     ValidateTokenRequest,
 };
 use k1s0_auth_server::proto::k1s0::system::common::v1::Pagination as PbPagination;
-use k1s0_auth_server::domain::entity::claims::{Claims, RealmAccess};
-use k1s0_auth_server::domain::entity::user::{Pagination, Role, User, UserListResult, UserRoles};
-use k1s0_auth_server::domain::repository::UserRepository;
-use k1s0_auth_server::infrastructure::TokenVerifier;
+use k1s0_auth_server::usecase::check_permission::CheckPermissionUseCase;
 use k1s0_auth_server::usecase::get_user::GetUserUseCase;
 use k1s0_auth_server::usecase::get_user_roles::GetUserRolesUseCase;
 use k1s0_auth_server::usecase::list_users::ListUsersUseCase;
-use k1s0_auth_server::usecase::check_permission::CheckPermissionUseCase;
 use k1s0_auth_server::usecase::validate_token::ValidateTokenUseCase;
 
 // --- Test doubles ---
@@ -161,7 +161,13 @@ fn make_grpc_service(token_success: bool) -> AuthGrpcService {
     let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo.clone()));
     let check_permission_uc = Arc::new(CheckPermissionUseCase::with_user_repo(user_repo));
 
-    AuthGrpcService::new(validate_uc, get_user_uc, get_user_roles_uc, list_users_uc, check_permission_uc)
+    AuthGrpcService::new(
+        validate_uc,
+        get_user_uc,
+        get_user_roles_uc,
+        list_users_uc,
+        check_permission_uc,
+    )
 }
 
 // --- gRPC Integration Tests ---

@@ -50,6 +50,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         token_verifier: Arc<dyn TokenVerifier>,
         user_repo: Arc<dyn UserRepository>,

@@ -85,7 +85,8 @@ impl ManageCategoriesUseCase {
             .find_by_id(id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Category '{}' not found", id))?;
-        self.update_category(&category.code, updated_by, input).await
+        self.update_category(&category.code, updated_by, input)
+            .await
     }
 
     pub async fn delete_category(&self, code: &str, deleted_by: &str) -> anyhow::Result<()> {
@@ -100,11 +101,7 @@ impl ManageCategoriesUseCase {
         Ok(())
     }
 
-    pub async fn delete_category_by_id(
-        &self,
-        id: Uuid,
-        deleted_by: &str,
-    ) -> anyhow::Result<()> {
+    pub async fn delete_category_by_id(&self, id: Uuid, deleted_by: &str) -> anyhow::Result<()> {
         let category = self
             .category_repo
             .find_by_id(id)
@@ -196,10 +193,7 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        let uc = ManageCategoriesUseCase::new(
-            Arc::new(mock_repo),
-            Arc::new(mock_publisher),
-        );
+        let uc = ManageCategoriesUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
 
         let input = CreateMasterCategory {
             code: "CURRENCY".to_string(),
@@ -229,10 +223,7 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(Some(existing.clone())));
 
-        let uc = ManageCategoriesUseCase::new(
-            Arc::new(mock_repo),
-            Arc::new(mock_publisher),
-        );
+        let uc = ManageCategoriesUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
 
         let input = CreateMasterCategory {
             code: "CURRENCY".to_string(),
@@ -273,10 +264,7 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        let uc = ManageCategoriesUseCase::new(
-            Arc::new(mock_repo),
-            Arc::new(mock_publisher),
-        );
+        let uc = ManageCategoriesUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
 
         let result = uc.delete_category("CURRENCY", "admin").await;
         assert!(result.is_ok());
@@ -293,10 +281,7 @@ mod tests {
             .times(1)
             .returning(|_| Ok(None));
 
-        let uc = ManageCategoriesUseCase::new(
-            Arc::new(mock_repo),
-            Arc::new(mock_publisher),
-        );
+        let uc = ManageCategoriesUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
 
         let result = uc.delete_category("NONEXIST", "admin").await;
         assert!(result.is_err());
@@ -317,10 +302,7 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(categories.clone()));
 
-        let uc = ManageCategoriesUseCase::new(
-            Arc::new(mock_repo),
-            Arc::new(mock_publisher),
-        );
+        let uc = ManageCategoriesUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
 
         let result = uc.list_categories(true).await;
         assert!(result.is_ok());
@@ -341,10 +323,7 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(Some(cat_clone.clone())));
 
-        let uc = ManageCategoriesUseCase::new(
-            Arc::new(mock_repo),
-            Arc::new(mock_publisher),
-        );
+        let uc = ManageCategoriesUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
 
         let result = uc.get_category("CURRENCY").await;
         assert!(result.is_ok());
@@ -381,10 +360,7 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        let uc = ManageCategoriesUseCase::new(
-            Arc::new(mock_repo),
-            Arc::new(mock_publisher),
-        );
+        let uc = ManageCategoriesUseCase::new(Arc::new(mock_repo), Arc::new(mock_publisher));
 
         let input = UpdateMasterCategory {
             display_name: Some("Updated Currency".to_string()),

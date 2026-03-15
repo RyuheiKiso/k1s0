@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use tracing::instrument;
 use crate::domain::model::{SecretMetadata, VaultAuditLogEntry};
 use crate::infrastructure::grpc::VaultGrpcClient;
+use std::sync::Arc;
+use tracing::instrument;
 
 pub struct VaultQueryResolver {
     client: Arc<VaultGrpcClient>,

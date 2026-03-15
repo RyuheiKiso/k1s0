@@ -8,7 +8,6 @@ use k1s0_auth::{
     has_tier_access, Claims, RealmAccess, RoleSet,
 };
 
-
 // ============================================================
 // Test helpers
 // ============================================================
@@ -343,12 +342,7 @@ fn claims_realm_roles_returns_roles() {
 // 未登録リソースに対して resource_roles() が空スライスを返すことを確認する。
 #[test]
 fn claims_resource_roles_returns_empty_for_unknown_resource() {
-    let claims = build_claims(
-        "u",
-        vec![],
-        vec![("order-service", vec!["read"])],
-        vec![],
-    );
+    let claims = build_claims("u", vec![], vec![("order-service", vec!["read"])], vec![]);
     assert!(claims.resource_roles("unknown-service").is_empty());
 }
 

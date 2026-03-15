@@ -8,10 +8,7 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::tenant::v1::{
-    tenant_service_server::TenantService,
-    WatchTenantRequest as ProtoWatchTenantRequest,
-    WatchTenantResponse as ProtoWatchTenantResponse,
-    ActivateTenantRequest as ProtoActivateTenantRequest,
+    tenant_service_server::TenantService, ActivateTenantRequest as ProtoActivateTenantRequest,
     ActivateTenantResponse as ProtoActivateTenantResponse,
     AddMemberRequest as ProtoAddMemberRequest, AddMemberResponse as ProtoAddMemberResponse,
     CreateTenantRequest as ProtoCreateTenantRequest,
@@ -29,6 +26,7 @@ use crate::proto::k1s0::system::tenant::v1::{
     SuspendTenantResponse as ProtoSuspendTenantResponse, Tenant as ProtoTenant,
     TenantMember as ProtoTenantMember, UpdateTenantRequest as ProtoUpdateTenantRequest,
     UpdateTenantResponse as ProtoUpdateTenantResponse,
+    WatchTenantRequest as ProtoWatchTenantRequest, WatchTenantResponse as ProtoWatchTenantResponse,
 };
 
 use super::tenant_grpc::{

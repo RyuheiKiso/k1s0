@@ -3,13 +3,11 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use crate::adapter;
-use crate::adapter::grpc::{dlq_grpc::DlqGrpcService, tonic_service::DlqServiceTonic};
-use crate::adapter::handler::{self, AppState};
 use super::config::Config;
 use super::persistence::DlqPostgresRepository;
+use crate::adapter::grpc::{dlq_grpc::DlqGrpcService, tonic_service::DlqServiceTonic};
+use crate::adapter::handler::{self, AppState};
 use crate::proto::k1s0::system::dlq::v1::dlq_service_server::DlqServiceServer;
-use crate::domain;
 use crate::usecase;
 
 /// シャットダウンシグナルを待機する
@@ -99,27 +97,28 @@ pub async fn run() -> anyhow::Result<()> {
         };
 
     // Kafka producer (optional)
-    let publisher: Option<Arc<dyn super::kafka::producer::DlqEventPublisher>> =
-        if let Some(ref kafka_config) = cfg.kafka {
-            match super::kafka::producer::DlqKafkaProducer::new(kafka_config) {
-                Ok(producer) => {
-                    info!("kafka producer initialized");
-                    Some(Arc::new(producer.with_metrics(metrics.clone())))
-                }
-                Err(e) => {
-                    tracing::warn!(error = %e, "failed to create kafka producer, retries will resolve messages without republishing");
-                    None
-                }
+    let publisher: Option<Arc<dyn super::kafka::producer::DlqEventPublisher>> = if let Some(
+        ref kafka_config,
+    ) = cfg.kafka
+    {
+        match super::kafka::producer::DlqKafkaProducer::new(kafka_config) {
+            Ok(producer) => {
+                info!("kafka producer initialized");
+                Some(Arc::new(producer.with_metrics(metrics.clone())))
             }
-        } else {
-            info!("no kafka configured, retries will resolve messages without republishing");
-            None
-        };
+            Err(e) => {
+                tracing::warn!(error = %e, "failed to create kafka producer, retries will resolve messages without republishing");
+                None
+            }
+        }
+    } else {
+        info!("no kafka configured, retries will resolve messages without republishing");
+        None
+    };
 
     // Kafka consumer (optional, background task)
     if let Some(ref kafka_config) = cfg.kafka {
-        match super::kafka::consumer::DlqKafkaConsumer::new(kafka_config, dlq_repo.clone())
-        {
+        match super::kafka::consumer::DlqKafkaConsumer::new(kafka_config, dlq_repo.clone()) {
             Ok(consumer) => {
                 let consumer = consumer.with_metrics(metrics.clone());
                 info!("kafka consumer initialized, starting background ingestion");
@@ -210,7 +209,9 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_future = async move {
         tonic::transport::Server::builder()
             .add_service(DlqServiceServer::new(dlq_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -218,7 +219,9 @@ pub async fn run() -> anyhow::Result<()> {
     // REST グレースフルシャットダウン付きサーバー
     let rest_future = async move {
         axum::serve(listener, app)
-            .with_graceful_shutdown(async { let _ = shutdown_signal().await; })
+            .with_graceful_shutdown(async {
+                let _ = shutdown_signal().await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("REST server error: {}", e))
     };

@@ -51,10 +51,7 @@ impl UpdateRuleSetUseCase {
         }
     }
 
-    pub async fn execute(
-        &self,
-        input: &UpdateRuleSetInput,
-    ) -> Result<RuleSet, UpdateRuleSetError> {
+    pub async fn execute(&self, input: &UpdateRuleSetInput) -> Result<RuleSet, UpdateRuleSetError> {
         let mut rule_set = self
             .repo
             .find_by_id(&input.id)
@@ -67,10 +64,7 @@ impl UpdateRuleSetUseCase {
         }
         if let Some(ref mode) = input.evaluation_mode {
             rule_set.evaluation_mode = EvaluationMode::from_str(mode).ok_or_else(|| {
-                UpdateRuleSetError::Validation(format!(
-                    "invalid evaluation_mode: '{}'",
-                    mode
-                ))
+                UpdateRuleSetError::Validation(format!("invalid evaluation_mode: '{}'", mode))
             })?;
         }
         if let Some(ref default) = input.default_result {

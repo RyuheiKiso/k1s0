@@ -11,5 +11,6 @@ pub trait ScorecardRepository: Send + Sync {
     async fn get(&self, service_id: Uuid) -> anyhow::Result<Option<Scorecard>>;
 
     /// スコアカードを upsert する。
+    #[allow(dead_code)]
     async fn upsert(&self, scorecard: &Scorecard) -> anyhow::Result<()>;
 }

@@ -86,10 +86,7 @@ async fn send_binary_message() {
     client.connect().await.unwrap();
 
     let data = vec![0x01, 0x02, 0x03, 0xFF];
-    client
-        .send(WsMessage::Binary(data.clone()))
-        .await
-        .unwrap();
+    client.send(WsMessage::Binary(data.clone())).await.unwrap();
 
     let sent = client.pop_sent().await.unwrap();
     assert_eq!(sent, WsMessage::Binary(data));
@@ -320,10 +317,7 @@ async fn send_ping_message() {
     let mut client = InMemoryWsClient::new();
     client.connect().await.unwrap();
 
-    client
-        .send(WsMessage::Ping(vec![1, 2, 3]))
-        .await
-        .unwrap();
+    client.send(WsMessage::Ping(vec![1, 2, 3])).await.unwrap();
 
     let sent = client.pop_sent().await.unwrap();
     assert_eq!(sent, WsMessage::Ping(vec![1, 2, 3]));
@@ -335,9 +329,7 @@ async fn receive_pong_message() {
     let mut client = InMemoryWsClient::new();
     client.connect().await.unwrap();
 
-    client
-        .push_receive(WsMessage::Pong(vec![1, 2, 3]))
-        .await;
+    client.push_receive(WsMessage::Pong(vec![1, 2, 3])).await;
 
     let msg = client.receive().await.unwrap();
     assert_eq!(msg, WsMessage::Pong(vec![1, 2, 3]));
@@ -347,11 +339,11 @@ async fn receive_pong_message() {
 // WsConfig tests
 // ===========================================================================
 
-// WsConfig のデフォルト値が正しく設定されていることを確認する。
+// WsConfig::new でデフォルト値が正しく設定されていることを確認する。
 #[test]
 fn config_default_values() {
-    let config = WsConfig::default();
-    assert_eq!(config.url, "ws://localhost");
+    let config = WsConfig::new("ws://test.example.com");
+    assert_eq!(config.url, "ws://test.example.com");
     assert!(config.reconnect);
     assert_eq!(config.max_reconnect_attempts, 5);
     assert_eq!(config.reconnect_delay_ms, 1000);
@@ -472,10 +464,7 @@ fn close_frame_different_codes() {
 #[test]
 fn connection_state_equality() {
     assert_eq!(ConnectionState::Connected, ConnectionState::Connected);
-    assert_eq!(
-        ConnectionState::Disconnected,
-        ConnectionState::Disconnected
-    );
+    assert_eq!(ConnectionState::Disconnected, ConnectionState::Disconnected);
 }
 
 // 異なる ConnectionState が不等であることを確認する。

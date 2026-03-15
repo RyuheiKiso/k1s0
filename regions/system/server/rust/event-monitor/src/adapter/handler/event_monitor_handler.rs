@@ -205,10 +205,7 @@ pub async fn list_flows(
     }
 }
 
-pub async fn get_flow(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn get_flow(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.get_flow_uc.execute(&id).await {
         Ok(flow) => {
             let resp = FlowResponse::from(flow);
@@ -316,10 +313,7 @@ pub async fn update_flow(
     }
 }
 
-pub async fn delete_flow(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn delete_flow(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.delete_flow_uc.execute(&id).await {
         Ok(()) => (
             StatusCode::OK,

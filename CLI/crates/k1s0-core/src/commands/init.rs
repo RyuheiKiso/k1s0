@@ -48,11 +48,21 @@ impl Tier {
     }
 }
 
+/// プロジェクトの初期化を実行する。
+///
+/// # Errors
+///
+/// ディレクトリの解決またはプロジェクト作成に失敗した場合にエラーを返す。
 pub fn execute_init(config: &InitConfig) -> Result<()> {
     execute_init_at(config, Path::new("."))?;
     Ok(())
 }
 
+/// 指定したベースディレクトリでプロジェクトの初期化を実行する。
+///
+/// # Errors
+///
+/// ディレクトリの解決またはプロジェクト作成に失敗した場合にエラーを返す。
 pub fn execute_init_at(config: &InitConfig, base_dir: &Path) -> Result<PathBuf> {
     let parent_dir = base_dir.canonicalize().with_context(|| {
         format!(

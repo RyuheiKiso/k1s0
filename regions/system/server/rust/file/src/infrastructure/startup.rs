@@ -4,13 +4,10 @@ use std::time::Duration;
 
 use tracing::info;
 
-use crate::adapter;
-use crate::domain::repository::{FileMetadataRepository, FileStorageRepository};
 use super::config::Config;
 use super::in_memory::{InMemoryFileMetadataRepository, InMemoryFileStorageRepository};
-use super::kafka_producer::{
-    FileEventPublisher, FileKafkaProducer, NoopFileEventPublisher,
-};
+use super::kafka_producer::{FileEventPublisher, FileKafkaProducer, NoopFileEventPublisher};
+use crate::domain::repository::{FileMetadataRepository, FileStorageRepository};
 use crate::proto::k1s0::system::file::v1::file_service_server::FileServiceServer;
 use crate::usecase;
 
@@ -93,11 +90,7 @@ pub async fn run() -> anyhow::Result<()> {
             .acquire_timeout(Duration::from_secs(10))
             .connect(&database_url)
             .await?;
-        Arc::new(
-            super::file_metadata_postgres::FileMetadataPostgresRepository::new(
-                pool, "file",
-            )?,
-        )
+        Arc::new(super::file_metadata_postgres::FileMetadataPostgresRepository::new(pool, "file")?)
     } else {
         info!("no database configured, using in-memory metadata repository");
         Arc::new(InMemoryFileMetadataRepository::new())
@@ -207,9 +200,9 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     // REST router（メトリクスレイヤーとCorrelation IDレイヤーを追加）
-    let app =
-        crate::adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
-            .layer(k1s0_correlation::layer::CorrelationLayer::new());
+    let app = crate::adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC service
     let grpc_svc = Arc::new(crate::adapter::grpc::FileGrpcService::new(
@@ -235,7 +228,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(FileServiceServer::new(tonic_svc))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

@@ -40,7 +40,9 @@ impl UpdateTeamUseCase {
 
     pub async fn execute(&self, input: UpdateTeamInput) -> Result<Team, UpdateTeamError> {
         if input.name.trim().is_empty() {
-            return Err(UpdateTeamError::Validation("name must not be empty".to_string()));
+            return Err(UpdateTeamError::Validation(
+                "name must not be empty".to_string(),
+            ));
         }
 
         let existing = self

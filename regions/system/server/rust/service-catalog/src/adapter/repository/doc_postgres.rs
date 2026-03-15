@@ -76,7 +76,11 @@ impl DocRepository for DocPostgresRepository {
         .await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("list_by_service", "service_docs", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "list_by_service",
+                "service_docs",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         Ok(rows.into_iter().map(|r| r.into()).collect())

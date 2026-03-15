@@ -55,12 +55,11 @@ impl ItemRepository for ItemPostgresRepository {
     }
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<MasterItem>> {
-        let row = sqlx::query_as::<_, ItemRow>(
-            "SELECT * FROM domain_master.master_items WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let row =
+            sqlx::query_as::<_, ItemRow>("SELECT * FROM domain_master.master_items WHERE id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
         Ok(row.map(|r| r.into()))
     }
 
@@ -93,11 +92,7 @@ impl ItemRepository for ItemPostgresRepository {
         Ok(row.into())
     }
 
-    async fn update(
-        &self,
-        id: Uuid,
-        input: &UpdateMasterItem,
-    ) -> anyhow::Result<MasterItem> {
+    async fn update(&self, id: Uuid, input: &UpdateMasterItem) -> anyhow::Result<MasterItem> {
         let row = sqlx::query_as::<_, ItemRow>(
             r#"UPDATE domain_master.master_items SET
                display_name = COALESCE($2, display_name),

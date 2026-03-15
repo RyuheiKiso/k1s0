@@ -163,15 +163,16 @@ mod tests {
                 "ConsumeError",
                 MessagingError::ConsumeError("x".to_string()),
             ),
-            (
-                "CommitError",
-                MessagingError::CommitError("x".to_string()),
-            ),
+            ("CommitError", MessagingError::CommitError("x".to_string())),
         ];
 
         for (name, err) in variants {
             let debug = format!("{:?}", err);
-            assert!(debug.contains(name), "Debug for {} should contain variant name", name);
+            assert!(
+                debug.contains(name),
+                "Debug for {} should contain variant name",
+                name
+            );
         }
     }
 

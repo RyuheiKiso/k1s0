@@ -66,7 +66,7 @@ impl GenerateUploadUrlUseCase {
             ));
         }
         let max_size = FileDomainService::DEFAULT_MAX_FILE_SIZE_BYTES;
-        if let Err(_) = FileDomainService::validate_upload_size(input.size_bytes, max_size) {
+        if FileDomainService::validate_upload_size(input.size_bytes, max_size).is_err() {
             return Err(GenerateUploadUrlError::SizeExceeded {
                 actual: input.size_bytes,
                 max: max_size,

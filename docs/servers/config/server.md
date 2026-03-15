@@ -674,7 +674,8 @@ config_server:
 | レイヤー | パッケージ / モジュール | 責務 |
 | --- | --- | --- |
 | domain/entity | `ConfigEntry`, `ConfigChangeLog`, `ConfigSchema` | エンティティ定義 |
-| domain/repository | `ConfigRepository`, `ConfigChangeLogRepository`, `ConfigSchemaRepository` | リポジトリインターフェース / トレイト |
+| domain/error | `ConfigRepositoryError` | リポジトリ層の型安全エラー定義（NotFound, VersionConflict, ServiceNotFound, Infrastructure） |
+| domain/repository | `ConfigRepository`, `ConfigChangeLogRepository`, `ConfigSchemaRepository` | リポジトリインターフェース / トレイト（`ConfigRepository` は `Result<T, ConfigRepositoryError>` を返す） |
 | domain/service | `ConfigDomainService` | ドメインサービス（namespace バリデーション・バージョン検証ロジック） |
 | usecase | `GetConfigUsecase`, `ListConfigsUsecase`, `UpdateConfigUsecase`, `DeleteConfigUsecase`, `GetServiceConfigUsecase`, `GetConfigSchemaUsecase`, `ListConfigSchemasUsecase`, `UpsertConfigSchemaUsecase`, `WatchConfigUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー, gRPC ハンドラー | プロトコル変換 |

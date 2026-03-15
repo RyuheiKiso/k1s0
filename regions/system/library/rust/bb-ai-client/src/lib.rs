@@ -11,6 +11,6 @@ pub use client::HttpAiClient;
 pub use memory::InMemoryAiClient;
 pub use traits::AiClient;
 pub use types::{
-    AiClientError, ChatMessage, CompleteRequest, CompleteResponse,
-    EmbedRequest, EmbedResponse, ModelInfo, Usage,
+    AiClientError, ChatMessage, CompleteRequest, CompleteResponse, EmbedRequest, EmbedResponse,
+    ModelInfo, Usage,
 };

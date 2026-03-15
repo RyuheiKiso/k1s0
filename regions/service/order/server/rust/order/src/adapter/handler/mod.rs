@@ -56,10 +56,7 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/orders",
                 get(order_handler::list_orders).post(order_handler::create_order),
             )
-            .route(
-                "/api/v1/orders/:order_id",
-                get(order_handler::get_order),
-            )
+            .route("/api/v1/orders/:order_id", get(order_handler::get_order))
             .route(
                 "/api/v1/orders/:order_id/status",
                 put(order_handler::update_order_status),

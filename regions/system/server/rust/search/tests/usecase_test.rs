@@ -138,11 +138,7 @@ impl SearchRepository for StubSearchRepository {
         let from = query.from as usize;
         let size = query.size as usize;
         let page = if size > 0 { from / size + 1 } else { 1 };
-        let paged_hits: Vec<SearchDocument> = hits
-            .into_iter()
-            .skip(from)
-            .take(size)
-            .collect();
+        let paged_hits: Vec<SearchDocument> = hits.into_iter().skip(from).take(size).collect();
         let has_next = (from + size) < total as usize;
 
         // Build facets from requested facet fields
@@ -239,7 +235,10 @@ impl SearchEventPublisher for StubSearchEventPublisher {
 // ---------------------------------------------------------------------------
 
 fn make_index(name: &str) -> SearchIndex {
-    SearchIndex::new(name.to_string(), serde_json::json!({"fields": ["title", "body"]}))
+    SearchIndex::new(
+        name.to_string(),
+        serde_json::json!({"fields": ["title", "body"]}),
+    )
 }
 
 fn make_document(id: &str, index_name: &str, content: serde_json::Value) -> SearchDocument {
@@ -498,11 +497,26 @@ async fn index_document_upsert_same_id() {
 async fn search_success_with_hits() {
     let index = make_index("products");
     let docs = vec![
-        make_document("doc-1", "products", serde_json::json!({"name": "Red Widget", "category": "tools"})),
-        make_document("doc-2", "products", serde_json::json!({"name": "Blue Gadget", "category": "electronics"})),
-        make_document("doc-3", "products", serde_json::json!({"name": "Green Widget", "category": "tools"})),
+        make_document(
+            "doc-1",
+            "products",
+            serde_json::json!({"name": "Red Widget", "category": "tools"}),
+        ),
+        make_document(
+            "doc-2",
+            "products",
+            serde_json::json!({"name": "Blue Gadget", "category": "electronics"}),
+        ),
+        make_document(
+            "doc-3",
+            "products",
+            serde_json::json!({"name": "Green Widget", "category": "tools"}),
+        ),
     ];
-    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(vec![index], docs));
+    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(
+        vec![index],
+        docs,
+    ));
     let uc = SearchUseCase::new(repo);
 
     let input = SearchInput {
@@ -517,10 +531,10 @@ async fn search_success_with_hits() {
 
     assert_eq!(result.total, 2);
     assert_eq!(result.hits.len(), 2);
-    assert!(result.hits.iter().all(|h| h.content["name"]
-        .as_str()
-        .unwrap()
-        .contains("Widget")));
+    assert!(result
+        .hits
+        .iter()
+        .all(|h| h.content["name"].as_str().unwrap().contains("Widget")));
 }
 
 #[tokio::test]
@@ -530,7 +544,10 @@ async fn search_empty_query_returns_all() {
         make_document("doc-1", "products", serde_json::json!({"name": "A"})),
         make_document("doc-2", "products", serde_json::json!({"name": "B"})),
     ];
-    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(vec![index], docs));
+    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(
+        vec![index],
+        docs,
+    ));
     let uc = SearchUseCase::new(repo);
 
     let input = SearchInput {
@@ -549,10 +566,15 @@ async fn search_empty_query_returns_all() {
 #[tokio::test]
 async fn search_no_hits() {
     let index = make_index("products");
-    let docs = vec![
-        make_document("doc-1", "products", serde_json::json!({"name": "Widget"})),
-    ];
-    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(vec![index], docs));
+    let docs = vec![make_document(
+        "doc-1",
+        "products",
+        serde_json::json!({"name": "Widget"}),
+    )];
+    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(
+        vec![index],
+        docs,
+    ));
     let uc = SearchUseCase::new(repo);
 
     let input = SearchInput {
@@ -622,7 +644,10 @@ async fn search_with_pagination() {
             serde_json::json!({"name": format!("Product {}", i)}),
         ));
     }
-    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(vec![index], docs));
+    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(
+        vec![index],
+        docs,
+    ));
     let uc = SearchUseCase::new(repo);
 
     // First page
@@ -674,11 +699,26 @@ async fn search_with_pagination() {
 async fn search_with_filters() {
     let index = make_index("products");
     let docs = vec![
-        make_document("doc-1", "products", serde_json::json!({"name": "Widget", "category": "tools"})),
-        make_document("doc-2", "products", serde_json::json!({"name": "Gadget", "category": "electronics"})),
-        make_document("doc-3", "products", serde_json::json!({"name": "Tool", "category": "tools"})),
+        make_document(
+            "doc-1",
+            "products",
+            serde_json::json!({"name": "Widget", "category": "tools"}),
+        ),
+        make_document(
+            "doc-2",
+            "products",
+            serde_json::json!({"name": "Gadget", "category": "electronics"}),
+        ),
+        make_document(
+            "doc-3",
+            "products",
+            serde_json::json!({"name": "Tool", "category": "tools"}),
+        ),
     ];
-    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(vec![index], docs));
+    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(
+        vec![index],
+        docs,
+    ));
     let uc = SearchUseCase::new(repo);
 
     let mut filters = HashMap::new();
@@ -702,12 +742,31 @@ async fn search_with_filters() {
 async fn search_with_facets() {
     let index = make_index("products");
     let docs = vec![
-        make_document("doc-1", "products", serde_json::json!({"name": "A", "category": "tools"})),
-        make_document("doc-2", "products", serde_json::json!({"name": "B", "category": "electronics"})),
-        make_document("doc-3", "products", serde_json::json!({"name": "C", "category": "tools"})),
-        make_document("doc-4", "products", serde_json::json!({"name": "D", "category": "tools"})),
+        make_document(
+            "doc-1",
+            "products",
+            serde_json::json!({"name": "A", "category": "tools"}),
+        ),
+        make_document(
+            "doc-2",
+            "products",
+            serde_json::json!({"name": "B", "category": "electronics"}),
+        ),
+        make_document(
+            "doc-3",
+            "products",
+            serde_json::json!({"name": "C", "category": "tools"}),
+        ),
+        make_document(
+            "doc-4",
+            "products",
+            serde_json::json!({"name": "D", "category": "tools"}),
+        ),
     ];
-    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(vec![index], docs));
+    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(
+        vec![index],
+        docs,
+    ));
     let uc = SearchUseCase::new(repo);
 
     let input = SearchInput {
@@ -734,7 +793,10 @@ async fn search_case_insensitive() {
         make_document("doc-2", "products", serde_json::json!({"name": "widget"})),
         make_document("doc-3", "products", serde_json::json!({"name": "Widget"})),
     ];
-    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(vec![index], docs));
+    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(
+        vec![index],
+        docs,
+    ));
     let uc = SearchUseCase::new(repo);
 
     let input = SearchInput {
@@ -758,7 +820,10 @@ async fn search_only_in_specified_index() {
         make_document("doc-1", "products", serde_json::json!({"name": "Widget"})),
         make_document("doc-2", "users", serde_json::json!({"name": "Widget User"})),
     ];
-    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(vec![index1, index2], docs));
+    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(
+        vec![index1, index2],
+        docs,
+    ));
     let uc = SearchUseCase::new(repo);
 
     let input = SearchInput {
@@ -783,7 +848,10 @@ async fn search_only_in_specified_index() {
 async fn delete_document_success() {
     let index = make_index("products");
     let doc = make_document("doc-1", "products", serde_json::json!({"name": "Widget"}));
-    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(vec![index], vec![doc]));
+    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(
+        vec![index],
+        vec![doc],
+    ));
     let uc = DeleteDocumentUseCase::new(repo.clone());
 
     let input = DeleteDocumentInput {
@@ -842,7 +910,10 @@ async fn delete_document_only_removes_target() {
         make_document("doc-1", "products", serde_json::json!({"name": "Widget A"})),
         make_document("doc-2", "products", serde_json::json!({"name": "Widget B"})),
     ];
-    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(vec![index], docs));
+    let repo = Arc::new(StubSearchRepository::with_indices_and_docs(
+        vec![index],
+        docs,
+    ));
     let uc = DeleteDocumentUseCase::new(repo.clone());
 
     let input = DeleteDocumentInput {
@@ -871,7 +942,11 @@ async fn list_indices_empty() {
 
 #[tokio::test]
 async fn list_indices_with_results() {
-    let indices = vec![make_index("products"), make_index("users"), make_index("orders")];
+    let indices = vec![
+        make_index("products"),
+        make_index("users"),
+        make_index("orders"),
+    ];
     let repo = Arc::new(StubSearchRepository::with_indices(indices));
     let uc = ListIndicesUseCase::new(repo);
 
@@ -917,9 +992,18 @@ async fn search_crud_workflow() {
     // 2. Index documents
     let index_uc = IndexDocumentUseCase::new(repo.clone(), publisher.clone());
     let docs_data = vec![
-        ("doc-1", serde_json::json!({"name": "Red Widget", "category": "tools"})),
-        ("doc-2", serde_json::json!({"name": "Blue Gadget", "category": "electronics"})),
-        ("doc-3", serde_json::json!({"name": "Green Widget", "category": "tools"})),
+        (
+            "doc-1",
+            serde_json::json!({"name": "Red Widget", "category": "tools"}),
+        ),
+        (
+            "doc-2",
+            serde_json::json!({"name": "Blue Gadget", "category": "electronics"}),
+        ),
+        (
+            "doc-3",
+            serde_json::json!({"name": "Green Widget", "category": "tools"}),
+        ),
     ];
     for (id, content) in &docs_data {
         let input = IndexDocumentInput {

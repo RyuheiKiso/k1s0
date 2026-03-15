@@ -12,8 +12,8 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::Router;
 
-use crate::adapter::middleware::auth::AgentAuthState;
 use crate::adapter::middleware::auth::auth_middleware;
+use crate::adapter::middleware::auth::AgentAuthState;
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
     CreateAgentUseCase, ExecuteAgentUseCase, ListExecutionsUseCase, ReviewStepUseCase,
@@ -60,8 +60,7 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         let read_routes = Router::new()
             .route("/api/v1/executions", get(agent_handler::list_executions))
             .route_layer(axum::middleware::from_fn(require_permission(
-                "agents",
-                "read",
+                "agents", "read",
             )));
 
         // POST -> agents/write
@@ -76,17 +75,12 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
                 post(agent_handler::review_step),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "agents",
-                "write",
+                "agents", "write",
             )));
 
-        Router::new()
-            .merge(read_routes)
-            .merge(write_routes)
-            .layer(axum::middleware::from_fn_with_state(
-                auth_state.clone(),
-                auth_middleware,
-            ))
+        Router::new().merge(read_routes).merge(write_routes).layer(
+            axum::middleware::from_fn_with_state(auth_state.clone(), auth_middleware),
+        )
     } else {
         // 認証なし（dev モード / テスト）
         Router::new()

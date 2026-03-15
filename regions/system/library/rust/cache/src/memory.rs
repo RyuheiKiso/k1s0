@@ -14,7 +14,7 @@ struct Entry {
 
 impl Entry {
     fn is_expired(&self) -> bool {
-        self.expires_at.map_or(false, |exp| exp <= Instant::now())
+        self.expires_at.is_some_and(|exp| exp <= Instant::now())
     }
 }
 
@@ -67,12 +67,12 @@ impl CacheClient for InMemoryCacheClient {
 
     async fn exists(&self, key: &str) -> Result<bool, CacheError> {
         let store = self.store.read().await;
-        Ok(store.get(key).map_or(false, |e| !e.is_expired()))
+        Ok(store.get(key).is_some_and(|e| !e.is_expired()))
     }
 
     async fn set_nx(&self, key: &str, value: &str, ttl: Duration) -> Result<bool, CacheError> {
         let mut store = self.store.write().await;
-        if store.get(key).map_or(true, |e| e.is_expired()) {
+        if store.get(key).is_none_or(|e| e.is_expired()) {
             store.insert(
                 key.to_string(),
                 Entry {

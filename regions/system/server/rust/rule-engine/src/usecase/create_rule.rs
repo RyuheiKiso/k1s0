@@ -62,8 +62,7 @@ impl CreateRuleUseCase {
             ));
         }
 
-        ConditionParser::parse(&input.when_condition)
-            .map_err(|e| CreateRuleError::InvalidCondition(e))?;
+        ConditionParser::parse(&input.when_condition).map_err(CreateRuleError::InvalidCondition)?;
 
         let exists = self
             .repo

@@ -1,6 +1,8 @@
 use crate::adapter::handler::error::AppError;
 use crate::adapter::handler::table_handler::DomainScopeQuery;
-use crate::adapter::handler::{actor_from_claims, current_trace_id, publish_change_event, AppState};
+use crate::adapter::handler::{
+    actor_from_claims, current_trace_id, publish_change_event, AppState,
+};
 use axum::{
     extract::{Extension, Path, Query, State},
     http::StatusCode,

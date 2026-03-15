@@ -44,10 +44,9 @@ impl SessionGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_session(&self, session_id: &str) -> anyhow::Result<Option<Session>> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::session::v1::GetSessionRequest {
-                session_id: session_id.to_owned(),
-            });
+        let request = tonic::Request::new(proto::k1s0::system::session::v1::GetSessionRequest {
+            session_id: session_id.to_owned(),
+        });
 
         match self.client.clone().get_session(request).await {
             Ok(resp) => {
@@ -80,6 +79,7 @@ impl SessionGrpcClient {
         Ok(resp.sessions.into_iter().map(session_from_proto).collect())
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn create_session(
         &self,
@@ -91,18 +91,17 @@ impl SessionGrpcClient {
         ip_address: Option<&str>,
         ttl_seconds: Option<i32>,
     ) -> anyhow::Result<(Session, String)> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::session::v1::CreateSessionRequest {
-                user_id: user_id.to_owned(),
-                device_id: device_id.to_owned(),
-                device_name: device_name.map(|s| s.to_owned()),
-                device_type: device_type.map(|s| s.to_owned()),
-                user_agent: user_agent.map(|s| s.to_owned()),
-                ip_address: ip_address.map(|s| s.to_owned()),
-                ttl_seconds: ttl_seconds.map(|t| t as u32),
-                max_devices: None,
-                metadata: Default::default(),
-            });
+        let request = tonic::Request::new(proto::k1s0::system::session::v1::CreateSessionRequest {
+            user_id: user_id.to_owned(),
+            device_id: device_id.to_owned(),
+            device_name: device_name.map(|s| s.to_owned()),
+            device_type: device_type.map(|s| s.to_owned()),
+            user_agent: user_agent.map(|s| s.to_owned()),
+            ip_address: ip_address.map(|s| s.to_owned()),
+            ttl_seconds: ttl_seconds.map(|t| t as u32),
+            max_devices: None,
+            metadata: Default::default(),
+        });
 
         let resp = self
             .client
@@ -162,7 +161,9 @@ impl SessionGrpcClient {
             status: SessionStatus::from(resp.status.as_str()),
             expires_at: timestamp_to_rfc3339(resp.expires_at),
             created_at: timestamp_to_rfc3339(resp.created_at),
-            last_accessed_at: resp.last_accessed_at.map(|ts| timestamp_to_rfc3339(Some(ts))),
+            last_accessed_at: resp
+                .last_accessed_at
+                .map(|ts| timestamp_to_rfc3339(Some(ts))),
         };
 
         Ok((session, token))
@@ -170,10 +171,9 @@ impl SessionGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn revoke_session(&self, session_id: &str) -> anyhow::Result<bool> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::session::v1::RevokeSessionRequest {
-                session_id: session_id.to_owned(),
-            });
+        let request = tonic::Request::new(proto::k1s0::system::session::v1::RevokeSessionRequest {
+            session_id: session_id.to_owned(),
+        });
 
         let resp = self
             .client

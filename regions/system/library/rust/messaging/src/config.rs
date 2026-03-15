@@ -147,7 +147,10 @@ mod tests {
             timeout_ms: 5000,
             batch_size: 100,
         };
-        assert_eq!(cfg.brokers_string(), "kafka-0:9092,kafka-1:9092,kafka-2:9092");
+        assert_eq!(
+            cfg.brokers_string(),
+            "kafka-0:9092,kafka-1:9092,kafka-2:9092"
+        );
     }
 
     // セキュリティプロトコルに SASL_PLAINTEXT を指定できることを確認する。

@@ -1,10 +1,10 @@
-use std::sync::Arc;
-use tracing::instrument;
 use crate::domain::model::{
-    CreateSessionPayload, RefreshSessionPayload, RevokeAllSessionsPayload,
-    RevokeSessionPayload, UserError,
+    CreateSessionPayload, RefreshSessionPayload, RevokeAllSessionsPayload, RevokeSessionPayload,
+    UserError,
 };
 use crate::infrastructure::grpc::SessionGrpcClient;
+use std::sync::Arc;
+use tracing::instrument;
 
 pub struct SessionMutationResolver {
     client: Arc<SessionGrpcClient>,
@@ -15,6 +15,7 @@ impl SessionMutationResolver {
         Self { client }
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn create_session(
         &self,
@@ -26,10 +27,19 @@ impl SessionMutationResolver {
         ip_address: Option<&str>,
         ttl_seconds: Option<i32>,
     ) -> CreateSessionPayload {
-        match self.client.create_session(
-            user_id, device_id, device_name, device_type,
-            user_agent, ip_address, ttl_seconds,
-        ).await {
+        match self
+            .client
+            .create_session(
+                user_id,
+                device_id,
+                device_name,
+                device_type,
+                user_agent,
+                ip_address,
+                ttl_seconds,
+            )
+            .await
+        {
             Ok((session, token)) => CreateSessionPayload {
                 session: Some(session),
                 token: Some(token),
@@ -38,7 +48,10 @@ impl SessionMutationResolver {
             Err(e) => CreateSessionPayload {
                 session: None,
                 token: None,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }
@@ -58,7 +71,10 @@ impl SessionMutationResolver {
             Err(e) => RefreshSessionPayload {
                 session: None,
                 token: None,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }
@@ -72,7 +88,10 @@ impl SessionMutationResolver {
             },
             Err(e) => RevokeSessionPayload {
                 success: false,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }
@@ -86,7 +105,10 @@ impl SessionMutationResolver {
             },
             Err(e) => RevokeAllSessionsPayload {
                 revoked_count: 0,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }

@@ -26,8 +26,8 @@ pub async fn auth_middleware(
 
 fn extract_bearer_token(req: &Request<Body>) -> Option<String> {
     let header = req.headers().get("Authorization")?.to_str().ok()?;
-    if header.starts_with("Bearer ") {
-        let token = header[7..].trim().to_string();
+    if let Some(token) = header.strip_prefix("Bearer ") {
+        let token = token.trim().to_string();
         if token.is_empty() {
             None
         } else {

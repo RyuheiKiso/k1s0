@@ -158,6 +158,7 @@ pub struct QuotaGrpcService {
 }
 
 impl QuotaGrpcService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         create_policy_uc: Arc<CreateQuotaPolicyUseCase>,
         get_policy_uc: Arc<GetQuotaPolicyUseCase>,

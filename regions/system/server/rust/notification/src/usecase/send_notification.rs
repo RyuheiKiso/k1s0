@@ -169,7 +169,7 @@ impl SendNotificationUseCase {
                 SendNotificationError::Internal("template repository is not configured".to_string())
             })?;
             let template = repo
-                .find_by_id(&template_id)
+                .find_by_id(template_id)
                 .await
                 .map_err(|e| SendNotificationError::Internal(e.to_string()))?
                 .ok_or_else(|| SendNotificationError::TemplateNotFound(template_id.clone()))?;

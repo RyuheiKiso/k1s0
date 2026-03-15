@@ -14,6 +14,5 @@ mod tests {
     #[test]
     fn test_placeholder() {
         // database.rs の存在を確認するプレースホルダーテスト
-        assert!(true);
     }
 }

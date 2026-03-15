@@ -6,11 +6,11 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use super::config::Config;
+use super::in_memory::{InMemoryAgentRepository, InMemoryExecutionRepository};
 use crate::adapter::grpc::AiAgentGrpcService;
 use crate::domain::repository::{AgentRepository, ExecutionRepository};
 use crate::domain::service::{ReActEngine, ToolRegistry};
-use super::config::Config;
-use super::in_memory::{InMemoryAgentRepository, InMemoryExecutionRepository};
 use k1s0_bb_ai_client::traits::AiClient;
 
 /// ソケットアドレスを解決する
@@ -73,36 +73,32 @@ pub async fn run() -> anyhow::Result<()> {
     );
 
     // --- Repository ---
-    let (agent_repo, execution_repo): (
-        Arc<dyn AgentRepository>,
-        Arc<dyn ExecutionRepository>,
-    ) = if let Some(ref db_cfg) = cfg.database {
-        let pool = Arc::new(
-            super::database::create_pool(
-                &db_cfg.connection_url(),
-                db_cfg.max_open_conns,
-                db_cfg.max_idle_conns,
-                &db_cfg.conn_max_lifetime,
-            )
-            .await?,
-        );
-        info!("connected to PostgreSQL database");
+    let (agent_repo, execution_repo): (Arc<dyn AgentRepository>, Arc<dyn ExecutionRepository>) =
+        if let Some(ref db_cfg) = cfg.database {
+            let pool = Arc::new(
+                super::database::create_pool(
+                    &db_cfg.connection_url(),
+                    db_cfg.max_open_conns,
+                    db_cfg.max_idle_conns,
+                    &db_cfg.conn_max_lifetime,
+                )
+                .await?,
+            );
+            info!("connected to PostgreSQL database");
 
-        (
-            Arc::new(crate::adapter::repository::AgentPostgresRepository::new(
-                pool.clone(),
-            )),
-            Arc::new(crate::adapter::repository::ExecutionPostgresRepository::new(
-                pool,
-            )),
-        )
-    } else {
-        info!("no database config found, using in-memory repositories");
-        (
-            Arc::new(InMemoryAgentRepository::new()),
-            Arc::new(InMemoryExecutionRepository::new()),
-        )
-    };
+            (
+                Arc::new(crate::adapter::repository::AgentPostgresRepository::new(
+                    pool.clone(),
+                )),
+                Arc::new(crate::adapter::repository::ExecutionPostgresRepository::new(pool)),
+            )
+        } else {
+            info!("no database config found, using in-memory repositories");
+            (
+                Arc::new(InMemoryAgentRepository::new()),
+                Arc::new(InMemoryExecutionRepository::new()),
+            )
+        };
 
     // --- AI Client ---
     let ai_client: Arc<dyn AiClient> = if let Some(ref gw_cfg) = cfg.ai_gateway {
@@ -116,9 +112,12 @@ pub async fn run() -> anyhow::Result<()> {
             vec![k1s0_bb_ai_client::CompleteResponse {
                 id: "default".to_string(),
                 model: "default".to_string(),
-                content: r#"{"action": "final_answer", "output": "No AI Gateway configured"}"#.to_string(),
-                prompt_tokens: 0,
-                completion_tokens: 0,
+                content: r#"{"action": "final_answer", "output": "No AI Gateway configured"}"#
+                    .to_string(),
+                usage: k1s0_bb_ai_client::types::Usage {
+                    input_tokens: 0,
+                    output_tokens: 0,
+                },
             }],
             vec![],
         ))
@@ -129,9 +128,7 @@ pub async fn run() -> anyhow::Result<()> {
     let react_engine = Arc::new(ReActEngine::new(tool_registry));
 
     // --- Use Cases ---
-    let create_agent_uc = Arc::new(crate::usecase::CreateAgentUseCase::new(
-        agent_repo.clone(),
-    ));
+    let create_agent_uc = Arc::new(crate::usecase::CreateAgentUseCase::new(agent_repo.clone()));
     let execute_agent_uc = Arc::new(crate::usecase::ExecuteAgentUseCase::new(
         agent_repo.clone(),
         execution_repo.clone(),
@@ -141,9 +138,7 @@ pub async fn run() -> anyhow::Result<()> {
     let list_executions_uc = Arc::new(crate::usecase::ListExecutionsUseCase::new(
         execution_repo.clone(),
     ));
-    let review_step_uc = Arc::new(crate::usecase::ReviewStepUseCase::new(
-        execution_repo,
-    ));
+    let review_step_uc = Arc::new(crate::usecase::ReviewStepUseCase::new(execution_repo));
 
     // --- gRPC Service ---
     let grpc_svc = Arc::new(AiAgentGrpcService::new(

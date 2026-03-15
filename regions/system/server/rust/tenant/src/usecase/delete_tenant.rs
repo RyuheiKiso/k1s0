@@ -4,9 +4,9 @@ use uuid::Uuid;
 use crate::domain::entity::{Tenant, TenantStatus};
 use crate::domain::repository::TenantRepository;
 use crate::infrastructure::kafka_producer::{NoopTenantEventPublisher, TenantEventPublisher};
-use crate::usecase::watch_tenant::TenantChangeEvent;
 use crate::infrastructure::keycloak_admin::{KeycloakAdmin, NoopKeycloakAdmin};
 use crate::infrastructure::saga_client::{NoopSagaClient, SagaClient};
+use crate::usecase::watch_tenant::TenantChangeEvent;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteTenantError {
@@ -52,7 +52,10 @@ impl DeleteTenantUseCase {
         self
     }
 
-    pub fn with_watch_sender(mut self, sender: tokio::sync::broadcast::Sender<TenantChangeEvent>) -> Self {
+    pub fn with_watch_sender(
+        mut self,
+        sender: tokio::sync::broadcast::Sender<TenantChangeEvent>,
+    ) -> Self {
         self.watch_sender = Some(sender);
         self
     }

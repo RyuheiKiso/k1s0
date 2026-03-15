@@ -182,10 +182,7 @@ mod tests {
     #[test]
     fn test_column_changed() {
         let old = Schema {
-            tables: vec![make_table(
-                "users",
-                vec![make_column("name", "TEXT", true)],
-            )],
+            tables: vec![make_table("users", vec![make_column("name", "TEXT", true)])],
         };
         let new = Schema {
             tables: vec![make_table(

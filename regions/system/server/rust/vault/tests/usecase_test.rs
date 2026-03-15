@@ -13,7 +13,7 @@ use k1s0_vault_server::infrastructure::kafka_producer::{
 use k1s0_vault_server::usecase::delete_secret::{DeleteSecretInput, DeleteSecretUseCase};
 use k1s0_vault_server::usecase::get_secret::{GetSecretError, GetSecretInput, GetSecretUseCase};
 use k1s0_vault_server::usecase::list_audit_logs::{ListAuditLogsInput, ListAuditLogsUseCase};
-use k1s0_vault_server::usecase::list_secrets::{ListSecretsUseCase};
+use k1s0_vault_server::usecase::list_secrets::ListSecretsUseCase;
 use k1s0_vault_server::usecase::rotate_secret::{
     RotateSecretError, RotateSecretInput, RotateSecretUseCase,
 };
@@ -44,10 +44,8 @@ impl StubSecretStore {
     }
 
     fn with_secrets(secrets: Vec<Secret>) -> Self {
-        let map: HashMap<String, Secret> = secrets
-            .into_iter()
-            .map(|s| (s.path.clone(), s))
-            .collect();
+        let map: HashMap<String, Secret> =
+            secrets.into_iter().map(|s| (s.path.clone(), s)).collect();
         Self {
             secrets: RwLock::new(map),
             should_fail: false,
@@ -226,10 +224,10 @@ impl VaultEventPublisher for StubEventPublisher {
         if self.should_fail {
             return Err(anyhow::anyhow!("event publish failed"));
         }
-        self.rotated_events
-            .write()
-            .await
-            .push(format!("{}:{}→{}", event.key_path, event.old_version, event.new_version));
+        self.rotated_events.write().await.push(format!(
+            "{}:{}→{}",
+            event.key_path, event.old_version, event.new_version
+        ));
         Ok(())
     }
 
@@ -654,10 +652,7 @@ async fn test_list_secrets_empty_result() {
 
 #[tokio::test]
 async fn test_list_secrets_all_with_empty_prefix() {
-    let secrets = vec![
-        make_secret("a/b", "k", "v"),
-        make_secret("c/d", "k", "v"),
-    ];
+    let secrets = vec![make_secret("a/b", "k", "v"), make_secret("c/d", "k", "v")];
     let store = Arc::new(StubSecretStore::with_secrets(secrets));
 
     let uc = ListSecretsUseCase::new(store);
@@ -1066,7 +1061,11 @@ async fn test_audit_trail_across_operations() {
 
     let logs = audit.recorded_logs().await;
     // set produces a Write log, get produces a Read log, delete produces a Delete log
-    assert!(logs.len() >= 3, "expected at least 3 audit logs, got {}", logs.len());
+    assert!(
+        logs.len() >= 3,
+        "expected at least 3 audit logs, got {}",
+        logs.len()
+    );
 
     let actions: Vec<&AccessAction> = logs.iter().map(|l| &l.action).collect();
     assert!(actions.contains(&&AccessAction::Write));

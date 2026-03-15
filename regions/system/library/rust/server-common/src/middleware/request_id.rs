@@ -103,7 +103,12 @@ mod tests {
         let resp = svc.oneshot(req).await.unwrap();
 
         assert!(resp.headers().contains_key("x-request-id"));
-        let rid = resp.headers().get("x-request-id").unwrap().to_str().unwrap();
+        let rid = resp
+            .headers()
+            .get("x-request-id")
+            .unwrap()
+            .to_str()
+            .unwrap();
         assert!(!rid.is_empty());
     }
 
@@ -118,11 +123,23 @@ mod tests {
 
         let req1 = Request::builder().body(String::new()).unwrap();
         let resp1 = Service::call(&mut svc, req1).await.unwrap();
-        let id1 = resp1.headers().get("x-request-id").unwrap().to_str().unwrap().to_string();
+        let id1 = resp1
+            .headers()
+            .get("x-request-id")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
 
         let req2 = Request::builder().body(String::new()).unwrap();
         let resp2 = Service::call(&mut svc, req2).await.unwrap();
-        let id2 = resp2.headers().get("x-request-id").unwrap().to_str().unwrap().to_string();
+        let id2 = resp2
+            .headers()
+            .get("x-request-id")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
 
         assert_ne!(id1, id2);
     }

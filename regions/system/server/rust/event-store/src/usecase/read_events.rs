@@ -58,7 +58,7 @@ impl ReadEventsUseCase {
         let stream =
             stream.ok_or_else(|| ReadEventsError::StreamNotFound(input.stream_id.clone()))?;
 
-        let page_size = input.page_size.min(200).max(1);
+        let page_size = input.page_size.clamp(1, 200);
         let page = input.page.max(1);
 
         let (events, total_count) = self

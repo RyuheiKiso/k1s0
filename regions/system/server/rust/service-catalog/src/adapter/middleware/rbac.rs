@@ -1,9 +1,9 @@
 use axum::{
+    Json,
     extract::State,
     http::{Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
-    Json,
 };
 use k1s0_server_common::ErrorResponse;
 
@@ -48,7 +48,7 @@ pub fn make_rbac_middleware(
     Request<axum::body::Body>,
     Next,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
-       + Clone {
++ Clone {
     move |State(state): State<AppState>, req: Request<axum::body::Body>, next: Next| {
         Box::pin(rbac_check(state, req, next, resource, action))
     }
@@ -96,10 +96,26 @@ mod tests {
 
     #[test]
     fn test_admin_can_do_everything() {
-        assert!(check_permission_static(&["admin".to_string()], "services", "read"));
-        assert!(check_permission_static(&["admin".to_string()], "services", "write"));
-        assert!(check_permission_static(&["admin".to_string()], "teams", "read"));
-        assert!(check_permission_static(&["admin".to_string()], "teams", "write"));
+        assert!(check_permission_static(
+            &["admin".to_string()],
+            "services",
+            "read"
+        ));
+        assert!(check_permission_static(
+            &["admin".to_string()],
+            "services",
+            "write"
+        ));
+        assert!(check_permission_static(
+            &["admin".to_string()],
+            "teams",
+            "read"
+        ));
+        assert!(check_permission_static(
+            &["admin".to_string()],
+            "teams",
+            "write"
+        ));
     }
 
     #[test]
@@ -123,10 +139,26 @@ mod tests {
 
     #[test]
     fn test_viewer_can_only_read() {
-        assert!(check_permission_static(&["user".to_string()], "services", "read"));
-        assert!(!check_permission_static(&["user".to_string()], "services", "write"));
-        assert!(check_permission_static(&["sys_viewer".to_string()], "teams", "read"));
-        assert!(!check_permission_static(&["sys_viewer".to_string()], "teams", "write"));
+        assert!(check_permission_static(
+            &["user".to_string()],
+            "services",
+            "read"
+        ));
+        assert!(!check_permission_static(
+            &["user".to_string()],
+            "services",
+            "write"
+        ));
+        assert!(check_permission_static(
+            &["sys_viewer".to_string()],
+            "teams",
+            "read"
+        ));
+        assert!(!check_permission_static(
+            &["sys_viewer".to_string()],
+            "teams",
+            "write"
+        ));
     }
 
     #[test]

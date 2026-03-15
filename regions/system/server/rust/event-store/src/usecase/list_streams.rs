@@ -35,7 +35,7 @@ impl ListStreamsUseCase {
         input: &ListStreamsInput,
     ) -> Result<ListStreamsOutput, ListStreamsError> {
         let page = input.page.max(1);
-        let page_size = input.page_size.max(1).min(200);
+        let page_size = input.page_size.clamp(1, 200);
 
         let (streams, total_count) = self
             .stream_repo

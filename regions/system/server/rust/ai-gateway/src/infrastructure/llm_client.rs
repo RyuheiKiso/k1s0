@@ -102,11 +102,7 @@ impl LlmClient {
 
     /// エンベディングリクエストを送信する。
     /// OpenAI互換の /embeddings エンドポイントを呼び出す。
-    pub async fn embed(
-        &self,
-        model: &str,
-        inputs: &[String],
-    ) -> anyhow::Result<EmbedResponse> {
+    pub async fn embed(&self, model: &str, inputs: &[String]) -> anyhow::Result<EmbedResponse> {
         let url = format!("{}/embeddings", self.base_url);
 
         let request_body = serde_json::json!({

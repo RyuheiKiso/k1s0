@@ -94,10 +94,8 @@ mod tests {
         });
         mock.expect_save().returning(|_| Ok(()));
 
-        let uc = RevokeAllSessionsUseCase::new(
-            Arc::new(mock),
-            Arc::new(NoopSessionMetadataRepository),
-        );
+        let uc =
+            RevokeAllSessionsUseCase::new(Arc::new(mock), Arc::new(NoopSessionMetadataRepository));
         let result = uc
             .execute(&RevokeAllSessionsInput {
                 user_id: "user-1".to_string(),
@@ -112,10 +110,8 @@ mod tests {
         let mut mock = MockSessionRepository::new();
         mock.expect_find_by_user_id().returning(|_| Ok(vec![]));
 
-        let uc = RevokeAllSessionsUseCase::new(
-            Arc::new(mock),
-            Arc::new(NoopSessionMetadataRepository),
-        );
+        let uc =
+            RevokeAllSessionsUseCase::new(Arc::new(mock), Arc::new(NoopSessionMetadataRepository));
         let result = uc
             .execute(&RevokeAllSessionsInput {
                 user_id: "user-2".to_string(),

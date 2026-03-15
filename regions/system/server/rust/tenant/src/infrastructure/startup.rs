@@ -4,13 +4,13 @@ use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
+use super::config::{
+    default_conn_max_lifetime, default_max_connections, default_max_idle_conns,
+    parse_pool_duration, Config,
+};
 use crate::adapter::handler::{self, AppState};
 use crate::domain::entity::{ProvisioningJob, Tenant, TenantMember};
 use crate::domain::repository::{MemberRepository, TenantRepository};
-use super::config::{
-    default_conn_max_lifetime, default_max_connections, default_max_idle_conns, parse_pool_duration,
-    Config,
-};
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -87,7 +87,11 @@ pub async fn run() -> anyhow::Result<()> {
                         pool.clone(),
                     ),
                 ),
-                Arc::new(crate::adapter::repository::member_postgres::MemberPostgresRepository::new(pool)),
+                Arc::new(
+                    crate::adapter::repository::member_postgres::MemberPostgresRepository::new(
+                        pool,
+                    ),
+                ),
             )
         } else if let Ok(database_url) = std::env::var("DATABASE_URL") {
             info!("connecting to PostgreSQL with DATABASE_URL fallback...");
@@ -107,7 +111,11 @@ pub async fn run() -> anyhow::Result<()> {
                         pool.clone(),
                     ),
                 ),
-                Arc::new(crate::adapter::repository::member_postgres::MemberPostgresRepository::new(pool)),
+                Arc::new(
+                    crate::adapter::repository::member_postgres::MemberPostgresRepository::new(
+                        pool,
+                    ),
+                ),
             )
         } else {
             info!("database not configured, using in-memory repositories");
@@ -131,8 +139,7 @@ pub async fn run() -> anyhow::Result<()> {
     let event_publisher: Arc<dyn super::kafka_producer::TenantEventPublisher> =
         if let Some(ref kafka_cfg) = cfg.kafka {
             info!("initializing Kafka event publisher...");
-            let publisher =
-                super::kafka_producer::KafkaTenantEventPublisher::new(kafka_cfg)?;
+            let publisher = super::kafka_producer::KafkaTenantEventPublisher::new(kafka_cfg)?;
             info!(topic = %publisher.topic(), "Kafka event publisher initialized");
             Arc::new(publisher)
         } else if let Some(brokers) = kafka_brokers_for_health.clone() {
@@ -144,8 +151,7 @@ pub async fn run() -> anyhow::Result<()> {
                 sasl: Default::default(),
                 topics: Default::default(),
             };
-            let publisher =
-                super::kafka_producer::KafkaTenantEventPublisher::new(&kafka_cfg)?;
+            let publisher = super::kafka_producer::KafkaTenantEventPublisher::new(&kafka_cfg)?;
             info!(topic = %publisher.topic(), "Kafka event publisher initialized");
             Arc::new(publisher)
         } else {
@@ -218,14 +224,17 @@ pub async fn run() -> anyhow::Result<()> {
             .with_watch_sender(watch_tx.clone()),
     );
     let add_member_uc = Arc::new(crate::usecase::AddMemberUseCase::new(member_repo.clone()));
-    let remove_member_uc = Arc::new(crate::usecase::RemoveMemberUseCase::new(member_repo.clone()));
+    let remove_member_uc = Arc::new(crate::usecase::RemoveMemberUseCase::new(
+        member_repo.clone(),
+    ));
     let list_members_uc = Arc::new(crate::usecase::ListMembersUseCase::new(member_repo.clone()));
     let update_member_role_uc = Arc::new(crate::usecase::UpdateMemberRoleUseCase::new(
         member_repo.clone(),
         tenant_repo.clone(),
     ));
-    let get_provisioning_status_uc =
-        Arc::new(crate::usecase::GetProvisioningStatusUseCase::new(member_repo));
+    let get_provisioning_status_uc = Arc::new(crate::usecase::GetProvisioningStatusUseCase::new(
+        member_repo,
+    ));
 
     // gRPC service
     use crate::adapter::grpc::TenantGrpcService;
@@ -304,7 +313,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(TenantServiceServer::new(tenant_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -443,9 +454,17 @@ impl MemberRepository for InMemoryMemberRepository {
         Ok(members.len() < len_before)
     }
 
-    async fn update_role(&self, tenant_id: &Uuid, user_id: &Uuid, role: &str) -> anyhow::Result<Option<TenantMember>> {
+    async fn update_role(
+        &self,
+        tenant_id: &Uuid,
+        user_id: &Uuid,
+        role: &str,
+    ) -> anyhow::Result<Option<TenantMember>> {
         let mut members = self.members.write().await;
-        if let Some(member) = members.iter_mut().find(|m| m.tenant_id == *tenant_id && m.user_id == *user_id) {
+        if let Some(member) = members
+            .iter_mut()
+            .find(|m| m.tenant_id == *tenant_id && m.user_id == *user_id)
+        {
             member.role = role.to_string();
             Ok(Some(member.clone()))
         } else {

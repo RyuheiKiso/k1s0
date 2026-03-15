@@ -138,10 +138,18 @@ mod featureflag_support {
         jitter: bool,
     }
 
-    fn default_initial_delay_ms() -> u64 { 100 }
-    fn default_max_delay_ms() -> u64 { 30_000 }
-    fn default_multiplier() -> f64 { 2.0 }
-    fn default_jitter() -> bool { true }
+    fn default_initial_delay_ms() -> u64 {
+        100
+    }
+    fn default_max_delay_ms() -> u64 {
+        30_000
+    }
+    fn default_multiplier() -> f64 {
+        2.0
+    }
+    fn default_jitter() -> bool {
+        true
+    }
 
     #[derive(Debug, Deserialize)]
     struct CircuitBreakerJson {
@@ -152,8 +160,12 @@ mod featureflag_support {
         timeout_ms: u64,
     }
 
-    fn default_success_threshold() -> u32 { 3 }
-    fn default_timeout_ms() -> u64 { 30_000 }
+    fn default_success_threshold() -> u32 {
+        3
+    }
+    fn default_timeout_ms() -> u64 {
+        30_000
+    }
 
     #[derive(Debug, Deserialize)]
     struct BulkheadJson {
@@ -162,7 +174,9 @@ mod featureflag_support {
         max_wait_duration_ms: u64,
     }
 
-    fn default_bulkhead_wait_ms() -> u64 { 500 }
+    fn default_bulkhead_wait_ms() -> u64 {
+        500
+    }
 
     #[derive(Debug, Deserialize)]
     struct BackoffJson {
@@ -228,11 +242,12 @@ mod featureflag_support {
             key: &str,
             client: &dyn k1s0_featureflag::FeatureFlagClient,
         ) -> Result<Self, ResiliencyError> {
-            let flag = client.get_flag(key).await.map_err(|e| {
-                ResiliencyError::Config {
+            let flag = client
+                .get_flag(key)
+                .await
+                .map_err(|e| ResiliencyError::Config {
                     message: format!("failed to fetch feature flag '{}': {}", key, e),
-                }
-            })?;
+                })?;
 
             let variant_value = flag
                 .variants

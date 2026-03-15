@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import MockAdapter from 'axios-mock-adapter';
 import { createApiClient } from './apiClient';
 
@@ -28,34 +28,32 @@ describe('createApiClient', () => {
 
 describe('レスポンスエラーインターセプター', () => {
   let mock: MockAdapter;
-  let originalLocation: PropertyDescriptor | undefined;
-
-  beforeEach(() => {
-    originalLocation = Object.getOwnPropertyDescriptor(window, 'location');
-  });
 
   afterEach(() => {
     mock?.restore();
-    if (originalLocation) {
-      Object.defineProperty(window, 'location', originalLocation);
-    }
   });
 
-  it('401 エラーで /auth/login にリダイレクトする', async () => {
+  // 401 エラー時に onUnauthorized コールバックが呼び出されることを検証
+  it('401 エラーで onUnauthorized コールバックが呼ばれる', async () => {
+    const onUnauthorized = vi.fn();
+    const client = createApiClient({
+      baseURL: 'https://api.example.com',
+      onUnauthorized,
+    });
+    mock = new MockAdapter(client);
+    mock.onGet('/test').reply(401);
+
+    await expect(client.get('/test')).rejects.toThrow();
+    expect(onUnauthorized).toHaveBeenCalledOnce();
+  });
+
+  // onUnauthorized 未指定時に 401 エラーでもクラッシュしないことを検証
+  it('onUnauthorized 未指定時に 401 エラーでもクラッシュしない', async () => {
     const client = createApiClient({ baseURL: 'https://api.example.com' });
     mock = new MockAdapter(client);
     mock.onGet('/test').reply(401);
 
-    // window.location をモック
-    const locationMock = { href: '' };
-    Object.defineProperty(window, 'location', {
-      value: locationMock,
-      writable: true,
-      configurable: true,
-    });
-
     await expect(client.get('/test')).rejects.toThrow();
-    expect(locationMock.href).toBe('/auth/login');
   });
 
   it('403 エラーでエラーログを出力する', async () => {

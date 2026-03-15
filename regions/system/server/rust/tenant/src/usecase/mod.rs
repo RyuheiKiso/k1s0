@@ -22,6 +22,8 @@ pub use list_members::{ListMembersError, ListMembersUseCase};
 pub use list_tenants::{ListTenantsError, ListTenantsUseCase};
 pub use remove_member::{RemoveMemberError, RemoveMemberUseCase};
 pub use suspend_tenant::{SuspendTenantError, SuspendTenantUseCase};
-pub use update_member_role::{UpdateMemberRoleError, UpdateMemberRoleInput, UpdateMemberRoleUseCase};
+pub use update_member_role::{
+    UpdateMemberRoleError, UpdateMemberRoleInput, UpdateMemberRoleUseCase,
+};
 pub use update_tenant::{UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase};
 pub use watch_tenant::{TenantChangeEvent, WatchTenantUseCase};

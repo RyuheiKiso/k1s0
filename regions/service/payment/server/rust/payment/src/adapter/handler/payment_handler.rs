@@ -93,11 +93,16 @@ pub async fn list_payments(
     Query(query): Query<ListPaymentsQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
     let status = match &query.status {
-        Some(s) => Some(s.parse::<PaymentStatus>().map_err(|_| ServiceError::BadRequest {
-            code: k1s0_server_common::error::ErrorCode::new("SVC_PAYMENT_VALIDATION_FAILED"),
-            message: format!("invalid payment status: '{}'", s),
-            details: vec![],
-        })?),
+        Some(s) => Some(
+            s.parse::<PaymentStatus>()
+                .map_err(|_| ServiceError::BadRequest {
+                    code: k1s0_server_common::error::ErrorCode::new(
+                        "SVC_PAYMENT_VALIDATION_FAILED",
+                    ),
+                    message: format!("invalid payment status: '{}'", s),
+                    details: vec![],
+                })?,
+        ),
         None => None,
     };
 

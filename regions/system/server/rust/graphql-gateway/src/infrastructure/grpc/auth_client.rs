@@ -78,7 +78,7 @@ impl AuthGrpcClient {
                 page_size: page_size.unwrap_or(50),
             }),
             search: search.unwrap_or_default().to_owned(),
-            enabled: enabled,
+            enabled,
         });
 
         let resp = self
@@ -117,13 +117,12 @@ impl AuthGrpcClient {
         resource: &str,
         roles: &[String],
     ) -> anyhow::Result<PermissionCheck> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::auth::v1::CheckPermissionRequest {
-                user_id: user_id.map(|s| s.to_owned()),
-                permission: permission.to_owned(),
-                resource: resource.to_owned(),
-                roles: roles.to_vec(),
-            });
+        let request = tonic::Request::new(proto::k1s0::system::auth::v1::CheckPermissionRequest {
+            user_id: user_id.map(|s| s.to_owned()),
+            permission: permission.to_owned(),
+            resource: resource.to_owned(),
+            roles: roles.to_vec(),
+        });
 
         let resp = self
             .auth_client
@@ -139,6 +138,7 @@ impl AuthGrpcClient {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn record_audit_log(
         &self,
@@ -152,19 +152,18 @@ impl AuthGrpcClient {
         resource_id: &str,
         trace_id: &str,
     ) -> anyhow::Result<(String, String)> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::auth::v1::RecordAuditLogRequest {
-                event_type: event_type.to_owned(),
-                user_id: user_id.to_owned(),
-                ip_address: ip_address.to_owned(),
-                user_agent: user_agent.to_owned(),
-                resource: resource.to_owned(),
-                action: action.to_owned(),
-                result: result.to_owned(),
-                resource_id: resource_id.to_owned(),
-                trace_id: trace_id.to_owned(),
-                detail: None,
-            });
+        let request = tonic::Request::new(proto::k1s0::system::auth::v1::RecordAuditLogRequest {
+            event_type: event_type.to_owned(),
+            user_id: user_id.to_owned(),
+            ip_address: ip_address.to_owned(),
+            user_agent: user_agent.to_owned(),
+            resource: resource.to_owned(),
+            action: action.to_owned(),
+            result: result.to_owned(),
+            resource_id: resource_id.to_owned(),
+            trace_id: trace_id.to_owned(),
+            detail: None,
+        });
 
         let resp = self
             .audit_client
@@ -186,18 +185,17 @@ impl AuthGrpcClient {
         event_type: Option<&str>,
         result: Option<&str>,
     ) -> anyhow::Result<(Vec<AuditLog>, i32, bool)> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::auth::v1::SearchAuditLogsRequest {
-                pagination: Some(proto::k1s0::system::common::v1::Pagination {
-                    page: page.unwrap_or(1),
-                    page_size: page_size.unwrap_or(50),
-                }),
-                user_id: user_id.unwrap_or_default().to_owned(),
-                event_type: event_type.unwrap_or_default().to_owned(),
-                result: result.unwrap_or_default().to_owned(),
-                from: None,
-                to: None,
-            });
+        let request = tonic::Request::new(proto::k1s0::system::auth::v1::SearchAuditLogsRequest {
+            pagination: Some(proto::k1s0::system::common::v1::Pagination {
+                page: page.unwrap_or(1),
+                page_size: page_size.unwrap_or(50),
+            }),
+            user_id: user_id.unwrap_or_default().to_owned(),
+            event_type: event_type.unwrap_or_default().to_owned(),
+            result: result.unwrap_or_default().to_owned(),
+            from: None,
+            to: None,
+        });
 
         let resp = self
             .audit_client
@@ -211,7 +209,7 @@ impl AuthGrpcClient {
 
         let (total_count, has_next) = resp
             .pagination
-            .map(|p| (p.total_count as i32, p.has_next))
+            .map(|p| (p.total_count, p.has_next))
             .unwrap_or((0, false));
 
         Ok((logs, total_count, has_next))

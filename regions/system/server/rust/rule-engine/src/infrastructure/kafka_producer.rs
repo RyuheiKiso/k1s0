@@ -223,16 +223,12 @@ impl RuleEventPublisher for KafkaRuleProducer {
             .or(event.rule_id.as_deref())
             .unwrap_or("unknown");
 
-        let record = FutureRecord::to(&self.topic)
-            .key(key)
-            .payload(&payload);
+        let record = FutureRecord::to(&self.topic).key(key).payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish rule changed event: {}", err)
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish rule changed event: {}", err))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic);

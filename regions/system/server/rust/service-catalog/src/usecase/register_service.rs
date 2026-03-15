@@ -57,7 +57,10 @@ impl RegisterServiceUseCase {
         }
     }
 
-    pub async fn execute(&self, input: RegisterServiceInput) -> Result<Service, RegisterServiceError> {
+    pub async fn execute(
+        &self,
+        input: RegisterServiceInput,
+    ) -> Result<Service, RegisterServiceError> {
         // Validate name
         if input.name.trim().is_empty() {
             return Err(RegisterServiceError::InvalidInput(

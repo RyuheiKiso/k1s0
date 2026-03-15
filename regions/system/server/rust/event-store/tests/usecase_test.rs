@@ -203,12 +203,8 @@ impl EventRepository for StubEventRepository {
             .iter()
             .filter(|e| e.stream_id == stream_id)
             .filter(|e| e.version >= from_version)
-            .filter(|e| to_version.map_or(true, |to| e.version <= to))
-            .filter(|e| {
-                event_type
-                    .as_ref()
-                    .map_or(true, |et| &e.event_type == et)
-            })
+            .filter(|e| to_version.is_none_or(|to| e.version <= to))
+            .filter(|e| event_type.as_ref().is_none_or(|et| &e.event_type == et))
             .cloned()
             .collect();
 
@@ -234,11 +230,7 @@ impl EventRepository for StubEventRepository {
         let store = self.events.read().await;
         let filtered: Vec<StoredEvent> = store
             .iter()
-            .filter(|e| {
-                event_type
-                    .as_ref()
-                    .map_or(true, |et| &e.event_type == et)
-            })
+            .filter(|e| event_type.as_ref().is_none_or(|et| &e.event_type == et))
             .cloned()
             .collect();
 
@@ -1001,10 +993,7 @@ async fn test_create_snapshot_at_current_version() {
 async fn test_get_latest_snapshot_success() {
     let stream = make_stream("order-001", "Order", 5);
     let stream_repo = Arc::new(StubEventStreamRepository::with_streams(vec![stream]));
-    let snapshots = vec![
-        make_snapshot("order-001", 2),
-        make_snapshot("order-001", 4),
-    ];
+    let snapshots = vec![make_snapshot("order-001", 2), make_snapshot("order-001", 4)];
     let snapshot_repo = Arc::new(StubSnapshotRepository::with_snapshots(snapshots));
 
     let uc = GetLatestSnapshotUseCase::new(stream_repo, snapshot_repo);
@@ -1312,7 +1301,11 @@ async fn test_delete_stream_success() {
     let snapshots = vec![make_snapshot("order-001", 2)];
     let snapshot_repo = Arc::new(StubSnapshotRepository::with_snapshots(snapshots));
 
-    let uc = DeleteStreamUseCase::new(stream_repo.clone(), event_repo.clone(), snapshot_repo.clone());
+    let uc = DeleteStreamUseCase::new(
+        stream_repo.clone(),
+        event_repo.clone(),
+        snapshot_repo.clone(),
+    );
 
     let input = DeleteStreamInput {
         stream_id: "order-001".to_string(),

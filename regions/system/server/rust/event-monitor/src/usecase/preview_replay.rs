@@ -209,11 +209,8 @@ mod tests {
             })
         });
 
-        let uc = PreviewReplayUseCase::new(
-            Arc::new(event_mock),
-            Arc::new(def_mock),
-            Arc::new(dlq_mock),
-        );
+        let uc =
+            PreviewReplayUseCase::new(Arc::new(event_mock), Arc::new(def_mock), Arc::new(dlq_mock));
         let input = PreviewReplayInput {
             correlation_ids: vec!["corr-1".to_string()],
             from_step_index: 0,
@@ -247,11 +244,8 @@ mod tests {
             })
         });
 
-        let uc = PreviewReplayUseCase::new(
-            Arc::new(event_mock),
-            Arc::new(def_mock),
-            Arc::new(dlq_mock),
-        );
+        let uc =
+            PreviewReplayUseCase::new(Arc::new(event_mock), Arc::new(def_mock), Arc::new(dlq_mock));
         let input = PreviewReplayInput {
             correlation_ids: vec!["corr-missing".to_string()],
             from_step_index: 0,
@@ -273,11 +267,8 @@ mod tests {
         let def_mock = MockFlowDefinitionRepository::new();
         let dlq_mock = MockDlqManagerClient::new();
 
-        let uc = PreviewReplayUseCase::new(
-            Arc::new(event_mock),
-            Arc::new(def_mock),
-            Arc::new(dlq_mock),
-        );
+        let uc =
+            PreviewReplayUseCase::new(Arc::new(event_mock), Arc::new(def_mock), Arc::new(dlq_mock));
         let input = PreviewReplayInput {
             correlation_ids: vec!["corr-1".to_string()],
             from_step_index: 0,

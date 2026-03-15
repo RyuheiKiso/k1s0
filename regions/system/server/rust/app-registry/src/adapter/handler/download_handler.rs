@@ -54,15 +54,17 @@ pub async fn get_latest(
     };
     let arch = params.arch.map(|arch| normalize_arch(&arch));
 
-    match state.get_latest_uc.execute(&id, platform.as_ref(), arch.as_deref()).await {
+    match state
+        .get_latest_uc
+        .execute(&id, platform.as_ref(), arch.as_deref())
+        .await
+    {
         Ok(version) => {
             (StatusCode::OK, Json(serde_json::to_value(version).unwrap())).into_response()
         }
         Err(crate::usecase::get_latest::GetLatestError::AppNotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_APPS_APP_NOT_FOUND",
-                "The specified app was not found",
-            );
+            let err =
+                ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::get_latest::GetLatestError::VersionNotFound(_)) => {
@@ -73,7 +75,7 @@ pub async fn get_latest(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -117,15 +119,19 @@ pub async fn download_version(
 
     match state
         .generate_download_url_uc
-        .execute(&id, &version, platform.as_ref(), arch.as_deref(), &claims.sub)
+        .execute(
+            &id,
+            &version,
+            platform.as_ref(),
+            arch.as_deref(),
+            &claims.sub,
+        )
         .await
     {
         Ok(result) => (StatusCode::OK, Json(result)).into_response(),
         Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::AppNotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_APPS_APP_NOT_FOUND",
-                "The specified app was not found",
-            );
+            let err =
+                ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::NotFound(_, _)) => {
@@ -146,7 +152,7 @@ pub async fn download_version(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new("SYS_APPS_INTERNAL_ERROR", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

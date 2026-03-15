@@ -13,7 +13,6 @@ use crate::adapter::middleware::auth::{auth_middleware, MasterMaintenanceAuthSta
 use crate::adapter::middleware::rbac::has_action_permission;
 use crate::infrastructure::messaging::kafka_producer::MasterMaintenanceKafkaProducer;
 use crate::usecase;
-use opentelemetry::trace::TraceContextExt;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use axum::middleware::from_fn_with_state;
@@ -23,6 +22,7 @@ use axum::routing::{delete, get, post, put};
 use axum::Json;
 use axum::Router;
 use k1s0_auth::actor_from_claims;
+use opentelemetry::trace::TraceContextExt;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -123,8 +123,7 @@ fn require_route_permission(
 ) -> impl Fn(
     Request<Body>,
     Next,
-)
-    -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
        + Clone {
     move |req: Request<Body>, next: Next| {
         let state = state.clone();

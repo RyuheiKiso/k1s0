@@ -1,6 +1,5 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let rule_engine_proto =
-        "../../../../../api/proto/k1s0/system/ruleengine/v1/rule_engine.proto";
+    let rule_engine_proto = "../../../../../api/proto/k1s0/system/ruleengine/v1/rule_engine.proto";
     let proto_include = "../../../../../api/proto";
 
     if !std::path::Path::new(rule_engine_proto).exists() {

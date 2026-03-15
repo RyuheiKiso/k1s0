@@ -121,8 +121,9 @@ async fn call_releases_permit_after_success() {
 async fn call_releases_permit_after_inner_error() {
     let bh = Bulkhead::new(fast_config(1));
 
-    let result: Result<i32, BulkheadError<String>> =
-        bh.call(|| async { Err::<i32, String>("boom".to_string()) }).await;
+    let result: Result<i32, BulkheadError<String>> = bh
+        .call(|| async { Err::<i32, String>("boom".to_string()) })
+        .await;
     assert!(result.is_err());
 
     // The permit is dropped when call returns (via _permit scope),
@@ -198,8 +199,9 @@ async fn call_success_returns_value() {
 #[tokio::test]
 async fn call_propagates_inner_error() {
     let bh = Bulkhead::new(fast_config(2));
-    let result: Result<i32, BulkheadError<String>> =
-        bh.call(|| async { Err::<i32, String>("inner fail".to_string()) }).await;
+    let result: Result<i32, BulkheadError<String>> = bh
+        .call(|| async { Err::<i32, String>("inner fail".to_string()) })
+        .await;
 
     match result {
         Err(BulkheadError::Inner(e)) => assert_eq!(e, "inner fail"),
@@ -253,8 +255,7 @@ async fn metrics_track_call_lifecycle() {
     assert_eq!(bh.metrics().current_concurrent, 0);
 
     // After successful call, current_concurrent should be back to 0
-    let _: Result<i32, BulkheadError<String>> =
-        bh.call(|| async { Ok::<i32, String>(1) }).await;
+    let _: Result<i32, BulkheadError<String>> = bh.call(|| async { Ok::<i32, String>(1) }).await;
     assert_eq!(bh.metrics().current_concurrent, 0);
 }
 

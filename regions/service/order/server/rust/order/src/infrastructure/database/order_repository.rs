@@ -1,6 +1,4 @@
-use crate::domain::entity::order::{
-    CreateOrder, Order, OrderFilter, OrderItem, OrderStatus,
-};
+use crate::domain::entity::order::{CreateOrder, Order, OrderFilter, OrderItem, OrderStatus};
 use crate::domain::entity::outbox::OutboxEvent;
 use crate::domain::error::OrderError;
 use crate::domain::repository::order_repository::OrderRepository;
@@ -233,12 +231,11 @@ impl OrderRepository for OrderPostgresRepository {
             Some(r) => r,
             None => {
                 // UPDATE が 0行 → レコード不在 or バージョン不一致を判別
-                let exists: bool = sqlx::query_scalar(
-                    "SELECT EXISTS(SELECT 1 FROM orders WHERE id = $1)",
-                )
-                .bind(id)
-                .fetch_one(&mut *tx)
-                .await?;
+                let exists: bool =
+                    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM orders WHERE id = $1)")
+                        .bind(id)
+                        .fetch_one(&mut *tx)
+                        .await?;
 
                 if exists {
                     return Err(OrderError::VersionConflict(id.to_string()).into());
@@ -398,7 +395,10 @@ impl TryFrom<OrderRow> for Order {
         Ok(Self {
             id: row.id,
             customer_id: row.customer_id,
-            status: row.status.parse::<OrderStatus>().map_err(|e| anyhow::anyhow!("{}", e))?,
+            status: row
+                .status
+                .parse::<OrderStatus>()
+                .map_err(|e| anyhow::anyhow!("{}", e))?,
             total_amount: row.total_amount,
             currency: row.currency,
             notes: row.notes,

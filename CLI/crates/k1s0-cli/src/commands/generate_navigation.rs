@@ -61,7 +61,7 @@ pub fn run() -> Result<()> {
         nav_path,
         nav.routes.len()
     );
-    println!("  出力先:         {}", output_dir);
+    println!("  出力先:         {output_dir}");
     for target in &targets {
         match *target {
             "typescript" => println!(

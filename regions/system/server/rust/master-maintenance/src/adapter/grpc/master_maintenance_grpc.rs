@@ -19,6 +19,7 @@ pub struct MasterMaintenanceGrpcService {
 }
 
 impl MasterMaintenanceGrpcService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         manage_tables_uc: Arc<usecase::manage_table_definitions::ManageTableDefinitionsUseCase>,
         manage_columns_uc: Arc<usecase::manage_column_definitions::ManageColumnDefinitionsUseCase>,

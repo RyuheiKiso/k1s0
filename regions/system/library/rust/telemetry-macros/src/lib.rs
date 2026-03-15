@@ -50,9 +50,12 @@ pub fn k1s0_trace(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
             }
             other => {
-                return syn::Error::new(other.span(), "unknown attribute, expected `skip` or `name`")
-                    .to_compile_error()
-                    .into();
+                return syn::Error::new(
+                    other.span(),
+                    "unknown attribute, expected `skip` or `name`",
+                )
+                .to_compile_error()
+                .into();
             }
         }
     }

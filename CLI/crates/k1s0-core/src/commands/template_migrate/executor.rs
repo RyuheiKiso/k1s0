@@ -114,9 +114,8 @@ pub fn backup_project_dir(backup_dir: &Path) -> std::path::PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::generate::execute::{
-        build_output_path, render_scaffold_preview, resolve_template_dir,
-    };
+    use crate::commands::generate::paths::build_output_path;
+    use crate::commands::generate::template::{render_scaffold_preview, resolve_template_dir};
     use crate::commands::generate::types::{
         ApiStyle, DetailConfig, GenerateConfig, Kind, LangFw, Language, Tier,
     };
@@ -372,7 +371,7 @@ mod tests {
         let cargo_change = plan
             .changes
             .iter()
-            .find(|change| change.path == PathBuf::from("Cargo.toml"))
+            .find(|change| change.path == Path::new("Cargo.toml"))
             .unwrap();
         match &cargo_change.merge_result {
             MergeResult::Clean(content) => {

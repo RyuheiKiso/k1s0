@@ -29,9 +29,21 @@ struct StoredEventRow {
 
 impl From<StoredEventRow> for StoredEvent {
     fn from(row: StoredEventRow) -> Self {
-        let actor_id = row.metadata.get("actor_id").and_then(|v| v.as_str()).map(String::from);
-        let correlation_id = row.metadata.get("correlation_id").and_then(|v| v.as_str()).map(String::from);
-        let causation_id = row.metadata.get("causation_id").and_then(|v| v.as_str()).map(String::from);
+        let actor_id = row
+            .metadata
+            .get("actor_id")
+            .and_then(|v| v.as_str())
+            .map(String::from);
+        let correlation_id = row
+            .metadata
+            .get("correlation_id")
+            .and_then(|v| v.as_str())
+            .map(String::from);
+        let causation_id = row
+            .metadata
+            .get("causation_id")
+            .and_then(|v| v.as_str())
+            .map(String::from);
         StoredEvent {
             stream_id: row.stream_id,
             sequence: row.sequence as u64,
@@ -93,7 +105,7 @@ impl EventRepository for EventPostgresRepository {
         page_size: u32,
     ) -> anyhow::Result<(Vec<StoredEvent>, u64)> {
         let page = page.max(1);
-        let page_size = page_size.max(1).min(200);
+        let page_size = page_size.clamp(1, 200);
         let offset = ((page - 1) * page_size) as i64;
 
         // Build dynamic query for total count
@@ -217,16 +229,15 @@ impl EventRepository for EventPostgresRepository {
         page_size: u32,
     ) -> anyhow::Result<(Vec<StoredEvent>, u64)> {
         let page = page.max(1);
-        let page_size = page_size.max(1).min(200);
+        let page_size = page_size.clamp(1, 200);
         let offset = ((page - 1) * page_size) as i64;
 
         let (total, rows) = if let Some(ref et) = event_type {
-            let total: i64 = sqlx::query_scalar(
-                "SELECT COUNT(*) FROM eventstore.events WHERE event_type = $1",
-            )
-            .bind(et)
-            .fetch_one(&self.pool)
-            .await?;
+            let total: i64 =
+                sqlx::query_scalar("SELECT COUNT(*) FROM eventstore.events WHERE event_type = $1")
+                    .bind(et)
+                    .fetch_one(&self.pool)
+                    .await?;
 
             let rows = sqlx::query_as::<_, StoredEventRow>(
                 r#"SELECT stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at

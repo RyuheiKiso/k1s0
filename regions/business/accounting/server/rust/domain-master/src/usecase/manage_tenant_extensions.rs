@@ -57,7 +57,10 @@ impl ManageTenantExtensionsUseCase {
             .find_by_id(item_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Item not found: {}", item_id))?;
-        let extension = self.tenant_ext_repo.upsert(tenant_id, item_id, input).await?;
+        let extension = self
+            .tenant_ext_repo
+            .upsert(tenant_id, item_id, input)
+            .await?;
         let action = if existing.is_some() {
             "updated"
         } else {
@@ -130,7 +133,10 @@ impl ManageTenantExtensionsUseCase {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Category '{}' not found", category_id))?;
 
-        let items = self.item_repo.find_by_category(category_id, active_only).await?;
+        let items = self
+            .item_repo
+            .find_by_category(category_id, active_only)
+            .await?;
 
         let extensions = self
             .tenant_ext_repo
@@ -371,7 +377,9 @@ mod tests {
             is_enabled: Some(true),
         };
 
-        let result = uc.upsert_extension("tenant-1", item_id, &input, "admin").await;
+        let result = uc
+            .upsert_extension("tenant-1", item_id, &input, "admin")
+            .await;
         assert!(result.is_ok());
     }
 
@@ -421,7 +429,9 @@ mod tests {
             is_enabled: Some(true),
         };
 
-        let result = uc.upsert_extension("tenant-1", item_id, &input, "admin").await;
+        let result = uc
+            .upsert_extension("tenant-1", item_id, &input, "admin")
+            .await;
         assert!(result.is_ok());
     }
 

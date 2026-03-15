@@ -155,12 +155,11 @@ impl FlowDefinitionRepository for FlowDefinitionPostgresRepository {
     }
 
     async fn exists_by_name(&self, name: String) -> anyhow::Result<bool> {
-        let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM event_monitor.flow_definitions WHERE name = $1",
-        )
-        .bind(&name)
-        .fetch_one(self.pool.as_ref())
-        .await?;
+        let count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM event_monitor.flow_definitions WHERE name = $1")
+                .bind(&name)
+                .fetch_one(self.pool.as_ref())
+                .await?;
         Ok(count.0 > 0)
     }
 }
@@ -182,8 +181,7 @@ struct FlowDefRow {
 
 impl From<FlowDefRow> for FlowDefinition {
     fn from(row: FlowDefRow) -> Self {
-        let steps: Vec<FlowStep> =
-            serde_json::from_value(row.steps).unwrap_or_default();
+        let steps: Vec<FlowStep> = serde_json::from_value(row.steps).unwrap_or_default();
         Self {
             id: row.id,
             name: row.name,

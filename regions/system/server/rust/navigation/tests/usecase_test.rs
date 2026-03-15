@@ -71,7 +71,9 @@ impl StubTokenVerifier {
 impl NavigationTokenVerifier for StubTokenVerifier {
     async fn verify_roles(&self, _bearer_token: &str) -> anyhow::Result<Vec<String>> {
         if self.should_error {
-            return Err(anyhow::anyhow!("token verification failed: invalid signature"));
+            return Err(anyhow::anyhow!(
+                "token verification failed: invalid signature"
+            ));
         }
         Ok(self.roles.clone())
     }
@@ -134,7 +136,13 @@ fn make_full_config() -> NavigationConfig {
             // Public root redirect
             make_route("root", "/", None, vec![], vec![]),
             // Guest-only login page
-            make_route("login", "/login", Some("LoginPage"), vec!["guest_only"], vec![]),
+            make_route(
+                "login",
+                "/login",
+                Some("LoginPage"),
+                vec!["guest_only"],
+                vec![],
+            ),
             // Auth-required dashboard
             make_route(
                 "dashboard",
@@ -193,7 +201,10 @@ async fn get_navigation_empty_token_returns_public_and_guest_routes() {
     let ids: Vec<&str> = result.routes.iter().map(|r| r.id.as_str()).collect();
 
     assert!(ids.contains(&"root"), "root is public");
-    assert!(ids.contains(&"login"), "login is guest_only, visible to unauthenticated");
+    assert!(
+        ids.contains(&"login"),
+        "login is guest_only, visible to unauthenticated"
+    );
     assert!(ids.contains(&"about"), "about is public");
     assert!(!ids.contains(&"dashboard"), "dashboard needs auth");
     assert!(!ids.contains(&"admin"), "admin needs auth+admin role");
@@ -212,7 +223,10 @@ async fn get_navigation_authenticated_user_without_roles() {
     assert!(ids.contains(&"root"), "root is always accessible");
     assert!(ids.contains(&"dashboard"), "dashboard is auth-required");
     assert!(ids.contains(&"about"), "about is public");
-    assert!(!ids.contains(&"login"), "login blocked for authenticated users");
+    assert!(
+        !ids.contains(&"login"),
+        "login blocked for authenticated users"
+    );
     assert!(!ids.contains(&"admin"), "admin requires admin role");
     assert!(!ids.contains(&"editor"), "editor requires editor role");
 }
@@ -226,8 +240,14 @@ async fn get_navigation_admin_user_sees_admin_routes_with_children() {
     let result = uc.execute("admin-token").await.unwrap();
     let ids: Vec<&str> = result.routes.iter().map(|r| r.id.as_str()).collect();
 
-    assert!(ids.contains(&"admin"), "admin user should see admin section");
-    assert!(ids.contains(&"dashboard"), "admin user should see dashboard");
+    assert!(
+        ids.contains(&"admin"),
+        "admin user should see admin section"
+    );
+    assert!(
+        ids.contains(&"dashboard"),
+        "admin user should see dashboard"
+    );
 
     let admin_route = result.routes.iter().find(|r| r.id == "admin").unwrap();
     assert_eq!(admin_route.children.len(), 2, "admin has 2 child routes");
@@ -245,16 +265,24 @@ async fn get_navigation_editor_user_sees_editor_but_not_admin() {
     let result = uc.execute("editor-token").await.unwrap();
     let ids: Vec<&str> = result.routes.iter().map(|r| r.id.as_str()).collect();
 
-    assert!(ids.contains(&"editor"), "editor user should see editor section");
-    assert!(ids.contains(&"dashboard"), "editor user should see dashboard");
-    assert!(!ids.contains(&"admin"), "editor user should NOT see admin section");
+    assert!(
+        ids.contains(&"editor"),
+        "editor user should see editor section"
+    );
+    assert!(
+        ids.contains(&"dashboard"),
+        "editor user should see dashboard"
+    );
+    assert!(
+        !ids.contains(&"admin"),
+        "editor user should NOT see admin section"
+    );
 }
 
 #[tokio::test]
 async fn get_navigation_multi_role_user_sees_all_permitted() {
     let loader = StubNavigationConfigLoader::new(make_full_config());
-    let verifier =
-        StubTokenVerifier::with_roles(vec!["admin".to_string(), "editor".to_string()]);
+    let verifier = StubTokenVerifier::with_roles(vec!["admin".to_string(), "editor".to_string()]);
     let uc = GetNavigationUseCase::new(Arc::new(loader), Some(Arc::new(verifier)));
 
     let result = uc.execute("super-token").await.unwrap();
@@ -305,8 +333,14 @@ async fn get_navigation_token_without_verifier_treats_as_unauthenticated() {
     let result = uc.execute("some-token").await.unwrap();
     let ids: Vec<&str> = result.routes.iter().map(|r| r.id.as_str()).collect();
 
-    assert!(ids.contains(&"login"), "guest routes visible when no verifier");
-    assert!(!ids.contains(&"dashboard"), "auth routes hidden when no verifier");
+    assert!(
+        ids.contains(&"login"),
+        "guest routes visible when no verifier"
+    );
+    assert!(
+        !ids.contains(&"dashboard"),
+        "auth routes hidden when no verifier"
+    );
 }
 
 #[tokio::test]
@@ -356,7 +390,13 @@ async fn get_navigation_children_filtered_independently_from_parent() {
             Some("ParentPage"),
             vec![],
             vec![
-                make_route("public_child", "/parent/public", Some("PublicChild"), vec![], vec![]),
+                make_route(
+                    "public_child",
+                    "/parent/public",
+                    Some("PublicChild"),
+                    vec![],
+                    vec![],
+                ),
                 make_route(
                     "auth_child",
                     "/parent/auth",
@@ -461,7 +501,13 @@ async fn get_navigation_redirect_if_authenticated_guard_allows_unauthenticated()
             roles: vec![],
         }],
         routes: vec![
-            make_route("register", "/register", Some("RegisterPage"), vec!["guest_only"], vec![]),
+            make_route(
+                "register",
+                "/register",
+                Some("RegisterPage"),
+                vec!["guest_only"],
+                vec![],
+            ),
             make_route("public", "/public", Some("PublicPage"), vec![], vec![]),
         ],
     };
@@ -498,7 +544,10 @@ async fn get_navigation_redirect_if_authenticated_blocks_authenticated() {
     let uc = GetNavigationUseCase::new(Arc::new(loader), Some(Arc::new(verifier)));
 
     let result = uc.execute("valid-token").await.unwrap();
-    assert!(result.routes.is_empty(), "register page should be hidden for authenticated users");
+    assert!(
+        result.routes.is_empty(),
+        "register page should be hidden for authenticated users"
+    );
 }
 
 #[tokio::test]
@@ -519,7 +568,11 @@ async fn get_navigation_unknown_guard_id_allows_access() {
     let uc = GetNavigationUseCase::new(Arc::new(loader), None);
 
     let result = uc.execute("").await.unwrap();
-    assert_eq!(result.routes.len(), 1, "unknown guard should not block the route");
+    assert_eq!(
+        result.routes.len(),
+        1,
+        "unknown guard should not block the route"
+    );
 }
 
 #[tokio::test]
@@ -531,8 +584,14 @@ async fn get_navigation_admin_guards_returned_for_admin_user() {
     let result = uc.execute("admin-token").await.unwrap();
     let guard_ids: Vec<&str> = result.guards.iter().map(|g| g.id.as_str()).collect();
 
-    assert!(guard_ids.contains(&"auth_required"), "admin routes use auth_required");
-    assert!(guard_ids.contains(&"admin_only"), "admin routes use admin_only");
+    assert!(
+        guard_ids.contains(&"auth_required"),
+        "admin routes use auth_required"
+    );
+    assert!(
+        guard_ids.contains(&"admin_only"),
+        "admin routes use admin_only"
+    );
 }
 
 // ============================================================
@@ -659,7 +718,13 @@ async fn get_navigation_five_level_nesting() {
                         "/l1/l2/l3/l4",
                         Some("L4"),
                         vec![],
-                        vec![make_route("l5", "/l1/l2/l3/l4/l5", Some("L5"), vec![], vec![])],
+                        vec![make_route(
+                            "l5",
+                            "/l1/l2/l3/l4/l5",
+                            Some("L5"),
+                            vec![],
+                            vec![],
+                        )],
                     )],
                 )],
             )],
@@ -710,13 +775,7 @@ async fn get_navigation_deep_nesting_with_auth_at_middle_level() {
             Some("L1"),
             vec![],
             vec![
-                make_route(
-                    "l2_public",
-                    "/l1/public",
-                    Some("L2Public"),
-                    vec![],
-                    vec![],
-                ),
+                make_route("l2_public", "/l1/public", Some("L2Public"), vec![], vec![]),
                 make_route(
                     "l2_auth",
                     "/l1/auth",
@@ -852,7 +911,13 @@ async fn get_navigation_no_transition_uses_default_duration() {
     let config = NavigationConfig {
         version: 1,
         guards: vec![],
-        routes: vec![make_route("simple", "/simple", Some("SimplePage"), vec![], vec![])],
+        routes: vec![make_route(
+            "simple",
+            "/simple",
+            Some("SimplePage"),
+            vec![],
+            vec![],
+        )],
     };
     let loader = StubNavigationConfigLoader::new(config);
     let uc = GetNavigationUseCase::new(Arc::new(loader), None);
@@ -960,7 +1025,13 @@ async fn get_navigation_public_parent_with_role_required_children() {
             Some("SettingsPage"),
             vec![],
             vec![
-                make_route("profile", "/settings/profile", Some("ProfilePage"), vec![], vec![]),
+                make_route(
+                    "profile",
+                    "/settings/profile",
+                    Some("ProfilePage"),
+                    vec![],
+                    vec![],
+                ),
                 make_route(
                     "admin_settings",
                     "/settings/admin",
@@ -996,8 +1067,20 @@ async fn get_navigation_all_auth_required_unauthenticated_returns_empty() {
             roles: vec![],
         }],
         routes: vec![
-            make_route("dashboard", "/dashboard", Some("Dashboard"), vec!["auth_required"], vec![]),
-            make_route("profile", "/profile", Some("Profile"), vec!["auth_required"], vec![]),
+            make_route(
+                "dashboard",
+                "/dashboard",
+                Some("Dashboard"),
+                vec!["auth_required"],
+                vec![],
+            ),
+            make_route(
+                "profile",
+                "/profile",
+                Some("Profile"),
+                vec!["auth_required"],
+                vec![],
+            ),
         ],
     };
     let loader = StubNavigationConfigLoader::new(config);

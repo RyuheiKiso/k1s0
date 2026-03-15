@@ -13,9 +13,7 @@ pub mod vault;
 pub mod workflow;
 
 pub use auth::{AuditLog, AuditLogConnection, PermissionCheck, Role, User};
-pub use catalog_service::{
-    CatalogService, CatalogServiceConnection, MetadataEntry, ServiceHealth,
-};
+pub use catalog_service::{CatalogService, CatalogServiceConnection, MetadataEntry, ServiceHealth};
 pub use config_entry::ConfigEntry;
 pub use feature_flag::FeatureFlag;
 pub use navigation::{
@@ -29,11 +27,11 @@ pub use payload::{
     DeleteChannelPayload, DeleteJobPayload, DeleteSecretPayload, DeleteServicePayload,
     DeleteTemplatePayload, DeleteWorkflowPayload, PauseJobPayload, ReassignTaskPayload,
     RecordAuditLogPayload, RefreshSessionPayload, RegisterServicePayload, RejectTaskPayload,
-    RetryNotificationPayload, RevokeAllSessionsPayload, RevokeSessionPayload,
+    ResumeJobPayload, RetryNotificationPayload, RevokeAllSessionsPayload, RevokeSessionPayload,
     RotateSecretPayload, SendNotificationPayload, SetFeatureFlagPayload, SetSecretPayload,
-    StartInstancePayload, ResumeJobPayload, TriggerJobPayload, UpdateJobPayload,
-    UpdateServicePayload, UpdateTenantPayload, UpdateChannelPayload, UpdateTemplatePayload,
-    UpdateWorkflowPayload, UserError,
+    StartInstancePayload, TriggerJobPayload, UpdateChannelPayload, UpdateJobPayload,
+    UpdateServicePayload, UpdateTemplatePayload, UpdateTenantPayload, UpdateWorkflowPayload,
+    UserError,
 };
 pub use scheduler::{Job, JobExecution};
 pub use session::{Session, SessionStatus};

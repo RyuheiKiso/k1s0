@@ -9,13 +9,13 @@ use uuid::Uuid;
 
 use super::AppState;
 use crate::usecase::create_rule::CreateRuleInput;
+use crate::usecase::create_rule_set::CreateRuleSetInput;
 use crate::usecase::evaluate::EvaluateInput;
 use crate::usecase::list_evaluation_logs::ListEvaluationLogsInput;
-use crate::usecase::list_rules::ListRulesInput;
 use crate::usecase::list_rule_sets::ListRuleSetsInput;
+use crate::usecase::list_rules::ListRulesInput;
 use crate::usecase::update_rule::UpdateRuleInput;
 use crate::usecase::update_rule_set::UpdateRuleSetInput;
-use crate::usecase::create_rule_set::CreateRuleSetInput;
 
 // --- Rules ---
 
@@ -29,7 +29,8 @@ pub async fn list_rules(
         Some(ref id) => match Uuid::parse_str(id) {
             Ok(uid) => Some(uid),
             Err(_) => {
-                let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_set_id format");
+                let err =
+                    ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_set_id format");
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
         },
@@ -45,7 +46,8 @@ pub async fn list_rules(
 
     match state.list_rules_uc.execute(&input).await {
         Ok(output) => {
-            let items: Vec<RuleResponse> = output.rules.into_iter().map(RuleResponse::from).collect();
+            let items: Vec<RuleResponse> =
+                output.rules.into_iter().map(RuleResponse::from).collect();
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
@@ -99,7 +101,11 @@ pub async fn create_rule(
     match state.create_rule_uc.execute(&input).await {
         Ok(rule) => {
             let resp = RuleResponse::from(rule);
-            (StatusCode::CREATED, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (
+                StatusCode::CREATED,
+                Json(serde_json::to_value(resp).unwrap()),
+            )
+                .into_response()
         }
         Err(crate::usecase::create_rule::CreateRuleError::AlreadyExists(name)) => {
             let err = ErrorResponse::new(
@@ -196,8 +202,11 @@ pub async fn list_rule_sets(
 
     match state.list_rule_sets_uc.execute(&input).await {
         Ok(output) => {
-            let items: Vec<RuleSetResponse> =
-                output.rule_sets.into_iter().map(RuleSetResponse::from).collect();
+            let items: Vec<RuleSetResponse> = output
+                .rule_sets
+                .into_iter()
+                .map(RuleSetResponse::from)
+                .collect();
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
@@ -229,8 +238,10 @@ pub async fn get_rule_set(
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
         Ok(None) => {
-            let err =
-                ErrorResponse::new("SYS_RULE_SET_NOT_FOUND", &format!("rule set not found: {}", id));
+            let err = ErrorResponse::new(
+                "SYS_RULE_SET_NOT_FOUND",
+                &format!("rule set not found: {}", id),
+            );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
@@ -265,7 +276,11 @@ pub async fn create_rule_set(
     match state.create_rule_set_uc.execute(&input).await {
         Ok(rs) => {
             let resp = RuleSetResponse::from(rs);
-            (StatusCode::CREATED, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (
+                StatusCode::CREATED,
+                Json(serde_json::to_value(resp).unwrap()),
+            )
+                .into_response()
         }
         Err(crate::usecase::create_rule_set::CreateRuleSetError::AlreadyExists(name)) => {
             let err = ErrorResponse::new(
@@ -320,8 +335,10 @@ pub async fn update_rule_set(
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
         Err(crate::usecase::update_rule_set::UpdateRuleSetError::NotFound(_)) => {
-            let err =
-                ErrorResponse::new("SYS_RULE_SET_NOT_FOUND", &format!("rule set not found: {}", id));
+            let err = ErrorResponse::new(
+                "SYS_RULE_SET_NOT_FOUND",
+                &format!("rule set not found: {}", id),
+            );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::update_rule_set::UpdateRuleSetError::Validation(msg)) => {
@@ -349,8 +366,10 @@ pub async fn delete_rule_set(
         )
             .into_response(),
         Err(crate::usecase::delete_rule_set::DeleteRuleSetError::NotFound(_)) => {
-            let err =
-                ErrorResponse::new("SYS_RULE_SET_NOT_FOUND", &format!("rule set not found: {}", id));
+            let err = ErrorResponse::new(
+                "SYS_RULE_SET_NOT_FOUND",
+                &format!("rule set not found: {}", id),
+            );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::delete_rule_set::DeleteRuleSetError::Internal(msg)) => {
@@ -379,8 +398,10 @@ pub async fn publish_rule_set(
         )
             .into_response(),
         Err(crate::usecase::publish_rule_set::PublishRuleSetError::NotFound(_)) => {
-            let err =
-                ErrorResponse::new("SYS_RULE_SET_NOT_FOUND", &format!("rule set not found: {}", id));
+            let err = ErrorResponse::new(
+                "SYS_RULE_SET_NOT_FOUND",
+                &format!("rule set not found: {}", id),
+            );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::publish_rule_set::PublishRuleSetError::Internal(msg)) => {
@@ -407,8 +428,10 @@ pub async fn rollback_rule_set(
         )
             .into_response(),
         Err(crate::usecase::rollback_rule_set::RollbackRuleSetError::NotFound(_)) => {
-            let err =
-                ErrorResponse::new("SYS_RULE_SET_NOT_FOUND", &format!("rule set not found: {}", id));
+            let err = ErrorResponse::new(
+                "SYS_RULE_SET_NOT_FOUND",
+                &format!("rule set not found: {}", id),
+            );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::rollback_rule_set::RollbackRuleSetError::NoPreviousVersion(v)) => {
@@ -490,8 +513,10 @@ async fn evaluate_inner(state: AppState, input: EvaluateInput) -> impl IntoRespo
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(crate::usecase::evaluate::EvaluateError::RuleSetNotFound(name)) => {
-            let err =
-                ErrorResponse::new("SYS_RULE_SET_NOT_FOUND", &format!("rule set not found: {}", name));
+            let err = ErrorResponse::new(
+                "SYS_RULE_SET_NOT_FOUND",
+                &format!("rule set not found: {}", name),
+            );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::evaluate::EvaluateError::EvaluationError(msg)) => {

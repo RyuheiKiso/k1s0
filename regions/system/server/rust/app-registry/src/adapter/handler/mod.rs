@@ -138,7 +138,10 @@ pub fn router(state: AppState) -> Router {
         ));
 
     let app_admin_routes = Router::new()
-        .route("/api/v1/apps/:id/stats", get(app_handler::get_download_stats))
+        .route(
+            "/api/v1/apps/:id/stats",
+            get(app_handler::get_download_stats),
+        )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             make_rbac_middleware("apps", "admin"),

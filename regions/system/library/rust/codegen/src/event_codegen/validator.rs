@@ -86,7 +86,9 @@ pub fn validate_event_config(config: &EventConfig) -> Result<(), CodegenError> {
 
         // schema.fields: at least one
         if event.schema.fields.is_empty() {
-            errors.push(format!("{prefix}: schema.fields must contain at least one field"));
+            errors.push(format!(
+                "{prefix}: schema.fields must contain at least one field"
+            ));
         }
 
         // field number uniqueness and validity
@@ -115,8 +117,12 @@ pub fn validate_event_config(config: &EventConfig) -> Result<(), CodegenError> {
         }
 
         // partition_key: must reference a field in schema.fields
-        let field_names: HashSet<&str> =
-            event.schema.fields.iter().map(|f| f.name.as_str()).collect();
+        let field_names: HashSet<&str> = event
+            .schema
+            .fields
+            .iter()
+            .map(|f| f.name.as_str())
+            .collect();
         if !field_names.contains(event.partition_key.as_str()) {
             errors.push(format!(
                 "{prefix}: partition_key '{}' must reference a field in schema.fields",

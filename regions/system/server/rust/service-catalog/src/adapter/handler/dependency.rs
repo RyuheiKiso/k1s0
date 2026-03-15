@@ -1,8 +1,8 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use uuid::Uuid;
 
@@ -25,7 +25,7 @@ pub async fn list_dependencies(
     match state.manage_deps_uc.list(id).await {
         Ok(deps) => (StatusCode::OK, Json(serde_json::to_value(deps).unwrap())).into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -54,7 +54,7 @@ pub async fn set_dependencies(
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

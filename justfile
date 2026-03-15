@@ -9,7 +9,7 @@ default:
 
 # --- モジュール探索ヘルパー（CI と同一パターン） ---
 
-_rust-skip := "CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml"
+_rust-skip := "CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml"
 
 # --- Lint ---
 
@@ -34,7 +34,7 @@ lint-rust:
     mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
     for manifest in "${manifests[@]}"; do
         case "$manifest" in
-            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml) continue ;;
+            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml) continue ;;
         esac
         echo "=== lint $(dirname "$manifest") ==="
         cargo fmt --manifest-path "$manifest" --all -- --check
@@ -88,7 +88,7 @@ test-rust:
     mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
     for manifest in "${manifests[@]}"; do
         case "$manifest" in
-            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml) continue ;;
+            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml) continue ;;
         esac
         echo "=== Testing $(dirname "$manifest") ==="
         cargo test --manifest-path "$manifest" --all
@@ -141,7 +141,7 @@ fmt-rust:
     mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
     for manifest in "${manifests[@]}"; do
         case "$manifest" in
-            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml) continue ;;
+            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml) continue ;;
         esac
         echo "=== Formatting $(dirname "$manifest") ==="
         cargo fmt --manifest-path "$manifest" --all
@@ -194,7 +194,7 @@ build-rust:
     mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
     for manifest in "${manifests[@]}"; do
         case "$manifest" in
-            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml) continue ;;
+            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml) continue ;;
         esac
         echo "=== Building $(dirname "$manifest") ==="
         cargo build --manifest-path "$manifest" --all-targets
@@ -224,3 +224,24 @@ gen-sdk service proto="api/proto":
 
 # CI 全実行（lint + test + build）
 ci: lint test build
+
+# --- Security ---
+
+# 全言語セキュリティスキャン
+security: security-go security-rust security-ts security-dart
+
+# Go 脆弱性スキャン
+security-go:
+    bash scripts/security/go-vulncheck.sh
+
+# Rust 脆弱性監査
+security-rust:
+    bash scripts/security/cargo-audit.sh
+
+# TypeScript/npm 脆弱性監査
+security-ts:
+    bash scripts/security/npm-audit.sh
+
+# Dart/Flutter 依存チェック
+security-dart:
+    bash scripts/security/dart-outdated.sh

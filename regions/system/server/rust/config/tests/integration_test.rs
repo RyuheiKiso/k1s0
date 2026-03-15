@@ -14,6 +14,7 @@ use k1s0_config_server::domain::entity::config_entry::{
     ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
 };
 use k1s0_config_server::domain::entity::config_schema::ConfigSchema;
+use k1s0_config_server::domain::error::ConfigRepositoryError;
 use k1s0_config_server::domain::repository::{ConfigRepository, ConfigSchemaRepository};
 
 /// テスト用のインメモリリポジトリ実装。
@@ -37,11 +38,12 @@ impl TestConfigRepository {
 
 #[async_trait]
 impl ConfigRepository for TestConfigRepository {
+    /// namespace と key で設定値を取得する（テスト用インメモリ実装）。
     async fn find_by_namespace_and_key(
         &self,
         namespace: &str,
         key: &str,
-    ) -> anyhow::Result<Option<ConfigEntry>> {
+    ) -> Result<Option<ConfigEntry>, ConfigRepositoryError> {
         let entries = self.entries.read().await;
         Ok(entries
             .iter()
@@ -49,13 +51,14 @@ impl ConfigRepository for TestConfigRepository {
             .cloned())
     }
 
+    /// namespace 内の設定値一覧を取得する（テスト用インメモリ実装）。
     async fn list_by_namespace(
         &self,
         namespace: &str,
         page: i32,
         page_size: i32,
         search: Option<String>,
-    ) -> anyhow::Result<ConfigListResult> {
+    ) -> Result<ConfigListResult, ConfigRepositoryError> {
         let entries = self.entries.read().await;
         let mut filtered: Vec<_> = entries
             .iter()
@@ -91,6 +94,7 @@ impl ConfigRepository for TestConfigRepository {
         })
     }
 
+    /// 設定値を更新する（テスト用インメモリ実装、楽観的排他制御付き）。
     async fn update(
         &self,
         namespace: &str,
@@ -99,7 +103,7 @@ impl ConfigRepository for TestConfigRepository {
         expected_version: i32,
         description: Option<String>,
         updated_by: &str,
-    ) -> anyhow::Result<ConfigEntry> {
+    ) -> Result<ConfigEntry, ConfigRepositoryError> {
         let mut entries = self.entries.write().await;
         let entry = entries
             .iter_mut()
@@ -107,8 +111,12 @@ impl ConfigRepository for TestConfigRepository {
 
         match entry {
             Some(e) => {
+                // バージョン不一致: 楽観的排他制御エラー
                 if e.version != expected_version {
-                    return Err(anyhow::anyhow!("version conflict: current={}", e.version));
+                    return Err(ConfigRepositoryError::VersionConflict {
+                        expected: expected_version,
+                        current: e.version,
+                    });
                 }
                 e.value_json = value_json.clone();
                 e.version += 1;
@@ -119,21 +127,27 @@ impl ConfigRepository for TestConfigRepository {
                 e.updated_at = chrono::Utc::now();
                 Ok(e.clone())
             }
-            None => Err(anyhow::anyhow!("config not found: {}/{}", namespace, key)),
+            // キーが存在しない: NotFound エラー
+            None => Err(ConfigRepositoryError::NotFound {
+                namespace: namespace.to_string(),
+                key: key.to_string(),
+            }),
         }
     }
 
-    async fn delete(&self, namespace: &str, key: &str) -> anyhow::Result<bool> {
+    /// 設定値を削除する（テスト用インメモリ実装）。
+    async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError> {
         let mut entries = self.entries.write().await;
         let len_before = entries.len();
         entries.retain(|e| !(e.namespace == namespace && e.key == key));
         Ok(entries.len() < len_before)
     }
 
+    /// サービス名に紐づく設定値を一括取得する（テスト用インメモリ実装）。
     async fn find_by_service_name(
         &self,
         service_name: &str,
-    ) -> anyhow::Result<ServiceConfigResult> {
+    ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
         let entries = self.entries.read().await;
         // サービス名からキーワードを抽出してマッチング（テスト用の簡易実装）
         // 例: "auth-server" -> "auth" -> namespace に "auth" セグメントを含むものにマッチ
@@ -154,7 +168,9 @@ impl ConfigRepository for TestConfigRepository {
             .collect();
 
         if matched.is_empty() {
-            return Err(anyhow::anyhow!("service not found: {}", service_name));
+            return Err(ConfigRepositoryError::ServiceNotFound(
+                service_name.to_string(),
+            ));
         }
 
         Ok(ServiceConfigResult {
@@ -163,10 +179,10 @@ impl ConfigRepository for TestConfigRepository {
         })
     }
 
-    async fn record_change_log(&self, _log: &ConfigChangeLog) -> anyhow::Result<()> {
+    /// 設定変更ログを記録する（テスト用、何もしない）。
+    async fn record_change_log(&self, _log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError> {
         Ok(())
     }
-
 }
 
 fn make_test_entry(

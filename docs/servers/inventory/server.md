@@ -450,6 +450,15 @@ observability:
 
 ---
 
+## クライアント実装
+
+| プラットフォーム | 配置パス | 技術スタック |
+|----------------|---------|-------------|
+| React | `regions/service/inventory/client/react/inventory/` | TanStack Query + Router, Zod, Axios |
+| Flutter | `regions/service/inventory/client/flutter/inventory/` | Riverpod, go_router, Dio |
+
+両クライアントとも BFF 経由で本サーバーの REST API を呼び出す。
+
 ## 関連ドキュメント
 
 > 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。

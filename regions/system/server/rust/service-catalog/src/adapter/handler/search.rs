@@ -1,8 +1,8 @@
 use axum::{
+    Json,
     extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use serde::Deserialize;
 
@@ -41,14 +41,14 @@ pub async fn search_services(
         .map(|t| t.split(',').map(|s| s.trim().to_string()).collect());
     let tier = params.tier.and_then(|t| t.parse::<ServiceTier>().ok());
 
-    match state
-        .search_services_uc
-        .execute(params.q, tags, tier)
-        .await
-    {
-        Ok(services) => (StatusCode::OK, Json(serde_json::to_value(services).unwrap())).into_response(),
+    match state.search_services_uc.execute(params.q, tags, tier).await {
+        Ok(services) => (
+            StatusCode::OK,
+            Json(serde_json::to_value(services).unwrap()),
+        )
+            .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCAT_005", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

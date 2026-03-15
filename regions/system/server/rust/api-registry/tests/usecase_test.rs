@@ -176,8 +176,11 @@ impl ApiSchemaVersionRepository for StubVersionRepository {
             anyhow::bail!("db error");
         }
         let versions = self.versions.read().await;
-        let filtered: Vec<ApiSchemaVersion> =
-            versions.iter().filter(|v| v.name == name).cloned().collect();
+        let filtered: Vec<ApiSchemaVersion> = versions
+            .iter()
+            .filter(|v| v.name == name)
+            .cloned()
+            .collect();
         let total = filtered.len() as u64;
         let start = ((page - 1) * page_size) as usize;
         let end = (start + page_size as usize).min(filtered.len());
@@ -263,7 +266,12 @@ fn make_schema_with_versions(name: &str, latest: u32, count: u32) -> ApiSchema {
     schema
 }
 
-fn make_version(name: &str, version: u32, schema_type: SchemaType, content: &str) -> ApiSchemaVersion {
+fn make_version(
+    name: &str,
+    version: u32,
+    schema_type: SchemaType,
+    content: &str,
+) -> ApiSchemaVersion {
     ApiSchemaVersion::new(
         name.to_string(),
         version,
@@ -398,7 +406,10 @@ mod register_schema {
         );
 
         let result = uc.execute(&default_input()).await;
-        assert!(result.is_ok(), "registration should succeed even if publisher fails");
+        assert!(
+            result.is_ok(),
+            "registration should succeed even if publisher fails"
+        );
 
         let schemas = schema_repo.schemas.read().await;
         assert_eq!(schemas.len(), 1);
@@ -414,7 +425,10 @@ mod register_schema {
         let hash1 = result.content_hash.clone();
 
         // Same content should produce the same hash
-        let expected_hash = k1s0_api_registry_server::domain::entity::api_registration::compute_content_hash("openapi: 3.0.3");
+        let expected_hash =
+            k1s0_api_registry_server::domain::entity::api_registration::compute_content_hash(
+                "openapi: 3.0.3",
+            );
         assert_eq!(hash1, expected_hash);
     }
 }
@@ -598,7 +612,10 @@ mod register_version {
             registered_by: "user-001".to_string(),
         };
         let result = uc.execute(&input).await;
-        assert!(result.is_ok(), "version registration should succeed even if publisher fails");
+        assert!(
+            result.is_ok(),
+            "version registration should succeed even if publisher fails"
+        );
     }
 }
 
@@ -636,8 +653,7 @@ mod get_schema {
         let v3 = make_version("tenant-api", 3, SchemaType::OpenApi, "v3");
 
         let schema_repo = Arc::new(StubSchemaRepository::with_schemas(vec![schema]));
-        let version_repo =
-            Arc::new(StubVersionRepository::with_versions(vec![v1, v2, v3]));
+        let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1, v2, v3]));
         let uc = GetSchemaUseCase::new(schema_repo, version_repo);
 
         let result = uc.execute("tenant-api").await.unwrap();
@@ -980,7 +996,12 @@ mod check_compatibility {
     async fn explicit_base_version() {
         let schema = make_schema_with_versions("tenant-api", 3, 3);
         let v1 = make_version("tenant-api", 1, SchemaType::OpenApi, &openapi_content_v1());
-        let v2 = make_version("tenant-api", 2, SchemaType::OpenApi, &openapi_content_v2_compatible());
+        let v2 = make_version(
+            "tenant-api",
+            2,
+            SchemaType::OpenApi,
+            &openapi_content_v2_compatible(),
+        );
 
         let schema_repo = Arc::new(StubSchemaRepository::with_schemas(vec![schema]));
         let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1, v2]));
@@ -1178,10 +1199,7 @@ mod get_diff {
             to_version: Some(2),
         };
         let result = uc.execute(&input).await;
-        assert!(matches!(
-            result,
-            Err(GetDiffError::VersionNotFound { .. })
-        ));
+        assert!(matches!(result, Err(GetDiffError::VersionNotFound { .. })));
     }
 
     #[tokio::test]
@@ -1240,8 +1258,7 @@ mod delete_version {
         let v3 = make_version("tenant-api", 3, SchemaType::OpenApi, "v3");
 
         let schema_repo = Arc::new(StubSchemaRepository::with_schemas(vec![schema]));
-        let version_repo =
-            Arc::new(StubVersionRepository::with_versions(vec![v1, v2, v3]));
+        let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1, v2, v3]));
         let uc = DeleteVersionUseCase::new(schema_repo.clone(), version_repo.clone());
 
         let result = uc.execute("tenant-api", 1, Some("admin".to_string())).await;
@@ -1295,8 +1312,7 @@ mod delete_version {
         let v3 = make_version("tenant-api", 3, SchemaType::OpenApi, "v3");
 
         let schema_repo = Arc::new(StubSchemaRepository::with_schemas(vec![schema]));
-        let version_repo =
-            Arc::new(StubVersionRepository::with_versions(vec![v1, v2, v3]));
+        let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1, v2, v3]));
         let uc = DeleteVersionUseCase::new(schema_repo, version_repo);
 
         let result = uc.execute("tenant-api", 99, None).await;
@@ -1325,14 +1341,13 @@ mod delete_version {
         let schema_repo = Arc::new(StubSchemaRepository::with_schemas(vec![schema]));
         let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1, v2]));
         let publisher = Arc::new(StubEventPublisher::failing());
-        let uc = DeleteVersionUseCase::with_publisher(
-            schema_repo,
-            version_repo.clone(),
-            publisher,
-        );
+        let uc = DeleteVersionUseCase::with_publisher(schema_repo, version_repo.clone(), publisher);
 
         let result = uc.execute("tenant-api", 1, None).await;
-        assert!(result.is_ok(), "delete should succeed even if publisher fails");
+        assert!(
+            result.is_ok(),
+            "delete should succeed even if publisher fails"
+        );
     }
 }
 
@@ -1350,7 +1365,9 @@ mod lifecycle {
     use k1s0_api_registry_server::usecase::get_schema::GetSchemaUseCase;
     use k1s0_api_registry_server::usecase::get_schema_version::GetSchemaVersionUseCase;
     use k1s0_api_registry_server::usecase::list_schemas::{ListSchemasInput, ListSchemasUseCase};
-    use k1s0_api_registry_server::usecase::list_versions::{ListVersionsInput, ListVersionsUseCase};
+    use k1s0_api_registry_server::usecase::list_versions::{
+        ListVersionsInput, ListVersionsUseCase,
+    };
     use k1s0_api_registry_server::usecase::register_schema::{
         RegisterSchemaInput, RegisterSchemaUseCase,
     };
@@ -1364,8 +1381,7 @@ mod lifecycle {
         let version_repo: Arc<StubVersionRepository> = Arc::new(StubVersionRepository::new());
 
         // 1. Register a new schema
-        let register_uc =
-            RegisterSchemaUseCase::new(schema_repo.clone(), version_repo.clone());
+        let register_uc = RegisterSchemaUseCase::new(schema_repo.clone(), version_repo.clone());
         let reg_input = RegisterSchemaInput {
             name: "lifecycle-api".to_string(),
             description: "Lifecycle test API".to_string(),
@@ -1384,8 +1400,7 @@ mod lifecycle {
         assert_eq!(schema_output.schema.latest_version, 1);
 
         // 3. Check compatibility before registering v2
-        let compat_uc =
-            CheckCompatibilityUseCase::new(schema_repo.clone(), version_repo.clone());
+        let compat_uc = CheckCompatibilityUseCase::new(schema_repo.clone(), version_repo.clone());
         let compat_input = CheckCompatibilityInput {
             name: "lifecycle-api".to_string(),
             content: openapi_content_v2_compatible(),
@@ -1395,8 +1410,7 @@ mod lifecycle {
         assert!(compat.result.compatible);
 
         // 4. Register v2 (compatible change)
-        let version_uc =
-            RegisterVersionUseCase::new(schema_repo.clone(), version_repo.clone());
+        let version_uc = RegisterVersionUseCase::new(schema_repo.clone(), version_repo.clone());
         let ver_input = RegisterVersionInput {
             name: "lifecycle-api".to_string(),
             content: openapi_content_v2_compatible(),
@@ -1419,8 +1433,7 @@ mod lifecycle {
         assert_eq!(list_output.total_count, 1);
 
         // 6. List versions
-        let list_ver_uc =
-            ListVersionsUseCase::new(schema_repo.clone(), version_repo.clone());
+        let list_ver_uc = ListVersionsUseCase::new(schema_repo.clone(), version_repo.clone());
         let list_ver_output = list_ver_uc
             .execute(&ListVersionsInput {
                 name: "lifecycle-api".to_string(),
@@ -1460,8 +1473,7 @@ mod lifecycle {
         assert!(v3.breaking_changes);
 
         // 10. Delete v1
-        let delete_uc =
-            DeleteVersionUseCase::new(schema_repo.clone(), version_repo.clone());
+        let delete_uc = DeleteVersionUseCase::new(schema_repo.clone(), version_repo.clone());
         let delete_result = delete_uc.execute("lifecycle-api", 1, None).await;
         assert!(delete_result.is_ok());
 

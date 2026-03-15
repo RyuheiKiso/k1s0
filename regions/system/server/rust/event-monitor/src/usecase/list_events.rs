@@ -41,7 +41,10 @@ impl ListEventsUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, input: &ListEventsInput) -> Result<ListEventsOutput, ListEventsError> {
+    pub async fn execute(
+        &self,
+        input: &ListEventsInput,
+    ) -> Result<ListEventsOutput, ListEventsError> {
         let (events, total_count) = self
             .repo
             .find_all_paginated(

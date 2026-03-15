@@ -42,8 +42,12 @@ mod tests {
         let instance = FlowInstance::new(Uuid::new_v4(), "corr-123".to_string());
         let instance_id = instance.id;
         let mut mock = MockFlowInstanceRepository::new();
-        mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(FlowInstance::new(Uuid::new_v4(), "corr-123".to_string()))));
+        mock.expect_find_by_id().returning(move |_| {
+            Ok(Some(FlowInstance::new(
+                Uuid::new_v4(),
+                "corr-123".to_string(),
+            )))
+        });
 
         let uc = GetFlowInstanceUseCase::new(Arc::new(mock));
         let result = uc.execute(&instance_id).await;

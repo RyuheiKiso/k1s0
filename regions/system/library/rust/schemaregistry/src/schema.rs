@@ -250,7 +250,8 @@ mod tests {
             schema: r#"{"type": "record"}"#,
             schema_type: SchemaType::Avro.as_str(),
         };
-        let json: serde_json::Value = serde_json::from_str(&serde_json::to_string(&req).unwrap()).unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&req).unwrap()).unwrap();
         assert!(json.get("schema").is_some());
         assert!(json.get("schemaType").is_some());
         assert_eq!(json["schemaType"], "AVRO");

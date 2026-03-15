@@ -3,6 +3,10 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use super::config::{default_cache_ttl_secs, parse_pool_duration, Config};
+use super::keycloak_client::KeycloakClient;
+use super::keycloak_role_permission_source::KeycloakRolePermissionSource;
+use super::user_cache::UserCache;
 use crate::adapter;
 use crate::adapter::grpc::{AuditGrpcService, AuthGrpcService};
 use crate::adapter::handler::{self, AppState};
@@ -10,11 +14,6 @@ use crate::adapter::repository::api_key_postgres::ApiKeyPostgresRepository;
 use crate::adapter::repository::audit_log_postgres::AuditLogPostgresRepository;
 use crate::adapter::repository::cached_user_repository::CachedUserRepository;
 use crate::adapter::repository::user_postgres::UserPostgresRepository;
-use super::config::{Config, default_cache_ttl_secs, parse_pool_duration};
-use super::keycloak_client::KeycloakClient;
-use super::keycloak_role_permission_source::KeycloakRolePermissionSource;
-use super::user_cache::UserCache;
-use crate::domain;
 use crate::usecase;
 
 /// シャットダウンシグナルを待機する
@@ -70,18 +69,17 @@ pub async fn run() -> anyhow::Result<()> {
     );
 
     // Token verifier (JWKS verifier if configured, stub otherwise)
-    let token_verifier: Arc<dyn super::TokenVerifier> =
-        if let Some(jwks_config) = &cfg.auth.jwks {
-            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-                &jwks_config.url,
-                &cfg.auth.jwt.issuer,
-                &cfg.auth.jwt.audience,
-                std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
-            ));
-            Arc::new(super::JwksVerifierAdapter::new(jwks_verifier))
-        } else {
-            Arc::new(StubTokenVerifier)
-        };
+    let token_verifier: Arc<dyn super::TokenVerifier> = if let Some(jwks_config) = &cfg.auth.jwks {
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &jwks_config.url,
+            &cfg.auth.jwt.issuer,
+            &cfg.auth.jwt.audience,
+            std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
+        ));
+        Arc::new(super::JwksVerifierAdapter::new(jwks_verifier))
+    } else {
+        Arc::new(StubTokenVerifier)
+    };
 
     // Database pool (optional)
     let db_pool = if let Some(ref db_config) = cfg.database {
@@ -131,10 +129,7 @@ pub async fn run() -> anyhow::Result<()> {
             .as_ref()
             .map(|j| j.cache_ttl_secs)
             .unwrap_or(default_cache_ttl_secs());
-        super::jwks_provider::JwksProvider::new(
-            url,
-            std::time::Duration::from_secs(ttl_secs),
-        )
+        super::jwks_provider::JwksProvider::new(url, std::time::Duration::from_secs(ttl_secs))
     });
 
     // Metrics (shared across layers and repositories)
@@ -145,26 +140,27 @@ pub async fn run() -> anyhow::Result<()> {
 
     // User repository (PostgreSQL > Keycloak > Stub)
     let keycloak_config = cfg.keycloak.clone();
-    let user_repo: Arc<dyn crate::domain::repository::UserRepository> = if let Some(ref pool) = db_pool {
-        let inner: Arc<dyn crate::domain::repository::UserRepository> = Arc::new(
-            UserPostgresRepository::with_metrics(pool.clone(), metrics.clone()),
-        );
-        Arc::new(CachedUserRepository::with_metrics(
-            inner,
-            user_cache,
-            metrics.clone(),
-        ))
-    } else if let Some(kc_config) = keycloak_config.clone() {
-        let inner: Arc<dyn crate::domain::repository::UserRepository> =
-            Arc::new(KeycloakClient::new(kc_config));
-        Arc::new(CachedUserRepository::with_metrics(
-            inner,
-            user_cache,
-            metrics.clone(),
-        ))
-    } else {
-        Arc::new(StubUserRepository)
-    };
+    let user_repo: Arc<dyn crate::domain::repository::UserRepository> =
+        if let Some(ref pool) = db_pool {
+            let inner: Arc<dyn crate::domain::repository::UserRepository> = Arc::new(
+                UserPostgresRepository::with_metrics(pool.clone(), metrics.clone()),
+            );
+            Arc::new(CachedUserRepository::with_metrics(
+                inner,
+                user_cache,
+                metrics.clone(),
+            ))
+        } else if let Some(kc_config) = keycloak_config.clone() {
+            let inner: Arc<dyn crate::domain::repository::UserRepository> =
+                Arc::new(KeycloakClient::new(kc_config));
+            Arc::new(CachedUserRepository::with_metrics(
+                inner,
+                user_cache,
+                metrics.clone(),
+            ))
+        } else {
+            Arc::new(StubUserRepository)
+        };
 
     // Keycloak Admin API role-permission table (cached + periodic refresh)
     let role_permission_table = if let Some(kc_config) = keycloak_config {
@@ -229,7 +225,10 @@ pub async fn run() -> anyhow::Result<()> {
                         Some(Arc::new(producer))
                     }
                     Err(e) => {
-                        tracing::warn!("Failed to create Kafka producer, audit events will not be published: {}", e);
+                        tracing::warn!(
+                        "Failed to create Kafka producer, audit events will not be published: {}",
+                        e
+                    );
                         None
                     }
                 }
@@ -275,10 +274,8 @@ pub async fn run() -> anyhow::Result<()> {
         keycloak_health_url,
         jwks_provider,
     );
-    state.permission_cache = super::permission_cache::PermissionCache::new(
-        cfg.permission_cache.ttl_secs,
-        10_000,
-    );
+    state.permission_cache =
+        super::permission_cache::PermissionCache::new(cfg.permission_cache.ttl_secs, 10_000);
     state.permission_cache_refresh_on_miss = cfg.permission_cache.refresh_on_miss;
     state.check_permission_uc = check_permission_uc.clone();
     state.role_permission_table = role_permission_table;
@@ -303,7 +300,8 @@ pub async fn run() -> anyhow::Result<()> {
     let audit_tonic = adapter::grpc::AuditServiceTonic::new(audit_grpc_svc);
 
     // Router
-    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
         .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC server
@@ -317,7 +315,9 @@ pub async fn run() -> anyhow::Result<()> {
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(AuthServiceServer::new(auth_tonic))
             .add_service(AuditServiceServer::new(audit_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -387,7 +387,10 @@ impl crate::domain::repository::UserRepository for StubUserRepository {
         })
     }
 
-    async fn get_roles(&self, user_id: &str) -> anyhow::Result<crate::domain::entity::user::UserRoles> {
+    async fn get_roles(
+        &self,
+        user_id: &str,
+    ) -> anyhow::Result<crate::domain::entity::user::UserRoles> {
         anyhow::bail!("stub user repository: user not found: {}", user_id)
     }
 }

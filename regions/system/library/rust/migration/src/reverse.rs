@@ -19,31 +19,35 @@ pub fn generate_down_sql(up_sql: &str) -> Result<String, MigrationError> {
             }
             Statement::CreateIndex(create_index) => {
                 if let Some(ref index_name) = create_index.name {
-                    down_statements
-                        .push(format!("DROP INDEX IF EXISTS {index_name};"));
+                    down_statements.push(format!("DROP INDEX IF EXISTS {index_name};"));
                 }
             }
             Statement::AlterTable {
-                name,
-                operations,
-                ..
+                name, operations, ..
             } => {
                 for op in operations {
                     use sqlparser::ast::AlterTableOperation;
                     match op {
                         AlterTableOperation::AddColumn { column_def, .. } => {
                             let col_name = &column_def.name;
-                            down_statements.push(format!(
-                                "ALTER TABLE {name} DROP COLUMN {col_name};"
-                            ));
+                            down_statements
+                                .push(format!("ALTER TABLE {name} DROP COLUMN {col_name};"));
                         }
                         AlterTableOperation::AddConstraint(constraint) => {
                             use sqlparser::ast::TableConstraint;
                             match constraint {
-                                TableConstraint::Unique { name: Some(cname), .. }
-                                | TableConstraint::ForeignKey { name: Some(cname), .. }
-                                | TableConstraint::Check { name: Some(cname), .. }
-                                | TableConstraint::PrimaryKey { name: Some(cname), .. } => {
+                                TableConstraint::Unique {
+                                    name: Some(cname), ..
+                                }
+                                | TableConstraint::ForeignKey {
+                                    name: Some(cname), ..
+                                }
+                                | TableConstraint::Check {
+                                    name: Some(cname), ..
+                                }
+                                | TableConstraint::PrimaryKey {
+                                    name: Some(cname), ..
+                                } => {
                                     down_statements.push(format!(
                                         "ALTER TABLE {name} DROP CONSTRAINT {cname};"
                                     ));
@@ -103,7 +107,8 @@ mod tests {
     // 複数の UP 文から逆順の DOWN 文が生成されることを確認する。
     #[test]
     fn test_multiple_statements_reversed() {
-        let up = "CREATE TABLE users (id UUID PRIMARY KEY);\nCREATE INDEX idx_users_id ON users (id);";
+        let up =
+            "CREATE TABLE users (id UUID PRIMARY KEY);\nCREATE INDEX idx_users_id ON users (id);";
         let down = generate_down_sql(up).unwrap();
         let lines: Vec<&str> = down.lines().collect();
         assert_eq!(lines.len(), 2);

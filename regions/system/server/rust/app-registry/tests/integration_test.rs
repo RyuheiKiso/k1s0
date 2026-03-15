@@ -36,10 +36,7 @@ impl TokenVerifier for TestTokenVerifier {
                 exp: now + 3600,
                 iat: now,
                 realm_access: RealmAccess {
-                    roles: vec![
-                        "user".to_string(),
-                        "sys_operator".to_string(),
-                    ],
+                    roles: vec!["user".to_string(), "sys_operator".to_string()],
                 },
                 tier_access: vec!["system".to_string()],
                 ..Default::default()
@@ -188,9 +185,8 @@ async fn make_test_app_with_repos(
     version_repo: Arc<dyn VersionRepository>,
     download_stats_repo: Arc<dyn DownloadStatsRepository>,
 ) -> axum::Router {
-    let s3_client = Arc::new(
-        S3Client::new("http://localhost:19000", "test-bucket", "us-east-1").await,
-    );
+    let s3_client =
+        Arc::new(S3Client::new("http://localhost:19000", "test-bucket", "us-east-1").await);
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("test"));
 
     let state = AppState {
@@ -224,13 +220,11 @@ async fn make_test_app_with_repos(
             app_repo.clone(),
             version_repo.clone(),
         )),
-        get_download_stats_uc: Arc::new(
-            k1s0_app_registry::usecase::GetDownloadStatsUseCase::new(
-                app_repo.clone(),
-                version_repo.clone(),
-                download_stats_repo.clone(),
-            ),
-        ),
+        get_download_stats_uc: Arc::new(k1s0_app_registry::usecase::GetDownloadStatsUseCase::new(
+            app_repo.clone(),
+            version_repo.clone(),
+            download_stats_repo.clone(),
+        )),
         generate_download_url_uc: Arc::new(
             k1s0_app_registry::usecase::GenerateDownloadUrlUseCase::new(
                 app_repo.clone(),

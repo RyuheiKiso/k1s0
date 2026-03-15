@@ -231,3 +231,35 @@ pub fn validate_generated(output_dir: &Path) -> ValidationResult;
 | `src/lib.rs` | 必須 (error) |
 | `src/error.rs` | 推奨 (warning) |
 | `config/config.yaml` | 推奨 (warning) |
+
+## 他言語実装
+
+codegen ライブラリは Rust 以外にも簡易版が存在する。
+
+### TypeScript (`@k1s0/server-common`)
+
+**配置パス**: `regions/system/library/typescript/codegen/`
+
+Rust 版のテンプレート生成機能は含まず、以下のユーティリティに特化：
+
+- `ScaffoldConfig` インターフェース・`validateConfig()` バリデーション
+- `Tier` / `ApiStyle` / `DatabaseType` 型定義
+- 命名変換ユーティリティ（`toSnakeCase`, `toPascalCase`, `toKebabCase`, `toCamelCase`）
+- `GenerateResult` / `ValidationResult` 型
+
+### Dart (`k1s0_codegen`)
+
+**配置パス**: `regions/system/library/dart/codegen/`
+
+TypeScript 版と同等の機能範囲：
+
+- `ScaffoldConfig` クラス・`validate()` メソッド
+- `Tier` / `ApiStyle` / `DatabaseType` enum
+- 命名変換ユーティリティ
+- `GenerateResult` 型
+
+### Go (`codegen`)
+
+**配置パス**: `regions/system/library/go/codegen/`
+
+Rust 版に近い全機能版：proto 解析・スキャフォールド生成・クライアント SDK 生成・イベントコード生成

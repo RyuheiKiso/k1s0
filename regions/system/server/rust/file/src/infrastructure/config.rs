@@ -141,7 +141,7 @@ impl Config {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -150,15 +150,6 @@ pub struct ObservabilityConfig {
     pub trace: TraceConfig,
     #[serde(default)]
     pub metrics: MetricsConfig,
-}
-impl Default for ObservabilityConfig {
-    fn default() -> Self {
-        Self {
-            log: LogConfig::default(),
-            trace: TraceConfig::default(),
-            metrics: MetricsConfig::default(),
-        }
-    }
 }
 #[derive(Debug, Clone, Deserialize)]
 pub struct LogConfig {

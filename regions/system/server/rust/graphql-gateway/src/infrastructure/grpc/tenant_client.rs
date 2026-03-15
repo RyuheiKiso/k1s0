@@ -103,7 +103,7 @@ impl TenantGrpcClient {
 
         let (total_count, has_next) = resp
             .pagination
-            .map(|p| (p.total_count as i32, p.has_next))
+            .map(|p| (p.total_count, p.has_next))
             .unwrap_or((0, false));
 
         Ok(TenantPage {
@@ -262,10 +262,9 @@ impl TenantGrpcClient {
     /// WatchTenant Server-Side Streaming を購読し、変更イベントを Tenant として返す。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn watch_tenant(&self, tenant_id: &str) -> impl Stream<Item = Tenant> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::tenant::v1::WatchTenantRequest {
-                tenant_id: tenant_id.to_owned(),
-            });
+        let request = tonic::Request::new(proto::k1s0::system::tenant::v1::WatchTenantRequest {
+            tenant_id: tenant_id.to_owned(),
+        });
 
         let stream = self
             .client

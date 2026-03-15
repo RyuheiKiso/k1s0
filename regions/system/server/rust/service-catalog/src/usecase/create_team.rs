@@ -36,7 +36,9 @@ impl CreateTeamUseCase {
 
     pub async fn execute(&self, input: CreateTeamInput) -> Result<Team, CreateTeamError> {
         if input.name.trim().is_empty() {
-            return Err(CreateTeamError::Validation("name must not be empty".to_string()));
+            return Err(CreateTeamError::Validation(
+                "name must not be empty".to_string(),
+            ));
         }
 
         let now = Utc::now();

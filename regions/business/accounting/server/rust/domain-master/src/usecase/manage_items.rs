@@ -55,7 +55,9 @@ impl ManageItemsUseCase {
             .find_by_id(category_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Category '{}' not found", category_id))?;
-        self.item_repo.find_by_category(category_id, active_only).await
+        self.item_repo
+            .find_by_category(category_id, active_only)
+            .await
     }
 
     pub async fn get_item(
@@ -111,7 +113,10 @@ impl ManageItemsUseCase {
                 .await?;
         }
 
-        let item = self.item_repo.create(category.id, input, created_by).await?;
+        let item = self
+            .item_repo
+            .create(category.id, input, created_by)
+            .await?;
 
         self.version_repo
             .create(
@@ -197,8 +202,14 @@ impl ManageItemsUseCase {
             )
             .await?;
 
-        self.publish_item_event("updated", actor, category_code, Some(&existing), Some(&updated))
-            .await;
+        self.publish_item_event(
+            "updated",
+            actor,
+            category_code,
+            Some(&existing),
+            Some(&updated),
+        )
+        .await;
         Ok(updated)
     }
 

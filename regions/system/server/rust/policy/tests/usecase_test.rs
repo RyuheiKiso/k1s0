@@ -257,7 +257,12 @@ fn make_policy_with_id(id: Uuid, name: &str, enabled: bool) -> Policy {
 }
 
 fn make_bundle(name: &str) -> PolicyBundle {
-    PolicyBundle::new(name.to_string(), Some(format!("{} desc", name)), true, vec![])
+    PolicyBundle::new(
+        name.to_string(),
+        Some(format!("{} desc", name)),
+        true,
+        vec![],
+    )
 }
 
 fn make_bundle_with_id(id: Uuid, name: &str) -> PolicyBundle {
@@ -651,7 +656,10 @@ async fn update_policy_success_all_fields() {
     let result = uc.execute(&input).await.unwrap();
 
     assert_eq!(result.description, "Updated desc");
-    assert_eq!(result.rego_content, "package updated\ndefault allow = false");
+    assert_eq!(
+        result.rego_content,
+        "package updated\ndefault allow = false"
+    );
     assert!(!result.enabled);
     assert_eq!(result.version, 2);
 }

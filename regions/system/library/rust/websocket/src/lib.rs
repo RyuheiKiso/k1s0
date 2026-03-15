@@ -13,6 +13,6 @@ pub use client::{InMemoryWsClient, WsClient};
 pub use config::WsConfig;
 pub use error::WsError;
 pub use message::{CloseFrame, WsMessage};
-pub use state::ConnectionState;
 #[cfg(feature = "native")]
 pub use native_client::TungsteniteWsClient;
+pub use state::ConnectionState;

@@ -49,11 +49,7 @@ impl DownloadStatsRepository for DownloadStatsPostgresRepository {
         .await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration(
-                "record",
-                "download_stats",
-                start.elapsed().as_secs_f64(),
-            );
+            m.record_db_query_duration("record", "download_stats", start.elapsed().as_secs_f64());
         }
 
         Ok(())

@@ -1,7 +1,8 @@
-use crate::domain::entity::table_definition::TableDefinition;
 use crate::adapter::handler::error::AppError;
+use crate::domain::entity::table_definition::TableDefinition;
 use axum::{body::Body, http::Request, middleware::Next, response::Response};
 
+#[allow(clippy::type_complexity)]
 pub fn require_permission(
     resource: &'static str,
     action: &'static str,
@@ -87,7 +88,10 @@ pub fn check_table_permission(roles: &[String], table: &TableDefinition, action:
         _ => return false,
     };
 
-    !required_roles.is_empty() && required_roles.iter().any(|role| roles.iter().any(|r| r == role))
+    !required_roles.is_empty()
+        && required_roles
+            .iter()
+            .any(|role| roles.iter().any(|r| r == role))
 }
 
 pub fn check_domain_permission(roles: &[String], domain: &str, action: &str) -> bool {
@@ -239,6 +243,10 @@ mod tests {
 
         assert!(has_action_permission(&explicit_roles, "read", Some(&table)));
         assert!(has_action_permission(&domain_roles, "read", Some(&table)));
-        assert!(!has_action_permission(&["plain_user".to_string()], "read", Some(&table)));
+        assert!(!has_action_permission(
+            &["plain_user".to_string()],
+            "read",
+            Some(&table)
+        ));
     }
 }

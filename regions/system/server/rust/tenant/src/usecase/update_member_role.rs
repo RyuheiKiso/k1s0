@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use uuid::Uuid;
 
-use crate::domain::entity::TenantMember;
 use crate::domain::entity::tenant_member::MemberRole;
+use crate::domain::entity::TenantMember;
 use crate::domain::repository::{MemberRepository, TenantRepository};
 
 /// UpdateMemberRoleInput はメンバーロール更新の入力パラメータ。

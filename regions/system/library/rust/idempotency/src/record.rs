@@ -36,7 +36,7 @@ impl IdempotencyRecord {
     }
 
     pub fn is_expired(&self) -> bool {
-        self.expires_at.map_or(false, |exp| exp <= Utc::now())
+        self.expires_at.is_some_and(|exp| exp <= Utc::now())
     }
 
     pub fn complete(mut self, response_body: Option<String>, response_status: Option<u16>) -> Self {

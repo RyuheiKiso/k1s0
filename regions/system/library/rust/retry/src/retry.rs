@@ -91,7 +91,10 @@ mod tests {
 
         assert!(result.is_err());
         match result.unwrap_err() {
-            RetryError::ExhaustedRetries { attempts, last_error } => {
+            RetryError::ExhaustedRetries {
+                attempts,
+                last_error,
+            } => {
                 assert_eq!(attempts, 3);
                 assert_eq!(last_error.0, "always fails");
             }
@@ -111,10 +114,8 @@ mod tests {
             .with_jitter(false);
 
         let start = Instant::now();
-        let result: Result<(), RetryError<TestError>> = with_retry(&config, || async {
-            Err(TestError("fail".to_string()))
-        })
-        .await;
+        let result: Result<(), RetryError<TestError>> =
+            with_retry(&config, || async { Err(TestError("fail".to_string())) }).await;
         let elapsed = start.elapsed();
 
         assert!(result.is_err());

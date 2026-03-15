@@ -127,7 +127,12 @@ impl MemberRepository for MemberPostgresRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    async fn update_role(&self, tenant_id: &Uuid, user_id: &Uuid, role: &str) -> anyhow::Result<Option<TenantMember>> {
+    async fn update_role(
+        &self,
+        tenant_id: &Uuid,
+        user_id: &Uuid,
+        role: &str,
+    ) -> anyhow::Result<Option<TenantMember>> {
         let result = sqlx::query_as::<_, MemberRow>(
             "UPDATE tenant.tenant_members SET role = $3 WHERE tenant_id = $1 AND user_id = $2 \
              RETURNING id, tenant_id, user_id, role, joined_at",

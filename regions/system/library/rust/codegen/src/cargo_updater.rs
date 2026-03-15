@@ -14,8 +14,10 @@ pub struct Dependency {
 }
 
 pub fn add_dependency(cargo_toml_path: &Path, dep: &Dependency) -> Result<bool, CodegenError> {
-    let content = std::fs::read_to_string(cargo_toml_path)
-        .map_err(|e| CodegenError::Io { path: cargo_toml_path.to_path_buf(), source: e })?;
+    let content = std::fs::read_to_string(cargo_toml_path).map_err(|e| CodegenError::Io {
+        path: cargo_toml_path.to_path_buf(),
+        source: e,
+    })?;
 
     let mut doc: DocumentMut = content
         .parse()
@@ -53,7 +55,10 @@ pub fn add_dependency(cargo_toml_path: &Path, dep: &Dependency) -> Result<bool, 
         if dep.optional {
             inline.insert("optional", true.into());
         }
-        deps.insert(&dep.name, toml_edit::Item::Value(toml_edit::Value::InlineTable(inline)));
+        deps.insert(
+            &dep.name,
+            toml_edit::Item::Value(toml_edit::Value::InlineTable(inline)),
+        );
     } else if let Some(ref ver) = dep.version {
         deps.insert(&dep.name, value(ver.as_str()));
     } else {
@@ -62,8 +67,10 @@ pub fn add_dependency(cargo_toml_path: &Path, dep: &Dependency) -> Result<bool, 
         ));
     }
 
-    std::fs::write(cargo_toml_path, doc.to_string())
-        .map_err(|e| CodegenError::Io { path: cargo_toml_path.to_path_buf(), source: e })?;
+    std::fs::write(cargo_toml_path, doc.to_string()).map_err(|e| CodegenError::Io {
+        path: cargo_toml_path.to_path_buf(),
+        source: e,
+    })?;
 
     Ok(true)
 }
@@ -73,8 +80,10 @@ pub fn add_feature(
     feature_name: &str,
     deps: &[&str],
 ) -> Result<bool, CodegenError> {
-    let content = std::fs::read_to_string(cargo_toml_path)
-        .map_err(|e| CodegenError::Io { path: cargo_toml_path.to_path_buf(), source: e })?;
+    let content = std::fs::read_to_string(cargo_toml_path).map_err(|e| CodegenError::Io {
+        path: cargo_toml_path.to_path_buf(),
+        source: e,
+    })?;
 
     let mut doc: DocumentMut = content
         .parse()
@@ -98,8 +107,10 @@ pub fn add_feature(
     }
     features.insert(feature_name, value(arr));
 
-    std::fs::write(cargo_toml_path, doc.to_string())
-        .map_err(|e| CodegenError::Io { path: cargo_toml_path.to_path_buf(), source: e })?;
+    std::fs::write(cargo_toml_path, doc.to_string()).map_err(|e| CodegenError::Io {
+        path: cargo_toml_path.to_path_buf(),
+        source: e,
+    })?;
 
     Ok(true)
 }

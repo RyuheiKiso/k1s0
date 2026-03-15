@@ -113,7 +113,7 @@ system-client/
 │   │   ├── useAuth.ts            # useAuth hook
 │   │   └── useAuth.test.tsx      # TDD テスト
 │   ├── http/
-│   │   ├── apiClient.ts          # Axios factory（withCredentials, CSRF interceptor）
+│   │   ├── apiClient.ts          # Axios factory（withCredentials, CSRF interceptor, onUnauthorized callback）
 │   │   └── apiClient.test.ts     # TDD テスト
 │   ├── routing/
 │   │   ├── ProtectedRoute.tsx    # 未認証時リダイレクト

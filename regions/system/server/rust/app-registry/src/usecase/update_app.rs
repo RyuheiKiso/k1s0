@@ -95,8 +95,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_app_success() {
         let mut mock = MockAppRepository::new();
-        mock.expect_find_by_id()
-            .returning(|_| Ok(Some(make_app())));
+        mock.expect_find_by_id().returning(|_| Ok(Some(make_app())));
         mock.expect_update().returning(|app| Ok(app.clone()));
 
         let uc = UpdateAppUseCase::new(Arc::new(mock));

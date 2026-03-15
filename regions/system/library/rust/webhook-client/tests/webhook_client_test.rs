@@ -104,7 +104,11 @@ fn verify_with_empty_signature_fails() {
 // 不正な署名文字列で検証すると失敗することを確認する。
 #[test]
 fn verify_with_garbage_signature_fails() {
-    assert!(!verify_signature("secret", b"body", "not-a-valid-signature"));
+    assert!(!verify_signature(
+        "secret",
+        b"body",
+        "not-a-valid-signature"
+    ));
 }
 
 // 署名が切り詰められた場合に検証が失敗することを確認する。

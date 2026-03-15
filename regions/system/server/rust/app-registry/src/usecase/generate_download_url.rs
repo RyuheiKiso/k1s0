@@ -82,8 +82,8 @@ impl GenerateDownloadUrlUseCase {
             .await
             .map_err(|e| GenerateDownloadUrlError::Internal(e.to_string()))?;
 
-        let app_version = resolve_version(&versions, version, platform, arch).map_err(|error| {
-            match error {
+        let app_version =
+            resolve_version(&versions, version, platform, arch).map_err(|error| match error {
                 VersionSelectionError::NotFound => {
                     GenerateDownloadUrlError::NotFound(app_id.to_string(), version.to_string())
                 }
@@ -91,8 +91,7 @@ impl GenerateDownloadUrlUseCase {
                     app_id.to_string(),
                     version.to_string(),
                 ),
-            }
-        })?;
+            })?;
 
         // 署名付き URL を生成 (有効期限: 1時間)
         let download_url = self

@@ -13,17 +13,17 @@ pub mod event_codegen;
 #[cfg(feature = "client-sdk")]
 pub mod client_sdk;
 
-#[cfg(feature = "proto")]
-pub mod proto_parser;
 #[cfg(feature = "cargo-update")]
 pub mod cargo_updater;
+#[cfg(feature = "proto")]
+pub mod proto_parser;
 
 pub use config::{ApiStyle, DatabaseType, ScaffoldConfig, Tier};
 pub use error::CodegenError;
+#[cfg(feature = "event-codegen")]
+pub use event_codegen::{generate_events, EventConfig, EventGenerateResult};
 pub use generator::{generate, GenerateResult};
 pub use path::build_output_path;
-pub use validator::ValidationResult;
 #[cfg(feature = "proto")]
 pub use proto_parser::ProtoService;
-#[cfg(feature = "event-codegen")]
-pub use event_codegen::{EventConfig, EventGenerateResult, generate_events};
+pub use validator::ValidationResult;

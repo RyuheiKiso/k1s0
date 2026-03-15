@@ -226,7 +226,7 @@ mod tests {
 
     #[test]
     fn test_validate_valid_navigation() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 guards:
   - id: auth_required
@@ -244,7 +244,7 @@ routes:
     component_id: DashboardPage
     guards: [auth_required]
     transition: fade
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_navigation(file.path().to_str().unwrap()).unwrap();
         assert_eq!(errors, 0);
@@ -252,7 +252,7 @@ routes:
 
     #[test]
     fn test_validate_undefined_guard() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 guards: []
 routes:
@@ -260,7 +260,7 @@ routes:
     path: /dashboard
     component_id: DashboardPage
     guards: [nonexistent_guard]
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_navigation(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
@@ -268,7 +268,7 @@ routes:
 
     #[test]
     fn test_validate_duplicate_route_ids() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 guards: []
 routes:
@@ -278,7 +278,7 @@ routes:
   - id: home
     path: /home
     component_id: HomePage2
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_navigation(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
@@ -286,7 +286,7 @@ routes:
 
     #[test]
     fn test_validate_duplicate_route_ids_in_children() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 guards: []
 routes:
@@ -297,7 +297,7 @@ routes:
       - id: users
         path: :id
         component_id: UserDetailPage
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_navigation(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
@@ -305,7 +305,7 @@ routes:
 
     #[test]
     fn test_validate_redirect_and_component_exclusive() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 guards: []
 routes:
@@ -313,7 +313,7 @@ routes:
     path: /
     component_id: HomePage
     redirect_to: /dashboard
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_navigation(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);
@@ -321,7 +321,7 @@ routes:
 
     #[test]
     fn test_validate_circular_redirect() {
-        let yaml = r#"
+        let yaml = r"
 version: 1
 guards: []
 routes:
@@ -331,7 +331,7 @@ routes:
   - id: b
     path: /b
     redirect_to: /a
-"#;
+";
         let file = write_yaml(yaml);
         let errors = validate_navigation(file.path().to_str().unwrap()).unwrap();
         assert!(errors > 0);

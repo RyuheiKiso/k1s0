@@ -18,11 +18,17 @@ pub struct WatchConfigUseCase {
     sender: broadcast::Sender<ConfigChangeEvent>,
 }
 
+impl Default for WatchConfigUseCase {
+    fn default() -> Self {
+        let (tx, _) = broadcast::channel(256);
+        Self { sender: tx }
+    }
+}
+
 impl WatchConfigUseCase {
     /// 新しい WatchConfigUseCase を生成する。
     pub fn new() -> Self {
-        let (tx, _) = broadcast::channel(256);
-        Self { sender: tx }
+        Self::default()
     }
 
     pub fn sender(&self) -> broadcast::Sender<ConfigChangeEvent> {
@@ -33,7 +39,6 @@ impl WatchConfigUseCase {
     pub fn subscribe(&self) -> broadcast::Receiver<ConfigChangeEvent> {
         self.sender.subscribe()
     }
-
 }
 
 #[cfg(test)]

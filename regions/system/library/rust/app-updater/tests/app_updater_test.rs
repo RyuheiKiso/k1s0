@@ -46,7 +46,10 @@ fn compare_versions_different_lengths() {
 fn compare_versions_pre_release() {
     // Pre-release suffixes are stripped to numeric; "1.0.0-beta" -> [1, 0, 0]
     assert_eq!(compare_versions("1.0.0-beta", "1.0.0"), Ordering::Equal);
-    assert_eq!(compare_versions("1.0.0-alpha", "1.0.0-beta"), Ordering::Equal);
+    assert_eq!(
+        compare_versions("1.0.0-alpha", "1.0.0-beta"),
+        Ordering::Equal
+    );
 }
 
 // ===========================================================================

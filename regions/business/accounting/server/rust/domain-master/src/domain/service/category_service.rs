@@ -12,14 +12,9 @@ impl CategoryService {
             anyhow::bail!("Validation error: category code must not be empty");
         }
         if code.len() > 100 {
-            anyhow::bail!(
-                "Validation error: category code must not exceed 100 characters"
-            );
+            anyhow::bail!("Validation error: category code must not exceed 100 characters");
         }
-        if !code
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
-        {
+        if !code.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
             anyhow::bail!(
                 "Validation error: category code must contain only alphanumeric characters and underscores"
             );
@@ -65,7 +60,10 @@ mod tests {
     fn test_validate_code_empty() {
         let result = CategoryService::validate_code("");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("must not be empty"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must not be empty"));
     }
 
     #[test]

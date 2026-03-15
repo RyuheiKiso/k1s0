@@ -79,7 +79,11 @@ pub struct ConfigFieldSchemaDto {
     pub pattern: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub unit: String,
-    #[serde(default, alias = "default_value", skip_serializing_if = "Value::is_null")]
+    #[serde(
+        default,
+        alias = "default_value",
+        skip_serializing_if = "Value::is_null"
+    )]
     pub default: Value,
 }
 
@@ -152,7 +156,10 @@ impl ConfigEditorSchemaDto {
                 .iter()
                 .map(ConfigCategorySchemaDto::from_pb)
                 .collect::<Result<Vec<_>, _>>()?,
-            updated_at: schema.updated_at.as_ref().and_then(proto_timestamp_to_datetime),
+            updated_at: schema
+                .updated_at
+                .as_ref()
+                .and_then(proto_timestamp_to_datetime),
         })
     }
 
@@ -160,7 +167,11 @@ impl ConfigEditorSchemaDto {
         pb::ConfigEditorSchema {
             service_name: self.service.clone(),
             namespace_prefix: self.namespace_prefix.clone(),
-            categories: self.categories.iter().map(ConfigCategorySchemaDto::to_pb).collect(),
+            categories: self
+                .categories
+                .iter()
+                .map(ConfigCategorySchemaDto::to_pb)
+                .collect(),
             updated_at: self.updated_at.map(datetime_to_proto_timestamp),
         }
     }
@@ -200,7 +211,11 @@ impl ConfigCategorySchemaDto {
             label: self.label.clone(),
             icon: self.icon.clone(),
             namespaces: self.namespaces.clone(),
-            fields: self.fields.iter().map(ConfigFieldSchemaDto::to_pb).collect(),
+            fields: self
+                .fields
+                .iter()
+                .map(ConfigFieldSchemaDto::to_pb)
+                .collect(),
         }
     }
 }
@@ -252,7 +267,9 @@ impl TryFrom<&Value> for ConfigFieldSchemaDto {
         Ok(Self {
             key: required_str(value, "key")?.to_string(),
             label: required_str(value, "label")?.to_string(),
-            description: optional_str(value, "description").unwrap_or_default().to_string(),
+            description: optional_str(value, "description")
+                .unwrap_or_default()
+                .to_string(),
             field_type,
             min: value.get("min").and_then(Value::as_i64).unwrap_or_default(),
             max: value.get("max").and_then(Value::as_i64).unwrap_or_default(),
@@ -266,7 +283,9 @@ impl TryFrom<&Value> for ConfigFieldSchemaDto {
                         .collect()
                 })
                 .unwrap_or_default(),
-            pattern: optional_str(value, "pattern").unwrap_or_default().to_string(),
+            pattern: optional_str(value, "pattern")
+                .unwrap_or_default()
+                .to_string(),
             unit: optional_str(value, "unit").unwrap_or_default().to_string(),
             default: value
                 .get("default")
@@ -414,7 +433,10 @@ mod tests {
 
         let dto = ConfigEditorSchemaDto::try_from(&schema).unwrap();
         assert_eq!(dto.service, "order-service");
-        assert_eq!(dto.categories[0].fields[0].field_type, ConfigFieldType::Integer);
+        assert_eq!(
+            dto.categories[0].fields[0].field_type,
+            ConfigFieldType::Integer
+        );
         assert_eq!(dto.categories[0].fields[0].default, serde_json::json!(30));
     }
 
@@ -445,7 +467,9 @@ mod tests {
         let json = req.into_schema_json();
         assert_eq!(json["categories"][0]["fields"][0]["type"], "boolean");
         assert_eq!(json["categories"][0]["fields"][0]["default"], true);
-        assert!(json["categories"][0]["fields"][0].get("default_value").is_none());
+        assert!(json["categories"][0]["fields"][0]
+            .get("default_value")
+            .is_none());
     }
 
     #[test]
@@ -479,7 +503,10 @@ mod tests {
 
         let dto = ConfigEditorSchemaDto::from_pb(&pb_schema).unwrap();
         assert_eq!(dto.service, "order-service");
-        assert_eq!(dto.categories[0].fields[0].field_type, ConfigFieldType::Integer);
+        assert_eq!(
+            dto.categories[0].fields[0].field_type,
+            ConfigFieldType::Integer
+        );
         assert_eq!(dto.categories[0].fields[0].default, serde_json::json!(30));
 
         let converted = dto.to_pb();

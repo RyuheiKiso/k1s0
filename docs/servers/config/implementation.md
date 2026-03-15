@@ -230,17 +230,29 @@ pub struct ConfigChangeLog {
 ## リポジトリトレイト実装（Rust）
 
 ```rust
+// src/domain/error.rs — リポジトリ層の型安全エラー定義
+// anyhow::Result による文字列マッチングを排除し、パターンマッチで分類可能にする
+
+#[derive(Debug)]
+pub enum ConfigRepositoryError {
+    /// 指定された namespace/key の設定値が見つからない
+    NotFound { namespace: String, key: String },
+    /// 楽観的排他制御によるバージョン不一致
+    VersionConflict { expected: i32, current: i32 },
+    /// 指定されたサービス名に紐づく設定が見つからない
+    ServiceNotFound(String),
+    /// DB接続エラー等のインフラストラクチャエラー
+    Infrastructure(anyhow::Error),
+}
+```
+
+```rust
 // src/domain/repository/config_repository.rs
 use async_trait::async_trait;
 
-use crate::domain::entity::ConfigEntry;
-
-#[derive(Debug, Clone)]
-pub struct ListParams {
-    pub search: Option<String>,
-    pub page: i32,
-    pub page_size: i32,
-}
+use crate::domain::entity::config_entry::{ConfigEntry, ConfigListResult, ServiceConfigResult};
+use crate::domain::entity::config_change_log::ConfigChangeLog;
+use crate::domain::error::ConfigRepositoryError;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -249,22 +261,37 @@ pub trait ConfigRepository: Send + Sync {
         &self,
         namespace: &str,
         key: &str,
-    ) -> anyhow::Result<Option<ConfigEntry>>;
+    ) -> Result<Option<ConfigEntry>, ConfigRepositoryError>;
 
     async fn list_by_namespace(
         &self,
         namespace: &str,
-        params: &ListParams,
-    ) -> anyhow::Result<(Vec<ConfigEntry>, i64)>;
+        page: i32,
+        page_size: i32,
+        search: Option<String>,
+    ) -> Result<ConfigListResult, ConfigRepositoryError>;
 
-    async fn list_by_service_name(
+    async fn update(
+        &self,
+        namespace: &str,
+        key: &str,
+        value_json: &serde_json::Value,
+        expected_version: i32,
+        description: Option<String>,
+        updated_by: &str,
+    ) -> Result<ConfigEntry, ConfigRepositoryError>;
+
+    async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError>;
+
+    async fn find_by_service_name(
         &self,
         service_name: &str,
-    ) -> anyhow::Result<Vec<ConfigEntry>>;
+    ) -> Result<ServiceConfigResult, ConfigRepositoryError>;
 
-    async fn create(&self, entry: &ConfigEntry) -> anyhow::Result<()>;
-    async fn update(&self, entry: &ConfigEntry) -> anyhow::Result<()>;
-    async fn delete(&self, namespace: &str, key: &str) -> anyhow::Result<()>;
+    async fn record_change_log(
+        &self,
+        log: &ConfigChangeLog,
+    ) -> Result<(), ConfigRepositoryError>;
 }
 ```
 

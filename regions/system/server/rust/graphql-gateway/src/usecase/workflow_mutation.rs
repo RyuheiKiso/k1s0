@@ -1,12 +1,11 @@
-use std::sync::Arc;
-use tracing::instrument;
 use crate::adapter::graphql_handler::WorkflowStepInput;
 use crate::domain::model::{
     ApproveTaskPayload, CancelInstancePayload, CreateWorkflowPayload, DeleteWorkflowPayload,
-    ReassignTaskPayload, RejectTaskPayload, StartInstancePayload, UpdateWorkflowPayload,
-    UserError,
+    ReassignTaskPayload, RejectTaskPayload, StartInstancePayload, UpdateWorkflowPayload, UserError,
 };
 use crate::infrastructure::grpc::WorkflowGrpcClient;
+use std::sync::Arc;
+use tracing::instrument;
 
 pub struct WorkflowMutationResolver {
     client: Arc<WorkflowGrpcClient>,
@@ -25,9 +24,22 @@ impl WorkflowMutationResolver {
         enabled: bool,
         steps: &[WorkflowStepInput],
     ) -> CreateWorkflowPayload {
-        match self.client.create_workflow(name, description, enabled, steps).await {
-            Ok(workflow) => CreateWorkflowPayload { workflow: Some(workflow), errors: vec![] },
-            Err(e) => CreateWorkflowPayload { workflow: None, errors: vec![UserError { field: None, message: e.to_string() }] },
+        match self
+            .client
+            .create_workflow(name, description, enabled, steps)
+            .await
+        {
+            Ok(workflow) => CreateWorkflowPayload {
+                workflow: Some(workflow),
+                errors: vec![],
+            },
+            Err(e) => CreateWorkflowPayload {
+                workflow: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            },
         }
     }
 
@@ -40,17 +52,39 @@ impl WorkflowMutationResolver {
         enabled: Option<bool>,
         steps: Option<&[WorkflowStepInput]>,
     ) -> UpdateWorkflowPayload {
-        match self.client.update_workflow(workflow_id, name, description, enabled, steps).await {
-            Ok(workflow) => UpdateWorkflowPayload { workflow: Some(workflow), errors: vec![] },
-            Err(e) => UpdateWorkflowPayload { workflow: None, errors: vec![UserError { field: None, message: e.to_string() }] },
+        match self
+            .client
+            .update_workflow(workflow_id, name, description, enabled, steps)
+            .await
+        {
+            Ok(workflow) => UpdateWorkflowPayload {
+                workflow: Some(workflow),
+                errors: vec![],
+            },
+            Err(e) => UpdateWorkflowPayload {
+                workflow: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            },
         }
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn delete_workflow(&self, workflow_id: &str) -> DeleteWorkflowPayload {
         match self.client.delete_workflow(workflow_id).await {
-            Ok(success) => DeleteWorkflowPayload { success, errors: vec![] },
-            Err(e) => DeleteWorkflowPayload { success: false, errors: vec![UserError { field: None, message: e.to_string() }] },
+            Ok(success) => DeleteWorkflowPayload {
+                success,
+                errors: vec![],
+            },
+            Err(e) => DeleteWorkflowPayload {
+                success: false,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            },
         }
     }
 
@@ -62,9 +96,22 @@ impl WorkflowMutationResolver {
         initiator_id: &str,
         context_json: Option<&str>,
     ) -> StartInstancePayload {
-        match self.client.start_instance(workflow_id, title, initiator_id, context_json).await {
-            Ok(instance) => StartInstancePayload { instance: Some(instance), errors: vec![] },
-            Err(e) => StartInstancePayload { instance: None, errors: vec![UserError { field: None, message: e.to_string() }] },
+        match self
+            .client
+            .start_instance(workflow_id, title, initiator_id, context_json)
+            .await
+        {
+            Ok(instance) => StartInstancePayload {
+                instance: Some(instance),
+                errors: vec![],
+            },
+            Err(e) => StartInstancePayload {
+                instance: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            },
         }
     }
 
@@ -75,8 +122,17 @@ impl WorkflowMutationResolver {
         reason: Option<&str>,
     ) -> CancelInstancePayload {
         match self.client.cancel_instance(instance_id, reason).await {
-            Ok(instance) => CancelInstancePayload { instance: Some(instance), errors: vec![] },
-            Err(e) => CancelInstancePayload { instance: None, errors: vec![UserError { field: None, message: e.to_string() }] },
+            Ok(instance) => CancelInstancePayload {
+                instance: Some(instance),
+                errors: vec![],
+            },
+            Err(e) => CancelInstancePayload {
+                instance: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            },
         }
     }
 
@@ -88,7 +144,11 @@ impl WorkflowMutationResolver {
         reason: Option<&str>,
         actor_id: &str,
     ) -> ReassignTaskPayload {
-        match self.client.reassign_task(task_id, new_assignee_id, reason, actor_id).await {
+        match self
+            .client
+            .reassign_task(task_id, new_assignee_id, reason, actor_id)
+            .await
+        {
             Ok((task, previous_assignee_id)) => ReassignTaskPayload {
                 task: Some(task),
                 previous_assignee_id,
@@ -97,7 +157,10 @@ impl WorkflowMutationResolver {
             Err(e) => ReassignTaskPayload {
                 task: None,
                 previous_assignee_id: None,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }
@@ -122,7 +185,10 @@ impl WorkflowMutationResolver {
                 status: None,
                 next_task_id: None,
                 instance_status: None,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }
@@ -147,7 +213,10 @@ impl WorkflowMutationResolver {
                 status: None,
                 next_task_id: None,
                 instance_status: None,
-                errors: vec![UserError { field: None, message: e.to_string() }],
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
             },
         }
     }

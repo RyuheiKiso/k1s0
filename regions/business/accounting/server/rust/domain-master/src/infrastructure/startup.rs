@@ -8,8 +8,8 @@ use crate::domain;
 use crate::infrastructure;
 use crate::usecase;
 
-use crate::adapter::handler::{self, AppState};
 use super::config::{Config, DatabaseConfig};
+use crate::adapter::handler::{self, AppState};
 use crate::MIGRATOR;
 use k1s0_server_common::middleware::auth_middleware::AuthState;
 use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
@@ -70,12 +70,11 @@ pub async fn run() -> anyhow::Result<()> {
         infrastructure::persistence::item_repo_impl::ItemPostgresRepository::new(db_pool.clone()),
     );
 
-    let version_repo: Arc<dyn domain::repository::version_repository::VersionRepository> =
-        Arc::new(
-            infrastructure::persistence::version_repo_impl::VersionPostgresRepository::new(
-                db_pool.clone(),
-            ),
-        );
+    let version_repo: Arc<dyn domain::repository::version_repository::VersionRepository> = Arc::new(
+        infrastructure::persistence::version_repo_impl::VersionPostgresRepository::new(
+            db_pool.clone(),
+        ),
+    );
 
     let tenant_ext_repo: Arc<
         dyn domain::repository::tenant_extension_repository::TenantExtensionRepository,
@@ -86,19 +85,21 @@ pub async fn run() -> anyhow::Result<()> {
     // 6. Kafka Producer (optional)
     let event_publisher: Arc<dyn usecase::event_publisher::DomainMasterEventPublisher> =
         if let Some(ref kafka_cfg) = cfg.kafka {
-        match infrastructure::messaging::kafka_producer::DomainMasterKafkaProducer::new(kafka_cfg) {
-            Ok(producer) => {
-                info!("kafka producer initialized");
-                Arc::new(producer)
+            match infrastructure::messaging::kafka_producer::DomainMasterKafkaProducer::new(
+                kafka_cfg,
+            ) {
+                Ok(producer) => {
+                    info!("kafka producer initialized");
+                    Arc::new(producer)
+                }
+                Err(e) => {
+                    tracing::warn!("failed to initialize kafka producer: {}", e);
+                    Arc::new(usecase::event_publisher::NoopDomainMasterEventPublisher)
+                }
             }
-            Err(e) => {
-                tracing::warn!("failed to initialize kafka producer: {}", e);
-                Arc::new(usecase::event_publisher::NoopDomainMasterEventPublisher)
-            }
-        }
-    } else {
-        Arc::new(usecase::event_publisher::NoopDomainMasterEventPublisher)
-    };
+        } else {
+            Arc::new(usecase::event_publisher::NoopDomainMasterEventPublisher)
+        };
 
     // 7. Use Cases
     let manage_categories_uc = Arc::new(usecase::manage_categories::ManageCategoriesUseCase::new(
@@ -111,13 +112,11 @@ pub async fn run() -> anyhow::Result<()> {
         version_repo.clone(),
         event_publisher.clone(),
     ));
-    let get_item_versions_uc = Arc::new(
-        usecase::get_item_versions::GetItemVersionsUseCase::new(
-            category_repo.clone(),
-            item_repo.clone(),
-            version_repo.clone(),
-        ),
-    );
+    let get_item_versions_uc = Arc::new(usecase::get_item_versions::GetItemVersionsUseCase::new(
+        category_repo.clone(),
+        item_repo.clone(),
+        version_repo.clone(),
+    ));
     let manage_tenant_extensions_uc = Arc::new(
         usecase::manage_tenant_extensions::ManageTenantExtensionsUseCase::new(
             category_repo.clone(),
@@ -152,13 +151,12 @@ pub async fn run() -> anyhow::Result<()> {
     let app = handler::router(state);
 
     // 10. gRPC Service
-    let grpc_service =
-        adapter::grpc::domain_master_grpc::DomainMasterGrpcService::new(
-            manage_categories_uc,
-            manage_items_uc,
-            get_item_versions_uc,
-            manage_tenant_extensions_uc,
-        );
+    let grpc_service = adapter::grpc::domain_master_grpc::DomainMasterGrpcService::new(
+        manage_categories_uc,
+        manage_items_uc,
+        get_item_versions_uc,
+        manage_tenant_extensions_uc,
+    );
     let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
     info!("gRPC server listening on {}", grpc_addr);
     let grpc_metrics = metrics.clone();
@@ -189,7 +187,9 @@ pub async fn run() -> anyhow::Result<()> {
     });
 
     let shutdown_future = async move {
-        shutdown_signal().await.map_err(|e| anyhow::anyhow!("{}", e))?;
+        shutdown_signal()
+            .await
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
         let _ = shutdown_tx.send(true);
         Ok::<(), anyhow::Error>(())
     };

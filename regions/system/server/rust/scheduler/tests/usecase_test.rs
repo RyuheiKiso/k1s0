@@ -95,7 +95,11 @@ impl SchedulerJobRepository for StubJobRepository {
             anyhow::bail!("db error");
         }
         let jobs = self.jobs.read().await;
-        Ok(jobs.iter().filter(|j| j.status == "active").cloned().collect())
+        Ok(jobs
+            .iter()
+            .filter(|j| j.status == "active")
+            .cloned()
+            .collect())
     }
 }
 
@@ -139,7 +143,11 @@ impl SchedulerExecutionRepository for StubExecutionRepository {
             anyhow::bail!("db error");
         }
         let execs = self.executions.read().await;
-        Ok(execs.iter().filter(|e| e.job_id == job_id).cloned().collect())
+        Ok(execs
+            .iter()
+            .filter(|e| e.job_id == job_id)
+            .cloned()
+            .collect())
     }
 
     async fn update_status(
@@ -269,7 +277,9 @@ fn make_execution(job_id: &str, status: &str) -> SchedulerExecution {
 
 mod create_job {
     use super::*;
-    use k1s0_scheduler_server::usecase::create_job::{CreateJobError, CreateJobInput, CreateJobUseCase};
+    use k1s0_scheduler_server::usecase::create_job::{
+        CreateJobError, CreateJobInput, CreateJobUseCase,
+    };
 
     fn default_input() -> CreateJobInput {
         CreateJobInput {
@@ -393,7 +403,10 @@ mod create_job {
 
         let input = default_input();
         let result = uc.execute(&input).await;
-        assert!(result.is_ok(), "create should succeed even if publisher fails");
+        assert!(
+            result.is_ok(),
+            "create should succeed even if publisher fails"
+        );
 
         let jobs = repo.jobs.read().await;
         assert_eq!(jobs.len(), 1);
@@ -534,7 +547,9 @@ mod list_jobs {
 
     #[tokio::test]
     async fn pagination_first_page() {
-        let jobs: Vec<_> = (0..7).map(|i| make_job(&format!("job-{}", i), "active")).collect();
+        let jobs: Vec<_> = (0..7)
+            .map(|i| make_job(&format!("job-{}", i), "active"))
+            .collect();
         let repo = Arc::new(StubJobRepository::with_jobs(jobs));
         let uc = ListJobsUseCase::new(repo);
 
@@ -554,7 +569,9 @@ mod list_jobs {
 
     #[tokio::test]
     async fn pagination_last_page() {
-        let jobs: Vec<_> = (0..7).map(|i| make_job(&format!("job-{}", i), "active")).collect();
+        let jobs: Vec<_> = (0..7)
+            .map(|i| make_job(&format!("job-{}", i), "active"))
+            .collect();
         let repo = Arc::new(StubJobRepository::with_jobs(jobs));
         let uc = ListJobsUseCase::new(repo);
 
@@ -609,7 +626,9 @@ mod list_jobs {
 
 mod update_job {
     use super::*;
-    use k1s0_scheduler_server::usecase::update_job::{UpdateJobError, UpdateJobInput, UpdateJobUseCase};
+    use k1s0_scheduler_server::usecase::update_job::{
+        UpdateJobError, UpdateJobInput, UpdateJobUseCase,
+    };
 
     #[tokio::test]
     async fn success_updates_all_fields() {
@@ -637,7 +656,10 @@ mod update_job {
         assert_eq!(updated.cron_expression, "0 12 * * *");
         assert_eq!(updated.timezone, "America/New_York");
         assert_eq!(updated.target_type, "http");
-        assert_eq!(updated.target.as_deref(), Some("https://example.com/webhook"));
+        assert_eq!(
+            updated.target.as_deref(),
+            Some("https://example.com/webhook")
+        );
         assert!(updated.next_run_at.is_some());
 
         // Verify persisted
@@ -774,7 +796,9 @@ mod delete_job {
         let job_id = job.id.clone();
         let completed_exec = make_execution(&job_id, "succeeded");
         let repo = Arc::new(StubJobRepository::with_jobs(vec![job]));
-        let exec_repo = Arc::new(StubExecutionRepository::with_executions(vec![completed_exec]));
+        let exec_repo = Arc::new(StubExecutionRepository::with_executions(vec![
+            completed_exec,
+        ]));
         let uc = DeleteJobUseCase::new(repo.clone(), exec_repo);
 
         let result = uc.execute(&job_id).await;
@@ -804,7 +828,9 @@ mod delete_job {
         let uc = DeleteJobUseCase::new(repo, exec_repo);
 
         let result = uc.execute("any-id").await;
-        assert!(matches!(result, Err(DeleteJobError::Internal(ref msg)) if msg.contains("db error")));
+        assert!(
+            matches!(result, Err(DeleteJobError::Internal(ref msg)) if msg.contains("db error"))
+        );
     }
 }
 
@@ -928,7 +954,9 @@ mod resume_job {
 
 mod list_executions {
     use super::*;
-    use k1s0_scheduler_server::usecase::list_executions::{ListExecutionsError, ListExecutionsUseCase};
+    use k1s0_scheduler_server::usecase::list_executions::{
+        ListExecutionsError, ListExecutionsUseCase,
+    };
 
     #[tokio::test]
     async fn success_returns_executions_for_job() {
@@ -979,8 +1007,9 @@ mod list_executions {
         let exec_a = make_execution(&job_a_id, "succeeded");
         let exec_b = make_execution(&job_b_id, "succeeded");
         let repo = Arc::new(StubJobRepository::with_jobs(vec![job_a, job_b]));
-        let exec_repo =
-            Arc::new(StubExecutionRepository::with_executions(vec![exec_a, exec_b]));
+        let exec_repo = Arc::new(StubExecutionRepository::with_executions(vec![
+            exec_a, exec_b,
+        ]));
         let uc = ListExecutionsUseCase::new(repo, exec_repo);
 
         let result = uc.execute(&job_a_id).await;
@@ -1017,7 +1046,12 @@ mod trigger_job {
         let exec_repo = Arc::new(StubExecutionRepository::new());
         let executor = Arc::new(StubJobExecutor::new());
         let publisher = Arc::new(StubEventPublisher::new());
-        let uc = TriggerJobUseCase::with_dependencies(repo.clone(), exec_repo.clone(), executor, publisher);
+        let uc = TriggerJobUseCase::with_dependencies(
+            repo.clone(),
+            exec_repo.clone(),
+            executor,
+            publisher,
+        );
 
         let result = uc.execute(&job_id).await;
         assert!(result.is_ok());
@@ -1069,7 +1103,9 @@ mod trigger_job {
         let uc = TriggerJobUseCase::with_dependencies(repo, exec_repo, executor, publisher);
 
         let result = uc.execute(&job_id).await;
-        assert!(matches!(result, Err(TriggerJobError::Internal(ref msg)) if msg.contains("target execution failed")));
+        assert!(
+            matches!(result, Err(TriggerJobError::Internal(ref msg)) if msg.contains("target execution failed"))
+        );
     }
 
     #[tokio::test]
@@ -1083,7 +1119,10 @@ mod trigger_job {
         let uc = TriggerJobUseCase::with_dependencies(repo, exec_repo, executor, publisher);
 
         let result = uc.execute(&job_id).await;
-        assert!(result.is_ok(), "trigger should succeed even if publisher fails");
+        assert!(
+            result.is_ok(),
+            "trigger should succeed even if publisher fails"
+        );
     }
 
     #[tokio::test]

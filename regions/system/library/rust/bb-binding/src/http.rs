@@ -127,9 +127,9 @@ impl OutputBinding for HttpOutputBinding {
         let meta = metadata.unwrap_or_default();
 
         // 必須フィールド "url" が存在しない場合はエラーを返す
-        let url = meta.get("url").ok_or_else(|| {
-            BindingError::Invoke(r#"metadata["url"] は必須です"#.to_string())
-        })?;
+        let url = meta
+            .get("url")
+            .ok_or_else(|| BindingError::Invoke(r#"metadata["url"] は必須です"#.to_string()))?;
 
         // operation 文字列を reqwest::Method に変換する（不正な値はエラー）
         let method = reqwest::Method::from_bytes(operation.as_bytes())
@@ -230,7 +230,10 @@ mod tests {
         meta.insert("url".to_string(), "http://example.com".to_string());
         let result = binding.invoke("INVALID METHOD!", b"", Some(meta)).await;
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), BindingError::UnsupportedOperation(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            BindingError::UnsupportedOperation(_)
+        ));
     }
 
     // component_type が "binding.output" を返すことを検証する

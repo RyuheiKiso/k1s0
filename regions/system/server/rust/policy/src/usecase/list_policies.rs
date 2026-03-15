@@ -45,7 +45,7 @@ impl ListPoliciesUseCase {
             .find_all_paginated(
                 input.page,
                 input.page_size,
-                input.bundle_id.clone(),
+                input.bundle_id,
                 input.enabled_only,
             )
             .await

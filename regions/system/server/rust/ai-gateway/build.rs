@@ -1,6 +1,5 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let ai_gateway_proto =
-        "../../../../../api/proto/k1s0/system/ai_gateway/v1/ai_gateway.proto";
+    let ai_gateway_proto = "../../../../../api/proto/k1s0/system/ai_gateway/v1/ai_gateway.proto";
     let proto_include = "../../../../../api/proto";
 
     if !std::path::Path::new(ai_gateway_proto).exists() {

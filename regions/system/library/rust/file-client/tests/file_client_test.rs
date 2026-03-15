@@ -1,8 +1,6 @@
 use std::time::Duration;
 
-use k1s0_file_client::{
-    FileClient, FileClientConfig, FileClientError, InMemoryFileClient,
-};
+use k1s0_file_client::{FileClient, FileClientConfig, FileClientError, InMemoryFileClient};
 
 fn test_config() -> FileClientConfig {
     FileClientConfig::server_mode("http://file-server:8080")
@@ -362,7 +360,11 @@ async fn presigned_url_has_empty_headers_for_inmemory() {
 async fn file_metadata_initial_size_is_zero() {
     let client = make_client();
     client
-        .generate_upload_url("zero.bin", "application/octet-stream", Duration::from_secs(60))
+        .generate_upload_url(
+            "zero.bin",
+            "application/octet-stream",
+            Duration::from_secs(60),
+        )
         .await
         .unwrap();
 

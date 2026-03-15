@@ -82,12 +82,14 @@ impl SecretStore for SecretStorePostgresRepository {
             .await?
         };
 
-        if version.is_some() && version_rows.is_empty() {
-            return Err(anyhow::anyhow!(
-                "version {} not found for secret: {}",
-                version.unwrap(),
-                path
-            ));
+        if let Some(v) = version {
+            if version_rows.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "version {} not found for secret: {}",
+                    v,
+                    path
+                ));
+            }
         }
 
         // 各バージョンを復号化して SecretVersion に変換

@@ -196,7 +196,7 @@ mod tests {
         assert!(!deps.has_redis_session);
     }
 
-    /// database セクションのみの config.yaml から PostgreSQL 依存を検出する。
+    /// `database` セクションのみの `config.yaml` から `PostgreSQL` 依存を検出する。
     #[test]
     fn test_detect_dependencies_database_only() {
         let tmp = TempDir::new().unwrap();
@@ -265,7 +265,7 @@ kafka:
             .contains(&"k1s0.system.other.v1".to_string()));
     }
 
-    /// redis / redis_session セクションから Redis 依存を検出する。
+    /// `redis` / `redis_session` セクションから Redis 依存を検出する。
     #[test]
     fn test_detect_dependencies_redis() {
         let tmp = TempDir::new().unwrap();
@@ -273,7 +273,7 @@ kafka:
         fs::create_dir_all(&config_dir).unwrap();
         fs::write(
             config_dir.join("config.yaml"),
-            r#"
+            r"
 app:
   name: test-server
   tier: system
@@ -284,7 +284,7 @@ redis:
 redis_session:
   host: localhost
   port: 6380
-"#,
+",
         )
         .unwrap();
 
@@ -381,7 +381,7 @@ redis:
         assert!(!merged.has_redis);
     }
 
-    /// scan_dev_targets は config/config.yaml を持つディレクトリを検出する。
+    /// `scan_dev_targets` は `config/config.yaml` を持つディレクトリを検出する。
     #[test]
     fn test_scan_dev_targets() {
         let tmp = TempDir::new().unwrap();

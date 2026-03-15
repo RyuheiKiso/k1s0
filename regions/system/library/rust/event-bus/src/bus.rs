@@ -13,6 +13,7 @@ type SubscriptionId = u64;
 
 /// InMemoryEventBus はメモリ内のイベントバス（レガシーAPI、後方互換性のため維持）。
 pub struct InMemoryEventBus {
+    #[allow(clippy::type_complexity)]
     handlers: Arc<RwLock<HashMap<String, Vec<Arc<dyn EventHandler>>>>>,
 }
 
@@ -61,6 +62,7 @@ impl Default for InMemoryEventBus {
 /// EventBusConfig で初期化し、EventSubscription で購読を管理する。
 pub struct EventBus {
     config: EventBusConfig,
+    #[allow(clippy::type_complexity)]
     handlers: Arc<RwLock<HashMap<String, Vec<(SubscriptionId, Arc<dyn EventHandler>)>>>>,
     next_id: Arc<RwLock<SubscriptionId>>,
 }
@@ -131,6 +133,7 @@ impl EventBus {
 pub struct EventSubscription {
     id: SubscriptionId,
     event_type: String,
+    #[allow(clippy::type_complexity)]
     handlers: Arc<RwLock<HashMap<String, Vec<(SubscriptionId, Arc<dyn EventHandler>)>>>>,
 }
 

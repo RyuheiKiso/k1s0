@@ -68,7 +68,7 @@ impl ReActEngine {
                 messages: messages.clone(),
                 max_tokens: Some(2048),
                 temperature: Some(0.7),
-                stream: false,
+                stream: Some(false),
             };
 
             let response = match ai_client.complete(&request).await {

@@ -84,10 +84,8 @@ a:
 // スカラー値をマッピングで上書きできることを確認する。
 #[test]
 fn merge_yaml_replaces_scalar_with_mapping() {
-    let mut base: serde_yaml::Value =
-        serde_yaml::from_str("key: simple_string").unwrap();
-    let overlay: serde_yaml::Value =
-        serde_yaml::from_str("key:\n  nested: value").unwrap();
+    let mut base: serde_yaml::Value = serde_yaml::from_str("key: simple_string").unwrap();
+    let overlay: serde_yaml::Value = serde_yaml::from_str("key:\n  nested: value").unwrap();
     merge_yaml(&mut base, &overlay);
     assert_eq!(
         base["key"]["nested"],
@@ -98,10 +96,8 @@ fn merge_yaml_replaces_scalar_with_mapping() {
 // シーケンスはオーバーレイで完全に置き換わることを確認する。
 #[test]
 fn merge_yaml_replaces_sequence_entirely() {
-    let mut base: serde_yaml::Value =
-        serde_yaml::from_str("items:\n  - a\n  - b").unwrap();
-    let overlay: serde_yaml::Value =
-        serde_yaml::from_str("items:\n  - x").unwrap();
+    let mut base: serde_yaml::Value = serde_yaml::from_str("items:\n  - a\n  - b").unwrap();
+    let overlay: serde_yaml::Value = serde_yaml::from_str("items:\n  - x").unwrap();
     merge_yaml(&mut base, &overlay);
     let items = base["items"].as_sequence().unwrap();
     assert_eq!(items.len(), 1);
@@ -217,10 +213,7 @@ auth:
     );
     let cfg = load(f.path().to_str().unwrap(), None).unwrap();
     let err = validate(&cfg).unwrap_err().to_string();
-    assert!(
-        err.contains("max_idle_conns"),
-        "got: {err}"
-    );
+    assert!(err.contains("max_idle_conns"), "got: {err}");
 }
 
 // 無効な ssl_mode を指定した場合にバリデーションエラーが返されることを確認する。
@@ -757,10 +750,7 @@ auth:
     );
     let cfg = load(f.path().to_str().unwrap(), None).unwrap();
     let err = validate(&cfg).unwrap_err().to_string();
-    assert!(
-        err.contains("scopes must not contain empty"),
-        "got: {err}"
-    );
+    assert!(err.contains("scopes must not contain empty"), "got: {err}");
 }
 
 // ===========================================================================

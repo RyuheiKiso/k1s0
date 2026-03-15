@@ -4,11 +4,11 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use super::config::Config;
 use crate::adapter::grpc::ConfigGrpcService;
 use crate::adapter::handler;
 use crate::adapter::repository::config_postgres::ConfigPostgresRepository;
 use crate::adapter::repository::config_schema_postgres::ConfigSchemaPostgresRepository;
-use super::config::Config;
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -220,8 +220,9 @@ pub async fn run() -> anyhow::Result<()> {
     // --- gRPC Service ---
     let get_config_uc = Arc::new(crate::usecase::GetConfigUseCase::new(config_repo.clone()));
     let list_configs_uc = Arc::new(crate::usecase::ListConfigsUseCase::new(config_repo.clone()));
-    let get_service_config_uc =
-        Arc::new(crate::usecase::GetServiceConfigUseCase::new(config_repo.clone()));
+    let get_service_config_uc = Arc::new(crate::usecase::GetServiceConfigUseCase::new(
+        config_repo.clone(),
+    ));
     let update_config_uc_grpc = if let Some(ref producer) = kafka_producer {
         Arc::new(
             crate::usecase::UpdateConfigUseCase::new_with_kafka_and_watch(
@@ -233,16 +234,25 @@ pub async fn run() -> anyhow::Result<()> {
         )
     } else {
         Arc::new(
-            crate::usecase::UpdateConfigUseCase::new_with_watch(config_repo.clone(), watch_tx.clone())
-                .with_schema_repo(schema_repo.clone()),
+            crate::usecase::UpdateConfigUseCase::new_with_watch(
+                config_repo.clone(),
+                watch_tx.clone(),
+            )
+            .with_schema_repo(schema_repo.clone()),
         )
     };
-    let delete_config_uc = Arc::new(crate::usecase::DeleteConfigUseCase::new(config_repo.clone()));
-    let get_config_schema_uc = Arc::new(crate::usecase::GetConfigSchemaUseCase::new(schema_repo.clone()));
-    let upsert_config_schema_uc =
-        Arc::new(crate::usecase::UpsertConfigSchemaUseCase::new(schema_repo.clone()));
-    let list_config_schemas_uc =
-        Arc::new(crate::usecase::ListConfigSchemasUseCase::new(schema_repo.clone()));
+    let delete_config_uc = Arc::new(crate::usecase::DeleteConfigUseCase::new(
+        config_repo.clone(),
+    ));
+    let get_config_schema_uc = Arc::new(crate::usecase::GetConfigSchemaUseCase::new(
+        schema_repo.clone(),
+    ));
+    let upsert_config_schema_uc = Arc::new(crate::usecase::UpsertConfigSchemaUseCase::new(
+        schema_repo.clone(),
+    ));
+    let list_config_schemas_uc = Arc::new(crate::usecase::ListConfigSchemasUseCase::new(
+        schema_repo.clone(),
+    ));
 
     let config_grpc_svc = Arc::new(
         ConfigGrpcService::new_with_watch(
@@ -253,7 +263,11 @@ pub async fn run() -> anyhow::Result<()> {
             delete_config_uc,
             watch_uc.clone(),
         )
-        .with_schema_usecases(get_config_schema_uc, upsert_config_schema_uc, list_config_schemas_uc),
+        .with_schema_usecases(
+            get_config_schema_uc,
+            upsert_config_schema_uc,
+            list_config_schemas_uc,
+        ),
     );
 
     // tonic ラッパー
@@ -290,8 +304,11 @@ pub async fn run() -> anyhow::Result<()> {
         )
     } else {
         std::sync::Arc::new(
-            crate::usecase::UpdateConfigUseCase::new_with_watch(config_repo.clone(), watch_tx.clone())
-                .with_schema_repo(schema_repo.clone()),
+            crate::usecase::UpdateConfigUseCase::new_with_watch(
+                config_repo.clone(),
+                watch_tx.clone(),
+            )
+            .with_schema_repo(schema_repo.clone()),
         )
     };
     state.metrics = metrics.clone();
@@ -303,7 +320,8 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     // Router
-    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
         .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC server
@@ -318,7 +336,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(ConfigServiceServer::new(config_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
@@ -361,6 +381,7 @@ use crate::domain::entity::config_entry::{
     ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
 };
 use crate::domain::entity::config_schema::ConfigSchema;
+use crate::domain::error::ConfigRepositoryError;
 use tokio::sync::RwLock;
 
 /// InMemoryConfigRepository は開発用のインメモリ設定リポジトリ。
@@ -378,11 +399,12 @@ impl InMemoryConfigRepository {
 
 #[async_trait::async_trait]
 impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
+    /// namespace と key で設定値を取得する（インメモリ実装）。
     async fn find_by_namespace_and_key(
         &self,
         namespace: &str,
         key: &str,
-    ) -> anyhow::Result<Option<ConfigEntry>> {
+    ) -> Result<Option<ConfigEntry>, ConfigRepositoryError> {
         let entries = self.entries.read().await;
         Ok(entries
             .iter()
@@ -390,13 +412,14 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
             .cloned())
     }
 
+    /// namespace 内の設定値一覧を取得する（インメモリ実装）。
     async fn list_by_namespace(
         &self,
         namespace: &str,
         page: i32,
         page_size: i32,
         search: Option<String>,
-    ) -> anyhow::Result<ConfigListResult> {
+    ) -> Result<ConfigListResult, ConfigRepositoryError> {
         let entries = self.entries.read().await;
         let mut filtered: Vec<_> = entries
             .iter()
@@ -432,6 +455,7 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
         })
     }
 
+    /// 設定値を更新する（インメモリ実装、楽観的排他制御付き）。
     async fn update(
         &self,
         namespace: &str,
@@ -440,7 +464,7 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
         expected_version: i32,
         description: Option<String>,
         updated_by: &str,
-    ) -> anyhow::Result<ConfigEntry> {
+    ) -> Result<ConfigEntry, ConfigRepositoryError> {
         let mut entries = self.entries.write().await;
         let entry = entries
             .iter_mut()
@@ -448,8 +472,12 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
 
         match entry {
             Some(e) => {
+                // バージョン不一致: 楽観的排他制御エラー
                 if e.version != expected_version {
-                    return Err(anyhow::anyhow!("version conflict: current={}", e.version));
+                    return Err(ConfigRepositoryError::VersionConflict {
+                        expected: expected_version,
+                        current: e.version,
+                    });
                 }
                 e.value_json = value_json.clone();
                 e.version += 1;
@@ -460,21 +488,27 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
                 e.updated_at = chrono::Utc::now();
                 Ok(e.clone())
             }
-            None => Err(anyhow::anyhow!("config not found: {}/{}", namespace, key)),
+            // キーが存在しない: NotFound エラー
+            None => Err(ConfigRepositoryError::NotFound {
+                namespace: namespace.to_string(),
+                key: key.to_string(),
+            }),
         }
     }
 
-    async fn delete(&self, namespace: &str, key: &str) -> anyhow::Result<bool> {
+    /// 設定値を削除する（インメモリ実装）。
+    async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError> {
         let mut entries = self.entries.write().await;
         let len_before = entries.len();
         entries.retain(|e| !(e.namespace == namespace && e.key == key));
         Ok(entries.len() < len_before)
     }
 
+    /// サービス名に紐づく設定値を一括取得する（インメモリ実装）。
     async fn find_by_service_name(
         &self,
         service_name: &str,
-    ) -> anyhow::Result<ServiceConfigResult> {
+    ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
         let entries = self.entries.read().await;
         let primary_keyword = service_name.split('-').next().unwrap_or(service_name);
         let matched: Vec<ServiceConfigEntry> = entries
@@ -493,7 +527,9 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
             .collect();
 
         if matched.is_empty() {
-            return Err(anyhow::anyhow!("service not found: {}", service_name));
+            return Err(ConfigRepositoryError::ServiceNotFound(
+                service_name.to_string(),
+            ));
         }
 
         Ok(ServiceConfigResult {
@@ -502,11 +538,11 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
         })
     }
 
-    async fn record_change_log(&self, _log: &ConfigChangeLog) -> anyhow::Result<()> {
+    /// 設定変更ログを記録する（インメモリ実装、開発用のため捨てる）。
+    async fn record_change_log(&self, _log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError> {
         // In-memory: ログは捨てる（開発用）
         Ok(())
     }
-
 }
 
 /// InMemoryConfigSchemaRepository は開発用のインメモリ設定スキーマリポジトリ。
@@ -598,5 +634,8 @@ fn parse_duration(raw: &str) -> Option<std::time::Duration> {
             .map(|hours| std::time::Duration::from_secs(hours * 60 * 60));
     }
 
-    trimmed.parse::<u64>().ok().map(std::time::Duration::from_secs)
+    trimmed
+        .parse::<u64>()
+        .ok()
+        .map(std::time::Duration::from_secs)
 }

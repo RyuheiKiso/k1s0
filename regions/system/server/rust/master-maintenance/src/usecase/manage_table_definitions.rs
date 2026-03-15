@@ -69,11 +69,7 @@ impl ManageTableDefinitionsUseCase {
         self.table_repo.update(name, input, domain_scope).await
     }
 
-    pub async fn delete_table(
-        &self,
-        name: &str,
-        domain_scope: Option<&str>,
-    ) -> anyhow::Result<()> {
+    pub async fn delete_table(&self, name: &str, domain_scope: Option<&str>) -> anyhow::Result<()> {
         let table = self
             .table_repo
             .find_by_name(name, domain_scope)

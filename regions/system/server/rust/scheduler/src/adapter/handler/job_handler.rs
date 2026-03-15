@@ -366,9 +366,7 @@ pub async fn list_executions(
 fn execution_to_response(execution: SchedulerExecution) -> serde_json::Value {
     let finished_at = execution.finished_at;
     let duration_ms = finished_at.as_ref().and_then(|finished_at| {
-        let duration = finished_at
-            .clone()
-            .signed_duration_since(execution.started_at.clone());
+        let duration = finished_at.signed_duration_since(execution.started_at);
         if duration.num_milliseconds() >= 0 {
             Some(duration.num_milliseconds() as u64)
         } else {

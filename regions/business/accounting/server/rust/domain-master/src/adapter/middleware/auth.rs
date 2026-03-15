@@ -79,13 +79,7 @@ pub fn user_id_from_claims(claims: &Claims) -> String {
         .as_ref()
         .filter(|v| !v.is_empty())
         .cloned()
-        .or_else(|| {
-            claims
-                .email
-                .as_ref()
-                .filter(|v| !v.is_empty())
-                .cloned()
-        })
+        .or_else(|| claims.email.as_ref().filter(|v| !v.is_empty()).cloned())
         .or_else(|| (!claims.sub.is_empty()).then(|| claims.sub.clone()))
         .unwrap_or_else(|| "unknown".to_string())
 }
@@ -135,11 +129,7 @@ mod tests {
         assert!(token.is_none());
     }
 
-    fn make_claims(
-        sub: &str,
-        preferred_username: Option<&str>,
-        email: Option<&str>,
-    ) -> Claims {
+    fn make_claims(sub: &str, preferred_username: Option<&str>, email: Option<&str>) -> Claims {
         Claims {
             sub: sub.to_string(),
             iss: "test".to_string(),

@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     use crate::logger::parse_log_level;
     use crate::TelemetryConfig;

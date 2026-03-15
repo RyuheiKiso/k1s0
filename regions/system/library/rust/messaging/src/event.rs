@@ -178,8 +178,8 @@ mod tests {
     // correlation_id のみを設定した場合に trace_id が None のままであることを確認する。
     #[test]
     fn test_event_metadata_correlation_id_only() {
-        let meta = EventMetadata::new("order.placed", "order-service")
-            .with_correlation_id("corr-xyz");
+        let meta =
+            EventMetadata::new("order.placed", "order-service").with_correlation_id("corr-xyz");
         assert!(meta.trace_id.is_none());
         assert_eq!(meta.correlation_id.as_deref(), Some("corr-xyz"));
     }
@@ -188,8 +188,7 @@ mod tests {
     #[test]
     fn test_event_envelope_json_empty_headers_and_metadata() {
         let payload = serde_json::json!({"key": "value"});
-        let envelope =
-            EventEnvelope::json("topic", "key", &payload).unwrap();
+        let envelope = EventEnvelope::json("topic", "key", &payload).unwrap();
         assert!(envelope.headers.is_empty());
         assert!(envelope.metadata.is_empty());
     }

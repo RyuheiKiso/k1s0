@@ -4,12 +4,6 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use crate::adapter::grpc::SchedulerGrpcService;
-use crate::adapter::repository::scheduler_execution_postgres::SchedulerExecutionPostgresRepository;
-use crate::adapter::repository::scheduler_job_postgres::SchedulerJobPostgresRepository;
-use crate::domain::entity::scheduler_execution::SchedulerExecution;
-use crate::domain::entity::scheduler_job::SchedulerJob;
-use crate::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
 use super::cache::JobCache;
 use super::config::Config;
 use super::cron_engine::CronSchedulerEngine;
@@ -17,6 +11,12 @@ use super::job_executor::TargetJobExecutor;
 use super::kafka_producer::{
     KafkaSchedulerProducer, NoopSchedulerEventPublisher, SchedulerEventPublisher,
 };
+use crate::adapter::grpc::SchedulerGrpcService;
+use crate::adapter::repository::scheduler_execution_postgres::SchedulerExecutionPostgresRepository;
+use crate::adapter::repository::scheduler_job_postgres::SchedulerJobPostgresRepository;
+use crate::domain::entity::scheduler_execution::SchedulerExecution;
+use crate::domain::entity::scheduler_job::SchedulerJob;
+use crate::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
 
 /// シャットダウンシグナルを待機する
 async fn shutdown_signal() -> anyhow::Result<()> {
@@ -188,8 +188,9 @@ pub async fn run() -> anyhow::Result<()> {
     }
     let grpc_auth_state = state.auth_state.clone();
 
-    let app =
-        crate::adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone())).layer(k1s0_correlation::layer::CorrelationLayer::new());
+    let app = crate::adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // --- Cron Scheduler Engine ---
     let cron_engine = CronSchedulerEngine::new(
@@ -210,7 +211,8 @@ pub async fn run() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;
-    let grpc_auth_layer = crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
+    let grpc_auth_layer =
+        crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
     // gRPCサーバーのグレースフルシャットダウン用シグナル
     let grpc_shutdown = shutdown_signal();
     let grpc_future = async move {
@@ -218,7 +220,9 @@ pub async fn run() -> anyhow::Result<()> {
             .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SchedulerServiceServer::new(scheduler_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

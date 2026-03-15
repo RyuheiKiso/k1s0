@@ -1,4 +1,3 @@
-use k1s0_auth::actor_from_claims;
 use crate::domain::entity::master_category::{
     CreateMasterCategory, MasterCategory as DomainMasterCategory, UpdateMasterCategory,
 };
@@ -18,14 +17,15 @@ use crate::proto::k1s0::business::accounting::domainmaster::v1::{
     GetCategoryResponse, GetItemRequest, GetItemResponse, GetTenantExtensionRequest,
     GetTenantExtensionResponse, ListCategoriesRequest, ListCategoriesResponse,
     ListItemVersionsRequest, ListItemVersionsResponse, ListItemsRequest, ListItemsResponse,
-    ListTenantItemsRequest, ListTenantItemsResponse, MasterCategory, MasterItem,
-    MasterItemVersion, TenantMasterExtension, TenantMergedItem, UpdateCategoryRequest,
-    UpdateCategoryResponse, UpdateItemRequest, UpdateItemResponse, UpsertTenantExtensionRequest,
+    ListTenantItemsRequest, ListTenantItemsResponse, MasterCategory, MasterItem, MasterItemVersion,
+    TenantMasterExtension, TenantMergedItem, UpdateCategoryRequest, UpdateCategoryResponse,
+    UpdateItemRequest, UpdateItemResponse, UpsertTenantExtensionRequest,
     UpsertTenantExtensionResponse,
 };
 use crate::proto::k1s0::system::common::v1::{Pagination, PaginationResult};
 use crate::usecase;
 use chrono::{DateTime, Utc};
+use k1s0_auth::actor_from_claims;
 use prost_types::{value::Kind, ListValue, Struct, Timestamp, Value};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -349,7 +349,9 @@ impl DomainMasterService for DomainMasterGrpcService {
             .await
             .map_err(map_anyhow_to_status)?;
 
-        Ok(Response::new(DeleteTenantExtensionResponse { success: true }))
+        Ok(Response::new(DeleteTenantExtensionResponse {
+            success: true,
+        }))
     }
 
     async fn list_tenant_items(
@@ -513,7 +515,7 @@ fn json_to_prost_value(value: serde_json::Value) -> Value {
                 .map(|(key, value)| (key, json_to_prost_value(value)))
                 .collect(),
         }),
-        };
+    };
     Value { kind: Some(kind) }
 }
 
@@ -532,9 +534,9 @@ fn prost_value_to_json(value: Value) -> serde_json::Value {
                 .map(|(key, value)| (key, prost_value_to_json(value)))
                 .collect(),
         ),
-        Some(Kind::ListValue(value)) => serde_json::Value::Array(
-            value.values.into_iter().map(prost_value_to_json).collect(),
-        ),
+        Some(Kind::ListValue(value)) => {
+            serde_json::Value::Array(value.values.into_iter().map(prost_value_to_json).collect())
+        }
     }
 }
 

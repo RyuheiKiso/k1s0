@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 
-use crate::traits::{StateEntry, StateStore};
 use crate::StateStoreError;
+use crate::traits::{StateEntry, StateStore};
 
 struct Entry {
     value: Vec<u8>,
@@ -87,15 +87,15 @@ impl StateStore for InMemoryStateStore {
         etag: Option<&str>,
     ) -> Result<String, StateStoreError> {
         let mut store = self.store.write().await;
-        if let Some(expected_etag) = etag {
-            if let Some(existing) = store.get(key) {
-                if existing.etag != expected_etag {
-                    return Err(StateStoreError::ETagMismatch {
-                        expected: expected_etag.to_string(),
-                        actual: existing.etag.clone(),
-                    });
-                }
-            }
+        // ETag が指定されている場合、既存エントリの ETag と一致するか検証する。
+        if let Some(expected_etag) = etag
+            && let Some(existing) = store.get(key)
+            && existing.etag != expected_etag
+        {
+            return Err(StateStoreError::ETagMismatch {
+                expected: expected_etag.to_string(),
+                actual: existing.etag.clone(),
+            });
         }
         let new_etag = Uuid::new_v4().to_string();
         store.insert(
@@ -110,15 +110,15 @@ impl StateStore for InMemoryStateStore {
 
     async fn delete(&self, key: &str, etag: Option<&str>) -> Result<(), StateStoreError> {
         let mut store = self.store.write().await;
-        if let Some(expected_etag) = etag {
-            if let Some(existing) = store.get(key) {
-                if existing.etag != expected_etag {
-                    return Err(StateStoreError::ETagMismatch {
-                        expected: expected_etag.to_string(),
-                        actual: existing.etag.clone(),
-                    });
-                }
-            }
+        // ETag が指定されている場合、既存エントリの ETag と一致するか検証する。
+        if let Some(expected_etag) = etag
+            && let Some(existing) = store.get(key)
+            && existing.etag != expected_etag
+        {
+            return Err(StateStoreError::ETagMismatch {
+                expected: expected_etag.to_string(),
+                actual: existing.etag.clone(),
+            });
         }
         store.remove(key);
         Ok(())
@@ -139,10 +139,7 @@ impl StateStore for InMemoryStateStore {
         Ok(entries)
     }
 
-    async fn bulk_set(
-        &self,
-        entries: &[(&str, &[u8])],
-    ) -> Result<Vec<String>, StateStoreError> {
+    async fn bulk_set(&self, entries: &[(&str, &[u8])]) -> Result<Vec<String>, StateStoreError> {
         let mut store = self.store.write().await;
         let mut etags = Vec::with_capacity(entries.len());
         for (key, value) in entries {
@@ -251,10 +248,7 @@ mod tests {
     #[tokio::test]
     async fn test_bulk_set() {
         let store = InMemoryStateStore::new("test-store");
-        let etags = store
-            .bulk_set(&[("x", b"10"), ("y", b"20")])
-            .await
-            .unwrap();
+        let etags = store.bulk_set(&[("x", b"10"), ("y", b"20")]).await.unwrap();
         assert_eq!(etags.len(), 2);
 
         let entry = store.get("x").await.unwrap().unwrap();

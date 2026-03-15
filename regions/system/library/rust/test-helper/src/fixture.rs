@@ -71,7 +71,7 @@ mod tests {
     fn test_int_range() {
         for _ in 0..100 {
             let val = FixtureBuilder::int(10, 20);
-            assert!(val >= 10 && val < 20);
+            assert!((10..20).contains(&val));
         }
     }
 

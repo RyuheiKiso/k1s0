@@ -234,6 +234,7 @@ fn step_cleanup_level() -> Result<Option<CleanupLevel>> {
 }
 
 /// ステップ: ログ表示対象選択。
+#[allow(clippy::option_option)]
 fn step_logs_target() -> Result<Option<Option<String>>> {
     let mut items = vec!["すべてのサービス"];
 

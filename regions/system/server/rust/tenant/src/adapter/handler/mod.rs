@@ -107,8 +107,7 @@ pub fn router(state: AppState) -> Router {
             )
             .route(
                 "/api/v1/tenants/:id/members/:user_id",
-                put(tenant_handler::update_member_role)
-                    .delete(tenant_handler::remove_member),
+                put(tenant_handler::update_member_role).delete(tenant_handler::remove_member),
             )
     };
 
@@ -148,8 +147,13 @@ mod tests {
             activate_tenant_uc: Arc::new(crate::usecase::ActivateTenantUseCase::new(repo.clone())),
             list_members_uc: Arc::new(crate::usecase::ListMembersUseCase::new(member_repo.clone())),
             add_member_uc: Arc::new(crate::usecase::AddMemberUseCase::new(member_repo.clone())),
-            remove_member_uc: Arc::new(crate::usecase::RemoveMemberUseCase::new(member_repo.clone())),
-            update_member_role_uc: Arc::new(crate::usecase::UpdateMemberRoleUseCase::new(member_repo, repo)),
+            remove_member_uc: Arc::new(crate::usecase::RemoveMemberUseCase::new(
+                member_repo.clone(),
+            )),
+            update_member_role_uc: Arc::new(crate::usecase::UpdateMemberRoleUseCase::new(
+                member_repo,
+                repo,
+            )),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new(
                 "k1s0-tenant-server-test",
             )),

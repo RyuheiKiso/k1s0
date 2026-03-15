@@ -34,7 +34,7 @@ pub struct Config {
     pub config_server: ConfigServerConfig,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct ConfigServerConfig {
     #[serde(default)]
     pub cache: ConfigServerCacheConfig,
@@ -42,16 +42,6 @@ pub struct ConfigServerConfig {
     pub audit: ConfigServerAuditConfig,
     #[serde(default)]
     pub namespace: ConfigServerNamespaceConfig,
-}
-
-impl Default for ConfigServerConfig {
-    fn default() -> Self {
-        Self {
-            cache: ConfigServerCacheConfig::default(),
-            audit: ConfigServerAuditConfig::default(),
-            namespace: ConfigServerNamespaceConfig::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -255,7 +245,7 @@ fn parse_duration_seconds(input: &str) -> anyhow::Result<u64> {
     Ok(trimmed.parse::<u64>()?)
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -263,15 +253,6 @@ pub struct ObservabilityConfig {
     pub trace: TraceConfig,
     #[serde(default)]
     pub metrics: MetricsConfig,
-}
-impl Default for ObservabilityConfig {
-    fn default() -> Self {
-        Self {
-            log: LogConfig::default(),
-            trace: TraceConfig::default(),
-            metrics: MetricsConfig::default(),
-        }
-    }
 }
 #[derive(Debug, Clone, Deserialize)]
 pub struct LogConfig {

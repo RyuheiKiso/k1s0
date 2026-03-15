@@ -51,10 +51,7 @@ impl CreateRuleSetUseCase {
         }
     }
 
-    pub async fn execute(
-        &self,
-        input: &CreateRuleSetInput,
-    ) -> Result<RuleSet, CreateRuleSetError> {
+    pub async fn execute(&self, input: &CreateRuleSetInput) -> Result<RuleSet, CreateRuleSetError> {
         if input.name.is_empty() {
             return Err(CreateRuleSetError::Validation(
                 "name is required".to_string(),
@@ -66,12 +63,13 @@ impl CreateRuleSetUseCase {
             ));
         }
 
-        let evaluation_mode = EvaluationMode::from_str(&input.evaluation_mode).ok_or_else(|| {
-            CreateRuleSetError::Validation(format!(
-                "invalid evaluation_mode: '{}', expected 'first_match' or 'all_match'",
-                input.evaluation_mode
-            ))
-        })?;
+        let evaluation_mode =
+            EvaluationMode::from_str(&input.evaluation_mode).ok_or_else(|| {
+                CreateRuleSetError::Validation(format!(
+                    "invalid evaluation_mode: '{}', expected 'first_match' or 'all_match'",
+                    input.evaluation_mode
+                ))
+            })?;
 
         let exists = self
             .repo

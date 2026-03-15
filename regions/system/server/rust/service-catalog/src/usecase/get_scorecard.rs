@@ -25,10 +25,7 @@ impl GetScorecardUseCase {
         Self { scorecard_repo }
     }
 
-    pub async fn execute(
-        &self,
-        service_id: Uuid,
-    ) -> Result<Scorecard, GetScorecardError> {
+    pub async fn execute(&self, service_id: Uuid) -> Result<Scorecard, GetScorecardError> {
         match self.scorecard_repo.get(service_id).await {
             Ok(Some(scorecard)) => Ok(scorecard),
             Ok(None) => Err(GetScorecardError::NotFound(service_id)),

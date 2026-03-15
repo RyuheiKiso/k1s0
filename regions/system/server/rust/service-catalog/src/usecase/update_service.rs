@@ -108,17 +108,20 @@ mod tests {
 
         let uc = UpdateServiceUseCase::new(Arc::new(mock));
         let result = uc
-            .execute(Uuid::new_v4(), UpdateServiceInput {
-                name: Some("new-name".to_string()),
-                description: None,
-                tier: None,
-                lifecycle: None,
-                repository_url: None,
-                api_endpoint: None,
-                healthcheck_url: None,
-                tags: None,
-                metadata: None,
-            })
+            .execute(
+                Uuid::new_v4(),
+                UpdateServiceInput {
+                    name: Some("new-name".to_string()),
+                    description: None,
+                    tier: None,
+                    lifecycle: None,
+                    repository_url: None,
+                    api_endpoint: None,
+                    healthcheck_url: None,
+                    tags: None,
+                    metadata: None,
+                },
+            )
             .await;
         assert!(matches!(result, Err(UpdateServiceError::NotFound(_))));
     }

@@ -6,11 +6,10 @@ use std::time::Duration;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::adapter;
+use super::config::Config;
 use crate::adapter::grpc::FeatureFlagGrpcService;
 use crate::domain::entity::feature_flag::FeatureFlag;
 use crate::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
-use super::config::Config;
 use crate::usecase;
 
 fn parse_pool_duration(raw: &str) -> Option<Duration> {
@@ -94,6 +93,7 @@ pub async fn run() -> anyhow::Result<()> {
     ));
 
     // Flag repository: PostgreSQL if DATABASE_URL or database config is set, otherwise in-memory
+    #[allow(clippy::type_complexity)]
     let (flag_repo, audit_log_repo, local_cache): (
         Arc<dyn FeatureFlagRepository>,
         Arc<dyn FlagAuditLogRepository>,
@@ -249,12 +249,8 @@ pub async fn run() -> anyhow::Result<()> {
         .with_watch_sender(watch_tx.clone()),
     );
     let delete_flag_uc = Arc::new(
-        usecase::DeleteFlagUseCase::new(
-            flag_repo.clone(),
-            kafka_producer.clone(),
-            audit_log_repo,
-        )
-        .with_watch_sender(watch_tx.clone()),
+        usecase::DeleteFlagUseCase::new(flag_repo.clone(), kafka_producer.clone(), audit_log_repo)
+            .with_watch_sender(watch_tx.clone()),
     );
 
     let grpc_svc = Arc::new(FeatureFlagGrpcService::new_with_watch(
@@ -307,9 +303,9 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     // REST router（メトリクスレイヤーとCorrelation IDレイヤーを追加）
-    let app =
-        crate::adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
-            .layer(k1s0_correlation::layer::CorrelationLayer::new());
+    let app = crate::adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // gRPC server
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
@@ -322,7 +318,9 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(FeatureFlagServiceServer::new(featureflag_tonic))
-            .serve_with_shutdown(grpc_addr, async move { let _ = grpc_shutdown.await; })
+            .serve_with_shutdown(grpc_addr, async move {
+                let _ = grpc_shutdown.await;
+            })
             .await
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };

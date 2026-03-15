@@ -460,10 +460,8 @@ mod tests {
     #[test]
     fn test_validate_spiffe_id_namespace_mismatch_error_details() {
         let client = make_client("https://auth.example.com/token");
-        let result = client.validate_spiffe_id(
-            "spiffe://k1s0.internal/ns/service/sa/my-service",
-            "system",
-        );
+        let result =
+            client.validate_spiffe_id("spiffe://k1s0.internal/ns/service/sa/my-service", "system");
         assert!(result.is_err());
         if let Err(ServiceAuthError::SpiffeValidationFailed(msg)) = result {
             assert!(msg.contains("system"));

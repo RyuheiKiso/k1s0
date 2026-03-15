@@ -66,7 +66,7 @@ impl UpdateRuleUseCase {
             rule.description = desc.clone();
         }
         if let Some(priority) = input.priority {
-            if priority < 1 || priority > 1000 {
+            if !(1..=1000).contains(&priority) {
                 return Err(UpdateRuleError::Validation(
                     "priority must be between 1 and 1000".to_string(),
                 ));
@@ -74,8 +74,7 @@ impl UpdateRuleUseCase {
             rule.priority = priority;
         }
         if let Some(ref when) = input.when_condition {
-            ConditionParser::parse(when)
-                .map_err(|e| UpdateRuleError::InvalidCondition(e))?;
+            ConditionParser::parse(when).map_err(UpdateRuleError::InvalidCondition)?;
             rule.when_condition = when.clone();
         }
         if let Some(ref then) = input.then_result {

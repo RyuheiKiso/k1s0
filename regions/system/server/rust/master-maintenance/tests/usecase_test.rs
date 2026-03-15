@@ -523,8 +523,7 @@ impl DynamicRecordRepository for StubDynamicRecordRepository {
         }
         let mut records = self.records.write().await;
         records.retain(|(name, r)| {
-            !(*name == table_def.name
-                && r.get("id").and_then(|v| v.as_str()) == Some(record_id))
+            !(*name == table_def.name && r.get("id").and_then(|v| v.as_str()) == Some(record_id))
         });
         Ok(())
     }
@@ -624,9 +623,7 @@ impl ConsistencyRuleRepository for StubConsistencyRuleRepository {
             .iter()
             .filter(|r| {
                 r.source_table_id == table_id
-                    && timing
-                        .map(|t| r.evaluation_timing == t)
-                        .unwrap_or(true)
+                    && timing.map(|t| r.evaluation_timing == t).unwrap_or(true)
             })
             .cloned()
             .collect())
@@ -641,15 +638,14 @@ impl ConsistencyRuleRepository for StubConsistencyRuleRepository {
             anyhow::bail!("db error");
         }
         self.rules.write().await.push(rule.clone());
-        self.conditions.write().await.extend(conditions.iter().cloned());
+        self.conditions
+            .write()
+            .await
+            .extend(conditions.iter().cloned());
         Ok(rule.clone())
     }
 
-    async fn update(
-        &self,
-        id: Uuid,
-        rule: &ConsistencyRule,
-    ) -> anyhow::Result<ConsistencyRule> {
+    async fn update(&self, id: Uuid, rule: &ConsistencyRule) -> anyhow::Result<ConsistencyRule> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -1341,6 +1337,7 @@ mod crud_records {
     use super::*;
     use k1s0_master_maintenance_server::usecase::crud_records::CrudRecordsUseCase;
 
+    #[allow(clippy::type_complexity)]
     fn setup_crud() -> (
         TableDefinition,
         Vec<ColumnDefinition>,
@@ -1358,9 +1355,12 @@ mod crud_records {
             make_column(table_id, "status", false, true, true),
         ];
 
-        let table_repo =
-            Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
-        let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(columns.clone()));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(
+            columns.clone(),
+        ));
         let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
         let record_repo = Arc::new(StubDynamicRecordRepository::new());
         let change_log_repo = Arc::new(StubChangeLogRepository::new());
@@ -1412,7 +1412,13 @@ mod crud_records {
             ));
         }
 
-        let uc = make_crud_uc(table_repo, column_repo, rule_repo, record_repo, change_log_repo);
+        let uc = make_crud_uc(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            change_log_repo,
+        );
         let result = uc
             .list_records("departments", 1, 20, None, None, None, None, None)
             .await;
@@ -1435,7 +1441,13 @@ mod crud_records {
         let record_repo = Arc::new(StubDynamicRecordRepository::new());
         let change_log_repo = Arc::new(StubChangeLogRepository::new());
 
-        let uc = make_crud_uc(table_repo, column_repo, rule_repo, record_repo, change_log_repo);
+        let uc = make_crud_uc(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            change_log_repo,
+        );
         let result = uc
             .list_records("nonexistent", 1, 20, None, None, None, None, None)
             .await;
@@ -1444,8 +1456,7 @@ mod crud_records {
 
     #[tokio::test]
     async fn create_record_success() {
-        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) =
-            setup_crud();
+        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) = setup_crud();
 
         let uc = make_crud_uc(
             table_repo,
@@ -1455,7 +1466,8 @@ mod crud_records {
             change_log_repo.clone(),
         );
 
-        let data = serde_json::json!({"id": "dept-new", "name": "New Department", "status": "active"});
+        let data =
+            serde_json::json!({"id": "dept-new", "name": "New Department", "status": "active"});
         let result = uc
             .create_record("departments", &data, "admin", None, None)
             .await;
@@ -1483,14 +1495,19 @@ mod crud_records {
         let table_id = table.id;
         let columns = vec![make_column(table_id, "id", true, true, true)];
 
-        let table_repo =
-            Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(columns));
         let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
         let record_repo = Arc::new(StubDynamicRecordRepository::new());
         let change_log_repo = Arc::new(StubChangeLogRepository::new());
 
-        let uc = make_crud_uc(table_repo, column_repo, rule_repo, record_repo, change_log_repo);
+        let uc = make_crud_uc(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            change_log_repo,
+        );
 
         let data = serde_json::json!({"id": "dept-1"});
         let result = uc
@@ -1505,8 +1522,7 @@ mod crud_records {
 
     #[tokio::test]
     async fn update_record_success() {
-        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) =
-            setup_crud();
+        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) = setup_crud();
 
         // Insert initial record
         {
@@ -1549,14 +1565,19 @@ mod crud_records {
         let table_id = table.id;
         let columns = vec![make_column(table_id, "id", true, true, true)];
 
-        let table_repo =
-            Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(columns));
         let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
         let record_repo = Arc::new(StubDynamicRecordRepository::new());
         let change_log_repo = Arc::new(StubChangeLogRepository::new());
 
-        let uc = make_crud_uc(table_repo, column_repo, rule_repo, record_repo, change_log_repo);
+        let uc = make_crud_uc(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            change_log_repo,
+        );
 
         let data = serde_json::json!({"name": "new name"});
         let result = uc
@@ -1571,8 +1592,7 @@ mod crud_records {
 
     #[tokio::test]
     async fn delete_record_success() {
-        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) =
-            setup_crud();
+        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) = setup_crud();
 
         // Insert record to delete
         {
@@ -1612,14 +1632,19 @@ mod crud_records {
         let table_id = table.id;
         let columns = vec![make_column(table_id, "id", true, true, true)];
 
-        let table_repo =
-            Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(columns));
         let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
         let record_repo = Arc::new(StubDynamicRecordRepository::new());
         let change_log_repo = Arc::new(StubChangeLogRepository::new());
 
-        let uc = make_crud_uc(table_repo, column_repo, rule_repo, record_repo, change_log_repo);
+        let uc = make_crud_uc(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            change_log_repo,
+        );
 
         let result = uc
             .delete_record("departments", "dept-1", "admin", None, None)
@@ -1633,8 +1658,7 @@ mod crud_records {
 
     #[tokio::test]
     async fn get_record_success() {
-        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) =
-            setup_crud();
+        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) = setup_crud();
 
         {
             let mut records = record_repo.records.write().await;
@@ -1644,7 +1668,13 @@ mod crud_records {
             ));
         }
 
-        let uc = make_crud_uc(table_repo, column_repo, rule_repo, record_repo, change_log_repo);
+        let uc = make_crud_uc(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            change_log_repo,
+        );
 
         let result = uc.get_record("departments", "dept-1", None).await;
         assert!(result.is_ok());
@@ -1653,10 +1683,15 @@ mod crud_records {
 
     #[tokio::test]
     async fn get_record_not_found() {
-        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) =
-            setup_crud();
+        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) = setup_crud();
 
-        let uc = make_crud_uc(table_repo, column_repo, rule_repo, record_repo, change_log_repo);
+        let uc = make_crud_uc(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            change_log_repo,
+        );
 
         let result = uc.get_record("departments", "nonexistent", None).await;
         assert!(result.is_ok());
@@ -1665,10 +1700,15 @@ mod crud_records {
 
     #[tokio::test]
     async fn table_permissions() {
-        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) =
-            setup_crud();
+        let (_, _, table_repo, column_repo, rule_repo, record_repo, change_log_repo) = setup_crud();
 
-        let uc = make_crud_uc(table_repo, column_repo, rule_repo, record_repo, change_log_repo);
+        let uc = make_crud_uc(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            change_log_repo,
+        );
 
         let (create, update, delete) = uc.table_permissions("departments", None).await.unwrap();
         assert!(create);
@@ -1679,17 +1719,21 @@ mod crud_records {
     #[tokio::test]
     async fn table_permissions_readonly() {
         let table = make_table_readonly("readonly_table");
-        let table_repo =
-            Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
         let record_repo = Arc::new(StubDynamicRecordRepository::new());
         let change_log_repo = Arc::new(StubChangeLogRepository::new());
 
-        let uc = make_crud_uc(table_repo, column_repo, rule_repo, record_repo, change_log_repo);
+        let uc = make_crud_uc(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            change_log_repo,
+        );
 
-        let (create, update, delete) =
-            uc.table_permissions("readonly_table", None).await.unwrap();
+        let (create, update, delete) = uc.table_permissions("readonly_table", None).await.unwrap();
         assert!(!create);
         assert!(!update);
         assert!(!delete);
@@ -1718,8 +1762,7 @@ mod lifecycle {
             make_column(table_id, "status", false, true, true),
         ];
 
-        let table_repo =
-            Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(columns));
         let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
         let record_repo = Arc::new(StubDynamicRecordRepository::new());
@@ -1743,7 +1786,13 @@ mod lifecycle {
             "status": "active"
         });
         let create_result = crud_uc
-            .create_record("departments", &data, "admin", None, Some("trace-001".to_string()))
+            .create_record(
+                "departments",
+                &data,
+                "admin",
+                None,
+                Some("trace-001".to_string()),
+            )
             .await
             .unwrap();
         assert_eq!(
@@ -1822,14 +1871,12 @@ mod lifecycle {
     async fn display_config_and_rules_lifecycle() {
         let table = make_table("employees");
 
-        let table_repo =
-            Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table]));
         let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
         let config_repo = Arc::new(StubDisplayConfigRepository::new());
 
         // 1. Create a display config
-        let config_uc =
-            ManageDisplayConfigsUseCase::new(table_repo.clone(), config_repo.clone());
+        let config_uc = ManageDisplayConfigsUseCase::new(table_repo.clone(), config_repo.clone());
         let config_input = serde_json::json!({
             "config_type": "list",
             "config_json": {"columns": ["id", "name"]},

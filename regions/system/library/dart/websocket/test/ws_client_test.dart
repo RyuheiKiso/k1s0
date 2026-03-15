@@ -25,9 +25,9 @@ void main() {
   });
 
   group('WsConfig', () {
-    test('デフォルト値が期待通りに設定されていること', () {
-      final config = WsConfig.defaults;
-      expect(config.url, equals('ws://localhost'));
+    test('URL指定でデフォルト値が期待通りに設定されていること', () {
+      const config = WsConfig(url: 'ws://test.example.com');
+      expect(config.url, equals('ws://test.example.com'));
       expect(config.reconnect, isTrue);
       expect(config.maxReconnectAttempts, equals(5));
       expect(config.reconnectDelay, equals(const Duration(seconds: 1)));
