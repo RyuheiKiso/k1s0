@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, afterAll, beforeAll } from 'vitest';
+import { describe, it, expect, afterEach, afterAll, beforeAll, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -9,17 +9,9 @@ import { useAuth } from './useAuth';
 const API_BASE = 'http://localhost:3000/bff';
 
 const server = setupServer(
-  // デフォルト: セッションなし
-  http.get(`${API_BASE}/auth/me`, () => {
+  // デフォルト: セッションなし（401 を返す）
+  http.get(`${API_BASE}/auth/session`, () => {
     return new HttpResponse(null, { status: 401 });
-  }),
-  http.post(`${API_BASE}/auth/login`, async ({ request }) => {
-    const body = (await request.json()) as { username: string; password: string };
-    return HttpResponse.json({
-      id: 'user-1',
-      username: body.username,
-      roles: ['user'],
-    });
   }),
   http.post(`${API_BASE}/auth/logout`, () => {
     return new HttpResponse(null, { status: 204 });
@@ -34,7 +26,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <AuthProvider apiBaseURL={API_BASE}>{children}</AuthProvider>
 );
 
-describe('AuthProvider（API 統合）', () => {
+describe('AuthProvider（BFF セッション統合）', () => {
   it('初期化時にセッション確認を行い、未認証状態になる', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -46,13 +38,11 @@ describe('AuthProvider（API 統合）', () => {
 
   it('既存セッションがある場合は認証済みになる', async () => {
     server.use(
-      http.get(`${API_BASE}/auth/me`, () => {
+      http.get(`${API_BASE}/auth/session`, () => {
         return HttpResponse.json({
-          id: 'user-existing',
-          username: 'existing@example.com',
-          realm_access: {
-            roles: ['admin'],
-          },
+          id: 'user-sub-001',
+          authenticated: true,
+          csrf_token: 'csrf-token-abc',
         });
       }),
     );
@@ -61,47 +51,55 @@ describe('AuthProvider（API 統合）', () => {
 
     await waitFor(() => {
       expect(result.current.isAuthenticated).toBe(true);
-      expect(result.current.user?.username).toBe('existing@example.com');
-      expect(result.current.user?.roles).toEqual(['admin']);
+      expect(result.current.user?.id).toBe('user-sub-001');
     });
   });
 
-  it('login で API を呼び出してユーザー情報を設定する', async () => {
+  it('login は BFF の /auth/login へリダイレクトする', async () => {
+    // window.location.href の設定を検証するため、モックを用意
+    const originalLocation = window.location;
+    const locationMock = { ...originalLocation, href: '' };
+    Object.defineProperty(window, 'location', {
+      value: locationMock,
+      writable: true,
+    });
+
     const { result } = renderHook(() => useAuth(), { wrapper });
 
-    // 初期化完了を待つ
     await waitFor(() => {
       expect(result.current.isAuthenticated).toBe(false);
     });
 
-    await act(async () => {
-      await result.current.login({
-        username: 'user@example.com',
-        password: 'password123',
-      });
+    act(() => {
+      result.current.login();
     });
 
-    expect(result.current.isAuthenticated).toBe(true);
-    expect(result.current.user?.id).toBe('user-1');
-    expect(result.current.user?.username).toBe('user@example.com');
-    expect(result.current.user?.roles).toEqual(['user']);
+    expect(window.location.href).toBe(`${API_BASE}/auth/login`);
+
+    // window.location を復元する
+    Object.defineProperty(window, 'location', {
+      value: originalLocation,
+      writable: true,
+    });
   });
 
   it('logout で API を呼び出してユーザー情報をクリアする', async () => {
+    // まず認証済み状態にする
+    server.use(
+      http.get(`${API_BASE}/auth/session`, () => {
+        return HttpResponse.json({
+          id: 'user-sub-001',
+          authenticated: true,
+          csrf_token: 'csrf-token-abc',
+        });
+      }),
+    );
+
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.isAuthenticated).toBe(false);
+      expect(result.current.isAuthenticated).toBe(true);
     });
-
-    await act(async () => {
-      await result.current.login({
-        username: 'user@example.com',
-        password: 'password123',
-      });
-    });
-
-    expect(result.current.isAuthenticated).toBe(true);
 
     await act(async () => {
       await result.current.logout();

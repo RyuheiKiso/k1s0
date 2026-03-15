@@ -109,7 +109,7 @@
 
 ```
 module github.com/k1s0-platform/system-library-go-app-updater
-go 1.23.0
+go 1.24.0
 ```
 
 **モジュール構成**:

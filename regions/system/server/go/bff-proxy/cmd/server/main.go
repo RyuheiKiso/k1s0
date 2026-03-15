@@ -159,6 +159,8 @@ func run() error {
 	// Auth endpoints (no session required).
 	router.GET("/auth/login", authHandler.Login)
 	router.GET("/auth/callback", authHandler.Callback)
+	router.GET("/auth/session", authHandler.Session)
+	router.GET("/auth/exchange", authHandler.Exchange)
 	router.POST("/auth/logout", authHandler.Logout)
 
 	// Proxy endpoints (session + CSRF required).

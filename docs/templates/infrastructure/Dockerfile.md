@@ -101,7 +101,7 @@ Go BFF 用のマルチステージビルド Dockerfile。
 
 ```tera
 # Build stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -123,7 +123,7 @@ ENTRYPOINT ["/{{ service_name }}"]
 
 ### ポイント
 
-- `golang:1.23-alpine` をビルドステージのベースイメージとして使用する（BFF は alpine ベースで軽量化）
+- `golang:1.24-alpine` をビルドステージのベースイメージとして使用する（BFF は alpine ベースで軽量化）
 - `CGO_ENABLED=0` で静的バイナリを生成する
 - ランタイムは `distroless/static-debian12:nonroot` を使用する
 - ビルドターゲットは `./cmd/bff` ディレクトリを指定する
@@ -244,7 +244,7 @@ CMD ["nginx", "-g", "daemon off;"]
 | kind/lang        | ベースイメージ                    | ランタイムイメージ                     | 概算サイズ |
 | ---------------- | --------------------------------- | -------------------------------------- | ---------- |
 | server/rust      | rust:1.93-bookworm                         | debian:bookworm-slim                   | ~15MB      |
-| bff/go           | golang:1.23-alpine                | distroless/static-debian12:nonroot     | ~10MB      |
+| bff/go           | golang:1.24-alpine                | distroless/static-debian12:nonroot     | ~10MB      |
 | bff/rust         | rust:1.93-bookworm                         | debian:bookworm-slim                   | ~15MB      |
 | client/react     | node:22-bookworm                    | nginx:1.27-alpine                      | ~25MB      |
 | client/flutter   | cirruslabs/flutter:3.24.0         | nginx:1.27-alpine                      | ~25MB      |

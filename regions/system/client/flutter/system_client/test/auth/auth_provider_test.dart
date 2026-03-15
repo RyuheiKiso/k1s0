@@ -19,7 +19,7 @@ void main() {
     registerFallbackValue(FakeRequestOptions());
   });
 
-  group('AuthNotifier（API 統合）', () {
+  group('AuthNotifier（BFF セッション統合）', () {
     test('初期状態は unauthenticated', () {
       final container = ProviderContainer(
         overrides: [
@@ -32,7 +32,7 @@ void main() {
       expect(state, isA<AuthUnauthenticated>());
     });
 
-    test('login が DioException を投げた場合は状態が変わらない', () async {
+    test('login は OAuth フローを開始する（ネットワーク未接続でもエラーにならない）', () async {
       final container = ProviderContainer(
         overrides: [
           authApiBaseUrlProvider.overrideWithValue('https://api.example.com'),
@@ -40,15 +40,12 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      // API 呼び出しは実際にはネットワークエラーになるが、
-      // 状態は unauthenticated のまま
+      // login はリダイレクト型（Web）またはコールバック型（モバイル）
+      // テスト環境では url_launcher / flutter_web_auth_2 が動作しないため例外は想定内
       try {
-        await container.read(authProvider.notifier).login(
-          username: 'user@example.com',
-          password: 'password',
-        );
+        await container.read(authProvider.notifier).login();
       } catch (_) {
-        // ネットワークエラーは想定内
+        // テスト環境では外部ブラウザが開けないため例外は想定内
       }
 
       final state = container.read(authProvider);

@@ -20,7 +20,7 @@ k1s0 の開発環境を Dev Container で統一し、環境構築の手間をゼ
 
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.23"
+      "version": "1.24"
     },
     "ghcr.io/devcontainers/features/rust:1": {
       "version": "1.93"  // Dockerイメージ戦略.md の rust:1.93-bookworm と同期

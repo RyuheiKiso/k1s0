@@ -9,7 +9,8 @@ export interface User {
 export interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
-  login: (credentials: { username: string; password: string }) => Promise<void>;
+  // BFF の OAuth2/OIDC 認可コードフローへリダイレクトする（引数なし）
+  login: () => void;
   logout: () => Promise<void>;
 }
 

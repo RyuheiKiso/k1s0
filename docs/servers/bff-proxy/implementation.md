@@ -15,7 +15,7 @@ cmd/
 internal/
   config/                # 設定ロード
   handler/
-    auth_handler.go      # /auth/login, /auth/callback, /auth/logout
+    auth_handler.go      # /auth/login, /auth/callback, /auth/session, /auth/exchange, /auth/logout
     proxy_handler.go     # /api/*path
     health_handler.go    # /healthz, /readyz, /metrics
     error_response.go    # 共通エラーレスポンス
@@ -49,11 +49,20 @@ internal/
 
 ## フロー要点
 
-1. `GET /auth/login` で PKCE と state を生成し Cookie に保存。
-2. `GET /auth/callback` で state 検証後に token exchange 実行。
-3. Redis にセッション保存後、`session_id` Cookie を返却。
+### ブラウザフロー（React SPA）
+
+1. `GET /auth/login` で PKCE と state を生成し Cookie に保存。IdP にリダイレクト。
+2. `GET /auth/callback` で state 検証後に token exchange 実行。Redis にセッション保存後、`session_id` Cookie を返却。
+3. `GET /auth/session` で SPA がセッション確認。有効なら 200 + ユーザー情報 + CSRF トークン。
 4. `ANY /api/*path` でセッション検証し、Bearer トークンを付与して上流へ転送。
 5. 期限切れ時は refresh token で自動更新。失敗時は `BFF_PROXY_TOKEN_EXPIRED`。
+
+### モバイルフロー（Flutter）
+
+1. `GET /auth/login?redirect_to=k1s0://auth/callback` でログイン開始（カスタムスキームのみ許可）。
+2. `GET /auth/callback` でセッション作成後、ワンタイム交換コード（60秒 TTL）を生成し `k1s0://auth/callback?code=...` にリダイレクト。
+3. `GET /auth/exchange?code=...` で交換コードを検証し、セッション Cookie を発行。モバイル HTTP クライアント（Dio）が Set-Cookie を保持。
+4. 以降のフローはブラウザフローと同一。
 
 ## OAuthClient インターフェース
 

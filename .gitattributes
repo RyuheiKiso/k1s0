@@ -1,0 +1,67 @@
+# .gitattributes — 改行コードとバイナリ判定を統一する
+# 全ファイルで LF を強制し、CRLF 混在を防止する
+
+# デフォルト: テキストファイルは自動検出 + LF 正規化
+* text=auto eol=lf
+
+# ソースコード: 明示的にテキスト指定
+*.go text eol=lf
+*.rs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.dart text eol=lf
+*.py text eol=lf
+*.proto text eol=lf
+
+# 設定ファイル: テキスト指定
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.xml text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# シェルスクリプト: テキスト指定
+*.sh text eol=lf
+*.bash text eol=lf
+
+# インフラ設定: テキスト指定
+*.tf text eol=lf
+*.tfvars text eol=lf
+*.hcl text eol=lf
+Dockerfile* text eol=lf
+docker-compose*.yaml text eol=lf
+
+# ロックファイル: diff を生成しない（レビューノイズ防止）
+package-lock.json -diff
+go.sum -diff
+pubspec.lock -diff
+Cargo.lock -diff
+
+# バイナリファイル: 改行コード変換を行わない
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.svg text eol=lf
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.pdf binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.wasm binary

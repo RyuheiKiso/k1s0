@@ -5,7 +5,7 @@ export { AuthProvider } from './auth/AuthProvider';
 export { useAuth } from './auth/useAuth';
 
 // HTTP
-export { createApiClient } from './http/apiClient';
+export { createApiClient, setCsrfToken } from './http/apiClient';
 
 // Routing
 export { ProtectedRoute } from './routing/ProtectedRoute';

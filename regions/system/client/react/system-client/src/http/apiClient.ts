@@ -7,6 +7,14 @@ interface ApiClientOptions {
   onUnauthorized?: () => void;
 }
 
+// モジュールレベルの CSRF トークンストア（/auth/session レスポンスから取得した値を保持する）
+let _csrfToken: string | null = null;
+
+// CSRF トークンをプログラム的に設定する（BFF セッションレスポンスから取得した値を保持）
+export function setCsrfToken(token: string | null): void {
+  _csrfToken = token;
+}
+
 export function createApiClient({ baseURL, timeout = 30000, onUnauthorized }: ApiClientOptions): AxiosInstance {
   const client = axios.create({
     baseURL,
@@ -48,7 +56,9 @@ export function createApiClient({ baseURL, timeout = 30000, onUnauthorized }: Ap
   return client;
 }
 
+// CSRF トークンを取得する（プログラム的に設定されたトークンを優先し、なければ meta タグから取得）
 function getCsrfToken(): string | null {
+  if (_csrfToken) return _csrfToken;
   if (typeof document === 'undefined') return null;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]');
   return meta?.content ?? null;
