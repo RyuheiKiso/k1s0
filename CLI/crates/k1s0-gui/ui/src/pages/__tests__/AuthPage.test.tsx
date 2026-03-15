@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { connectionFailureMessage } from '../../constants/messages';
 import { mockInvoke } from '../../test/mocks';
 import { renderWithProviders } from '../../test/render';
 import AuthPage from '../AuthPage';
@@ -37,7 +38,7 @@ describe('AuthPage', () => {
     await user.click(screen.getByTestId('btn-check-connection'));
 
     expect(await screen.findByTestId('connection-message')).toHaveTextContent(
-      `Failed to resolve ${defaults.discovery_url}. DNS lookup failed`,
+      connectionFailureMessage(defaults.discovery_url, 'DNS lookup failed'),
     );
   });
 

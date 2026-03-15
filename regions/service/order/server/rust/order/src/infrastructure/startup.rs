@@ -14,7 +14,7 @@ use crate::MIGRATOR;
 use k1s0_server_common::middleware::auth_middleware::AuthState;
 use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
 use k1s0_server_common::middleware::rbac::Tier;
-use k1s0_server_common::middleware::shutdown::shutdown_signal;
+use k1s0_server_common::shutdown::shutdown_signal;
 use tonic::transport::Server;
 
 pub async fn run() -> anyhow::Result<()> {

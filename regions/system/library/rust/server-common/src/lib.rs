@@ -9,6 +9,9 @@ pub mod error;
 pub mod middleware;
 pub mod pagination;
 pub mod response;
+/// グレースフルシャットダウン用のシグナル待機モジュール
+#[cfg(feature = "shutdown")]
+pub mod shutdown;
 
 pub use auth::{allow_insecure_no_auth, require_auth_state};
 pub use error::{ErrorBody, ErrorCode, ErrorDetail, ErrorResponse, ServiceError};

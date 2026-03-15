@@ -3,6 +3,7 @@
  * モジュール名、APIスタイル、データベース設定、Kafka/Redis連携、BFF設定を行う
  */
 
+import { BFF_OPT_IN_NO, BFF_OPT_IN_YES } from '../../constants/messages';
 import { BFF_LANGUAGE_VALUES, getDefaultDetailName, type ServerDatabaseMode } from '../../lib/generate-wizard';
 import type { ApiStyle, DetailConfig, Kind, Rdbms, ScaffoldDatabaseInfo, Tier } from '../../lib/tauri-commands';
 
@@ -300,8 +301,8 @@ export default function StepDetail({
               </p>
               <div className="mt-3 space-y-2">
                 {[
-                  { label: 'はい', enabled: true },
-                  { label: 'いいえ', enabled: false },
+                  { label: BFF_OPT_IN_YES, enabled: true },
+                  { label: BFF_OPT_IN_NO, enabled: false },
                 ].map(({ label, enabled }) => (
                   <label key={label} className="flex items-center gap-3 text-sm text-slate-200/82">
                     <input

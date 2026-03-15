@@ -35,7 +35,7 @@ k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"]
 # Correlation ID伝播ライブラリ
 k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 k1s0-auth = { path = "../../../library/rust/auth" }
-k1s0-server-common = { path = "../../../library/rust/server-common" }
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["shutdown"] }
 tower = { version = "0.5", features = ["util"] }
 reqwest = { version = "0.12", features = ["json"] }
 regex = "1"

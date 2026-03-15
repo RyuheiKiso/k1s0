@@ -47,8 +47,43 @@ jobs:
             docker:
               - 'regions/**/Dockerfile'
 
+  # モジュール単位の変更検出ジョブ（各言語ジョブで影響範囲を絞り込むために使用）
+  # スクリプト失敗時は下流ジョブをブロックしないよう continue-on-error を設定
+  detect-modules:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    outputs:
+      go_modules: ${{ steps.modules.outputs.go_modules }}
+      rust_modules: ${{ steps.modules.outputs.rust_modules }}
+      ts_modules: ${{ steps.modules.outputs.ts_modules }}
+      dart_modules: ${{ steps.modules.outputs.dart_modules }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect affected modules
+        id: modules
+        shell: bash
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+        run: |
+          # detect-affected-modules.sh を使って言語ごとの影響モジュールを検出
+          chmod +x scripts/detect-affected-modules.sh
+          go_mods=$(scripts/detect-affected-modules.sh "$BASE_REF" go | paste -sd ',' - || echo "")
+          rust_mods=$(scripts/detect-affected-modules.sh "$BASE_REF" rust | paste -sd ',' - || echo "")
+          ts_mods=$(scripts/detect-affected-modules.sh "$BASE_REF" ts | paste -sd ',' - || echo "")
+          dart_mods=$(scripts/detect-affected-modules.sh "$BASE_REF" dart | paste -sd ',' - || echo "")
+          echo "go_modules=$go_mods" >> "$GITHUB_OUTPUT"
+          echo "rust_modules=$rust_mods" >> "$GITHUB_OUTPUT"
+          echo "ts_modules=$ts_mods" >> "$GITHUB_OUTPUT"
+          echo "dart_modules=$dart_mods" >> "$GITHUB_OUTPUT"
+          echo "Affected Go modules: $go_mods"
+          echo "Affected Rust modules: $rust_mods"
+          echo "Affected TS modules: $ts_mods"
+          echo "Affected Dart modules: $dart_mods"
+
   lint-go:
-    needs: detect-changes
+    needs: [detect-changes, detect-modules]
     if: needs.detect-changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -62,20 +97,30 @@ jobs:
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - name: Lint Go modules
         shell: bash
+        env:
+          AFFECTED_MODULES: ${{ needs.detect-modules.outputs.go_modules }}
         run: |
-          mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
-          for mod in "${modules[@]}"; do
-            dir="$(dirname "$mod")"
-            echo "=== Linting $dir ==="
-            (
-              cd "$dir"
-              golangci-lint run ./...
-              go vet ./...
-            )
-          done
+          # 影響モジュールが検出された場合はそのモジュールのみ処理する
+          if [ -n "$AFFECTED_MODULES" ]; then
+            IFS=',' read -ra entries <<< "$AFFECTED_MODULES"
+            for entry in "${entries[@]}"; do
+              dir="${entry#go:}"
+              if [ -d "$dir" ] && [ -f "$dir/go.mod" ]; then
+                echo "=== Linting $dir ==="
+                (cd "$dir" && golangci-lint run ./... && go vet ./...)
+              fi
+            done
+          else
+            mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
+            for mod in "${modules[@]}"; do
+              dir="$(dirname "$mod")"
+              echo "=== Linting $dir ==="
+              (cd "$dir" && golangci-lint run ./... && go vet ./...)
+            done
+          fi
 
   lint-rust:
-    needs: detect-changes
+    needs: [detect-changes, detect-modules]
     if: needs.detect-changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -111,7 +156,7 @@ jobs:
           done
 
   lint-ts:
-    needs: detect-changes
+    needs: [detect-changes, detect-modules]
     if: needs.detect-changes.outputs.ts == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -138,7 +183,7 @@ jobs:
           done
 
   lint-dart:
-    needs: detect-changes
+    needs: [detect-changes, detect-modules]
     if: needs.detect-changes.outputs.dart == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -168,7 +213,7 @@ jobs:
           done
 
   test-go:
-    needs: lint-go
+    needs: [lint-go, detect-modules]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -177,18 +222,30 @@ jobs:
           go-version: "1.24"
       - name: Test Go modules
         shell: bash
+        env:
+          AFFECTED_MODULES: ${{ needs.detect-modules.outputs.go_modules }}
         run: |
           mkdir -p coverage
-          mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
-          for mod in "${modules[@]}"; do
-            dir="$(dirname "$mod")"
-            modname="$(basename "$dir")"
-            echo "=== Testing $dir ==="
-            (
-              cd "$dir"
-              go test ./... -race -count=1 -coverprofile="$GITHUB_WORKSPACE/coverage/${modname}.out"
-            )
-          done
+          # 影響モジュールが検出された場合はそのモジュールのみテストする
+          if [ -n "$AFFECTED_MODULES" ]; then
+            IFS=',' read -ra entries <<< "$AFFECTED_MODULES"
+            for entry in "${entries[@]}"; do
+              dir="${entry#go:}"
+              if [ -d "$dir" ] && [ -f "$dir/go.mod" ]; then
+                modname="$(basename "$dir")"
+                echo "=== Testing $dir ==="
+                (cd "$dir" && go test ./... -race -count=1 -coverprofile="$GITHUB_WORKSPACE/coverage/${modname}.out")
+              fi
+            done
+          else
+            mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
+            for mod in "${modules[@]}"; do
+              dir="$(dirname "$mod")"
+              modname="$(basename "$dir")"
+              echo "=== Testing $dir ==="
+              (cd "$dir" && go test ./... -race -count=1 -coverprofile="$GITHUB_WORKSPACE/coverage/${modname}.out")
+            done
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

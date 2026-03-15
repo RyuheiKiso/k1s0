@@ -17,27 +17,6 @@ use crate::domain::repository::{
     CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository,
 };
 
-/// シャットダウンシグナルを待機する
-async fn shutdown_signal() -> anyhow::Result<()> {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{signal, SignalKind};
-
-        let mut terminate = signal(SignalKind::terminate())?;
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = terminate.recv() => {}
-        }
-    }
-
-    #[cfg(not(unix))]
-    {
-        tokio::signal::ctrl_c().await?;
-    }
-
-    Ok(())
-}
-
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -285,7 +264,7 @@ pub async fn run() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     // gRPC グレースフルシャットダウン用シグナル
-    let grpc_shutdown = shutdown_signal();
+    let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
 
     let grpc_metrics = metrics;
     let grpc_future = async move {
@@ -306,7 +285,7 @@ pub async fn run() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     // REST グレースフルシャットダウンを設定
     let rest_future = axum::serve(listener, app).with_graceful_shutdown(async {
-        let _ = shutdown_signal().await;
+        let _ = k1s0_server_common::shutdown::shutdown_signal().await;
     });
 
     tokio::select! {

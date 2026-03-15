@@ -16,27 +16,6 @@ use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository}
 use crate::proto::k1s0::system::apiregistry::v1::api_registry_service_server::ApiRegistryServiceServer;
 use crate::usecase;
 
-/// シャットダウンシグナルを待機する
-async fn shutdown_signal() -> anyhow::Result<()> {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{signal, SignalKind};
-
-        let mut terminate = signal(SignalKind::terminate())?;
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = terminate.recv() => {}
-        }
-    }
-
-    #[cfg(not(unix))]
-    {
-        tokio::signal::ctrl_c().await?;
-    }
-
-    Ok(())
-}
-
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -248,7 +227,7 @@ pub async fn run() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;
-    let grpc_shutdown = shutdown_signal();
+    let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
@@ -266,7 +245,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     let rest_future = axum::serve(listener, app).with_graceful_shutdown(async {
-        let _ = shutdown_signal().await;
+        let _ = k1s0_server_common::shutdown::shutdown_signal().await;
     });
 
     // REST と gRPC を並行起動

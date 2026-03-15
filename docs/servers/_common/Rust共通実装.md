@@ -106,7 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```
 1. Config::load("config/config.yaml")
-2. init_telemetry(&telemetry_cfg)   # ログ + トレーサー一括初期化
+2. init_telemetry(&telemetry_cfg)   # ログ + トレーサー一括初期化（TelemetryConfigBuilder 推奨）
 3. persistence::connect(&cfg.database) + sqlx::migrate!
 4. KafkaProducer::new(&cfg.kafka)  ※Kafka 使用時
 5. DI（サービス固有のユースケース・リポジトリ注入）
@@ -120,34 +120,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Graceful Shutdown パターン {#graceful-shutdown}
 
-全 Rust サーバーは以下のシグナル処理を実装する。
+全 Rust サーバーは `k1s0-server-common` の共通シャットダウンシグナルを使用する。
 
-### shutdown_signal() 実装
+### shutdown_signal() — 共通モジュール
+
+`k1s0_server_common::shutdown::shutdown_signal()` として一元管理されている。
+各サーバーの `startup.rs` にローカル定義を置かず、共通クレートからインポートする。
 
 ```rust
-async fn shutdown_signal() -> anyhow::Result<()> {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{signal, SignalKind};
-        let mut terminate = signal(SignalKind::terminate())?;
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = terminate.recv() => {}
-        }
-    }
-    #[cfg(not(unix))]
-    { tokio::signal::ctrl_c().await?; }
-    Ok(())
-}
+// k1s0-server-common の shutdown モジュール（全サーバー共通）
+// Cargo.toml に features = ["shutdown"] が必要
+use k1s0_server_common::shutdown::shutdown_signal;
 ```
 
-- Unix: SIGTERM + SIGINT（Ctrl-C）を待機
+動作仕様:
+- Unix: SIGTERM + SIGINT（Ctrl-C）を待機（`tokio::select!`）
 - Windows: SIGINT（Ctrl-C）のみ
 
 ### REST + gRPC の並行 Graceful Shutdown
 
 ```rust
-let grpc_shutdown = shutdown_signal();
+let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
 let grpc_future = async move {
     tonic::transport::Server::builder()
         // ...
@@ -156,7 +149,7 @@ let grpc_future = async move {
 };
 
 let rest_future = axum::serve(listener, app)
-    .with_graceful_shutdown(async { let _ = shutdown_signal().await; });
+    .with_graceful_shutdown(async { let _ = k1s0_server_common::shutdown::shutdown_signal().await; });
 
 tokio::select! {
     result = rest_future => { /* error handling */ }

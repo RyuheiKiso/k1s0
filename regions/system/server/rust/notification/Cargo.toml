@@ -34,7 +34,7 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 k1s0-auth = { path = "../../../library/rust/auth" }
-k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum"] }
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum", "shutdown"] }
 rdkafka = { version = "0.36", features = ["cmake-build"] }
 lettre = { version = "0.11", default-features = false, features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder", "hostname"] }
 reqwest = { version = "0.12", features = ["json"] }

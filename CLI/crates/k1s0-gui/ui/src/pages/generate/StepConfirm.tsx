@@ -3,8 +3,16 @@
  * 選択した設定の最終確認と生成実行を行う
  */
 
-import type { DetailConfig, Kind, LangFw, Rdbms, ScaffoldDatabaseInfo, Tier } from '../../lib/tauri-commands';
+import {
+  BFF_GENERATE_LABEL,
+  BFF_GENERATE_NO,
+  BFF_GENERATE_UNAVAILABLE,
+  BFF_GENERATE_YES,
+  BFF_LANGUAGE_LABEL,
+  BFF_LANGUAGE_NONE,
+} from '../../constants/messages';
 import type { ServerDatabaseMode } from '../../lib/generate-wizard';
+import type { DetailConfig, Kind, LangFw, Rdbms, ScaffoldDatabaseInfo, Tier } from '../../lib/tauri-commands';
 
 /** StepConfirmコンポーネントのprops型定義 */
 export interface StepConfirmProps {
@@ -112,8 +120,8 @@ export default function StepConfirm({
             </p>
             <p>Kafka: {detail.kafka ? '有効' : '無効'}</p>
             <p>Redis: {detail.redis ? '有効' : '無効'}</p>
-            <p>BFF生成: {showBffControls ? (generateBff ? 'あり' : 'なし') : '利用不可'}</p>
-            <p>BFF言語: {selectedBffLanguage ?? '不要'}</p>
+            <p>{BFF_GENERATE_LABEL} {showBffControls ? (generateBff ? BFF_GENERATE_YES : BFF_GENERATE_NO) : BFF_GENERATE_UNAVAILABLE}</p>
+            <p>{BFF_LANGUAGE_LABEL} {selectedBffLanguage ?? BFF_LANGUAGE_NONE}</p>
           </>
         )}
         {/* Database種別の追加情報 */}

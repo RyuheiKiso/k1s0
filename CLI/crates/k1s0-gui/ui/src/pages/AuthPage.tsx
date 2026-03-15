@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { connectionFailureMessage } from '../constants/messages';
 import { useAuth } from '../lib/auth';
 import {
   clearStoredDeviceAuthSettings,
@@ -160,7 +161,7 @@ export default function AuthPage() {
     } catch (error) {
       setConnectionStatus('error');
       setConnectionMessage(
-        `${settings.discovery_url} の解決に失敗しました。${String(error)}`,
+        connectionFailureMessage(settings.discovery_url, String(error)),
       );
     }
   }
