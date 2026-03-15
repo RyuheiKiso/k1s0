@@ -3,9 +3,6 @@ go 1.24.0
 
 use (
 
-	// CLI — GUI 向け認証サーバー
-	./CLI/crates/k1s0-gui/regions/system/server/go/auth
-
 	// サーバー — API・プロキシサービス
 	./api/proto
 	// システムライブラリ — 共通基盤・ユーティリティ群
