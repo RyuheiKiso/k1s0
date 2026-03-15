@@ -231,11 +231,12 @@ pub fn router(state: AppState) -> Router {
             post(api_key_handler::validate_api_key),
         );
 
+    // with_state で Router<()> に変換後、SwaggerUI を merge する
     Router::new()
         .merge(protected)
         .merge(public)
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
 }
 
 // ErrorResponse / ErrorBody は k1s0-server-common から re-export。

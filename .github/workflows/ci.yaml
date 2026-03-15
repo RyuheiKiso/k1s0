@@ -140,7 +140,7 @@ jobs:
           mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
           for manifest in "${manifests[@]}"; do
             case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
+              CLI/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
                 continue
                 ;;
             esac
@@ -153,7 +153,7 @@ jobs:
           mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
           for manifest in "${manifests[@]}"; do
             case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
+              CLI/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
                 continue
                 ;;
             esac
@@ -299,7 +299,7 @@ jobs:
           mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
           for manifest in "${manifests[@]}"; do
             case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
+              CLI/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
                 continue
                 ;;
             esac
@@ -518,7 +518,7 @@ jobs:
           mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
           for manifest in "${manifests[@]}"; do
             case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
+              CLI/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
                 continue
                 ;;
             esac

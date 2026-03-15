@@ -200,10 +200,11 @@ pub fn router(state: AppState) -> Router {
             )
     };
 
+    // with_state で Router<()> に変換後、SwaggerUI を merge する
     public_routes
         .merge(api_routes)
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
 }
 
 /// ErrorResponse は統一エラーレスポンス。

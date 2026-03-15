@@ -206,9 +206,10 @@ pub fn router(state: AppState) -> Router {
         .route("/readyz", get(service::readyz))
         .route("/metrics", get(service::metrics_endpoint));
 
+    // with_state で Router<()> に変換後、SwaggerUI を merge する
     Router::new()
         .merge(protected)
         .merge(public)
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
 }
