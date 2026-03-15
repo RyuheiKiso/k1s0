@@ -1,9 +1,11 @@
-# Build stage
+# chef ベースステージ: cargo-chef とビルド依存のインストール
 # Note: build context must be ./regions/system (to include library dependencies)
-FROM rust:1.93-bookworm AS builder
+FROM rust:1.93-bookworm AS chef
 
-# Install protobuf compiler (for tonic-build in build.rs) and
-# cmake + build-essential (for rdkafka cmake-build feature)
+# cargo-chef のインストール（依存キャッシュ用）
+RUN cargo install cargo-chef --locked
+
+# protobuf コンパイラ（tonic-build 用）と cmake + build-essential（rdkafka 用）のインストール
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
     cmake \
@@ -12,7 +14,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy the entire system directory to resolve path dependencies
+# planner ステージ: 依存情報レシピの生成
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+# cook ステージ: 依存のみビルド（キャッシュ層）
+FROM chef AS cook
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json -p k1s0-saga-server
+
+# builder ステージ: ソースコードのビルド
+FROM cook AS builder
 COPY . .
 
 # ローカル開発用ビルド引数: 認証バイパスを有効化するには
@@ -26,7 +39,7 @@ RUN if [ -n "${CARGO_FEATURES}" ]; then \
 
 FROM busybox:1.36.1-musl AS busybox
 
-# Runtime stage
+# runtime ステージ: 最小実行環境
 FROM gcr.io/distroless/cc-debian12:nonroot
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1

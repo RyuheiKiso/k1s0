@@ -19,6 +19,7 @@ jobs:
       dart: ${{ steps.filter.outputs.dart }}
       helm: ${{ steps.filter.outputs.helm }}
       docker: ${{ steps.filter.outputs.docker }}
+      shell: ${{ steps.filter.outputs.shell }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -46,6 +47,8 @@ jobs:
               - 'infra/helm/**'
             docker:
               - 'regions/**/Dockerfile'
+            shell:
+              - 'scripts/**/*.sh'
 
   # モジュール単位の変更検出ジョブ（各言語ジョブで影響範囲を絞り込むために使用）
   # スクリプト失敗時は下流ジョブをブロックしないよう continue-on-error を設定
@@ -211,6 +214,18 @@ jobs:
               )
             fi
           done
+
+  # シェルスクリプトの静的解析ジョブ
+  lint-shell:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.shell == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck のインストール
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: シェルスクリプトの静的解析
+        run: find scripts/ -name '*.sh' -exec shellcheck {} +
 
   test-go:
     needs: [lint-go, detect-modules]
