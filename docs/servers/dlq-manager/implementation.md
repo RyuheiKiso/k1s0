@@ -65,7 +65,7 @@ k1s0-dlq = { path = "../../../library/rust/dlq" }
 k1s0-telemetry = { path = "../../../library/rust/telemetry" }
 
 [dev-dependencies]
-axum-test = "16"
+axum-test = "17"
 tower = { version = "0.5", features = ["util"] }
 ```
 
@@ -73,7 +73,7 @@ tower = { version = "0.5", features = ["util"] }
 
 | ライブラリ | バージョン | 用途 |
 |---------|----------|-----|
-| axum | 0.7 | REST HTTP フレームワーク |
+| axum | 0.8 | REST HTTP フレームワーク |
 | tokio | 1 | 非同期ランタイム（full features） |
 | sqlx | 0.8 | PostgreSQL 非同期ドライバー |
 | rdkafka | 0.36 | Kafka プロデューサー / コンシューマー |

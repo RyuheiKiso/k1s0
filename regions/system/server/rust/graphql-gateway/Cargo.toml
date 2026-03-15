@@ -14,7 +14,7 @@ test = false
 
 [dependencies]
 # Web フレームワーク
-axum = { version = "0.8", features = ["macros", "ws"] }
+axum = {workspace = true, features = ["ws"]}
 tokio = {workspace = true}
 tower = {workspace = true}
 tower-http = {workspace = true}

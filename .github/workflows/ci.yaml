@@ -17,6 +17,7 @@ jobs:
       rust: ${{ steps.filter.outputs.rust }}
       ts: ${{ steps.filter.outputs.ts }}
       dart: ${{ steps.filter.outputs.dart }}
+      proto: ${{ steps.filter.outputs.proto }}
       helm: ${{ steps.filter.outputs.helm }}
       docker: ${{ steps.filter.outputs.docker }}
       shell: ${{ steps.filter.outputs.shell }}
@@ -43,6 +44,8 @@ jobs:
             dart:
               - 'regions/**/client/flutter/**'
               - 'regions/**/library/dart/**'
+            proto:
+              - 'api/proto/**'
             helm:
               - 'infra/helm/**'
             docker:
@@ -227,6 +230,23 @@ jobs:
       - name: シェルスクリプトの静的解析
         run: find scripts/ -name '*.sh' -exec shellcheck {} +
 
+  # Protocol Buffers のリント・破壊的変更検出ジョブ
+  lint-proto:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.proto == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.47.2"              # devcontainer設計.md の BUF_VERSION と同期
+      - name: buf lint
+        run: buf lint api/proto
+      - name: buf breaking change detection
+        run: buf breaking api/proto --against '.git#branch=main'
+
   test-go:
     needs: [lint-go, detect-modules]
     runs-on: ubuntu-latest
@@ -356,6 +376,43 @@ jobs:
             )
           done
 
+  # TypeScript テストカバレッジ計測ジョブ
+  coverage-ts:
+    needs: lint-ts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: TypeScript テストカバレッジ計測
+        shell: bash
+        run: |
+          mkdir -p coverage
+          mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+          for package_dir in "${packages[@]}"; do
+            echo "=== Coverage $package_dir ==="
+            (
+              cd "$package_dir"
+              if [ -f package-lock.json ]; then
+                npm ci
+              else
+                npm install --no-package-lock
+              fi
+              # vitest --coverage が利用可能な場合はカバレッジ計測する
+              if npx --no-install vitest --help >/dev/null 2>&1; then
+                npx vitest run --coverage --reporter=json --outputFile="$GITHUB_WORKSPACE/coverage/$(basename "$package_dir").json" || true
+              elif npm run test:coverage --if-present 2>/dev/null; then
+                true
+              fi
+            )
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ts-coverage
+          path: coverage/
+
   test-dart:
     needs: lint-dart
     runs-on: ubuntu-latest
@@ -384,6 +441,49 @@ jobs:
               )
             fi
           done
+
+  # Dart/Flutter テストカバレッジ計測ジョブ
+  coverage-dart:
+    needs: lint-dart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"              # devcontainer設計.md と同期
+      - name: Dart/Flutter テストカバレッジ計測
+        shell: bash
+        run: |
+          mkdir -p coverage
+          mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
+          for package_dir in "${packages[@]}"; do
+            echo "=== Coverage $package_dir ==="
+            pkgname="$(basename "$package_dir")"
+            if grep -q "sdk: flutter" "$package_dir/pubspec.yaml"; then
+              (
+                cd "$package_dir"
+                flutter pub get
+                flutter test --coverage || true
+                if [ -f coverage/lcov.info ]; then
+                  cp coverage/lcov.info "$GITHUB_WORKSPACE/coverage/${pkgname}.lcov"
+                fi
+              )
+            else
+              (
+                cd "$package_dir"
+                dart pub get
+                dart test --coverage=coverage || true
+                if [ -d coverage ]; then
+                  cp -r coverage "$GITHUB_WORKSPACE/coverage/${pkgname}"
+                fi
+              )
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dart-coverage
+          path: coverage/
 
   build-go:
     needs: test-go
@@ -507,8 +607,8 @@ jobs:
         continue-on-error: true
         run: cargo clippy --manifest-path regions/system/server/rust/ai-gateway/Cargo.toml --all-targets -- -D warnings
 
-  # NOTE: proto チェックは専用ワークフロー proto.yaml で実行する。
-  # ci.yaml の detect-changes で proto 変更を検出し、proto.yaml が独立してトリガーされる。
+  # NOTE: proto チェック(buf lint / buf breaking)は ci.yaml の lint-proto ジョブと
+  # 専用ワークフロー proto.yaml の両方で実行される。
 
   helm-lint:
     needs: detect-changes

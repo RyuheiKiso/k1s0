@@ -88,7 +88,7 @@ k1s0-auth = { path = "../../../library/rust/auth" }
 k1s0-telemetry = { path = "../../../library/rust/telemetry" }
 
 [dev-dependencies]
-axum-test = "16"
+axum-test = "17"
 tower = { version = "0.5", features = ["util"] }
 tempfile = "3"
 ```
@@ -97,7 +97,7 @@ tempfile = "3"
 
 | ライブラリ | バージョン | 用途 |
 |---------|----------|-----|
-| axum | 0.7 | REST HTTP フレームワーク |
+| axum | 0.8 | REST HTTP フレームワーク |
 | tokio | 1 | 非同期ランタイム（full features） |
 | tonic | 0.12 | gRPC フレームワーク |
 | prost | 0.13 | Protobuf シリアライゼーション |

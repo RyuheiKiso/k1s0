@@ -42,7 +42,7 @@ croner = "2"
 [dev-dependencies]
 mockall = {workspace = true}
 tokio-test = {workspace = true}
-axum-test = "16"
+axum-test = "17"
 
 [build-dependencies]
 tonic-build = {workspace = true}

@@ -89,7 +89,7 @@ regions/system/server/rust/graphql-gateway/
 
 | クレート | バージョン | 用途 |
 | --- | --- | --- |
-| `axum` | 0.7 | HTTP フレームワーク（`macros`, `ws` feature） |
+| `axum` | 0.8 | HTTP フレームワーク（`macros`, `ws` feature） |
 | `async-graphql` | 7 | GraphQL サーバー（`dataloader` feature） |
 | `async-graphql-axum` | 7 | axum 統合 |
 | `jsonwebtoken` | 9 | JWT 検証 |
@@ -123,7 +123,7 @@ gRPC クライアント側のため `build_server(false)` / `build_client(true)`
 
 ```toml
 # axum に WebSocket サポートを追加
-axum = { version = "0.7", features = ["macros", "ws"] }
+axum = { version = "0.8", features = ["macros", "ws"] }
 
 # GraphQL
 async-graphql = { version = "7", features = ["dataloader"] }
@@ -140,7 +140,7 @@ async-trait = "0.1"
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 
 [dev-dependencies]
-axum-test = "16"
+axum-test = "17"
 ```
 
 ---

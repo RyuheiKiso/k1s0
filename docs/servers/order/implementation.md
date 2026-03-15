@@ -71,7 +71,7 @@ edition = "2021"
 
 [dependencies]
 # Web framework
-axum = { version = "0.7", features = ["macros", "multipart"] }
+axum = { version = "0.8", features = ["macros", "multipart"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
@@ -112,7 +112,7 @@ db-tests = []
 mockall = "0.13"
 tokio-test = "0.4"
 tower = { version = "0.5", features = ["util"] }
-axum-test = "16"
+axum-test = "17"
 ```
 
 ---
