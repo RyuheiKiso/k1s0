@@ -907,32 +907,23 @@ checksum = "edca88bc138befd0323b20752846e6587272d3b03b0343c8ea28a6f819e6e71f"
 dependencies = [
  "async-trait",
  "axum-core 0.4.5",
- "axum-macros 0.4.2",
  "bytes",
  "futures-util",
  "http 1.4.0",
  "http-body 1.0.1",
  "http-body-util",
- "hyper 1.8.1",
- "hyper-util",
  "itoa",
  "matchit 0.7.3",
  "memchr",
  "mime",
- "multer",
  "percent-encoding",
  "pin-project-lite",
  "rustversion",
  "serde",
- "serde_json",
- "serde_path_to_error",
- "serde_urlencoded",
  "sync_wrapper",
- "tokio",
  "tower 0.5.3",
  "tower-layer",
  "tower-service",
- "tracing",
 ]
 
 [[package]]
@@ -942,7 +933,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b52af3cb4058c895d37317bb27508dccc8e5f2d39454016b297bf4a400597b8"
 dependencies = [
  "axum-core 0.5.6",
- "axum-macros 0.5.0",
+ "axum-macros",
  "base64 0.22.1",
  "bytes",
  "form_urlencoded",
@@ -956,6 +947,7 @@ dependencies = [
  "matchit 0.8.4",
  "memchr",
  "mime",
+ "multer",
  "percent-encoding",
  "pin-project-lite",
  "serde_core",
@@ -990,7 +982,6 @@ dependencies = [
  "sync_wrapper",
  "tower-layer",
  "tower-service",
- "tracing",
 ]
 
 [[package]]
@@ -1014,17 +1005,6 @@ dependencies = [
 
 [[package]]
 name = "axum-macros"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57d123550fa8d071b7255cb0cc04dc302baa6c8c4a79f55701552684d8399bce"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
-name = "axum-macros"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "604fde5e028fea851ce1d8570bbdc034bec850d157f7569d10f347d06808c05c"
@@ -1032,36 +1012,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
-]
-
-[[package]]
-name = "axum-test"
-version = "16.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63e3a443d2608936a02a222da7b746eb412fede7225b3030b64fe9be99eab8dc"
-dependencies = [
- "anyhow",
- "assert-json-diff",
- "auto-future",
- "axum 0.7.9",
- "bytes",
- "bytesize 1.3.3",
- "cookie",
- "http 1.4.0",
- "http-body-util",
- "hyper 1.8.1",
- "hyper-util",
- "mime",
- "pretty_assertions",
- "reserve-port",
- "rust-multipart-rfc7578_2 0.6.1",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "smallvec",
- "tokio",
- "tower 0.5.3",
- "url",
 ]
 
 [[package]]
@@ -1075,15 +1025,16 @@ dependencies = [
  "auto-future",
  "axum 0.8.8",
  "bytes",
- "bytesize 2.3.1",
+ "bytesize",
  "cookie",
  "http 1.4.0",
  "http-body-util",
  "hyper 1.8.1",
  "hyper-util",
  "mime",
+ "pretty_assertions",
  "reserve-port",
- "rust-multipart-rfc7578_2 0.8.0",
+ "rust-multipart-rfc7578_2",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -1319,12 +1270,6 @@ dependencies = [
 
 [[package]]
 name = "bytesize"
-version = "1.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e93abca9e28e0a1b9877922aacb20576e05d4679ffa78c3d6dc22a26a216659"
-
-[[package]]
-name = "bytesize"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bd91ee7b2422bcb158d90ef4d14f75ef67f340943fc4149891dcce8f8b972a3"
@@ -1341,7 +1286,7 @@ dependencies = [
  "log",
  "quick-xml",
  "serde",
- "zip",
+ "zip 2.4.2",
 ]
 
 [[package]]
@@ -2276,6 +2221,7 @@ checksum = "843fba2746e448b37e26a819579957415c8cef339bf08564fe8b7ddbd959573c"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
+ "zlib-rs",
 ]
 
 [[package]]
@@ -3285,8 +3231,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "http 1.4.0",
  "k1s0-auth",
@@ -3320,8 +3266,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "http 1.4.0",
  "k1s0-auth",
@@ -3355,7 +3301,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum 0.8.8",
  "chrono",
  "hex",
  "k1s0-auth",
@@ -3398,8 +3344,8 @@ dependencies = [
  "aws-credential-types",
  "aws-sdk-s3",
  "aws-smithy-types",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -3478,8 +3424,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "jsonwebtoken",
  "k1s0-auth",
@@ -3683,7 +3629,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum 0.8.8",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -3761,8 +3707,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -3826,8 +3772,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "futures-util",
  "k1s0-auth",
@@ -3865,8 +3811,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -3929,8 +3875,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "futures",
  "k1s0-auth",
@@ -3985,8 +3931,8 @@ dependencies = [
  "async-trait",
  "aws-config",
  "aws-sdk-s3",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -4035,7 +3981,7 @@ dependencies = [
  "async-graphql-axum",
  "async-trait",
  "axum 0.8.8",
- "axum-test 17.3.0",
+ "axum-test",
  "base64 0.22.1",
  "chrono",
  "jsonwebtoken",
@@ -4119,8 +4065,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "calamine",
  "chrono",
  "csv",
@@ -4201,7 +4147,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum 0.8.8",
  "k1s0-auth",
  "k1s0-correlation",
  "k1s0-server-common",
@@ -4241,8 +4187,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "handlebars",
  "k1s0-auth",
@@ -4306,8 +4252,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -4358,8 +4304,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "croner",
  "k1s0-auth",
@@ -4408,8 +4354,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -4476,8 +4422,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -4529,8 +4475,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "bytes",
  "chrono",
  "http 1.4.0",
@@ -4585,8 +4531,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "chrono-tz 0.10.4",
  "cron",
@@ -4655,8 +4601,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -4692,7 +4638,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum 0.8.8",
  "http 1.4.0",
  "k1s0-auth",
  "k1s0-correlation",
@@ -4720,8 +4666,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -4780,8 +4726,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -4811,7 +4757,7 @@ dependencies = [
 name = "k1s0-telemetry"
 version = "0.1.0"
 dependencies = [
- "axum 0.7.9",
+ "axum 0.8.8",
  "http 1.4.0",
  "k1s0-telemetry-macros",
  "opentelemetry",
@@ -4859,8 +4805,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
@@ -4947,8 +4893,8 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "hex",
  "k1s0-auth",
@@ -5018,8 +4964,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
- "axum-test 16.4.1",
+ "axum 0.8.8",
+ "axum-test",
  "chrono",
  "http 1.4.0",
  "k1s0-auth",
@@ -6748,22 +6694,6 @@ dependencies = [
 
 [[package]]
 name = "rust-multipart-rfc7578_2"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03b748410c0afdef2ebbe3685a6a862e2ee937127cdaae623336a459451c8d57"
-dependencies = [
- "bytes",
- "futures-core",
- "futures-util",
- "http 0.2.12",
- "mime",
- "mime_guess",
- "rand 0.8.5",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "rust-multipart-rfc7578_2"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c839d037155ebc06a571e305af66ff9fd9063a6e662447051737e1ac75beea41"
@@ -6809,7 +6739,7 @@ version = "0.80.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "442eafa04d985ae671e027481e07a5b70fdb1b2cb5e46d9e074b67ca98e01a0a"
 dependencies = [
- "zip",
+ "zip 2.4.2",
 ]
 
 [[package]]
@@ -8587,11 +8517,11 @@ dependencies = [
 
 [[package]]
 name = "utoipa-swagger-ui"
-version = "8.1.0"
+version = "9.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db4b5ac679cc6dfc5ea3f2823b0291c777750ffd5e13b21137e0f7ac0e8f9617"
+checksum = "d047458f1b5b65237c2f6dc6db136945667f40a7668627b3490b9513a3d43a55"
 dependencies = [
- "axum 0.7.9",
+ "axum 0.8.8",
  "base64 0.22.1",
  "mime_guess",
  "regex",
@@ -8600,7 +8530,7 @@ dependencies = [
  "serde_json",
  "url",
  "utoipa",
- "zip",
+ "zip 3.0.0",
 ]
 
 [[package]]
@@ -9584,6 +9514,26 @@ dependencies = [
  "thiserror 2.0.18",
  "zopfli",
 ]
+
+[[package]]
+name = "zip"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12598812502ed0105f607f941c386f43d441e00148fce9dec3ca5ffb0bde9308"
+dependencies = [
+ "arbitrary",
+ "crc32fast",
+ "flate2",
+ "indexmap 2.13.0",
+ "memchr",
+ "zopfli",
+]
+
+[[package]]
+name = "zlib-rs"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3be3d40e40a133f9c916ee3f9f4fa2d9d63435b5fbe1bfc6d9dae0aa0ada1513"
 
 [[package]]
 name = "zmij"

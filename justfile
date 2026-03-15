@@ -7,10 +7,6 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 default:
     @just --list
 
-# --- モジュール探索ヘルパー（CI と同一パターン） ---
-
-_rust-skip := "CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml"
-
 # --- Lint ---
 
 # 全言語リント
@@ -20,48 +16,63 @@ lint: lint-go lint-rust lint-ts lint-dart
 lint-go:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
-    for mod in "${modules[@]}"; do
-        dir="$(dirname "$mod")"
-        echo "=== Linting $dir ==="
-        (cd "$dir" && golangci-lint run ./... && go vet ./...)
+    # modules.yaml から Go の CI 対象モジュールを取得
+    mapfile -t modules < <(scripts/list-modules.sh --lang go --no-skip-ci)
+    for dir in "${modules[@]}"; do
+        if [ -d "$dir" ] && [ -f "$dir/go.mod" ]; then
+            echo "=== Linting $dir ==="
+            (cd "$dir" && golangci-lint run ./... && go vet ./...)
+        fi
     done
 
-# Rust リント (fmt + clippy)
+# Rust リント (fmt + clippy) — ワークスペース一括実行
 lint-rust:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
-    for manifest in "${manifests[@]}"; do
-        case "$manifest" in
-            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml) continue ;;
-        esac
-        echo "=== lint $(dirname "$manifest") ==="
-        cargo fmt --manifest-path "$manifest" --all -- --check
-        cargo clippy --manifest-path "$manifest" --all-targets -- -D warnings
-    done
+    # regions/system ワークスペース — experimental を除外して一括 fmt + clippy
+    echo "=== fmt regions/system ==="
+    cargo fmt --all --manifest-path regions/system/Cargo.toml -- --check
+    echo "=== clippy regions/system ==="
+    # modules.yaml から experimental Rust モジュールを取得し --exclude に変換
+    excludes=""
+    while IFS= read -r dir; do
+        crate_name=$(basename "$dir")
+        excludes="$excludes --exclude k1s0-${crate_name}"
+    done < <(scripts/list-modules.sh --lang rust --status experimental)
+    cargo clippy --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets -- -D warnings
+    # CLI ワークスペース — k1s0-gui を除外
+    echo "=== fmt CLI ==="
+    cargo fmt --all --manifest-path CLI/Cargo.toml -- --check
+    echo "=== clippy CLI ==="
+    cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
 
 # TypeScript リント
 lint-ts:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+    # modules.yaml から TypeScript の CI 対象モジュールを取得
+    mapfile -t packages < <(scripts/list-modules.sh --lang ts --no-skip-ci)
     for dir in "${packages[@]}"; do
-        echo "=== Linting $dir ==="
-        (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm run lint --if-present && npm run typecheck --if-present)
+        if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
+            echo "=== Linting $dir ==="
+            (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm run lint --if-present && npm run typecheck --if-present)
+        fi
     done
 
 # Dart リント
 lint-dart:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
+    # modules.yaml から Dart の CI 対象モジュールを取得
+    mapfile -t packages < <(scripts/list-modules.sh --lang dart --no-skip-ci)
     for dir in "${packages[@]}"; do
-        echo "=== Linting $dir ==="
-        if grep -q "sdk: flutter" "$dir/pubspec.yaml"; then
-            (cd "$dir" && flutter pub get && flutter analyze)
-        else
-            (cd "$dir" && dart pub get && dart analyze)
+        if [ -d "$dir" ] && [ -f "$dir/pubspec.yaml" ]; then
+            echo "=== Linting $dir ==="
+            if grep -q "sdk: flutter" "$dir/pubspec.yaml"; then
+                (cd "$dir" && flutter pub get && flutter analyze)
+            else
+                (cd "$dir" && dart pub get && dart analyze)
+            fi
         fi
     done
 
@@ -74,47 +85,58 @@ test: test-go test-rust test-ts test-dart
 test-go:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
-    for mod in "${modules[@]}"; do
-        dir="$(dirname "$mod")"
-        echo "=== Testing $dir ==="
-        (cd "$dir" && go test ./... -race -count=1)
+    # modules.yaml から Go の CI 対象モジュールを取得
+    mapfile -t modules < <(scripts/list-modules.sh --lang go --no-skip-ci)
+    for dir in "${modules[@]}"; do
+        if [ -d "$dir" ] && [ -f "$dir/go.mod" ]; then
+            echo "=== Testing $dir ==="
+            (cd "$dir" && go test ./... -race -count=1)
+        fi
     done
 
-# Rust テスト
+# Rust テスト — ワークスペース一括実行
 test-rust:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
-    for manifest in "${manifests[@]}"; do
-        case "$manifest" in
-            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml) continue ;;
-        esac
-        echo "=== Testing $(dirname "$manifest") ==="
-        cargo test --manifest-path "$manifest" --all
-    done
+    # regions/system ワークスペース一括テスト（experimental を除外）
+    echo "=== Testing regions/system ==="
+    excludes=""
+    while IFS= read -r dir; do
+        crate_name=$(basename "$dir")
+        excludes="$excludes --exclude k1s0-${crate_name}"
+    done < <(scripts/list-modules.sh --lang rust --status experimental)
+    cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes
+    # CLI ワークスペース一括テスト（k1s0-gui を除外）
+    echo "=== Testing CLI ==="
+    cargo test --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
 
 # TypeScript テスト
 test-ts:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+    # modules.yaml から TypeScript の CI 対象モジュールを取得
+    mapfile -t packages < <(scripts/list-modules.sh --lang ts --no-skip-ci)
     for dir in "${packages[@]}"; do
-        echo "=== Testing $dir ==="
-        (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm test --if-present)
+        if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
+            echo "=== Testing $dir ==="
+            (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm test --if-present)
+        fi
     done
 
 # Dart テスト
 test-dart:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
+    # modules.yaml から Dart の CI 対象モジュールを取得
+    mapfile -t packages < <(scripts/list-modules.sh --lang dart --no-skip-ci)
     for dir in "${packages[@]}"; do
-        echo "=== Testing $dir ==="
-        if grep -q "sdk: flutter" "$dir/pubspec.yaml"; then
-            (cd "$dir" && flutter pub get && flutter test)
-        else
-            (cd "$dir" && dart pub get && dart test)
+        if [ -d "$dir" ] && [ -f "$dir/pubspec.yaml" ]; then
+            echo "=== Testing $dir ==="
+            if grep -q "sdk: flutter" "$dir/pubspec.yaml"; then
+                (cd "$dir" && flutter pub get && flutter test)
+            else
+                (cd "$dir" && dart pub get && dart test)
+            fi
         fi
     done
 
@@ -127,46 +149,43 @@ fmt: fmt-go fmt-rust fmt-ts fmt-dart
 fmt-go:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
-    for mod in "${modules[@]}"; do
-        dir="$(dirname "$mod")"
-        echo "=== Formatting $dir ==="
-        (cd "$dir" && gofmt -w .)
+    mapfile -t modules < <(scripts/list-modules.sh --lang go --no-skip-ci)
+    for dir in "${modules[@]}"; do
+        if [ -d "$dir" ] && [ -f "$dir/go.mod" ]; then
+            echo "=== Formatting $dir ==="
+            (cd "$dir" && gofmt -w .)
+        fi
     done
 
-# Rust フォーマット
+# Rust フォーマット — ワークスペース一括実行
 fmt-rust:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
-    for manifest in "${manifests[@]}"; do
-        case "$manifest" in
-            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml) continue ;;
-        esac
-        echo "=== Formatting $(dirname "$manifest") ==="
-        cargo fmt --manifest-path "$manifest" --all
-    done
+    echo "=== Formatting regions/system ==="
+    cargo fmt --all --manifest-path regions/system/Cargo.toml
+    echo "=== Formatting CLI ==="
+    cargo fmt --all --manifest-path CLI/Cargo.toml
 
 # TypeScript フォーマット
 fmt-ts:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+    mapfile -t packages < <(scripts/list-modules.sh --lang ts --no-skip-ci)
     for dir in "${packages[@]}"; do
-        echo "=== Formatting $dir ==="
-        (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm run format --if-present)
+        if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
+            echo "=== Formatting $dir ==="
+            (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm run format --if-present)
+        fi
     done
 
 # Dart フォーマット
 fmt-dart:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
+    mapfile -t packages < <(scripts/list-modules.sh --lang dart --no-skip-ci)
     for dir in "${packages[@]}"; do
-        echo "=== Formatting $dir ==="
-        if grep -q "sdk: flutter" "$dir/pubspec.yaml"; then
-            (cd "$dir" && dart format lib/ test/)
-        else
+        if [ -d "$dir" ] && [ -f "$dir/pubspec.yaml" ]; then
+            echo "=== Formatting $dir ==="
             (cd "$dir" && dart format lib/ test/)
         fi
     done
@@ -180,34 +199,38 @@ build: build-go build-rust build-ts
 build-go:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
-    for mod in "${modules[@]}"; do
-        dir="$(dirname "$mod")"
-        echo "=== Building $dir ==="
-        (cd "$dir" && go build ./...)
+    mapfile -t modules < <(scripts/list-modules.sh --lang go --no-skip-ci)
+    for dir in "${modules[@]}"; do
+        if [ -d "$dir" ] && [ -f "$dir/go.mod" ]; then
+            echo "=== Building $dir ==="
+            (cd "$dir" && go build ./...)
+        fi
     done
 
-# Rust ビルド
+# Rust ビルド — ワークスペース一括実行
 build-rust:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
-    for manifest in "${manifests[@]}"; do
-        case "$manifest" in
-            CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml) continue ;;
-        esac
-        echo "=== Building $(dirname "$manifest") ==="
-        cargo build --manifest-path "$manifest" --all-targets
-    done
+    echo "=== Building regions/system ==="
+    excludes=""
+    while IFS= read -r dir; do
+        crate_name=$(basename "$dir")
+        excludes="$excludes --exclude k1s0-${crate_name}"
+    done < <(scripts/list-modules.sh --lang rust --status experimental)
+    cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
+    echo "=== Building CLI ==="
+    cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
 
 # TypeScript ビルド
 build-ts:
     #!/usr/bin/env bash
     set -euo pipefail
-    mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+    mapfile -t packages < <(scripts/list-modules.sh --lang ts --no-skip-ci)
     for dir in "${packages[@]}"; do
-        echo "=== Building $dir ==="
-        (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm run build --if-present)
+        if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
+            echo "=== Building $dir ==="
+            (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm run build --if-present)
+        fi
     done
 
 # --- Proto ---

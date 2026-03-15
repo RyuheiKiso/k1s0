@@ -1,0 +1,1351 @@
+# モジュールレジストリ — リポジトリ内の全モジュールを一元管理する
+# CI・justfile のスキップリストを廃止し、このファイルを唯一の情報源とする
+#
+# フィールド:
+#   path:      モジュールのディレクトリパス
+#   lang:      言語 (rust, go, ts, dart)
+#   status:    stable | experimental | archived
+#   type:      server | library | client | cli | workspace | proto | infra
+#   workspace: Cargo/Go ワークスペースルート（該当する場合）
+#   skip-ci:   true の場合 CI のリント・テスト・ビルドをスキップ
+
+modules:
+  # ============================================================
+  # ワークスペースルート（直接ビルド不可）
+  # ============================================================
+  - path: regions/system
+    lang: rust
+    status: stable
+    type: workspace
+    skip-ci: true
+
+  - path: CLI
+    lang: rust
+    status: stable
+    type: workspace
+    skip-ci: true
+
+  - path: CLI/crates/k1s0-gui
+    lang: rust
+    status: stable
+    type: workspace
+    skip-ci: true
+
+  # ============================================================
+  # CLI
+  # ============================================================
+  - path: CLI/crates/k1s0-cli
+    lang: rust
+    status: stable
+    type: cli
+    workspace: CLI
+
+  - path: CLI/crates/k1s0-core
+    lang: rust
+    status: stable
+    type: cli
+    workspace: CLI
+
+  - path: CLI/crates/k1s0-gui/ui
+    lang: ts
+    status: stable
+    type: cli
+
+  # ============================================================
+  # Proto / API
+  # ============================================================
+  - path: api/proto
+    lang: go
+    status: stable
+    type: proto
+    skip-ci: true
+
+  # ============================================================
+  # Rust サーバー — system tier
+  # ============================================================
+  - path: regions/system/server/rust/api-registry
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/app-registry
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/auth
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/config
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/dlq-manager
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/event-monitor
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/event-store
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/featureflag
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/file
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/graphql-gateway
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/master-maintenance
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/navigation
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/notification
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/policy
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/quota
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/ratelimit
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/rule-engine
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/saga
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/scheduler
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/search
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/service-catalog
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/session
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/tenant
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/vault
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/workflow
+    lang: rust
+    status: stable
+    type: server
+    workspace: regions/system
+
+  # Rust サーバー — experimental（CI は continue-on-error で実行）
+  - path: regions/system/server/rust/ai-agent
+    lang: rust
+    status: experimental
+    type: server
+    workspace: regions/system
+
+  - path: regions/system/server/rust/ai-gateway
+    lang: rust
+    status: experimental
+    type: server
+    workspace: regions/system
+
+  # ============================================================
+  # Go サーバー — system tier
+  # ============================================================
+  - path: regions/system/server/go/bff-proxy
+    lang: go
+    status: stable
+    type: server
+
+  # ============================================================
+  # Rust サーバー — business tier
+  # ============================================================
+  - path: regions/business/accounting/server/rust/domain-master
+    lang: rust
+    status: stable
+    type: server
+
+  # ============================================================
+  # Rust サーバー — service tier
+  # ============================================================
+  - path: regions/service/inventory/server/rust/inventory
+    lang: rust
+    status: stable
+    type: server
+
+  - path: regions/service/order/server/rust/order
+    lang: rust
+    status: stable
+    type: server
+
+  - path: regions/service/payment/server/rust/payment
+    lang: rust
+    status: stable
+    type: server
+
+  # ============================================================
+  # Rust ライブラリ — system tier
+  # ============================================================
+  - path: regions/system/library/rust/app-updater
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/audit-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/auth
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/bb-ai-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/bb-binding
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/bb-core
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/bb-pubsub
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/bb-secretstore
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/bb-statestore
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/building-blocks
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/bulkhead
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/cache
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/circuit-breaker
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/codegen
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/config
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/correlation
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/distributed-lock
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/dlq-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/encryption
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/event-bus
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/eventstore
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/featureflag
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/file-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/graphql-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/health
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/idempotency
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/kafka
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/messaging
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/migration
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/notification-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/outbox
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/pagination
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/quota-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/ratelimit-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/resiliency
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/retry
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/saga
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/scheduler-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/schemaregistry
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/search-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/server-common
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/serviceauth
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/session-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/telemetry
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/telemetry-macros
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/tenant-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/test-helper
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/tracing
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/validation
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/vault-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/webhook-client
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  - path: regions/system/library/rust/websocket
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
+  # ============================================================
+  # Go ライブラリ — system tier
+  # ============================================================
+  - path: regions/system/library/go/app-updater
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/audit-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/auth
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/bb-ai-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/binding
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/building-blocks
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/bulkhead
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/cache
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/circuit-breaker
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/codegen
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/config
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/correlation
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/distributed-lock
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/dlq-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/encryption
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/event-bus
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/eventstore
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/featureflag
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/file-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/graphql-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/health
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/idempotency
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/kafka
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/messaging
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/migration
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/notification-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/outbox
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/pagination
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/pubsub
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/quota-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/ratelimit-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/resiliency
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/retry
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/saga
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/scheduler-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/schemaregistry
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/search-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/secret-store
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/server-common
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/serviceauth
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/session-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/statestore
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/telemetry
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/telemetry-macros
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/tenant-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/test-helper
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/tracing
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/validation
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/vault-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/webhook-client
+    lang: go
+    status: stable
+    type: library
+
+  - path: regions/system/library/go/websocket
+    lang: go
+    status: stable
+    type: library
+
+  # ============================================================
+  # TypeScript ライブラリ — system tier
+  # ============================================================
+  - path: regions/system/library/typescript/app-updater
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/audit-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/auth
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/bb-ai-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/building-blocks
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/bulkhead
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/cache
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/circuit-breaker
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/codegen
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/config
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/correlation
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/distributed-lock
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/dlq-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/encryption
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/event-bus
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/eventstore
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/featureflag
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/file-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/graphql-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/health
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/idempotency
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/kafka
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/messaging
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/migration
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/notification-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/outbox
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/pagination
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/quota-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/ratelimit-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/resiliency
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/retry
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/saga
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/scheduler-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/schemaregistry
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/search-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/server-common
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/serviceauth
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/session-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/telemetry
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/test-helper
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/tracing
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/validation
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/vault-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/webhook-client
+    lang: ts
+    status: stable
+    type: library
+
+  - path: regions/system/library/typescript/websocket
+    lang: ts
+    status: stable
+    type: library
+
+  # ============================================================
+  # Dart ライブラリ — system tier
+  # ============================================================
+  - path: regions/system/library/dart/app_updater
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/audit_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/auth
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/bb-ai-client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/building_blocks
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/bulkhead
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/cache
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/circuit_breaker
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/codegen
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/config
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/correlation
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/distributed_lock
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/dlq_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/encryption
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/event_bus
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/eventstore
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/featureflag
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/file_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/graphql_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/health
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/idempotency
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/kafka
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/messaging
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/migration
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/notification_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/outbox
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/pagination
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/quota_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/ratelimit_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/resiliency
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/retry
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/saga
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/scheduler_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/search_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/server_common
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/serviceauth
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/session_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/telemetry
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/test_helper
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/tracing
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/validation
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/vault_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/webhook_client
+    lang: dart
+    status: stable
+    type: library
+
+  - path: regions/system/library/dart/websocket
+    lang: dart
+    status: stable
+    type: library
+
+  # ============================================================
+  # クライアント — React (TypeScript)
+  # ============================================================
+  - path: regions/system/client/react/system-client
+    lang: ts
+    status: stable
+    type: client
+
+  - path: regions/system/client/react/app-catalog
+    lang: ts
+    status: stable
+    type: client
+
+  - path: regions/system/server/rust/master-maintenance/client/react/app
+    lang: ts
+    status: stable
+    type: client
+
+  - path: regions/business/accounting/client/react/domain-master
+    lang: ts
+    status: stable
+    type: client
+
+  - path: regions/service/inventory/client/react/inventory
+    lang: ts
+    status: stable
+    type: client
+
+  - path: regions/service/order/client/react/order
+    lang: ts
+    status: stable
+    type: client
+
+  - path: regions/service/payment/client/react/payment
+    lang: ts
+    status: stable
+    type: client
+
+  # ============================================================
+  # クライアント — Flutter (Dart)
+  # ============================================================
+  - path: regions/system/client/flutter/system_client
+    lang: dart
+    status: stable
+    type: client
+
+  - path: regions/business/accounting/client/flutter/domain_master
+    lang: dart
+    status: stable
+    type: client
+
+  - path: regions/service/inventory/client/flutter/inventory
+    lang: dart
+    status: stable
+    type: client
+
+  - path: regions/service/order/client/flutter/order
+    lang: dart
+    status: stable
+    type: client
+
+  - path: regions/service/payment/client/flutter/payment
+    lang: dart
+    status: stable
+    type: client

@@ -230,7 +230,9 @@ impl Metrics {
         let encoder = TextEncoder::new();
         let metric_families = self.registry.gather();
         let mut buffer = Vec::new();
-        encoder.encode(&metric_families, &mut buffer).unwrap();
-        String::from_utf8(buffer).unwrap()
+        encoder.encode(&metric_families, &mut buffer)
+            .expect("Prometheus TextEncoder によるメトリクスエンコードに失敗");
+        String::from_utf8(buffer)
+            .expect("Prometheus テキスト出力は常に有効な UTF-8")
     }
 }

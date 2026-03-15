@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 # .github/workflows/app-registry-ci.yaml
-# Per-service CI pipeline for app-registry server
+# Per-service CI pipeline for app-registry server（reusable workflow 経由）
 name: app-registry-ci
 
 on:
@@ -14,41 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
-        with:
-          components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: regions/system
-      - name: Format check
-        run: cargo fmt --manifest-path regions/system/server/rust/app-registry/Cargo.toml --all -- --check
-      - name: Clippy
-        run: cargo clippy --manifest-path regions/system/Cargo.toml -p k1s0-app-registry --all-targets -- -D warnings
-
-  test:
-    needs: lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: regions/system
-      - name: Run tests
-        run: cargo test --manifest-path regions/system/Cargo.toml -p k1s0-app-registry --all
-
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: regions/system
-      - name: Build
-        run: cargo build --manifest-path regions/system/Cargo.toml -p k1s0-app-registry --all-targets
+  ci:
+    uses: ./.github/workflows/_rust-service-ci.yaml
+    with:
+      service-path: regions/system/server/rust/app-registry
+      package-name: k1s0-app-registry
+      workspace-path: regions/system

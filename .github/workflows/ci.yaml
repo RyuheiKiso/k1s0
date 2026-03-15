@@ -54,10 +54,9 @@ jobs:
               - 'scripts/**/*.sh'
 
   # モジュール単位の変更検出ジョブ（各言語ジョブで影響範囲を絞り込むために使用）
-  # スクリプト失敗時は下流ジョブをブロックしないよう continue-on-error を設定
+  # 検出失敗は即座に可視化されるべきため continue-on-error は設定しない
   detect-modules:
     runs-on: ubuntu-latest
-    continue-on-error: true
     outputs:
       go_modules: ${{ steps.modules.outputs.go_modules }}
       rust_modules: ${{ steps.modules.outputs.rust_modules }}
@@ -97,6 +96,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+          cache-dependency-path: "go.work.sum"
       - name: Install golangci-lint
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
@@ -134,32 +134,63 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
+      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            regions/system
+            CLI
       - name: Format check Rust crates
         shell: bash
+        env:
+          AFFECTED_MODULES: ${{ needs.detect-modules.outputs.rust_modules }}
         run: |
-          mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
-          for manifest in "${manifests[@]}"; do
-            case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
-                continue
-                ;;
-            esac
-            echo "=== fmt $(dirname "$manifest") ==="
-            cargo fmt --manifest-path "$manifest" --all -- --check
-          done
+          # 影響モジュールが検出された場合はそのモジュールのみ処理する
+          if [ -n "$AFFECTED_MODULES" ]; then
+            IFS=',' read -ra entries <<< "$AFFECTED_MODULES"
+            for entry in "${entries[@]}"; do
+              dir="${entry#rust:}"
+              if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+                echo "=== fmt $dir ==="
+                cargo fmt --manifest-path "$dir/Cargo.toml" --all -- --check
+              fi
+            done
+          else
+            # ワークスペース一括フォーマットチェック（O(n) → O(1)）
+            echo "=== fmt regions/system ==="
+            cargo fmt --all --manifest-path regions/system/Cargo.toml -- --check
+            echo "=== fmt CLI ==="
+            cargo fmt --all --manifest-path CLI/Cargo.toml -- --check
+          fi
       - name: Clippy check Rust crates
         shell: bash
+        env:
+          AFFECTED_MODULES: ${{ needs.detect-modules.outputs.rust_modules }}
         run: |
-          mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
-          for manifest in "${manifests[@]}"; do
-            case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
-                continue
-                ;;
-            esac
-            echo "=== clippy $(dirname "$manifest") ==="
-            cargo clippy --manifest-path "$manifest" --all-targets -- -D warnings
-          done
+          # 影響モジュールが検出された場合はそのモジュールのみ処理する
+          if [ -n "$AFFECTED_MODULES" ]; then
+            IFS=',' read -ra entries <<< "$AFFECTED_MODULES"
+            for entry in "${entries[@]}"; do
+              dir="${entry#rust:}"
+              if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+                echo "=== clippy $dir ==="
+                cargo clippy --manifest-path "$dir/Cargo.toml" --all-targets -- -D warnings
+              fi
+            done
+          else
+            # ワークスペース一括 Clippy（experimental クレートを除外）
+            # modules.yaml から experimental モジュールを取得して --exclude に変換
+            chmod +x scripts/list-modules.sh
+            excludes=""
+            while IFS= read -r dir; do
+              crate_name=$(basename "$dir")
+              excludes="$excludes --exclude k1s0-${crate_name}"
+            done < <(scripts/list-modules.sh --lang rust --status experimental)
+            echo "=== clippy regions/system ==="
+            cargo clippy --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets -- -D warnings
+            echo "=== clippy CLI ==="
+            cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
+          fi
 
   lint-ts:
     needs: [detect-changes, detect-modules]
@@ -170,23 +201,47 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
       - name: Lint TypeScript packages
         shell: bash
+        env:
+          AFFECTED_MODULES: ${{ needs.detect-modules.outputs.ts_modules }}
         run: |
-          mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
-          for package_dir in "${packages[@]}"; do
-            echo "=== Linting $package_dir ==="
-            (
-              cd "$package_dir"
-              if [ -f package-lock.json ]; then
-                npm ci
-              else
-                npm install --no-package-lock
+          # 影響モジュールが検出された場合はそのモジュールのみ処理する
+          if [ -n "$AFFECTED_MODULES" ]; then
+            IFS=',' read -ra entries <<< "$AFFECTED_MODULES"
+            for entry in "${entries[@]}"; do
+              dir="${entry#ts:}"
+              if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
+                echo "=== Linting $dir ==="
+                (
+                  cd "$dir"
+                  if [ -f package-lock.json ]; then
+                    npm ci
+                  else
+                    npm install --no-package-lock
+                  fi
+                  npm run lint --if-present
+                  npm run typecheck --if-present
+                )
               fi
-              npm run lint --if-present
-              npm run typecheck --if-present
-            )
-          done
+            done
+          else
+            mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+            for package_dir in "${packages[@]}"; do
+              echo "=== Linting $package_dir ==="
+              (
+                cd "$package_dir"
+                if [ -f package-lock.json ]; then
+                  npm ci
+                else
+                  npm install --no-package-lock
+                fi
+                npm run lint --if-present
+                npm run typecheck --if-present
+              )
+            done
+          fi
 
   lint-dart:
     needs: [detect-changes, detect-modules]
@@ -197,26 +252,42 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
+      # Dart/Flutter パッケージキャッシュ
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: dart-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: dart-pub-
       - name: Lint Dart and Flutter packages
         shell: bash
+        env:
+          AFFECTED_MODULES: ${{ needs.detect-modules.outputs.dart_modules }}
         run: |
-          mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
-          for package_dir in "${packages[@]}"; do
-            echo "=== Linting $package_dir ==="
-            if grep -q "sdk: flutter" "$package_dir/pubspec.yaml"; then
-              (
-                cd "$package_dir"
-                flutter pub get
-                flutter analyze
-              )
-            else
-              (
-                cd "$package_dir"
-                dart pub get
-                dart analyze
-              )
-            fi
-          done
+          # 影響モジュールが検出された場合はそのモジュールのみ処理する
+          if [ -n "$AFFECTED_MODULES" ]; then
+            IFS=',' read -ra entries <<< "$AFFECTED_MODULES"
+            for entry in "${entries[@]}"; do
+              dir="${entry#dart:}"
+              if [ -d "$dir" ] && [ -f "$dir/pubspec.yaml" ]; then
+                echo "=== Linting $dir ==="
+                if grep -q "sdk: flutter" "$dir/pubspec.yaml"; then
+                  (cd "$dir" && flutter pub get && flutter analyze)
+                else
+                  (cd "$dir" && dart pub get && dart analyze)
+                fi
+              fi
+            done
+          else
+            mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
+            for package_dir in "${packages[@]}"; do
+              echo "=== Linting $package_dir ==="
+              if grep -q "sdk: flutter" "$package_dir/pubspec.yaml"; then
+                (cd "$package_dir" && flutter pub get && flutter analyze)
+              else
+                (cd "$package_dir" && dart pub get && dart analyze)
+              fi
+            done
+          fi
 
   # シェルスクリプトの静的解析ジョブ
   lint-shell:
@@ -255,6 +326,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+          cache-dependency-path: "go.work.sum"
       - name: Test Go modules
         shell: bash
         env:
@@ -288,24 +360,45 @@ jobs:
           path: coverage/
 
   test-rust:
-    needs: lint-rust
+    needs: [lint-rust, detect-modules]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            regions/system
+            CLI
       - name: Test Rust crates
         shell: bash
+        env:
+          AFFECTED_MODULES: ${{ needs.detect-modules.outputs.rust_modules }}
         run: |
-          mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
-          for manifest in "${manifests[@]}"; do
-            case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
-                continue
-                ;;
-            esac
-            echo "=== Testing $(dirname "$manifest") ==="
-            cargo test --manifest-path "$manifest" --all
-          done
+          # 影響モジュールが検出された場合はそのモジュールのみテストする
+          if [ -n "$AFFECTED_MODULES" ]; then
+            IFS=',' read -ra entries <<< "$AFFECTED_MODULES"
+            for entry in "${entries[@]}"; do
+              dir="${entry#rust:}"
+              if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+                echo "=== Testing $dir ==="
+                cargo test --manifest-path "$dir/Cargo.toml" --all
+              fi
+            done
+          else
+            # ワークスペース一括テスト（O(n) → O(1)）
+            chmod +x scripts/list-modules.sh
+            excludes=""
+            while IFS= read -r dir; do
+              crate_name=$(basename "$dir")
+              excludes="$excludes --exclude k1s0-${crate_name}"
+            done < <(scripts/list-modules.sh --lang rust --status experimental)
+            echo "=== Testing regions/system ==="
+            cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes
+            echo "=== Testing CLI ==="
+            cargo test --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
+          fi
 
   # Rust テストカバレッジ計測ジョブ（cargo-tarpaulin を使用）
   coverage-rust:
@@ -314,6 +407,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.93
+      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            regions/system
+            CLI
       - name: cargo-tarpaulin インストール（プリビルドバイナリ）
         run: |
           TARPAULIN_VERSION="0.31.2"
@@ -359,6 +458,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
       - name: Test TypeScript packages
         shell: bash
         run: |
@@ -385,6 +485,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
       - name: TypeScript テストカバレッジ計測
         shell: bash
         run: |
@@ -421,6 +522,12 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
+      # Dart/Flutter パッケージキャッシュ
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: dart-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: dart-pub-
       - name: Test Dart and Flutter packages
         shell: bash
         run: |
@@ -451,6 +558,12 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
+      # Dart/Flutter パッケージキャッシュ
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: dart-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: dart-pub-
       - name: Dart/Flutter テストカバレッジ計測
         shell: bash
         run: |
@@ -493,18 +606,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+          cache-dependency-path: "go.work.sum"
       - name: Build Go modules
         shell: bash
         run: |
-          mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
-          for mod in "${modules[@]}"; do
-            dir="$(dirname "$mod")"
-            echo "=== Building $dir ==="
-            (
-              cd "$dir"
-              go build ./...
-            )
-          done
+          # go.work 一括ビルド（O(n) → O(1)）
+          echo "=== Building all Go modules via go.work ==="
+          go build ./...
 
   build-rust:
     needs: test-rust
@@ -512,19 +620,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.93
+      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            regions/system
+            CLI
       - name: Build Rust crates
         shell: bash
         run: |
-          mapfile -t manifests < <(rg --files -g 'Cargo.toml' regions CLI | sort)
-          for manifest in "${manifests[@]}"; do
-            case "$manifest" in
-              CLI/Cargo.toml|regions/system/Cargo.toml|CLI/crates/k1s0-gui/Cargo.toml|regions/system/server/rust/ai-agent/Cargo.toml|regions/system/server/rust/ai-gateway/Cargo.toml)
-                continue
-                ;;
-            esac
-            echo "=== Building $(dirname "$manifest") ==="
-            cargo build --manifest-path "$manifest" --all-targets
-          done
+          # ワークスペース一括ビルド（O(n) → O(1)）
+          chmod +x scripts/list-modules.sh
+          excludes=""
+          while IFS= read -r dir; do
+            crate_name=$(basename "$dir")
+            excludes="$excludes --exclude k1s0-${crate_name}"
+          done < <(scripts/list-modules.sh --lang rust --status experimental)
+          echo "=== Building regions/system ==="
+          cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
+          echo "=== Building CLI ==="
+          cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
 
   build-ts:
     needs: test-ts
@@ -534,6 +649,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
       - name: Build TypeScript packages
         shell: bash
         run: |
@@ -639,6 +755,42 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build validation summary
         run: echo "All language and Docker builds passed"
+
+  # modules.yaml とディスク上のマニフェストの整合性を検証するジョブ
+  # 未登録のモジュールがあれば warning で通知する
+  validate-modules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: modules.yaml とディスク上マニフェストの整合性チェック
+        shell: bash
+        run: |
+          chmod +x scripts/list-modules.sh
+          # modules.yaml に登録されているパスを取得
+          registered=$(scripts/list-modules.sh | sort)
+          # ディスク上の全マニフェストからモジュールパスを取得
+          disk_modules=$(
+            {
+              # Rust マニフェスト
+              find regions CLI -name 'Cargo.toml' -not -path '*/target/*' 2>/dev/null | while read -r f; do dirname "$f"; done
+              # Go マニフェスト
+              find regions CLI -name 'go.mod' -not -path '*/vendor/*' 2>/dev/null | while read -r f; do dirname "$f"; done
+              # TypeScript マニフェスト
+              find regions CLI -name 'package.json' -not -path '*/node_modules/*' 2>/dev/null | while read -r f; do dirname "$f"; done
+              # Dart マニフェスト
+              find regions CLI -name 'pubspec.yaml' 2>/dev/null | while read -r f; do dirname "$f"; done
+            } | sort -u
+          )
+          # 差分を検出
+          unregistered=$(comm -23 <(echo "$disk_modules") <(echo "$registered"))
+          if [ -n "$unregistered" ]; then
+            echo "::warning::以下のモジュールが modules.yaml に未登録です:"
+            echo "$unregistered" | while read -r path; do
+              echo "::warning::  - $path"
+            done
+          else
+            echo "modules.yaml とディスク上のマニフェストが一致しています"
+          fi
 
   security-scan:
     runs-on: ubuntu-latest

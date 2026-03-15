@@ -2,15 +2,15 @@
 
 ## 概要
 
-CI (`ci.yaml`) と同一のモジュール探索パターン・ビルド手順をローカルで実行するための just レシピ集。
-`rg` (ripgrep) でモノリポ内の `regions/` と `CLI/` からモジュールを自動探索し、各言語のツールチェーンで lint / test / build / format を実行する。
+CI (`ci.yaml`) と同一のビルド手順をローカルで実行するための just レシピ集。
+`modules.yaml`（モジュールレジストリ）を `scripts/list-modules.sh` で読み取り、各言語のツールチェーンで lint / test / build / format を実行する。
+Rust / Go はワークスペース一括操作を採用し、O(1) の起動回数でビルドを完了する。
 
 ## 前提条件
 
 | ツール | バージョン | 用途 |
 |--------|-----------|------|
 | [just](https://github.com/casey/just) | >= 1.0 | コマンドランナー |
-| [rg](https://github.com/BurntSushi/ripgrep) (ripgrep) | >= 14.0 | モジュール探索 |
 | Go | 1.24 | Go ビルド・テスト |
 | golangci-lint | latest | Go リント |
 | Rust (cargo) | 1.93 | Rust ビルド・テスト |
@@ -74,11 +74,21 @@ just proto
 
 ## CI との整合性
 
-justfile のモジュール探索パターンは CI (`ci.yaml`) と完全に一致している。
+justfile と CI (`ci.yaml`) はともに `modules.yaml`（モジュールレジストリ）を唯一の情報源として使用する。
 
-- **Go**: `rg --files -g 'go.mod' regions CLI | sort` で `go.mod` を持つ全ディレクトリを探索
-- **Rust**: `rg --files -g 'Cargo.toml' regions CLI | sort` で探索し、ワークスペースルート (`CLI/Cargo.toml`, `regions/system/Cargo.toml`, `CLI/crates/k1s0-gui/Cargo.toml`) および実験系クレート (`regions/system/server/rust/ai-agent/Cargo.toml`, `regions/system/server/rust/ai-gateway/Cargo.toml`) をスキップ
-- **TypeScript**: `rg --files -g 'package.json' regions CLI | sort` で `package.json` を持つディレクトリを探索
-- **Dart**: `rg --files -g 'pubspec.yaml' regions CLI | sort` で `pubspec.yaml` を持つディレクトリを探索し、Flutter かどうかを `sdk: flutter` の有無で判定
+### モジュール探索
 
-CI の探索ロジックを変更した場合は、justfile も同時に更新すること。
+- **全言語共通**: `scripts/list-modules.sh --lang <LANG> --no-skip-ci` で `modules.yaml` から CI 対象モジュールを取得
+- **スキップ対象**: `modules.yaml` の `skip-ci: true` フラグで管理（ワークスペースルート、proto ディレクトリ等）
+- **experimental クレート**: `modules.yaml` の `status: experimental` で管理（CI では `--exclude` に変換）
+
+### ワークスペース一括操作
+
+- **Rust**: `cargo fmt/clippy/test/build --manifest-path regions/system/Cargo.toml --workspace` でワークスペース一括実行。experimental クレートは `--exclude` で除外
+- **Go**: `go build ./...` で `go.work` 経由の一括ビルド
+- **TypeScript / Dart**: 個別モジュール反復（ワークスペース機構がないため）
+
+### 新サービス追加時
+
+1. `modules.yaml` にエントリを追加する
+2. justfile・CI の両方に自動的に反映される（コード変更不要）

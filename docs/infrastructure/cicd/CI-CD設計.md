@@ -18,24 +18,30 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 
 | ワークフロー      | ファイル          | トリガー                    | 目的                     |
 | ----------------- | ----------------- | --------------------------- | ------------------------ |
-| CI                | `ci.yaml`         | PR 作成・更新時             | lint → test → build     |
+| CI                | `ci.yaml`         | PR 作成・更新時             | lint → test → build + モジュールレジストリ検証 |
 | Deploy            | `deploy.yaml`     | main マージ時               | image push → deploy     |
+| **Rust サービス CI (reusable)** | `_rust-service-ci.yaml` | `workflow_call` | Rust サービスの共通 lint → test → build |
+| **Go サービス CI (reusable)** | `_go-service-ci.yaml` | `workflow_call` | Go サービスの共通 lint → test → build |
+| **サービス Deploy (reusable)** | `_service-deploy.yaml` | `workflow_call` | サービスの共通 build-push → deploy (dev→staging→prod) |
 | Proto Check       | `proto.yaml`      | `api/proto/**` 変更時       | proto lint + breaking（ci.yaml の lint-proto ジョブでも実行） |
 | Security Scan     | `security.yaml`   | 日次 + PR 時                | 脆弱性スキャン           |
 | Kong Config Sync  | `kong-sync.yaml`  | main マージ時 (`infra/kong/**` 変更) | dev → staging → prod    |
 | OpenAPI Lint      | `api-lint.yaml`   | push (`**/api/openapi/**`)  | OpenAPI バリデーション & SDK 生成 |
 | Tauri GUI Build   | `tauri-build.yaml` | PR 時 + main マージ時 (`CLI/crates/k1s0-gui/**` 変更) | GUI クロスプラットフォームビルド（[TauriGUI設計](../../cli/gui/TauriGUI設計.md) 参照） |
-| auth CI           | `auth-ci.yaml`    | PR 時 (`regions/system/server/rust/auth/**`) | auth-server 専用 lint → test → build |
-| config CI         | `config-ci.yaml`  | PR 時 (`regions/system/server/rust/config/**`) | config-server 専用 CI |
-| saga CI           | `saga-ci.yaml`    | PR 時 (`regions/system/server/rust/saga/**`) | saga-server 専用 CI |
-| dlq-manager CI    | `dlq-manager-ci.yaml` | PR 時 (`regions/system/server/rust/dlq-manager/**`) | dlq-manager 専用 lint → test → build |
-| bff-proxy CI      | `bff-proxy-ci.yaml` | PR 時 (`regions/system/server/go/bff-proxy/**`) | bff-proxy 専用 lint → test → build（Go） |
+| auth CI           | `auth-ci.yaml`    | PR 時 (`regions/system/server/rust/auth/**`) | `_rust-service-ci.yaml` 呼び出し |
+| app-registry CI   | `app-registry-ci.yaml` | PR 時 (`regions/system/server/rust/app-registry/**`) | `_rust-service-ci.yaml` 呼び出し |
+| config CI         | `config-ci.yaml`  | PR 時 (`regions/system/server/rust/config/**`) | `_rust-service-ci.yaml` 呼び出し |
+| saga CI           | `saga-ci.yaml`    | PR 時 (`regions/system/server/rust/saga/**`) | `_rust-service-ci.yaml` 呼び出し |
+| dlq-manager CI    | `dlq-manager-ci.yaml` | PR 時 (`regions/system/server/rust/dlq-manager/**`) | `_rust-service-ci.yaml` 呼び出し |
+| order CI          | `order-ci.yaml`   | PR 時 (`regions/service/order/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
+| bff-proxy CI      | `bff-proxy-ci.yaml` | PR 時 (`regions/system/server/go/bff-proxy/**`) | `_go-service-ci.yaml` 呼び出し |
 | Integration Test  | `integration-test.yaml` | PR 時 (`regions/system/server/rust/**`) | postgres:17 + kafka:7.7.1 起動、4サービス統合テスト |
-| auth Deploy       | `auth-deploy.yaml` | main マージ時 (`regions/system/server/rust/auth/**`) | auth-server 専用デプロイ |
-| config Deploy     | `config-deploy.yaml` | main マージ時 (`regions/system/server/rust/config/**`) | config-server 専用デプロイ |
-| saga Deploy       | `saga-deploy.yaml` | main マージ時 (`regions/system/server/rust/saga/**`) | saga-server 専用デプロイ（dev→staging→prod）|
-| dlq-manager Deploy | `dlq-manager-deploy.yaml` | main マージ時 (`regions/system/server/rust/dlq-manager/**`) | dlq-manager 専用デプロイ（dev→staging→prod）|
-| bff-proxy Deploy  | `bff-proxy-deploy.yaml` | main マージ時 (`regions/system/server/go/bff-proxy/**`) | bff-proxy 専用デプロイ（dev→staging→prod）|
+| auth Deploy       | `auth-deploy.yaml` | main マージ時 (`regions/system/server/rust/auth/**`) | `_service-deploy.yaml` 呼び出し |
+| app-registry Deploy | `app-registry-deploy.yaml` | main マージ時 (`regions/system/server/rust/app-registry/**`) | `_service-deploy.yaml` 呼び出し |
+| config Deploy     | `config-deploy.yaml` | main マージ時 (`regions/system/server/rust/config/**`) | `_service-deploy.yaml` 呼び出し |
+| saga Deploy       | `saga-deploy.yaml` | main マージ時 (`regions/system/server/rust/saga/**`) | `_service-deploy.yaml` 呼び出し |
+| dlq-manager Deploy | `dlq-manager-deploy.yaml` | main マージ時 (`regions/system/server/rust/dlq-manager/**`) | `_service-deploy.yaml` 呼び出し |
+| bff-proxy Deploy  | `bff-proxy-deploy.yaml` | main マージ時 (`regions/system/server/go/bff-proxy/**`) | `_service-deploy.yaml` 呼び出し (port-forward) |
 | App Publish       | `publish-app.yaml` | Git タグ push (`v*`) + `regions/**/flutter/**` 変更 | Flutter デスクトップアプリのクロスプラットフォームビルド・署名・Ceph RGW へのアップロード・App Registry へのメタデータ登録（[アプリ配布基盤設計](../distribution/アプリ配布基盤設計.md) 参照）|
 | coverage-rust     | `coverage-rust.yaml` | PR 時 (`regions/**/rust/**`) | Rust テストカバレッジを cargo-tarpaulin で計測し、JSON + HTML レポートをアーティファクトとしてアップロードする |
 
@@ -775,13 +781,102 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 
 | 言語   | キャッシュ対象                | アクション                |
 | ------ | ----------------------------- | ------------------------- |
-| Go     | `~/go/pkg/mod`               | `actions/cache`           |
-| Rust   | `~/.cargo`, `target/`        | `actions/cache`           |
-| Node   | `node_modules/`              | `actions/setup-node` 内蔵 |
-| Dart   | `~/.pub-cache`               | `actions/cache`           |
+| Go     | `~/go/pkg/mod`               | `actions/setup-go@v5` 内蔵 (`cache-dependency-path: go.work.sum`) |
+| Rust   | `~/.cargo`, `target/`        | `Swatinem/rust-cache@v2` (`workspaces: regions/system, CLI`) |
+| Node   | npm グローバルキャッシュ      | `actions/setup-node@v4` 内蔵 (`cache: 'npm'`) |
+| Dart   | `~/.pub-cache`               | `actions/cache@v4` (`key: dart-pub-${{ hashFiles('**/pubspec.lock') }}`) |
 | Docker | Docker layer cache           | `cache-from: type=gha`   |
 
 ---
+
+## モジュールレジストリ（modules.yaml）
+
+リポジトリルートの `modules.yaml` が全モジュールの唯一の情報源（Single Source of Truth）として機能する。CI・justfile のハードコードされたスキップリストを廃止し、このファイルで一元管理する。
+
+### フィールド定義
+
+| フィールド | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| `path` | string | 必須 | モジュールのディレクトリパス |
+| `lang` | string | 必須 | 言語（`rust`, `go`, `ts`, `dart`） |
+| `status` | string | 必須 | `stable` / `experimental` / `archived` |
+| `type` | string | 必須 | `server` / `library` / `client` / `cli` / `workspace` / `proto` |
+| `workspace` | string | 任意 | Cargo/Go ワークスペースルートパス |
+| `skip-ci` | bool | 任意 | `true` の場合 CI のリント・テスト・ビルドをスキップ |
+
+### フィルタリングスクリプト
+
+`scripts/list-modules.sh` で `modules.yaml` をフィルタリングする。`yq` がある場合はそちらを使用し、なければ bash フォールバックで動作する。
+
+```bash
+# stable な Rust サーバーのみ取得
+scripts/list-modules.sh --lang rust --status stable --type server
+
+# CI 対象の全 Go モジュール（skip-ci を除外）
+scripts/list-modules.sh --lang go --no-skip-ci
+
+# experimental モジュールの一覧
+scripts/list-modules.sh --status experimental
+```
+
+### CI バリデーション
+
+`ci.yaml` の `validate-modules` ジョブがディスク上のマニフェストと `modules.yaml` の差分を検出し、未登録モジュールを warning で通知する。
+
+## Reusable Workflow アーキテクチャ
+
+サービス別 CI/Deploy ワークフローの重複を排除するため、3つの reusable workflow を定義している。
+
+### `_rust-service-ci.yaml`
+
+Rust サービス用の共通 CI パイプライン（lint → test → build）。
+
+| 入力 | 必須 | 説明 |
+|------|------|------|
+| `service-path` | 必須 | サービスのディレクトリパス |
+| `package-name` | 必須 | Cargo パッケージ名 |
+| `workspace-path` | 必須 | Cargo workspace のルートパス |
+| `rust-version` | 任意 | Rust ツールチェインバージョン（デフォルト: 1.93） |
+| `standalone` | 任意 | ワークスペースの `-p` フラグを使わないモード（デフォルト: false） |
+
+### `_go-service-ci.yaml`
+
+Go サービス用の共通 CI パイプライン（lint → test → build）。
+
+| 入力 | 必須 | 説明 |
+|------|------|------|
+| `service-path` | 必須 | サービスのディレクトリパス |
+| `go-version` | 任意 | Go バージョン（デフォルト: 1.24） |
+| `golangci-lint-version` | 任意 | golangci-lint バージョン（デフォルト: v1.64.8） |
+
+### `_service-deploy.yaml`
+
+サービスデプロイ用の共通パイプライン（build-push → deploy-dev → deploy-staging → deploy-prod）。
+
+| 入力 | 必須 | 説明 |
+|------|------|------|
+| `service-name` | 必須 | サービス名（Helm リリース名） |
+| `context-path` | 必須 | Docker ビルドコンテキストのパス |
+| `registry-project` | 必須 | Harbor レジストリ内のプロジェクト名 |
+| `helm-chart-path` | 必須 | Helm チャートの相対パス |
+| `namespace` | 必須 | Kubernetes namespace |
+| `dockerfile` | 任意 | カスタム Dockerfile パス |
+| `prod-url` | 任意 | prod 環境の URL |
+| `health-check-method` | 任意 | `busybox`（Rust）/ `port-forward`（Go） |
+
+### 新サービス追加手順
+
+1. `modules.yaml` にモジュールエントリを追加
+2. `.github/workflows/{サービス名}-ci.yaml`（~20行）を作成し、reusable workflow を呼び出す
+3. `.github/workflows/{サービス名}-deploy.yaml`（~25行）を作成し、reusable workflow を呼び出す
+
+## ワークスペースレベルビルド
+
+CI の Rust/Go ビルドは個別マニフェスト反復ではなくワークスペース一括操作を採用し、起動回数を O(n) → O(1) に削減している。
+
+- **Rust**: `cargo fmt/clippy/test/build --manifest-path regions/system/Cargo.toml --workspace` + `--exclude` で experimental クレートを除外
+- **Go**: `go build ./...` で `go.work` 経由の一括ビルド
+- **影響範囲検出時**: `detect-affected-modules.sh` + `AFFECTED_MODULES` 環境変数で影響モジュールのみを個別実行（差分ビルド）
 
 ## 関連ドキュメント
 

@@ -1,13 +1,16 @@
-# docker-compose.yaml
+# docker-compose.yaml — 安全なベース設定
+#
+# このファイルは本番/CI 環境でも安全に使用できるベース設定です。
+# 認証バイパスやセキュリティ緩和設定は含まれていません。
 #
 # ポート環境変数: 全ホストポートは ${VAR:-default} 形式で外部から変更可能。
 # .env.example を .env にコピーして設定する。.env がない場合はデフォルト値が使われる。
 # 共用開発サーバーでは COMPOSE_PROJECT_NAME でコンテナ・ボリューム・ネットワークを分離する。
 # 詳細: docs/infrastructure/devenv/共用開発サーバー設計.md
-
-# NOTE: CARGO_FEATURES ビルド引数で dev-auth-bypass フィーチャーを有効化し、
-# ALLOW_INSECURE_NO_AUTH=true 環境変数でランタイム時に認証バイパスを発動させる。
-# 本番 Dockerfile ではビルド引数を指定しないため、バイパスコードはバイナリに含まれない。
+#
+# 開発時の認証バイパス設定は docker-compose.override.yaml に分離されています。
+# `docker compose up` で自動マージされます（Docker Compose のデフォルト動作）。
+# 本番/CI では `docker compose -f docker-compose.yaml up` でベース設定のみ使用してください。
 
 x-rust-healthcheck: &rust-healthcheck
   test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
@@ -202,7 +205,7 @@ services:
       - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
     ports:
       - "${KONG_PROXY_HOST_PORT:-8000}:8000"    # Proxy
-      - "${KONG_ADMIN_HOST_PORT:-8001}:8001"    # Admin API
+      # Admin API ポートは docker-compose.override.yaml で定義（開発時のみ公開）
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 10s
@@ -238,8 +241,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/config/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${CONFIG_REST_HOST_PORT:-8084}:8080"
@@ -247,7 +248,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -263,8 +263,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/saga/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${SAGA_REST_HOST_PORT:-8085}:8080"
@@ -272,7 +270,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -288,15 +285,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/dlq-manager/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${DLQ_REST_HOST_PORT:-8086}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -310,8 +304,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/featureflag/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${FEATUREFLAG_REST_HOST_PORT:-8087}:8080"
@@ -319,7 +311,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -331,8 +322,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/ratelimit/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${RATELIMIT_REST_HOST_PORT:-8088}:8080"
@@ -340,7 +329,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -354,8 +342,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/tenant/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${TENANT_REST_HOST_PORT:-8089}:8080"
@@ -363,7 +349,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -377,8 +362,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/vault/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${VAULT_SVC_REST_HOST_PORT:-8091}:8080"
@@ -386,7 +369,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -400,15 +382,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/api-registry/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${API_REGISTRY_REST_HOST_PORT:-8093}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -420,15 +399,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/app-registry/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${APP_REGISTRY_REST_HOST_PORT:-8094}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -442,8 +418,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/event-monitor/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${EVENT_MONITOR_REST_HOST_PORT:-8095}:8080"
@@ -451,7 +425,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -465,15 +438,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/event-store/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${EVENT_STORE_REST_HOST_PORT:-8096}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -485,15 +455,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/file/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${FILE_REST_HOST_PORT:-8097}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -505,8 +472,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/master-maintenance/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}:8080"
@@ -514,7 +479,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -526,8 +490,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/navigation/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${NAVIGATION_REST_HOST_PORT:-8099}:8080"
@@ -535,7 +497,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -547,15 +508,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/notification/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${NOTIFICATION_REST_HOST_PORT:-8100}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -569,8 +527,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/policy/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${POLICY_REST_HOST_PORT:-8101}:8080"
@@ -578,7 +534,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -590,15 +545,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/quota/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${QUOTA_REST_HOST_PORT:-8102}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -612,8 +564,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/rule-engine/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${RULE_ENGINE_REST_HOST_PORT:-8103}:8080"
@@ -621,7 +571,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -633,15 +582,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/scheduler/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${SCHEDULER_REST_HOST_PORT:-8104}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -655,15 +601,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/search/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${SEARCH_REST_HOST_PORT:-8105}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -675,15 +618,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/service-catalog/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${SERVICE_CATALOG_REST_HOST_PORT:-8108}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -695,8 +635,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/session/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${SESSION_REST_HOST_PORT:-8106}:8080"
@@ -704,7 +642,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -718,15 +655,12 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/workflow/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${WORKFLOW_REST_HOST_PORT:-8107}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -740,8 +674,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/ai-gateway/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${AI_GATEWAY_REST_HOST_PORT:-8120}:8080"
@@ -749,7 +681,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -761,8 +692,6 @@ services:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/ai-agent/Dockerfile
-      args:
-        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
     profiles: [system]
     ports:
       - "${AI_AGENT_REST_HOST_PORT:-8121}:8080"
@@ -770,7 +699,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-      - ALLOW_INSECURE_NO_AUTH=true
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,0 +1,252 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/_service-deploy.yaml
+# サービスデプロイ用の再利用可能ワークフロー
+# build-and-push → deploy-dev → deploy-staging → deploy-prod のパイプラインを統一
+name: _service-deploy
+
+on:
+  workflow_call:
+    inputs:
+      # サービス名（Helm リリース名として使用。例: auth, bff-proxy）
+      service-name:
+        required: true
+        type: string
+      # Docker ビルドコンテキストのパス（例: regions/system/server/rust/auth）
+      context-path:
+        required: true
+        type: string
+      # Harbor レジストリ内のプロジェクト名（例: k1s0-system）
+      registry-project:
+        required: true
+        type: string
+      # Helm チャートのパス（infra/helm/services/ からの相対パス。例: system/auth）
+      helm-chart-path:
+        required: true
+        type: string
+      # Kubernetes namespace（例: k1s0-system）
+      namespace:
+        required: true
+        type: string
+      # prod 環境の URL（GitHub Environment に表示される）
+      prod-url:
+        required: false
+        type: string
+        default: "https://api.k1s0.internal.example.com"
+      # Dockerfile パス（context-path 外に Dockerfile がある場合に指定。例: regions/system/server/rust/config/Dockerfile）
+      dockerfile:
+        required: false
+        type: string
+        default: ""
+      # ヘルスチェック方式: "busybox" (Rust distroless+busybox) or "port-forward" (Go distroless)
+      health-check-method:
+        required: false
+        type: string
+        default: "busybox"
+    secrets:
+      HARBOR_USERNAME:
+        required: true
+      HARBOR_PASSWORD:
+        required: true
+
+env:
+  REGISTRY: harbor.internal.example.com
+
+jobs:
+  # ---------- Docker イメージのビルド・プッシュ・署名・スキャン ----------
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          # 直近の Git タグからバージョンを取得（例: v1.2.3 → 1.2.3）
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      # Dockerfile がコンテキスト内にある標準パターン
+      - name: Build and push
+        if: inputs.dockerfile == ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context-path }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}
+            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # Dockerfile がコンテキスト外にある場合（例: workspace root をコンテキストとして使用）
+      - name: Build and push (custom Dockerfile)
+        if: inputs.dockerfile != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context-path }}
+          file: ${{ inputs.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}
+            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Sign image with Cosign
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          severity: HIGH,CRITICAL
+          exit-code: 1
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          output-file: sbom.spdx.json
+
+  # ---------- Deploy to dev ----------
+  deploy-dev:
+    needs: build-and-push
+    runs-on: [self-hosted, dev]
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to dev
+        run: |
+          helm upgrade --install ${{ inputs.service-name }} \
+            ./infra/helm/services/${{ inputs.helm-chart-path }} \
+            -n ${{ inputs.namespace }} \
+            -f ./infra/helm/services/${{ inputs.helm-chart-path }}/values-dev.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+
+  # ---------- Deploy to staging ----------
+  deploy-staging:
+    needs: deploy-dev
+    runs-on: [self-hosted, staging]
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to staging
+        run: |
+          helm upgrade --install ${{ inputs.service-name }} \
+            ./infra/helm/services/${{ inputs.helm-chart-path }} \
+            -n ${{ inputs.namespace }} \
+            -f ./infra/helm/services/${{ inputs.helm-chart-path }}/values-staging.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+
+  # ---------- Deploy to prod (manual approval) ----------
+  # IMPORTANT: GitHub リポジトリ設定で prod 環境に Required reviewers（最低2名）を設定すること。
+  # Settings → Environments → prod → Required reviewers
+  deploy-prod:
+    needs: deploy-staging
+    runs-on: [self-hosted, prod]
+    environment:
+      name: prod
+      url: ${{ inputs.prod-url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to prod
+        run: |
+          helm upgrade --install ${{ inputs.service-name }} \
+            ./infra/helm/services/${{ inputs.helm-chart-path }} \
+            -n ${{ inputs.namespace }} \
+            -f ./infra/helm/services/${{ inputs.helm-chart-path }}/values-prod.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      # デプロイ後スモークテスト（busybox 方式: Rust distroless イメージ向け）
+      - name: デプロイ後スモークテスト (busybox)
+        if: inputs.health-check-method == 'busybox'
+        run: |
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/${{ inputs.service-name }} -n ${{ inputs.namespace }} --timeout=120s
+          echo "Running health check..."
+          kubectl exec deploy/${{ inputs.service-name }} -n ${{ inputs.namespace }} -- /busybox wget -qO- http://127.0.0.1:8080/healthz || echo "::warning::Health check failed"
+      # デプロイ後スモークテスト（port-forward 方式: Go distroless イメージ向け）
+      - name: デプロイ後スモークテスト (port-forward)
+        if: inputs.health-check-method == 'port-forward'
+        run: |
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/${{ inputs.service-name }} -n ${{ inputs.namespace }} --timeout=120s
+          echo "Running health check..."
+          kubectl port-forward deploy/${{ inputs.service-name }} -n ${{ inputs.namespace }} 18080:8080 &
+          sleep 3
+          curl -sf http://127.0.0.1:18080/healthz || echo "::warning::Health check failed"
+          kill %1 2>/dev/null || true
