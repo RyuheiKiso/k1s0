@@ -60,13 +60,19 @@ auth-rust:
 | ポート | REST `${CONFIG_REST_HOST_PORT:-8084}:8080` / gRPC `${CONFIG_GRPC_HOST_PORT:-50054}:50051` |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（healthy） |
 | 環境変数 | `CONFIG_PATH=/app/config/config.docker.yaml`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317`, `ALLOW_INSECURE_NO_AUTH=true` |
+| ビルド引数 | `CARGO_FEATURES=k1s0-server-common/dev-auth-bypass`（認証バイパスコードをバイナリに含める） |
 | ボリューム | `./regions/system/server/rust/config/config:/app/config` |
+
+> **認証バイパスの仕組み**: `CARGO_FEATURES` ビルド引数で `k1s0-server-common/dev-auth-bypass` フィーチャーを有効化してビルドし、ランタイムの `ALLOW_INSECURE_NO_AUTH=true` と組み合わせることで認証バイパスが発動する。本番 Dockerfile ではビルド引数を指定しないため、バイパスコードはバイナリに含まれない。デバッグビルド（`cargo run`）では自動的にバイパス可能。
 
 ```yaml
 config-rust:
   build:
     context: ./regions/system
     dockerfile: ./server/rust/config/Dockerfile
+    args:
+      # 開発環境用: 認証バイパスコードをバイナリに含める（本番では指定しない）
+      CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
   profiles: [system]
   ports:
     - "${CONFIG_REST_HOST_PORT:-8084}:8080"    # REST
@@ -74,6 +80,7 @@ config-rust:
   environment:
     - CONFIG_PATH=/app/config/config.docker.yaml
     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    # CARGO_FEATURES でバイパスコードを含めたバイナリに対し、ランタイムで認証バイパスを有効化
     - ALLOW_INSECURE_NO_AUTH=true
   depends_on:
     postgres:
@@ -102,6 +109,7 @@ config-rust:
 | ポート | REST `${SAGA_REST_HOST_PORT:-8085}:8080` / gRPC `${SAGA_GRPC_HOST_PORT:-50055}:50051` |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（healthy） |
 | 環境変数 | `CONFIG_PATH=/app/config/config.docker.yaml`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317`, `ALLOW_INSECURE_NO_AUTH=true` |
+| ビルド引数 | `CARGO_FEATURES=k1s0-server-common/dev-auth-bypass`（認証バイパスコードをバイナリに含める） |
 | ボリューム | `./regions/system/server/rust/saga/config:/app/config` |
 
 ```yaml
@@ -109,6 +117,9 @@ saga-rust:
   build:
     context: ./regions/system
     dockerfile: ./server/rust/saga/Dockerfile
+    args:
+      # 開発環境用: 認証バイパスコードをバイナリに含める（本番では指定しない）
+      CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
   profiles: [system]
   ports:
     - "${SAGA_REST_HOST_PORT:-8085}:8080"    # REST
@@ -116,6 +127,7 @@ saga-rust:
   environment:
     - CONFIG_PATH=/app/config/config.docker.yaml
     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    # CARGO_FEATURES でバイパスコードを含めたバイナリに対し、ランタイムで認証バイパスを有効化
     - ALLOW_INSECURE_NO_AUTH=true
   depends_on:
     postgres:
@@ -146,6 +158,7 @@ DLQ（Dead Letter Queue）メッセージの管理・再処理を担う REST API
 | ポート | REST `${DLQ_REST_HOST_PORT:-8086}:8080`（gRPC なし） |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy） |
 | 環境変数 | `CONFIG_PATH=/app/config/config.docker.yaml`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317`, `ALLOW_INSECURE_NO_AUTH=true` |
+| ビルド引数 | `CARGO_FEATURES=k1s0-server-common/dev-auth-bypass`（認証バイパスコードをバイナリに含める） |
 | ボリューム | `./regions/system/server/rust/dlq-manager/config:/app/config` |
 
 ```yaml
@@ -153,12 +166,16 @@ dlq-manager:
   build:
     context: ./regions/system
     dockerfile: ./server/rust/dlq-manager/Dockerfile
+    args:
+      # 開発環境用: 認証バイパスコードをバイナリに含める（本番では指定しない）
+      CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
   profiles: [system]
   ports:
     - "${DLQ_REST_HOST_PORT:-8086}:8080"    # REST のみ（gRPC なし）
   environment:
     - CONFIG_PATH=/app/config/config.docker.yaml
     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    # CARGO_FEATURES でバイパスコードを含めたバイナリに対し、ランタイムで認証バイパスを有効化
     - ALLOW_INSECURE_NO_AUTH=true
   depends_on:
     postgres:
@@ -244,6 +261,9 @@ services:
   #   build:
   #     context: ./regions/system
   #     dockerfile: ./server/rust/config/Dockerfile
+  #     args:
+  #       # 開発環境用: 認証バイパスコードをバイナリに含める（本番では指定しない）
+  #       CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
   #   profiles: [system]
   #   ports:
   #     - "${CONFIG_REST_HOST_PORT:-8084}:8080"
@@ -251,6 +271,7 @@ services:
   #   environment:
   #     - CONFIG_PATH=/app/config/config.docker.yaml
   #     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+  #     # CARGO_FEATURES でバイパスコードを含めたバイナリに対し、ランタイムで認証バイパスを有効化
   #     - ALLOW_INSECURE_NO_AUTH=true
   #   depends_on:
   #     postgres:
@@ -271,6 +292,9 @@ services:
   #   build:
   #     context: ./regions/system
   #     dockerfile: ./server/rust/saga/Dockerfile
+  #     args:
+  #       # 開発環境用: 認証バイパスコードをバイナリに含める（本番では指定しない）
+  #       CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
   #   profiles: [system]
   #   ports:
   #     - "${SAGA_REST_HOST_PORT:-8085}:8080"
@@ -278,6 +302,7 @@ services:
   #   environment:
   #     - CONFIG_PATH=/app/config/config.docker.yaml
   #     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+  #     # CARGO_FEATURES でバイパスコードを含めたバイナリに対し、ランタイムで認証バイパスを有効化
   #     - ALLOW_INSECURE_NO_AUTH=true
   #   depends_on:
   #     postgres:
@@ -298,12 +323,16 @@ services:
   #   build:
   #     context: ./regions/system
   #     dockerfile: ./server/rust/dlq-manager/Dockerfile
+  #     args:
+  #       # 開発環境用: 認証バイパスコードをバイナリに含める（本番では指定しない）
+  #       CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
   #   profiles: [system]
   #   ports:
   #     - "${DLQ_REST_HOST_PORT:-8086}:8080"
   #   environment:
   #     - CONFIG_PATH=/app/config/config.docker.yaml
   #     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+  #     # CARGO_FEATURES でバイパスコードを含めたバイナリに対し、ランタイムで認証バイパスを有効化
   #     - ALLOW_INSECURE_NO_AUTH=true
   #   depends_on:
   #     postgres:
@@ -547,6 +576,10 @@ plugins:
 # regions/system/server/rust/auth/Dockerfile
 # Build stage
 FROM rust:1.93-bookworm AS builder
+
+# 開発環境用の追加 Cargo フィーチャー（本番では空のまま）
+ARG CARGO_FEATURES=""
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler cmake build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -554,7 +587,13 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo build --release && rm -rf src
 COPY . .
-RUN touch src/main.rs && cargo build --release
+# CARGO_FEATURES が指定された場合、--features で追加フィーチャーを有効化してビルド
+RUN touch src/main.rs && \
+    if [ -n "$CARGO_FEATURES" ]; then \
+      cargo build --release --features "$CARGO_FEATURES"; \
+    else \
+      cargo build --release; \
+    fi
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -570,7 +609,10 @@ ENTRYPOINT ["/k1s0-auth-server"]
 | ランタイムイメージ | `debian:bookworm-slim`（C/C++ ランタイム含む） |
 | 追加パッケージ | `protobuf-compiler`（tonic-build）, `cmake` + `build-essential`（rdkafka） |
 | 依存キャッシュ | ダミー `main.rs` で依存クレートを先にビルド |
+| ビルド引数 | `CARGO_FEATURES`（開発用フィーチャーの有効化、デフォルト空） |
 | 実行ユーザー | `nonroot:nonroot` |
+
+> **CARGO_FEATURES による認証バイパスの安全性設計**: docker-compose の `build.args` で `CARGO_FEATURES=k1s0-server-common/dev-auth-bypass` を指定すると、認証バイパスコードがバイナリにコンパイルされる。さらにランタイムの環境変数 `ALLOW_INSECURE_NO_AUTH=true` と組み合わせることで認証バイパスが発動する。本番 Dockerfile ではビルド引数を指定しないため、バイパスコードはバイナリに一切含まれず、環境変数だけでは認証をバイパスできない。ローカルのデバッグビルド（`cargo run`）では `cfg(debug_assertions)` により自動的にバイパス可能。
 
 ### ヘルスチェック
 

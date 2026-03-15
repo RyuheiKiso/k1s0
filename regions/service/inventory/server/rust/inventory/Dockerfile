@@ -13,7 +13,14 @@ WORKDIR /app
 # Copy only what's needed: regions (system libs + service code)
 COPY regions regions
 
-RUN cargo build --release --manifest-path regions/service/inventory/server/rust/inventory/Cargo.toml
+# ローカル開発用ビルド引数: 認証バイパスを有効化するには
+# CARGO_FEATURES="k1s0-server-common/dev-auth-bypass" を指定する
+ARG CARGO_FEATURES=""
+RUN if [ -n "${CARGO_FEATURES}" ]; then \
+      cargo build --release --manifest-path regions/service/inventory/server/rust/inventory/Cargo.toml --features "${CARGO_FEATURES}"; \
+    else \
+      cargo build --release --manifest-path regions/service/inventory/server/rust/inventory/Cargo.toml; \
+    fi
 
 FROM busybox:1.36.1-musl AS busybox
 

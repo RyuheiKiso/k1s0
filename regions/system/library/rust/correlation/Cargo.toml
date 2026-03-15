@@ -21,3 +21,6 @@ http = "1"
 tower = {workspace = true}
 pin-project-lite = "0.2"
 hyper = "1"
+
+[lints]
+workspace = true

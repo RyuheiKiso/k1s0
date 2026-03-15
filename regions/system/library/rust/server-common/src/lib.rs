@@ -13,6 +13,10 @@ pub mod response;
 #[cfg(feature = "shutdown")]
 pub mod shutdown;
 
+/// デフォルトの OpenTelemetry コレクターエンドポイント。
+/// 全サーバーの設定デフォルト値として使用する。エンドポイント変更時はここだけ修正すればよい。
+pub const DEFAULT_OTEL_ENDPOINT: &str = "http://otel-collector.observability:4317";
+
 pub use auth::{allow_insecure_no_auth, require_auth_state};
 pub use error::{ErrorBody, ErrorCode, ErrorDetail, ErrorResponse, ServiceError};
 pub use pagination::{PaginatedResponse, PaginationResponse};

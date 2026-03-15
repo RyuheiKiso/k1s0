@@ -19,3 +19,6 @@ mockall = {workspace = true, optional = true}
 
 [dev-dependencies]
 tokio = {workspace = true}
+
+[lints]
+workspace = true

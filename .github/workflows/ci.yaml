@@ -19,6 +19,7 @@ jobs:
       dart: ${{ steps.filter.outputs.dart }}
       helm: ${{ steps.filter.outputs.helm }}
       docker: ${{ steps.filter.outputs.docker }}
+      shell: ${{ steps.filter.outputs.shell }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -46,6 +47,8 @@ jobs:
               - 'infra/helm/**'
             docker:
               - 'regions/**/Dockerfile'
+            shell:
+              - 'scripts/**/*.sh'
 
   # モジュール単位の変更検出ジョブ（各言語ジョブで影響範囲を絞り込むために使用）
   # スクリプト失敗時は下流ジョブをブロックしないよう continue-on-error を設定
@@ -212,6 +215,18 @@ jobs:
             fi
           done
 
+  # シェルスクリプトの静的解析ジョブ
+  lint-shell:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.shell == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck のインストール
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: シェルスクリプトの静的解析
+        run: find scripts/ -name '*.sh' -exec shellcheck {} +
+
   test-go:
     needs: [lint-go, detect-modules]
     runs-on: ubuntu-latest
@@ -271,6 +286,50 @@ jobs:
             echo "=== Testing $(dirname "$manifest") ==="
             cargo test --manifest-path "$manifest" --all
           done
+
+  # Rust テストカバレッジ計測ジョブ（cargo-tarpaulin を使用）
+  coverage-rust:
+    needs: lint-rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.93
+      - name: cargo-tarpaulin インストール（プリビルドバイナリ）
+        run: |
+          TARPAULIN_VERSION="0.31.2"
+          curl -sL "https://github.com/xd009642/tarpaulin/releases/download/${TARPAULIN_VERSION}/cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz" \
+            | tar xz -C "$HOME/.cargo/bin"
+          chmod +x "$HOME/.cargo/bin/cargo-tarpaulin"
+      - name: Rust テストカバレッジ計測
+        shell: bash
+        run: |
+          mkdir -p coverage
+          # regions/system ワークスペースのカバレッジを計測する
+          cargo tarpaulin \
+            --manifest-path regions/system/Cargo.toml \
+            --workspace \
+            --exclude-files "*/tests/*" "*/proto/*" \
+            --skip-clean \
+            --timeout 300 \
+            --out Json Html \
+            --output-dir coverage/system \
+            || echo "::warning::tarpaulin exited with non-zero (some crates may have failed)"
+          # CLI ワークスペースのカバレッジを計測する（GUI クレートを除外）
+          cargo tarpaulin \
+            --manifest-path CLI/Cargo.toml \
+            --workspace \
+            --exclude k1s0-gui \
+            --exclude-files "*/tests/*" \
+            --skip-clean \
+            --timeout 300 \
+            --out Json Html \
+            --output-dir coverage/cli \
+            || echo "::warning::tarpaulin exited with non-zero (some crates may have failed)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rust-coverage
+          path: coverage/
 
   test-ts:
     needs: lint-ts

@@ -19,3 +19,6 @@ base64 = "0.22"
 tokio = {workspace = true}
 rsa = { version = "0.9", features = ["pem"] }
 rand = "0.8"
+
+[lints]
+workspace = true

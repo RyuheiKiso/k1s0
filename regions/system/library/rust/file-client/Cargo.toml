@@ -23,3 +23,6 @@ aws-sdk-s3 = { version = "1", optional = true }
 
 [dev-dependencies]
 tokio = {workspace = true}
+
+[lints]
+workspace = true

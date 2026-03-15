@@ -16,7 +16,14 @@ WORKDIR /app
 COPY api/proto api/proto
 COPY regions regions
 
-RUN cargo build --release --manifest-path regions/business/accounting/server/rust/domain-master/Cargo.toml
+# ローカル開発用ビルド引数: 認証バイパスを有効化するには
+# CARGO_FEATURES="k1s0-server-common/dev-auth-bypass" を指定する
+ARG CARGO_FEATURES=""
+RUN if [ -n "${CARGO_FEATURES}" ]; then \
+      cargo build --release --manifest-path regions/business/accounting/server/rust/domain-master/Cargo.toml --features "${CARGO_FEATURES}"; \
+    else \
+      cargo build --release --manifest-path regions/business/accounting/server/rust/domain-master/Cargo.toml; \
+    fi
 
 FROM busybox:1.36.1-musl AS busybox
 

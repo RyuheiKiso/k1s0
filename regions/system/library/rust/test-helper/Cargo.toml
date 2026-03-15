@@ -23,3 +23,6 @@ fake = { version = "2.10", features = ["derive", "chrono"], optional = true }
 
 [dev-dependencies]
 tokio = {workspace = true}
+
+[lints]
+workspace = true

@@ -6,6 +6,9 @@ description = "Shared server infrastructure: structured error codes, error respo
 
 [features]
 default = []
+# ローカル開発用: 認証バイパス（ALLOW_INSECURE_NO_AUTH）のコードパスを有効化する。
+# リリースビルドでこのフィーチャーを無効にすると、バイパスロジックがバイナリから完全に除去される。
+dev-auth-bypass = []
 axum = ["dep:axum"]
 utoipa = ["dep:utoipa"]
 shutdown = ["dep:tokio"]
@@ -49,3 +52,6 @@ k1s0-telemetry = { path = "../telemetry", features = ["axum-layer"] }
 k1s0-correlation = { path = "../correlation", features = ["tower-layer"] }
 k1s0-health = { path = "../health" }
 axum = {workspace = true}
+
+[lints]
+workspace = true

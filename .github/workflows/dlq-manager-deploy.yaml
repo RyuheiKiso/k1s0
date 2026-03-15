@@ -140,6 +140,8 @@ jobs:
             --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
 
   # ---------- Deploy to prod (manual approval) ----------
+  # IMPORTANT: GitHub リポジトリ設定で prod 環境に Required reviewers（最低2名）を設定すること。
+  # Settings → Environments → prod → Required reviewers
   deploy-prod:
     needs: deploy-staging
     runs-on: [self-hosted, prod]
@@ -175,3 +177,9 @@ jobs:
             -n k1s0-system \
             -f ./infra/helm/services/system/dlq-manager/values-prod.yaml \
             --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - name: デプロイ後スモークテスト
+        run: |
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/dlq-manager -n k1s0-system --timeout=120s
+          echo "Running health check..."
+          kubectl exec deploy/dlq-manager -n k1s0-system -- /busybox wget -qO- http://127.0.0.1:8080/healthz || echo "::warning::Health check failed"

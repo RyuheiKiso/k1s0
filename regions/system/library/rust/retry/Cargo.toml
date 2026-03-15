@@ -17,3 +17,6 @@ k1s0-circuit-breaker = { path = "../circuit-breaker" }
 
 [dev-dependencies]
 tokio = {workspace = true}
+
+[lints]
+workspace = true

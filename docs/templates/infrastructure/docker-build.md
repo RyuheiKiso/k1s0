@@ -73,7 +73,15 @@ COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm -rf src
 
 COPY . .
-RUN touch src/main.rs && cargo build --release
+
+# ローカル開発用ビルド引数: 認証バイパスを有効化するには
+# CARGO_FEATURES="k1s0-server-common/dev-auth-bypass" を指定する
+ARG CARGO_FEATURES=""
+RUN if [ -n "${CARGO_FEATURES}" ]; then \
+      cargo build --release -p {{ service_name }} --features "${CARGO_FEATURES}"; \
+    else \
+      cargo build --release -p {{ service_name }}; \
+    fi
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -90,6 +98,7 @@ ENTRYPOINT ["/{{ service_name }}"]
 - `rust:1.93-bookworm` をビルドステージのベースイメージとして使用する
 - ダミーの `main.rs` で事前に依存関係をビルドし、キャッシュを活用する
 - `--release` フラグで最適化ビルドを行う
+- `CARGO_FEATURES` ビルド引数で feature フラグを制御する（例: `dev-auth-bypass` による認証バイパス）
 - ランタイムは `debian:bookworm-slim` を使用する
 - `USER nonroot:nonroot` で非特権ユーザーとして実行する
 

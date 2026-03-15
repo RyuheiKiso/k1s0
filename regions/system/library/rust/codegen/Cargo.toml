@@ -21,3 +21,6 @@ event-codegen = ["dep:serde_yaml"]
 tempfile = "3"
 toml = "0.8"
 serde_yaml = {workspace = true}
+
+[lints]
+workspace = true

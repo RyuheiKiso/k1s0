@@ -240,7 +240,7 @@ fn default_trace_enabled() -> bool {
     true
 }
 fn default_trace_endpoint() -> String {
-    "http://otel-collector.observability:4317".to_string()
+    k1s0_server_common::DEFAULT_OTEL_ENDPOINT.to_string()
 }
 fn default_trace_sample_rate() -> f64 {
     1.0

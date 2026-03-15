@@ -92,3 +92,6 @@ tokio-test = {workspace = true}
 tower = {workspace = true}
 testcontainers = "0.23"
 axum-test = "16"
+
+[lints]
+workspace = true

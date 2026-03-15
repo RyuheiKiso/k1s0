@@ -1,0 +1,64 @@
+// Go ワークスペース設定: モノリポ内の全 Go モジュールを一元管理する
+go 1.24.0
+
+use (
+
+	// CLI — GUI 向け認証サーバー
+	./CLI/crates/k1s0-gui/regions/system/server/go/auth
+
+	// サーバー — API・プロキシサービス
+	./api/proto
+	// システムライブラリ — 共通基盤・ユーティリティ群
+	./regions/system/library/go/app-updater
+	./regions/system/library/go/audit-client
+	./regions/system/library/go/auth
+	./regions/system/library/go/bb-ai-client
+	./regions/system/library/go/binding
+	./regions/system/library/go/building-blocks
+	./regions/system/library/go/bulkhead
+	./regions/system/library/go/cache
+	./regions/system/library/go/circuit-breaker
+	./regions/system/library/go/codegen
+	./regions/system/library/go/config
+	./regions/system/library/go/correlation
+	./regions/system/library/go/distributed-lock
+	./regions/system/library/go/dlq-client
+	./regions/system/library/go/encryption
+	./regions/system/library/go/event-bus
+	./regions/system/library/go/eventstore
+	./regions/system/library/go/featureflag
+	./regions/system/library/go/file-client
+	./regions/system/library/go/graphql-client
+	./regions/system/library/go/health
+	./regions/system/library/go/idempotency
+	./regions/system/library/go/kafka
+	./regions/system/library/go/messaging
+	./regions/system/library/go/migration
+	./regions/system/library/go/notification-client
+	./regions/system/library/go/outbox
+	./regions/system/library/go/pagination
+	./regions/system/library/go/pubsub
+	./regions/system/library/go/quota-client
+	./regions/system/library/go/ratelimit-client
+	./regions/system/library/go/resiliency
+	./regions/system/library/go/retry
+	./regions/system/library/go/saga
+	./regions/system/library/go/scheduler-client
+	./regions/system/library/go/schemaregistry
+	./regions/system/library/go/search-client
+	./regions/system/library/go/secret-store
+	./regions/system/library/go/server-common
+	./regions/system/library/go/serviceauth
+	./regions/system/library/go/session-client
+	./regions/system/library/go/statestore
+	./regions/system/library/go/telemetry
+	./regions/system/library/go/telemetry-macros
+	./regions/system/library/go/tenant-client
+	./regions/system/library/go/test-helper
+	./regions/system/library/go/tracing
+	./regions/system/library/go/validation
+	./regions/system/library/go/vault-client
+	./regions/system/library/go/webhook-client
+	./regions/system/library/go/websocket
+	./regions/system/server/go/bff-proxy
+)

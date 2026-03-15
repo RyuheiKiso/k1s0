@@ -187,7 +187,7 @@
           <mxGeometry x="1530" y="560" width="150" height="80" as="geometry" />
         </mxCell>
 
-        <mxCell id="docker_build" value="Docker マルチステージビルド&#xa;&#xa;Build: rust:1.88-bookworm&#xa;       golang:1.23-alpine&#xa;Runtime: distroless&#xa;  gcr.io/distroless/cc-debian12&#xa;  gcr.io/distroless/static-debian12&#xa;&#xa;・非 root 実行 (nonroot)&#xa;・攻撃面最小化&#xa;・不要ツール排除" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
+        <mxCell id="docker_build" value="Docker マルチステージビルド&#xa;&#xa;Build: rust:1.88-bookworm&#xa;       golang:1.24-bookworm&#xa;Runtime: distroless&#xa;  gcr.io/distroless/cc-debian12&#xa;  gcr.io/distroless/static-debian12&#xa;&#xa;・非 root 実行 (nonroot)&#xa;・攻撃面最小化&#xa;・不要ツール排除" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFE6;strokeColor=#339933;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
           <mxGeometry x="1530" y="670" width="230" height="190" as="geometry" />
         </mxCell>
 

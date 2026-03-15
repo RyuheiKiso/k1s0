@@ -39,3 +39,6 @@ observability:
 #
 # If you intentionally run without auth in local dev/test, set:
 #   ALLOW_INSECURE_NO_AUTH=true
+# NOTE: リリースビルドでは dev-auth-bypass フィーチャーが必要。
+# デバッグビルド（cargo run）では自動的に有効。
+# Docker 経由の場合は CARGO_FEATURES="k1s0-server-common/dev-auth-bypass" を指定する。

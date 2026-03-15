@@ -39,3 +39,6 @@ http = "1"
 tonic = {workspace = true}
 tower = {workspace = true}
 pin-project-lite = "0.2"
+
+[lints]
+workspace = true

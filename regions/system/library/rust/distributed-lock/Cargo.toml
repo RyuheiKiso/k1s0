@@ -19,3 +19,6 @@ redis = { version = "0.27", features = ["tokio-comp", "connection-manager", "scr
 
 [dev-dependencies]
 tokio = {workspace = true}
+
+[lints]
+workspace = true

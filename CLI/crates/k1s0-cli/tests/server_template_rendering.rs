@@ -431,7 +431,7 @@ fn test_go_server_rest_dockerfile() {
     let (tmp, _) = render_server("go", "rest", false, "", false, false);
     let content = read_output(&tmp, "Dockerfile");
 
-    assert!(content.contains("FROM golang:1.23-bookworm AS builder"));
+    assert!(content.contains("FROM golang:1.24-bookworm AS builder"));
     assert!(content.contains("CGO_ENABLED=0 GOOS=linux go build -trimpath"));
     assert!(content.contains("FROM gcr.io/distroless/static-debian12"));
     assert!(content.contains("EXPOSE 8080"));
