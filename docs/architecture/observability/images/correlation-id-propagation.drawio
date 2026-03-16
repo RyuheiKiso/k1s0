@@ -1,0 +1,217 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="trace-001" name="Correlation ID伝搬シーケンス図とスパン階層">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="Correlation ID 伝搬シーケンス &amp; スパン階層" style="text;html=1;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="800" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 左側: シーケンス図 ===== -->
+        <mxCell id="section-seq" value="リクエスト伝搬フロー" style="text;html=1;fontSize=16;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="300" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- アクター: Client -->
+        <mxCell id="client" value="&lt;b&gt;Client&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;(React/Flutter)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="110" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- アクター: CorrelationLayer -->
+        <mxCell id="corr-layer" value="&lt;b&gt;CorrelationLayer&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;(Rust Middleware)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#E1D5E7;strokeColor=#9673A6;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="100" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- アクター: Handler -->
+        <mxCell id="handler" value="&lt;b&gt;Handler&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;(Business Logic)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="100" width="120" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- アクター: Backend Service -->
+        <mxCell id="backend" value="&lt;b&gt;Backend&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;(gRPC Service)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="570" y="100" width="110" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== ライフライン用の不可視アンカーポイント ===== -->
+        <!-- Client ライフライン端点 -->
+        <mxCell id="anc-cli-top" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="92" y="150" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="anc-cli-bot" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="92" y="554" width="6" height="6" as="geometry"/>
+        </mxCell>
+
+        <!-- CorrelationLayer ライフライン端点 -->
+        <mxCell id="anc-corr-top" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="272" y="150" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="anc-corr-bot" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="272" y="554" width="6" height="6" as="geometry"/>
+        </mxCell>
+
+        <!-- Handler ライフライン端点 -->
+        <mxCell id="anc-hdl-top" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="457" y="150" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="anc-hdl-bot" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="457" y="554" width="6" height="6" as="geometry"/>
+        </mxCell>
+
+        <!-- Backend ライフライン端点 -->
+        <mxCell id="anc-be-top" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="622" y="150" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="anc-be-bot" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="622" y="554" width="6" height="6" as="geometry"/>
+        </mxCell>
+
+        <!-- ライフライン（垂直破線）: アンカー間接続、矢印なし -->
+        <mxCell id="life-client" style="endArrow=none;startArrow=none;strokeColor=#6C8EBF;strokeWidth=1;dashed=1;dashPattern=4 4;" edge="1" source="anc-cli-top" target="anc-cli-bot" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="life-corr" style="endArrow=none;startArrow=none;strokeColor=#9673A6;strokeWidth=1;dashed=1;dashPattern=4 4;" edge="1" source="anc-corr-top" target="anc-corr-bot" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="life-handler" style="endArrow=none;startArrow=none;strokeColor=#82B366;strokeWidth=1;dashed=1;dashPattern=4 4;" edge="1" source="anc-hdl-top" target="anc-hdl-bot" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="life-backend" style="endArrow=none;startArrow=none;strokeColor=#D6B656;strokeWidth=1;dashed=1;dashPattern=4 4;" edge="1" source="anc-be-top" target="anc-be-bot" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== メッセージ矢印用の不可視アンカーポイント ===== -->
+        <!-- msg1: Client(y=190) → CorrelationLayer(y=190) -->
+        <mxCell id="anc-m1s" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="92" y="187" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="anc-m1t" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="272" y="187" width="6" height="6" as="geometry"/>
+        </mxCell>
+
+        <!-- msg2: CorrelationLayer(y=320) → Handler(y=320) -->
+        <mxCell id="anc-m2s" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="282" y="317" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="anc-m2t" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="457" y="317" width="6" height="6" as="geometry"/>
+        </mxCell>
+
+        <!-- msg3: Handler(y=380) → Backend(y=380) -->
+        <mxCell id="anc-m3s" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="457" y="377" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="anc-m3t" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="622" y="377" width="6" height="6" as="geometry"/>
+        </mxCell>
+
+        <!-- msg4: Backend(y=420) → Handler(y=420) (response, dashed) -->
+        <mxCell id="anc-m4s" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="622" y="417" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="anc-m4t" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="457" y="417" width="6" height="6" as="geometry"/>
+        </mxCell>
+
+        <!-- msg5: CorrelationLayer(y=500) → Client(y=500) (response, dashed) -->
+        <mxCell id="anc-m5s" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="272" y="497" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="anc-m5t" value="" style="ellipse;fillColor=none;strokeColor=none;fontSize=0;" vertex="1" parent="1">
+          <mxGeometry x="92" y="497" width="6" height="6" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== メッセージ矢印: アンカー間接続、endArrow=classic ===== -->
+
+        <!-- Step 1: Client → CorrelationLayer (リクエスト) -->
+        <mxCell id="msg1" value="HTTP Request&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;X-Correlation-Id: (空 or 既存)&lt;br&gt;X-Trace-Id: (OTel trace ID)&lt;/font&gt;" style="html=1;endArrow=classic;endFill=1;startArrow=none;strokeColor=#6C8EBF;strokeWidth=2;fontSize=10;align=center;labelBackgroundColor=#FFFFFF;" edge="1" source="anc-m1s" target="anc-m1t" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 2: CorrelationLayer 処理（アクティベーションボックス） -->
+        <mxCell id="act-corr" value="" style="fillColor=#E1D5E7;strokeColor=#9673A6;opacity=50;" vertex="1" parent="1">
+          <mxGeometry x="265" y="210" width="20" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="corr-action" value="&lt;font style=&quot;font-size:9px&quot;&gt;① X-Correlation-Id 解析&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;なければ UUID v4 生成&lt;br&gt;② X-Trace-Id 解析&lt;br&gt;③ Extensions に CorrelationContext 格納&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#9673A6;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="100" y="220" width="155" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 3: CorrelationLayer → Handler -->
+        <mxCell id="msg2" value="&lt;font style=&quot;font-size:9px&quot;&gt;Extension(CorrelationContext)&lt;/font&gt;" style="html=1;endArrow=classic;endFill=1;startArrow=none;strokeColor=#9673A6;strokeWidth=2;fontSize=10;align=center;labelBackgroundColor=#FFFFFF;" edge="1" source="anc-m2s" target="anc-m2t" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 4: Handler → Backend -->
+        <mxCell id="msg3" value="&lt;font style=&quot;font-size:9px&quot;&gt;gRPC call with metadata&lt;br&gt;correlation_id + trace_id&lt;/font&gt;" style="html=1;endArrow=classic;endFill=1;startArrow=none;strokeColor=#82B366;strokeWidth=2;fontSize=10;align=center;labelBackgroundColor=#FFFFFF;" edge="1" source="anc-m3s" target="anc-m3t" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 5: Backend → Handler (response, 破線) -->
+        <mxCell id="msg4" value="&lt;font style=&quot;font-size:9px&quot;&gt;gRPC response&lt;/font&gt;" style="html=1;endArrow=classic;endFill=1;startArrow=none;strokeColor=#D6B656;strokeWidth=2;dashed=1;dashPattern=4 4;fontSize=10;align=center;labelBackgroundColor=#FFFFFF;" edge="1" source="anc-m4s" target="anc-m4t" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 6: CorrelationLayer → Client (response, 破線) -->
+        <mxCell id="msg5" value="&lt;font style=&quot;font-size:9px&quot;&gt;HTTP Response&lt;br&gt;X-Correlation-Id: corr-abc123&lt;br&gt;X-Trace-Id: trace-xyz789&lt;/font&gt;" style="html=1;endArrow=classic;endFill=1;startArrow=none;strokeColor=#9673A6;strokeWidth=2;dashed=1;dashPattern=4 4;fontSize=10;align=center;labelBackgroundColor=#FFFFFF;" edge="1" source="anc-m5s" target="anc-m5t" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- レスポンス時処理ノート -->
+        <mxCell id="resp-note" value="&lt;font style=&quot;font-size:9px&quot;&gt;④ X-Correlation-Id をレスポンスヘッダーに付与&lt;br&gt;⑤ X-Trace-Id をレスポンスヘッダーに付与&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#9673A6;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="100" y="460" width="155" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 右側: スパン階層図 ===== -->
+        <mxCell id="section-span" value="スパン階層" style="text;html=1;fontSize=16;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="770" y="60" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- トレース全体枠 -->
+        <mxCell id="trace-box" value="" style="rounded=1;whiteSpace=wrap;fillColor=#F5F5F5;strokeColor=#CCCCCC;" vertex="1" parent="1">
+          <mxGeometry x="760" y="100" width="580" height="450" as="geometry"/>
+        </mxCell>
+        <mxCell id="trace-label" value="&lt;b&gt;Trace&lt;/b&gt; (trace_id: abc-123)" style="text;html=1;fontSize=12;fontStyle=0;align=left;" vertex="1" parent="1">
+          <mxGeometry x="770" y="105" width="250" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Root Span: HTTP Request -->
+        <mxCell id="span-root" value="&lt;b&gt;HTTP POST /api/v1/orders&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s1 | duration: 450ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="780" y="140" width="540" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Child Span: Handler -->
+        <mxCell id="span-handler" value="&lt;b&gt;OrderService.CreateOrder&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s2 | duration: 380ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="810" y="200" width="490" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Grandchild Span: DB Query -->
+        <mxCell id="span-db" value="&lt;b&gt;DB: INSERT orders&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s3 | duration: 50ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="260" width="200" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Grandchild Span: gRPC Call -->
+        <mxCell id="span-grpc" value="&lt;b&gt;gRPC: InventoryService.Reserve&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s4 | duration: 120ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#E1D5E7;strokeColor=#9673A6;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="320" width="300" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Grandchild Span: Kafka Produce -->
+        <mxCell id="span-kafka" value="&lt;b&gt;Kafka: Produce OrderCreated&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s5 | duration: 30ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFE0B2;strokeColor=#E65100;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="380" width="250" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- スパン属性ノート -->
+        <mxCell id="attr-note" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;カスタムスパン追加箇所&lt;/b&gt;&lt;br&gt;- 外部サービス呼び出し (gRPC/HTTP)&lt;br&gt;- データベースクエリ&lt;br&gt;- Kafka Produce/Consume&lt;br&gt;- Saga 各ステップ&lt;br&gt;- キャッシュ読み書き&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#666666;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="780" y="440" width="200" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- サンプリング率ノート -->
+        <mxCell id="sampling-note" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;サンプリング率&lt;/b&gt;&lt;br&gt;dev: 100%&lt;br&gt;staging: 50%&lt;br&gt;prod: 10% + tail-based&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#666666;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="440" width="160" height="80" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

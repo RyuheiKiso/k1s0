@@ -86,7 +86,14 @@ pub async fn run() -> anyhow::Result<()> {
             Some(pool),
         )
     } else {
-        info!("no database config found, using in-memory repositories");
+        // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "workflow",
+            k1s0_server_common::InfraKind::Database,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("no database config found, using in-memory repositories (dev/test bypass)");
         (
             Arc::new(InMemoryWorkflowDefinitionRepository::new()),
             Arc::new(InMemoryWorkflowInstanceRepository::new()),
@@ -101,7 +108,14 @@ pub async fn run() -> anyhow::Result<()> {
         info!(topic = %publisher.topic(), "Kafka event publisher initialized");
         Arc::new(publisher)
     } else {
-        info!("no Kafka config found, using noop event publisher");
+        // infra_guard: stable サービスでは Kafka 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "workflow",
+            k1s0_server_common::InfraKind::Kafka,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("no Kafka config found, using noop event publisher (dev/test bypass)");
         Arc::new(NoopWorkflowEventPublisher)
     };
 

@@ -119,6 +119,27 @@ func TestClient_LogoutURL(t *testing.T) {
 	assert.Contains(t, url, "post_logout_redirect_uri=")
 }
 
+// TestClient_IsDiscovered_Before はdiscovery実行前にfalseを返すことを確認する。
+func TestClient_IsDiscovered_Before(t *testing.T) {
+	client := NewClient("https://idp.example.com", "client-id", "", "http://localhost/callback", nil)
+	assert.False(t, client.IsDiscovered())
+}
+
+// TestClient_IsDiscovered_After はdiscovery成功後にtrueを返すことを確認する。
+func TestClient_IsDiscovered_After(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(OIDCConfig{Issuer: "https://idp.example.com"})
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "client-id", "", "http://localhost/callback", nil)
+
+	_, err := client.Discover(context.Background())
+	require.NoError(t, err)
+	assert.True(t, client.IsDiscovered())
+}
+
 func TestClient_EnsureDiscovered_Error(t *testing.T) {
 	client := NewClient("https://idp.example.com", "my-client", "", "http://localhost/callback", nil)
 	// No discovery performed.

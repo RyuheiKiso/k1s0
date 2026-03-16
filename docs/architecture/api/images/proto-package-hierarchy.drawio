@@ -1,0 +1,180 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="proto-pkg-001" name="Protoパッケージ階層図">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル: Proto パッケージ階層と Buf ワークフロー -->
+        <mxCell id="title" value="Proto パッケージ階層図 &amp; Buf ワークフロー" style="text;html=1;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="800" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 左半分: パッケージ階層ツリー ===== -->
+        <mxCell id="section-tree" value="パッケージ階層" style="text;html=1;fontSize=16;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ルート: api/proto/k1s0/ -->
+        <mxCell id="root" value="&lt;b&gt;api/proto/k1s0/&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#F5F5F5;strokeColor=#666666;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="220" y="100" width="180" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- system/ ブランチ -->
+        <mxCell id="sys" value="&lt;b&gt;system/&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#E1D5E7;strokeColor=#9673A6;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="190" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-root-sys" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;" edge="1" source="root" target="sys" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- system/common/v1/ -->
+        <mxCell id="sys-common" value="common/v1/&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;types.proto&lt;br&gt;event_metadata.proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E1D5E7;strokeColor=#9673A6;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="20" y="280" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-sys-common" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;" edge="1" source="sys" target="sys-common" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- system/auth/v1/ -->
+        <mxCell id="sys-auth" value="auth/v1/&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;auth.proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E1D5E7;strokeColor=#9673A6;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="170" y="280" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-sys-auth" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;" edge="1" source="sys" target="sys-auth" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- system/config/v1/ -->
+        <mxCell id="sys-config" value="config/v1/&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;config.proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E1D5E7;strokeColor=#9673A6;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="170" y="345" width="120" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- system/{domain}/v1/ (省略表示) -->
+        <mxCell id="sys-etc" value="saga/ featureflag/&lt;br&gt;ratelimit/ vault/ ..." style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E1D5E7;strokeColor=#9673A6;opacity=60;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="20" y="360" width="140" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- event/ ブランチ -->
+        <mxCell id="evt" value="&lt;b&gt;event/&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="190" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-root-evt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;" edge="1" source="root" target="evt" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- event配下 -->
+        <mxCell id="evt-sys" value="system/&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;auth_events.proto&lt;br&gt;config_events.proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="310" y="280" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-evt-sys" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;" edge="1" source="evt" target="evt-sys" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="evt-svc" value="service/&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;order_events.proto&lt;br&gt;inventory_events.proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="310" y="360" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- business/ ブランチ -->
+        <mxCell id="biz" value="&lt;b&gt;business/&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="190" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-root-biz" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;" edge="1" source="root" target="biz" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="biz-acct" value="accounting/&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;domain_master.proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="480" y="280" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-biz-acct" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;" edge="1" source="biz" target="biz-acct" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- service/ ブランチ -->
+        <mxCell id="svc" value="&lt;b&gt;service/&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="190" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-root-svc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;" edge="1" source="root" target="svc" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="svc-order" value="order/v1/&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;order.proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#DAE8FC;strokeColor=#6C8EBF;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="640" y="280" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-svc-order" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="svc" target="svc-order" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- パッケージ命名規則ノート -->
+        <mxCell id="naming-note" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;パッケージ命名規則&lt;/b&gt;&lt;br&gt;&lt;code&gt;k1s0.{tier}.{domain}.v{major}&lt;/code&gt;&lt;br&gt;&lt;br&gt;例: &lt;code&gt;k1s0.system.auth.v1&lt;/code&gt;&lt;br&gt;例: &lt;code&gt;k1s0.service.order.v1&lt;/code&gt;&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="30" y="450" width="240" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 右半分: Buf ワークフロー ===== -->
+        <mxCell id="section-buf" value="Buf ワークフロー" style="text;html=1;fontSize=16;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="830" y="60" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- .proto ファイル -->
+        <mxCell id="proto-files" value="&lt;b&gt;.proto ファイル&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;api/proto/k1s0/**/*.proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#F5F5F5;strokeColor=#666666;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="100" width="220" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- buf lint -->
+        <mxCell id="buf-lint" value="&lt;b&gt;buf lint&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;STANDARD ルール準拠チェック&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="200" width="220" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-proto-lint" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;" edge="1" source="proto-files" target="buf-lint" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- buf breaking -->
+        <mxCell id="buf-breaking" value="&lt;b&gt;buf breaking&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;破壊的変更検出（FILE ルール）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#F8CECC;strokeColor=#B85450;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="300" width="220" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-lint-breaking" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;" edge="1" source="buf-lint" target="buf-breaking" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- buf generate -->
+        <mxCell id="buf-gen" value="&lt;b&gt;buf generate&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;コード自動生成&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="400" width="220" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-breaking-gen" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;" edge="1" source="buf-breaking" target="buf-gen" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 生成先: Go -->
+        <mxCell id="gen-go" value="&lt;b&gt;Go&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;protoc-gen-go&lt;br&gt;protoc-gen-go-grpc&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="810" y="510" width="120" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- 生成先: Rust -->
+        <mxCell id="gen-rust" value="&lt;b&gt;Rust&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;tonic-build&lt;br&gt;（build.rs経由）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFE0B2;strokeColor=#E65100;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="940" y="510" width="120" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- 生成先: TypeScript -->
+        <mxCell id="gen-ts" value="&lt;b&gt;TypeScript&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;ts-proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#DAE8FC;strokeColor=#6C8EBF;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="510" width="120" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- buf generate → 各言語 -->
+        <mxCell id="e-gen-go" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;" edge="1" source="buf-gen" target="gen-go" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-gen-rust" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#E65100;strokeWidth=2;" edge="1" source="buf-gen" target="gen-rust" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-gen-ts" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;strokeWidth=2;" edge="1" source="buf-gen" target="gen-ts" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Rustの特殊経路ノート -->
+        <mxCell id="rust-note" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;Rust は buf generate を使わず&lt;/b&gt;&lt;br&gt;build.rs → tonic-build でローカル生成&lt;br&gt;（互換性の安定性を優先）&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#666666;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="920" y="580" width="200" height="65" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

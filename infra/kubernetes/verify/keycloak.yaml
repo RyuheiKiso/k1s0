@@ -1,3 +1,6 @@
+# このファイルは verify（検証）環境専用の Keycloak 設定です。
+# 含まれる資格情報はテスト用であり、本番環境では使用しないでください。
+# 本番環境の Keycloak 設定は infra/kubernetes/production/ を参照。
 apiVersion: v1
 kind: ConfigMap
 metadata:

@@ -62,7 +62,14 @@ pub async fn run() -> anyhow::Result<()> {
             let pool = Arc::new(pool);
             Arc::new(SearchPostgresRepository::new(pool))
         } else {
-            info!("using in-memory search repository (DATABASE_URL not set)");
+            // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+            k1s0_server_common::require_infra(
+                "search",
+                k1s0_server_common::InfraKind::Database,
+                &cfg.app.environment,
+                None::<String>,
+            )?;
+            info!("using in-memory search repository (dev/test bypass)");
             Arc::new(InMemorySearchRepository::new())
         }
     };
@@ -90,7 +97,14 @@ pub async fn run() -> anyhow::Result<()> {
         let producer = KafkaSearchProducer::new(&brokers, &kafka_cfg.security_protocol, &topic)?;
         Arc::new(producer)
     } else {
-        info!("using noop event publisher (kafka not configured)");
+        // infra_guard: stable サービスでは Kafka 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "search",
+            k1s0_server_common::InfraKind::Kafka,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("using noop event publisher (dev/test bypass)");
         Arc::new(NoopSearchEventPublisher)
     };
 

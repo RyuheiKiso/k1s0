@@ -97,7 +97,14 @@ pub async fn run() -> anyhow::Result<()> {
                 ),
             )
         } else {
-            info!("database not configured, using in-memory repositories");
+            // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+            k1s0_server_common::require_infra(
+                "tenant",
+                k1s0_server_common::InfraKind::Database,
+                &cfg.app.environment,
+                None::<String>,
+            )?;
+            info!("database not configured, using in-memory repositories (dev/test bypass)");
             (
                 Arc::new(InMemoryTenantRepository::new()),
                 Arc::new(InMemoryMemberRepository::new()),
@@ -134,7 +141,14 @@ pub async fn run() -> anyhow::Result<()> {
             info!(topic = %publisher.topic(), "Kafka event publisher initialized");
             Arc::new(publisher)
         } else {
-            info!("Kafka not configured, using noop event publisher");
+            // infra_guard: stable サービスでは Kafka 設定を必須化（dev/test 以外はエラー）
+            k1s0_server_common::require_infra(
+                "tenant",
+                k1s0_server_common::InfraKind::Kafka,
+                &cfg.app.environment,
+                None::<String>,
+            )?;
+            info!("Kafka not configured, using noop event publisher (dev/test bypass)");
             Arc::new(super::kafka_producer::NoopTenantEventPublisher)
         };
 

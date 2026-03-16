@@ -10,6 +10,10 @@
 - ボリュームでデータを永続化し、コンテナ再作成時もデータを保持する
 - **RDBMS 方針**: PostgreSQL を標準 RDBMS とする。MySQL は既存システム連携用として残す。SQL Server は当プロジェクトでは採用しない
 
+## プロファイル依存関係図
+
+![Docker Composeプロファイル依存関係図](images/profile-dependency.svg)
+
 ## プロファイル設計
 
 | プロファイル  | 対象                                     |

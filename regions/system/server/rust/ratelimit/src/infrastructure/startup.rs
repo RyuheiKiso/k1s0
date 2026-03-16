@@ -98,7 +98,14 @@ pub async fn run() -> anyhow::Result<()> {
         info!("database connection pool established from DATABASE_URL");
         Some(pool)
     } else {
-        info!("no database configured, using in-memory repositories");
+        // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "ratelimit",
+            k1s0_server_common::InfraKind::Database,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("no database configured, using in-memory repositories (dev/test bypass)");
         None
     };
 
@@ -131,7 +138,14 @@ pub async fn run() -> anyhow::Result<()> {
         info!("Redis connection established from REDIS_URL");
         Some(vec![conn])
     } else {
-        info!("no Redis configured, using in-memory state store");
+        // infra_guard: stable サービスでは Redis 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "ratelimit",
+            k1s0_server_common::InfraKind::Redis,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("no Redis configured, using in-memory state store (dev/test bypass)");
         None
     };
 

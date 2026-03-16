@@ -5,6 +5,10 @@ k1s0 CLI は対話式で操作する。引数での起動は行わない。
 
 > CLI と同等の操作を GUI で行う場合は [TauriGUI設計](../gui/TauriGUI設計.md) を参照。
 
+## メインメニューフロー & ひな形生成ステップツリー
+
+![CLIメインメニューフローとひな形生成ステップ](images/cli-main-menu-flow.svg)
+
 ## 起動
 
 ```

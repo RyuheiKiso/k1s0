@@ -1,0 +1,130 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="tier-dep-001" name="Tier依存関係図">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル: Tier依存関係と通信許可/禁止フロー -->
+        <mxCell id="title" value="Tier 依存関係図 — 許可 / 禁止フロー" style="text;html=1;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="700" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 3つのTierボックス ===== -->
+
+        <!-- system Tier: 最上位の共通基盤 -->
+        <mxCell id="tier-system" value="&lt;b style=&quot;font-size:16px&quot;&gt;system Tier&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;共通基盤（認証・設定・API GW）&lt;/font&gt;&lt;br&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px&quot;&gt;auth-server / config-server&lt;br&gt;api-gateway / vault-server&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="440" y="80" width="280" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- business Tier: 領域共通基盤 -->
+        <mxCell id="tier-business" value="&lt;b style=&quot;font-size:16px&quot;&gt;business Tier&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;領域共通基盤（経理・FA 等）&lt;/font&gt;&lt;br&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px&quot;&gt;accounting / fa&lt;br&gt;領域固有の共通サーバー&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="440" y="310" width="280" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- service Tier: 個別サービス -->
+        <mxCell id="tier-service" value="&lt;b style=&quot;font-size:16px&quot;&gt;service Tier&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;個別業務サービス&lt;/font&gt;&lt;br&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px&quot;&gt;order / inventory&lt;br&gt;BFF（React / Flutter）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="440" y="540" width="280" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 許可される依存（緑の実線矢印） ===== -->
+
+        <!-- service → system: 直接依存OK -->
+        <mxCell id="e-svc-sys" value="依存OK（直接）" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontSize=11;fontStyle=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" source="tier-service" target="tier-system" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="570"/>
+              <mxPoint x="800" y="170"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- service → business: 依存OK -->
+        <mxCell id="e-svc-biz" value="依存OK" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontSize=11;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="tier-service" target="tier-business" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- business → system: 依存OK -->
+        <mxCell id="e-biz-sys" value="依存OK" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontSize=11;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="tier-business" target="tier-system" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 禁止される依存（赤の破線矢印） ===== -->
+
+        <!-- system → business: 逆方向禁止 -->
+        <mxCell id="e-sys-biz-x" value="禁止" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B85450;strokeWidth=2;dashed=1;dashPattern=8 4;fontSize=11;fontStyle=1;fontColor=#B85450;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" source="tier-system" target="tier-business" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="360" y="170"/>
+              <mxPoint x="360" y="340"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- system → service: 逆方向禁止 -->
+        <mxCell id="e-sys-svc-x" value="禁止" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B85450;strokeWidth=2;dashed=1;dashPattern=8 4;fontSize=11;fontStyle=1;fontColor=#B85450;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" source="tier-business" target="tier-service" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="360" y="400"/>
+              <mxPoint x="360" y="570"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== 同階層間通信の例外規定（右側ノート） ===== -->
+
+        <!-- system内通信例外ノート -->
+        <mxCell id="note-sys" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;system 内通信&lt;/b&gt;&lt;br&gt;共通基盤間は許可&lt;br&gt;例: auth → config&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="870" y="80" width="170" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- business内通信例外ノート -->
+        <mxCell id="note-biz" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;business 内通信&lt;/b&gt;&lt;br&gt;同一ドメイン: 同期OK&lt;br&gt;異ドメイン: Kafka経由&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="870" y="310" width="180" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- service内通信禁止ノート -->
+        <mxCell id="note-svc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;service 内通信&lt;/b&gt;&lt;br&gt;BFF間の直接通信は&lt;br&gt;原則禁止&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="870" y="540" width="170" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 左側: 依存方向の原則 ===== -->
+        <mxCell id="principle-bg" value="" style="rounded=1;whiteSpace=wrap;fillColor=#F5F5F5;strokeColor=#CCCCCC;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="280" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="principle-title" value="依存方向の原則" style="text;html=1;fontSize=14;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="210" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="principle-text" value="&lt;font style=&quot;font-size:11px&quot;&gt;1. 依存は &lt;b&gt;下位 → 上位&lt;/b&gt; のみ&lt;br&gt;2. 逆方向・同階層間は原則禁止&lt;br&gt;3. service → system の直接通信は許可&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;（business 経由不要）&lt;br&gt;4. 全 Tier から system への&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;依存は許可&lt;/font&gt;" style="text;html=1;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="240" width="260" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 凡例 ===== -->
+        <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;fillColor=#F5F5F5;strokeColor=#CCCCCC;" vertex="1" parent="1">
+          <mxGeometry x="40" y="640" width="350" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-title" value="凡例" style="text;html=1;fontSize=14;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="645" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="55" y="675" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1t" value="system Tier（最上位・共通基盤）" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="672" width="250" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="55" y="700" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2t" value="business Tier（領域共通基盤）" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="697" width="250" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="55" y="725" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3t" value="service Tier（個別サービス）" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="722" width="250" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -8,6 +8,13 @@
 #   type:      server | library | client | cli | workspace | proto | infra
 #   workspace: Cargo/Go ワークスペースルート（該当する場合）
 #   skip-ci:   true の場合 CI のリント・テスト・ビルドをスキップ
+#
+# ステータス定義:
+#   stable:       本番利用可能。CI で必ずリント・テスト・ビルドが実行される。
+#                 インフラ設定（DB, Kafka 等）が未指定の場合は起動を拒否する。
+#   experimental: 開発中・実験段階。CI では continue-on-error で実行され、
+#                 失敗しても全体のビルドをブロックしない。
+#   archived:     廃止済み。CI から完全に除外される。コード削除前の猶予期間に使用。
 
 modules:
   # ============================================================
@@ -632,7 +639,7 @@ modules:
 
   - path: regions/system/library/go/codegen
     lang: go
-    status: stable
+    status: experimental
     type: library
 
   - path: regions/system/library/go/config

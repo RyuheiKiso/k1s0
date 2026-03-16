@@ -100,16 +100,18 @@ func run() error {
 		cfg.Auth.Scopes,
 	)
 
-	// Perform OIDC discovery.
+	// OIDC discoveryを実行する。失敗した場合はバックグラウンドで再試行する。
 	if _, err := oauthClient.Discover(ctx); err != nil {
-		logger.Warn("OIDC discovery failed at startup", slog.String("error", err.Error()))
+		logger.Warn("OIDC discovery failed at startup, will retry in background", slog.String("error", err.Error()))
+		// discoveryが未完了の場合、バックグラウンドで定期的に再試行するゴルーチンを起動する
+		go retryOIDCDiscovery(ctx, oauthClient, logger)
 	}
 
 	// Determine secure cookies based on environment.
 	secureCookie := cfg.App.Environment != "dev"
 
-	// Initialize handlers.
-	healthHandler := handler.NewHealthHandler(redisClient)
+	// ハンドラを初期化する。HealthHandlerにはRedisとOIDCクライアントを渡す。
+	healthHandler := handler.NewHealthHandler(redisClient, oauthClient)
 	authHandler := handler.NewAuthHandler(
 		oauthClient, sessionStore, sessionTTL,
 		cfg.Auth.PostLogout, secureCookie, logger,
@@ -291,5 +293,37 @@ func isProductionEnvironment(env string) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+// retryOIDCDiscovery はOIDC discoveryが完了するまでバックグラウンドで再試行する。
+// 指数バックオフ（5s→10s→20s→最大60s）でリトライし、コンテキストがキャンセルされたら終了する。
+func retryOIDCDiscovery(ctx context.Context, client *oauth.Client, logger *slog.Logger) {
+	// 初回リトライ間隔
+	interval := 5 * time.Second
+	// リトライ間隔の上限
+	maxInterval := 60 * time.Second
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("OIDC discovery retry stopped due to context cancellation")
+			return
+		case <-time.After(interval):
+			if _, err := client.Discover(ctx); err != nil {
+				logger.Warn("OIDC discovery retry failed",
+					slog.String("error", err.Error()),
+					slog.Duration("next_retry_in", interval*2),
+				)
+				// 指数バックオフで次のリトライ間隔を計算する
+				interval *= 2
+				if interval > maxInterval {
+					interval = maxInterval
+				}
+				continue
+			}
+			logger.Info("OIDC discovery succeeded after retry")
+			return
+		}
 	}
 }

@@ -31,6 +31,10 @@ k1s0.{tier}.{domain}.v{major}
 
 ## 概要
 
+### Proto パッケージ階層図 & Buf ワークフロー
+
+![Proto パッケージ階層図 & Buf ワークフロー](images/proto-package-hierarchy.svg)
+
 パッケージ命名: `k1s0.{tier}.{domain}.v{major}`（初期 `v1`）
 
 ### 言語サポート

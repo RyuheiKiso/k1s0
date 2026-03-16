@@ -16,6 +16,9 @@ use k1s0_workflow_server::domain::entity::workflow_task::WorkflowTask;
 use k1s0_workflow_server::domain::repository::{
     WorkflowDefinitionRepository, WorkflowInstanceRepository, WorkflowTaskRepository,
 };
+use k1s0_workflow_server::infrastructure::kafka_producer::{
+    NoopWorkflowEventPublisher, WorkflowEventPublisher,
+};
 use k1s0_workflow_server::infrastructure::notification_request_producer::NotificationRequestPublisher;
 use k1s0_workflow_server::usecase;
 
@@ -135,6 +138,8 @@ fn make_test_app() -> axum::Router {
     let inst_repo: Arc<dyn WorkflowInstanceRepository> = Arc::new(StubInstanceRepo);
     let task_repo: Arc<dyn WorkflowTaskRepository> = Arc::new(StubTaskRepo);
     let notif_pub: Arc<dyn NotificationRequestPublisher> = Arc::new(StubNotificationPublisher);
+    // テスト用のイベントパブリッシャー（Kafka 不要の Noop 実装）
+    let event_pub: Arc<dyn WorkflowEventPublisher> = Arc::new(NoopWorkflowEventPublisher);
 
     // AppState の構築（認証なし）
     let state = AppState {
@@ -147,6 +152,7 @@ fn make_test_app() -> axum::Router {
             def_repo.clone(),
             inst_repo.clone(),
             task_repo.clone(),
+            event_pub.clone(),
         )),
         get_instance_uc: Arc::new(usecase::GetInstanceUseCase::new(inst_repo.clone())),
         list_instances_uc: Arc::new(usecase::ListInstancesUseCase::new(inst_repo.clone())),
@@ -156,11 +162,13 @@ fn make_test_app() -> axum::Router {
             task_repo.clone(),
             inst_repo.clone(),
             def_repo.clone(),
+            event_pub.clone(),
         )),
         reject_task_uc: Arc::new(usecase::RejectTaskUseCase::new(
             task_repo.clone(),
             inst_repo.clone(),
             def_repo.clone(),
+            event_pub.clone(),
         )),
         reassign_task_uc: Arc::new(usecase::ReassignTaskUseCase::new(task_repo.clone())),
         check_overdue_tasks_uc: Arc::new(usecase::CheckOverdueTasksUseCase::new(

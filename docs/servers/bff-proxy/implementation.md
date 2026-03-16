@@ -81,6 +81,23 @@ type OAuthClient interface {
 
 テスト時は関数フィールド方式の `mockOAuthClient` で振る舞いを差し替える（`auth_flow_test.go` 参照）。
 
+### OIDC Discovery バックグラウンド再試行
+
+起動時に OIDC Discovery エンドポイント（`/.well-known/openid-configuration`）から
+プロバイダ情報を取得・キャッシュする。
+
+#### 動作フロー
+
+1. **起動時**: `Discover()` で OIDC エンドポイント情報を取得
+2. **失敗時**: `retryOIDCDiscovery` ゴルーチンがバックグラウンドで再試行
+   - 指数バックオフ: 初回 5 秒 → 最大 60 秒
+   - コンテキストキャンセルで graceful shutdown に対応
+3. **readiness**: `IsDiscovered()` が `true` になるまで `/readyz` は 503 を返す
+
+#### スレッドセーフティ
+
+`discovered` フラグは `atomic.Bool` で実装し、ゴルーチン間の race condition を防止。
+
 ## エラー実装ポリシー
 
 - エラーコードは `BFF_*` の固定値を返す。

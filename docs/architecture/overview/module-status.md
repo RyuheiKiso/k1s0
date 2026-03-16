@@ -6,7 +6,7 @@
 
 本ドキュメントは、k1s0プロジェクト内の全モジュールの成熟度レベルを一覧で管理する。各レベルの定義は [maturity-levels.md](./maturity-levels.md) を参照。
 
-**最終更新日**: 2026-03-15
+**最終更新日**: 2026-03-16
 
 ---
 
@@ -18,8 +18,8 @@
 |--------|-------------|------|
 | `production` | 0 | 0% |
 | `beta` | 約20 | 約10% |
-| `experimental` | 2 | 約1% |
-| `template-only` | 約180 | 約89% |
+| `experimental` | 3 | 約1% |
+| `template-only` | 約179 | 約89% |
 
 ---
 
@@ -114,7 +114,7 @@
 | bulkhead | `template-only` | scaffold生成のみ |
 | cache | `template-only` | scaffold生成のみ |
 | circuit-breaker | `template-only` | scaffold生成のみ |
-| codegen | `template-only` | scaffold生成のみ |
+| codegen | `experimental` | コード生成機能の実験的実装 |
 | distributed-lock | `template-only` | scaffold生成のみ |
 | dlq-client | `template-only` | scaffold生成のみ |
 | encryption | `template-only` | scaffold生成のみ |
@@ -340,4 +340,5 @@
 
 | 日付 | モジュール | 変更前 | 変更後 | 理由 |
 |------|-----------|--------|--------|------|
+| 2026-03-16 | Go codegen | `template-only` | `experimental` | コード生成機能の実験的実装開始 |
 | 2026-03-15 | — | — | — | 初版作成 |
