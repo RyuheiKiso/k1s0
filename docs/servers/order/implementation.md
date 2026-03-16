@@ -430,11 +430,11 @@ pub fn router(state: AppState) -> Router {
         let api = Router::new()
             .route("/api/v1/orders", get(list_orders).post(create_order))
             .route(
-                "/api/v1/orders/:order_id",
+                "/api/v1/orders/{order_id}",
                 get(get_order),
             )
             .route(
-                "/api/v1/orders/:order_id/status",
+                "/api/v1/orders/{order_id}/status",
                 put(update_order_status),
             )
             .route_layer(make_method_rbac_middleware("order"));

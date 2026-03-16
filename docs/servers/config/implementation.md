@@ -507,7 +507,7 @@ pub fn router(state: AppState) -> Router {
         .route("/metrics", get(metrics))
         // 設定値管理
         .route(
-            "/api/v1/config/:namespace/:key",
+            "/api/v1/config/{namespace}/{key}",
             get(get_config)
                 .layer(middleware::require_permission("read", "config"))
                 .put(update_config)
@@ -516,7 +516,7 @@ pub fn router(state: AppState) -> Router {
                 .layer(middleware::require_permission("admin", "config")),
         )
         .route(
-            "/api/v1/config/:namespace",
+            "/api/v1/config/{namespace}",
             get(list_configs).layer(middleware::require_permission("read", "config")),
         )
         // 設定スキーマ管理
@@ -528,7 +528,7 @@ pub fn router(state: AppState) -> Router {
                 .layer(middleware::require_permission("write", "config-schema")),
         )
         .route(
-            "/api/v1/config-schema/:name",
+            "/api/v1/config-schema/{name}",
             get(get_config_schema)
                 .layer(middleware::require_permission("read", "config-schema"))
                 .put(update_config_schema)
@@ -536,7 +536,7 @@ pub fn router(state: AppState) -> Router {
         )
         // サービス向け設定一括取得
         .route(
-            "/api/v1/config/services/:service_name",
+            "/api/v1/config/services/{service_name}",
             get(get_service_config).layer(middleware::require_bearer_token()),
         )
         .with_state(state)

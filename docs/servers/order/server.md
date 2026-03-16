@@ -49,8 +49,8 @@ service tier の注文管理サーバーは以下の機能を提供する。
 | --- | --- | --- | --- |
 | POST | `/api/v1/orders` | 注文作成 | `order:write` |
 | GET | `/api/v1/orders` | 注文一覧取得（フィルター付き） | `order:read` |
-| GET | `/api/v1/orders/:order_id` | 注文詳細取得（明細含む） | `order:read` |
-| PUT | `/api/v1/orders/:order_id/status` | 注文ステータス更新 | `order:write` |
+| GET | `/api/v1/orders/{order_id}` | 注文詳細取得（明細含む） | `order:read` |
+| PUT | `/api/v1/orders/{order_id}/status` | 注文ステータス更新 | `order:write` |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
@@ -160,7 +160,7 @@ service tier の注文管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/orders/:order_id
+#### GET /api/v1/orders/{order_id}
 
 注文の詳細（明細含む）を取得する。
 
@@ -181,7 +181,7 @@ POST /api/v1/orders の 201 レスポンスと同一形式。
 }
 ```
 
-#### PUT /api/v1/orders/:order_id/status
+#### PUT /api/v1/orders/{order_id}/status
 
 注文ステータスを更新する。ステートマシンの遷移ルールに従い、不正な遷移は拒否される。
 

@@ -51,10 +51,10 @@ service tier の決済管理サーバーは以下の機能を提供する。
 | --- | --- | --- | --- |
 | POST | `/api/v1/payments` | 決済開始 | `payment:write` |
 | GET | `/api/v1/payments` | 決済一覧取得（フィルター付き） | `payment:read` |
-| GET | `/api/v1/payments/:id` | 決済詳細取得 | `payment:read` |
-| POST | `/api/v1/payments/:id/complete` | 決済完了 | `payment:write` |
-| POST | `/api/v1/payments/:id/fail` | 決済失敗 | `payment:write` |
-| POST | `/api/v1/payments/:id/refund` | 決済返金 | `payment:write` |
+| GET | `/api/v1/payments/{id}` | 決済詳細取得 | `payment:read` |
+| POST | `/api/v1/payments/{id}/complete` | 決済完了 | `payment:write` |
+| POST | `/api/v1/payments/{id}/fail` | 決済失敗 | `payment:write` |
+| POST | `/api/v1/payments/{id}/refund` | 決済返金 | `payment:write` |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
@@ -149,7 +149,7 @@ service tier の決済管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/payments/:id
+#### GET /api/v1/payments/{id}
 
 決済 ID を指定して詳細を取得する。
 
@@ -170,7 +170,7 @@ POST /api/v1/payments の 201 レスポンスと同一形式。
 }
 ```
 
-#### POST /api/v1/payments/:id/complete
+#### POST /api/v1/payments/{id}/complete
 
 決済を完了する。外部決済プロバイダのトランザクション ID を記録する。楽観的ロック付き。
 
@@ -203,7 +203,7 @@ POST /api/v1/payments の 201 レスポンスと同一形式。
 }
 ```
 
-#### POST /api/v1/payments/:id/fail
+#### POST /api/v1/payments/{id}/fail
 
 決済を失敗にする。エラーコードとメッセージを記録する。楽観的ロック付き。
 
@@ -225,7 +225,7 @@ POST /api/v1/payments の 201 レスポンスと同一形式。
 
 決済詳細レスポンスと同一形式（`status` が `failed`、`error_code` / `error_message` が記録される）。
 
-#### POST /api/v1/payments/:id/refund
+#### POST /api/v1/payments/{id}/refund
 
 完了済み決済を返金する。楽観的ロック付き。
 

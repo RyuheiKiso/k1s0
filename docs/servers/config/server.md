@@ -46,14 +46,14 @@ system tier の設定管理サーバーは以下の機能を提供する。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/config/:namespace/:key` | 設定値取得 | `sys_auditor` 以上 |
-| GET | `/api/v1/config/:namespace` | namespace 内の設定値一覧 | `sys_auditor` 以上 |
-| PUT | `/api/v1/config/:namespace/:key` | 設定値更新 | `sys_operator` 以上 |
-| DELETE | `/api/v1/config/:namespace/:key` | 設定値削除 | `sys_admin` |
-| GET | `/api/v1/config/services/:service_name` | サービス向け設定一括取得 | Bearer token required |
+| GET | `/api/v1/config/{namespace}/{key}` | 設定値取得 | `sys_auditor` 以上 |
+| GET | `/api/v1/config/{namespace}` | namespace 内の設定値一覧 | `sys_auditor` 以上 |
+| PUT | `/api/v1/config/{namespace}/{key}` | 設定値更新 | `sys_operator` 以上 |
+| DELETE | `/api/v1/config/{namespace}/{key}` | 設定値削除 | `sys_admin` |
+| GET | `/api/v1/config/services/{service_name}` | サービス向け設定一括取得 | Bearer token required |
 | GET | `/api/v1/config-schema` | 設定スキーマ一覧 | `sys_auditor` 以上 |
-| GET | `/api/v1/config-schema/:service_name` | 設定スキーマ取得 | `sys_auditor` 以上 |
-| PUT | `/api/v1/config-schema/:service_name` | 設定スキーマ作成・更新（Upsert） | `sys_admin` |
+| GET | `/api/v1/config-schema/{service_name}` | 設定スキーマ取得 | `sys_auditor` 以上 |
+| PUT | `/api/v1/config-schema/{service_name}` | 設定スキーマ作成・更新（Upsert） | `sys_admin` |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
@@ -129,7 +129,7 @@ system tier の設定管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/config/:namespace/:key
+#### GET /api/v1/config/{namespace}/{key}
 
 指定された namespace とキーに対応する設定値を取得する。
 
@@ -163,7 +163,7 @@ system tier の設定管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/config/:namespace
+#### GET /api/v1/config/{namespace}
 
 namespace 内の全設定値をページネーション付きで取得する。
 
@@ -214,7 +214,7 @@ namespace 内の全設定値をページネーション付きで取得する。
 }
 ```
 
-#### PUT /api/v1/config/:namespace/:key
+#### PUT /api/v1/config/{namespace}/{key}
 
 設定値を更新する。楽観的排他制御のため、リクエストに現在の `version` を含める必要がある。
 
@@ -284,7 +284,7 @@ namespace 内の全設定値をページネーション付きで取得する。
 }
 ```
 
-#### DELETE /api/v1/config/:namespace/:key
+#### DELETE /api/v1/config/{namespace}/{key}
 
 設定値を削除する。`sys_admin` ロールのみ実行可能。
 
@@ -305,7 +305,7 @@ namespace 内の全設定値をページネーション付きで取得する。
 }
 ```
 
-#### GET /api/v1/config/services/:service_name
+#### GET /api/v1/config/services/{service_name}
 
 サービス名を指定して、そのサービスに必要な設定値を一括取得する。サービス間通信で利用する。Bearer トークンによる認証が必要。
 
@@ -604,7 +604,7 @@ enum ConfigFieldType {
 ```
 
 > `WatchConfig` は gRPC Server-Side Streaming 専用 API。REST API には同等エンドポイントを持たず、変更通知は Kafka トピック経由で配信する。
-> REST でサービス向け設定を取得する場合は `GET /api/v1/config/services/:service_name?environment=<env>` を使用する（`environment` は `dev` / `staging` / `prod`）。
+> REST でサービス向け設定を取得する場合は `GET /api/v1/config/services/{service_name}?environment=<env>` を使用する（`environment` は `dev` / `staging` / `prod`）。
 
 ---
 

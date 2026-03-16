@@ -91,7 +91,7 @@ service NavigationService {
 | フィールド | 型 | フィールド番号 | 説明 |
 | --- | --- | --- | --- |
 | `id` | string | 1 | ルート一意識別子 |
-| `path` | string | 2 | URL パス（例: `/dashboard`, `/users/:id`） |
+| `path` | string | 2 | URL パス（例: `/dashboard`, `/users/{id}`） |
 | `component_id` | optional string | 3 | フロントエンドコンポーネント識別子（省略可） |
 | `guard_ids` | repeated string | 4 | 適用するガード ID のリスト |
 | `children` | repeated Route | 5 | 子ルート（再帰的） |

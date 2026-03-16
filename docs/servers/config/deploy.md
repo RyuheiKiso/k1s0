@@ -22,7 +22,7 @@ system-config-server のキャッシュ戦略・テスト方針・Dockerfile・H
 ### キャッシュ無効化フロー
 
 ```
-1. PUT /api/v1/config/:namespace/:key が呼ばれる
+1. PUT /api/v1/config/{namespace}/{key} が呼ばれる
 2. DB を更新（楽観的排他制御によるバージョン検証）
 3. config_change_logs テーブルに変更ログを記録
 4. インメモリキャッシュの該当エントリを無効化

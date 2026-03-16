@@ -50,9 +50,9 @@ service tier の在庫管理サーバーは以下の機能を提供する。
 | --- | --- | --- | --- |
 | POST | `/api/v1/inventory/reserve` | 在庫予約 | `inventory:write` |
 | POST | `/api/v1/inventory/release` | 在庫解放 | `inventory:write` |
-| GET | `/api/v1/inventory/:id` | 在庫取得 | `inventory:read` |
+| GET | `/api/v1/inventory/{id}` | 在庫取得 | `inventory:read` |
 | GET | `/api/v1/inventory` | 在庫一覧取得（フィルター付き） | `inventory:read` |
-| PUT | `/api/v1/inventory/:id` | 在庫数量更新（楽観ロック付き） | `inventory:write` |
+| PUT | `/api/v1/inventory/{id}` | 在庫数量更新（楽観ロック付き） | `inventory:write` |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
@@ -135,7 +135,7 @@ service tier の在庫管理サーバーは以下の機能を提供する。
 
 在庫予約レスポンスと同一形式。
 
-#### GET /api/v1/inventory/:id
+#### GET /api/v1/inventory/{id}
 
 在庫 ID を指定して在庫情報を取得する。
 
@@ -189,7 +189,7 @@ service tier の在庫管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### PUT /api/v1/inventory/:id
+#### PUT /api/v1/inventory/{id}
 
 在庫数量を直接更新する。楽観的ロック（version）付き。
 

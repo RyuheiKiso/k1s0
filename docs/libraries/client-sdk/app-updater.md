@@ -530,7 +530,7 @@ expect(result.isMandatory, isTrue);
 
 | メソッド | エンドポイント | 用途 |
 |---------|--------------|------|
-| GET | `/api/v1/apps/:id/versions/latest?platform={platform}&arch={arch}` | 最新バージョン情報の取得 |
+| GET | `/api/v1/apps/{id}/versions/latest?platform={platform}&arch={arch}` | 最新バージョン情報の取得 |
 
 ### レスポンスマッピング
 

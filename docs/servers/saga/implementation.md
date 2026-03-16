@@ -395,8 +395,8 @@ pub trait WorkflowRepository: Send + Sync {
 | GET | `/metrics` | `metrics` | Prometheus メトリクス |
 | POST | `/api/v1/sagas` | `start_saga` | Saga 開始（201 Created） |
 | GET | `/api/v1/sagas` | `list_sagas` | Saga 一覧取得（ページネーション付き） |
-| GET | `/api/v1/sagas/:saga_id` | `get_saga` | Saga 詳細取得（ステップログ含む） |
-| POST | `/api/v1/sagas/:saga_id/cancel` | `cancel_saga` | Saga キャンセル |
+| GET | `/api/v1/sagas/{saga_id}` | `get_saga` | Saga 詳細取得（ステップログ含む） |
+| POST | `/api/v1/sagas/{saga_id}/cancel` | `cancel_saga` | Saga キャンセル |
 | POST | `/api/v1/workflows` | `register_workflow` | ワークフロー登録（201 Created） |
 | GET | `/api/v1/workflows` | `list_workflows` | ワークフロー一覧取得 |
 

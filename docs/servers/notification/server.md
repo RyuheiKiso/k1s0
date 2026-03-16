@@ -61,18 +61,18 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | --- | --- | --- | --- |
 | GET | `/api/v1/channels` | チャネル一覧取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/channels` | チャネル作成 | `sys_operator` 以上 |
-| GET | `/api/v1/channels/:id` | チャネル詳細取得 | `sys_auditor` 以上 |
-| PUT | `/api/v1/channels/:id` | チャネル更新 | `sys_operator` 以上 |
-| DELETE | `/api/v1/channels/:id` | チャネル削除 | `sys_admin` のみ |
+| GET | `/api/v1/channels/{id}` | チャネル詳細取得 | `sys_auditor` 以上 |
+| PUT | `/api/v1/channels/{id}` | チャネル更新 | `sys_operator` 以上 |
+| DELETE | `/api/v1/channels/{id}` | チャネル削除 | `sys_admin` のみ |
 | GET | `/api/v1/templates` | テンプレート一覧取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/templates` | テンプレート作成 | `sys_operator` 以上 |
-| GET | `/api/v1/templates/:id` | テンプレート詳細取得 | `sys_auditor` 以上 |
-| PUT | `/api/v1/templates/:id` | テンプレート更新 | `sys_operator` 以上 |
-| DELETE | `/api/v1/templates/:id` | テンプレート削除 | `sys_admin` のみ |
+| GET | `/api/v1/templates/{id}` | テンプレート詳細取得 | `sys_auditor` 以上 |
+| PUT | `/api/v1/templates/{id}` | テンプレート更新 | `sys_operator` 以上 |
+| DELETE | `/api/v1/templates/{id}` | テンプレート削除 | `sys_admin` のみ |
 | POST | `/api/v1/notifications` | 即時通知送信 | `sys_operator` 以上 |
 | GET | `/api/v1/notifications` | 配信履歴一覧 | `sys_auditor` 以上 |
-| GET | `/api/v1/notifications/:id` | 配信履歴詳細 | `sys_auditor` 以上 |
-| POST | `/api/v1/notifications/:id/retry` | 通知再送 | `sys_operator` 以上 |
+| GET | `/api/v1/notifications/{id}` | 配信履歴詳細 | `sys_auditor` 以上 |
+| POST | `/api/v1/notifications/{id}/retry` | 通知再送 | `sys_operator` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
@@ -164,7 +164,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/channels/:id
+#### GET /api/v1/channels/{id}
 
 指定したチャネル ID の詳細を取得する。
 
@@ -197,7 +197,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### PUT /api/v1/channels/:id
+#### PUT /api/v1/channels/{id}
 
 指定したチャネルを更新する。`name` / `enabled` / `config` の部分更新に対応する。
 
@@ -227,7 +227,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### DELETE /api/v1/channels/:id
+#### DELETE /api/v1/channels/{id}
 
 指定したチャネルを削除する。
 
@@ -299,7 +299,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/templates/:id
+#### GET /api/v1/templates/{id}
 
 指定したテンプレートの詳細を取得する。
 
@@ -317,7 +317,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### PUT /api/v1/templates/:id
+#### PUT /api/v1/templates/{id}
 
 指定したテンプレートを更新する。`name` / `subject_template` / `body_template` の部分更新に対応する。
 
@@ -342,7 +342,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### DELETE /api/v1/templates/:id
+#### DELETE /api/v1/templates/{id}
 
 指定したテンプレートを削除する。
 
@@ -433,7 +433,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/notifications/:id
+#### GET /api/v1/notifications/{id}
 
 配信履歴の詳細を取得する。
 
@@ -467,7 +467,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 }
 ```
 
-#### POST /api/v1/notifications/:id/retry
+#### POST /api/v1/notifications/{id}/retry
 
 失敗した通知を手動で再送する。`status` が `failed` の通知にのみ適用できる。
 

@@ -67,7 +67,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 | POST | `/api/v1/search/indices` | インデックス作成 | `sys_admin` のみ |
 | GET | `/api/v1/search/indices` | インデックス一覧取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/search/index` | ドキュメント登録（`index_name` はリクエストボディで指定） | `sys_operator` 以上 |
-| DELETE | `/api/v1/search/index/:index_name/:id` | ドキュメント削除 | `sys_operator` 以上 |
+| DELETE | `/api/v1/search/index/{index_name}/{id}` | ドキュメント削除 | `sys_operator` 以上 |
 | POST | `/api/v1/search` | 全文検索 | `sys_auditor` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
@@ -255,7 +255,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 }
 ```
 
-#### DELETE /api/v1/search/index/:index_name/:id
+#### DELETE /api/v1/search/index/{index_name}/{id}
 
 指定インデックスから特定ドキュメントを削除する。成功時は 204 No Content（レスポンスボディなし）。
 
