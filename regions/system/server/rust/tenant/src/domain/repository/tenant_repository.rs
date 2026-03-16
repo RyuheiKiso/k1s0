@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::Tenant;
 
-#[cfg_attr(test, mockall::automock)]
+#[cfg_attr(any(test, feature = "test-utils"), mockall::automock)]
 #[async_trait]
 pub trait TenantRepository: Send + Sync {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Tenant>>;

@@ -55,6 +55,15 @@ lint-rust:
     cargo fmt --all --manifest-path CLI/Cargo.toml -- --check
     echo "=== clippy CLI ==="
     cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
+    # standalone Rust サーバー（business/service tier）
+    for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+        if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+            echo "=== fmt $dir ==="
+            cargo fmt --all --manifest-path "$dir/Cargo.toml" -- --check
+            echo "=== clippy $dir ==="
+            cargo clippy --manifest-path "$dir/Cargo.toml" --all-targets -- -D warnings
+        fi
+    done
 
 # TypeScript リント
 lint-ts:
@@ -126,10 +135,17 @@ test-rust:
         exit 1
       fi
     done
-    cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes
+    cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes --features k1s0-tenant-server/test-utils
     # CLI ワークスペース一括テスト（k1s0-gui を除外）
     echo "=== Testing CLI ==="
     cargo test --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
+    # standalone Rust サーバー（business/service tier）
+    for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+        if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+            echo "=== Testing $dir ==="
+            cargo test --manifest-path "$dir/Cargo.toml"
+        fi
+    done
 
 # TypeScript テスト
 test-ts:
@@ -187,6 +203,13 @@ fmt-rust:
     cargo fmt --all --manifest-path regions/system/Cargo.toml
     echo "=== Formatting CLI ==="
     cargo fmt --all --manifest-path CLI/Cargo.toml
+    # standalone Rust サーバー（business/service tier）
+    for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+        if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+            echo "=== Formatting $dir ==="
+            cargo fmt --all --manifest-path "$dir/Cargo.toml"
+        fi
+    done
 
 # TypeScript フォーマット
 fmt-ts:
@@ -253,6 +276,13 @@ build-rust:
     cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
     echo "=== Building CLI ==="
     cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
+    # standalone Rust サーバー（business/service tier）
+    for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+        if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+            echo "=== Building $dir ==="
+            cargo build --manifest-path "$dir/Cargo.toml" --all-targets
+        fi
+    done
 
 # TypeScript ビルド
 build-ts:

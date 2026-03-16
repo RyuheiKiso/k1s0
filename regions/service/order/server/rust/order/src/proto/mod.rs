@@ -13,4 +13,14 @@ pub mod k1s0 {
             }
         }
     }
+    // Kafka publish 用イベント Protobuf 定義
+    pub mod event {
+        pub mod service {
+            pub mod order {
+                pub mod v1 {
+                    include!("k1s0.event.service.order.v1.rs");
+                }
+            }
+        }
+    }
 }

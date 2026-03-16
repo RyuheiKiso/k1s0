@@ -358,10 +358,12 @@ import { createApiClient } from 'system-client';
  * - CSRF トークン: BFF が発行する X-CSRF-Token をリクエストヘッダーに付与
  * - onUnauthorized: 401 エラー時のコールバック（テスト時に window.location 依存を排除可能）
  */
+import { navigateTo } from '../auth/navigation';
+
 const apiClient = createApiClient({
   baseURL: '/api',
   onUnauthorized: () => {
-    window.location.href = '/auth/login';
+    navigateTo('/auth/login');
   },
 });
 
@@ -370,6 +372,7 @@ export { apiClient };
 
 > **Note:** `createApiClient` は system-client パッケージが提供する Axios ファクトリ関数。
 > `onUnauthorized` コールバックにより、401 エラー時の動作を呼び出し側で制御でき、テスト時は spy/mock に差し替え可能。
+> `navigateTo` はナビゲーション抽象化ヘルパーで、テスト時に `window.location` への直接依存を排除しテスタビリティを向上させる。
 
 ### src/lib/query-client.ts
 

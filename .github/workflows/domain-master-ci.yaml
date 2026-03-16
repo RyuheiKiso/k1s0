@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/domain-master-ci.yaml
+# Per-service CI pipeline for domain-master server（reusable workflow 経由）
+# NOTE: domain-master は business tier のため独立した Cargo.toml を使用（standalone モード）
+name: domain-master-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'regions/business/accounting/**'
+
+concurrency:
+  group: domain-master-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_rust-service-ci.yaml
+    with:
+      service-path: regions/business/accounting/server/rust/domain-master
+      package-name: k1s0-domain-master-server
+      workspace-path: regions/business/accounting/server/rust/domain-master
+      standalone: true

@@ -9,8 +9,8 @@ use tower::ServiceExt;
 
 // テナントサーバーのクレートから必要な型をインポート
 use k1s0_tenant_server::adapter::handler::{router, AppState};
-use k1s0_tenant_server::domain::repository::member_repository::MockMemberRepository;
-use k1s0_tenant_server::domain::repository::tenant_repository::MockTenantRepository;
+use k1s0_tenant_server::domain::repository::MockMemberRepository;
+use k1s0_tenant_server::domain::repository::MockTenantRepository;
 use k1s0_tenant_server::usecase;
 
 // --- テスト用アプリケーション構築 ---

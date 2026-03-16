@@ -134,12 +134,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
-      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             regions/system
             CLI
+            regions/business/accounting/server/rust/domain-master
+            regions/service/inventory/server/rust/inventory
+            regions/service/order/server/rust/order
+            regions/service/payment/server/rust/payment
       - name: Format check Rust crates
         shell: bash
         env:
@@ -377,12 +381,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
-      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             regions/system
             CLI
+            regions/business/accounting/server/rust/domain-master
+            regions/service/inventory/server/rust/inventory
+            regions/service/order/server/rust/order
+            regions/service/payment/server/rust/payment
       - name: Test Rust crates
         shell: bash
         env:
@@ -417,7 +425,7 @@ jobs:
               fi
             done
             echo "=== Testing regions/system ==="
-            cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes
+            cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes --features k1s0-tenant-server/test-utils
             echo "=== Testing CLI ==="
             cargo test --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
           fi
@@ -429,12 +437,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.93
-      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             regions/system
             CLI
+            regions/business/accounting/server/rust/domain-master
+            regions/service/inventory/server/rust/inventory
+            regions/service/order/server/rust/order
+            regions/service/payment/server/rust/payment
       - name: cargo-tarpaulin インストール（プリビルドバイナリ）
         run: |
           TARPAULIN_VERSION="0.31.2"
@@ -636,12 +648,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.93
-      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             regions/system
             CLI
+            regions/business/accounting/server/rust/domain-master
+            regions/service/inventory/server/rust/inventory
+            regions/service/order/server/rust/order
+            regions/service/payment/server/rust/payment
       - name: Build Rust crates
         shell: bash
         run: |
@@ -666,6 +682,13 @@ jobs:
           cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
           echo "=== Building CLI ==="
           cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
+          # standalone Rust サーバー（business/service tier）
+          for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+              if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+                  echo "=== Building $dir ==="
+                  cargo build --manifest-path "$dir/Cargo.toml" --all-targets
+              fi
+          done
 
   build-ts:
     needs: test-ts
