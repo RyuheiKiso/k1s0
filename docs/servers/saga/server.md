@@ -63,9 +63,9 @@ system tier の Saga Orchestrator は以下の機能を提供する。
 | --- | --- | --- | --- |
 | POST | `/api/v1/sagas` | Saga 開始 | `sagas/write` |
 | GET | `/api/v1/sagas` | Saga 一覧取得 | `sagas/read` |
-| GET | `/api/v1/sagas/:saga_id` | Saga 詳細取得（ステップログ含む） | `sagas/read` |
-| POST | `/api/v1/sagas/:saga_id/cancel` | Saga キャンセル | `sagas/write` |
-| POST | `/api/v1/sagas/:saga_id/compensate` | 補償処理のトリガー（補償開始・実行） | `sagas/write` |
+| GET | `/api/v1/sagas/{saga_id}` | Saga 詳細取得（ステップログ含む） | `sagas/read` |
+| POST | `/api/v1/sagas/{saga_id}/cancel` | Saga キャンセル | `sagas/write` |
+| POST | `/api/v1/sagas/{saga_id}/compensate` | 補償処理のトリガー（補償開始・実行） | `sagas/write` |
 | POST | `/api/v1/workflows` | ワークフロー登録 | `sagas/write` |
 | GET | `/api/v1/workflows` | ワークフロー一覧取得 | `sagas/read` |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
@@ -114,15 +114,15 @@ Saga の一覧をページネーション付きで取得する。
 | `status` | string | No | - | ステータスでフィルタ（`STARTED`, `RUNNING`, `COMPLETED`, `COMPENSATING`, `FAILED`, `CANCELLED`） |
 | `correlation_id` | string | No | - | 業務相関 ID でフィルタ |
 
-#### GET /api/v1/sagas/:saga_id
+#### GET /api/v1/sagas/{saga_id}
 
 Saga の詳細情報とステップログを取得する。
 
-#### POST /api/v1/sagas/:saga_id/cancel
+#### POST /api/v1/sagas/{saga_id}/cancel
 
 実行中の Saga をキャンセルする。終端状態（COMPLETED / FAILED / CANCELLED）の Saga はキャンセルできない。
 
-#### POST /api/v1/sagas/:saga_id/compensate
+#### POST /api/v1/sagas/{saga_id}/compensate
 
 Saga の補償処理（逆順ロールバック）を明示的にトリガーする。`ExecuteSagaUseCase::trigger_compensate` を呼び出し、実行済みステップを逆順に補償する。終端状態の Saga には実行できない。
 
@@ -866,7 +866,7 @@ regions/system/library/rust/saga/
 }
 ```
 
-### GET /api/v1/sagas/:saga_id
+### GET /api/v1/sagas/{saga_id}
 
 **レスポンス（200 OK）**
 
@@ -926,7 +926,7 @@ regions/system/library/rust/saga/
 }
 ```
 
-### POST /api/v1/sagas/:saga_id/cancel
+### POST /api/v1/sagas/{saga_id}/cancel
 
 **レスポンス（200 OK）**
 

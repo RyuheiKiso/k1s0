@@ -63,15 +63,15 @@ system tier の Tenant Server は以下の機能を提供する。
 | --- | --- | --- | --- |
 | POST | `/api/v1/tenants` | テナント作成 | `tenants/write` |
 | GET | `/api/v1/tenants` | テナント一覧 | `tenants/read` |
-| GET | `/api/v1/tenants/:id` | テナント詳細 | `tenants/read` |
-| PUT | `/api/v1/tenants/:id` | テナント更新 | `tenants/write` |
-| POST | `/api/v1/tenants/:id/suspend` | テナント停止 | `tenants/admin` |
-| POST | `/api/v1/tenants/:id/activate` | テナント再開 | `tenants/admin` |
-| DELETE | `/api/v1/tenants/:id` | テナント削除 | `tenants/admin` |
-| GET | `/api/v1/tenants/:id/members` | テナントメンバー一覧 | `tenants/read` |
-| POST | `/api/v1/tenants/:id/members` | テナントメンバー追加 | `tenants/write` |
-| PUT | `/api/v1/tenants/:id/members/:user_id` | テナントメンバーロール更新 | `tenants/write` |
-| DELETE | `/api/v1/tenants/:id/members/:user_id` | テナントメンバー削除 | `tenants/admin` |
+| GET | `/api/v1/tenants/{id}` | テナント詳細 | `tenants/read` |
+| PUT | `/api/v1/tenants/{id}` | テナント更新 | `tenants/write` |
+| POST | `/api/v1/tenants/{id}/suspend` | テナント停止 | `tenants/admin` |
+| POST | `/api/v1/tenants/{id}/activate` | テナント再開 | `tenants/admin` |
+| DELETE | `/api/v1/tenants/{id}` | テナント削除 | `tenants/admin` |
+| GET | `/api/v1/tenants/{id}/members` | テナントメンバー一覧 | `tenants/read` |
+| POST | `/api/v1/tenants/{id}/members` | テナントメンバー追加 | `tenants/write` |
+| PUT | `/api/v1/tenants/{id}/members/{user_id}` | テナントメンバーロール更新 | `tenants/write` |
+| DELETE | `/api/v1/tenants/{id}/members/{user_id}` | テナントメンバー削除 | `tenants/admin` |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
@@ -179,7 +179,7 @@ system tier の Tenant Server は以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/tenants/:id
+#### GET /api/v1/tenants/{id}
 
 ID 指定でテナントの詳細を取得する。
 
@@ -214,7 +214,7 @@ ID 指定でテナントの詳細を取得する。
 }
 ```
 
-#### PUT /api/v1/tenants/:id
+#### PUT /api/v1/tenants/{id}
 
 テナント情報を更新する。更新可能フィールドは `display_name` と `plan`。
 
@@ -250,7 +250,7 @@ ID 指定でテナントの詳細を取得する。
 }
 ```
 
-#### POST /api/v1/tenants/:id/suspend
+#### POST /api/v1/tenants/{id}/suspend
 
 テナントを一時停止する。`active` ステータスのテナントのみ停止可能。Kafka でイベントを配信する。
 
@@ -287,7 +287,7 @@ ID 指定でテナントの詳細を取得する。
 }
 ```
 
-#### POST /api/v1/tenants/:id/activate
+#### POST /api/v1/tenants/{id}/activate
 
 一時停止中のテナントを再開する。`suspended` ステータスのテナントのみ再開可能。
 
@@ -311,7 +311,7 @@ ID 指定でテナントの詳細を取得する。
 }
 ```
 
-#### DELETE /api/v1/tenants/:id
+#### DELETE /api/v1/tenants/{id}
 
 テナントを論理削除する。Keycloak realm の無効化と DB スキーマのアーカイブを Saga パターンで実行する。
 
@@ -333,7 +333,7 @@ ID 指定でテナントの詳細を取得する。
 }
 ```
 
-#### GET /api/v1/tenants/:id/members
+#### GET /api/v1/tenants/{id}/members
 
 テナントに所属するメンバー一覧を取得する。
 
@@ -360,7 +360,7 @@ ID 指定でテナントの詳細を取得する。
 }
 ```
 
-#### POST /api/v1/tenants/:id/members
+#### POST /api/v1/tenants/{id}/members
 
 テナントにメンバーを追加する。Keycloak realm にもユーザーを登録する。
 
@@ -403,7 +403,7 @@ ID 指定でテナントの詳細を取得する。
 }
 ```
 
-#### PUT /api/v1/tenants/:id/members/:user_id
+#### PUT /api/v1/tenants/{id}/members/{user_id}
 
 テナントメンバーのロールを更新する。
 
@@ -457,7 +457,7 @@ ID 指定でテナントの詳細を取得する。
 }
 ```
 
-#### DELETE /api/v1/tenants/:id/members/:user_id
+#### DELETE /api/v1/tenants/{id}/members/{user_id}
 
 テナントからメンバーを削除する。Keycloak realm からもユーザーを削除する。
 

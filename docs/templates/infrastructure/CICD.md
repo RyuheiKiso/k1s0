@@ -203,6 +203,8 @@ concurrency:
 
 #### TypeScript (React)
 
+> **注意**: TypeScript モジュールは `package-lock.json` を必ずコミットし、CI では `npm ci` を使用すること。`npm install` のフォールバックは許可されない。
+
 ```tera
 {% if language == "typescript" or framework == "react" %}
   lint:

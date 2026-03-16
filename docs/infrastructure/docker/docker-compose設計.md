@@ -10,6 +10,10 @@
 - ボリュームでデータを永続化し、コンテナ再作成時もデータを保持する
 - **RDBMS 方針**: PostgreSQL を標準 RDBMS とする。MySQL は既存システム連携用として残す。SQL Server は当プロジェクトでは採用しない
 
+## プロファイル依存関係図
+
+![Docker Composeプロファイル依存関係図](images/profile-dependency.svg)
+
 ## プロファイル設計
 
 | プロファイル  | 対象                                     |
@@ -46,15 +50,15 @@ services:
     image: postgres:17
     profiles: [infra]
     environment:
-      POSTGRES_USER: dev
-      POSTGRES_PASSWORD: dev
+      POSTGRES_USER: ${POSTGRES_USER:-dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev}
     ports:
       - "${PG_HOST_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/docker/init-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dev"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dev}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -63,9 +67,9 @@ services:
     image: mysql:8.4
     profiles: [infra]
     environment:
-      MYSQL_ROOT_PASSWORD: dev
-      MYSQL_USER: dev
-      MYSQL_PASSWORD: dev
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dev}
+      MYSQL_USER: ${MYSQL_USER:-dev}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-dev}
     ports:
       - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
@@ -161,10 +165,10 @@ services:
       KC_DB: postgres
       KC_DB_URL_HOST: postgres
       KC_DB_URL_DATABASE: keycloak
-      KC_DB_USERNAME: dev
-      KC_DB_PASSWORD: dev
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: dev
+      KC_DB_USERNAME: ${KC_DB_USERNAME:-dev}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-dev}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-dev}
     command: start-dev --import-realm
     ports:
       - "${KEYCLOAK_HOST_PORT:-8180}:8080"
@@ -193,7 +197,7 @@ services:
     cap_add:
       - IPC_LOCK
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: dev-token
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:-dev-token}
     ports:
       - "${VAULT_HOST_PORT:-8200}:8200"
 
@@ -238,7 +242,7 @@ services:
     image: grafana/grafana:11.3
     profiles: [observability]
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: dev
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-dev}
     ports:
       - "${GRAFANA_HOST_PORT:-3200}:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
     volumes:
@@ -334,7 +338,7 @@ bash infra/docker/vault/init-vault.sh
 | Kafka SASL | `secret/k1s0/system/kafka/sasl` |
 | Keycloak クライアントシークレット | `secret/k1s0/system/keycloak` |
 
-> **注記**: Vault はローカル開発環境では dev モード（`VAULT_DEV_ROOT_TOKEN_ID: dev-token`）で起動する。KV v2 シークレットエンジンは `secret/` パスにデフォルトで有効化されている。
+> **注記**: Vault はローカル開発環境では dev モード（`VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:-dev-token}`）で起動する。KV v2 シークレットエンジンは `secret/` パスにデフォルトで有効化されている。
 
 ## DB 初期化スクリプト
 
@@ -433,7 +437,7 @@ docker compose --profile infra --profile observability --profile system down -v
 
 ## 設計上の補足
 
-- ローカル開発用のパスワードは `dev` で統一する（本番シークレットとの混同を防ぐ）
+- ローカル開発用のクレデンシャルはすべて `${VAR:-default}` パターンで環境変数化する。デフォルト値は `dev` で統一し、`.env` で上書き可能とする（本番シークレットとの混同を防ぎつつ、共用サーバー等での個別設定にも対応）
 - ヘルスチェックを全サービスに定義し、`depends_on` の `condition: service_healthy` で起動順序を制御する
 - ボリューム名はサービス名に対応させ、`docker compose down -v` で一括削除できるようにする
 - アプリケーションサーバーの設定ファイルはボリュームマウントで提供し、イメージの再ビルドなしに設定変更を反映できるようにする
@@ -476,6 +480,24 @@ echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
 | ネットワーク名 | `k1s0-network` | `alice_default` |
 
 これにより、共用サーバー上で複数開発者が同時に `docker compose up` しても、リソースが完全に分離される。
+
+## クレデンシャル環境変数一覧
+
+全クレデンシャルは `${VAR:-default}` 形式で環境変数化されており、`.env` で上書き可能。未設定時はデフォルト値（`dev` 等）が適用される。
+
+| 環境変数 | デフォルト | サービス | 説明 |
+| --- | --- | --- | --- |
+| `POSTGRES_USER` | dev | postgres | PostgreSQL ユーザー名 |
+| `POSTGRES_PASSWORD` | dev | postgres | PostgreSQL パスワード |
+| `MYSQL_ROOT_PASSWORD` | dev | mysql | MySQL root パスワード |
+| `MYSQL_USER` | dev | mysql | MySQL ユーザー名 |
+| `MYSQL_PASSWORD` | dev | mysql | MySQL パスワード |
+| `KC_DB_USERNAME` | dev | keycloak | Keycloak DB ユーザー名 |
+| `KC_DB_PASSWORD` | dev | keycloak | Keycloak DB パスワード |
+| `KEYCLOAK_ADMIN` | admin | keycloak | Keycloak 管理者ユーザー名 |
+| `KEYCLOAK_ADMIN_PASSWORD` | dev | keycloak | Keycloak 管理者パスワード |
+| `VAULT_DEV_ROOT_TOKEN_ID` | dev-token | vault | Vault dev モードトークン |
+| `GF_SECURITY_ADMIN_PASSWORD` | dev | grafana | Grafana 管理者パスワード |
 
 ## ポート環境変数一覧
 

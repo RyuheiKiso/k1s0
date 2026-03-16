@@ -43,6 +43,7 @@ croner = "2"
 mockall = {workspace = true}
 tokio-test = {workspace = true}
 axum-test = "17"
+tower = {workspace = true}
 
 [build-dependencies]
 tonic-build = {workspace = true}

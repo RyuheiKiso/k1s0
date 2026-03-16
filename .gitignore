@@ -19,6 +19,10 @@ nul
 **/Cargo.lock
 !CLI/Cargo.lock
 !regions/system/Cargo.lock
+!regions/business/accounting/server/rust/domain-master/Cargo.lock
+!regions/service/inventory/server/rust/inventory/Cargo.lock
+!regions/service/order/server/rust/order/Cargo.lock
+!regions/service/payment/server/rust/payment/Cargo.lock
 
 # Go (sum is committed, vendor is not)
 vendor/

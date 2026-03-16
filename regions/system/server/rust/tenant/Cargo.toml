@@ -32,6 +32,7 @@ thiserror = {workspace = true}
 async-trait = {workspace = true}
 tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
+mockall = {workspace = true, optional = true}
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 k1s0-auth = { path = "../../../library/rust/auth" }
@@ -45,9 +46,20 @@ utoipa-swagger-ui = {workspace = true}
 tonic-build = {workspace = true}
 
 [dev-dependencies]
-mockall = {workspace = true}
 tokio-test = {workspace = true}
 axum-test = "17"
+tower = {workspace = true}
+tokio = {workspace = true}
+axum = {workspace = true}
+reqwest = {workspace = true}
+async-trait = {workspace = true}
 
 [lints]
 workspace = true
+
+[features]
+test-utils = ["dep:mockall"]
+
+[[test]]
+name = "integration_test"
+required-features = ["test-utils"]

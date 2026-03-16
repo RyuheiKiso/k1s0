@@ -1,0 +1,167 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="graphql-001" name="REST vs GraphQL判定フローチャートとBFFアーキテクチャ">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="REST vs GraphQL 判定フロー &amp; BFF アーキテクチャ" style="text;html=1;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="900" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 左側: 判定フローチャート ===== -->
+        <mxCell id="section-flow" value="判定フロー" style="text;html=1;fontSize=16;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Q1: 単一サービスで完結？ -->
+        <mxCell id="q1" value="&lt;b&gt;単一サービスの&lt;br&gt;データだけで完結？&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fontSize=11;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="100" width="180" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Q1 → Yes: REST -->
+        <mxCell id="rest-1" value="&lt;b&gt;REST を使用&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="120" width="130" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-q1-yes" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontSize=10;fontStyle=1;" edge="1" source="q1" target="rest-1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Q2: フィールドが固定的？ -->
+        <mxCell id="q2" value="&lt;b&gt;必要なフィールドは&lt;br&gt;固定的？&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fontSize=11;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="250" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-q1-no" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B85450;strokeWidth=2;fontSize=10;fontStyle=1;" edge="1" source="q1" target="q2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Q2 → Yes: REST集約エンドポイント -->
+        <mxCell id="rest-2" value="&lt;b&gt;REST 集約&lt;br&gt;エンドポイント&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="270" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-q2-yes" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontSize=10;fontStyle=1;" edge="1" source="q2" target="rest-2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Q3: 複数サービスの集約が必要？ -->
+        <mxCell id="q3" value="&lt;b&gt;複数サービスのデータを&lt;br&gt;1リクエストで取得？&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fontSize=11;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="400" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-q2-no" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B85450;strokeWidth=2;fontSize=10;fontStyle=1;" edge="1" source="q2" target="q3" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Q3 → Yes: GraphQL BFF -->
+        <mxCell id="graphql-bff" value="&lt;b&gt;GraphQL BFF&lt;br&gt;を採用&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="420" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-q3-yes" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;strokeWidth=2;fontSize=10;fontStyle=1;" edge="1" source="q3" target="graphql-bff" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Q3 → No: REST -->
+        <mxCell id="rest-3" value="&lt;b&gt;REST を使用&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="550" width="130" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-q3-no" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontSize=10;fontStyle=1;" edge="1" source="q3" target="rest-3" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- GraphQL不適用ノート -->
+        <mxCell id="ng-note" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;GraphQL を使わないケース&lt;/b&gt;&lt;br&gt;- サービス間通信（→ gRPC）&lt;br&gt;- 単純な CRUD API&lt;br&gt;- 認証エンドポイント（OAuth 2.0）&lt;br&gt;- ファイルアップロード/ダウンロード&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F8CECC;strokeColor=#B85450;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="30" y="630" width="230" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- 導入対象候補ノート -->
+        <mxCell id="target-note" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;GraphQL 導入対象候補&lt;/b&gt;&lt;br&gt;- ダッシュボード画面&lt;br&gt;&amp;nbsp;&amp;nbsp;(注文+在庫+会計+ユーザー)&lt;br&gt;- レポート画面&lt;br&gt;- ユーザープロフィール画面&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#D6B656;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="350" y="500" width="220" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 右側: BFF アーキテクチャ ===== -->
+        <mxCell id="section-bff" value="BFF アーキテクチャ" style="text;html=1;fontSize=16;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="650" y="60" width="250" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Client -->
+        <mxCell id="client" value="&lt;b&gt;Client&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(React / Flutter)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="100" width="160" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Nginx Ingress -->
+        <mxCell id="nginx" value="&lt;b&gt;Nginx Ingress&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#F5F5F5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="840" y="190" width="140" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-client-nginx" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;" edge="1" source="client" target="nginx" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Kong -->
+        <mxCell id="kong" value="&lt;b&gt;Kong API Gateway&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="260" width="140" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-nginx-kong" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;" edge="1" source="nginx" target="kong" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- BFF Proxy -->
+        <mxCell id="bff-proxy" value="&lt;b&gt;BFF Proxy&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;system tier&lt;br&gt;Cookie ⇄ Bearer 変換&lt;br&gt;token refresh&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#E1D5E7;strokeColor=#9673A6;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="340" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-kong-bff" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;" edge="1" source="kong" target="bff-proxy" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- GraphQL BFF (service tier) -->
+        <mxCell id="gql-bff" value="&lt;b&gt;GraphQL BFF&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;service tier（オプション）&lt;br&gt;複数サービスの集約&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="460" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-bff-gql" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;strokeWidth=2;" edge="1" source="bff-proxy" target="gql-bff" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- GraphQL Gateway (system tier) -->
+        <mxCell id="gql-gw" value="&lt;b&gt;GraphQL Gateway&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;system tier&lt;br&gt;基盤サービス集約&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#E1D5E7;strokeColor=#9673A6;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="950" y="460" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-bff-gw" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=2;" edge="1" source="bff-proxy" target="gql-gw" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Backend Services -->
+        <mxCell id="backend1" value="&lt;b&gt;Order&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gRPC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="650" y="570" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="backend2" value="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gRPC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="740" y="570" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="backend3" value="&lt;b&gt;Tenant&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gRPC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E1D5E7;strokeColor=#9673A6;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="940" y="570" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="backend4" value="&lt;b&gt;Config&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gRPC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E1D5E7;strokeColor=#9673A6;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="570" width="80" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- BFF → backends -->
+        <mxCell id="e-gql-b1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;" edge="1" source="gql-bff" target="backend1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-gql-b2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;" edge="1" source="gql-bff" target="backend2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-gw-b3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;" edge="1" source="gql-gw" target="backend3" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-gw-b4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;" edge="1" source="gql-gw" target="backend4" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- mTLS ラベル -->
+        <mxCell id="mtls-label" value="&lt;font style=&quot;font-size:9px;color:#B85450;&quot;&gt;&lt;b&gt;mTLS (Istio)&lt;/b&gt;&lt;/font&gt;" style="text;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="830" y="550" width="80" height="15" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

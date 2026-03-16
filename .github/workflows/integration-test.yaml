@@ -13,8 +13,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  integration-test:
+  detect-servers:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect integration test servers
+        id: detect
+        run: |
+          chmod +x scripts/ci-list-integration-servers.sh
+          matrix=$(scripts/ci-list-integration-servers.sh)
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "Detected servers: $matrix"
+
+  integration-test:
+    needs: detect-servers
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        server: ${{ fromJson(needs.detect-servers.outputs.matrix) }}
 
     services:
       postgres:
@@ -52,6 +71,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@1.93
 
+      # 26サーバー並列ビルドのため Rust 依存キャッシュを有効化
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: regions/system
+
       - name: Initialize database schemas
         env:
           PGPASSWORD: dev
@@ -61,42 +85,18 @@ jobs:
             psql -h localhost -U dev -d postgres -f "$sql"
           done
 
-      - name: Run integration tests (auth-server)
-        env:
-          DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3Dauth,public"
-          KAFKA_BROKERS: "localhost:9092"
+      - name: Derive schema name
+        id: schema
         run: |
-          cd regions/system/server/rust/auth
-          cargo test --all -- --ignored
+          # サーバーディレクトリ名からスキーマ名を導出（ハイフンをアンダースコアに変換）
+          # 注: 現在の統合テストはスタブリポジトリを使用するため DB 接続は行われない
+          # 将来 DB 依存テストを追加する場合は init-db/*.sql のスキーマ名と一致させること
+          echo "name=$(echo '${{ matrix.server }}' | tr '-' '_')" >> "$GITHUB_OUTPUT"
 
-      - name: Run integration tests (config-server)
+      - name: Run integration tests (${{ matrix.server }})
         env:
-          DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3Dconfig,public"
+          DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3D${{ steps.schema.outputs.name }},public"
           KAFKA_BROKERS: "localhost:9092"
         run: |
-          cd regions/system/server/rust/config
-          cargo test --all -- --ignored
-
-      - name: Run integration tests (saga-server)
-        env:
-          DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3Dsaga,public"
-          KAFKA_BROKERS: "localhost:9092"
-        run: |
-          cd regions/system/server/rust/saga
-          cargo test --all -- --ignored
-
-      - name: Run integration tests (dlq-manager)
-        env:
-          DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3Ddlq,public"
-          KAFKA_BROKERS: "localhost:9092"
-        run: |
-          cd regions/system/server/rust/dlq-manager
-          cargo test --all -- --ignored
-
-      - name: Run integration tests (ratelimit-server)
-        env:
-          DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3Dratelimit,public"
-          KAFKA_BROKERS: "localhost:9092"
-        run: |
-          cd regions/system/server/rust/ratelimit
-          cargo test --all -- --ignored
+          cd regions/system/server/rust/${{ matrix.server }}
+          cargo test --all

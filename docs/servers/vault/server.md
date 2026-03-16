@@ -71,14 +71,14 @@ system tier の Vault Server は以下の機能を提供する。
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
 | POST | `/api/v1/secrets` | シークレット作成 | `secrets/write` |
-| GET | `/api/v1/secrets/:key` | シークレット取得 | `secrets/read`（SPIFFE 条件も併用） |
-| PUT | `/api/v1/secrets/:key` | シークレット更新 | `secrets/write` |
-| DELETE | `/api/v1/secrets/:key` | シークレット削除 | `secrets/admin` |
+| GET | `/api/v1/secrets/{key}` | シークレット取得 | `secrets/read`（SPIFFE 条件も併用） |
+| PUT | `/api/v1/secrets/{key}` | シークレット更新 | `secrets/write` |
+| DELETE | `/api/v1/secrets/{key}` | シークレット削除 | `secrets/admin` |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/api/v1/secrets` | シークレット一覧 | `secrets/read` |
-| GET | `/api/v1/secrets/:key/metadata` | メタデータ取得 | `secrets/read` |
-| POST | `/api/v1/secrets/:key/rotate` | ローテーション | `secrets/write` |
+| GET | `/api/v1/secrets/{key}/metadata` | メタデータ取得 | `secrets/read` |
+| POST | `/api/v1/secrets/{key}/rotate` | ローテーション | `secrets/write` |
 | GET | `/api/v1/audit/logs` | 監査ログ | `secrets/read` |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
 
@@ -108,7 +108,7 @@ system tier の Vault Server は以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/secrets/:key
+#### GET /api/v1/secrets/{key}
 
 指定パスのシークレットを取得する。バージョン未指定時は最新バージョンを返す。
 
@@ -140,7 +140,7 @@ system tier の Vault Server は以下の機能を提供する。
 }
 ```
 
-#### PUT /api/v1/secrets/:key
+#### PUT /api/v1/secrets/{key}
 
 既存シークレットを更新する。バージョンが自動インクリメントされる。
 
@@ -165,7 +165,7 @@ system tier の Vault Server は以下の機能を提供する。
 }
 ```
 
-#### DELETE /api/v1/secrets/:key
+#### DELETE /api/v1/secrets/{key}
 
 指定パスのシークレットを削除する。
 
@@ -191,7 +191,7 @@ system tier の Vault Server は以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/secrets/:key/metadata
+#### GET /api/v1/secrets/{key}/metadata
 
 指定パスのシークレットのメタデータのみを返す（シークレット値は含まない）。
 
@@ -215,7 +215,7 @@ system tier の Vault Server は以下の機能を提供する。
 }
 ```
 
-#### POST /api/v1/secrets/:key/rotate
+#### POST /api/v1/secrets/{key}/rotate
 
 指定パスのシークレットをローテーションする。新しいシークレットデータをボディに渡すと、バージョンがインクリメントされる。
 
@@ -649,7 +649,7 @@ vault:
 
 
 ### 2026-03-03 追補
-- GET /api/v1/secrets/:key/metadata の 404 は標準 ErrorResponse（error.code/message/request_id/details）で返却する。
+- GET /api/v1/secrets/{key}/metadata の 404 は標準 ErrorResponse（error.code/message/request_id/details）で返却する。
 - RBAC は secrets/read, secrets/write, secrets/admin の resource/action 併記を正とする。
 ---
 

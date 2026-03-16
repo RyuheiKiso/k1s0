@@ -87,14 +87,14 @@ max_stepsに達するか、Finishアクションが出るまで繰り返す
 |--------|------|------|------|
 | POST | /api/v1/agents | エージェント定義作成 | agents/write |
 | GET | /api/v1/agents | エージェント定義一覧 | agents/read |
-| POST | /api/v1/agents/:id/execute | エージェント実行 | agents/write |
+| POST | /api/v1/agents/{id}/execute | エージェント実行 | agents/write |
 | GET | /api/v1/executions | 実行履歴一覧 | agents/read |
-| POST | /api/v1/executions/:id/review | ステップレビュー | agents/write |
+| POST | /api/v1/executions/{id}/review | ステップレビュー | agents/write |
 | GET | /healthz | ヘルスチェック | 不要 |
 | GET | /readyz | レディネスチェック | 不要 |
 | GET | /metrics | Prometheusメトリクス | 不要 |
 
-#### POST /api/v1/agents/:id/execute
+#### POST /api/v1/agents/{id}/execute
 
 ```json
 // リクエスト
@@ -118,7 +118,7 @@ max_stepsに達するか、Finishアクションが出るまで繰り返す
 }
 ```
 
-#### POST /api/v1/executions/:id/review
+#### POST /api/v1/executions/{id}/review
 
 ```json
 // リクエスト

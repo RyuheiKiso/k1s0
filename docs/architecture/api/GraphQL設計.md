@@ -8,6 +8,10 @@ D-011 GraphQL 設計、D-124 実装技術選定を定義する。
 
 ## D-011: GraphQL 設計
 
+### REST vs GraphQL 判定フロー & BFF アーキテクチャ
+
+![REST vs GraphQL判定フローチャートとBFFアーキテクチャ](images/rest-vs-graphql-decision.svg)
+
 GraphQL は BFF（Backend for Frontend）として、複数サービスの集約が必要な場合にオプション採用する。
 
 本ドキュメントにおける呼称は以下の通り。

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { AuthContext, type User } from './AuthContext';
 import { createApiClient, setCsrfToken } from '../http/apiClient';
+import { navigateTo } from './navigation';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -21,7 +22,7 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
   // 401 未認証エラー時にログインページへリダイレクトするコールバックを設定
   const apiClient = createApiClient({
     baseURL: apiBaseURL,
-    onUnauthorized: () => { window.location.href = `${apiBaseURL}/auth/login`; },
+    onUnauthorized: () => { navigateTo(`${apiBaseURL}/auth/login`); },
   });
 
   // 初期化時にセッション確認（BFF の /auth/session エンドポイントを使用）
@@ -54,7 +55,7 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
 
   // BFF の OAuth2/OIDC 認可コードフローへリダイレクトする
   const login = useCallback(() => {
-    window.location.href = `${apiBaseURL}/auth/login`;
+    navigateTo(`${apiBaseURL}/auth/login`);
   }, [apiBaseURL]);
 
   // ログアウト時に CSRF トークンもクリアする

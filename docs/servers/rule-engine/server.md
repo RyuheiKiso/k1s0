@@ -141,17 +141,17 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
 | GET | `/api/v1/rules` | ルール一覧取得 | `sys_auditor` 以上 |
-| GET | `/api/v1/rules/:id` | ルール詳細取得 | `sys_auditor` 以上 |
+| GET | `/api/v1/rules/{id}` | ルール詳細取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/rules` | ルール作成 | `sys_operator` 以上 |
-| PUT | `/api/v1/rules/:id` | ルール更新 | `sys_operator` 以上 |
-| DELETE | `/api/v1/rules/:id` | ルール削除 | `sys_admin` のみ |
+| PUT | `/api/v1/rules/{id}` | ルール更新 | `sys_operator` 以上 |
+| DELETE | `/api/v1/rules/{id}` | ルール削除 | `sys_admin` のみ |
 | GET | `/api/v1/rule-sets` | ルールセット一覧取得 | `sys_auditor` 以上 |
-| GET | `/api/v1/rule-sets/:id` | ルールセット詳細取得 | `sys_auditor` 以上 |
+| GET | `/api/v1/rule-sets/{id}` | ルールセット詳細取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/rule-sets` | ルールセット作成 | `sys_operator` 以上 |
-| PUT | `/api/v1/rule-sets/:id` | ルールセット更新 | `sys_operator` 以上 |
-| DELETE | `/api/v1/rule-sets/:id` | ルールセット削除 | `sys_admin` のみ |
-| POST | `/api/v1/rule-sets/:id/publish` | ルールセットバージョン公開 | `sys_admin` のみ |
-| POST | `/api/v1/rule-sets/:id/rollback` | 前バージョンへロールバック | `sys_admin` のみ |
+| PUT | `/api/v1/rule-sets/{id}` | ルールセット更新 | `sys_operator` 以上 |
+| DELETE | `/api/v1/rule-sets/{id}` | ルールセット削除 | `sys_admin` のみ |
+| POST | `/api/v1/rule-sets/{id}/publish` | ルールセットバージョン公開 | `sys_admin` のみ |
+| POST | `/api/v1/rule-sets/{id}/rollback` | 前バージョンへロールバック | `sys_admin` のみ |
 | POST | `/api/v1/evaluate` | ルール評価（ルールセット名 + 入力データ） | `sys_operator` 以上 |
 | POST | `/api/v1/evaluate/dry-run` | ドライラン評価（結果返却のみ、監査ログ記録なし） | `sys_operator` 以上 |
 | GET | `/api/v1/evaluation-logs` | 評価ログ一覧取得 | `sys_auditor` 以上 |
@@ -298,7 +298,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 }
 ```
 
-#### POST /api/v1/rule-sets/:id/publish
+#### POST /api/v1/rule-sets/{id}/publish
 
 ルールセットの現在の状態を新しいバージョンとして公開する。公開後、ルール変更通知を Kafka に送信する。
 
@@ -314,7 +314,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 }
 ```
 
-#### POST /api/v1/rule-sets/:id/rollback
+#### POST /api/v1/rule-sets/{id}/rollback
 
 前のバージョンにロールバックする。
 

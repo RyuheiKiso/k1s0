@@ -84,7 +84,7 @@ pub fn router(state: AppState) -> Router {
         // GET -> sagas/read
         let read_routes = Router::new()
             .route("/api/v1/sagas", get(saga_handler::list_sagas))
-            .route("/api/v1/sagas/:saga_id", get(saga_handler::get_saga))
+            .route("/api/v1/sagas/{saga_id}", get(saga_handler::get_saga))
             .route("/api/v1/workflows", get(saga_handler::list_workflows))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "sagas", "read",
@@ -94,11 +94,11 @@ pub fn router(state: AppState) -> Router {
         let write_routes = Router::new()
             .route("/api/v1/sagas", post(saga_handler::start_saga))
             .route(
-                "/api/v1/sagas/:saga_id/cancel",
+                "/api/v1/sagas/{saga_id}/cancel",
                 post(saga_handler::cancel_saga),
             )
             .route(
-                "/api/v1/sagas/:saga_id/compensate",
+                "/api/v1/sagas/{saga_id}/compensate",
                 post(saga_handler::compensate_saga),
             )
             .route("/api/v1/workflows", post(saga_handler::register_workflow))
@@ -117,13 +117,13 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/sagas",
                 post(saga_handler::start_saga).get(saga_handler::list_sagas),
             )
-            .route("/api/v1/sagas/:saga_id", get(saga_handler::get_saga))
+            .route("/api/v1/sagas/{saga_id}", get(saga_handler::get_saga))
             .route(
-                "/api/v1/sagas/:saga_id/cancel",
+                "/api/v1/sagas/{saga_id}/cancel",
                 post(saga_handler::cancel_saga),
             )
             .route(
-                "/api/v1/sagas/:saga_id/compensate",
+                "/api/v1/sagas/{saga_id}/compensate",
                 post(saga_handler::compensate_saga),
             )
             .route(

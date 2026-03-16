@@ -1,17 +1,15 @@
 use crate::infrastructure::config::KafkaConfig;
 use crate::usecase::event_publisher::OrderEventPublisher;
 use async_trait::async_trait;
+use prost::Message;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
-use serde_json::Value;
 use std::time::Duration;
+use crate::proto::k1s0::event::service::order::v1::{
+    OrderCreatedEvent, OrderUpdatedEvent, OrderCancelledEvent,
+};
 
-// TODO(NCR-006): Protobuf シリアライズ完全移行
-// 現在は outbox JSONB → JSON publish だが、
-// api/proto/k1s0/event/service/order/v1/order_events.proto の
-// Rust 生成型を使って prost::Message::encode_to_vec() でシリアライズすべき。
-// build.rs で tonic_build を設定し、生成コードを src/proto/ に出力する。
-
+// Kafka を使った注文イベント publisher 実装
 pub struct OrderKafkaProducer {
     producer: FutureProducer,
     order_created_topic: String,
@@ -37,18 +35,13 @@ impl OrderKafkaProducer {
         })
     }
 
-    async fn publish(&self, topic: &str, event: &Value) -> anyhow::Result<()> {
-        let payload = serde_json::to_vec(event)?;
-        let key = event
-            .get("order_id")
-            .and_then(Value::as_str)
-            .unwrap_or("order");
-
-        tracing::info!(topic = %topic, key, "publishing order event");
+    // Protobuf エンコード済みペイロードを指定トピックに publish する
+    async fn publish(&self, topic: &str, key: &str, payload: &[u8]) -> anyhow::Result<()> {
+        tracing::info!(topic = %topic, key, "publishing order event (protobuf)");
 
         self.producer
             .send(
-                FutureRecord::to(topic).key(key).payload(&payload),
+                FutureRecord::to(topic).key(key).payload(payload),
                 Duration::from_secs(5),
             )
             .await
@@ -60,15 +53,66 @@ impl OrderKafkaProducer {
 
 #[async_trait]
 impl OrderEventPublisher for OrderKafkaProducer {
-    async fn publish_order_created(&self, event: &Value) -> anyhow::Result<()> {
-        self.publish(&self.order_created_topic, event).await
+    // 注文作成イベントを Protobuf シリアライズして Kafka に publish する
+    async fn publish_order_created(&self, event: &OrderCreatedEvent) -> anyhow::Result<()> {
+        let payload = event.encode_to_vec();
+        self.publish(&self.order_created_topic, &event.order_id, &payload)
+            .await
     }
 
-    async fn publish_order_updated(&self, event: &Value) -> anyhow::Result<()> {
-        self.publish(&self.order_updated_topic, event).await
+    // 注文更新イベントを Protobuf シリアライズして Kafka に publish する
+    async fn publish_order_updated(&self, event: &OrderUpdatedEvent) -> anyhow::Result<()> {
+        let payload = event.encode_to_vec();
+        self.publish(&self.order_updated_topic, &event.order_id, &payload)
+            .await
     }
 
-    async fn publish_order_cancelled(&self, event: &Value) -> anyhow::Result<()> {
-        self.publish(&self.order_cancelled_topic, event).await
+    // 注文キャンセルイベントを Protobuf シリアライズして Kafka に publish する
+    async fn publish_order_cancelled(&self, event: &OrderCancelledEvent) -> anyhow::Result<()> {
+        let payload = event.encode_to_vec();
+        self.publish(&self.order_cancelled_topic, &event.order_id, &payload)
+            .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prost::Message;
+    use crate::proto::k1s0::event::service::order::v1::OrderItem;
+    use crate::proto::k1s0::system::common::v1::EventMetadata;
+
+    #[test]
+    fn test_order_created_event_serialization() {
+        // Protobuf シリアライズ・デシリアライズの往復検証
+        let event = OrderCreatedEvent {
+            metadata: Some(EventMetadata {
+                event_id: "evt-001".to_string(),
+                event_type: "order.created".to_string(),
+                source: "order-server".to_string(),
+                timestamp: 1700000000000,
+                trace_id: "".to_string(),
+                correlation_id: "order-001".to_string(),
+                schema_version: 1,
+            }),
+            order_id: "order-001".to_string(),
+            customer_id: "cust-001".to_string(),
+            items: vec![OrderItem {
+                product_id: "prod-001".to_string(),
+                quantity: 2,
+                unit_price: 1000,
+            }],
+            total_amount: 2000,
+            currency: "JPY".to_string(),
+        };
+
+        let bytes = event.encode_to_vec();
+        assert!(!bytes.is_empty());
+
+        // デシリアライズして元のフィールド値と一致することを確認
+        let decoded = OrderCreatedEvent::decode(bytes.as_slice()).unwrap();
+        assert_eq!(decoded.order_id, "order-001");
+        assert_eq!(decoded.items.len(), 1);
+        assert_eq!(decoded.items[0].quantity, 2);
     }
 }

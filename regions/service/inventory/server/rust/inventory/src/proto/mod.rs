@@ -13,4 +13,14 @@ pub mod k1s0 {
             }
         }
     }
+    // Kafka publish 用イベントメッセージの Protobuf 生成コード
+    pub mod event {
+        pub mod service {
+            pub mod inventory {
+                pub mod v1 {
+                    include!("k1s0.event.service.inventory.v1.rs");
+                }
+            }
+        }
+    }
 }

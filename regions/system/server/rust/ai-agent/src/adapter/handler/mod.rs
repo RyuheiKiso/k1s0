@@ -67,11 +67,11 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         let write_routes = Router::new()
             .route("/api/v1/agents", post(agent_handler::create_agent))
             .route(
-                "/api/v1/agents/:id/execute",
+                "/api/v1/agents/{id}/execute",
                 post(agent_handler::execute_agent),
             )
             .route(
-                "/api/v1/executions/:id/review",
+                "/api/v1/executions/{id}/review",
                 post(agent_handler::review_step),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -86,12 +86,12 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         Router::new()
             .route("/api/v1/agents", post(agent_handler::create_agent))
             .route(
-                "/api/v1/agents/:id/execute",
+                "/api/v1/agents/{id}/execute",
                 post(agent_handler::execute_agent),
             )
             .route("/api/v1/executions", get(agent_handler::list_executions))
             .route(
-                "/api/v1/executions/:id/review",
+                "/api/v1/executions/{id}/review",
                 post(agent_handler::review_step),
             )
     };

@@ -117,7 +117,7 @@ pub fn router(state: AppState) -> Router {
                 get(ratelimit_handler::list_rules),
             )
             .route(
-                "/api/v1/ratelimit/rules/:id",
+                "/api/v1/ratelimit/rules/{id}",
                 get(ratelimit_handler::get_rule),
             )
             .route("/api/v1/ratelimit/usage", get(ratelimit_handler::get_usage))
@@ -133,7 +133,7 @@ pub fn router(state: AppState) -> Router {
                 post(ratelimit_handler::create_rule),
             )
             .route(
-                "/api/v1/ratelimit/rules/:id",
+                "/api/v1/ratelimit/rules/{id}",
                 axum::routing::put(ratelimit_handler::update_rule),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -144,7 +144,7 @@ pub fn router(state: AppState) -> Router {
         // DELETE rules/reset -> ratelimits/admin
         let admin_routes = Router::new()
             .route(
-                "/api/v1/ratelimit/rules/:id",
+                "/api/v1/ratelimit/rules/{id}",
                 axum::routing::delete(ratelimit_handler::delete_rule),
             )
             .route(
@@ -181,7 +181,7 @@ pub fn router(state: AppState) -> Router {
                 get(ratelimit_handler::list_rules).post(ratelimit_handler::create_rule),
             )
             .route(
-                "/api/v1/ratelimit/rules/:id",
+                "/api/v1/ratelimit/rules/{id}",
                 get(ratelimit_handler::get_rule)
                     .put(ratelimit_handler::update_rule)
                     .delete(ratelimit_handler::delete_rule),

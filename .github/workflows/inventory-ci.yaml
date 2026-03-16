@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/inventory-ci.yaml
+# Per-service CI pipeline for inventory server（reusable workflow 経由）
+# NOTE: inventory は service tier のため独立した Cargo.toml を使用（standalone モード）
+name: inventory-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'regions/service/inventory/**'
+
+concurrency:
+  group: inventory-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_rust-service-ci.yaml
+    with:
+      service-path: regions/service/inventory/server/rust/inventory
+      package-name: k1s0-inventory-server
+      workspace-path: regions/service/inventory/server/rust/inventory
+      standalone: true

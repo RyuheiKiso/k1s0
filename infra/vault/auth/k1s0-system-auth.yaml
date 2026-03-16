@@ -12,7 +12,7 @@ data:
       "role_name": "auth-server",
       "bound_service_account_names": ["auth-server"],
       "bound_service_account_namespaces": ["k1s0-system"],
-      "token_policies": ["k1s0-system", "auth-server"],
+      "token_policies": ["auth-server"],
       "token_ttl": "3600",
       "token_max_ttl": "86400"
     }

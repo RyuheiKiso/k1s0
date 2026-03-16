@@ -870,7 +870,7 @@ fn test_rust_server_rest_handler() {
     assert!(content.contains("pub fn new(uc: OrderApiUseCase) -> Self"));
     assert!(content.contains("pub fn routes(&self) -> Router"));
     assert!(content.contains("\"/api/v1/order-api\""));
-    assert!(content.contains("\"/api/v1/order-api/:id\""));
+    assert!(content.contains("\"/api/v1/order-api/{id}\""));
     assert!(content.contains("struct ErrorResponse {"));
     assert!(content.contains("async fn list("));
     assert!(content.contains("async fn get_by_id("));
@@ -964,13 +964,13 @@ fn test_rust_server_rest_dockerfile() {
     let (tmp, _) = render_server("rust", "rest", false, "", false, false);
     let content = read_output(&tmp, "Dockerfile");
 
-    assert!(content.contains("FROM rust:1.82-bookworm AS builder"));
+    assert!(content.contains("FROM rust:1.93-bookworm AS chef"));
     assert!(content.contains("cargo build --release"));
     assert!(content.contains("FROM gcr.io/distroless/cc-debian12"));
-    assert!(content.contains("/app/target/release/order-api /app/server"));
+    assert!(content.contains("/app/target/release/order-api /order-api"));
     assert!(content.contains("EXPOSE 8080"));
     assert!(content.contains("USER nonroot:nonroot"));
-    assert!(content.contains("ENTRYPOINT [\"/app/server\"]"));
+    assert!(content.contains("ENTRYPOINT [\"/order-api\"]"));
 }
 
 // =========================================================================
@@ -1255,7 +1255,7 @@ fn test_tera_variable_substitution_rust() {
 
     // Dockerfile
     let dockerfile = fs::read_to_string(output_dir.join("Dockerfile")).unwrap();
-    assert!(dockerfile.contains("/app/target/release/user-auth /app/server"));
+    assert!(dockerfile.contains("/app/target/release/user-auth /user-auth"));
 }
 
 // =========================================================================

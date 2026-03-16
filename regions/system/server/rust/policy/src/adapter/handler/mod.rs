@@ -51,9 +51,9 @@ pub fn router(state: AppState) -> Router {
         // GET -> policies/read
         let read_routes = Router::new()
             .route("/api/v1/policies", get(policy_handler::list_policies))
-            .route("/api/v1/policies/:id", get(policy_handler::get_policy))
+            .route("/api/v1/policies/{id}", get(policy_handler::get_policy))
             .route("/api/v1/bundles", get(policy_handler::list_bundles))
-            .route("/api/v1/bundles/:id", get(policy_handler::get_bundle))
+            .route("/api/v1/bundles/{id}", get(policy_handler::get_bundle))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "policies", "read",
             )));
@@ -62,7 +62,7 @@ pub fn router(state: AppState) -> Router {
         let write_routes = Router::new()
             .route("/api/v1/policies", post(policy_handler::create_policy))
             .route(
-                "/api/v1/policies/:id/evaluate",
+                "/api/v1/policies/{id}/evaluate",
                 post(policy_handler::evaluate_policy),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -71,10 +71,10 @@ pub fn router(state: AppState) -> Router {
 
         // PUT /policies/:id + POST /bundles + DELETE -> policies/admin
         let admin_routes = Router::new()
-            .route("/api/v1/policies/:id", put(policy_handler::update_policy))
+            .route("/api/v1/policies/{id}", put(policy_handler::update_policy))
             .route("/api/v1/bundles", post(policy_handler::create_bundle))
             .route(
-                "/api/v1/policies/:id",
+                "/api/v1/policies/{id}",
                 delete(policy_handler::delete_policy),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -93,18 +93,18 @@ pub fn router(state: AppState) -> Router {
         Router::new()
             .route("/api/v1/policies", get(policy_handler::list_policies))
             .route("/api/v1/policies", post(policy_handler::create_policy))
-            .route("/api/v1/policies/:id", get(policy_handler::get_policy))
-            .route("/api/v1/policies/:id", put(policy_handler::update_policy))
+            .route("/api/v1/policies/{id}", get(policy_handler::get_policy))
+            .route("/api/v1/policies/{id}", put(policy_handler::update_policy))
             .route(
-                "/api/v1/policies/:id",
+                "/api/v1/policies/{id}",
                 delete(policy_handler::delete_policy),
             )
             .route(
-                "/api/v1/policies/:id/evaluate",
+                "/api/v1/policies/{id}/evaluate",
                 post(policy_handler::evaluate_policy),
             )
             .route("/api/v1/bundles", get(policy_handler::list_bundles))
-            .route("/api/v1/bundles/:id", get(policy_handler::get_bundle))
+            .route("/api/v1/bundles/{id}", get(policy_handler::get_bundle))
             .route("/api/v1/bundles", post(policy_handler::create_bundle))
     };
 

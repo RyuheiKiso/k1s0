@@ -87,7 +87,7 @@ config-db は system Tier に属する PostgreSQL 17 データベースであり
 
 ### config_schemas テーブル
 
-サービスごとの設定エディタスキーマ定義を管理する。クライアント（Flutter / React）の ConfigInterpreter が `GET /api/v1/config-schema/:service` で取得するスキーマの永続化先。schema_json にはカテゴリ・フィールド定義が JSONB で格納される。
+サービスごとの設定エディタスキーマ定義を管理する。クライアント（Flutter / React）の ConfigInterpreter が `GET /api/v1/config-schema/{service}` で取得するスキーマの永続化先。schema_json にはカテゴリ・フィールド定義が JSONB で格納される。
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|

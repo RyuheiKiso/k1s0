@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/payment-ci.yaml
+# Per-service CI pipeline for payment server（reusable workflow 経由）
+# NOTE: payment は service tier のため独立した Cargo.toml を使用（standalone モード）
+name: payment-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'regions/service/payment/**'
+
+concurrency:
+  group: payment-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_rust-service-ci.yaml
+    with:
+      service-path: regions/service/payment/server/rust/payment
+      package-name: k1s0-payment-server
+      workspace-path: regions/service/payment/server/rust/payment
+      standalone: true

@@ -3,12 +3,14 @@
 set -euo pipefail
 
 echo "=== Go Vulnerability Check ==="
-mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
+# list-modules.sh を使って modules.yaml から Go モジュールを取得（skip-ci 除外）
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+chmod +x "$SCRIPT_DIR/../list-modules.sh"
+mapfile -t modules < <("$SCRIPT_DIR/../list-modules.sh" --lang go --no-skip-ci)
 echo "Found ${#modules[@]} Go module(s)"
 
 failed=0
-for mod in "${modules[@]}"; do
-    dir="$(dirname "$mod")"
+for dir in "${modules[@]}"; do
     echo "--- Scanning $dir ---"
     if ! (cd "$dir" && govulncheck ./...); then
         failed=1

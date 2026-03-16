@@ -117,9 +117,9 @@ jobs:
               fi
             done
           else
-            mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
-            for mod in "${modules[@]}"; do
-              dir="$(dirname "$mod")"
+            chmod +x scripts/list-modules.sh
+            mapfile -t modules < <(scripts/list-modules.sh --lang go --no-skip-ci)
+            for dir in "${modules[@]}"; do
               echo "=== Linting $dir ==="
               (cd "$dir" && golangci-lint run ./... && go vet ./...)
             done
@@ -134,12 +134,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
-      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             regions/system
             CLI
+            regions/business/accounting/server/rust/domain-master
+            regions/service/inventory/server/rust/inventory
+            regions/service/order/server/rust/order
+            regions/service/payment/server/rust/payment
       - name: Format check Rust crates
         shell: bash
         env:
@@ -183,13 +187,31 @@ jobs:
             chmod +x scripts/list-modules.sh
             excludes=""
             while IFS= read -r dir; do
-              crate_name=$(basename "$dir")
-              excludes="$excludes --exclude k1s0-${crate_name}"
+              # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
+              pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+              excludes="$excludes --exclude $pkg_name"
             done < <(scripts/list-modules.sh --lang rust --status experimental)
+            # exclude 対象が workspace に存在するか検証
+            ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
+            for exc in $excludes; do
+              if [ "$exc" = "--exclude" ]; then continue; fi
+              if ! echo "$ws_packages" | grep -qx "$exc"; then
+                echo "ERROR: excluded package '$exc' not found in workspace"
+                exit 1
+              fi
+            done
             echo "=== clippy regions/system ==="
             cargo clippy --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets -- -D warnings
             echo "=== clippy CLI ==="
             cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
+          fi
+      # axum 旧記法 :param の検出（{param} を使用すること）
+      - name: Check for deprecated axum route syntax
+        shell: bash
+        run: |
+          if grep -rn '/:[a-zA-Z_]' --include='*.rs' regions/*/server/rust/*/src/adapter/handler/ regions/*/server/rust/*/src/adapter/middleware/ regions/*/*/server/rust/*/src/adapter/handler/ 2>/dev/null; then
+            echo "::error::axum 旧記法 :param が検出されました。{param} を使用してください。"
+            exit 1
           fi
 
   lint-ts:
@@ -216,27 +238,22 @@ jobs:
                 echo "=== Linting $dir ==="
                 (
                   cd "$dir"
-                  if [ -f package-lock.json ]; then
-                    npm ci
-                  else
-                    npm install --no-package-lock
-                  fi
+                  # package-lock.json を使って依存関係をインストール
+                  npm ci
                   npm run lint --if-present
                   npm run typecheck --if-present
                 )
               fi
             done
           else
-            mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+            chmod +x scripts/list-modules.sh
+            mapfile -t packages < <(scripts/list-modules.sh --lang ts --no-skip-ci)
             for package_dir in "${packages[@]}"; do
               echo "=== Linting $package_dir ==="
               (
                 cd "$package_dir"
-                if [ -f package-lock.json ]; then
-                  npm ci
-                else
-                  npm install --no-package-lock
-                fi
+                # package-lock.json を使って依存関係をインストール
+                npm ci
                 npm run lint --if-present
                 npm run typecheck --if-present
               )
@@ -278,7 +295,8 @@ jobs:
               fi
             done
           else
-            mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
+            chmod +x scripts/list-modules.sh
+            mapfile -t packages < <(scripts/list-modules.sh --lang dart --no-skip-ci)
             for package_dir in "${packages[@]}"; do
               echo "=== Linting $package_dir ==="
               if grep -q "sdk: flutter" "$package_dir/pubspec.yaml"; then
@@ -345,9 +363,9 @@ jobs:
               fi
             done
           else
-            mapfile -t modules < <(rg --files -g 'go.mod' regions CLI | sort)
-            for mod in "${modules[@]}"; do
-              dir="$(dirname "$mod")"
+            chmod +x scripts/list-modules.sh
+            mapfile -t modules < <(scripts/list-modules.sh --lang go --no-skip-ci)
+            for dir in "${modules[@]}"; do
               modname="$(basename "$dir")"
               echo "=== Testing $dir ==="
               (cd "$dir" && go test ./... -race -count=1 -coverprofile="$GITHUB_WORKSPACE/coverage/${modname}.out")
@@ -365,12 +383,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
-      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             regions/system
             CLI
+            regions/business/accounting/server/rust/domain-master
+            regions/service/inventory/server/rust/inventory
+            regions/service/order/server/rust/order
+            regions/service/payment/server/rust/payment
       - name: Test Rust crates
         shell: bash
         env:
@@ -391,14 +413,40 @@ jobs:
             chmod +x scripts/list-modules.sh
             excludes=""
             while IFS= read -r dir; do
-              crate_name=$(basename "$dir")
-              excludes="$excludes --exclude k1s0-${crate_name}"
+              # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
+              pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+              excludes="$excludes --exclude $pkg_name"
             done < <(scripts/list-modules.sh --lang rust --status experimental)
+            # exclude 対象が workspace に存在するか検証
+            ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
+            for exc in $excludes; do
+              if [ "$exc" = "--exclude" ]; then continue; fi
+              if ! echo "$ws_packages" | grep -qx "$exc"; then
+                echo "ERROR: excluded package '$exc' not found in workspace"
+                exit 1
+              fi
+            done
             echo "=== Testing regions/system ==="
-            cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes
+            cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes --features k1s0-tenant-server/test-utils
             echo "=== Testing CLI ==="
             cargo test --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
           fi
+
+  # コード生成テンプレートのコンパイル検証ジョブ（golden path compile test）
+  golden-path-compile:
+    needs: [detect-changes, lint-rust]
+    if: needs.detect-changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.93
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            regions/system
+            CLI
+      - name: Golden path compile tests
+        run: cargo test --manifest-path CLI/Cargo.toml -p k1s0-cli -- --ignored --test-threads=1
 
   # Rust テストカバレッジ計測ジョブ（cargo-tarpaulin を使用）
   coverage-rust:
@@ -407,12 +455,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.93
-      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             regions/system
             CLI
+            regions/business/accounting/server/rust/domain-master
+            regions/service/inventory/server/rust/inventory
+            regions/service/order/server/rust/order
+            regions/service/payment/server/rust/payment
       - name: cargo-tarpaulin インストール（プリビルドバイナリ）
         run: |
           TARPAULIN_VERSION="0.31.2"
@@ -462,16 +514,14 @@ jobs:
       - name: Test TypeScript packages
         shell: bash
         run: |
-          mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+          chmod +x scripts/list-modules.sh
+          mapfile -t packages < <(scripts/list-modules.sh --lang ts --no-skip-ci)
           for package_dir in "${packages[@]}"; do
             echo "=== Testing $package_dir ==="
             (
               cd "$package_dir"
-              if [ -f package-lock.json ]; then
-                npm ci
-              else
-                npm install --no-package-lock
-              fi
+              # package-lock.json を使って依存関係をインストール
+              npm ci
               npm test --if-present
             )
           done
@@ -490,16 +540,14 @@ jobs:
         shell: bash
         run: |
           mkdir -p coverage
-          mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+          chmod +x scripts/list-modules.sh
+          mapfile -t packages < <(scripts/list-modules.sh --lang ts --no-skip-ci)
           for package_dir in "${packages[@]}"; do
             echo "=== Coverage $package_dir ==="
             (
               cd "$package_dir"
-              if [ -f package-lock.json ]; then
-                npm ci
-              else
-                npm install --no-package-lock
-              fi
+              # package-lock.json を使って依存関係をインストール
+              npm ci
               # vitest --coverage が利用可能な場合はカバレッジ計測する
               if npx --no-install vitest --help >/dev/null 2>&1; then
                 npx vitest run --coverage --reporter=json --outputFile="$GITHUB_WORKSPACE/coverage/$(basename "$package_dir").json" || true
@@ -531,7 +579,8 @@ jobs:
       - name: Test Dart and Flutter packages
         shell: bash
         run: |
-          mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
+          chmod +x scripts/list-modules.sh
+          mapfile -t packages < <(scripts/list-modules.sh --lang dart --no-skip-ci)
           for package_dir in "${packages[@]}"; do
             echo "=== Testing $package_dir ==="
             if grep -q "sdk: flutter" "$package_dir/pubspec.yaml"; then
@@ -568,7 +617,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p coverage
-          mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort | xargs -n1 dirname)
+          chmod +x scripts/list-modules.sh
+          mapfile -t packages < <(scripts/list-modules.sh --lang dart --no-skip-ci)
           for package_dir in "${packages[@]}"; do
             echo "=== Coverage $package_dir ==="
             pkgname="$(basename "$package_dir")"
@@ -620,12 +670,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.93
-      # Rust 依存キャッシュ（regions/system と CLI の2ワークスペース）
+      # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             regions/system
             CLI
+            regions/business/accounting/server/rust/domain-master
+            regions/service/inventory/server/rust/inventory
+            regions/service/order/server/rust/order
+            regions/service/payment/server/rust/payment
       - name: Build Rust crates
         shell: bash
         run: |
@@ -633,13 +687,30 @@ jobs:
           chmod +x scripts/list-modules.sh
           excludes=""
           while IFS= read -r dir; do
-            crate_name=$(basename "$dir")
-            excludes="$excludes --exclude k1s0-${crate_name}"
+            # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
+            pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+            excludes="$excludes --exclude $pkg_name"
           done < <(scripts/list-modules.sh --lang rust --status experimental)
+          # exclude 対象が workspace に存在するか検証
+          ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
+          for exc in $excludes; do
+            if [ "$exc" = "--exclude" ]; then continue; fi
+            if ! echo "$ws_packages" | grep -qx "$exc"; then
+              echo "ERROR: excluded package '$exc' not found in workspace"
+              exit 1
+            fi
+          done
           echo "=== Building regions/system ==="
           cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
           echo "=== Building CLI ==="
           cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
+          # standalone Rust サーバー（business/service tier）
+          for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+              if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+                  echo "=== Building $dir ==="
+                  cargo build --manifest-path "$dir/Cargo.toml" --all-targets
+              fi
+          done
 
   build-ts:
     needs: test-ts
@@ -653,16 +724,14 @@ jobs:
       - name: Build TypeScript packages
         shell: bash
         run: |
-          mapfile -t packages < <(rg --files -g 'package.json' regions CLI | sort | xargs -n1 dirname)
+          chmod +x scripts/list-modules.sh
+          mapfile -t packages < <(scripts/list-modules.sh --lang ts --no-skip-ci)
           for package_dir in "${packages[@]}"; do
             echo "=== Building $package_dir ==="
             (
               cd "$package_dir"
-              if [ -f package-lock.json ]; then
-                npm ci
-              else
-                npm install --no-package-lock
-              fi
+              # package-lock.json を使って依存関係をインストール
+              npm ci
               npm run build --if-present
             )
           done
@@ -757,7 +826,7 @@ jobs:
         run: echo "All language and Docker builds passed"
 
   # modules.yaml とディスク上のマニフェストの整合性を検証するジョブ
-  # 未登録のモジュールがあれば warning で通知する
+  # 未登録のモジュールがあれば error で CI を失敗させる
   validate-modules:
     runs-on: ubuntu-latest
     steps:
@@ -784,12 +853,57 @@ jobs:
           # 差分を検出
           unregistered=$(comm -23 <(echo "$disk_modules") <(echo "$registered"))
           if [ -n "$unregistered" ]; then
-            echo "::warning::以下のモジュールが modules.yaml に未登録です:"
+            echo "::error::以下のモジュールが modules.yaml に未登録です:"
             echo "$unregistered" | while read -r path; do
-              echo "::warning::  - $path"
+              echo "::error::  - $path"
             done
+            exit 1
           else
-            echo "modules.yaml とディスク上のマニフェストが一致しています"
+            echo "ディスク上の全モジュールが modules.yaml に登録されています"
+          fi
+          # 逆方向: modules.yaml に登録されているがディスクに存在しないモジュールを検出
+          ghost=$(comm -13 <(echo "$disk_modules") <(echo "$registered"))
+          if [ -n "$ghost" ]; then
+            echo "::error::以下のモジュールが modules.yaml に登録されていますがディスクに存在しません:"
+            echo "$ghost" | while read -r path; do
+              echo "::error::  - $path"
+            done
+            exit 1
+          else
+            echo "modules.yaml とディスク上のマニフェストが双方向で一致しています"
+          fi
+
+  # Vault policy の広域 wildcard 検出
+  validate-vault-policies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for overly broad Vault wildcards
+        shell: bash
+        run: |
+          if grep -rn 'secret/data/k1s0/.*\*' infra/vault/policies/ 2>/dev/null | grep -v '/common/\*'; then
+            echo "::error::Vault policy に広域 wildcard が検出されました。共通パス (common/*) のみ許可されています。"
+            exit 1
+          fi
+
+  # TypeScript パッケージの lockfile 存在チェック
+  validate-ts-lockfiles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check package-lock.json exists for all TS packages
+        shell: bash
+        run: |
+          missing=0
+          for pkg in $(find regions CLI -name 'package.json' -not -path '*/node_modules/*' 2>/dev/null); do
+            dir=$(dirname "$pkg")
+            if [ ! -f "$dir/package-lock.json" ]; then
+              echo "::error::$dir に package-lock.json がありません。npm install で生成してください。"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            exit 1
           fi
 
   security-scan:

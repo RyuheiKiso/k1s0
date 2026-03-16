@@ -123,18 +123,18 @@ pub fn router(state: AppState) -> Router {
     // ダウンロード統計（stats）も参照操作のため read 権限に含める
     let app_read_routes = Router::new()
         .route("/api/v1/apps", get(app_handler::list_apps))
-        .route("/api/v1/apps/:id", get(app_handler::get_app))
+        .route("/api/v1/apps/{id}", get(app_handler::get_app))
         .route(
-            "/api/v1/apps/:id/versions",
+            "/api/v1/apps/{id}/versions",
             get(version_handler::list_versions),
         )
-        .route("/api/v1/apps/:id/latest", get(download_handler::get_latest))
+        .route("/api/v1/apps/{id}/latest", get(download_handler::get_latest))
         .route(
-            "/api/v1/apps/:id/versions/:version/download",
+            "/api/v1/apps/{id}/versions/{version}/download",
             get(download_handler::download_version),
         )
         .route(
-            "/api/v1/apps/:id/stats",
+            "/api/v1/apps/{id}/stats",
             get(app_handler::get_download_stats),
         )
         .route_layer(middleware::from_fn_with_state(
@@ -146,15 +146,15 @@ pub fn router(state: AppState) -> Router {
     let app_write_routes = Router::new()
         .route("/api/v1/apps", post(app_handler::create_app))
         .route(
-            "/api/v1/apps/:id",
+            "/api/v1/apps/{id}",
             put(app_handler::update_app).delete(app_handler::delete_app),
         )
         .route(
-            "/api/v1/apps/:id/versions",
+            "/api/v1/apps/{id}/versions",
             post(version_handler::create_version),
         )
         .route(
-            "/api/v1/apps/:id/versions/:version",
+            "/api/v1/apps/{id}/versions/{version}",
             delete(version_handler::delete_version),
         )
         .route_layer(middleware::from_fn_with_state(

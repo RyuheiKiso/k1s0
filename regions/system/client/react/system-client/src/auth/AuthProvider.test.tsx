@@ -1,10 +1,11 @@
-import { describe, it, expect, afterEach, afterAll, beforeAll, vi } from 'vitest';
+import { describe, it, expect, afterEach, afterAll, beforeAll } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import React from 'react';
 import { AuthProvider } from './AuthProvider';
 import { useAuth } from './useAuth';
+import { setNavigateImpl, resetNavigateImpl } from './navigation';
 
 const API_BASE = 'http://localhost:3000/bff';
 
@@ -56,13 +57,9 @@ describe('AuthProvider（BFF セッション統合）', () => {
   });
 
   it('login は BFF の /auth/login へリダイレクトする', async () => {
-    // window.location.href の設定を検証するため、モックを用意
-    const originalLocation = window.location;
-    const locationMock = { ...originalLocation, href: '' };
-    Object.defineProperty(window, 'location', {
-      value: locationMock,
-      writable: true,
-    });
+    // navigateTo のモックを用意
+    let lastNavigatedUrl = '';
+    setNavigateImpl((url: string) => { lastNavigatedUrl = url; });
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -74,13 +71,10 @@ describe('AuthProvider（BFF セッション統合）', () => {
       result.current.login();
     });
 
-    expect(window.location.href).toBe(`${API_BASE}/auth/login`);
+    expect(lastNavigatedUrl).toBe(`${API_BASE}/auth/login`);
 
-    // window.location を復元する
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-    });
+    // navigateTo を復元する
+    resetNavigateImpl();
   });
 
   it('logout で API を呼び出してユーザー情報をクリアする', async () => {

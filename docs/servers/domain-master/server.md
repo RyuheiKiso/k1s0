@@ -226,7 +226,7 @@ CREATE INDEX idx_tenant_extensions_item ON domain_master.tenant_master_extension
 テナント別マージビューは、ベースのマスタ項目とテナントカスタマイズを統合して返却する。
 
 ```
-1. GET /api/v1/tenants/:tenant_id/categories/:code/items
+1. GET /api/v1/tenants/{tenant_id}/categories/{code}/items
    ↓
 2. カテゴリ配下の master_items を取得
    ↓
@@ -255,34 +255,34 @@ CREATE INDEX idx_tenant_extensions_item ON domain_master.tenant_master_extension
 | --- | --- | --- | --- |
 | GET | `/api/v1/categories` | カテゴリ一覧取得 | `biz_auditor` 以上 |
 | POST | `/api/v1/categories` | カテゴリ作成 | `biz_operator` 以上 |
-| GET | `/api/v1/categories/:code` | カテゴリ詳細取得 | `biz_auditor` 以上 |
-| PUT | `/api/v1/categories/:code` | カテゴリ更新 | `biz_operator` 以上 |
-| DELETE | `/api/v1/categories/:code` | カテゴリ削除 | `biz_admin` のみ |
+| GET | `/api/v1/categories/{code}` | カテゴリ詳細取得 | `biz_auditor` 以上 |
+| PUT | `/api/v1/categories/{code}` | カテゴリ更新 | `biz_operator` 以上 |
+| DELETE | `/api/v1/categories/{code}` | カテゴリ削除 | `biz_admin` のみ |
 
 #### マスタ項目管理
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/categories/:code/items` | カテゴリ配下の項目一覧 | `biz_auditor` 以上 |
-| POST | `/api/v1/categories/:code/items` | 項目作成 | `biz_operator` 以上 |
-| GET | `/api/v1/categories/:code/items/:item_code` | 項目詳細取得 | `biz_auditor` 以上 |
-| PUT | `/api/v1/categories/:code/items/:item_code` | 項目更新 | `biz_operator` 以上 |
-| DELETE | `/api/v1/categories/:code/items/:item_code` | 項目削除 | `biz_admin` のみ |
+| GET | `/api/v1/categories/{code}/items` | カテゴリ配下の項目一覧 | `biz_auditor` 以上 |
+| POST | `/api/v1/categories/{code}/items` | 項目作成 | `biz_operator` 以上 |
+| GET | `/api/v1/categories/{code}/items/{item_code}` | 項目詳細取得 | `biz_auditor` 以上 |
+| PUT | `/api/v1/categories/{code}/items/{item_code}` | 項目更新 | `biz_operator` 以上 |
+| DELETE | `/api/v1/categories/{code}/items/{item_code}` | 項目削除 | `biz_admin` のみ |
 
 #### バージョン履歴
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/categories/:code/items/:item_code/versions` | 項目の変更履歴一覧 | `biz_auditor` 以上 |
+| GET | `/api/v1/categories/{code}/items/{item_code}/versions` | 項目の変更履歴一覧 | `biz_auditor` 以上 |
 
 #### テナントカスタマイズ
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/tenants/:tenant_id/items/:item_id` | テナント拡張取得 | `biz_auditor` 以上 |
-| PUT | `/api/v1/tenants/:tenant_id/items/:item_id` | テナント拡張作成・更新 | `biz_operator` 以上 |
-| DELETE | `/api/v1/tenants/:tenant_id/items/:item_id` | テナント拡張削除 | `biz_admin` のみ |
-| GET | `/api/v1/tenants/:tenant_id/categories/:code/items` | テナント別マージビュー | `biz_auditor` 以上 |
+| GET | `/api/v1/tenants/{tenant_id}/items/{item_id}` | テナント拡張取得 | `biz_auditor` 以上 |
+| PUT | `/api/v1/tenants/{tenant_id}/items/{item_id}` | テナント拡張作成・更新 | `biz_operator` 以上 |
+| DELETE | `/api/v1/tenants/{tenant_id}/items/{item_id}` | テナント拡張削除 | `biz_admin` のみ |
+| GET | `/api/v1/tenants/{tenant_id}/categories/{code}/items` | テナント別マージビュー | `biz_auditor` 以上 |
 
 #### ヘルスチェック
 

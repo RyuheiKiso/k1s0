@@ -50,9 +50,9 @@ pub fn router(state: AppState) -> Router {
         // GET -> files/read
         let read_routes = Router::new()
             .route("/api/v1/files", get(file_handler::list_files))
-            .route("/api/v1/files/:id", get(file_handler::get_file))
+            .route("/api/v1/files/{id}", get(file_handler::get_file))
             .route(
-                "/api/v1/files/:id/download-url",
+                "/api/v1/files/{id}/download-url",
                 get(file_handler::download_url),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -63,21 +63,21 @@ pub fn router(state: AppState) -> Router {
         let write_routes = Router::new()
             .route("/api/v1/files", post(file_handler::upload_file))
             .route(
-                "/api/v1/files/:id/complete",
+                "/api/v1/files/{id}/complete",
                 post(file_handler::complete_upload),
             )
             .route(
-                "/api/v1/files/:id/tags",
+                "/api/v1/files/{id}/tags",
                 put(file_handler::update_file_tags),
             )
-            .route("/api/v1/files/:id", delete(file_handler::delete_file))
+            .route("/api/v1/files/{id}", delete(file_handler::delete_file))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "files", "write",
             )));
 
         let admin_routes = Router::new()
             .route(
-                "/api/v1/files/admin/:id",
+                "/api/v1/files/admin/{id}",
                 delete(file_handler::delete_file_admin),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -98,22 +98,22 @@ pub fn router(state: AppState) -> Router {
         Router::new()
             .route("/api/v1/files", get(file_handler::list_files))
             .route("/api/v1/files", post(file_handler::upload_file))
-            .route("/api/v1/files/:id", get(file_handler::get_file))
-            .route("/api/v1/files/:id", delete(file_handler::delete_file))
+            .route("/api/v1/files/{id}", get(file_handler::get_file))
+            .route("/api/v1/files/{id}", delete(file_handler::delete_file))
             .route(
-                "/api/v1/files/admin/:id",
+                "/api/v1/files/admin/{id}",
                 delete(file_handler::delete_file_admin),
             )
             .route(
-                "/api/v1/files/:id/complete",
+                "/api/v1/files/{id}/complete",
                 post(file_handler::complete_upload),
             )
             .route(
-                "/api/v1/files/:id/download-url",
+                "/api/v1/files/{id}/download-url",
                 get(file_handler::download_url),
             )
             .route(
-                "/api/v1/files/:id/tags",
+                "/api/v1/files/{id}/tags",
                 put(file_handler::update_file_tags),
             )
     };

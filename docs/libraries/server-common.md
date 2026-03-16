@@ -108,6 +108,34 @@ pub struct AuthConfig {
 }
 ```
 
+### InfraGuard（インフラ設定ガード）
+
+stable サービスが必要なインフラ設定（Database, Kafka, Redis, Storage）を起動時に検証する機構。
+設定不足の場合は起動を拒否する（fail-safe 設計）。
+
+#### API
+
+| 関数 | 説明 |
+|---|---|
+| `allow_in_memory_infra(environment)` | dev/test 環境かつ `ALLOW_IN_MEMORY_INFRA=true` の場合のみバイパスを許可 |
+| `require_infra(name, kind, environment, value)` | インフラ設定の存在を検証。None + バイパス無効 → エラー |
+| `InfraKind` | Database, Kafka, Redis, Storage の列挙型 |
+
+#### 動作フロー
+
+1. `value` が `Some` → そのまま返す
+2. `value` が `None` + バイパス有効（dev/test + 環境変数） → `warn` ログ + `Ok(None)`
+3. `value` が `None` + バイパス無効（production 等） → `bail!`（起動失敗）
+
+#### cfg ゲート
+
+- `#[cfg(any(debug_assertions, feature = "dev-infra-bypass"))]` — dev ビルドではバイパス可能
+- `#[cfg(not(...))]` — release ビルドでは常にバイパス不可
+
+#### 対象サーバー
+
+workflow, auth, file, tenant, service-catalog, event-store, search, notification, scheduler, ratelimit の 10 サーバーに適用済み。
+
 ### KafkaConfig / KafkaSetup
 
 ```rust

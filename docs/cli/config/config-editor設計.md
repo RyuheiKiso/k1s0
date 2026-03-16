@@ -252,10 +252,10 @@ rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaRes
 | Method | Path | Description | 認可 |
 | ------ | ---- | ----------- | ---- |
 | GET | `/api/v1/config-schema` | スキーマ一覧取得 | `sys_auditor` 以上 |
-| GET | `/api/v1/config-schema/:service_name` | スキーマ取得 | `sys_auditor` 以上 |
-| PUT | `/api/v1/config-schema/:service_name` | スキーマ登録・更新 | `sys_admin` のみ |
+| GET | `/api/v1/config-schema/{service_name}` | スキーマ取得 | `sys_auditor` 以上 |
+| PUT | `/api/v1/config-schema/{service_name}` | スキーマ登録・更新 | `sys_admin` のみ |
 
-### GET /api/v1/config-schema/:service_name レスポンス例
+### GET /api/v1/config-schema/{service_name} レスポンス例
 
 ```json
 {
@@ -284,7 +284,7 @@ rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaRes
 }
 ```
 
-### PUT /api/v1/config-schema/:service_name リクエスト例
+### PUT /api/v1/config-schema/{service_name} リクエスト例
 
 `service_name` はパスパラメータで指定する。リクエストボディは以下の形式。
 `updated_by` は JWT クレームから自動取得するため、リクエストボディには不要。
@@ -535,7 +535,7 @@ tier3 サービス側は `component-registry` に1行追加するだけでよい
 # navigation.yaml（tier3 service 側）
 routes:
   - id: config
-    path: /config/:service
+    path: /config/{service}
     component_id: ConfigEditorPage
     guards: [auth_required, admin_only]
     params:
@@ -662,7 +662,7 @@ regions/service/
 | Phase | 内容 | 優先度 |
 | ----- | ---- | ------ |
 | 1 | proto 拡張（ConfigEditorSchema 型追加） | 高 |
-| 2 | config server に GET/PUT `/api/v1/config-schema/:service_name` 追加 | 高 |
+| 2 | config server に GET/PUT `/api/v1/config-schema/{service_name}` 追加 | 高 |
 | 3 | CLI `validate config-schema` コマンド | 高 |
 | 4 | CLI `generate config-types` コマンド（スキーマ登録 + 型定義生成） | 高 |
 | 5 | React `ConfigInterpreter` + `ConfigEditorPage` | 高 |

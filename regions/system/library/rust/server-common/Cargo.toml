@@ -9,6 +9,9 @@ default = []
 # ローカル開発用: 認証バイパス（ALLOW_INSECURE_NO_AUTH）のコードパスを有効化する。
 # リリースビルドでこのフィーチャーを無効にすると、バイパスロジックがバイナリから完全に除去される。
 dev-auth-bypass = []
+# ローカル開発用: インフラ設定バイパス（ALLOW_IN_MEMORY_INFRA）のコードパスを有効化する。
+# リリースビルドでこのフィーチャーを無効にすると、バイパスロジックがバイナリから完全に除去される。
+dev-infra-bypass = []
 axum = ["dep:axum"]
 utoipa = ["dep:utoipa"]
 shutdown = ["dep:tokio"]

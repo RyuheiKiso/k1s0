@@ -162,15 +162,15 @@ tower = { version = "0.5", features = ["util"] }
 | GET | `/healthz` | `healthz` | ヘルスチェック |
 | GET | `/readyz` | `readyz` | レディネスチェック |
 | GET | `/metrics` | `metrics` | Prometheus メトリクス |
-| GET | `/api/v1/dlq/:topic` | `list_messages` | トピック別メッセージ一覧（ページネーション付き） |
-| GET | `/api/v1/dlq/messages/:id` | `get_message` | メッセージ詳細取得 |
-| POST | `/api/v1/dlq/messages/:id/retry` | `retry_message` | メッセージ再処理 |
-| DELETE | `/api/v1/dlq/messages/:id` | `delete_message` | メッセージ削除 |
-| POST | `/api/v1/dlq/:topic/retry-all` | `retry_all` | トピック内全メッセージ一括再処理 |
+| GET | `/api/v1/dlq/{topic}` | `list_messages` | トピック別メッセージ一覧（ページネーション付き） |
+| GET | `/api/v1/dlq/messages/{id}` | `get_message` | メッセージ詳細取得 |
+| POST | `/api/v1/dlq/messages/{id}/retry` | `retry_message` | メッセージ再処理 |
+| DELETE | `/api/v1/dlq/messages/{id}` | `delete_message` | メッセージ削除 |
+| POST | `/api/v1/dlq/{topic}/retry-all` | `retry_all` | トピック内全メッセージ一括再処理 |
 
 ### ルーティング設計
 
-`/api/v1/dlq/messages/:id` を `/api/v1/dlq/:topic` より先に定義し、パスパラメータの競合を回避する。
+`/api/v1/dlq/messages/{id}` を `/api/v1/dlq/{topic}` より先に定義し、パスパラメータの競合を回避する。
 
 ### REST ハンドラー DTO
 
@@ -555,7 +555,7 @@ PostgreSQL の `dlq.messages` テーブルに対する CRUD を提供する。`D
 - **Kafka オプショナル**: Kafka 未設定時やプロデューサー作成失敗時もサーバーは起動する。再処理時は Kafka 再発行をスキップし RESOLVED に遷移する
 - **Kafka コンシューマーオプショナル**: Kafka 未設定時やコンシューマー作成失敗時は DLQ メッセージの自動取り込みが無効になる（ログで警告出力）
 - **gRPC 提供あり**: REST に加えて gRPC サービスを提供する。主な RPC は `GetMessage`, `ListMessages`, `RetryMessage`, `RetryAll`, `DeleteMessage`
-- **ルーティング順序**: `/api/v1/dlq/messages/:id` を `/api/v1/dlq/:topic` より先に定義し、`messages` が `:topic` パラメータとして誤マッチしないようにする
+- **ルーティング順序**: `/api/v1/dlq/messages/{id}` を `/api/v1/dlq/{topic}` より先に定義し、`messages` が `{topic}` パラメータとして誤マッチしないようにする
 
 ```protobuf
 service DlqService {

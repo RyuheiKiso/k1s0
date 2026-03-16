@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -42,6 +43,8 @@ type Client struct {
 	scopes       []string
 	httpClient   *http.Client
 	oidcConfig   *OIDCConfig
+	// discovered はOIDC discoveryが正常に完了したかを示すフラグ（goroutine間で安全にアクセスするためatomic）
+	discovered atomic.Bool
 	// verifier はJWT署名検証器。初回のExtractSubject呼び出し時に生成してキャッシュする。
 	verifier *oidc.IDTokenVerifier
 }
@@ -92,7 +95,15 @@ func (c *Client) Discover(ctx context.Context) (*OIDCConfig, error) {
 	}
 
 	c.oidcConfig = &cfg
+	// discoveryが正常に完了したことを記録する（atomic: goroutine安全）
+	c.discovered.Store(true)
 	return &cfg, nil
+}
+
+// IsDiscovered はOIDC discoveryが正常に完了しているかを返す。
+// readinessチェックでプロバイダとの接続状態を確認するために使用する。
+func (c *Client) IsDiscovered() bool {
+	return c.discovered.Load()
 }
 
 // AuthCodeURL builds the authorization URL with PKCE parameters.

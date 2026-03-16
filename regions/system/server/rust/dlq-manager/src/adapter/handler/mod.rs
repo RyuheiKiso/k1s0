@@ -68,14 +68,14 @@ pub fn router(state: AppState) -> Router {
     let api_routes = if let Some(ref auth_state) = state.auth_state {
         // GET -> dlq/read
         let read_routes = Router::new()
-            .route("/api/v1/dlq/messages/:id", get(dlq_handler::get_message))
-            .route("/api/v1/dlq/:topic", get(dlq_handler::list_messages))
+            .route("/api/v1/dlq/messages/{id}", get(dlq_handler::get_message))
+            .route("/api/v1/dlq/{topic}", get(dlq_handler::list_messages))
             .route_layer(axum::middleware::from_fn(require_permission("dlq", "read")));
 
         // POST retry -> dlq/write
         let write_routes = Router::new()
             .route(
-                "/api/v1/dlq/messages/:id/retry",
+                "/api/v1/dlq/messages/{id}/retry",
                 post(dlq_handler::retry_message),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -85,10 +85,10 @@ pub fn router(state: AppState) -> Router {
         // DELETE / retry-all -> dlq/admin
         let admin_routes = Router::new()
             .route(
-                "/api/v1/dlq/messages/:id",
+                "/api/v1/dlq/messages/{id}",
                 axum::routing::delete(dlq_handler::delete_message),
             )
-            .route("/api/v1/dlq/:topic/retry-all", post(dlq_handler::retry_all))
+            .route("/api/v1/dlq/{topic}/retry-all", post(dlq_handler::retry_all))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "dlq", "admin",
             )));
@@ -104,15 +104,15 @@ pub fn router(state: AppState) -> Router {
     } else {
         Router::new()
             .route(
-                "/api/v1/dlq/messages/:id",
+                "/api/v1/dlq/messages/{id}",
                 get(dlq_handler::get_message).delete(dlq_handler::delete_message),
             )
             .route(
-                "/api/v1/dlq/messages/:id/retry",
+                "/api/v1/dlq/messages/{id}/retry",
                 post(dlq_handler::retry_message),
             )
-            .route("/api/v1/dlq/:topic", get(dlq_handler::list_messages))
-            .route("/api/v1/dlq/:topic/retry-all", post(dlq_handler::retry_all))
+            .route("/api/v1/dlq/{topic}", get(dlq_handler::list_messages))
+            .route("/api/v1/dlq/{topic}/retry-all", post(dlq_handler::retry_all))
     };
 
     // with_state で Router<()> に変換後、SwaggerUI を merge する

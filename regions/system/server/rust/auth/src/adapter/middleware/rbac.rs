@@ -354,7 +354,7 @@ mod tests {
         let state_clone = state.clone();
         let app = Router::new()
             .route(
-                "/api/v1/users/:id",
+                "/api/v1/users/{id}",
                 delete(|| async { StatusCode::NO_CONTENT }).layer(middleware::from_fn_with_state(
                     state_clone,
                     |State(s): State<AppState>, req: Request<Body>, next: Next| {
@@ -405,7 +405,7 @@ mod tests {
         let state_clone = state.clone();
         let app = Router::new()
             .route(
-                "/api/v1/users/:id",
+                "/api/v1/users/{id}",
                 delete(|| async { StatusCode::NO_CONTENT }).layer(middleware::from_fn_with_state(
                     state_clone,
                     |State(s): State<AppState>, req: Request<Body>, next: Next| {

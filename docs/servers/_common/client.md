@@ -191,11 +191,11 @@ dependencies:
 ### アーキテクチャ
 
 ```
-┌─────────────┐    GET /api/v1/config-schema/:service    ┌───────────────┐
+┌─────────────┐    GET /api/v1/config-schema/{service}┌───────────────┐
 │  Client App  │────────────────────────────────────────>│ config-server  │
-│  (Flutter /  │    GET /api/v1/config/services/:service  │               │
+│  (Flutter /  │    GET /api/v1/config/services/{service}  │               │
 │   React)     │<────────────────────────────────────────│               │
-│              │    PUT /api/v1/config/:ns/:key           │               │
+│              │    PUT /api/v1/config/{ns}/{key}           │               │
 └─────────────┘                                          └───────────────┘
        │
        ▼
@@ -216,8 +216,8 @@ dependencies:
 | HTTP クライアント | Dio | Axios |
 | 入力 | `serviceName: String` | `serviceName: string` |
 | 出力 | `ConfigData`（schema + values） | `ConfigEditorConfig`（schema + categories with fieldValues） |
-| スキーマ取得 | `GET /api/v1/config-schema/:service` | `GET /api/v1/config-schema/:service` |
-| 値取得 | `GET /api/v1/config/services/:service` | `GET /api/v1/config/services/:service` |
+| スキーマ取得 | `GET /api/v1/config-schema/{service}` | `GET /api/v1/config-schema/{service}` |
+| 値取得 | `GET /api/v1/config/services/{service}` | `GET /api/v1/config/services/{service}` |
 
 ### ConfigEditorPage
 
@@ -227,7 +227,7 @@ dependencies:
 |------|---------|-------|
 | コンポーネント | `ConfigEditorPage`（StatefulWidget） | `ConfigEditorPage`（React Component） |
 | 状態管理 | `setState` + `_dirtyValues` Map | `useConfigEditor` hook |
-| 保存 | `PUT /api/v1/config/:ns/:key` | `useConfigEditor.save()` |
+| 保存 | `PUT /api/v1/config/{ns}/{key}` | `useConfigEditor.save()` |
 | 競合検知 | HTTP 409 → AlertDialog 表示 | HTTP 409 対応 |
 
 ### ConfigTypes（型定義）

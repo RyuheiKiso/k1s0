@@ -222,7 +222,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_operator_admin_denied() {
         let app = Router::new().route(
-            "/api/v1/search/index/:index_name/:id",
+            "/api/v1/search/index/{index_name}/{id}",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("search", "admin"),
             )),
@@ -238,7 +238,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_admin_delete_allowed() {
         let app = Router::new().route(
-            "/api/v1/search/index/:index_name/:id",
+            "/api/v1/search/index/{index_name}/{id}",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("search", "admin"),
             )),

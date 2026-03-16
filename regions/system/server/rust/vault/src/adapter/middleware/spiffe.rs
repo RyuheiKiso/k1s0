@@ -117,7 +117,7 @@ mod tests {
             policies: Arc::new(policies),
         };
         Router::new()
-            .route("/api/v1/secrets/:key", get(|| async { "ok" }))
+            .route("/api/v1/secrets/{key}", get(|| async { "ok" }))
             .layer(axum::middleware::from_fn_with_state(
                 state,
                 spiffe_auth_middleware,

@@ -50,9 +50,9 @@ pub fn router(state: AppState) -> Router {
         // GET/check/usage -> quotas/read
         let read_routes = Router::new()
             .route("/api/v1/quotas", get(quota_handler::list_quotas))
-            .route("/api/v1/quotas/:id", get(quota_handler::get_quota))
-            .route("/api/v1/quotas/:id/check", post(quota_handler::check_quota))
-            .route("/api/v1/quotas/:id/usage", get(quota_handler::get_usage))
+            .route("/api/v1/quotas/{id}", get(quota_handler::get_quota))
+            .route("/api/v1/quotas/{id}/check", post(quota_handler::check_quota))
+            .route("/api/v1/quotas/{id}/usage", get(quota_handler::get_usage))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "quotas", "read",
             )));
@@ -60,9 +60,9 @@ pub fn router(state: AppState) -> Router {
         // POST/PUT/increment -> quotas/write
         let write_routes = Router::new()
             .route("/api/v1/quotas", post(quota_handler::create_quota))
-            .route("/api/v1/quotas/:id", put(quota_handler::update_quota))
+            .route("/api/v1/quotas/{id}", put(quota_handler::update_quota))
             .route(
-                "/api/v1/quotas/:id/usage/increment",
+                "/api/v1/quotas/{id}/usage/increment",
                 post(quota_handler::increment_usage),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -72,11 +72,11 @@ pub fn router(state: AppState) -> Router {
         // DELETE/reset -> quotas/admin
         let admin_routes = Router::new()
             .route(
-                "/api/v1/quotas/:id",
+                "/api/v1/quotas/{id}",
                 axum::routing::delete(quota_handler::delete_quota),
             )
             .route(
-                "/api/v1/quotas/:id/usage/reset",
+                "/api/v1/quotas/{id}/usage/reset",
                 post(quota_handler::reset_usage),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -98,19 +98,19 @@ pub fn router(state: AppState) -> Router {
                 get(quota_handler::list_quotas).post(quota_handler::create_quota),
             )
             .route(
-                "/api/v1/quotas/:id",
+                "/api/v1/quotas/{id}",
                 get(quota_handler::get_quota)
                     .put(quota_handler::update_quota)
                     .delete(quota_handler::delete_quota),
             )
-            .route("/api/v1/quotas/:id/check", post(quota_handler::check_quota))
-            .route("/api/v1/quotas/:id/usage", get(quota_handler::get_usage))
+            .route("/api/v1/quotas/{id}/check", post(quota_handler::check_quota))
+            .route("/api/v1/quotas/{id}/usage", get(quota_handler::get_usage))
             .route(
-                "/api/v1/quotas/:id/usage/increment",
+                "/api/v1/quotas/{id}/usage/increment",
                 post(quota_handler::increment_usage),
             )
             .route(
-                "/api/v1/quotas/:id/usage/reset",
+                "/api/v1/quotas/{id}/usage/reset",
                 post(quota_handler::reset_usage),
             )
     };

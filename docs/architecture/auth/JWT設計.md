@@ -25,6 +25,8 @@ JWKS URL: http://auth-server.k1s0-system.svc.cluster.local/jwks
 JWKS URL: https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-connect/certs
 ```
 
+![JWT 検証フロー](images/jwt-verification-flow.svg)
+
 ### 鍵ローテーションスケジュール
 
 | 項目                 | 値                                     |
@@ -42,6 +44,8 @@ Day 76:    鍵 B を生成・JWKS に追加（鍵 A + 鍵 B）
 Day 76-90: 新規トークンは鍵 B で署名、鍵 A のトークンも検証可能
 Day 90:    鍵 A を JWKS から削除（鍵 B のみ）
 ```
+
+![JWT 鍵ローテーションタイムライン](images/jwt-key-rotation-timeline.svg)
 
 ### Go 実装例
 

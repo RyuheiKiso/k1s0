@@ -71,7 +71,14 @@ pub async fn run() -> anyhow::Result<()> {
             .await?;
         Arc::new(super::file_metadata_postgres::FileMetadataPostgresRepository::new(pool, "file")?)
     } else {
-        info!("no database configured, using in-memory metadata repository");
+        // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "file",
+            k1s0_server_common::InfraKind::Database,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("no database configured, using in-memory metadata repository (dev/test bypass)");
         Arc::new(InMemoryFileMetadataRepository::new())
     };
 
@@ -97,7 +104,14 @@ pub async fn run() -> anyhow::Result<()> {
             Arc::new(InMemoryFileStorageRepository::new())
         }
     } else {
-        info!("no storage configured, using in-memory storage backend");
+        // infra_guard: stable サービスでは Storage 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "file",
+            k1s0_server_common::InfraKind::Storage,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("no storage configured, using in-memory storage backend (dev/test bypass)");
         Arc::new(InMemoryFileStorageRepository::new())
     };
 
@@ -114,7 +128,14 @@ pub async fn run() -> anyhow::Result<()> {
             }
         }
     } else {
-        info!("no kafka configured, using noop publisher");
+        // infra_guard: stable サービスでは Kafka 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "file",
+            k1s0_server_common::InfraKind::Kafka,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("no kafka configured, using noop publisher (dev/test bypass)");
         Arc::new(NoopFileEventPublisher)
     };
 

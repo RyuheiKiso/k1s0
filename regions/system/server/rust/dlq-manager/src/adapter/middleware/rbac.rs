@@ -135,7 +135,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_missing_claims_returns_401() {
         let app = Router::new().route(
-            "/api/v1/dlq/:topic",
+            "/api/v1/dlq/{topic}",
             get(|| async { "ok" })
                 .route_layer(axum::middleware::from_fn(require_permission("dlq", "read"))),
         );
@@ -158,7 +158,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_admin_read_allowed() {
         let app = Router::new().route(
-            "/api/v1/dlq/:topic",
+            "/api/v1/dlq/{topic}",
             get(|| async { "ok" })
                 .route_layer(axum::middleware::from_fn(require_permission("dlq", "read"))),
         );
@@ -173,7 +173,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_operator_write_allowed() {
         let app = Router::new().route(
-            "/api/v1/dlq/messages/:id/retry",
+            "/api/v1/dlq/messages/{id}/retry",
             post(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
                 "dlq", "write",
             ))),
@@ -189,7 +189,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_auditor_read_allowed() {
         let app = Router::new().route(
-            "/api/v1/dlq/:topic",
+            "/api/v1/dlq/{topic}",
             get(|| async { "ok" })
                 .route_layer(axum::middleware::from_fn(require_permission("dlq", "read"))),
         );
@@ -204,7 +204,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_auditor_write_denied() {
         let app = Router::new().route(
-            "/api/v1/dlq/messages/:id/retry",
+            "/api/v1/dlq/messages/{id}/retry",
             post(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
                 "dlq", "write",
             ))),
@@ -226,7 +226,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_operator_admin_denied() {
         let app = Router::new().route(
-            "/api/v1/dlq/messages/:id",
+            "/api/v1/dlq/messages/{id}",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("dlq", "admin"),
             )),
@@ -242,7 +242,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_admin_delete_allowed() {
         let app = Router::new().route(
-            "/api/v1/dlq/messages/:id",
+            "/api/v1/dlq/messages/{id}",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("dlq", "admin"),
             )),
@@ -258,7 +258,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_unknown_role_denied() {
         let app = Router::new().route(
-            "/api/v1/dlq/:topic",
+            "/api/v1/dlq/{topic}",
             get(|| async { "ok" })
                 .route_layer(axum::middleware::from_fn(require_permission("dlq", "read"))),
         );

@@ -720,7 +720,7 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="es_snap_note1" value="&lt;font size=&quot;1&quot;&gt;&lt;b&gt;スナップショット作成&lt;/b&gt;&lt;br&gt;POST /api/v1/streams/:id/snapshot&lt;br&gt;{snapshot_version, aggregate_type, state}&lt;br&gt;&lt;br&gt;&lt;b&gt;状態復元の高速化:&lt;/b&gt;&lt;br&gt;最新 Snapshot + (snapshot_version 以降の Events)&lt;br&gt;&amp;rarr; 集約状態を再構築&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;" vertex="1" parent="sec4">
+        <mxCell id="es_snap_note1" value="&lt;font size=&quot;1&quot;&gt;&lt;b&gt;スナップショット作成&lt;/b&gt;&lt;br&gt;POST /api/v1/streams/{id}/snapshot&lt;br&gt;{snapshot_version, aggregate_type, state}&lt;br&gt;&lt;br&gt;&lt;b&gt;状態復元の高速化:&lt;/b&gt;&lt;br&gt;最新 Snapshot + (snapshot_version 以降の Events)&lt;br&gt;&amp;rarr; 集約状態を再構築&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;" vertex="1" parent="sec4">
           <mxGeometry x="420" y="395" width="290" height="90" as="geometry"/>
         </mxCell>
         <mxCell id="es_snap_note2" value="&lt;font size=&quot;1&quot;&gt;&lt;b&gt;Kafka 転送&lt;/b&gt;&lt;br&gt;Topic: k1s0.system.eventstore.event.published.v1&lt;br&gt;Key: stream_id (順序保証)&lt;br&gt;保証: at-least-once&lt;br&gt;&lt;br&gt;&lt;b&gt;Read Model 投影&lt;/b&gt;&lt;br&gt;Consumer が Kafka から読み取り&lt;br&gt;Read DB へ投影 (CQRS パターン)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;" vertex="1" parent="sec4">
