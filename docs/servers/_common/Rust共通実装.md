@@ -77,18 +77,38 @@ tonic-build = {workspace = true}
 
 ## 共通 build.rs パターン {#共通buildrs}
 
-tonic-build による proto コンパイル。`{proto_path}` と `{include_paths}` はサービスごとに異なる。
+### k1s0-proto-build 共通クレート
+
+service tier の Rust サーバー（payment / order / inventory）は `k1s0-proto-build` 共通クレートを使用して proto コンパイルを統一する。サービス proto とイベント proto を単一呼び出しでコンパイルし、共通型（`Pagination` / `PaginationResult` / `EventMetadata` 等）の上書き消失を防止する。
+
+```rust
+// build.rs — 共通クレートを使用したパターン（推奨）
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    k1s0_proto_build::compile_service_protos(
+        "payment",                     // サービス名
+        "../../../../../../api/proto", // proto ルートディレクトリ
+        "src/proto",                   // 出力先
+    )
+}
+```
+
+```toml
+# Cargo.toml
+[build-dependencies]
+k1s0-proto-build = { path = "../../../../../system/library/rust/proto-build" }
+```
+
+`k1s0-proto-build` は以下を自動化する:
+- サービス proto + イベント proto の自動検出と単一呼び出しコンパイル
+- 存在しない proto ファイルのスキップ（警告出力のみ）
+- tonic-build 設定の統一（`build_server(true)` / `build_client(false)` / `out_dir` 固定）
+
+### 直接 tonic-build を使用するパターン（system tier 等）
+
+system tier のサーバーや、イベント proto を持たないサーバーでは直接 tonic-build を使用する。
 
 ```rust
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let protoc_path = protoc_bin_vendored::protoc_bin_path()
-        .or_else(|_| std::env::var("PROTOC").map(std::path::PathBuf::from).map_err(Into::into));
-    if let Ok(path) = protoc_path {
-        std::env::set_var("PROTOC", path);
-    } else {
-        println!("cargo:warning=protoc not found; relying on system-installed protoc");
-    }
-
     tonic_build::configure()
         .build_server(true)
         .build_client(false)
@@ -103,9 +123,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### build.rs 運用ノート
 
-- `protoc` が未インストールの開発環境では `protoc-bin-vendored` を優先し、取得失敗時は `PROTOC` / システム `protoc` にフォールバックする。
 - 生成先は `.out_dir("src/proto")` に固定し、CI/CD でも生成物パスを揃える。
 - CI では `protobuf-compiler` を明示インストールするか、`PROTOC` 環境変数を設定してビルド再現性を担保する。
+- **重要**: 複数の proto ファイルが共通パッケージ（`k1s0.system.common.v1` 等）を import する場合、`compile_protos()` を複数回呼び出すと共通型が上書き消失する。必ず単一呼び出しで全 proto を同時にコンパイルすること。
 
 ---
 
