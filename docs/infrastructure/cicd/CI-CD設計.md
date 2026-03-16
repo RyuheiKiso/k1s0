@@ -10,6 +10,8 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 - 環境別デプロイ: dev 自動 / staging 自動 / prod 手動承認
 - セキュリティスキャン（Trivy・依存関係チェック）を全パイプラインに組み込む
 
+![CI/CD パイプライン全体像](images/cicd-pipeline-overview.svg)
+
 ---
 
 ## D-101: GitHub Actions パイプライン設計
@@ -545,6 +547,8 @@ jobs:
 ```
 
 ### 環境別デプロイ戦略
+
+![環境別デプロイフロー](images/cicd-environment-progression.svg)
 
 | 環境    | トリガー           | 承認       | ロールバック              |
 | ------- | ------------------ | ---------- | ------------------------- |

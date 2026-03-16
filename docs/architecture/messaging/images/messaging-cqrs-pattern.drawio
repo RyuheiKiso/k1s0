@@ -1,0 +1,138 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="cqrs-pattern-001" name="CQRS パターン">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="700" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル: CQRSパターン図 -->
+        <mxCell id="title" value="CQRS パターン" style="text;html=1;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="400" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Write側スイムレーン: コマンド処理の流れ -->
+        <mxCell id="lane-write" value="Write 側（コマンド）" style="shape=swimlane;startSize=30;fontSize=18;fontStyle=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;rounded=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="470" height="540" as="geometry"/>
+        </mxCell>
+
+        <!-- コマンド入力: Create/Update/Deleteの受付 -->
+        <mxCell id="cmd-input" value="コマンド&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(Create / Update / Delete)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="lane-write">
+          <mxGeometry x="160" y="50" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- コマンドハンドラ: コマンドの実行処理 -->
+        <mxCell id="cmd-handler" value="コマンドハンドラ" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="lane-write">
+          <mxGeometry x="170" y="140" width="140" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- 集約: DDDの集約ルートでビジネスルール適用 -->
+        <mxCell id="aggregate" value="集約 (Aggregate)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="lane-write">
+          <mxGeometry x="170" y="220" width="140" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- イベントストア: PostgreSQLによるイベント永続化 -->
+        <mxCell id="event-store" value="イベントストア&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(PostgreSQL)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;rounded=1;" vertex="1" parent="lane-write">
+          <mxGeometry x="170" y="300" width="140" height="65" as="geometry"/>
+        </mxCell>
+
+        <!-- ドメインイベント発行: イベントのKafkaへのパブリッシュ -->
+        <mxCell id="event-publish" value="ドメインイベント発行" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="lane-write">
+          <mxGeometry x="170" y="400" width="140" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Write側矢印: コマンド→ハンドラ -->
+        <mxCell id="w1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="cmd-input" target="cmd-handler" parent="lane-write">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Write側矢印: ハンドラ→集約 -->
+        <mxCell id="w2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="cmd-handler" target="aggregate" parent="lane-write">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Write側矢印: 集約→イベントストア -->
+        <mxCell id="w3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="aggregate" target="event-store" parent="lane-write">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Write側矢印: イベントストア→イベント発行 -->
+        <mxCell id="w4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="event-store" target="event-publish" parent="lane-write">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- イベント境界: Write側とRead側を分離する中央の境界線 -->
+        <mxCell id="boundary" value="" style="endArrow=none;dashed=1;dashPattern=8 4;strokeColor=#999999;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="60" as="sourcePoint"/>
+            <mxPoint x="600" y="600" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 境界ラベル: イベント境界の説明 -->
+        <mxCell id="boundary-label" value="イベント境界" style="text;html=1;fontSize=14;fontStyle=1;align=center;fontColor=#999999;rotation=-90;" vertex="1" parent="1">
+          <mxGeometry x="555" y="310" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Kafka Topic: Write側からRead側へのイベント転送ハブ -->
+        <mxCell id="kafka-topic" value="Kafka Topic&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;ドメインイベント&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fontSize=12;fillColor=#FFF2CC;strokeColor=#D6B656;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="445" width="130" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- イベント発行→Kafka Topic矢印 -->
+        <mxCell id="e-pub" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;" edge="1" source="event-publish" target="kafka-topic" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Read側スイムレーン: クエリ処理の流れ -->
+        <mxCell id="lane-read" value="Read 側（クエリ）" style="shape=swimlane;startSize=30;fontSize=18;fontStyle=1;fillColor=#D5E8D4;strokeColor=#82B366;rounded=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="60" width="470" height="540" as="geometry"/>
+        </mxCell>
+
+        <!-- クエリ結果: Read APIからのレスポンス -->
+        <mxCell id="query-result" value="クエリ結果&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(Read API)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="lane-read">
+          <mxGeometry x="160" y="50" width="150" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- クエリハンドラ: クエリの実行処理 -->
+        <mxCell id="query-handler" value="クエリハンドラ" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="lane-read">
+          <mxGeometry x="170" y="140" width="140" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Read Model: 検索最適化されたデータベース -->
+        <mxCell id="read-model" value="Read Model&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(検索最適化DB)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;rounded=1;" vertex="1" parent="lane-read">
+          <mxGeometry x="170" y="280" width="140" height="65" as="geometry"/>
+        </mxCell>
+
+        <!-- イベントハンドラ: Kafkaイベントを受信しRead Modelを更新するProjection -->
+        <mxCell id="event-handler" value="イベントハンドラ&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(Projection)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="lane-read">
+          <mxGeometry x="165" y="400" width="150" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Read側矢印: クエリ結果←クエリハンドラ -->
+        <mxCell id="r1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;" edge="1" source="query-handler" target="query-result" parent="lane-read">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Read側矢印: クエリハンドラ←Read Model -->
+        <mxCell id="r2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;" edge="1" source="read-model" target="query-handler" parent="lane-read">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Read側矢印: Read Model←イベントハンドラ -->
+        <mxCell id="r3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;" edge="1" source="event-handler" target="read-model" parent="lane-read">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Kafka Topic→イベントハンドラ矢印 -->
+        <mxCell id="e-consume" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;" edge="1" source="kafka-topic" target="event-handler" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 結果整合性の説明ノート -->
+        <mxCell id="note" value="結果整合性 (Eventual Consistency)&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Write/Readモデルの同期はKafkaイベント経由&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fontSize=11;fillColor=#F5F5F5;strokeColor=#666666;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="630" width="400" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

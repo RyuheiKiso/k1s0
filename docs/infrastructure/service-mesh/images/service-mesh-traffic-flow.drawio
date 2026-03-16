@@ -1,0 +1,148 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="traffic-flow-001" name="サービスメッシュ トラフィックフロー">
+    <mxGraphModel dx="1600" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="600" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル: サービスメッシュのトラフィック経路全体図 -->
+        <mxCell id="title" value="サービスメッシュ トラフィックフロー" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="500" y="10" width="450" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== コンポーネント: 左から右へのトラフィック経路 ===== -->
+
+        <!-- 1. 外部クライアント — インターネットからのリクエスト発信元 -->
+        <mxCell id="client" value="&lt;b&gt;外部クライアント&lt;/b&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="20" y="130" width="130" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- 2. Nginx Ingress — TLS終端とL7ロードバランシングを担当 -->
+        <mxCell id="nginx" value="&lt;b&gt;Nginx Ingress&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(TLS終端)&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="210" y="130" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <!-- Nginx機能ラベル -->
+        <mxCell id="nginx-label" value="L7 ロードバランシング" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="210" y="105" width="140" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- 3. Kong API Gateway — 認証・レート制限のプラグインチェーンを実行 -->
+        <mxCell id="kong" value="&lt;b&gt;Kong API Gateway&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(認証・レート制限)&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="410" y="130" width="150" height="60" as="geometry"/>
+        </mxCell>
+        <!-- Kong機能ラベル -->
+        <mxCell id="kong-label" value="プラグインチェーン" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#82B366;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="410" y="105" width="150" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- 4. Istio Ingress Gateway — mTLS開始点、Gatewayリソースで制御 -->
+        <mxCell id="istio-gw" value="&lt;b&gt;Istio Ingress Gateway&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(mTLS開始点)&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="620" y="130" width="155" height="60" as="geometry"/>
+        </mxCell>
+        <!-- Istio GW機能ラベル -->
+        <mxCell id="istio-gw-label" value="Gateway リソース" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#9673A6;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="620" y="105" width="155" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- 5. VirtualService — トラフィックルーティングルールの定義 -->
+        <mxCell id="vs" value="&lt;b&gt;VirtualService&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(トラフィックルーティング)&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="830" y="110" width="160" height="65" as="geometry"/>
+        </mxCell>
+        <!-- VirtualServiceのサブ項目 — ルーティング戦略の詳細 -->
+        <mxCell id="vs-items" value="&lt;font style=&quot;font-size:10px&quot;&gt;・ヘッダーベースルーティング&lt;br&gt;・重み付きルーティング&lt;br&gt;・タイムアウト・リトライ&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="835" y="180" width="160" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- 6. DestinationRule — ロードバランシングと耐障害性設定 -->
+        <mxCell id="dr" value="&lt;b&gt;DestinationRule&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(ロードバランシング)&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="110" width="155" height="65" as="geometry"/>
+        </mxCell>
+        <!-- DestinationRuleのサブ項目 — LB戦略と耐障害パターン -->
+        <mxCell id="dr-items" value="&lt;font style=&quot;font-size:10px&quot;&gt;・ROUND_ROBIN&lt;br&gt;・サーキットブレーカー&lt;br&gt;・外れ値検出&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="1055" y="180" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- 7. Backend Pod — Envoy Sidecarが注入されたアプリケーションPod -->
+        <mxCell id="pod" value="&lt;b&gt;Backend Pod&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(Envoy Sidecar付き)&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="130" width="140" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== トラフィックフロー矢印: 各コンポーネント間の接続 ===== -->
+
+        <!-- 外部クライアント → Nginx: HTTPS（外部TLS）プロトコル -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="client" target="nginx" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow1-proto" value="HTTPS&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;(外部TLS)&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=top;fontSize=10;fontColor=#333333;" vertex="1" connectable="0" parent="arrow1">
+          <mxGeometry x="0.5" relative="1" as="geometry">
+            <mxPoint y="15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Nginx → Kong: HTTP（内部通信、TLS終端済み） -->
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="nginx" target="kong" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow2-proto" value="HTTP&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;(内部)&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=top;fontSize=10;fontColor=#333333;" vertex="1" connectable="0" parent="arrow2">
+          <mxGeometry x="0.5" relative="1" as="geometry">
+            <mxPoint y="15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Kong → Istio GW: HTTP（メッシュ境界への転送） -->
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="kong" target="istio-gw" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow3-proto" value="HTTP" style="edgeLabel;html=1;align=center;verticalAlign=top;fontSize=10;fontColor=#333333;" vertex="1" connectable="0" parent="arrow3">
+          <mxGeometry x="0.5" relative="1" as="geometry">
+            <mxPoint y="15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Istio GW → VirtualService: mTLS（自動的に暗号化） -->
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="istio-gw" target="vs" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow4-proto" value="mTLS&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;(自動)&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=top;fontSize=10;fontColor=#9673A6;" vertex="1" connectable="0" parent="arrow4">
+          <mxGeometry x="0.5" relative="1" as="geometry">
+            <mxPoint y="15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- VirtualService → DestinationRule: mTLS（メッシュ内部通信） -->
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="vs" target="dr" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow5-proto" value="mTLS&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;(自動)&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=top;fontSize=10;fontColor=#9673A6;" vertex="1" connectable="0" parent="arrow5">
+          <mxGeometry x="0.5" relative="1" as="geometry">
+            <mxPoint y="15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DestinationRule → Backend Pod: mTLS（Sidecar経由でPodへ到達） -->
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="dr" target="pod" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow6-proto" value="mTLS&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;(自動)&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=top;fontSize=10;fontColor=#9673A6;" vertex="1" connectable="0" parent="arrow6">
+          <mxGeometry x="0.5" relative="1" as="geometry">
+            <mxPoint y="15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 補足注記: Envoy Sidecarの透過的インターセプトの説明 -->
+        <mxCell id="side-note" value="Envoy Sidecar が各Pod のトラフィックを透過的にインターセプト" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;fontColor=#333333;align=center;verticalAlign=middle;shadow=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="290" width="350" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- mTLS区間の視覚的表示 — メッシュ内の暗号化範囲 -->
+        <mxCell id="mtls-zone" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9673A6;strokeWidth=1;dashed=1;dashPattern=5 5;" vertex="1" parent="1">
+          <mxGeometry x="610" y="95" width="810" height="155" as="geometry"/>
+        </mxCell>
+        <mxCell id="mtls-zone-label" value="mTLS ゾーン（Istio メッシュ内）" style="text;html=1;align=right;verticalAlign=middle;fontSize=10;fontColor=#9673A6;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="255" width="230" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

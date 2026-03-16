@@ -23,6 +23,8 @@
 | `cert-manager`    | 証明書管理                          | infra    | `infra`    |
 | `harbor`          | コンテナレジストリ（同一クラスタの場合） | infra  | `infra`    |
 
+![Kubernetes Namespace 階層と NetworkPolicy](images/k8s-namespace-hierarchy.svg)
+
 ## NetworkPolicy
 
 Tier アーキテクチャの依存ルール（下位 → 上位の一方向のみ）を NetworkPolicy で強制する。
@@ -261,6 +263,8 @@ spec:
 ```
 
 ## HPA（Horizontal Pod Autoscaler）
+
+![HPA・リソース制限 環境別比較](images/k8s-hpa-resource-limits.svg)
 
 > **注記**: 以下のサンプル YAML は staging 環境の設定例である。環境別の minReplicas / maxReplicas は後述の「環境別 HPA 設定」テーブルを参照。
 

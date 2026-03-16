@@ -24,6 +24,8 @@ Client → Nginx Ingress Controller (TLS終端) → Kong Proxy → Istio Sidecar
                           PostgreSQL (kong-db)
 ```
 
+![API Gateway リクエストフロー](images/api-gateway-request-flow.svg)
+
 #### 本ドキュメントにおける呼称
 
 - **BFF Proxy**: system tier の共通基盤。Cookie セッション（HttpOnly）と Bearer Token の変換・token refresh・サーバーサイドセッション管理を担う
@@ -669,6 +671,8 @@ consumers:
 | system   | 3000   | 100    | 内部基盤サービス（高頻度呼び出し） |
 | business | 1000   | 40     | 領域共通サービス                   |
 | service  | 500    | 20     | 個別業務サービス（グローバルデフォルト） |
+
+![Tier別ルーティングとレート制限](images/api-gateway-tier-routing.svg)
 
 ```yaml
 # system Tier のオーバーライド例（auth-server）

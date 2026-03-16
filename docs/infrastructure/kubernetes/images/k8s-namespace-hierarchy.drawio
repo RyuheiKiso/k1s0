@@ -1,0 +1,230 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="ns-hierarchy-001" name="Kubernetes Namespace 階層と NetworkPolicy">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル: ダイアグラム全体の見出し -->
+        <mxCell id="title" value="Kubernetes Namespace 階層と NetworkPolicy" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Tier Layer: 上から下への階層構造 ===== -->
+
+        <!-- Row 1: ingress namespace — 外部トラフィックの入口 -->
+        <mxCell id="ns-ingress" value="&lt;b&gt;ingress&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Nginx Ingress Controller&lt;br&gt;Kong API Gateway&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="340" y="70" width="280" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 2: Service Tier — BFFプロキシとバックエンドサービス -->
+        <mxCell id="ns-service" value="&lt;b&gt;k1s0-service&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;BFF Proxy群&lt;br&gt;Backend Service群&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="340" y="220" width="280" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 3: Business Tier — ドメインロジックを担当するサービス -->
+        <mxCell id="ns-business" value="&lt;b&gt;k1s0-business&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;ドメインサービス群&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="340" y="370" width="280" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 4: System Tier — 認証・設定などの基盤サービス -->
+        <mxCell id="ns-system" value="&lt;b&gt;k1s0-system&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;auth-server&lt;br&gt;config-server&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="340" y="520" width="280" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Infrastructure Namespaces: 右側に縦に配置 ===== -->
+
+        <!-- observability namespace — メトリクス・ログ・トレース基盤 -->
+        <mxCell id="ns-observability" value="&lt;b&gt;observability&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Prometheus, Grafana&lt;br&gt;Loki, Jaeger&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="780" y="70" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- messaging namespace — イベント駆動基盤 -->
+        <mxCell id="ns-messaging" value="&lt;b&gt;messaging&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Kafka&lt;br&gt;Schema Registry&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="780" y="170" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- service-mesh namespace — Istioコントロールプレーン -->
+        <mxCell id="ns-mesh" value="&lt;b&gt;service-mesh&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Istio Control Plane&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="780" y="270" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- cert-manager namespace — TLS証明書の自動管理 -->
+        <mxCell id="ns-cert" value="&lt;b&gt;cert-manager&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;cert-manager&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="780" y="370" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- harbor namespace — コンテナイメージレジストリ -->
+        <mxCell id="ns-harbor" value="&lt;b&gt;harbor&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Harbor Registry&lt;/font&gt;" style="rounded=1;shadow=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="780" y="470" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== NetworkPolicy Arrows: 名前空間間の通信許可/拒否ルール ===== -->
+
+        <!-- ingress → k1s0-service: 外部トラフィックの転送を許可 -->
+        <mxCell id="arrow-ingress-service" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontColor=#82B366;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="ns-ingress" target="ns-service" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+          <Array as="points"/>
+        </mxCell>
+        <mxCell id="arrow-ingress-service-label" value="ALLOW" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#82B366;fontStyle=1;" vertex="1" connectable="0" parent="arrow-ingress-service">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- k1s0-service → k1s0-business: サービス層からビジネス層への呼び出しを許可 -->
+        <mxCell id="arrow-service-business" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontColor=#82B366;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="ns-service" target="ns-business" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow-service-business-label" value="ALLOW" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#82B366;fontStyle=1;" vertex="1" connectable="0" parent="arrow-service-business">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- k1s0-business → k1s0-system: ビジネス層からシステム層への呼び出しを許可 -->
+        <mxCell id="arrow-business-system" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontColor=#82B366;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="ns-business" target="ns-system" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow-business-system-label" value="ALLOW" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#82B366;fontStyle=1;" vertex="1" connectable="0" parent="arrow-business-system">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- k1s0-service → k1s0-system: サービス層から直接システム層への呼び出しを許可（認証等） -->
+        <mxCell id="arrow-service-system" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontColor=#82B366;fontSize=10;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" source="ns-service" target="ns-system" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="310"/>
+              <mxPoint x="260" y="310"/>
+              <mxPoint x="260" y="510"/>
+              <mxPoint x="410" y="510"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-service-system-label" value="ALLOW" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#82B366;fontStyle=1;" vertex="1" connectable="0" parent="arrow-service-system">
+          <mxGeometry x="0.5" relative="1" as="geometry">
+            <mxPoint x="-20" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- observability → 全Tier: メトリクス収集のためのスクレイピング通信 -->
+        <mxCell id="arrow-obs-ingress" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;strokeWidth=1;dashed=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="ns-observability" target="ns-ingress" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow-obs-ingress-label" value="metrics scrape" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#6C8EBF;" vertex="1" connectable="0" parent="arrow-obs-ingress">
+          <mxGeometry x="0.2" relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-obs-service" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;strokeWidth=1;dashed=1;fontSize=10;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" source="ns-observability" target="ns-service" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="123"/>
+              <mxPoint x="720" y="238"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-obs-service-label" value="metrics scrape" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#6C8EBF;" vertex="1" connectable="0" parent="arrow-obs-service">
+          <mxGeometry x="0.3" relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-obs-business" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;strokeWidth=1;dashed=1;fontSize=10;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" source="ns-observability" target="ns-business" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="140"/>
+              <mxPoint x="700" y="388"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-obs-business-label" value="metrics scrape" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#6C8EBF;" vertex="1" connectable="0" parent="arrow-obs-business">
+          <mxGeometry x="0.3" relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-obs-system" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;strokeWidth=1;dashed=1;fontSize=10;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" source="ns-observability" target="ns-system" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="680" y="140"/>
+              <mxPoint x="680" y="538"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-obs-system-label" value="metrics scrape" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#6C8EBF;" vertex="1" connectable="0" parent="arrow-obs-system">
+          <mxGeometry x="0.5" relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 全Tier → messaging: Kafkaによるイベント駆動通信 -->
+        <mxCell id="arrow-service-msg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#E65100;strokeWidth=2;fontSize=10;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="ns-service" target="ns-messaging" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="273"/>
+              <mxPoint x="660" y="205"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-service-msg-label" value="Kafka" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#E65100;fontStyle=1;" vertex="1" connectable="0" parent="arrow-service-msg">
+          <mxGeometry x="0.3" relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-business-msg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#E65100;strokeWidth=2;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" source="ns-business" target="ns-messaging" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="405"/>
+              <mxPoint x="650" y="223"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-business-msg-label" value="Kafka" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#E65100;fontStyle=1;" vertex="1" connectable="0" parent="arrow-business-msg">
+          <mxGeometry x="0.3" relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-system-msg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#E65100;strokeWidth=2;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" edge="1" source="ns-system" target="ns-messaging" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="555"/>
+              <mxPoint x="640" y="240"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-system-msg-label" value="Kafka" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#E65100;fontStyle=1;" vertex="1" connectable="0" parent="arrow-system-msg">
+          <mxGeometry x="0.3" relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- DENY: ingress方向への逆流を禁止するポリシー -->
+        <mxCell id="deny-arrow" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B85450;strokeWidth=2;dashed=1;fontSize=10;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" edge="1" source="ns-service" target="ns-ingress" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="deny-label" value="✕ DENY" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#B85450;fontStyle=1;" vertex="1" connectable="0" parent="deny-arrow">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="18" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Tier ラベル: 各行のTier名称を右端に表示 -->
+        <mxCell id="tier-label-ingress" value="&lt;font color=&quot;#666666&quot;&gt;Ingress Tier&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="140" y="90" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="tier-label-service" value="&lt;font color=&quot;#D6B656&quot;&gt;Service Tier&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="140" y="240" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="tier-label-business" value="&lt;font color=&quot;#82B366&quot;&gt;Business Tier&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="140" y="390" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="tier-label-system" value="&lt;font color=&quot;#9673A6&quot;&gt;System Tier&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="140" y="540" width="120" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Infrastructure ラベル: 右側カラムの見出し -->
+        <mxCell id="infra-label" value="&lt;b&gt;Infrastructure Namespaces&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="780" y="40" width="220" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- 注記: Kubernetesラベル規約 -->
+        <mxCell id="bottom-note" value="ラベル規約: app.kubernetes.io/name, tier, domain" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="620" width="400" height="25" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

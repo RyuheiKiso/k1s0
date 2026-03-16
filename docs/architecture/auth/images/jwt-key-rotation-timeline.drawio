@@ -1,0 +1,113 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="jwt-key-rotation" name="JWT 鍵ローテーションタイムライン">
+    <mxGraphModel dx="1222" dy="462" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="500" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="JWT 鍵ローテーションタイムライン" style="text;html=1;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="700" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Day 0 → Day 76 → Day 90 鍵ローテーションサイクル" style="text;html=1;fontSize=14;fontColor=#999999;align=center;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="250" y="45" width="700" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Timeline arrow ===== -->
+        <mxCell id="timeline" value="" style="endArrow=block;html=1;strokeWidth=3;strokeColor=#333333;endFill=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="60" y="250" as="sourcePoint"/>
+            <mxPoint x="1150" y="250" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="timeline_label" value="時間軸" style="text;html=1;fontSize=11;fontColor=#666666;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="255" width="60" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Day 0 marker ===== -->
+        <mxCell id="day0_marker" value="" style="shape=mxgraph.basic.x;fillColor=#333333;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="95" y="243" width="14" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="day0_label" value="Day 0" style="text;html=1;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="62" y="265" width="80" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Day 0 annotation box -->
+        <mxCell id="day0_box" value="鍵 A で署名開始&#xa;JWKS: 鍵 A のみ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;fontStyle=0;arcSize=15;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <!-- Day 0 connector -->
+        <mxCell id="day0_conn" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#6C8EBF;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="102" y="155" as="sourcePoint"/>
+            <mxPoint x="102" y="243" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== Day 76 marker ===== -->
+        <mxCell id="day76_marker" value="" style="shape=mxgraph.basic.x;fillColor=#333333;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="723" y="243" width="14" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="day76_label" value="Day 76" style="text;html=1;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="690" y="265" width="80" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Day 76 annotation box -->
+        <mxCell id="day76_box" value="鍵 B 生成・JWKS 追加&#xa;新規トークン: 鍵 B で署名&#xa;鍵 A トークンも検証可能" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;fontStyle=0;arcSize=15;align=center;" vertex="1" parent="1">
+          <mxGeometry x="620" y="85" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <!-- Day 76 connector -->
+        <mxCell id="day76_conn" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#82B366;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="730" y="155" as="sourcePoint"/>
+            <mxPoint x="730" y="243" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== Day 90 marker ===== -->
+        <mxCell id="day90_marker" value="" style="shape=mxgraph.basic.x;fillColor=#333333;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1033" y="243" width="14" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="day90_label" value="Day 90" style="text;html=1;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="265" width="80" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Day 90 annotation box -->
+        <mxCell id="day90_box" value="鍵 A を JWKS から削除&#xa;JWKS: 鍵 B のみ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;fontStyle=0;arcSize=15;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="100" width="170" height="55" as="geometry"/>
+        </mxCell>
+        <!-- Day 90 connector -->
+        <mxCell id="day90_conn" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#B85450;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1040" y="155" as="sourcePoint"/>
+            <mxPoint x="1040" y="243" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== Key A bar (Day 0 → Day 90) ===== -->
+        <mxCell id="key_a_bar" value="鍵 A 有効期間" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;fontStyle=1;arcSize=10;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="100" y="305" width="940" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Key B bar (Day 76 →) ===== -->
+        <mxCell id="key_b_bar" value="鍵 B 有効期間" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;fontStyle=1;arcSize=10;opacity=80;" vertex="1" parent="1">
+          <mxGeometry x="730" y="350" width="420" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Overlap zone (Day 76 → Day 90) ===== -->
+        <mxCell id="overlap_zone" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=40;dashed=1;dashPattern=5 5;" vertex="1" parent="1">
+          <mxGeometry x="730" y="295" width="310" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="overlap_label" value="オーバーラップ期間（14日）&#xa;鍵 A + 鍵 B 並行運用" style="text;html=1;fontSize=11;fontStyle=1;align=center;verticalAlign=top;fontColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="770" y="395" width="230" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Bottom note ===== -->
+        <mxCell id="bottom_note" value="アルゴリズム: RS256 (RSA 2048-bit)　|　ローテーション周期: 90日　|　JWKS キャッシュ TTL: 10分" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="200" y="450" width="800" height="40" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
