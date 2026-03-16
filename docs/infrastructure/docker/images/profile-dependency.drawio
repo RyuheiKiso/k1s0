@@ -152,6 +152,14 @@
         <mxCell id="order-bff" value="&lt;b&gt;order-bff&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="880" y="140" width="100" height="35" as="geometry"/>
         </mxCell>
+        <!-- 在庫サーバー（新規追加） -->
+        <mxCell id="inventory-srv" value="&lt;b&gt;inventory-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="190" width="100" height="35" as="geometry"/>
+        </mxCell>
+        <!-- 決済サーバー（新規追加） -->
+        <mxCell id="payment-srv" value="&lt;b&gt;payment-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="190" width="100" height="35" as="geometry"/>
+        </mxCell>
 
         <!-- 依存関係矢印: Tier → infra -->
         <mxCell id="e-sys-infra" value="depends_on" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=2;fontSize=9;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="auth-srv" target="postgres" parent="1">

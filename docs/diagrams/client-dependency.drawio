@@ -1,29 +1,36 @@
 <mxfile host="draw.io">
   <diagram name="Client Dependency">
-    <mxGraphModel dx="1422" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0" background="#FFFFFF">
+    <mxGraphModel dx="1422" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="827" math="0" shadow="0" background="#FFFFFF">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
+        <!-- タイトル -->
         <mxCell id="2" value="Client 間の依存イメージ" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="200" y="10" width="400" height="40" as="geometry"/>
+          <mxGeometry x="300" y="10" width="400" height="40" as="geometry"/>
         </mxCell>
+        <!-- system層: 共通ライブラリ基盤 -->
         <mxCell id="10" value="system/library" style="swimlane;startSize=28;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;arcSize=8;fontStyle=1;fontSize=13;swimlaneLine=0;" vertex="1" parent="1">
-          <mxGeometry x="80" y="60" width="640" height="110" as="geometry"/>
+          <mxGeometry x="80" y="60" width="960" height="110" as="geometry"/>
         </mxCell>
+        <!-- 認証クライアントSDK -->
         <mxCell id="11" value="認証クライアント&#xa;SDK&#xa;JWT / トークン管理" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="10">
-          <mxGeometry x="15" y="38" width="140" height="58" as="geometry"/>
+          <mxGeometry x="20" y="38" width="200" height="58" as="geometry"/>
         </mxCell>
+        <!-- 共通型定義 -->
         <mxCell id="12" value="共通型定義&#xa;DTO / エンティティ" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="10">
-          <mxGeometry x="170" y="38" width="140" height="58" as="geometry"/>
+          <mxGeometry x="250" y="38" width="200" height="58" as="geometry"/>
         </mxCell>
+        <!-- APIクライアント -->
         <mxCell id="13" value="API クライアント&#xa;HTTP / gRPC&#xa;ラッパー" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="10">
-          <mxGeometry x="325" y="38" width="140" height="58" as="geometry"/>
+          <mxGeometry x="480" y="38" width="200" height="58" as="geometry"/>
         </mxCell>
+        <!-- ユーティリティ -->
         <mxCell id="14" value="ユーティリティ&#xa;バリデーション&#xa;フォーマッタ" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="10">
-          <mxGeometry x="480" y="38" width="145" height="58" as="geometry"/>
+          <mxGeometry x="710" y="38" width="220" height="58" as="geometry"/>
         </mxCell>
+        <!-- business層: 経理ドメイン共通クライアント -->
         <mxCell id="20" value="business/accounting/client" style="swimlane;startSize=25;fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;arcSize=8;fontStyle=1;fontSize=12;swimlaneLine=0;" vertex="1" parent="1">
-          <mxGeometry x="80" y="240" width="640" height="140" as="geometry"/>
+          <mxGeometry x="80" y="240" width="960" height="140" as="geometry"/>
         </mxCell>
         <mxCell id="21" value="経理領域の共通UIコンポーネント" style="text;fontSize=11;fontStyle=1;" vertex="1" parent="20">
           <mxGeometry x="10" y="30" width="260" height="22" as="geometry"/>
@@ -34,27 +41,44 @@
         <mxCell id="23" value="system library の認証SDK・&#xa;型定義・ユーティリティを利用" style="text;fontSize=10;fontColor=#6c8ebf;fontStyle=2;align=left;" vertex="1" parent="20">
           <mxGeometry x="15" y="95" width="250" height="35" as="geometry"/>
         </mxCell>
+        <!-- service層: 注文アプリ -->
         <mxCell id="30" value="service/order/client&#xa;注文アプリ" style="swimlane;startSize=38;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;arcSize=8;fontStyle=1;fontSize=11;swimlaneLine=0;" vertex="1" parent="1">
           <mxGeometry x="80" y="450" width="280" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="31" value="accounting共通UI + system library を利用" style="text;fontSize=10;align=left;" vertex="1" parent="30">
           <mxGeometry x="15" y="45" width="250" height="25" as="geometry"/>
         </mxCell>
+        <!-- service層: 在庫アプリ -->
         <mxCell id="35" value="service/inventory/client&#xa;在庫アプリ" style="swimlane;startSize=38;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;arcSize=8;fontStyle=1;fontSize=11;swimlaneLine=0;" vertex="1" parent="1">
-          <mxGeometry x="440" y="450" width="280" height="80" as="geometry"/>
+          <mxGeometry x="420" y="450" width="280" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="36" value="accounting共通UI + system library を利用" style="text;fontSize=10;align=left;" vertex="1" parent="35">
           <mxGeometry x="15" y="45" width="250" height="25" as="geometry"/>
         </mxCell>
+        <!-- service層: 決済アプリ（新規追加） -->
+        <mxCell id="40" value="service/payment/client&#xa;決済アプリ" style="swimlane;startSize=38;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;arcSize=8;fontStyle=1;fontSize=11;swimlaneLine=0;" vertex="1" parent="1">
+          <mxGeometry x="760" y="450" width="280" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="41" value="accounting共通UI + system library を利用" style="text;fontSize=10;align=left;" vertex="1" parent="40">
+          <mxGeometry x="15" y="45" width="250" height="25" as="geometry"/>
+        </mxCell>
+        <!-- business→system 直接依存（import） -->
         <mxCell id="50" value="import" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#d6b656;fontSize=10;" edge="1" parent="1" source="20" target="10">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
+        <!-- order→business 依存 -->
         <mxCell id="52" value="依存" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82b366;fontSize=10;" edge="1" parent="1" source="30" target="20">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
+        <!-- inventory→business 依存 -->
         <mxCell id="53" value="依存" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82b366;fontSize=10;" edge="1" parent="1" source="35" target="20">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
+        <!-- payment→business 依存 -->
+        <mxCell id="56" value="依存" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82b366;fontSize=10;" edge="1" parent="1" source="40" target="20">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- order→system 間接依存（点線） -->
         <mxCell id="54" value="" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#999999;dashed=1;fontSize=10;" edge="1" parent="1" source="30" target="10">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
@@ -63,16 +87,27 @@
             </Array>
           </mxGeometry>
         </mxCell>
+        <!-- inventory→system 間接依存（点線） -->
         <mxCell id="55" value="" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#999999;dashed=1;fontSize=10;" edge="1" parent="1" source="35" target="10">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="760" y="490"/>
-              <mxPoint x="760" y="120"/>
+              <mxPoint x="560" y="545"/>
+              <mxPoint x="560" y="200"/>
             </Array>
           </mxGeometry>
         </mxCell>
+        <!-- payment→system 間接依存（点線） -->
+        <mxCell id="57" value="" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#999999;dashed=1;fontSize=10;" edge="1" parent="1" source="40" target="10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="490"/>
+              <mxPoint x="1080" y="120"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- 凡例 -->
         <mxCell id="60" value="直線 = 直接依存&#xa;点線 = system への依存" style="text;fontSize=10;fontColor=#666666;align=left;" vertex="1" parent="1">
-          <mxGeometry x="590" y="560" width="180" height="40" as="geometry"/>
+          <mxGeometry x="880" y="560" width="180" height="40" as="geometry"/>
         </mxCell>
       </root>
     </mxGraphModel>
