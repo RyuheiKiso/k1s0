@@ -162,8 +162,8 @@
         <mxCell id="170" value="Infrastructure Layer (インフラストラクチャ層) - データストア・ミドルウェア・外部サービス" style="swimlane;startSize=30;rounded=1;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=13;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="30" y="1705" width="2300" height="290" as="geometry"/>
         </mxCell>
-        <mxCell id="171" value="PostgreSQL 17&#xa;主要RDBMS (18 DB)&#xa;auth/config/saga/dlq/featureflag&#xa;ratelimit/tenant/vault/apiregistry&#xa;ai-agent/ai-gateway/app-registry&#xa;event-monitor/rule-engine/service-catalog等&#xa;サービス別スキーマ分離" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#666666;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="170">
-          <mxGeometry x="30" y="40" width="300" height="95" as="geometry"/>
+        <mxCell id="171" value="PostgreSQL 17&#xa;主要RDBMS (23 DB)&#xa;auth/config/saga/dlq/featureflag&#xa;ratelimit/tenant/vault/apiregistry&#xa;session/event-store/master-maintenance&#xa;ai-agent/ai-gateway/app-registry&#xa;event-monitor/rule-engine/service-catalog&#xa;file/notification/policy/quota/scheduler&#xa;サービス別スキーマ分離" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#666666;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="170">
+          <mxGeometry x="30" y="40" width="300" height="120" as="geometry"/>
         </mxCell>
         <mxCell id="172" value="Redis 7 (Cache)&#xa;分散キャッシュ&#xa;JWKS/Config/FeatureFlag&#xa;RateLimit カウンター&#xa;Sentinel構成 (prod)" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#666666;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="170">
           <mxGeometry x="350" y="40" width="300" height="95" as="geometry"/>
