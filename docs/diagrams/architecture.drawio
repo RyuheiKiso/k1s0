@@ -258,8 +258,8 @@
           <mxGeometry x="20" y="255" width="800" height="20" as="geometry"/>
         </mxCell>
 
-        <mxCell id="210" value="Shared Libraries (共有ライブラリ群 48本) - Go / Rust / TypeScript / Dart 4言語対応" style="swimlane;startSize=28;rounded=1;fillColor=#E6F3FF;strokeColor=#4A86C8;fontStyle=1;fontSize=12;shadow=1;" vertex="1" parent="1">
-          <mxGeometry x="2430" y="655" width="1350" height="530" as="geometry"/>
+        <mxCell id="210" value="Shared Libraries (共有ライブラリ群 52本) - Go / Rust / TypeScript / Dart 4言語対応" style="swimlane;startSize=28;rounded=1;fillColor=#E6F3FF;strokeColor=#4A86C8;fontStyle=1;fontSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="2430" y="655" width="1350" height="640" as="geometry"/>
         </mxCell>
         <mxCell id="211" value="Auth-Security (4)&#xa;authlib: JWT検証, RBAC, OAuth2 PKCE&#xa;encryption: AES-256-GCM, RSA, Argon2id&#xa;serviceauth: OAuth2 Client Credentials, SPIFFE&#xa;vault-client: Vault連携, シークレット取得" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#4A86C8;fontSize=9;verticalAlign=middle;align=left;spacingLeft=8;" vertex="1" parent="210">
           <mxGeometry x="20" y="35" width="640" height="80" as="geometry"/>
@@ -276,10 +276,10 @@
         <mxCell id="215" value="Client SDK (9)&#xa;session-client, tenant-client, graphql-client&#xa;search-client, quota-client, ratelimit-client&#xa;scheduler-client, file-client, audit-client&#xa;各サーバーへのHTTP/gRPCクライアント" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#4A86C8;fontSize=9;verticalAlign=middle;align=left;spacingLeft=8;" vertex="1" parent="210">
           <mxGeometry x="20" y="225" width="640" height="80" as="geometry"/>
         </mxCell>
-        <mxCell id="216" value="Observability (5)&#xa;telemetry: OTel初期化, RED指標&#xa;tracing: W3C TraceContext伝播&#xa;correlation: 分散リクエスト追跡&#xa;health: /healthz, /readyz プローブ" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#4A86C8;fontSize=9;verticalAlign=middle;align=left;spacingLeft=8;" vertex="1" parent="210">
+        <mxCell id="216" value="Observability (5)&#xa;telemetry: OTel初期化, RED指標&#xa;telemetry-macros: OTelマクロ&#xa;tracing: W3C TraceContext伝播&#xa;correlation: 分散リクエスト追跡&#xa;health: /healthz, /readyz プローブ" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#4A86C8;fontSize=9;verticalAlign=middle;align=left;spacingLeft=8;" vertex="1" parent="210">
           <mxGeometry x="690" y="200" width="640" height="80" as="geometry"/>
         </mxCell>
-        <mxCell id="217" value="Resilience (4)&#xa;retry: 指数バックオフ + ジッター&#xa;circuit-breaker: Closed/Open/HalfOpen&#xa;idempotency: 冪等キー処理 (Redis/PG)&#xa;saga: Sagaパターンクライアント" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#4A86C8;fontSize=9;verticalAlign=middle;align=left;spacingLeft=8;" vertex="1" parent="210">
+        <mxCell id="217" value="Resilience (6)&#xa;retry: 指数バックオフ + ジッター&#xa;circuit-breaker: Closed/Open/HalfOpen&#xa;idempotency: 冪等キー処理 (Redis/PG)&#xa;saga: Sagaパターンクライアント&#xa;bulkhead: 隔壁パターン, リソース分離&#xa;resiliency: 統合レジリエンスファサード" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#4A86C8;fontSize=9;verticalAlign=middle;align=left;spacingLeft=8;" vertex="1" parent="210">
           <mxGeometry x="20" y="315" width="640" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="218" value="Testing (2)&#xa;test-helper: Testcontainers, JWT生成, Mock&#xa;validation: email/uuid/url/pagination検証" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#4A86C8;fontSize=9;verticalAlign=middle;align=left;spacingLeft=8;" vertex="1" parent="210">
@@ -288,12 +288,18 @@
         <mxCell id="219" value="Server Common (Rust専用)&#xa;server-common: axum統一エラー応答, ErrorCode, ServiceError&#xa;SYS_{SERVICE}_{ERROR} コードパターン" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#4A86C8;fontSize=9;verticalAlign=middle;align=left;spacingLeft=8;" vertex="1" parent="210">
           <mxGeometry x="690" y="355" width="640" height="55" as="geometry"/>
         </mxCell>
+        <mxCell id="221" value="Building Blocks (7)&#xa;building-blocks: BB統合エントリポイント&#xa;bb-core: コアトレイト・型定義&#xa;bb-pubsub: Pub/Sub抽象化&#xa;bb-statestore: 状態ストア抽象化&#xa;bb-secretstore: シークレットストア抽象化&#xa;bb-binding: 外部バインディング抽象化&#xa;bb-ai-client: AI/LLMクライアント" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#4A86C8;fontSize=9;verticalAlign=middle;align=left;spacingLeft=8;" vertex="1" parent="210">
+          <mxGeometry x="20" y="405" width="640" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="222" value="Tooling (2)&#xa;codegen: コード生成ツール&#xa;app-updater: アプリ自動更新" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#4A86C8;fontSize=9;verticalAlign=middle;align=left;spacingLeft=8;" vertex="1" parent="210">
+          <mxGeometry x="690" y="405" width="640" height="55" as="geometry"/>
+        </mxCell>
         <mxCell id="220" value="全ライブラリ: Trait/Interface設計, InMemory/Mockテスト実装, async/await, OTel統合, TDD (80-90% coverage)" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=8;fontColor=#888888;" vertex="1" parent="210">
-          <mxGeometry x="20" y="420" width="800" height="20" as="geometry"/>
+          <mxGeometry x="20" y="520" width="800" height="20" as="geometry"/>
         </mxCell>
 
         <mxCell id="230" value="CI/CD Pipeline (GitHub Actions)" style="swimlane;startSize=28;rounded=1;fillColor=#E6FFE6;strokeColor=#339933;fontStyle=1;fontSize=12;shadow=1;" vertex="1" parent="1">
-          <mxGeometry x="2430" y="1215" width="1350" height="240" as="geometry"/>
+          <mxGeometry x="2430" y="1325" width="1350" height="240" as="geometry"/>
         </mxCell>
         <mxCell id="231" value="CI: Lint + Test&#xa;Rust: cargo fmt + clippy&#xa;Go: gofmt + golangci-lint&#xa;TS: ESLint + Prettier&#xa;Dart: dart analyze + format&#xa;Proto: buf lint + breaking" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#339933;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="230">
           <mxGeometry x="20" y="35" width="300" height="95" as="geometry"/>
