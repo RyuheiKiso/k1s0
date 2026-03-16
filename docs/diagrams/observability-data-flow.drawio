@@ -19,8 +19,8 @@
           <mxGeometry x="40" y="95" width="500" height="30" as="geometry"/>
         </mxCell>
 
-        <mxCell id="app_sys" value="Application Services&#xa;(system Tier)&#xa;&#xa;auth / config / saga&#xa;dlq-manager / bff-proxy&#xa;session / vault / ratelimit&#xa;&#xa;全サーバーが /metrics を公開" style="rounded=1;whiteSpace=wrap;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;fontStyle=0;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
-          <mxGeometry x="40" y="140" width="200" height="140" as="geometry"/>
+        <mxCell id="app_sys" value="Application Services&#xa;(system Tier)&#xa;&#xa;28サーバー (Rust 27 + Go 1)&#xa;auth, config, saga, session,&#xa;bff-proxy, graphql-gateway,&#xa;vault, ratelimit, quota, policy,&#xa;featureflag, file, notification,&#xa;+ 15 more servers&#xa;&#xa;全サーバーが /metrics を公開" style="rounded=1;whiteSpace=wrap;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;fontStyle=0;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="140" width="200" height="170" as="geometry"/>
         </mxCell>
         <mxCell id="app_biz" value="Application Services&#xa;(business Tier)&#xa;&#xa;業務領域共通サーバー" style="rounded=1;whiteSpace=wrap;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;fontStyle=0;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
           <mxGeometry x="40" y="295" width="200" height="80" as="geometry"/>

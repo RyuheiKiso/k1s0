@@ -1,6 +1,6 @@
 <mxfile host="draw.io">
   <diagram id="sys-deps" name="System Internal Dependencies">
-    <mxGraphModel dx="2400" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2800" pageHeight="2000" math="0" shadow="0" background="#FFFFFF">
+    <mxGraphModel dx="2400" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2800" pageHeight="2200" math="0" shadow="0" background="#FFFFFF">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
@@ -8,7 +8,7 @@
         <mxCell id="title" value="System Tier 内部依存関係図" style="text;html=1;fontSize=28;fontStyle=1;align=center;verticalAlign=middle;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="700" y="20" width="600" height="50" as="geometry"/>
         </mxCell>
-        <mxCell id="subtitle" value="22サービス間の gRPC/REST 直接呼出し + Kafka イベント + インフラ依存" style="text;html=1;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="28サービス間の gRPC/REST 直接呼出し + Kafka イベント + インフラ依存" style="text;html=1;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="600" y="70" width="800" height="30" as="geometry"/>
         </mxCell>
 
@@ -22,10 +22,10 @@
           <mxGeometry x="20" y="580" width="120" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="label_bottom" value="Event / Tx Services" style="text;html=1;fontSize=12;fontStyle=3;align=right;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="20" y="880" width="120" height="30" as="geometry"/>
+          <mxGeometry x="20" y="1030" width="120" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="label_infra" value="Infrastructure" style="text;html=1;fontSize=12;fontStyle=3;align=right;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="20" y="1120" width="120" height="30" as="geometry"/>
+          <mxGeometry x="20" y="1270" width="120" height="30" as="geometry"/>
         </mxCell>
 
         <mxCell id="bff" value="BFF Proxy&#xa;(Go)&#xa;Cookie/Bearer変換&#xa;OIDC PKCE&#xa;CSRF保護" style="rounded=1;whiteSpace=wrap;fillColor=#FFE0B2;strokeColor=#E65100;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
@@ -87,40 +87,59 @@
           <mxGeometry x="1040" y="640" width="180" height="90" as="geometry"/>
         </mxCell>
 
+        <mxCell id="aiagent" value="AI Agent Server&#xa;(Rust)&#xa;AIエージェント管理&#xa;LLM連携&#xa;プロンプト管理" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="160" y="790" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="aigateway" value="AI Gateway Server&#xa;(Rust)&#xa;AI APIゲートウェイ&#xa;LLMルーティング&#xa;レスポンスキャッシュ" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="790" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="appregistry" value="App Registry Server&#xa;(Rust)&#xa;アプリ登録管理&#xa;バージョン管理&#xa;依存関係管理" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="790" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="eventmonitor" value="Event Monitor Server&#xa;(Rust)&#xa;イベント監視&#xa;Kafka追跡&#xa;異常検知" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="820" y="790" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="ruleengine" value="Rule Engine Server&#xa;(Rust)&#xa;ビジネスルール評価&#xa;ZEN Engine統合&#xa;ルール管理" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="790" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="servicecatalog" value="Service Catalog Server&#xa;(Rust)&#xa;サービスカタログ&#xa;メタデータ登録&#xa;ヘルスチェック" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="790" width="180" height="90" as="geometry"/>
+        </mxCell>
+
         <mxCell id="eventstore" value="Event Store&#xa;(Rust)&#xa;イベント永続化&#xa;イベントソーシング&#xa;Kafka連携" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
-          <mxGeometry x="260" y="850" width="200" height="90" as="geometry"/>
+          <mxGeometry x="260" y="1000" width="200" height="90" as="geometry"/>
         </mxCell>
         <mxCell id="saga" value="Saga Server&#xa;(Rust)&#xa;分散トランザクション&#xa;補償処理&#xa;状態管理" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
-          <mxGeometry x="560" y="850" width="200" height="90" as="geometry"/>
+          <mxGeometry x="560" y="1000" width="200" height="90" as="geometry"/>
         </mxCell>
         <mxCell id="workflow" value="Workflow Server&#xa;(Rust)&#xa;ワークフロー管理&#xa;ステップ実行&#xa;承認フロー" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
-          <mxGeometry x="860" y="850" width="200" height="90" as="geometry"/>
+          <mxGeometry x="860" y="1000" width="200" height="90" as="geometry"/>
         </mxCell>
         <mxCell id="scheduler" value="Scheduler Server&#xa;(Rust)&#xa;ジョブスケジューリング&#xa;cron管理&#xa;分散実行" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
-          <mxGeometry x="1160" y="850" width="200" height="90" as="geometry"/>
+          <mxGeometry x="1160" y="1000" width="200" height="90" as="geometry"/>
         </mxCell>
         <mxCell id="dlq" value="DLQ Manager&#xa;(Rust)&#xa;Dead Letter Queue管理&#xa;リトライ処理&#xa;エラー分析" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;spacingTop=2;spacingBottom=2;" vertex="1" parent="1">
-          <mxGeometry x="1460" y="850" width="200" height="90" as="geometry"/>
+          <mxGeometry x="1460" y="1000" width="200" height="90" as="geometry"/>
         </mxCell>
 
         <mxCell id="postgres" value="PostgreSQL&#xa;サービス別スキーマ" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
-          <mxGeometry x="260" y="1080" width="160" height="80" as="geometry"/>
+          <mxGeometry x="260" y="1230" width="160" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="redis_cache" value="Redis (Cache)&#xa;キャッシュ / カウンター" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
-          <mxGeometry x="560" y="1080" width="160" height="80" as="geometry"/>
+          <mxGeometry x="560" y="1230" width="160" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="redis_session" value="Redis (Session)&#xa;セッション保存" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
-          <mxGeometry x="860" y="1080" width="160" height="80" as="geometry"/>
+          <mxGeometry x="860" y="1230" width="160" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="kafka" value="Kafka&#xa;イベントバス" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
-          <mxGeometry x="1160" y="1080" width="160" height="80" as="geometry"/>
+          <mxGeometry x="1160" y="1230" width="160" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="keycloak" value="Keycloak&#xa;OIDC / IdP" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
-          <mxGeometry x="1460" y="1080" width="160" height="80" as="geometry"/>
+          <mxGeometry x="1460" y="1230" width="160" height="80" as="geometry"/>
         </mxCell>
 
         <mxCell id="db_note" value="全サーバー → PostgreSQL (サービス別スキーマ)" style="text;html=1;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;fontColor=#999999;fillColor=#FAFAFA;strokeColor=#CCCCCC;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="190" y="1030" width="300" height="25" as="geometry"/>
+          <mxGeometry x="190" y="1180" width="300" height="25" as="geometry"/>
         </mxCell>
 
 
@@ -190,8 +209,8 @@
           <mxGeometry x="0.3" y="15" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="860" y="980"/>
-              <mxPoint x="360" y="980"/>
+              <mxPoint x="860" y="1130"/>
+              <mxPoint x="360" y="1130"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -199,7 +218,7 @@
         <mxCell id="dep_sched_various" value="ジョブ実行トリガー&#xa;(各サービスへ)" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#E65100;dashed=1;dashPattern=8 4;fontSize=9;fontColor=#E65100;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="scheduler">
           <mxGeometry x="-0.5" y="0" relative="1" as="geometry">
             <mxPoint as="offset"/>
-            <mxPoint x="1260" y="780" as="targetPoint"/>
+            <mxPoint x="1260" y="930" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
 
@@ -208,8 +227,8 @@
           <mxGeometry x="0.5" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="500" y="1060"/>
-              <mxPoint x="1460" y="1060"/>
+              <mxPoint x="500" y="1210"/>
+              <mxPoint x="1460" y="1210"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -220,8 +239,8 @@
             <Array as="points">
               <mxPoint x="940" y="230"/>
               <mxPoint x="1740" y="230"/>
-              <mxPoint x="1740" y="1060"/>
-              <mxPoint x="940" y="1060"/>
+              <mxPoint x="1740" y="1210"/>
+              <mxPoint x="940" y="1210"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -230,8 +249,8 @@
           <mxGeometry x="0.5" y="-10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="1350" y="1050"/>
-              <mxPoint x="680" y="1050"/>
+              <mxPoint x="1350" y="1200"/>
+              <mxPoint x="680" y="1200"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -240,8 +259,8 @@
           <mxGeometry x="0.5" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="910" y="1040"/>
-              <mxPoint x="640" y="1040"/>
+              <mxPoint x="910" y="1190"/>
+              <mxPoint x="640" y="1190"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -250,8 +269,8 @@
           <mxGeometry x="0.3" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="1400" y="1070"/>
-              <mxPoint x="940" y="1070"/>
+              <mxPoint x="1400" y="1220"/>
+              <mxPoint x="940" y="1220"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -261,8 +280,8 @@
           <mxGeometry x="0.3" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="950" y="1010"/>
-              <mxPoint x="1200" y="1010"/>
+              <mxPoint x="950" y="1160"/>
+              <mxPoint x="1200" y="1160"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -271,8 +290,8 @@
           <mxGeometry x="0.3" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="955" y="1000"/>
-              <mxPoint x="1216" y="1000"/>
+              <mxPoint x="955" y="1150"/>
+              <mxPoint x="1216" y="1150"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -281,9 +300,9 @@
           <mxGeometry x="0.3" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="410" y="990"/>
-              <mxPoint x="1140" y="990"/>
-              <mxPoint x="1140" y="1120"/>
+              <mxPoint x="410" y="1140"/>
+              <mxPoint x="1140" y="1140"/>
+              <mxPoint x="1140" y="1270"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -292,8 +311,8 @@
           <mxGeometry x="0.3" y="-10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="1200" y="1010"/>
-              <mxPoint x="910" y="1010"/>
+              <mxPoint x="1200" y="1160"/>
+              <mxPoint x="910" y="1160"/>
               <mxPoint x="910" y="750"/>
             </Array>
           </mxGeometry>
@@ -303,8 +322,8 @@
           <mxGeometry x="0.2" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="1280" y="1010"/>
-              <mxPoint x="1560" y="1010"/>
+              <mxPoint x="1280" y="1160"/>
+              <mxPoint x="1560" y="1160"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -313,8 +332,8 @@
           <mxGeometry x="0.3" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="735" y="990"/>
-              <mxPoint x="1184" y="990"/>
+              <mxPoint x="735" y="1140"/>
+              <mxPoint x="1184" y="1140"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -323,9 +342,9 @@
           <mxGeometry x="0.3" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="710" y="1000"/>
-              <mxPoint x="1130" y="1000"/>
-              <mxPoint x="1130" y="1100"/>
+              <mxPoint x="710" y="1150"/>
+              <mxPoint x="1130" y="1150"/>
+              <mxPoint x="1130" y="1250"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -334,8 +353,8 @@
           <mxGeometry x="0.3" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="690" y="980"/>
-              <mxPoint x="1176" y="980"/>
+              <mxPoint x="690" y="1130"/>
+              <mxPoint x="1176" y="1130"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -344,8 +363,8 @@
           <mxGeometry x="0.5" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="600" y="970"/>
-              <mxPoint x="1240" y="970"/>
+              <mxPoint x="600" y="1120"/>
+              <mxPoint x="1240" y="1120"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -354,8 +373,8 @@
           <mxGeometry x="0.3" y="10" relative="1" as="geometry">
             <mxPoint as="offset"/>
             <Array as="points">
-              <mxPoint x="1450" y="1020"/>
-              <mxPoint x="1264" y="1020"/>
+              <mxPoint x="1450" y="1170"/>
+              <mxPoint x="1264" y="1170"/>
             </Array>
           </mxGeometry>
         </mxCell>
@@ -448,7 +467,7 @@
           <mxGeometry x="1858" y="414" width="200" height="24" as="geometry"/>
         </mxCell>
 
-        <mxCell id="count_note" value="合計: 22サービス (Rust 21 + Go 1)&#xa;Entry Points: 2 | Core: 3 | Domain: 12 | Event/Tx: 5" style="text;html=1;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;fontColor=#666666;fillColor=#FAFAFA;strokeColor=#CCCCCC;rounded=1;" vertex="1" parent="1">
+        <mxCell id="count_note" value="合計: 28サービス (Rust 27 + Go 1)&#xa;Entry Points: 2 | Core: 3 | Domain: 18 | Event/Tx: 5" style="text;html=1;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;fontColor=#666666;fillColor=#FAFAFA;strokeColor=#CCCCCC;rounded=1;" vertex="1" parent="1">
           <mxGeometry x="1800" y="460" width="380" height="40" as="geometry"/>
         </mxCell>
 
