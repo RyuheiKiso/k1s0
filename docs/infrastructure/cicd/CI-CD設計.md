@@ -823,6 +823,18 @@ scripts/list-modules.sh --status experimental
 
 `ci.yaml` の `validate-modules` ジョブがディスク上のマニフェストと `modules.yaml` の差分を検出し、未登録モジュールを **error** として CI を失敗させる。
 
+### 再発防止 lint ジョブ
+
+| ジョブ / ステップ | トリガー | 内容 |
+|-------------------|----------|------|
+| `lint-rust` 内 "Check for deprecated axum route syntax" | Rust 変更時 | `regions/` 配下の handler/middleware で axum 旧記法 `/:param` の残存を検出し error |
+| `validate-vault-policies` | 常時 | `infra/vault/policies/` で `common/*` 以外の広域 wildcard を検出し error |
+| `validate-ts-lockfiles` | 常時 | TypeScript パッケージに `package-lock.json` が存在しない場合 error |
+
+### Rust smoke test
+
+全 HTTP サーバーモジュール（22モジュール）に router 初期化 smoke test を配備。`cargo test` で router 構築時の panic（旧記法混入等）を検出する。
+
 ## Reusable Workflow アーキテクチャ
 
 サービス別 CI/Deploy ワークフローの重複を排除するため、3つの reusable workflow を定義している。
