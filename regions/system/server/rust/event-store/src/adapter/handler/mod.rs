@@ -85,14 +85,14 @@ pub fn router(state: AppState) -> Router {
         // GET -> events/read
         let read_routes = Router::new()
             .route("/api/v1/events", get(event_handler::list_events))
-            .route("/api/v1/events/:stream_id", get(event_handler::read_events))
+            .route("/api/v1/events/{stream_id}", get(event_handler::read_events))
             .route(
-                "/api/v1/streams/:stream_id/events/:sequence",
+                "/api/v1/streams/{stream_id}/events/{sequence}",
                 get(event_handler::read_event_by_sequence),
             )
             .route("/api/v1/streams", get(event_handler::list_streams))
             .route(
-                "/api/v1/streams/:stream_id/snapshot",
+                "/api/v1/streams/{stream_id}/snapshot",
                 get(event_handler::get_snapshot),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -103,7 +103,7 @@ pub fn router(state: AppState) -> Router {
         let write_routes = Router::new()
             .route("/api/v1/events", post(event_handler::append_events))
             .route(
-                "/api/v1/streams/:stream_id/snapshot",
+                "/api/v1/streams/{stream_id}/snapshot",
                 post(event_handler::create_snapshot),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -113,7 +113,7 @@ pub fn router(state: AppState) -> Router {
         // DELETE stream -> events/admin
         let admin_routes = Router::new()
             .route(
-                "/api/v1/streams/:stream_id",
+                "/api/v1/streams/{stream_id}",
                 delete(event_handler::delete_stream),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -136,18 +136,18 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/events",
                 post(event_handler::append_events).get(event_handler::list_events),
             )
-            .route("/api/v1/events/:stream_id", get(event_handler::read_events))
+            .route("/api/v1/events/{stream_id}", get(event_handler::read_events))
             .route(
-                "/api/v1/streams/:stream_id/events/:sequence",
+                "/api/v1/streams/{stream_id}/events/{sequence}",
                 get(event_handler::read_event_by_sequence),
             )
             .route("/api/v1/streams", get(event_handler::list_streams))
             .route(
-                "/api/v1/streams/:stream_id",
+                "/api/v1/streams/{stream_id}",
                 delete(event_handler::delete_stream),
             )
             .route(
-                "/api/v1/streams/:stream_id/snapshot",
+                "/api/v1/streams/{stream_id}/snapshot",
                 get(event_handler::get_snapshot).post(event_handler::create_snapshot),
             )
     };

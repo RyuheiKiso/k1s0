@@ -131,7 +131,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_missing_claims_returns_401() {
         let app = Router::new().route(
-            "/api/v1/events/:stream_id",
+            "/api/v1/events/{stream_id}",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
                 "events", "read",
             ))),
@@ -155,7 +155,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_admin_read_allowed() {
         let app = Router::new().route(
-            "/api/v1/events/:stream_id",
+            "/api/v1/events/{stream_id}",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
                 "events", "read",
             ))),
@@ -187,7 +187,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_auditor_read_allowed() {
         let app = Router::new().route(
-            "/api/v1/events/:stream_id",
+            "/api/v1/events/{stream_id}",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
                 "events", "read",
             ))),
@@ -225,7 +225,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_operator_admin_denied() {
         let app = Router::new().route(
-            "/api/v1/streams/:stream_id",
+            "/api/v1/streams/{stream_id}",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("events", "admin"),
             )),
@@ -241,7 +241,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_admin_delete_allowed() {
         let app = Router::new().route(
-            "/api/v1/streams/:stream_id",
+            "/api/v1/streams/{stream_id}",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("events", "admin"),
             )),
@@ -257,7 +257,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_unknown_role_denied() {
         let app = Router::new().route(
-            "/api/v1/events/:stream_id",
+            "/api/v1/events/{stream_id}",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
                 "events", "read",
             ))),

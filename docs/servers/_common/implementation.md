@@ -306,15 +306,15 @@ impl ValidateTokenUseCase {
 | `/api/v1/auth/token/introspect` | POST | なし（RFC 7662） | `introspect_token` |
 | `/api/v1/navigation` | GET | なし | `get_navigation` |
 | `/api/v1/users` | GET | `read:users` | `list_users` |
-| `/api/v1/users/:id` | GET | `read:users` | `get_user` |
-| `/api/v1/users/:id/roles` | GET | `read:users` | `get_user_roles` |
+| `/api/v1/users/{id}` | GET | `read:users` | `get_user` |
+| `/api/v1/users/{id}/roles` | GET | `read:users` | `get_user_roles` |
 | `/api/v1/auth/permissions/check` | POST | `read:auth_config` | `check_permission` |
 | `/api/v1/audit/logs` | POST | `write:audit_logs` | `record_audit_log` |
 | `/api/v1/audit/logs` | GET | `read:audit_logs` | `search_audit_logs` |
 | `/api/v1/api-keys` | POST | `write:api_keys` | `create_api_key` |
 | `/api/v1/api-keys` | GET | `read:api_keys` | `list_api_keys` |
-| `/api/v1/api-keys/:id` | GET | `read:api_keys` | `get_api_key` |
-| `/api/v1/api-keys/:id/revoke` | DELETE | `write:api_keys` | `revoke_api_key` |
+| `/api/v1/api-keys/{id}` | GET | `read:api_keys` | `get_api_key` |
+| `/api/v1/api-keys/{id}/revoke` | DELETE | `write:api_keys` | `revoke_api_key` |
 
 ルーティング定義とハンドラー実装の全体像。各ハンドラーはユースケースを呼び出し、`ErrorResponse` でエラーを変換する。
 
@@ -350,11 +350,11 @@ pub fn router(state: AppState) -> Router {
             get(list_users).layer(middleware::require_permission("read", "users")),
         )
         .route(
-            "/api/v1/users/:id",
+            "/api/v1/users/{id}",
             get(get_user).layer(middleware::require_permission("read", "users")),
         )
         .route(
-            "/api/v1/users/:id/roles",
+            "/api/v1/users/{id}/roles",
             get(get_user_roles).layer(middleware::require_permission("read", "users")),
         )
         .route(

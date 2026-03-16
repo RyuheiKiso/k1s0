@@ -142,8 +142,8 @@ pub fn router(state: AppState) -> Router {
     // User endpoints: require "users" / "read" permission
     let user_routes = Router::new()
         .route("/api/v1/users", get(auth_handler::list_users))
-        .route("/api/v1/users/:id", get(auth_handler::get_user))
-        .route("/api/v1/users/:id/roles", get(auth_handler::get_user_roles))
+        .route("/api/v1/users/{id}", get(auth_handler::get_user))
+        .route("/api/v1/users/{id}/roles", get(auth_handler::get_user_roles))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             make_rbac_middleware("users", "read"),
@@ -179,7 +179,7 @@ pub fn router(state: AppState) -> Router {
     let api_key_write_routes = Router::new()
         .route("/api/v1/api-keys", post(api_key_handler::create_api_key))
         .route(
-            "/api/v1/api-keys/:id/revoke",
+            "/api/v1/api-keys/{id}/revoke",
             delete(api_key_handler::revoke_api_key),
         )
         .route_layer(middleware::from_fn_with_state(
@@ -189,7 +189,7 @@ pub fn router(state: AppState) -> Router {
 
     let api_key_read_routes = Router::new()
         .route("/api/v1/api-keys", get(api_key_handler::list_api_keys))
-        .route("/api/v1/api-keys/:id", get(api_key_handler::get_api_key))
+        .route("/api/v1/api-keys/{id}", get(api_key_handler::get_api_key))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             make_rbac_middleware("api_keys", "read"),

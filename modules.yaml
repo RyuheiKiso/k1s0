@@ -31,6 +31,13 @@ modules:
     type: workspace
     skip-ci: true
 
+  # k1s0-gui 内の fixture/テンプレート用 Go auth サーバー（CI スキップ）
+  - path: CLI/crates/k1s0-gui/regions/system/server/go/auth
+    lang: go
+    status: stable
+    type: server
+    skip-ci: true
+
   # ============================================================
   # CLI
   # ============================================================
@@ -1031,6 +1038,12 @@ modules:
     status: stable
     type: library
 
+  # テナントクライアント（TypeScript版）
+  - path: regions/system/library/typescript/tenant-client
+    lang: ts
+    status: stable
+    type: library
+
   - path: regions/system/library/typescript/test-helper
     lang: ts
     status: stable
@@ -1229,6 +1242,12 @@ modules:
     status: stable
     type: library
 
+  # スキーマレジストリクライアント（Dart版）
+  - path: regions/system/library/dart/schemaregistry
+    lang: dart
+    status: stable
+    type: library
+
   - path: regions/system/library/dart/search_client
     lang: dart
     status: stable
@@ -1250,6 +1269,12 @@ modules:
     type: library
 
   - path: regions/system/library/dart/telemetry
+    lang: dart
+    status: stable
+    type: library
+
+  # テナントクライアント（Dart版）
+  - path: regions/system/library/dart/tenant_client
     lang: dart
     status: stable
     type: library

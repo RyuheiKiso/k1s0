@@ -55,9 +55,9 @@ pub fn router(state: AppState) -> Router {
         // rules/read -> sys_auditor+
         let read_routes = Router::new()
             .route("/api/v1/rules", get(rule_handler::list_rules))
-            .route("/api/v1/rules/:id", get(rule_handler::get_rule))
+            .route("/api/v1/rules/{id}", get(rule_handler::get_rule))
             .route("/api/v1/rule-sets", get(rule_handler::list_rule_sets))
-            .route("/api/v1/rule-sets/:id", get(rule_handler::get_rule_set))
+            .route("/api/v1/rule-sets/{id}", get(rule_handler::get_rule_set))
             .route(
                 "/api/v1/evaluation-logs",
                 get(rule_handler::list_evaluation_logs),
@@ -69,9 +69,9 @@ pub fn router(state: AppState) -> Router {
         // rules/write -> sys_operator+
         let write_routes = Router::new()
             .route("/api/v1/rules", post(rule_handler::create_rule))
-            .route("/api/v1/rules/:id", put(rule_handler::update_rule))
+            .route("/api/v1/rules/{id}", put(rule_handler::update_rule))
             .route("/api/v1/rule-sets", post(rule_handler::create_rule_set))
-            .route("/api/v1/rule-sets/:id", put(rule_handler::update_rule_set))
+            .route("/api/v1/rule-sets/{id}", put(rule_handler::update_rule_set))
             .route("/api/v1/evaluate", post(rule_handler::evaluate))
             .route(
                 "/api/v1/evaluate/dry-run",
@@ -83,17 +83,17 @@ pub fn router(state: AppState) -> Router {
 
         // rules/admin -> sys_admin only
         let admin_routes = Router::new()
-            .route("/api/v1/rules/:id", delete(rule_handler::delete_rule))
+            .route("/api/v1/rules/{id}", delete(rule_handler::delete_rule))
             .route(
-                "/api/v1/rule-sets/:id",
+                "/api/v1/rule-sets/{id}",
                 delete(rule_handler::delete_rule_set),
             )
             .route(
-                "/api/v1/rule-sets/:id/publish",
+                "/api/v1/rule-sets/{id}/publish",
                 post(rule_handler::publish_rule_set),
             )
             .route(
-                "/api/v1/rule-sets/:id/rollback",
+                "/api/v1/rule-sets/{id}/rollback",
                 post(rule_handler::rollback_rule_set),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -112,23 +112,23 @@ pub fn router(state: AppState) -> Router {
         Router::new()
             .route("/api/v1/rules", get(rule_handler::list_rules))
             .route("/api/v1/rules", post(rule_handler::create_rule))
-            .route("/api/v1/rules/:id", get(rule_handler::get_rule))
-            .route("/api/v1/rules/:id", put(rule_handler::update_rule))
-            .route("/api/v1/rules/:id", delete(rule_handler::delete_rule))
+            .route("/api/v1/rules/{id}", get(rule_handler::get_rule))
+            .route("/api/v1/rules/{id}", put(rule_handler::update_rule))
+            .route("/api/v1/rules/{id}", delete(rule_handler::delete_rule))
             .route("/api/v1/rule-sets", get(rule_handler::list_rule_sets))
             .route("/api/v1/rule-sets", post(rule_handler::create_rule_set))
-            .route("/api/v1/rule-sets/:id", get(rule_handler::get_rule_set))
-            .route("/api/v1/rule-sets/:id", put(rule_handler::update_rule_set))
+            .route("/api/v1/rule-sets/{id}", get(rule_handler::get_rule_set))
+            .route("/api/v1/rule-sets/{id}", put(rule_handler::update_rule_set))
             .route(
-                "/api/v1/rule-sets/:id",
+                "/api/v1/rule-sets/{id}",
                 delete(rule_handler::delete_rule_set),
             )
             .route(
-                "/api/v1/rule-sets/:id/publish",
+                "/api/v1/rule-sets/{id}/publish",
                 post(rule_handler::publish_rule_set),
             )
             .route(
-                "/api/v1/rule-sets/:id/rollback",
+                "/api/v1/rule-sets/{id}/rollback",
                 post(rule_handler::rollback_rule_set),
             )
             .route("/api/v1/evaluate", post(rule_handler::evaluate))

@@ -162,7 +162,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_operator_write_allowed() {
         let app = Router::new().route(
-            "/api/v1/flags/:key",
+            "/api/v1/flags/{key}",
             put(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
                 "flags", "write",
             ))),
@@ -194,7 +194,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_auditor_write_denied() {
         let app = Router::new().route(
-            "/api/v1/flags/:key",
+            "/api/v1/flags/{key}",
             put(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
                 "flags", "write",
             ))),
@@ -210,7 +210,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_operator_admin_denied() {
         let app = Router::new().route(
-            "/api/v1/flags/:key",
+            "/api/v1/flags/{key}",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("flags", "admin"),
             )),
@@ -226,7 +226,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_admin_delete_allowed() {
         let app = Router::new().route(
-            "/api/v1/flags/:key",
+            "/api/v1/flags/{key}",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("flags", "admin"),
             )),

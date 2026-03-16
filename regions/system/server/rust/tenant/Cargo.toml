@@ -48,6 +48,11 @@ tonic-build = {workspace = true}
 mockall = {workspace = true}
 tokio-test = {workspace = true}
 axum-test = "17"
+tower = {workspace = true}
+tokio = {workspace = true}
+axum = {workspace = true}
+reqwest = {workspace = true}
+async-trait = {workspace = true}
 
 [lints]
 workspace = true

@@ -183,13 +183,31 @@ jobs:
             chmod +x scripts/list-modules.sh
             excludes=""
             while IFS= read -r dir; do
-              crate_name=$(basename "$dir")
-              excludes="$excludes --exclude k1s0-${crate_name}"
+              # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
+              pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+              excludes="$excludes --exclude $pkg_name"
             done < <(scripts/list-modules.sh --lang rust --status experimental)
+            # exclude 対象が workspace に存在するか検証
+            ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
+            for exc in $excludes; do
+              if [ "$exc" = "--exclude" ]; then continue; fi
+              if ! echo "$ws_packages" | grep -qx "$exc"; then
+                echo "ERROR: excluded package '$exc' not found in workspace"
+                exit 1
+              fi
+            done
             echo "=== clippy regions/system ==="
             cargo clippy --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets -- -D warnings
             echo "=== clippy CLI ==="
             cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
+          fi
+      # axum 旧記法 :param の検出（{param} を使用すること）
+      - name: Check for deprecated axum route syntax
+        shell: bash
+        run: |
+          if grep -rn '/:[a-zA-Z_]' --include='*.rs' regions/*/server/rust/*/src/adapter/handler/ regions/*/server/rust/*/src/adapter/middleware/ regions/*/*/server/rust/*/src/adapter/handler/ 2>/dev/null; then
+            echo "::error::axum 旧記法 :param が検出されました。{param} を使用してください。"
+            exit 1
           fi
 
   lint-ts:
@@ -216,11 +234,8 @@ jobs:
                 echo "=== Linting $dir ==="
                 (
                   cd "$dir"
-                  if [ -f package-lock.json ]; then
-                    npm ci
-                  else
-                    npm install --no-package-lock
-                  fi
+                  # package-lock.json を使って依存関係をインストール
+                  npm ci
                   npm run lint --if-present
                   npm run typecheck --if-present
                 )
@@ -232,11 +247,8 @@ jobs:
               echo "=== Linting $package_dir ==="
               (
                 cd "$package_dir"
-                if [ -f package-lock.json ]; then
-                  npm ci
-                else
-                  npm install --no-package-lock
-                fi
+                # package-lock.json を使って依存関係をインストール
+                npm ci
                 npm run lint --if-present
                 npm run typecheck --if-present
               )
@@ -391,9 +403,19 @@ jobs:
             chmod +x scripts/list-modules.sh
             excludes=""
             while IFS= read -r dir; do
-              crate_name=$(basename "$dir")
-              excludes="$excludes --exclude k1s0-${crate_name}"
+              # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
+              pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+              excludes="$excludes --exclude $pkg_name"
             done < <(scripts/list-modules.sh --lang rust --status experimental)
+            # exclude 対象が workspace に存在するか検証
+            ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
+            for exc in $excludes; do
+              if [ "$exc" = "--exclude" ]; then continue; fi
+              if ! echo "$ws_packages" | grep -qx "$exc"; then
+                echo "ERROR: excluded package '$exc' not found in workspace"
+                exit 1
+              fi
+            done
             echo "=== Testing regions/system ==="
             cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes
             echo "=== Testing CLI ==="
@@ -467,11 +489,8 @@ jobs:
             echo "=== Testing $package_dir ==="
             (
               cd "$package_dir"
-              if [ -f package-lock.json ]; then
-                npm ci
-              else
-                npm install --no-package-lock
-              fi
+              # package-lock.json を使って依存関係をインストール
+              npm ci
               npm test --if-present
             )
           done
@@ -495,11 +514,8 @@ jobs:
             echo "=== Coverage $package_dir ==="
             (
               cd "$package_dir"
-              if [ -f package-lock.json ]; then
-                npm ci
-              else
-                npm install --no-package-lock
-              fi
+              # package-lock.json を使って依存関係をインストール
+              npm ci
               # vitest --coverage が利用可能な場合はカバレッジ計測する
               if npx --no-install vitest --help >/dev/null 2>&1; then
                 npx vitest run --coverage --reporter=json --outputFile="$GITHUB_WORKSPACE/coverage/$(basename "$package_dir").json" || true
@@ -633,9 +649,19 @@ jobs:
           chmod +x scripts/list-modules.sh
           excludes=""
           while IFS= read -r dir; do
-            crate_name=$(basename "$dir")
-            excludes="$excludes --exclude k1s0-${crate_name}"
+            # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
+            pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+            excludes="$excludes --exclude $pkg_name"
           done < <(scripts/list-modules.sh --lang rust --status experimental)
+          # exclude 対象が workspace に存在するか検証
+          ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
+          for exc in $excludes; do
+            if [ "$exc" = "--exclude" ]; then continue; fi
+            if ! echo "$ws_packages" | grep -qx "$exc"; then
+              echo "ERROR: excluded package '$exc' not found in workspace"
+              exit 1
+            fi
+          done
           echo "=== Building regions/system ==="
           cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
           echo "=== Building CLI ==="
@@ -658,11 +684,8 @@ jobs:
             echo "=== Building $package_dir ==="
             (
               cd "$package_dir"
-              if [ -f package-lock.json ]; then
-                npm ci
-              else
-                npm install --no-package-lock
-              fi
+              # package-lock.json を使って依存関係をインストール
+              npm ci
               npm run build --if-present
             )
           done
@@ -757,7 +780,7 @@ jobs:
         run: echo "All language and Docker builds passed"
 
   # modules.yaml とディスク上のマニフェストの整合性を検証するジョブ
-  # 未登録のモジュールがあれば warning で通知する
+  # 未登録のモジュールがあれば error で CI を失敗させる
   validate-modules:
     runs-on: ubuntu-latest
     steps:
@@ -784,12 +807,46 @@ jobs:
           # 差分を検出
           unregistered=$(comm -23 <(echo "$disk_modules") <(echo "$registered"))
           if [ -n "$unregistered" ]; then
-            echo "::warning::以下のモジュールが modules.yaml に未登録です:"
+            echo "::error::以下のモジュールが modules.yaml に未登録です:"
             echo "$unregistered" | while read -r path; do
-              echo "::warning::  - $path"
+              echo "::error::  - $path"
             done
+            exit 1
           else
             echo "modules.yaml とディスク上のマニフェストが一致しています"
+          fi
+
+  # Vault policy の広域 wildcard 検出
+  validate-vault-policies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for overly broad Vault wildcards
+        shell: bash
+        run: |
+          if grep -rn 'secret/data/k1s0/.*\*' infra/vault/policies/ 2>/dev/null | grep -v '/common/\*'; then
+            echo "::error::Vault policy に広域 wildcard が検出されました。共通パス (common/*) のみ許可されています。"
+            exit 1
+          fi
+
+  # TypeScript パッケージの lockfile 存在チェック
+  validate-ts-lockfiles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check package-lock.json exists for all TS packages
+        shell: bash
+        run: |
+          missing=0
+          for pkg in $(find regions CLI -name 'package.json' -not -path '*/node_modules/*' 2>/dev/null); do
+            dir=$(dirname "$pkg")
+            if [ ! -f "$dir/package-lock.json" ]; then
+              echo "::error::$dir に package-lock.json がありません。npm install で生成してください。"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            exit 1
           fi
 
   security-scan:

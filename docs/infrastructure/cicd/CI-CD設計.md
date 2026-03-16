@@ -821,7 +821,7 @@ scripts/list-modules.sh --status experimental
 
 ### CI バリデーション
 
-`ci.yaml` の `validate-modules` ジョブがディスク上のマニフェストと `modules.yaml` の差分を検出し、未登録モジュールを warning で通知する。
+`ci.yaml` の `validate-modules` ジョブがディスク上のマニフェストと `modules.yaml` の差分を検出し、未登録モジュールを **error** として CI を失敗させる。
 
 ## Reusable Workflow アーキテクチャ
 

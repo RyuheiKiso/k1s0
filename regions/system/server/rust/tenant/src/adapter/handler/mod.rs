@@ -25,9 +25,9 @@ pub fn router(state: AppState) -> Router {
         // GET -> tenants/read
         let read_routes = Router::new()
             .route("/api/v1/tenants", get(tenant_handler::list_tenants))
-            .route("/api/v1/tenants/:id", get(tenant_handler::get_tenant))
+            .route("/api/v1/tenants/{id}", get(tenant_handler::get_tenant))
             .route(
-                "/api/v1/tenants/:id/members",
+                "/api/v1/tenants/{id}/members",
                 get(tenant_handler::list_members),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -38,15 +38,15 @@ pub fn router(state: AppState) -> Router {
         let write_routes = Router::new()
             .route("/api/v1/tenants", post(tenant_handler::create_tenant))
             .route(
-                "/api/v1/tenants/:id",
+                "/api/v1/tenants/{id}",
                 axum::routing::put(tenant_handler::update_tenant),
             )
             .route(
-                "/api/v1/tenants/:id/members",
+                "/api/v1/tenants/{id}/members",
                 post(tenant_handler::add_member),
             )
             .route(
-                "/api/v1/tenants/:id/members/:user_id",
+                "/api/v1/tenants/{id}/members/{user_id}",
                 put(tenant_handler::update_member_role),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -55,17 +55,17 @@ pub fn router(state: AppState) -> Router {
 
         // DELETE/suspend/activate -> tenants/admin
         let admin_routes = Router::new()
-            .route("/api/v1/tenants/:id", delete(tenant_handler::delete_tenant))
+            .route("/api/v1/tenants/{id}", delete(tenant_handler::delete_tenant))
             .route(
-                "/api/v1/tenants/:id/suspend",
+                "/api/v1/tenants/{id}/suspend",
                 post(tenant_handler::suspend_tenant),
             )
             .route(
-                "/api/v1/tenants/:id/activate",
+                "/api/v1/tenants/{id}/activate",
                 post(tenant_handler::activate_tenant),
             )
             .route(
-                "/api/v1/tenants/:id/members/:user_id",
+                "/api/v1/tenants/{id}/members/{user_id}",
                 delete(tenant_handler::remove_member),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -88,25 +88,25 @@ pub fn router(state: AppState) -> Router {
                 get(tenant_handler::list_tenants).post(tenant_handler::create_tenant),
             )
             .route(
-                "/api/v1/tenants/:id",
+                "/api/v1/tenants/{id}",
                 get(tenant_handler::get_tenant)
                     .put(tenant_handler::update_tenant)
                     .delete(tenant_handler::delete_tenant),
             )
             .route(
-                "/api/v1/tenants/:id/suspend",
+                "/api/v1/tenants/{id}/suspend",
                 post(tenant_handler::suspend_tenant),
             )
             .route(
-                "/api/v1/tenants/:id/activate",
+                "/api/v1/tenants/{id}/activate",
                 post(tenant_handler::activate_tenant),
             )
             .route(
-                "/api/v1/tenants/:id/members",
+                "/api/v1/tenants/{id}/members",
                 get(tenant_handler::list_members).post(tenant_handler::add_member),
             )
             .route(
-                "/api/v1/tenants/:id/members/:user_id",
+                "/api/v1/tenants/{id}/members/{user_id}",
                 put(tenant_handler::update_member_role).delete(tenant_handler::remove_member),
             )
     };

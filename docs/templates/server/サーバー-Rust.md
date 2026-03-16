@@ -683,7 +683,7 @@ impl AppHandler {
         let uc = self.uc.clone();
         Router::new()
             .route("/api/v1/{{ service_name }}", get(list).post(create))
-            .route("/api/v1/{{ service_name }}/:id", get(get_by_id))
+            .route("/api/v1/{{ service_name }}/{id}", get(get_by_id))
             .with_state(uc)
     }
 }

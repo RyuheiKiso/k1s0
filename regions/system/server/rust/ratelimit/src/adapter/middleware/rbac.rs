@@ -227,7 +227,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_operator_admin_denied() {
         let app = Router::new().route(
-            "/api/v1/ratelimit/rules/:id",
+            "/api/v1/ratelimit/rules/{id}",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("ratelimit", "admin"),
             )),
@@ -243,7 +243,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_admin_delete_allowed() {
         let app = Router::new().route(
-            "/api/v1/ratelimit/rules/:id",
+            "/api/v1/ratelimit/rules/{id}",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("ratelimit", "admin"),
             )),

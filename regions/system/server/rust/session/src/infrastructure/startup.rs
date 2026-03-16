@@ -193,7 +193,7 @@ pub async fn run() -> anyhow::Result<()> {
     let api_routes = if let Some(ref auth_st) = state.auth_state {
         let read_routes = axum::Router::new()
             .route(
-                "/api/v1/users/:user_id/sessions",
+                "/api/v1/users/{user_id}/sessions",
                 axum::routing::get(crate::adapter::handler::session_handler::list_user_sessions),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -202,7 +202,7 @@ pub async fn run() -> anyhow::Result<()> {
 
         let write_routes = axum::Router::new()
             .route(
-                "/api/v1/users/:user_id/sessions",
+                "/api/v1/users/{user_id}/sessions",
                 axum::routing::delete(
                     crate::adapter::handler::session_handler::revoke_all_sessions,
                 ),
@@ -217,12 +217,12 @@ pub async fn run() -> anyhow::Result<()> {
                 axum::routing::post(crate::adapter::handler::session_handler::create_session),
             )
             .route(
-                "/api/v1/sessions/:session_id",
+                "/api/v1/sessions/{session_id}",
                 axum::routing::get(crate::adapter::handler::session_handler::get_session)
                     .delete(crate::adapter::handler::session_handler::revoke_session),
             )
             .route(
-                "/api/v1/sessions/:session_id/refresh",
+                "/api/v1/sessions/{session_id}/refresh",
                 axum::routing::post(crate::adapter::handler::session_handler::refresh_session),
             );
 
@@ -242,16 +242,16 @@ pub async fn run() -> anyhow::Result<()> {
                 axum::routing::post(crate::adapter::handler::session_handler::create_session),
             )
             .route(
-                "/api/v1/sessions/:session_id",
+                "/api/v1/sessions/{session_id}",
                 axum::routing::get(crate::adapter::handler::session_handler::get_session)
                     .delete(crate::adapter::handler::session_handler::revoke_session),
             )
             .route(
-                "/api/v1/sessions/:session_id/refresh",
+                "/api/v1/sessions/{session_id}/refresh",
                 axum::routing::post(crate::adapter::handler::session_handler::refresh_session),
             )
             .route(
-                "/api/v1/users/:user_id/sessions",
+                "/api/v1/users/{user_id}/sessions",
                 axum::routing::get(crate::adapter::handler::session_handler::list_user_sessions)
                     .delete(crate::adapter::handler::session_handler::revoke_all_sessions),
             )

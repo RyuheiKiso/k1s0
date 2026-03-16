@@ -39,11 +39,11 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         // GET -> workflows/read 権限が必要なルート
         let read_routes = Router::new()
             .route("/api/v1/workflows", get(workflow_handler::list_workflows))
-            .route("/api/v1/workflows/:id", get(workflow_handler::get_workflow))
+            .route("/api/v1/workflows/{id}", get(workflow_handler::get_workflow))
             .route("/api/v1/instances", get(instance_handler::list_instances))
-            .route("/api/v1/instances/:id", get(instance_handler::get_instance))
+            .route("/api/v1/instances/{id}", get(instance_handler::get_instance))
             .route(
-                "/api/v1/instances/:id/status",
+                "/api/v1/instances/{id}/status",
                 get(instance_handler::get_instance_status),
             )
             .route("/api/v1/tasks", get(task_handler::list_tasks))
@@ -56,20 +56,20 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         let write_routes = Router::new()
             .route("/api/v1/workflows", post(workflow_handler::create_workflow))
             .route(
-                "/api/v1/workflows/:id",
+                "/api/v1/workflows/{id}",
                 put(workflow_handler::update_workflow),
             )
             .route(
-                "/api/v1/workflows/:id/execute",
+                "/api/v1/workflows/{id}/execute",
                 post(instance_handler::execute_workflow),
             )
             .route(
-                "/api/v1/tasks/:id/approve",
+                "/api/v1/tasks/{id}/approve",
                 post(task_handler::approve_task),
             )
-            .route("/api/v1/tasks/:id/reject", post(task_handler::reject_task))
+            .route("/api/v1/tasks/{id}/reject", post(task_handler::reject_task))
             .route(
-                "/api/v1/tasks/:id/reassign",
+                "/api/v1/tasks/{id}/reassign",
                 post(task_handler::reassign_task),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -80,11 +80,11 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         // DELETE/cancel -> workflows/admin 権限が必要なルート
         let admin_routes = Router::new()
             .route(
-                "/api/v1/workflows/:id",
+                "/api/v1/workflows/{id}",
                 delete(workflow_handler::delete_workflow),
             )
             .route(
-                "/api/v1/instances/:id/cancel",
+                "/api/v1/instances/{id}/cancel",
                 post(instance_handler::cancel_instance),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -108,33 +108,33 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
                 post(workflow_handler::create_workflow).get(workflow_handler::list_workflows),
             )
             .route(
-                "/api/v1/workflows/:id",
+                "/api/v1/workflows/{id}",
                 get(workflow_handler::get_workflow)
                     .put(workflow_handler::update_workflow)
                     .delete(workflow_handler::delete_workflow),
             )
             .route(
-                "/api/v1/workflows/:id/execute",
+                "/api/v1/workflows/{id}/execute",
                 post(instance_handler::execute_workflow),
             )
             .route("/api/v1/instances", get(instance_handler::list_instances))
-            .route("/api/v1/instances/:id", get(instance_handler::get_instance))
+            .route("/api/v1/instances/{id}", get(instance_handler::get_instance))
             .route(
-                "/api/v1/instances/:id/status",
+                "/api/v1/instances/{id}/status",
                 get(instance_handler::get_instance_status),
             )
             .route(
-                "/api/v1/instances/:id/cancel",
+                "/api/v1/instances/{id}/cancel",
                 post(instance_handler::cancel_instance),
             )
             .route("/api/v1/tasks", get(task_handler::list_tasks))
             .route(
-                "/api/v1/tasks/:id/approve",
+                "/api/v1/tasks/{id}/approve",
                 post(task_handler::approve_task),
             )
-            .route("/api/v1/tasks/:id/reject", post(task_handler::reject_task))
+            .route("/api/v1/tasks/{id}/reject", post(task_handler::reject_task))
             .route(
-                "/api/v1/tasks/:id/reassign",
+                "/api/v1/tasks/{id}/reassign",
                 post(task_handler::reassign_task),
             )
     };

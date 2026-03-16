@@ -116,15 +116,15 @@ pub fn router(state: AppState) -> Router {
         // GET -> config/read
         let read_routes = Router::new()
             .route(
-                "/api/v1/config/services/:service_name",
+                "/api/v1/config/services/{service_name}",
                 get(config_handler::get_service_config),
             )
             .route(
-                "/api/v1/config/:namespace/:key",
+                "/api/v1/config/{namespace}/{key}",
                 get(config_handler::get_config),
             )
             .route(
-                "/api/v1/config/:namespace",
+                "/api/v1/config/{namespace}",
                 get(config_handler::list_configs),
             )
             .route(
@@ -132,7 +132,7 @@ pub fn router(state: AppState) -> Router {
                 get(config_schema_handler::list_config_schemas),
             )
             .route(
-                "/api/v1/config-schema/:service_name",
+                "/api/v1/config-schema/{service_name}",
                 get(config_schema_handler::get_config_schema),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -142,7 +142,7 @@ pub fn router(state: AppState) -> Router {
         // PUT/POST -> config/write
         let write_routes = Router::new()
             .route(
-                "/api/v1/config/:namespace/:key",
+                "/api/v1/config/{namespace}/{key}",
                 put(config_handler::update_config),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -152,11 +152,11 @@ pub fn router(state: AppState) -> Router {
         // DELETE + schema admin -> config/admin
         let admin_routes = Router::new()
             .route(
-                "/api/v1/config/:namespace/:key",
+                "/api/v1/config/{namespace}/{key}",
                 delete(config_handler::delete_config),
             )
             .route(
-                "/api/v1/config-schema/:service_name",
+                "/api/v1/config-schema/{service_name}",
                 put(config_schema_handler::upsert_config_schema),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -176,17 +176,17 @@ pub fn router(state: AppState) -> Router {
         // 認証なし（dev モード / テスト）: 従来どおり
         Router::new()
             .route(
-                "/api/v1/config/services/:service_name",
+                "/api/v1/config/services/{service_name}",
                 get(config_handler::get_service_config),
             )
             .route(
-                "/api/v1/config/:namespace/:key",
+                "/api/v1/config/{namespace}/{key}",
                 get(config_handler::get_config)
                     .put(config_handler::update_config)
                     .delete(config_handler::delete_config),
             )
             .route(
-                "/api/v1/config/:namespace",
+                "/api/v1/config/{namespace}",
                 get(config_handler::list_configs),
             )
             .route(
@@ -194,7 +194,7 @@ pub fn router(state: AppState) -> Router {
                 get(config_schema_handler::list_config_schemas),
             )
             .route(
-                "/api/v1/config-schema/:service_name",
+                "/api/v1/config-schema/{service_name}",
                 get(config_schema_handler::get_config_schema)
                     .put(config_schema_handler::upsert_config_schema),
             )

@@ -143,25 +143,25 @@ pub fn router(state: AppState) -> Router {
             get(service::list_services).post(service::register_service),
         )
         .route(
-            "/api/v1/services/:id",
+            "/api/v1/services/{id}",
             get(service::get_service)
                 .put(service::update_service)
                 .delete(service::delete_service),
         )
         .route(
-            "/api/v1/services/:id/dependencies",
+            "/api/v1/services/{id}/dependencies",
             get(dependency::list_dependencies).put(dependency::set_dependencies),
         )
         .route(
-            "/api/v1/services/:id/health",
+            "/api/v1/services/{id}/health",
             get(health::get_health).post(health::report_health),
         )
         .route(
-            "/api/v1/services/:id/docs",
+            "/api/v1/services/{id}/docs",
             get(doc::list_docs).put(doc::set_docs),
         )
         .route(
-            "/api/v1/services/:id/scorecard",
+            "/api/v1/services/{id}/scorecard",
             get(scorecard::get_scorecard),
         )
         .route("/api/v1/services/search", get(search::search_services))
@@ -177,13 +177,13 @@ pub fn router(state: AppState) -> Router {
             get(team::list_teams).post(team::create_team),
         )
         .route(
-            "/api/v1/teams/:team_id",
+            "/api/v1/teams/{team_id}",
             get(team::get_team)
                 .put(team::update_team)
                 .delete(team::delete_team),
         )
         .route(
-            "/api/v1/teams/:team_id/services",
+            "/api/v1/teams/{team_id}/services",
             get(team::get_team_services),
         )
         .route_layer(middleware::from_fn_with_state(

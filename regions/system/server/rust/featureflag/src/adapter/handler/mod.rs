@@ -51,7 +51,7 @@ pub fn router(state: AppState) -> Router {
         // GET -> flags/read
         let read_routes = Router::new()
             .route("/api/v1/flags", get(flag_handler::list_flags))
-            .route("/api/v1/flags/:key", get(flag_handler::get_flag))
+            .route("/api/v1/flags/{key}", get(flag_handler::get_flag))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "flags", "read",
             )));
@@ -59,9 +59,9 @@ pub fn router(state: AppState) -> Router {
         // POST/PUT/evaluate -> flags/write
         let write_routes = Router::new()
             .route("/api/v1/flags", post(flag_handler::create_flag))
-            .route("/api/v1/flags/:key", put(flag_handler::update_flag))
+            .route("/api/v1/flags/{key}", put(flag_handler::update_flag))
             .route(
-                "/api/v1/flags/:key/evaluate",
+                "/api/v1/flags/{key}/evaluate",
                 post(flag_handler::evaluate_flag),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -70,7 +70,7 @@ pub fn router(state: AppState) -> Router {
 
         // DELETE -> flags/admin
         let admin_routes = Router::new()
-            .route("/api/v1/flags/:key", delete(flag_handler::delete_flag))
+            .route("/api/v1/flags/{key}", delete(flag_handler::delete_flag))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "flags", "admin",
             )));
@@ -87,11 +87,11 @@ pub fn router(state: AppState) -> Router {
         Router::new()
             .route("/api/v1/flags", get(flag_handler::list_flags))
             .route("/api/v1/flags", post(flag_handler::create_flag))
-            .route("/api/v1/flags/:key", get(flag_handler::get_flag))
-            .route("/api/v1/flags/:key", put(flag_handler::update_flag))
-            .route("/api/v1/flags/:key", delete(flag_handler::delete_flag))
+            .route("/api/v1/flags/{key}", get(flag_handler::get_flag))
+            .route("/api/v1/flags/{key}", put(flag_handler::update_flag))
+            .route("/api/v1/flags/{key}", delete(flag_handler::delete_flag))
             .route(
-                "/api/v1/flags/:key/evaluate",
+                "/api/v1/flags/{key}/evaluate",
                 post(flag_handler::evaluate_flag),
             )
     };

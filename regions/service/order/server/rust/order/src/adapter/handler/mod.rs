@@ -30,7 +30,7 @@ pub fn router(state: AppState) -> Router {
     let api_routes = if let Some(ref auth_state) = state.auth_state {
         let read_routes = Router::new()
             .route("/api/v1/orders", get(order_handler::list_orders))
-            .route("/api/v1/orders/:order_id", get(order_handler::get_order))
+            .route("/api/v1/orders/{order_id}", get(order_handler::get_order))
             .route_layer(axum::middleware::from_fn(move |req, next| {
                 let perm = require_permission(Tier::Service, "order", "read");
                 perm(req, next)
@@ -39,7 +39,7 @@ pub fn router(state: AppState) -> Router {
         let write_routes = Router::new()
             .route("/api/v1/orders", post(order_handler::create_order))
             .route(
-                "/api/v1/orders/:order_id/status",
+                "/api/v1/orders/{order_id}/status",
                 put(order_handler::update_order_status),
             )
             .route_layer(axum::middleware::from_fn(move |req, next| {
@@ -56,9 +56,9 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/orders",
                 get(order_handler::list_orders).post(order_handler::create_order),
             )
-            .route("/api/v1/orders/:order_id", get(order_handler::get_order))
+            .route("/api/v1/orders/{order_id}", get(order_handler::get_order))
             .route(
-                "/api/v1/orders/:order_id/status",
+                "/api/v1/orders/{order_id}/status",
                 put(order_handler::update_order_status),
             )
     };

@@ -32,7 +32,7 @@ pub fn router(state: AppState) -> Router {
         let read_routes = Router::new()
             .route("/api/v1/inventory", get(inventory_handler::list_inventory))
             .route(
-                "/api/v1/inventory/:inventory_id",
+                "/api/v1/inventory/{inventory_id}",
                 get(inventory_handler::get_inventory),
             )
             .route_layer(axum::middleware::from_fn(move |req, next| {
@@ -50,7 +50,7 @@ pub fn router(state: AppState) -> Router {
                 post(inventory_handler::release_stock),
             )
             .route(
-                "/api/v1/inventory/:inventory_id/stock",
+                "/api/v1/inventory/{inventory_id}/stock",
                 put(inventory_handler::update_stock),
             )
             .route_layer(axum::middleware::from_fn(move |req, next| {
@@ -65,7 +65,7 @@ pub fn router(state: AppState) -> Router {
         Router::new()
             .route("/api/v1/inventory", get(inventory_handler::list_inventory))
             .route(
-                "/api/v1/inventory/:inventory_id",
+                "/api/v1/inventory/{inventory_id}",
                 get(inventory_handler::get_inventory),
             )
             .route(
@@ -77,7 +77,7 @@ pub fn router(state: AppState) -> Router {
                 post(inventory_handler::release_stock),
             )
             .route(
-                "/api/v1/inventory/:inventory_id/stock",
+                "/api/v1/inventory/{inventory_id}/stock",
                 put(inventory_handler::update_stock),
             )
     };

@@ -33,7 +33,7 @@ pub fn router(state: AppState) -> Router {
         let read_routes = Router::new()
             .route("/api/v1/payments", get(payment_handler::list_payments))
             .route(
-                "/api/v1/payments/:payment_id",
+                "/api/v1/payments/{payment_id}",
                 get(payment_handler::get_payment),
             )
             .route_layer(axum::middleware::from_fn(move |req, next| {
@@ -44,15 +44,15 @@ pub fn router(state: AppState) -> Router {
         let write_routes = Router::new()
             .route("/api/v1/payments", post(payment_handler::initiate_payment))
             .route(
-                "/api/v1/payments/:payment_id/complete",
+                "/api/v1/payments/{payment_id}/complete",
                 put(payment_handler::complete_payment),
             )
             .route(
-                "/api/v1/payments/:payment_id/fail",
+                "/api/v1/payments/{payment_id}/fail",
                 put(payment_handler::fail_payment),
             )
             .route(
-                "/api/v1/payments/:payment_id/refund",
+                "/api/v1/payments/{payment_id}/refund",
                 put(payment_handler::refund_payment),
             )
             .route_layer(axum::middleware::from_fn(move |req, next| {
@@ -70,19 +70,19 @@ pub fn router(state: AppState) -> Router {
                 get(payment_handler::list_payments).post(payment_handler::initiate_payment),
             )
             .route(
-                "/api/v1/payments/:payment_id",
+                "/api/v1/payments/{payment_id}",
                 get(payment_handler::get_payment),
             )
             .route(
-                "/api/v1/payments/:payment_id/complete",
+                "/api/v1/payments/{payment_id}/complete",
                 put(payment_handler::complete_payment),
             )
             .route(
-                "/api/v1/payments/:payment_id/fail",
+                "/api/v1/payments/{payment_id}/fail",
                 put(payment_handler::fail_payment),
             )
             .route(
-                "/api/v1/payments/:payment_id/refund",
+                "/api/v1/payments/{payment_id}/refund",
                 put(payment_handler::refund_payment),
             )
     };

@@ -229,7 +229,7 @@ pub async fn run() -> anyhow::Result<()> {
         // DELETE doc -> search/write
         let admin_routes = axum::Router::new()
             .route(
-                "/api/v1/search/index/:index_name/:id",
+                "/api/v1/search/index/{index_name}/{id}",
                 axum::routing::delete(
                     crate::adapter::handler::search_handler::delete_document_from_index,
                 ),
@@ -259,7 +259,7 @@ pub async fn run() -> anyhow::Result<()> {
                 axum::routing::post(crate::adapter::handler::search_handler::index_document),
             )
             .route(
-                "/api/v1/search/index/:index_name/:id",
+                "/api/v1/search/index/{index_name}/{id}",
                 axum::routing::delete(
                     crate::adapter::handler::search_handler::delete_document_from_index,
                 ),

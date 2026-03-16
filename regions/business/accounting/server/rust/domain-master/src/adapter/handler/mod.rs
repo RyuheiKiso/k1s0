@@ -34,27 +34,27 @@ pub fn router(state: AppState) -> Router {
         let read_routes = Router::new()
             .route("/api/v1/categories", get(category_handler::list_categories))
             .route(
-                "/api/v1/categories/:code",
+                "/api/v1/categories/{code}",
                 get(category_handler::get_category),
             )
             .route(
-                "/api/v1/categories/:code/items",
+                "/api/v1/categories/{code}/items",
                 get(item_handler::list_items),
             )
             .route(
-                "/api/v1/categories/:code/items/:item_code",
+                "/api/v1/categories/{code}/items/{item_code}",
                 get(item_handler::get_item),
             )
             .route(
-                "/api/v1/categories/:code/items/:item_code/versions",
+                "/api/v1/categories/{code}/items/{item_code}/versions",
                 get(version_handler::list_versions),
             )
             .route(
-                "/api/v1/tenants/:tenant_id/items/:item_id",
+                "/api/v1/tenants/{tenant_id}/items/{item_id}",
                 get(tenant_handler::get_tenant_extension),
             )
             .route(
-                "/api/v1/tenants/:tenant_id/categories/:code/items",
+                "/api/v1/tenants/{tenant_id}/categories/{code}/items",
                 get(tenant_handler::list_tenant_items),
             )
             .route_layer(axum::middleware::from_fn(move |req, next| {
@@ -68,19 +68,19 @@ pub fn router(state: AppState) -> Router {
                 post(category_handler::create_category),
             )
             .route(
-                "/api/v1/categories/:code",
+                "/api/v1/categories/{code}",
                 put(category_handler::update_category),
             )
             .route(
-                "/api/v1/categories/:code/items",
+                "/api/v1/categories/{code}/items",
                 post(item_handler::create_item),
             )
             .route(
-                "/api/v1/categories/:code/items/:item_code",
+                "/api/v1/categories/{code}/items/{item_code}",
                 put(item_handler::update_item),
             )
             .route(
-                "/api/v1/tenants/:tenant_id/items/:item_id",
+                "/api/v1/tenants/{tenant_id}/items/{item_id}",
                 put(tenant_handler::upsert_tenant_extension),
             )
             .route_layer(axum::middleware::from_fn(move |req, next| {
@@ -90,15 +90,15 @@ pub fn router(state: AppState) -> Router {
 
         let admin_routes = Router::new()
             .route(
-                "/api/v1/categories/:code",
+                "/api/v1/categories/{code}",
                 delete(category_handler::delete_category),
             )
             .route(
-                "/api/v1/categories/:code/items/:item_code",
+                "/api/v1/categories/{code}/items/{item_code}",
                 delete(item_handler::delete_item),
             )
             .route(
-                "/api/v1/tenants/:tenant_id/items/:item_id",
+                "/api/v1/tenants/{tenant_id}/items/{item_id}",
                 delete(tenant_handler::delete_tenant_extension),
             )
             .route_layer(axum::middleware::from_fn(move |req, next| {
@@ -117,33 +117,33 @@ pub fn router(state: AppState) -> Router {
                 get(category_handler::list_categories).post(category_handler::create_category),
             )
             .route(
-                "/api/v1/categories/:code",
+                "/api/v1/categories/{code}",
                 get(category_handler::get_category)
                     .put(category_handler::update_category)
                     .delete(category_handler::delete_category),
             )
             .route(
-                "/api/v1/categories/:code/items",
+                "/api/v1/categories/{code}/items",
                 get(item_handler::list_items).post(item_handler::create_item),
             )
             .route(
-                "/api/v1/categories/:code/items/:item_code",
+                "/api/v1/categories/{code}/items/{item_code}",
                 get(item_handler::get_item)
                     .put(item_handler::update_item)
                     .delete(item_handler::delete_item),
             )
             .route(
-                "/api/v1/categories/:code/items/:item_code/versions",
+                "/api/v1/categories/{code}/items/{item_code}/versions",
                 get(version_handler::list_versions),
             )
             .route(
-                "/api/v1/tenants/:tenant_id/items/:item_id",
+                "/api/v1/tenants/{tenant_id}/items/{item_id}",
                 get(tenant_handler::get_tenant_extension)
                     .put(tenant_handler::upsert_tenant_extension)
                     .delete(tenant_handler::delete_tenant_extension),
             )
             .route(
-                "/api/v1/tenants/:tenant_id/categories/:code/items",
+                "/api/v1/tenants/{tenant_id}/categories/{code}/items",
                 get(tenant_handler::list_tenant_items),
             )
     };

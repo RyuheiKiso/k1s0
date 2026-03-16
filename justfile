@@ -36,9 +36,19 @@ lint-rust:
     # modules.yaml から experimental Rust モジュールを取得し --exclude に変換
     excludes=""
     while IFS= read -r dir; do
-        crate_name=$(basename "$dir")
-        excludes="$excludes --exclude k1s0-${crate_name}"
+        # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
+        pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+        excludes="$excludes --exclude $pkg_name"
     done < <(scripts/list-modules.sh --lang rust --status experimental)
+    # exclude 対象が workspace に存在するか検証
+    ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
+    for exc in $excludes; do
+      if [ "$exc" = "--exclude" ]; then continue; fi
+      if ! echo "$ws_packages" | grep -qx "$exc"; then
+        echo "ERROR: excluded package '$exc' not found in workspace"
+        exit 1
+      fi
+    done
     cargo clippy --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets -- -D warnings
     # CLI ワークスペース — k1s0-gui を除外
     echo "=== fmt CLI ==="
@@ -55,7 +65,8 @@ lint-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Linting $dir ==="
-            (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm run lint --if-present && npm run typecheck --if-present)
+            # package-lock.json を使って依存関係をインストールし、リント・型チェックを実行
+            (cd "$dir" && npm ci && npm run lint --if-present && npm run typecheck --if-present)
         fi
     done
 
@@ -102,9 +113,19 @@ test-rust:
     echo "=== Testing regions/system ==="
     excludes=""
     while IFS= read -r dir; do
-        crate_name=$(basename "$dir")
-        excludes="$excludes --exclude k1s0-${crate_name}"
+        # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
+        pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+        excludes="$excludes --exclude $pkg_name"
     done < <(scripts/list-modules.sh --lang rust --status experimental)
+    # exclude 対象が workspace に存在するか検証
+    ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
+    for exc in $excludes; do
+      if [ "$exc" = "--exclude" ]; then continue; fi
+      if ! echo "$ws_packages" | grep -qx "$exc"; then
+        echo "ERROR: excluded package '$exc' not found in workspace"
+        exit 1
+      fi
+    done
     cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes
     # CLI ワークスペース一括テスト（k1s0-gui を除外）
     echo "=== Testing CLI ==="
@@ -119,7 +140,8 @@ test-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Testing $dir ==="
-            (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm test --if-present)
+            # package-lock.json を使って依存関係をインストールし、テストを実行
+            (cd "$dir" && npm ci && npm test --if-present)
         fi
     done
 
@@ -174,7 +196,8 @@ fmt-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Formatting $dir ==="
-            (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm run format --if-present)
+            # package-lock.json を使って依存関係をインストールし、フォーマットを実行
+            (cd "$dir" && npm ci && npm run format --if-present)
         fi
     done
 
@@ -214,9 +237,19 @@ build-rust:
     echo "=== Building regions/system ==="
     excludes=""
     while IFS= read -r dir; do
-        crate_name=$(basename "$dir")
-        excludes="$excludes --exclude k1s0-${crate_name}"
+        # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
+        pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+        excludes="$excludes --exclude $pkg_name"
     done < <(scripts/list-modules.sh --lang rust --status experimental)
+    # exclude 対象が workspace に存在するか検証
+    ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
+    for exc in $excludes; do
+      if [ "$exc" = "--exclude" ]; then continue; fi
+      if ! echo "$ws_packages" | grep -qx "$exc"; then
+        echo "ERROR: excluded package '$exc' not found in workspace"
+        exit 1
+      fi
+    done
     cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
     echo "=== Building CLI ==="
     cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
@@ -229,7 +262,8 @@ build-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Building $dir ==="
-            (cd "$dir" && { [ -f package-lock.json ] && npm ci || npm install --no-package-lock; } && npm run build --if-present)
+            # package-lock.json を使って依存関係をインストールし、ビルドを実行
+            (cd "$dir" && npm ci && npm run build --if-present)
         fi
     done
 

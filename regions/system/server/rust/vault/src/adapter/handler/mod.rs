@@ -26,9 +26,9 @@ pub fn router(state: AppState) -> Router {
         // GET/metadata/audit -> secrets/read
         let read_routes = Router::new()
             .route("/api/v1/secrets", get(vault_handler::list_secrets))
-            .route("/api/v1/secrets/:key", get(vault_handler::get_secret))
+            .route("/api/v1/secrets/{key}", get(vault_handler::get_secret))
             .route(
-                "/api/v1/secrets/:key/metadata",
+                "/api/v1/secrets/{key}/metadata",
                 get(vault_handler::get_secret_metadata),
             )
             .route("/api/v1/audit/logs", get(vault_handler::list_audit_logs))
@@ -40,11 +40,11 @@ pub fn router(state: AppState) -> Router {
         let write_routes = Router::new()
             .route("/api/v1/secrets", post(vault_handler::create_secret))
             .route(
-                "/api/v1/secrets/:key",
+                "/api/v1/secrets/{key}",
                 axum::routing::put(vault_handler::update_secret),
             )
             .route(
-                "/api/v1/secrets/:key/rotate",
+                "/api/v1/secrets/{key}/rotate",
                 post(vault_handler::rotate_secret),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -54,7 +54,7 @@ pub fn router(state: AppState) -> Router {
         // DELETE -> secrets/admin
         let admin_routes = Router::new()
             .route(
-                "/api/v1/secrets/:key",
+                "/api/v1/secrets/{key}",
                 axum::routing::delete(vault_handler::delete_secret),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -90,17 +90,17 @@ pub fn router(state: AppState) -> Router {
                 get(vault_handler::list_secrets).post(vault_handler::create_secret),
             )
             .route(
-                "/api/v1/secrets/:key",
+                "/api/v1/secrets/{key}",
                 get(vault_handler::get_secret)
                     .put(vault_handler::update_secret)
                     .delete(vault_handler::delete_secret),
             )
             .route(
-                "/api/v1/secrets/:key/metadata",
+                "/api/v1/secrets/{key}/metadata",
                 get(vault_handler::get_secret_metadata),
             )
             .route(
-                "/api/v1/secrets/:key/rotate",
+                "/api/v1/secrets/{key}/rotate",
                 post(vault_handler::rotate_secret),
             )
             .route("/api/v1/audit/logs", get(vault_handler::list_audit_logs))

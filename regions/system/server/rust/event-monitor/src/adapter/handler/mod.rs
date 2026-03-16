@@ -57,21 +57,21 @@ pub fn router(state: AppState) -> Router {
         let read_routes = Router::new()
             .route("/api/v1/events", get(event_monitor_handler::list_events))
             .route(
-                "/api/v1/events/trace/:correlation_id",
+                "/api/v1/events/trace/{correlation_id}",
                 get(event_monitor_handler::trace_by_correlation),
             )
             .route("/api/v1/flows", get(event_monitor_handler::list_flows))
-            .route("/api/v1/flows/:id", get(event_monitor_handler::get_flow))
+            .route("/api/v1/flows/{id}", get(event_monitor_handler::get_flow))
             .route(
-                "/api/v1/flows/:id/instances",
+                "/api/v1/flows/{id}/instances",
                 get(event_monitor_handler::get_flow_instances),
             )
             .route(
-                "/api/v1/flows/:id/instances/:instance_id",
+                "/api/v1/flows/{id}/instances/{instance_id}",
                 get(event_monitor_handler::get_flow_instance),
             )
             .route(
-                "/api/v1/flows/:id/kpi",
+                "/api/v1/flows/{id}/kpi",
                 get(event_monitor_handler::get_flow_kpi),
             )
             .route(
@@ -83,7 +83,7 @@ pub fn router(state: AppState) -> Router {
                 get(event_monitor_handler::get_slo_status),
             )
             .route(
-                "/api/v1/slo/:flow_id/burn-rate",
+                "/api/v1/slo/{flow_id}/burn-rate",
                 get(event_monitor_handler::get_slo_burn_rate),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -94,7 +94,7 @@ pub fn router(state: AppState) -> Router {
         // write -> event_monitor/write (sys_operator+)
         let write_routes = Router::new()
             .route("/api/v1/flows", post(event_monitor_handler::create_flow))
-            .route("/api/v1/flows/:id", put(event_monitor_handler::update_flow))
+            .route("/api/v1/flows/{id}", put(event_monitor_handler::update_flow))
             .route(
                 "/api/v1/replay/preview",
                 post(event_monitor_handler::preview_replay),
@@ -107,7 +107,7 @@ pub fn router(state: AppState) -> Router {
         // admin -> event_monitor/admin (sys_admin only)
         let admin_routes = Router::new()
             .route(
-                "/api/v1/flows/:id",
+                "/api/v1/flows/{id}",
                 delete(event_monitor_handler::delete_flow),
             )
             .route(
@@ -131,27 +131,27 @@ pub fn router(state: AppState) -> Router {
         Router::new()
             .route("/api/v1/events", get(event_monitor_handler::list_events))
             .route(
-                "/api/v1/events/trace/:correlation_id",
+                "/api/v1/events/trace/{correlation_id}",
                 get(event_monitor_handler::trace_by_correlation),
             )
             .route("/api/v1/flows", get(event_monitor_handler::list_flows))
-            .route("/api/v1/flows/:id", get(event_monitor_handler::get_flow))
+            .route("/api/v1/flows/{id}", get(event_monitor_handler::get_flow))
             .route("/api/v1/flows", post(event_monitor_handler::create_flow))
-            .route("/api/v1/flows/:id", put(event_monitor_handler::update_flow))
+            .route("/api/v1/flows/{id}", put(event_monitor_handler::update_flow))
             .route(
-                "/api/v1/flows/:id",
+                "/api/v1/flows/{id}",
                 delete(event_monitor_handler::delete_flow),
             )
             .route(
-                "/api/v1/flows/:id/instances",
+                "/api/v1/flows/{id}/instances",
                 get(event_monitor_handler::get_flow_instances),
             )
             .route(
-                "/api/v1/flows/:id/instances/:instance_id",
+                "/api/v1/flows/{id}/instances/{instance_id}",
                 get(event_monitor_handler::get_flow_instance),
             )
             .route(
-                "/api/v1/flows/:id/kpi",
+                "/api/v1/flows/{id}/kpi",
                 get(event_monitor_handler::get_flow_kpi),
             )
             .route(
@@ -163,7 +163,7 @@ pub fn router(state: AppState) -> Router {
                 get(event_monitor_handler::get_slo_status),
             )
             .route(
-                "/api/v1/slo/:flow_id/burn-rate",
+                "/api/v1/slo/{flow_id}/burn-rate",
                 get(event_monitor_handler::get_slo_burn_rate),
             )
             .route(
