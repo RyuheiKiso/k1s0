@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { initiatePaymentSchema } from '../../types/payment';
 import { useInitiatePayment } from '../../hooks/usePayments';
-import type { PaymentMethod } from '../../types/payment';
 
-// 決済方法の選択肢定義
-const paymentMethodOptions: { value: PaymentMethod; label: string }[] = [
+// 決済方法の選択肢定義（サーバー契約に準拠: enumではなくstring値）
+const paymentMethodOptions: { value: string; label: string }[] = [
   { value: 'credit_card', label: 'クレジットカード' },
   { value: 'bank_transfer', label: '銀行振込' },
   { value: 'convenience_store', label: 'コンビニ払い' },
@@ -21,7 +20,8 @@ export function PaymentForm() {
   const [customerId, setCustomerId] = useState('');
   const [amount, setAmount] = useState<number>(0);
   const [currency, setCurrency] = useState('JPY');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('credit_card');
+  // 決済方法: サーバー契約に合わせてstring型に変更
+  const [paymentMethod, setPaymentMethod] = useState<string>('credit_card');
   // バリデーションエラーメッセージ
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -37,7 +37,7 @@ export function PaymentForm() {
       customer_id: customerId,
       amount,
       currency: currency || undefined,
-      payment_method: paymentMethod,
+      payment_method: paymentMethod || undefined,
     };
 
     // Zodスキーマでバリデーション実行
@@ -121,7 +121,7 @@ export function PaymentForm() {
             <select
               id="payment_method"
               value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+              onChange={(e) => setPaymentMethod(e.target.value)}
             >
               {paymentMethodOptions.map((option) => (
                 <option key={option.value} value={option.value}>

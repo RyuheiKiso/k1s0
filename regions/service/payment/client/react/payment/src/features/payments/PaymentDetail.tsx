@@ -6,19 +6,17 @@ interface PaymentDetailProps {
   id: string;
 }
 
-// ステータスの日本語表示ラベルマッピング
+// ステータスの日本語表示ラベルマッピング（サーバー契約に準拠: pending/processing→initiated）
 const statusLabels: Record<PaymentStatus, string> = {
-  pending: '保留中',
-  processing: '処理中',
+  initiated: '開始済',
   completed: '完了',
   failed: '失敗',
   refunded: '返金済',
 };
 
-// ステータスバッジの色マッピング
+// ステータスバッジの色マッピング（サーバー契約に準拠）
 const statusColors: Record<PaymentStatus, { background: string; color: string }> = {
-  pending: { background: '#fff3cd', color: '#856404' },
-  processing: { background: '#cce5ff', color: '#004085' },
+  initiated: { background: '#fff3cd', color: '#856404' },
   completed: { background: '#d4edda', color: '#155724' },
   failed: { background: '#f8d7da', color: '#721c24' },
   refunded: { background: '#e2e3e5', color: '#383d41' },
@@ -39,24 +37,27 @@ export function PaymentDetail({ id }: PaymentDetailProps) {
   const failPayment = useFailPayment();
   const refundPayment = useRefundPayment();
 
-  // 決済完了の確認ダイアログと実行
+  // 決済完了の確認ダイアログとtransaction_id入力、実行
   const handleComplete = () => {
-    if (window.confirm('この決済を完了しますか？')) {
-      completePayment.mutate(id);
+    const transaction_id = window.prompt('トランザクションIDを入力してください:');
+    if (transaction_id) {
+      completePayment.mutate({ id, transaction_id });
     }
   };
 
-  // 決済失敗の確認ダイアログと実行
+  // 決済失敗の確認ダイアログとerror_code/error_message入力、実行
   const handleFail = () => {
-    if (window.confirm('この決済を失敗にしますか？')) {
-      failPayment.mutate(id);
-    }
+    const error_code = window.prompt('エラーコードを入力してください:');
+    if (!error_code) return;
+    const error_message = window.prompt('エラーメッセージを入力してください:') ?? '';
+    failPayment.mutate({ id, error_code, error_message });
   };
 
-  // 決済返金の確認ダイアログと実行
+  // 決済返金の確認ダイアログとreason入力、実行
   const handleRefund = () => {
+    const reason = window.prompt('返金理由を入力してください（任意）:') ?? undefined;
     if (window.confirm('この決済を返金しますか？この操作は取り消せません。')) {
-      refundPayment.mutate(id);
+      refundPayment.mutate({ id, reason });
     }
   };
 
@@ -69,9 +70,9 @@ export function PaymentDetail({ id }: PaymentDetailProps) {
   // データが見つからない場合の表示
   if (!payment) return <div>決済データが見つかりません。</div>;
 
-  // ステータスに応じてアクションボタンの表示を制御
-  const canComplete = payment.status === 'pending' || payment.status === 'processing';
-  const canFail = payment.status === 'pending' || payment.status === 'processing';
+  // ステータスに応じてアクションボタンの表示を制御（initiated時のみ完了/失敗可能）
+  const canComplete = payment.status === 'initiated';
+  const canFail = payment.status === 'initiated';
   const canRefund = payment.status === 'completed';
 
   return (
@@ -117,23 +118,28 @@ export function PaymentDetail({ id }: PaymentDetailProps) {
           </tr>
           <tr>
             <th style={labelStyle}>決済方法</th>
-            <td style={valueStyle}>{paymentMethodLabels[payment.payment_method]}</td>
+            {/* 決済方法表示: ラベルマップにフォールバック付き */}
+            <td style={valueStyle}>
+              {payment.payment_method
+                ? (paymentMethodLabels[payment.payment_method] ?? payment.payment_method)
+                : '-'}
+            </td>
           </tr>
           <tr>
             <th style={labelStyle}>トランザクションID</th>
             <td style={valueStyle}>{payment.transaction_id ?? '-'}</td>
           </tr>
           <tr>
-            <th style={labelStyle}>失敗理由</th>
-            <td style={valueStyle}>{payment.failure_reason ?? '-'}</td>
+            <th style={labelStyle}>エラーコード</th>
+            <td style={valueStyle}>{payment.error_code ?? '-'}</td>
           </tr>
           <tr>
-            <th style={labelStyle}>返金額</th>
-            <td style={valueStyle}>
-              {payment.refund_amount !== null
-                ? `${payment.refund_amount.toLocaleString()} ${payment.currency}`
-                : '-'}
-            </td>
+            <th style={labelStyle}>エラーメッセージ</th>
+            <td style={valueStyle}>{payment.error_message ?? '-'}</td>
+          </tr>
+          <tr>
+            <th style={labelStyle}>バージョン</th>
+            <td style={valueStyle}>{payment.version}</td>
           </tr>
           <tr>
             <th style={labelStyle}>作成日</th>
@@ -148,7 +154,7 @@ export function PaymentDetail({ id }: PaymentDetailProps) {
 
       {/* ステータス変更アクションボタン */}
       <div style={{ display: 'flex', gap: '8px' }}>
-        {/* 完了ボタン: pending/processing時のみ表示 */}
+        {/* 完了ボタン: initiated時のみ表示 */}
         {canComplete && (
           <button
             onClick={handleComplete}
@@ -159,7 +165,7 @@ export function PaymentDetail({ id }: PaymentDetailProps) {
           </button>
         )}
 
-        {/* 失敗ボタン: pending/processing時のみ表示 */}
+        {/* 失敗ボタン: initiated時のみ表示 */}
         {canFail && (
           <button
             onClick={handleFail}

@@ -3497,6 +3497,7 @@ dependencies = [
  "async-trait",
  "mockall",
  "serde",
+ "serde_json",
  "serde_yaml",
  "thiserror 2.0.18",
  "tokio",
@@ -3559,6 +3560,7 @@ dependencies = [
  "k1s0-bb-secretstore",
  "k1s0-bb-statestore",
  "mockall",
+ "serde_json",
  "tokio",
 ]
 

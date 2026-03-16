@@ -6,7 +6,7 @@ docker-compose における auth-server・config-server・System プロファイ
 
 ## System プロファイル サービス定義
 
-system tier のアプリケーションサーバーは `docker-compose.override.yaml` で管理する。以下に各サービスの詳細設定を示す。
+system tier のアプリケーションサーバーは `docker-compose.dev.yaml`（開発用オーバーライド）で管理する。以下に各サービスの詳細設定を示す。
 
 ### auth-server（Rust 版）
 
@@ -204,14 +204,14 @@ dlq-manager:
 
 ## アプリケーションサービスの追加
 
-本ファイル（`docker-compose.yaml`）にはインフラサービスのみを定義する。アプリケーションサービスは `docker-compose.override.yaml` で管理し、各開発者がローカルで必要なサービスのみを起動できるようにする。
+本ファイル（`docker-compose.yaml`）にはインフラサービスのみを定義する。アプリケーションサービスは `docker-compose.dev.yaml`（開発用オーバーライド）で管理し、開発時は `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up` で明示的に指定する。
 
 ### 方式
 
 - リポジトリに `docker-compose.override.yaml.example` を配置し、テンプレートとして提供する
-- 各開発者は `docker-compose.override.yaml.example` をコピーして `docker-compose.override.yaml` を作成する
-- `docker-compose.override.yaml` は `.gitignore` に追加し、各開発者のローカル設定として管理する
-- Docker Compose は `docker-compose.yaml` と `docker-compose.override.yaml` を自動的にマージする
+- 各開発者は `docker-compose.override.yaml.example` を参考にローカル設定を追加できる
+- `docker-compose.override.yaml` は `.gitignore` で除外されており、自動読込による意図しないセキュリティ緩和を防止する
+- 開発用オーバーライドは `docker-compose.dev.yaml` に定義し、`docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up` で明示的に指定する
 
 ### docker-compose.override.yaml.example
 
@@ -219,8 +219,10 @@ dlq-manager:
 
 ```yaml
 # docker-compose.override.yaml.example
-# このファイルを docker-compose.override.yaml にコピーして使用してください。
-# 必要なサービスのコメントを解除して起動してください。
+# このファイルを参考にして docker-compose.dev.yaml にサービス定義を追加してください。
+# docker-compose.override.yaml は Docker Compose が自動読込するため使用しないでください。
+#
+# 使用方法: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 
 services:
   # --- system tier ---

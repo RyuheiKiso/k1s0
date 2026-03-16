@@ -2,6 +2,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { QueryClient } from '@tanstack/react-query';
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  createMemoryHistory,
+  RouterProvider,
+} from '@tanstack/react-router';
 import { server } from './testutil/msw-setup';
 import { PaymentList } from '../src/features/payments/PaymentList';
 
@@ -21,10 +28,40 @@ function createTestQueryClient() {
   });
 }
 
-// テスト用ラッパーコンポーネント
+// テスト用ラッパーコンポーネント: TanStack RouterのRouterProviderでラップ
 function TestWrapper({ children }: { children: React.ReactNode }) {
   const queryClient = createTestQueryClient();
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+
+  // テスト用ルートルート: childrenをそのままレンダリング
+  const rootRoute = createRootRoute({
+    component: () => <>{children}</>,
+  });
+
+  // インデックスルート: ルートパスに対応
+  const indexRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/',
+    component: () => <>{children}</>,
+  });
+
+  // 決済詳細ルート: useNavigateのナビゲーション先として必要
+  const detailRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/payments/$id',
+    component: () => <div>detail</div>,
+  });
+
+  // テスト用ルーターの構築
+  const routeTree = rootRoute.addChildren([indexRoute, detailRoute]);
+  const memoryHistory = createMemoryHistory({ initialEntries: ['/'] });
+  const router = createRouter({ routeTree, history: memoryHistory });
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {/* @ts-expect-error テスト用ルーターの型はアプリルーターと異なる */}
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
 }
 
 describe('PaymentList', () => {

@@ -1,6 +1,8 @@
 # docker-compose.override.yaml.example
-# このファイルを docker-compose.override.yaml にコピーして使用してください。
-# 必要なサービスのコメントを解除して起動してください。
+# このファイルを参考にして docker-compose.dev.yaml にサービス定義を追加してください。
+# docker-compose.override.yaml は Docker Compose が自動読込するため使用しないでください。
+#
+# 使用方法: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 
 services:
   # --- system 層 ---

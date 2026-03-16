@@ -65,7 +65,7 @@ prost-types = "0.13"
 rdkafka = { version = "0.36", features = ["cmake-build"] }
 
 [build-dependencies]
-tonic-build = "0.12"
+k1s0-proto-build = { path = "../../../../../system/library/rust/proto-build" }
 
 [features]
 db-tests = []

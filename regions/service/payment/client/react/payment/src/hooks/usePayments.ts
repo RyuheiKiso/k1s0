@@ -53,48 +53,48 @@ export function useInitiatePayment() {
   });
 }
 
-// 決済完了ミューテーション: 決済を完了状態に変更
+// 決済完了ミューテーション: transaction_idを付与して決済を完了状態に変更
 export function useCompletePayment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { data } = await apiClient.post<Payment>(`/complete_payment/${id}`);
+    mutationFn: async ({ id, transaction_id }: { id: string; transaction_id: string }) => {
+      const { data } = await apiClient.post<Payment>(`/complete_payment/${id}`, { transaction_id });
       return data;
     },
     // 成功時に決済一覧と個別決済のキャッシュを無効化
-    onSuccess: (_data, id) => {
+    onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: queryKeys.payments });
       qc.invalidateQueries({ queryKey: queryKeys.payment(id) });
     },
   });
 }
 
-// 決済失敗ミューテーション: 決済を失敗状態に変更
+// 決済失敗ミューテーション: error_code/error_messageを付与して決済を失敗状態に変更
 export function useFailPayment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { data } = await apiClient.post<Payment>(`/fail_payment/${id}`);
+    mutationFn: async ({ id, error_code, error_message }: { id: string; error_code: string; error_message: string }) => {
+      const { data } = await apiClient.post<Payment>(`/fail_payment/${id}`, { error_code, error_message });
       return data;
     },
     // 成功時に決済一覧と個別決済のキャッシュを無効化
-    onSuccess: (_data, id) => {
+    onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: queryKeys.payments });
       qc.invalidateQueries({ queryKey: queryKeys.payment(id) });
     },
   });
 }
 
-// 決済返金ミューテーション: 決済を返金状態に変更
+// 決済返金ミューテーション: 理由を付与して決済を返金状態に変更
 export function useRefundPayment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { data } = await apiClient.post<Payment>(`/refund_payment/${id}`);
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      const { data } = await apiClient.post<Payment>(`/refund_payment/${id}`, { reason });
       return data;
     },
     // 成功時に決済一覧と個別決済のキャッシュを無効化
-    onSuccess: (_data, id) => {
+    onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: queryKeys.payments });
       qc.invalidateQueries({ queryKey: queryKeys.payment(id) });
     },
