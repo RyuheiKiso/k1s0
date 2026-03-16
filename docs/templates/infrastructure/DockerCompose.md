@@ -14,7 +14,7 @@ Docker Compose 設計の全体像は [docker-compose設計](../../infrastructure
 | `bff`      | 生成する            | 生成する                             |
 
 - **docker-compose.yaml**: インフラサービス（DB・Redis・Kafka・Keycloak・Vault）と可観測性サービス（Jaeger・Prometheus・Grafana・Loki）を定義する。サービスの依存インフラに応じて条件付きで含めるサービスが変わる。
-- **docker-compose.override.yaml.example**: アプリケーションサービスのテンプレートを定義する。開発者がコピーして `docker-compose.override.yaml` を作成する。
+- **docker-compose.override.yaml.example**: アプリケーションサービスのテンプレートを定義する。開発者が参考にしてサービス定義を `docker-compose.dev.yaml` 等に追加する。`docker-compose.override.yaml` は Docker Compose の自動読込対象のため使用しない。
 
 ## 配置パス
 
@@ -343,16 +343,16 @@ networks:
 
 ### 概要
 
-アプリケーションサービスのテンプレートを定義する。開発者はこのファイルをコピーして `docker-compose.override.yaml` を作成し、必要なサービスのコメントを解除して使用する。`docker-compose.override.yaml` は `.gitignore` に含め、各開発者のローカル設定として管理する。
+アプリケーションサービスのテンプレートを定義する。開発者はこのファイルを参考にして `docker-compose.dev.yaml` にサービス定義を追加し、`docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up` で起動する。`docker-compose.override.yaml` は Docker Compose の自動読込対象のため使用しない（`.gitignore` で除外）。
 
 ### テンプレート内容
 
 ```tera
 # docker-compose.override.yaml.example
-# このファイルを docker-compose.override.yaml にコピーして使用してください。
-# 必要なサービスのコメントを解除して起動してください。
+# このファイルを参考にして docker-compose.dev.yaml にサービス定義を追加してください。
+# docker-compose.override.yaml は Docker Compose が自動読込するため使用しないでください。
 #
-# cp docker-compose.override.yaml.example docker-compose.override.yaml
+# 使用方法: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 
 services:
   # --- {{ tier }} 層 ---
@@ -448,14 +448,14 @@ CLI の対話フローで選択されたオプションに応じて、docker-com
 生成されたファイルを使用してローカル開発環境を起動する手順を示す。
 
 ```bash
-# 1. override ファイルをコピー
-cp docker-compose.override.yaml.example docker-compose.override.yaml
+# 1. dev ファイルにサービス定義を追加（override.yaml.example を参考に）
+# docker-compose.dev.yaml を編集
 
-# 2. 必要なサービスのコメントを解除
-# docker-compose.override.yaml を編集
-
-# 3. インフラのみ起動（DB・Redis・Kafka）
+# 2. インフラのみ起動（DB・Redis・Kafka）
 docker compose --profile infra up -d
+
+# 3. 開発用オーバーライドを含めて起動
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml --profile infra up -d
 
 # 4. インフラ + 可観測性
 docker compose --profile infra --profile observability up -d

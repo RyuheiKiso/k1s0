@@ -46,6 +46,8 @@ vendor/
 **/config/config.local.yaml
 
 # Docker
+# docker-compose.dev.yaml は git 管理対象（明示的に -f 指定が必要な開発用オーバーライド）
+# docker-compose.override.yaml は Docker Compose が自動読込するため使用禁止
 docker-compose.override.yaml
 
 # k1s0 CLI generated (local dev environment / cache)

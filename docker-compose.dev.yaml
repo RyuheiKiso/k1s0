@@ -1,0 +1,203 @@
+# docker-compose.dev.yaml — ローカル開発専用のオーバーライド設定
+#
+# 使用方法: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !! WARNING: このファイルは開発環境専用です。                  !!
+# !! 認証バイパスやセキュリティ緩和設定が含まれています。       !!
+# !! 本番環境や CI では絶対に使用しないでください。             !!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
+# このファイルは docker-compose.override.yaml から名前を変更しました。
+# Docker Compose の自動マージを防止し、明示的な -f 指定が必要です。
+# これにより `docker compose up` のデフォルト動作では認証バイパスが無効になります。
+#
+# CARGO_FEATURES ビルド引数で dev-auth-bypass フィーチャーを有効化し、
+# ALLOW_INSECURE_NO_AUTH=true 環境変数でランタイム時に認証バイパスを発動させる。
+# 本番 Dockerfile ではビルド引数を指定しないため、バイパスコードはバイナリに含まれない。
+
+services:
+  # ============================================================
+  # API Gateway — Admin API をローカルネットワーク全体に公開
+  # ============================================================
+  kong:
+    ports:
+      - "${KONG_ADMIN_HOST_PORT:-8001}:8001"    # Admin API（開発用: 全インターフェースに公開）
+
+  # ============================================================
+  # System プロファイル — 認証バイパス有効化
+  # ============================================================
+  config-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  saga-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  dlq-manager:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  featureflag-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  ratelimit-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  tenant-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  vault-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  api-registry-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  app-registry-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  event-monitor-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  event-store-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  file-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  master-maintenance-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  navigation-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  notification-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  policy-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  quota-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  rule-engine-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  scheduler-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  search-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  service-catalog-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  session-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  workflow-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  ai-gateway-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
+  ai-agent-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true

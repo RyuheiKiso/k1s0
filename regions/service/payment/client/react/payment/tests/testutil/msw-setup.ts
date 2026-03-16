@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { Payment } from '../../src/types/payment';
 
-// テスト用モックデータ: 決済一覧
+// テスト用モックデータ: 決済一覧（サーバー契約に準拠）
 const mockPayments: Payment[] = [
   {
     id: '550e8400-e29b-41d4-a716-446655440001',
@@ -10,11 +10,13 @@ const mockPayments: Payment[] = [
     customer_id: 'CUS-001',
     amount: 15000,
     currency: 'JPY',
-    status: 'pending',
+    // サーバー契約に準拠: pending→initiated
+    status: 'initiated',
     payment_method: 'credit_card',
     transaction_id: null,
-    failure_reason: null,
-    refund_amount: null,
+    error_code: null,
+    error_message: null,
+    version: 1,
     created_at: '2024-01-15T10:00:00Z',
     updated_at: '2024-01-15T10:00:00Z',
   },
@@ -27,8 +29,9 @@ const mockPayments: Payment[] = [
     status: 'completed',
     payment_method: 'bank_transfer',
     transaction_id: 'TXN-ABC-123',
-    failure_reason: null,
-    refund_amount: null,
+    error_code: null,
+    error_message: null,
+    version: 2,
     created_at: '2024-01-16T14:30:00Z',
     updated_at: '2024-01-16T15:00:00Z',
   },
@@ -41,14 +44,16 @@ const mockPayments: Payment[] = [
     status: 'failed',
     payment_method: 'convenience_store',
     transaction_id: null,
-    failure_reason: '支払い期限切れ',
-    refund_amount: null,
+    // サーバー契約に準拠: failure_reason→error_code/error_message
+    error_code: 'PAYMENT_EXPIRED',
+    error_message: '支払い期限切れ',
+    version: 2,
     created_at: '2024-01-17T09:00:00Z',
     updated_at: '2024-01-18T00:00:00Z',
   },
 ];
 
-// MSWハンドラー定義: 全APIエンドポイントのモック
+// MSWハンドラー定義: 全APIエンドポイントのモック（サーバー契約に準拠）
 const handlers = [
   // 決済一覧取得
   http.get('/bff/api/v1/list_payments', () => {
@@ -62,7 +67,7 @@ const handlers = [
     return HttpResponse.json(payment);
   }),
 
-  // 決済開始
+  // 決済開始（サーバー契約に準拠: status=initiated, error_code/error_message, version付き）
   http.post('/bff/api/v1/initiate_payment', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     const newPayment: Payment = {
@@ -71,49 +76,57 @@ const handlers = [
       customer_id: body.customer_id as string,
       amount: body.amount as number,
       currency: (body.currency as string) ?? 'JPY',
-      status: 'pending',
-      payment_method: body.payment_method as Payment['payment_method'],
+      status: 'initiated',
+      payment_method: (body.payment_method as string) ?? null,
       transaction_id: null,
-      failure_reason: null,
-      refund_amount: null,
+      error_code: null,
+      error_message: null,
+      version: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
     return HttpResponse.json(newPayment, { status: 201 });
   }),
 
-  // 決済完了
-  http.post('/bff/api/v1/complete_payment/:id', ({ params }) => {
+  // 決済完了（リクエストボディからtransaction_idを取得）
+  http.post('/bff/api/v1/complete_payment/:id', async ({ params, request }) => {
     const payment = mockPayments.find((p) => p.id === params.id);
     if (!payment) return new HttpResponse(null, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json({
       ...payment,
       status: 'completed',
-      transaction_id: `TXN-${Date.now()}`,
+      transaction_id: (body.transaction_id as string) ?? `TXN-${Date.now()}`,
+      version: payment.version + 1,
       updated_at: new Date().toISOString(),
     });
   }),
 
-  // 決済失敗
-  http.post('/bff/api/v1/fail_payment/:id', ({ params }) => {
+  // 決済失敗（リクエストボディからerror_code/error_messageを取得）
+  http.post('/bff/api/v1/fail_payment/:id', async ({ params, request }) => {
     const payment = mockPayments.find((p) => p.id === params.id);
     if (!payment) return new HttpResponse(null, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json({
       ...payment,
       status: 'failed',
-      failure_reason: '処理エラー',
+      error_code: (body.error_code as string) ?? 'UNKNOWN',
+      error_message: (body.error_message as string) ?? '処理エラー',
+      version: payment.version + 1,
       updated_at: new Date().toISOString(),
     });
   }),
 
-  // 決済返金
-  http.post('/bff/api/v1/refund_payment/:id', ({ params }) => {
+  // 決済返金（リクエストbodyからreasonを受け取る）
+  http.post('/bff/api/v1/refund_payment/:id', async ({ params, request }) => {
     const payment = mockPayments.find((p) => p.id === params.id);
     if (!payment) return new HttpResponse(null, { status: 404 });
+    // hooksがbodyで送信するreasonを読み取る
+    await request.json();
     return HttpResponse.json({
       ...payment,
       status: 'refunded',
-      refund_amount: payment.amount,
+      version: payment.version + 1,
       updated_at: new Date().toISOString(),
     });
   }),

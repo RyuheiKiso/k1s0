@@ -6,7 +6,7 @@
 
 - 開発者が必要なサービスだけを起動できるよう、Compose プロファイルで分類する
 - 依存インフラ（DB・Kafka・Redis 等）は共通プロファイルで提供する
-- アプリケーションサービスは `docker-compose.override.yaml` で管理し、本ファイルにはインフラサービスのみ定義する
+- アプリケーションサービスは `docker-compose.dev.yaml`（開発用オーバーライド）で管理し、本ファイルにはインフラサービスのみ定義する
 - ボリュームでデータを永続化し、コンテナ再作成時もデータを保持する
 - **RDBMS 方針**: PostgreSQL を標準 RDBMS とする。MySQL は既存システム連携用として残す。SQL Server は当プロジェクトでは採用しない
 
@@ -457,7 +457,8 @@ docker compose --profile infra --profile observability --profile system down -v
 | --- | --- | --- |
 | `.env.example` | 対象 | 環境変数テンプレート。デフォルト値のリファレンス |
 | `.env` | 除外 | 開発者個人の設定。`.env.example` をコピーして使用 |
-| `docker-compose.override.yaml` | 除外 | service 層サーバー等の追加定義 |
+| `docker-compose.dev.yaml` | 管理対象 | 開発用オーバーライド（認証バイパス等。明示的に `-f` 指定が必要） |
+| `docker-compose.override.yaml` | 除外 | Docker Compose 自動読込防止のため使用禁止 |
 
 `.env` が存在しない場合、`docker-compose.yaml` 内の `${VAR:-default}` 記法によりデフォルト値が適用される。そのため、既存のローカル開発ワークフローには影響しない（後方互換）。
 

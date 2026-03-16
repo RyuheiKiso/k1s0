@@ -3,19 +3,17 @@ import { useNavigate } from '@tanstack/react-router';
 import { usePayments } from '../../hooks/usePayments';
 import type { PaymentStatus } from '../../types/payment';
 
-// ステータスの日本語表示ラベルマッピング
+// ステータスの日本語表示ラベルマッピング（サーバー契約に準拠: pending/processing→initiated）
 const statusLabels: Record<PaymentStatus, string> = {
-  pending: '保留中',
-  processing: '処理中',
+  initiated: '開始済',
   completed: '完了',
   failed: '失敗',
   refunded: '返金済',
 };
 
-// ステータスバッジの色マッピング
+// ステータスバッジの色マッピング（サーバー契約に準拠）
 const statusColors: Record<PaymentStatus, { background: string; color: string }> = {
-  pending: { background: '#fff3cd', color: '#856404' },
-  processing: { background: '#cce5ff', color: '#004085' },
+  initiated: { background: '#fff3cd', color: '#856404' },
   completed: { background: '#d4edda', color: '#155724' },
   failed: { background: '#f8d7da', color: '#721c24' },
   refunded: { background: '#e2e3e5', color: '#383d41' },
@@ -63,8 +61,8 @@ export function PaymentList() {
           }
         >
           <option value="">すべて</option>
-          <option value="pending">保留中</option>
-          <option value="processing">処理中</option>
+          {/* サーバー契約に準拠したステータス選択肢 */}
+          <option value="initiated">開始済</option>
           <option value="completed">完了</option>
           <option value="failed">失敗</option>
           <option value="refunded">返金済</option>
@@ -110,7 +108,12 @@ export function PaymentList() {
                   {statusLabels[payment.status]}
                 </span>
               </td>
-              <td style={tdStyle}>{paymentMethodLabels[payment.payment_method]}</td>
+              {/* 決済方法表示: ラベルマップにフォールバック付き */}
+              <td style={tdStyle}>
+                {payment.payment_method
+                  ? (paymentMethodLabels[payment.payment_method] ?? payment.payment_method)
+                  : '-'}
+              </td>
               <td style={tdStyle}>{new Date(payment.created_at).toLocaleString('ja-JP')}</td>
             </tr>
           ))}
