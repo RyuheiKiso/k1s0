@@ -42,6 +42,8 @@ Browser → [HttpOnly Cookie] → Nginx Ingress Controller → Kong → BFF Prox
 
 #### REST / GraphQL の代表トラフィックフロー（統合図）
 
+![BFF Proxy セッション変換フロー](images/bff-proxy-session-flow.svg)
+
 SPA（React）からのアクセスは **必ず BFF Proxy を経由**し、トークンをブラウザに保持せずに Cookie セッションで認証状態を維持する。GraphQL を採用する場合も同様に、BFF Proxy が Cookie → Bearer の変換を担い、GraphQL BFF / GraphQL Gateway はデータ集約に集中する。
 
 ```

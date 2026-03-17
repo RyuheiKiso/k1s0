@@ -114,7 +114,7 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
         JwksVerifier::new(
             cfg.auth.oidc.jwks_uri.clone(),
             cfg.auth.oidc.jwks_cache_ttl(),
-        ),
+        ).expect("Failed to create JWKS verifier"),
     );
     let keycloak_client = Arc::new(KeycloakClient::new(&cfg.auth.oidc));
     let audit_repo = Arc::new(persistence::AuditLogRepositoryImpl::new(pool.clone()));

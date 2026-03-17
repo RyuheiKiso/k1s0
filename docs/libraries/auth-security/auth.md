@@ -11,7 +11,7 @@
 
 | 関数・型 | シグネチャ | 説明 |
 |---------|-----------|------|
-| `NewJWKSVerifier` / `JwksVerifier::new` | `(jwksURL, issuer, audience, cacheTTL) -> Verifier` | JWKS 検証器を生成 |
+| `NewJWKSVerifier` / `JwksVerifier::new` | `(jwksURL, issuer, audience, cacheTTL) -> Result<Verifier>` | JWKS 検証器を生成（Rust は `Result` を返す。HTTP クライアント構築失敗時にエラー） |
 | `NewJWKSVerifierWithFetcher` | `(jwksURL, issuer, audience, cacheTTL, fetcher) -> Verifier` | Go のみ: JWKS 取得実装を差し替え可能な検証器を生成 |
 | `VerifyToken` / `verify_token` | `(tokenString) -> (Claims, Error)` | JWT トークンを検証 |
 | `Claims` | struct | JWT クレーム（sub, iss, aud, realm_access, resource_access, tier_access 等） |
@@ -261,6 +261,9 @@ rand = "0.8"
 **Rust 追加公開 API**:
 
 - `JwksFetcher` trait: JWKS 取得処理の抽象化（`JwksVerifier::new(...).with_fetcher(...)` の builder pattern で差し替え可能）
+- **HTTP タイムアウト設定**: `DefaultJwksFetcher` は reqwest クライアントに以下のタイムアウトを設定する:
+  - 全体タイムアウト: 10秒（JWKS レスポンスは小さいため、10秒以内に完了しない場合はネットワーク障害と判断）
+  - 接続タイムアウト: 5秒（DNS 解決や TCP ハンドシェイクが 5秒以上かかる場合はエンドポイント到達不能と判断）
 - `middleware` module: `auth_middleware`, `require_permission`, `require_tier_access`（axum 向け）
 - Rust のコード例は `verify_token` / `get_keys` / `check_permission` など snake_case 命名に統一する。
 
@@ -344,14 +347,16 @@ struct Jwk {
 }
 
 impl JwksVerifier {
-    pub fn new(jwks_url: &str, issuer: &str, audience: &str, cache_ttl: std::time::Duration) -> Self {
-        Self {
+    // HTTP クライアント構築に失敗した場合はエラーを返す
+    pub fn new(jwks_url: &str, issuer: &str, audience: &str, cache_ttl: std::time::Duration) -> Result<Self, AuthError> {
+        Ok(Self {
             jwks_url: jwks_url.to_string(),
             issuer: issuer.to_string(),
             audience: audience.to_string(),
             cache_ttl,
             keys: Arc::new(RwLock::new(None)),
-        }
+            fetcher: Arc::new(DefaultJwksFetcher::new()?),
+        })
     }
 
     pub async fn verify_token(&self, token: &str) -> Result<Claims, AuthError> {

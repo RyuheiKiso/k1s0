@@ -1,0 +1,150 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="k8s-ingress-001" name="Ingress クロスNamespaceルーティング">
+    <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="800" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル: Ingress クロスNamespaceルーティング -->
+        <mxCell id="title" value="Ingress クロスNamespaceルーティング" style="text;html=1;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="10" width="700" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- 外部トラフィック -->
+        <mxCell id="external" value="外部トラフィック&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;*.k1s0.internal.example.com&lt;/font&gt;" style="shape=cloud;whiteSpace=wrap;html=1;fontSize=12;fillColor=#F5F5F5;strokeColor=#666666;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="300" width="180" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Namespace: ingress -->
+        <mxCell id="ns-ingress" value="Namespace: ingress" style="shape=swimlane;startSize=25;fontSize=16;fontStyle=1;fillColor=#F5F5F5;strokeColor=#666666;rounded=1;shadow=1;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="70" width="460" height="630" as="geometry"/>
+        </mxCell>
+
+        <!-- Nginx Ingress Controller -->
+        <mxCell id="nginx-ctrl" value="&lt;b&gt;Nginx Ingress Controller&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;TLS 終端 (cert-manager)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="ns-ingress">
+          <mxGeometry x="130" y="40" width="200" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Ingress リソース -->
+        <mxCell id="ingress-res" value="&lt;b&gt;k1s0-ingress&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Ingress リソース&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="ns-ingress">
+          <mxGeometry x="140" y="120" width="180" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ルーティングルール -->
+        <mxCell id="rule-api" value="api.k1s0.internal..." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="ns-ingress">
+          <mxGeometry x="30" y="200" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="rule-grafana" value="grafana.k1s0.internal..." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="ns-ingress">
+          <mxGeometry x="290" y="200" width="150" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ExternalName: kong-proxy -->
+        <mxCell id="ext-kong" value="&lt;b&gt;ExternalName Service&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;kong-proxy&lt;br&gt;→ kong-proxy.k1s0-system.svc&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="ns-ingress">
+          <mxGeometry x="15" y="280" width="190" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ExternalName: grafana -->
+        <mxCell id="ext-grafana" value="&lt;b&gt;ExternalName Service&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;grafana&lt;br&gt;→ grafana.observability.svc&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="ns-ingress">
+          <mxGeometry x="255" y="280" width="190" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Ingress → ルール -->
+        <mxCell id="ir1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="ingress-res" target="rule-api" parent="ns-ingress">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ir2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="ingress-res" target="rule-grafana" parent="ns-ingress">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ルール → ExternalName -->
+        <mxCell id="re1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;" edge="1" source="rule-api" target="ext-kong" parent="ns-ingress">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="re2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;" edge="1" source="rule-grafana" target="ext-grafana" parent="ns-ingress">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Nginx → Ingress -->
+        <mxCell id="ni" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="nginx-ctrl" target="ingress-res" parent="ns-ingress">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 制約説明 -->
+        <mxCell id="constraint" value="&lt;font style=&quot;font-size:10px&quot;&gt;⚠ Ingress バックエンドは&lt;br&gt;同一 Namespace 内のみ参照可能&lt;br&gt;→ ExternalName で解決&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8CECC;strokeColor=#B85450;shadow=1;align=center;" vertex="1" parent="ns-ingress">
+          <mxGeometry x="120" y="380" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Namespace: k1s0-system -->
+        <mxCell id="ns-system" value="Namespace: k1s0-system" style="shape=swimlane;startSize=25;fontSize=16;fontStyle=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;rounded=1;shadow=1;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="70" width="300" height="300" as="geometry"/>
+        </mxCell>
+
+        <!-- Kong Proxy -->
+        <mxCell id="kong-proxy" value="&lt;b&gt;Kong Proxy&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;API Gateway&lt;br&gt;:80&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="ns-system">
+          <mxGeometry x="80" y="50" width="140" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Backend Services -->
+        <mxCell id="backends" value="Backend Services&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;auth / tenant / config / ...&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="ns-system">
+          <mxGeometry x="50" y="160" width="200" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Kong → Backends -->
+        <mxCell id="kb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="kong-proxy" target="backends" parent="ns-system">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Namespace: observability -->
+        <mxCell id="ns-obs" value="Namespace: observability" style="shape=swimlane;startSize=25;fontSize=16;fontStyle=1;fillColor=#D5E8D4;strokeColor=#82B366;rounded=1;shadow=1;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="410" width="300" height="180" as="geometry"/>
+        </mxCell>
+
+        <!-- Grafana -->
+        <mxCell id="grafana-svc" value="&lt;b&gt;Grafana&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;:3000&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="ns-obs">
+          <mxGeometry x="80" y="50" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Prometheus / Jaeger -->
+        <mxCell id="prom" value="Prometheus / Jaeger" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="ns-obs">
+          <mxGeometry x="60" y="120" width="180" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ExternalName → 実サービス矢印（クロスNamespace） -->
+        <mxCell id="cross-kong" value="ExternalName 解決" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;strokeWidth=2;dashed=1;dashPattern=8 4;fontSize=10;fontColor=#D6B656;endArrow=block;endFill=1;" edge="1" source="ext-kong" target="kong-proxy" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="cross-grafana" value="ExternalName 解決" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;strokeWidth=2;dashed=1;dashPattern=8 4;fontSize=10;fontColor=#D6B656;endArrow=block;endFill=1;" edge="1" source="ext-grafana" target="grafana-svc" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 外部 → Nginx -->
+        <mxCell id="ext-to-nginx" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;fontSize=11;fontColor=#666666;endArrow=block;endFill=1;" edge="1" source="external" target="nginx-ctrl" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="200"/>
+              <mxPoint x="110" y="200"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 凡例 -->
+        <mxCell id="legend-title" value="凡例" style="text;html=1;fontSize=14;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="760" y="620" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="760" y="650" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1t" value="ExternalName Service" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="785" y="648" width="130" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#D6B656;strokeWidth=2;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="940" y="650" width="40" height="2" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2t" value="クロスNamespace解決" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="985" y="643" width="130" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
