@@ -38,26 +38,30 @@ export function CategoryForm({ category, onClose }: CategoryFormProps) {
       sort_order: sortOrder,
     };
 
-    // Zodスキーマでバリデーション実行
-    const schema = isEditing ? updateCategorySchema : createCategorySchema;
-    const result = schema.safeParse(input);
-
-    if (!result.success) {
-      // バリデーションエラーをフィールド別に整理
-      const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        const field = err.path.join('.');
-        fieldErrors[field] = err.message;
-      });
-      setErrors(fieldErrors);
-      return;
+    // 編集・作成で個別にバリデーション＋API呼び出しを実行（union型回避）
+    if (isEditing) {
+      const result = updateCategorySchema.safeParse(input);
+      if (!result.success) {
+        const fieldErrors: Record<string, string> = {};
+        result.error.errors.forEach((err) => {
+          fieldErrors[err.path.join('.')] = err.message;
+        });
+        setErrors(fieldErrors);
+        return;
+      }
+      updateCategory.mutate(result.data, { onSuccess: () => onClose() });
+    } else {
+      const result = createCategorySchema.safeParse(input);
+      if (!result.success) {
+        const fieldErrors: Record<string, string> = {};
+        result.error.errors.forEach((err) => {
+          fieldErrors[err.path.join('.')] = err.message;
+        });
+        setErrors(fieldErrors);
+        return;
+      }
+      createCategory.mutate(result.data, { onSuccess: () => onClose() });
     }
-
-    // 編集・作成に応じたAPI呼び出し
-    const mutation = isEditing ? updateCategory : createCategory;
-    mutation.mutate(result.data, {
-      onSuccess: () => onClose(),
-    });
   };
 
   return (

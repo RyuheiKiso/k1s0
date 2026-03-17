@@ -287,6 +287,8 @@ ingress           Nginx Ingress Controller
 
 ### 前提条件
 
+- **Bash 環境**（WSL2 / Git Bash）— justfile・スクリプトが Bash 前提
+- **just**（justfile 実行に必要）
 - **Docker / Docker Compose** v2（必須）
 - **Rust 1.93+**（CLI ビルド・サーバー開発時）
 - Go 1.24+ / Node.js 22+ / Dart 3.5+（各言語で開発する場合）

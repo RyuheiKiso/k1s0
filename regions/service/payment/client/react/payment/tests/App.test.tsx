@@ -73,8 +73,8 @@ describe('PaymentList', () => {
       </TestWrapper>
     );
 
-    // ローディング表示の確認
-    expect(screen.getByText('読み込み中...')).toBeInTheDocument();
+    // ローディング表示の確認（RouterProvider経由のため非同期で検索）
+    expect(await screen.findByText('読み込み中...')).toBeInTheDocument();
 
     // データ取得後に決済データが表示されることを確認
     await waitFor(() => {
