@@ -41,6 +41,8 @@ type EventMetadata struct {
 	CorrelationId string `protobuf:"bytes,6,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
 	// スキーマバージョン
 	SchemaVersion int32 `protobuf:"varint,7,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
+	// 因果関係追跡用 ID（このイベントを引き起こしたコマンド/イベントの ID）
+	CausationId   string `protobuf:"bytes,8,opt,name=causation_id,json=causationId,proto3" json:"causation_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -124,11 +126,18 @@ func (x *EventMetadata) GetSchemaVersion() int32 {
 	return 0
 }
 
+func (x *EventMetadata) GetCausationId() string {
+	if x != nil {
+		return x.CausationId
+	}
+	return ""
+}
+
 var File_k1s0_system_common_v1_event_metadata_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_common_v1_event_metadata_proto_rawDesc = "" +
 	"\n" +
-	"*k1s0/system/common/v1/event_metadata.proto\x12\x15k1s0.system.common.v1\"\xe8\x01\n" +
+	"*k1s0/system/common/v1/event_metadata.proto\x12\x15k1s0.system.common.v1\"\x8b\x02\n" +
 	"\rEventMetadata\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x1d\n" +
 	"\n" +
@@ -137,7 +146,8 @@ const file_k1s0_system_common_v1_event_metadata_proto_rawDesc = "" +
 	"\ttimestamp\x18\x04 \x01(\x03R\ttimestamp\x12\x19\n" +
 	"\btrace_id\x18\x05 \x01(\tR\atraceId\x12%\n" +
 	"\x0ecorrelation_id\x18\x06 \x01(\tR\rcorrelationId\x12%\n" +
-	"\x0eschema_version\x18\a \x01(\x05R\rschemaVersionBDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1b\x06proto3"
+	"\x0eschema_version\x18\a \x01(\x05R\rschemaVersion\x12!\n" +
+	"\fcausation_id\x18\b \x01(\tR\vcausationIdBDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1b\x06proto3"
 
 var (
 	file_k1s0_system_common_v1_event_metadata_proto_rawDescOnce sync.Once

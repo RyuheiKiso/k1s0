@@ -1354,6 +1354,122 @@ func (x *ProvisioningJob) GetUpdatedAt() *v1.Timestamp {
 	return nil
 }
 
+// WatchTenantRequest はテナント変更監視リクエスト。
+type WatchTenantRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 監視対象のテナント ID（空の場合は全テナントの変更を受け取る）
+	TenantId      string `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchTenantRequest) Reset() {
+	*x = WatchTenantRequest{}
+	mi := &file_k1s0_system_tenant_v1_tenant_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchTenantRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchTenantRequest) ProtoMessage() {}
+
+func (x *WatchTenantRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_k1s0_system_tenant_v1_tenant_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchTenantRequest.ProtoReflect.Descriptor instead.
+func (*WatchTenantRequest) Descriptor() ([]byte, []int) {
+	return file_k1s0_system_tenant_v1_tenant_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *WatchTenantRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+// WatchTenantResponse はテナント変更の監視レスポンス（ストリーミング）。
+type WatchTenantResponse struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	TenantId string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	// CREATED, UPDATED, SUSPENDED, ACTIVATED, DELETED
+	ChangeType    string        `protobuf:"bytes,2,opt,name=change_type,json=changeType,proto3" json:"change_type,omitempty"`
+	Tenant        *Tenant       `protobuf:"bytes,3,opt,name=tenant,proto3" json:"tenant,omitempty"`
+	ChangedAt     *v1.Timestamp `protobuf:"bytes,4,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchTenantResponse) Reset() {
+	*x = WatchTenantResponse{}
+	mi := &file_k1s0_system_tenant_v1_tenant_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchTenantResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchTenantResponse) ProtoMessage() {}
+
+func (x *WatchTenantResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_k1s0_system_tenant_v1_tenant_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchTenantResponse.ProtoReflect.Descriptor instead.
+func (*WatchTenantResponse) Descriptor() ([]byte, []int) {
+	return file_k1s0_system_tenant_v1_tenant_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *WatchTenantResponse) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *WatchTenantResponse) GetChangeType() string {
+	if x != nil {
+		return x.ChangeType
+	}
+	return ""
+}
+
+func (x *WatchTenantResponse) GetTenant() *Tenant {
+	if x != nil {
+		return x.Tenant
+	}
+	return nil
+}
+
+func (x *WatchTenantResponse) GetChangedAt() *v1.Timestamp {
+	if x != nil {
+		return x.ChangedAt
+	}
+	return nil
+}
+
 var File_k1s0_system_tenant_v1_tenant_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_tenant_v1_tenant_proto_rawDesc = "" +
@@ -1446,7 +1562,17 @@ const file_k1s0_system_tenant_v1_tenant_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt2\x9f\t\n" +
+	"updated_at\x18\a \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"1\n" +
+	"\x12WatchTenantRequest\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\"\xcb\x01\n" +
+	"\x13WatchTenantResponse\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1f\n" +
+	"\vchange_type\x18\x02 \x01(\tR\n" +
+	"changeType\x125\n" +
+	"\x06tenant\x18\x03 \x01(\v2\x1d.k1s0.system.tenant.v1.TenantR\x06tenant\x12?\n" +
+	"\n" +
+	"changed_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tchangedAt2\x87\n" +
+	"\n" +
 	"\rTenantService\x12g\n" +
 	"\fCreateTenant\x12*.k1s0.system.tenant.v1.CreateTenantRequest\x1a+.k1s0.system.tenant.v1.CreateTenantResponse\x12^\n" +
 	"\tGetTenant\x12'.k1s0.system.tenant.v1.GetTenantRequest\x1a(.k1s0.system.tenant.v1.GetTenantResponse\x12d\n" +
@@ -1458,7 +1584,8 @@ const file_k1s0_system_tenant_v1_tenant_proto_rawDesc = "" +
 	"\tAddMember\x12'.k1s0.system.tenant.v1.AddMemberRequest\x1a(.k1s0.system.tenant.v1.AddMemberResponse\x12d\n" +
 	"\vListMembers\x12).k1s0.system.tenant.v1.ListMembersRequest\x1a*.k1s0.system.tenant.v1.ListMembersResponse\x12g\n" +
 	"\fRemoveMember\x12*.k1s0.system.tenant.v1.RemoveMemberRequest\x1a+.k1s0.system.tenant.v1.RemoveMemberResponse\x12\x82\x01\n" +
-	"\x15GetProvisioningStatus\x123.k1s0.system.tenant.v1.GetProvisioningStatusRequest\x1a4.k1s0.system.tenant.v1.GetProvisioningStatusResponseB=Z;github.com/k1s0-platform/system-proto-go/tenant/v1;tenantv1b\x06proto3"
+	"\x15GetProvisioningStatus\x123.k1s0.system.tenant.v1.GetProvisioningStatusRequest\x1a4.k1s0.system.tenant.v1.GetProvisioningStatusResponse\x12f\n" +
+	"\vWatchTenant\x12).k1s0.system.tenant.v1.WatchTenantRequest\x1a*.k1s0.system.tenant.v1.WatchTenantResponse0\x01B=Z;github.com/k1s0-platform/system-proto-go/tenant/v1;tenantv1b\x06proto3"
 
 var (
 	file_k1s0_system_tenant_v1_tenant_proto_rawDescOnce sync.Once
@@ -1472,7 +1599,7 @@ func file_k1s0_system_tenant_v1_tenant_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_tenant_v1_tenant_proto_rawDescData
 }
 
-var file_k1s0_system_tenant_v1_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_k1s0_system_tenant_v1_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_k1s0_system_tenant_v1_tenant_proto_goTypes = []any{
 	(*CreateTenantRequest)(nil),           // 0: k1s0.system.tenant.v1.CreateTenantRequest
 	(*CreateTenantResponse)(nil),          // 1: k1s0.system.tenant.v1.CreateTenantResponse
@@ -1499,16 +1626,18 @@ var file_k1s0_system_tenant_v1_tenant_proto_goTypes = []any{
 	(*Tenant)(nil),                        // 22: k1s0.system.tenant.v1.Tenant
 	(*TenantMember)(nil),                  // 23: k1s0.system.tenant.v1.TenantMember
 	(*ProvisioningJob)(nil),               // 24: k1s0.system.tenant.v1.ProvisioningJob
-	(*v1.Pagination)(nil),                 // 25: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),           // 26: k1s0.system.common.v1.PaginationResult
-	(*v1.Timestamp)(nil),                  // 27: k1s0.system.common.v1.Timestamp
+	(*WatchTenantRequest)(nil),            // 25: k1s0.system.tenant.v1.WatchTenantRequest
+	(*WatchTenantResponse)(nil),           // 26: k1s0.system.tenant.v1.WatchTenantResponse
+	(*v1.Pagination)(nil),                 // 27: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),           // 28: k1s0.system.common.v1.PaginationResult
+	(*v1.Timestamp)(nil),                  // 29: k1s0.system.common.v1.Timestamp
 }
 var file_k1s0_system_tenant_v1_tenant_proto_depIdxs = []int32{
 	22, // 0: k1s0.system.tenant.v1.CreateTenantResponse.tenant:type_name -> k1s0.system.tenant.v1.Tenant
 	22, // 1: k1s0.system.tenant.v1.GetTenantResponse.tenant:type_name -> k1s0.system.tenant.v1.Tenant
-	25, // 2: k1s0.system.tenant.v1.ListTenantsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	27, // 2: k1s0.system.tenant.v1.ListTenantsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
 	22, // 3: k1s0.system.tenant.v1.ListTenantsResponse.tenants:type_name -> k1s0.system.tenant.v1.Tenant
-	26, // 4: k1s0.system.tenant.v1.ListTenantsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	28, // 4: k1s0.system.tenant.v1.ListTenantsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
 	22, // 5: k1s0.system.tenant.v1.UpdateTenantResponse.tenant:type_name -> k1s0.system.tenant.v1.Tenant
 	22, // 6: k1s0.system.tenant.v1.SuspendTenantResponse.tenant:type_name -> k1s0.system.tenant.v1.Tenant
 	22, // 7: k1s0.system.tenant.v1.ActivateTenantResponse.tenant:type_name -> k1s0.system.tenant.v1.Tenant
@@ -1516,38 +1645,42 @@ var file_k1s0_system_tenant_v1_tenant_proto_depIdxs = []int32{
 	23, // 9: k1s0.system.tenant.v1.AddMemberResponse.member:type_name -> k1s0.system.tenant.v1.TenantMember
 	23, // 10: k1s0.system.tenant.v1.ListMembersResponse.members:type_name -> k1s0.system.tenant.v1.TenantMember
 	24, // 11: k1s0.system.tenant.v1.GetProvisioningStatusResponse.job:type_name -> k1s0.system.tenant.v1.ProvisioningJob
-	27, // 12: k1s0.system.tenant.v1.Tenant.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	27, // 13: k1s0.system.tenant.v1.Tenant.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	27, // 14: k1s0.system.tenant.v1.TenantMember.joined_at:type_name -> k1s0.system.common.v1.Timestamp
-	27, // 15: k1s0.system.tenant.v1.ProvisioningJob.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	27, // 16: k1s0.system.tenant.v1.ProvisioningJob.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	0,  // 17: k1s0.system.tenant.v1.TenantService.CreateTenant:input_type -> k1s0.system.tenant.v1.CreateTenantRequest
-	2,  // 18: k1s0.system.tenant.v1.TenantService.GetTenant:input_type -> k1s0.system.tenant.v1.GetTenantRequest
-	4,  // 19: k1s0.system.tenant.v1.TenantService.ListTenants:input_type -> k1s0.system.tenant.v1.ListTenantsRequest
-	6,  // 20: k1s0.system.tenant.v1.TenantService.UpdateTenant:input_type -> k1s0.system.tenant.v1.UpdateTenantRequest
-	8,  // 21: k1s0.system.tenant.v1.TenantService.SuspendTenant:input_type -> k1s0.system.tenant.v1.SuspendTenantRequest
-	10, // 22: k1s0.system.tenant.v1.TenantService.ActivateTenant:input_type -> k1s0.system.tenant.v1.ActivateTenantRequest
-	12, // 23: k1s0.system.tenant.v1.TenantService.DeleteTenant:input_type -> k1s0.system.tenant.v1.DeleteTenantRequest
-	14, // 24: k1s0.system.tenant.v1.TenantService.AddMember:input_type -> k1s0.system.tenant.v1.AddMemberRequest
-	16, // 25: k1s0.system.tenant.v1.TenantService.ListMembers:input_type -> k1s0.system.tenant.v1.ListMembersRequest
-	18, // 26: k1s0.system.tenant.v1.TenantService.RemoveMember:input_type -> k1s0.system.tenant.v1.RemoveMemberRequest
-	20, // 27: k1s0.system.tenant.v1.TenantService.GetProvisioningStatus:input_type -> k1s0.system.tenant.v1.GetProvisioningStatusRequest
-	1,  // 28: k1s0.system.tenant.v1.TenantService.CreateTenant:output_type -> k1s0.system.tenant.v1.CreateTenantResponse
-	3,  // 29: k1s0.system.tenant.v1.TenantService.GetTenant:output_type -> k1s0.system.tenant.v1.GetTenantResponse
-	5,  // 30: k1s0.system.tenant.v1.TenantService.ListTenants:output_type -> k1s0.system.tenant.v1.ListTenantsResponse
-	7,  // 31: k1s0.system.tenant.v1.TenantService.UpdateTenant:output_type -> k1s0.system.tenant.v1.UpdateTenantResponse
-	9,  // 32: k1s0.system.tenant.v1.TenantService.SuspendTenant:output_type -> k1s0.system.tenant.v1.SuspendTenantResponse
-	11, // 33: k1s0.system.tenant.v1.TenantService.ActivateTenant:output_type -> k1s0.system.tenant.v1.ActivateTenantResponse
-	13, // 34: k1s0.system.tenant.v1.TenantService.DeleteTenant:output_type -> k1s0.system.tenant.v1.DeleteTenantResponse
-	15, // 35: k1s0.system.tenant.v1.TenantService.AddMember:output_type -> k1s0.system.tenant.v1.AddMemberResponse
-	17, // 36: k1s0.system.tenant.v1.TenantService.ListMembers:output_type -> k1s0.system.tenant.v1.ListMembersResponse
-	19, // 37: k1s0.system.tenant.v1.TenantService.RemoveMember:output_type -> k1s0.system.tenant.v1.RemoveMemberResponse
-	21, // 38: k1s0.system.tenant.v1.TenantService.GetProvisioningStatus:output_type -> k1s0.system.tenant.v1.GetProvisioningStatusResponse
-	28, // [28:39] is the sub-list for method output_type
-	17, // [17:28] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	29, // 12: k1s0.system.tenant.v1.Tenant.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	29, // 13: k1s0.system.tenant.v1.Tenant.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	29, // 14: k1s0.system.tenant.v1.TenantMember.joined_at:type_name -> k1s0.system.common.v1.Timestamp
+	29, // 15: k1s0.system.tenant.v1.ProvisioningJob.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	29, // 16: k1s0.system.tenant.v1.ProvisioningJob.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	22, // 17: k1s0.system.tenant.v1.WatchTenantResponse.tenant:type_name -> k1s0.system.tenant.v1.Tenant
+	29, // 18: k1s0.system.tenant.v1.WatchTenantResponse.changed_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 19: k1s0.system.tenant.v1.TenantService.CreateTenant:input_type -> k1s0.system.tenant.v1.CreateTenantRequest
+	2,  // 20: k1s0.system.tenant.v1.TenantService.GetTenant:input_type -> k1s0.system.tenant.v1.GetTenantRequest
+	4,  // 21: k1s0.system.tenant.v1.TenantService.ListTenants:input_type -> k1s0.system.tenant.v1.ListTenantsRequest
+	6,  // 22: k1s0.system.tenant.v1.TenantService.UpdateTenant:input_type -> k1s0.system.tenant.v1.UpdateTenantRequest
+	8,  // 23: k1s0.system.tenant.v1.TenantService.SuspendTenant:input_type -> k1s0.system.tenant.v1.SuspendTenantRequest
+	10, // 24: k1s0.system.tenant.v1.TenantService.ActivateTenant:input_type -> k1s0.system.tenant.v1.ActivateTenantRequest
+	12, // 25: k1s0.system.tenant.v1.TenantService.DeleteTenant:input_type -> k1s0.system.tenant.v1.DeleteTenantRequest
+	14, // 26: k1s0.system.tenant.v1.TenantService.AddMember:input_type -> k1s0.system.tenant.v1.AddMemberRequest
+	16, // 27: k1s0.system.tenant.v1.TenantService.ListMembers:input_type -> k1s0.system.tenant.v1.ListMembersRequest
+	18, // 28: k1s0.system.tenant.v1.TenantService.RemoveMember:input_type -> k1s0.system.tenant.v1.RemoveMemberRequest
+	20, // 29: k1s0.system.tenant.v1.TenantService.GetProvisioningStatus:input_type -> k1s0.system.tenant.v1.GetProvisioningStatusRequest
+	25, // 30: k1s0.system.tenant.v1.TenantService.WatchTenant:input_type -> k1s0.system.tenant.v1.WatchTenantRequest
+	1,  // 31: k1s0.system.tenant.v1.TenantService.CreateTenant:output_type -> k1s0.system.tenant.v1.CreateTenantResponse
+	3,  // 32: k1s0.system.tenant.v1.TenantService.GetTenant:output_type -> k1s0.system.tenant.v1.GetTenantResponse
+	5,  // 33: k1s0.system.tenant.v1.TenantService.ListTenants:output_type -> k1s0.system.tenant.v1.ListTenantsResponse
+	7,  // 34: k1s0.system.tenant.v1.TenantService.UpdateTenant:output_type -> k1s0.system.tenant.v1.UpdateTenantResponse
+	9,  // 35: k1s0.system.tenant.v1.TenantService.SuspendTenant:output_type -> k1s0.system.tenant.v1.SuspendTenantResponse
+	11, // 36: k1s0.system.tenant.v1.TenantService.ActivateTenant:output_type -> k1s0.system.tenant.v1.ActivateTenantResponse
+	13, // 37: k1s0.system.tenant.v1.TenantService.DeleteTenant:output_type -> k1s0.system.tenant.v1.DeleteTenantResponse
+	15, // 38: k1s0.system.tenant.v1.TenantService.AddMember:output_type -> k1s0.system.tenant.v1.AddMemberResponse
+	17, // 39: k1s0.system.tenant.v1.TenantService.ListMembers:output_type -> k1s0.system.tenant.v1.ListMembersResponse
+	19, // 40: k1s0.system.tenant.v1.TenantService.RemoveMember:output_type -> k1s0.system.tenant.v1.RemoveMemberResponse
+	21, // 41: k1s0.system.tenant.v1.TenantService.GetProvisioningStatus:output_type -> k1s0.system.tenant.v1.GetProvisioningStatusResponse
+	26, // 42: k1s0.system.tenant.v1.TenantService.WatchTenant:output_type -> k1s0.system.tenant.v1.WatchTenantResponse
+	31, // [31:43] is the sub-list for method output_type
+	19, // [19:31] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_tenant_v1_tenant_proto_init() }
@@ -1561,7 +1694,7 @@ func file_k1s0_system_tenant_v1_tenant_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_tenant_v1_tenant_proto_rawDesc), len(file_k1s0_system_tenant_v1_tenant_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   25,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

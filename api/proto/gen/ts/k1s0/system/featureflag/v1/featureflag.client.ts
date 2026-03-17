@@ -4,6 +4,9 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { FeatureFlagService } from "./featureflag";
+import type { WatchFeatureFlagResponse } from "./featureflag";
+import type { WatchFeatureFlagRequest } from "./featureflag";
+import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
 import type { DeleteFlagResponse } from "./featureflag";
 import type { DeleteFlagRequest } from "./featureflag";
 import type { UpdateFlagResponse } from "./featureflag";
@@ -47,6 +50,12 @@ export interface IFeatureFlagServiceClient {
      * @generated from protobuf rpc: DeleteFlag
      */
     deleteFlag(input: DeleteFlagRequest, options?: RpcOptions): UnaryCall<DeleteFlagRequest, DeleteFlagResponse>;
+    /**
+     * WatchFeatureFlag はフラグ変更の監視（Server-Side Streaming）。
+     *
+     * @generated from protobuf rpc: WatchFeatureFlag
+     */
+    watchFeatureFlag(input: WatchFeatureFlagRequest, options?: RpcOptions): ServerStreamingCall<WatchFeatureFlagRequest, WatchFeatureFlagResponse>;
 }
 /**
  * @generated from protobuf service k1s0.system.featureflag.v1.FeatureFlagService
@@ -98,5 +107,14 @@ export class FeatureFlagServiceClient implements IFeatureFlagServiceClient, Serv
     deleteFlag(input: DeleteFlagRequest, options?: RpcOptions): UnaryCall<DeleteFlagRequest, DeleteFlagResponse> {
         const method = this.methods[5], opt = this._transport.mergeOptions(options);
         return stackIntercept<DeleteFlagRequest, DeleteFlagResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * WatchFeatureFlag はフラグ変更の監視（Server-Side Streaming）。
+     *
+     * @generated from protobuf rpc: WatchFeatureFlag
+     */
+    watchFeatureFlag(input: WatchFeatureFlagRequest, options?: RpcOptions): ServerStreamingCall<WatchFeatureFlagRequest, WatchFeatureFlagResponse> {
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        return stackIntercept<WatchFeatureFlagRequest, WatchFeatureFlagResponse>("serverStreaming", this._transport, method, opt, input);
     }
 }

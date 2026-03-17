@@ -23,11 +23,11 @@ pub struct SagaStateProto {
     #[prost(message, optional, tag="5")]
     pub payload: ::core::option::Option<super::super::super::super::google::protobuf::Struct>,
     /// 業務相関 ID
-    #[prost(string, tag="6")]
-    pub correlation_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="6")]
+    pub correlation_id: ::core::option::Option<::prost::alloc::string::String>,
     /// 呼び出し元サービス名
-    #[prost(string, tag="7")]
-    pub initiated_by: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="7")]
+    pub initiated_by: ::core::option::Option<::prost::alloc::string::String>,
     /// エラーメッセージ（失敗時）
     #[prost(string, optional, tag="8")]
     pub error_message: ::core::option::Option<::prost::alloc::string::String>,
@@ -64,8 +64,8 @@ pub struct SagaStepLogProto {
     #[prost(message, optional, tag="8")]
     pub response_payload: ::core::option::Option<super::super::super::super::google::protobuf::Struct>,
     /// エラーメッセージ（失敗時）
-    #[prost(string, tag="9")]
-    pub error_message: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="9")]
+    pub error_message: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag="10")]
     pub started_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag="11")]

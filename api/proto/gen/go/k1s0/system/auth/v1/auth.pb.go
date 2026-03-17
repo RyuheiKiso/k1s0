@@ -159,7 +159,11 @@ type TokenClaims struct {
 	// アクセス可能 Tier
 	TierAccess []string `protobuf:"bytes,11,rep,name=tier_access,json=tierAccess,proto3" json:"tier_access,omitempty"`
 	// OAuth2 scope（スペース区切り）
-	Scope         string `protobuf:"bytes,12,opt,name=scope,proto3" json:"scope,omitempty"`
+	Scope string `protobuf:"bytes,12,opt,name=scope,proto3" json:"scope,omitempty"`
+	// トークン種別（例: Bearer）
+	Typ *string `protobuf:"bytes,13,opt,name=typ,proto3,oneof" json:"typ,omitempty"`
+	// 認可されたクライアント ID
+	Azp           *string `protobuf:"bytes,14,opt,name=azp,proto3,oneof" json:"azp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -274,6 +278,20 @@ func (x *TokenClaims) GetTierAccess() []string {
 func (x *TokenClaims) GetScope() string {
 	if x != nil {
 		return x.Scope
+	}
+	return ""
+}
+
+func (x *TokenClaims) GetTyp() string {
+	if x != nil && x.Typ != nil {
+		return *x.Typ
+	}
+	return ""
+}
+
+func (x *TokenClaims) GetAzp() string {
+	if x != nil && x.Azp != nil {
+		return *x.Azp
 	}
 	return ""
 }
@@ -1532,7 +1550,7 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\x15ValidateTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x128\n" +
 	"\x06claims\x18\x02 \x01(\v2 .k1s0.system.auth.v1.TokenClaimsR\x06claims\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"\xfe\x03\n" +
+	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"\xbc\x04\n" +
 	"\vTokenClaims\x12\x10\n" +
 	"\x03sub\x18\x01 \x01(\tR\x03sub\x12\x10\n" +
 	"\x03iss\x18\x02 \x01(\tR\x03iss\x12\x10\n" +
@@ -1547,10 +1565,14 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	" \x03(\v24.k1s0.system.auth.v1.TokenClaims.ResourceAccessEntryR\x0eresourceAccess\x12\x1f\n" +
 	"\vtier_access\x18\v \x03(\tR\n" +
 	"tierAccess\x12\x14\n" +
-	"\x05scope\x18\f \x01(\tR\x05scope\x1ac\n" +
+	"\x05scope\x18\f \x01(\tR\x05scope\x12\x15\n" +
+	"\x03typ\x18\r \x01(\tH\x00R\x03typ\x88\x01\x01\x12\x15\n" +
+	"\x03azp\x18\x0e \x01(\tH\x01R\x03azp\x88\x01\x01\x1ac\n" +
 	"\x13ResourceAccessEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x126\n" +
-	"\x05value\x18\x02 \x01(\v2 .k1s0.system.auth.v1.ClientRolesR\x05value:\x028\x01\"#\n" +
+	"\x05value\x18\x02 \x01(\v2 .k1s0.system.auth.v1.ClientRolesR\x05value:\x028\x01B\x06\n" +
+	"\x04_typB\x06\n" +
+	"\x04_azp\"#\n" +
 	"\vRealmAccess\x12\x14\n" +
 	"\x05roles\x18\x01 \x03(\tR\x05roles\"#\n" +
 	"\vClientRoles\x12\x14\n" +
@@ -1682,7 +1704,7 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\x0fCheckPermission\x12+.k1s0.system.auth.v1.CheckPermissionRequest\x1a,.k1s0.system.auth.v1.CheckPermissionResponse2\xe7\x01\n" +
 	"\fAuditService\x12i\n" +
 	"\x0eRecordAuditLog\x12*.k1s0.system.auth.v1.RecordAuditLogRequest\x1a+.k1s0.system.auth.v1.RecordAuditLogResponse\x12l\n" +
-	"\x0fSearchAuditLogs\x12+.k1s0.system.auth.v1.SearchAuditLogsRequest\x1a,.k1s0.system.auth.v1.SearchAuditLogsResponseBRZPgithub.com/k1s0-platform/system-server-go-auth/gen/go/k1s0/system/auth/v1;authv1b\x06proto3"
+	"\x0fSearchAuditLogs\x12+.k1s0.system.auth.v1.SearchAuditLogsRequest\x1a,.k1s0.system.auth.v1.SearchAuditLogsResponseB@Z>github.com/k1s0-platform/api/gen/go/k1s0/system/auth/v1;authv1b\x06proto3"
 
 var (
 	file_k1s0_system_auth_v1_auth_proto_rawDescOnce sync.Once
@@ -1779,6 +1801,7 @@ func file_k1s0_system_auth_v1_auth_proto_init() {
 	if File_k1s0_system_auth_v1_auth_proto != nil {
 		return
 	}
+	file_k1s0_system_auth_v1_auth_proto_msgTypes[2].OneofWrappers = []any{}
 	file_k1s0_system_auth_v1_auth_proto_msgTypes[7].OneofWrappers = []any{}
 	file_k1s0_system_auth_v1_auth_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}

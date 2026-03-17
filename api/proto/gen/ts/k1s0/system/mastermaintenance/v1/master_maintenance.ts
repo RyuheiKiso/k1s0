@@ -45,6 +45,10 @@ export interface UpdateTableDefinitionRequest {
      * @generated from protobuf field: google.protobuf.Struct data = 2
      */
     data?: Struct;
+    /**
+     * @generated from protobuf field: string domain_scope = 3
+     */
+    domainScope: string;
 }
 /**
  * @generated from protobuf message k1s0.system.mastermaintenance.v1.UpdateTableDefinitionResponse
@@ -63,6 +67,10 @@ export interface DeleteTableDefinitionRequest {
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
+    /**
+     * @generated from protobuf field: string domain_scope = 2
+     */
+    domainScope: string;
 }
 /**
  * @generated from protobuf message k1s0.system.mastermaintenance.v1.DeleteTableDefinitionResponse
@@ -83,6 +91,10 @@ export interface GetTableDefinitionRequest {
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
+    /**
+     * @generated from protobuf field: string domain_scope = 2
+     */
+    domainScope: string;
 }
 /**
  * テーブル定義レスポンス
@@ -158,6 +170,22 @@ export interface GetTableDefinitionResponse {
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 17
      */
     updatedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: string domain_scope = 18
+     */
+    domainScope: string;
+    /**
+     * @generated from protobuf field: repeated string read_roles = 19
+     */
+    readRoles: string[];
+    /**
+     * @generated from protobuf field: repeated string write_roles = 20
+     */
+    writeRoles: string[];
+    /**
+     * @generated from protobuf field: repeated string admin_roles = 21
+     */
+    adminRoles: string[];
 }
 /**
  * カラム定義
@@ -303,6 +331,10 @@ export interface ListTableDefinitionsRequest {
      * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 3
      */
     pagination?: Pagination;
+    /**
+     * @generated from protobuf field: string domain_scope = 4
+     */
+    domainScope: string;
 }
 /**
  * テーブル定義一覧レスポンス
@@ -333,6 +365,10 @@ export interface GetRecordRequest {
      * @generated from protobuf field: string record_id = 2
      */
     recordId: string;
+    /**
+     * @generated from protobuf field: string domain_scope = 3
+     */
+    domainScope: string;
 }
 /**
  * レコードレスポンス
@@ -401,6 +437,10 @@ export interface ListRecordsRequest {
      * @generated from protobuf field: string search = 5
      */
     search: string;
+    /**
+     * @generated from protobuf field: string domain_scope = 6
+     */
+    domainScope: string;
 }
 /**
  * レコード一覧レスポンス
@@ -431,6 +471,10 @@ export interface CreateRecordRequest {
      * @generated from protobuf field: google.protobuf.Struct data = 2
      */
     data?: Struct;
+    /**
+     * @generated from protobuf field: string domain_scope = 3
+     */
+    domainScope: string;
 }
 /**
  * レコード更新リクエスト
@@ -450,6 +494,10 @@ export interface UpdateRecordRequest {
      * @generated from protobuf field: google.protobuf.Struct data = 3
      */
     data?: Struct;
+    /**
+     * @generated from protobuf field: string domain_scope = 4
+     */
+    domainScope: string;
 }
 /**
  * レコード削除リクエスト
@@ -465,6 +513,10 @@ export interface DeleteRecordRequest {
      * @generated from protobuf field: string record_id = 2
      */
     recordId: string;
+    /**
+     * @generated from protobuf field: string domain_scope = 3
+     */
+    domainScope: string;
 }
 /**
  * レコード削除レスポンス
@@ -491,6 +543,10 @@ export interface CheckConsistencyRequest {
      * @generated from protobuf field: repeated string rule_ids = 2
      */
     ruleIds: string[];
+    /**
+     * @generated from protobuf field: string domain_scope = 3
+     */
+    domainScope: string;
 }
 /**
  * 整合性チェックレスポンス
@@ -1210,6 +1266,10 @@ export interface ListTableAuditLogsRequest {
      * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 2
      */
     pagination?: Pagination;
+    /**
+     * @generated from protobuf field: string domain_scope = 3
+     */
+    domainScope: string;
 }
 /**
  * @generated from protobuf message k1s0.system.mastermaintenance.v1.ListTableAuditLogsResponse
@@ -1240,6 +1300,10 @@ export interface ListRecordAuditLogsRequest {
      * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 3
      */
     pagination?: Pagination;
+    /**
+     * @generated from protobuf field: string domain_scope = 4
+     */
+    domainScope: string;
 }
 /**
  * @generated from protobuf message k1s0.system.mastermaintenance.v1.ListRecordAuditLogsResponse
@@ -1302,6 +1366,43 @@ export interface AuditLogEntry {
      * @generated from protobuf field: string created_at = 11
      */
     createdAt: string;
+    /**
+     * @generated from protobuf field: string domain_scope = 12
+     */
+    domainScope: string;
+}
+/**
+ * ドメイン一覧リクエスト
+ *
+ * @generated from protobuf message k1s0.system.mastermaintenance.v1.ListDomainsRequest
+ */
+export interface ListDomainsRequest {
+}
+/**
+ * ドメイン一覧レスポンス
+ *
+ * @generated from protobuf message k1s0.system.mastermaintenance.v1.ListDomainsResponse
+ */
+export interface ListDomainsResponse {
+    /**
+     * @generated from protobuf field: repeated k1s0.system.mastermaintenance.v1.DomainInfo domains = 1
+     */
+    domains: DomainInfo[];
+}
+/**
+ * ドメイン情報
+ *
+ * @generated from protobuf message k1s0.system.mastermaintenance.v1.DomainInfo
+ */
+export interface DomainInfo {
+    /**
+     * @generated from protobuf field: string domain_scope = 1
+     */
+    domainScope: string;
+    /**
+     * @generated from protobuf field: int32 table_count = 2
+     */
+    tableCount: number;
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class CreateTableDefinitionRequest$Type extends MessageType<CreateTableDefinitionRequest> {
@@ -1400,12 +1501,14 @@ class UpdateTableDefinitionRequest$Type extends MessageType<UpdateTableDefinitio
     constructor() {
         super("k1s0.system.mastermaintenance.v1.UpdateTableDefinitionRequest", [
             { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "data", kind: "message", T: () => Struct }
+            { no: 2, name: "data", kind: "message", T: () => Struct },
+            { no: 3, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<UpdateTableDefinitionRequest>): UpdateTableDefinitionRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tableName = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<UpdateTableDefinitionRequest>(this, message, value);
         return message;
@@ -1420,6 +1523,9 @@ class UpdateTableDefinitionRequest$Type extends MessageType<UpdateTableDefinitio
                     break;
                 case /* google.protobuf.Struct data */ 2:
                     message.data = Struct.internalBinaryRead(reader, reader.uint32(), options, message.data);
+                    break;
+                case /* string domain_scope */ 3:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1439,6 +1545,9 @@ class UpdateTableDefinitionRequest$Type extends MessageType<UpdateTableDefinitio
         /* google.protobuf.Struct data = 2; */
         if (message.data)
             Struct.internalBinaryWrite(message.data, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string domain_scope = 3; */
+        if (message.domainScope !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1499,12 +1608,14 @@ export const UpdateTableDefinitionResponse = new UpdateTableDefinitionResponse$T
 class DeleteTableDefinitionRequest$Type extends MessageType<DeleteTableDefinitionRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.DeleteTableDefinitionRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<DeleteTableDefinitionRequest>): DeleteTableDefinitionRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tableName = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<DeleteTableDefinitionRequest>(this, message, value);
         return message;
@@ -1516,6 +1627,9 @@ class DeleteTableDefinitionRequest$Type extends MessageType<DeleteTableDefinitio
             switch (fieldNo) {
                 case /* string table_name */ 1:
                     message.tableName = reader.string();
+                    break;
+                case /* string domain_scope */ 2:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1532,6 +1646,9 @@ class DeleteTableDefinitionRequest$Type extends MessageType<DeleteTableDefinitio
         /* string table_name = 1; */
         if (message.tableName !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.tableName);
+        /* string domain_scope = 2; */
+        if (message.domainScope !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1593,12 +1710,14 @@ export const DeleteTableDefinitionResponse = new DeleteTableDefinitionResponse$T
 class GetTableDefinitionRequest$Type extends MessageType<GetTableDefinitionRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.GetTableDefinitionRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GetTableDefinitionRequest>): GetTableDefinitionRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tableName = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<GetTableDefinitionRequest>(this, message, value);
         return message;
@@ -1610,6 +1729,9 @@ class GetTableDefinitionRequest$Type extends MessageType<GetTableDefinitionReque
             switch (fieldNo) {
                 case /* string table_name */ 1:
                     message.tableName = reader.string();
+                    break;
+                case /* string domain_scope */ 2:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1626,6 +1748,9 @@ class GetTableDefinitionRequest$Type extends MessageType<GetTableDefinitionReque
         /* string table_name = 1; */
         if (message.tableName !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.tableName);
+        /* string domain_scope = 2; */
+        if (message.domainScope !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1656,7 +1781,11 @@ class GetTableDefinitionResponse$Type extends MessageType<GetTableDefinitionResp
             { no: 14, name: "sort_order", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 15, name: "created_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 16, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 17, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 17, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 18, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "read_roles", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "write_roles", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "admin_roles", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GetTableDefinitionResponse>): GetTableDefinitionResponse {
@@ -1676,6 +1805,10 @@ class GetTableDefinitionResponse$Type extends MessageType<GetTableDefinitionResp
         message.isActive = false;
         message.sortOrder = 0;
         message.createdBy = "";
+        message.domainScope = "";
+        message.readRoles = [];
+        message.writeRoles = [];
+        message.adminRoles = [];
         if (value !== undefined)
             reflectionMergePartial<GetTableDefinitionResponse>(this, message, value);
         return message;
@@ -1735,6 +1868,18 @@ class GetTableDefinitionResponse$Type extends MessageType<GetTableDefinitionResp
                     break;
                 case /* k1s0.system.common.v1.Timestamp updated_at */ 17:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* string domain_scope */ 18:
+                    message.domainScope = reader.string();
+                    break;
+                case /* repeated string read_roles */ 19:
+                    message.readRoles.push(reader.string());
+                    break;
+                case /* repeated string write_roles */ 20:
+                    message.writeRoles.push(reader.string());
+                    break;
+                case /* repeated string admin_roles */ 21:
+                    message.adminRoles.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1799,6 +1944,18 @@ class GetTableDefinitionResponse$Type extends MessageType<GetTableDefinitionResp
         /* k1s0.system.common.v1.Timestamp updated_at = 17; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* string domain_scope = 18; */
+        if (message.domainScope !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.domainScope);
+        /* repeated string read_roles = 19; */
+        for (let i = 0; i < message.readRoles.length; i++)
+            writer.tag(19, WireType.LengthDelimited).string(message.readRoles[i]);
+        /* repeated string write_roles = 20; */
+        for (let i = 0; i < message.writeRoles.length; i++)
+            writer.tag(20, WireType.LengthDelimited).string(message.writeRoles[i]);
+        /* repeated string admin_roles = 21; */
+        for (let i = 0; i < message.adminRoles.length; i++)
+            writer.tag(21, WireType.LengthDelimited).string(message.adminRoles[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2114,13 +2271,15 @@ class ListTableDefinitionsRequest$Type extends MessageType<ListTableDefinitionsR
         super("k1s0.system.mastermaintenance.v1.ListTableDefinitionsRequest", [
             { no: 1, name: "category", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "active_only", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 3, name: "pagination", kind: "message", T: () => Pagination }
+            { no: 3, name: "pagination", kind: "message", T: () => Pagination },
+            { no: 4, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListTableDefinitionsRequest>): ListTableDefinitionsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.category = "";
         message.activeOnly = false;
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<ListTableDefinitionsRequest>(this, message, value);
         return message;
@@ -2138,6 +2297,9 @@ class ListTableDefinitionsRequest$Type extends MessageType<ListTableDefinitionsR
                     break;
                 case /* k1s0.system.common.v1.Pagination pagination */ 3:
                     message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
+                    break;
+                case /* string domain_scope */ 4:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2160,6 +2322,9 @@ class ListTableDefinitionsRequest$Type extends MessageType<ListTableDefinitionsR
         /* k1s0.system.common.v1.Pagination pagination = 3; */
         if (message.pagination)
             Pagination.internalBinaryWrite(message.pagination, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string domain_scope = 4; */
+        if (message.domainScope !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2229,13 +2394,15 @@ class GetRecordRequest$Type extends MessageType<GetRecordRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.GetRecordRequest", [
             { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GetRecordRequest>): GetRecordRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tableName = "";
         message.recordId = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<GetRecordRequest>(this, message, value);
         return message;
@@ -2250,6 +2417,9 @@ class GetRecordRequest$Type extends MessageType<GetRecordRequest> {
                     break;
                 case /* string record_id */ 2:
                     message.recordId = reader.string();
+                    break;
+                case /* string domain_scope */ 3:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2269,6 +2439,9 @@ class GetRecordRequest$Type extends MessageType<GetRecordRequest> {
         /* string record_id = 2; */
         if (message.recordId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.recordId);
+        /* string domain_scope = 3; */
+        if (message.domainScope !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2449,7 +2622,8 @@ class ListRecordsRequest$Type extends MessageType<ListRecordsRequest> {
             { no: 2, name: "pagination", kind: "message", T: () => Pagination },
             { no: 3, name: "sort", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "search", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "search", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListRecordsRequest>): ListRecordsRequest {
@@ -2458,6 +2632,7 @@ class ListRecordsRequest$Type extends MessageType<ListRecordsRequest> {
         message.sort = "";
         message.filter = "";
         message.search = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<ListRecordsRequest>(this, message, value);
         return message;
@@ -2481,6 +2656,9 @@ class ListRecordsRequest$Type extends MessageType<ListRecordsRequest> {
                     break;
                 case /* string search */ 5:
                     message.search = reader.string();
+                    break;
+                case /* string domain_scope */ 6:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2509,6 +2687,9 @@ class ListRecordsRequest$Type extends MessageType<ListRecordsRequest> {
         /* string search = 5; */
         if (message.search !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.search);
+        /* string domain_scope = 6; */
+        if (message.domainScope !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2578,12 +2759,14 @@ class CreateRecordRequest$Type extends MessageType<CreateRecordRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.CreateRecordRequest", [
             { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "data", kind: "message", T: () => Struct }
+            { no: 2, name: "data", kind: "message", T: () => Struct },
+            { no: 3, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CreateRecordRequest>): CreateRecordRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tableName = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<CreateRecordRequest>(this, message, value);
         return message;
@@ -2598,6 +2781,9 @@ class CreateRecordRequest$Type extends MessageType<CreateRecordRequest> {
                     break;
                 case /* google.protobuf.Struct data */ 2:
                     message.data = Struct.internalBinaryRead(reader, reader.uint32(), options, message.data);
+                    break;
+                case /* string domain_scope */ 3:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2617,6 +2803,9 @@ class CreateRecordRequest$Type extends MessageType<CreateRecordRequest> {
         /* google.protobuf.Struct data = 2; */
         if (message.data)
             Struct.internalBinaryWrite(message.data, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string domain_scope = 3; */
+        if (message.domainScope !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2633,13 +2822,15 @@ class UpdateRecordRequest$Type extends MessageType<UpdateRecordRequest> {
         super("k1s0.system.mastermaintenance.v1.UpdateRecordRequest", [
             { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "data", kind: "message", T: () => Struct }
+            { no: 3, name: "data", kind: "message", T: () => Struct },
+            { no: 4, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<UpdateRecordRequest>): UpdateRecordRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tableName = "";
         message.recordId = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<UpdateRecordRequest>(this, message, value);
         return message;
@@ -2657,6 +2848,9 @@ class UpdateRecordRequest$Type extends MessageType<UpdateRecordRequest> {
                     break;
                 case /* google.protobuf.Struct data */ 3:
                     message.data = Struct.internalBinaryRead(reader, reader.uint32(), options, message.data);
+                    break;
+                case /* string domain_scope */ 4:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2679,6 +2873,9 @@ class UpdateRecordRequest$Type extends MessageType<UpdateRecordRequest> {
         /* google.protobuf.Struct data = 3; */
         if (message.data)
             Struct.internalBinaryWrite(message.data, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string domain_scope = 4; */
+        if (message.domainScope !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2694,13 +2891,15 @@ class DeleteRecordRequest$Type extends MessageType<DeleteRecordRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.DeleteRecordRequest", [
             { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<DeleteRecordRequest>): DeleteRecordRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tableName = "";
         message.recordId = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<DeleteRecordRequest>(this, message, value);
         return message;
@@ -2715,6 +2914,9 @@ class DeleteRecordRequest$Type extends MessageType<DeleteRecordRequest> {
                     break;
                 case /* string record_id */ 2:
                     message.recordId = reader.string();
+                    break;
+                case /* string domain_scope */ 3:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2734,6 +2936,9 @@ class DeleteRecordRequest$Type extends MessageType<DeleteRecordRequest> {
         /* string record_id = 2; */
         if (message.recordId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.recordId);
+        /* string domain_scope = 3; */
+        if (message.domainScope !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2796,13 +3001,15 @@ class CheckConsistencyRequest$Type extends MessageType<CheckConsistencyRequest> 
     constructor() {
         super("k1s0.system.mastermaintenance.v1.CheckConsistencyRequest", [
             { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "rule_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "rule_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CheckConsistencyRequest>): CheckConsistencyRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tableName = "";
         message.ruleIds = [];
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<CheckConsistencyRequest>(this, message, value);
         return message;
@@ -2817,6 +3024,9 @@ class CheckConsistencyRequest$Type extends MessageType<CheckConsistencyRequest> 
                     break;
                 case /* repeated string rule_ids */ 2:
                     message.ruleIds.push(reader.string());
+                    break;
+                case /* string domain_scope */ 3:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2836,6 +3046,9 @@ class CheckConsistencyRequest$Type extends MessageType<CheckConsistencyRequest> 
         /* repeated string rule_ids = 2; */
         for (let i = 0; i < message.ruleIds.length; i++)
             writer.tag(2, WireType.LengthDelimited).string(message.ruleIds[i]);
+        /* string domain_scope = 3; */
+        if (message.domainScope !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5725,12 +5938,14 @@ class ListTableAuditLogsRequest$Type extends MessageType<ListTableAuditLogsReque
     constructor() {
         super("k1s0.system.mastermaintenance.v1.ListTableAuditLogsRequest", [
             { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "pagination", kind: "message", T: () => Pagination }
+            { no: 2, name: "pagination", kind: "message", T: () => Pagination },
+            { no: 3, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListTableAuditLogsRequest>): ListTableAuditLogsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tableName = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<ListTableAuditLogsRequest>(this, message, value);
         return message;
@@ -5745,6 +5960,9 @@ class ListTableAuditLogsRequest$Type extends MessageType<ListTableAuditLogsReque
                     break;
                 case /* k1s0.system.common.v1.Pagination pagination */ 2:
                     message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
+                    break;
+                case /* string domain_scope */ 3:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5764,6 +5982,9 @@ class ListTableAuditLogsRequest$Type extends MessageType<ListTableAuditLogsReque
         /* k1s0.system.common.v1.Pagination pagination = 2; */
         if (message.pagination)
             Pagination.internalBinaryWrite(message.pagination, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string domain_scope = 3; */
+        if (message.domainScope !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5834,13 +6055,15 @@ class ListRecordAuditLogsRequest$Type extends MessageType<ListRecordAuditLogsReq
         super("k1s0.system.mastermaintenance.v1.ListRecordAuditLogsRequest", [
             { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "pagination", kind: "message", T: () => Pagination }
+            { no: 3, name: "pagination", kind: "message", T: () => Pagination },
+            { no: 4, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListRecordAuditLogsRequest>): ListRecordAuditLogsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tableName = "";
         message.recordId = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<ListRecordAuditLogsRequest>(this, message, value);
         return message;
@@ -5858,6 +6081,9 @@ class ListRecordAuditLogsRequest$Type extends MessageType<ListRecordAuditLogsReq
                     break;
                 case /* k1s0.system.common.v1.Pagination pagination */ 3:
                     message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
+                    break;
+                case /* string domain_scope */ 4:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5880,6 +6106,9 @@ class ListRecordAuditLogsRequest$Type extends MessageType<ListRecordAuditLogsReq
         /* k1s0.system.common.v1.Pagination pagination = 3; */
         if (message.pagination)
             Pagination.internalBinaryWrite(message.pagination, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string domain_scope = 4; */
+        if (message.domainScope !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5958,7 +6187,8 @@ class AuditLogEntry$Type extends MessageType<AuditLogEntry> {
             { no: 8, name: "changed_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "change_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 11, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AuditLogEntry>): AuditLogEntry {
@@ -5974,6 +6204,7 @@ class AuditLogEntry$Type extends MessageType<AuditLogEntry> {
         message.changeReason = "";
         message.traceId = "";
         message.createdAt = "";
+        message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<AuditLogEntry>(this, message, value);
         return message;
@@ -6015,6 +6246,9 @@ class AuditLogEntry$Type extends MessageType<AuditLogEntry> {
                     break;
                 case /* string created_at */ 11:
                     message.createdAt = reader.string();
+                    break;
+                case /* string domain_scope */ 12:
+                    message.domainScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6061,6 +6295,9 @@ class AuditLogEntry$Type extends MessageType<AuditLogEntry> {
         /* string created_at = 11; */
         if (message.createdAt !== "")
             writer.tag(11, WireType.LengthDelimited).string(message.createdAt);
+        /* string domain_scope = 12; */
+        if (message.domainScope !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.domainScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6071,6 +6308,146 @@ class AuditLogEntry$Type extends MessageType<AuditLogEntry> {
  * @generated MessageType for protobuf message k1s0.system.mastermaintenance.v1.AuditLogEntry
  */
 export const AuditLogEntry = new AuditLogEntry$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListDomainsRequest$Type extends MessageType<ListDomainsRequest> {
+    constructor() {
+        super("k1s0.system.mastermaintenance.v1.ListDomainsRequest", []);
+    }
+    create(value?: PartialMessage<ListDomainsRequest>): ListDomainsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListDomainsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListDomainsRequest): ListDomainsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListDomainsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.mastermaintenance.v1.ListDomainsRequest
+ */
+export const ListDomainsRequest = new ListDomainsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListDomainsResponse$Type extends MessageType<ListDomainsResponse> {
+    constructor() {
+        super("k1s0.system.mastermaintenance.v1.ListDomainsResponse", [
+            { no: 1, name: "domains", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DomainInfo }
+        ]);
+    }
+    create(value?: PartialMessage<ListDomainsResponse>): ListDomainsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.domains = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListDomainsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListDomainsResponse): ListDomainsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated k1s0.system.mastermaintenance.v1.DomainInfo domains */ 1:
+                    message.domains.push(DomainInfo.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListDomainsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated k1s0.system.mastermaintenance.v1.DomainInfo domains = 1; */
+        for (let i = 0; i < message.domains.length; i++)
+            DomainInfo.internalBinaryWrite(message.domains[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.mastermaintenance.v1.ListDomainsResponse
+ */
+export const ListDomainsResponse = new ListDomainsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DomainInfo$Type extends MessageType<DomainInfo> {
+    constructor() {
+        super("k1s0.system.mastermaintenance.v1.DomainInfo", [
+            { no: 1, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "table_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<DomainInfo>): DomainInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.domainScope = "";
+        message.tableCount = 0;
+        if (value !== undefined)
+            reflectionMergePartial<DomainInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DomainInfo): DomainInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string domain_scope */ 1:
+                    message.domainScope = reader.string();
+                    break;
+                case /* int32 table_count */ 2:
+                    message.tableCount = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DomainInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string domain_scope = 1; */
+        if (message.domainScope !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.domainScope);
+        /* int32 table_count = 2; */
+        if (message.tableCount !== 0)
+            writer.tag(2, WireType.Varint).int32(message.tableCount);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.mastermaintenance.v1.DomainInfo
+ */
+export const DomainInfo = new DomainInfo$Type();
 /**
  * @generated ServiceType for protobuf service k1s0.system.mastermaintenance.v1.MasterMaintenanceService
  */
@@ -6110,5 +6487,6 @@ export const MasterMaintenanceService = new ServiceType("k1s0.system.mastermaint
     { name: "UpdateDisplayConfig", options: {}, I: UpdateDisplayConfigRequest, O: UpdateDisplayConfigResponse },
     { name: "DeleteDisplayConfig", options: {}, I: DeleteDisplayConfigRequest, O: DeleteDisplayConfigResponse },
     { name: "ListTableAuditLogs", options: {}, I: ListTableAuditLogsRequest, O: ListTableAuditLogsResponse },
-    { name: "ListRecordAuditLogs", options: {}, I: ListRecordAuditLogsRequest, O: ListRecordAuditLogsResponse }
+    { name: "ListRecordAuditLogs", options: {}, I: ListRecordAuditLogsRequest, O: ListRecordAuditLogsResponse },
+    { name: "ListDomains", options: {}, I: ListDomainsRequest, O: ListDomainsResponse }
 ]);

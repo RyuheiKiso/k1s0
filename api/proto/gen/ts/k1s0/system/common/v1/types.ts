@@ -36,11 +36,11 @@ export interface Pagination {
  */
 export interface PaginationResult {
     /**
-     * 全件数
+     * 全件数（大規模データ対応のため int64 を使用）
      *
-     * @generated from protobuf field: int32 total_count = 1
+     * @generated from protobuf field: int64 total_count = 1
      */
-    totalCount: number;
+    totalCount: string;
     /**
      * 現在のページ番号
      *
@@ -138,7 +138,7 @@ export const Pagination = new Pagination$Type();
 class PaginationResult$Type extends MessageType<PaginationResult> {
     constructor() {
         super("k1s0.system.common.v1.PaginationResult", [
-            { no: 1, name: "total_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 1, name: "total_count", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 2, name: "page", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 3, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 4, name: "has_next", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
@@ -146,7 +146,7 @@ class PaginationResult$Type extends MessageType<PaginationResult> {
     }
     create(value?: PartialMessage<PaginationResult>): PaginationResult {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.totalCount = 0;
+        message.totalCount = "0";
         message.page = 0;
         message.pageSize = 0;
         message.hasNext = false;
@@ -159,8 +159,8 @@ class PaginationResult$Type extends MessageType<PaginationResult> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* int32 total_count */ 1:
-                    message.totalCount = reader.int32();
+                case /* int64 total_count */ 1:
+                    message.totalCount = reader.int64().toString();
                     break;
                 case /* int32 page */ 2:
                     message.page = reader.int32();
@@ -183,9 +183,9 @@ class PaginationResult$Type extends MessageType<PaginationResult> {
         return message;
     }
     internalBinaryWrite(message: PaginationResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* int32 total_count = 1; */
-        if (message.totalCount !== 0)
-            writer.tag(1, WireType.Varint).int32(message.totalCount);
+        /* int64 total_count = 1; */
+        if (message.totalCount !== "0")
+            writer.tag(1, WireType.Varint).int64(message.totalCount);
         /* int32 page = 2; */
         if (message.page !== 0)
             writer.tag(2, WireType.Varint).int32(message.page);

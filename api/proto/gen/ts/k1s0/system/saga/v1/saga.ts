@@ -56,15 +56,15 @@ export interface SagaStateProto {
     /**
      * 業務相関 ID
      *
-     * @generated from protobuf field: string correlation_id = 6
+     * @generated from protobuf field: optional string correlation_id = 6
      */
-    correlationId: string;
+    correlationId?: string;
     /**
      * 呼び出し元サービス名
      *
-     * @generated from protobuf field: string initiated_by = 7
+     * @generated from protobuf field: optional string initiated_by = 7
      */
-    initiatedBy: string;
+    initiatedBy?: string;
     /**
      * エラーメッセージ（失敗時）
      *
@@ -137,9 +137,9 @@ export interface SagaStepLogProto {
     /**
      * エラーメッセージ（失敗時）
      *
-     * @generated from protobuf field: string error_message = 9
+     * @generated from protobuf field: optional string error_message = 9
      */
-    errorMessage: string;
+    errorMessage?: string;
     /**
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp started_at = 10
      */
@@ -425,8 +425,8 @@ class SagaStateProto$Type extends MessageType<SagaStateProto> {
             { no: 3, name: "current_step", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 4, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "payload", kind: "message", T: () => Struct },
-            { no: 6, name: "correlation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "initiated_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "correlation_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "initiated_by", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "error_message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 10, name: "updated_at", kind: "message", T: () => Timestamp }
@@ -438,8 +438,6 @@ class SagaStateProto$Type extends MessageType<SagaStateProto> {
         message.workflowName = "";
         message.currentStep = 0;
         message.status = "";
-        message.correlationId = "";
-        message.initiatedBy = "";
         if (value !== undefined)
             reflectionMergePartial<SagaStateProto>(this, message, value);
         return message;
@@ -464,10 +462,10 @@ class SagaStateProto$Type extends MessageType<SagaStateProto> {
                 case /* google.protobuf.Struct payload */ 5:
                     message.payload = Struct.internalBinaryRead(reader, reader.uint32(), options, message.payload);
                     break;
-                case /* string correlation_id */ 6:
+                case /* optional string correlation_id */ 6:
                     message.correlationId = reader.string();
                     break;
-                case /* string initiated_by */ 7:
+                case /* optional string initiated_by */ 7:
                     message.initiatedBy = reader.string();
                     break;
                 case /* optional string error_message */ 8:
@@ -506,11 +504,11 @@ class SagaStateProto$Type extends MessageType<SagaStateProto> {
         /* google.protobuf.Struct payload = 5; */
         if (message.payload)
             Struct.internalBinaryWrite(message.payload, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* string correlation_id = 6; */
-        if (message.correlationId !== "")
+        /* optional string correlation_id = 6; */
+        if (message.correlationId !== undefined)
             writer.tag(6, WireType.LengthDelimited).string(message.correlationId);
-        /* string initiated_by = 7; */
-        if (message.initiatedBy !== "")
+        /* optional string initiated_by = 7; */
+        if (message.initiatedBy !== undefined)
             writer.tag(7, WireType.LengthDelimited).string(message.initiatedBy);
         /* optional string error_message = 8; */
         if (message.errorMessage !== undefined)
@@ -543,7 +541,7 @@ class SagaStepLogProto$Type extends MessageType<SagaStepLogProto> {
             { no: 6, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "request_payload", kind: "message", T: () => Struct },
             { no: 8, name: "response_payload", kind: "message", T: () => Struct },
-            { no: 9, name: "error_message", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "error_message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "started_at", kind: "message", T: () => Timestamp },
             { no: 11, name: "completed_at", kind: "message", T: () => Timestamp }
         ]);
@@ -556,7 +554,6 @@ class SagaStepLogProto$Type extends MessageType<SagaStepLogProto> {
         message.stepName = "";
         message.action = "";
         message.status = "";
-        message.errorMessage = "";
         if (value !== undefined)
             reflectionMergePartial<SagaStepLogProto>(this, message, value);
         return message;
@@ -590,7 +587,7 @@ class SagaStepLogProto$Type extends MessageType<SagaStepLogProto> {
                 case /* google.protobuf.Struct response_payload */ 8:
                     message.responsePayload = Struct.internalBinaryRead(reader, reader.uint32(), options, message.responsePayload);
                     break;
-                case /* string error_message */ 9:
+                case /* optional string error_message */ 9:
                     message.errorMessage = reader.string();
                     break;
                 case /* k1s0.system.common.v1.Timestamp started_at */ 10:
@@ -635,8 +632,8 @@ class SagaStepLogProto$Type extends MessageType<SagaStepLogProto> {
         /* google.protobuf.Struct response_payload = 8; */
         if (message.responsePayload)
             Struct.internalBinaryWrite(message.responsePayload, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* string error_message = 9; */
-        if (message.errorMessage !== "")
+        /* optional string error_message = 9; */
+        if (message.errorMessage !== undefined)
             writer.tag(9, WireType.LengthDelimited).string(message.errorMessage);
         /* k1s0.system.common.v1.Timestamp started_at = 10; */
         if (message.startedAt)

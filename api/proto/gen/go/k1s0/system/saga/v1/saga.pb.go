@@ -40,9 +40,9 @@ type SagaStateProto struct {
 	// 各ステップに渡す JSON ペイロード
 	Payload *structpb.Struct `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
 	// 業務相関 ID
-	CorrelationId string `protobuf:"bytes,6,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	CorrelationId *string `protobuf:"bytes,6,opt,name=correlation_id,json=correlationId,proto3,oneof" json:"correlation_id,omitempty"`
 	// 呼び出し元サービス名
-	InitiatedBy string `protobuf:"bytes,7,opt,name=initiated_by,json=initiatedBy,proto3" json:"initiated_by,omitempty"`
+	InitiatedBy *string `protobuf:"bytes,7,opt,name=initiated_by,json=initiatedBy,proto3,oneof" json:"initiated_by,omitempty"`
 	// エラーメッセージ（失敗時）
 	ErrorMessage  *string       `protobuf:"bytes,8,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
 	CreatedAt     *v1.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -117,15 +117,15 @@ func (x *SagaStateProto) GetPayload() *structpb.Struct {
 }
 
 func (x *SagaStateProto) GetCorrelationId() string {
-	if x != nil {
-		return x.CorrelationId
+	if x != nil && x.CorrelationId != nil {
+		return *x.CorrelationId
 	}
 	return ""
 }
 
 func (x *SagaStateProto) GetInitiatedBy() string {
-	if x != nil {
-		return x.InitiatedBy
+	if x != nil && x.InitiatedBy != nil {
+		return *x.InitiatedBy
 	}
 	return ""
 }
@@ -171,7 +171,7 @@ type SagaStepLogProto struct {
 	// レスポンスペイロード
 	ResponsePayload *structpb.Struct `protobuf:"bytes,8,opt,name=response_payload,json=responsePayload,proto3" json:"response_payload,omitempty"`
 	// エラーメッセージ（失敗時）
-	ErrorMessage  string        `protobuf:"bytes,9,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	ErrorMessage  *string       `protobuf:"bytes,9,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
 	StartedAt     *v1.Timestamp `protobuf:"bytes,10,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	CompletedAt   *v1.Timestamp `protobuf:"bytes,11,opt,name=completed_at,json=completedAt,proto3,oneof" json:"completed_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -265,8 +265,8 @@ func (x *SagaStepLogProto) GetResponsePayload() *structpb.Struct {
 }
 
 func (x *SagaStepLogProto) GetErrorMessage() string {
-	if x != nil {
-		return x.ErrorMessage
+	if x != nil && x.ErrorMessage != nil {
+		return *x.ErrorMessage
 	}
 	return ""
 }
@@ -1099,22 +1099,24 @@ var File_k1s0_system_saga_v1_saga_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_saga_v1_saga_proto_rawDesc = "" +
 	"\n" +
-	"\x1ek1s0/system/saga/v1/saga.proto\x12\x13k1s0.system.saga.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xbb\x03\n" +
+	"\x1ek1s0/system/saga/v1/saga.proto\x12\x13k1s0.system.saga.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xe9\x03\n" +
 	"\x0eSagaStateProto\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12#\n" +
 	"\rworkflow_name\x18\x02 \x01(\tR\fworkflowName\x12!\n" +
 	"\fcurrent_step\x18\x03 \x01(\x05R\vcurrentStep\x12\x16\n" +
 	"\x06status\x18\x04 \x01(\tR\x06status\x121\n" +
-	"\apayload\x18\x05 \x01(\v2\x17.google.protobuf.StructR\apayload\x12%\n" +
-	"\x0ecorrelation_id\x18\x06 \x01(\tR\rcorrelationId\x12!\n" +
-	"\finitiated_by\x18\a \x01(\tR\vinitiatedBy\x12(\n" +
-	"\rerror_message\x18\b \x01(\tH\x00R\ferrorMessage\x88\x01\x01\x12?\n" +
+	"\apayload\x18\x05 \x01(\v2\x17.google.protobuf.StructR\apayload\x12*\n" +
+	"\x0ecorrelation_id\x18\x06 \x01(\tH\x00R\rcorrelationId\x88\x01\x01\x12&\n" +
+	"\finitiated_by\x18\a \x01(\tH\x01R\vinitiatedBy\x88\x01\x01\x12(\n" +
+	"\rerror_message\x18\b \x01(\tH\x02R\ferrorMessage\x88\x01\x01\x12?\n" +
 	"\n" +
 	"created_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAtB\x10\n" +
-	"\x0e_error_message\"\xee\x03\n" +
+	" \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAtB\x11\n" +
+	"\x0f_correlation_idB\x0f\n" +
+	"\r_initiated_byB\x10\n" +
+	"\x0e_error_message\"\x85\x04\n" +
 	"\x10SagaStepLogProto\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\asaga_id\x18\x02 \x01(\tR\x06sagaId\x12\x1d\n" +
@@ -1124,12 +1126,13 @@ const file_k1s0_system_saga_v1_saga_proto_rawDesc = "" +
 	"\x06action\x18\x05 \x01(\tR\x06action\x12\x16\n" +
 	"\x06status\x18\x06 \x01(\tR\x06status\x12@\n" +
 	"\x0frequest_payload\x18\a \x01(\v2\x17.google.protobuf.StructR\x0erequestPayload\x12B\n" +
-	"\x10response_payload\x18\b \x01(\v2\x17.google.protobuf.StructR\x0fresponsePayload\x12#\n" +
-	"\rerror_message\x18\t \x01(\tR\ferrorMessage\x12?\n" +
+	"\x10response_payload\x18\b \x01(\v2\x17.google.protobuf.StructR\x0fresponsePayload\x12(\n" +
+	"\rerror_message\x18\t \x01(\tH\x00R\ferrorMessage\x88\x01\x01\x12?\n" +
 	"\n" +
 	"started_at\x18\n" +
 	" \x01(\v2 .k1s0.system.common.v1.TimestampR\tstartedAt\x12H\n" +
-	"\fcompleted_at\x18\v \x01(\v2 .k1s0.system.common.v1.TimestampH\x00R\vcompletedAt\x88\x01\x01B\x0f\n" +
+	"\fcompleted_at\x18\v \x01(\v2 .k1s0.system.common.v1.TimestampH\x01R\vcompletedAt\x88\x01\x01B\x10\n" +
+	"\x0e_error_messageB\x0f\n" +
 	"\r_completed_at\"c\n" +
 	"\x0fWorkflowSummary\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +

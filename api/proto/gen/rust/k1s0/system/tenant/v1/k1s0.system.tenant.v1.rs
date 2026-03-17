@@ -183,5 +183,29 @@ pub struct ProvisioningJob {
     #[prost(message, optional, tag="7")]
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
+// ============================================================
+// WatchTenant（Server-Side Streaming）
+// ============================================================
+
+/// WatchTenantRequest はテナント変更監視リクエスト。
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchTenantRequest {
+    /// 監視対象のテナント ID（空の場合は全テナントの変更を受け取る）
+    #[prost(string, tag="1")]
+    pub tenant_id: ::prost::alloc::string::String,
+}
+/// WatchTenantResponse はテナント変更の監視レスポンス（ストリーミング）。
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchTenantResponse {
+    #[prost(string, tag="1")]
+    pub tenant_id: ::prost::alloc::string::String,
+    /// CREATED, UPDATED, SUSPENDED, ACTIVATED, DELETED
+    #[prost(string, tag="2")]
+    pub change_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="3")]
+    pub tenant: ::core::option::Option<Tenant>,
+    #[prost(message, optional, tag="4")]
+    pub changed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+}
 include!("k1s0.system.tenant.v1.tonic.rs");
 // @@protoc_insertion_point(module)

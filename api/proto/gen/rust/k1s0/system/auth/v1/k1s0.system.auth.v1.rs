@@ -60,6 +60,12 @@ pub struct TokenClaims {
     /// OAuth2 scope（スペース区切り）
     #[prost(string, tag="12")]
     pub scope: ::prost::alloc::string::String,
+    /// トークン種別（例: Bearer）
+    #[prost(string, optional, tag="13")]
+    pub typ: ::core::option::Option<::prost::alloc::string::String>,
+    /// 認可されたクライアント ID
+    #[prost(string, optional, tag="14")]
+    pub azp: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// RealmAccess はグローバルロール一覧。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

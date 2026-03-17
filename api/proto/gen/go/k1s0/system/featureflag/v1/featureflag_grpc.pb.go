@@ -22,12 +22,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	FeatureFlagService_EvaluateFlag_FullMethodName = "/k1s0.system.featureflag.v1.FeatureFlagService/EvaluateFlag"
-	FeatureFlagService_GetFlag_FullMethodName      = "/k1s0.system.featureflag.v1.FeatureFlagService/GetFlag"
-	FeatureFlagService_ListFlags_FullMethodName    = "/k1s0.system.featureflag.v1.FeatureFlagService/ListFlags"
-	FeatureFlagService_CreateFlag_FullMethodName   = "/k1s0.system.featureflag.v1.FeatureFlagService/CreateFlag"
-	FeatureFlagService_UpdateFlag_FullMethodName   = "/k1s0.system.featureflag.v1.FeatureFlagService/UpdateFlag"
-	FeatureFlagService_DeleteFlag_FullMethodName   = "/k1s0.system.featureflag.v1.FeatureFlagService/DeleteFlag"
+	FeatureFlagService_EvaluateFlag_FullMethodName     = "/k1s0.system.featureflag.v1.FeatureFlagService/EvaluateFlag"
+	FeatureFlagService_GetFlag_FullMethodName          = "/k1s0.system.featureflag.v1.FeatureFlagService/GetFlag"
+	FeatureFlagService_ListFlags_FullMethodName        = "/k1s0.system.featureflag.v1.FeatureFlagService/ListFlags"
+	FeatureFlagService_CreateFlag_FullMethodName       = "/k1s0.system.featureflag.v1.FeatureFlagService/CreateFlag"
+	FeatureFlagService_UpdateFlag_FullMethodName       = "/k1s0.system.featureflag.v1.FeatureFlagService/UpdateFlag"
+	FeatureFlagService_DeleteFlag_FullMethodName       = "/k1s0.system.featureflag.v1.FeatureFlagService/DeleteFlag"
+	FeatureFlagService_WatchFeatureFlag_FullMethodName = "/k1s0.system.featureflag.v1.FeatureFlagService/WatchFeatureFlag"
 )
 
 // FeatureFlagServiceClient is the client API for FeatureFlagService service.
@@ -40,6 +41,8 @@ type FeatureFlagServiceClient interface {
 	CreateFlag(ctx context.Context, in *CreateFlagRequest, opts ...grpc.CallOption) (*CreateFlagResponse, error)
 	UpdateFlag(ctx context.Context, in *UpdateFlagRequest, opts ...grpc.CallOption) (*UpdateFlagResponse, error)
 	DeleteFlag(ctx context.Context, in *DeleteFlagRequest, opts ...grpc.CallOption) (*DeleteFlagResponse, error)
+	// WatchFeatureFlag はフラグ変更の監視（Server-Side Streaming）。
+	WatchFeatureFlag(ctx context.Context, in *WatchFeatureFlagRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchFeatureFlagResponse], error)
 }
 
 type featureFlagServiceClient struct {
@@ -110,6 +113,25 @@ func (c *featureFlagServiceClient) DeleteFlag(ctx context.Context, in *DeleteFla
 	return out, nil
 }
 
+func (c *featureFlagServiceClient) WatchFeatureFlag(ctx context.Context, in *WatchFeatureFlagRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchFeatureFlagResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &FeatureFlagService_ServiceDesc.Streams[0], FeatureFlagService_WatchFeatureFlag_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[WatchFeatureFlagRequest, WatchFeatureFlagResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type FeatureFlagService_WatchFeatureFlagClient = grpc.ServerStreamingClient[WatchFeatureFlagResponse]
+
 // FeatureFlagServiceServer is the server API for FeatureFlagService service.
 // All implementations must embed UnimplementedFeatureFlagServiceServer
 // for forward compatibility.
@@ -120,6 +142,8 @@ type FeatureFlagServiceServer interface {
 	CreateFlag(context.Context, *CreateFlagRequest) (*CreateFlagResponse, error)
 	UpdateFlag(context.Context, *UpdateFlagRequest) (*UpdateFlagResponse, error)
 	DeleteFlag(context.Context, *DeleteFlagRequest) (*DeleteFlagResponse, error)
+	// WatchFeatureFlag はフラグ変更の監視（Server-Side Streaming）。
+	WatchFeatureFlag(*WatchFeatureFlagRequest, grpc.ServerStreamingServer[WatchFeatureFlagResponse]) error
 	mustEmbedUnimplementedFeatureFlagServiceServer()
 }
 
@@ -147,6 +171,9 @@ func (UnimplementedFeatureFlagServiceServer) UpdateFlag(context.Context, *Update
 }
 func (UnimplementedFeatureFlagServiceServer) DeleteFlag(context.Context, *DeleteFlagRequest) (*DeleteFlagResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteFlag not implemented")
+}
+func (UnimplementedFeatureFlagServiceServer) WatchFeatureFlag(*WatchFeatureFlagRequest, grpc.ServerStreamingServer[WatchFeatureFlagResponse]) error {
+	return status.Error(codes.Unimplemented, "method WatchFeatureFlag not implemented")
 }
 func (UnimplementedFeatureFlagServiceServer) mustEmbedUnimplementedFeatureFlagServiceServer() {}
 func (UnimplementedFeatureFlagServiceServer) testEmbeddedByValue()                            {}
@@ -277,6 +304,17 @@ func _FeatureFlagService_DeleteFlag_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FeatureFlagService_WatchFeatureFlag_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchFeatureFlagRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(FeatureFlagServiceServer).WatchFeatureFlag(m, &grpc.GenericServerStream[WatchFeatureFlagRequest, WatchFeatureFlagResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type FeatureFlagService_WatchFeatureFlagServer = grpc.ServerStreamingServer[WatchFeatureFlagResponse]
+
 // FeatureFlagService_ServiceDesc is the grpc.ServiceDesc for FeatureFlagService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -309,6 +347,12 @@ var FeatureFlagService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _FeatureFlagService_DeleteFlag_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "WatchFeatureFlag",
+			Handler:       _FeatureFlagService_WatchFeatureFlag_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "k1s0/system/featureflag/v1/featureflag.proto",
 }

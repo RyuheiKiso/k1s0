@@ -258,6 +258,48 @@ export interface FlagRule {
      */
     variant: string;
 }
+// ============================================================
+// WatchFeatureFlag（Server-Side Streaming）
+// ============================================================
+
+/**
+ * WatchFeatureFlagRequest はフラグ変更監視リクエスト。
+ *
+ * @generated from protobuf message k1s0.system.featureflag.v1.WatchFeatureFlagRequest
+ */
+export interface WatchFeatureFlagRequest {
+    /**
+     * 監視対象のフラグキー（空の場合は全フラグの変更を受け取る）
+     *
+     * @generated from protobuf field: string flag_key = 1
+     */
+    flagKey: string;
+}
+/**
+ * WatchFeatureFlagResponse はフラグ変更の監視レスポンス（ストリーミング）。
+ *
+ * @generated from protobuf message k1s0.system.featureflag.v1.WatchFeatureFlagResponse
+ */
+export interface WatchFeatureFlagResponse {
+    /**
+     * @generated from protobuf field: string flag_key = 1
+     */
+    flagKey: string;
+    /**
+     * CREATED, UPDATED, DELETED
+     *
+     * @generated from protobuf field: string change_type = 2
+     */
+    changeType: string;
+    /**
+     * @generated from protobuf field: k1s0.system.featureflag.v1.FeatureFlag flag = 3
+     */
+    flag?: FeatureFlag;
+    /**
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp changed_at = 4
+     */
+    changedAt?: Timestamp;
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class EvaluateFlagRequest$Type extends MessageType<EvaluateFlagRequest> {
     constructor() {
@@ -1214,6 +1256,122 @@ class FlagRule$Type extends MessageType<FlagRule> {
  * @generated MessageType for protobuf message k1s0.system.featureflag.v1.FlagRule
  */
 export const FlagRule = new FlagRule$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WatchFeatureFlagRequest$Type extends MessageType<WatchFeatureFlagRequest> {
+    constructor() {
+        super("k1s0.system.featureflag.v1.WatchFeatureFlagRequest", [
+            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<WatchFeatureFlagRequest>): WatchFeatureFlagRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.flagKey = "";
+        if (value !== undefined)
+            reflectionMergePartial<WatchFeatureFlagRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WatchFeatureFlagRequest): WatchFeatureFlagRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string flag_key */ 1:
+                    message.flagKey = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WatchFeatureFlagRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string flag_key = 1; */
+        if (message.flagKey !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.flagKey);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.featureflag.v1.WatchFeatureFlagRequest
+ */
+export const WatchFeatureFlagRequest = new WatchFeatureFlagRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WatchFeatureFlagResponse$Type extends MessageType<WatchFeatureFlagResponse> {
+    constructor() {
+        super("k1s0.system.featureflag.v1.WatchFeatureFlagResponse", [
+            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "change_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "flag", kind: "message", T: () => FeatureFlag },
+            { no: 4, name: "changed_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<WatchFeatureFlagResponse>): WatchFeatureFlagResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.flagKey = "";
+        message.changeType = "";
+        if (value !== undefined)
+            reflectionMergePartial<WatchFeatureFlagResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WatchFeatureFlagResponse): WatchFeatureFlagResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string flag_key */ 1:
+                    message.flagKey = reader.string();
+                    break;
+                case /* string change_type */ 2:
+                    message.changeType = reader.string();
+                    break;
+                case /* k1s0.system.featureflag.v1.FeatureFlag flag */ 3:
+                    message.flag = FeatureFlag.internalBinaryRead(reader, reader.uint32(), options, message.flag);
+                    break;
+                case /* k1s0.system.common.v1.Timestamp changed_at */ 4:
+                    message.changedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.changedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WatchFeatureFlagResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string flag_key = 1; */
+        if (message.flagKey !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.flagKey);
+        /* string change_type = 2; */
+        if (message.changeType !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.changeType);
+        /* k1s0.system.featureflag.v1.FeatureFlag flag = 3; */
+        if (message.flag)
+            FeatureFlag.internalBinaryWrite(message.flag, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.Timestamp changed_at = 4; */
+        if (message.changedAt)
+            Timestamp.internalBinaryWrite(message.changedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.featureflag.v1.WatchFeatureFlagResponse
+ */
+export const WatchFeatureFlagResponse = new WatchFeatureFlagResponse$Type();
 /**
  * @generated ServiceType for protobuf service k1s0.system.featureflag.v1.FeatureFlagService
  */
@@ -1223,5 +1381,6 @@ export const FeatureFlagService = new ServiceType("k1s0.system.featureflag.v1.Fe
     { name: "ListFlags", options: {}, I: ListFlagsRequest, O: ListFlagsResponse },
     { name: "CreateFlag", options: {}, I: CreateFlagRequest, O: CreateFlagResponse },
     { name: "UpdateFlag", options: {}, I: UpdateFlagRequest, O: UpdateFlagResponse },
-    { name: "DeleteFlag", options: {}, I: DeleteFlagRequest, O: DeleteFlagResponse }
+    { name: "DeleteFlag", options: {}, I: DeleteFlagRequest, O: DeleteFlagResponse },
+    { name: "WatchFeatureFlag", serverStreaming: true, options: {}, I: WatchFeatureFlagRequest, O: WatchFeatureFlagResponse }
 ]);

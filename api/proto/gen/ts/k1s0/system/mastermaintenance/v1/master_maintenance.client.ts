@@ -4,6 +4,8 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { MasterMaintenanceService } from "./master_maintenance";
+import type { ListDomainsResponse } from "./master_maintenance";
+import type { ListDomainsRequest } from "./master_maintenance";
 import type { ListRecordAuditLogsResponse } from "./master_maintenance";
 import type { ListRecordAuditLogsRequest } from "./master_maintenance";
 import type { ListTableAuditLogsResponse } from "./master_maintenance";
@@ -243,6 +245,12 @@ export interface IMasterMaintenanceServiceClient {
      * @generated from protobuf rpc: ListRecordAuditLogs
      */
     listRecordAuditLogs(input: ListRecordAuditLogsRequest, options?: RpcOptions): UnaryCall<ListRecordAuditLogsRequest, ListRecordAuditLogsResponse>;
+    /**
+     * Domain Management
+     *
+     * @generated from protobuf rpc: ListDomains
+     */
+    listDomains(input: ListDomainsRequest, options?: RpcOptions): UnaryCall<ListDomainsRequest, ListDomainsResponse>;
 }
 /**
  * @generated from protobuf service k1s0.system.mastermaintenance.v1.MasterMaintenanceService
@@ -520,5 +528,14 @@ export class MasterMaintenanceServiceClient implements IMasterMaintenanceService
     listRecordAuditLogs(input: ListRecordAuditLogsRequest, options?: RpcOptions): UnaryCall<ListRecordAuditLogsRequest, ListRecordAuditLogsResponse> {
         const method = this.methods[35], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListRecordAuditLogsRequest, ListRecordAuditLogsResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * Domain Management
+     *
+     * @generated from protobuf rpc: ListDomains
+     */
+    listDomains(input: ListDomainsRequest, options?: RpcOptions): UnaryCall<ListDomainsRequest, ListDomainsResponse> {
+        const method = this.methods[36], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListDomainsRequest, ListDomainsResponse>("unary", this._transport, method, opt, input);
     }
 }

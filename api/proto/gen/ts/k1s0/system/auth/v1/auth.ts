@@ -129,6 +129,18 @@ export interface TokenClaims {
      * @generated from protobuf field: string scope = 12
      */
     scope: string;
+    /**
+     * トークン種別（例: Bearer）
+     *
+     * @generated from protobuf field: optional string typ = 13
+     */
+    typ?: string;
+    /**
+     * 認可されたクライアント ID
+     *
+     * @generated from protobuf field: optional string azp = 14
+     */
+    azp?: string;
 }
 /**
  * RealmAccess はグローバルロール一覧。
@@ -701,7 +713,9 @@ class TokenClaims$Type extends MessageType<TokenClaims> {
             { no: 9, name: "realm_access", kind: "message", T: () => RealmAccess },
             { no: 10, name: "resource_access", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "message", T: () => ClientRoles } },
             { no: 11, name: "tier_access", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 12, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "typ", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "azp", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<TokenClaims>): TokenClaims {
@@ -761,6 +775,12 @@ class TokenClaims$Type extends MessageType<TokenClaims> {
                     break;
                 case /* string scope */ 12:
                     message.scope = reader.string();
+                    break;
+                case /* optional string typ */ 13:
+                    message.typ = reader.string();
+                    break;
+                case /* optional string azp */ 14:
+                    message.azp = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -830,6 +850,12 @@ class TokenClaims$Type extends MessageType<TokenClaims> {
         /* string scope = 12; */
         if (message.scope !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.scope);
+        /* optional string typ = 13; */
+        if (message.typ !== undefined)
+            writer.tag(13, WireType.LengthDelimited).string(message.typ);
+        /* optional string azp = 14; */
+        if (message.azp !== undefined)
+            writer.tag(14, WireType.LengthDelimited).string(message.azp);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

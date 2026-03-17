@@ -12,6 +12,7 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { PaginationResult } from "../../common/v1/types";
+import { Pagination } from "../../common/v1/types";
 /**
  * @generated from protobuf message k1s0.system.file.v1.FileMetadata
  */
@@ -94,13 +95,11 @@ export interface ListFilesRequest {
      */
     tenantId: string;
     /**
-     * @generated from protobuf field: int32 page = 2
+     * ページネーションパラメータを共通型に統一
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 2
      */
-    page: number;
-    /**
-     * @generated from protobuf field: int32 page_size = 3
-     */
-    pageSize: number;
+    pagination?: Pagination;
     /**
      * @generated from protobuf field: optional string uploaded_by = 4
      */
@@ -509,8 +508,7 @@ class ListFilesRequest$Type extends MessageType<ListFilesRequest> {
     constructor() {
         super("k1s0.system.file.v1.ListFilesRequest", [
             { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "page", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 3, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 2, name: "pagination", kind: "message", T: () => Pagination },
             { no: 4, name: "uploaded_by", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "mime_type", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "tag", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
@@ -519,8 +517,6 @@ class ListFilesRequest$Type extends MessageType<ListFilesRequest> {
     create(value?: PartialMessage<ListFilesRequest>): ListFilesRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tenantId = "";
-        message.page = 0;
-        message.pageSize = 0;
         if (value !== undefined)
             reflectionMergePartial<ListFilesRequest>(this, message, value);
         return message;
@@ -533,11 +529,8 @@ class ListFilesRequest$Type extends MessageType<ListFilesRequest> {
                 case /* string tenant_id */ 1:
                     message.tenantId = reader.string();
                     break;
-                case /* int32 page */ 2:
-                    message.page = reader.int32();
-                    break;
-                case /* int32 page_size */ 3:
-                    message.pageSize = reader.int32();
+                case /* k1s0.system.common.v1.Pagination pagination */ 2:
+                    message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
                     break;
                 case /* optional string uploaded_by */ 4:
                     message.uploadedBy = reader.string();
@@ -563,12 +556,9 @@ class ListFilesRequest$Type extends MessageType<ListFilesRequest> {
         /* string tenant_id = 1; */
         if (message.tenantId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.tenantId);
-        /* int32 page = 2; */
-        if (message.page !== 0)
-            writer.tag(2, WireType.Varint).int32(message.page);
-        /* int32 page_size = 3; */
-        if (message.pageSize !== 0)
-            writer.tag(3, WireType.Varint).int32(message.pageSize);
+        /* k1s0.system.common.v1.Pagination pagination = 2; */
+        if (message.pagination)
+            Pagination.internalBinaryWrite(message.pagination, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         /* optional string uploaded_by = 4; */
         if (message.uploadedBy !== undefined)
             writer.tag(4, WireType.LengthDelimited).string(message.uploadedBy);

@@ -82,8 +82,8 @@ func (x *Pagination) GetPageSize() int32 {
 // PaginationResult はページネーション結果。
 type PaginationResult struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 全件数
-	TotalCount int32 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	// 全件数（大規模データ対応のため int64 を使用）
+	TotalCount int64 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	// 現在のページ番号
 	Page int32 `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	// 1ページあたりの件数
@@ -124,7 +124,7 @@ func (*PaginationResult) Descriptor() ([]byte, []int) {
 	return file_k1s0_system_common_v1_types_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *PaginationResult) GetTotalCount() int32 {
+func (x *PaginationResult) GetTotalCount() int64 {
 	if x != nil {
 		return x.TotalCount
 	}
@@ -217,7 +217,7 @@ const file_k1s0_system_common_v1_types_proto_rawDesc = "" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"\x7f\n" +
 	"\x10PaginationResult\x12\x1f\n" +
-	"\vtotal_count\x18\x01 \x01(\x05R\n" +
+	"\vtotal_count\x18\x01 \x01(\x03R\n" +
 	"totalCount\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x19\n" +

@@ -12,6 +12,7 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { PaginationResult } from "../../common/v1/types";
+import { Pagination } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
 /**
  * @generated from protobuf message k1s0.system.quota.v1.QuotaPolicy
@@ -176,13 +177,11 @@ export interface GetQuotaPolicyResponse {
  */
 export interface ListQuotaPoliciesRequest {
     /**
-     * @generated from protobuf field: uint32 page = 1
+     * ページネーションパラメータを共通型に統一
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 1
      */
-    page: number;
-    /**
-     * @generated from protobuf field: uint32 page_size = 2
-     */
-    pageSize: number;
+    pagination?: Pagination;
     /**
      * @generated from protobuf field: optional string subject_type = 3
      */
@@ -870,8 +869,7 @@ export const GetQuotaPolicyResponse = new GetQuotaPolicyResponse$Type();
 class ListQuotaPoliciesRequest$Type extends MessageType<ListQuotaPoliciesRequest> {
     constructor() {
         super("k1s0.system.quota.v1.ListQuotaPoliciesRequest", [
-            { no: 1, name: "page", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 2, name: "page_size", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 1, name: "pagination", kind: "message", T: () => Pagination },
             { no: 3, name: "subject_type", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "subject_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "enabled_only", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ }
@@ -879,8 +877,6 @@ class ListQuotaPoliciesRequest$Type extends MessageType<ListQuotaPoliciesRequest
     }
     create(value?: PartialMessage<ListQuotaPoliciesRequest>): ListQuotaPoliciesRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.page = 0;
-        message.pageSize = 0;
         if (value !== undefined)
             reflectionMergePartial<ListQuotaPoliciesRequest>(this, message, value);
         return message;
@@ -890,11 +886,8 @@ class ListQuotaPoliciesRequest$Type extends MessageType<ListQuotaPoliciesRequest
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* uint32 page */ 1:
-                    message.page = reader.uint32();
-                    break;
-                case /* uint32 page_size */ 2:
-                    message.pageSize = reader.uint32();
+                case /* k1s0.system.common.v1.Pagination pagination */ 1:
+                    message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
                     break;
                 case /* optional string subject_type */ 3:
                     message.subjectType = reader.string();
@@ -917,12 +910,9 @@ class ListQuotaPoliciesRequest$Type extends MessageType<ListQuotaPoliciesRequest
         return message;
     }
     internalBinaryWrite(message: ListQuotaPoliciesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* uint32 page = 1; */
-        if (message.page !== 0)
-            writer.tag(1, WireType.Varint).uint32(message.page);
-        /* uint32 page_size = 2; */
-        if (message.pageSize !== 0)
-            writer.tag(2, WireType.Varint).uint32(message.pageSize);
+        /* k1s0.system.common.v1.Pagination pagination = 1; */
+        if (message.pagination)
+            Pagination.internalBinaryWrite(message.pagination, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         /* optional string subject_type = 3; */
         if (message.subjectType !== undefined)
             writer.tag(3, WireType.LengthDelimited).string(message.subjectType);

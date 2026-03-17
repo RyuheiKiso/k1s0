@@ -326,13 +326,13 @@ func (x *AppendEventsResponse) GetCurrentVersion() int64 {
 }
 
 type ReadEventsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StreamId      string                 `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
-	FromVersion   int64                  `protobuf:"varint,2,opt,name=from_version,json=fromVersion,proto3" json:"from_version,omitempty"`
-	ToVersion     *int64                 `protobuf:"varint,3,opt,name=to_version,json=toVersion,proto3,oneof" json:"to_version,omitempty"`
-	Page          uint32                 `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      uint32                 `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	EventType     *string                `protobuf:"bytes,6,opt,name=event_type,json=eventType,proto3,oneof" json:"event_type,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	StreamId    string                 `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
+	FromVersion int64                  `protobuf:"varint,2,opt,name=from_version,json=fromVersion,proto3" json:"from_version,omitempty"`
+	ToVersion   *int64                 `protobuf:"varint,3,opt,name=to_version,json=toVersion,proto3,oneof" json:"to_version,omitempty"`
+	// ページネーションパラメータを共通型に統一
+	Pagination    *v1.Pagination `protobuf:"bytes,4,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	EventType     *string        `protobuf:"bytes,6,opt,name=event_type,json=eventType,proto3,oneof" json:"event_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -388,18 +388,11 @@ func (x *ReadEventsRequest) GetToVersion() int64 {
 	return 0
 }
 
-func (x *ReadEventsRequest) GetPage() uint32 {
+func (x *ReadEventsRequest) GetPagination() *v1.Pagination {
 	if x != nil {
-		return x.Page
+		return x.Pagination
 	}
-	return 0
-}
-
-func (x *ReadEventsRequest) GetPageSize() uint32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
+	return nil
 }
 
 func (x *ReadEventsRequest) GetEventType() string {
@@ -1236,18 +1229,19 @@ const file_k1s0_system_eventstore_v1_event_store_proto_rawDesc = "" +
 	"\x14AppendEventsResponse\x12\x1b\n" +
 	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12>\n" +
 	"\x06events\x18\x02 \x03(\v2&.k1s0.system.eventstore.v1.StoredEventR\x06events\x12'\n" +
-	"\x0fcurrent_version\x18\x03 \x01(\x03R\x0ecurrentVersion\"\xea\x01\n" +
+	"\x0fcurrent_version\x18\x03 \x01(\x03R\x0ecurrentVersion\"\x8d\x02\n" +
 	"\x11ReadEventsRequest\x12\x1b\n" +
 	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12!\n" +
 	"\ffrom_version\x18\x02 \x01(\x03R\vfromVersion\x12\"\n" +
 	"\n" +
-	"to_version\x18\x03 \x01(\x03H\x00R\ttoVersion\x88\x01\x01\x12\x12\n" +
-	"\x04page\x18\x04 \x01(\rR\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x05 \x01(\rR\bpageSize\x12\"\n" +
+	"to_version\x18\x03 \x01(\x03H\x00R\ttoVersion\x88\x01\x01\x12A\n" +
+	"\n" +
+	"pagination\x18\x04 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
+	"pagination\x12\"\n" +
 	"\n" +
 	"event_type\x18\x06 \x01(\tH\x01R\teventType\x88\x01\x01B\r\n" +
 	"\v_to_versionB\r\n" +
-	"\v_event_type\"\xe3\x01\n" +
+	"\v_event_typeJ\x04\b\x05\x10\x06R\tpage_size\"\xe3\x01\n" +
 	"\x12ReadEventsResponse\x12\x1b\n" +
 	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12>\n" +
 	"\x06events\x18\x02 \x03(\v2&.k1s0.system.eventstore.v1.StoredEventR\x06events\x12'\n" +
@@ -1364,31 +1358,32 @@ var file_k1s0_system_eventstore_v1_event_store_proto_depIdxs = []int32{
 	20, // 2: k1s0.system.eventstore.v1.ListStreamsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
 	15, // 3: k1s0.system.eventstore.v1.AppendEventsRequest.events:type_name -> k1s0.system.eventstore.v1.EventData
 	16, // 4: k1s0.system.eventstore.v1.AppendEventsResponse.events:type_name -> k1s0.system.eventstore.v1.StoredEvent
-	16, // 5: k1s0.system.eventstore.v1.ReadEventsResponse.events:type_name -> k1s0.system.eventstore.v1.StoredEvent
-	20, // 6: k1s0.system.eventstore.v1.ReadEventsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	16, // 7: k1s0.system.eventstore.v1.ReadEventBySequenceResponse.event:type_name -> k1s0.system.eventstore.v1.StoredEvent
-	18, // 8: k1s0.system.eventstore.v1.GetLatestSnapshotResponse.snapshot:type_name -> k1s0.system.eventstore.v1.Snapshot
-	17, // 9: k1s0.system.eventstore.v1.EventData.metadata:type_name -> k1s0.system.eventstore.v1.EventMetadata
-	17, // 10: k1s0.system.eventstore.v1.StoredEvent.metadata:type_name -> k1s0.system.eventstore.v1.EventMetadata
-	0,  // 11: k1s0.system.eventstore.v1.EventStoreService.ListStreams:input_type -> k1s0.system.eventstore.v1.ListStreamsRequest
-	3,  // 12: k1s0.system.eventstore.v1.EventStoreService.AppendEvents:input_type -> k1s0.system.eventstore.v1.AppendEventsRequest
-	5,  // 13: k1s0.system.eventstore.v1.EventStoreService.ReadEvents:input_type -> k1s0.system.eventstore.v1.ReadEventsRequest
-	7,  // 14: k1s0.system.eventstore.v1.EventStoreService.ReadEventBySequence:input_type -> k1s0.system.eventstore.v1.ReadEventBySequenceRequest
-	9,  // 15: k1s0.system.eventstore.v1.EventStoreService.CreateSnapshot:input_type -> k1s0.system.eventstore.v1.CreateSnapshotRequest
-	11, // 16: k1s0.system.eventstore.v1.EventStoreService.GetLatestSnapshot:input_type -> k1s0.system.eventstore.v1.GetLatestSnapshotRequest
-	13, // 17: k1s0.system.eventstore.v1.EventStoreService.DeleteStream:input_type -> k1s0.system.eventstore.v1.DeleteStreamRequest
-	1,  // 18: k1s0.system.eventstore.v1.EventStoreService.ListStreams:output_type -> k1s0.system.eventstore.v1.ListStreamsResponse
-	4,  // 19: k1s0.system.eventstore.v1.EventStoreService.AppendEvents:output_type -> k1s0.system.eventstore.v1.AppendEventsResponse
-	6,  // 20: k1s0.system.eventstore.v1.EventStoreService.ReadEvents:output_type -> k1s0.system.eventstore.v1.ReadEventsResponse
-	8,  // 21: k1s0.system.eventstore.v1.EventStoreService.ReadEventBySequence:output_type -> k1s0.system.eventstore.v1.ReadEventBySequenceResponse
-	10, // 22: k1s0.system.eventstore.v1.EventStoreService.CreateSnapshot:output_type -> k1s0.system.eventstore.v1.CreateSnapshotResponse
-	12, // 23: k1s0.system.eventstore.v1.EventStoreService.GetLatestSnapshot:output_type -> k1s0.system.eventstore.v1.GetLatestSnapshotResponse
-	14, // 24: k1s0.system.eventstore.v1.EventStoreService.DeleteStream:output_type -> k1s0.system.eventstore.v1.DeleteStreamResponse
-	18, // [18:25] is the sub-list for method output_type
-	11, // [11:18] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	19, // 5: k1s0.system.eventstore.v1.ReadEventsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	16, // 6: k1s0.system.eventstore.v1.ReadEventsResponse.events:type_name -> k1s0.system.eventstore.v1.StoredEvent
+	20, // 7: k1s0.system.eventstore.v1.ReadEventsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	16, // 8: k1s0.system.eventstore.v1.ReadEventBySequenceResponse.event:type_name -> k1s0.system.eventstore.v1.StoredEvent
+	18, // 9: k1s0.system.eventstore.v1.GetLatestSnapshotResponse.snapshot:type_name -> k1s0.system.eventstore.v1.Snapshot
+	17, // 10: k1s0.system.eventstore.v1.EventData.metadata:type_name -> k1s0.system.eventstore.v1.EventMetadata
+	17, // 11: k1s0.system.eventstore.v1.StoredEvent.metadata:type_name -> k1s0.system.eventstore.v1.EventMetadata
+	0,  // 12: k1s0.system.eventstore.v1.EventStoreService.ListStreams:input_type -> k1s0.system.eventstore.v1.ListStreamsRequest
+	3,  // 13: k1s0.system.eventstore.v1.EventStoreService.AppendEvents:input_type -> k1s0.system.eventstore.v1.AppendEventsRequest
+	5,  // 14: k1s0.system.eventstore.v1.EventStoreService.ReadEvents:input_type -> k1s0.system.eventstore.v1.ReadEventsRequest
+	7,  // 15: k1s0.system.eventstore.v1.EventStoreService.ReadEventBySequence:input_type -> k1s0.system.eventstore.v1.ReadEventBySequenceRequest
+	9,  // 16: k1s0.system.eventstore.v1.EventStoreService.CreateSnapshot:input_type -> k1s0.system.eventstore.v1.CreateSnapshotRequest
+	11, // 17: k1s0.system.eventstore.v1.EventStoreService.GetLatestSnapshot:input_type -> k1s0.system.eventstore.v1.GetLatestSnapshotRequest
+	13, // 18: k1s0.system.eventstore.v1.EventStoreService.DeleteStream:input_type -> k1s0.system.eventstore.v1.DeleteStreamRequest
+	1,  // 19: k1s0.system.eventstore.v1.EventStoreService.ListStreams:output_type -> k1s0.system.eventstore.v1.ListStreamsResponse
+	4,  // 20: k1s0.system.eventstore.v1.EventStoreService.AppendEvents:output_type -> k1s0.system.eventstore.v1.AppendEventsResponse
+	6,  // 21: k1s0.system.eventstore.v1.EventStoreService.ReadEvents:output_type -> k1s0.system.eventstore.v1.ReadEventsResponse
+	8,  // 22: k1s0.system.eventstore.v1.EventStoreService.ReadEventBySequence:output_type -> k1s0.system.eventstore.v1.ReadEventBySequenceResponse
+	10, // 23: k1s0.system.eventstore.v1.EventStoreService.CreateSnapshot:output_type -> k1s0.system.eventstore.v1.CreateSnapshotResponse
+	12, // 24: k1s0.system.eventstore.v1.EventStoreService.GetLatestSnapshot:output_type -> k1s0.system.eventstore.v1.GetLatestSnapshotResponse
+	14, // 25: k1s0.system.eventstore.v1.EventStoreService.DeleteStream:output_type -> k1s0.system.eventstore.v1.DeleteStreamResponse
+	19, // [19:26] is the sub-list for method output_type
+	12, // [12:19] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_eventstore_v1_event_store_proto_init() }

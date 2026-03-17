@@ -30,6 +30,7 @@ const (
 	ConfigService_WatchConfig_FullMethodName        = "/k1s0.system.config.v1.ConfigService/WatchConfig"
 	ConfigService_GetConfigSchema_FullMethodName    = "/k1s0.system.config.v1.ConfigService/GetConfigSchema"
 	ConfigService_UpsertConfigSchema_FullMethodName = "/k1s0.system.config.v1.ConfigService/UpsertConfigSchema"
+	ConfigService_ListConfigSchemas_FullMethodName  = "/k1s0.system.config.v1.ConfigService/ListConfigSchemas"
 )
 
 // ConfigServiceClient is the client API for ConfigService service.
@@ -54,6 +55,8 @@ type ConfigServiceClient interface {
 	GetConfigSchema(ctx context.Context, in *GetConfigSchemaRequest, opts ...grpc.CallOption) (*GetConfigSchemaResponse, error)
 	// 設定スキーマ作成・更新
 	UpsertConfigSchema(ctx context.Context, in *UpsertConfigSchemaRequest, opts ...grpc.CallOption) (*UpsertConfigSchemaResponse, error)
+	// 設定スキーマ一覧取得
+	ListConfigSchemas(ctx context.Context, in *ListConfigSchemasRequest, opts ...grpc.CallOption) (*ListConfigSchemasResponse, error)
 }
 
 type configServiceClient struct {
@@ -153,6 +156,16 @@ func (c *configServiceClient) UpsertConfigSchema(ctx context.Context, in *Upsert
 	return out, nil
 }
 
+func (c *configServiceClient) ListConfigSchemas(ctx context.Context, in *ListConfigSchemasRequest, opts ...grpc.CallOption) (*ListConfigSchemasResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListConfigSchemasResponse)
+	err := c.cc.Invoke(ctx, ConfigService_ListConfigSchemas_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ConfigServiceServer is the server API for ConfigService service.
 // All implementations must embed UnimplementedConfigServiceServer
 // for forward compatibility.
@@ -175,6 +188,8 @@ type ConfigServiceServer interface {
 	GetConfigSchema(context.Context, *GetConfigSchemaRequest) (*GetConfigSchemaResponse, error)
 	// 設定スキーマ作成・更新
 	UpsertConfigSchema(context.Context, *UpsertConfigSchemaRequest) (*UpsertConfigSchemaResponse, error)
+	// 設定スキーマ一覧取得
+	ListConfigSchemas(context.Context, *ListConfigSchemasRequest) (*ListConfigSchemasResponse, error)
 	mustEmbedUnimplementedConfigServiceServer()
 }
 
@@ -208,6 +223,9 @@ func (UnimplementedConfigServiceServer) GetConfigSchema(context.Context, *GetCon
 }
 func (UnimplementedConfigServiceServer) UpsertConfigSchema(context.Context, *UpsertConfigSchemaRequest) (*UpsertConfigSchemaResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpsertConfigSchema not implemented")
+}
+func (UnimplementedConfigServiceServer) ListConfigSchemas(context.Context, *ListConfigSchemasRequest) (*ListConfigSchemasResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListConfigSchemas not implemented")
 }
 func (UnimplementedConfigServiceServer) mustEmbedUnimplementedConfigServiceServer() {}
 func (UnimplementedConfigServiceServer) testEmbeddedByValue()                       {}
@@ -367,6 +385,24 @@ func _ConfigService_UpsertConfigSchema_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ConfigService_ListConfigSchemas_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListConfigSchemasRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigServiceServer).ListConfigSchemas(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConfigService_ListConfigSchemas_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigServiceServer).ListConfigSchemas(ctx, req.(*ListConfigSchemasRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ConfigService_ServiceDesc is the grpc.ServiceDesc for ConfigService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -401,6 +437,10 @@ var ConfigService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpsertConfigSchema",
 			Handler:    _ConfigService_UpsertConfigSchema_Handler,
+		},
+		{
+			MethodName: "ListConfigSchemas",
+			Handler:    _ConfigService_ListConfigSchemas_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

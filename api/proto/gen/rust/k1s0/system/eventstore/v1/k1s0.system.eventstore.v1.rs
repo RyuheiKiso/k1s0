@@ -53,10 +53,9 @@ pub struct ReadEventsRequest {
     pub from_version: i64,
     #[prost(int64, optional, tag="3")]
     pub to_version: ::core::option::Option<i64>,
-    #[prost(uint32, tag="4")]
-    pub page: u32,
-    #[prost(uint32, tag="5")]
-    pub page_size: u32,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag="4")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
     #[prost(string, optional, tag="6")]
     pub event_type: ::core::option::Option<::prost::alloc::string::String>,
 }

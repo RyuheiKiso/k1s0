@@ -256,6 +256,10 @@ export interface ServiceConfigEntry {
      * @generated from protobuf field: string value = 3
      */
     value: string;
+    /**
+     * @generated from protobuf field: int32 version = 4
+     */
+    version: number;
 }
 /**
  * GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
@@ -480,6 +484,26 @@ export interface UpsertConfigSchemaResponse {
      * @generated from protobuf field: k1s0.system.config.v1.ConfigEditorSchema schema = 1
      */
     schema?: ConfigEditorSchema;
+}
+// ============================================================// ListConfigSchemas// ============================================================
+
+/**
+ * ListConfigSchemasRequest は設定スキーマ一覧取得リクエスト。
+ *
+ * @generated from protobuf message k1s0.system.config.v1.ListConfigSchemasRequest
+ */
+export interface ListConfigSchemasRequest {
+}
+/**
+ * ListConfigSchemasResponse は設定スキーマ一覧取得レスポンス。
+ *
+ * @generated from protobuf message k1s0.system.config.v1.ListConfigSchemasResponse
+ */
+export interface ListConfigSchemasResponse {
+    /**
+     * @generated from protobuf field: repeated k1s0.system.config.v1.ConfigEditorSchema schemas = 1
+     */
+    schemas: ConfigEditorSchema[];
 }
 // ============================================================// ConfigEditorSchema（設定エディタ向けスキーマ）// ============================================================
 
@@ -1160,7 +1184,8 @@ class ServiceConfigEntry$Type extends MessageType<ServiceConfigEntry> {
         super("k1s0.system.config.v1.ServiceConfigEntry", [
             { no: 1, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "version", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<ServiceConfigEntry>): ServiceConfigEntry {
@@ -1168,6 +1193,7 @@ class ServiceConfigEntry$Type extends MessageType<ServiceConfigEntry> {
         message.namespace = "";
         message.key = "";
         message.value = "";
+        message.version = 0;
         if (value !== undefined)
             reflectionMergePartial<ServiceConfigEntry>(this, message, value);
         return message;
@@ -1185,6 +1211,9 @@ class ServiceConfigEntry$Type extends MessageType<ServiceConfigEntry> {
                     break;
                 case /* string value */ 3:
                     message.value = reader.string();
+                    break;
+                case /* int32 version */ 4:
+                    message.version = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1207,6 +1236,9 @@ class ServiceConfigEntry$Type extends MessageType<ServiceConfigEntry> {
         /* string value = 3; */
         if (message.value !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.value);
+        /* int32 version = 4; */
+        if (message.version !== 0)
+            writer.tag(4, WireType.Varint).int32(message.version);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1882,6 +1914,91 @@ class UpsertConfigSchemaResponse$Type extends MessageType<UpsertConfigSchemaResp
  * @generated MessageType for protobuf message k1s0.system.config.v1.UpsertConfigSchemaResponse
  */
 export const UpsertConfigSchemaResponse = new UpsertConfigSchemaResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListConfigSchemasRequest$Type extends MessageType<ListConfigSchemasRequest> {
+    constructor() {
+        super("k1s0.system.config.v1.ListConfigSchemasRequest", []);
+    }
+    create(value?: PartialMessage<ListConfigSchemasRequest>): ListConfigSchemasRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListConfigSchemasRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListConfigSchemasRequest): ListConfigSchemasRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListConfigSchemasRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.config.v1.ListConfigSchemasRequest
+ */
+export const ListConfigSchemasRequest = new ListConfigSchemasRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListConfigSchemasResponse$Type extends MessageType<ListConfigSchemasResponse> {
+    constructor() {
+        super("k1s0.system.config.v1.ListConfigSchemasResponse", [
+            { no: 1, name: "schemas", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ConfigEditorSchema }
+        ]);
+    }
+    create(value?: PartialMessage<ListConfigSchemasResponse>): ListConfigSchemasResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.schemas = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListConfigSchemasResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListConfigSchemasResponse): ListConfigSchemasResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated k1s0.system.config.v1.ConfigEditorSchema schemas */ 1:
+                    message.schemas.push(ConfigEditorSchema.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListConfigSchemasResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated k1s0.system.config.v1.ConfigEditorSchema schemas = 1; */
+        for (let i = 0; i < message.schemas.length; i++)
+            ConfigEditorSchema.internalBinaryWrite(message.schemas[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.config.v1.ListConfigSchemasResponse
+ */
+export const ListConfigSchemasResponse = new ListConfigSchemasResponse$Type();
 /**
  * @generated ServiceType for protobuf service k1s0.system.config.v1.ConfigService
  */
@@ -1893,5 +2010,6 @@ export const ConfigService = new ServiceType("k1s0.system.config.v1.ConfigServic
     { name: "GetServiceConfig", options: {}, I: GetServiceConfigRequest, O: GetServiceConfigResponse },
     { name: "WatchConfig", serverStreaming: true, options: {}, I: WatchConfigRequest, O: WatchConfigResponse },
     { name: "GetConfigSchema", options: {}, I: GetConfigSchemaRequest, O: GetConfigSchemaResponse },
-    { name: "UpsertConfigSchema", options: {}, I: UpsertConfigSchemaRequest, O: UpsertConfigSchemaResponse }
+    { name: "UpsertConfigSchema", options: {}, I: UpsertConfigSchemaRequest, O: UpsertConfigSchemaResponse },
+    { name: "ListConfigSchemas", options: {}, I: ListConfigSchemasRequest, O: ListConfigSchemasResponse }
 ]);

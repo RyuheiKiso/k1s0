@@ -84,10 +84,9 @@ pub struct GetQuotaPolicyResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListQuotaPoliciesRequest {
-    #[prost(uint32, tag="1")]
-    pub page: u32,
-    #[prost(uint32, tag="2")]
-    pub page_size: u32,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag="1")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
     #[prost(string, optional, tag="3")]
     pub subject_type: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag="4")]
