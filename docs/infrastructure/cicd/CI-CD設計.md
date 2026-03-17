@@ -873,6 +873,8 @@ scripts/list-modules.sh --status experimental
 
 ## Reusable Workflow アーキテクチャ
 
+![Reusable Workflow アーキテクチャ](images/cicd-reusable-workflow-arch.svg)
+
 サービス別 CI/Deploy ワークフローの重複を排除するため、3つの reusable workflow を定義している。
 
 ### `_rust-service-ci.yaml`

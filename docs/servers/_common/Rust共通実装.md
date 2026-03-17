@@ -129,9 +129,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ---
 
+## Clean Architecture 層構成
+
+![Clean Architecture 層構成](images/clean-architecture-layers.svg)
+
+---
+
 ## 共通 main.rs 起動シーケンス {#共通mainrs}
 
 全サーバーは以下の起動シーケンスに従う。サービス固有の DI は各implementation.md に記載する。
+
+![Rust サーバー起動シーケンス](images/rust-server-startup-sequence.svg)
 
 ```
 1. Config::load("config/config.yaml")

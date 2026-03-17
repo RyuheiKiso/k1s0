@@ -435,6 +435,8 @@ rules:
 
 ## Ingress 設計
 
+![Ingress クロスNamespaceルーティング](images/k8s-ingress-routing.svg)
+
 Ingress リソースは `ingress` Namespace に配置する。Kubernetes の Ingress はバックエンドとして同一 Namespace 内のサービスのみ参照できるため、他 Namespace のサービスへのルーティングには ExternalName サービスを `ingress` Namespace に作成する。
 
 ```yaml
