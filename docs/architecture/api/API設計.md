@@ -16,6 +16,8 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 
 各 Tier のサービスが提供する API 種別のパターンを以下に定義する。具体的なエンドポイント一覧は各サービスの設計フェーズで定義する。
 
+![Tier別APIパターンマトリクス](images/tier-api-pattern-matrix.svg)
+
 ### system Tier
 
 基盤サービスとして、認証・設定・共通マスタデータを提供する。

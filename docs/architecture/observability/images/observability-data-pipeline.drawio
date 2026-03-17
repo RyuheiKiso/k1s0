@@ -1,0 +1,202 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="observability-data-pipeline" name="可観測性データパイプライン">
+    <mxGraphModel dx="1422" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="700" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- ==================== -->
+        <!-- タイトル              -->
+        <!-- ==================== -->
+        <mxCell id="title" value="&lt;b&gt;可観測性データパイプライン&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="520" y="15" width="280" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- Metrics Pipeline     -->
+        <!-- ==================== -->
+        <mxCell id="metrics-lane" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=0;opacity=15;" vertex="1" parent="1">
+          <mxGeometry x="20" y="65" width="1360" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="metrics-label" value="&lt;b&gt;Metrics Pipeline&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="140" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- メトリクスエンドポイント -->
+        <mxCell id="m-service" value="&lt;b&gt;Service&lt;/b&gt;&lt;br&gt;/metrics endpoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="105" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Prometheus -->
+        <mxCell id="m-prometheus" value="&lt;b&gt;Prometheus&lt;/b&gt;&lt;br&gt;scrape interval: 15s" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="105" width="180" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Recording Rules -->
+        <mxCell id="m-rules" value="&lt;b&gt;Recording Rules&lt;/b&gt;&lt;br&gt;RED metrics 事前計算" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="105" width="180" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Alertmanager -->
+        <mxCell id="m-alertmanager" value="&lt;b&gt;Alertmanager&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;shadow=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="570" y="185" width="160" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- Microsoft Teams -->
+        <mxCell id="m-teams" value="&lt;b&gt;Microsoft Teams&lt;/b&gt;&lt;br&gt;アラート通知" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;shadow=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="178" width="160" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Metrics 矢印 -->
+        <mxCell id="m-e1" value="scrape" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6C8EBF;strokeWidth=2;fontSize=10;" edge="1" source="m-service" target="m-prometheus" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="m-e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6C8EBF;strokeWidth=2;" edge="1" source="m-prometheus" target="m-rules" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="m-e3" value="alert" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#B85450;strokeWidth=1;dashed=1;fontSize=10;" edge="1" source="m-prometheus" target="m-alertmanager" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="m-e4" value="webhook" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#B85450;strokeWidth=1;dashed=1;fontSize=10;" edge="1" source="m-alertmanager" target="m-teams" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- Traces Pipeline      -->
+        <!-- ==================== -->
+        <mxCell id="traces-lane" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=0;opacity=15;" vertex="1" parent="1">
+          <mxGeometry x="20" y="240" width="1360" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="traces-label" value="&lt;b&gt;Traces Pipeline&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="30" y="245" width="130" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Service (OTel SDK) -->
+        <mxCell id="t-service" value="&lt;b&gt;Service&lt;/b&gt;&lt;br&gt;OpenTelemetry SDK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- OTel Collector -->
+        <mxCell id="t-collector" value="&lt;b&gt;OTel Collector&lt;/b&gt;&lt;br&gt;batch + tail sampling" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="280" width="180" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Jaeger -->
+        <mxCell id="t-jaeger" value="&lt;b&gt;Jaeger&lt;/b&gt;&lt;br&gt;分散トレーシング" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="280" width="180" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- サンプリングレート -->
+        <mxCell id="t-sampling" value="&lt;b&gt;Sampling Rate&lt;/b&gt;&lt;br&gt;dev: 100% | staging: 50% | prod: 10%+error" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=0;fontSize=10;dashed=1;dashPattern=4 4;" vertex="1" parent="1">
+          <mxGeometry x="290" y="345" width="280" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- Traces 矢印 -->
+        <mxCell id="t-e1" value="OTLP" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#D6B656;strokeWidth=2;fontSize=10;" edge="1" source="t-service" target="t-collector" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#D6B656;strokeWidth=2;" edge="1" source="t-collector" target="t-jaeger" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- Log Pipeline         -->
+        <!-- ==================== -->
+        <mxCell id="logs-lane" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;shadow=0;opacity=15;" vertex="1" parent="1">
+          <mxGeometry x="20" y="405" width="1360" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="logs-label" value="&lt;b&gt;Log Pipeline&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="30" y="410" width="110" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Service (JSON stdout) -->
+        <mxCell id="l-service" value="&lt;b&gt;Service&lt;/b&gt;&lt;br&gt;JSON stdout" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="445" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Promtail -->
+        <mxCell id="l-promtail" value="&lt;b&gt;Promtail&lt;/b&gt;&lt;br&gt;ログ収集エージェント" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="445" width="180" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Loki -->
+        <mxCell id="l-loki" value="&lt;b&gt;Loki&lt;/b&gt;&lt;br&gt;ログストレージ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="445" width="180" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Log 矢印 -->
+        <mxCell id="l-e1" value="tail" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82B366;strokeWidth=2;fontSize=10;" edge="1" source="l-service" target="l-promtail" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l-e2" value="push" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82B366;strokeWidth=2;fontSize=10;" edge="1" source="l-promtail" target="l-loki" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- Grafana (統合ポイント) -->
+        <!-- ==================== -->
+        <mxCell id="grafana" value="&lt;b&gt;Grafana&lt;/b&gt;&lt;br&gt;統合ダッシュボード" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;shadow=1;fontSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="280" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Grafana: データソース接続 (Metrics → Grafana) -->
+        <mxCell id="g-e-metrics" value="Prometheus&lt;br&gt;data source" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6C8EBF;strokeWidth=2;fontSize=10;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" source="m-rules" target="grafana" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="132"/>
+              <mxPoint x="850" y="298"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Grafana: データソース接続 (Traces → Grafana) -->
+        <mxCell id="g-e-traces" value="Jaeger&lt;br&gt;data source" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#D6B656;strokeWidth=2;fontSize=10;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="t-jaeger" target="grafana" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="308"/>
+              <mxPoint x="900" y="315"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Grafana: データソース接続 (Logs → Grafana) -->
+        <mxCell id="g-e-logs" value="Loki&lt;br&gt;data source" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82B366;strokeWidth=2;fontSize=10;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" source="l-loki" target="grafana" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="950" y="472"/>
+              <mxPoint x="950" y="332"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- 凡例                  -->
+        <!-- ==================== -->
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#CCCCCC;shadow=0;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="570" width="300" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-title" value="&lt;b&gt;凡例&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="570" width="50" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-m" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="600" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-m-text" value="Metrics (Prometheus)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="595" width="130" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-t" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="625" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-t-text" value="Traces (OpenTelemetry → Jaeger)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="620" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-l" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="650" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-l-text" value="Logs (Promtail → Loki)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="645" width="150" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

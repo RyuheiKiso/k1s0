@@ -6,6 +6,8 @@ Saga パターンクライアントライブラリ。分散トランザクショ
 
 **配置先**: `regions/system/library/rust/saga/`
 
+![Sagaオーケストレーションパターン](images/saga-orchestration-flow.svg)
+
 ## 公開 API
 
 | 型・トレイト | 種別 | 説明 |

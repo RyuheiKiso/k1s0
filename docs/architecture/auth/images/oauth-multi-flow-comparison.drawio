@@ -1,0 +1,314 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="oauth-flow-001" name="OAuth 2.0 マルチフロー比較">
+    <mxGraphModel dx="1422" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="700" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル: OAuth 2.0 マルチフロー比較 -->
+        <mxCell id="title" value="&lt;b style=&quot;font-size:20px&quot;&gt;OAuth 2.0 マルチフロー比較&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#666&quot;&gt;クライアント種別ごとの認証フロー — PKCE / Device Grant / Client Credentials&lt;/font&gt;" style="text;html=1;fontSize=14;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="5" width="1000" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== フロー1: PKCE Flow (SPA / Mobile) ===== -->
+
+        <!-- PKCE フローヘッダー -->
+        <mxCell id="pkce-header" value="&lt;b style=&quot;font-size:14px&quot;&gt;1. Authorization Code + PKCE&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;SPA (React) / Mobile (Flutter)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="60" width="490" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- PKCE背景 -->
+        <mxCell id="pkce-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;shadow=0;fillColor=#F0F8F0;strokeColor=#82B366;strokeWidth=1;opacity=50;" vertex="1" parent="1">
+          <mxGeometry x="20" y="110" width="490" height="570" as="geometry"/>
+        </mxCell>
+
+        <!-- PKCE: Client アクターライン -->
+        <mxCell id="pkce-client-label" value="&lt;b&gt;Client&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;React / Flutter&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkce-client-line" value="" style="endArrow=none;html=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="165" as="sourcePoint"/>
+            <mxPoint x="90" y="660" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PKCE: User アクターライン -->
+        <mxCell id="pkce-user-label" value="&lt;b&gt;User&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;ブラウザ&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="200" y="120" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkce-user-line" value="" style="endArrow=none;html=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="165" as="sourcePoint"/>
+            <mxPoint x="250" y="660" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PKCE: Keycloak アクターライン -->
+        <mxCell id="pkce-kc-label" value="&lt;b&gt;Keycloak&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;IdP&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="380" y="120" width="110" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="pkce-kc-line" value="" style="endArrow=none;html=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="435" y="165" as="sourcePoint"/>
+            <mxPoint x="435" y="660" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PKCE Step 1: code_verifier/challenge 生成 -->
+        <mxCell id="pkce-s1" value="&lt;font style=&quot;font-size:9px&quot;&gt;① code_verifier 生成&lt;br&gt;code_challenge = SHA256(verifier)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#82B366;fontSize=9;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="185" width="100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- PKCE Step 2: GET /authorize -->
+        <mxCell id="pkce-s2" value="&lt;font style=&quot;font-size:9px&quot;&gt;② GET /authorize&lt;br&gt;(code_challenge, state)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="255" as="sourcePoint"/>
+            <mxPoint x="435" y="255" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PKCE Step 3: ログインページ表示 -->
+        <mxCell id="pkce-s3" value="&lt;font style=&quot;font-size:9px&quot;&gt;③ ログインページ表示&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="435" y="295" as="sourcePoint"/>
+            <mxPoint x="250" y="295" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PKCE Step 4: ユーザーログイン -->
+        <mxCell id="pkce-s4" value="&lt;font style=&quot;font-size:9px&quot;&gt;④ ID / PW 入力&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="335" as="sourcePoint"/>
+            <mxPoint x="435" y="335" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PKCE Step 5: リダイレクト + code -->
+        <mxCell id="pkce-s5" value="&lt;font style=&quot;font-size:9px&quot;&gt;⑤ redirect_uri?code=xxx&amp;amp;state=yyy&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="435" y="380" as="sourcePoint"/>
+            <mxPoint x="90" y="380" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PKCE Step 6: POST /token -->
+        <mxCell id="pkce-s6" value="&lt;font style=&quot;font-size:9px&quot;&gt;⑥ POST /token&lt;br&gt;(code, code_verifier)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="430" as="sourcePoint"/>
+            <mxPoint x="435" y="430" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PKCE Step 7: access_token + refresh_token -->
+        <mxCell id="pkce-s7" value="&lt;font style=&quot;font-size:9px&quot;&gt;⑦ access_token + refresh_token&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="435" y="475" as="sourcePoint"/>
+            <mxPoint x="90" y="475" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PKCE: 検証説明 -->
+        <mxCell id="pkce-verify" value="&lt;font style=&quot;font-size:9px&quot;&gt;Keycloak は&lt;br&gt;SHA256(code_verifier) == code_challenge&lt;br&gt;を検証して token 発行&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#82B366;fontSize=9;verticalAlign=middle;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="500" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== フロー2: Device Grant (CLI / Tauri) ===== -->
+
+        <!-- Device Grant ヘッダー -->
+        <mxCell id="dg-header" value="&lt;b style=&quot;font-size:14px&quot;&gt;2. Device Authorization Grant&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;CLI (Rust) / Tauri Desktop&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="540" y="60" width="490" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Device Grant 背景 -->
+        <mxCell id="dg-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;shadow=0;fillColor=#F0F8F0;strokeColor=#82B366;strokeWidth=1;opacity=50;" vertex="1" parent="1">
+          <mxGeometry x="540" y="110" width="490" height="570" as="geometry"/>
+        </mxCell>
+
+        <!-- DG: CLI アクターライン -->
+        <mxCell id="dg-cli-label" value="&lt;b&gt;CLI&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Rust / Tauri&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="560" y="120" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="dg-cli-line" value="" style="endArrow=none;html=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="610" y="165" as="sourcePoint"/>
+            <mxPoint x="610" y="660" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DG: User アクターライン -->
+        <mxCell id="dg-user-label" value="&lt;b&gt;User&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;ブラウザ&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="720" y="120" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="dg-user-line" value="" style="endArrow=none;html=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="770" y="165" as="sourcePoint"/>
+            <mxPoint x="770" y="660" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DG: Keycloak アクターライン -->
+        <mxCell id="dg-kc-label" value="&lt;b&gt;Keycloak&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;IdP&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="900" y="120" width="110" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="dg-kc-line" value="" style="endArrow=none;html=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="955" y="165" as="sourcePoint"/>
+            <mxPoint x="955" y="660" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DG Step 1: POST /device -->
+        <mxCell id="dg-s1" value="&lt;font style=&quot;font-size:9px&quot;&gt;① POST /device&lt;br&gt;(client_id, scope)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="610" y="200" as="sourcePoint"/>
+            <mxPoint x="955" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DG Step 2: device_code + user_code + verification_uri -->
+        <mxCell id="dg-s2" value="&lt;font style=&quot;font-size:9px&quot;&gt;② device_code, user_code,&lt;br&gt;verification_uri&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="955" y="250" as="sourcePoint"/>
+            <mxPoint x="610" y="250" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DG Step 3: CLIが user_code を表示 -->
+        <mxCell id="dg-s3" value="&lt;font style=&quot;font-size:9px&quot;&gt;③ 「ブラウザで {uri} を開き&lt;br&gt;コード {user_code} を入力してください」&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#82B366;fontSize=9;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="555" y="275" width="170" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- DG Step 4: User がブラウザでコード入力 -->
+        <mxCell id="dg-s4" value="&lt;font style=&quot;font-size:9px&quot;&gt;④ verification_uri にアクセス&lt;br&gt;user_code 入力 + ログイン&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="770" y="355" as="sourcePoint"/>
+            <mxPoint x="955" y="355" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DG Step 5: Keycloak 承認完了 -->
+        <mxCell id="dg-s5" value="&lt;font style=&quot;font-size:9px&quot;&gt;⑤ 承認完了画面&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="955" y="395" as="sourcePoint"/>
+            <mxPoint x="770" y="395" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DG Step 6: CLI がポーリング POST /token -->
+        <mxCell id="dg-s6" value="&lt;font style=&quot;font-size:9px&quot;&gt;⑥ POST /token (polling)&lt;br&gt;(device_code, grant_type=&lt;br&gt;device_code)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="610" y="445" as="sourcePoint"/>
+            <mxPoint x="955" y="445" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DG Step 7: access_token -->
+        <mxCell id="dg-s7" value="&lt;font style=&quot;font-size:9px&quot;&gt;⑦ access_token + refresh_token&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="955" y="490" as="sourcePoint"/>
+            <mxPoint x="610" y="490" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DG: ポーリング説明 -->
+        <mxCell id="dg-poll" value="&lt;font style=&quot;font-size:9px&quot;&gt;CLI は interval 秒ごとに&lt;br&gt;POST /token をポーリング&lt;br&gt;承認前: authorization_pending&lt;br&gt;承認後: token 返却&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#82B366;fontSize=9;verticalAlign=middle;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="555" y="510" width="170" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== フロー3: Client Credentials (Service-to-Service) ===== -->
+
+        <!-- CC ヘッダー -->
+        <mxCell id="cc-header" value="&lt;b style=&quot;font-size:14px&quot;&gt;3. Client Credentials&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Service-to-Service (M2M)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="60" width="510" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- CC 背景 -->
+        <mxCell id="cc-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;shadow=0;fillColor=#F0F8F0;strokeColor=#82B366;strokeWidth=1;opacity=50;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="110" width="510" height="570" as="geometry"/>
+        </mxCell>
+
+        <!-- CC: Service アクターライン -->
+        <mxCell id="cc-svc-label" value="&lt;b&gt;Service A&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;呼び出し元&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="120" width="110" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="cc-svc-line" value="" style="endArrow=none;html=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1135" y="165" as="sourcePoint"/>
+            <mxPoint x="1135" y="660" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CC: Keycloak アクターライン -->
+        <mxCell id="cc-kc-label" value="&lt;b&gt;Keycloak&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;IdP&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="120" width="110" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="cc-kc-line" value="" style="endArrow=none;html=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1375" y="165" as="sourcePoint"/>
+            <mxPoint x="1375" y="660" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CC: Service B アクターライン -->
+        <mxCell id="cc-svcb-label" value="&lt;b&gt;Service B&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;呼び出し先&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1470" y="120" width="80" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="cc-svcb-line" value="" style="endArrow=none;html=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1510" y="165" as="sourcePoint"/>
+            <mxPoint x="1510" y="660" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CC Step 1: POST /token -->
+        <mxCell id="cc-s1" value="&lt;font style=&quot;font-size:9px&quot;&gt;① POST /token&lt;br&gt;(client_id, client_secret,&lt;br&gt;grant_type=client_credentials)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1135" y="220" as="sourcePoint"/>
+            <mxPoint x="1375" y="220" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CC Step 2: access_token -->
+        <mxCell id="cc-s2" value="&lt;font style=&quot;font-size:9px&quot;&gt;② access_token (短寿命)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1375" y="280" as="sourcePoint"/>
+            <mxPoint x="1135" y="280" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CC Step 3: API call with Bearer token -->
+        <mxCell id="cc-s3" value="&lt;font style=&quot;font-size:9px&quot;&gt;③ gRPC / REST call&lt;br&gt;Authorization: Bearer {token}&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1135" y="340" as="sourcePoint"/>
+            <mxPoint x="1510" y="340" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CC Step 4: Response -->
+        <mxCell id="cc-s4" value="&lt;font style=&quot;font-size:9px&quot;&gt;④ レスポンス&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#548235;fontColor=#548235;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1510" y="390" as="sourcePoint"/>
+            <mxPoint x="1135" y="390" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CC: 説明 -->
+        <mxCell id="cc-note" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;特徴:&lt;/b&gt;&lt;br&gt;- ユーザー介在なし (M2M)&lt;br&gt;- client_secret は Vault で管理&lt;br&gt;- refresh_token なし&lt;br&gt;- トークン寿命: 5分（短命）&lt;br&gt;- Service B が JWT を検証&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#82B366;fontSize=9;verticalAlign=top;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="440" width="200" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- CC: JWT 検証フロー -->
+        <mxCell id="cc-jwt-note" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;Service B の JWT 検証:&lt;/b&gt;&lt;br&gt;1. JWKS エンドポイントから公開鍵取得&lt;br&gt;2. signature 検証&lt;br&gt;3. exp / iss / aud クレーム検証&lt;br&gt;4. scope / role 確認&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#82B366;fontSize=9;verticalAlign=top;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="440" width="200" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 下部の比較表 ===== -->
+        <mxCell id="compare-label" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;比較:&lt;/b&gt; PKCE=ユーザー操作あり・最も安全 | Device Grant=入力制限デバイス向け | Client Credentials=サーバー間・最もシンプル&lt;/font&gt;" style="text;html=1;fontSize=9;align=center;verticalAlign=middle;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="685" width="1200" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

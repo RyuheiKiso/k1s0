@@ -1,0 +1,188 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="api-matrix-001" name="Tier別APIパターンマトリクス">
+    <mxGraphModel dx="1422" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="700" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル: Tier別APIパターンマトリクス -->
+        <mxCell id="title" value="&lt;b style=&quot;font-size:20px&quot;&gt;Tier 別 API パターンマトリクス&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#666&quot;&gt;各 Tier が採用する API 通信方式と リクエストフローの全体像&lt;/font&gt;" style="text;html=1;fontSize=14;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="200" y="10" width="800" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 上部セクション: マトリクス ===== -->
+
+        <!-- セクションラベル: API パターン -->
+        <mxCell id="sec1-label" value="&lt;b style=&quot;font-size:14px&quot;&gt;API パターン対応表&lt;/b&gt;" style="text;html=1;fontSize=12;align=left;verticalAlign=middle;fontColor=#333;" vertex="1" parent="1">
+          <mxGeometry x="30" y="65" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== System Tier 列 (黄色) ===== -->
+
+        <!-- System Tierヘッダー -->
+        <mxCell id="sys-header" value="&lt;b style=&quot;font-size:15px&quot;&gt;system Tier&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;共通基盤&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="30" y="100" width="350" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- System: REST API -->
+        <mxCell id="sys-rest" value="&lt;b&gt;REST API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;管理 API / ヘルスチェック&lt;br&gt;OpenAPI 3.1 準拠&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="30" y="160" width="110" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- System: gRPC -->
+        <mxCell id="sys-grpc" value="&lt;b&gt;gRPC&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;内部 Tier 間通信&lt;br&gt;Connect-Go&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="150" y="160" width="110" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- System: GraphQL Gateway -->
+        <mxCell id="sys-gql" value="&lt;b&gt;GraphQL&lt;br&gt;Gateway&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;統合エンドポイント&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="270" y="160" width="110" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Business Tier 列 (紫色) ===== -->
+
+        <!-- Business Tierヘッダー -->
+        <mxCell id="biz-header" value="&lt;b style=&quot;font-size:15px&quot;&gt;business Tier&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;領域共通基盤&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="100" width="350" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Business: REST API -->
+        <mxCell id="biz-rest" value="&lt;b&gt;REST API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;領域固有の管理 API&lt;br&gt;OpenAPI 3.1 準拠&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="160" width="110" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Business: gRPC -->
+        <mxCell id="biz-grpc" value="&lt;b&gt;gRPC&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Tier 間通信&lt;br&gt;Unary + Stream&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="540" y="160" width="110" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Business: gRPC Stream -->
+        <mxCell id="biz-stream" value="&lt;b&gt;gRPC Stream&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;リアルタイム通知&lt;br&gt;Server Streaming&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="660" y="160" width="110" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Service Tier 列 (赤色) ===== -->
+
+        <!-- Service Tierヘッダー -->
+        <mxCell id="svc-header" value="&lt;b style=&quot;font-size:15px&quot;&gt;service Tier&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;個別サービス&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="810" y="100" width="350" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Service: REST -->
+        <mxCell id="svc-rest" value="&lt;b&gt;REST API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;外部クライアント向け&lt;br&gt;Kong 経由&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="810" y="160" width="110" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Service: GraphQL BFF -->
+        <mxCell id="svc-gql" value="&lt;b&gt;GraphQL BFF&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;React / Flutter 向け&lt;br&gt;クライアント最適化&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="930" y="160" width="120" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 凡例: チェックマーク ===== -->
+        <mxCell id="legend-box" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;凡例:&lt;/b&gt;  ■ = 採用パターン&lt;/font&gt;" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="30" y="240" width="300" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 下部セクション: リクエストフロー ===== -->
+
+        <!-- セクションラベル -->
+        <mxCell id="sec2-label" value="&lt;b style=&quot;font-size:14px&quot;&gt;リクエストフロー&lt;/b&gt;" style="text;html=1;fontSize=12;align=left;verticalAlign=middle;fontColor=#333;" vertex="1" parent="1">
+          <mxGeometry x="30" y="270" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- フロー背景 -->
+        <mxCell id="flow-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;shadow=0;fillColor=#FAFAFA;strokeColor=#CCCCCC;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="310" width="1130" height="360" as="geometry"/>
+        </mxCell>
+
+        <!-- Client (ブラウザ / モバイル) -->
+        <mxCell id="client" value="&lt;b style=&quot;font-size:14px&quot;&gt;Client&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;React SPA&lt;br&gt;Flutter App&lt;br&gt;CLI (Tauri)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="130" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Kong API Gateway -->
+        <mxCell id="flow-kong" value="&lt;b style=&quot;font-size:14px&quot;&gt;Kong&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;API Gateway&lt;br&gt;認証・レート制限&lt;br&gt;ルーティング&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="270" y="400" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- BFF (Service Tier) -->
+        <mxCell id="flow-bff" value="&lt;b style=&quot;font-size:14px&quot;&gt;BFF&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;service Tier&lt;br&gt;GraphQL / REST&lt;br&gt;集約 + 変換&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="490" y="400" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Business Server -->
+        <mxCell id="flow-biz" value="&lt;b style=&quot;font-size:14px&quot;&gt;Business&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;business Tier&lt;br&gt;gRPC (Connect)&lt;br&gt;ドメインロジック&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="710" y="400" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- System Server -->
+        <mxCell id="flow-sys" value="&lt;b style=&quot;font-size:14px&quot;&gt;System&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;system Tier&lt;br&gt;gRPC (Connect)&lt;br&gt;認証・設定・共通&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="930" y="400" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== フロー矢印 ===== -->
+
+        <!-- Client → Kong: HTTPS -->
+        <mxCell id="arrow1" value="&lt;font style=&quot;font-size:10px&quot;&gt;HTTPS&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;fontColor=#333;" edge="1" parent="1" source="client" target="flow-kong">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Kong → BFF: REST / GraphQL -->
+        <mxCell id="arrow2" value="&lt;font style=&quot;font-size:10px&quot;&gt;REST / GraphQL&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#B85450;fontColor=#B85450;" edge="1" parent="1" source="flow-kong" target="flow-bff">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- BFF → Business: gRPC -->
+        <mxCell id="arrow3" value="&lt;font style=&quot;font-size:10px&quot;&gt;gRPC&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673A6;fontColor=#9673A6;" edge="1" parent="1" source="flow-bff" target="flow-biz">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Business → System: gRPC -->
+        <mxCell id="arrow4" value="&lt;font style=&quot;font-size:10px&quot;&gt;gRPC&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#D6B656;fontColor=#B8860B;" edge="1" parent="1" source="flow-biz" target="flow-sys">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Keycloak ボックス（認証用） -->
+        <mxCell id="flow-kc" value="&lt;b&gt;Keycloak&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;IdP / Token 発行&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="270" y="560" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Kong → Keycloak: JWT検証 -->
+        <mxCell id="arrow-kc" value="&lt;font style=&quot;font-size:9px&quot;&gt;JWT 検証&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#82B366;fontColor=#548235;dashed=1;" edge="1" parent="1" source="flow-kong" target="flow-kc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Kafka ボックス（非同期通信） -->
+        <mxCell id="flow-kafka" value="&lt;b&gt;Kafka&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;非同期イベント&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="710" y="560" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Business ↔ Kafka: イベント発行/購読 -->
+        <mxCell id="arrow-kafka" value="&lt;font style=&quot;font-size:9px&quot;&gt;Pub / Sub&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#9673A6;fontColor=#7F5F9F;dashed=1;" edge="1" parent="1" source="flow-biz" target="flow-kafka">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- DB ボックス（データストア） -->
+        <mxCell id="flow-db" value="&lt;b&gt;PostgreSQL&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;各サーバー専用 DB&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;verticalAlign=middle;boundedLbl=1;size=8;" vertex="1" parent="1">
+          <mxGeometry x="930" y="555" width="140" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- System → DB -->
+        <mxCell id="arrow-db" value="&lt;font style=&quot;font-size:9px&quot;&gt;SQL&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#6C8EBF;fontColor=#4472C4;dashed=1;" edge="1" parent="1" source="flow-sys" target="flow-db">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- フロー注釈: 通信プロトコル凡例 -->
+        <mxCell id="flow-legend" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;凡例:&lt;/b&gt; ━ 同期通信 (REST/gRPC)  ┄ 非同期/参照通信&lt;/font&gt;" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="330" width="400" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- フロー注釈: リクエストの流れの方向 -->
+        <mxCell id="flow-direction" value="&lt;font style=&quot;font-size:10px;color:#999&quot;&gt;← リクエストの流れ →&lt;/font&gt;" style="text;html=1;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="370" width="500" height="25" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
