@@ -1,0 +1,25 @@
+/* セクションコンテナ */
+.section {
+  border: 1px solid #ccc;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+/* 定義リストのグリッドレイアウト */
+.dl {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 8px;
+  margin: 0;
+}
+
+/* 定義用語のスタイル */
+.dt {
+  font-weight: bold;
+  color: #555;
+}
+
+/* 定義説明のスタイル */
+.dd {
+  margin: 0;
+}

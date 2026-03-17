@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// Helm テンプレートのレンダリング統合テスト。
 ///
 /// CLI/templates/helm/ テンプレートファイルを使用し、

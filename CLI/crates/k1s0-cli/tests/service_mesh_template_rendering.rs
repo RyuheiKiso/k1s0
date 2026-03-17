@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// Service Mesh (Istio) テンプレートのレンダリング統合テスト。
 ///
 /// CLI/templates/service-mesh/ テンプレートファイルを使用し、

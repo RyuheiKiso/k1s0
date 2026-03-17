@@ -1,0 +1,78 @@
+/* DevToolsのルートコンテナ: 画面右下に固定表示 */
+.container {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+  font-family: monospace;
+  z-index: 99999;
+  max-width: 360px;
+  overflow: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* 展開時の最大高さ制限 */
+.expanded {
+  max-height: 400px;
+}
+
+/* トグルヘッダー */
+.toggle {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* 展開時のトグルヘッダー（下マージン追加） */
+.toggleExpanded {
+  margin-bottom: 8px;
+}
+
+/* アクティブルートの情報表示 */
+.activeRoute {
+  margin-bottom: 8px;
+  padding: 4px;
+  background: #16213e;
+  border-radius: 4px;
+}
+
+/* アクティブルートのID表示 */
+.activeRouteId {
+  color: #0ff;
+}
+
+/* ルート数とガード数の概要表示 */
+.summary {
+  color: #888;
+  margin-bottom: 4px;
+}
+
+/* 個別ルートの行 */
+.routeRow {
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+/* アクティブなルート行のハイライト */
+.routeRowActive {
+  background: #16213e;
+}
+
+/* ルートID表示 */
+.routeId {
+  color: #7b68ee;
+}
+
+/* ルートパス表示 */
+.routePath {
+  color: #666;
+}
+
+/* ガード表示 */
+.guards {
+  color: #ff6b6b;
+  margin-left: 4px;
+}

@@ -1,0 +1,24 @@
+# Docker環境用設定ファイル
+# ホスト名をDockerコンテナ名に変更し、ポートをコンテナ内部ポートに設定する
+app:
+  name: k1s0-notification-server
+  version: "0.1.0"
+  environment: docker
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+database:
+  host: "postgres"
+  port: 5432
+  name: "notification_db"
+  user: "dev"
+  password: "dev"
+  ssl_mode: "disable"
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  consumer_group: "notification-server.dev"
+  security_protocol: "PLAINTEXT"

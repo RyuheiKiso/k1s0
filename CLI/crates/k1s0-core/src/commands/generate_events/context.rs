@@ -229,7 +229,9 @@ fn proto_to_go_type(proto_type: &str) -> &str {
     }
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::commands::generate_events::types::*;

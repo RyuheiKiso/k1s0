@@ -88,12 +88,18 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 	// Inject Authorization header for upstream.
 	c.Request.Header.Set("Authorization", "Bearer "+sess.AccessToken)
 
-	// Propagate correlation headers.
+	// 相関ヘッダーをアップストリームに伝播する
 	if cid, ok := c.Get(middleware.CorrelationIDKey); ok {
-		c.Request.Header.Set(middleware.HeaderCorrelationID, cid.(string))
+		// 型アサーションの安全化: comma-ok パターンで string 型を確認する（M-3）
+		if cidStr, ok := cid.(string); ok {
+			c.Request.Header.Set(middleware.HeaderCorrelationID, cidStr)
+		}
 	}
 	if tid, ok := c.Get(middleware.TraceIDKey); ok {
-		c.Request.Header.Set(middleware.HeaderTraceID, tid.(string))
+		// 型アサーションの安全化: comma-ok パターンで string 型を確認する（M-3）
+		if tidStr, ok := tid.(string); ok {
+			c.Request.Header.Set(middleware.HeaderTraceID, tidStr)
+		}
 	}
 
 	// Strip session cookie from upstream request.

@@ -321,10 +321,55 @@ impl TemplateContextBuilder {
         self
     }
 
+    /// 必須コンテキスト変数が設定されているかバリデーションし、未設定の場合はエラーを返す。
+    ///
+    /// service_name, tier, language, kind が空文字列でないことを検証する。
+    pub fn validate(&self) -> Result<(), String> {
+        let mut missing = Vec::new();
+        if self.service_name.is_empty() {
+            missing.push("service_name");
+        }
+        if self.tier.is_empty() {
+            missing.push("tier");
+        }
+        if self.language.is_empty() {
+            missing.push("language");
+        }
+        if self.kind.is_empty() {
+            missing.push("kind");
+        }
+        if missing.is_empty() {
+            Ok(())
+        } else {
+            Err(format!(
+                "必須テンプレートコンテキスト変数が未設定です: {}",
+                missing.join(", ")
+            ))
+        }
+    }
+
+    /// `TemplateContext` を構築する（Result 版）。
+    ///
+    /// 必須変数のバリデーションを実行し、不正な場合はエラーを返す。
+    pub fn try_build(self) -> Result<TemplateContext, String> {
+        self.validate()?;
+        Ok(self.build_inner())
+    }
+
     /// `TemplateContext` を構築する。
     ///
     /// 入力値から導出ルールに従って全変数を自動計算する。
+    /// 必須変数のバリデーションを事前に実行し、不正な場合はパニックする。
     pub fn build(self) -> TemplateContext {
+        // 必須変数の事前バリデーション
+        if let Err(e) = self.validate() {
+            panic!("{}", e);
+        }
+        self.build_inner()
+    }
+
+    /// 内部的なビルド処理。バリデーション済みの前提で呼び出す。
+    fn build_inner(self) -> TemplateContext {
         // ケース変換の導出
         let service_name_snake = self.service_name.to_snake_case();
         let service_name_pascal = self.service_name.to_pascal_case();
@@ -486,7 +531,9 @@ impl TemplateContext {
     }
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -1154,5 +1201,51 @@ mod tests {
         assert_eq!(json["server_port"], 80);
         assert_eq!(json["grpc_port"], 9090);
         assert_eq!(json["server_language"], "rust");
+    }
+
+    // =========================================================================
+    // バリデーションのテスト
+    // =========================================================================
+
+    #[test]
+    fn test_validate_success() {
+        let builder = TemplateContextBuilder::new("order", "service", "rust", "server");
+        assert!(builder.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_empty_service_name() {
+        let builder = TemplateContextBuilder::new("", "service", "rust", "server");
+        let err = builder.validate().unwrap_err();
+        assert!(err.contains("service_name"));
+    }
+
+    #[test]
+    fn test_validate_empty_tier() {
+        let builder = TemplateContextBuilder::new("order", "", "rust", "server");
+        let err = builder.validate().unwrap_err();
+        assert!(err.contains("tier"));
+    }
+
+    #[test]
+    fn test_validate_multiple_missing() {
+        let builder = TemplateContextBuilder::new("", "", "", "");
+        let err = builder.validate().unwrap_err();
+        assert!(err.contains("service_name"));
+        assert!(err.contains("tier"));
+        assert!(err.contains("language"));
+        assert!(err.contains("kind"));
+    }
+
+    #[test]
+    fn test_try_build_success() {
+        let result = TemplateContextBuilder::new("order", "service", "rust", "server").try_build();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_try_build_validation_error() {
+        let result = TemplateContextBuilder::new("", "service", "rust", "server").try_build();
+        assert!(result.is_err());
     }
 }

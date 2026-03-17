@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useOrders } from '../../hooks/useOrders';
 import type { OrderStatus } from '../../types/order';
+import styles from './OrderList.module.css';
 
 // ステータス表示ラベルのマッピング
 const statusLabels: Record<OrderStatus, string> = {
@@ -13,14 +14,14 @@ const statusLabels: Record<OrderStatus, string> = {
   cancelled: 'キャンセル',
 };
 
-// ステータスバッジの背景色マッピング
-const statusColors: Record<OrderStatus, string> = {
-  pending: '#ffc107',
-  confirmed: '#17a2b8',
-  processing: '#007bff',
-  shipped: '#6f42c1',
-  delivered: '#28a745',
-  cancelled: '#dc3545',
+// ステータスバッジのCSSクラス名マッピング
+const statusClassMap: Record<OrderStatus, string> = {
+  pending: 'statusPending',
+  confirmed: 'statusConfirmed',
+  processing: 'statusProcessing',
+  shipped: 'statusShipped',
+  delivered: 'statusDelivered',
+  cancelled: 'statusCancelled',
 };
 
 // 注文一覧コンポーネント: テーブル表示でステータスフィルタ機能を提供
@@ -59,14 +60,14 @@ export function OrderList() {
   if (isLoading) return <div>読み込み中...</div>;
 
   // エラー発生時の表示
-  if (error) return <div>エラーが発生しました: {(error as Error).message}</div>;
+  if (error) return <div role="alert">エラーが発生しました: {(error as Error).message}</div>;
 
   return (
-    <div>
+    <main>
       <h1>注文一覧</h1>
 
       {/* ステータスフィルタードロップダウン */}
-      <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+      <div className={styles.toolbar}>
         <label htmlFor="status-filter">ステータス:</label>
         <select
           id="status-filter"
@@ -74,6 +75,7 @@ export function OrderList() {
           onChange={(e) =>
             setStatusFilter(e.target.value ? (e.target.value as OrderStatus) : undefined)
           }
+          aria-label="ステータスでフィルター"
         >
           <option value="">すべて</option>
           <option value="pending">保留中</option>
@@ -86,14 +88,14 @@ export function OrderList() {
       </div>
 
       {/* 注文一覧テーブル */}
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className={styles.table} aria-label="注文一覧">
         <thead>
           <tr>
-            <th style={thStyle}>注文ID</th>
-            <th style={thStyle}>顧客ID</th>
-            <th style={thStyle}>ステータス</th>
-            <th style={thStyle}>合計金額</th>
-            <th style={thStyle}>作成日</th>
+            <th className={styles.th}>注文ID</th>
+            <th className={styles.th}>顧客ID</th>
+            <th className={styles.th}>ステータス</th>
+            <th className={styles.th}>合計金額</th>
+            <th className={styles.th}>作成日</th>
           </tr>
         </thead>
         <tbody>
@@ -101,26 +103,24 @@ export function OrderList() {
             <tr
               key={order.id}
               onClick={() => handleRowClick(order.id)}
-              style={{ cursor: 'pointer' }}
+              className={styles.clickableRow}
+              role="button"
+              tabIndex={0}
+              aria-label={`注文 ${order.id.substring(0, 8)} の詳細を表示`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') handleRowClick(order.id);
+              }}
             >
-              <td style={tdStyle}>{order.id.substring(0, 8)}...</td>
-              <td style={tdStyle}>{order.customer_id}</td>
-              <td style={tdStyle}>
+              <td className={styles.td}>{order.id.substring(0, 8)}...</td>
+              <td className={styles.td}>{order.customer_id}</td>
+              <td className={styles.td}>
                 {/* ステータスバッジ: ステータスに応じた色で表示 */}
-                <span
-                  style={{
-                    backgroundColor: statusColors[order.status],
-                    color: '#fff',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.85em',
-                  }}
-                >
+                <span className={`${styles.statusBadge} ${styles[statusClassMap[order.status]]}`}>
                   {statusLabels[order.status]}
                 </span>
               </td>
-              <td style={tdStyle}>{formatAmount(order.total_amount, order.currency)}</td>
-              <td style={tdStyle}>{formatDate(order.created_at)}</td>
+              <td className={styles.td}>{formatAmount(order.total_amount, order.currency)}</td>
+              <td className={styles.td}>{formatDate(order.created_at)}</td>
             </tr>
           ))}
         </tbody>
@@ -128,19 +128,6 @@ export function OrderList() {
 
       {/* データが空の場合のメッセージ */}
       {orders?.length === 0 && <p>注文がありません。</p>}
-    </div>
+    </main>
   );
 }
-
-// テーブルヘッダーのスタイル
-const thStyle: React.CSSProperties = {
-  borderBottom: '2px solid #ccc',
-  padding: '8px',
-  textAlign: 'left',
-};
-
-// テーブルセルのスタイル
-const tdStyle: React.CSSProperties = {
-  borderBottom: '1px solid #eee',
-  padding: '8px',
-};

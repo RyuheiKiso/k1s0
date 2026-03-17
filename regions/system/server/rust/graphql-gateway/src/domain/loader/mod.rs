@@ -37,26 +37,18 @@ impl Loader<String> for FeatureFlagLoader {
 }
 
 /// ConfigLoader は config キー（"namespace/key" 形式）リストを受け取り、
-/// ConfigService を呼び出してバッチ取得する。
+/// ConfigService の ListConfigs をバッチ呼び出しして一括取得する。
+/// namespace ごとにグルーピングし、N+1 問題を回避する。
 impl Loader<String> for ConfigLoader {
     type Value = ConfigEntry;
     type Error = Arc<anyhow::Error>;
 
     async fn load(&self, keys: &[String]) -> Result<HashMap<String, Self::Value>, Self::Error> {
-        let mut result = HashMap::new();
-        for key in keys {
-            let parts: Vec<&str> = key.splitn(2, '/').collect();
-            if parts.len() != 2 {
-                continue;
-            }
-            match self.client.get_config(parts[0], parts[1]).await {
-                Ok(Some(entry)) => {
-                    result.insert(key.clone(), entry);
-                }
-                Ok(None) => {}
-                Err(e) => return Err(Arc::new(e)),
-            }
-        }
-        Ok(result)
+        let entries = self
+            .client
+            .list_configs_by_keys(keys)
+            .await
+            .map_err(Arc::new)?;
+        Ok(entries.into_iter().map(|e| (e.key.clone(), e)).collect())
     }
 }

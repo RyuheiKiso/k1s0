@@ -1,0 +1,79 @@
+/* フォームフィールドの共通レイアウト */
+.field {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* エラーメッセージ */
+.error {
+  color: red;
+  font-size: 0.85em;
+}
+
+/* テーブルヘッダーセル */
+.th {
+  border-bottom: 2px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+/* テーブルデータセル */
+.td {
+  border-bottom: 1px solid #eee;
+  padding: 8px;
+}
+
+/* アイテムテーブルのコンテナ */
+.itemsSection {
+  margin-bottom: 16px;
+}
+
+/* テーブル全体 */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+
+/* セル内の入力フィールド（横幅いっぱい） */
+.fullWidthInput {
+  width: 100%;
+}
+
+/* 数量入力フィールド */
+.quantityInput {
+  width: 80px;
+}
+
+/* 単価入力フィールド */
+.priceInput {
+  width: 100px;
+}
+
+/* 削除ボタン */
+.removeButton {
+  color: red;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.removeButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 合計金額表示 */
+.total {
+  margin-bottom: 16px;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+/* ボタンコンテナ */
+.actions {
+  display: flex;
+  gap: 8px;
+}

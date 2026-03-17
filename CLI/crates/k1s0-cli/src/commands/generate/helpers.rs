@@ -153,7 +153,9 @@ pub(super) fn prompt_db_selection(existing: &[DbInfo]) -> Result<Option<DbInfo>>
 // テスト
 // ============================================================================
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

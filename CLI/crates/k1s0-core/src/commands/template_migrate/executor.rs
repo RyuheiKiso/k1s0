@@ -111,7 +111,9 @@ pub fn backup_project_dir(backup_dir: &Path) -> std::path::PathBuf {
     backup_dir.join("project")
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::commands::generate::paths::build_output_path;

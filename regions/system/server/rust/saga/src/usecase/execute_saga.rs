@@ -55,7 +55,53 @@ impl ExecuteSagaUseCase {
     }
 
     /// Sagaを実行する。ステータスに応じてforward_executeまたはcompensateを実行する。
+    /// WorkflowDefinition の total_timeout_secs でSaga全体にタイムアウトを適用する。
     pub async fn run(&self, saga_id: Uuid, workflow: &WorkflowDefinition) -> anyhow::Result<()> {
+        let timeout_duration = std::time::Duration::from_secs(workflow.total_timeout_secs);
+
+        match tokio::time::timeout(timeout_duration, self.run_inner(saga_id, workflow)).await {
+            Ok(result) => result,
+            Err(_) => {
+                error!(
+                    saga_id = %saga_id,
+                    timeout_secs = workflow.total_timeout_secs,
+                    "Saga全体のタイムアウトに到達"
+                );
+                // タイムアウト時は補償処理を開始する
+                let mut state = self
+                    .saga_repo
+                    .find_by_id(saga_id)
+                    .await?
+                    .ok_or_else(|| anyhow::anyhow!("saga not found: {}", saga_id))?;
+
+                if !state.is_terminal() {
+                    let error_msg = format!(
+                        "saga timed out after {} seconds",
+                        workflow.total_timeout_secs
+                    );
+                    state.start_compensation(error_msg);
+                    self.saga_repo
+                        .update_status(state.saga_id, &state.status, state.error_message.clone())
+                        .await?;
+                    self.publish_event(&state, "SAGA_COMPENSATING").await;
+                    self.compensate(&mut state, workflow).await?;
+                }
+
+                Err(anyhow::anyhow!(
+                    "saga {} timed out after {} seconds",
+                    saga_id,
+                    workflow.total_timeout_secs
+                ))
+            }
+        }
+    }
+
+    /// run の内部実装。タイムアウトラッパーから呼び出される。
+    async fn run_inner(
+        &self,
+        saga_id: Uuid,
+        workflow: &WorkflowDefinition,
+    ) -> anyhow::Result<()> {
         let state = self
             .saga_repo
             .find_by_id(saga_id)
@@ -288,12 +334,15 @@ impl ExecuteSagaUseCase {
     }
 
     /// 補償処理：逆順でcompensateメソッドを呼び出す。失敗しても継続（best-effort）。
+    /// 補償失敗時はDLQへイベントを発行してエスカレーションする。
     async fn compensate(
         &self,
         state: &mut SagaState,
         workflow: &WorkflowDefinition,
     ) -> anyhow::Result<()> {
         let comp_start = (state.current_step as usize).min(workflow.steps.len());
+        // 補償失敗カウンター
+        let mut compensation_failures: u32 = 0;
 
         info!(
             saga_id = %state.saga_id,
@@ -358,6 +407,7 @@ impl ExecuteSagaUseCase {
                     );
                 }
                 Err(e) => {
+                    compensation_failures += 1;
                     step_log.mark_failed(format!("compensation failed: {}", e));
                     warn!(
                         saga_id = %state.saga_id,
@@ -365,11 +415,32 @@ impl ExecuteSagaUseCase {
                         error = %e,
                         "compensation step failed (best-effort, continuing)"
                     );
+
+                    // 補償失敗をDLQへエスカレーションする
+                    let dlq_event = serde_json::json!({
+                        "saga_id": state.saga_id.to_string(),
+                        "workflow": workflow.name,
+                        "step_name": step.name,
+                        "step_index": step_idx,
+                        "compensate_method": compensate_method,
+                        "error": e.to_string(),
+                        "payload": state.payload,
+                    });
+                    self.publish_compensation_failure(state, &dlq_event).await;
                 }
             }
 
             // Best effort: ignore repo errors during compensation logging
             let _ = self.saga_repo.update_with_step_log(state, &step_log).await;
+        }
+
+        // 補償失敗数をログに記録（メトリクス代替）
+        if compensation_failures > 0 {
+            error!(
+                saga_id = %state.saga_id,
+                compensation_failures = compensation_failures,
+                "補償処理に失敗したステップあり（DLQへエスカレーション済み）"
+            );
         }
 
         // Mark saga as FAILED after compensation
@@ -383,6 +454,30 @@ impl ExecuteSagaUseCase {
 
         info!(saga_id = %state.saga_id, "compensation completed, saga marked as failed");
         Ok(())
+    }
+
+    /// 補償失敗イベントをDLQトピックへ発行する（エスカレーション）。
+    async fn publish_compensation_failure(
+        &self,
+        state: &SagaState,
+        dlq_event: &serde_json::Value,
+    ) {
+        if let Some(ref publisher) = self.publisher {
+            if let Err(e) = publisher
+                .publish_saga_event(
+                    &state.saga_id.to_string(),
+                    "SAGA_COMPENSATION_FAILED",
+                    dlq_event,
+                )
+                .await
+            {
+                error!(
+                    saga_id = %state.saga_id,
+                    error = %e,
+                    "補償失敗イベントのDLQ発行に失敗"
+                );
+            }
+        }
     }
 
     /// イベントを発行する（オプショナル、失敗時はログのみ）。

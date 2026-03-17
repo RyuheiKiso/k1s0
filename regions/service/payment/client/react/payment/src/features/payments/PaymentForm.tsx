@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { initiatePaymentSchema } from '../../types/payment';
 import { useInitiatePayment } from '../../hooks/usePayments';
+import styles from './PaymentForm.module.css';
 
 // 決済方法の選択肢定義（サーバー契約に準拠: enumではなくstring値）
 const paymentMethodOptions: { value: string; label: string }[] = [
@@ -63,36 +64,38 @@ export function PaymentForm() {
   };
 
   return (
-    <div>
+    <main>
       <h1>新規決済</h1>
-      <div style={{ border: '1px solid #ccc', padding: '16px', marginBottom: '16px' }}>
+      <div className={styles.formContainer}>
         <form onSubmit={handleSubmit}>
           {/* 注文ID入力欄 */}
-          <div style={fieldStyle}>
+          <div className={styles.field}>
             <label htmlFor="order_id">注文ID</label>
             <input
               id="order_id"
               value={orderId}
               onChange={(e) => setOrderId(e.target.value)}
               required
+              aria-required="true"
             />
-            {errors.order_id && <span style={errorStyle}>{errors.order_id}</span>}
+            {errors.order_id && <span className={styles.error} role="alert">{errors.order_id}</span>}
           </div>
 
           {/* 顧客ID入力欄 */}
-          <div style={fieldStyle}>
+          <div className={styles.field}>
             <label htmlFor="customer_id">顧客ID</label>
             <input
               id="customer_id"
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
               required
+              aria-required="true"
             />
-            {errors.customer_id && <span style={errorStyle}>{errors.customer_id}</span>}
+            {errors.customer_id && <span className={styles.error} role="alert">{errors.customer_id}</span>}
           </div>
 
           {/* 金額入力欄 */}
-          <div style={fieldStyle}>
+          <div className={styles.field}>
             <label htmlFor="amount">金額</label>
             <input
               id="amount"
@@ -101,27 +104,30 @@ export function PaymentForm() {
               onChange={(e) => setAmount(Number(e.target.value))}
               min={1}
               required
+              aria-required="true"
             />
-            {errors.amount && <span style={errorStyle}>{errors.amount}</span>}
+            {errors.amount && <span className={styles.error} role="alert">{errors.amount}</span>}
           </div>
 
           {/* 通貨選択欄 */}
-          <div style={fieldStyle}>
+          <div className={styles.field}>
             <label htmlFor="currency">通貨</label>
             <input
               id="currency"
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
+              aria-label="通貨コードを入力"
             />
           </div>
 
           {/* 決済方法選択欄 */}
-          <div style={fieldStyle}>
+          <div className={styles.field}>
             <label htmlFor="payment_method">決済方法</label>
             <select
               id="payment_method"
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
+              aria-label="決済方法を選択"
             >
               {paymentMethodOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -129,41 +135,27 @@ export function PaymentForm() {
                 </option>
               ))}
             </select>
-            {errors.payment_method && <span style={errorStyle}>{errors.payment_method}</span>}
+            {errors.payment_method && <span className={styles.error} role="alert">{errors.payment_method}</span>}
           </div>
 
           {/* 送信・キャンセルボタン */}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button type="submit" disabled={initiatePayment.isPending}>
+          <div className={styles.actions}>
+            <button type="submit" disabled={initiatePayment.isPending} aria-label="決済を開始">
               決済を開始
             </button>
-            <button type="button" onClick={() => navigate({ to: '/' })}>
+            <button type="button" onClick={() => navigate({ to: '/' })} aria-label="キャンセル">
               キャンセル
             </button>
           </div>
 
           {/* APIエラー表示 */}
           {initiatePayment.error && (
-            <p style={errorStyle}>
+            <p className={styles.error} role="alert">
               決済の開始に失敗しました: {(initiatePayment.error as Error).message}
             </p>
           )}
         </form>
       </div>
-    </div>
+    </main>
   );
 }
-
-// フォームフィールドの共通スタイル
-const fieldStyle: React.CSSProperties = {
-  marginBottom: '12px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '4px',
-};
-
-// エラーメッセージのスタイル
-const errorStyle: React.CSSProperties = {
-  color: 'red',
-  fontSize: '0.85em',
-};

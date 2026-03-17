@@ -70,8 +70,11 @@ message GetQuotaPolicyResponse {
 }
 
 message ListQuotaPoliciesRequest {
-  uint32 page = 1;
-  uint32 page_size = 2;
+  // ページネーションパラメータを共通型に統一
+  k1s0.system.common.v1.Pagination pagination = 1;
+  // フィールド番号 2 は旧 page_size（Pagination に統一済み）
+  reserved 2;
+  reserved "page_size";
   optional string subject_type = 3;
   optional string subject_id = 4;
   optional bool enabled_only = 5;

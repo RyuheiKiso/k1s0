@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCategories, useDeleteCategory } from '../../hooks/useDomainMaster';
 import { CategoryForm } from './CategoryForm';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import type { MasterCategory } from '../../types/domain-master';
 
 // カテゴリ一覧コンポーネント: テーブル表示でCRUD操作を提供
@@ -9,15 +10,23 @@ export function CategoryList() {
   const [activeOnly, setActiveOnly] = useState<boolean | undefined>(undefined);
   // フォーム表示状態の管理（null: 非表示, undefined: 新規作成, MasterCategory: 編集）
   const [editingCategory, setEditingCategory] = useState<MasterCategory | undefined | null>(null);
+  // 削除確認ダイアログの対象カテゴリコード
+  const [deletingCode, setDeletingCode] = useState<string | null>(null);
 
   const { data: categories, isLoading, error } = useCategories(activeOnly);
   const deleteCategory = useDeleteCategory();
 
-  // カテゴリ削除確認ダイアログを表示して削除実行
+  // カテゴリ削除確認ダイアログを表示
   const handleDelete = (code: string) => {
-    if (window.confirm(`カテゴリ "${code}" を削除しますか？`)) {
-      deleteCategory.mutate(code);
+    setDeletingCode(code);
+  };
+
+  // 削除確認後に実際の削除を実行
+  const handleDeleteConfirm = () => {
+    if (deletingCode) {
+      deleteCategory.mutate(deletingCode);
     }
+    setDeletingCode(null);
   };
 
   // ローディング中の表示
@@ -28,6 +37,16 @@ export function CategoryList() {
 
   return (
     <div>
+      {/* 削除確認ダイアログ */}
+      <ConfirmDialog
+        open={deletingCode !== null}
+        title="カテゴリの削除"
+        message={`カテゴリ "${deletingCode}" を削除しますか？`}
+        confirmLabel="削除"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeletingCode(null)}
+      />
+
       <h1>マスタカテゴリ一覧</h1>
 
       {/* フィルターとアクションボタンのツールバー */}

@@ -49,6 +49,8 @@ impl OutboxStatus {
 pub struct OutboxMessage {
     /// メッセージの一意識別子
     pub id: Uuid,
+    /// 冪等性キー（重複発行防止用）
+    pub idempotency_key: String,
     /// 発行先 Kafka トピック
     pub topic: String,
     /// パーティションキー
@@ -71,14 +73,40 @@ pub struct OutboxMessage {
 
 impl OutboxMessage {
     /// 新しいアウトボックスメッセージを生成する。
+    /// idempotency_key は UUID v4 から自動生成される。
     pub fn new(
         topic: impl Into<String>,
         partition_key: impl Into<String>,
         payload: serde_json::Value,
     ) -> Self {
         let now = Utc::now();
+        let id = Uuid::new_v4();
+        Self {
+            idempotency_key: id.to_string(),
+            id,
+            topic: topic.into(),
+            partition_key: partition_key.into(),
+            payload,
+            status: OutboxStatus::Pending,
+            retry_count: 0,
+            max_retries: 3,
+            last_error: None,
+            created_at: now,
+            process_after: now,
+        }
+    }
+
+    /// 明示的な冪等性キーを指定してアウトボックスメッセージを生成する。
+    pub fn with_idempotency_key(
+        topic: impl Into<String>,
+        partition_key: impl Into<String>,
+        payload: serde_json::Value,
+        idempotency_key: impl Into<String>,
+    ) -> Self {
+        let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
+            idempotency_key: idempotency_key.into(),
             topic: topic.into(),
             partition_key: partition_key.into(),
             payload,

@@ -1,0 +1,70 @@
+/* 確認ダイアログのオーバーレイ: 画面全体を覆う半透明背景 */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* ダイアログ本体 */
+.dialog {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  min-width: 320px;
+  max-width: 480px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* ダイアログタイトル */
+.title {
+  margin: 0 0 12px;
+  font-size: 1.1em;
+}
+
+/* ダイアログメッセージ本文 */
+.message {
+  margin: 0 0 20px;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* アクションボタンのコンテナ */
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* キャンセルボタン */
+.cancelButton {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  background: #f5f5f5;
+}
+
+/* 確認ボタン（危険操作のため赤色） */
+.confirmButton {
+  padding: 8px 16px;
+  border: none;
+  background: #dc3545;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirmButton:hover {
+  background: #c82333;
+}

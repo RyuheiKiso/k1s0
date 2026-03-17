@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, Component, type ReactNode } from "react";
 import { Layout, Menu, Spin, theme } from "antd";
 import {
   AppstoreAddOutlined,
@@ -20,6 +20,43 @@ const RelationshipMapPage = lazy(() =>
   import("./pages/RelationshipMapPage").then((module) => ({ default: module.RelationshipMapPage }))
 );
 
+// ErrorBoundaryのProps定義
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+// ErrorBoundaryの内部状態
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+// エラーバウンダリコンポーネント: 子コンポーネントのレンダリングエラーをキャッチして表示
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  // レンダリングエラー発生時にエラー状態を更新
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  override render() {
+    // エラー発生時はフォールバックUIを表示
+    if (this.state.hasError) {
+      return (
+        <div role="alert" style={{ padding: 24 }}>
+          <h2>エラーが発生しました</h2>
+          <p>{this.state.error?.message}</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const items = [
   { key: "/dashboard", icon: <AppstoreAddOutlined />, label: "Dashboard" },
   { key: "/tables", icon: <DatabaseOutlined />, label: "Tables" },
@@ -34,6 +71,7 @@ export function App() {
   const { token } = theme.useToken();
 
   return (
+    <ErrorBoundary>
     <Layout style={{ minHeight: "100vh", background: token.colorBgLayout }}>
       <Layout.Sider breakpoint="lg" collapsedWidth={0} width={264} theme="light">
         <div className="brand-block">
@@ -69,5 +107,6 @@ export function App() {
         </Layout.Content>
       </Layout>
     </Layout>
+    </ErrorBoundary>
   );
 }

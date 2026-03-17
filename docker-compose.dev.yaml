@@ -188,6 +188,14 @@ services:
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
 
+  # GraphQL Gateway — 認証バイパス有効化
+  graphql-gateway-rust:
+    build:
+      args:
+        CARGO_FEATURES: "k1s0-server-common/dev-auth-bypass"
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+
   ai-gateway-rust:
     build:
       args:

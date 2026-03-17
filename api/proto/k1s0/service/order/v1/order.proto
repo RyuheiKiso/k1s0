@@ -86,7 +86,9 @@ message ListOrdersRequest {
 
 message ListOrdersResponse {
   repeated Order orders = 1;
-  int64 total_count = 2;
+  // total_count は PaginationResult.total_count に統一（重複削除）
+  reserved 2;
+  reserved "total_count";
   k1s0.system.common.v1.PaginationResult pagination = 3;
 }
 

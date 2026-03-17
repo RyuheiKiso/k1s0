@@ -140,8 +140,13 @@ func New{{.Service.ServiceName}}Client(conn *grpc.ClientConn) {{.Service.Service
 {{range .Service.Methods}}
 // {{.Name}} は gRPC メソッドを呼び出す。
 func (c *GRPC{{$.Service.ServiceName}}Client) {{.Name}}(ctx context.Context, req *{{.InputType}}) (*{{.OutputType}}, error) {
-	// TODO: generated stub — implement with protobuf client
-	return nil, nil
+	// gRPC クライアントスタブ: proto 生成コードの {{$.Service.ServiceName}}Client を使用して呼び出す
+	resp := &{{.OutputType}}{}
+	err := c.conn.Invoke(ctx, "/{{$.Service.Package}}.{{$.Service.ServiceName}}/{{.Name}}", req, resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 {{end}}`
 

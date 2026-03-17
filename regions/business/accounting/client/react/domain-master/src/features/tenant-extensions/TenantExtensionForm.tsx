@@ -4,6 +4,7 @@ import {
   useUpdateTenantExtension,
   useDeleteTenantExtension,
 } from '../../hooks/useDomainMaster';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 // テナント拡張フォームのProps
 interface TenantExtensionFormProps {
@@ -17,6 +18,8 @@ export function TenantExtensionForm({ tenantId, itemId }: TenantExtensionFormPro
   const updateExtension = useUpdateTenantExtension(tenantId, itemId);
   const deleteExtension = useDeleteTenantExtension(tenantId, itemId);
 
+  // 削除確認ダイアログの表示状態
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   // 表示名オーバーライドの入力状態
   const [displayNameOverride, setDisplayNameOverride] = useState('');
   // 属性オーバーライドのJSON入力状態
@@ -56,11 +59,15 @@ export function TenantExtensionForm({ tenantId, itemId }: TenantExtensionFormPro
     });
   };
 
-  // テナント拡張の削除確認と実行
+  // テナント拡張の削除確認ダイアログを表示
   const handleDelete = () => {
-    if (window.confirm('テナント拡張を削除しますか？')) {
-      deleteExtension.mutate();
-    }
+    setShowDeleteConfirm(true);
+  };
+
+  // 削除確認後に実際の削除を実行
+  const handleDeleteConfirm = () => {
+    setShowDeleteConfirm(false);
+    deleteExtension.mutate();
   };
 
   if (isLoading) return <div>読み込み中...</div>;
@@ -68,6 +75,15 @@ export function TenantExtensionForm({ tenantId, itemId }: TenantExtensionFormPro
 
   return (
     <div style={{ border: '1px solid #ccc', padding: '16px' }}>
+      {/* 削除確認ダイアログ */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="テナント拡張の削除"
+        message="テナント拡張を削除しますか？"
+        confirmLabel="削除"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
       <h2>テナント拡張設定</h2>
       <p style={{ color: '#666', fontSize: '0.9em' }}>
         テナントID: {tenantId} / アイテムID: {itemId}

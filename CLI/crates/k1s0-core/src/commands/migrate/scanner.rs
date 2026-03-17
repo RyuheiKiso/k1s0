@@ -208,7 +208,9 @@ pub fn validate_migration_name(name: &str) -> Result<(), String> {
     Ok(())
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::TempDir;

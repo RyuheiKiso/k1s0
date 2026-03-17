@@ -78,7 +78,9 @@ pub fn create_migration(config: &MigrateCreateConfig) -> Result<(PathBuf, PathBu
     Ok((up_path, down_path))
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::commands::migrate::types::{Language, MigrateTarget};

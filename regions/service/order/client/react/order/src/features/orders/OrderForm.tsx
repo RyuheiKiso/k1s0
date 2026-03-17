@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { createOrderInputSchema } from '../../types/order';
 import { useCreateOrder } from '../../hooks/useOrders';
+import styles from './OrderForm.module.css';
 
 // 注文アイテム行の入力状態の型
 interface ItemRow {
@@ -104,25 +105,26 @@ export function OrderForm() {
   };
 
   return (
-    <div>
+    <main>
       <h1>新規注文作成</h1>
       <form onSubmit={handleSubmit}>
         {/* 顧客ID入力欄 */}
-        <div style={fieldStyle}>
+        <div className={styles.field}>
           <label htmlFor="customer_id">顧客ID</label>
           <input
             id="customer_id"
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
             required
+            aria-required="true"
           />
-          {errors.customer_id && <span style={errorStyle}>{errors.customer_id}</span>}
+          {errors.customer_id && <span className={styles.error} role="alert">{errors.customer_id}</span>}
         </div>
 
         {/* 通貨選択 */}
-        <div style={fieldStyle}>
+        <div className={styles.field}>
           <label htmlFor="currency">通貨</label>
-          <select id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+          <select id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)} aria-label="通貨を選択">
             <option value="JPY">JPY (日本円)</option>
             <option value="USD">USD (米ドル)</option>
             <option value="EUR">EUR (ユーロ)</option>
@@ -130,83 +132,88 @@ export function OrderForm() {
         </div>
 
         {/* 注文アイテムリスト */}
-        <div style={{ marginBottom: '16px' }}>
+        <section className={styles.itemsSection} aria-label="注文アイテム">
           <h2>注文アイテム</h2>
-          {errors.items && <span style={errorStyle}>{errors.items}</span>}
+          {errors.items && <span className={styles.error} role="alert">{errors.items}</span>}
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8px' }}>
+          <table className={styles.table}>
             <thead>
               <tr>
-                <th style={thStyle}>商品ID</th>
-                <th style={thStyle}>商品名</th>
-                <th style={thStyle}>数量</th>
-                <th style={thStyle}>単価</th>
-                <th style={thStyle}>小計</th>
-                <th style={thStyle}>操作</th>
+                <th className={styles.th}>商品ID</th>
+                <th className={styles.th}>商品名</th>
+                <th className={styles.th}>数量</th>
+                <th className={styles.th}>単価</th>
+                <th className={styles.th}>小計</th>
+                <th className={styles.th}>操作</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item, index) => (
                 <tr key={index}>
                   {/* 商品ID入力欄 */}
-                  <td style={tdStyle}>
+                  <td className={styles.td}>
                     <input
                       value={item.product_id}
                       onChange={(e) => updateItem(index, 'product_id', e.target.value)}
                       placeholder="商品ID"
-                      style={{ width: '100%' }}
+                      className={styles.fullWidthInput}
+                      aria-label={`商品ID (アイテム ${index + 1})`}
                     />
                     {errors[`items.${index}.product_id`] && (
-                      <span style={errorStyle}>{errors[`items.${index}.product_id`]}</span>
+                      <span className={styles.error} role="alert">{errors[`items.${index}.product_id`]}</span>
                     )}
                   </td>
                   {/* 商品名入力欄 */}
-                  <td style={tdStyle}>
+                  <td className={styles.td}>
                     <input
                       value={item.product_name}
                       onChange={(e) => updateItem(index, 'product_name', e.target.value)}
                       placeholder="商品名"
-                      style={{ width: '100%' }}
+                      className={styles.fullWidthInput}
+                      aria-label={`商品名 (アイテム ${index + 1})`}
                     />
                     {errors[`items.${index}.product_name`] && (
-                      <span style={errorStyle}>{errors[`items.${index}.product_name`]}</span>
+                      <span className={styles.error} role="alert">{errors[`items.${index}.product_name`]}</span>
                     )}
                   </td>
                   {/* 数量入力欄 */}
-                  <td style={tdStyle}>
+                  <td className={styles.td}>
                     <input
                       type="number"
                       value={item.quantity}
                       onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
                       min={1}
-                      style={{ width: '80px' }}
+                      className={styles.quantityInput}
+                      aria-label={`数量 (アイテム ${index + 1})`}
                     />
                     {errors[`items.${index}.quantity`] && (
-                      <span style={errorStyle}>{errors[`items.${index}.quantity`]}</span>
+                      <span className={styles.error} role="alert">{errors[`items.${index}.quantity`]}</span>
                     )}
                   </td>
                   {/* 単価入力欄 */}
-                  <td style={tdStyle}>
+                  <td className={styles.td}>
                     <input
                       type="number"
                       value={item.unit_price}
                       onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
                       min={0}
-                      style={{ width: '100px' }}
+                      className={styles.priceInput}
+                      aria-label={`単価 (アイテム ${index + 1})`}
                     />
                     {errors[`items.${index}.unit_price`] && (
-                      <span style={errorStyle}>{errors[`items.${index}.unit_price`]}</span>
+                      <span className={styles.error} role="alert">{errors[`items.${index}.unit_price`]}</span>
                     )}
                   </td>
                   {/* 小計（自動計算） */}
-                  <td style={tdStyle}>{formatAmount(calcSubtotal(item))}</td>
+                  <td className={styles.td}>{formatAmount(calcSubtotal(item))}</td>
                   {/* 削除ボタン */}
-                  <td style={tdStyle}>
+                  <td className={styles.td}>
                     <button
                       type="button"
                       onClick={() => removeItem(index)}
                       disabled={items.length <= 1}
-                      style={{ color: 'red' }}
+                      className={styles.removeButton}
+                      aria-label={`アイテム ${index + 1} を削除`}
                     >
                       削除
                     </button>
@@ -217,18 +224,18 @@ export function OrderForm() {
           </table>
 
           {/* アイテム追加ボタン */}
-          <button type="button" onClick={addItem}>
+          <button type="button" onClick={addItem} aria-label="アイテムを追加">
             アイテムを追加
           </button>
-        </div>
+        </section>
 
         {/* 合計金額表示 */}
-        <div style={{ marginBottom: '16px', fontSize: '1.2em', fontWeight: 'bold' }}>
+        <div className={styles.total}>
           合計: {formatAmount(calcTotal())}
         </div>
 
         {/* 備考入力欄 */}
-        <div style={fieldStyle}>
+        <div className={styles.field}>
           <label htmlFor="notes">備考</label>
           <textarea
             id="notes"
@@ -239,49 +246,22 @@ export function OrderForm() {
         </div>
 
         {/* 送信・キャンセルボタン */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button type="submit" disabled={createOrder.isPending}>
+        <div className={styles.actions}>
+          <button type="submit" disabled={createOrder.isPending} aria-label="注文を作成">
             注文を作成
           </button>
-          <button type="button" onClick={() => navigate({ to: '/' })}>
+          <button type="button" onClick={() => navigate({ to: '/' })} aria-label="キャンセル">
             キャンセル
           </button>
         </div>
 
         {/* APIエラー表示 */}
         {createOrder.error && (
-          <p style={errorStyle}>
+          <p className={styles.error} role="alert">
             注文の作成に失敗しました: {(createOrder.error as Error).message}
           </p>
         )}
       </form>
-    </div>
+    </main>
   );
 }
-
-// フォームフィールドの共通スタイル
-const fieldStyle: React.CSSProperties = {
-  marginBottom: '12px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '4px',
-};
-
-// エラーメッセージのスタイル
-const errorStyle: React.CSSProperties = {
-  color: 'red',
-  fontSize: '0.85em',
-};
-
-// テーブルヘッダーのスタイル
-const thStyle: React.CSSProperties = {
-  borderBottom: '2px solid #ccc',
-  padding: '8px',
-  textAlign: 'left',
-};
-
-// テーブルセルのスタイル
-const tdStyle: React.CSSProperties = {
-  borderBottom: '1px solid #eee',
-  padding: '8px',
-};

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -44,9 +45,11 @@ func SessionMiddleware(store session.Store, cookieName string, ttl time.Duration
 		c.Set(SessionDataKey, sess)
 		c.Set(SessionIDKey, sessionID)
 
-		// Sliding window: extend TTL on each request.
+		// スライディングウィンドウ: リクエストごとに TTL を延長する
 		if sliding && ttl > 0 {
-			_ = store.Touch(c.Request.Context(), sessionID, ttl)
+			if err := store.Touch(c.Request.Context(), sessionID, ttl); err != nil {
+				slog.Warn("セッション TTL 延長に失敗", "session_id", sessionID, "error", err)
+			}
 		}
 
 		c.Next()

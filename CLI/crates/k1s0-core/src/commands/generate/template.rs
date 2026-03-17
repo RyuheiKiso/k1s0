@@ -147,7 +147,11 @@ fn try_generate_from_templates(
 
     match engine.render_to_dir(&ctx, output_path) {
         Ok(files) => !files.is_empty(),
-        Err(_) => false,
+        // テンプレートレンダリングエラーを明示的にログ出力する（M-16）
+        Err(e) => {
+            eprintln!("テンプレート条件評価エラー: {e}");
+            false
+        }
     }
 }
 

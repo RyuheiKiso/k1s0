@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import {
   createRootRoute,
   createRoute,
@@ -5,21 +6,25 @@ import {
   Outlet,
   Link,
 } from '@tanstack/react-router';
-import { InventoryList } from '../features/inventory/InventoryList';
-import { InventoryDetail } from '../features/inventory/InventoryDetail';
+
+// ルートコンポーネントの遅延読み込み（コード分割）
+const InventoryList = lazy(() => import('../features/inventory/InventoryList').then((m) => ({ default: m.InventoryList })));
+const InventoryDetail = lazy(() => import('../features/inventory/InventoryDetail').then((m) => ({ default: m.InventoryDetail })));
 
 // ルートレイアウト: 全ページ共通のナビゲーションヘッダー
 const rootRoute = createRootRoute({
   component: () => (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px' }}>
       {/* グローバルナビゲーション */}
-      <nav style={{ borderBottom: '1px solid #ccc', paddingBottom: '8px', marginBottom: '16px' }}>
+      <nav aria-label="メインナビゲーション" style={{ borderBottom: '1px solid #ccc', paddingBottom: '8px', marginBottom: '16px' }}>
         <Link to="/" style={{ marginRight: '16px' }}>
           在庫管理
         </Link>
       </nav>
-      {/* 子ルートの描画領域 */}
-      <Outlet />
+      {/* 子ルートの描画領域（Suspenseでローディング表示） */}
+      <Suspense fallback={<div>読み込み中...</div>}>
+        <Outlet />
+      </Suspense>
     </div>
   ),
 });

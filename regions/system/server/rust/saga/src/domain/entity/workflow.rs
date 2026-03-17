@@ -10,6 +10,9 @@ pub struct WorkflowDefinition {
     pub version: i32,
     #[serde(default = "default_workflow_enabled")]
     pub enabled: bool,
+    /// Saga 全体のタイムアウト秒数（デフォルト: 300秒）
+    #[serde(default = "default_total_timeout_secs")]
+    pub total_timeout_secs: u64,
     pub steps: Vec<WorkflowStep>,
 }
 
@@ -37,6 +40,11 @@ fn default_workflow_version() -> i32 {
 
 fn default_workflow_enabled() -> bool {
     true
+}
+
+/// Saga 全体のデフォルトタイムアウト: 300秒（5分）
+fn default_total_timeout_secs() -> u64 {
+    300
 }
 
 /// RetryConfig はリトライ設定を表す。

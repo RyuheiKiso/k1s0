@@ -72,6 +72,63 @@ impl ConfigGrpcClient {
         }
     }
 
+    /// 複数の "namespace/key" キーに対して ListConfigs をバッチ呼び出しし、該当する ConfigEntry を返す。
+    ///
+    /// namespace ごとにグルーピングし、1回の ListConfigs RPC で該当エントリを取得する。
+    #[instrument(skip(self), fields(service = "graphql-gateway"))]
+    pub async fn list_configs_by_keys(
+        &self,
+        keys: &[String],
+    ) -> anyhow::Result<Vec<ConfigEntry>> {
+        // namespace ごとにキーをグルーピング
+        let mut ns_keys: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
+        for key in keys {
+            let parts: Vec<&str> = key.splitn(2, '/').collect();
+            if parts.len() == 2 {
+                ns_keys
+                    .entry(parts[0].to_owned())
+                    .or_default()
+                    .push(parts[1].to_owned());
+            }
+        }
+
+        let mut results = Vec::new();
+        for (namespace, target_keys) in &ns_keys {
+            let request = tonic::Request::new(
+                proto::k1s0::system::config::v1::ListConfigsRequest {
+                    namespace: namespace.clone(),
+                    pagination: None,
+                    search: String::new(),
+                },
+            );
+            match self.client.clone().list_configs(request).await {
+                Ok(resp) => {
+                    let target_set: std::collections::HashSet<&str> =
+                        target_keys.iter().map(|s| s.as_str()).collect();
+                    for entry in resp.into_inner().entries {
+                        if target_set.contains(entry.key.as_str()) {
+                            let value_str =
+                                String::from_utf8(entry.value).unwrap_or_default();
+                            results.push(ConfigEntry {
+                                key: format!("{}/{}", entry.namespace, entry.key),
+                                value: value_str,
+                                updated_at: timestamp_to_rfc3339(entry.updated_at),
+                            });
+                        }
+                    }
+                }
+                Err(e) => {
+                    return Err(anyhow::anyhow!(
+                        "ConfigService.ListConfigs failed: {}",
+                        e
+                    ));
+                }
+            }
+        }
+        Ok(results)
+    }
+
     /// WatchConfig Server-Side Streaming を購読し、変更イベントを ConfigEntry として返す。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn watch_config(&self, namespaces: Vec<String>) -> impl Stream<Item = ConfigEntry> {

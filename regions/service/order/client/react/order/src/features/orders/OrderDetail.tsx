@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useOrder, useUpdateOrderStatus } from '../../hooks/useOrders';
 import type { OrderStatus } from '../../types/order';
+import styles from './OrderDetail.module.css';
 
 // 注文詳細コンポーネントのProps
 interface OrderDetailProps {
@@ -17,14 +18,14 @@ const statusLabels: Record<OrderStatus, string> = {
   cancelled: 'キャンセル',
 };
 
-// ステータスバッジの背景色マッピング
-const statusColors: Record<OrderStatus, string> = {
-  pending: '#ffc107',
-  confirmed: '#17a2b8',
-  processing: '#007bff',
-  shipped: '#6f42c1',
-  delivered: '#28a745',
-  cancelled: '#dc3545',
+// ステータスバッジのCSSクラス名マッピング
+const statusClassMap: Record<OrderStatus, string> = {
+  pending: 'statusPending',
+  confirmed: 'statusConfirmed',
+  processing: 'statusProcessing',
+  shipped: 'statusShipped',
+  delivered: 'statusDelivered',
+  cancelled: 'statusCancelled',
 };
 
 // 注文詳細コンポーネント: 注文情報とアイテム一覧、ステータス更新機能を提供
@@ -69,85 +70,80 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
   if (isLoading) return <div>読み込み中...</div>;
 
   // エラー発生時の表示
-  if (error) return <div>エラーが発生しました: {(error as Error).message}</div>;
+  if (error) return <div role="alert">エラーが発生しました: {(error as Error).message}</div>;
 
   // 注文データが存在しない場合
   if (!order) return <div>注文が見つかりませんでした。</div>;
 
   return (
-    <div>
+    <main>
       <h1>注文詳細</h1>
 
       {/* ナビゲーションリンク */}
-      <p>
+      <nav aria-label="パンくずナビゲーション">
         <a href="/">← 注文一覧に戻る</a>
-      </p>
+      </nav>
 
       {/* 注文基本情報 */}
-      <div style={{ border: '1px solid #ccc', padding: '16px', marginBottom: '16px' }}>
+      <section className={styles.section} aria-label="注文基本情報">
         <h2>基本情報</h2>
         <table style={{ borderCollapse: 'collapse' }}>
           <tbody>
             <tr>
-              <th style={infoThStyle}>注文ID</th>
-              <td style={infoTdStyle}>{order.id}</td>
+              <th className={styles.infoTh}>注文ID</th>
+              <td className={styles.infoTd}>{order.id}</td>
             </tr>
             <tr>
-              <th style={infoThStyle}>顧客ID</th>
-              <td style={infoTdStyle}>{order.customer_id}</td>
+              <th className={styles.infoTh}>顧客ID</th>
+              <td className={styles.infoTd}>{order.customer_id}</td>
             </tr>
             <tr>
-              <th style={infoThStyle}>ステータス</th>
-              <td style={infoTdStyle}>
+              <th className={styles.infoTh}>ステータス</th>
+              <td className={styles.infoTd}>
                 {/* ステータスバッジ */}
-                <span
-                  style={{
-                    backgroundColor: statusColors[order.status],
-                    color: '#fff',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.85em',
-                  }}
-                >
+                <span className={`${styles.statusBadge} ${styles[statusClassMap[order.status]]}`}>
                   {statusLabels[order.status]}
                 </span>
               </td>
             </tr>
             <tr>
-              <th style={infoThStyle}>合計金額</th>
-              <td style={infoTdStyle}>{formatAmount(order.total_amount, order.currency)}</td>
+              <th className={styles.infoTh}>合計金額</th>
+              <td className={styles.infoTd}>{formatAmount(order.total_amount, order.currency)}</td>
             </tr>
             <tr>
-              <th style={infoThStyle}>通貨</th>
-              <td style={infoTdStyle}>{order.currency}</td>
+              <th className={styles.infoTh}>通貨</th>
+              <td className={styles.infoTd}>{order.currency}</td>
             </tr>
             <tr>
-              <th style={infoThStyle}>備考</th>
-              <td style={infoTdStyle}>{order.notes ?? '-'}</td>
+              <th className={styles.infoTh}>備考</th>
+              <td className={styles.infoTd}>{order.notes ?? '-'}</td>
             </tr>
             <tr>
-              <th style={infoThStyle}>バージョン</th>
-              <td style={infoTdStyle}>{order.version}</td>
+              <th className={styles.infoTh}>バージョン</th>
+              <td className={styles.infoTd}>{order.version}</td>
             </tr>
             <tr>
-              <th style={infoThStyle}>作成日時</th>
-              <td style={infoTdStyle}>{formatDate(order.created_at)}</td>
+              <th className={styles.infoTh}>作成日時</th>
+              <td className={styles.infoTd}>{formatDate(order.created_at)}</td>
             </tr>
             <tr>
-              <th style={infoThStyle}>更新日時</th>
-              <td style={infoTdStyle}>{formatDate(order.updated_at)}</td>
+              <th className={styles.infoTh}>更新日時</th>
+              <td className={styles.infoTd}>{formatDate(order.updated_at)}</td>
             </tr>
           </tbody>
         </table>
-      </div>
+      </section>
 
       {/* ステータス更新セクション */}
-      <div style={{ border: '1px solid #ccc', padding: '16px', marginBottom: '16px' }}>
+      <section className={styles.section} aria-label="ステータス更新">
         <h2>ステータス更新</h2>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div className={styles.statusUpdateControls}>
+          <label htmlFor="new-status" className="sr-only">新しいステータス</label>
           <select
+            id="new-status"
             value={newStatus}
             onChange={(e) => setNewStatus(e.target.value as OrderStatus | '')}
+            aria-label="新しいステータスを選択"
           >
             <option value="">選択してください</option>
             <option value="pending">保留中</option>
@@ -160,6 +156,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
           <button
             onClick={handleStatusUpdate}
             disabled={!newStatus || updateStatus.isPending}
+            aria-label="ステータスを更新"
           >
             更新
           </button>
@@ -167,64 +164,38 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
 
         {/* ステータス更新エラー表示 */}
         {updateStatus.error && (
-          <p style={{ color: 'red', fontSize: '0.85em' }}>
+          <p className={styles.error} role="alert">
             ステータスの更新に失敗しました: {(updateStatus.error as Error).message}
           </p>
         )}
-      </div>
+      </section>
 
       {/* 注文アイテム一覧テーブル */}
-      <div style={{ border: '1px solid #ccc', padding: '16px' }}>
+      <section className={styles.section} aria-label="注文アイテム">
         <h2>注文アイテム</h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className={styles.table} aria-label="注文アイテム一覧">
           <thead>
             <tr>
-              <th style={thStyle}>商品ID</th>
-              <th style={thStyle}>商品名</th>
-              <th style={thStyle}>数量</th>
-              <th style={thStyle}>単価</th>
-              <th style={thStyle}>小計</th>
+              <th className={styles.th}>商品ID</th>
+              <th className={styles.th}>商品名</th>
+              <th className={styles.th}>数量</th>
+              <th className={styles.th}>単価</th>
+              <th className={styles.th}>小計</th>
             </tr>
           </thead>
           <tbody>
             {order.items.map((item, index) => (
               <tr key={index}>
-                <td style={tdStyle}>{item.product_id}</td>
-                <td style={tdStyle}>{item.product_name}</td>
-                <td style={tdStyle}>{item.quantity}</td>
-                <td style={tdStyle}>{formatAmount(item.unit_price, order.currency)}</td>
-                <td style={tdStyle}>{formatAmount(item.subtotal, order.currency)}</td>
+                <td className={styles.td}>{item.product_id}</td>
+                <td className={styles.td}>{item.product_name}</td>
+                <td className={styles.td}>{item.quantity}</td>
+                <td className={styles.td}>{formatAmount(item.unit_price, order.currency)}</td>
+                <td className={styles.td}>{formatAmount(item.subtotal, order.currency)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
-
-// 情報テーブルのヘッダーセルスタイル
-const infoThStyle: React.CSSProperties = {
-  padding: '6px 16px 6px 0',
-  textAlign: 'left',
-  whiteSpace: 'nowrap',
-  verticalAlign: 'top',
-};
-
-// 情報テーブルのデータセルスタイル
-const infoTdStyle: React.CSSProperties = {
-  padding: '6px 0',
-};
-
-// テーブルヘッダーのスタイル
-const thStyle: React.CSSProperties = {
-  borderBottom: '2px solid #ccc',
-  padding: '8px',
-  textAlign: 'left',
-};
-
-// テーブルセルのスタイル
-const tdStyle: React.CSSProperties = {
-  borderBottom: '1px solid #eee',
-  padding: '8px',
-};

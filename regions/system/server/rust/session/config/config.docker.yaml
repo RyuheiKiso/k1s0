@@ -1,0 +1,28 @@
+# Docker環境用設定ファイル
+# ホスト名をDockerコンテナ名に変更し、ポートをコンテナ内部ポートに設定する
+app:
+  name: k1s0-session-server
+  version: "0.1.0"
+  environment: docker
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  grpc_port: 50051
+
+session:
+  default_ttl_seconds: 3600
+  max_ttl_seconds: 86400
+
+database:
+  host: "postgres"
+  port: 5432
+  name: "session_db"
+  user: "dev"
+  password: "dev"
+  ssl_mode: "disable"
+
+redis:
+  url: "redis://redis:6379"
+  pool_size: 10
+  connect_timeout_seconds: 3

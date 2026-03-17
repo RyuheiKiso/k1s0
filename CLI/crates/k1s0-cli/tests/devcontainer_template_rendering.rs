@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// Dev Container テンプレートのレンダリング統合テスト。
 ///
 /// CLI/templates/devcontainer/ テンプレートファイルを使用し、

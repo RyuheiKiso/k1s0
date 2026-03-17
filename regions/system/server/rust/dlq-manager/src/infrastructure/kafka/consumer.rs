@@ -68,11 +68,23 @@ impl DlqKafkaConsumer {
                     if let Some(ref m) = self.metrics {
                         m.record_kafka_message_consumed(&topic, &self.consumer_group);
                     }
-                    let payload = match msg.payload() {
-                        Some(bytes) => {
-                            serde_json::from_slice(bytes).unwrap_or(serde_json::Value::Null)
-                        }
-                        None => serde_json::Value::Null,
+
+                    // ペイロードのデシリアライズを試行し、失敗時はポイズンピルとして即座に Dead 扱いにする
+                    let (payload, is_poison) = match msg.payload() {
+                        Some(bytes) => match serde_json::from_slice::<serde_json::Value>(bytes) {
+                            Ok(val) => (val, false),
+                            Err(parse_err) => {
+                                tracing::warn!(
+                                    topic = %topic,
+                                    error = %parse_err,
+                                    "ポイズンピル検出: デシリアライズ失敗、即座に Dead としてマーク"
+                                );
+                                // パースエラー時は生バイトを文字列として保持する
+                                let raw = String::from_utf8_lossy(bytes).to_string();
+                                (serde_json::json!({"raw_payload": raw}), true)
+                            }
+                        },
+                        None => (serde_json::Value::Null, false),
                     };
 
                     let error_message = msg
@@ -91,7 +103,12 @@ impl DlqKafkaConsumer {
                         })
                         .unwrap_or_else(|| "unknown error".to_string());
 
-                    let dlq_message = DlqMessage::new(topic, error_message, payload, 3);
+                    let mut dlq_message = DlqMessage::new(topic, error_message, payload, 3);
+
+                    // ポイズンピル（パースエラー）の場合は即座に Dead 状態にする（リトライ不要）
+                    if is_poison {
+                        dlq_message.mark_dead();
+                    }
 
                     if let Err(e) = self.repo.create(&dlq_message).await {
                         tracing::error!(error = %e, "failed to persist DLQ message");
@@ -99,6 +116,7 @@ impl DlqKafkaConsumer {
                         tracing::info!(
                             message_id = %dlq_message.id,
                             topic = %dlq_message.original_topic,
+                            is_poison = is_poison,
                             "DLQ message ingested"
                         );
                     }

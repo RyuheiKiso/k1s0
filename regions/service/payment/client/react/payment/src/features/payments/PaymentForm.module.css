@@ -1,0 +1,26 @@
+/* フォームコンテナ */
+.formContainer {
+  border: 1px solid #ccc;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+/* フォームフィールドの共通レイアウト */
+.field {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* エラーメッセージ */
+.error {
+  color: red;
+  font-size: 0.85em;
+}
+
+/* アクションボタンのコンテナ */
+.actions {
+  display: flex;
+  gap: 8px;
+}

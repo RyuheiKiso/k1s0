@@ -1,5 +1,6 @@
 # Mesh-wide PeerAuthentication: STRICT mTLS as default for the entire mesh.
 # Defined in the service-mesh Namespace (istiod's Namespace) to enforce mTLS globally.
+# TLS 1.3 を最低バージョンとして強制する（M-6）
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
@@ -8,6 +9,7 @@ metadata:
 spec:
   mtls:
     mode: STRICT
+    minProtocolVersion: TLSV1_3
 ---
 # observability Namespace uses PERMISSIVE mode because Prometheus
 # scrape uses plain HTTP without mTLS (see サービスメッシュ設計.md).
@@ -24,6 +26,7 @@ spec:
 # These complement the mesh-wide STRICT mTLS default defined in the service-mesh
 # Namespace (see サービスメッシュ設計.md). Even if the mesh-wide setting is
 # accidentally modified, these Namespace-level settings act as a defense layer.
+# TLS 1.3 を最低バージョンとして強制する（M-6）
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -33,6 +36,7 @@ metadata:
 spec:
   mtls:
     mode: STRICT
+    minProtocolVersion: TLSV1_3
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -42,6 +46,7 @@ metadata:
 spec:
   mtls:
     mode: STRICT
+    minProtocolVersion: TLSV1_3
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -51,3 +56,4 @@ metadata:
 spec:
   mtls:
     mode: STRICT
+    minProtocolVersion: TLSV1_3

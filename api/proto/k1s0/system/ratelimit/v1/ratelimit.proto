@@ -89,8 +89,11 @@ message DeleteRuleResponse {
 message ListRulesRequest {
   string scope = 1;
   optional bool enabled_only = 2;
-  uint32 page = 3;
-  uint32 page_size = 4;
+  // ページネーションパラメータを共通型に統一
+  k1s0.system.common.v1.Pagination pagination = 3;
+  // フィールド番号 4 は旧 page_size（Pagination に統一済み）
+  reserved 4;
+  reserved "page_size";
 }
 
 message ListRulesResponse {

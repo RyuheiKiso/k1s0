@@ -2,7 +2,7 @@
   "realm": "k1s0",
   "enabled": true,
   "displayName": "k1s0",
-  "sslRequired": "none",
+  "sslRequired": "external",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
@@ -100,6 +100,11 @@
         "name": "order_manager",
         "description": "Order manager - manages orders",
         "composite": false
+      },
+      {
+        "name": "svc_internal",
+        "description": "Service-to-service internal role - minimal privileges for inter-service communication",
+        "composite": false
       }
     ]
   },
@@ -158,6 +163,16 @@
             "access.token.claim": "true",
             "userinfo.token.claim": "true"
           }
+        },
+        {
+          "name": "k1s0-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "k1s0-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
         }
       ]
     },
@@ -195,6 +210,16 @@
             "access.token.claim": "true",
             "userinfo.token.claim": "true"
           }
+        },
+        {
+          "name": "k1s0-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "k1s0-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
         }
       ]
     },
@@ -230,6 +255,16 @@
             "access.token.claim": "true",
             "userinfo.token.claim": "true"
           }
+        },
+        {
+          "name": "k1s0-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "k1s0-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
         }
       ]
     },
@@ -243,7 +278,7 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
       "protocol": "openid-connect",
-      "secret": "dev-bff-secret",
+      "secret": "${KC_BFF_CLIENT_SECRET:-dev-bff-secret}",
       "redirectUris": [
         "https://app.k1s0.internal.example.com/callback",
         "http://localhost:3000/callback"
@@ -286,7 +321,7 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": true,
       "protocol": "openid-connect",
-      "secret": "dev-service-secret",
+      "secret": "${KC_SERVICE_CLIENT_SECRET:-dev-service-secret}",
       "defaultClientScopes": [
         "openid"
       ],
@@ -329,9 +364,42 @@
         }
       ],
       "serviceAccountsEnabled": true,
-      "defaultRoles": ["biz_admin"]
+      "defaultRoles": ["svc_internal"]
+    },
+    {
+      "clientId": "auth-server",
+      "name": "AuthServer",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ]
+    },
+    {
+      "clientId": "config-server",
+      "name": "ConfigServer",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ]
     }
   ],
+  "defaultRoles": ["user"],
   "clientScopes": [
     {
       "name": "openid",
@@ -418,7 +486,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "admin123",
+          "value": "${KC_TEST_ADMIN_PASSWORD:-admin123}",
           "temporary": false
         }
       ],
@@ -437,7 +505,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "user123",
+          "value": "${KC_TEST_USER_PASSWORD:-user123}",
           "temporary": false
         }
       ],
@@ -455,7 +523,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "order123",
+          "value": "${KC_TEST_ORDER_MGR_PASSWORD:-order123}",
           "temporary": false
         }
       ],
@@ -484,6 +552,15 @@
         }
       }
     ]
+  },
+  "browserSecurityHeaders": {
+    "contentSecurityPolicyReportOnly": "",
+    "xContentTypeOptions": "nosniff",
+    "xRobotsTag": "none",
+    "xFrameOptions": "SAMEORIGIN",
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "xXSSProtection": "1; mode=block",
+    "strictTransportSecurity": "max-age=31536000; includeSubDomains"
   },
   "smtpServer": {},
   "eventsEnabled": true,

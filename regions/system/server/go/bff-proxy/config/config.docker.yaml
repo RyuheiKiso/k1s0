@@ -8,6 +8,7 @@ server:
 auth:
   discovery_url: "http://keycloak:8080/realms/k1s0"
   client_id: "k1s0-bff"
+  client_secret: "dev-bff-secret"
   redirect_uri: "http://localhost:8080/auth/callback"
 
 session:

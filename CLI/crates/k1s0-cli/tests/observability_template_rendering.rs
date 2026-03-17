@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// 可観測性テンプレートのレンダリング統合テスト。
 ///
 /// CLI/templates/observability/ テンプレートファイルを使用し、

@@ -623,6 +623,52 @@ npm run build
 
 ---
 
+## 共通コンポーネント構成
+
+`system-client` パッケージが提供する共通コンポーネント:
+
+| コンポーネント | パス | 用途 |
+| --- | --- | --- |
+| `DataTable` | `system-client/src/components/DataTable.tsx` | ソート・フィルター機能付き汎用テーブル |
+| `FormLayout` | `system-client/src/components/FormLayout.tsx` | タイトル・フィールド・アクションの統一レイアウト |
+| `StatusBadge` | `system-client/src/components/StatusBadge.tsx` | success/warning/danger/info/neutral ステータス表示 |
+| `ErrorBoundary` | `system-client/src/components/ErrorBoundary.tsx` | React エラーバウンダリ（全アプリのルートに設置） |
+
+### アプリルート構成パターン
+
+```tsx
+// App.tsx — 全アプリ共通のルート構成
+import { ErrorBoundary } from '@k1s0/system-client';
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<div>Loading...</div>}>
+        <RouterProvider router={router} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+```
+
+### ルートベースコード分割
+
+各ルートコンポーネントは `React.lazy()` で遅延読み込みする:
+
+```tsx
+const OrderList = React.lazy(() => import('./features/orders/OrderList'));
+const OrderDetail = React.lazy(() => import('./features/orders/OrderDetail'));
+```
+
+### アクセシビリティ
+
+- セマンティックHTML（`<main>`, `<nav>`, `<section>`）を使用
+- インタラクティブ要素に `aria-label` を付与
+- クリック可能な行に `tabIndex`, `onKeyDown`, `role="button"` を追加
+- エラー表示に `role="alert"` を使用
+
+---
+
 ## 関連ドキュメント
 
 > 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。

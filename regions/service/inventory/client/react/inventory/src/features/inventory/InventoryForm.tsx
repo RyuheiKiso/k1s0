@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { stockOperationSchema, updateStockSchema } from '../../types/inventory';
 import { useReserveStock, useReleaseStock, useUpdateStock } from '../../hooks/useInventory';
+import styles from './InventoryForm.module.css';
 
 // 在庫操作フォームのProps
 interface InventoryFormProps {
@@ -94,29 +95,35 @@ export function InventoryForm({ productId, warehouseId, inventoryId }: Inventory
   const mutationError = reserveStock.error || releaseStock.error || updateStock.error;
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '16px', marginBottom: '16px' }}>
+    <section className={styles.container} aria-label="在庫操作">
       <h2>在庫操作</h2>
 
-      {/* 操作タイプ選択 */}
-      <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
+      {/* 操作タイプ選択タブ */}
+      <div className={styles.tabs} role="tablist" aria-label="操作タイプ選択">
         <button
           type="button"
+          role="tab"
+          aria-selected={operationType === 'reserve'}
           onClick={() => setOperationType('reserve')}
-          style={operationType === 'reserve' ? activeTabStyle : tabStyle}
+          className={operationType === 'reserve' ? styles.tabActive : styles.tab}
         >
           在庫予約
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={operationType === 'release'}
           onClick={() => setOperationType('release')}
-          style={operationType === 'release' ? activeTabStyle : tabStyle}
+          className={operationType === 'release' ? styles.tabActive : styles.tab}
         >
           予約解放
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={operationType === 'update'}
           onClick={() => setOperationType('update')}
-          style={operationType === 'update' ? activeTabStyle : tabStyle}
+          className={operationType === 'update' ? styles.tabActive : styles.tab}
         >
           在庫更新
         </button>
@@ -125,7 +132,7 @@ export function InventoryForm({ productId, warehouseId, inventoryId }: Inventory
       <form onSubmit={handleSubmit}>
         {/* 予約・解放操作の数量入力欄 */}
         {(operationType === 'reserve' || operationType === 'release') && (
-          <div style={fieldStyle}>
+          <div className={styles.field}>
             <label htmlFor="quantity">数量</label>
             <input
               id="quantity"
@@ -134,8 +141,9 @@ export function InventoryForm({ productId, warehouseId, inventoryId }: Inventory
               onChange={(e) => setQuantity(Number(e.target.value))}
               min={1}
               required
+              aria-required="true"
             />
-            {errors.quantity && <span style={errorStyle}>{errors.quantity}</span>}
+            {errors.quantity && <span className={styles.error} role="alert">{errors.quantity}</span>}
           </div>
         )}
 
@@ -143,7 +151,7 @@ export function InventoryForm({ productId, warehouseId, inventoryId }: Inventory
         {operationType === 'update' && (
           <>
             {/* 利用可能数入力 */}
-            <div style={fieldStyle}>
+            <div className={styles.field}>
               <label htmlFor="quantity_available">利用可能数</label>
               <input
                 id="quantity_available"
@@ -152,14 +160,15 @@ export function InventoryForm({ productId, warehouseId, inventoryId }: Inventory
                 onChange={(e) => setQuantityAvailable(Number(e.target.value))}
                 min={0}
                 required
+                aria-required="true"
               />
               {errors.quantity_available && (
-                <span style={errorStyle}>{errors.quantity_available}</span>
+                <span className={styles.error} role="alert">{errors.quantity_available}</span>
               )}
             </div>
 
             {/* 再注文点入力（任意） */}
-            <div style={fieldStyle}>
+            <div className={styles.field}>
               <label htmlFor="reorder_point">再注文点（任意）</label>
               <input
                 id="reorder_point"
@@ -170,14 +179,24 @@ export function InventoryForm({ productId, warehouseId, inventoryId }: Inventory
                 }
                 min={0}
               />
-              {errors.reorder_point && <span style={errorStyle}>{errors.reorder_point}</span>}
+              {errors.reorder_point && <span className={styles.error} role="alert">{errors.reorder_point}</span>}
             </div>
           </>
         )}
 
         {/* 送信ボタン */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button type="submit" disabled={isPending}>
+        <div className={styles.actions}>
+          <button
+            type="submit"
+            disabled={isPending}
+            aria-label={
+              operationType === 'reserve'
+                ? '在庫を予約する'
+                : operationType === 'release'
+                  ? '予約を解放する'
+                  : '在庫を更新する'
+            }
+          >
             {operationType === 'reserve'
               ? '予約する'
               : operationType === 'release'
@@ -188,40 +207,9 @@ export function InventoryForm({ productId, warehouseId, inventoryId }: Inventory
 
         {/* API エラー表示 */}
         {mutationError && (
-          <p style={errorStyle}>操作に失敗しました: {(mutationError as Error).message}</p>
+          <p className={styles.error} role="alert">操作に失敗しました: {(mutationError as Error).message}</p>
         )}
       </form>
-    </div>
+    </section>
   );
 }
-
-// フォームフィールドの共通スタイル
-const fieldStyle: React.CSSProperties = {
-  marginBottom: '12px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '4px',
-};
-
-// エラーメッセージのスタイル
-const errorStyle: React.CSSProperties = {
-  color: 'red',
-  fontSize: '0.85em',
-};
-
-// タブボタンのスタイル
-const tabStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  border: '1px solid #ccc',
-  backgroundColor: '#fff',
-  cursor: 'pointer',
-};
-
-// アクティブタブのスタイル
-const activeTabStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  border: '1px solid #007bff',
-  backgroundColor: '#007bff',
-  color: '#fff',
-  cursor: 'pointer',
-};
