@@ -16,8 +16,8 @@ message Pagination {
 
 // PaginationResult はページネーション結果。
 message PaginationResult {
-  // 全件数
-  int32 total_count = 1;
+  // 全件数（大規模データ対応のため int64 を使用）
+  int64 total_count = 1;
   // 現在のページ番号
   int32 page = 2;
   // 1ページあたりの件数

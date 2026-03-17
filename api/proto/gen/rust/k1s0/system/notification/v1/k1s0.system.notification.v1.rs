@@ -50,10 +50,9 @@ pub struct ListNotificationsRequest {
     pub channel_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag="2")]
     pub status: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(uint32, tag="3")]
-    pub page: u32,
-    #[prost(uint32, tag="4")]
-    pub page_size: u32,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag="3")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListNotificationsResponse {
@@ -112,10 +111,9 @@ pub struct ListChannelsRequest {
     pub channel_type: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(bool, tag="2")]
     pub enabled_only: bool,
-    #[prost(uint32, tag="3")]
-    pub page: u32,
-    #[prost(uint32, tag="4")]
-    pub page_size: u32,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag="3")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListChannelsResponse {
@@ -199,10 +197,9 @@ pub struct Template {
 pub struct ListTemplatesRequest {
     #[prost(string, optional, tag="1")]
     pub channel_type: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(uint32, tag="2")]
-    pub page: u32,
-    #[prost(uint32, tag="3")]
-    pub page_size: u32,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag="2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTemplatesResponse {

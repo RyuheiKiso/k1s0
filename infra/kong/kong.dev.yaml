@@ -94,7 +94,7 @@ services:
   # Master Service
   # ============================================================
   - name: master-v1
-    url: http://master-rust:8080
+    url: http://master-maintenance-rust:8080
     routes:
       - name: master-route
         paths:
@@ -108,35 +108,37 @@ services:
 
   # ============================================================
   # Accounting Ledger Service (business Tier)
+  # ※ ledger-rust サービスは未実装のためコメントアウト
   # ============================================================
-  - name: accounting-ledger-v1
-    url: http://ledger-rust:8080
-    routes:
-      - name: ledger-route
-        paths:
-          - /api/v1/accounting/ledger
-        strip_path: false
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: 1000
-          policy: local
+  # - name: accounting-ledger-v1
+  #   url: http://ledger-rust:8080
+  #   routes:
+  #     - name: ledger-route
+  #       paths:
+  #         - /api/v1/accounting/ledger
+  #       strip_path: false
+  #   plugins:
+  #     - name: rate-limiting
+  #       config:
+  #         minute: 1000
+  #         policy: local
 
   # ============================================================
   # Accounts Service (business Tier)
+  # ※ accounts-rust サービスは未実装のためコメントアウト
   # ============================================================
-  - name: accounts-v1
-    url: http://accounts-rust:8080
-    routes:
-      - name: accounts-route
-        paths:
-          - /api/v1/accounts
-        strip_path: false
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: 1000
-          policy: local
+  # - name: accounts-v1
+  #   url: http://accounts-rust:8080
+  #   routes:
+  #     - name: accounts-route
+  #       paths:
+  #         - /api/v1/accounts
+  #       strip_path: false
+  #   plugins:
+  #     - name: rate-limiting
+  #       config:
+  #         minute: 1000
+  #         policy: local
 
   # ============================================================
   # Order Service (service Tier)
@@ -156,19 +158,20 @@ services:
 
   # ============================================================
   # Dashboard Service (service Tier)
+  # ※ dashboard-rust サービスは未実装のためコメントアウト
   # ============================================================
-  - name: dashboard-v1
-    url: http://dashboard-rust:8080
-    routes:
-      - name: dashboard-route
-        paths:
-          - /api/v1/dashboard
-        strip_path: false
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: 1000
-          policy: local
+  # - name: dashboard-v1
+  #   url: http://dashboard-rust:8080
+  #   routes:
+  #     - name: dashboard-route
+  #       paths:
+  #         - /api/v1/dashboard
+  #       strip_path: false
+  #   plugins:
+  #     - name: rate-limiting
+  #       config:
+  #         minute: 1000
+  #         policy: local
 
   # ============================================================
   # Health Endpoints (no auth required)
@@ -190,8 +193,8 @@ services:
     routes:
       - name: config-health-check
         paths:
-          - /config/healthz
-          - /config/readyz
+          - /healthz
+          - /readyz
         strip_path: false
         plugins:
           - name: jwt
@@ -202,8 +205,8 @@ services:
     routes:
       - name: saga-health-check
         paths:
-          - /saga/healthz
-          - /saga/readyz
+          - /healthz
+          - /readyz
         strip_path: false
         plugins:
           - name: jwt
@@ -214,8 +217,8 @@ services:
     routes:
       - name: dlq-manager-health-check
         paths:
-          - /dlq/healthz
-          - /dlq/readyz
+          - /healthz
+          - /readyz
         strip_path: false
         plugins:
           - name: jwt

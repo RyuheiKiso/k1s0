@@ -929,6 +929,122 @@ func (x *FlagRule) GetVariant() string {
 	return ""
 }
 
+// WatchFeatureFlagRequest はフラグ変更監視リクエスト。
+type WatchFeatureFlagRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 監視対象のフラグキー（空の場合は全フラグの変更を受け取る）
+	FlagKey       string `protobuf:"bytes,1,opt,name=flag_key,json=flagKey,proto3" json:"flag_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchFeatureFlagRequest) Reset() {
+	*x = WatchFeatureFlagRequest{}
+	mi := &file_k1s0_system_featureflag_v1_featureflag_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchFeatureFlagRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchFeatureFlagRequest) ProtoMessage() {}
+
+func (x *WatchFeatureFlagRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_k1s0_system_featureflag_v1_featureflag_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchFeatureFlagRequest.ProtoReflect.Descriptor instead.
+func (*WatchFeatureFlagRequest) Descriptor() ([]byte, []int) {
+	return file_k1s0_system_featureflag_v1_featureflag_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *WatchFeatureFlagRequest) GetFlagKey() string {
+	if x != nil {
+		return x.FlagKey
+	}
+	return ""
+}
+
+// WatchFeatureFlagResponse はフラグ変更の監視レスポンス（ストリーミング）。
+type WatchFeatureFlagResponse struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	FlagKey string                 `protobuf:"bytes,1,opt,name=flag_key,json=flagKey,proto3" json:"flag_key,omitempty"`
+	// CREATED, UPDATED, DELETED
+	ChangeType    string        `protobuf:"bytes,2,opt,name=change_type,json=changeType,proto3" json:"change_type,omitempty"`
+	Flag          *FeatureFlag  `protobuf:"bytes,3,opt,name=flag,proto3" json:"flag,omitempty"`
+	ChangedAt     *v1.Timestamp `protobuf:"bytes,4,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchFeatureFlagResponse) Reset() {
+	*x = WatchFeatureFlagResponse{}
+	mi := &file_k1s0_system_featureflag_v1_featureflag_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchFeatureFlagResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchFeatureFlagResponse) ProtoMessage() {}
+
+func (x *WatchFeatureFlagResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_k1s0_system_featureflag_v1_featureflag_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchFeatureFlagResponse.ProtoReflect.Descriptor instead.
+func (*WatchFeatureFlagResponse) Descriptor() ([]byte, []int) {
+	return file_k1s0_system_featureflag_v1_featureflag_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *WatchFeatureFlagResponse) GetFlagKey() string {
+	if x != nil {
+		return x.FlagKey
+	}
+	return ""
+}
+
+func (x *WatchFeatureFlagResponse) GetChangeType() string {
+	if x != nil {
+		return x.ChangeType
+	}
+	return ""
+}
+
+func (x *WatchFeatureFlagResponse) GetFlag() *FeatureFlag {
+	if x != nil {
+		return x.Flag
+	}
+	return nil
+}
+
+func (x *WatchFeatureFlagResponse) GetChangedAt() *v1.Timestamp {
+	if x != nil {
+		return x.ChangedAt
+	}
+	return nil
+}
+
 var File_k1s0_system_featureflag_v1_featureflag_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_featureflag_v1_featureflag_proto_rawDesc = "" +
@@ -1006,7 +1122,16 @@ const file_k1s0_system_featureflag_v1_featureflag_proto_rawDesc = "" +
 	"\tattribute\x18\x01 \x01(\tR\tattribute\x12\x1a\n" +
 	"\boperator\x18\x02 \x01(\tR\boperator\x12\x14\n" +
 	"\x05value\x18\x03 \x01(\tR\x05value\x12\x18\n" +
-	"\avariant\x18\x04 \x01(\tR\avariant2\x9c\x05\n" +
+	"\avariant\x18\x04 \x01(\tR\avariant\"4\n" +
+	"\x17WatchFeatureFlagRequest\x12\x19\n" +
+	"\bflag_key\x18\x01 \x01(\tR\aflagKey\"\xd4\x01\n" +
+	"\x18WatchFeatureFlagResponse\x12\x19\n" +
+	"\bflag_key\x18\x01 \x01(\tR\aflagKey\x12\x1f\n" +
+	"\vchange_type\x18\x02 \x01(\tR\n" +
+	"changeType\x12;\n" +
+	"\x04flag\x18\x03 \x01(\v2'.k1s0.system.featureflag.v1.FeatureFlagR\x04flag\x12?\n" +
+	"\n" +
+	"changed_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tchangedAt2\x9d\x06\n" +
 	"\x12FeatureFlagService\x12q\n" +
 	"\fEvaluateFlag\x12/.k1s0.system.featureflag.v1.EvaluateFlagRequest\x1a0.k1s0.system.featureflag.v1.EvaluateFlagResponse\x12b\n" +
 	"\aGetFlag\x12*.k1s0.system.featureflag.v1.GetFlagRequest\x1a+.k1s0.system.featureflag.v1.GetFlagResponse\x12h\n" +
@@ -1016,7 +1141,8 @@ const file_k1s0_system_featureflag_v1_featureflag_proto_rawDesc = "" +
 	"\n" +
 	"UpdateFlag\x12-.k1s0.system.featureflag.v1.UpdateFlagRequest\x1a..k1s0.system.featureflag.v1.UpdateFlagResponse\x12k\n" +
 	"\n" +
-	"DeleteFlag\x12-.k1s0.system.featureflag.v1.DeleteFlagRequest\x1a..k1s0.system.featureflag.v1.DeleteFlagResponseBGZEgithub.com/k1s0-platform/system-proto-go/featureflag/v1;featureflagv1b\x06proto3"
+	"DeleteFlag\x12-.k1s0.system.featureflag.v1.DeleteFlagRequest\x1a..k1s0.system.featureflag.v1.DeleteFlagResponse\x12\x7f\n" +
+	"\x10WatchFeatureFlag\x123.k1s0.system.featureflag.v1.WatchFeatureFlagRequest\x1a4.k1s0.system.featureflag.v1.WatchFeatureFlagResponse0\x01BGZEgithub.com/k1s0-platform/system-proto-go/featureflag/v1;featureflagv1b\x06proto3"
 
 var (
 	file_k1s0_system_featureflag_v1_featureflag_proto_rawDescOnce sync.Once
@@ -1030,30 +1156,32 @@ func file_k1s0_system_featureflag_v1_featureflag_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_featureflag_v1_featureflag_proto_rawDescData
 }
 
-var file_k1s0_system_featureflag_v1_featureflag_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_k1s0_system_featureflag_v1_featureflag_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_k1s0_system_featureflag_v1_featureflag_proto_goTypes = []any{
-	(*EvaluateFlagRequest)(nil),  // 0: k1s0.system.featureflag.v1.EvaluateFlagRequest
-	(*EvaluateFlagResponse)(nil), // 1: k1s0.system.featureflag.v1.EvaluateFlagResponse
-	(*EvaluationContext)(nil),    // 2: k1s0.system.featureflag.v1.EvaluationContext
-	(*GetFlagRequest)(nil),       // 3: k1s0.system.featureflag.v1.GetFlagRequest
-	(*GetFlagResponse)(nil),      // 4: k1s0.system.featureflag.v1.GetFlagResponse
-	(*ListFlagsRequest)(nil),     // 5: k1s0.system.featureflag.v1.ListFlagsRequest
-	(*ListFlagsResponse)(nil),    // 6: k1s0.system.featureflag.v1.ListFlagsResponse
-	(*CreateFlagRequest)(nil),    // 7: k1s0.system.featureflag.v1.CreateFlagRequest
-	(*CreateFlagResponse)(nil),   // 8: k1s0.system.featureflag.v1.CreateFlagResponse
-	(*UpdateFlagRequest)(nil),    // 9: k1s0.system.featureflag.v1.UpdateFlagRequest
-	(*UpdateFlagResponse)(nil),   // 10: k1s0.system.featureflag.v1.UpdateFlagResponse
-	(*DeleteFlagRequest)(nil),    // 11: k1s0.system.featureflag.v1.DeleteFlagRequest
-	(*DeleteFlagResponse)(nil),   // 12: k1s0.system.featureflag.v1.DeleteFlagResponse
-	(*FeatureFlag)(nil),          // 13: k1s0.system.featureflag.v1.FeatureFlag
-	(*FlagVariant)(nil),          // 14: k1s0.system.featureflag.v1.FlagVariant
-	(*FlagRule)(nil),             // 15: k1s0.system.featureflag.v1.FlagRule
-	nil,                          // 16: k1s0.system.featureflag.v1.EvaluationContext.AttributesEntry
-	(*v1.Timestamp)(nil),         // 17: k1s0.system.common.v1.Timestamp
+	(*EvaluateFlagRequest)(nil),      // 0: k1s0.system.featureflag.v1.EvaluateFlagRequest
+	(*EvaluateFlagResponse)(nil),     // 1: k1s0.system.featureflag.v1.EvaluateFlagResponse
+	(*EvaluationContext)(nil),        // 2: k1s0.system.featureflag.v1.EvaluationContext
+	(*GetFlagRequest)(nil),           // 3: k1s0.system.featureflag.v1.GetFlagRequest
+	(*GetFlagResponse)(nil),          // 4: k1s0.system.featureflag.v1.GetFlagResponse
+	(*ListFlagsRequest)(nil),         // 5: k1s0.system.featureflag.v1.ListFlagsRequest
+	(*ListFlagsResponse)(nil),        // 6: k1s0.system.featureflag.v1.ListFlagsResponse
+	(*CreateFlagRequest)(nil),        // 7: k1s0.system.featureflag.v1.CreateFlagRequest
+	(*CreateFlagResponse)(nil),       // 8: k1s0.system.featureflag.v1.CreateFlagResponse
+	(*UpdateFlagRequest)(nil),        // 9: k1s0.system.featureflag.v1.UpdateFlagRequest
+	(*UpdateFlagResponse)(nil),       // 10: k1s0.system.featureflag.v1.UpdateFlagResponse
+	(*DeleteFlagRequest)(nil),        // 11: k1s0.system.featureflag.v1.DeleteFlagRequest
+	(*DeleteFlagResponse)(nil),       // 12: k1s0.system.featureflag.v1.DeleteFlagResponse
+	(*FeatureFlag)(nil),              // 13: k1s0.system.featureflag.v1.FeatureFlag
+	(*FlagVariant)(nil),              // 14: k1s0.system.featureflag.v1.FlagVariant
+	(*FlagRule)(nil),                 // 15: k1s0.system.featureflag.v1.FlagRule
+	(*WatchFeatureFlagRequest)(nil),  // 16: k1s0.system.featureflag.v1.WatchFeatureFlagRequest
+	(*WatchFeatureFlagResponse)(nil), // 17: k1s0.system.featureflag.v1.WatchFeatureFlagResponse
+	nil,                              // 18: k1s0.system.featureflag.v1.EvaluationContext.AttributesEntry
+	(*v1.Timestamp)(nil),             // 19: k1s0.system.common.v1.Timestamp
 }
 var file_k1s0_system_featureflag_v1_featureflag_proto_depIdxs = []int32{
 	2,  // 0: k1s0.system.featureflag.v1.EvaluateFlagRequest.context:type_name -> k1s0.system.featureflag.v1.EvaluationContext
-	16, // 1: k1s0.system.featureflag.v1.EvaluationContext.attributes:type_name -> k1s0.system.featureflag.v1.EvaluationContext.AttributesEntry
+	18, // 1: k1s0.system.featureflag.v1.EvaluationContext.attributes:type_name -> k1s0.system.featureflag.v1.EvaluationContext.AttributesEntry
 	13, // 2: k1s0.system.featureflag.v1.GetFlagResponse.flag:type_name -> k1s0.system.featureflag.v1.FeatureFlag
 	13, // 3: k1s0.system.featureflag.v1.ListFlagsResponse.flags:type_name -> k1s0.system.featureflag.v1.FeatureFlag
 	14, // 4: k1s0.system.featureflag.v1.CreateFlagRequest.variants:type_name -> k1s0.system.featureflag.v1.FlagVariant
@@ -1062,26 +1190,30 @@ var file_k1s0_system_featureflag_v1_featureflag_proto_depIdxs = []int32{
 	15, // 7: k1s0.system.featureflag.v1.UpdateFlagRequest.rules:type_name -> k1s0.system.featureflag.v1.FlagRule
 	13, // 8: k1s0.system.featureflag.v1.UpdateFlagResponse.flag:type_name -> k1s0.system.featureflag.v1.FeatureFlag
 	14, // 9: k1s0.system.featureflag.v1.FeatureFlag.variants:type_name -> k1s0.system.featureflag.v1.FlagVariant
-	17, // 10: k1s0.system.featureflag.v1.FeatureFlag.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	17, // 11: k1s0.system.featureflag.v1.FeatureFlag.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	19, // 10: k1s0.system.featureflag.v1.FeatureFlag.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	19, // 11: k1s0.system.featureflag.v1.FeatureFlag.updated_at:type_name -> k1s0.system.common.v1.Timestamp
 	15, // 12: k1s0.system.featureflag.v1.FeatureFlag.rules:type_name -> k1s0.system.featureflag.v1.FlagRule
-	0,  // 13: k1s0.system.featureflag.v1.FeatureFlagService.EvaluateFlag:input_type -> k1s0.system.featureflag.v1.EvaluateFlagRequest
-	3,  // 14: k1s0.system.featureflag.v1.FeatureFlagService.GetFlag:input_type -> k1s0.system.featureflag.v1.GetFlagRequest
-	5,  // 15: k1s0.system.featureflag.v1.FeatureFlagService.ListFlags:input_type -> k1s0.system.featureflag.v1.ListFlagsRequest
-	7,  // 16: k1s0.system.featureflag.v1.FeatureFlagService.CreateFlag:input_type -> k1s0.system.featureflag.v1.CreateFlagRequest
-	9,  // 17: k1s0.system.featureflag.v1.FeatureFlagService.UpdateFlag:input_type -> k1s0.system.featureflag.v1.UpdateFlagRequest
-	11, // 18: k1s0.system.featureflag.v1.FeatureFlagService.DeleteFlag:input_type -> k1s0.system.featureflag.v1.DeleteFlagRequest
-	1,  // 19: k1s0.system.featureflag.v1.FeatureFlagService.EvaluateFlag:output_type -> k1s0.system.featureflag.v1.EvaluateFlagResponse
-	4,  // 20: k1s0.system.featureflag.v1.FeatureFlagService.GetFlag:output_type -> k1s0.system.featureflag.v1.GetFlagResponse
-	6,  // 21: k1s0.system.featureflag.v1.FeatureFlagService.ListFlags:output_type -> k1s0.system.featureflag.v1.ListFlagsResponse
-	8,  // 22: k1s0.system.featureflag.v1.FeatureFlagService.CreateFlag:output_type -> k1s0.system.featureflag.v1.CreateFlagResponse
-	10, // 23: k1s0.system.featureflag.v1.FeatureFlagService.UpdateFlag:output_type -> k1s0.system.featureflag.v1.UpdateFlagResponse
-	12, // 24: k1s0.system.featureflag.v1.FeatureFlagService.DeleteFlag:output_type -> k1s0.system.featureflag.v1.DeleteFlagResponse
-	19, // [19:25] is the sub-list for method output_type
-	13, // [13:19] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	13, // 13: k1s0.system.featureflag.v1.WatchFeatureFlagResponse.flag:type_name -> k1s0.system.featureflag.v1.FeatureFlag
+	19, // 14: k1s0.system.featureflag.v1.WatchFeatureFlagResponse.changed_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 15: k1s0.system.featureflag.v1.FeatureFlagService.EvaluateFlag:input_type -> k1s0.system.featureflag.v1.EvaluateFlagRequest
+	3,  // 16: k1s0.system.featureflag.v1.FeatureFlagService.GetFlag:input_type -> k1s0.system.featureflag.v1.GetFlagRequest
+	5,  // 17: k1s0.system.featureflag.v1.FeatureFlagService.ListFlags:input_type -> k1s0.system.featureflag.v1.ListFlagsRequest
+	7,  // 18: k1s0.system.featureflag.v1.FeatureFlagService.CreateFlag:input_type -> k1s0.system.featureflag.v1.CreateFlagRequest
+	9,  // 19: k1s0.system.featureflag.v1.FeatureFlagService.UpdateFlag:input_type -> k1s0.system.featureflag.v1.UpdateFlagRequest
+	11, // 20: k1s0.system.featureflag.v1.FeatureFlagService.DeleteFlag:input_type -> k1s0.system.featureflag.v1.DeleteFlagRequest
+	16, // 21: k1s0.system.featureflag.v1.FeatureFlagService.WatchFeatureFlag:input_type -> k1s0.system.featureflag.v1.WatchFeatureFlagRequest
+	1,  // 22: k1s0.system.featureflag.v1.FeatureFlagService.EvaluateFlag:output_type -> k1s0.system.featureflag.v1.EvaluateFlagResponse
+	4,  // 23: k1s0.system.featureflag.v1.FeatureFlagService.GetFlag:output_type -> k1s0.system.featureflag.v1.GetFlagResponse
+	6,  // 24: k1s0.system.featureflag.v1.FeatureFlagService.ListFlags:output_type -> k1s0.system.featureflag.v1.ListFlagsResponse
+	8,  // 25: k1s0.system.featureflag.v1.FeatureFlagService.CreateFlag:output_type -> k1s0.system.featureflag.v1.CreateFlagResponse
+	10, // 26: k1s0.system.featureflag.v1.FeatureFlagService.UpdateFlag:output_type -> k1s0.system.featureflag.v1.UpdateFlagResponse
+	12, // 27: k1s0.system.featureflag.v1.FeatureFlagService.DeleteFlag:output_type -> k1s0.system.featureflag.v1.DeleteFlagResponse
+	17, // 28: k1s0.system.featureflag.v1.FeatureFlagService.WatchFeatureFlag:output_type -> k1s0.system.featureflag.v1.WatchFeatureFlagResponse
+	22, // [22:29] is the sub-list for method output_type
+	15, // [15:22] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_featureflag_v1_featureflag_proto_init() }
@@ -1098,7 +1230,7 @@ func file_k1s0_system_featureflag_v1_featureflag_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_featureflag_v1_featureflag_proto_rawDesc), len(file_k1s0_system_featureflag_v1_featureflag_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

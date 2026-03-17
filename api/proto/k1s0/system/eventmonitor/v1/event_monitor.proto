@@ -1,6 +1,8 @@
 syntax = "proto3";
 package k1s0.system.event_monitor.v1;
 
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/eventmonitor/v1;eventmonitorv1";
+
 import "k1s0/system/common/v1/types.proto";
 
 service EventMonitorService {

@@ -163,64 +163,37 @@ mod tests {
         assert_eq!(result.unwrap().entries.len(), 1);
     }
 
+    // テーブル駆動テスト: バリデーション異常系を一括検証
     #[tokio::test]
-    async fn test_list_configs_invalid_page() {
-        let mock = MockConfigRepository::new();
-        let uc = ListConfigsUseCase::new(Arc::new(mock));
-        let params = ListConfigsParams {
-            page: 0,
-            page_size: 20,
-            search: None,
-        };
-
-        let result = uc.execute("system.auth.database", &params).await;
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            ListConfigsError::Validation(msg) => assert!(msg.contains("page must be >= 1")),
-            e => unreachable!("unexpected error in test: {:?}", e),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_list_configs_invalid_page_size_too_large() {
-        let mock = MockConfigRepository::new();
-        let uc = ListConfigsUseCase::new(Arc::new(mock));
-        let params = ListConfigsParams {
-            page: 1,
-            page_size: 101,
-            search: None,
-        };
-
-        let result = uc.execute("system.auth.database", &params).await;
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            ListConfigsError::Validation(msg) => {
-                assert!(msg.contains("page_size must be between 1 and 100"))
+    async fn test_list_configs_validation_errors() {
+        // (page, page_size, 期待するエラーメッセージの部分文字列)
+        let cases = vec![
+            (0, 20, "page must be >= 1"),
+            (-1, 20, "page must be >= 1"),
+            (1, 0, "page_size must be between 1 and 100"),
+            (1, 101, "page_size must be between 1 and 100"),
+            (1, -5, "page_size must be between 1 and 100"),
+        ];
+        for (page, page_size, expected_msg) in cases {
+            let mock = MockConfigRepository::new();
+            let uc = ListConfigsUseCase::new(Arc::new(mock));
+            let params = ListConfigsParams {
+                page,
+                page_size,
+                search: None,
+            };
+            let result = uc.execute("system.auth.database", &params).await;
+            match result {
+                Err(ListConfigsError::Validation(msg)) => {
+                    assert!(
+                        msg.contains(expected_msg),
+                        "page={page}, page_size={page_size}: エラーメッセージ '{msg}' に '{expected_msg}' が含まれていない"
+                    );
+                }
+                other => panic!(
+                    "page={page}, page_size={page_size}: Validation エラーを期待したが {other:?}"
+                ),
             }
-            e => unreachable!("unexpected error in test: {:?}", e),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_list_configs_invalid_page_size_zero() {
-        let mock = MockConfigRepository::new();
-        let uc = ListConfigsUseCase::new(Arc::new(mock));
-        let params = ListConfigsParams {
-            page: 1,
-            page_size: 0,
-            search: None,
-        };
-
-        let result = uc.execute("system.auth.database", &params).await;
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            ListConfigsError::Validation(msg) => {
-                assert!(msg.contains("page_size must be between 1 and 100"))
-            }
-            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 

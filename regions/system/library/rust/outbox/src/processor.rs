@@ -12,13 +12,18 @@ pub trait OutboxPublisher: Send + Sync {
     async fn publish(&self, message: &OutboxMessage) -> Result<(), OutboxError>;
 }
 
+/// デフォルトの並列処理数
+const DEFAULT_CONCURRENCY: usize = 4;
+
 /// OutboxProcessor はアウトボックスメッセージの定期処理を担う。
-/// fetch_pending → publish → update のサイクルを実行する。
+/// fetch_pending → publish → update のサイクルを並列実行する。
 pub struct OutboxProcessor {
     store: Arc<dyn OutboxStore>,
     publisher: Arc<dyn OutboxPublisher>,
     /// 1回のポーリングで処理するメッセージ数
     batch_size: u32,
+    /// 並列処理数（デフォルト: 4）
+    concurrency: usize,
 }
 
 impl OutboxProcessor {
@@ -31,28 +36,68 @@ impl OutboxProcessor {
             store,
             publisher,
             batch_size,
+            concurrency: DEFAULT_CONCURRENCY,
         }
     }
 
-    /// 1回分のアウトボックス処理を実行する。
+    /// 並列処理数を設定する。
+    #[allow(dead_code)]
+    pub fn with_concurrency(mut self, concurrency: usize) -> Self {
+        self.concurrency = concurrency;
+        self
+    }
+
+    /// 1回分のアウトボックス処理を並列実行する。
     /// 処理したメッセージ数を返す。
     pub async fn process_batch(&self) -> Result<u32, OutboxError> {
         let messages = self.store.fetch_pending(self.batch_size).await?;
+        if messages.is_empty() {
+            return Ok(0);
+        }
+
         let mut processed = 0u32;
+        // メッセージを並列度ごとのチャンクに分割して処理する
+        for chunk in messages.chunks(self.concurrency) {
+            let mut join_set = tokio::task::JoinSet::new();
 
-        for mut message in messages {
-            message.mark_processing();
-            self.store.update(&message).await?;
+            for message in chunk.iter().cloned() {
+                let store = Arc::clone(&self.store);
+                let publisher = Arc::clone(&self.publisher);
 
-            match self.publisher.publish(&message).await {
-                Ok(()) => {
-                    message.mark_delivered();
-                    self.store.update(&message).await?;
-                    processed += 1;
-                }
-                Err(e) => {
-                    message.mark_failed(e.to_string());
-                    self.store.update(&message).await?;
+                join_set.spawn(async move {
+                    let mut message = message;
+                    // 処理中ステータスに遷移
+                    message.mark_processing();
+                    if let Err(e) = store.update(&message).await {
+                        return Err(OutboxError::StoreError(e.to_string()));
+                    }
+
+                    match publisher.publish(&message).await {
+                        Ok(()) => {
+                            message.mark_delivered();
+                            store.update(&message).await?;
+                            Ok(true)
+                        }
+                        Err(e) => {
+                            message.mark_failed(e.to_string());
+                            store.update(&message).await?;
+                            Ok(false)
+                        }
+                    }
+                });
+            }
+
+            // 全タスクの完了を待つ
+            while let Some(result) = join_set.join_next().await {
+                match result {
+                    Ok(Ok(true)) => processed += 1,
+                    Ok(Ok(false)) => {} // 発行失敗（リトライ対象）
+                    Ok(Err(e)) => {
+                        tracing::error!(error = %e, "アウトボックスメッセージ処理中のストアエラー");
+                    }
+                    Err(e) => {
+                        tracing::error!(error = %e, "アウトボックスタスクがパニック");
+                    }
                 }
             }
         }

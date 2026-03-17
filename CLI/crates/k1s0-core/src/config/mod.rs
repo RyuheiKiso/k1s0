@@ -485,7 +485,9 @@ pub fn merge_config(base: &mut CliConfig, override_path: &str) -> anyhow::Result
     Ok(())
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use std::env;

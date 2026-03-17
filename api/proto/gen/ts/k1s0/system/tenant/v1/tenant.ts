@@ -355,6 +355,48 @@ export interface ProvisioningJob {
      */
     updatedAt?: Timestamp;
 }
+// ============================================================
+// WatchTenant（Server-Side Streaming）
+// ============================================================
+
+/**
+ * WatchTenantRequest はテナント変更監視リクエスト。
+ *
+ * @generated from protobuf message k1s0.system.tenant.v1.WatchTenantRequest
+ */
+export interface WatchTenantRequest {
+    /**
+     * 監視対象のテナント ID（空の場合は全テナントの変更を受け取る）
+     *
+     * @generated from protobuf field: string tenant_id = 1
+     */
+    tenantId: string;
+}
+/**
+ * WatchTenantResponse はテナント変更の監視レスポンス（ストリーミング）。
+ *
+ * @generated from protobuf message k1s0.system.tenant.v1.WatchTenantResponse
+ */
+export interface WatchTenantResponse {
+    /**
+     * @generated from protobuf field: string tenant_id = 1
+     */
+    tenantId: string;
+    /**
+     * CREATED, UPDATED, SUSPENDED, ACTIVATED, DELETED
+     *
+     * @generated from protobuf field: string change_type = 2
+     */
+    changeType: string;
+    /**
+     * @generated from protobuf field: k1s0.system.tenant.v1.Tenant tenant = 3
+     */
+    tenant?: Tenant;
+    /**
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp changed_at = 4
+     */
+    changedAt?: Timestamp;
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class CreateTenantRequest$Type extends MessageType<CreateTenantRequest> {
     constructor() {
@@ -1747,6 +1789,122 @@ class ProvisioningJob$Type extends MessageType<ProvisioningJob> {
  * @generated MessageType for protobuf message k1s0.system.tenant.v1.ProvisioningJob
  */
 export const ProvisioningJob = new ProvisioningJob$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WatchTenantRequest$Type extends MessageType<WatchTenantRequest> {
+    constructor() {
+        super("k1s0.system.tenant.v1.WatchTenantRequest", [
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<WatchTenantRequest>): WatchTenantRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.tenantId = "";
+        if (value !== undefined)
+            reflectionMergePartial<WatchTenantRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WatchTenantRequest): WatchTenantRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string tenant_id */ 1:
+                    message.tenantId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WatchTenantRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string tenant_id = 1; */
+        if (message.tenantId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.tenantId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.tenant.v1.WatchTenantRequest
+ */
+export const WatchTenantRequest = new WatchTenantRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WatchTenantResponse$Type extends MessageType<WatchTenantResponse> {
+    constructor() {
+        super("k1s0.system.tenant.v1.WatchTenantResponse", [
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "change_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "tenant", kind: "message", T: () => Tenant },
+            { no: 4, name: "changed_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<WatchTenantResponse>): WatchTenantResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.tenantId = "";
+        message.changeType = "";
+        if (value !== undefined)
+            reflectionMergePartial<WatchTenantResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WatchTenantResponse): WatchTenantResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string tenant_id */ 1:
+                    message.tenantId = reader.string();
+                    break;
+                case /* string change_type */ 2:
+                    message.changeType = reader.string();
+                    break;
+                case /* k1s0.system.tenant.v1.Tenant tenant */ 3:
+                    message.tenant = Tenant.internalBinaryRead(reader, reader.uint32(), options, message.tenant);
+                    break;
+                case /* k1s0.system.common.v1.Timestamp changed_at */ 4:
+                    message.changedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.changedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WatchTenantResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string tenant_id = 1; */
+        if (message.tenantId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.tenantId);
+        /* string change_type = 2; */
+        if (message.changeType !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.changeType);
+        /* k1s0.system.tenant.v1.Tenant tenant = 3; */
+        if (message.tenant)
+            Tenant.internalBinaryWrite(message.tenant, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.Timestamp changed_at = 4; */
+        if (message.changedAt)
+            Timestamp.internalBinaryWrite(message.changedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.tenant.v1.WatchTenantResponse
+ */
+export const WatchTenantResponse = new WatchTenantResponse$Type();
 /**
  * @generated ServiceType for protobuf service k1s0.system.tenant.v1.TenantService
  */
@@ -1761,5 +1919,6 @@ export const TenantService = new ServiceType("k1s0.system.tenant.v1.TenantServic
     { name: "AddMember", options: {}, I: AddMemberRequest, O: AddMemberResponse },
     { name: "ListMembers", options: {}, I: ListMembersRequest, O: ListMembersResponse },
     { name: "RemoveMember", options: {}, I: RemoveMemberRequest, O: RemoveMemberResponse },
-    { name: "GetProvisioningStatus", options: {}, I: GetProvisioningStatusRequest, O: GetProvisioningStatusResponse }
+    { name: "GetProvisioningStatus", options: {}, I: GetProvisioningStatusRequest, O: GetProvisioningStatusResponse },
+    { name: "WatchTenant", serverStreaming: true, options: {}, I: WatchTenantRequest, O: WatchTenantResponse }
 ]);

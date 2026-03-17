@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// CI/CD テンプレートのレンダリング統合テスト。
 ///
 /// CLI/templates/cicd/ テンプレートファイルを使用し、

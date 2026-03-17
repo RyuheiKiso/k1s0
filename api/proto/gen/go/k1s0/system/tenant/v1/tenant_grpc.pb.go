@@ -30,6 +30,7 @@ const (
 	TenantService_ListMembers_FullMethodName           = "/k1s0.system.tenant.v1.TenantService/ListMembers"
 	TenantService_RemoveMember_FullMethodName          = "/k1s0.system.tenant.v1.TenantService/RemoveMember"
 	TenantService_GetProvisioningStatus_FullMethodName = "/k1s0.system.tenant.v1.TenantService/GetProvisioningStatus"
+	TenantService_WatchTenant_FullMethodName           = "/k1s0.system.tenant.v1.TenantService/WatchTenant"
 )
 
 // TenantServiceClient is the client API for TenantService service.
@@ -61,6 +62,8 @@ type TenantServiceClient interface {
 	RemoveMember(ctx context.Context, in *RemoveMemberRequest, opts ...grpc.CallOption) (*RemoveMemberResponse, error)
 	// GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
 	GetProvisioningStatus(ctx context.Context, in *GetProvisioningStatusRequest, opts ...grpc.CallOption) (*GetProvisioningStatusResponse, error)
+	// WatchTenant はテナント変更の監視（Server-Side Streaming）。
+	WatchTenant(ctx context.Context, in *WatchTenantRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchTenantResponse], error)
 }
 
 type tenantServiceClient struct {
@@ -181,6 +184,25 @@ func (c *tenantServiceClient) GetProvisioningStatus(ctx context.Context, in *Get
 	return out, nil
 }
 
+func (c *tenantServiceClient) WatchTenant(ctx context.Context, in *WatchTenantRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchTenantResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &TenantService_ServiceDesc.Streams[0], TenantService_WatchTenant_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[WatchTenantRequest, WatchTenantResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TenantService_WatchTenantClient = grpc.ServerStreamingClient[WatchTenantResponse]
+
 // TenantServiceServer is the server API for TenantService service.
 // All implementations must embed UnimplementedTenantServiceServer
 // for forward compatibility.
@@ -210,6 +232,8 @@ type TenantServiceServer interface {
 	RemoveMember(context.Context, *RemoveMemberRequest) (*RemoveMemberResponse, error)
 	// GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
 	GetProvisioningStatus(context.Context, *GetProvisioningStatusRequest) (*GetProvisioningStatusResponse, error)
+	// WatchTenant はテナント変更の監視（Server-Side Streaming）。
+	WatchTenant(*WatchTenantRequest, grpc.ServerStreamingServer[WatchTenantResponse]) error
 	mustEmbedUnimplementedTenantServiceServer()
 }
 
@@ -252,6 +276,9 @@ func (UnimplementedTenantServiceServer) RemoveMember(context.Context, *RemoveMem
 }
 func (UnimplementedTenantServiceServer) GetProvisioningStatus(context.Context, *GetProvisioningStatusRequest) (*GetProvisioningStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProvisioningStatus not implemented")
+}
+func (UnimplementedTenantServiceServer) WatchTenant(*WatchTenantRequest, grpc.ServerStreamingServer[WatchTenantResponse]) error {
+	return status.Error(codes.Unimplemented, "method WatchTenant not implemented")
 }
 func (UnimplementedTenantServiceServer) mustEmbedUnimplementedTenantServiceServer() {}
 func (UnimplementedTenantServiceServer) testEmbeddedByValue()                       {}
@@ -472,6 +499,17 @@ func _TenantService_GetProvisioningStatus_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TenantService_WatchTenant_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchTenantRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(TenantServiceServer).WatchTenant(m, &grpc.GenericServerStream[WatchTenantRequest, WatchTenantResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TenantService_WatchTenantServer = grpc.ServerStreamingServer[WatchTenantResponse]
+
 // TenantService_ServiceDesc is the grpc.ServiceDesc for TenantService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -524,6 +562,12 @@ var TenantService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _TenantService_GetProvisioningStatus_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "WatchTenant",
+			Handler:       _TenantService_WatchTenant_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "k1s0/system/tenant/v1/tenant.proto",
 }

@@ -52,8 +52,11 @@ message ReadEventsRequest {
   string stream_id = 1;
   int64 from_version = 2;
   optional int64 to_version = 3;
-  uint32 page = 4;
-  uint32 page_size = 5;
+  // ページネーションパラメータを共通型に統一
+  k1s0.system.common.v1.Pagination pagination = 4;
+  // フィールド番号 5 は旧 page_size（Pagination に統一済み）
+  reserved 5;
+  reserved "page_size";
   optional string event_type = 6;
 }
 

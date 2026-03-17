@@ -58,6 +58,12 @@ export interface EventMetadata {
      * @generated from protobuf field: int32 schema_version = 7
      */
     schemaVersion: number;
+    /**
+     * 因果関係追跡用 ID（このイベントを引き起こしたコマンド/イベントの ID）
+     *
+     * @generated from protobuf field: string causation_id = 8
+     */
+    causationId: string;
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class EventMetadata$Type extends MessageType<EventMetadata> {
@@ -69,7 +75,8 @@ class EventMetadata$Type extends MessageType<EventMetadata> {
             { no: 4, name: "timestamp", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 5, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "correlation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "schema_version", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 7, name: "schema_version", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 8, name: "causation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<EventMetadata>): EventMetadata {
@@ -81,6 +88,7 @@ class EventMetadata$Type extends MessageType<EventMetadata> {
         message.traceId = "";
         message.correlationId = "";
         message.schemaVersion = 0;
+        message.causationId = "";
         if (value !== undefined)
             reflectionMergePartial<EventMetadata>(this, message, value);
         return message;
@@ -110,6 +118,9 @@ class EventMetadata$Type extends MessageType<EventMetadata> {
                     break;
                 case /* int32 schema_version */ 7:
                     message.schemaVersion = reader.int32();
+                    break;
+                case /* string causation_id */ 8:
+                    message.causationId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -144,6 +155,9 @@ class EventMetadata$Type extends MessageType<EventMetadata> {
         /* int32 schema_version = 7; */
         if (message.schemaVersion !== 0)
             writer.tag(7, WireType.Varint).int32(message.schemaVersion);
+        /* string causation_id = 8; */
+        if (message.causationId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.causationId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

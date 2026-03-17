@@ -6,6 +6,8 @@
 
 **配置先**: `regions/system/library/rust/outbox/`
 
+![トランザクショナルアウトボックスパターン](images/outbox-pattern-flow.svg)
+
 ## 公開 API
 
 | 型・トレイト | 種別 | 説明 |

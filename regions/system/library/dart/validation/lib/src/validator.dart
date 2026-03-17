@@ -1,11 +1,14 @@
 import 'error.dart';
 
+// 4言語統一バリデーション正規表現パターン（H-18）
+// メールアドレス: TLD 2文字以上を必須とする
 final _emailRegExp = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+// UUID: v4 のみ許可する
 final _uuidRegExp = RegExp(
-  r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
-  caseSensitive: false,
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
 );
-final _tenantIdRegExp = RegExp(r'^[a-z0-9-]{3,63}$');
+// テナントID: 先頭・末尾は英数字、中間はハイフン許可、3-63文字
+final _tenantIdRegExp = RegExp(r'^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$');
 
 void validateEmail(String email) {
   if (!_emailRegExp.hasMatch(email)) {

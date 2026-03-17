@@ -1,6 +1,9 @@
 # このファイルは verify（検証）環境専用の Keycloak 設定です。
 # 含まれる資格情報はテスト用であり、本番環境では使用しないでください。
 # 本番環境の Keycloak 設定は infra/kubernetes/production/ を参照。
+#
+# NOTE: Docker版 (infra/docker/keycloak/k1s0-realm.json) を正本とし、
+# この設定はそれに同期して管理する。差分が出た場合はDocker版を基に更新する。
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,7 +15,7 @@ data:
       "realm": "k1s0",
       "enabled": true,
       "displayName": "k1s0",
-      "sslRequired": "none",
+      "sslRequired": "external",
       "registrationAllowed": false,
       "loginWithEmailAllowed": true,
       "duplicateEmailsAllowed": false,
@@ -44,17 +47,21 @@ data:
       "defaultSignatureAlgorithm": "RS256",
       "roles": {
         "realm": [
-          { "name": "user",                    "description": "Default user role",                         "composite": false },
-          { "name": "sys_admin",               "description": "System administrator",                      "composite": false },
-          { "name": "sys_operator",            "description": "System operator",                           "composite": false },
-          { "name": "sys_auditor",             "description": "System auditor - read-only",                "composite": false },
-          { "name": "biz_accounting_admin",    "description": "Accounting domain administrator",           "composite": false },
-          { "name": "biz_accounting_manager",  "description": "Accounting domain manager",                 "composite": false },
-          { "name": "biz_accounting_viewer",   "description": "Accounting domain viewer",                  "composite": false },
-          { "name": "svc_order_admin",         "description": "Order service administrator",               "composite": false },
-          { "name": "svc_order_user",          "description": "Order service user",                        "composite": false },
-          { "name": "svc_order_viewer",        "description": "Order service viewer",                      "composite": false },
-          { "name": "order_manager",           "description": "Order manager",                             "composite": false }
+          { "name": "biz_admin",              "description": "Business tier full access",                       "composite": false },
+          { "name": "biz_operator",           "description": "Business tier read/write access",                 "composite": false },
+          { "name": "biz_auditor",            "description": "Business tier read-only access",                  "composite": false },
+          { "name": "user",                   "description": "Default user role",                               "composite": false },
+          { "name": "sys_admin",              "description": "System administrator - full access",              "composite": false },
+          { "name": "sys_operator",           "description": "System operator - monitoring and configuration",  "composite": false },
+          { "name": "sys_auditor",            "description": "System auditor - read-only access",               "composite": false },
+          { "name": "biz_accounting_admin",   "description": "Accounting domain administrator",                 "composite": false },
+          { "name": "biz_accounting_manager", "description": "Accounting domain manager",                       "composite": false },
+          { "name": "biz_accounting_viewer",  "description": "Accounting domain viewer",                        "composite": false },
+          { "name": "svc_order_admin",        "description": "Order service administrator",                     "composite": false },
+          { "name": "svc_order_user",         "description": "Order service user",                              "composite": false },
+          { "name": "svc_order_viewer",       "description": "Order service viewer",                            "composite": false },
+          { "name": "order_manager",          "description": "Order manager - manages orders",                  "composite": false },
+          { "name": "svc_internal",           "description": "Service-to-service internal role",                "composite": false }
         ]
       },
       "clients": [
@@ -82,6 +89,19 @@ data:
           "defaultClientScopes": ["openid", "profile", "email"],
           "protocolMappers": [
             {
+              "name": "tier-access-mapper",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-hardcoded-claim-mapper",
+              "config": {
+                "claim.name": "tier_access",
+                "claim.value": "[\"system\", \"business\", \"service\"]",
+                "jsonType.label": "JSON",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            },
+            {
               "name": "realm-roles-mapper",
               "protocol": "openid-connect",
               "protocolMapper": "oidc-usermodel-realm-role-mapper",
@@ -93,8 +113,211 @@ data:
                 "access.token.claim": "true",
                 "userinfo.token.claim": "true"
               }
+            },
+            {
+              "name": "k1s0-api-audience",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-audience-mapper",
+              "config": {
+                "included.custom.audience": "k1s0-api",
+                "id.token.claim": "false",
+                "access.token.claim": "true"
+              }
             }
           ]
+        },
+        {
+          "clientId": "flutter-mobile",
+          "name": "Flutter Mobile Client",
+          "enabled": true,
+          "publicClient": true,
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "serviceAccountsEnabled": false,
+          "protocol": "openid-connect",
+          "redirectUris": ["com.example.k1s0://callback"],
+          "attributes": { "pkce.code.challenge.method": "S256" },
+          "defaultClientScopes": ["openid", "profile", "email"],
+          "protocolMappers": [
+            {
+              "name": "tier-access-mapper",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-hardcoded-claim-mapper",
+              "config": {
+                "claim.name": "tier_access",
+                "claim.value": "[\"system\", \"business\", \"service\"]",
+                "jsonType.label": "JSON",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            },
+            {
+              "name": "k1s0-api-audience",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-audience-mapper",
+              "config": {
+                "included.custom.audience": "k1s0-api",
+                "id.token.claim": "false",
+                "access.token.claim": "true"
+              }
+            }
+          ]
+        },
+        {
+          "clientId": "k1s0-cli",
+          "name": "k1s0 CLI Client",
+          "enabled": true,
+          "publicClient": true,
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": false,
+          "implicitFlowEnabled": false,
+          "serviceAccountsEnabled": false,
+          "protocol": "openid-connect",
+          "attributes": {
+            "oauth2.device.authorization.grant.enabled": "true",
+            "oauth2.device.polling.interval": "5"
+          },
+          "defaultClientScopes": ["openid", "profile", "email"],
+          "protocolMappers": [
+            {
+              "name": "tier-access-mapper",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-hardcoded-claim-mapper",
+              "config": {
+                "claim.name": "tier_access",
+                "claim.value": "[\"system\", \"business\", \"service\"]",
+                "jsonType.label": "JSON",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            },
+            {
+              "name": "k1s0-api-audience",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-audience-mapper",
+              "config": {
+                "included.custom.audience": "k1s0-api",
+                "id.token.claim": "false",
+                "access.token.claim": "true"
+              }
+            }
+          ]
+        },
+        {
+          "clientId": "k1s0-bff",
+          "name": "k1s0 BFF Proxy Client",
+          "enabled": true,
+          "publicClient": false,
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "serviceAccountsEnabled": false,
+          "protocol": "openid-connect",
+          "secret": "${KEYCLOAK_BFF_CLIENT_SECRET}",
+          "redirectUris": [
+            "https://app.k1s0.internal.example.com/callback",
+            "http://localhost:3000/callback"
+          ],
+          "webOrigins": [
+            "https://*.k1s0.internal.example.com",
+            "http://localhost:3000"
+          ],
+          "attributes": { "pkce.code.challenge.method": "S256" },
+          "defaultClientScopes": ["openid", "profile", "email"],
+          "protocolMappers": [
+            {
+              "name": "tier-access-mapper",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-hardcoded-claim-mapper",
+              "config": {
+                "claim.name": "tier_access",
+                "claim.value": "[\"system\", \"business\", \"service\"]",
+                "jsonType.label": "JSON",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            }
+          ]
+        },
+        {
+          "clientId": "k1s0-service",
+          "name": "k1s0 Service-to-Service Client",
+          "enabled": true,
+          "publicClient": false,
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": false,
+          "implicitFlowEnabled": false,
+          "serviceAccountsEnabled": true,
+          "protocol": "openid-connect",
+          "secret": "${KEYCLOAK_SERVICE_CLIENT_SECRET}",
+          "defaultClientScopes": ["openid"],
+          "protocolMappers": [
+            {
+              "name": "tier-access-mapper",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-hardcoded-claim-mapper",
+              "config": {
+                "claim.name": "tier_access",
+                "claim.value": "[\"system\", \"business\", \"service\"]",
+                "jsonType.label": "JSON",
+                "id.token.claim": "false",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "false"
+              }
+            },
+            {
+              "name": "k1s0-api-audience",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-audience-mapper",
+              "config": {
+                "included.custom.audience": "k1s0-api",
+                "id.token.claim": "false",
+                "access.token.claim": "true"
+              }
+            },
+            {
+              "name": "realm-roles",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-realm-role-mapper",
+              "config": {
+                "multivalued": "true",
+                "claim.name": "realm_access.roles",
+                "jsonType.label": "String",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            }
+          ],
+          "defaultRoles": ["svc_internal"]
+        },
+        {
+          "clientId": "auth-server",
+          "name": "AuthServer",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "bearerOnly": true,
+          "publicClient": false,
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": false,
+          "serviceAccountsEnabled": true,
+          "defaultClientScopes": ["openid", "profile", "email"]
+        },
+        {
+          "clientId": "config-server",
+          "name": "ConfigServer",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "bearerOnly": true,
+          "publicClient": false,
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": false,
+          "serviceAccountsEnabled": true,
+          "defaultClientScopes": ["openid", "profile", "email"]
         }
       ],
       "clientScopes": [
@@ -111,6 +334,16 @@ data:
                 "access.token.claim": "true",
                 "id.token.claim": "true",
                 "userinfo.token.claim": "true"
+              }
+            },
+            {
+              "name": "k1s0-api-audience",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-audience-mapper",
+              "config": {
+                "included.custom.audience": "k1s0-api",
+                "id.token.claim": "false",
+                "access.token.claim": "true"
               }
             }
           ]
@@ -201,9 +434,27 @@ data:
           }
         ]
       },
+      "browserSecurityHeaders": {
+        "contentSecurityPolicyReportOnly": "",
+        "xContentTypeOptions": "nosniff",
+        "xRobotsTag": "none",
+        "xFrameOptions": "SAMEORIGIN",
+        "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+        "xXSSProtection": "1; mode=block",
+        "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+      },
       "smtpServer": {},
       "eventsEnabled": true,
       "eventsListeners": ["jboss-logging"],
+      "enabledEventTypes": [
+        "LOGIN", "LOGIN_ERROR", "LOGOUT",
+        "REGISTER", "REGISTER_ERROR",
+        "CODE_TO_TOKEN", "CODE_TO_TOKEN_ERROR",
+        "CLIENT_LOGIN", "CLIENT_LOGIN_ERROR",
+        "REFRESH_TOKEN", "REFRESH_TOKEN_ERROR",
+        "REVOKE_GRANT", "UPDATE_PROFILE", "UPDATE_PASSWORD",
+        "SEND_RESET_PASSWORD", "RESET_PASSWORD"
+      ],
       "adminEventsEnabled": true,
       "adminEventsDetailsEnabled": true
     }

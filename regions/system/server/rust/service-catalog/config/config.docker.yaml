@@ -1,0 +1,27 @@
+# Docker環境用設定ファイル
+# ホスト名をDockerコンテナ名に変更し、ポートをコンテナ内部ポートに設定する
+app:
+  name: "service-catalog"
+  version: "0.1.0"
+  environment: "docker"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+database:
+  host: "postgres"
+  port: 5432
+  name: "service_catalog_db"
+  user: "dev"
+  password: "dev"
+  ssl_mode: "disable"
+
+auth:
+  jwt:
+    issuer: "http://localhost:8180/realms/k1s0"
+    audience: "k1s0-api"
+
+health_collector:
+  interval_secs: 60
+  timeout_secs: 5

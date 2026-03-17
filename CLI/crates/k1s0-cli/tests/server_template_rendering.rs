@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// サーバーテンプレートのレンダリング統合テスト。
 ///
 /// 実際の CLI/templates/server/{go,rust}/ テンプレートファイルを使用し、

@@ -132,7 +132,10 @@ func run() error {
 		logger.Warn("Failed to initialize OTel tracer provider", slog.String("error", err.Error()))
 	} else if tp != nil {
 		defer func() {
-			_ = tp.Shutdown(context.Background())
+			// トレーサープロバイダーのシャットダウンエラーをログ出力する（M-4）
+			if err := tp.Shutdown(context.Background()); err != nil {
+				logger.Warn("トレーサープロバイダーのシャットダウンに失敗", slog.String("error", err.Error()))
+			}
 		}()
 	}
 

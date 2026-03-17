@@ -16,7 +16,8 @@ BEGIN
         WHERE inhparent = 'auth.audit_logs'::regclass
         ORDER BY inhrelid::regclass::text
     LOOP
-        EXECUTE format('ALTER TABLE auth.audit_logs DETACH PARTITION %s', partition_name);
-        EXECUTE format('DROP TABLE IF EXISTS %s', partition_name);
+        -- %I を使用して識別子を安全にクォートする（SQLインジェクション防止 M-15）
+        EXECUTE format('ALTER TABLE auth.audit_logs DETACH PARTITION %I', partition_name);
+        EXECUTE format('DROP TABLE IF EXISTS %I', partition_name);
     END LOOP;
 END $$;

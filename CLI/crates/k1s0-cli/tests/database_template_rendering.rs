@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// データベーステンプレートのレンダリング統合テスト。
 ///
 /// 実際の CLI/templates/database/{postgresql,mysql,sqlite}/ テンプレートファイルを使用し、

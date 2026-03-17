@@ -495,12 +495,12 @@ func (x *GetQuotaPolicyResponse) GetPolicy() *QuotaPolicy {
 }
 
 type ListQuotaPoliciesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          uint32                 `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      uint32                 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	SubjectType   *string                `protobuf:"bytes,3,opt,name=subject_type,json=subjectType,proto3,oneof" json:"subject_type,omitempty"`
-	SubjectId     *string                `protobuf:"bytes,4,opt,name=subject_id,json=subjectId,proto3,oneof" json:"subject_id,omitempty"`
-	EnabledOnly   *bool                  `protobuf:"varint,5,opt,name=enabled_only,json=enabledOnly,proto3,oneof" json:"enabled_only,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ページネーションパラメータを共通型に統一
+	Pagination    *v1.Pagination `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	SubjectType   *string        `protobuf:"bytes,3,opt,name=subject_type,json=subjectType,proto3,oneof" json:"subject_type,omitempty"`
+	SubjectId     *string        `protobuf:"bytes,4,opt,name=subject_id,json=subjectId,proto3,oneof" json:"subject_id,omitempty"`
+	EnabledOnly   *bool          `protobuf:"varint,5,opt,name=enabled_only,json=enabledOnly,proto3,oneof" json:"enabled_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -535,18 +535,11 @@ func (*ListQuotaPoliciesRequest) Descriptor() ([]byte, []int) {
 	return file_k1s0_system_quota_v1_quota_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *ListQuotaPoliciesRequest) GetPage() uint32 {
+func (x *ListQuotaPoliciesRequest) GetPagination() *v1.Pagination {
 	if x != nil {
-		return x.Page
+		return x.Pagination
 	}
-	return 0
-}
-
-func (x *ListQuotaPoliciesRequest) GetPageSize() uint32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
+	return nil
 }
 
 func (x *ListQuotaPoliciesRequest) GetSubjectType() string {
@@ -1339,17 +1332,18 @@ const file_k1s0_system_quota_v1_quota_proto_rawDesc = "" +
 	"\x15GetQuotaPolicyRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
 	"\x16GetQuotaPolicyResponse\x129\n" +
-	"\x06policy\x18\x01 \x01(\v2!.k1s0.system.quota.v1.QuotaPolicyR\x06policy\"\xf0\x01\n" +
-	"\x18ListQuotaPoliciesRequest\x12\x12\n" +
-	"\x04page\x18\x01 \x01(\rR\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12&\n" +
+	"\x06policy\x18\x01 \x01(\v2!.k1s0.system.quota.v1.QuotaPolicyR\x06policy\"\x93\x02\n" +
+	"\x18ListQuotaPoliciesRequest\x12A\n" +
+	"\n" +
+	"pagination\x18\x01 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
+	"pagination\x12&\n" +
 	"\fsubject_type\x18\x03 \x01(\tH\x00R\vsubjectType\x88\x01\x01\x12\"\n" +
 	"\n" +
 	"subject_id\x18\x04 \x01(\tH\x01R\tsubjectId\x88\x01\x01\x12&\n" +
 	"\fenabled_only\x18\x05 \x01(\bH\x02R\venabledOnly\x88\x01\x01B\x0f\n" +
 	"\r_subject_typeB\r\n" +
 	"\v_subject_idB\x0f\n" +
-	"\r_enabled_only\"\xa3\x01\n" +
+	"\r_enabled_onlyJ\x04\b\x02\x10\x03R\tpage_size\"\xa3\x01\n" +
 	"\x19ListQuotaPoliciesResponse\x12=\n" +
 	"\bpolicies\x18\x01 \x03(\v2!.k1s0.system.quota.v1.QuotaPolicyR\bpolicies\x12G\n" +
 	"\n" +
@@ -1454,7 +1448,8 @@ var file_k1s0_system_quota_v1_quota_proto_goTypes = []any{
 	(*ResetQuotaUsageRequest)(nil),      // 18: k1s0.system.quota.v1.ResetQuotaUsageRequest
 	(*ResetQuotaUsageResponse)(nil),     // 19: k1s0.system.quota.v1.ResetQuotaUsageResponse
 	(*v1.Timestamp)(nil),                // 20: k1s0.system.common.v1.Timestamp
-	(*v1.PaginationResult)(nil),         // 21: k1s0.system.common.v1.PaginationResult
+	(*v1.Pagination)(nil),               // 21: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),         // 22: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_quota_v1_quota_proto_depIdxs = []int32{
 	20, // 0: k1s0.system.quota.v1.QuotaPolicy.created_at:type_name -> k1s0.system.common.v1.Timestamp
@@ -1464,35 +1459,36 @@ var file_k1s0_system_quota_v1_quota_proto_depIdxs = []int32{
 	20, // 4: k1s0.system.quota.v1.QuotaUsage.reset_at:type_name -> k1s0.system.common.v1.Timestamp
 	0,  // 5: k1s0.system.quota.v1.CreateQuotaPolicyResponse.policy:type_name -> k1s0.system.quota.v1.QuotaPolicy
 	0,  // 6: k1s0.system.quota.v1.GetQuotaPolicyResponse.policy:type_name -> k1s0.system.quota.v1.QuotaPolicy
-	0,  // 7: k1s0.system.quota.v1.ListQuotaPoliciesResponse.policies:type_name -> k1s0.system.quota.v1.QuotaPolicy
-	21, // 8: k1s0.system.quota.v1.ListQuotaPoliciesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	0,  // 9: k1s0.system.quota.v1.UpdateQuotaPolicyResponse.policy:type_name -> k1s0.system.quota.v1.QuotaPolicy
-	1,  // 10: k1s0.system.quota.v1.GetQuotaUsageResponse.usage:type_name -> k1s0.system.quota.v1.QuotaUsage
-	1,  // 11: k1s0.system.quota.v1.CheckQuotaResponse.usage:type_name -> k1s0.system.quota.v1.QuotaUsage
-	1,  // 12: k1s0.system.quota.v1.ResetQuotaUsageResponse.usage:type_name -> k1s0.system.quota.v1.QuotaUsage
-	2,  // 13: k1s0.system.quota.v1.QuotaService.CreateQuotaPolicy:input_type -> k1s0.system.quota.v1.CreateQuotaPolicyRequest
-	4,  // 14: k1s0.system.quota.v1.QuotaService.GetQuotaPolicy:input_type -> k1s0.system.quota.v1.GetQuotaPolicyRequest
-	6,  // 15: k1s0.system.quota.v1.QuotaService.ListQuotaPolicies:input_type -> k1s0.system.quota.v1.ListQuotaPoliciesRequest
-	8,  // 16: k1s0.system.quota.v1.QuotaService.UpdateQuotaPolicy:input_type -> k1s0.system.quota.v1.UpdateQuotaPolicyRequest
-	10, // 17: k1s0.system.quota.v1.QuotaService.DeleteQuotaPolicy:input_type -> k1s0.system.quota.v1.DeleteQuotaPolicyRequest
-	12, // 18: k1s0.system.quota.v1.QuotaService.GetQuotaUsage:input_type -> k1s0.system.quota.v1.GetQuotaUsageRequest
-	14, // 19: k1s0.system.quota.v1.QuotaService.CheckQuota:input_type -> k1s0.system.quota.v1.CheckQuotaRequest
-	16, // 20: k1s0.system.quota.v1.QuotaService.IncrementQuotaUsage:input_type -> k1s0.system.quota.v1.IncrementQuotaUsageRequest
-	18, // 21: k1s0.system.quota.v1.QuotaService.ResetQuotaUsage:input_type -> k1s0.system.quota.v1.ResetQuotaUsageRequest
-	3,  // 22: k1s0.system.quota.v1.QuotaService.CreateQuotaPolicy:output_type -> k1s0.system.quota.v1.CreateQuotaPolicyResponse
-	5,  // 23: k1s0.system.quota.v1.QuotaService.GetQuotaPolicy:output_type -> k1s0.system.quota.v1.GetQuotaPolicyResponse
-	7,  // 24: k1s0.system.quota.v1.QuotaService.ListQuotaPolicies:output_type -> k1s0.system.quota.v1.ListQuotaPoliciesResponse
-	9,  // 25: k1s0.system.quota.v1.QuotaService.UpdateQuotaPolicy:output_type -> k1s0.system.quota.v1.UpdateQuotaPolicyResponse
-	11, // 26: k1s0.system.quota.v1.QuotaService.DeleteQuotaPolicy:output_type -> k1s0.system.quota.v1.DeleteQuotaPolicyResponse
-	13, // 27: k1s0.system.quota.v1.QuotaService.GetQuotaUsage:output_type -> k1s0.system.quota.v1.GetQuotaUsageResponse
-	15, // 28: k1s0.system.quota.v1.QuotaService.CheckQuota:output_type -> k1s0.system.quota.v1.CheckQuotaResponse
-	17, // 29: k1s0.system.quota.v1.QuotaService.IncrementQuotaUsage:output_type -> k1s0.system.quota.v1.IncrementQuotaUsageResponse
-	19, // 30: k1s0.system.quota.v1.QuotaService.ResetQuotaUsage:output_type -> k1s0.system.quota.v1.ResetQuotaUsageResponse
-	22, // [22:31] is the sub-list for method output_type
-	13, // [13:22] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	21, // 7: k1s0.system.quota.v1.ListQuotaPoliciesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	0,  // 8: k1s0.system.quota.v1.ListQuotaPoliciesResponse.policies:type_name -> k1s0.system.quota.v1.QuotaPolicy
+	22, // 9: k1s0.system.quota.v1.ListQuotaPoliciesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	0,  // 10: k1s0.system.quota.v1.UpdateQuotaPolicyResponse.policy:type_name -> k1s0.system.quota.v1.QuotaPolicy
+	1,  // 11: k1s0.system.quota.v1.GetQuotaUsageResponse.usage:type_name -> k1s0.system.quota.v1.QuotaUsage
+	1,  // 12: k1s0.system.quota.v1.CheckQuotaResponse.usage:type_name -> k1s0.system.quota.v1.QuotaUsage
+	1,  // 13: k1s0.system.quota.v1.ResetQuotaUsageResponse.usage:type_name -> k1s0.system.quota.v1.QuotaUsage
+	2,  // 14: k1s0.system.quota.v1.QuotaService.CreateQuotaPolicy:input_type -> k1s0.system.quota.v1.CreateQuotaPolicyRequest
+	4,  // 15: k1s0.system.quota.v1.QuotaService.GetQuotaPolicy:input_type -> k1s0.system.quota.v1.GetQuotaPolicyRequest
+	6,  // 16: k1s0.system.quota.v1.QuotaService.ListQuotaPolicies:input_type -> k1s0.system.quota.v1.ListQuotaPoliciesRequest
+	8,  // 17: k1s0.system.quota.v1.QuotaService.UpdateQuotaPolicy:input_type -> k1s0.system.quota.v1.UpdateQuotaPolicyRequest
+	10, // 18: k1s0.system.quota.v1.QuotaService.DeleteQuotaPolicy:input_type -> k1s0.system.quota.v1.DeleteQuotaPolicyRequest
+	12, // 19: k1s0.system.quota.v1.QuotaService.GetQuotaUsage:input_type -> k1s0.system.quota.v1.GetQuotaUsageRequest
+	14, // 20: k1s0.system.quota.v1.QuotaService.CheckQuota:input_type -> k1s0.system.quota.v1.CheckQuotaRequest
+	16, // 21: k1s0.system.quota.v1.QuotaService.IncrementQuotaUsage:input_type -> k1s0.system.quota.v1.IncrementQuotaUsageRequest
+	18, // 22: k1s0.system.quota.v1.QuotaService.ResetQuotaUsage:input_type -> k1s0.system.quota.v1.ResetQuotaUsageRequest
+	3,  // 23: k1s0.system.quota.v1.QuotaService.CreateQuotaPolicy:output_type -> k1s0.system.quota.v1.CreateQuotaPolicyResponse
+	5,  // 24: k1s0.system.quota.v1.QuotaService.GetQuotaPolicy:output_type -> k1s0.system.quota.v1.GetQuotaPolicyResponse
+	7,  // 25: k1s0.system.quota.v1.QuotaService.ListQuotaPolicies:output_type -> k1s0.system.quota.v1.ListQuotaPoliciesResponse
+	9,  // 26: k1s0.system.quota.v1.QuotaService.UpdateQuotaPolicy:output_type -> k1s0.system.quota.v1.UpdateQuotaPolicyResponse
+	11, // 27: k1s0.system.quota.v1.QuotaService.DeleteQuotaPolicy:output_type -> k1s0.system.quota.v1.DeleteQuotaPolicyResponse
+	13, // 28: k1s0.system.quota.v1.QuotaService.GetQuotaUsage:output_type -> k1s0.system.quota.v1.GetQuotaUsageResponse
+	15, // 29: k1s0.system.quota.v1.QuotaService.CheckQuota:output_type -> k1s0.system.quota.v1.CheckQuotaResponse
+	17, // 30: k1s0.system.quota.v1.QuotaService.IncrementQuotaUsage:output_type -> k1s0.system.quota.v1.IncrementQuotaUsageResponse
+	19, // 31: k1s0.system.quota.v1.QuotaService.ResetQuotaUsage:output_type -> k1s0.system.quota.v1.ResetQuotaUsageResponse
+	23, // [23:32] is the sub-list for method output_type
+	14, // [14:23] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_quota_v1_quota_proto_init() }

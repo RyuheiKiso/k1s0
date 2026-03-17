@@ -145,7 +145,9 @@ pub fn check_all_migrations(base_dir: &Path) -> Result<Vec<(String, MigrateCiRes
     Ok(results)
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::commands::migrate::types::Language;

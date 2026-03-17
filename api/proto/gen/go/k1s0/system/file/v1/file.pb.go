@@ -243,13 +243,13 @@ func (x *GetFileMetadataResponse) GetMetadata() *FileMetadata {
 }
 
 type ListFilesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	UploadedBy    *string                `protobuf:"bytes,4,opt,name=uploaded_by,json=uploadedBy,proto3,oneof" json:"uploaded_by,omitempty"`
-	MimeType      *string                `protobuf:"bytes,5,opt,name=mime_type,json=mimeType,proto3,oneof" json:"mime_type,omitempty"`
-	Tag           *string                `protobuf:"bytes,6,opt,name=tag,proto3,oneof" json:"tag,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	TenantId string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	// ページネーションパラメータを共通型に統一
+	Pagination    *v1.Pagination `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	UploadedBy    *string        `protobuf:"bytes,4,opt,name=uploaded_by,json=uploadedBy,proto3,oneof" json:"uploaded_by,omitempty"`
+	MimeType      *string        `protobuf:"bytes,5,opt,name=mime_type,json=mimeType,proto3,oneof" json:"mime_type,omitempty"`
+	Tag           *string        `protobuf:"bytes,6,opt,name=tag,proto3,oneof" json:"tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -291,18 +291,11 @@ func (x *ListFilesRequest) GetTenantId() string {
 	return ""
 }
 
-func (x *ListFilesRequest) GetPage() int32 {
+func (x *ListFilesRequest) GetPagination() *v1.Pagination {
 	if x != nil {
-		return x.Page
+		return x.Pagination
 	}
-	return 0
-}
-
-func (x *ListFilesRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
+	return nil
 }
 
 func (x *ListFilesRequest) GetUploadedBy() string {
@@ -929,11 +922,12 @@ const file_k1s0_system_file_v1_file_proto_rawDesc = "" +
 	"\x16GetFileMetadataRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"X\n" +
 	"\x17GetFileMetadataResponse\x12=\n" +
-	"\bmetadata\x18\x01 \x01(\v2!.k1s0.system.file.v1.FileMetadataR\bmetadata\"\xe5\x01\n" +
+	"\bmetadata\x18\x01 \x01(\v2!.k1s0.system.file.v1.FileMetadataR\bmetadata\"\x88\x02\n" +
 	"\x10ListFilesRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x12\n" +
-	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12$\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12A\n" +
+	"\n" +
+	"pagination\x18\x02 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
+	"pagination\x12$\n" +
 	"\vuploaded_by\x18\x04 \x01(\tH\x00R\n" +
 	"uploadedBy\x88\x01\x01\x12 \n" +
 	"\tmime_type\x18\x05 \x01(\tH\x01R\bmimeType\x88\x01\x01\x12\x15\n" +
@@ -941,7 +935,7 @@ const file_k1s0_system_file_v1_file_proto_rawDesc = "" +
 	"\f_uploaded_byB\f\n" +
 	"\n" +
 	"_mime_typeB\x06\n" +
-	"\x04_tag\"\x95\x01\n" +
+	"\x04_tagJ\x04\b\x03\x10\x04R\tpage_size\"\x95\x01\n" +
 	"\x11ListFilesResponse\x127\n" +
 	"\x05files\x18\x01 \x03(\v2!.k1s0.system.file.v1.FileMetadataR\x05files\x12G\n" +
 	"\n" +
@@ -1030,36 +1024,38 @@ var file_k1s0_system_file_v1_file_proto_goTypes = []any{
 	nil,                                 // 15: k1s0.system.file.v1.FileMetadata.TagsEntry
 	nil,                                 // 16: k1s0.system.file.v1.GenerateUploadUrlRequest.TagsEntry
 	nil,                                 // 17: k1s0.system.file.v1.UpdateFileTagsRequest.TagsEntry
-	(*v1.PaginationResult)(nil),         // 18: k1s0.system.common.v1.PaginationResult
+	(*v1.Pagination)(nil),               // 18: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),         // 19: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_file_v1_file_proto_depIdxs = []int32{
 	15, // 0: k1s0.system.file.v1.FileMetadata.tags:type_name -> k1s0.system.file.v1.FileMetadata.TagsEntry
 	0,  // 1: k1s0.system.file.v1.GetFileMetadataResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
-	0,  // 2: k1s0.system.file.v1.ListFilesResponse.files:type_name -> k1s0.system.file.v1.FileMetadata
-	18, // 3: k1s0.system.file.v1.ListFilesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	16, // 4: k1s0.system.file.v1.GenerateUploadUrlRequest.tags:type_name -> k1s0.system.file.v1.GenerateUploadUrlRequest.TagsEntry
-	0,  // 5: k1s0.system.file.v1.CompleteUploadResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
-	17, // 6: k1s0.system.file.v1.UpdateFileTagsRequest.tags:type_name -> k1s0.system.file.v1.UpdateFileTagsRequest.TagsEntry
-	0,  // 7: k1s0.system.file.v1.UpdateFileTagsResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
-	1,  // 8: k1s0.system.file.v1.FileService.GetFileMetadata:input_type -> k1s0.system.file.v1.GetFileMetadataRequest
-	3,  // 9: k1s0.system.file.v1.FileService.ListFiles:input_type -> k1s0.system.file.v1.ListFilesRequest
-	5,  // 10: k1s0.system.file.v1.FileService.GenerateUploadUrl:input_type -> k1s0.system.file.v1.GenerateUploadUrlRequest
-	7,  // 11: k1s0.system.file.v1.FileService.CompleteUpload:input_type -> k1s0.system.file.v1.CompleteUploadRequest
-	9,  // 12: k1s0.system.file.v1.FileService.GenerateDownloadUrl:input_type -> k1s0.system.file.v1.GenerateDownloadUrlRequest
-	11, // 13: k1s0.system.file.v1.FileService.UpdateFileTags:input_type -> k1s0.system.file.v1.UpdateFileTagsRequest
-	13, // 14: k1s0.system.file.v1.FileService.DeleteFile:input_type -> k1s0.system.file.v1.DeleteFileRequest
-	2,  // 15: k1s0.system.file.v1.FileService.GetFileMetadata:output_type -> k1s0.system.file.v1.GetFileMetadataResponse
-	4,  // 16: k1s0.system.file.v1.FileService.ListFiles:output_type -> k1s0.system.file.v1.ListFilesResponse
-	6,  // 17: k1s0.system.file.v1.FileService.GenerateUploadUrl:output_type -> k1s0.system.file.v1.GenerateUploadUrlResponse
-	8,  // 18: k1s0.system.file.v1.FileService.CompleteUpload:output_type -> k1s0.system.file.v1.CompleteUploadResponse
-	10, // 19: k1s0.system.file.v1.FileService.GenerateDownloadUrl:output_type -> k1s0.system.file.v1.GenerateDownloadUrlResponse
-	12, // 20: k1s0.system.file.v1.FileService.UpdateFileTags:output_type -> k1s0.system.file.v1.UpdateFileTagsResponse
-	14, // 21: k1s0.system.file.v1.FileService.DeleteFile:output_type -> k1s0.system.file.v1.DeleteFileResponse
-	15, // [15:22] is the sub-list for method output_type
-	8,  // [8:15] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	18, // 2: k1s0.system.file.v1.ListFilesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	0,  // 3: k1s0.system.file.v1.ListFilesResponse.files:type_name -> k1s0.system.file.v1.FileMetadata
+	19, // 4: k1s0.system.file.v1.ListFilesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	16, // 5: k1s0.system.file.v1.GenerateUploadUrlRequest.tags:type_name -> k1s0.system.file.v1.GenerateUploadUrlRequest.TagsEntry
+	0,  // 6: k1s0.system.file.v1.CompleteUploadResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
+	17, // 7: k1s0.system.file.v1.UpdateFileTagsRequest.tags:type_name -> k1s0.system.file.v1.UpdateFileTagsRequest.TagsEntry
+	0,  // 8: k1s0.system.file.v1.UpdateFileTagsResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
+	1,  // 9: k1s0.system.file.v1.FileService.GetFileMetadata:input_type -> k1s0.system.file.v1.GetFileMetadataRequest
+	3,  // 10: k1s0.system.file.v1.FileService.ListFiles:input_type -> k1s0.system.file.v1.ListFilesRequest
+	5,  // 11: k1s0.system.file.v1.FileService.GenerateUploadUrl:input_type -> k1s0.system.file.v1.GenerateUploadUrlRequest
+	7,  // 12: k1s0.system.file.v1.FileService.CompleteUpload:input_type -> k1s0.system.file.v1.CompleteUploadRequest
+	9,  // 13: k1s0.system.file.v1.FileService.GenerateDownloadUrl:input_type -> k1s0.system.file.v1.GenerateDownloadUrlRequest
+	11, // 14: k1s0.system.file.v1.FileService.UpdateFileTags:input_type -> k1s0.system.file.v1.UpdateFileTagsRequest
+	13, // 15: k1s0.system.file.v1.FileService.DeleteFile:input_type -> k1s0.system.file.v1.DeleteFileRequest
+	2,  // 16: k1s0.system.file.v1.FileService.GetFileMetadata:output_type -> k1s0.system.file.v1.GetFileMetadataResponse
+	4,  // 17: k1s0.system.file.v1.FileService.ListFiles:output_type -> k1s0.system.file.v1.ListFilesResponse
+	6,  // 18: k1s0.system.file.v1.FileService.GenerateUploadUrl:output_type -> k1s0.system.file.v1.GenerateUploadUrlResponse
+	8,  // 19: k1s0.system.file.v1.FileService.CompleteUpload:output_type -> k1s0.system.file.v1.CompleteUploadResponse
+	10, // 20: k1s0.system.file.v1.FileService.GenerateDownloadUrl:output_type -> k1s0.system.file.v1.GenerateDownloadUrlResponse
+	12, // 21: k1s0.system.file.v1.FileService.UpdateFileTags:output_type -> k1s0.system.file.v1.UpdateFileTagsResponse
+	14, // 22: k1s0.system.file.v1.FileService.DeleteFile:output_type -> k1s0.system.file.v1.DeleteFileResponse
+	16, // [16:23] is the sub-list for method output_type
+	9,  // [9:16] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_file_v1_file_proto_init() }

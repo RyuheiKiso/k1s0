@@ -1,0 +1,168 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="language-toolchain-matrix" name="言語別ツールチェーンマトリクス">
+    <mxGraphModel dx="1422" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="500" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- ==================== -->
+        <!-- タイトル              -->
+        <!-- ==================== -->
+        <mxCell id="title" value="&lt;b&gt;言語別ツールチェーンマトリクス&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="420" y="10" width="280" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- テーブル構造: 列幅 - カテゴリ:160, Go:220, Rust:230, TypeScript:260, Dart:240 -->
+        <!-- 合計: 1110, 左マージン45 -->
+
+        <!-- ==================== -->
+        <!-- ヘッダー行            -->
+        <!-- ==================== -->
+        <!-- カテゴリヘッダー -->
+        <mxCell id="h-cat" value="&lt;b&gt;カテゴリ&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#333333;fontColor=#FFFFFF;fontSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="45" y="50" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <!-- Go ヘッダー -->
+        <mxCell id="h-go" value="&lt;b&gt;Go 1.24&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="205" y="50" width="220" height="45" as="geometry"/>
+        </mxCell>
+        <!-- Rust ヘッダー -->
+        <mxCell id="h-rust" value="&lt;b&gt;Rust 1.93&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="425" y="50" width="230" height="45" as="geometry"/>
+        </mxCell>
+        <!-- TypeScript ヘッダー -->
+        <mxCell id="h-ts" value="&lt;b&gt;TypeScript (Node 22)&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="655" y="50" width="260" height="45" as="geometry"/>
+        </mxCell>
+        <!-- Dart ヘッダー -->
+        <mxCell id="h-dart" value="&lt;b&gt;Dart (Flutter 3.24)&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="915" y="50" width="240" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- 行1: Formatter (白)   -->
+        <!-- ==================== -->
+        <mxCell id="r1-cat" value="&lt;b&gt;Formatter&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="45" y="95" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r1-go" value="&lt;code&gt;gofmt&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="205" y="95" width="220" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r1-rust" value="&lt;code&gt;rustfmt&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="425" y="95" width="230" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r1-ts" value="&lt;code&gt;Prettier&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="655" y="95" width="260" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r1-dart" value="&lt;code&gt;dart format&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="915" y="95" width="240" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- 行2: Linter (灰)      -->
+        <!-- ==================== -->
+        <mxCell id="r2-cat" value="&lt;b&gt;Linter&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="45" y="140" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r2-go" value="&lt;code&gt;golangci-lint&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="205" y="140" width="220" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r2-rust" value="&lt;code&gt;clippy&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="425" y="140" width="230" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r2-ts" value="&lt;code&gt;ESLint&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="655" y="140" width="260" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r2-dart" value="&lt;code&gt;dart analyze&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="915" y="140" width="240" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- 行3: Test Runner (白) -->
+        <!-- ==================== -->
+        <mxCell id="r3-cat" value="&lt;b&gt;Test Runner&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="45" y="185" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r3-go" value="&lt;code&gt;go test&lt;/code&gt; + &lt;code&gt;testify&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="205" y="185" width="220" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r3-rust" value="&lt;code&gt;cargo test&lt;/code&gt; + &lt;code&gt;tokio::test&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="425" y="185" width="230" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r3-ts" value="&lt;code&gt;Vitest&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="655" y="185" width="260" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r3-dart" value="&lt;code&gt;dart test&lt;/code&gt; + &lt;code&gt;mocktail&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="915" y="185" width="240" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- 行4: Mock (灰)        -->
+        <!-- ==================== -->
+        <mxCell id="r4-cat" value="&lt;b&gt;Mock&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="45" y="230" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r4-go" value="&lt;code&gt;gomock&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="205" y="230" width="220" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r4-rust" value="&lt;code&gt;mockall&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="425" y="230" width="230" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r4-ts" value="&lt;code&gt;MSW&lt;/code&gt; + &lt;code&gt;Testing Library&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="655" y="230" width="260" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r4-dart" value="&lt;code&gt;mocktail&lt;/code&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="915" y="230" width="240" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- 行5: Coverage (白)    -->
+        <!-- ==================== -->
+        <mxCell id="r5-cat" value="&lt;b&gt;Coverage&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="45" y="275" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="r5-go" value="&lt;code&gt;go test -cover&lt;/code&gt;&lt;br&gt;&lt;b&gt;80%+&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="205" y="275" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="r5-rust" value="&lt;code&gt;cargo-tarpaulin&lt;/code&gt;&lt;br&gt;&lt;b&gt;80%+&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="425" y="275" width="230" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="r5-ts" value="&lt;code&gt;vitest --coverage&lt;/code&gt;&lt;br&gt;&lt;b&gt;90%+&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="655" y="275" width="260" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="r5-dart" value="&lt;code&gt;dart test --coverage&lt;/code&gt;&lt;br&gt;&lt;b&gt;85%+&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="915" y="275" width="240" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- 行6: 命名規則 (灰)    -->
+        <!-- ==================== -->
+        <mxCell id="r6-cat" value="&lt;b&gt;命名規則&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="45" y="330" width="160" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="r6-go" value="&lt;code&gt;snake_case&lt;/code&gt; (func/var)&lt;br&gt;&lt;code&gt;PascalCase&lt;/code&gt; (type)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="205" y="330" width="220" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="r6-rust" value="&lt;code&gt;snake_case&lt;/code&gt; (func/var)&lt;br&gt;&lt;code&gt;PascalCase&lt;/code&gt; (type)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="425" y="330" width="230" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="r6-ts" value="&lt;code&gt;camelCase&lt;/code&gt; (func/var)&lt;br&gt;&lt;code&gt;PascalCase&lt;/code&gt; (type)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="655" y="330" width="260" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="r6-dart" value="&lt;code&gt;camelCase&lt;/code&gt; (func/var)&lt;br&gt;&lt;code&gt;PascalCase&lt;/code&gt; (type)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="915" y="330" width="240" height="65" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== -->
+        <!-- 注釈                  -->
+        <!-- ==================== -->
+        <mxCell id="note" value="Coverage の閾値は CI/CD パイプラインで強制される最小値。TypeScript は UI コードを含むため最も高い基準 (90%+) を要求。" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="45" y="410" width="620" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="note2" value="Go/Rust は snake_case (関数・変数), TypeScript/Dart は camelCase (関数・変数)。全言語で型は PascalCase。" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="45" y="435" width="590" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

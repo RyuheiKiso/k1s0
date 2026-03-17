@@ -154,6 +154,8 @@ spec:
               tier: service
 ```
 
+![Kubernetes NetworkPolicy通信マトリクス](images/k8s-network-policy-matrix.svg)
+
 ## リソースリミット
 
 ### サーバー Pod

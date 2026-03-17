@@ -19,8 +19,25 @@ use k1s0_tenant_server::usecase;
 /// 全リポジトリにモックを使用し、認証は無効化する。
 fn make_test_app() -> axum::Router {
     // モックリポジトリの生成
-    let tenant_repo = Arc::new(MockTenantRepository::new());
-    let member_repo = Arc::new(MockMemberRepository::new());
+    let mut tenant_repo = MockTenantRepository::new();
+    let mut member_repo = MockMemberRepository::new();
+
+    // モック期待値の設定（各リポジトリメソッドにデフォルトの戻り値を定義）
+    tenant_repo.expect_list().returning(|_, _| Ok((vec![], 0)));
+    tenant_repo.expect_find_by_id().returning(|_| Ok(None));
+    tenant_repo.expect_find_by_name().returning(|_| Ok(None));
+    tenant_repo.expect_create().returning(|_| Ok(()));
+    tenant_repo.expect_update().returning(|_| Ok(()));
+    member_repo.expect_find_by_tenant().returning(|_| Ok(vec![]));
+    member_repo.expect_find_member().returning(|_, _| Ok(None));
+    member_repo.expect_add().returning(|_| Ok(()));
+    member_repo.expect_remove().returning(|_, _| Ok(false));
+    member_repo.expect_update_role().returning(|_, _, _| Ok(None));
+    member_repo.expect_find_job().returning(|_| Ok(None));
+
+    // Arc でラップ
+    let tenant_repo = Arc::new(tenant_repo);
+    let member_repo = Arc::new(member_repo);
 
     // AppState の構築（認証なし、DB なし）
     let state = AppState {
@@ -90,6 +107,15 @@ async fn test_api_routes_are_reachable() {
         .body(Body::empty())
         .unwrap();
     let resp = app.oneshot(req).await.unwrap();
-    // ルーターが正常に応答すること（500 でないこと）を確認
-    assert_ne!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    // ルーターが正常に 200 OK を返すことを確認
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    // レスポンスボディを取得し、JSON としてパース
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+    // テナント一覧が空配列であることを検証
+    assert_eq!(json["tenants"], serde_json::json!([]));
+    // 合計件数が 0 であることを検証
+    assert_eq!(json["total_count"], serde_json::json!(0));
 }

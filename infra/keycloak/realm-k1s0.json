@@ -19,40 +19,108 @@
   "accessTokenLifespan": 900,
   "accessTokenLifespanForImplicitFlow": 900,
   "ssoSessionIdleTimeout": 1800,
-  "ssoSessionMaxLifespan": 36000,
+  "ssoSessionMaxLifespan": 604800,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
   "offlineSessionIdleTimeout": 2592000,
   "offlineSessionMaxLifespan": 5184000,
-  "refreshTokenMaxReuse": 0,
-  "revokeRefreshToken": true,
   "accessCodeLifespan": 60,
-  "accessCodeLifespanLogin": 1800,
   "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
   "actionTokenGeneratedByAdminLifespan": 43200,
   "actionTokenGeneratedByUserLifespan": 300,
+  "oauth2DeviceCodeLifespan": 600,
+  "oauth2DevicePollingInterval": 5,
   "defaultSignatureAlgorithm": "RS256",
   "roles": {
     "realm": [
       {
-        "name": "sys_admin",
-        "description": "System administrator with full access to system tier resources",
+        "name": "biz_admin",
+        "description": "Business tier full access",
         "composite": false,
         "clientRole": false
       },
       {
-        "name": "sys_operator",
-        "description": "System operator with operational access to system tier resources",
+        "name": "biz_operator",
+        "description": "Business tier read/write access",
         "composite": false,
         "clientRole": false
       },
       {
-        "name": "sys_auditor",
-        "description": "System auditor with read-only access for audit and compliance",
+        "name": "biz_auditor",
+        "description": "Business tier read-only access",
         "composite": false,
         "clientRole": false
       },
       {
         "name": "user",
-        "description": "Default authenticated user role",
+        "description": "Default user role",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "sys_admin",
+        "description": "System administrator - full access to all resources across all tiers",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "sys_operator",
+        "description": "System operator - monitoring, log viewing, configuration changes",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "sys_auditor",
+        "description": "System auditor - read-only access to all resources",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "biz_accounting_admin",
+        "description": "Accounting domain administrator - full access to accounting resources",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "biz_accounting_manager",
+        "description": "Accounting domain manager - read/write access to accounting resources",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "biz_accounting_viewer",
+        "description": "Accounting domain viewer - read-only access to accounting resources",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "svc_order_admin",
+        "description": "Order service administrator - full access to order resources",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "svc_order_user",
+        "description": "Order service user - standard order operations",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "svc_order_viewer",
+        "description": "Order service viewer - read-only access to order resources",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "order_manager",
+        "description": "Order manager - manages orders",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "svc_internal",
+        "description": "Service-to-service internal role - minimal privileges for inter-service communication",
         "composite": false,
         "clientRole": false
       }
@@ -60,6 +128,262 @@
   },
   "defaultRoles": ["user"],
   "clients": [
+    {
+      "clientId": "react-spa",
+      "name": "React SPA Client",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "https://app.k1s0.internal.example.com/callback",
+        "http://localhost:3000/callback",
+        "http://localhost:5173/callback"
+      ],
+      "webOrigins": [
+        "https://*.k1s0.internal.example.com",
+        "http://localhost:3000",
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tier-access-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tier_access",
+            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "jsonType.label": "JSON",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm-roles-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "k1s0-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "k1s0-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "flutter-mobile",
+      "name": "Flutter Mobile Client",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "com.example.k1s0://callback"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tier-access-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tier_access",
+            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "jsonType.label": "JSON",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "k1s0-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "k1s0-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "k1s0-cli",
+      "name": "k1s0 CLI Client",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "true",
+        "oauth2.device.polling.interval": "5"
+      },
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tier-access-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tier_access",
+            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "jsonType.label": "JSON",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "k1s0-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "k1s0-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "k1s0-bff",
+      "name": "k1s0 BFF Proxy Client",
+      "enabled": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "secret": "${KEYCLOAK_BFF_CLIENT_SECRET}",
+      "redirectUris": [
+        "https://app.k1s0.internal.example.com/callback",
+        "http://localhost:3000/callback"
+      ],
+      "webOrigins": [
+        "https://*.k1s0.internal.example.com",
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tier-access-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tier_access",
+            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "jsonType.label": "JSON",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "k1s0-service",
+      "name": "k1s0 Service-to-Service Client",
+      "enabled": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "secret": "${KEYCLOAK_SERVICE_CLIENT_SECRET}",
+      "defaultClientScopes": [
+        "openid"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tier-access-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tier_access",
+            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "jsonType.label": "JSON",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "k1s0-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "k1s0-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "multivalued": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
+      "defaultRoles": ["svc_internal"]
+    },
     {
       "clientId": "auth-server",
       "name": "AuthServer",
@@ -73,11 +397,7 @@
       "defaultClientScopes": [
         "openid",
         "profile",
-        "email",
-        "auth_server_scope"
-      ],
-      "optionalClientScopes": [
-        "offline_access"
+        "email"
       ]
     },
     {
@@ -93,112 +413,83 @@
       "defaultClientScopes": [
         "openid",
         "profile",
-        "email",
-        "config_server_scope"
-      ],
-      "optionalClientScopes": [
-        "offline_access"
-      ]
-    },
-    {
-      "clientId": "k1s0-bff",
-      "name": "K1s0Bff",
-      "enabled": true,
-      "protocol": "openid-connect",
-      "bearerOnly": false,
-      "publicClient": false,
-      "directAccessGrantsEnabled": false,
-      "standardFlowEnabled": true,
-      "serviceAccountsEnabled": true,
-      "secret": "${KEYCLOAK_CLIENT_SECRET}",
-      "redirectUris": [
-        "https://k1s0-bff.k1s0-system.svc.cluster.local/*",
-        "https://k1s0-bff.k1s0-system/*"
-      ],
-      "webOrigins": [
-        "https://k1s0-bff.k1s0-system.svc.cluster.local",
-        "https://k1s0-bff.k1s0-system"
-      ],
-      "defaultClientScopes": [
-        "openid",
-        "profile",
-        "email",
-        "k1s0_bff_scope"
-      ],
-      "optionalClientScopes": [
-        "offline_access"
-      ]
-    },
-    {
-      "clientId": "react-spa",
-      "name": "ReactSpa",
-      "enabled": true,
-      "protocol": "openid-connect",
-      "bearerOnly": false,
-      "publicClient": true,
-      "directAccessGrantsEnabled": false,
-      "standardFlowEnabled": true,
-      "serviceAccountsEnabled": false,
-      "redirectUris": [
-        "https://react-spa.k1s0-system/*",
-        "http://localhost:3000/*",
-        "http://localhost:5173/*"
-      ],
-      "webOrigins": [
-        "https://react-spa.k1s0-system",
-        "http://localhost:3000",
-        "http://localhost:5173"
-      ],
-      "attributes": {
-        "pkce.code.challenge.method": "S256"
-      },
-      "defaultClientScopes": [
-        "openid",
-        "profile",
-        "email",
-        "react_spa_scope"
-      ],
-      "optionalClientScopes": [
-        "offline_access"
+        "email"
       ]
     }
   ],
   "clientScopes": [
     {
-      "name": "auth_server_scope",
-      "description": "Scope for auth-server client",
+      "name": "openid",
       "protocol": "openid-connect",
       "attributes": {
-        "include.in.token.scope": "true",
-        "display.on.consent.screen": "false"
-      }
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "sub",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "k1s0-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "k1s0-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     },
     {
-      "name": "config_server_scope",
-      "description": "Scope for config-server client",
+      "name": "profile",
       "protocol": "openid-connect",
       "attributes": {
-        "include.in.token.scope": "true",
-        "display.on.consent.screen": "false"
-      }
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
     },
     {
-      "name": "k1s0_bff_scope",
-      "description": "Scope for k1s0-bff client",
+      "name": "email",
       "protocol": "openid-connect",
       "attributes": {
-        "include.in.token.scope": "true",
-        "display.on.consent.screen": "true"
-      }
-    },
-    {
-      "name": "react_spa_scope",
-      "description": "Scope for react-spa client",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true",
-        "display.on.consent.screen": "true"
-      }
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "config": {
+            "user.attribute": "email",
+            "claim.name": "email",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "components": {
@@ -207,12 +498,9 @@
         "name": "rsa-generated",
         "providerId": "rsa-generated",
         "config": {
-          "priority": ["100"],
-          "enabled": ["true"],
-          "active": ["true"],
-          "algorithm": ["RS256"],
           "keySize": ["2048"],
-          "keyUse": ["SIG"]
+          "algorithm": ["RS256"],
+          "priority": ["100"]
         }
       }
     ]
@@ -229,6 +517,24 @@
   "smtpServer": {},
   "eventsEnabled": true,
   "eventsListeners": ["jboss-logging"],
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR",
+    "LOGOUT",
+    "REGISTER",
+    "REGISTER_ERROR",
+    "CODE_TO_TOKEN",
+    "CODE_TO_TOKEN_ERROR",
+    "CLIENT_LOGIN",
+    "CLIENT_LOGIN_ERROR",
+    "REFRESH_TOKEN",
+    "REFRESH_TOKEN_ERROR",
+    "REVOKE_GRANT",
+    "UPDATE_PROFILE",
+    "UPDATE_PASSWORD",
+    "SEND_RESET_PASSWORD",
+    "RESET_PASSWORD"
+  ],
   "adminEventsEnabled": true,
   "adminEventsDetailsEnabled": true
 }

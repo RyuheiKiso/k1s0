@@ -59,6 +59,7 @@ const (
 	MasterMaintenanceService_DeleteDisplayConfig_FullMethodName   = "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteDisplayConfig"
 	MasterMaintenanceService_ListTableAuditLogs_FullMethodName    = "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListTableAuditLogs"
 	MasterMaintenanceService_ListRecordAuditLogs_FullMethodName   = "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListRecordAuditLogs"
+	MasterMaintenanceService_ListDomains_FullMethodName           = "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListDomains"
 )
 
 // MasterMaintenanceServiceClient is the client API for MasterMaintenanceService service.
@@ -109,6 +110,8 @@ type MasterMaintenanceServiceClient interface {
 	// Audit Logs
 	ListTableAuditLogs(ctx context.Context, in *ListTableAuditLogsRequest, opts ...grpc.CallOption) (*ListTableAuditLogsResponse, error)
 	ListRecordAuditLogs(ctx context.Context, in *ListRecordAuditLogsRequest, opts ...grpc.CallOption) (*ListRecordAuditLogsResponse, error)
+	// Domain Management
+	ListDomains(ctx context.Context, in *ListDomainsRequest, opts ...grpc.CallOption) (*ListDomainsResponse, error)
 }
 
 type masterMaintenanceServiceClient struct {
@@ -479,6 +482,16 @@ func (c *masterMaintenanceServiceClient) ListRecordAuditLogs(ctx context.Context
 	return out, nil
 }
 
+func (c *masterMaintenanceServiceClient) ListDomains(ctx context.Context, in *ListDomainsRequest, opts ...grpc.CallOption) (*ListDomainsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDomainsResponse)
+	err := c.cc.Invoke(ctx, MasterMaintenanceService_ListDomains_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MasterMaintenanceServiceServer is the server API for MasterMaintenanceService service.
 // All implementations must embed UnimplementedMasterMaintenanceServiceServer
 // for forward compatibility.
@@ -527,6 +540,8 @@ type MasterMaintenanceServiceServer interface {
 	// Audit Logs
 	ListTableAuditLogs(context.Context, *ListTableAuditLogsRequest) (*ListTableAuditLogsResponse, error)
 	ListRecordAuditLogs(context.Context, *ListRecordAuditLogsRequest) (*ListRecordAuditLogsResponse, error)
+	// Domain Management
+	ListDomains(context.Context, *ListDomainsRequest) (*ListDomainsResponse, error)
 	mustEmbedUnimplementedMasterMaintenanceServiceServer()
 }
 
@@ -644,6 +659,9 @@ func (UnimplementedMasterMaintenanceServiceServer) ListTableAuditLogs(context.Co
 }
 func (UnimplementedMasterMaintenanceServiceServer) ListRecordAuditLogs(context.Context, *ListRecordAuditLogsRequest) (*ListRecordAuditLogsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRecordAuditLogs not implemented")
+}
+func (UnimplementedMasterMaintenanceServiceServer) ListDomains(context.Context, *ListDomainsRequest) (*ListDomainsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDomains not implemented")
 }
 func (UnimplementedMasterMaintenanceServiceServer) mustEmbedUnimplementedMasterMaintenanceServiceServer() {
 }
@@ -1315,6 +1333,24 @@ func _MasterMaintenanceService_ListRecordAuditLogs_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MasterMaintenanceService_ListDomains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDomainsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MasterMaintenanceServiceServer).ListDomains(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MasterMaintenanceService_ListDomains_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MasterMaintenanceServiceServer).ListDomains(ctx, req.(*ListDomainsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MasterMaintenanceService_ServiceDesc is the grpc.ServiceDesc for MasterMaintenanceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1465,6 +1501,10 @@ var MasterMaintenanceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRecordAuditLogs",
 			Handler:    _MasterMaintenanceService_ListRecordAuditLogs_Handler,
+		},
+		{
+			MethodName: "ListDomains",
+			Handler:    _MasterMaintenanceService_ListDomains_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

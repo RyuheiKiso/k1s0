@@ -21,13 +21,16 @@ impl PostgresOutboxStore {
 
 #[async_trait]
 impl OutboxStore for PostgresOutboxStore {
+    /// メッセージを保存する。idempotency_key の UNIQUE 制約により重複は無視される。
     async fn save(&self, message: &OutboxMessage) -> Result<(), OutboxError> {
         sqlx::query(
             r#"INSERT INTO outbox.outbox_messages
-               (id, topic, partition_key, payload, status, retry_count, max_retries, last_error, created_at, process_after)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
+               (id, idempotency_key, topic, partition_key, payload, status, retry_count, max_retries, last_error, created_at, process_after)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+               ON CONFLICT (idempotency_key) DO NOTHING"#,
         )
         .bind(message.id)
+        .bind(&message.idempotency_key)
         .bind(&message.topic)
         .bind(&message.partition_key)
         .bind(&message.payload)
@@ -45,7 +48,7 @@ impl OutboxStore for PostgresOutboxStore {
 
     async fn fetch_pending(&self, limit: u32) -> Result<Vec<OutboxMessage>, OutboxError> {
         let rows = sqlx::query_as::<_, OutboxRow>(
-            r#"SELECT id, topic, partition_key, payload, status, retry_count, max_retries,
+            r#"SELECT id, idempotency_key, topic, partition_key, payload, status, retry_count, max_retries,
                       last_error, created_at, process_after
                FROM outbox.outbox_messages
                WHERE status IN ('PENDING', 'FAILED')
@@ -96,6 +99,7 @@ impl OutboxStore for PostgresOutboxStore {
 #[derive(sqlx::FromRow)]
 struct OutboxRow {
     id: uuid::Uuid,
+    idempotency_key: String,
     topic: String,
     partition_key: String,
     payload: serde_json::Value,
@@ -111,6 +115,7 @@ impl From<OutboxRow> for OutboxMessage {
     fn from(row: OutboxRow) -> Self {
         OutboxMessage {
             id: row.id,
+            idempotency_key: row.idempotency_key,
             topic: row.topic,
             partition_key: row.partition_key,
             payload: row.payload,

@@ -11,8 +11,9 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { Timestamp } from "../../../../google/protobuf/timestamp";
+import { Timestamp } from "../../common/v1/types";
 import { PaginationResult } from "../../common/v1/types";
+import { Pagination } from "../../common/v1/types";
 /**
  * @generated from protobuf message k1s0.system.ratelimit.v1.CheckRateLimitRequest
  */
@@ -54,6 +55,22 @@ export interface CheckRateLimitResponse {
      * @generated from protobuf field: int64 limit = 5
      */
     limit: string;
+    /**
+     * @generated from protobuf field: string scope = 6
+     */
+    scope: string;
+    /**
+     * @generated from protobuf field: string identifier = 7
+     */
+    identifier: string;
+    /**
+     * @generated from protobuf field: int64 used = 8
+     */
+    used: string;
+    /**
+     * @generated from protobuf field: string rule_id = 9
+     */
+    ruleId: string;
 }
 /**
  * @generated from protobuf message k1s0.system.ratelimit.v1.CreateRuleRequest
@@ -176,13 +193,11 @@ export interface ListRulesRequest {
      */
     enabledOnly?: boolean;
     /**
-     * @generated from protobuf field: uint32 page = 3
+     * ページネーションパラメータを共通型に統一
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 3
      */
-    page: number;
-    /**
-     * @generated from protobuf field: uint32 page_size = 4
-     */
-    pageSize: number;
+    pagination?: Pagination;
 }
 /**
  * @generated from protobuf message k1s0.system.ratelimit.v1.ListRulesResponse
@@ -230,13 +245,17 @@ export interface RateLimitRule {
      */
     enabled: boolean;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp created_at = 8
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 8
      */
     createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 9
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 9
      */
     updatedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: string name = 10
+     */
+    name: string;
 }
 /**
  * @generated from protobuf message k1s0.system.ratelimit.v1.GetUsageRequest
@@ -381,7 +400,11 @@ class CheckRateLimitResponse$Type extends MessageType<CheckRateLimitResponse> {
             { no: 2, name: "remaining", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 3, name: "reset_at", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 4, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "limit", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+            { no: 5, name: "limit", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 6, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "identifier", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "used", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 9, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CheckRateLimitResponse>): CheckRateLimitResponse {
@@ -391,6 +414,10 @@ class CheckRateLimitResponse$Type extends MessageType<CheckRateLimitResponse> {
         message.resetAt = "0";
         message.reason = "";
         message.limit = "0";
+        message.scope = "";
+        message.identifier = "";
+        message.used = "0";
+        message.ruleId = "";
         if (value !== undefined)
             reflectionMergePartial<CheckRateLimitResponse>(this, message, value);
         return message;
@@ -414,6 +441,18 @@ class CheckRateLimitResponse$Type extends MessageType<CheckRateLimitResponse> {
                     break;
                 case /* int64 limit */ 5:
                     message.limit = reader.int64().toString();
+                    break;
+                case /* string scope */ 6:
+                    message.scope = reader.string();
+                    break;
+                case /* string identifier */ 7:
+                    message.identifier = reader.string();
+                    break;
+                case /* int64 used */ 8:
+                    message.used = reader.int64().toString();
+                    break;
+                case /* string rule_id */ 9:
+                    message.ruleId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -442,6 +481,18 @@ class CheckRateLimitResponse$Type extends MessageType<CheckRateLimitResponse> {
         /* int64 limit = 5; */
         if (message.limit !== "0")
             writer.tag(5, WireType.Varint).int64(message.limit);
+        /* string scope = 6; */
+        if (message.scope !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.scope);
+        /* string identifier = 7; */
+        if (message.identifier !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.identifier);
+        /* int64 used = 8; */
+        if (message.used !== "0")
+            writer.tag(8, WireType.Varint).int64(message.used);
+        /* string rule_id = 9; */
+        if (message.ruleId !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.ruleId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -903,15 +954,12 @@ class ListRulesRequest$Type extends MessageType<ListRulesRequest> {
         super("k1s0.system.ratelimit.v1.ListRulesRequest", [
             { no: 1, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "enabled_only", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ },
-            { no: 3, name: "page", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 4, name: "page_size", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+            { no: 3, name: "pagination", kind: "message", T: () => Pagination }
         ]);
     }
     create(value?: PartialMessage<ListRulesRequest>): ListRulesRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.scope = "";
-        message.page = 0;
-        message.pageSize = 0;
         if (value !== undefined)
             reflectionMergePartial<ListRulesRequest>(this, message, value);
         return message;
@@ -927,11 +975,8 @@ class ListRulesRequest$Type extends MessageType<ListRulesRequest> {
                 case /* optional bool enabled_only */ 2:
                     message.enabledOnly = reader.bool();
                     break;
-                case /* uint32 page */ 3:
-                    message.page = reader.uint32();
-                    break;
-                case /* uint32 page_size */ 4:
-                    message.pageSize = reader.uint32();
+                case /* k1s0.system.common.v1.Pagination pagination */ 3:
+                    message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -951,12 +996,9 @@ class ListRulesRequest$Type extends MessageType<ListRulesRequest> {
         /* optional bool enabled_only = 2; */
         if (message.enabledOnly !== undefined)
             writer.tag(2, WireType.Varint).bool(message.enabledOnly);
-        /* uint32 page = 3; */
-        if (message.page !== 0)
-            writer.tag(3, WireType.Varint).uint32(message.page);
-        /* uint32 page_size = 4; */
-        if (message.pageSize !== 0)
-            writer.tag(4, WireType.Varint).uint32(message.pageSize);
+        /* k1s0.system.common.v1.Pagination pagination = 3; */
+        if (message.pagination)
+            Pagination.internalBinaryWrite(message.pagination, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1033,7 +1075,8 @@ class RateLimitRule$Type extends MessageType<RateLimitRule> {
             { no: 6, name: "algorithm", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 8, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 9, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 9, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 10, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<RateLimitRule>): RateLimitRule {
@@ -1045,6 +1088,7 @@ class RateLimitRule$Type extends MessageType<RateLimitRule> {
         message.windowSeconds = "0";
         message.algorithm = "";
         message.enabled = false;
+        message.name = "";
         if (value !== undefined)
             reflectionMergePartial<RateLimitRule>(this, message, value);
         return message;
@@ -1075,11 +1119,14 @@ class RateLimitRule$Type extends MessageType<RateLimitRule> {
                 case /* bool enabled */ 7:
                     message.enabled = reader.bool();
                     break;
-                case /* google.protobuf.Timestamp created_at */ 8:
+                case /* k1s0.system.common.v1.Timestamp created_at */ 8:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* google.protobuf.Timestamp updated_at */ 9:
+                case /* k1s0.system.common.v1.Timestamp updated_at */ 9:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* string name */ 10:
+                    message.name = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1114,12 +1161,15 @@ class RateLimitRule$Type extends MessageType<RateLimitRule> {
         /* bool enabled = 7; */
         if (message.enabled !== false)
             writer.tag(7, WireType.Varint).bool(message.enabled);
-        /* google.protobuf.Timestamp created_at = 8; */
+        /* k1s0.system.common.v1.Timestamp created_at = 8; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp updated_at = 9; */
+        /* k1s0.system.common.v1.Timestamp updated_at = 9; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* string name = 10; */
+        if (message.name !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.name);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

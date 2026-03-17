@@ -14,7 +14,9 @@ pub mod scaffold;
 pub mod template;
 pub mod types;
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests;
 
 // 公開 API の re-export

@@ -1,0 +1,59 @@
+// k1s0 イベントタイプレジストリ（M-11）。
+// システム全体で使用されるイベント種別を一元管理する enum を定義する。
+// 新しいイベントを追加する際はこの enum に追記すること。
+syntax = "proto3";
+
+package k1s0.system.common.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1";
+
+// EventType はシステム全体で使用されるイベント種別の列挙型。
+// 各ドメインのイベントを一元的に管理し、型安全なイベントルーティングを実現する。
+enum EventType {
+  // 未指定（デフォルト値）
+  EVENT_TYPE_UNSPECIFIED = 0;
+
+  // === 認証系イベント (100-199) ===
+  // ログイン成功/失敗イベント
+  EVENT_TYPE_AUTH_LOGIN = 100;
+  // トークン検証結果イベント
+  EVENT_TYPE_AUTH_TOKEN_VALIDATION = 101;
+  // パーミッション確認結果イベント
+  EVENT_TYPE_AUTH_PERMISSION_CHECK = 102;
+  // 監査ログ記録イベント
+  EVENT_TYPE_AUTH_AUDIT_LOG_RECORDED = 103;
+
+  // === 設定管理系イベント (200-299) ===
+  // 設定値変更イベント
+  EVENT_TYPE_CONFIG_CHANGED = 200;
+
+  // === 会計系イベント (300-399) ===
+  // 仕訳エントリ作成イベント
+  EVENT_TYPE_ACCOUNTING_ENTRY_CREATED = 300;
+  // 仕訳エントリ承認イベント
+  EVENT_TYPE_ACCOUNTING_ENTRY_APPROVED = 301;
+
+  // === 注文系イベント (400-499) ===
+  // 注文作成イベント
+  EVENT_TYPE_ORDER_CREATED = 400;
+  // 注文更新イベント
+  EVENT_TYPE_ORDER_UPDATED = 401;
+  // 注文キャンセルイベント
+  EVENT_TYPE_ORDER_CANCELLED = 402;
+
+  // === 在庫系イベント (500-599) ===
+  // 在庫予約イベント
+  EVENT_TYPE_INVENTORY_RESERVED = 500;
+  // 在庫解放イベント
+  EVENT_TYPE_INVENTORY_RELEASED = 501;
+
+  // === 決済系イベント (600-699) ===
+  // 決済開始イベント
+  EVENT_TYPE_PAYMENT_INITIATED = 600;
+  // 決済完了イベント
+  EVENT_TYPE_PAYMENT_COMPLETED = 601;
+  // 決済失敗イベント
+  EVENT_TYPE_PAYMENT_FAILED = 602;
+  // 返金イベント
+  EVENT_TYPE_PAYMENT_REFUNDED = 603;
+}

@@ -53,10 +53,14 @@ func (ve *ValidationErrors) Add(err *ValidationError) {
 	ve.errors = append(ve.errors, err)
 }
 
+// 4言語統一バリデーション正規表現パターン（H-18）
 var (
-	emailRegex    = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-	uuidRegex     = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`)
-	tenantIDRegex = regexp.MustCompile(`^[a-z0-9\-]{3,63}$`)
+	// メールアドレス: TLD 2文字以上を必須とする
+	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+	// UUID: v4 のみ許可する
+	uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`)
+	// テナントID: 先頭・末尾は英数字、中間はハイフン許可、3-63文字
+	tenantIDRegex = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$`)
 )
 
 // DefaultValidator はデフォルト実装。
@@ -103,8 +107,9 @@ func (v *DefaultValidator) ValidatePagination(page, perPage int) error {
 	if page < 1 {
 		return &ValidationError{Field: "page", Message: fmt.Sprintf("pageは1以上である必要があります: %d", page), Code: "INVALID_PAGE"}
 	}
-	if perPage < 1 || perPage > 200 {
-		return &ValidationError{Field: "per_page", Message: fmt.Sprintf("per_pageは1-200の範囲である必要があります: %d", perPage), Code: "INVALID_PER_PAGE"}
+	// ページネーション上限: 4言語共通で100に統一（H-18）
+	if perPage < 1 || perPage > 100 {
+		return &ValidationError{Field: "per_page", Message: fmt.Sprintf("per_pageは1-100の範囲である必要があります: %d", perPage), Code: "INVALID_PER_PAGE"}
 	}
 	return nil
 }

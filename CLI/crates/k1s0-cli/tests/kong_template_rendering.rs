@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// Kong API Gateway テンプレートのレンダリング統合テスト。
 ///
 /// CLI/templates/kong/ テンプレートファイルを使用し、

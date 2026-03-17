@@ -10,6 +10,8 @@
 
 **配置先**: `regions/system/library/rust/circuit-breaker/`
 
+![サーキットブレーカー状態遷移](images/circuit-breaker-state-machine.svg)
+
 ## 公開 API
 
 | 型・トレイト | 種別 | 説明 |

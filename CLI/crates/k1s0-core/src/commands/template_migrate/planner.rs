@@ -295,7 +295,9 @@ fn glob_regex(pattern: &str) -> Result<Regex> {
     Regex::new(&regex).map_err(Into::into)
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use std::collections::BTreeMap;

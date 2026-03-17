@@ -291,7 +291,9 @@ fn scan_targets_recursive(path: &Path, targets: &mut Vec<String>) {
     }
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::TempDir;

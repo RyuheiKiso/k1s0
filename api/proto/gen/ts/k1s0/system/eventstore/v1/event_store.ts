@@ -115,13 +115,11 @@ export interface ReadEventsRequest {
      */
     toVersion?: string;
     /**
-     * @generated from protobuf field: uint32 page = 4
+     * ページネーションパラメータを共通型に統一
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 4
      */
-    page: number;
-    /**
-     * @generated from protobuf field: uint32 page_size = 5
-     */
-    pageSize: number;
+    pagination?: Pagination;
     /**
      * @generated from protobuf field: optional string event_type = 6
      */
@@ -676,8 +674,7 @@ class ReadEventsRequest$Type extends MessageType<ReadEventsRequest> {
             { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "from_version", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 3, name: "to_version", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ },
-            { no: 4, name: "page", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 5, name: "page_size", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "pagination", kind: "message", T: () => Pagination },
             { no: 6, name: "event_type", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -685,8 +682,6 @@ class ReadEventsRequest$Type extends MessageType<ReadEventsRequest> {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.streamId = "";
         message.fromVersion = "0";
-        message.page = 0;
-        message.pageSize = 0;
         if (value !== undefined)
             reflectionMergePartial<ReadEventsRequest>(this, message, value);
         return message;
@@ -705,11 +700,8 @@ class ReadEventsRequest$Type extends MessageType<ReadEventsRequest> {
                 case /* optional int64 to_version */ 3:
                     message.toVersion = reader.int64().toString();
                     break;
-                case /* uint32 page */ 4:
-                    message.page = reader.uint32();
-                    break;
-                case /* uint32 page_size */ 5:
-                    message.pageSize = reader.uint32();
+                case /* k1s0.system.common.v1.Pagination pagination */ 4:
+                    message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
                     break;
                 case /* optional string event_type */ 6:
                     message.eventType = reader.string();
@@ -735,12 +727,9 @@ class ReadEventsRequest$Type extends MessageType<ReadEventsRequest> {
         /* optional int64 to_version = 3; */
         if (message.toVersion !== undefined)
             writer.tag(3, WireType.Varint).int64(message.toVersion);
-        /* uint32 page = 4; */
-        if (message.page !== 0)
-            writer.tag(4, WireType.Varint).uint32(message.page);
-        /* uint32 page_size = 5; */
-        if (message.pageSize !== 0)
-            writer.tag(5, WireType.Varint).uint32(message.pageSize);
+        /* k1s0.system.common.v1.Pagination pagination = 4; */
+        if (message.pagination)
+            Pagination.internalBinaryWrite(message.pagination, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         /* optional string event_type = 6; */
         if (message.eventType !== undefined)
             writer.tag(6, WireType.LengthDelimited).string(message.eventType);

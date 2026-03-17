@@ -21,6 +21,14 @@ pub struct CheckRateLimitResponse {
     pub reason: ::prost::alloc::string::String,
     #[prost(int64, tag="5")]
     pub limit: i64,
+    #[prost(string, tag="6")]
+    pub scope: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub identifier: ::prost::alloc::string::String,
+    #[prost(int64, tag="8")]
+    pub used: i64,
+    #[prost(string, tag="9")]
+    pub rule_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CreateRuleRequest {
@@ -86,10 +94,9 @@ pub struct ListRulesRequest {
     pub scope: ::prost::alloc::string::String,
     #[prost(bool, optional, tag="2")]
     pub enabled_only: ::core::option::Option<bool>,
-    #[prost(uint32, tag="3")]
-    pub page: u32,
-    #[prost(uint32, tag="4")]
-    pub page_size: u32,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag="3")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListRulesResponse {
@@ -115,9 +122,11 @@ pub struct RateLimitRule {
     #[prost(bool, tag="7")]
     pub enabled: bool,
     #[prost(message, optional, tag="8")]
-    pub created_at: ::core::option::Option<super::super::super::super::google::protobuf::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag="9")]
-    pub updated_at: ::core::option::Option<super::super::super::super::google::protobuf::Timestamp>,
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag="10")]
+    pub name: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetUsageRequest {

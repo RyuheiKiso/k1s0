@@ -212,7 +212,9 @@ fn collect_redirect_cycle_diagnostics(
     }
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use std::io::Write;

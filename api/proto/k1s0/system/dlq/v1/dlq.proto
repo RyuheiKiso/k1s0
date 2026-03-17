@@ -38,8 +38,11 @@ message DlqMessage {
 /// ListMessagesRequest は一覧取得リクエスト。
 message ListMessagesRequest {
   string topic = 1;
-  int32 page = 2;
-  int32 page_size = 3;
+  // ページネーションパラメータを共通型に統一
+  k1s0.system.common.v1.Pagination pagination = 2;
+  // フィールド番号 3 は旧 page_size（Pagination に統一済み）
+  reserved 3;
+  reserved "page_size";
 }
 
 /// ListMessagesResponse は一覧取得レスポンス。

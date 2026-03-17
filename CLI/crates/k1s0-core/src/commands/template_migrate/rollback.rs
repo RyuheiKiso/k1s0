@@ -93,7 +93,9 @@ fn restore_project_dir(source: &Path, destination: &Path) -> Result<()> {
     Ok(())
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::TempDir;

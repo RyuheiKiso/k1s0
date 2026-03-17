@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import {
   createRootRoute,
   createRoute,
@@ -5,16 +6,18 @@ import {
   Outlet,
   Link,
 } from '@tanstack/react-router';
-import { PaymentList } from '../features/payments/PaymentList';
-import { PaymentDetail } from '../features/payments/PaymentDetail';
-import { PaymentForm } from '../features/payments/PaymentForm';
+
+// ルートコンポーネントの遅延読み込み（コード分割）
+const PaymentList = lazy(() => import('../features/payments/PaymentList').then((m) => ({ default: m.PaymentList })));
+const PaymentDetail = lazy(() => import('../features/payments/PaymentDetail').then((m) => ({ default: m.PaymentDetail })));
+const PaymentForm = lazy(() => import('../features/payments/PaymentForm').then((m) => ({ default: m.PaymentForm })));
 
 // ルートレイアウト: 全ページ共通のナビゲーションヘッダー
 const rootRoute = createRootRoute({
   component: () => (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px' }}>
       {/* グローバルナビゲーション */}
-      <nav style={{ borderBottom: '1px solid #ccc', paddingBottom: '8px', marginBottom: '16px' }}>
+      <nav aria-label="メインナビゲーション" style={{ borderBottom: '1px solid #ccc', paddingBottom: '8px', marginBottom: '16px' }}>
         <Link to="/" style={{ marginRight: '16px' }}>
           決済一覧
         </Link>
@@ -22,8 +25,10 @@ const rootRoute = createRootRoute({
           新規決済
         </Link>
       </nav>
-      {/* 子ルートの描画領域 */}
-      <Outlet />
+      {/* 子ルートの描画領域（Suspenseでローディング表示） */}
+      <Suspense fallback={<div>読み込み中...</div>}>
+        <Outlet />
+      </Suspense>
     </div>
   ),
 });

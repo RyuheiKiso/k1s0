@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// Grafana ダッシュボードテンプレートのレンダリング統合テスト。
 ///
 /// CLI/templates/grafana/ テンプレートファイルを使用し、

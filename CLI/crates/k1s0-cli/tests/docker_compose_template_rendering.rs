@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// Docker Compose テンプレートのレンダリング統合テスト。
 ///
 /// CLI/templates/docker-compose/ テンプレートファイルを使用し、

@@ -1,0 +1,70 @@
+{
+  "_description": "4言語統一バリデーションテストケース（H-18）。Go/Rust/TypeScript/Dart で共通のテストデータ。",
+  "email": {
+    "valid": [
+      "user@example.com",
+      "user.name+tag@example.co.jp",
+      "test123@sub.domain.org"
+    ],
+    "invalid": [
+      "",
+      "not-an-email",
+      "user@",
+      "@example.com",
+      "user@example.c",
+      "user @example.com"
+    ]
+  },
+  "uuid_v4": {
+    "valid": [
+      "550e8400-e29b-41d4-a716-446655440000",
+      "6ba7b810-9dad-41d5-80b4-00c04fd430c8",
+      "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+    ],
+    "invalid": [
+      "",
+      "not-a-uuid",
+      "550e8400-e29b-11d4-a716-446655440000",
+      "550e8400-e29b-21d4-a716-446655440000",
+      "550e8400-e29b-31d4-a716-446655440000",
+      "550e8400-e29b-51d4-a716-446655440000",
+      "550e8400-e29b-41d4-c716-446655440000",
+      "ZZZZZZZZ-ZZZZ-4ZZZ-8ZZZ-ZZZZZZZZZZZZ"
+    ]
+  },
+  "tenant_id": {
+    "pattern": "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$",
+    "valid": [
+      "abc",
+      "my-tenant",
+      "tenant-123",
+      "a1b2c3d4"
+    ],
+    "invalid": [
+      "",
+      "a",
+      "ab",
+      "-abc",
+      "abc-",
+      "ABC",
+      "my_tenant",
+      "my tenant"
+    ]
+  },
+  "pagination": {
+    "max_per_page": 100,
+    "valid": [
+      { "page": 1, "per_page": 1 },
+      { "page": 1, "per_page": 50 },
+      { "page": 1, "per_page": 100 },
+      { "page": 10, "per_page": 25 }
+    ],
+    "invalid": [
+      { "page": 0, "per_page": 10 },
+      { "page": -1, "per_page": 10 },
+      { "page": 1, "per_page": 0 },
+      { "page": 1, "per_page": 101 },
+      { "page": 1, "per_page": 200 }
+    ]
+  }
+}

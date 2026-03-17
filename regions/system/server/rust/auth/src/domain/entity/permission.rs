@@ -73,54 +73,50 @@ impl Permission {
 mod tests {
     use super::*;
 
+    // テーブル駆動テスト: Action::from_str の正常系（大文字小文字含む）
     #[test]
-    fn test_action_from_str_read() {
-        let action = Action::from_str("read").unwrap();
-        assert_eq!(action, Action::Read);
+    fn test_action_from_str_valid_cases() {
+        let cases = vec![
+            ("read", Action::Read),
+            ("write", Action::Write),
+            ("delete", Action::Delete),
+            ("admin", Action::Admin),
+            ("READ", Action::Read),
+            ("Write", Action::Write),
+            ("DELETE", Action::Delete),
+            ("ADMIN", Action::Admin),
+        ];
+        for (input, expected) in cases {
+            let result = Action::from_str(input).unwrap();
+            assert_eq!(result, expected, "Action::from_str(\"{input}\") の結果が不正");
+        }
     }
 
+    // テーブル駆動テスト: Action::from_str の異常系
     #[test]
-    fn test_action_from_str_write() {
-        let action = Action::from_str("write").unwrap();
-        assert_eq!(action, Action::Write);
+    fn test_action_from_str_invalid_cases() {
+        let invalid_inputs = vec!["unknown", "", "readwrite", "SUDO"];
+        for input in invalid_inputs {
+            let result = Action::from_str(input);
+            assert!(result.is_err(), "Action::from_str(\"{input}\") はエラーであるべき");
+        }
     }
 
+    // テーブル駆動テスト: Action::as_str の往復変換
     #[test]
-    fn test_action_from_str_delete() {
-        let action = Action::from_str("delete").unwrap();
-        assert_eq!(action, Action::Delete);
-    }
-
-    #[test]
-    fn test_action_from_str_admin() {
-        let action = Action::from_str("admin").unwrap();
-        assert_eq!(action, Action::Admin);
-    }
-
-    #[test]
-    fn test_action_from_str_case_insensitive() {
-        assert_eq!(Action::from_str("READ").unwrap(), Action::Read);
-        assert_eq!(Action::from_str("Write").unwrap(), Action::Write);
-        assert_eq!(Action::from_str("DELETE").unwrap(), Action::Delete);
-        assert_eq!(Action::from_str("ADMIN").unwrap(), Action::Admin);
-    }
-
-    #[test]
-    fn test_action_from_str_unknown() {
-        let result = Action::from_str("unknown");
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("unknown action: 'unknown'"));
-    }
-
-    #[test]
-    fn test_action_as_str() {
-        assert_eq!(Action::Read.as_str(), "read");
-        assert_eq!(Action::Write.as_str(), "write");
-        assert_eq!(Action::Delete.as_str(), "delete");
-        assert_eq!(Action::Admin.as_str(), "admin");
+    fn test_action_as_str_roundtrip() {
+        let cases = vec![
+            (Action::Read, "read"),
+            (Action::Write, "write"),
+            (Action::Delete, "delete"),
+            (Action::Admin, "admin"),
+        ];
+        for (action, expected_str) in cases {
+            assert_eq!(action.as_str(), expected_str);
+            // 往復変換: as_str -> from_str で元に戻ることを検証
+            let roundtrip = Action::from_str(action.as_str()).unwrap();
+            assert_eq!(roundtrip, action);
+        }
     }
 
     #[test]
@@ -135,6 +131,7 @@ mod tests {
         assert_eq!(perm.allowed_roles.len(), 2);
     }
 
+    // テーブル駆動テスト: is_allowed_for_role
     #[test]
     fn test_permission_is_allowed_for_role() {
         let perm = Permission::new(
@@ -142,12 +139,22 @@ mod tests {
             Action::Read,
             vec!["sys_admin".to_string(), "sys_auditor".to_string()],
         );
-        assert!(perm.is_allowed_for_role("sys_admin"));
-        assert!(perm.is_allowed_for_role("sys_auditor"));
-        assert!(!perm.is_allowed_for_role("sys_operator"));
-        assert!(!perm.is_allowed_for_role("unknown"));
+        let cases = vec![
+            ("sys_admin", true),
+            ("sys_auditor", true),
+            ("sys_operator", false),
+            ("unknown", false),
+        ];
+        for (role, expected) in cases {
+            assert_eq!(
+                perm.is_allowed_for_role(role),
+                expected,
+                "is_allowed_for_role(\"{role}\") の結果が不正"
+            );
+        }
     }
 
+    // テーブル駆動テスト: is_allowed_for_any_role
     #[test]
     fn test_permission_is_allowed_for_any_role() {
         let perm = Permission::new(
@@ -155,14 +162,19 @@ mod tests {
             Action::Write,
             vec!["sys_admin".to_string(), "sys_operator".to_string()],
         );
-        let matching_roles = vec!["sys_auditor".to_string(), "sys_operator".to_string()];
-        assert!(perm.is_allowed_for_any_role(&matching_roles));
-
-        let no_matching_roles = vec!["sys_auditor".to_string(), "user".to_string()];
-        assert!(!perm.is_allowed_for_any_role(&no_matching_roles));
-
-        let empty_roles: Vec<String> = vec![];
-        assert!(!perm.is_allowed_for_any_role(&empty_roles));
+        let cases: Vec<(Vec<String>, bool)> = vec![
+            (vec!["sys_auditor".into(), "sys_operator".into()], true),
+            (vec!["sys_auditor".into(), "user".into()], false),
+            (vec![], false),
+            (vec!["sys_admin".into()], true),
+        ];
+        for (roles, expected) in cases {
+            assert_eq!(
+                perm.is_allowed_for_any_role(&roles),
+                expected,
+                "is_allowed_for_any_role({roles:?}) の結果が不正"
+            );
+        }
     }
 
     #[test]

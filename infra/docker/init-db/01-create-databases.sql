@@ -37,3 +37,33 @@ CREATE DATABASE k1s0_order;
 
 -- event-store-server 用DB
 CREATE DATABASE event_store_db;
+
+-- scheduler-server 用DB
+CREATE DATABASE scheduler_db;
+
+-- notification-server 用DB
+CREATE DATABASE notification_db;
+
+-- navigation-server 用DB
+CREATE DATABASE navigation_db;
+
+-- policy-server 用DB
+CREATE DATABASE policy_db;
+
+-- quota-server 用DB
+CREATE DATABASE quota_db;
+
+-- rule-engine-server 用DB
+CREATE DATABASE rule_engine_db;
+
+-- search-server 用DB
+CREATE DATABASE search_db;
+
+-- session-server 用DB
+CREATE DATABASE session_db;
+
+-- workflow-server 用DB
+CREATE DATABASE workflow_db;
+
+-- file-server 用DB
+CREATE DATABASE file_db;

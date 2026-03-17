@@ -108,6 +108,40 @@ impl Snapshot {
     }
 }
 
+impl StoredEvent {
+    /// イベントスキーマを最新バージョンにアップキャストする（M-12）。
+    /// version フィールドに基づいて、古いスキーマから新しいスキーマへの
+    /// マイグレーションを段階的に適用する。
+    /// 未知のバージョンの場合はそのまま返す（前方互換性を維持する）。
+    pub fn upcast(mut self, target_version: i64) -> Self {
+        // 既に最新バージョン以上の場合はそのまま返す
+        while self.version < target_version {
+            let next_version = self.version + 1;
+            self.payload = Self::migrate_payload(&self.event_type, self.version, &self.payload);
+            self.version = next_version;
+        }
+        self
+    }
+
+    /// ペイロードを現在のバージョンから次のバージョンにマイグレーションする。
+    /// イベントタイプとバージョンに応じたフィールド追加・リネームを行う。
+    fn migrate_payload(
+        _event_type: &str,
+        _from_version: i64,
+        payload: &serde_json::Value,
+    ) -> serde_json::Value {
+        // デフォルト: ペイロードをそのまま返す。
+        // 具体的なマイグレーションルールは各イベントタイプの進化に応じて追加する。
+        // 例:
+        //   "OrderCreated" version 1 → 2: payload["currency"] のデフォルト値を "JPY" に設定
+        //   match (event_type, from_version) {
+        //       ("OrderCreated", 1) => { let mut p = payload.clone(); p["currency"] = "JPY".into(); p }
+        //       _ => payload.clone(),
+        //   }
+        payload.clone()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventData {
     pub event_type: String,
@@ -207,5 +241,38 @@ mod tests {
         assert_eq!(page.page, 2);
         assert_eq!(page.page_size, 50);
         assert!(!page.has_next);
+    }
+
+    // upcast メソッドがバージョンを段階的にインクリメントすることを確認する
+    #[test]
+    fn stored_event_upcast() {
+        let meta = EventMetadata::new(Some("user-001".to_string()), None, None);
+        let event = StoredEvent::new(
+            "order-001".to_string(),
+            1,
+            "OrderCreated".to_string(),
+            1,
+            serde_json::json!({"order_id": "o-1"}),
+            meta,
+        );
+        let upcasted = event.upcast(3);
+        assert_eq!(upcasted.version, 3);
+        assert_eq!(upcasted.payload["order_id"], "o-1");
+    }
+
+    // upcast で既にターゲットバージョン以上の場合はそのまま返すことを確認する
+    #[test]
+    fn stored_event_upcast_no_change() {
+        let meta = EventMetadata::new(None, None, None);
+        let event = StoredEvent::new(
+            "s-1".to_string(),
+            1,
+            "Test".to_string(),
+            5,
+            serde_json::json!({}),
+            meta,
+        );
+        let upcasted = event.upcast(3);
+        assert_eq!(upcasted.version, 5);
     }
 }

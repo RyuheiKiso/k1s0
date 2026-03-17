@@ -246,8 +246,44 @@ observability:
 
 ---
 
+## Outbox 並列処理パターン
+
+`OutboxProcessor` は `tokio::task::JoinSet` により複数メッセージを並列で処理する。
+
+```rust
+use tokio::task::JoinSet;
+
+// 並列度の設定（デフォルト: 4）
+let processor = OutboxProcessor::new(store, publisher)
+    .with_concurrency(4);
+
+// 内部実装: JoinSet で並列実行
+let mut join_set = JoinSet::new();
+for msg in pending_messages.into_iter().take(concurrency) {
+    let store = store.clone();
+    let publisher = publisher.clone();
+    join_set.spawn(async move {
+        publisher.publish(&msg).await?;
+        store.mark_published(msg.id).await
+    });
+}
+// 全タスクの完了を待機
+while let Some(result) = join_set.join_next().await {
+    result??;
+}
+```
+
+### 設計判断
+
+- **並列度制限**: バックプレッシャー制御のため、`concurrency` で同時実行数を制限
+- **冪等性保証**: `idempotency_key` により重複発行を防止（`ON CONFLICT DO NOTHING`）
+- **エラー伝播**: 個別タスクの失敗は次回のポーリングで再処理
+
+---
+
 ## 関連ドキュメント
 
 - [system-server.md](../auth/server.md) -- auth-server 設計（参考実装）
 - [system-server-deploy.md](deploy.md) -- Dockerfile・Helm・テスト方針
 - [テンプレート仕様-サーバー-Rust](../../templates/server/サーバー-Rust.md) -- Rust テンプレート詳細
+- [イベント駆動設計](../../libraries/_common/イベント駆動設計.md) -- Outbox・イベントメタデータ

@@ -10,7 +10,6 @@ import (
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -90,6 +89,10 @@ type CheckRateLimitResponse struct {
 	ResetAt       int64                  `protobuf:"varint,3,opt,name=reset_at,json=resetAt,proto3" json:"reset_at,omitempty"`
 	Reason        string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
 	Limit         int64                  `protobuf:"varint,5,opt,name=limit,proto3" json:"limit,omitempty"`
+	Scope         string                 `protobuf:"bytes,6,opt,name=scope,proto3" json:"scope,omitempty"`
+	Identifier    string                 `protobuf:"bytes,7,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	Used          int64                  `protobuf:"varint,8,opt,name=used,proto3" json:"used,omitempty"`
+	RuleId        string                 `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -157,6 +160,34 @@ func (x *CheckRateLimitResponse) GetLimit() int64 {
 		return x.Limit
 	}
 	return 0
+}
+
+func (x *CheckRateLimitResponse) GetScope() string {
+	if x != nil {
+		return x.Scope
+	}
+	return ""
+}
+
+func (x *CheckRateLimitResponse) GetIdentifier() string {
+	if x != nil {
+		return x.Identifier
+	}
+	return ""
+}
+
+func (x *CheckRateLimitResponse) GetUsed() int64 {
+	if x != nil {
+		return x.Used
+	}
+	return 0
+}
+
+func (x *CheckRateLimitResponse) GetRuleId() string {
+	if x != nil {
+		return x.RuleId
+	}
+	return ""
 }
 
 type CreateRuleRequest struct {
@@ -584,11 +615,11 @@ func (x *DeleteRuleResponse) GetSuccess() bool {
 }
 
 type ListRulesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Scope         string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
-	EnabledOnly   *bool                  `protobuf:"varint,2,opt,name=enabled_only,json=enabledOnly,proto3,oneof" json:"enabled_only,omitempty"`
-	Page          uint32                 `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      uint32                 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Scope       string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	EnabledOnly *bool                  `protobuf:"varint,2,opt,name=enabled_only,json=enabledOnly,proto3,oneof" json:"enabled_only,omitempty"`
+	// ページネーションパラメータを共通型に統一
+	Pagination    *v1.Pagination `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -637,18 +668,11 @@ func (x *ListRulesRequest) GetEnabledOnly() bool {
 	return false
 }
 
-func (x *ListRulesRequest) GetPage() uint32 {
+func (x *ListRulesRequest) GetPagination() *v1.Pagination {
 	if x != nil {
-		return x.Page
+		return x.Pagination
 	}
-	return 0
-}
-
-func (x *ListRulesRequest) GetPageSize() uint32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
+	return nil
 }
 
 type ListRulesResponse struct {
@@ -712,8 +736,9 @@ type RateLimitRule struct {
 	WindowSeconds     int64                  `protobuf:"varint,5,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
 	Algorithm         string                 `protobuf:"bytes,6,opt,name=algorithm,proto3" json:"algorithm,omitempty"`
 	Enabled           bool                   `protobuf:"varint,7,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt         *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedAt         *v1.Timestamp          `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt         *v1.Timestamp          `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Name              string                 `protobuf:"bytes,10,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -797,18 +822,25 @@ func (x *RateLimitRule) GetEnabled() bool {
 	return false
 }
 
-func (x *RateLimitRule) GetCreatedAt() *timestamppb.Timestamp {
+func (x *RateLimitRule) GetCreatedAt() *v1.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return nil
 }
 
-func (x *RateLimitRule) GetUpdatedAt() *timestamppb.Timestamp {
+func (x *RateLimitRule) GetUpdatedAt() *v1.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *RateLimitRule) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
 type GetUsageRequest struct {
@@ -1063,19 +1095,25 @@ var File_k1s0_system_ratelimit_v1_ratelimit_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"\n" +
-	"(k1s0/system/ratelimit/v1/ratelimit.proto\x12\x18k1s0.system.ratelimit.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a!k1s0/system/common/v1/types.proto\"e\n" +
+	"(k1s0/system/ratelimit/v1/ratelimit.proto\x12\x18k1s0.system.ratelimit.v1\x1a!k1s0/system/common/v1/types.proto\"e\n" +
 	"\x15CheckRateLimitRequest\x12\x14\n" +
 	"\x05scope\x18\x01 \x01(\tR\x05scope\x12\x1e\n" +
 	"\n" +
 	"identifier\x18\x02 \x01(\tR\n" +
 	"identifier\x12\x16\n" +
-	"\x06window\x18\x03 \x01(\x03R\x06window\"\x99\x01\n" +
+	"\x06window\x18\x03 \x01(\x03R\x06window\"\xfc\x01\n" +
 	"\x16CheckRateLimitResponse\x12\x18\n" +
 	"\aallowed\x18\x01 \x01(\bR\aallowed\x12\x1c\n" +
 	"\tremaining\x18\x02 \x01(\x03R\tremaining\x12\x19\n" +
 	"\breset_at\x18\x03 \x01(\x03R\aresetAt\x12\x16\n" +
 	"\x06reason\x18\x04 \x01(\tR\x06reason\x12\x14\n" +
-	"\x05limit\x18\x05 \x01(\x03R\x05limit\"\xaf\x01\n" +
+	"\x05limit\x18\x05 \x01(\x03R\x05limit\x12\x14\n" +
+	"\x05scope\x18\x06 \x01(\tR\x05scope\x12\x1e\n" +
+	"\n" +
+	"identifier\x18\a \x01(\tR\n" +
+	"identifier\x12\x12\n" +
+	"\x04used\x18\b \x01(\x03R\x04used\x12\x17\n" +
+	"\arule_id\x18\t \x01(\tR\x06ruleId\"\xaf\x01\n" +
 	"\x11CreateRuleRequest\x12\x14\n" +
 	"\x05scope\x18\x01 \x01(\tR\x05scope\x12-\n" +
 	"\x12identifier_pattern\x18\x02 \x01(\tR\x11identifierPattern\x12\x14\n" +
@@ -1100,18 +1138,19 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"\x11DeleteRuleRequest\x12\x17\n" +
 	"\arule_id\x18\x01 \x01(\tR\x06ruleId\".\n" +
 	"\x12DeleteRuleResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x92\x01\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xb5\x01\n" +
 	"\x10ListRulesRequest\x12\x14\n" +
 	"\x05scope\x18\x01 \x01(\tR\x05scope\x12&\n" +
-	"\fenabled_only\x18\x02 \x01(\bH\x00R\venabledOnly\x88\x01\x01\x12\x12\n" +
-	"\x04page\x18\x03 \x01(\rR\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\rR\bpageSizeB\x0f\n" +
-	"\r_enabled_only\"\x9b\x01\n" +
+	"\fenabled_only\x18\x02 \x01(\bH\x00R\venabledOnly\x88\x01\x01\x12A\n" +
+	"\n" +
+	"pagination\x18\x03 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
+	"paginationB\x0f\n" +
+	"\r_enabled_onlyJ\x04\b\x04\x10\x05R\tpage_size\"\x9b\x01\n" +
 	"\x11ListRulesResponse\x12=\n" +
 	"\x05rules\x18\x01 \x03(\v2'.k1s0.system.ratelimit.v1.RateLimitRuleR\x05rules\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xcf\x02\n" +
+	"pagination\"\xef\x02\n" +
 	"\rRateLimitRule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05scope\x18\x02 \x01(\tR\x05scope\x12-\n" +
@@ -1119,11 +1158,13 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"\x05limit\x18\x04 \x01(\x03R\x05limit\x12%\n" +
 	"\x0ewindow_seconds\x18\x05 \x01(\x03R\rwindowSeconds\x12\x1c\n" +
 	"\talgorithm\x18\x06 \x01(\tR\talgorithm\x12\x18\n" +
-	"\aenabled\x18\a \x01(\bR\aenabled\x129\n" +
+	"\aenabled\x18\a \x01(\bR\aenabled\x12?\n" +
 	"\n" +
-	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"created_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"*\n" +
+	"updated_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12\x12\n" +
+	"\x04name\x18\n" +
+	" \x01(\tR\x04name\"*\n" +
 	"\x0fGetUsageRequest\x12\x17\n" +
 	"\arule_id\x18\x01 \x01(\tR\x06ruleId\"\xbd\x02\n" +
 	"\x10GetUsageResponse\x12\x17\n" +
@@ -1192,38 +1233,40 @@ var file_k1s0_system_ratelimit_v1_ratelimit_proto_goTypes = []any{
 	(*GetUsageResponse)(nil),       // 14: k1s0.system.ratelimit.v1.GetUsageResponse
 	(*ResetLimitRequest)(nil),      // 15: k1s0.system.ratelimit.v1.ResetLimitRequest
 	(*ResetLimitResponse)(nil),     // 16: k1s0.system.ratelimit.v1.ResetLimitResponse
-	(*v1.PaginationResult)(nil),    // 17: k1s0.system.common.v1.PaginationResult
-	(*timestamppb.Timestamp)(nil),  // 18: google.protobuf.Timestamp
+	(*v1.Pagination)(nil),          // 17: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),    // 18: k1s0.system.common.v1.PaginationResult
+	(*v1.Timestamp)(nil),           // 19: k1s0.system.common.v1.Timestamp
 }
 var file_k1s0_system_ratelimit_v1_ratelimit_proto_depIdxs = []int32{
 	12, // 0: k1s0.system.ratelimit.v1.CreateRuleResponse.rule:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
 	12, // 1: k1s0.system.ratelimit.v1.GetRuleResponse.rule:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
 	12, // 2: k1s0.system.ratelimit.v1.UpdateRuleResponse.rule:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
-	12, // 3: k1s0.system.ratelimit.v1.ListRulesResponse.rules:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
-	17, // 4: k1s0.system.ratelimit.v1.ListRulesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	18, // 5: k1s0.system.ratelimit.v1.RateLimitRule.created_at:type_name -> google.protobuf.Timestamp
-	18, // 6: k1s0.system.ratelimit.v1.RateLimitRule.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 7: k1s0.system.ratelimit.v1.RateLimitService.CheckRateLimit:input_type -> k1s0.system.ratelimit.v1.CheckRateLimitRequest
-	2,  // 8: k1s0.system.ratelimit.v1.RateLimitService.CreateRule:input_type -> k1s0.system.ratelimit.v1.CreateRuleRequest
-	4,  // 9: k1s0.system.ratelimit.v1.RateLimitService.GetRule:input_type -> k1s0.system.ratelimit.v1.GetRuleRequest
-	6,  // 10: k1s0.system.ratelimit.v1.RateLimitService.UpdateRule:input_type -> k1s0.system.ratelimit.v1.UpdateRuleRequest
-	8,  // 11: k1s0.system.ratelimit.v1.RateLimitService.DeleteRule:input_type -> k1s0.system.ratelimit.v1.DeleteRuleRequest
-	10, // 12: k1s0.system.ratelimit.v1.RateLimitService.ListRules:input_type -> k1s0.system.ratelimit.v1.ListRulesRequest
-	13, // 13: k1s0.system.ratelimit.v1.RateLimitService.GetUsage:input_type -> k1s0.system.ratelimit.v1.GetUsageRequest
-	15, // 14: k1s0.system.ratelimit.v1.RateLimitService.ResetLimit:input_type -> k1s0.system.ratelimit.v1.ResetLimitRequest
-	1,  // 15: k1s0.system.ratelimit.v1.RateLimitService.CheckRateLimit:output_type -> k1s0.system.ratelimit.v1.CheckRateLimitResponse
-	3,  // 16: k1s0.system.ratelimit.v1.RateLimitService.CreateRule:output_type -> k1s0.system.ratelimit.v1.CreateRuleResponse
-	5,  // 17: k1s0.system.ratelimit.v1.RateLimitService.GetRule:output_type -> k1s0.system.ratelimit.v1.GetRuleResponse
-	7,  // 18: k1s0.system.ratelimit.v1.RateLimitService.UpdateRule:output_type -> k1s0.system.ratelimit.v1.UpdateRuleResponse
-	9,  // 19: k1s0.system.ratelimit.v1.RateLimitService.DeleteRule:output_type -> k1s0.system.ratelimit.v1.DeleteRuleResponse
-	11, // 20: k1s0.system.ratelimit.v1.RateLimitService.ListRules:output_type -> k1s0.system.ratelimit.v1.ListRulesResponse
-	14, // 21: k1s0.system.ratelimit.v1.RateLimitService.GetUsage:output_type -> k1s0.system.ratelimit.v1.GetUsageResponse
-	16, // 22: k1s0.system.ratelimit.v1.RateLimitService.ResetLimit:output_type -> k1s0.system.ratelimit.v1.ResetLimitResponse
-	15, // [15:23] is the sub-list for method output_type
-	7,  // [7:15] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	17, // 3: k1s0.system.ratelimit.v1.ListRulesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	12, // 4: k1s0.system.ratelimit.v1.ListRulesResponse.rules:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
+	18, // 5: k1s0.system.ratelimit.v1.ListRulesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	19, // 6: k1s0.system.ratelimit.v1.RateLimitRule.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	19, // 7: k1s0.system.ratelimit.v1.RateLimitRule.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 8: k1s0.system.ratelimit.v1.RateLimitService.CheckRateLimit:input_type -> k1s0.system.ratelimit.v1.CheckRateLimitRequest
+	2,  // 9: k1s0.system.ratelimit.v1.RateLimitService.CreateRule:input_type -> k1s0.system.ratelimit.v1.CreateRuleRequest
+	4,  // 10: k1s0.system.ratelimit.v1.RateLimitService.GetRule:input_type -> k1s0.system.ratelimit.v1.GetRuleRequest
+	6,  // 11: k1s0.system.ratelimit.v1.RateLimitService.UpdateRule:input_type -> k1s0.system.ratelimit.v1.UpdateRuleRequest
+	8,  // 12: k1s0.system.ratelimit.v1.RateLimitService.DeleteRule:input_type -> k1s0.system.ratelimit.v1.DeleteRuleRequest
+	10, // 13: k1s0.system.ratelimit.v1.RateLimitService.ListRules:input_type -> k1s0.system.ratelimit.v1.ListRulesRequest
+	13, // 14: k1s0.system.ratelimit.v1.RateLimitService.GetUsage:input_type -> k1s0.system.ratelimit.v1.GetUsageRequest
+	15, // 15: k1s0.system.ratelimit.v1.RateLimitService.ResetLimit:input_type -> k1s0.system.ratelimit.v1.ResetLimitRequest
+	1,  // 16: k1s0.system.ratelimit.v1.RateLimitService.CheckRateLimit:output_type -> k1s0.system.ratelimit.v1.CheckRateLimitResponse
+	3,  // 17: k1s0.system.ratelimit.v1.RateLimitService.CreateRule:output_type -> k1s0.system.ratelimit.v1.CreateRuleResponse
+	5,  // 18: k1s0.system.ratelimit.v1.RateLimitService.GetRule:output_type -> k1s0.system.ratelimit.v1.GetRuleResponse
+	7,  // 19: k1s0.system.ratelimit.v1.RateLimitService.UpdateRule:output_type -> k1s0.system.ratelimit.v1.UpdateRuleResponse
+	9,  // 20: k1s0.system.ratelimit.v1.RateLimitService.DeleteRule:output_type -> k1s0.system.ratelimit.v1.DeleteRuleResponse
+	11, // 21: k1s0.system.ratelimit.v1.RateLimitService.ListRules:output_type -> k1s0.system.ratelimit.v1.ListRulesResponse
+	14, // 22: k1s0.system.ratelimit.v1.RateLimitService.GetUsage:output_type -> k1s0.system.ratelimit.v1.GetUsageResponse
+	16, // 23: k1s0.system.ratelimit.v1.RateLimitService.ResetLimit:output_type -> k1s0.system.ratelimit.v1.ResetLimitResponse
+	16, // [16:24] is the sub-list for method output_type
+	8,  // [8:16] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_ratelimit_v1_ratelimit_proto_init() }

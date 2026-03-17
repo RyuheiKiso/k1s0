@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useItems, useDeleteItem, useCategory } from '../../hooks/useDomainMaster';
 import { ItemForm } from './ItemForm';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import type { MasterItem } from '../../types/domain-master';
 
 // アイテム一覧コンポーネントのProps
@@ -14,16 +15,24 @@ export function ItemList({ categoryCode }: ItemListProps) {
   const [activeOnly, setActiveOnly] = useState<boolean | undefined>(undefined);
   // フォーム表示状態の管理
   const [editingItem, setEditingItem] = useState<MasterItem | undefined | null>(null);
+  // 削除確認ダイアログの対象アイテムコード
+  const [deletingItemCode, setDeletingItemCode] = useState<string | null>(null);
 
   const { data: category } = useCategory(categoryCode);
   const { data: items, isLoading, error } = useItems(categoryCode, activeOnly);
   const deleteItem = useDeleteItem(categoryCode);
 
-  // アイテム削除確認後に実行
+  // アイテム削除確認ダイアログを表示
   const handleDelete = (itemCode: string) => {
-    if (window.confirm(`アイテム "${itemCode}" を削除しますか？`)) {
-      deleteItem.mutate(itemCode);
+    setDeletingItemCode(itemCode);
+  };
+
+  // 削除確認後に実際の削除を実行
+  const handleDeleteConfirm = () => {
+    if (deletingItemCode) {
+      deleteItem.mutate(deletingItemCode);
     }
+    setDeletingItemCode(null);
   };
 
   if (isLoading) return <div>読み込み中...</div>;
@@ -31,6 +40,16 @@ export function ItemList({ categoryCode }: ItemListProps) {
 
   return (
     <div>
+      {/* 削除確認ダイアログ */}
+      <ConfirmDialog
+        open={deletingItemCode !== null}
+        title="アイテムの削除"
+        message={`アイテム "${deletingItemCode}" を削除しますか？`}
+        confirmLabel="削除"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeletingItemCode(null)}
+      />
+
       <h1>{category?.display_name ?? categoryCode} - アイテム一覧</h1>
 
       {/* ナビゲーションリンク */}

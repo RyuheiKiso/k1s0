@@ -123,7 +123,9 @@ pub fn has_migrations(service_path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::TempDir;

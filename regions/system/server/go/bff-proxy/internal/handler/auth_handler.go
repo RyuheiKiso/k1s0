@@ -245,8 +245,10 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	if err == nil && sessionID != "" {
 		sess, _ := h.sessionStore.Get(c.Request.Context(), sessionID)
 
-		// Delete session from store.
-		_ = h.sessionStore.Delete(c.Request.Context(), sessionID)
+		// セッションストアからセッションを削除する
+		if err := h.sessionStore.Delete(c.Request.Context(), sessionID); err != nil {
+			h.logger.Warn("セッション削除に失敗", slog.String("session_id", sessionID), slog.String("error", err.Error()))
+		}
 
 		// Clear session cookie.
 		c.SetCookie(CookieName, "", -1, "/", "", h.secureCookie, true)
@@ -344,7 +346,9 @@ func (h *AuthHandler) Exchange(c *gin.Context) {
 	}
 
 	// 全検証通過後に交換コードを削除する（ワンタイム使用）
-	_ = h.sessionStore.Delete(c.Request.Context(), code)
+	if err := h.sessionStore.Delete(c.Request.Context(), code); err != nil {
+		h.logger.Warn("交換コード削除に失敗", slog.String("code", code), slog.String("error", err.Error()))
+	}
 
 	// セッションクッキーを発行する（モバイルクライアントの Dio が自動保存する）
 	c.SetSameSite(http.SameSiteLaxMode)

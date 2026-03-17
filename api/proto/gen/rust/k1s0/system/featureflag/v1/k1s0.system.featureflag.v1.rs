@@ -130,5 +130,29 @@ pub struct FlagRule {
     #[prost(string, tag="4")]
     pub variant: ::prost::alloc::string::String,
 }
+// ============================================================
+// WatchFeatureFlag（Server-Side Streaming）
+// ============================================================
+
+/// WatchFeatureFlagRequest はフラグ変更監視リクエスト。
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchFeatureFlagRequest {
+    /// 監視対象のフラグキー（空の場合は全フラグの変更を受け取る）
+    #[prost(string, tag="1")]
+    pub flag_key: ::prost::alloc::string::String,
+}
+/// WatchFeatureFlagResponse はフラグ変更の監視レスポンス（ストリーミング）。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchFeatureFlagResponse {
+    #[prost(string, tag="1")]
+    pub flag_key: ::prost::alloc::string::String,
+    /// CREATED, UPDATED, DELETED
+    #[prost(string, tag="2")]
+    pub change_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="3")]
+    pub flag: ::core::option::Option<FeatureFlag>,
+    #[prost(message, optional, tag="4")]
+    pub changed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+}
 include!("k1s0.system.featureflag.v1.tonic.rs");
 // @@protoc_insertion_point(module)

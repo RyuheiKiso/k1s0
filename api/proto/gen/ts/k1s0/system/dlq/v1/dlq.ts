@@ -12,6 +12,7 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { PaginationResult } from "../../common/v1/types";
+import { Pagination } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
 /**
  * / DlqMessage は DLQ メッセージ。
@@ -73,13 +74,11 @@ export interface ListMessagesRequest {
      */
     topic: string;
     /**
-     * @generated from protobuf field: int32 page = 2
+     * ページネーションパラメータを共通型に統一
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 2
      */
-    page: number;
-    /**
-     * @generated from protobuf field: int32 page_size = 3
-     */
-    pageSize: number;
+    pagination?: Pagination;
 }
 /**
  * / ListMessagesResponse は一覧取得レスポンス。
@@ -309,15 +308,12 @@ class ListMessagesRequest$Type extends MessageType<ListMessagesRequest> {
     constructor() {
         super("k1s0.system.dlq.v1.ListMessagesRequest", [
             { no: 1, name: "topic", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "page", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 3, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 2, name: "pagination", kind: "message", T: () => Pagination }
         ]);
     }
     create(value?: PartialMessage<ListMessagesRequest>): ListMessagesRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.topic = "";
-        message.page = 0;
-        message.pageSize = 0;
         if (value !== undefined)
             reflectionMergePartial<ListMessagesRequest>(this, message, value);
         return message;
@@ -330,11 +326,8 @@ class ListMessagesRequest$Type extends MessageType<ListMessagesRequest> {
                 case /* string topic */ 1:
                     message.topic = reader.string();
                     break;
-                case /* int32 page */ 2:
-                    message.page = reader.int32();
-                    break;
-                case /* int32 page_size */ 3:
-                    message.pageSize = reader.int32();
+                case /* k1s0.system.common.v1.Pagination pagination */ 2:
+                    message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -351,12 +344,9 @@ class ListMessagesRequest$Type extends MessageType<ListMessagesRequest> {
         /* string topic = 1; */
         if (message.topic !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.topic);
-        /* int32 page = 2; */
-        if (message.page !== 0)
-            writer.tag(2, WireType.Varint).int32(message.page);
-        /* int32 page_size = 3; */
-        if (message.pageSize !== 0)
-            writer.tag(3, WireType.Varint).int32(message.pageSize);
+        /* k1s0.system.common.v1.Pagination pagination = 2; */
+        if (message.pagination)
+            Pagination.internalBinaryWrite(message.pagination, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

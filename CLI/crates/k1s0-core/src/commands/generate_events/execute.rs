@@ -246,7 +246,9 @@ pub fn format_generation_summary(config: &EventsConfig) -> String {
     summary
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

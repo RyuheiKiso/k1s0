@@ -12,6 +12,7 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { PaginationResult } from "../../common/v1/types";
+import { Pagination } from "../../common/v1/types";
 /**
  * @generated from protobuf message k1s0.system.notification.v1.SendNotificationRequest
  */
@@ -109,13 +110,11 @@ export interface ListNotificationsRequest {
      */
     status?: string;
     /**
-     * @generated from protobuf field: uint32 page = 3
+     * ページネーションパラメータを共通型に統一
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 3
      */
-    page: number;
-    /**
-     * @generated from protobuf field: uint32 page_size = 4
-     */
-    pageSize: number;
+    pagination?: Pagination;
 }
 /**
  * @generated from protobuf message k1s0.system.notification.v1.ListNotificationsResponse
@@ -229,13 +228,11 @@ export interface ListChannelsRequest {
      */
     enabledOnly: boolean;
     /**
-     * @generated from protobuf field: uint32 page = 3
+     * ページネーションパラメータを共通型に統一
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 3
      */
-    page: number;
-    /**
-     * @generated from protobuf field: uint32 page_size = 4
-     */
-    pageSize: number;
+    pagination?: Pagination;
 }
 /**
  * @generated from protobuf message k1s0.system.notification.v1.ListChannelsResponse
@@ -392,13 +389,11 @@ export interface ListTemplatesRequest {
      */
     channelType?: string;
     /**
-     * @generated from protobuf field: uint32 page = 2
+     * ページネーションパラメータを共通型に統一
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 2
      */
-    page: number;
-    /**
-     * @generated from protobuf field: uint32 page_size = 3
-     */
-    pageSize: number;
+    pagination?: Pagination;
 }
 /**
  * @generated from protobuf message k1s0.system.notification.v1.ListTemplatesResponse
@@ -868,14 +863,11 @@ class ListNotificationsRequest$Type extends MessageType<ListNotificationsRequest
         super("k1s0.system.notification.v1.ListNotificationsRequest", [
             { no: 1, name: "channel_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "status", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "page", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 4, name: "page_size", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+            { no: 3, name: "pagination", kind: "message", T: () => Pagination }
         ]);
     }
     create(value?: PartialMessage<ListNotificationsRequest>): ListNotificationsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.page = 0;
-        message.pageSize = 0;
         if (value !== undefined)
             reflectionMergePartial<ListNotificationsRequest>(this, message, value);
         return message;
@@ -891,11 +883,8 @@ class ListNotificationsRequest$Type extends MessageType<ListNotificationsRequest
                 case /* optional string status */ 2:
                     message.status = reader.string();
                     break;
-                case /* uint32 page */ 3:
-                    message.page = reader.uint32();
-                    break;
-                case /* uint32 page_size */ 4:
-                    message.pageSize = reader.uint32();
+                case /* k1s0.system.common.v1.Pagination pagination */ 3:
+                    message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -915,12 +904,9 @@ class ListNotificationsRequest$Type extends MessageType<ListNotificationsRequest
         /* optional string status = 2; */
         if (message.status !== undefined)
             writer.tag(2, WireType.LengthDelimited).string(message.status);
-        /* uint32 page = 3; */
-        if (message.page !== 0)
-            writer.tag(3, WireType.Varint).uint32(message.page);
-        /* uint32 page_size = 4; */
-        if (message.pageSize !== 0)
-            writer.tag(4, WireType.Varint).uint32(message.pageSize);
+        /* k1s0.system.common.v1.Pagination pagination = 3; */
+        if (message.pagination)
+            Pagination.internalBinaryWrite(message.pagination, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1217,15 +1203,12 @@ class ListChannelsRequest$Type extends MessageType<ListChannelsRequest> {
         super("k1s0.system.notification.v1.ListChannelsRequest", [
             { no: 1, name: "channel_type", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "enabled_only", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 3, name: "page", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 4, name: "page_size", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+            { no: 3, name: "pagination", kind: "message", T: () => Pagination }
         ]);
     }
     create(value?: PartialMessage<ListChannelsRequest>): ListChannelsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.enabledOnly = false;
-        message.page = 0;
-        message.pageSize = 0;
         if (value !== undefined)
             reflectionMergePartial<ListChannelsRequest>(this, message, value);
         return message;
@@ -1241,11 +1224,8 @@ class ListChannelsRequest$Type extends MessageType<ListChannelsRequest> {
                 case /* bool enabled_only */ 2:
                     message.enabledOnly = reader.bool();
                     break;
-                case /* uint32 page */ 3:
-                    message.page = reader.uint32();
-                    break;
-                case /* uint32 page_size */ 4:
-                    message.pageSize = reader.uint32();
+                case /* k1s0.system.common.v1.Pagination pagination */ 3:
+                    message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1265,12 +1245,9 @@ class ListChannelsRequest$Type extends MessageType<ListChannelsRequest> {
         /* bool enabled_only = 2; */
         if (message.enabledOnly !== false)
             writer.tag(2, WireType.Varint).bool(message.enabledOnly);
-        /* uint32 page = 3; */
-        if (message.page !== 0)
-            writer.tag(3, WireType.Varint).uint32(message.page);
-        /* uint32 page_size = 4; */
-        if (message.pageSize !== 0)
-            writer.tag(4, WireType.Varint).uint32(message.pageSize);
+        /* k1s0.system.common.v1.Pagination pagination = 3; */
+        if (message.pagination)
+            Pagination.internalBinaryWrite(message.pagination, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1860,14 +1837,11 @@ class ListTemplatesRequest$Type extends MessageType<ListTemplatesRequest> {
     constructor() {
         super("k1s0.system.notification.v1.ListTemplatesRequest", [
             { no: 1, name: "channel_type", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "page", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 3, name: "page_size", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+            { no: 2, name: "pagination", kind: "message", T: () => Pagination }
         ]);
     }
     create(value?: PartialMessage<ListTemplatesRequest>): ListTemplatesRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.page = 0;
-        message.pageSize = 0;
         if (value !== undefined)
             reflectionMergePartial<ListTemplatesRequest>(this, message, value);
         return message;
@@ -1880,11 +1854,8 @@ class ListTemplatesRequest$Type extends MessageType<ListTemplatesRequest> {
                 case /* optional string channel_type */ 1:
                     message.channelType = reader.string();
                     break;
-                case /* uint32 page */ 2:
-                    message.page = reader.uint32();
-                    break;
-                case /* uint32 page_size */ 3:
-                    message.pageSize = reader.uint32();
+                case /* k1s0.system.common.v1.Pagination pagination */ 2:
+                    message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1901,12 +1872,9 @@ class ListTemplatesRequest$Type extends MessageType<ListTemplatesRequest> {
         /* optional string channel_type = 1; */
         if (message.channelType !== undefined)
             writer.tag(1, WireType.LengthDelimited).string(message.channelType);
-        /* uint32 page = 2; */
-        if (message.page !== 0)
-            writer.tag(2, WireType.Varint).uint32(message.page);
-        /* uint32 page_size = 3; */
-        if (message.pageSize !== 0)
-            writer.tag(3, WireType.Varint).uint32(message.pageSize);
+        /* k1s0.system.common.v1.Pagination pagination = 2; */
+        if (message.pagination)
+            Pagination.internalBinaryWrite(message.pagination, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

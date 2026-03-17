@@ -45,24 +45,30 @@ export function ItemForm({ categoryCode, item, items, onClose }: ItemFormProps) 
       sort_order: sortOrder,
     };
 
-    // Zodスキーマでバリデーション
-    const schema = isEditing ? updateItemSchema : createItemSchema;
-    const result = schema.safeParse(input);
-
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        const field = err.path.join('.');
-        fieldErrors[field] = err.message;
-      });
-      setErrors(fieldErrors);
-      return;
+    // 編集・作成で個別にバリデーション＋API呼び出しを実行（union型回避）
+    if (isEditing) {
+      const result = updateItemSchema.safeParse(input);
+      if (!result.success) {
+        const fieldErrors: Record<string, string> = {};
+        result.error.errors.forEach((err) => {
+          fieldErrors[err.path.join('.')] = err.message;
+        });
+        setErrors(fieldErrors);
+        return;
+      }
+      updateItem.mutate(result.data, { onSuccess: () => onClose() });
+    } else {
+      const result = createItemSchema.safeParse(input);
+      if (!result.success) {
+        const fieldErrors: Record<string, string> = {};
+        result.error.errors.forEach((err) => {
+          fieldErrors[err.path.join('.')] = err.message;
+        });
+        setErrors(fieldErrors);
+        return;
+      }
+      createItem.mutate(result.data, { onSuccess: () => onClose() });
     }
-
-    const mutation = isEditing ? updateItem : createItem;
-    mutation.mutate(result.data, {
-      onSuccess: () => onClose(),
-    });
   };
 
   return (

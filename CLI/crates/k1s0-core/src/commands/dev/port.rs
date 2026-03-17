@@ -55,7 +55,9 @@ fn find_available_port(start: u16) -> u16 {
     start
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

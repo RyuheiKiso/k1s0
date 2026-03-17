@@ -7,6 +7,9 @@ on:
     branches: [main]
     paths:
       - 'regions/system/server/rust/**'
+      - 'regions/system/library/rust/**'
+      - 'regions/system/Cargo.toml'
+      - 'regions/system/Cargo.lock'
 
 concurrency:
   group: integration-${{ github.ref }}
@@ -98,5 +101,13 @@ jobs:
           DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3D${{ steps.schema.outputs.name }},public"
           KAFKA_BROKERS: "localhost:9092"
         run: |
-          cd regions/system/server/rust/${{ matrix.server }}
-          cargo test --all
+          # workspace ルートからパッケージ単位で統合テストを実行
+          # Cargo.toml に test-utils feature が定義されていれば有効化
+          cd regions/system
+          pkg_name=$(grep -m1 '^name' "server/rust/${{ matrix.server }}/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+          if grep -q '\[features\]' "server/rust/${{ matrix.server }}/Cargo.toml" && \
+             grep -q 'test-utils' "server/rust/${{ matrix.server }}/Cargo.toml"; then
+            cargo test -p "$pkg_name" --test integration_test --features "$pkg_name/test-utils"
+          else
+            cargo test -p "$pkg_name" --test integration_test
+          fi

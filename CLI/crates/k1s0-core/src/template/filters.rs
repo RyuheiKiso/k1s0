@@ -71,7 +71,9 @@ fn to_lower_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value>
     Ok(Value::String(s.to_lowercase()))
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

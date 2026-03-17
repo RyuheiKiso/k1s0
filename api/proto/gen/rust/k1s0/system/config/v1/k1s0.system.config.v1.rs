@@ -144,6 +144,8 @@ pub struct ServiceConfigEntry {
     pub key: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
     pub value: ::prost::alloc::string::String,
+    #[prost(int32, tag="4")]
+    pub version: i32,
 }
 /// GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -270,6 +272,20 @@ pub struct UpsertConfigSchemaRequest {
 pub struct UpsertConfigSchemaResponse {
     #[prost(message, optional, tag="1")]
     pub schema: ::core::option::Option<ConfigEditorSchema>,
+}
+// ============================================================
+// ListConfigSchemas
+// ============================================================
+
+/// ListConfigSchemasRequest は設定スキーマ一覧取得リクエスト。
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListConfigSchemasRequest {
+}
+/// ListConfigSchemasResponse は設定スキーマ一覧取得レスポンス。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListConfigSchemasResponse {
+    #[prost(message, repeated, tag="1")]
+    pub schemas: ::prost::alloc::vec::Vec<ConfigEditorSchema>,
 }
 // ============================================================
 // ConfigEditorSchema（設定エディタ向けスキーマ）

@@ -119,6 +119,7 @@ type UpdateTableDefinitionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TableName     string                 `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	Data          *structpb.Struct       `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,3,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -165,6 +166,13 @@ func (x *UpdateTableDefinitionRequest) GetData() *structpb.Struct {
 		return x.Data
 	}
 	return nil
+}
+
+func (x *UpdateTableDefinitionRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
 }
 
 type UpdateTableDefinitionResponse struct {
@@ -214,6 +222,7 @@ func (x *UpdateTableDefinitionResponse) GetTable() *GetTableDefinitionResponse {
 type DeleteTableDefinitionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TableName     string                 `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,2,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -251,6 +260,13 @@ func (*DeleteTableDefinitionRequest) Descriptor() ([]byte, []int) {
 func (x *DeleteTableDefinitionRequest) GetTableName() string {
 	if x != nil {
 		return x.TableName
+	}
+	return ""
+}
+
+func (x *DeleteTableDefinitionRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
 	}
 	return ""
 }
@@ -303,6 +319,7 @@ func (x *DeleteTableDefinitionResponse) GetSuccess() bool {
 type GetTableDefinitionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TableName     string                 `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,2,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -344,6 +361,13 @@ func (x *GetTableDefinitionRequest) GetTableName() string {
 	return ""
 }
 
+func (x *GetTableDefinitionRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
+}
+
 // テーブル定義レスポンス
 type GetTableDefinitionResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -364,6 +388,10 @@ type GetTableDefinitionResponse struct {
 	CreatedBy     string                 `protobuf:"bytes,15,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
 	CreatedAt     *v1.Timestamp          `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *v1.Timestamp          `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,18,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
+	ReadRoles     []string               `protobuf:"bytes,19,rep,name=read_roles,json=readRoles,proto3" json:"read_roles,omitempty"`
+	WriteRoles    []string               `protobuf:"bytes,20,rep,name=write_roles,json=writeRoles,proto3" json:"write_roles,omitempty"`
+	AdminRoles    []string               `protobuf:"bytes,21,rep,name=admin_roles,json=adminRoles,proto3" json:"admin_roles,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -513,6 +541,34 @@ func (x *GetTableDefinitionResponse) GetCreatedAt() *v1.Timestamp {
 func (x *GetTableDefinitionResponse) GetUpdatedAt() *v1.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *GetTableDefinitionResponse) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
+}
+
+func (x *GetTableDefinitionResponse) GetReadRoles() []string {
+	if x != nil {
+		return x.ReadRoles
+	}
+	return nil
+}
+
+func (x *GetTableDefinitionResponse) GetWriteRoles() []string {
+	if x != nil {
+		return x.WriteRoles
+	}
+	return nil
+}
+
+func (x *GetTableDefinitionResponse) GetAdminRoles() []string {
+	if x != nil {
+		return x.AdminRoles
 	}
 	return nil
 }
@@ -821,6 +877,7 @@ type ListTableDefinitionsRequest struct {
 	Category      string                 `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
 	ActiveOnly    bool                   `protobuf:"varint,2,opt,name=active_only,json=activeOnly,proto3" json:"active_only,omitempty"`
 	Pagination    *v1.Pagination         `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,4,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -874,6 +931,13 @@ func (x *ListTableDefinitionsRequest) GetPagination() *v1.Pagination {
 		return x.Pagination
 	}
 	return nil
+}
+
+func (x *ListTableDefinitionsRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
 }
 
 // テーブル定義一覧レスポンス
@@ -934,6 +998,7 @@ type GetRecordRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TableName     string                 `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	RecordId      string                 `protobuf:"bytes,2,opt,name=record_id,json=recordId,proto3" json:"record_id,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,3,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -978,6 +1043,13 @@ func (x *GetRecordRequest) GetTableName() string {
 func (x *GetRecordRequest) GetRecordId() string {
 	if x != nil {
 		return x.RecordId
+	}
+	return ""
+}
+
+func (x *GetRecordRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
 	}
 	return ""
 }
@@ -1147,6 +1219,7 @@ type ListRecordsRequest struct {
 	Sort          string                 `protobuf:"bytes,3,opt,name=sort,proto3" json:"sort,omitempty"`
 	Filter        string                 `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
 	Search        string                 `protobuf:"bytes,5,opt,name=search,proto3" json:"search,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,6,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1216,6 +1289,13 @@ func (x *ListRecordsRequest) GetSearch() string {
 	return ""
 }
 
+func (x *ListRecordsRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
+}
+
 // レコード一覧レスポンス
 type ListRecordsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1274,6 +1354,7 @@ type CreateRecordRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TableName     string                 `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	Data          *structpb.Struct       `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,3,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1322,12 +1403,20 @@ func (x *CreateRecordRequest) GetData() *structpb.Struct {
 	return nil
 }
 
+func (x *CreateRecordRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
+}
+
 // レコード更新リクエスト
 type UpdateRecordRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TableName     string                 `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	RecordId      string                 `protobuf:"bytes,2,opt,name=record_id,json=recordId,proto3" json:"record_id,omitempty"`
 	Data          *structpb.Struct       `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,4,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1383,11 +1472,19 @@ func (x *UpdateRecordRequest) GetData() *structpb.Struct {
 	return nil
 }
 
+func (x *UpdateRecordRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
+}
+
 // レコード削除リクエスト
 type DeleteRecordRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TableName     string                 `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	RecordId      string                 `protobuf:"bytes,2,opt,name=record_id,json=recordId,proto3" json:"record_id,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,3,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1432,6 +1529,13 @@ func (x *DeleteRecordRequest) GetTableName() string {
 func (x *DeleteRecordRequest) GetRecordId() string {
 	if x != nil {
 		return x.RecordId
+	}
+	return ""
+}
+
+func (x *DeleteRecordRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
 	}
 	return ""
 }
@@ -1486,6 +1590,7 @@ type CheckConsistencyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TableName     string                 `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	RuleIds       []string               `protobuf:"bytes,2,rep,name=rule_ids,json=ruleIds,proto3" json:"rule_ids,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,3,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1532,6 +1637,13 @@ func (x *CheckConsistencyRequest) GetRuleIds() []string {
 		return x.RuleIds
 	}
 	return nil
+}
+
+func (x *CheckConsistencyRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
 }
 
 // 整合性チェックレスポンス
@@ -4287,6 +4399,7 @@ type ListTableAuditLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TableName     string                 `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	Pagination    *v1.Pagination         `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,3,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4333,6 +4446,13 @@ func (x *ListTableAuditLogsRequest) GetPagination() *v1.Pagination {
 		return x.Pagination
 	}
 	return nil
+}
+
+func (x *ListTableAuditLogsRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
 }
 
 type ListTableAuditLogsResponse struct {
@@ -4392,6 +4512,7 @@ type ListRecordAuditLogsRequest struct {
 	TableName     string                 `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	RecordId      string                 `protobuf:"bytes,2,opt,name=record_id,json=recordId,proto3" json:"record_id,omitempty"`
 	Pagination    *v1.Pagination         `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	DomainScope   string                 `protobuf:"bytes,4,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4445,6 +4566,13 @@ func (x *ListRecordAuditLogsRequest) GetPagination() *v1.Pagination {
 		return x.Pagination
 	}
 	return nil
+}
+
+func (x *ListRecordAuditLogsRequest) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
 }
 
 type ListRecordAuditLogsResponse struct {
@@ -4512,6 +4640,7 @@ type AuditLogEntry struct {
 	ChangeReason   string                 `protobuf:"bytes,9,opt,name=change_reason,json=changeReason,proto3" json:"change_reason,omitempty"`
 	TraceId        string                 `protobuf:"bytes,10,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
 	CreatedAt      string                 `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	DomainScope    string                 `protobuf:"bytes,12,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -4623,6 +4752,148 @@ func (x *AuditLogEntry) GetCreatedAt() string {
 	return ""
 }
 
+func (x *AuditLogEntry) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
+}
+
+// ドメイン一覧リクエスト
+type ListDomainsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDomainsRequest) Reset() {
+	*x = ListDomainsRequest{}
+	mi := &file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_msgTypes[80]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDomainsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDomainsRequest) ProtoMessage() {}
+
+func (x *ListDomainsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_msgTypes[80]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDomainsRequest.ProtoReflect.Descriptor instead.
+func (*ListDomainsRequest) Descriptor() ([]byte, []int) {
+	return file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDescGZIP(), []int{80}
+}
+
+// ドメイン一覧レスポンス
+type ListDomainsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Domains       []*DomainInfo          `protobuf:"bytes,1,rep,name=domains,proto3" json:"domains,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDomainsResponse) Reset() {
+	*x = ListDomainsResponse{}
+	mi := &file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_msgTypes[81]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDomainsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDomainsResponse) ProtoMessage() {}
+
+func (x *ListDomainsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_msgTypes[81]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDomainsResponse.ProtoReflect.Descriptor instead.
+func (*ListDomainsResponse) Descriptor() ([]byte, []int) {
+	return file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDescGZIP(), []int{81}
+}
+
+func (x *ListDomainsResponse) GetDomains() []*DomainInfo {
+	if x != nil {
+		return x.Domains
+	}
+	return nil
+}
+
+// ドメイン情報
+type DomainInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DomainScope   string                 `protobuf:"bytes,1,opt,name=domain_scope,json=domainScope,proto3" json:"domain_scope,omitempty"`
+	TableCount    int32                  `protobuf:"varint,2,opt,name=table_count,json=tableCount,proto3" json:"table_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DomainInfo) Reset() {
+	*x = DomainInfo{}
+	mi := &file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_msgTypes[82]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DomainInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DomainInfo) ProtoMessage() {}
+
+func (x *DomainInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_msgTypes[82]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DomainInfo.ProtoReflect.Descriptor instead.
+func (*DomainInfo) Descriptor() ([]byte, []int) {
+	return file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDescGZIP(), []int{82}
+}
+
+func (x *DomainInfo) GetDomainScope() string {
+	if x != nil {
+		return x.DomainScope
+	}
+	return ""
+}
+
+func (x *DomainInfo) GetTableCount() int32 {
+	if x != nil {
+		return x.TableCount
+	}
+	return 0
+}
+
 var File_k1s0_system_mastermaintenance_v1_master_maintenance_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc = "" +
@@ -4631,21 +4902,24 @@ const file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc = "
 	"\x1cCreateTableDefinitionRequest\x12+\n" +
 	"\x04data\x18\x01 \x01(\v2\x17.google.protobuf.StructR\x04data\"s\n" +
 	"\x1dCreateTableDefinitionResponse\x12R\n" +
-	"\x05table\x18\x01 \x01(\v2<.k1s0.system.mastermaintenance.v1.GetTableDefinitionResponseR\x05table\"j\n" +
+	"\x05table\x18\x01 \x01(\v2<.k1s0.system.mastermaintenance.v1.GetTableDefinitionResponseR\x05table\"\x8d\x01\n" +
 	"\x1cUpdateTableDefinitionRequest\x12\x1d\n" +
 	"\n" +
 	"table_name\x18\x01 \x01(\tR\ttableName\x12+\n" +
-	"\x04data\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x04data\"s\n" +
+	"\x04data\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x04data\x12!\n" +
+	"\fdomain_scope\x18\x03 \x01(\tR\vdomainScope\"s\n" +
 	"\x1dUpdateTableDefinitionResponse\x12R\n" +
-	"\x05table\x18\x01 \x01(\v2<.k1s0.system.mastermaintenance.v1.GetTableDefinitionResponseR\x05table\"=\n" +
+	"\x05table\x18\x01 \x01(\v2<.k1s0.system.mastermaintenance.v1.GetTableDefinitionResponseR\x05table\"`\n" +
 	"\x1cDeleteTableDefinitionRequest\x12\x1d\n" +
 	"\n" +
-	"table_name\x18\x01 \x01(\tR\ttableName\"9\n" +
+	"table_name\x18\x01 \x01(\tR\ttableName\x12!\n" +
+	"\fdomain_scope\x18\x02 \x01(\tR\vdomainScope\"9\n" +
 	"\x1dDeleteTableDefinitionResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\":\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"]\n" +
 	"\x19GetTableDefinitionRequest\x12\x1d\n" +
 	"\n" +
-	"table_name\x18\x01 \x01(\tR\ttableName\"\xd6\x05\n" +
+	"table_name\x18\x01 \x01(\tR\ttableName\x12!\n" +
+	"\fdomain_scope\x18\x02 \x01(\tR\vdomainScope\"\xda\x06\n" +
 	"\x1aGetTableDefinitionResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -4669,7 +4943,14 @@ const file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc = "
 	"\n" +
 	"created_at\x18\x10 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\x11 \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"\x8e\x06\n" +
+	"updated_at\x18\x11 \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12!\n" +
+	"\fdomain_scope\x18\x12 \x01(\tR\vdomainScope\x12\x1d\n" +
+	"\n" +
+	"read_roles\x18\x13 \x03(\tR\treadRoles\x12\x1f\n" +
+	"\vwrite_roles\x18\x14 \x03(\tR\n" +
+	"writeRoles\x12\x1f\n" +
+	"\vadmin_roles\x18\x15 \x03(\tR\n" +
+	"adminRoles\"\x8e\x06\n" +
 	"\x10ColumnDefinition\x12\x1f\n" +
 	"\vcolumn_name\x18\x01 \x01(\tR\n" +
 	"columnName\x12!\n" +
@@ -4712,23 +4993,25 @@ const file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc = "
 	"\x02id\x18\x06 \x01(\tR\x02id\x12*\n" +
 	"\x11is_cascade_delete\x18\a \x01(\bR\x0fisCascadeDelete\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\tR\tcreatedAt\"\x9d\x01\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt\"\xc0\x01\n" +
 	"\x1bListTableDefinitionsRequest\x12\x1a\n" +
 	"\bcategory\x18\x01 \x01(\tR\bcategory\x12\x1f\n" +
 	"\vactive_only\x18\x02 \x01(\bR\n" +
 	"activeOnly\x12A\n" +
 	"\n" +
 	"pagination\x18\x03 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
-	"pagination\"\xbd\x01\n" +
+	"pagination\x12!\n" +
+	"\fdomain_scope\x18\x04 \x01(\tR\vdomainScope\"\xbd\x01\n" +
 	"\x1cListTableDefinitionsResponse\x12T\n" +
 	"\x06tables\x18\x01 \x03(\v2<.k1s0.system.mastermaintenance.v1.GetTableDefinitionResponseR\x06tables\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"N\n" +
+	"pagination\"q\n" +
 	"\x10GetRecordRequest\x12\x1d\n" +
 	"\n" +
 	"table_name\x18\x01 \x01(\tR\ttableName\x12\x1b\n" +
-	"\trecord_id\x18\x02 \x01(\tR\brecordId\"\x91\x01\n" +
+	"\trecord_id\x18\x02 \x01(\tR\brecordId\x12!\n" +
+	"\fdomain_scope\x18\x03 \x01(\tR\vdomainScope\"\x91\x01\n" +
 	"\x11GetRecordResponse\x12+\n" +
 	"\x04data\x18\x01 \x01(\v2\x17.google.protobuf.StructR\x04data\x12O\n" +
 	"\bwarnings\x18\x02 \x03(\v23.k1s0.system.mastermaintenance.v1.ValidationWarningR\bwarnings\"\x94\x01\n" +
@@ -4737,7 +5020,7 @@ const file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc = "
 	"\bwarnings\x18\x02 \x03(\v23.k1s0.system.mastermaintenance.v1.ValidationWarningR\bwarnings\"\x94\x01\n" +
 	"\x14UpdateRecordResponse\x12+\n" +
 	"\x04data\x18\x01 \x01(\v2\x17.google.protobuf.StructR\x04data\x12O\n" +
-	"\bwarnings\x18\x02 \x03(\v23.k1s0.system.mastermaintenance.v1.ValidationWarningR\bwarnings\"\xba\x01\n" +
+	"\bwarnings\x18\x02 \x03(\v23.k1s0.system.mastermaintenance.v1.ValidationWarningR\bwarnings\"\xdd\x01\n" +
 	"\x12ListRecordsRequest\x12\x1d\n" +
 	"\n" +
 	"table_name\x18\x01 \x01(\tR\ttableName\x12A\n" +
@@ -4746,31 +5029,36 @@ const file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc = "
 	"pagination\x12\x12\n" +
 	"\x04sort\x18\x03 \x01(\tR\x04sort\x12\x16\n" +
 	"\x06filter\x18\x04 \x01(\tR\x06filter\x12\x16\n" +
-	"\x06search\x18\x05 \x01(\tR\x06search\"\x91\x01\n" +
+	"\x06search\x18\x05 \x01(\tR\x06search\x12!\n" +
+	"\fdomain_scope\x18\x06 \x01(\tR\vdomainScope\"\x91\x01\n" +
 	"\x13ListRecordsResponse\x121\n" +
 	"\arecords\x18\x01 \x03(\v2\x17.google.protobuf.StructR\arecords\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"a\n" +
+	"pagination\"\x84\x01\n" +
 	"\x13CreateRecordRequest\x12\x1d\n" +
 	"\n" +
 	"table_name\x18\x01 \x01(\tR\ttableName\x12+\n" +
-	"\x04data\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x04data\"~\n" +
+	"\x04data\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x04data\x12!\n" +
+	"\fdomain_scope\x18\x03 \x01(\tR\vdomainScope\"\xa1\x01\n" +
 	"\x13UpdateRecordRequest\x12\x1d\n" +
 	"\n" +
 	"table_name\x18\x01 \x01(\tR\ttableName\x12\x1b\n" +
 	"\trecord_id\x18\x02 \x01(\tR\brecordId\x12+\n" +
-	"\x04data\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x04data\"Q\n" +
+	"\x04data\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x04data\x12!\n" +
+	"\fdomain_scope\x18\x04 \x01(\tR\vdomainScope\"t\n" +
 	"\x13DeleteRecordRequest\x12\x1d\n" +
 	"\n" +
 	"table_name\x18\x01 \x01(\tR\ttableName\x12\x1b\n" +
-	"\trecord_id\x18\x02 \x01(\tR\brecordId\"0\n" +
+	"\trecord_id\x18\x02 \x01(\tR\brecordId\x12!\n" +
+	"\fdomain_scope\x18\x03 \x01(\tR\vdomainScope\"0\n" +
 	"\x14DeleteRecordResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"S\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"v\n" +
 	"\x17CheckConsistencyRequest\x12\x1d\n" +
 	"\n" +
 	"table_name\x18\x01 \x01(\tR\ttableName\x12\x19\n" +
-	"\brule_ids\x18\x02 \x03(\tR\aruleIds\"\xd4\x01\n" +
+	"\brule_ids\x18\x02 \x03(\tR\aruleIds\x12!\n" +
+	"\fdomain_scope\x18\x03 \x01(\tR\vdomainScope\"\xd4\x01\n" +
 	"\x18CheckConsistencyResponse\x12M\n" +
 	"\aresults\x18\x01 \x03(\v23.k1s0.system.mastermaintenance.v1.ConsistencyResultR\aresults\x12#\n" +
 	"\rtotal_checked\x18\x02 \x01(\x05R\ftotalChecked\x12\x1f\n" +
@@ -4971,30 +5259,32 @@ const file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc = "
 	"\n" +
 	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\tR\tupdatedAt\"}\n" +
+	"updated_at\x18\b \x01(\tR\tupdatedAt\"\xa0\x01\n" +
 	"\x19ListTableAuditLogsRequest\x12\x1d\n" +
 	"\n" +
 	"table_name\x18\x01 \x01(\tR\ttableName\x12A\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
-	"pagination\"\xaa\x01\n" +
+	"pagination\x12!\n" +
+	"\fdomain_scope\x18\x03 \x01(\tR\vdomainScope\"\xaa\x01\n" +
 	"\x1aListTableAuditLogsResponse\x12C\n" +
 	"\x04logs\x18\x01 \x03(\v2/.k1s0.system.mastermaintenance.v1.AuditLogEntryR\x04logs\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x9b\x01\n" +
+	"pagination\"\xbe\x01\n" +
 	"\x1aListRecordAuditLogsRequest\x12\x1d\n" +
 	"\n" +
 	"table_name\x18\x01 \x01(\tR\ttableName\x12\x1b\n" +
 	"\trecord_id\x18\x02 \x01(\tR\brecordId\x12A\n" +
 	"\n" +
 	"pagination\x18\x03 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
-	"pagination\"\xab\x01\n" +
+	"pagination\x12!\n" +
+	"\fdomain_scope\x18\x04 \x01(\tR\vdomainScope\"\xab\x01\n" +
 	"\x1bListRecordAuditLogsResponse\x12C\n" +
 	"\x04logs\x18\x01 \x03(\v2/.k1s0.system.mastermaintenance.v1.AuditLogEntryR\x04logs\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x83\x03\n" +
+	"pagination\"\xa6\x03\n" +
 	"\rAuditLogEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\ftarget_table\x18\x02 \x01(\tR\vtargetTable\x12(\n" +
@@ -5009,7 +5299,16 @@ const file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc = "
 	"\btrace_id\x18\n" +
 	" \x01(\tR\atraceId\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\v \x01(\tR\tcreatedAt2\xae&\n" +
+	"created_at\x18\v \x01(\tR\tcreatedAt\x12!\n" +
+	"\fdomain_scope\x18\f \x01(\tR\vdomainScope\"\x14\n" +
+	"\x12ListDomainsRequest\"]\n" +
+	"\x13ListDomainsResponse\x12F\n" +
+	"\adomains\x18\x01 \x03(\v2,.k1s0.system.mastermaintenance.v1.DomainInfoR\adomains\"P\n" +
+	"\n" +
+	"DomainInfo\x12!\n" +
+	"\fdomain_scope\x18\x01 \x01(\tR\vdomainScope\x12\x1f\n" +
+	"\vtable_count\x18\x02 \x01(\x05R\n" +
+	"tableCount2\xaa'\n" +
 	"\x18MasterMaintenanceService\x12\x98\x01\n" +
 	"\x15CreateTableDefinition\x12>.k1s0.system.mastermaintenance.v1.CreateTableDefinitionRequest\x1a?.k1s0.system.mastermaintenance.v1.CreateTableDefinitionResponse\x12\x98\x01\n" +
 	"\x15UpdateTableDefinition\x12>.k1s0.system.mastermaintenance.v1.UpdateTableDefinitionRequest\x1a?.k1s0.system.mastermaintenance.v1.UpdateTableDefinitionResponse\x12\x98\x01\n" +
@@ -5049,7 +5348,8 @@ const file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc = "
 	"\x13UpdateDisplayConfig\x12<.k1s0.system.mastermaintenance.v1.UpdateDisplayConfigRequest\x1a=.k1s0.system.mastermaintenance.v1.UpdateDisplayConfigResponse\x12\x92\x01\n" +
 	"\x13DeleteDisplayConfig\x12<.k1s0.system.mastermaintenance.v1.DeleteDisplayConfigRequest\x1a=.k1s0.system.mastermaintenance.v1.DeleteDisplayConfigResponse\x12\x8f\x01\n" +
 	"\x12ListTableAuditLogs\x12;.k1s0.system.mastermaintenance.v1.ListTableAuditLogsRequest\x1a<.k1s0.system.mastermaintenance.v1.ListTableAuditLogsResponse\x12\x92\x01\n" +
-	"\x13ListRecordAuditLogs\x12<.k1s0.system.mastermaintenance.v1.ListRecordAuditLogsRequest\x1a=.k1s0.system.mastermaintenance.v1.ListRecordAuditLogsResponseBSZQgithub.com/k1s0-platform/system-proto-go/mastermaintenance/v1;mastermaintenancev1b\x06proto3"
+	"\x13ListRecordAuditLogs\x12<.k1s0.system.mastermaintenance.v1.ListRecordAuditLogsRequest\x1a=.k1s0.system.mastermaintenance.v1.ListRecordAuditLogsResponse\x12z\n" +
+	"\vListDomains\x124.k1s0.system.mastermaintenance.v1.ListDomainsRequest\x1a5.k1s0.system.mastermaintenance.v1.ListDomainsResponseBSZQgithub.com/k1s0-platform/system-proto-go/mastermaintenance/v1;mastermaintenancev1b\x06proto3"
 
 var (
 	file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDescOnce sync.Once
@@ -5063,7 +5363,7 @@ func file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDescGZIP(
 	return file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDescData
 }
 
-var file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_msgTypes = make([]protoimpl.MessageInfo, 80)
+var file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_msgTypes = make([]protoimpl.MessageInfo, 83)
 var file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_goTypes = []any{
 	(*CreateTableDefinitionRequest)(nil),  // 0: k1s0.system.mastermaintenance.v1.CreateTableDefinitionRequest
 	(*CreateTableDefinitionResponse)(nil), // 1: k1s0.system.mastermaintenance.v1.CreateTableDefinitionResponse
@@ -5145,149 +5445,155 @@ var file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_goTypes = []a
 	(*ListRecordAuditLogsRequest)(nil),    // 77: k1s0.system.mastermaintenance.v1.ListRecordAuditLogsRequest
 	(*ListRecordAuditLogsResponse)(nil),   // 78: k1s0.system.mastermaintenance.v1.ListRecordAuditLogsResponse
 	(*AuditLogEntry)(nil),                 // 79: k1s0.system.mastermaintenance.v1.AuditLogEntry
-	(*structpb.Struct)(nil),               // 80: google.protobuf.Struct
-	(*v1.Timestamp)(nil),                  // 81: k1s0.system.common.v1.Timestamp
-	(*v1.Pagination)(nil),                 // 82: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),           // 83: k1s0.system.common.v1.PaginationResult
+	(*ListDomainsRequest)(nil),            // 80: k1s0.system.mastermaintenance.v1.ListDomainsRequest
+	(*ListDomainsResponse)(nil),           // 81: k1s0.system.mastermaintenance.v1.ListDomainsResponse
+	(*DomainInfo)(nil),                    // 82: k1s0.system.mastermaintenance.v1.DomainInfo
+	(*structpb.Struct)(nil),               // 83: google.protobuf.Struct
+	(*v1.Timestamp)(nil),                  // 84: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),                 // 85: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),           // 86: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_depIdxs = []int32{
-	80, // 0: k1s0.system.mastermaintenance.v1.CreateTableDefinitionRequest.data:type_name -> google.protobuf.Struct
+	83, // 0: k1s0.system.mastermaintenance.v1.CreateTableDefinitionRequest.data:type_name -> google.protobuf.Struct
 	7,  // 1: k1s0.system.mastermaintenance.v1.CreateTableDefinitionResponse.table:type_name -> k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse
-	80, // 2: k1s0.system.mastermaintenance.v1.UpdateTableDefinitionRequest.data:type_name -> google.protobuf.Struct
+	83, // 2: k1s0.system.mastermaintenance.v1.UpdateTableDefinitionRequest.data:type_name -> google.protobuf.Struct
 	7,  // 3: k1s0.system.mastermaintenance.v1.UpdateTableDefinitionResponse.table:type_name -> k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse
 	8,  // 4: k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse.columns:type_name -> k1s0.system.mastermaintenance.v1.ColumnDefinition
 	9,  // 5: k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse.relationships:type_name -> k1s0.system.mastermaintenance.v1.TableRelationship
-	81, // 6: k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	81, // 7: k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	82, // 8: k1s0.system.mastermaintenance.v1.ListTableDefinitionsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	84, // 6: k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	84, // 7: k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	85, // 8: k1s0.system.mastermaintenance.v1.ListTableDefinitionsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
 	7,  // 9: k1s0.system.mastermaintenance.v1.ListTableDefinitionsResponse.tables:type_name -> k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse
-	83, // 10: k1s0.system.mastermaintenance.v1.ListTableDefinitionsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	80, // 11: k1s0.system.mastermaintenance.v1.GetRecordResponse.data:type_name -> google.protobuf.Struct
+	86, // 10: k1s0.system.mastermaintenance.v1.ListTableDefinitionsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	83, // 11: k1s0.system.mastermaintenance.v1.GetRecordResponse.data:type_name -> google.protobuf.Struct
 	38, // 12: k1s0.system.mastermaintenance.v1.GetRecordResponse.warnings:type_name -> k1s0.system.mastermaintenance.v1.ValidationWarning
-	80, // 13: k1s0.system.mastermaintenance.v1.CreateRecordResponse.data:type_name -> google.protobuf.Struct
+	83, // 13: k1s0.system.mastermaintenance.v1.CreateRecordResponse.data:type_name -> google.protobuf.Struct
 	38, // 14: k1s0.system.mastermaintenance.v1.CreateRecordResponse.warnings:type_name -> k1s0.system.mastermaintenance.v1.ValidationWarning
-	80, // 15: k1s0.system.mastermaintenance.v1.UpdateRecordResponse.data:type_name -> google.protobuf.Struct
+	83, // 15: k1s0.system.mastermaintenance.v1.UpdateRecordResponse.data:type_name -> google.protobuf.Struct
 	38, // 16: k1s0.system.mastermaintenance.v1.UpdateRecordResponse.warnings:type_name -> k1s0.system.mastermaintenance.v1.ValidationWarning
-	82, // 17: k1s0.system.mastermaintenance.v1.ListRecordsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	80, // 18: k1s0.system.mastermaintenance.v1.ListRecordsResponse.records:type_name -> google.protobuf.Struct
-	83, // 19: k1s0.system.mastermaintenance.v1.ListRecordsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	80, // 20: k1s0.system.mastermaintenance.v1.CreateRecordRequest.data:type_name -> google.protobuf.Struct
-	80, // 21: k1s0.system.mastermaintenance.v1.UpdateRecordRequest.data:type_name -> google.protobuf.Struct
+	85, // 17: k1s0.system.mastermaintenance.v1.ListRecordsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	83, // 18: k1s0.system.mastermaintenance.v1.ListRecordsResponse.records:type_name -> google.protobuf.Struct
+	86, // 19: k1s0.system.mastermaintenance.v1.ListRecordsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	83, // 20: k1s0.system.mastermaintenance.v1.CreateRecordRequest.data:type_name -> google.protobuf.Struct
+	83, // 21: k1s0.system.mastermaintenance.v1.UpdateRecordRequest.data:type_name -> google.protobuf.Struct
 	36, // 22: k1s0.system.mastermaintenance.v1.CheckConsistencyResponse.results:type_name -> k1s0.system.mastermaintenance.v1.ConsistencyResult
-	80, // 23: k1s0.system.mastermaintenance.v1.CreateRuleRequest.data:type_name -> google.protobuf.Struct
+	83, // 23: k1s0.system.mastermaintenance.v1.CreateRuleRequest.data:type_name -> google.protobuf.Struct
 	37, // 24: k1s0.system.mastermaintenance.v1.CreateRuleResponse.rule:type_name -> k1s0.system.mastermaintenance.v1.ConsistencyRule
 	37, // 25: k1s0.system.mastermaintenance.v1.GetRuleResponse.rule:type_name -> k1s0.system.mastermaintenance.v1.ConsistencyRule
-	80, // 26: k1s0.system.mastermaintenance.v1.UpdateRuleRequest.data:type_name -> google.protobuf.Struct
+	83, // 26: k1s0.system.mastermaintenance.v1.UpdateRuleRequest.data:type_name -> google.protobuf.Struct
 	37, // 27: k1s0.system.mastermaintenance.v1.UpdateRuleResponse.rule:type_name -> k1s0.system.mastermaintenance.v1.ConsistencyRule
-	82, // 28: k1s0.system.mastermaintenance.v1.ListRulesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	85, // 28: k1s0.system.mastermaintenance.v1.ListRulesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
 	37, // 29: k1s0.system.mastermaintenance.v1.ListRulesResponse.rules:type_name -> k1s0.system.mastermaintenance.v1.ConsistencyRule
-	83, // 30: k1s0.system.mastermaintenance.v1.ListRulesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	86, // 30: k1s0.system.mastermaintenance.v1.ListRulesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
 	36, // 31: k1s0.system.mastermaintenance.v1.ExecuteRuleResponse.results:type_name -> k1s0.system.mastermaintenance.v1.ConsistencyResult
-	81, // 32: k1s0.system.mastermaintenance.v1.ConsistencyRule.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	81, // 33: k1s0.system.mastermaintenance.v1.ConsistencyRule.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	84, // 32: k1s0.system.mastermaintenance.v1.ConsistencyRule.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	84, // 33: k1s0.system.mastermaintenance.v1.ConsistencyRule.updated_at:type_name -> k1s0.system.common.v1.Timestamp
 	8,  // 34: k1s0.system.mastermaintenance.v1.ListColumnsResponse.columns:type_name -> k1s0.system.mastermaintenance.v1.ColumnDefinition
-	80, // 35: k1s0.system.mastermaintenance.v1.CreateColumnsRequest.columns:type_name -> google.protobuf.Struct
+	83, // 35: k1s0.system.mastermaintenance.v1.CreateColumnsRequest.columns:type_name -> google.protobuf.Struct
 	8,  // 36: k1s0.system.mastermaintenance.v1.CreateColumnsResponse.columns:type_name -> k1s0.system.mastermaintenance.v1.ColumnDefinition
-	80, // 37: k1s0.system.mastermaintenance.v1.UpdateColumnRequest.data:type_name -> google.protobuf.Struct
+	83, // 37: k1s0.system.mastermaintenance.v1.UpdateColumnRequest.data:type_name -> google.protobuf.Struct
 	8,  // 38: k1s0.system.mastermaintenance.v1.UpdateColumnResponse.column:type_name -> k1s0.system.mastermaintenance.v1.ColumnDefinition
 	9,  // 39: k1s0.system.mastermaintenance.v1.ListRelationshipsResponse.relationships:type_name -> k1s0.system.mastermaintenance.v1.TableRelationship
-	80, // 40: k1s0.system.mastermaintenance.v1.CreateRelationshipRequest.data:type_name -> google.protobuf.Struct
+	83, // 40: k1s0.system.mastermaintenance.v1.CreateRelationshipRequest.data:type_name -> google.protobuf.Struct
 	9,  // 41: k1s0.system.mastermaintenance.v1.CreateRelationshipResponse.relationship:type_name -> k1s0.system.mastermaintenance.v1.TableRelationship
-	80, // 42: k1s0.system.mastermaintenance.v1.UpdateRelationshipRequest.data:type_name -> google.protobuf.Struct
+	83, // 42: k1s0.system.mastermaintenance.v1.UpdateRelationshipRequest.data:type_name -> google.protobuf.Struct
 	9,  // 43: k1s0.system.mastermaintenance.v1.UpdateRelationshipResponse.relationship:type_name -> k1s0.system.mastermaintenance.v1.TableRelationship
-	80, // 44: k1s0.system.mastermaintenance.v1.ImportRecordsRequest.data:type_name -> google.protobuf.Struct
+	83, // 44: k1s0.system.mastermaintenance.v1.ImportRecordsRequest.data:type_name -> google.protobuf.Struct
 	63, // 45: k1s0.system.mastermaintenance.v1.ImportRecordsResponse.import_job:type_name -> k1s0.system.mastermaintenance.v1.ImportJob
-	80, // 46: k1s0.system.mastermaintenance.v1.ExportRecordsResponse.data:type_name -> google.protobuf.Struct
+	83, // 46: k1s0.system.mastermaintenance.v1.ExportRecordsResponse.data:type_name -> google.protobuf.Struct
 	63, // 47: k1s0.system.mastermaintenance.v1.GetImportJobResponse.import_job:type_name -> k1s0.system.mastermaintenance.v1.ImportJob
 	74, // 48: k1s0.system.mastermaintenance.v1.ListDisplayConfigsResponse.display_configs:type_name -> k1s0.system.mastermaintenance.v1.DisplayConfig
 	74, // 49: k1s0.system.mastermaintenance.v1.GetDisplayConfigResponse.display_config:type_name -> k1s0.system.mastermaintenance.v1.DisplayConfig
-	80, // 50: k1s0.system.mastermaintenance.v1.CreateDisplayConfigRequest.data:type_name -> google.protobuf.Struct
+	83, // 50: k1s0.system.mastermaintenance.v1.CreateDisplayConfigRequest.data:type_name -> google.protobuf.Struct
 	74, // 51: k1s0.system.mastermaintenance.v1.CreateDisplayConfigResponse.display_config:type_name -> k1s0.system.mastermaintenance.v1.DisplayConfig
-	80, // 52: k1s0.system.mastermaintenance.v1.UpdateDisplayConfigRequest.data:type_name -> google.protobuf.Struct
+	83, // 52: k1s0.system.mastermaintenance.v1.UpdateDisplayConfigRequest.data:type_name -> google.protobuf.Struct
 	74, // 53: k1s0.system.mastermaintenance.v1.UpdateDisplayConfigResponse.display_config:type_name -> k1s0.system.mastermaintenance.v1.DisplayConfig
-	82, // 54: k1s0.system.mastermaintenance.v1.ListTableAuditLogsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	85, // 54: k1s0.system.mastermaintenance.v1.ListTableAuditLogsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
 	79, // 55: k1s0.system.mastermaintenance.v1.ListTableAuditLogsResponse.logs:type_name -> k1s0.system.mastermaintenance.v1.AuditLogEntry
-	83, // 56: k1s0.system.mastermaintenance.v1.ListTableAuditLogsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	82, // 57: k1s0.system.mastermaintenance.v1.ListRecordAuditLogsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	86, // 56: k1s0.system.mastermaintenance.v1.ListTableAuditLogsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	85, // 57: k1s0.system.mastermaintenance.v1.ListRecordAuditLogsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
 	79, // 58: k1s0.system.mastermaintenance.v1.ListRecordAuditLogsResponse.logs:type_name -> k1s0.system.mastermaintenance.v1.AuditLogEntry
-	83, // 59: k1s0.system.mastermaintenance.v1.ListRecordAuditLogsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	0,  // 60: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateTableDefinition:input_type -> k1s0.system.mastermaintenance.v1.CreateTableDefinitionRequest
-	2,  // 61: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateTableDefinition:input_type -> k1s0.system.mastermaintenance.v1.UpdateTableDefinitionRequest
-	4,  // 62: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteTableDefinition:input_type -> k1s0.system.mastermaintenance.v1.DeleteTableDefinitionRequest
-	6,  // 63: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetTableDefinition:input_type -> k1s0.system.mastermaintenance.v1.GetTableDefinitionRequest
-	10, // 64: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListTableDefinitions:input_type -> k1s0.system.mastermaintenance.v1.ListTableDefinitionsRequest
-	41, // 65: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListColumns:input_type -> k1s0.system.mastermaintenance.v1.ListColumnsRequest
-	43, // 66: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateColumns:input_type -> k1s0.system.mastermaintenance.v1.CreateColumnsRequest
-	45, // 67: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateColumn:input_type -> k1s0.system.mastermaintenance.v1.UpdateColumnRequest
-	47, // 68: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteColumn:input_type -> k1s0.system.mastermaintenance.v1.DeleteColumnRequest
-	12, // 69: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetRecord:input_type -> k1s0.system.mastermaintenance.v1.GetRecordRequest
-	16, // 70: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRecords:input_type -> k1s0.system.mastermaintenance.v1.ListRecordsRequest
-	18, // 71: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRecord:input_type -> k1s0.system.mastermaintenance.v1.CreateRecordRequest
-	19, // 72: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRecord:input_type -> k1s0.system.mastermaintenance.v1.UpdateRecordRequest
-	20, // 73: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRecord:input_type -> k1s0.system.mastermaintenance.v1.DeleteRecordRequest
-	22, // 74: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CheckConsistency:input_type -> k1s0.system.mastermaintenance.v1.CheckConsistencyRequest
-	24, // 75: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRule:input_type -> k1s0.system.mastermaintenance.v1.CreateRuleRequest
-	26, // 76: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetRule:input_type -> k1s0.system.mastermaintenance.v1.GetRuleRequest
-	28, // 77: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRule:input_type -> k1s0.system.mastermaintenance.v1.UpdateRuleRequest
-	30, // 78: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRule:input_type -> k1s0.system.mastermaintenance.v1.DeleteRuleRequest
-	32, // 79: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRules:input_type -> k1s0.system.mastermaintenance.v1.ListRulesRequest
-	34, // 80: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ExecuteRule:input_type -> k1s0.system.mastermaintenance.v1.ExecuteRuleRequest
-	39, // 81: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetTableSchema:input_type -> k1s0.system.mastermaintenance.v1.GetTableSchemaRequest
-	49, // 82: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRelationships:input_type -> k1s0.system.mastermaintenance.v1.ListRelationshipsRequest
-	51, // 83: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRelationship:input_type -> k1s0.system.mastermaintenance.v1.CreateRelationshipRequest
-	53, // 84: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRelationship:input_type -> k1s0.system.mastermaintenance.v1.UpdateRelationshipRequest
-	55, // 85: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRelationship:input_type -> k1s0.system.mastermaintenance.v1.DeleteRelationshipRequest
-	57, // 86: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ImportRecords:input_type -> k1s0.system.mastermaintenance.v1.ImportRecordsRequest
-	59, // 87: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ExportRecords:input_type -> k1s0.system.mastermaintenance.v1.ExportRecordsRequest
-	61, // 88: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetImportJob:input_type -> k1s0.system.mastermaintenance.v1.GetImportJobRequest
-	64, // 89: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListDisplayConfigs:input_type -> k1s0.system.mastermaintenance.v1.ListDisplayConfigsRequest
-	66, // 90: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetDisplayConfig:input_type -> k1s0.system.mastermaintenance.v1.GetDisplayConfigRequest
-	68, // 91: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateDisplayConfig:input_type -> k1s0.system.mastermaintenance.v1.CreateDisplayConfigRequest
-	70, // 92: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateDisplayConfig:input_type -> k1s0.system.mastermaintenance.v1.UpdateDisplayConfigRequest
-	72, // 93: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteDisplayConfig:input_type -> k1s0.system.mastermaintenance.v1.DeleteDisplayConfigRequest
-	75, // 94: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListTableAuditLogs:input_type -> k1s0.system.mastermaintenance.v1.ListTableAuditLogsRequest
-	77, // 95: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRecordAuditLogs:input_type -> k1s0.system.mastermaintenance.v1.ListRecordAuditLogsRequest
-	1,  // 96: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateTableDefinition:output_type -> k1s0.system.mastermaintenance.v1.CreateTableDefinitionResponse
-	3,  // 97: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateTableDefinition:output_type -> k1s0.system.mastermaintenance.v1.UpdateTableDefinitionResponse
-	5,  // 98: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteTableDefinition:output_type -> k1s0.system.mastermaintenance.v1.DeleteTableDefinitionResponse
-	7,  // 99: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetTableDefinition:output_type -> k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse
-	11, // 100: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListTableDefinitions:output_type -> k1s0.system.mastermaintenance.v1.ListTableDefinitionsResponse
-	42, // 101: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListColumns:output_type -> k1s0.system.mastermaintenance.v1.ListColumnsResponse
-	44, // 102: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateColumns:output_type -> k1s0.system.mastermaintenance.v1.CreateColumnsResponse
-	46, // 103: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateColumn:output_type -> k1s0.system.mastermaintenance.v1.UpdateColumnResponse
-	48, // 104: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteColumn:output_type -> k1s0.system.mastermaintenance.v1.DeleteColumnResponse
-	13, // 105: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetRecord:output_type -> k1s0.system.mastermaintenance.v1.GetRecordResponse
-	17, // 106: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRecords:output_type -> k1s0.system.mastermaintenance.v1.ListRecordsResponse
-	14, // 107: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRecord:output_type -> k1s0.system.mastermaintenance.v1.CreateRecordResponse
-	15, // 108: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRecord:output_type -> k1s0.system.mastermaintenance.v1.UpdateRecordResponse
-	21, // 109: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRecord:output_type -> k1s0.system.mastermaintenance.v1.DeleteRecordResponse
-	23, // 110: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CheckConsistency:output_type -> k1s0.system.mastermaintenance.v1.CheckConsistencyResponse
-	25, // 111: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRule:output_type -> k1s0.system.mastermaintenance.v1.CreateRuleResponse
-	27, // 112: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetRule:output_type -> k1s0.system.mastermaintenance.v1.GetRuleResponse
-	29, // 113: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRule:output_type -> k1s0.system.mastermaintenance.v1.UpdateRuleResponse
-	31, // 114: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRule:output_type -> k1s0.system.mastermaintenance.v1.DeleteRuleResponse
-	33, // 115: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRules:output_type -> k1s0.system.mastermaintenance.v1.ListRulesResponse
-	35, // 116: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ExecuteRule:output_type -> k1s0.system.mastermaintenance.v1.ExecuteRuleResponse
-	40, // 117: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetTableSchema:output_type -> k1s0.system.mastermaintenance.v1.GetTableSchemaResponse
-	50, // 118: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRelationships:output_type -> k1s0.system.mastermaintenance.v1.ListRelationshipsResponse
-	52, // 119: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRelationship:output_type -> k1s0.system.mastermaintenance.v1.CreateRelationshipResponse
-	54, // 120: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRelationship:output_type -> k1s0.system.mastermaintenance.v1.UpdateRelationshipResponse
-	56, // 121: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRelationship:output_type -> k1s0.system.mastermaintenance.v1.DeleteRelationshipResponse
-	58, // 122: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ImportRecords:output_type -> k1s0.system.mastermaintenance.v1.ImportRecordsResponse
-	60, // 123: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ExportRecords:output_type -> k1s0.system.mastermaintenance.v1.ExportRecordsResponse
-	62, // 124: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetImportJob:output_type -> k1s0.system.mastermaintenance.v1.GetImportJobResponse
-	65, // 125: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListDisplayConfigs:output_type -> k1s0.system.mastermaintenance.v1.ListDisplayConfigsResponse
-	67, // 126: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetDisplayConfig:output_type -> k1s0.system.mastermaintenance.v1.GetDisplayConfigResponse
-	69, // 127: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateDisplayConfig:output_type -> k1s0.system.mastermaintenance.v1.CreateDisplayConfigResponse
-	71, // 128: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateDisplayConfig:output_type -> k1s0.system.mastermaintenance.v1.UpdateDisplayConfigResponse
-	73, // 129: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteDisplayConfig:output_type -> k1s0.system.mastermaintenance.v1.DeleteDisplayConfigResponse
-	76, // 130: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListTableAuditLogs:output_type -> k1s0.system.mastermaintenance.v1.ListTableAuditLogsResponse
-	78, // 131: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRecordAuditLogs:output_type -> k1s0.system.mastermaintenance.v1.ListRecordAuditLogsResponse
-	96, // [96:132] is the sub-list for method output_type
-	60, // [60:96] is the sub-list for method input_type
-	60, // [60:60] is the sub-list for extension type_name
-	60, // [60:60] is the sub-list for extension extendee
-	0,  // [0:60] is the sub-list for field type_name
+	86, // 59: k1s0.system.mastermaintenance.v1.ListRecordAuditLogsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	82, // 60: k1s0.system.mastermaintenance.v1.ListDomainsResponse.domains:type_name -> k1s0.system.mastermaintenance.v1.DomainInfo
+	0,  // 61: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateTableDefinition:input_type -> k1s0.system.mastermaintenance.v1.CreateTableDefinitionRequest
+	2,  // 62: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateTableDefinition:input_type -> k1s0.system.mastermaintenance.v1.UpdateTableDefinitionRequest
+	4,  // 63: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteTableDefinition:input_type -> k1s0.system.mastermaintenance.v1.DeleteTableDefinitionRequest
+	6,  // 64: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetTableDefinition:input_type -> k1s0.system.mastermaintenance.v1.GetTableDefinitionRequest
+	10, // 65: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListTableDefinitions:input_type -> k1s0.system.mastermaintenance.v1.ListTableDefinitionsRequest
+	41, // 66: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListColumns:input_type -> k1s0.system.mastermaintenance.v1.ListColumnsRequest
+	43, // 67: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateColumns:input_type -> k1s0.system.mastermaintenance.v1.CreateColumnsRequest
+	45, // 68: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateColumn:input_type -> k1s0.system.mastermaintenance.v1.UpdateColumnRequest
+	47, // 69: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteColumn:input_type -> k1s0.system.mastermaintenance.v1.DeleteColumnRequest
+	12, // 70: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetRecord:input_type -> k1s0.system.mastermaintenance.v1.GetRecordRequest
+	16, // 71: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRecords:input_type -> k1s0.system.mastermaintenance.v1.ListRecordsRequest
+	18, // 72: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRecord:input_type -> k1s0.system.mastermaintenance.v1.CreateRecordRequest
+	19, // 73: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRecord:input_type -> k1s0.system.mastermaintenance.v1.UpdateRecordRequest
+	20, // 74: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRecord:input_type -> k1s0.system.mastermaintenance.v1.DeleteRecordRequest
+	22, // 75: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CheckConsistency:input_type -> k1s0.system.mastermaintenance.v1.CheckConsistencyRequest
+	24, // 76: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRule:input_type -> k1s0.system.mastermaintenance.v1.CreateRuleRequest
+	26, // 77: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetRule:input_type -> k1s0.system.mastermaintenance.v1.GetRuleRequest
+	28, // 78: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRule:input_type -> k1s0.system.mastermaintenance.v1.UpdateRuleRequest
+	30, // 79: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRule:input_type -> k1s0.system.mastermaintenance.v1.DeleteRuleRequest
+	32, // 80: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRules:input_type -> k1s0.system.mastermaintenance.v1.ListRulesRequest
+	34, // 81: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ExecuteRule:input_type -> k1s0.system.mastermaintenance.v1.ExecuteRuleRequest
+	39, // 82: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetTableSchema:input_type -> k1s0.system.mastermaintenance.v1.GetTableSchemaRequest
+	49, // 83: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRelationships:input_type -> k1s0.system.mastermaintenance.v1.ListRelationshipsRequest
+	51, // 84: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRelationship:input_type -> k1s0.system.mastermaintenance.v1.CreateRelationshipRequest
+	53, // 85: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRelationship:input_type -> k1s0.system.mastermaintenance.v1.UpdateRelationshipRequest
+	55, // 86: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRelationship:input_type -> k1s0.system.mastermaintenance.v1.DeleteRelationshipRequest
+	57, // 87: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ImportRecords:input_type -> k1s0.system.mastermaintenance.v1.ImportRecordsRequest
+	59, // 88: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ExportRecords:input_type -> k1s0.system.mastermaintenance.v1.ExportRecordsRequest
+	61, // 89: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetImportJob:input_type -> k1s0.system.mastermaintenance.v1.GetImportJobRequest
+	64, // 90: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListDisplayConfigs:input_type -> k1s0.system.mastermaintenance.v1.ListDisplayConfigsRequest
+	66, // 91: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetDisplayConfig:input_type -> k1s0.system.mastermaintenance.v1.GetDisplayConfigRequest
+	68, // 92: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateDisplayConfig:input_type -> k1s0.system.mastermaintenance.v1.CreateDisplayConfigRequest
+	70, // 93: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateDisplayConfig:input_type -> k1s0.system.mastermaintenance.v1.UpdateDisplayConfigRequest
+	72, // 94: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteDisplayConfig:input_type -> k1s0.system.mastermaintenance.v1.DeleteDisplayConfigRequest
+	75, // 95: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListTableAuditLogs:input_type -> k1s0.system.mastermaintenance.v1.ListTableAuditLogsRequest
+	77, // 96: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRecordAuditLogs:input_type -> k1s0.system.mastermaintenance.v1.ListRecordAuditLogsRequest
+	80, // 97: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListDomains:input_type -> k1s0.system.mastermaintenance.v1.ListDomainsRequest
+	1,  // 98: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateTableDefinition:output_type -> k1s0.system.mastermaintenance.v1.CreateTableDefinitionResponse
+	3,  // 99: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateTableDefinition:output_type -> k1s0.system.mastermaintenance.v1.UpdateTableDefinitionResponse
+	5,  // 100: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteTableDefinition:output_type -> k1s0.system.mastermaintenance.v1.DeleteTableDefinitionResponse
+	7,  // 101: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetTableDefinition:output_type -> k1s0.system.mastermaintenance.v1.GetTableDefinitionResponse
+	11, // 102: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListTableDefinitions:output_type -> k1s0.system.mastermaintenance.v1.ListTableDefinitionsResponse
+	42, // 103: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListColumns:output_type -> k1s0.system.mastermaintenance.v1.ListColumnsResponse
+	44, // 104: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateColumns:output_type -> k1s0.system.mastermaintenance.v1.CreateColumnsResponse
+	46, // 105: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateColumn:output_type -> k1s0.system.mastermaintenance.v1.UpdateColumnResponse
+	48, // 106: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteColumn:output_type -> k1s0.system.mastermaintenance.v1.DeleteColumnResponse
+	13, // 107: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetRecord:output_type -> k1s0.system.mastermaintenance.v1.GetRecordResponse
+	17, // 108: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRecords:output_type -> k1s0.system.mastermaintenance.v1.ListRecordsResponse
+	14, // 109: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRecord:output_type -> k1s0.system.mastermaintenance.v1.CreateRecordResponse
+	15, // 110: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRecord:output_type -> k1s0.system.mastermaintenance.v1.UpdateRecordResponse
+	21, // 111: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRecord:output_type -> k1s0.system.mastermaintenance.v1.DeleteRecordResponse
+	23, // 112: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CheckConsistency:output_type -> k1s0.system.mastermaintenance.v1.CheckConsistencyResponse
+	25, // 113: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRule:output_type -> k1s0.system.mastermaintenance.v1.CreateRuleResponse
+	27, // 114: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetRule:output_type -> k1s0.system.mastermaintenance.v1.GetRuleResponse
+	29, // 115: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRule:output_type -> k1s0.system.mastermaintenance.v1.UpdateRuleResponse
+	31, // 116: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRule:output_type -> k1s0.system.mastermaintenance.v1.DeleteRuleResponse
+	33, // 117: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRules:output_type -> k1s0.system.mastermaintenance.v1.ListRulesResponse
+	35, // 118: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ExecuteRule:output_type -> k1s0.system.mastermaintenance.v1.ExecuteRuleResponse
+	40, // 119: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetTableSchema:output_type -> k1s0.system.mastermaintenance.v1.GetTableSchemaResponse
+	50, // 120: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRelationships:output_type -> k1s0.system.mastermaintenance.v1.ListRelationshipsResponse
+	52, // 121: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateRelationship:output_type -> k1s0.system.mastermaintenance.v1.CreateRelationshipResponse
+	54, // 122: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateRelationship:output_type -> k1s0.system.mastermaintenance.v1.UpdateRelationshipResponse
+	56, // 123: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteRelationship:output_type -> k1s0.system.mastermaintenance.v1.DeleteRelationshipResponse
+	58, // 124: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ImportRecords:output_type -> k1s0.system.mastermaintenance.v1.ImportRecordsResponse
+	60, // 125: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ExportRecords:output_type -> k1s0.system.mastermaintenance.v1.ExportRecordsResponse
+	62, // 126: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetImportJob:output_type -> k1s0.system.mastermaintenance.v1.GetImportJobResponse
+	65, // 127: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListDisplayConfigs:output_type -> k1s0.system.mastermaintenance.v1.ListDisplayConfigsResponse
+	67, // 128: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.GetDisplayConfig:output_type -> k1s0.system.mastermaintenance.v1.GetDisplayConfigResponse
+	69, // 129: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.CreateDisplayConfig:output_type -> k1s0.system.mastermaintenance.v1.CreateDisplayConfigResponse
+	71, // 130: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.UpdateDisplayConfig:output_type -> k1s0.system.mastermaintenance.v1.UpdateDisplayConfigResponse
+	73, // 131: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.DeleteDisplayConfig:output_type -> k1s0.system.mastermaintenance.v1.DeleteDisplayConfigResponse
+	76, // 132: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListTableAuditLogs:output_type -> k1s0.system.mastermaintenance.v1.ListTableAuditLogsResponse
+	78, // 133: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListRecordAuditLogs:output_type -> k1s0.system.mastermaintenance.v1.ListRecordAuditLogsResponse
+	81, // 134: k1s0.system.mastermaintenance.v1.MasterMaintenanceService.ListDomains:output_type -> k1s0.system.mastermaintenance.v1.ListDomainsResponse
+	98, // [98:135] is the sub-list for method output_type
+	61, // [61:98] is the sub-list for method input_type
+	61, // [61:61] is the sub-list for extension type_name
+	61, // [61:61] is the sub-list for extension extendee
+	0,  // [0:61] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_init() }
@@ -5303,7 +5609,7 @@ func file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc), len(file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   80,
+			NumMessages:   83,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

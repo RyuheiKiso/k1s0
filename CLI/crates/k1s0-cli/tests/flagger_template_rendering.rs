@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// Flagger テンプレートのレンダリング統合テスト。
 use std::fs;
 use std::path::Path;

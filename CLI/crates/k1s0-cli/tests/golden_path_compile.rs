@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// Golden Path コンパイル検証テスト。
 ///
 /// テンプレートエンジンで生成した Rust サーバーコードが

@@ -1,0 +1,12 @@
+-- M-14: 監査カラム名往復の確認（no-op マイグレーション）
+--
+-- migration 009 で audit_logs のカラムをリネームし、
+-- migration 010 で元に戻した経緯を記録する。
+--
+-- 009: detail → metadata, created_at → recorded_at
+-- 010: metadata → detail, recorded_at → created_at（元に戻す）
+--
+-- 現在のカラム名は元の設計通り: detail, created_at
+-- このマイグレーションは往復が正しく完了したことの確認であり、
+-- スキーマ変更は行わない。
+SELECT 1;

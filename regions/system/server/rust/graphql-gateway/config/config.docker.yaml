@@ -26,6 +26,38 @@ backends:
   config:
     address: "http://config-rust:50051"
     timeout_ms: 3000
+  # ナビゲーションサービスのgRPC接続先
+  navigation:
+    address: "http://navigation-rust:50051"
+    timeout_ms: 3000
+  # サービスカタログのgRPC接続先
+  service-catalog:
+    address: "http://service-catalog-rust:50051"
+    timeout_ms: 3000
+  # 認証サービスのgRPC接続先
+  auth:
+    address: "http://auth-rust:50051"
+    timeout_ms: 3000
+  # セッション管理サービスのgRPC接続先
+  session:
+    address: "http://session-rust:50051"
+    timeout_ms: 3000
+  # シークレット管理サービスのgRPC接続先
+  vault:
+    address: "http://vault-rust:50051"
+    timeout_ms: 3000
+  # スケジューラサービスのgRPC接続先
+  scheduler:
+    address: "http://scheduler-rust:50051"
+    timeout_ms: 3000
+  # 通知サービスのgRPC接続先
+  notification:
+    address: "http://notification-rust:50051"
+    timeout_ms: 3000
+  # ワークフローサービスのgRPC接続先
+  workflow:
+    address: "http://workflow-rust:50051"
+    timeout_ms: 3000
 
 observability:
   log:

@@ -22,4 +22,6 @@ message EventMetadata {
   string correlation_id = 6;
   // スキーマバージョン
   int32 schema_version = 7;
+  // 因果関係追跡用 ID（このイベントを引き起こしたコマンド/イベントの ID）
+  string causation_id = 8;
 }

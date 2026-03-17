@@ -4,6 +4,9 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { TenantService } from "./tenant";
+import type { WatchTenantResponse } from "./tenant";
+import type { WatchTenantRequest } from "./tenant";
+import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
 import type { GetProvisioningStatusResponse } from "./tenant";
 import type { GetProvisioningStatusRequest } from "./tenant";
 import type { RemoveMemberResponse } from "./tenant";
@@ -102,6 +105,12 @@ export interface ITenantServiceClient {
      * @generated from protobuf rpc: GetProvisioningStatus
      */
     getProvisioningStatus(input: GetProvisioningStatusRequest, options?: RpcOptions): UnaryCall<GetProvisioningStatusRequest, GetProvisioningStatusResponse>;
+    /**
+     * WatchTenant はテナント変更の監視（Server-Side Streaming）。
+     *
+     * @generated from protobuf rpc: WatchTenant
+     */
+    watchTenant(input: WatchTenantRequest, options?: RpcOptions): ServerStreamingCall<WatchTenantRequest, WatchTenantResponse>;
 }
 /**
  * TenantService はマルチテナント管理サービス。
@@ -213,5 +222,14 @@ export class TenantServiceClient implements ITenantServiceClient, ServiceInfo {
     getProvisioningStatus(input: GetProvisioningStatusRequest, options?: RpcOptions): UnaryCall<GetProvisioningStatusRequest, GetProvisioningStatusResponse> {
         const method = this.methods[10], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetProvisioningStatusRequest, GetProvisioningStatusResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * WatchTenant はテナント変更の監視（Server-Side Streaming）。
+     *
+     * @generated from protobuf rpc: WatchTenant
+     */
+    watchTenant(input: WatchTenantRequest, options?: RpcOptions): ServerStreamingCall<WatchTenantRequest, WatchTenantResponse> {
+        const method = this.methods[11], opt = this._transport.mergeOptions(options);
+        return stackIntercept<WatchTenantRequest, WatchTenantResponse>("serverStreaming", this._transport, method, opt, input);
     }
 }

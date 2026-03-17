@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import {
   createRootRoute,
   createRoute,
@@ -5,23 +6,27 @@ import {
   Outlet,
   Link,
 } from '@tanstack/react-router';
-import { OrderList } from '../features/orders/OrderList';
-import { OrderDetail } from '../features/orders/OrderDetail';
-import { OrderForm } from '../features/orders/OrderForm';
+
+// ルートコンポーネントの遅延読み込み（コード分割）
+const OrderList = lazy(() => import('../features/orders/OrderList').then((m) => ({ default: m.OrderList })));
+const OrderDetail = lazy(() => import('../features/orders/OrderDetail').then((m) => ({ default: m.OrderDetail })));
+const OrderForm = lazy(() => import('../features/orders/OrderForm').then((m) => ({ default: m.OrderForm })));
 
 // ルートレイアウト: 全ページ共通のナビゲーションヘッダー
 const rootRoute = createRootRoute({
   component: () => (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px' }}>
       {/* グローバルナビゲーション */}
-      <nav style={{ borderBottom: '1px solid #ccc', paddingBottom: '8px', marginBottom: '16px' }}>
+      <nav aria-label="メインナビゲーション" style={{ borderBottom: '1px solid #ccc', paddingBottom: '8px', marginBottom: '16px' }}>
         <Link to="/" style={{ marginRight: '16px' }}>
           注文一覧
         </Link>
         <Link to="/orders/new">新規注文</Link>
       </nav>
-      {/* 子ルートの描画領域 */}
-      <Outlet />
+      {/* 子ルートの描画領域（Suspenseでローディング表示） */}
+      <Suspense fallback={<div>読み込み中...</div>}>
+        <Outlet />
+      </Suspense>
     </div>
   ),
 });

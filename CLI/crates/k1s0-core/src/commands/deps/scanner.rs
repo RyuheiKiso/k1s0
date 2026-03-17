@@ -588,7 +588,9 @@ fn find_files_recursive(dir: &Path, exts: &[&str], files: &mut Vec<std::path::Pa
     }
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::TempDir;

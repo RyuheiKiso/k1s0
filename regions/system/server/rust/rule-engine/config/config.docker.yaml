@@ -1,0 +1,23 @@
+# Docker環境用設定ファイル
+# ホスト名をDockerコンテナ名に変更し、ポートをコンテナ内部ポートに設定する
+app:
+  name: "rule-engine"
+  version: "0.1.0"
+  environment: "docker"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  grpc_port: 50051
+
+database:
+  host: "postgres"
+  port: 5432
+  name: "rule_engine_db"
+  user: "dev"
+  password: "dev"
+  ssl_mode: "disable"
+
+cache:
+  max_entries: 100000
+  ttl_seconds: 60

@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// クライアントテンプレートのレンダリング統合テスト。
 ///
 /// 実際の CLI/templates/client/{react,flutter}/ テンプレートファイルを使用し、
@@ -124,7 +126,7 @@ fn test_client_react_tsconfig_content() {
     let (tmp, _) = render_client("react");
     let content = read_output(&tmp, "tsconfig.json");
 
-    assert!(content.contains("\"target\": \"ES2022\""));
+    assert!(content.contains("\"target\": \"ES2020\""));
     assert!(content.contains("\"jsx\": \"react-jsx\""));
     assert!(content.contains("\"strict\": true"));
     assert!(content.contains("\"moduleResolution\": \"bundler\""));

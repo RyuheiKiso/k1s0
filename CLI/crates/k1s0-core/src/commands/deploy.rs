@@ -509,7 +509,8 @@ fn detect_version(target_path: &Path) -> Result<String> {
     if target_path.join("Cargo.toml").exists() {
         let cargo_toml = fs::read_to_string(target_path.join("Cargo.toml"))
             .map_err(|error| anyhow!("failed to read Cargo.toml: {error}"))?;
-        let regex = Regex::new(r#"(?m)^version\s*=\s*"([^"]+)""#).unwrap();
+        let regex = Regex::new(r#"(?m)^version\s*=\s*"([^"]+)""#)
+            .expect("Cargo.toml バージョン正規表現は有効なリテラル");
         let version = regex
             .captures(&cargo_toml)
             .and_then(|captures| captures.get(1))
@@ -533,7 +534,8 @@ fn detect_version(target_path: &Path) -> Result<String> {
     if target_path.join("pubspec.yaml").exists() {
         let pubspec = fs::read_to_string(target_path.join("pubspec.yaml"))
             .map_err(|error| anyhow!("failed to read pubspec.yaml: {error}"))?;
-        let regex = Regex::new(r"(?m)^version:\s*([^\s]+)").unwrap();
+        let regex = Regex::new(r"(?m)^version:\s*([^\s]+)")
+            .expect("pubspec.yaml バージョン正規表現は有効なリテラル");
         let version = regex
             .captures(&pubspec)
             .and_then(|captures| captures.get(1))
@@ -738,7 +740,9 @@ fn scan_targets_recursive(path: &Path, targets: &mut Vec<String>) {
     }
 }
 
+// テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::TempDir;

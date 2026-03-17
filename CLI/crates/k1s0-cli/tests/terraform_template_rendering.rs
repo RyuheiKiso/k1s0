@@ -1,3 +1,5 @@
+//! テストモジュール — unwrap() の使用を許可する
+#![allow(clippy::unwrap_used)]
 /// Terraform テンプレートのレンダリング統合テスト。
 ///
 /// CLI/templates/terraform/ テンプレートファイルを使用し、

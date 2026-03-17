@@ -59,8 +59,11 @@ message RetryNotificationResponse {
 message ListNotificationsRequest {
   optional string channel_id = 1;
   optional string status = 2;
-  uint32 page = 3;
-  uint32 page_size = 4;
+  // ページネーションパラメータを共通型に統一
+  k1s0.system.common.v1.Pagination pagination = 3;
+  // フィールド番号 4 は旧 page_size（Pagination に統一済み）
+  reserved 4;
+  reserved "page_size";
 }
 
 message ListNotificationsResponse {
@@ -96,8 +99,11 @@ message Channel {
 message ListChannelsRequest {
   optional string channel_type = 1;
   bool enabled_only = 2;
-  uint32 page = 3;
-  uint32 page_size = 4;
+  // ページネーションパラメータを共通型に統一
+  k1s0.system.common.v1.Pagination pagination = 3;
+  // フィールド番号 4 は旧 page_size（Pagination に統一済み）
+  reserved 4;
+  reserved "page_size";
 }
 
 message ListChannelsResponse {
@@ -156,8 +162,11 @@ message Template {
 
 message ListTemplatesRequest {
   optional string channel_type = 1;
-  uint32 page = 2;
-  uint32 page_size = 3;
+  // ページネーションパラメータを共通型に統一
+  k1s0.system.common.v1.Pagination pagination = 2;
+  // フィールド番号 3 は旧 page_size（Pagination に統一済み）
+  reserved 3;
+  reserved "page_size";
 }
 
 message ListTemplatesResponse {

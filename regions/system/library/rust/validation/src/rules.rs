@@ -7,8 +7,10 @@ fn err(field: &str, code: &str, message: String) -> ValidationError {
     ValidationError::new(field, code, message)
 }
 
+// メールアドレスを検証する。TLD 2文字以上を必須とする（4言語統一パターン H-18）
 pub fn validate_email(field: &str, email: &str) -> Result<(), ValidationError> {
-    let re = Regex::new(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").expect("valid email regex");
+    let re = Regex::new(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+        .expect("valid email regex");
     if re.is_match(email) {
         Ok(())
     } else {
@@ -20,10 +22,15 @@ pub fn validate_email(field: &str, email: &str) -> Result<(), ValidationError> {
     }
 }
 
+// UUID v4 のみを許可する（4言語統一パターン H-18）
 pub fn validate_uuid(field: &str, id: &str) -> Result<(), ValidationError> {
-    uuid::Uuid::parse_str(id)
-        .map(|_| ())
-        .map_err(|_| err(field, "INVALID_UUID", format!("invalid uuid: {id}")))
+    let re = Regex::new(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")
+        .expect("valid uuid v4 regex");
+    if re.is_match(id) {
+        Ok(())
+    } else {
+        Err(err(field, "INVALID_UUID", format!("invalid uuid v4: {id}")))
+    }
 }
 
 pub fn validate_url(field: &str, input: &str) -> Result<(), ValidationError> {
@@ -40,20 +47,14 @@ pub fn validate_url(field: &str, input: &str) -> Result<(), ValidationError> {
     }
 }
 
+// テナントIDを検証する。先頭・末尾は英数字、中間はハイフン許可（4言語統一パターン H-18）
 pub fn validate_tenant_id(field: &str, id: &str) -> Result<(), ValidationError> {
-    let re = Regex::new(r"^[a-zA-Z0-9\-]+$").expect("valid tenant regex");
-    if id.len() < 3 || id.len() > 63 {
-        return Err(err(
-            field,
-            "INVALID_TENANT_ID",
-            format!("length must be 3-63, got {}", id.len()),
-        ));
-    }
+    let re = Regex::new(r"^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$").expect("valid tenant regex");
     if !re.is_match(id) {
         return Err(err(
             field,
             "INVALID_TENANT_ID",
-            format!("must contain only alphanumeric and hyphens: {id}"),
+            format!("tenant ID must be 3-63 chars, lowercase alphanumeric and hyphens, no leading/trailing hyphens: {id}"),
         ));
     }
     Ok(())
@@ -67,11 +68,12 @@ pub fn validate_pagination(field: &str, page: u32, per_page: u32) -> Result<(), 
             format!("page must be >= 1, got {page}"),
         ));
     }
-    if !(1..=200).contains(&per_page) {
+    // ページネーション上限: 4言語共通で100に統一（H-18）
+    if !(1..=100).contains(&per_page) {
         return Err(err(
             field,
             "INVALID_PAGINATION",
-            format!("per_page must be 1-200, got {per_page}"),
+            format!("per_page must be 1-100, got {per_page}"),
         ));
     }
     Ok(())
@@ -100,11 +102,11 @@ mod tests {
 
     use super::*;
 
-    // per_page が 200 で成功し 201 でエラーになることを確認する。
+    // per_page が 100 で成功し 101 でエラーになることを確認する。
     #[test]
-    fn test_validate_pagination_range_200() {
-        assert!(validate_pagination("pagination", 1, 200).is_ok());
-        assert!(validate_pagination("pagination", 1, 201).is_err());
+    fn test_validate_pagination_range_100() {
+        assert!(validate_pagination("pagination", 1, 100).is_ok());
+        assert!(validate_pagination("pagination", 1, 101).is_err());
     }
 
     // UTC 日時の日付範囲検証で順序が正しい場合成功し逆順の場合エラーになることを確認する。

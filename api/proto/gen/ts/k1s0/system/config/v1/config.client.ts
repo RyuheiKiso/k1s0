@@ -4,6 +4,8 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { ConfigService } from "./config";
+import type { ListConfigSchemasResponse } from "./config";
+import type { ListConfigSchemasRequest } from "./config";
 import type { UpsertConfigSchemaResponse } from "./config";
 import type { UpsertConfigSchemaRequest } from "./config";
 import type { GetConfigSchemaResponse } from "./config";
@@ -78,6 +80,12 @@ export interface IConfigServiceClient {
      * @generated from protobuf rpc: UpsertConfigSchema
      */
     upsertConfigSchema(input: UpsertConfigSchemaRequest, options?: RpcOptions): UnaryCall<UpsertConfigSchemaRequest, UpsertConfigSchemaResponse>;
+    /**
+     * 設定スキーマ一覧取得
+     *
+     * @generated from protobuf rpc: ListConfigSchemas
+     */
+    listConfigSchemas(input: ListConfigSchemasRequest, options?: RpcOptions): UnaryCall<ListConfigSchemasRequest, ListConfigSchemasResponse>;
 }
 /**
  * ConfigService は設定値の取得・更新・削除・監視を提供する。
@@ -161,5 +169,14 @@ export class ConfigServiceClient implements IConfigServiceClient, ServiceInfo {
     upsertConfigSchema(input: UpsertConfigSchemaRequest, options?: RpcOptions): UnaryCall<UpsertConfigSchemaRequest, UpsertConfigSchemaResponse> {
         const method = this.methods[7], opt = this._transport.mergeOptions(options);
         return stackIntercept<UpsertConfigSchemaRequest, UpsertConfigSchemaResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * 設定スキーマ一覧取得
+     *
+     * @generated from protobuf rpc: ListConfigSchemas
+     */
+    listConfigSchemas(input: ListConfigSchemasRequest, options?: RpcOptions): UnaryCall<ListConfigSchemasRequest, ListConfigSchemasResponse> {
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListConfigSchemasRequest, ListConfigSchemasResponse>("unary", this._transport, method, opt, input);
     }
 }

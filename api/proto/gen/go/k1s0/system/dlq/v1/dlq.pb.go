@@ -142,10 +142,10 @@ func (x *DlqMessage) GetLastRetryAt() *v1.Timestamp {
 
 /// ListMessagesRequest は一覧取得リクエスト。
 type ListMessagesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Topic         string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Topic string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
+	// ページネーションパラメータを共通型に統一
+	Pagination    *v1.Pagination `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -187,18 +187,11 @@ func (x *ListMessagesRequest) GetTopic() string {
 	return ""
 }
 
-func (x *ListMessagesRequest) GetPage() int32 {
+func (x *ListMessagesRequest) GetPagination() *v1.Pagination {
 	if x != nil {
-		return x.Page
+		return x.Pagination
 	}
-	return 0
-}
-
-func (x *ListMessagesRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
+	return nil
 }
 
 /// ListMessagesResponse は一覧取得レスポンス。
@@ -644,11 +637,12 @@ const file_k1s0_system_dlq_v1_dlq_proto_rawDesc = "" +
 	"updated_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12I\n" +
 	"\rlast_retry_at\x18\n" +
 	" \x01(\v2 .k1s0.system.common.v1.TimestampH\x00R\vlastRetryAt\x88\x01\x01B\x10\n" +
-	"\x0e_last_retry_at\"\\\n" +
+	"\x0e_last_retry_at\"\x7f\n" +
 	"\x13ListMessagesRequest\x12\x14\n" +
-	"\x05topic\x18\x01 \x01(\tR\x05topic\x12\x12\n" +
-	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"\x9b\x01\n" +
+	"\x05topic\x18\x01 \x01(\tR\x05topic\x12A\n" +
+	"\n" +
+	"pagination\x18\x02 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
+	"paginationJ\x04\b\x03\x10\x04R\tpage_size\"\x9b\x01\n" +
 	"\x14ListMessagesResponse\x12:\n" +
 	"\bmessages\x18\x01 \x03(\v2\x1e.k1s0.system.dlq.v1.DlqMessageR\bmessages\x12G\n" +
 	"\n" +
@@ -706,31 +700,33 @@ var file_k1s0_system_dlq_v1_dlq_proto_goTypes = []any{
 	(*RetryAllRequest)(nil),       // 9: k1s0.system.dlq.v1.RetryAllRequest
 	(*RetryAllResponse)(nil),      // 10: k1s0.system.dlq.v1.RetryAllResponse
 	(*v1.Timestamp)(nil),          // 11: k1s0.system.common.v1.Timestamp
-	(*v1.PaginationResult)(nil),   // 12: k1s0.system.common.v1.PaginationResult
+	(*v1.Pagination)(nil),         // 12: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),   // 13: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_dlq_v1_dlq_proto_depIdxs = []int32{
 	11, // 0: k1s0.system.dlq.v1.DlqMessage.created_at:type_name -> k1s0.system.common.v1.Timestamp
 	11, // 1: k1s0.system.dlq.v1.DlqMessage.updated_at:type_name -> k1s0.system.common.v1.Timestamp
 	11, // 2: k1s0.system.dlq.v1.DlqMessage.last_retry_at:type_name -> k1s0.system.common.v1.Timestamp
-	0,  // 3: k1s0.system.dlq.v1.ListMessagesResponse.messages:type_name -> k1s0.system.dlq.v1.DlqMessage
-	12, // 4: k1s0.system.dlq.v1.ListMessagesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	0,  // 5: k1s0.system.dlq.v1.GetMessageResponse.message:type_name -> k1s0.system.dlq.v1.DlqMessage
-	0,  // 6: k1s0.system.dlq.v1.RetryMessageResponse.message:type_name -> k1s0.system.dlq.v1.DlqMessage
-	1,  // 7: k1s0.system.dlq.v1.DlqService.ListMessages:input_type -> k1s0.system.dlq.v1.ListMessagesRequest
-	3,  // 8: k1s0.system.dlq.v1.DlqService.GetMessage:input_type -> k1s0.system.dlq.v1.GetMessageRequest
-	5,  // 9: k1s0.system.dlq.v1.DlqService.RetryMessage:input_type -> k1s0.system.dlq.v1.RetryMessageRequest
-	7,  // 10: k1s0.system.dlq.v1.DlqService.DeleteMessage:input_type -> k1s0.system.dlq.v1.DeleteMessageRequest
-	9,  // 11: k1s0.system.dlq.v1.DlqService.RetryAll:input_type -> k1s0.system.dlq.v1.RetryAllRequest
-	2,  // 12: k1s0.system.dlq.v1.DlqService.ListMessages:output_type -> k1s0.system.dlq.v1.ListMessagesResponse
-	4,  // 13: k1s0.system.dlq.v1.DlqService.GetMessage:output_type -> k1s0.system.dlq.v1.GetMessageResponse
-	6,  // 14: k1s0.system.dlq.v1.DlqService.RetryMessage:output_type -> k1s0.system.dlq.v1.RetryMessageResponse
-	8,  // 15: k1s0.system.dlq.v1.DlqService.DeleteMessage:output_type -> k1s0.system.dlq.v1.DeleteMessageResponse
-	10, // 16: k1s0.system.dlq.v1.DlqService.RetryAll:output_type -> k1s0.system.dlq.v1.RetryAllResponse
-	12, // [12:17] is the sub-list for method output_type
-	7,  // [7:12] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	12, // 3: k1s0.system.dlq.v1.ListMessagesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	0,  // 4: k1s0.system.dlq.v1.ListMessagesResponse.messages:type_name -> k1s0.system.dlq.v1.DlqMessage
+	13, // 5: k1s0.system.dlq.v1.ListMessagesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	0,  // 6: k1s0.system.dlq.v1.GetMessageResponse.message:type_name -> k1s0.system.dlq.v1.DlqMessage
+	0,  // 7: k1s0.system.dlq.v1.RetryMessageResponse.message:type_name -> k1s0.system.dlq.v1.DlqMessage
+	1,  // 8: k1s0.system.dlq.v1.DlqService.ListMessages:input_type -> k1s0.system.dlq.v1.ListMessagesRequest
+	3,  // 9: k1s0.system.dlq.v1.DlqService.GetMessage:input_type -> k1s0.system.dlq.v1.GetMessageRequest
+	5,  // 10: k1s0.system.dlq.v1.DlqService.RetryMessage:input_type -> k1s0.system.dlq.v1.RetryMessageRequest
+	7,  // 11: k1s0.system.dlq.v1.DlqService.DeleteMessage:input_type -> k1s0.system.dlq.v1.DeleteMessageRequest
+	9,  // 12: k1s0.system.dlq.v1.DlqService.RetryAll:input_type -> k1s0.system.dlq.v1.RetryAllRequest
+	2,  // 13: k1s0.system.dlq.v1.DlqService.ListMessages:output_type -> k1s0.system.dlq.v1.ListMessagesResponse
+	4,  // 14: k1s0.system.dlq.v1.DlqService.GetMessage:output_type -> k1s0.system.dlq.v1.GetMessageResponse
+	6,  // 15: k1s0.system.dlq.v1.DlqService.RetryMessage:output_type -> k1s0.system.dlq.v1.RetryMessageResponse
+	8,  // 16: k1s0.system.dlq.v1.DlqService.DeleteMessage:output_type -> k1s0.system.dlq.v1.DeleteMessageResponse
+	10, // 17: k1s0.system.dlq.v1.DlqService.RetryAll:output_type -> k1s0.system.dlq.v1.RetryAllResponse
+	13, // [13:18] is the sub-list for method output_type
+	8,  // [8:13] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_dlq_v1_dlq_proto_init() }

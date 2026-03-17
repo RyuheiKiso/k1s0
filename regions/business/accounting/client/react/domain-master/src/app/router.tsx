@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import {
   createRootRoute,
   createRoute,
@@ -5,23 +6,27 @@ import {
   Outlet,
   Link,
 } from '@tanstack/react-router';
-import { CategoryList } from '../features/categories/CategoryList';
-import { ItemList } from '../features/items/ItemList';
-import { VersionHistory } from '../features/versions/VersionHistory';
-import { TenantExtensionForm } from '../features/tenant-extensions/TenantExtensionForm';
+
+// ルートコンポーネントの遅延読み込み（コード分割）
+const CategoryList = lazy(() => import('../features/categories/CategoryList').then((m) => ({ default: m.CategoryList })));
+const ItemList = lazy(() => import('../features/items/ItemList').then((m) => ({ default: m.ItemList })));
+const VersionHistory = lazy(() => import('../features/versions/VersionHistory').then((m) => ({ default: m.VersionHistory })));
+const TenantExtensionForm = lazy(() => import('../features/tenant-extensions/TenantExtensionForm').then((m) => ({ default: m.TenantExtensionForm })));
 
 // ルートレイアウト: 全ページ共通のナビゲーションヘッダー
 const rootRoute = createRootRoute({
   component: () => (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px' }}>
       {/* グローバルナビゲーション */}
-      <nav style={{ borderBottom: '1px solid #ccc', paddingBottom: '8px', marginBottom: '16px' }}>
+      <nav aria-label="メインナビゲーション" style={{ borderBottom: '1px solid #ccc', paddingBottom: '8px', marginBottom: '16px' }}>
         <Link to="/categories" style={{ marginRight: '16px' }}>
           カテゴリ管理
         </Link>
       </nav>
-      {/* 子ルートの描画領域 */}
-      <Outlet />
+      {/* 子ルートの描画領域（Suspenseでローディング表示） */}
+      <Suspense fallback={<div>読み込み中...</div>}>
+        <Outlet />
+      </Suspense>
     </div>
   ),
 });
