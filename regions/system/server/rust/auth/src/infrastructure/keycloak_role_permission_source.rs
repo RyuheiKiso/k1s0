@@ -23,10 +23,11 @@ impl KeycloakRolePermissionSource {
     pub fn new(config: KeycloakConfig, token_cache_ttl_secs: u64) -> Self {
         Self {
             config,
+            // HTTP クライアントを構築する（デフォルト設定では失敗しない）
             http_client: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(10))
                 .build()
-                .unwrap(),
+                .expect("reqwest::Client の構築に失敗: デフォルト TLS バックエンド未対応"),
             admin_token: Arc::new(RwLock::new(None)),
             token_cache_ttl_secs,
         }

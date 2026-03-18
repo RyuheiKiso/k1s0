@@ -1,280 +1,103 @@
-use crate::domain::repository::inventory_repository::InventoryRepository;
-use crate::proto::k1s0::event::service::inventory::v1::{
-    InventoryReleasedEvent, InventoryReservedEvent,
+use crate::domain::entity::event::{
+    EventMetadata, InventoryReleasedDomainEvent, InventoryReservedDomainEvent,
 };
-use crate::proto::k1s0::system::common::v1::EventMetadata;
+use crate::domain::repository::inventory_repository::InventoryRepository;
 use crate::usecase::event_publisher::InventoryEventPublisher;
-// カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
-use crate::proto::k1s0::system::common::v1::Timestamp;
+use k1s0_outbox::util::{json_datetime, json_i32, json_i64, json_str};
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::time;
 
-// ISO 8601 文字列を prost Timestamp に変換する
-fn parse_timestamp(s: &str) -> Option<Timestamp> {
-    chrono::DateTime::parse_from_rfc3339(s)
-        .ok()
-        .map(|dt| Timestamp {
-            seconds: dt.timestamp(),
-            nanos: dt.timestamp_subsec_nanos() as i32,
-        })
+/// JSON の metadata オブジェクトからドメインイベント用 EventMetadata に変換する
+fn json_to_event_metadata(metadata: &serde_json::Value) -> EventMetadata {
+    EventMetadata {
+        event_id: json_str(metadata, "event_id"),
+        event_type: json_str(metadata, "event_type"),
+        source: json_str(metadata, "source"),
+        timestamp: json_i64(metadata, "timestamp"),
+        trace_id: json_str(metadata, "trace_id"),
+        correlation_id: json_str(metadata, "correlation_id"),
+        schema_version: json_i32(metadata, "schema_version").max(1),
+        // 因果関係追跡用 ID
+        causation_id: json_str(metadata, "causation_id"),
+    }
 }
 
-/// OutboxPoller — 未パブリッシュの Outbox イベントを定期的にポーリングし、
-/// Kafka へパブリッシュ後にパブリッシュ済みとしてマークする。
-pub struct OutboxPoller {
+/// InventoryRepository を OutboxEventFetcher として使えるようにするアダプタ実装。
+/// ドメイン OutboxEvent は k1s0_outbox::OutboxEvent の再エクスポートのため、
+/// 型変換なしで直接返せる。
+#[async_trait::async_trait]
+impl k1s0_outbox::OutboxEventFetcher for dyn InventoryRepository {
+    async fn fetch_and_mark_events_published(
+        &self,
+        limit: i64,
+    ) -> anyhow::Result<Vec<k1s0_outbox::OutboxEvent>> {
+        InventoryRepository::fetch_and_mark_events_published(self, limit).await
+    }
+}
+
+/// OutboxEventHandler の実装 — イベント種別ごとに JSON をドメインイベントに変換して publish する
+struct InventoryOutboxHandler {
+    publisher: Arc<dyn InventoryEventPublisher>,
+}
+
+#[async_trait::async_trait]
+impl k1s0_outbox::OutboxEventHandler for InventoryOutboxHandler {
+    /// イベント種別に応じて JSON payload をドメインイベントに変換し publish する
+    async fn handle_event(&self, event: &k1s0_outbox::OutboxEvent) -> anyhow::Result<bool> {
+        let payload = &event.payload;
+
+        match event.event_type.as_str() {
+            // JSON payload を InventoryReservedDomainEvent に変換して publish する
+            "inventory.reserved" => {
+                let metadata = payload.get("metadata").cloned().unwrap_or_default();
+                let domain_event = InventoryReservedDomainEvent {
+                    metadata: Some(json_to_event_metadata(&metadata)),
+                    order_id: json_str(payload, "order_id"),
+                    product_id: json_str(payload, "product_id"),
+                    quantity: json_i32(payload, "quantity"),
+                    warehouse_id: json_str(payload, "warehouse_id"),
+                    reserved_at: json_datetime(payload, "reserved_at"),
+                };
+                self.publisher
+                    .publish_inventory_reserved(&domain_event)
+                    .await?;
+                Ok(true)
+            }
+            // JSON payload を InventoryReleasedDomainEvent に変換して publish する
+            "inventory.released" => {
+                let metadata = payload.get("metadata").cloned().unwrap_or_default();
+                let domain_event = InventoryReleasedDomainEvent {
+                    metadata: Some(json_to_event_metadata(&metadata)),
+                    order_id: json_str(payload, "order_id"),
+                    product_id: json_str(payload, "product_id"),
+                    quantity: json_i32(payload, "quantity"),
+                    warehouse_id: json_str(payload, "warehouse_id"),
+                    reason: json_str(payload, "reason"),
+                    released_at: json_datetime(payload, "released_at"),
+                };
+                self.publisher
+                    .publish_inventory_released(&domain_event)
+                    .await?;
+                Ok(true)
+            }
+            // 未知のイベント種別はスキップする
+            _ => Ok(false),
+        }
+    }
+}
+
+/// OutboxEventPoller のファクトリ関数。
+/// startup.rs から呼び出して汎用ポーラーを構築する。
+/// k1s0_outbox::poller::new_poller を使い、OutboxSource ボイラープレートを削除。
+pub fn new_outbox_poller(
     inventory_repo: Arc<dyn InventoryRepository>,
     event_publisher: Arc<dyn InventoryEventPublisher>,
-    poll_interval: Duration,
+    poll_interval: std::time::Duration,
     batch_size: i64,
-}
-
-impl OutboxPoller {
-    pub fn new(
-        inventory_repo: Arc<dyn InventoryRepository>,
-        event_publisher: Arc<dyn InventoryEventPublisher>,
-        poll_interval: Duration,
-        batch_size: i64,
-    ) -> Self {
-        Self {
-            inventory_repo,
-            event_publisher,
-            poll_interval,
-            batch_size,
-        }
-    }
-
-    /// バックグラウンドタスクとしてポーリングを開始する。
-    pub async fn run(&self, mut shutdown_rx: tokio::sync::watch::Receiver<bool>) {
-        tracing::info!(
-            poll_interval_ms = self.poll_interval.as_millis() as u64,
-            batch_size = self.batch_size,
-            "outbox poller started"
-        );
-
-        let mut interval = time::interval(self.poll_interval);
-
-        loop {
-            tokio::select! {
-                _ = interval.tick() => {
-                    if let Err(err) = self.poll_and_publish().await {
-                        tracing::error!(error = %err, "outbox poller failed to process events");
-                    }
-                }
-                _ = shutdown_rx.changed() => {
-                    tracing::info!("outbox poller shutting down");
-                    break;
-                }
-            }
-        }
-    }
-
-    async fn poll_and_publish(&self) -> anyhow::Result<()> {
-        let events = self
-            .inventory_repo
-            .fetch_unpublished_events(self.batch_size)
-            .await?;
-
-        if events.is_empty() {
-            return Ok(());
-        }
-
-        tracing::debug!(count = events.len(), "processing outbox events");
-
-        for event in &events {
-            let publish_result = match event.event_type.as_str() {
-                // JSON payload を InventoryReservedEvent (Protobuf) に変換して publish する
-                "inventory.reserved" => {
-                    let payload = &event.payload;
-                    let metadata = payload.get("metadata").cloned().unwrap_or_default();
-                    let proto_event = InventoryReservedEvent {
-                        metadata: Some(EventMetadata {
-                            event_id: metadata
-                                .get("event_id")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                            event_type: metadata
-                                .get("event_type")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                            source: metadata
-                                .get("source")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                            timestamp: metadata
-                                .get("timestamp")
-                                .and_then(|v| v.as_i64())
-                                .unwrap_or_default(),
-                            trace_id: metadata
-                                .get("trace_id")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                            correlation_id: metadata
-                                .get("correlation_id")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                            schema_version: metadata
-                                .get("schema_version")
-                                .and_then(|v| v.as_i64())
-                                .unwrap_or(1) as i32,
-                            // 因果関係追跡用 ID
-                            causation_id: metadata
-                                .get("causation_id")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                        }),
-                        order_id: payload
-                            .get("order_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        product_id: payload
-                            .get("product_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        quantity: payload
-                            .get("quantity")
-                            .and_then(|v| v.as_i64())
-                            .unwrap_or_default() as i32,
-                        warehouse_id: payload
-                            .get("warehouse_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        reserved_at: payload
-                            .get("reserved_at")
-                            .and_then(|v| v.as_str())
-                            .and_then(parse_timestamp),
-                    };
-                    self.event_publisher
-                        .publish_inventory_reserved(&proto_event)
-                        .await
-                }
-                // JSON payload を InventoryReleasedEvent (Protobuf) に変換して publish する
-                "inventory.released" => {
-                    let payload = &event.payload;
-                    let metadata = payload.get("metadata").cloned().unwrap_or_default();
-                    let proto_event = InventoryReleasedEvent {
-                        metadata: Some(EventMetadata {
-                            event_id: metadata
-                                .get("event_id")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                            event_type: metadata
-                                .get("event_type")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                            source: metadata
-                                .get("source")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                            timestamp: metadata
-                                .get("timestamp")
-                                .and_then(|v| v.as_i64())
-                                .unwrap_or_default(),
-                            trace_id: metadata
-                                .get("trace_id")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                            correlation_id: metadata
-                                .get("correlation_id")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                            schema_version: metadata
-                                .get("schema_version")
-                                .and_then(|v| v.as_i64())
-                                .unwrap_or(1) as i32,
-                            // 因果関係追跡用 ID
-                            causation_id: metadata
-                                .get("causation_id")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or_default()
-                                .to_string(),
-                        }),
-                        order_id: payload
-                            .get("order_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        product_id: payload
-                            .get("product_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        quantity: payload
-                            .get("quantity")
-                            .and_then(|v| v.as_i64())
-                            .unwrap_or_default() as i32,
-                        warehouse_id: payload
-                            .get("warehouse_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        reason: payload
-                            .get("reason")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        released_at: payload
-                            .get("released_at")
-                            .and_then(|v| v.as_str())
-                            .and_then(parse_timestamp),
-                    };
-                    self.event_publisher
-                        .publish_inventory_released(&proto_event)
-                        .await
-                }
-                unknown => {
-                    tracing::warn!(
-                        event_type = unknown,
-                        event_id = %event.id,
-                        "unknown outbox event type, skipping"
-                    );
-                    continue;
-                }
-            };
-
-            match publish_result {
-                Ok(()) => {
-                    if let Err(err) = self.inventory_repo.mark_event_published(event.id).await {
-                        tracing::error!(
-                            error = %err,
-                            event_id = %event.id,
-                            "failed to mark outbox event as published"
-                        );
-                    } else {
-                        tracing::debug!(
-                            event_id = %event.id,
-                            event_type = %event.event_type,
-                            "outbox event published and marked"
-                        );
-                    }
-                }
-                Err(err) => {
-                    tracing::warn!(
-                        error = %err,
-                        event_id = %event.id,
-                        event_type = %event.event_type,
-                        "failed to publish outbox event, will retry"
-                    );
-                }
-            }
-        }
-
-        Ok(())
-    }
+) -> k1s0_outbox::OutboxEventPoller {
+    let handler = Arc::new(InventoryOutboxHandler {
+        publisher: event_publisher,
+    });
+    k1s0_outbox::poller::new_poller(inventory_repo, handler, poll_interval, batch_size)
 }
 
 #[cfg(test)]
@@ -284,6 +107,7 @@ mod tests {
     use crate::domain::repository::inventory_repository::MockInventoryRepository;
     use crate::usecase::event_publisher::MockInventoryEventPublisher;
     use chrono::Utc;
+    use std::time::Duration;
     use uuid::Uuid;
 
     fn sample_outbox_event(event_type: &str) -> OutboxEvent {
@@ -298,38 +122,35 @@ mod tests {
         }
     }
 
+    // ファクトリ関数でポーラーが正常に構築されることを確認する
     #[tokio::test]
-    async fn test_poll_and_publish_empty() {
+    async fn test_new_outbox_poller_creation() {
         let mut mock_repo = MockInventoryRepository::new();
         let mock_publisher = MockInventoryEventPublisher::new();
 
         mock_repo
-            .expect_fetch_unpublished_events()
-            .times(1)
+            .expect_fetch_and_mark_events_published()
             .returning(|_| Ok(vec![]));
 
-        let poller = OutboxPoller::new(
+        let _poller = new_outbox_poller(
             Arc::new(mock_repo),
             Arc::new(mock_publisher),
             Duration::from_secs(1),
             10,
         );
-
-        let result = poller.poll_and_publish().await;
-        assert!(result.is_ok());
     }
 
+    // inventory.reserved イベントが正常にパブリッシュされることを確認する
     #[tokio::test]
     async fn test_poll_and_publish_reserved_event() {
         let event = sample_outbox_event("inventory.reserved");
-        let event_id = event.id;
         let events = vec![event];
 
         let mut mock_repo = MockInventoryRepository::new();
         let mut mock_publisher = MockInventoryEventPublisher::new();
 
         mock_repo
-            .expect_fetch_unpublished_events()
+            .expect_fetch_and_mark_events_published()
             .times(1)
             .returning(move |_| Ok(events.clone()));
 
@@ -338,34 +159,36 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        mock_repo
-            .expect_mark_event_published()
-            .withf(move |id| *id == event_id)
-            .times(1)
-            .returning(|_| Ok(()));
-
-        let poller = OutboxPoller::new(
+        let poller = new_outbox_poller(
             Arc::new(mock_repo),
             Arc::new(mock_publisher),
             Duration::from_secs(1),
             10,
         );
 
-        let result = poller.poll_and_publish().await;
-        assert!(result.is_ok());
+        let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+        let poller = Arc::new(poller);
+        let poller_clone = poller.clone();
+        let handle = tokio::spawn(async move {
+            poller_clone.run(shutdown_rx).await;
+        });
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        shutdown_tx.send(true).unwrap();
+        handle.await.unwrap();
     }
 
+    // inventory.released イベントが正常にパブリッシュされることを確認する
     #[tokio::test]
     async fn test_poll_and_publish_released_event() {
         let event = sample_outbox_event("inventory.released");
-        let event_id = event.id;
         let events = vec![event];
 
         let mut mock_repo = MockInventoryRepository::new();
         let mut mock_publisher = MockInventoryEventPublisher::new();
 
         mock_repo
-            .expect_fetch_unpublished_events()
+            .expect_fetch_and_mark_events_published()
             .times(1)
             .returning(move |_| Ok(events.clone()));
 
@@ -374,25 +197,28 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        mock_repo
-            .expect_mark_event_published()
-            .withf(move |id| *id == event_id)
-            .times(1)
-            .returning(|_| Ok(()));
-
-        let poller = OutboxPoller::new(
+        let poller = new_outbox_poller(
             Arc::new(mock_repo),
             Arc::new(mock_publisher),
             Duration::from_secs(1),
             10,
         );
 
-        let result = poller.poll_and_publish().await;
-        assert!(result.is_ok());
+        let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+        let poller = Arc::new(poller);
+        let poller_clone = poller.clone();
+        let handle = tokio::spawn(async move {
+            poller_clone.run(shutdown_rx).await;
+        });
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        shutdown_tx.send(true).unwrap();
+        handle.await.unwrap();
     }
 
+    // publish 失敗時もポーラー自体はエラーにならないことを確認する
     #[tokio::test]
-    async fn test_poll_and_publish_failure_does_not_mark() {
+    async fn test_poll_and_publish_failure_logs_warning() {
         let event = sample_outbox_event("inventory.reserved");
         let events = vec![event];
 
@@ -400,7 +226,7 @@ mod tests {
         let mut mock_publisher = MockInventoryEventPublisher::new();
 
         mock_repo
-            .expect_fetch_unpublished_events()
+            .expect_fetch_and_mark_events_published()
             .times(1)
             .returning(move |_| Ok(events.clone()));
 
@@ -409,30 +235,36 @@ mod tests {
             .times(1)
             .returning(|_| Err(anyhow::anyhow!("kafka unavailable")));
 
-        // mark_event_published should NOT be called when publish fails
-        mock_repo.expect_mark_event_published().times(0);
-
-        let poller = OutboxPoller::new(
+        let poller = new_outbox_poller(
             Arc::new(mock_repo),
             Arc::new(mock_publisher),
             Duration::from_secs(1),
             10,
         );
 
-        let result = poller.poll_and_publish().await;
-        assert!(result.is_ok());
+        let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+        let poller = Arc::new(poller);
+        let poller_clone = poller.clone();
+        let handle = tokio::spawn(async move {
+            poller_clone.run(shutdown_rx).await;
+        });
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        shutdown_tx.send(true).unwrap();
+        handle.await.unwrap();
     }
 
+    // シャットダウンシグナルを受信すると run が正常終了することを確認する
     #[tokio::test]
     async fn test_run_shutdown() {
         let mut mock_repo = MockInventoryRepository::new();
         let mock_publisher = MockInventoryEventPublisher::new();
 
         mock_repo
-            .expect_fetch_unpublished_events()
+            .expect_fetch_and_mark_events_published()
             .returning(|_| Ok(vec![]));
 
-        let poller = Arc::new(OutboxPoller::new(
+        let poller = Arc::new(new_outbox_poller(
             Arc::new(mock_repo),
             Arc::new(mock_publisher),
             Duration::from_millis(50),

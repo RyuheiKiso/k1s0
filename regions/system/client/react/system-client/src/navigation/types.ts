@@ -32,5 +32,5 @@ export interface NavigationResponse {
 
 export type ComponentRegistry = Record<
   string,
-  React.ComponentType<any> | (() => Promise<{ default: React.ComponentType<any> }>)
+  React.ComponentType<Record<string, unknown>> | (() => Promise<{ default: React.ComponentType<Record<string, unknown>> }>)
 >;

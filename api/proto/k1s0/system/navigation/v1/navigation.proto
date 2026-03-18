@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package k1s0.system.navigation.v1;
 
-option go_package   = "github.com/k1s0/api/gen/go/k1s0/system/navigation/v1;navigationv1";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/navigation/v1;navigationv1";
 option java_package = "io.k1s0.system.navigation.v1";
 
 // NavigationService はクライアントアプリのルーティング設定を提供する。

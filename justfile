@@ -307,6 +307,68 @@ proto:
 gen-sdk service proto="api/proto":
     ./scripts/generate-client-sdk.sh --service {{service}} --proto {{proto}}
 
+# --- Docker ---
+
+# 全サービスの Docker イメージをローカルビルド
+docker-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Rust サーバー（system tier）のイメージビルド
+    for dockerfile in $(find regions/system/server/rust -name 'Dockerfile' | sort); do
+        server_name="$(basename "$(dirname "$dockerfile")")"
+        echo "=== docker build $server_name ==="
+        if [ "$server_name" = "graphql-gateway" ]; then
+            docker build -f "$dockerfile" -t "k1s0-$server_name" .
+        else
+            docker build -f "$dockerfile" -t "k1s0-$server_name" regions/system
+        fi
+    done
+    # Go サーバー（bff-proxy）のイメージビルド
+    echo "=== docker build bff-proxy ==="
+    docker build -t k1s0-bff-proxy regions/system/server/go/bff-proxy
+
+# ローカル開発環境を起動（docker compose）
+local-up:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Starting local development environment ==="
+    if [ -f docker-compose.yaml ] || [ -f docker-compose.yml ]; then
+        docker compose up -d
+    elif [ -f infra/docker/docker-compose.yaml ] || [ -f infra/docker/docker-compose.yml ]; then
+        docker compose -f infra/docker/docker-compose.yaml up -d
+    else
+        echo "docker-compose ファイルが見つかりません。scripts/start-local.sh を使用します。"
+        bash scripts/start-local.sh
+    fi
+
+# ローカル開発環境を停止
+local-down:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Stopping local development environment ==="
+    if [ -f docker-compose.yaml ] || [ -f docker-compose.yml ]; then
+        docker compose down
+    elif [ -f infra/docker/docker-compose.yaml ] || [ -f infra/docker/docker-compose.yml ]; then
+        docker compose -f infra/docker/docker-compose.yaml down
+    fi
+
+# 統合テストを実行
+integration-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Running integration tests ==="
+    # 統合テスト対象サーバーを検出して実行
+    chmod +x scripts/ci-list-integration-servers.sh
+    mapfile -t servers < <(scripts/ci-list-integration-servers.sh)
+    for server in "${servers[@]}"; do
+        echo "=== Integration test: $server ==="
+        if [ -f "$server/Cargo.toml" ]; then
+            cargo test --manifest-path "$server/Cargo.toml" --test '*' -- --ignored
+        elif [ -f "$server/go.mod" ]; then
+            (cd "$server" && go test -tags=integration ./... -race -count=1)
+        fi
+    done
+
 # --- CI ---
 
 # CI 全実行（lint + test + build）

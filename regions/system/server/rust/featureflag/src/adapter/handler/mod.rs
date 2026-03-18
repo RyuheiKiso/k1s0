@@ -9,7 +9,7 @@ use axum::response::IntoResponse;
 use axum::routing::{delete, get, post, put};
 use axum::Router;
 
-use crate::adapter::middleware::auth::{auth_middleware, FeatureflagAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::domain::repository::FeatureFlagRepository;
 use crate::infrastructure::kafka_producer::FlagEventPublisher;
@@ -30,11 +30,11 @@ pub struct AppState {
     pub update_flag_uc: Arc<UpdateFlagUseCase>,
     pub delete_flag_uc: Arc<DeleteFlagUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<FeatureflagAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: FeatureflagAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

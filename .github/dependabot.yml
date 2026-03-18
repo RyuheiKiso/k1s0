@@ -1,11 +1,15 @@
 # Dependabot 自動依存更新設定
 # 各パッケージエコシステムに対して週次で依存関係の更新PRを作成する
+# モノレポの全ディレクトリに対応するため directories フィールドで複数パスを指定
 version: 2
 
 updates:
-  # Go モジュールの依存更新（週次）
+  # Go モジュールの依存更新（go.work ルート + 個別モジュール）
   - package-ecosystem: "gomod"
-    directory: "/"
+    directories:
+      - "/"
+      - "/regions/system/library/go/*"
+      - "/regions/system/server/go/*"
     schedule:
       interval: "weekly"
     target-branch: "main"
@@ -14,9 +18,15 @@ updates:
       - "go"
     open-pull-requests-limit: 10
 
-  # Rust (Cargo) の依存更新（週次）
+  # Rust (Cargo) の依存更新（ワークスペースルート + standalone サーバー）
   - package-ecosystem: "cargo"
-    directory: "/"
+    directories:
+      - "/regions/system"
+      - "/CLI"
+      - "/regions/business/accounting/server/rust/domain-master"
+      - "/regions/service/inventory/server/rust/inventory"
+      - "/regions/service/order/server/rust/order"
+      - "/regions/service/payment/server/rust/payment"
     schedule:
       interval: "weekly"
     target-branch: "main"
@@ -25,9 +35,17 @@ updates:
       - "rust"
     open-pull-requests-limit: 10
 
-  # npm の依存更新（週次）
+  # npm の依存更新（React クライアント + TypeScript ライブラリ）
   - package-ecosystem: "npm"
-    directory: "/"
+    directories:
+      - "/regions/business/accounting/client/react/domain-master"
+      - "/regions/service/inventory/client/react/inventory"
+      - "/regions/service/order/client/react/order"
+      - "/regions/service/payment/client/react/payment"
+      - "/regions/system/client/react/app-catalog"
+      - "/regions/system/client/react/system-client"
+      - "/regions/system/library/typescript/*"
+      - "/CLI/crates/k1s0-gui/ui"
     schedule:
       interval: "weekly"
     target-branch: "main"
@@ -36,9 +54,15 @@ updates:
       - "npm"
     open-pull-requests-limit: 10
 
-  # Dart (pub) の依存更新（週次）
+  # Dart (pub) の依存更新（Flutter クライアント + Dart ライブラリ）
   - package-ecosystem: "pub"
-    directory: "/"
+    directories:
+      - "/regions/business/accounting/client/flutter/domain_master"
+      - "/regions/service/inventory/client/flutter/inventory"
+      - "/regions/service/order/client/flutter/order"
+      - "/regions/service/payment/client/flutter/payment"
+      - "/regions/system/client/flutter/system_client"
+      - "/regions/system/library/dart/*"
     schedule:
       interval: "weekly"
     target-branch: "main"

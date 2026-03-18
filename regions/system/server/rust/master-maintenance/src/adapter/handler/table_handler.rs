@@ -63,7 +63,7 @@ pub async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse
 pub async fn list_tables(
     State(state): State<AppState>,
     Query(query): Query<ListTablesQuery>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let domain_filter = match &query.domain_scope {
         Some(ds) => DomainFilter::Domain(ds.clone()),
         None => DomainFilter::All,
@@ -102,7 +102,7 @@ pub async fn get_table(
     State(state): State<AppState>,
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let table = state
         .manage_tables_uc
         .get_table(&name, ds_query.domain_scope.as_deref())
@@ -118,12 +118,10 @@ pub async fn get_table(
         .list_columns(&name, ds_query.domain_scope.as_deref())
         .await?;
 
-    let mut payload = serde_json::to_value(table).unwrap();
+    // テーブル情報とカラム情報をマージしたJSONオブジェクトを構築する
+    let mut payload = serde_json::json!(table);
     if let Some(object) = payload.as_object_mut() {
-        object.insert(
-            "columns".to_string(),
-            serde_json::to_value(columns).unwrap(),
-        );
+        object.insert("columns".to_string(), serde_json::json!(columns));
     }
 
     Ok(Json(payload))
@@ -133,7 +131,7 @@ pub async fn create_table(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Json(input): Json<CreateTableDefinition>,
-) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let table = state.manage_tables_uc.create_table(&input, &actor).await?;
     publish_change_event(
@@ -152,7 +150,7 @@ pub async fn create_table(
     .await;
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(table).unwrap()),
+        Json(table),
     ))
 }
 
@@ -161,12 +159,12 @@ pub async fn update_table(
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
     Json(input): Json<UpdateTableDefinition>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let table = state
         .manage_tables_uc
         .update_table(&name, &input, ds_query.domain_scope.as_deref())
         .await?;
-    Ok(Json(serde_json::to_value(table).unwrap()))
+    Ok(Json(table))
 }
 
 pub async fn delete_table(
@@ -185,7 +183,7 @@ pub async fn get_table_schema(
     State(state): State<AppState>,
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let schema = state
         .manage_tables_uc
         .get_table_schema(&name, ds_query.domain_scope.as_deref())
@@ -197,12 +195,12 @@ pub async fn list_columns(
     State(state): State<AppState>,
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let columns = state
         .manage_columns_uc
         .list_columns(&name, ds_query.domain_scope.as_deref())
         .await?;
-    Ok(Json(serde_json::to_value(columns).unwrap()))
+    Ok(Json(columns))
 }
 
 pub async fn create_columns(
@@ -210,14 +208,14 @@ pub async fn create_columns(
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
     Json(input): Json<serde_json::Value>,
-) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let columns = state
         .manage_columns_uc
         .create_columns(&name, &input, ds_query.domain_scope.as_deref())
         .await?;
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(columns).unwrap()),
+        Json(columns),
     ))
 }
 
@@ -226,12 +224,12 @@ pub async fn update_column(
     Path((name, column)): Path<(String, String)>,
     Query(ds_query): Query<DomainScopeQuery>,
     Json(input): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let col = state
         .manage_columns_uc
         .update_column(&name, &column, &input, ds_query.domain_scope.as_deref())
         .await?;
-    Ok(Json(serde_json::to_value(col).unwrap()))
+    Ok(Json(col))
 }
 
 pub async fn delete_column(
@@ -248,7 +246,7 @@ pub async fn delete_column(
 
 pub async fn list_domains(
     State(state): State<AppState>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let domains = state.manage_tables_uc.list_domains().await?;
     let domain_list: Vec<serde_json::Value> = domains
         .into_iter()

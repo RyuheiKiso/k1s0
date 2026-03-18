@@ -22,7 +22,7 @@ use crate::domain::entity::health::HealthStatus;
 pub async fn get_health(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.health_status_uc.get(id).await {
         Ok(Some(health)) => {
-            (StatusCode::OK, Json(serde_json::to_value(health).unwrap())).into_response()
+            (StatusCode::OK, Json(health)).into_response()
         }
         Ok(None) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "No health status found for this service");

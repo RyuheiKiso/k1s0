@@ -9,7 +9,6 @@ pub struct DeleteFileInput {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DeleteFileOutput {
     pub success: bool,
     pub message: String,

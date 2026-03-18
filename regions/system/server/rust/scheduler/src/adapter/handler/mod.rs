@@ -9,7 +9,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post, put};
 use axum::Router;
 
-use crate::adapter::middleware::auth::{auth_middleware, SchedulerAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
     CreateJobUseCase, DeleteJobUseCase, GetJobUseCase, ListExecutionsUseCase, ListJobsUseCase,
@@ -29,11 +29,11 @@ pub struct AppState {
     pub trigger_job_uc: Arc<TriggerJobUseCase>,
     pub list_executions_uc: Arc<ListExecutionsUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<SchedulerAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: SchedulerAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

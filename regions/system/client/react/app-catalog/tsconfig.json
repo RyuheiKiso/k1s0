@@ -15,7 +15,11 @@
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "system-client": ["../system-client/src/index.ts"],
+      "system-client/*": ["../system-client/src/*"]
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]

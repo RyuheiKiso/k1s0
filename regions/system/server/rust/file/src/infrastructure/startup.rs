@@ -1,3 +1,4 @@
+use anyhow::Context;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -31,7 +32,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -169,7 +170,7 @@ pub async fn run() -> anyhow::Result<()> {
     let auth_state = k1s0_server_common::require_auth_state(
         "file-server",
         &cfg.app.environment,
-        cfg.auth.as_ref().map(|auth_cfg| {
+        cfg.auth.as_ref().map(|auth_cfg| -> anyhow::Result<_> {
             info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for file-server");
             let jwks_verifier = Arc::new(
                 k1s0_auth::JwksVerifier::new(
@@ -178,12 +179,12 @@ pub async fn run() -> anyhow::Result<()> {
                     &auth_cfg.audience,
                     std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
                 )
-                .expect("Failed to create JWKS verifier"),
+                .context("JWKS 検証器の作成に失敗")?,
             );
-            crate::adapter::middleware::auth::FileAuthState {
+            Ok(crate::adapter::middleware::auth::AuthState {
                 verifier: jwks_verifier,
-            }
-        }),
+            })
+        }).transpose()?,
     )?;
 
     // REST app state

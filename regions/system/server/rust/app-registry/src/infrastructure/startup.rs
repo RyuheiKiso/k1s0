@@ -1,3 +1,4 @@
+use anyhow::Context;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -32,7 +33,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -50,7 +51,7 @@ pub async fn run() -> anyhow::Result<()> {
                 &cfg.auth.jwt.audience,
                 std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
             )
-            .expect("Failed to create JWKS verifier"),
+            .context("JWKS 検証器の作成に失敗")?,
         );
         Arc::new(super::JwksVerifierAdapter::new(jwks_verifier))
     } else {

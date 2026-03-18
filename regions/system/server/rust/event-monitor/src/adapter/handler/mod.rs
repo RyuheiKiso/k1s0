@@ -9,7 +9,7 @@ use axum::response::IntoResponse;
 use axum::routing::{delete, get, post, put};
 use axum::Router;
 
-use crate::adapter::middleware::auth::{auth_middleware, EventMonitorAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
     CreateFlowUseCase, DeleteFlowUseCase, ExecuteReplayUseCase, GetFlowInstanceUseCase,
@@ -36,11 +36,11 @@ pub struct AppState {
     pub preview_replay_uc: Arc<PreviewReplayUseCase>,
     pub execute_replay_uc: Arc<ExecuteReplayUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<EventMonitorAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: EventMonitorAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

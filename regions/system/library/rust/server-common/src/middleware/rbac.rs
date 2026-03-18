@@ -13,17 +13,17 @@ pub enum Tier {
     Service,
 }
 
+/// RBAC チェックの Future 型エイリアス
+type RbacFuture = std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<Response, ServiceError>> + Send>,
+>;
+
 /// RBAC ミドルウェアを返す。axum の from_fn で使用する。
 pub fn require_permission(
     tier: Tier,
     _resource: &'static str,
     action: &'static str,
-) -> impl Fn(
-    Request<Body>,
-    Next,
-) -> std::pin::Pin<
-    Box<dyn std::future::Future<Output = Result<Response, ServiceError>> + Send>,
-> + Clone {
+) -> impl Fn(Request<Body>, Next) -> RbacFuture + Clone {
     move |req, next| Box::pin(rbac_check(req, next, tier, action))
 }
 
@@ -43,7 +43,7 @@ async fn rbac_check(
     if !check_permission(tier, roles, action) {
         return Err(ServiceError::forbidden(
             "AUTH",
-            &format!("Insufficient permissions for action: {}", action),
+            format!("Insufficient permissions for action: {}", action),
         ));
     }
 

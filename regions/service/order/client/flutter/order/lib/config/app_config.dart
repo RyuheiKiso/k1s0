@@ -55,13 +55,13 @@ class AppConfig {
   static Future<AppConfig> load(String env) async {
     /// ベース設定ファイルを読み込む
     final baseYaml = await rootBundle.loadString('config/config.yaml');
-    final baseMap = _yamlToMap(loadYaml(baseYaml));
+    final baseMap = _yamlToNative(loadYaml(baseYaml));
 
     /// 環境別オーバーレイ設定が存在する場合のみ読み込んでマージする
     Map<String, dynamic> merged;
     try {
       final overlayYaml = await rootBundle.loadString('config/config.$env.yaml');
-      final overlayMap = _yamlToMap(loadYaml(overlayYaml));
+      final overlayMap = _yamlToNative(loadYaml(overlayYaml));
       merged = _deepMerge(baseMap, overlayMap);
     } catch (_) {
       merged = baseMap;
@@ -88,18 +88,24 @@ class AppConfig {
     );
   }
 
-  /// YamlMapをMap<String, dynamic>に再帰的に変換する
-  /// yamlパッケージの型をDartの標準Map型に統一する
-  static Map<String, dynamic> _yamlToMap(dynamic yaml) {
+  /// YamlMap を Map<String, dynamic> に、YamlList を List<dynamic> に再帰的に変換する
+  /// yaml パッケージの型を Dart の標準コレクション型に統一する
+  static dynamic _yamlToNative(dynamic yaml) {
     if (yaml is YamlMap) {
-      return yaml.map((k, v) => MapEntry(k.toString(), _yamlToMap(v)));
+      return Map<String, dynamic>.fromEntries(
+        yaml.entries.map((e) => MapEntry(e.key.toString(), _yamlToNative(e.value))),
+      );
     }
+    // YamlList はリストとして返す（Map への誤変換を防止）
     if (yaml is YamlList) {
-      return yaml.asMap().map((k, v) => MapEntry(k.toString(), _yamlToMap(v)));
+      return yaml.map((v) => _yamlToNative(v)).toList();
     }
-    return yaml is Map
-        ? yaml.map((k, v) => MapEntry(k.toString(), _yamlToMap(v)))
-        : yaml;
+    if (yaml is Map) {
+      return Map<String, dynamic>.fromEntries(
+        yaml.entries.map((e) => MapEntry(e.key.toString(), _yamlToNative(e.value))),
+      );
+    }
+    return yaml;
   }
 
   /// 2つのMapを再帰的にディープマージする

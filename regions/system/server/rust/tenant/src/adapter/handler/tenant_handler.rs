@@ -10,7 +10,7 @@ use uuid::Uuid;
 use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
-use crate::adapter::middleware::auth::TenantAuthState;
+use crate::adapter::middleware::auth::AuthState;
 use crate::domain::entity::Plan;
 use crate::usecase::{
     ActivateTenantError, ActivateTenantUseCase, AddMemberError, AddMemberInput, AddMemberUseCase,
@@ -21,49 +21,45 @@ use crate::usecase::{
     UpdateMemberRoleUseCase, UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase,
 };
 
-fn not_found_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
-    let err = ErrorResponse::new(codes::tenant::not_found(), msg);
+// テナントAPIの共通エラーレスポンスヘルパー（ErrorResponseを直接Jsonで返す）
+fn not_found_response(msg: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
     (
         StatusCode::NOT_FOUND,
-        Json(serde_json::to_value(&err).unwrap()),
+        Json(ErrorResponse::new(codes::tenant::not_found(), msg)),
     )
 }
 
-fn member_not_found_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
-    let err = ErrorResponse::new(codes::tenant::member_not_found(), msg);
+fn member_not_found_response(msg: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
     (
         StatusCode::NOT_FOUND,
-        Json(serde_json::to_value(&err).unwrap()),
+        Json(ErrorResponse::new(codes::tenant::member_not_found(), msg)),
     )
 }
 
 fn bad_request_response(
     code: k1s0_server_common::ErrorCode,
     msg: impl Into<String>,
-) -> (StatusCode, Json<serde_json::Value>) {
-    let err = ErrorResponse::new(code, msg);
+) -> (StatusCode, Json<ErrorResponse>) {
     (
         StatusCode::BAD_REQUEST,
-        Json(serde_json::to_value(&err).unwrap()),
+        Json(ErrorResponse::new(code, msg)),
     )
 }
 
 fn conflict_response(
     code: k1s0_server_common::ErrorCode,
     msg: impl Into<String>,
-) -> (StatusCode, Json<serde_json::Value>) {
-    let err = ErrorResponse::new(code, msg);
+) -> (StatusCode, Json<ErrorResponse>) {
     (
         StatusCode::CONFLICT,
-        Json(serde_json::to_value(&err).unwrap()),
+        Json(ErrorResponse::new(code, msg)),
     )
 }
 
-fn internal_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
-    let err = ErrorResponse::new(codes::tenant::internal_error(), msg);
+fn internal_response(msg: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
     (
         StatusCode::INTERNAL_SERVER_ERROR,
-        Json(serde_json::to_value(&err).unwrap()),
+        Json(ErrorResponse::new(codes::tenant::internal_error(), msg)),
     )
 }
 
@@ -81,7 +77,7 @@ pub struct AppState {
     pub remove_member_uc: Arc<RemoveMemberUseCase>,
     pub update_member_role_uc: Arc<UpdateMemberRoleUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<TenantAuthState>,
+    pub auth_state: Option<AuthState>,
     pub db_pool: Option<Arc<sqlx::PgPool>>,
     pub kafka_brokers: Option<Vec<String>>,
     pub keycloak_health_url: Option<String>,
@@ -89,7 +85,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: TenantAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
@@ -295,7 +291,7 @@ pub async fn list_tenants(
                 page_size: query.page_size,
                 has_next,
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(ListTenantsError::Internal(msg)) => {
             (StatusCode::INTERNAL_SERVER_ERROR, internal_response(msg)).into_response()
@@ -333,7 +329,7 @@ pub async fn get_tenant(
                 created_at: t.created_at.to_rfc3339(),
                 updated_at: t.updated_at.to_rfc3339(),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(GetTenantError::NotFound(_)) => {
             not_found_response(format!("tenant not found: {}", id)).into_response()
@@ -392,7 +388,7 @@ pub async fn create_tenant(
             };
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).unwrap()),
+                Json(resp),
             )
                 .into_response()
         }
@@ -454,7 +450,7 @@ pub async fn update_tenant(
                 created_at: t.created_at.to_rfc3339(),
                 updated_at: t.updated_at.to_rfc3339(),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(UpdateTenantError::NotFound(_)) => {
             not_found_response(format!("tenant not found: {}", id)).into_response()
@@ -497,7 +493,7 @@ pub async fn delete_tenant(
                 created_at: t.created_at.to_rfc3339(),
                 updated_at: t.updated_at.to_rfc3339(),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(DeleteTenantError::NotFound(_)) => {
             not_found_response(format!("tenant not found: {}", id)).into_response()
@@ -540,7 +536,7 @@ pub async fn suspend_tenant(
                 created_at: t.created_at.to_rfc3339(),
                 updated_at: t.updated_at.to_rfc3339(),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(SuspendTenantError::NotFound(_)) => {
             not_found_response(format!("tenant not found: {}", id)).into_response()
@@ -583,7 +579,7 @@ pub async fn activate_tenant(
                 created_at: t.created_at.to_rfc3339(),
                 updated_at: t.updated_at.to_rfc3339(),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(ActivateTenantError::NotFound(_)) => {
             not_found_response(format!("tenant not found: {}", id)).into_response()
@@ -677,7 +673,7 @@ pub async fn add_member(
             };
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).unwrap()),
+                Json(resp),
             )
                 .into_response()
         }
@@ -768,7 +764,7 @@ pub async fn update_member_role(
                 role: member.role,
                 joined_at: member.joined_at.to_rfc3339(),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(UpdateMemberRoleError::NotFound) => {
             member_not_found_response("member not found").into_response()

@@ -116,7 +116,7 @@ jobs:
       # SBOM（ソフトウェア部品表）を生成してサプライチェーンの透明性を確保
       - name: Generate SBOM
         # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # master
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: fs
           scan-ref: ${{ inputs.flutter_project_path }}

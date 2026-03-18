@@ -84,10 +84,11 @@ impl KeycloakClient {
     pub fn new(config: KeycloakConfig) -> Self {
         Self {
             config,
+            // HTTP クライアントを構築する（デフォルト設定では失敗しない）
             http_client: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(10))
                 .build()
-                .unwrap(),
+                .expect("reqwest::Client の構築に失敗: デフォルト TLS バックエンド未対応"),
             admin_token: Arc::new(RwLock::new(None)),
         }
     }
@@ -340,7 +341,7 @@ mod tests {
         assert_eq!(user.username, "taro.yamada");
         assert!(user.enabled);
         assert_eq!(
-            user.attributes.get("department").unwrap(),
+            user.attributes.get("department").expect("department attribute should exist"),
             &vec!["engineering".to_string()]
         );
     }
@@ -366,7 +367,7 @@ realm: "k1s0"
 client_id: "auth-server"
 client_secret: "secret"
 "#;
-        let config: KeycloakConfig = serde_yaml::from_str(yaml).unwrap();
+        let config: KeycloakConfig = serde_yaml::from_str(yaml).expect("YAML deserialization should succeed");
         assert_eq!(config.base_url, "https://auth.k1s0.internal.example.com");
         assert_eq!(config.realm, "k1s0");
     }

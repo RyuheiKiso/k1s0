@@ -17,7 +17,7 @@ func TestExecute_Success(t *testing.T) {
 	policy := ResiliencyPolicy{}
 	dec := NewResiliencyDecorator(policy)
 
-	result, err := Execute[int](context.Background(), dec, func() (int, error) {
+	result, err := Execute[int](context.Background(), dec, func(ctx context.Context) (int, error) {
 		return 42, nil
 	})
 
@@ -37,7 +37,7 @@ func TestExecute_RetrySuccess(t *testing.T) {
 	dec := NewResiliencyDecorator(policy)
 
 	var counter atomic.Int32
-	result, err := Execute[int](context.Background(), dec, func() (int, error) {
+	result, err := Execute[int](context.Background(), dec, func(ctx context.Context) (int, error) {
 		c := counter.Add(1)
 		if c < 3 {
 			return 0, errors.New("fail")
@@ -61,7 +61,7 @@ func TestExecute_MaxRetriesExceeded(t *testing.T) {
 	}
 	dec := NewResiliencyDecorator(policy)
 
-	_, err := Execute[int](context.Background(), dec, func() (int, error) {
+	_, err := Execute[int](context.Background(), dec, func(ctx context.Context) (int, error) {
 		return 0, errors.New("always fail")
 	})
 
@@ -78,7 +78,7 @@ func TestExecute_Timeout(t *testing.T) {
 	}
 	dec := NewResiliencyDecorator(policy)
 
-	_, err := Execute[int](context.Background(), dec, func() (int, error) {
+	_, err := Execute[int](context.Background(), dec, func(ctx context.Context) (int, error) {
 		time.Sleep(1 * time.Second)
 		return 42, nil
 	})
@@ -102,13 +102,13 @@ func TestExecute_CircuitBreakerOpens(t *testing.T) {
 
 	// Trip the circuit breaker
 	for i := 0; i < 3; i++ {
-		_, _ = Execute[int](context.Background(), dec, func() (int, error) {
+		_, _ = Execute[int](context.Background(), dec, func(ctx context.Context) (int, error) {
 			return 0, errors.New("fail")
 		})
 	}
 
 	// Next call should fail with circuit open
-	_, err := Execute[int](context.Background(), dec, func() (int, error) {
+	_, err := Execute[int](context.Background(), dec, func(ctx context.Context) (int, error) {
 		return 42, nil
 	})
 
@@ -133,7 +133,7 @@ func TestExecute_BulkheadFull(t *testing.T) {
 
 	// Occupy the single bulkhead slot
 	go func() {
-		_, _ = Execute[int](context.Background(), dec, func() (int, error) {
+		_, _ = Execute[int](context.Background(), dec, func(ctx context.Context) (int, error) {
 			close(started)
 			<-done
 			return 1, nil
@@ -143,7 +143,7 @@ func TestExecute_BulkheadFull(t *testing.T) {
 	<-started
 
 	// This should fail with bulkhead full
-	_, err := Execute[int](context.Background(), dec, func() (int, error) {
+	_, err := Execute[int](context.Background(), dec, func(ctx context.Context) (int, error) {
 		return 2, nil
 	})
 

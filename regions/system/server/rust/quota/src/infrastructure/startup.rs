@@ -1,3 +1,4 @@
+use anyhow::Context;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -36,7 +37,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -221,7 +222,7 @@ pub async fn run() -> anyhow::Result<()> {
     let auth_state = k1s0_server_common::require_auth_state(
         "quota-server",
         &cfg.app.environment,
-        cfg.auth.as_ref().map(|auth_cfg| {
+        cfg.auth.as_ref().map(|auth_cfg| -> anyhow::Result<_> {
             info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for quota-server");
             let jwks_verifier = Arc::new(
                 k1s0_auth::JwksVerifier::new(
@@ -230,12 +231,12 @@ pub async fn run() -> anyhow::Result<()> {
                     &auth_cfg.audience,
                     std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
                 )
-                .expect("Failed to create JWKS verifier"),
+                .context("JWKS 検証器の作成に失敗")?,
             );
-            adapter::middleware::auth::QuotaAuthState {
+            Ok(adapter::middleware::auth::AuthState {
                 verifier: jwks_verifier,
-            }
-        }),
+            })
+        }).transpose()?,
     )?;
 
     let mut state = adapter::handler::AppState {
@@ -358,7 +359,11 @@ async fn run_reset_cron(
         for (label, cron) in &schedules {
             if let Ok(next) = cron.find_next_occurrence(&now, false) {
                 // 次の発火時刻が未設定、または現在の候補より早い場合に更新する
-                if next_fire.is_none() || next < next_fire.expect("next_fireの値が存在するはず").0 {
+                let should_update = match next_fire {
+                    None => true,
+                    Some((current_next, _)) => next < current_next,
+                };
+                if should_update {
                     next_fire = Some((next, label));
                 }
             }

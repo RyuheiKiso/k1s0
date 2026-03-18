@@ -123,7 +123,7 @@ pub async fn list_services(
     match state.list_services_uc.execute(filters).await {
         Ok(services) => (
             StatusCode::OK,
-            Json(serde_json::to_value(services).unwrap()),
+            Json(services),
         )
             .into_response(),
         Err(e) => {
@@ -146,7 +146,7 @@ pub async fn list_services(
 pub async fn get_service(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.get_service_uc.execute(id).await {
         Ok(service) => {
-            (StatusCode::OK, Json(serde_json::to_value(service).unwrap())).into_response()
+            (StatusCode::OK, Json(service)).into_response()
         }
         Err(crate::usecase::get_service::GetServiceError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified service was not found");
@@ -177,7 +177,7 @@ pub async fn register_service(
     match state.register_service_uc.execute(input).await {
         Ok(service) => (
             StatusCode::CREATED,
-            Json(serde_json::to_value(service).unwrap()),
+            Json(service),
         )
             .into_response(),
         Err(crate::usecase::register_service::RegisterServiceError::TeamNotFound(_)) => {
@@ -214,7 +214,7 @@ pub async fn update_service(
 ) -> impl IntoResponse {
     match state.update_service_uc.execute(id, input).await {
         Ok(service) => {
-            (StatusCode::OK, Json(serde_json::to_value(service).unwrap())).into_response()
+            (StatusCode::OK, Json(service)).into_response()
         }
         Err(crate::usecase::update_service::UpdateServiceError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified service was not found");

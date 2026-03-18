@@ -102,6 +102,15 @@ func run() error {
 		cfg.Auth.Scopes,
 	)
 
+	// OIDC discovery URL が TLS を使用していない場合に警告を出力する。
+	// 本番環境では IdP との通信に https を使用すべき。
+	if !strings.HasPrefix(cfg.Auth.DiscoveryURL, "https://") {
+		logger.Warn("OIDC discovery_url が TLS (https) を使用していません。本番環境では https を使用してください",
+			slog.String("discovery_url", cfg.Auth.DiscoveryURL),
+			slog.String("environment", cfg.App.Environment),
+		)
+	}
+
 	// OIDC discoveryを実行する。失敗した場合はバックグラウンドで再試行する。
 	if _, err := oauthClient.Discover(ctx); err != nil {
 		logger.Warn("OIDC discovery failed at startup, will retry in background", slog.String("error", err.Error()))

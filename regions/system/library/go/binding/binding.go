@@ -251,7 +251,8 @@ type HTTPOutputBinding struct {
 // client が nil の場合はデフォルトの http.Client を使用する。
 func NewHTTPOutputBinding(client *http.Client) *HTTPOutputBinding {
 	if client == nil {
-		client = &http.Client{}
+		// タイムアウト未設定の場合にデフォルト30秒を設定し、無限待ちを防止する
+		client = &http.Client{Timeout: 30 * time.Second}
 	}
 	return &HTTPOutputBinding{
 		client: client,

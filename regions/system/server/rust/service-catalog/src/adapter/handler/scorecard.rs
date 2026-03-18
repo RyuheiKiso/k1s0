@@ -27,7 +27,7 @@ pub async fn get_scorecard(
     match state.get_scorecard_uc.execute(id).await {
         Ok(scorecard) => (
             StatusCode::OK,
-            Json(serde_json::to_value(scorecard).unwrap()),
+            Json(scorecard),
         )
             .into_response(),
         Err(crate::usecase::get_scorecard::GetScorecardError::NotFound(_)) => {

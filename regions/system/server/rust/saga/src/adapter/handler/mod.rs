@@ -8,7 +8,7 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::adapter::middleware::auth::{auth_middleware, SagaAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
     CancelSagaUseCase, ExecuteSagaUseCase, GetSagaUseCase, ListSagasUseCase, ListWorkflowsUseCase,
@@ -26,11 +26,11 @@ pub struct AppState {
     pub register_workflow_uc: Arc<RegisterWorkflowUseCase>,
     pub list_workflows_uc: Arc<ListWorkflowsUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<SagaAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: SagaAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

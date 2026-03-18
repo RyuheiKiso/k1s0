@@ -17,8 +17,8 @@ export interface NavigationConfig {
 export interface ResolvedRoute {
   id: string;
   path: string;
-  component?: React.ComponentType<any>;
-  lazyComponent?: () => Promise<{ default: React.ComponentType<any> }>;
+  component?: React.ComponentType<Record<string, unknown>>;
+  lazyComponent?: () => Promise<{ default: React.ComponentType<Record<string, unknown>> }>;
   guards: NavigationGuard[];
   transition?: string;
   redirect_to?: string;
@@ -74,13 +74,13 @@ export class NavigationInterpreter {
           ? this.config.componentRegistry[route.component_id]
           : undefined;
 
-        let component: React.ComponentType<any> | undefined;
-        let lazyComponent: (() => Promise<{ default: React.ComponentType<any> }>) | undefined;
+        let component: React.ComponentType<Record<string, unknown>> | undefined;
+        let lazyComponent: (() => Promise<{ default: React.ComponentType<Record<string, unknown>> }>) | undefined;
 
         if (typeof entry === 'function' && isLazyImport(entry)) {
-          lazyComponent = entry as () => Promise<{ default: React.ComponentType<any> }>;
+          lazyComponent = entry as () => Promise<{ default: React.ComponentType<Record<string, unknown>> }>;
         } else if (entry) {
-          component = entry as React.ComponentType<any>;
+          component = entry as React.ComponentType<Record<string, unknown>>;
         }
 
         return {
@@ -104,8 +104,8 @@ export class NavigationInterpreter {
 }
 
 function isLazyImport(
-  entry: React.ComponentType<any> | (() => Promise<{ default: React.ComponentType<any> }>),
-): entry is () => Promise<{ default: React.ComponentType<any> }> {
+  entry: React.ComponentType<Record<string, unknown>> | (() => Promise<{ default: React.ComponentType<Record<string, unknown>> }>),
+): entry is () => Promise<{ default: React.ComponentType<Record<string, unknown>> }> {
   // Class components have prototype.isReactComponent
   if (typeof entry === 'function' && entry.prototype?.isReactComponent) {
     return false;

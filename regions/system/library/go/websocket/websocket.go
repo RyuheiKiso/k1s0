@@ -6,6 +6,15 @@ import (
 	"sync"
 )
 
+// ErrAlreadyConnected は既に接続済みの場合のエラー。
+var ErrAlreadyConnected = errors.New("already connected")
+
+// ErrAlreadyDisconnected は既に切断済みの場合のエラー。
+var ErrAlreadyDisconnected = errors.New("already disconnected")
+
+// ErrNotConnected は未接続状態の場合のエラー。
+var ErrNotConnected = errors.New("not connected")
+
 // MessageType はメッセージ種別。
 type MessageType int
 
@@ -83,7 +92,7 @@ func (c *InMemoryWsClient) Connect(_ context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.state == StateConnected {
-		return errors.New("already connected")
+		return ErrAlreadyConnected
 	}
 	c.state = StateConnected
 	return nil
@@ -94,7 +103,7 @@ func (c *InMemoryWsClient) Disconnect(_ context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.state == StateDisconnected {
-		return errors.New("already disconnected")
+		return ErrAlreadyDisconnected
 	}
 	c.state = StateDisconnected
 	return nil
@@ -106,7 +115,7 @@ func (c *InMemoryWsClient) Send(_ context.Context, msg WsMessage) error {
 	state := c.state
 	c.mu.Unlock()
 	if state != StateConnected {
-		return errors.New("not connected")
+		return ErrNotConnected
 	}
 	c.sendBuf <- msg
 	return nil
@@ -118,7 +127,7 @@ func (c *InMemoryWsClient) Receive(ctx context.Context) (WsMessage, error) {
 	state := c.state
 	c.mu.Unlock()
 	if state != StateConnected {
-		return WsMessage{}, errors.New("not connected")
+		return WsMessage{}, ErrNotConnected
 	}
 	select {
 	case msg := <-c.recvBuf:

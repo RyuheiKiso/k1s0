@@ -2,7 +2,7 @@ package outbox
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 )
 
@@ -12,6 +12,7 @@ type OutboxProcessor struct {
 	store     OutboxStore
 	publisher OutboxPublisher
 	batchSize int
+	logger    *slog.Logger
 }
 
 // NewOutboxProcessor は新しい OutboxProcessor を生成する。
@@ -23,7 +24,17 @@ func NewOutboxProcessor(store OutboxStore, publisher OutboxPublisher, batchSize 
 		store:     store,
 		publisher: publisher,
 		batchSize: batchSize,
+		logger:    slog.Default(),
 	}
+}
+
+// NewOutboxProcessorWithLogger はカスタムロガー付きの OutboxProcessor を生成する。
+func NewOutboxProcessorWithLogger(store OutboxStore, publisher OutboxPublisher, batchSize int, logger *slog.Logger) *OutboxProcessor {
+	p := NewOutboxProcessor(store, publisher, batchSize)
+	if logger != nil {
+		p.logger = logger
+	}
+	return p
 }
 
 // ProcessBatch は1回分のアウトボックス処理を実行する。
@@ -39,21 +50,33 @@ func (p *OutboxProcessor) ProcessBatch(ctx context.Context) (int, error) {
 		msg := &messages[i]
 		msg.MarkProcessing()
 		if err := p.store.Update(ctx, msg); err != nil {
-			log.Printf("outbox: failed to update message %s to Processing: %v", msg.ID, err)
+			// Processing ステータスへの更新失敗をログに記録し、次のメッセージへ進む
+			p.logger.Error("アウトボックスメッセージの Processing 更新に失敗",
+				slog.String("message_id", msg.ID),
+				slog.String("error", err.Error()),
+			)
 			continue
 		}
 
 		if err := p.publisher.Publish(ctx, msg); err != nil {
 			msg.MarkFailed(err.Error())
 			if updateErr := p.store.Update(ctx, msg); updateErr != nil {
-				log.Printf("outbox: failed to update message %s to Failed: %v", msg.ID, updateErr)
+				// Failed ステータスへの更新失敗をログに記録する
+				p.logger.Error("アウトボックスメッセージの Failed 更新に失敗",
+					slog.String("message_id", msg.ID),
+					slog.String("error", updateErr.Error()),
+				)
 			}
 			continue
 		}
 
 		msg.MarkDelivered()
 		if err := p.store.Update(ctx, msg); err != nil {
-			log.Printf("outbox: failed to update message %s to Delivered: %v", msg.ID, err)
+			// Delivered ステータスへの更新失敗をログに記録する
+			p.logger.Error("アウトボックスメッセージの Delivered 更新に失敗",
+				slog.String("message_id", msg.ID),
+				slog.String("error", err.Error()),
+			)
 			continue
 		}
 		processed++
@@ -73,7 +96,10 @@ func (p *OutboxProcessor) Run(ctx context.Context, interval time.Duration) {
 			return
 		case <-ticker.C:
 			if _, err := p.ProcessBatch(ctx); err != nil {
-				log.Printf("outbox: batch processing error: %v", err)
+				// バッチ処理全体のエラーをログに記録する
+				p.logger.Error("アウトボックスバッチ処理でエラーが発生",
+					slog.String("error", err.Error()),
+				)
 			}
 		}
 	}

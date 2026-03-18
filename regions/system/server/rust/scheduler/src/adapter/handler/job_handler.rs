@@ -47,7 +47,7 @@ pub async fn list_jobs(
 /// GET /api/v1/jobs/:id
 pub async fn get_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     match state.get_job_uc.execute(&id).await {
-        Ok(job) => (StatusCode::OK, Json(serde_json::to_value(job).expect("ジョブ情報のJSON変換に失敗"))).into_response(),
+        Ok(job) => (StatusCode::OK, Json(job)).into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
@@ -88,7 +88,7 @@ pub async fn create_job(
     match state.create_job_uc.execute(&input).await {
         Ok(job) => (
             StatusCode::CREATED,
-            Json(serde_json::to_value(job).expect("ジョブ情報のJSON変換に失敗")),
+            Json(job),
         )
             .into_response(),
         Err(CreateJobError::InvalidCron(expr)) => {
@@ -154,7 +154,7 @@ pub async fn delete_job(
 /// PUT /api/v1/jobs/:id/pause
 pub async fn pause_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     match state.pause_job_uc.execute(&id).await {
-        Ok(job) => (StatusCode::OK, Json(serde_json::to_value(job).expect("ジョブ情報のJSON変換に失敗"))).into_response(),
+        Ok(job) => (StatusCode::OK, Json(job)).into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
@@ -174,7 +174,7 @@ pub async fn resume_job(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.resume_job_uc.execute(&id).await {
-        Ok(job) => (StatusCode::OK, Json(serde_json::to_value(job).expect("ジョブ情報のJSON変換に失敗"))).into_response(),
+        Ok(job) => (StatusCode::OK, Json(job)).into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
@@ -217,7 +217,7 @@ pub async fn update_job(
     };
 
     match state.update_job_uc.execute(&input).await {
-        Ok(job) => (StatusCode::OK, Json(serde_json::to_value(job).expect("ジョブ情報のJSON変換に失敗"))).into_response(),
+        Ok(job) => (StatusCode::OK, Json(job)).into_response(),
         Err(UpdateJobError::NotFound(id)) => {
             let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
@@ -253,7 +253,7 @@ pub async fn trigger_job(
     match state.trigger_job_uc.execute(&id).await {
         Ok(execution) => (
             StatusCode::CREATED,
-            Json(serde_json::to_value(execution).expect("ジョブ実行結果のJSON変換に失敗")),
+            Json(execution),
         )
             .into_response(),
         Err(TriggerJobError::NotFound(id)) => {

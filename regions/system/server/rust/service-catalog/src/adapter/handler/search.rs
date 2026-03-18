@@ -44,7 +44,7 @@ pub async fn search_services(
     match state.search_services_uc.execute(params.q, tags, tier).await {
         Ok(services) => (
             StatusCode::OK,
-            Json(serde_json::to_value(services).unwrap()),
+            Json(services),
         )
             .into_response(),
         Err(e) => {

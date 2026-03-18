@@ -9,7 +9,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post, put};
 use axum::Router;
 
-use crate::adapter::middleware::auth::{auth_middleware, QuotaAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
     CreateQuotaPolicyUseCase, DeleteQuotaPolicyUseCase, GetQuotaPolicyUseCase,
@@ -29,11 +29,11 @@ pub struct AppState {
     pub increment_usage_uc: Arc<IncrementQuotaUsageUseCase>,
     pub reset_usage_uc: Arc<ResetQuotaUsageUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<QuotaAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: QuotaAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

@@ -182,7 +182,7 @@ pub async fn introspect_token(
 )]
 pub async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     match state.get_user_uc.execute(&id).await {
-        Ok(user) => (StatusCode::OK, Json(serde_json::to_value(user).unwrap())).into_response(),
+        Ok(user) => (StatusCode::OK, Json(user)).into_response(),
         Err(_) => {
             let err = ErrorResponse::new(
                 "SYS_AUTH_USER_NOT_FOUND",
@@ -211,7 +211,7 @@ pub async fn list_users(
     Query(params): Query<ListUsersParams>,
 ) -> impl IntoResponse {
     match state.list_users_uc.execute(&params).await {
-        Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
+        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
@@ -267,7 +267,7 @@ pub async fn get_user_roles(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.get_user_roles_uc.execute(&id).await {
-        Ok(roles) => (StatusCode::OK, Json(serde_json::to_value(roles).unwrap())).into_response(),
+        Ok(roles) => (StatusCode::OK, Json(roles)).into_response(),
         Err(_) => {
             let err = ErrorResponse::new(
                 "SYS_AUTH_USER_NOT_FOUND",

@@ -41,8 +41,9 @@ impl AssertionHelper {
     pub fn assert_not_null(json_str: &str, path: &str) {
         let val: Value = serde_json::from_str(json_str).expect("invalid JSON");
         let result = json_path(&val, path);
+        // is_some_and で Option を安全にアンラップし、null チェックを行う
         assert!(
-            result.is_some() && !result.unwrap().is_null(),
+            result.is_some_and(|v| !v.is_null()),
             "Expected non-null at path '{}' in: {}",
             path,
             json_str

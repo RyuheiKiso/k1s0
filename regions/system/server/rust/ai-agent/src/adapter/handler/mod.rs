@@ -13,7 +13,7 @@ use axum::routing::{get, post};
 use axum::Router;
 
 use crate::adapter::middleware::auth::auth_middleware;
-use crate::adapter::middleware::auth::AgentAuthState;
+use crate::adapter::middleware::auth::AuthState;
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
     CreateAgentUseCase, ExecuteAgentUseCase, ListExecutionsUseCase, ReviewStepUseCase,
@@ -33,12 +33,12 @@ pub struct AppState {
     /// メトリクス
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     /// 認証状態
-    pub auth_state: Option<AgentAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
     /// 認証状態を設定する
-    pub fn with_auth(mut self, auth_state: AgentAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

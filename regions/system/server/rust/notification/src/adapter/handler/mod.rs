@@ -9,7 +9,7 @@ use axum::response::IntoResponse;
 use axum::routing::{delete, get, post, put};
 use axum::Router;
 
-use crate::adapter::middleware::auth::{auth_middleware, NotificationAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::domain::repository::NotificationLogRepository;
 use crate::usecase::{
@@ -35,11 +35,11 @@ pub struct AppState {
     pub update_template_uc: Arc<UpdateTemplateUseCase>,
     pub delete_template_uc: Arc<DeleteTemplateUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<NotificationAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: NotificationAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

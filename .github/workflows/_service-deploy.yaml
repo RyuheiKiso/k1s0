@@ -94,10 +94,10 @@ jobs:
         with:
           context: ${{ inputs.context-path }}
           push: true
+          # :latest タグは廃止。バージョン + git SHA で一意に特定可能なタグのみ使用する
           tags: |
             ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}
             ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
       # Dockerfile がコンテキスト外にある場合（例: workspace root をコンテキストとして使用）
@@ -109,24 +109,23 @@ jobs:
           context: ${{ inputs.context-path }}
           file: ${{ inputs.dockerfile }}
           push: true
+          # :latest タグは廃止。バージョン + git SHA で一意に特定可能なタグのみ使用する
           tags: |
             ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}
             ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-            ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Install Cosign
         # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+      # cosign v2+ では --yes フラグで keyless 署名が有効（COSIGN_EXPERIMENTAL は非推奨）
       - name: Sign image with Cosign
         run: |
           cosign sign --yes \
             ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-        env:
-          COSIGN_EXPERIMENTAL: "1"
       - name: Trivy image scan
         # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           severity: HIGH,CRITICAL
@@ -171,13 +170,15 @@ jobs:
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"
+      # --atomic: デプロイ失敗時に自動ロールバック、--wait: Pod Ready まで待機、--timeout: 最大待機時間
       - name: Deploy to dev
         run: |
           helm upgrade --install ${{ inputs.service-name }} \
             ./infra/helm/services/${{ inputs.helm-chart-path }} \
             -n ${{ inputs.namespace }} \
             -f ./infra/helm/services/${{ inputs.helm-chart-path }}/values-dev.yaml \
-            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }} \
+            --atomic --wait --timeout 5m
 
   # ---------- Deploy to staging ----------
   deploy-staging:
@@ -212,13 +213,15 @@ jobs:
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"
+      # --atomic: デプロイ失敗時に自動ロールバック、--wait: Pod Ready まで待機、--timeout: 最大待機時間
       - name: Deploy to staging
         run: |
           helm upgrade --install ${{ inputs.service-name }} \
             ./infra/helm/services/${{ inputs.helm-chart-path }} \
             -n ${{ inputs.namespace }} \
             -f ./infra/helm/services/${{ inputs.helm-chart-path }}/values-staging.yaml \
-            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }} \
+            --atomic --wait --timeout 5m
 
   # ---------- Deploy to prod (manual approval) ----------
   # IMPORTANT: GitHub リポジトリ設定で prod 環境に Required reviewers（最低2名）を設定すること。
@@ -257,22 +260,26 @@ jobs:
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"
+      # --atomic: デプロイ失敗時に自動ロールバック、--wait: Pod Ready まで待機、--timeout: 最大待機時間
       - name: Deploy to prod
         run: |
           helm upgrade --install ${{ inputs.service-name }} \
             ./infra/helm/services/${{ inputs.helm-chart-path }} \
             -n ${{ inputs.namespace }} \
             -f ./infra/helm/services/${{ inputs.helm-chart-path }}/values-prod.yaml \
-            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }} \
+            --atomic --wait --timeout 5m
       # デプロイ後スモークテスト（busybox 方式: Rust distroless イメージ向け）
+      # スモークテスト失敗時はデプロイを中止する（--atomic により自動ロールバックされる）
       - name: デプロイ後スモークテスト (busybox)
         if: inputs.health-check-method == 'busybox'
         run: |
           echo "Waiting for rollout to complete..."
           kubectl rollout status deployment/${{ inputs.service-name }} -n ${{ inputs.namespace }} --timeout=120s
           echo "Running health check..."
-          kubectl exec deploy/${{ inputs.service-name }} -n ${{ inputs.namespace }} -- /busybox wget -qO- http://127.0.0.1:8080/healthz || echo "::warning::Health check failed"
+          kubectl exec deploy/${{ inputs.service-name }} -n ${{ inputs.namespace }} -- /busybox wget -qO- http://127.0.0.1:8080/healthz
       # デプロイ後スモークテスト（port-forward 方式: Go distroless イメージ向け）
+      # スモークテスト失敗時はデプロイを中止する（--atomic により自動ロールバックされる）
       - name: デプロイ後スモークテスト (port-forward)
         if: inputs.health-check-method == 'port-forward'
         run: |
@@ -281,5 +288,19 @@ jobs:
           echo "Running health check..."
           kubectl port-forward deploy/${{ inputs.service-name }} -n ${{ inputs.namespace }} 18080:8080 &
           sleep 3
-          curl -sf http://127.0.0.1:18080/healthz || echo "::warning::Health check failed"
+          curl -sf http://127.0.0.1:18080/healthz
           kill %1 2>/dev/null || true
+      # デプロイ結果を GitHub Deployment Status として記録
+      - name: デプロイ結果通知
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            const env = '${{ inputs.namespace }}'.replace('k1s0-', '');
+            const message = status === 'success'
+              ? `${{ inputs.service-name }} を prod にデプロイしました (${process.env.GITHUB_SHA?.substring(0, 7)})`
+              : `${{ inputs.service-name }} の prod デプロイが失敗しました`;
+            core.summary.addHeading(`Deploy ${status}: ${{ inputs.service-name }}`, 2);
+            core.summary.addRaw(message);
+            await core.summary.write();

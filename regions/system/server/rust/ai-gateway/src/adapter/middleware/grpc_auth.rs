@@ -8,17 +8,17 @@ use http::{Request, Response};
 use tonic::body::{empty_body, BoxBody};
 use tower::{Layer, Service};
 
-use crate::adapter::middleware::auth::AiGatewayAuthState;
+use crate::adapter::middleware::auth::AuthState;
 
 /// gRPC認証レイヤー。Towerミドルウェアとして認証チェックを挿入する。
 #[derive(Clone)]
 pub struct GrpcAuthLayer {
-    auth_state: Option<AiGatewayAuthState>,
+    auth_state: Option<AuthState>,
 }
 
 impl GrpcAuthLayer {
     /// 新しいgRPC認証レイヤーを生成する。
-    pub fn new(auth_state: Option<AiGatewayAuthState>) -> Self {
+    pub fn new(auth_state: Option<AuthState>) -> Self {
         Self { auth_state }
     }
 }
@@ -38,7 +38,7 @@ impl<S> Layer<S> for GrpcAuthLayer {
 #[derive(Clone)]
 pub struct GrpcAuthService<S> {
     inner: S,
-    auth_state: Option<AiGatewayAuthState>,
+    auth_state: Option<AuthState>,
 }
 
 impl<S, ReqBody> Service<Request<ReqBody>> for GrpcAuthService<S>

@@ -161,6 +161,26 @@ pub enum GrpcError {
     Internal(String),
 }
 
+/// anyhow::Error をドメインエラー型で型ベースに GrpcError へ変換する。
+/// ダウンキャストに失敗した場合は internal エラーとする。
+fn map_anyhow_to_grpc_error(err: anyhow::Error) -> GrpcError {
+    use crate::domain::error::SagaError;
+
+    match err.downcast::<SagaError>() {
+        Ok(domain_err) => {
+            let msg = domain_err.to_string();
+            match domain_err {
+                SagaError::NotFound(_) => GrpcError::NotFound(msg),
+                SagaError::InvalidStatusTransition { .. } => GrpcError::FailedPrecondition(msg),
+                SagaError::CompensationFailed(_) => GrpcError::Internal(msg),
+                SagaError::ValidationFailed(_) => GrpcError::InvalidArgument(msg),
+                SagaError::Internal(_) => GrpcError::Internal(msg),
+            }
+        }
+        Err(err) => GrpcError::Internal(err.to_string()),
+    }
+}
+
 // --- SagaGrpcService ---
 
 /// SagaGrpcService はgRPC Sagaサービスの実装。
@@ -219,14 +239,7 @@ impl SagaGrpcService {
             .start_saga_uc
             .execute(req.workflow_name, json_payload, correlation, initiator)
             .await
-            .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
-                    GrpcError::NotFound(msg)
-                } else {
-                    GrpcError::Internal(format!("failed to start saga: {}", msg))
-                }
-            })?;
+            .map_err(|e| map_anyhow_to_grpc_error(e))?;
 
         Ok(StartSagaResponse {
             saga_id: saga_id.to_string(),
@@ -361,16 +374,10 @@ impl SagaGrpcService {
         let id = uuid::Uuid::parse_str(&req.saga_id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid saga_id: {}", req.saga_id)))?;
 
-        self.cancel_saga_uc.execute(id).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else if msg.contains("terminal") {
-                GrpcError::FailedPrecondition(msg)
-            } else {
-                GrpcError::Internal(format!("failed to cancel saga: {}", msg))
-            }
-        })?;
+        self.cancel_saga_uc
+            .execute(id)
+            .await
+            .map_err(|e| map_anyhow_to_grpc_error(e.into()))?;
 
         Ok(CancelSagaResponse {
             success: true,
@@ -426,18 +433,7 @@ impl SagaGrpcService {
             .register_workflow_uc
             .execute(req.workflow_yaml)
             .await
-            .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("name")
-                    || msg.contains("step")
-                    || msg.contains("service")
-                    || msg.contains("method")
-                {
-                    GrpcError::InvalidArgument(format!("invalid workflow definition: {}", msg))
-                } else {
-                    GrpcError::Internal(format!("failed to register workflow: {}", msg))
-                }
-            })?;
+            .map_err(|e| map_anyhow_to_grpc_error(e))?;
 
         Ok(RegisterWorkflowResponse {
             name,

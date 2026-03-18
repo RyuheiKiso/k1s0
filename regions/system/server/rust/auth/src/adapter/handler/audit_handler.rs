@@ -31,7 +31,7 @@ pub async fn record_audit_log(
     match state.record_audit_log_uc.execute(req).await {
         Ok(response) => (
             StatusCode::CREATED,
-            Json(serde_json::to_value(response).unwrap()),
+            Json(response),
         )
             .into_response(),
         Err(RecordAuditLogError::Validation(msg)) => {
@@ -68,7 +68,7 @@ pub async fn search_audit_logs(
     Query(params): Query<SearchAuditLogsQueryParams>,
 ) -> impl IntoResponse {
     match state.search_audit_logs_uc.execute(&params).await {
-        Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
+        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
             (StatusCode::BAD_REQUEST, Json(err)).into_response()

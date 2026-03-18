@@ -90,7 +90,8 @@ fn generate_random_key() -> String {
     };
     let mut s = String::with_capacity(48);
     for b in &bytes {
-        write!(s, "{:02x}", b).unwrap();
+        // String への write!() は常に成功するため失敗しない
+        let _ = write!(s, "{:02x}", b);
     }
     s
 }
@@ -129,7 +130,7 @@ mod tests {
         let result = uc.execute(req).await;
         assert!(result.is_ok());
 
-        let resp = result.unwrap();
+        let resp = result.expect("create_api_key should succeed");
         assert_eq!(resp.name, "My Key");
         assert!(resp.raw_key.starts_with("k1s0_"));
         assert!(!resp.prefix.is_empty());

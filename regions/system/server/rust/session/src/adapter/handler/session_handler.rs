@@ -10,7 +10,7 @@ use axum::Json;
 use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
-use crate::adapter::middleware::auth::SessionAuthState;
+use crate::adapter::middleware::auth::AuthState;
 use crate::adapter::repository::session_metadata_postgres::SessionMetadataRepository;
 use crate::domain::entity::session::Session;
 use crate::error::SessionError;
@@ -33,17 +33,18 @@ pub struct AppState {
     pub metadata_repo: Arc<dyn SessionMetadataRepository>,
     pub event_publisher: Arc<dyn SessionEventPublisher>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<SessionAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: SessionAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
 }
 
-fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
+// セッションエラーをHTTPレスポンスに変換するヘルパー（ErrorResponseを直接Jsonで返す）
+fn error_response(err: SessionError) -> (StatusCode, Json<ErrorResponse>) {
     let (status, code, message) = match &err {
         SessionError::NotFound(_) => (
             StatusCode::NOT_FOUND,
@@ -72,15 +73,14 @@ fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
             err.to_string(),
         ),
     };
-    let resp = ErrorResponse::new(code, message);
-    (status, Json(serde_json::to_value(&resp).unwrap()))
+    (status, Json(ErrorResponse::new(code, message)))
 }
 
-fn forbidden_response(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
-    let resp = ErrorResponse::new(codes::session::forbidden(), message);
+// 認可エラーレスポンスヘルパー
+fn forbidden_response(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
     (
         StatusCode::FORBIDDEN,
-        Json(serde_json::to_value(&resp).unwrap()),
+        Json(ErrorResponse::new(codes::session::forbidden(), message)),
     )
 }
 
@@ -110,7 +110,7 @@ pub async fn create_session(
     match state.create_uc.execute(&uc_input).await {
         Ok(output) => (
             StatusCode::CREATED,
-            Json(serde_json::to_value(SessionHttpResponse::from_session(output.session)).unwrap()),
+            Json(SessionHttpResponse::from_session(output.session)),
         )
             .into_response(),
         Err(e) => error_response(e).into_response(),
@@ -141,7 +141,7 @@ pub async fn get_session(
     match state.get_uc.execute(&input).await {
         Ok(output) => (
             StatusCode::OK,
-            Json(serde_json::to_value(SessionHttpResponse::from_session(output.session)).unwrap()),
+            Json(SessionHttpResponse::from_session(output.session)),
         )
             .into_response(),
         Err(e) => error_response(e).into_response(),
@@ -181,7 +181,7 @@ pub async fn refresh_session(
     match state.refresh_uc.execute(&input).await {
         Ok(output) => (
             StatusCode::OK,
-            Json(serde_json::to_value(SessionHttpResponse::from_session(output.session)).unwrap()),
+            Json(SessionHttpResponse::from_session(output.session)),
         )
             .into_response(),
         Err(e) => error_response(e).into_response(),
@@ -232,7 +232,7 @@ pub async fn list_user_sessions(
                     .collect(),
                 total_count,
             };
-            (StatusCode::OK, Json(serde_json::to_value(mapped).unwrap())).into_response()
+            (StatusCode::OK, Json(mapped)).into_response()
         }
         Err(e) => error_response(e).into_response(),
     }

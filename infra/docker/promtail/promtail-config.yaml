@@ -1,28 +1,25 @@
+# Promtail サーバー設定
 server:
   http_listen_port: 9080
 
+# ログ読み取り位置の永続化
 positions:
   filename: /tmp/positions.yaml
 
+# Loki へのプッシュ先
 clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
+  # Docker コンテナログをファイルベースで収集する
+  # セキュリティ上の理由から Docker ソケットではなくログファイルを直接マウントする
   - job_name: docker-containers
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-        refresh_interval: 5s
-    relabel_configs:
-      # コンテナ名からジョブ名を設定
-      - source_labels: ["__meta_docker_container_name"]
-        regex: "/(.*)"
-        target_label: container
-      # docker-compose サービス名を取得
-      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
-        target_label: service
-      # docker-compose プロジェクト名を取得
-      - source_labels: ["__meta_docker_container_label_com_docker_compose_project"]
-        target_label: project
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker
+          __path__: /var/log/containers/*.log
     pipeline_stages:
       # JSON ログのパース
       - json:
@@ -32,6 +29,8 @@ scrape_configs:
             span_id: span_id
             msg: msg
             service: service
+            stream: stream
+      # パースした値をラベルとして付与
       - labels:
           level:
           trace_id:

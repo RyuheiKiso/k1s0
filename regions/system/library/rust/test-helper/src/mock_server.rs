@@ -30,7 +30,7 @@ impl MockServer {
     pub fn handle(&self, method: &str, path: &str) -> Option<(u16, String)> {
         self.requests
             .lock()
-            .unwrap()
+            .expect("テスト用: リクエスト記録の Mutex ロック取得")
             .push((method.to_string(), path.to_string()));
         self.routes
             .iter()
@@ -40,12 +40,12 @@ impl MockServer {
 
     /// 記録されたリクエスト数を返す。
     pub fn request_count(&self) -> usize {
-        self.requests.lock().unwrap().len()
+        self.requests.lock().expect("テスト用: リクエスト数カウントの Mutex ロック取得").len()
     }
 
     /// 記録されたリクエストを返す。
     pub fn recorded_requests(&self) -> Vec<(String, String)> {
-        self.requests.lock().unwrap().clone()
+        self.requests.lock().expect("テスト用: リクエスト一覧取得の Mutex ロック取得").clone()
     }
 
     /// ベース URL を返す（テスト用にプレースホルダー）。

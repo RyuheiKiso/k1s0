@@ -9,7 +9,8 @@ import (
 )
 
 // NewLogger は TelemetryConfig に基づいて構造化ロガーを生成する。
-// サービス名・バージョン・Tier・環境を標準フィールドとして付与する。
+// サービス名・バージョン・Tier・環境を標準フィールドとして付与し、
+// TraceHandler で trace_id/span_id を自動注入する。
 func NewLogger(cfg TelemetryConfig) *slog.Logger {
 	level := slog.LevelWarn
 	switch cfg.LogLevel {
@@ -29,6 +30,8 @@ func NewLogger(cfg TelemetryConfig) *slog.Logger {
 	} else {
 		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
 	}
+	// TraceHandler でラップし、ログ出力時に trace_id/span_id を自動注入する
+	handler = TraceHandler(handler)
 	return slog.New(handler).With(
 		slog.String("service", cfg.ServiceName),
 		slog.String("version", cfg.Version),

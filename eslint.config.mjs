@@ -1,4 +1,4 @@
-// eslint.config.mjs
+// ESLint flat config（ルート設定）
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import react from "eslint-plugin-react";
@@ -10,6 +10,14 @@ export default tseslint.config(
   ...tseslint.configs.strictTypeChecked,
   {
     plugins: { react, "react-hooks": reactHooks, import: importPlugin },
+    // TypeScript型チェック対応のパーサーオプション
+    languageOptions: {
+      parserOptions: {
+        // tsconfig.json を自動検出して型情報を利用する
+        project: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     rules: {
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",

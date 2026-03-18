@@ -13,6 +13,12 @@ const (
 	MaxPerPage uint32 = 100
 )
 
+// ErrInvalidCursor はカーソルのデコードに失敗した場合のエラー。
+var ErrInvalidCursor = errors.New("無効なカーソルです")
+
+// ErrInvalidCursorFormat はカーソルの形式が不正な場合のエラー。
+var ErrInvalidCursorFormat = errors.New("無効なカーソル形式です")
+
 // PageRequest はページネーションリクエスト。
 type PageRequest struct {
 	Page    uint32
@@ -120,11 +126,11 @@ func DecodeCursor(cursor string) (sortKey string, id string, err error) {
 		b, err = base64.StdEncoding.DecodeString(cursor)
 	}
 	if err != nil {
-		return "", "", errors.New("無効なカーソルです")
+		return "", "", ErrInvalidCursor
 	}
 	parts := strings.SplitN(string(b), cursorSeparator, 2)
 	if len(parts) != 2 {
-		return "", "", errors.New("無効なカーソル形式です")
+		return "", "", ErrInvalidCursorFormat
 	}
 	return parts[0], parts[1], nil
 }

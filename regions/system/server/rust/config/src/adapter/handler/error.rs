@@ -178,8 +178,8 @@ mod tests {
         let status = resp.status();
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("test operation should succeed");
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("test operation should succeed");
         (status, json)
     }
 
@@ -204,7 +204,7 @@ mod tests {
 
         assert_eq!(status, StatusCode::CONFLICT);
         assert_eq!(json["error"]["code"], "SYS_CONFIG_VERSION_CONFLICT");
-        assert!(!json["error"]["details"].as_array().unwrap().is_empty());
+        assert!(!json["error"]["details"].as_array().expect("details should be an array").is_empty());
     }
 
     #[tokio::test]

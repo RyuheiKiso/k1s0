@@ -7,7 +7,7 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::adapter::middleware::auth::{auth_middleware, RatelimitAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
     CheckRateLimitUseCase, CreateRuleUseCase, DeleteRuleUseCase, GetRuleUseCase, GetUsageUseCase,
@@ -27,7 +27,7 @@ pub struct AppState {
     pub reset_uc: Arc<ResetRateLimitUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub db_pool: Option<sqlx::PgPool>,
-    pub auth_state: Option<RatelimitAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
@@ -60,7 +60,7 @@ impl AppState {
         }
     }
 
-    pub fn with_auth(mut self, auth_state: RatelimitAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

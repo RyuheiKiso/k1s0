@@ -9,7 +9,7 @@ use axum::response::IntoResponse;
 use axum::routing::{delete, get, post, put};
 use axum::Router;
 
-use crate::adapter::middleware::auth::{auth_middleware, PolicyAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
     CreateBundleUseCase, CreatePolicyUseCase, DeletePolicyUseCase, EvaluatePolicyUseCase,
@@ -30,11 +30,11 @@ pub struct AppState {
     pub get_bundle_uc: Arc<GetBundleUseCase>,
     pub list_bundles_uc: Arc<ListBundlesUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<PolicyAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: PolicyAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

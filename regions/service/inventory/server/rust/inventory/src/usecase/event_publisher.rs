@@ -1,20 +1,22 @@
-use crate::proto::k1s0::event::service::inventory::v1::{
-    InventoryReleasedEvent, InventoryReservedEvent,
-};
+// 在庫イベントパブリッシャートレイト。
+// usecase層はドメインイベント型のみに依存し、Proto型には依存しない。
+// Proto型への変換はインフラ層（Kafka producer）で行う。
+
+use crate::domain::entity::event::{InventoryReleasedDomainEvent, InventoryReservedDomainEvent};
 use async_trait::async_trait;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait InventoryEventPublisher: Send + Sync {
-    // 在庫予約イベントを Protobuf 形式で Kafka に publish する
+    // 在庫予約イベントをドメインイベント型で publish する
     async fn publish_inventory_reserved(
         &self,
-        event: &InventoryReservedEvent,
+        event: &InventoryReservedDomainEvent,
     ) -> anyhow::Result<()>;
-    // 在庫解放イベントを Protobuf 形式で Kafka に publish する
+    // 在庫解放イベントをドメインイベント型で publish する
     async fn publish_inventory_released(
         &self,
-        event: &InventoryReleasedEvent,
+        event: &InventoryReleasedDomainEvent,
     ) -> anyhow::Result<()>;
 }
 
@@ -25,14 +27,14 @@ pub struct NoopInventoryEventPublisher;
 impl InventoryEventPublisher for NoopInventoryEventPublisher {
     async fn publish_inventory_reserved(
         &self,
-        _event: &InventoryReservedEvent,
+        _event: &InventoryReservedDomainEvent,
     ) -> anyhow::Result<()> {
         Ok(())
     }
 
     async fn publish_inventory_released(
         &self,
-        _event: &InventoryReleasedEvent,
+        _event: &InventoryReleasedDomainEvent,
     ) -> anyhow::Result<()> {
         Ok(())
     }
@@ -45,14 +47,14 @@ mod tests {
     #[tokio::test]
     async fn test_noop_publisher_inventory_reserved() {
         let publisher = NoopInventoryEventPublisher;
-        let event = InventoryReservedEvent::default();
+        let event = InventoryReservedDomainEvent::default();
         assert!(publisher.publish_inventory_reserved(&event).await.is_ok());
     }
 
     #[tokio::test]
     async fn test_noop_publisher_inventory_released() {
         let publisher = NoopInventoryEventPublisher;
-        let event = InventoryReleasedEvent::default();
+        let event = InventoryReleasedDomainEvent::default();
         assert!(publisher.publish_inventory_released(&event).await.is_ok());
     }
 }

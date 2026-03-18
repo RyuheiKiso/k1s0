@@ -62,6 +62,7 @@ impl FileGrpcService {
         }
     }
 
+    /// ファイルメタデータを取得する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn get_file_metadata(
         &self,
         id: String,
@@ -74,11 +75,10 @@ impl FileGrpcService {
             .execute(&input)
             .await
             .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
-                    GrpcError::NotFound(msg)
-                } else {
-                    GrpcError::Internal(msg)
+                use crate::usecase::get_file_metadata::GetFileMetadataError;
+                match e {
+                    GetFileMetadataError::NotFound(msg) => GrpcError::NotFound(msg),
+                    GetFileMetadataError::Internal(msg) => GrpcError::Internal(msg),
                 }
             })
     }
@@ -104,11 +104,17 @@ impl FileGrpcService {
             page: if page == 0 { 1 } else { page },
             page_size: if page_size == 0 { 20 } else { page_size },
         };
+        // ファイル一覧取得。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
         let output = self
             .list_files_uc
             .execute(&input)
             .await
-            .map_err(|e| GrpcError::Internal(e.to_string()))?;
+            .map_err(|e| {
+                use crate::usecase::list_files::ListFilesError;
+                match e {
+                    ListFilesError::Internal(msg) => GrpcError::Internal(msg),
+                }
+            })?;
         Ok((output.files, output.total_count))
     }
 
@@ -143,16 +149,22 @@ impl FileGrpcService {
             tags,
             expires_in_seconds,
         };
+        // アップロードURL生成。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
         let output = self
             .generate_upload_url_uc
             .execute(&input)
             .await
             .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("validation") {
-                    GrpcError::InvalidArgument(msg)
-                } else {
-                    GrpcError::Internal(msg)
+                use crate::usecase::generate_upload_url::GenerateUploadUrlError;
+                match e {
+                    GenerateUploadUrlError::Validation(msg) => GrpcError::InvalidArgument(msg),
+                    GenerateUploadUrlError::SizeExceeded { actual, max } => {
+                        GrpcError::InvalidArgument(format!(
+                            "file size exceeded: actual={}, max={}",
+                            actual, max
+                        ))
+                    }
+                    GenerateUploadUrlError::Internal(msg) => GrpcError::Internal(msg),
                 }
             })?;
         Ok((output.file_id, output.upload_url, output.expires_in_seconds))
@@ -172,14 +184,13 @@ impl FileGrpcService {
             file_id,
             checksum_sha256,
         };
+        // アップロード完了。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
         self.complete_upload_uc.execute(&input).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else if msg.contains("already completed") {
-                GrpcError::AlreadyExists(msg)
-            } else {
-                GrpcError::Internal(msg)
+            use crate::usecase::complete_upload::CompleteUploadError;
+            match e {
+                CompleteUploadError::NotFound(msg) => GrpcError::NotFound(msg),
+                CompleteUploadError::AlreadyCompleted(msg) => GrpcError::AlreadyExists(msg),
+                CompleteUploadError::Internal(msg) => GrpcError::Internal(msg),
             }
         })
     }
@@ -193,39 +204,41 @@ impl FileGrpcService {
             file_id: id,
             expires_in_seconds,
         };
+        // ダウンロードURL生成。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
         let output = self
             .generate_download_url_uc
             .execute(&input)
             .await
             .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
-                    GrpcError::NotFound(msg)
-                } else if msg.contains("not available") {
-                    GrpcError::InvalidArgument(msg)
-                } else {
-                    GrpcError::Internal(msg)
+                use crate::usecase::generate_download_url::GenerateDownloadUrlError;
+                match e {
+                    GenerateDownloadUrlError::NotFound(msg) => GrpcError::NotFound(msg),
+                    GenerateDownloadUrlError::NotAvailable(msg) => {
+                        GrpcError::InvalidArgument(msg)
+                    }
+                    GenerateDownloadUrlError::Internal(msg) => GrpcError::Internal(msg),
                 }
             })?;
         Ok((output.download_url, output.expires_in_seconds))
     }
 
+    /// ファイルを削除する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn delete_file(&self, id: String) -> Result<(), GrpcError> {
         if id.is_empty() {
             return Err(GrpcError::InvalidArgument("id is required".to_string()));
         }
         let input = DeleteFileInput { file_id: id };
         self.delete_file_uc.execute(&input).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else {
-                GrpcError::Internal(msg)
+            use crate::usecase::delete_file::DeleteFileError;
+            match e {
+                DeleteFileError::NotFound(msg) => GrpcError::NotFound(msg),
+                DeleteFileError::Internal(msg) => GrpcError::Internal(msg),
             }
         })?;
         Ok(())
     }
 
+    /// ファイルタグを更新する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn update_file_tags(
         &self,
         id: String,
@@ -236,11 +249,10 @@ impl FileGrpcService {
         }
         let input = UpdateFileTagsInput { file_id: id, tags };
         self.update_file_tags_uc.execute(&input).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else {
-                GrpcError::Internal(msg)
+            use crate::usecase::update_file_tags::UpdateFileTagsError;
+            match e {
+                UpdateFileTagsError::NotFound(msg) => GrpcError::NotFound(msg),
+                UpdateFileTagsError::Internal(msg) => GrpcError::Internal(msg),
             }
         })
     }

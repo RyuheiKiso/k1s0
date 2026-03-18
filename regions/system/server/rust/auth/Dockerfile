@@ -1,6 +1,7 @@
 # chef ベースステージ: cargo-chef とビルド依存のインストール
 # Note: build context must be ./regions/system (to include library dependencies)
-FROM rust:1.93-bookworm AS chef
+# x86_64 ライブラリを直接コピーするためプラットフォームを明示固定
+FROM --platform=linux/amd64 rust:1.93-bookworm AS chef
 
 # cargo-chef のインストール（依存キャッシュ用）
 RUN cargo install cargo-chef --locked

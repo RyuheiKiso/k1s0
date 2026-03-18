@@ -10,7 +10,7 @@ use axum::Json;
 use k1s0_server_common::ErrorResponse;
 use serde::Deserialize;
 
-use crate::adapter::middleware::auth::AiGatewayAuthState;
+use crate::adapter::middleware::auth::AuthState;
 use crate::usecase::complete::{CompleteError, CompleteInput};
 use crate::usecase::embed::{EmbedError, EmbedInput};
 use crate::usecase::get_usage::GetUsageInput;
@@ -31,12 +31,12 @@ pub struct AppState {
     /// メトリクス
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     /// 認証状態（オプション）
-    pub auth_state: Option<AiGatewayAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
     /// 認証状態を設定する。
-    pub fn with_auth(mut self, auth_state: AiGatewayAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
@@ -49,7 +49,7 @@ pub async fn complete(
     Json(input): Json<CompleteInput>,
 ) -> impl IntoResponse {
     match state.complete_uc.execute(input).await {
-        Ok(output) => (StatusCode::OK, Json(serde_json::to_value(output).unwrap())).into_response(),
+        Ok(output) => (StatusCode::OK, Json(output)).into_response(),
         Err(e) => match e {
             CompleteError::GuardrailViolation(msg) => (
                 StatusCode::BAD_REQUEST,
@@ -82,7 +82,7 @@ pub async fn embed(
     Json(input): Json<EmbedInput>,
 ) -> impl IntoResponse {
     match state.embed_uc.execute(input).await {
-        Ok(output) => (StatusCode::OK, Json(serde_json::to_value(output).unwrap())).into_response(),
+        Ok(output) => (StatusCode::OK, Json(output)).into_response(),
         Err(EmbedError::LlmError(msg)) => (
             StatusCode::BAD_GATEWAY,
             Json(ErrorResponse::new("AI_LLM_ERROR", &msg)),
@@ -95,7 +95,7 @@ pub async fn embed(
 /// GET /api/v1/models
 pub async fn list_models(State(state): State<AppState>) -> impl IntoResponse {
     let output = state.list_models_uc.execute().await;
-    (StatusCode::OK, Json(serde_json::to_value(output).unwrap()))
+    (StatusCode::OK, Json(output))
 }
 
 /// 使用量取得クエリパラメータ
@@ -118,5 +118,5 @@ pub async fn get_usage(
         end: query.end,
     };
     let output = state.get_usage_uc.execute(input).await;
-    (StatusCode::OK, Json(serde_json::to_value(output).unwrap()))
+    (StatusCode::OK, Json(output))
 }

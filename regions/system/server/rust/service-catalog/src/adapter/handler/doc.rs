@@ -20,7 +20,7 @@ use crate::domain::entity::service_doc::ServiceDoc;
 )]
 pub async fn list_docs(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.manage_docs_uc.list(id).await {
-        Ok(docs) => (StatusCode::OK, Json(serde_json::to_value(docs).unwrap())).into_response(),
+        Ok(docs) => (StatusCode::OK, Json(docs)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()

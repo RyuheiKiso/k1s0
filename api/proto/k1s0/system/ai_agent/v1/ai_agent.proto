@@ -3,9 +3,9 @@
 // エージェント実行、ストリーミングイベント、キャンセル、ステップレビューを含む。
 syntax = "proto3";
 
-package k1s0.system.ai_agent.v1;
+package k1s0.system.aiagent.v1;
 
-option go_package = "github.com/k1s0-platform/system-proto-go/ai_agent/v1;aiagentv1";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/aiagent/v1;aiagentv1";
 
 // AI エージェントサービス: エージェントの実行とステップ管理を行う
 service AiAgentService {

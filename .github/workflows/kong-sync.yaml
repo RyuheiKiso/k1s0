@@ -31,10 +31,16 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      # decK CLI をバージョン固定 + SHA256 チェックサム検証でインストール（サプライチェーン攻撃防止）
       - name: Install decK
         run: |
-          curl -sL https://github.com/Kong/deck/releases/latest/download/deck_linux_amd64.tar.gz | tar xz
-          sudo mv deck /usr/local/bin/
+          DECK_VERSION="1.40.2"
+          DECK_SHA256="b36b03c750bec03a4fb9e0ca0eee7ff77d5ee13a7f62e06070ad18b0ef4a3304"
+          curl -sL "https://github.com/Kong/deck/releases/download/v${DECK_VERSION}/deck_${DECK_VERSION}_linux_amd64.tar.gz" -o /tmp/deck.tar.gz
+          echo "${DECK_SHA256}  /tmp/deck.tar.gz" | sha256sum -c -
+          tar xz -C /tmp -f /tmp/deck.tar.gz
+          sudo mv /tmp/deck /usr/local/bin/
+          rm /tmp/deck.tar.gz
       - name: Resolve environment variables
         run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Validate config
@@ -47,9 +53,10 @@ jobs:
   # prod クラスタのランナー → prod の Kong にそれぞれ接続される。
 
   # Kong 設定の差分表示
+  # Kong Admin API は内部ネットワークにあるため、クラスタ内の self-hosted ランナーで実行する
   diff:
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     # コードの読み取りのみ必要
     permissions:
       contents: read
@@ -57,8 +64,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install decK
         run: |
-          curl -sL https://github.com/Kong/deck/releases/latest/download/deck_linux_amd64.tar.gz | tar xz
-          sudo mv deck /usr/local/bin/
+          DECK_VERSION="1.40.2"
+          DECK_SHA256="b36b03c750bec03a4fb9e0ca0eee7ff77d5ee13a7f62e06070ad18b0ef4a3304"
+          curl -sL "https://github.com/Kong/deck/releases/download/v${DECK_VERSION}/deck_${DECK_VERSION}_linux_amd64.tar.gz" -o /tmp/deck.tar.gz
+          echo "${DECK_SHA256}  /tmp/deck.tar.gz" | sha256sum -c -
+          tar xz -C /tmp -f /tmp/deck.tar.gz
+          sudo mv /tmp/deck /usr/local/bin/
+          rm /tmp/deck.tar.gz
       - name: Resolve environment variables
         run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Show diff

@@ -1,6 +1,7 @@
 use axum::{
     extract::{Extension, Path, Query, State},
     http::StatusCode,
+    response::IntoResponse,
     Json,
 };
 use k1s0_auth::Claims;
@@ -20,7 +21,7 @@ pub struct ListRulesQuery {
 pub async fn list_rules(
     State(state): State<AppState>,
     Query(query): Query<ListRulesQuery>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let rules = state
         .manage_rules_uc
         .list_rules(
@@ -30,26 +31,26 @@ pub async fn list_rules(
             None,
         )
         .await?;
-    Ok(Json(serde_json::to_value(rules).unwrap()))
+    Ok(Json(rules))
 }
 
 pub async fn get_rule(
     State(state): State<AppState>,
     Path(id): Path<uuid::Uuid>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let rule = state
         .manage_rules_uc
         .get_rule(id)
         .await?
         .ok_or_else(|| AppError::not_found("SYS_MM_RULE_NOT_FOUND", "Rule not found"))?;
-    Ok(Json(serde_json::to_value(rule).unwrap()))
+    Ok(Json(rule))
 }
 
 pub async fn create_rule(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Json(input): Json<serde_json::Value>,
-) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let rule = state
         .manage_rules_uc
@@ -71,7 +72,7 @@ pub async fn create_rule(
     .await;
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(rule).unwrap()),
+        Json(rule),
     ))
 }
 
@@ -79,9 +80,9 @@ pub async fn update_rule(
     State(state): State<AppState>,
     Path(id): Path<uuid::Uuid>,
     Json(input): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let rule = state.manage_rules_uc.update_rule(id, &input, None).await?;
-    Ok(Json(serde_json::to_value(rule).unwrap()))
+    Ok(Json(rule))
 }
 
 pub async fn delete_rule(
@@ -95,15 +96,15 @@ pub async fn delete_rule(
 pub async fn execute_rule(
     State(state): State<AppState>,
     Path(id): Path<uuid::Uuid>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let result = state.check_consistency_uc.execute_rule(id, None).await?;
-    Ok(Json(serde_json::to_value(result).unwrap()))
+    Ok(Json(result))
 }
 
 pub async fn check_rules(
     State(state): State<AppState>,
     Json(input): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let table_name = input
         .get("table_name")
         .and_then(|v| v.as_str())
@@ -114,5 +115,5 @@ pub async fn check_rules(
         .check_consistency_uc
         .check_all_rules(table_name, None)
         .await?;
-    Ok(Json(serde_json::to_value(result).unwrap()))
+    Ok(Json(result))
 }

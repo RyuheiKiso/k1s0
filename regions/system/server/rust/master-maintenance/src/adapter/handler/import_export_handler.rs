@@ -19,7 +19,7 @@ pub async fn import_records(
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
     Json(data): Json<serde_json::Value>,
-) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let job = state
         .import_export_uc
@@ -41,7 +41,7 @@ pub async fn import_records(
     .await;
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(job).unwrap()),
+        Json(job),
     ))
 }
 
@@ -51,7 +51,7 @@ pub async fn import_records_file(
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
     mut multipart: Multipart,
-) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let mut file_name: Option<String> = None;
     let mut file_content: Option<Vec<u8>> = None;
@@ -109,7 +109,7 @@ pub async fn import_records_file(
     .await;
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(job).unwrap()),
+        Json(job),
     ))
 }
 
@@ -129,12 +129,27 @@ pub async fn export_records(
 
     if let Some(file) = result.file {
         let mut headers = HeaderMap::new();
-        headers.insert(CONTENT_TYPE, file.content_type.parse().unwrap());
+        // Content-Type ヘッダーを設定する
+        headers.insert(
+            CONTENT_TYPE,
+            file.content_type.parse().map_err(|_| {
+                AppError::internal(
+                    "SYS_MM_EXPORT_HEADER_INVALID",
+                    &format!("invalid content_type header value: {}", file.content_type),
+                )
+            })?,
+        );
+        // Content-Disposition ヘッダーを設定する
         headers.insert(
             CONTENT_DISPOSITION,
             format!("attachment; filename=\"{}\"", file.file_name)
                 .parse()
-                .unwrap(),
+                .map_err(|_| {
+                    AppError::internal(
+                        "SYS_MM_EXPORT_HEADER_INVALID",
+                        &format!("invalid content_disposition header value: {}", file.file_name),
+                    )
+                })?,
         );
         Ok((StatusCode::OK, headers, file.bytes).into_response())
     } else {
@@ -145,7 +160,7 @@ pub async fn export_records(
 pub async fn get_import_job(
     State(state): State<AppState>,
     Path(id): Path<uuid::Uuid>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let job = state
         .import_export_uc
         .get_import_job(id)
@@ -153,7 +168,7 @@ pub async fn get_import_job(
         .ok_or_else(|| {
             AppError::not_found("SYS_MM_IMPORT_JOB_NOT_FOUND", "Import job not found")
         })?;
-    Ok(Json(serde_json::to_value(job).unwrap()))
+    Ok(Json(job))
 }
 
 #[derive(Debug, Deserialize)]

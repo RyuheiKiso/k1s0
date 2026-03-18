@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package k1s0.system.saga.v1;
 
-option go_package = "github.com/k1s0-platform/system-server-go-saga/gen/go/k1s0/system/saga/v1;sagav1";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/saga/v1;sagav1";
 
 import "k1s0/system/common/v1/types.proto";
 import "google/protobuf/struct.proto";

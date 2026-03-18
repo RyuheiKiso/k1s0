@@ -1,6 +1,7 @@
 use axum::{
     extract::{Extension, Path, State},
     http::StatusCode,
+    response::IntoResponse,
     Json,
 };
 use k1s0_auth::Claims;
@@ -11,18 +12,18 @@ use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState}
 pub async fn list_display_configs(
     State(state): State<AppState>,
     Path(name): Path<String>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let configs = state
         .manage_display_configs_uc
         .list_display_configs(&name, None)
         .await?;
-    Ok(Json(serde_json::to_value(configs).unwrap()))
+    Ok(Json(configs))
 }
 
 pub async fn get_display_config(
     State(state): State<AppState>,
     Path((_name, id)): Path<(String, uuid::Uuid)>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let config = state
         .manage_display_configs_uc
         .get_display_config(id)
@@ -33,7 +34,7 @@ pub async fn get_display_config(
                 "Display config not found",
             )
         })?;
-    Ok(Json(serde_json::to_value(config).unwrap()))
+    Ok(Json(config))
 }
 
 pub async fn create_display_config(
@@ -41,7 +42,7 @@ pub async fn create_display_config(
     claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Json(input): Json<serde_json::Value>,
-) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let config = state
         .manage_display_configs_uc
@@ -63,7 +64,7 @@ pub async fn create_display_config(
     .await;
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(config).unwrap()),
+        Json(config),
     ))
 }
 
@@ -71,12 +72,12 @@ pub async fn update_display_config(
     State(state): State<AppState>,
     Path((_name, id)): Path<(String, uuid::Uuid)>,
     Json(input): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let config = state
         .manage_display_configs_uc
         .update_display_config(id, &input)
         .await?;
-    Ok(Json(serde_json::to_value(config).unwrap()))
+    Ok(Json(config))
 }
 
 pub async fn delete_display_config(

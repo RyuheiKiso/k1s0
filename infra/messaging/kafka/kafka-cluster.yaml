@@ -8,14 +8,18 @@ spec:
     version: 3.6.1
     replicas: 3
     listeners:
+      # 平文リスナー（開発環境・マイグレーション用途のみ。本番では無効化を推奨）
       - name: plain
         port: 9092
         type: internal
         tls: false
+      # TLS リスナー（本番通信用。mTLS でクライアント認証を実施）
       - name: tls
         port: 9093
         type: internal
         tls: true
+        authentication:
+          type: tls
     config:
       offsets.topic.replication.factor: 3
       transaction.state.log.replication.factor: 3

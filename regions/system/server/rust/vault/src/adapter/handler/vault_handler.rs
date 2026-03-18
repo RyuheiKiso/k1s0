@@ -8,7 +8,7 @@ use axum::Json;
 use k1s0_server_common::{ErrorDetail, ErrorResponse};
 use serde::{Deserialize, Serialize};
 
-use crate::adapter::middleware::auth::VaultAuthState;
+use crate::adapter::middleware::auth::AuthState;
 use crate::adapter::middleware::spiffe::SpiffeAuthState;
 use crate::usecase::delete_secret::{DeleteSecretError, DeleteSecretInput};
 use crate::usecase::get_secret::{GetSecretError, GetSecretInput};
@@ -30,12 +30,12 @@ pub struct AppState {
     pub list_audit_logs_uc: Arc<ListAuditLogsUseCase>,
     pub db_pool: Option<sqlx::PgPool>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<VaultAuthState>,
+    pub auth_state: Option<AuthState>,
     pub spiffe_state: Option<SpiffeAuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: VaultAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
@@ -118,7 +118,8 @@ fn classify_vault_internal_error(msg: &str) -> (StatusCode, &'static str) {
     )
 }
 
-fn internal_error_response(msg: &str) -> (StatusCode, Json<serde_json::Value>) {
+// Vaultエラーを分類してHTTPエラーレスポンスを返すヘルパー
+fn internal_error_response(msg: &str) -> (StatusCode, Json<ErrorResponse>) {
     let (status, code) = classify_vault_internal_error(msg);
     let err = if code == "SYS_VAULT_VALIDATION_ERROR" {
         ErrorResponse::with_details(
@@ -133,7 +134,7 @@ fn internal_error_response(msg: &str) -> (StatusCode, Json<serde_json::Value>) {
     } else {
         ErrorResponse::new(code, msg)
     };
-    (status, Json(serde_json::to_value(err).unwrap()))
+    (status, Json(err))
 }
 
 // --- Handlers ---
@@ -157,7 +158,7 @@ pub async fn create_secret(
             };
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).unwrap()),
+                Json(resp),
             )
                 .into_response()
         }
@@ -188,17 +189,14 @@ pub async fn get_secret(
                 created_at: secret.created_at.to_rfc3339(),
                 updated_at: secret.updated_at.to_rfc3339(),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(GetSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(
-                serde_json::to_value(ErrorResponse::new(
-                    "SYS_VAULT_NOT_FOUND",
-                    format!("secret not found: {}", path),
-                ))
-                .unwrap(),
-            ),
+            Json(ErrorResponse::new(
+                "SYS_VAULT_NOT_FOUND",
+                format!("secret not found: {}", path),
+            )),
         )
             .into_response(),
         Err(GetSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
@@ -223,7 +221,7 @@ pub async fn update_secret(
                 version: output.version,
                 created_at: output.created_at.to_rfc3339(),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(SetSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
     }
@@ -243,13 +241,10 @@ pub async fn delete_secret(
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(
-                serde_json::to_value(ErrorResponse::new(
-                    "SYS_VAULT_NOT_FOUND",
-                    format!("secret not found: {}", path),
-                ))
-                .unwrap(),
-            ),
+            Json(ErrorResponse::new(
+                "SYS_VAULT_NOT_FOUND",
+                format!("secret not found: {}", path),
+            )),
         )
             .into_response(),
         Err(DeleteSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
@@ -296,13 +291,10 @@ pub async fn get_secret_metadata(
         }
         Err(GetSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(
-                serde_json::to_value(ErrorResponse::new(
-                    "SYS_VAULT_NOT_FOUND",
-                    format!("secret not found: {}", path),
-                ))
-                .unwrap(),
-            ),
+            Json(ErrorResponse::new(
+                "SYS_VAULT_NOT_FOUND",
+                format!("secret not found: {}", path),
+            )),
         )
             .into_response(),
         Err(GetSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
@@ -373,13 +365,10 @@ pub async fn rotate_secret(
             .into_response(),
         Err(RotateSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(
-                serde_json::to_value(ErrorResponse::new(
-                    "SYS_VAULT_NOT_FOUND",
-                    format!("secret not found: {}", path),
-                ))
-                .unwrap(),
-            ),
+            Json(ErrorResponse::new(
+                "SYS_VAULT_NOT_FOUND",
+                format!("secret not found: {}", path),
+            )),
         )
             .into_response(),
         Err(RotateSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),

@@ -35,7 +35,8 @@ OUTPUT_BASE="$ROOT_DIR/regions/system/library"
 
 # Extract service info from proto files
 SERVICE_SNAKE=$(echo "$SERVICE" | tr '-' '_')
-SERVICE_PASCAL=$(echo "$SERVICE" | sed -r 's/(^|-)(\w)/\U\2/g')
+# macOS 互換のため sed -E を使用（-r は GNU sed 専用）
+SERVICE_PASCAL=$(echo "$SERVICE" | sed -E 's/(^|-)([a-z])/\U\2/g')
 
 echo "=== Generating Client SDK for $SERVICE ==="
 echo "  Languages: $LANGUAGES"

@@ -26,18 +26,15 @@ pub async fn list_config_schemas(State(state): State<AppState>) -> impl IntoResp
         {
             Ok(response) => (
                 StatusCode::OK,
-                Json(serde_json::to_value(response).unwrap()),
+                Json(response),
             )
                 .into_response(),
             Err(err) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    serde_json::to_value(ErrorResponse::new(
-                        "SYS_CONFIG_SCHEMA_INVALID",
-                        &format!("invalid persisted config schema: {}", err),
-                    ))
-                    .unwrap(),
-                ),
+                Json(ErrorResponse::new(
+                    "SYS_CONFIG_SCHEMA_INVALID",
+                    &format!("invalid persisted config schema: {}", err),
+                )),
             )
                 .into_response(),
         },
@@ -62,18 +59,15 @@ pub async fn get_config_schema(
         Ok(schema) => match ConfigEditorSchemaDto::try_from(&schema) {
             Ok(response) => (
                 StatusCode::OK,
-                Json(serde_json::to_value(response).unwrap()),
+                Json(response),
             )
                 .into_response(),
             Err(err) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    serde_json::to_value(ErrorResponse::new(
-                        "SYS_CONFIG_SCHEMA_INVALID",
-                        &format!("invalid persisted config schema: {}", err),
-                    ))
-                    .unwrap(),
-                ),
+                Json(ErrorResponse::new(
+                    "SYS_CONFIG_SCHEMA_INVALID",
+                    &format!("invalid persisted config schema: {}", err),
+                )),
             )
                 .into_response(),
         },
@@ -107,7 +101,7 @@ pub async fn upsert_config_schema(
         );
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::to_value(err).unwrap()),
+            Json(err),
         )
             .into_response();
     }
@@ -128,18 +122,15 @@ pub async fn upsert_config_schema(
         Ok(schema) => match ConfigEditorSchemaDto::try_from(&schema) {
             Ok(response) => (
                 StatusCode::OK,
-                Json(serde_json::to_value(response).unwrap()),
+                Json(response),
             )
                 .into_response(),
             Err(err) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    serde_json::to_value(ErrorResponse::new(
-                        "SYS_CONFIG_SCHEMA_INVALID",
-                        &format!("invalid persisted config schema: {}", err),
-                    ))
-                    .unwrap(),
-                ),
+                Json(ErrorResponse::new(
+                    "SYS_CONFIG_SCHEMA_INVALID",
+                    &format!("invalid persisted config schema: {}", err),
+                )),
             )
                 .into_response(),
         },
@@ -290,16 +281,16 @@ mod tests {
                 Request::builder()
                     .uri("/api/v1/config-schema/order-service")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("request build should succeed"),
             )
             .await
-            .unwrap();
+            .expect("test operation should succeed");
 
         assert_eq!(response.status(), StatusCode::OK);
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("test operation should succeed");
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("test operation should succeed");
         assert_eq!(json["service"], "order-service");
         assert_eq!(json["categories"][0]["fields"][0]["type"], "integer");
         assert_eq!(json["categories"][0]["fields"][0]["default"], 30);
@@ -339,16 +330,16 @@ mod tests {
                         })
                         .to_string(),
                     ))
-                    .unwrap(),
+                    .expect("request build should succeed"),
             )
             .await
-            .unwrap();
+            .expect("test operation should succeed");
 
         assert_eq!(response.status(), StatusCode::OK);
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("test operation should succeed");
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("test operation should succeed");
         assert_eq!(json["service"], "order-service");
         assert_eq!(json["categories"][0]["fields"][0]["type"], "integer");
         assert_eq!(json["categories"][0]["fields"][0]["default"], 30);

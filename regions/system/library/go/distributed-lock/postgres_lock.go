@@ -75,7 +75,11 @@ func (l *PostgresLock) lockKey(key string) string {
 // 取得したコネクションは Release まで保持される。
 func (l *PostgresLock) Acquire(ctx context.Context, key string, _ time.Duration) (*LockGuard, error) {
 	fullKey := l.lockKey(key)
-	token := generateToken()
+	// ロック所有権を識別するためのランダムトークンを生成する
+	token, err := generateToken()
+	if err != nil {
+		return nil, err
+	}
 
 	// 専用コネクションを取得し、advisory lock をそのコネクション上で保持する
 	conn, err := l.db.Conn(ctx)

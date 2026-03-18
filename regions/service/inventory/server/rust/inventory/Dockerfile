@@ -1,8 +1,12 @@
-# Build stage
+# chef ベースステージ: cargo-chef とビルド依存のインストール
 # Note: build context is repo root (to include system library dependencies)
-FROM rust:1.93-bookworm AS builder
+# x86_64 ライブラリを直接コピーするためプラットフォームを明示固定
+FROM --platform=linux/amd64 rust:1.93-bookworm AS chef
 
-# Install cmake + build-essential (for rdkafka cmake-build feature)
+# cargo-chef のインストール（依存キャッシュ用）
+RUN cargo install cargo-chef --locked
+
+# cmake + build-essential（rdkafka cmake-build 用）のインストール
 RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     build-essential \
@@ -10,7 +14,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy only what's needed: regions (system libs + service code)
+# planner ステージ: 依存情報レシピの生成
+FROM chef AS planner
+COPY regions regions
+RUN cargo chef prepare --recipe-path recipe.json --manifest-path regions/service/inventory/server/rust/inventory/Cargo.toml
+
+# cook ステージ: 依存のみビルド（キャッシュ層）
+FROM chef AS cook
+COPY --from=planner /app/recipe.json recipe.json
+COPY regions regions
+RUN cargo chef cook --release --recipe-path recipe.json --manifest-path regions/service/inventory/server/rust/inventory/Cargo.toml
+
+# builder ステージ: ソースコードのビルド
+FROM cook AS builder
 COPY regions regions
 
 # ローカル開発用ビルド引数: 認証バイパスを有効化するには

@@ -8,14 +8,15 @@ server:
 auth:
   discovery_url: "http://keycloak:8080/realms/k1s0"
   client_id: "k1s0-bff"
-  client_secret: "dev-bff-secret"
+  # シークレットはハードコードせず環境変数から取得する
+  client_secret: "${CLIENT_SECRET}"
   redirect_uri: "http://localhost:8080/auth/callback"
 
 session:
   redis:
     addr: "redis-session:6379"
-    # Redis 認証: requirepass が有効なためパスワードを設定する
-    password: "dev"
+    # Redis 認証パスワードは環境変数から取得する
+    password: "${REDIS_PASSWORD}"
 
 upstream:
   base_url: "http://auth-rust:8080"

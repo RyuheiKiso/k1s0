@@ -9,7 +9,7 @@ pub mod relationship_handler;
 pub mod rule_handler;
 pub mod table_handler;
 
-use crate::adapter::middleware::auth::{auth_middleware, MasterMaintenanceAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::has_action_permission;
 use crate::infrastructure::messaging::kafka_producer::MasterMaintenanceKafkaProducer;
 use crate::usecase;
@@ -41,7 +41,7 @@ pub struct AppState {
     pub import_export_uc: Arc<usecase::import_export::ImportExportUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub kafka_producer: Option<Arc<MasterMaintenanceKafkaProducer>>,
-    pub auth_state: Option<MasterMaintenanceAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 pub async fn publish_change_event(state: &AppState, event: serde_json::Value) {

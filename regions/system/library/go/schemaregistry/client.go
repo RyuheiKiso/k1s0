@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 // httpSchemaRegistryClient は net/http を使った SchemaRegistryClient 実装。
@@ -22,7 +23,8 @@ func NewClient(config *SchemaRegistryConfig) (SchemaRegistryClient, error) {
 	}
 	return &httpSchemaRegistryClient{
 		config:     config,
-		httpClient: &http.Client{},
+		// 無限待ちを防止するため30秒のタイムアウトを設定
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}, nil
 }
 

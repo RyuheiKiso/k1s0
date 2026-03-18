@@ -9,7 +9,7 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::adapter::middleware::auth::{auth_middleware, ConfigAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::domain::repository::ConfigRepository;
 use crate::usecase::{
@@ -31,7 +31,7 @@ pub struct AppState {
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub config_repo: Arc<dyn ConfigRepository>,
     pub kafka_configured: bool,
-    pub auth_state: Option<ConfigAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
@@ -62,7 +62,7 @@ impl AppState {
         self
     }
 
-    pub fn with_auth(mut self, auth_state: ConfigAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

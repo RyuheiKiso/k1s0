@@ -249,7 +249,7 @@ mod tests {
             trace_id: "trace-001".to_string(),
         };
 
-        let resp = svc.record_audit_log(req).await.unwrap();
+        let resp = svc.record_audit_log(req).await.expect("record_audit_log should succeed");
         assert!(!resp.id.is_empty());
         assert!(resp.created_at.is_some());
     }
@@ -307,9 +307,9 @@ mod tests {
             result: String::new(),
         };
 
-        let resp = svc.search_audit_logs(req).await.unwrap();
+        let resp = svc.search_audit_logs(req).await.expect("search_audit_logs should succeed");
         assert!(resp.logs.is_empty());
-        let pagination = resp.pagination.unwrap();
+        let pagination = resp.pagination.expect("pagination should be present");
         assert_eq!(pagination.total_count, 0);
         assert_eq!(pagination.page, 1);
         assert_eq!(pagination.page_size, 50);
@@ -335,9 +335,9 @@ mod tests {
             result: String::new(),
         };
 
-        let resp = svc.search_audit_logs(req).await.unwrap();
+        let resp = svc.search_audit_logs(req).await.expect("search_audit_logs should succeed");
         assert!(resp.logs.is_empty());
-        let pagination = resp.pagination.unwrap();
+        let pagination = resp.pagination.expect("pagination should be present");
         assert_eq!(pagination.total_count, 0);
         assert!(!pagination.has_next);
     }

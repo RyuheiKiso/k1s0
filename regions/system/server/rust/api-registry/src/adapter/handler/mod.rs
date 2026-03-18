@@ -7,7 +7,7 @@ use std::sync::Arc;
 use axum::routing::{delete, get, post};
 use axum::Router;
 
-use crate::adapter::middleware::auth::{auth_middleware, ApiRegistryAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::*;
 
@@ -23,11 +23,11 @@ pub struct AppState {
     pub check_compatibility_uc: Arc<CheckCompatibilityUseCase>,
     pub get_diff_uc: Arc<GetDiffUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<ApiRegistryAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: ApiRegistryAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

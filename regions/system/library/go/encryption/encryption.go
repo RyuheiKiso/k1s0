@@ -17,6 +17,24 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
+// ErrCiphertextTooShort は暗号文がノンスサイズより短い場合のエラー。
+var ErrCiphertextTooShort = errors.New("暗号文が短すぎます")
+
+// ErrInvalidArgon2Hash は Argon2id ハッシュ形式が不正な場合のエラー。
+var ErrInvalidArgon2Hash = errors.New("invalid argon2id hash format")
+
+// ErrPasswordMismatch はパスワードがハッシュと一致しない場合のエラー。
+var ErrPasswordMismatch = errors.New("password does not match")
+
+// ErrInvalidPublicKeyPEM は公開鍵 PEM のデコードに失敗した場合のエラー。
+var ErrInvalidPublicKeyPEM = errors.New("failed to decode public key PEM")
+
+// ErrNotRSAPublicKey は公開鍵が RSA 形式でない場合のエラー。
+var ErrNotRSAPublicKey = errors.New("not an RSA public key")
+
+// ErrInvalidPrivateKeyPEM は秘密鍵 PEM のデコードに失敗した場合のエラー。
+var ErrInvalidPrivateKeyPEM = errors.New("failed to decode private key PEM")
+
 // GenerateKey は32バイトのランダムキーを生成する。
 func GenerateKey() ([]byte, error) {
 	key := make([]byte, 32)
@@ -60,7 +78,7 @@ func Decrypt(key []byte, ciphertext string) ([]byte, error) {
 	}
 	nonceSize := aead.NonceSize()
 	if len(data) < nonceSize {
-		return nil, errors.New("暗号文が短すぎます")
+		return nil, ErrCiphertextTooShort
 	}
 	nonce, sealed := data[:nonceSize], data[nonceSize:]
 	return aead.Open(nil, nonce, sealed, nil)
@@ -96,7 +114,7 @@ func HashPassword(password string) (string, error) {
 func VerifyPassword(password, encodedHash string) error {
 	parts := splitArgon2Hash(encodedHash)
 	if parts == nil {
-		return errors.New("invalid argon2id hash format")
+		return ErrInvalidArgon2Hash
 	}
 
 	salt, err := base64.RawStdEncoding.DecodeString(parts.salt)
@@ -112,7 +130,7 @@ func VerifyPassword(password, encodedHash string) error {
 	computed := argon2.IDKey([]byte(password), salt, parts.iterations, parts.memory, parts.parallelism, uint32(len(expectedHash)))
 
 	if subtle.ConstantTimeCompare(computed, expectedHash) != 1 {
-		return errors.New("password does not match")
+		return ErrPasswordMismatch
 	}
 	return nil
 }
@@ -190,7 +208,7 @@ func GenerateRSAKeyPair() (publicKeyPEM string, privateKeyPEM string, err error)
 func RSAEncrypt(publicKeyPEM string, plaintext []byte) ([]byte, error) {
 	block, _ := pem.Decode([]byte(publicKeyPEM))
 	if block == nil {
-		return nil, errors.New("failed to decode public key PEM")
+		return nil, ErrInvalidPublicKeyPEM
 	}
 	pubInterface, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
@@ -198,7 +216,7 @@ func RSAEncrypt(publicKeyPEM string, plaintext []byte) ([]byte, error) {
 	}
 	pub, ok := pubInterface.(*rsa.PublicKey)
 	if !ok {
-		return nil, errors.New("not an RSA public key")
+		return nil, ErrNotRSAPublicKey
 	}
 	return rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, plaintext, nil)
 }
@@ -207,7 +225,7 @@ func RSAEncrypt(publicKeyPEM string, plaintext []byte) ([]byte, error) {
 func RSADecrypt(privateKeyPEM string, ciphertext []byte) ([]byte, error) {
 	block, _ := pem.Decode([]byte(privateKeyPEM))
 	if block == nil {
-		return nil, errors.New("failed to decode private key PEM")
+		return nil, ErrInvalidPrivateKeyPEM
 	}
 	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {

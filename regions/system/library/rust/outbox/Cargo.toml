@@ -7,6 +7,7 @@ edition = "2021"
 postgres = ["sqlx"]
 
 [dependencies]
+anyhow = {workspace = true}
 async-trait = {workspace = true}
 chrono = {workspace = true}
 serde = {workspace = true}

@@ -2,9 +2,19 @@
 # .github/workflows/deploy.yaml
 name: Deploy
 
+# 個別サービス Deploy ワークフロー (*-deploy.yaml) がカバーするパスを除外し、
+# デプロイの重複実行を防止する
 on:
   push:
     branches: [main]
+    paths-ignore:
+      # 個別 Deploy ワークフローがカバーするサービスパス（重複実行の回避）
+      - 'regions/system/server/rust/auth/**'
+      - 'regions/system/server/rust/app-registry/**'
+      - 'regions/system/server/rust/config/**'
+      - 'regions/system/server/rust/saga/**'
+      - 'regions/system/server/rust/dlq-manager/**'
+      - 'regions/system/server/go/bff-proxy/**'
 
 # 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
 permissions: {}
@@ -98,21 +108,20 @@ jobs:
         with:
           context: regions/${{ matrix.service }}
           push: true
+          # :latest タグは廃止。バージョン + git SHA で一意に特定可能なタグのみ使用する
           tags: |
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Install Cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+      # cosign v2+ では --yes フラグで keyless 署名が有効（COSIGN_EXPERIMENTAL は非推奨）
       - name: Sign image with Cosign
         run: |
           cosign sign --yes \
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-        env:
-          COSIGN_EXPERIMENTAL: "1"
 
   # NOTE: デプロイジョブはクラスタネットワーク内の self-hosted ランナーで実行する。
   # 各環境のランナーはそれぞれのクラスタ内で動作し、Kubernetes API や
@@ -179,13 +188,15 @@ jobs:
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
+      # --atomic: デプロイ失敗時に自動ロールバック、--wait: Pod Ready まで待機、--timeout: 最大待機時間
       - name: Deploy to dev
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
             ./infra/helm/services/${{ steps.meta.outputs.helm_path }} \
             -n ${{ steps.meta.outputs.namespace }} \
             -f ./infra/helm/services/${{ steps.meta.outputs.helm_path }}/values-dev.yaml \
-            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }} \
+            --atomic --wait --timeout 5m
 
   # staging 環境へのデプロイ
   deploy-staging:
@@ -249,13 +260,15 @@ jobs:
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
+      # --atomic: デプロイ失敗時に自動ロールバック、--wait: Pod Ready まで待機、--timeout: 最大待機時間
       - name: Deploy to staging
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
             ./infra/helm/services/${{ steps.meta.outputs.helm_path }} \
             -n ${{ steps.meta.outputs.namespace }} \
             -f ./infra/helm/services/${{ steps.meta.outputs.helm_path }}/values-staging.yaml \
-            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }} \
+            --atomic --wait --timeout 5m
 
   # ---------- Deploy to prod (manual approval) ----------
   # IMPORTANT: GitHub リポジトリ設定で prod 環境に Required reviewers（最低2名）を設定すること。
@@ -324,16 +337,19 @@ jobs:
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
+      # --atomic: デプロイ失敗時に自動ロールバック、--wait: Pod Ready まで待機、--timeout: 最大待機時間
       - name: Deploy to prod
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
             ./infra/helm/services/${{ steps.meta.outputs.helm_path }} \
             -n ${{ steps.meta.outputs.namespace }} \
             -f ./infra/helm/services/${{ steps.meta.outputs.helm_path }}/values-prod.yaml \
-            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }} \
+            --atomic --wait --timeout 5m
+      # スモークテスト失敗時はデプロイ失敗として扱い、ワークフローを中止する
       - name: デプロイ後スモークテスト
         run: |
           echo "Waiting for rollout to complete..."
           kubectl rollout status deployment/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} --timeout=120s
           echo "Running health check..."
-          kubectl exec deploy/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} -- /busybox wget -qO- http://127.0.0.1:8080/healthz || echo "::warning::Health check failed"
+          kubectl exec deploy/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} -- /busybox wget -qO- http://127.0.0.1:8080/healthz

@@ -32,7 +32,8 @@ where
     }
     Err(RetryError::ExhaustedRetries {
         attempts: config.max_attempts,
-        last_error: last_error.unwrap(),
+        // リトライループで必ず last_error が設定されるため、ここでは expect で安全に取り出す
+        last_error: last_error.expect("リトライループにより last_error は必ず設定される"),
     })
 }
 

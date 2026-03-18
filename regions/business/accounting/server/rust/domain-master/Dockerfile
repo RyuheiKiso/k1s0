@@ -1,9 +1,12 @@
-# Build stage
+# chef ベースステージ: cargo-chef とビルド依存のインストール
 # Note: build context is repo root (to include api/proto and system library dependencies)
-FROM rust:1.93-bookworm AS builder
+# x86_64 ライブラリを直接コピーするためプラットフォームを明示固定
+FROM --platform=linux/amd64 rust:1.93-bookworm AS chef
 
-# Install protobuf compiler (for tonic-build in build.rs) and
-# cmake + build-essential (for rdkafka cmake-build feature)
+# cargo-chef のインストール（依存キャッシュ用）
+RUN cargo install cargo-chef --locked
+
+# protobuf コンパイラ（tonic-build 用）と cmake + build-essential（rdkafka 用）のインストール
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
     cmake \
@@ -12,7 +15,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy only what's needed: proto files + regions (system libs + business code)
+# planner ステージ: 依存情報レシピの生成
+FROM chef AS planner
+COPY api/proto api/proto
+COPY regions regions
+RUN cargo chef prepare --recipe-path recipe.json --manifest-path regions/business/accounting/server/rust/domain-master/Cargo.toml
+
+# cook ステージ: 依存のみビルド（キャッシュ層）
+FROM chef AS cook
+COPY --from=planner /app/recipe.json recipe.json
+COPY api/proto api/proto
+RUN cargo chef cook --release --recipe-path recipe.json --manifest-path regions/business/accounting/server/rust/domain-master/Cargo.toml
+
+# builder ステージ: ソースコードのビルド
+FROM cook AS builder
 COPY api/proto api/proto
 COPY regions regions
 

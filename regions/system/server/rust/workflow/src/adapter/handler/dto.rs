@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use k1s0_server_common::ErrorResponse;
 
-use crate::adapter::middleware::auth::WorkflowAuthState;
+use crate::adapter::middleware::auth::AuthState;
 use crate::usecase::check_overdue_tasks::CheckOverdueTasksUseCase;
 use crate::usecase::{
     ApproveTaskUseCase, CancelInstanceUseCase, CreateWorkflowUseCase, DeleteWorkflowUseCase,
@@ -36,12 +36,12 @@ pub struct AppState {
     pub reassign_task_uc: Arc<ReassignTaskUseCase>,
     pub check_overdue_tasks_uc: Arc<CheckOverdueTasksUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<WorkflowAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
     /// 認証状態を設定して自身を返すビルダーメソッド
-    pub fn with_auth(mut self, auth_state: WorkflowAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

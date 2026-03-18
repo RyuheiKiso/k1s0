@@ -23,7 +23,7 @@ pub async fn list_dependencies(
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match state.manage_deps_uc.list(id).await {
-        Ok(deps) => (StatusCode::OK, Json(serde_json::to_value(deps).unwrap())).into_response(),
+        Ok(deps) => (StatusCode::OK, Json(deps)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
