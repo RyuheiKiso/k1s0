@@ -246,7 +246,7 @@ pub async fn get_service_config(
                         StatusCode::NOT_FOUND,
                         Json(super::ErrorResponse::new(
                             k1s0_server_common::error::config::service_not_found().as_str(),
-                            &format!(
+                            format!(
                                 "service config not found for {} in environment {}",
                                 service_name, environment
                             ),

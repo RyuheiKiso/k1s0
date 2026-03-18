@@ -125,7 +125,7 @@ impl ConfigGrpcService {
             Ok(result) => Ok(pb::ListConfigsResponse {
                 entries: result.entries.iter().map(domain_config_to_pb).collect(),
                 pagination: Some(ProtoPaginationResult {
-                    total_count: result.pagination.total_count as i64,
+                    total_count: result.pagination.total_count,
                     page: result.pagination.page,
                     page_size: result.pagination.page_size,
                     has_next: result.pagination.has_next,

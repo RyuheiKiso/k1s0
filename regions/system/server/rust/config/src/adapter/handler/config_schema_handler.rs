@@ -33,7 +33,7 @@ pub async fn list_config_schemas(State(state): State<AppState>) -> impl IntoResp
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse::new(
                     "SYS_CONFIG_SCHEMA_INVALID",
-                    &format!("invalid persisted config schema: {}", err),
+                    format!("invalid persisted config schema: {}", err),
                 )),
             )
                 .into_response(),
@@ -66,7 +66,7 @@ pub async fn get_config_schema(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse::new(
                     "SYS_CONFIG_SCHEMA_INVALID",
-                    &format!("invalid persisted config schema: {}", err),
+                    format!("invalid persisted config schema: {}", err),
                 )),
             )
                 .into_response(),
@@ -129,7 +129,7 @@ pub async fn upsert_config_schema(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse::new(
                     "SYS_CONFIG_SCHEMA_INVALID",
-                    &format!("invalid persisted config schema: {}", err),
+                    format!("invalid persisted config schema: {}", err),
                 )),
             )
                 .into_response(),

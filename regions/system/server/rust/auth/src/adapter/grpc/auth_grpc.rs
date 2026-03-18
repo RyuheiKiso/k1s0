@@ -113,7 +113,7 @@ impl AuthGrpcService {
                 Ok(ListUsersResponse {
                     users: proto_users,
                     pagination: Some(PaginationResult {
-                        total_count: result.pagination.total_count as i64,
+                        total_count: result.pagination.total_count,
                         page: result.pagination.page,
                         page_size: result.pagination.page_size,
                         has_next: result.pagination.has_next,
