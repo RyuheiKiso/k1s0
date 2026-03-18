@@ -13,6 +13,7 @@ use super::grpc::{
     TenantGrpcClient, VaultGrpcClient, WorkflowGrpcClient,
 };
 use crate::adapter::graphql_handler::{self, GatewayClients, GatewayResolvers};
+use crate::adapter::middleware::ratelimit_middleware::RateLimitLayer;
 use crate::usecase::{
     AuthMutationResolver, AuthQueryResolver, ConfigQueryResolver, FeatureFlagQueryResolver,
     NavigationQueryResolver, NotificationMutationResolver, NotificationQueryResolver,
@@ -127,20 +128,57 @@ pub async fn run() -> anyhow::Result<()> {
         workflow: workflow_client,
     };
 
+    // --- レート制限クライアント ---
+    // 設定で有効化されている場合、ratelimit gRPC サービスに接続するクライアントを生成する。
+    // 無効の場合はレート制限レイヤーを追加しない。
+    let ratelimit_layer = if cfg.ratelimit.enabled {
+        info!(
+            server_url = %cfg.ratelimit.server_url,
+            scope = %cfg.ratelimit.scope,
+            requests_per_window = cfg.ratelimit.requests_per_window,
+            window_secs = cfg.ratelimit.window_secs,
+            "レート制限を有効化"
+        );
+        let ratelimit_client = k1s0_ratelimit_client::GrpcRateLimitClient::new(
+            cfg.ratelimit.server_url.clone(),
+        )
+        .await
+        .map_err(|e| anyhow::anyhow!("ratelimit クライアントの作成に失敗: {}", e))?;
+        Some(RateLimitLayer::new(
+            Arc::new(ratelimit_client),
+            cfg.ratelimit.scope.clone(),
+        ))
+    } else {
+        info!("レート制限は無効化されています");
+        None
+    };
+
     // --- Router ---
     // CorrelationLayerを追加してリクエスト間の相関IDを伝播する
     // ConcurrencyLimitLayerで同時リクエスト数を制限する（最大100並列）
     // RequestBodyLimitLayerでリクエストボディサイズを2MBに制限する
-    let app = graphql_handler::router(
+    // RateLimitLayerでリクエストレートを制限する（有効時のみ）
+    let router = graphql_handler::router(
         jwks_verifier,
         clients,
         resolvers,
         cfg.graphql.clone(),
         metrics,
-    )
-    .layer(k1s0_correlation::layer::CorrelationLayer::new())
-    .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
-    .layer(ConcurrencyLimitLayer::new(100));
+    );
+
+    // レート制限が有効な場合のみレイヤーを追加する
+    let app = if let Some(rl_layer) = ratelimit_layer {
+        router
+            .layer(rl_layer)
+            .layer(k1s0_correlation::layer::CorrelationLayer::new())
+            .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
+            .layer(ConcurrencyLimitLayer::new(100))
+    } else {
+        router
+            .layer(k1s0_correlation::layer::CorrelationLayer::new())
+            .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
+            .layer(ConcurrencyLimitLayer::new(100))
+    };
 
     let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("graphql-gateway starting on {}", addr);

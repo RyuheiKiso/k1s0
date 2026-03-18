@@ -3989,6 +3989,7 @@ dependencies = [
  "jsonwebtoken",
  "k1s0-circuit-breaker",
  "k1s0-correlation",
+ "k1s0-ratelimit-client",
  "k1s0-server-common",
  "k1s0-telemetry",
  "mockall",
