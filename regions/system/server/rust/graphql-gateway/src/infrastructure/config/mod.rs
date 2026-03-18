@@ -11,6 +11,9 @@ pub struct Config {
     pub backends: BackendsConfig,
     #[serde(default)]
     pub observability: ObservabilityConfig,
+    /// レート制限設定（ratelimit gRPC サービスと連携してリクエストレートを制御）
+    #[serde(default)]
+    pub ratelimit: RateLimitConfig,
     /// サーキットブレーカー設定（外部 gRPC 呼び出しの障害伝播防止）
     #[serde(default)]
     pub circuit_breaker: CircuitBreakerConfig,
