@@ -6,7 +6,7 @@ description = "k1s0 project CLI tool"
 
 [dependencies]
 k1s0-core = { path = "../k1s0-core" }
-dialoguer = "0.11"
+dialoguer = "0.12"
 tera = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
