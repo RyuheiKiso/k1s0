@@ -28,6 +28,14 @@ backends:
     address: "http://config-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
 
+# レート制限: ratelimit gRPC サービスと連携してリクエストレートを制御する
+ratelimit:
+  enabled: true
+  server_url: "http://ratelimit-server.k1s0-system.svc.cluster.local:50051"
+  scope: "graphql-gateway"
+  requests_per_window: 100
+  window_secs: 60
+
 # サーキットブレーカー: バックエンド gRPC サービスの障害伝播を防止する
 circuit_breaker:
   failure_threshold: 5
