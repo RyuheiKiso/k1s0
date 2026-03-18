@@ -72,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@1.93
+      - uses: dtolnay/rust-toolchain@1.100
 
       # 26サーバー並列ビルドのため Rust 依存キャッシュを有効化
       - uses: Swatinem/rust-cache@v2

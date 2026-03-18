@@ -131,7 +131,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      - uses: dtolnay/rust-toolchain@1.100       # Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
@@ -414,7 +414,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      - uses: dtolnay/rust-toolchain@1.100       # Dockerイメージ戦略.md / devcontainer設計.md と同期
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
@@ -471,7 +471,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93
+      - uses: dtolnay/rust-toolchain@1.100
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
@@ -486,7 +486,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93
+      - uses: dtolnay/rust-toolchain@1.100
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
@@ -746,7 +746,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93
+      - uses: dtolnay/rust-toolchain@1.100
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
         with:
@@ -853,7 +853,7 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93
+      - uses: dtolnay/rust-toolchain@1.100
         with:
           components: clippy
       - name: Check ai-agent

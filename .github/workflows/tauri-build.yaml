@@ -58,7 +58,7 @@ jobs:
           cache: npm
           cache-dependency-path: CLI/crates/k1s0-gui/ui/package-lock.json
 
-      - uses: dtolnay/rust-toolchain@1.93
+      - uses: dtolnay/rust-toolchain@1.100
         with:
           targets: ${{ matrix.target }}
 
