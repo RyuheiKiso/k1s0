@@ -79,7 +79,7 @@ jobs:
       # Dockerfile がコンテキスト内にある標準パターン
       - name: Build and push
         if: inputs.dockerfile == ''
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ inputs.context-path }}
           push: true
@@ -92,7 +92,7 @@ jobs:
       # Dockerfile がコンテキスト外にある場合（例: workspace root をコンテキストとして使用）
       - name: Build and push (custom Dockerfile)
         if: inputs.dockerfile != ''
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ inputs.context-path }}
           file: ${{ inputs.dockerfile }}

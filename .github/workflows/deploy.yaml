@@ -71,7 +71,7 @@ jobs:
           TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
           echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: regions/${{ matrix.service }}
           push: true
