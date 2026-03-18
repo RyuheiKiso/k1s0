@@ -8,7 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/k1s0-platform/api v0.0.0
 	github.com/stretchr/testify v1.11.1
-	google.golang.org/grpc v1.79.1
+	google.golang.org/grpc v1.79.3
 	gopkg.in/yaml.v3 v3.0.1
 )
 
