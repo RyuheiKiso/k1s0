@@ -31,6 +31,12 @@ impl PaymentRepository for InMemoryPaymentRepository {
         Ok(payments.iter().find(|p| p.id == id).cloned())
     }
 
+    /// 注文IDで決済を検索する。
+    async fn find_by_order_id(&self, order_id: &str) -> anyhow::Result<Option<Payment>> {
+        let payments = self.payments.read().await;
+        Ok(payments.iter().find(|p| p.order_id == order_id).cloned())
+    }
+
     /// フィルター条件で決済一覧を取得する。
     async fn find_all(&self, _filter: &PaymentFilter) -> anyhow::Result<Vec<Payment>> {
         let payments = self.payments.read().await;
@@ -106,8 +112,8 @@ impl PaymentRepository for InMemoryPaymentRepository {
         Ok(payment.clone())
     }
 
-    /// 決済を返金する（楽観ロック付き）。
-    async fn refund(&self, id: Uuid, expected_version: i32) -> anyhow::Result<Payment> {
+    /// 決済を返金する（楽観ロック付き）。返金理由をOutboxイベントに記録する。
+    async fn refund(&self, id: Uuid, expected_version: i32, _reason: Option<String>) -> anyhow::Result<Payment> {
         let mut payments = self.payments.write().await;
         let payment = payments
             .iter_mut()

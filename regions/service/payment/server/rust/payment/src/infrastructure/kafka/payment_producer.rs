@@ -120,6 +120,8 @@ mod tests {
                 trace_id: "".to_string(),
                 correlation_id: "pay-001".to_string(),
                 schema_version: 1,
+                // 因果関係IDは空文字列で初期化する
+                causation_id: "".to_string(),
             }),
             payment_id: "pay-001".to_string(),
             order_id: "order-001".to_string(),

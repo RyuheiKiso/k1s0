@@ -35,6 +35,8 @@ k1s0.{tier}.{domain}.v{major}
 
 ![Proto パッケージ階層図 & Buf ワークフロー](images/proto-package-hierarchy.svg)
 
+![Bufワークフローパイプライン](images/buf-workflow-pipeline.svg)
+
 パッケージ命名: `k1s0.{tier}.{domain}.v{major}`（初期 `v1`）
 
 ### 言語サポート
@@ -4871,6 +4873,8 @@ message ConfigChangedEvent {
 ---
 
 ## バージョニング・後方互換性ルール
+
+![Protoパッケージバージョニング戦略](images/proto-versioning-strategy.svg)
 
 ### 後方互換（バージョンアップ不要）
 

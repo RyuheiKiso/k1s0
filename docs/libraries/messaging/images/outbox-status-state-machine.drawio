@@ -1,0 +1,113 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="outbox-status-state" name="Outboxステータス状態遷移図">
+    <mxGraphModel dx="1422" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="600" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="Outbox ステータス状態遷移図" style="text;html=1;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Pending状態（初期） -->
+        <mxCell id="pending" value="&lt;b&gt;Pending&lt;/b&gt;&lt;br&gt;&lt;br&gt;メッセージ登録済み&lt;br&gt;送信待ち" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;verticalAlign=middle;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="170" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Processing状態 -->
+        <mxCell id="processing" value="&lt;b&gt;Processing&lt;/b&gt;&lt;br&gt;&lt;br&gt;Pollerが取得&lt;br&gt;送信処理中" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="340" y="80" width="170" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Sent状態（成功） -->
+        <mxCell id="sent" value="&lt;b&gt;Sent&lt;/b&gt;&lt;br&gt;&lt;br&gt;Kafka送信完了&lt;br&gt;ack受信済み" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#006600;fontSize=12;verticalAlign=middle;arcSize=20;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="700" y="80" width="170" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Failed状態 -->
+        <mxCell id="failed" value="&lt;b&gt;Failed&lt;/b&gt;&lt;br&gt;&lt;br&gt;送信失敗&lt;br&gt;リトライ対象" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;verticalAlign=middle;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="340" y="260" width="170" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Retrying状態 -->
+        <mxCell id="retrying" value="&lt;b&gt;Retrying&lt;/b&gt;&lt;br&gt;&lt;br&gt;指数バックオフで&lt;br&gt;再送信中" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;verticalAlign=middle;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="60" y="260" width="170" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- DeadLetter状態（最終失敗） -->
+        <mxCell id="deadletter" value="&lt;b&gt;Dead Letter&lt;/b&gt;&lt;br&gt;&lt;br&gt;最大リトライ超過&lt;br&gt;手動対応必要" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;verticalAlign=middle;arcSize=20;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="60" y="430" width="170" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Pending → Processing -->
+        <mxCell id="e1" value="poller_pickup()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#6C8EBF;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="pending" target="processing" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Processing → Sent -->
+        <mxCell id="e2" value="kafka_ack()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#006600;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="processing" target="sent" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Processing → Failed -->
+        <mxCell id="e3" value="send_error()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#B85450;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="processing" target="failed" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Failed → Retrying -->
+        <mxCell id="e4" value="retry_scheduled()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#D6B656;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="failed" target="retrying" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Retrying → Sent（リトライ成功） -->
+        <mxCell id="e5" value="retry_success()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#006600;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0;entryX=1;entryY=1;" edge="1" source="retrying" target="sent" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="240"/>
+              <mxPoint x="920" y="240"/>
+              <mxPoint x="920" y="170"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 遷移: Retrying → Failed（リトライ失敗） -->
+        <mxCell id="e6" value="retry_failed()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#B85450;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;dashed=1;dashPattern=8 4;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="retrying" target="failed" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Retrying → DeadLetter -->
+        <mxCell id="e7" value="max_retries_exceeded()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#B85450;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="retrying" target="deadletter" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 凡例 -->
+        <mxCell id="legend_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="430" width="500" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_t" value="凡例:" style="text;html=1;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="435" width="40" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="&lt;font color=&quot;#666666&quot;&gt;■&lt;/font&gt; 待機" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="410" y="435" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="&lt;font color=&quot;#6C8EBF&quot;&gt;■&lt;/font&gt; 処理中" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="470" y="435" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="&lt;font color=&quot;#82B366&quot;&gt;■&lt;/font&gt; 送信済" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="540" y="435" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="&lt;font color=&quot;#D6B656&quot;&gt;■&lt;/font&gt; リトライ" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="610" y="435" width="70" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5" value="&lt;font color=&quot;#B85450&quot;&gt;■&lt;/font&gt; 失敗/DLQ" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="690" y="435" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg6" value="━━ 正常　- - 再失敗" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="455" width="160" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

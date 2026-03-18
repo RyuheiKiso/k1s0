@@ -469,6 +469,12 @@ modules:
     type: library
     workspace: regions/system
 
+  - path: regions/system/library/rust/proto-build
+    lang: rust
+    status: stable
+    type: library
+    workspace: regions/system
+
   - path: regions/system/library/rust/quota-client
     lang: rust
     status: stable

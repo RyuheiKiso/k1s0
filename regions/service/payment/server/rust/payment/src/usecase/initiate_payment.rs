@@ -76,6 +76,12 @@ mod tests {
 
         let mut mock_repo = MockPaymentRepository::new();
 
+        // 冪等性チェック: 同一 order_id の決済が存在しないケース
+        mock_repo
+            .expect_find_by_order_id()
+            .times(1)
+            .returning(|_| Ok(None));
+
         mock_repo
             .expect_create()
             .times(1)

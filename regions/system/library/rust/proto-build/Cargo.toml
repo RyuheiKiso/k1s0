@@ -5,4 +5,7 @@ edition = "2021"
 description = "k1s0 サービス共通の proto コード生成ユーティリティ"
 
 [dependencies]
-tonic-build = "0.12"
+tonic-build.workspace = true
+
+[lints]
+workspace = true

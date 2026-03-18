@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - id: detect
         name: Detect changed services
         run: |
@@ -32,14 +32,14 @@ jobs:
           #   system:   regions/system/server/{lang}/{service}/...
           #   business: regions/business/{domain}/server/{lang}/{service}/...
           #   service:  regions/service/{service}/server/{lang}/...
-          CHANGED=$(git diff --name-only HEAD~1 HEAD | \
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
             grep -E '^regions/' | \
             sed 's|^regions/||' | \
             while IFS= read -r path; do
               case "$path" in
                 system/server/*/*/*)       echo "$path" | cut -d'/' -f1-4 ;;
                 business/*/server/*/*/*)   echo "$path" | cut -d'/' -f1-5 ;;
-                service/*/server/*/*)      echo "$path" | cut -d'/' -f1-4 ;;
+                service/*/server/*/*/*)    echo "$path" | cut -d'/' -f1-5 ;;
               esac
             done | sort -u | head -20)
           echo "services=$(echo "$CHANGED" | jq -R -s -c 'split("\n") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
@@ -83,8 +83,15 @@ jobs:
       - name: Determine image metadata
         id: image
         run: |
+          # Tier を抽出してプロジェクト名を決定
           TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
           echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
+          # Tier 別にサービス短縮名を導出
+          case "$TIER" in
+            system)   echo "service_name=$(echo "${{ matrix.service }}" | cut -d'/' -f4)" >> "$GITHUB_OUTPUT" ;;
+            business) echo "service_name=$(echo "${{ matrix.service }}" | cut -d'/' -f5)" >> "$GITHUB_OUTPUT" ;;
+            service)  echo "service_name=$(echo "${{ matrix.service }}" | cut -d'/' -f2)" >> "$GITHUB_OUTPUT" ;;
+          esac
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Build and push
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
@@ -92,9 +99,9 @@ jobs:
           context: regions/${{ matrix.service }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:latest
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
@@ -103,7 +110,7 @@ jobs:
       - name: Sign image with Cosign
         run: |
           cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
         env:
           COSIGN_EXPERIMENTAL: "1"
 
@@ -148,9 +155,8 @@ jobs:
               HELM_PATH="system/${SERVICE_NAME}"
               ;;
             business)
-              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
-              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              HELM_PATH="business/${SERVICE_NAME}"
               ;;
             service)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
@@ -168,7 +174,7 @@ jobs:
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
@@ -219,9 +225,8 @@ jobs:
               HELM_PATH="system/${SERVICE_NAME}"
               ;;
             business)
-              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
-              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              HELM_PATH="business/${SERVICE_NAME}"
               ;;
             service)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
@@ -239,7 +244,7 @@ jobs:
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
@@ -295,9 +300,8 @@ jobs:
               HELM_PATH="system/${SERVICE_NAME}"
               ;;
             business)
-              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
-              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              HELM_PATH="business/${SERVICE_NAME}"
               ;;
             service)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
@@ -315,7 +319,7 @@ jobs:
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:

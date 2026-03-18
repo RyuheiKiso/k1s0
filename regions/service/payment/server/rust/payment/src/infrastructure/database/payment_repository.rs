@@ -344,7 +344,7 @@ impl PaymentRepository for PaymentPostgresRepository {
         &self,
         id: Uuid,
         expected_version: i32,
-        reason: Option<&str>,
+        reason: Option<String>,
     ) -> anyhow::Result<Payment> {
         let mut tx = self.pool.begin().await?;
         let now = Utc::now();
@@ -399,7 +399,7 @@ impl PaymentRepository for PaymentPostgresRepository {
             "refund_amount": row.amount,
             "currency": row.currency,
             // リクエストから伝播された返金理由を使用する（未指定時はデフォルト値）
-            "reason": reason.unwrap_or("refund requested"),
+            "reason": reason.as_deref().unwrap_or("refund requested"),
             "refunded_at": now.to_rfc3339(),
         });
 

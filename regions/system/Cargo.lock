@@ -4289,6 +4289,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "k1s0-proto-build"
+version = "0.1.0"
+dependencies = [
+ "tonic-build",
+]
+
+[[package]]
 name = "k1s0-quota-client"
 version = "0.1.0"
 dependencies = [

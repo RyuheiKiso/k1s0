@@ -1,0 +1,124 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="cargo-workspace-dep" name="Cargoワークスペース依存ツリー">
+    <mxGraphModel dx="1422" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="700" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="Cargo ワークスペース依存ツリー" style="text;html=1;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ルート: k1s0-workspace -->
+        <mxCell id="workspace" value="&lt;b&gt;k1s0-workspace&lt;/b&gt;&lt;br&gt;(Cargo.toml)" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="380" y="70" width="180" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 共通crateレイヤー ===== -->
+        <mxCell id="common_bg" value="" style="rounded=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;opacity=15;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="900" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="common_label" value="共通crate" style="text;html=1;fontSize=14;fontStyle=1;fontColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="50" y="163" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="common" value="&lt;b&gt;k1s0-common&lt;/b&gt;&lt;br&gt;エラー型, 設定, ログ" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="60" y="195" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="domain" value="&lt;b&gt;k1s0-domain&lt;/b&gt;&lt;br&gt;ドメインモデル, Trait" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="260" y="195" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="infra" value="&lt;b&gt;k1s0-infra&lt;/b&gt;&lt;br&gt;DB, Kafka, Redis接続" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="460" y="195" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="proto" value="&lt;b&gt;k1s0-proto&lt;/b&gt;&lt;br&gt;gRPC生成コード" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="660" y="195" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- 共通crate間の依存 -->
+        <mxCell id="d_dc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#6C8EBF;dashed=1;" edge="1" source="domain" target="common" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="d_ic" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#6C8EBF;dashed=1;" edge="1" source="infra" target="common" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="d_id" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=1;strokeColor=#6C8EBF;dashed=1;" edge="1" source="infra" target="domain" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== System Tier サーバーcrate ===== -->
+        <mxCell id="sys_bg" value="" style="rounded=1;fillColor=#E1D5E7;strokeColor=#9673A6;opacity=15;" vertex="1" parent="1">
+          <mxGeometry x="40" y="330" width="420" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="sys_label" value="System Tier サーバー" style="text;html=1;fontSize=14;fontStyle=1;fontColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="50" y="333" width="180" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="auth" value="&lt;b&gt;auth-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="60" y="370" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="config" value="&lt;b&gt;config-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="200" y="370" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="audit" value="&lt;b&gt;audit-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="340" y="370" width="110" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Business Tier サーバーcrate ===== -->
+        <mxCell id="biz_bg" value="" style="rounded=1;fillColor=#D5E8D4;strokeColor=#82B366;opacity=15;" vertex="1" parent="1">
+          <mxGeometry x="500" y="330" width="440" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="biz_label" value="Business Tier サーバー" style="text;html=1;fontSize=14;fontStyle=1;fontColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="510" y="333" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="order" value="&lt;b&gt;order-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="520" y="370" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="inventory" value="&lt;b&gt;inventory-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="660" y="370" width="130" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="payment" value="&lt;b&gt;payment-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="810" y="370" width="120" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Service Tier ===== -->
+        <mxCell id="svc_bg" value="" style="rounded=1;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=15;" vertex="1" parent="1">
+          <mxGeometry x="250" y="500" width="440" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_label" value="Service Tier サーバー" style="text;html=1;fontSize=14;fontStyle=1;fontColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="260" y="503" width="180" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="notif" value="&lt;b&gt;notification-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="270" y="540" width="140" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="report" value="&lt;b&gt;report-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="440" y="540" width="120" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- workspace → 共通crate -->
+        <mxCell id="w_c" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" source="workspace" target="common_bg" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- サーバー → 共通crate依存矢印 -->
+        <mxCell id="auth_dep" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#9673A6;exitX=0.5;exitY=0;entryX=0.25;entryY=1;" edge="1" source="auth" target="common_bg" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="order_dep" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#82B366;exitX=0.5;exitY=0;entryX=0.75;entryY=1;" edge="1" source="order" target="common_bg" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 凡例 -->
+        <mxCell id="legend_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="630" width="900" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg" value="凡例: &lt;font color=&quot;#6C8EBF&quot;&gt;■&lt;/font&gt; 共通crate　&lt;font color=&quot;#9673A6&quot;&gt;■&lt;/font&gt; System　&lt;font color=&quot;#82B366&quot;&gt;■&lt;/font&gt; Business　&lt;font color=&quot;#D6B656&quot;&gt;■&lt;/font&gt; Service　─── 依存方向（矢印先が依存先）　- - - crate間内部依存" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="638" width="880" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

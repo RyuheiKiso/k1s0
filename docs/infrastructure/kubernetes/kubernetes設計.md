@@ -27,6 +27,8 @@
 
 ## NetworkPolicy
 
+![Tier依存方向の強制](images/k8s-tier-dependency-enforcement.svg)
+
 Tier アーキテクチャの依存ルール（下位 → 上位の一方向のみ）を NetworkPolicy で強制する。
 
 **通信方針:**
@@ -337,6 +339,8 @@ spec:
 ```
 
 ## バックアップ
+
+![バックアップスケジュールタイムライン](images/k8s-backup-schedule-timeline.svg)
 
 各コンポーネントのバックアップは CronJob として `k1s0-system` Namespace で実行する。実装ファイルは `infra/kubernetes/backup/` に格納されている。
 

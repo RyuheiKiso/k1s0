@@ -8,6 +8,10 @@
 
 ![トランザクショナルアウトボックスパターン](images/outbox-pattern-flow.svg)
 
+![Outboxステータス状態遷移図](images/outbox-status-state-machine.svg)
+
+![リトライ指数バックオフタイムライン](images/outbox-retry-exponential-backoff.svg)
+
 ## 公開 API
 
 | 型・トレイト | 種別 | 説明 |
