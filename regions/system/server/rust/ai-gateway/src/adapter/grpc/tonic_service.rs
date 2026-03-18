@@ -3,12 +3,9 @@
 
 use std::sync::Arc;
 
-use tonic::{Request, Response, Status};
+use tonic::Status;
 
-use super::ai_grpc::{
-    AiGatewayGrpcService, GrpcCompleteRequest, GrpcEmbedRequest, GrpcError, GrpcGetUsageRequest,
-    GrpcMessage,
-};
+use super::ai_grpc::GrpcError;
 
 /// GrpcErrorからtonic::Statusへの変換。
 impl From<GrpcError> for Status {
