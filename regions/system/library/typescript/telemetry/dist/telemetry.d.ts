@@ -9,6 +9,7 @@ export interface TelemetryConfig {
     traceEndpoint?: string;
     sampleRate?: number;
     logLevel: string;
+    logFormat?: string;
 }
 /**
  * initTelemetry は OpenTelemetry NodeSDK を初期化する。
