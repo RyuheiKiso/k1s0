@@ -43,7 +43,7 @@ pub trait PaymentRepository: Send + Sync {
         &self,
         id: Uuid,
         expected_version: i32,
-        reason: Option<&str>,
+        reason: Option<String>,
     ) -> anyhow::Result<Payment>;
 
     /// Outbox イベントを挿入する。

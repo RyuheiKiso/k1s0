@@ -187,7 +187,7 @@ pub async fn refund_payment(
     // 返金理由をユースケースに伝播する
     let payment = state
         .refund_payment_uc
-        .execute(id, body.reason.as_deref())
+        .execute(id, body.reason)
         .await
         .map_err(map_payment_error)?;
 

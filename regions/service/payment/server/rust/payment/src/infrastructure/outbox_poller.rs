@@ -497,7 +497,7 @@ mod tests {
         let ts = parse_timestamp("2024-01-15T10:30:00Z");
         assert!(ts.is_some());
         let ts = ts.unwrap();
-        assert_eq!(ts.seconds, 1705312200);
+        assert_eq!(ts.seconds, 1705314600);
         assert_eq!(ts.nanos, 0);
     }
 

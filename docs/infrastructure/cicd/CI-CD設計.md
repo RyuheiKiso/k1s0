@@ -276,22 +276,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - id: detect
         name: Detect changed services
         run: |
           # ディレクトリ構成図.md に基づくサービス検出:
           #   system:   regions/system/server/{lang}/{service}/...
           #   business: regions/business/{domain}/server/{lang}/{service}/...
-          #   service:  regions/service/{service}/server/{lang}/...
-          CHANGED=$(git diff --name-only HEAD~1 HEAD | \
+          #   service:  regions/service/{service}/server/{lang}/{service}/...
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
             grep -E '^regions/' | \
             sed 's|^regions/||' | \
             while IFS= read -r path; do
               case "$path" in
                 system/server/*/*/*)       echo "$path" | cut -d'/' -f1-4 ;;
                 business/*/server/*/*/*)   echo "$path" | cut -d'/' -f1-5 ;;
-                service/*/server/*/*)      echo "$path" | cut -d'/' -f1-4 ;;
+                service/*/server/*/*/*)    echo "$path" | cut -d'/' -f1-5 ;;
               esac
             done | sort -u | head -20)
           echo "services=$(echo "$CHANGED" | jq -R -s -c 'split("\n") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
@@ -327,17 +327,24 @@ jobs:
       - name: Determine image metadata
         id: image
         run: |
+          # Tier と短縮サービス名を導出（イメージ名に使用）
           TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
+          case "$TIER" in
+            system)   SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f4) ;;
+            business) SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5) ;;
+            service)  SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2) ;;
+          esac
           echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
+          echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: regions/${{ matrix.service }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:latest
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Install Cosign
@@ -345,7 +352,7 @@ jobs:
       - name: Sign image with Cosign
         run: |
           cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
         env:
           COSIGN_EXPERIMENTAL: "1"
 
@@ -376,8 +383,8 @@ jobs:
         run: |
           # Tier 別のディレクトリ構成に基づきメタデータを導出:
           #   system/server/{lang}/{service}         → Helm: system/{service}
-          #   business/{domain}/server/{lang}/{service} → Helm: business/{domain}/{service}
-          #   service/{service}/server/{lang}        → Helm: service/{service}
+          #   business/{domain}/server/{lang}/{service} → Helm: business/{service}
+          #   service/{service}/server/{lang}/{name}  → Helm: service/{service}
           TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
           case "$TIER" in
             system)
@@ -385,9 +392,8 @@ jobs:
               HELM_PATH="system/${SERVICE_NAME}"
               ;;
             business)
-              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
-              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              HELM_PATH="business/${SERVICE_NAME}"
               ;;
             service)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
@@ -404,7 +410,7 @@ jobs:
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
@@ -440,8 +446,8 @@ jobs:
         run: |
           # Tier 別のディレクトリ構成に基づきメタデータを導出:
           #   system/server/{lang}/{service}         → Helm: system/{service}
-          #   business/{domain}/server/{lang}/{service} → Helm: business/{domain}/{service}
-          #   service/{service}/server/{lang}        → Helm: service/{service}
+          #   business/{domain}/server/{lang}/{service} → Helm: business/{service}
+          #   service/{service}/server/{lang}/{name}  → Helm: service/{service}
           TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
           case "$TIER" in
             system)
@@ -449,9 +455,8 @@ jobs:
               HELM_PATH="system/${SERVICE_NAME}"
               ;;
             business)
-              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
-              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              HELM_PATH="business/${SERVICE_NAME}"
               ;;
             service)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
@@ -468,7 +473,7 @@ jobs:
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
@@ -506,8 +511,8 @@ jobs:
         run: |
           # Tier 別のディレクトリ構成に基づきメタデータを導出:
           #   system/server/{lang}/{service}         → Helm: system/{service}
-          #   business/{domain}/server/{lang}/{service} → Helm: business/{domain}/{service}
-          #   service/{service}/server/{lang}        → Helm: service/{service}
+          #   business/{domain}/server/{lang}/{service} → Helm: business/{service}
+          #   service/{service}/server/{lang}/{name}  → Helm: service/{service}
           TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
           case "$TIER" in
             system)
@@ -515,9 +520,8 @@ jobs:
               HELM_PATH="system/${SERVICE_NAME}"
               ;;
             business)
-              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
-              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              HELM_PATH="business/${SERVICE_NAME}"
               ;;
             service)
               SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
@@ -534,7 +538,7 @@ jobs:
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期

@@ -178,7 +178,7 @@ impl PaymentService for PaymentGrpcService {
         // 返金理由をユースケースに伝播する
         let payment = self
             .refund_payment_uc
-            .execute(payment_id, req.reason.as_deref())
+            .execute(payment_id, req.reason)
             .await
             .map_err(map_anyhow_to_status)?;
 

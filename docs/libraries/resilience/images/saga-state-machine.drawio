@@ -1,0 +1,123 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="saga-state-machine" name="Saga状態遷移図">
+    <mxGraphModel dx="1422" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="650" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="Saga 状態遷移図" style="text;html=1;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="400" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Created状態（初期） -->
+        <mxCell id="created" value="&lt;b&gt;Created&lt;/b&gt;&lt;br&gt;&lt;br&gt;Saga定義が登録された&lt;br&gt;初期状態" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;verticalAlign=middle;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="180" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Started状態 -->
+        <mxCell id="started" value="&lt;b&gt;Started&lt;/b&gt;&lt;br&gt;&lt;br&gt;最初のステップを&lt;br&gt;実行開始" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="350" y="80" width="180" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Running状態 -->
+        <mxCell id="running" value="&lt;b&gt;Running&lt;/b&gt;&lt;br&gt;&lt;br&gt;各ステップを順次実行中&lt;br&gt;(Forward Phase)" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="670" y="80" width="200" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Completed状態（成功終了） -->
+        <mxCell id="completed" value="&lt;b&gt;Completed&lt;/b&gt;&lt;br&gt;&lt;br&gt;全ステップ正常完了" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#006600;fontSize=12;verticalAlign=middle;arcSize=20;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="670" y="260" width="200" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Compensating状態 -->
+        <mxCell id="compensating" value="&lt;b&gt;Compensating&lt;/b&gt;&lt;br&gt;&lt;br&gt;補償トランザクション&lt;br&gt;を逆順実行中" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;verticalAlign=middle;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="350" y="260" width="200" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Compensated状態 -->
+        <mxCell id="compensated" value="&lt;b&gt;Compensated&lt;/b&gt;&lt;br&gt;&lt;br&gt;全補償トランザクション完了&lt;br&gt;整合性回復済み" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;verticalAlign=middle;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="60" y="420" width="220" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Failed状態（最終失敗） -->
+        <mxCell id="failed" value="&lt;b&gt;Failed&lt;/b&gt;&lt;br&gt;&lt;br&gt;補償も失敗&lt;br&gt;手動介入必要" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;verticalAlign=middle;arcSize=20;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="430" y="420" width="200" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Created → Started -->
+        <mxCell id="e1" value="start()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#6C8EBF;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="created" target="started" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Started → Running -->
+        <mxCell id="e2" value="first_step_ok()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#82B366;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="started" target="running" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Running → Completed -->
+        <mxCell id="e3" value="all_steps_done()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#006600;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="running" target="completed" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Running → Compensating (ステップ失敗) -->
+        <mxCell id="e4" value="step_failed()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#D6B656;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" edge="1" source="running" target="compensating" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="770" y="305"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 遷移: Started → Compensating (最初のステップ失敗) -->
+        <mxCell id="e5" value="first_step_failed()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#D6B656;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;dashed=1;dashPattern=8 4;" edge="1" source="started" target="compensating" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 遷移: Compensating → Compensated -->
+        <mxCell id="e6" value="all_compensated()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#9673A6;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="compensating" target="compensated" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="465"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 遷移: Compensating → Failed -->
+        <mxCell id="e7" value="compensation_failed()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#B85450;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" source="compensating" target="failed" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 凡例 -->
+        <mxCell id="legend_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="540" width="800" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_t" value="凡例:" style="text;html=1;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="548" width="40" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="&lt;font color=&quot;#666666&quot;&gt;■&lt;/font&gt; 初期" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="548" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="&lt;font color=&quot;#6C8EBF&quot;&gt;■&lt;/font&gt; 開始" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="190" y="548" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="&lt;font color=&quot;#82B366&quot;&gt;■&lt;/font&gt; 実行中/完了" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="548" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="&lt;font color=&quot;#D6B656&quot;&gt;■&lt;/font&gt; 補償中" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="370" y="548" width="70" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5" value="&lt;font color=&quot;#9673A6&quot;&gt;■&lt;/font&gt; 補償済" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="450" y="548" width="70" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg6" value="&lt;font color=&quot;#B85450&quot;&gt;■&lt;/font&gt; 失敗" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="548" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg7" value="─── 正常遷移　- - - 異常遷移" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="548" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -3,7 +3,7 @@ fullnameOverride: ""
 
 image:
   registry: harbor.internal.example.com
-  repository: k1s0-service/service-catalog
+  repository: k1s0-system/service-catalog
   tag: ""
   pullPolicy: IfNotPresent
 

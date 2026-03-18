@@ -18,7 +18,7 @@ impl RefundPaymentUseCase {
     pub async fn execute(
         &self,
         payment_id: Uuid,
-        reason: Option<&str>,
+        reason: Option<String>,
     ) -> anyhow::Result<Payment> {
         let existing = self
             .payment_repo
@@ -91,7 +91,7 @@ mod tests {
 
         let uc = RefundPaymentUseCase::new(Arc::new(mock_repo));
         // 返金理由を指定してユースケースを実行する
-        let result = uc.execute(payment_id, Some("顧客要望")).await;
+        let result = uc.execute(payment_id, Some("顧客要望".to_string())).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, PaymentStatus::Refunded);
     }

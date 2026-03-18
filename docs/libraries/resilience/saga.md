@@ -8,6 +8,10 @@ Saga パターンクライアントライブラリ。分散トランザクショ
 
 ![Sagaオーケストレーションパターン](images/saga-orchestration-flow.svg)
 
+![Saga状態遷移図](images/saga-state-machine.svg)
+
+![分散Sagaコーディネーションシーケンス](images/saga-distributed-coordination-sequence.svg)
+
 ## 公開 API
 
 | 型・トレイト | 種別 | 説明 |
