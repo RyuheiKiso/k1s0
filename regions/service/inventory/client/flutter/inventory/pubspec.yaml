@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   # Riverpod による状態管理
-  flutter_riverpod: ^2.5.1
+  flutter_riverpod: ^3.3.1
   # go_router によるルーティング
   go_router: ^14.2.7
   # Dio による HTTP クライアント
