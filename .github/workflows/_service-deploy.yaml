@@ -90,7 +90,7 @@ jobs:
       - name: Build and push
         if: inputs.dockerfile == ''
         # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: ${{ inputs.context-path }}
           push: true
@@ -104,7 +104,7 @@ jobs:
       - name: Build and push (custom Dockerfile)
         if: inputs.dockerfile != ''
         # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: ${{ inputs.context-path }}
           file: ${{ inputs.dockerfile }}
