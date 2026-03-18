@@ -10,7 +10,7 @@ jobs:
   openapi-validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Validate OpenAPI
         run: |
           npx @redocly/cli lint api/openapi/openapi.yaml
@@ -19,7 +19,7 @@ jobs:
     needs: openapi-validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Generate Go server code
         run: |
           go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
@@ -31,7 +31,7 @@ jobs:
     needs: openapi-validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Generate TypeScript SDK
         run: |
           npx @openapitools/openapi-generator-cli generate \
@@ -46,7 +46,7 @@ jobs:
     needs: openapi-validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Generate Dart SDK
         run: |
           npx @openapitools/openapi-generator-cli generate \

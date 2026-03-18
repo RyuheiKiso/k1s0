@@ -15,7 +15,7 @@ jobs:
     outputs:
       services: ${{ steps.detect.outputs.services }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
       - id: detect
@@ -45,7 +45,7 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.detect-services.outputs.services) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Set short SHA
@@ -101,7 +101,7 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.detect-services.outputs.services) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Set short SHA
@@ -165,7 +165,7 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.detect-services.outputs.services) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Set short SHA
@@ -234,7 +234,7 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.detect-services.outputs.services) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Set short SHA

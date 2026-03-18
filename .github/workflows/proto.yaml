@@ -12,7 +12,7 @@ jobs:
   proto-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: bufbuild/buf-setup-action@v1
         with:
           version: "1.47.2"              # devcontainer設計.md の BUF_VERSION と同期

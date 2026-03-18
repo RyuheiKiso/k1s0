@@ -22,7 +22,7 @@ jobs:
       docker: ${{ steps.filter.outputs.docker }}
       shell: ${{ steps.filter.outputs.shell }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -63,7 +63,7 @@ jobs:
       ts_modules: ${{ steps.modules.outputs.ts_modules }}
       dart_modules: ${{ steps.modules.outputs.dart_modules }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Detect affected modules
@@ -92,7 +92,7 @@ jobs:
     if: needs.detect-changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
@@ -130,7 +130,7 @@ jobs:
     if: needs.detect-changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
@@ -219,7 +219,7 @@ jobs:
     if: needs.detect-changes.outputs.ts == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -265,7 +265,7 @@ jobs:
     if: needs.detect-changes.outputs.dart == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
@@ -313,7 +313,7 @@ jobs:
     if: needs.detect-changes.outputs.shell == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: shellcheck のインストール
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: シェルスクリプトの静的解析
@@ -325,7 +325,7 @@ jobs:
     if: needs.detect-changes.outputs.proto == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: bufbuild/buf-setup-action@v1
@@ -340,7 +340,7 @@ jobs:
     needs: [lint-go, detect-modules]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
@@ -413,7 +413,7 @@ jobs:
     needs: [lint-rust, detect-modules]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
@@ -470,7 +470,7 @@ jobs:
     if: needs.detect-changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@1.93
       - uses: Swatinem/rust-cache@v2
         with:
@@ -485,7 +485,7 @@ jobs:
     needs: lint-rust
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@1.93
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
@@ -543,7 +543,7 @@ jobs:
     needs: lint-ts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -568,7 +568,7 @@ jobs:
     needs: lint-ts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -609,7 +609,7 @@ jobs:
     needs: lint-dart
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
@@ -646,7 +646,7 @@ jobs:
     needs: lint-dart
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
@@ -729,7 +729,7 @@ jobs:
     needs: test-go
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
@@ -745,7 +745,7 @@ jobs:
     needs: test-rust
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@1.93
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       - uses: Swatinem/rust-cache@v2
@@ -793,7 +793,7 @@ jobs:
     needs: test-ts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -821,7 +821,7 @@ jobs:
     if: always() && !contains(needs.*.result, 'failure') && (needs.detect-changes.outputs.docker == 'true' || needs.detect-changes.outputs.go == 'true' || needs.detect-changes.outputs.rust == 'true')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build service Docker images
         shell: bash
         run: |
@@ -852,7 +852,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@1.93
         with:
           components: clippy
@@ -877,7 +877,7 @@ jobs:
     if: needs.detect-changes.outputs.helm == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: azure/setup-helm@v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
@@ -898,7 +898,7 @@ jobs:
     if: always() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build validation summary
         run: echo "All language and Docker builds passed"
 
@@ -907,7 +907,7 @@ jobs:
   validate-modules:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: modules.yaml とディスク上マニフェストの整合性チェック
         shell: bash
         run: |
@@ -954,7 +954,7 @@ jobs:
   validate-vault-policies:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check for overly broad Vault wildcards
         shell: bash
         run: |
@@ -967,7 +967,7 @@ jobs:
   validate-ts-lockfiles:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check package-lock.json exists for all TS packages
         shell: bash
         run: |
@@ -986,7 +986,7 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
