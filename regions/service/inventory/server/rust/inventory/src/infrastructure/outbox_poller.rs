@@ -4,7 +4,8 @@ use crate::proto::k1s0::event::service::inventory::v1::{
 };
 use crate::proto::k1s0::system::common::v1::EventMetadata;
 use crate::usecase::event_publisher::InventoryEventPublisher;
-use prost_types::Timestamp;
+// カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
+use crate::proto::k1s0::system::common::v1::Timestamp;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time;
@@ -121,6 +122,12 @@ impl OutboxPoller {
                                 .get("schema_version")
                                 .and_then(|v| v.as_i64())
                                 .unwrap_or(1) as i32,
+                            // 因果関係追跡用 ID
+                            causation_id: metadata
+                                .get("causation_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
                         }),
                         order_id: payload
                             .get("order_id")
@@ -189,6 +196,12 @@ impl OutboxPoller {
                                 .get("schema_version")
                                 .and_then(|v| v.as_i64())
                                 .unwrap_or(1) as i32,
+                            // 因果関係追跡用 ID
+                            causation_id: metadata
+                                .get("causation_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
                         }),
                         order_id: payload
                             .get("order_id")

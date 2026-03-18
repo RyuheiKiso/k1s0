@@ -586,6 +586,131 @@ echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
 | --- | --- | --- |
 | `COMPOSE_NETWORK_NAME` | k1s0-network | Docker ネットワーク名 |
 
+## プロファイル依存関係と起動順序
+
+### プロファイル詳細
+
+Docker Compose で定義されている全プロファイルと、それぞれに含まれるサービス・依存関係を以下に示す。
+
+#### `infra` プロファイル
+
+共通インフラサービス。他の全プロファイルの前提となる。
+
+| サービス | イメージ | 依存先 | 用途 |
+|---------|---------|--------|------|
+| postgres | postgres:17 | なし | PostgreSQL（主要 RDBMS） |
+| mysql | mysql:8.4 | なし | MySQL（既存システム連携用） |
+| redis | redis:7 | なし | Redis（キャッシュ・分散ロック） |
+| redis-session | redis:7 | なし | Redis（BFF セッション管理用） |
+| kafka | apache/kafka:3.8.0 | なし | Kafka メッセージブローカー |
+| kafka-ui | provectuslabs/kafka-ui:v0.7.2 | kafka, schema-registry | Kafka 管理 UI |
+| schema-registry | confluentinc/cp-schema-registry:7.7.1 | kafka | Avro/JSON Schema レジストリ |
+| keycloak | quay.io/keycloak/keycloak:26.0 | postgres | 認証・認可基盤（IdP） |
+| vault | hashicorp/vault:1.17 | なし | シークレット管理 |
+| kong | kong:3.8 | なし | API Gateway |
+| kafka-init | apache/kafka:3.8.0 | kafka | Kafka トピック自動作成（初期化タスク） |
+
+#### `observability` プロファイル
+
+可観測性スタック。`infra` プロファイルとは独立して起動可能。
+
+| サービス | イメージ | 依存先 | 用途 |
+|---------|---------|--------|------|
+| jaeger | jaegertracing/all-in-one:1.62 | なし | 分散トレーシング |
+| prometheus | prom/prometheus:v2.55 | なし | メトリクス収集・アラート |
+| loki | grafana/loki:3.3 | なし | ログ集約 |
+| promtail | grafana/promtail:2.9.0 | loki | ログ転送（Docker ログ収集） |
+| grafana | grafana/grafana:11.3 | prometheus, loki, jaeger | ダッシュボード・可視化 |
+
+#### `system` プロファイル
+
+System Tier のアプリケーションサーバー群。`infra` プロファイルに依存する。`observability` は任意。
+
+| サービス | 依存先（infra） | 用途 |
+|---------|----------------|------|
+| auth-rust | postgres, kafka, keycloak | 認証サーバー |
+| config-rust | postgres, kafka, keycloak | 設定管理サーバー |
+| saga-rust | postgres, kafka, keycloak | Saga オーケストレーター |
+| dlq-manager | postgres, kafka | Dead Letter Queue 管理 |
+| featureflag-rust | postgres | フィーチャーフラグ |
+| ratelimit-rust | postgres, redis | レート制限 |
+| tenant-rust | postgres, keycloak | テナント管理 |
+| vault-rust | postgres, vault | Vault サービスラッパー |
+| api-registry-rust | postgres | API レジストリ |
+| app-registry-rust | postgres, kafka | アプリケーションレジストリ |
+| event-monitor-rust | postgres, kafka | イベント監視 |
+| event-store-rust | postgres | イベントストア |
+| file-rust | postgres | ファイル管理 |
+| master-maintenance-rust | postgres | マスタメンテナンス |
+| navigation-rust | postgres | ナビゲーション |
+| notification-rust | postgres, kafka | 通知 |
+| policy-rust | postgres | ポリシー管理 |
+| quota-rust | postgres, redis | クォータ管理 |
+| rule-engine-rust | postgres | ルールエンジン |
+| scheduler-rust | postgres, kafka | スケジューラー |
+| search-rust | postgres | 検索 |
+| service-catalog-rust | postgres | サービスカタログ |
+| session-rust | postgres, redis | セッション管理 |
+| workflow-rust | postgres, kafka | ワークフロー |
+| ai-gateway-rust | postgres | AI Gateway |
+| ai-agent-rust | postgres, ai-gateway-rust | AI Agent |
+| graphql-gateway-rust | auth-rust, tenant-rust 他多数 | GraphQL 統合ゲートウェイ |
+| bff-proxy | keycloak, redis-session | BFF プロキシ（Go） |
+
+#### `business` プロファイル
+
+Business Tier のアプリケーションサーバー群。`infra` + `system` プロファイルに依存する。
+
+| サービス | 依存先 | 用途 |
+|---------|--------|------|
+| domain-master-rust | postgres, kafka, auth-rust | ドメインマスタ管理 |
+
+#### `service` プロファイル
+
+Service Tier のアプリケーションサーバー群。`infra` プロファイルに依存する。
+
+| サービス | 依存先 | 用途 |
+|---------|--------|------|
+| order-rust | postgres, kafka | 注文管理 |
+
+### 推奨起動順序
+
+プロファイル間の依存関係に基づく推奨起動順序を以下に示す。
+
+```
+1. infra          — 全サービスの前提（DB・キャッシュ・メッセージブローカー・認証基盤）
+2. observability  — 任意。メトリクス・トレース・ログの収集基盤
+3. system         — infra に依存。System Tier の全サーバー
+4. business       — infra + system に依存。Business Tier のサーバー
+5. service        — infra に依存。Service Tier のサーバー
+```
+
+> **注意**: `business` プロファイルの `domain-master-rust` は `auth-rust`（system プロファイル）に依存するため、`system` プロファイルを先に起動する必要がある。`graphql-gateway-rust` は多数の system サービスに `depends_on` を持つため、最後に起動される。
+
+### 全プロファイル起動コマンド
+
+```bash
+# 推奨順序に従った全プロファイル起動
+docker compose \
+  --profile infra \
+  --profile observability \
+  --profile system \
+  --profile business \
+  --profile service \
+  up -d
+
+# 開発用（認証バイパス有効）
+docker compose \
+  -f docker-compose.yaml \
+  -f docker-compose.dev.yaml \
+  --profile infra \
+  --profile observability \
+  --profile system \
+  --profile business \
+  --profile service \
+  up -d
+```
+
 ## 詳細設計ドキュメント
 
 各サービスの詳細設定は以下の分割ドキュメントを参照。

@@ -77,11 +77,13 @@ impl DlqService for DlqServiceTonic {
         request: Request<ProtoListMessagesRequest>,
     ) -> Result<Response<ProtoListMessagesResponse>, Status> {
         let inner = request.into_inner();
-        let page = if inner.page < 1 { 1 } else { inner.page };
-        let page_size = if inner.page_size < 1 {
+        // ページネーションパラメータを共通Paginationサブメッセージから取得
+        let pagination = inner.pagination.unwrap_or_default();
+        let page = if pagination.page < 1 { 1 } else { pagination.page };
+        let page_size = if pagination.page_size < 1 {
             20
         } else {
-            inner.page_size
+            pagination.page_size
         };
         let (messages, total) = self
             .inner

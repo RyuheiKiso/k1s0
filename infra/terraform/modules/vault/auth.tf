@@ -15,31 +15,43 @@ resource "vault_kubernetes_auth_backend_config" "k8s" {
   kubernetes_ca_cert = file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 }
 
-# system Tier role - binds to k1s0-system namespace
+# system Tier role - サービス別SA名で最小権限を適用
 resource "vault_kubernetes_auth_backend_role" "system" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "system"
-  bound_service_account_names      = ["*"]
+  bound_service_account_names      = [
+    "auth-rust", "config-rust", "dlq-manager", "event-store-rust",
+    "featureflag-rust", "file-rust", "graphql-gateway", "master-maintenance",
+    "navigation-rust", "notification-rust", "policy-rust", "quota-rust",
+    "ratelimit-rust", "rule-engine-rust", "saga-rust", "scheduler-rust",
+    "search-rust", "service-catalog", "session-rust", "tenant-rust",
+    "vault-rust", "workflow-rust", "event-monitor-rust", "app-registry",
+    "api-registry-rust",
+  ]
   bound_service_account_namespaces = ["k1s0-system"]
   token_policies                   = ["system"]
   token_ttl                        = 3600
 }
 
-# business Tier role - binds to k1s0-business namespace
+# business Tier role - サービス別SA名で最小権限を適用
 resource "vault_kubernetes_auth_backend_role" "business" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "business"
-  bound_service_account_names      = ["*"]
+  bound_service_account_names      = [
+    "inventory-rust", "payment-rust", "domain-master-go",
+  ]
   bound_service_account_namespaces = ["k1s0-business"]
   token_policies                   = ["business"]
   token_ttl                        = 3600
 }
 
-# service Tier role - binds to k1s0-service namespace
+# service Tier role - サービス別SA名で最小権限を適用
 resource "vault_kubernetes_auth_backend_role" "service" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "service"
-  bound_service_account_names      = ["*"]
+  bound_service_account_names      = [
+    "order-rust", "bff-proxy",
+  ]
   bound_service_account_namespaces = ["k1s0-service"]
   token_policies                   = ["service"]
   token_ttl                        = 3600

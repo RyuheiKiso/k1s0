@@ -1,12 +1,13 @@
 replicaCount: 2
 
+# GraphQL Gateway はすべてのクライアントリクエストを処理するため、汎用サービスより多くのリソースが必要
 resources:
   requests:
-    cpu: 250m
-    memory: 256Mi
+    cpu: 500m
+    memory: 512Mi
   limits:
-    cpu: 1000m
-    memory: 1Gi
+    cpu: 2000m
+    memory: 2Gi
 
 autoscaling:
   enabled: true

@@ -14,4 +14,4 @@ auth:
   jwks_cache_ttl_secs: 300
 
 ai_gateway:
-  internal_endpoint: "http://ai-gateway:8080"
+  internal_endpoint: "http://ai-gateway-rust:8080"

@@ -55,6 +55,8 @@ impl KafkaSearchProducer {
         client_config.set("security.protocol", security_protocol);
         client_config.set("acks", "all");
         client_config.set("message.timeout.ms", "5000");
+        // 冪等プロデューサーを有効化し、メッセージの重複送信を防止する
+        client_config.set("enable.idempotence", "true");
 
         let producer: rdkafka::producer::FutureProducer = client_config.create()?;
 

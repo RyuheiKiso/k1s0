@@ -26,7 +26,9 @@ use crate::proto::k1s0::system::common::v1::{Pagination, PaginationResult};
 use crate::usecase;
 use chrono::{DateTime, Utc};
 use k1s0_auth::actor_from_claims;
-use prost_types::{value::Kind, ListValue, Struct, Timestamp, Value};
+use prost_types::{value::Kind, ListValue, Struct, Value};
+// カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
+use crate::proto::k1s0::system::common::v1::Timestamp;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;

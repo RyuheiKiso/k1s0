@@ -14,6 +14,10 @@ pub struct MessagingConfig {
     /// プロデューサーのバッチサイズ
     #[serde(default = "default_batch_size")]
     pub batch_size: usize,
+    /// スキーマレジストリの URL（例: "http://schema-registry:8081"）。
+    /// 設定されている場合、プロデューサー/コンシューマーはスキーマ検証を有効化する。
+    #[serde(default)]
+    pub schema_registry_url: Option<String>,
 }
 
 fn default_security_protocol() -> String {
@@ -47,6 +51,7 @@ mod tests {
             security_protocol: "PLAINTEXT".to_string(),
             timeout_ms: 5000,
             batch_size: 100,
+            schema_registry_url: None,
         };
         assert_eq!(cfg.brokers_string(), "kafka:9092");
     }
@@ -59,6 +64,7 @@ mod tests {
             security_protocol: "PLAINTEXT".to_string(),
             timeout_ms: 5000,
             batch_size: 100,
+            schema_registry_url: None,
         };
         assert_eq!(cfg.brokers_string(), "kafka-0:9092,kafka-1:9092");
     }
@@ -71,6 +77,7 @@ mod tests {
         assert_eq!(cfg.security_protocol, "PLAINTEXT");
         assert_eq!(cfg.timeout_ms, 5000);
         assert_eq!(cfg.batch_size, 100);
+        assert!(cfg.schema_registry_url.is_none());
     }
 
     // 全フィールドを明示的に指定した JSON から正しくデシリアライズされることを確認する。
@@ -97,6 +104,7 @@ mod tests {
             security_protocol: "SSL".to_string(),
             timeout_ms: 3000,
             batch_size: 200,
+            schema_registry_url: Some("http://schema-registry:8081".to_string()),
         };
         let json = serde_json::to_string(&cfg).unwrap();
         let restored: MessagingConfig = serde_json::from_str(&json).unwrap();
@@ -104,6 +112,7 @@ mod tests {
         assert_eq!(restored.security_protocol, cfg.security_protocol);
         assert_eq!(restored.timeout_ms, cfg.timeout_ms);
         assert_eq!(restored.batch_size, cfg.batch_size);
+        assert_eq!(restored.schema_registry_url, cfg.schema_registry_url);
     }
 
     // 空のブローカーリストで brokers_string が空文字列を返すことを確認する。
@@ -114,6 +123,7 @@ mod tests {
             security_protocol: "PLAINTEXT".to_string(),
             timeout_ms: 5000,
             batch_size: 100,
+            schema_registry_url: None,
         };
         assert_eq!(cfg.brokers_string(), "");
     }
@@ -126,6 +136,7 @@ mod tests {
             security_protocol: "PLAINTEXT".to_string(),
             timeout_ms: 5000,
             batch_size: 100,
+            schema_registry_url: None,
         };
         let cloned = cfg.clone();
         assert_eq!(cloned.brokers, cfg.brokers);
@@ -146,6 +157,7 @@ mod tests {
             security_protocol: "PLAINTEXT".to_string(),
             timeout_ms: 5000,
             batch_size: 100,
+            schema_registry_url: None,
         };
         assert_eq!(
             cfg.brokers_string(),
@@ -159,5 +171,24 @@ mod tests {
         let json = r#"{"brokers": ["kafka:9092"], "security_protocol": "SASL_PLAINTEXT"}"#;
         let cfg: MessagingConfig = serde_json::from_str(json).unwrap();
         assert_eq!(cfg.security_protocol, "SASL_PLAINTEXT");
+    }
+
+    // schema_registry_url を指定した場合に正しくデシリアライズされることを確認する。
+    #[test]
+    fn test_schema_registry_url() {
+        let json = r#"{"brokers": ["kafka:9092"], "schema_registry_url": "http://schema-registry:8081"}"#;
+        let cfg: MessagingConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(
+            cfg.schema_registry_url,
+            Some("http://schema-registry:8081".to_string())
+        );
+    }
+
+    // schema_registry_url が省略された場合に None になることを確認する。
+    #[test]
+    fn test_schema_registry_url_none_by_default() {
+        let json = r#"{"brokers": ["kafka:9092"]}"#;
+        let cfg: MessagingConfig = serde_json::from_str(json).unwrap();
+        assert!(cfg.schema_registry_url.is_none());
     }
 }

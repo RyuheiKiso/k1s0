@@ -1,11 +1,17 @@
 /// マイグレーション対象の走査とファイル解析。
 use std::fs;
 use std::path::Path;
+use std::sync::OnceLock;
 
 use anyhow::{Context, Result};
 use regex::Regex;
 
 use super::types::{Direction, Language, MigrateTarget, MigrationFile};
+
+/// マイグレーションファイル名パターンの正規表現キャッシュ
+static MIGRATION_FILE_RE: OnceLock<Regex> = OnceLock::new();
+/// マイグレーション名バリデーション用の正規表現キャッシュ
+static MIGRATION_NAME_RE: OnceLock<Regex> = OnceLock::new();
 
 /// regions/ 配下のサービスを走査し、migrations/ ディレクトリがあるものを返す。
 pub fn scan_migrate_targets(base_dir: &Path) -> Vec<MigrateTarget> {
@@ -124,8 +130,11 @@ pub fn scan_migration_files(migrations_dir: &Path) -> Result<Vec<MigrationFile>>
         return Ok(files);
     }
 
-    let pattern = Regex::new(r"^(\d{3})_([a-z0-9_]+)\.(up|down)\.sql$")
-        .context("マイグレーションファイル名の正規表現のコンパイルに失敗しました")?;
+    // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+    let pattern = MIGRATION_FILE_RE.get_or_init(|| {
+        Regex::new(r"^(\d{3})_([a-z0-9_]+)\.(up|down)\.sql$")
+            .expect("マイグレーションファイル名の正規表現は静的に正しい")
+    });
 
     let entries = fs::read_dir(migrations_dir).with_context(|| {
         format!(
@@ -197,8 +206,10 @@ pub fn validate_migration_name(name: &str) -> Result<(), String> {
     if name.is_empty() {
         return Err("マイグレーション名を入力してください".to_string());
     }
-    let re = Regex::new(r"^[a-z0-9_]+$")
-        .map_err(|error| format!("migration name validation regex is invalid: {error}"))?;
+    // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+    let re = MIGRATION_NAME_RE.get_or_init(|| {
+        Regex::new(r"^[a-z0-9_]+$").expect("マイグレーション名バリデーション用の正規表現は静的に正しい")
+    });
     if !re.is_match(name) {
         return Err(
             "マイグレーション名は英小文字・数字・アンダースコアのみ使用できます（[a-z0-9_]+）"

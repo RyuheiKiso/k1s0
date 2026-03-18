@@ -596,6 +596,34 @@ jobs:
 
 ### Security Scan ワークフロー（security.yaml）
 
+監査対応として以下のセキュリティスキャンジョブを実装している。
+
+| ジョブ | 実行タイミング | 目的 |
+| --- | --- | --- |
+| `trivy-scan` | 日次 + PR 時 | リポジトリ全体のファイルシステム脆弱性スキャン（HIGH/CRITICAL） |
+| `dependency-check` | 日次 + PR 時 | Go / Rust / npm / Dart の依存関係脆弱性チェック（`list-modules.sh` ベース） |
+| `image-scan` | 日次（schedule のみ） | 全 11 サービスのコンテナイメージ脆弱性スキャン（system / business / service 全ティア対象） |
+| `iac-scan` | 日次 + PR 時 | `infra/` ディレクトリの Terraform / Kubernetes マニフェスト構成ミス検出（Trivy config scan） |
+| `license-scan` | 日次 + PR 時 | 依存関係のライセンスコンプライアンスチェック（Trivy license scanner） |
+
+#### IaC スキャン
+
+`iac-scan` ジョブは Trivy の `config` スキャンタイプを使用して `infra/` ディレクトリを走査する。Terraform 定義ファイルおよび Kubernetes マニフェストの設定ミス（セキュリティグループの過剰開放、暗号化未設定、特権コンテナ等）を HIGH/CRITICAL レベルで検出し、検出時は `exit-code: 1` でジョブを失敗させる。
+
+#### ライセンススキャン
+
+`license-scan` ジョブは Trivy の `license` スキャナーを使用してリポジトリ全体の依存関係ライセンスを検証する。許容されないライセンス（GPL 等の強力なコピーレフトライセンス）が HIGH/CRITICAL として検出された場合、ジョブを失敗させる。これにより、意図しないライセンス汚染を CI レベルで防止する。
+
+#### イメージスキャン拡大
+
+`image-scan` ジョブは以前 order サービスのみを対象としていたが、現在は system / business / service 全ティアの 11 サービスに拡大している。マトリクス戦略（`fail-fast: false`）で並列実行し、各サービスのコンテナイメージを個別にスキャンする。
+
+| ティア | 対象サービス |
+| --- | --- |
+| system | auth, config, saga, bff-proxy, app-registry, dlq-manager, graphql-gateway |
+| business | domain-master |
+| service | order, payment, inventory |
+
 ```yaml
 # .github/workflows/security.yaml
 name: Security Scan
@@ -670,17 +698,85 @@ jobs:
             exit 1
           fi
 
+  # 全ティアのコンテナイメージ脆弱性スキャン（定期実行のみ）
+  # マトリクス戦略で system / business / service ティアの全サービスイメージをスキャン
   image-scan:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # --- system ティア ---
+          - tier: system
+            service: auth
+          - tier: system
+            service: config
+          - tier: system
+            service: saga
+          - tier: system
+            service: bff-proxy
+          - tier: system
+            service: app-registry
+          - tier: system
+            service: dlq-manager
+          - tier: system
+            service: graphql-gateway
+          # --- business ティア ---
+          - tier: business
+            service: domain-master
+          # --- service ティア ---
+          - tier: service
+            service: order
+          - tier: service
+            service: payment
+          - tier: service
+            service: inventory
     steps:
-      - name: Scan latest images
+      - name: コンテナイメージの脆弱性スキャン (${{ matrix.tier }}/${{ matrix.service }})
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: image
-          image-ref: harbor.internal.example.com/k1s0-service/order:latest
+          image-ref: harbor.internal.example.com/k1s0-${{ matrix.tier }}/${{ matrix.service }}:latest
           severity: HIGH,CRITICAL
           format: table
+
+  # IaC（Infrastructure as Code）構成ミススキャン
+  # Terraform / Kubernetes マニフェストの設定ミスを Trivy で検出
+  iac-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy IaC 構成スキャン
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: infra/
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: 1
+
+  # ライセンスコンプライアンスチェック
+  # 依存関係のライセンスが許容範囲内かを Trivy で検証
+  license-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy ライセンスコンプライアンススキャン
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: license
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: 1
 ```
 
 ### OpenAPI バリデーション & SDK 生成ワークフロー（api-lint.yaml）

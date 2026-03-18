@@ -26,3 +26,55 @@ groups:
           severity: warning
         annotations:
           summary: "{{ $labels.service }} P99 latency > 1s"
+
+      # gRPC エラー率が 5% を超えた場合にアラートを発火する
+      - alert: GrpcHighErrorRate
+        expr: service:grpc_errors:rate5m > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }}/{{ $labels.grpc_service }} gRPC error rate > 5%"
+          description: "{{ $labels.service }} の gRPC エラー率が {{ $value | humanizePercentage }} です"
+
+      # DB コネクションプールの使用率が 90% を超えた場合にアラートを発火する
+      - alert: DbPoolExhaustion
+        expr: |
+          (db_pool_connections_in_use / db_pool_connections_max) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }} DB pool usage > 90%"
+          description: "{{ $labels.service }} の DB コネクションプール使用率が {{ $value | humanizePercentage }} です。プール枯渇の恐れがあります"
+
+      # Kafka コンシューマーラグが 1000 を超えた場合にアラートを発火する
+      - alert: KafkaConsumerLagHigh
+        expr: |
+          kafka_consumergroup_lag_sum > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer group {{ $labels.consumergroup }} lag > 1000"
+          description: "コンシューマーグループ {{ $labels.consumergroup }} のラグが {{ $value }} メッセージです"
+
+      # TLS 証明書の有効期限が 30 日以内に切れる場合にアラートを発火する（Blackbox Exporter 利用時）
+      - alert: CertificateExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "TLS certificate expiring in {{ $value | humanizeDuration }}"
+          description: "{{ $labels.instance }} の TLS 証明書が {{ $value | humanizeDuration }} 以内に期限切れになります"
+
+      # cert-manager が管理する証明書の有効期限が 30 日（2592000 秒）以内の場合にアラートを発火する
+      - alert: CertManagerCertExpiringSoon
+        expr: certmanager_certificate_expiration_timestamp_seconds - time() < 2592000
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "cert-manager certificate {{ $labels.name }} expiring soon"
+          description: "cert-manager 管理の証明書 {{ $labels.name }}（namespace: {{ $labels.namespace }}）の有効期限が 30 日以内です"

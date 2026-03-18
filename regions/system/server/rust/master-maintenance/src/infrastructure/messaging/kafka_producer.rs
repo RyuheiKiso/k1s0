@@ -15,6 +15,8 @@ impl MasterMaintenanceKafkaProducer {
         client_config.set("bootstrap.servers", config.brokers.join(","));
         client_config.set("acks", "all");
         client_config.set("message.timeout.ms", "5000");
+        // 冪等プロデューサーを有効化し、メッセージの重複送信を防止する
+        client_config.set("enable.idempotence", "true");
 
         let producer = client_config.create()?;
 

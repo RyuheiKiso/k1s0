@@ -37,6 +37,13 @@ resource "vault_database_secret_backend_role" "order_rw" {
   name                = "service-order-rw"
   db_name             = vault_database_secret_backend_connection.order_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT ALL ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA public FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
+  ]
   default_ttl         = 86400  # 24 hours
   max_ttl             = 172800 # 48 hours
 }
@@ -47,6 +54,13 @@ resource "vault_database_secret_backend_role" "order_ro" {
   name                = "service-order-ro"
   db_name             = vault_database_secret_backend_connection.order_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA public FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
+  ]
   default_ttl         = 86400  # 24 hours
   max_ttl             = 172800 # 48 hours
 }
@@ -57,6 +71,13 @@ resource "vault_database_secret_backend_role" "auth_rw" {
   name                = "system-auth-rw"
   db_name             = vault_database_secret_backend_connection.auth_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT ALL ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA public FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
+  ]
   default_ttl         = 86400  # 24 hours
   max_ttl             = 172800 # 48 hours
 }
@@ -67,6 +88,13 @@ resource "vault_database_secret_backend_role" "auth_ro" {
   name                = "system-auth-ro"
   db_name             = vault_database_secret_backend_connection.auth_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA public FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
+  ]
   default_ttl         = 86400  # 24 hours
   max_ttl             = 172800 # 48 hours
 }

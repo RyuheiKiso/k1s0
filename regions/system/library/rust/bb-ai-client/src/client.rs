@@ -18,10 +18,14 @@ pub struct HttpAiClient {
 }
 
 impl HttpAiClient {
-    /// 新しいHttpAiClientインスタンスを生成する
+    /// 新しいHttpAiClientインスタンスを生成する。
+    /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
     pub fn new(base_url: String, api_key: String) -> Self {
-        // reqwestクライアントを初期化する
-        let client = reqwest::Client::new();
+        // タイムアウト付きでreqwestクライアントを初期化する
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .expect("HTTP client の作成に失敗");
         Self {
             base_url: base_url.trim_end_matches('/').to_string(),
             api_key,

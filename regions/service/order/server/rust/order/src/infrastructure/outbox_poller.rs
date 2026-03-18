@@ -44,6 +44,12 @@ fn json_to_event_metadata(metadata: &serde_json::Value) -> EventMetadata {
             .get("schema_version")
             .and_then(|v| v.as_i64())
             .unwrap_or(1) as i32,
+        // 因果関係追跡用 ID
+        causation_id: metadata
+            .get("causation_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
     }
 }
 

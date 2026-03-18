@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use futures_util::StreamExt;
 use rdkafka::config::ClientConfig;
-use rdkafka::consumer::StreamConsumer;
+use rdkafka::consumer::{CommitMode, StreamConsumer};
 use rdkafka::message::Message;
 use tracing::{info, warn};
 
@@ -12,13 +12,18 @@ use crate::domain::repository::{
     EventRecordRepository, FlowDefinitionRepository, FlowInstanceRepository,
 };
 use crate::domain::service::flow_matching::FlowMatchingService;
+use crate::infrastructure::cache::FlowDefinitionCache;
 use crate::infrastructure::config::KafkaConfig;
 
+/// Kafka メッセージを受信し、イベント記録とフローマッチングを行うコンシューマー。
+/// フロー定義キャッシュを使用して、メッセージ処理ごとの DB クエリ（N+1）を防止する。
 pub struct EventKafkaConsumer {
     consumer: StreamConsumer,
     event_repo: Arc<dyn EventRecordRepository>,
     flow_def_repo: Arc<dyn FlowDefinitionRepository>,
     flow_inst_repo: Arc<dyn FlowInstanceRepository>,
+    /// フロー定義のインメモリキャッシュ（N+1 クエリ防止）
+    flow_def_cache: Arc<FlowDefinitionCache>,
 }
 
 impl EventKafkaConsumer {
@@ -27,13 +32,15 @@ impl EventKafkaConsumer {
         event_repo: Arc<dyn EventRecordRepository>,
         flow_def_repo: Arc<dyn FlowDefinitionRepository>,
         flow_inst_repo: Arc<dyn FlowInstanceRepository>,
+        flow_def_cache: Arc<FlowDefinitionCache>,
     ) -> anyhow::Result<Self> {
+        // at-least-once セマンティクスのため auto.commit を無効化する
         let consumer: StreamConsumer = ClientConfig::new()
             .set("bootstrap.servers", config.brokers.join(","))
             .set("group.id", &config.consumer_group)
             .set("security.protocol", &config.security_protocol)
             .set("auto.offset.reset", "latest")
-            .set("enable.auto.commit", "true")
+            .set("enable.auto.commit", "false")
             .create()?;
 
         Ok(Self {
@@ -41,6 +48,7 @@ impl EventKafkaConsumer {
             event_repo,
             flow_def_repo,
             flow_inst_repo,
+            flow_def_cache,
         })
     }
 
@@ -61,6 +69,10 @@ impl EventKafkaConsumer {
                     if let Err(e) = self.process_message(&msg).await {
                         warn!(error = %e, "failed to process kafka message");
                     }
+                    // 処理成功後にオフセットを手動コミットする
+                    if let Err(e) = self.consumer.commit_message(&msg, CommitMode::Async) {
+                        warn!(error = %e, "failed to commit kafka offset");
+                    }
                 }
                 Err(e) => {
                     warn!(error = %e, "kafka consumer error");
@@ -77,8 +89,8 @@ impl EventKafkaConsumer {
     ) -> anyhow::Result<()> {
         let topic = msg.topic();
 
-        // Exclude DLQ topics
-        if topic.ends_with(".dlq.v1") {
+        // DLQトピックを除外する（*.v1.dlq パターンに統一）
+        if topic.ends_with(".v1.dlq") {
             return Ok(());
         }
 
@@ -137,12 +149,21 @@ impl EventKafkaConsumer {
             chrono::Utc::now(),
         );
 
-        // Flow matching
-        let flow_defs = self
-            .flow_def_repo
-            .find_by_domain_and_event_type(domain.clone(), event_type.clone())
-            .await?;
-        let all_flows = self.flow_def_repo.find_all().await?;
+        // フローマッチング: キャッシュから全フロー定義を取得し、N+1 クエリを防止する。
+        // キャッシュミスの場合のみ DB から取得してキャッシュに格納する。
+        let all_flows = if let Some(cached) = self.flow_def_cache.get_all().await {
+            cached
+        } else {
+            let flows = self.flow_def_repo.find_all().await?;
+            self.flow_def_cache.set_all(flows.clone()).await;
+            Arc::new(flows)
+        };
+        // domain でフィルタしたフロー定義（フロー完了判定に使用）
+        let flow_defs: Vec<_> = all_flows
+            .iter()
+            .filter(|f| f.domain == domain && f.enabled)
+            .cloned()
+            .collect();
 
         if let Some((flow_id, step_index)) = FlowMatchingService::match_event(&event, &all_flows) {
             event.flow_id = Some(flow_id);

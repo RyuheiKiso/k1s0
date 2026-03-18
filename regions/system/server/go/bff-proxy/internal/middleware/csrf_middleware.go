@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"crypto/subtle"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -50,7 +51,10 @@ func CSRFMiddleware(store session.Store, headerName string, sessionCookie string
 		}
 
 		csrfHeader := c.GetHeader(headerName)
-		if csrfHeader == "" || csrfHeader != sess.CSRFToken {
+		// タイミング攻撃を防止するため、定数時間比較を使用する。
+		// 通常の文字列比較（==）は一致しない最初の文字で早期リターンするため、
+		// 応答時間の差からトークンの内容を推測される可能性がある。
+		if csrfHeader == "" || subtle.ConstantTimeCompare([]byte(csrfHeader), []byte(sess.CSRFToken)) != 1 {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"error":      "BFF_CSRF_MISMATCH",
 				"message":    "CSRF token mismatch",

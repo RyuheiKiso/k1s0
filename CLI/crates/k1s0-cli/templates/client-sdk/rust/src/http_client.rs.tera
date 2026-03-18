@@ -14,10 +14,14 @@ pub struct Http{{ service_pascal }}Client {
 
 impl Http{{ service_pascal }}Client {
     // 指定ベース URL で HTTP クライアントを生成する。
+    // デフォルトタイムアウト30秒でHTTPクライアントを構築する。
     pub fn new(base_url: impl Into<String>) -> Self {
         Self {
             base_url: base_url.into(),
-            http_client: reqwest::Client::new(),
+            http_client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(30))
+                .build()
+                .expect("HTTP client の作成に失敗"),
         }
     }
 }

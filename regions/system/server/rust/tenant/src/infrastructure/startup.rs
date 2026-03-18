@@ -44,6 +44,17 @@ pub async fn run() -> anyhow::Result<()> {
 
     let mut db_pool_for_health: Option<Arc<sqlx::PgPool>> = None;
 
+    // テナントキャッシュ設定を Config から取得する
+    let cache_config = crate::infrastructure::cache::TenantCacheConfig {
+        ttl_secs: cfg.cache.ttl_secs,
+        max_entries: cfg.cache.max_entries,
+    };
+    info!(
+        ttl_secs = cache_config.ttl_secs,
+        max_entries = cache_config.max_entries,
+        "テナントキャッシュ設定を読み込み"
+    );
+
     // Repository: config.database (DATABASE_URL fallback) -> DATABASE_URL only -> InMemory
     let (tenant_repo, member_repo): (Arc<dyn TenantRepository>, Arc<dyn MemberRepository>) =
         if let Some(ref db_cfg) = cfg.database {
@@ -60,12 +71,18 @@ pub async fn run() -> anyhow::Result<()> {
             );
             db_pool_for_health = Some(pool.clone());
             info!("connected to PostgreSQL");
-            (
-                Arc::new(
-                    crate::adapter::repository::tenant_postgres::TenantPostgresRepository::new(
-                        pool.clone(),
-                    ),
+            // PostgreSQLリポジトリをキャッシュで包んでDB負荷を軽減する
+            let pg_repo: Arc<dyn TenantRepository> = Arc::new(
+                crate::adapter::repository::tenant_postgres::TenantPostgresRepository::new(
+                    pool.clone(),
                 ),
+            );
+            let cached_repo = Arc::new(
+                crate::infrastructure::cache::CachedTenantRepository::new(pg_repo, &cache_config),
+            );
+            info!("テナントキャッシュを初期化");
+            (
+                cached_repo as Arc<dyn TenantRepository>,
                 Arc::new(
                     crate::adapter::repository::member_postgres::MemberPostgresRepository::new(
                         pool,
@@ -84,12 +101,18 @@ pub async fn run() -> anyhow::Result<()> {
             );
             db_pool_for_health = Some(pool.clone());
             info!("connected to PostgreSQL");
-            (
-                Arc::new(
-                    crate::adapter::repository::tenant_postgres::TenantPostgresRepository::new(
-                        pool.clone(),
-                    ),
+            // PostgreSQLリポジトリをキャッシュで包んでDB負荷を軽減する
+            let pg_repo: Arc<dyn TenantRepository> = Arc::new(
+                crate::adapter::repository::tenant_postgres::TenantPostgresRepository::new(
+                    pool.clone(),
                 ),
+            );
+            let cached_repo = Arc::new(
+                crate::infrastructure::cache::CachedTenantRepository::new(pg_repo, &cache_config),
+            );
+            info!("テナントキャッシュを初期化");
+            (
+                cached_repo as Arc<dyn TenantRepository>,
                 Arc::new(
                     crate::adapter::repository::member_postgres::MemberPostgresRepository::new(
                         pool,
@@ -290,7 +313,11 @@ pub async fn run() -> anyhow::Result<()> {
         db_pool: db_pool_for_health,
         kafka_brokers: kafka_brokers_for_health,
         keycloak_health_url,
-        http_client: reqwest::Client::new(),
+        // ヘルスチェック用HTTPクライアント（タイムアウト10秒）
+        http_client: reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
+            .expect("HTTP client の作成に失敗"),
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

@@ -36,6 +36,24 @@ impl PaymentRepository for PaymentPostgresRepository {
         row.map(|r| r.try_into()).transpose()
     }
 
+    /// 注文IDで決済を取得する（冪等性チェック用）。
+    async fn find_by_order_id(&self, order_id: &str) -> anyhow::Result<Option<Payment>> {
+        let row = sqlx::query_as::<_, PaymentRow>(
+            r#"
+            SELECT id, order_id, customer_id, amount, currency, status,
+                   payment_method, transaction_id, error_code, error_message,
+                   version, created_at, updated_at
+            FROM payments
+            WHERE order_id = $1
+            "#,
+        )
+        .bind(order_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        row.map(|r| r.try_into()).transpose()
+    }
+
     async fn find_all(&self, filter: &PaymentFilter) -> anyhow::Result<Vec<Payment>> {
         let status_str = filter.status.as_ref().map(|s| s.as_str().to_string());
         let limit = filter.limit.unwrap_or(50);
@@ -321,7 +339,13 @@ impl PaymentRepository for PaymentPostgresRepository {
         row.try_into()
     }
 
-    async fn refund(&self, id: Uuid, expected_version: i32) -> anyhow::Result<Payment> {
+    /// 返金理由をOutboxイベントのペイロードに記録する。
+    async fn refund(
+        &self,
+        id: Uuid,
+        expected_version: i32,
+        reason: Option<&str>,
+    ) -> anyhow::Result<Payment> {
         let mut tx = self.pool.begin().await?;
         let now = Utc::now();
 
@@ -374,7 +398,8 @@ impl PaymentRepository for PaymentPostgresRepository {
             "order_id": row.order_id,
             "refund_amount": row.amount,
             "currency": row.currency,
-            "reason": "refund requested",
+            // リクエストから伝播された返金理由を使用する（未指定時はデフォルト値）
+            "reason": reason.unwrap_or("refund requested"),
             "refunded_at": now.to_rfc3339(),
         });
 
@@ -423,6 +448,7 @@ impl PaymentRepository for PaymentPostgresRepository {
     }
 
     async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
+        // マルチインスタンス環境での重複処理を防止するため FOR UPDATE SKIP LOCKED を使用する
         let rows = sqlx::query_as::<_, OutboxEventRow>(
             r#"
             SELECT id, aggregate_type, aggregate_id, event_type, payload,
@@ -431,6 +457,7 @@ impl PaymentRepository for PaymentPostgresRepository {
             WHERE published_at IS NULL
             ORDER BY created_at ASC
             LIMIT $1
+            FOR UPDATE SKIP LOCKED
             "#,
         )
         .bind(limit)

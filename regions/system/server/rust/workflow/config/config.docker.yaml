@@ -14,7 +14,7 @@ auth:
   jwks_cache_ttl_secs: 300
 
 scheduler:
-  internal_endpoint: "http://scheduler:8080"
+  internal_endpoint: "http://scheduler-rust:8080"
 
 overdue_check:
   cron_expression: "*/15 * * * *"

@@ -1,3 +1,5 @@
+# Consul サービスデフォルト設定 — サービスメッシュのプロトコルとゲートウェイモードを定義する
+# 本番環境では Consul ACL が有効であること。ACL トークンは Kubernetes Secret から注入される
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:
@@ -6,6 +8,9 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ service_name }}
     tier: {{ tier }}
+  annotations:
+    # ACLトークン: consul-acl-token Secretから自動注入される
+    consul.hashicorp.com/connect-inject: "true"
 spec:
   protocol: http
   meshGateway:

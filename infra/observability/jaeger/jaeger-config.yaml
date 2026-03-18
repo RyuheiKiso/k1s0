@@ -13,6 +13,13 @@ spec:
         grpc-port: 14250
         http-port: 14268
         zipkin.http-port: 9411
+        # OTel Collector からの OTLP プロトコルでトレースを受信するための設定
+        otlp:
+          enabled: true
+          grpc:
+            host-port: 4317
+          http:
+            host-port: 4318
 
   query:
     replicas: 1

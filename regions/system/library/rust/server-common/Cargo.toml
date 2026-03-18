@@ -21,6 +21,14 @@ auth = ["middleware", "dep:k1s0-auth"]
 grpc-auth = ["auth", "dep:tonic"]
 kafka-setup = ["middleware", "dep:k1s0-kafka"]
 config-loader = ["dep:serde_yaml"]
+# サーバー起動ボイラープレート削減用。テレメトリ初期化と Metrics 生成を提供する。
+# startup-db を有効化すると DB プール作成も利用可能。
+# startup-auth を有効化すると JWKS 検証器作成も利用可能。
+startup = ["dep:k1s0-telemetry"]
+# startup モジュールの DB プール作成機能。sqlx に依存する。
+startup-db = ["startup", "dep:sqlx"]
+# startup モジュールの JWKS 検証器作成機能。k1s0-auth に依存する。
+startup-auth = ["startup", "dep:k1s0-auth"]
 
 [dependencies]
 anyhow = {workspace = true}

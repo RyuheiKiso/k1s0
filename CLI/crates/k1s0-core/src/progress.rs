@@ -32,6 +32,21 @@ pub enum ProgressEvent {
 /// プログレスコールバックの型。
 pub type ProgressCallback = Box<dyn Fn(ProgressEvent) + Send + 'static>;
 
+/// プログレスイベントを発行する共通ヘルパー。
+///
+/// コールバックが指定されている場合はコールバックに転送し、
+/// 指定されていない場合は標準出力に出力する。
+pub fn emit<F>(on_progress: Option<&F>, event: ProgressEvent)
+where
+    F: Fn(ProgressEvent),
+{
+    if let Some(callback) = on_progress {
+        callback(event);
+    } else {
+        print_progress(&event);
+    }
+}
+
 /// プログレスイベントを stdout に出力するデフォルトコールバック。
 pub fn print_progress(event: &ProgressEvent) {
     match event {

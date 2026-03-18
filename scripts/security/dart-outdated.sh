@@ -23,6 +23,10 @@ for pubspec in "${packages[@]}"; do
     fi
 done
 
-# outdated は情報提供のみ（警告レベル）。致命的なものは手動判断
-echo "=== Note: dart pub outdated is advisory only ==="
+# outdated パッケージが検出された場合は非ゼロ終了コードを返す
+if [ "$failed" -ne 0 ]; then
+    echo "=== WARN: outdated packages detected ==="
+    exit 1
+fi
+echo "=== All packages are up to date ==="
 exit 0

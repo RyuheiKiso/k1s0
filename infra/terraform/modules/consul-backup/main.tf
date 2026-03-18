@@ -1,5 +1,7 @@
 # Consul snapshot バックアップ CronJob
 # 毎日実行、7世代保持
+# 前提条件: Consul ACL ブートストラップ済みであること（consul acl bootstrap）
+# ACLトークンは consul_token_secret_name で指定した Kubernetes Secret から注入される
 resource "kubernetes_cron_job_v1" "consul_backup" {
   metadata {
     name      = "consul-backup"

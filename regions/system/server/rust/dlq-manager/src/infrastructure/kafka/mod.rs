@@ -20,7 +20,7 @@ fn default_security_protocol() -> String {
 }
 
 fn default_dlq_topic_pattern() -> String {
-    "*.dlq.v1".to_string()
+    "*.v1.dlq".to_string()
 }
 
 #[cfg(test)]
@@ -34,12 +34,12 @@ brokers:
   - "kafka-0.messaging.svc.cluster.local:9092"
 consumer_group: "dlq-manager.default"
 security_protocol: "PLAINTEXT"
-dlq_topic_pattern: "*.dlq.v1"
+dlq_topic_pattern: "*.v1.dlq"
 "#;
         let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.brokers.len(), 1);
         assert_eq!(config.consumer_group, "dlq-manager.default");
-        assert_eq!(config.dlq_topic_pattern, "*.dlq.v1");
+        assert_eq!(config.dlq_topic_pattern, "*.v1.dlq");
     }
 
     #[test]
@@ -50,6 +50,6 @@ brokers:
 "#;
         let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.security_protocol, "PLAINTEXT");
-        assert_eq!(config.dlq_topic_pattern, "*.dlq.v1");
+        assert_eq!(config.dlq_topic_pattern, "*.v1.dlq");
     }
 }

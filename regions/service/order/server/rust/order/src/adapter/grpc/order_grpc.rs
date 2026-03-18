@@ -11,7 +11,8 @@ use crate::proto::k1s0::system::common::v1::PaginationResult;
 use crate::usecase;
 use chrono::{DateTime, Utc};
 use k1s0_auth::actor_from_claims;
-use prost_types::Timestamp;
+// カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
+use crate::proto::k1s0::system::common::v1::Timestamp;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -124,7 +125,6 @@ impl OrderService for OrderGrpcService {
         let has_next = (page as i64 * page_size as i64) < total_count;
         Ok(Response::new(ListOrdersResponse {
             orders: orders.into_iter().map(|o| proto_order(o, vec![])).collect(),
-            total_count,
             pagination: Some(PaginationResult {
                 total_count: total_count as i64,
                 page,

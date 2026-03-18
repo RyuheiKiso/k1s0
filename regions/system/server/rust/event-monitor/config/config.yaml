@@ -11,3 +11,6 @@ server:
 cache:
   kpi_max_entries: 10000
   kpi_ttl_seconds: 30
+  # フロー定義キャッシュ: Kafka メッセージ処理時の N+1 クエリを防止する
+  flow_def_max_entries: 100
+  flow_def_ttl_seconds: 60

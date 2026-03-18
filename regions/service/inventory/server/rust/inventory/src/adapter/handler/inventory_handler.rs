@@ -1,7 +1,9 @@
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use axum::Extension;
 use axum::Json;
+use k1s0_auth::{actor_from_claims, Claims};
 use k1s0_server_common::error::ServiceError;
 use serde::Deserialize;
 use uuid::Uuid;
@@ -48,10 +50,15 @@ pub struct ListInventoryQuery {
     pub offset: Option<i64>,
 }
 
+/// 在庫予約ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
 pub async fn reserve_stock(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(body): Json<ReserveStockRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みユーザーのアクター情報を抽出する
+    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+
     let item = state
         .reserve_stock_uc
         .execute(
@@ -67,10 +74,15 @@ pub async fn reserve_stock(
     Ok((StatusCode::OK, Json(response)))
 }
 
+/// 在庫解放ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
 pub async fn release_stock(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(body): Json<ReleaseStockRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みユーザーのアクター情報を抽出する
+    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+
     let item = state
         .release_stock_uc
         .execute(
@@ -124,11 +136,15 @@ pub async fn list_inventory(
     Ok(Json(response))
 }
 
+/// 在庫更新ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
 pub async fn update_stock(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(inventory_id): Path<String>,
     Json(body): Json<UpdateStockRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みユーザーのアクター情報を抽出する
+    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
     let id = parse_uuid(&inventory_id)?;
 
     let item = state

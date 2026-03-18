@@ -62,8 +62,8 @@ reqwest = {workspace = true, features = ["rustls-tls"]}
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 
-# Server common (error codes)
-k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum", "shutdown"] }
+# Server common (error codes + 共通 ErrorResponse)
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum", "shutdown", "utoipa"] }
 
 # OpenAPI
 utoipa = {workspace = true}

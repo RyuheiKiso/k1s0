@@ -31,7 +31,8 @@ impl SessionKafkaConsumer {
         client_config.set("group.id", &config.consumer_group);
         client_config.set("security.protocol", &config.security_protocol);
         client_config.set("auto.offset.reset", "earliest");
-        client_config.set("enable.auto.commit", "true");
+        // at-least-once セマンティクスのため auto.commit を無効化する
+        client_config.set("enable.auto.commit", "false");
 
         let consumer: rdkafka::consumer::StreamConsumer = client_config.create()?;
         consumer.subscribe(&[&config.topic_revoke_all])?;
@@ -58,6 +59,7 @@ impl SessionKafkaConsumer {
 
     /// バックグラウンドでメッセージ取り込みを開始する。
     pub async fn run(&self) -> anyhow::Result<()> {
+        use rdkafka::consumer::{CommitMode, Consumer};
         use rdkafka::Message;
 
         loop {
@@ -103,6 +105,11 @@ impl SessionKafkaConsumer {
                         Err(e) => {
                             tracing::error!(error = %e, "failed to revoke all sessions from kafka");
                         }
+                    }
+
+                    // 処理成功後にオフセットを手動コミットする
+                    if let Err(e) = self.consumer.commit_message(&msg, CommitMode::Async) {
+                        tracing::warn!(error = %e, "failed to commit kafka offset");
                     }
                 }
             }

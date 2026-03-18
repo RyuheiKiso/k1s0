@@ -193,11 +193,13 @@ impl NotificationService for NotificationServiceTonic {
         request: Request<ProtoListNotificationsRequest>,
     ) -> Result<Response<ProtoListNotificationsResponse>, Status> {
         let inner = request.into_inner();
+        // ページネーションパラメータを共通Paginationサブメッセージから取得
+        let pagination = inner.pagination.unwrap_or_default();
         let req = ListNotificationsRequest {
             channel_id: inner.channel_id,
             status: inner.status,
-            page: inner.page,
-            page_size: inner.page_size,
+            page: if pagination.page <= 0 { 1 } else { pagination.page as u32 },
+            page_size: if pagination.page_size <= 0 { 20 } else { pagination.page_size as u32 },
         };
         let resp = self
             .inner
@@ -238,11 +240,13 @@ impl NotificationService for NotificationServiceTonic {
         request: Request<ProtoListChannelsRequest>,
     ) -> Result<Response<ProtoListChannelsResponse>, Status> {
         let inner = request.into_inner();
+        // ページネーションパラメータを共通Paginationサブメッセージから取得
+        let pagination = inner.pagination.unwrap_or_default();
         let req = ListChannelsRequest {
             channel_type: inner.channel_type,
             enabled_only: inner.enabled_only,
-            page: inner.page,
-            page_size: inner.page_size,
+            page: if pagination.page <= 0 { 1 } else { pagination.page as u32 },
+            page_size: if pagination.page_size <= 0 { 20 } else { pagination.page_size as u32 },
         };
         let resp = self
             .inner
@@ -344,10 +348,12 @@ impl NotificationService for NotificationServiceTonic {
         request: Request<ProtoListTemplatesRequest>,
     ) -> Result<Response<ProtoListTemplatesResponse>, Status> {
         let inner = request.into_inner();
+        // ページネーションパラメータを共通Paginationサブメッセージから取得
+        let pagination = inner.pagination.unwrap_or_default();
         let req = ListTemplatesRequest {
             channel_type: inner.channel_type,
-            page: inner.page,
-            page_size: inner.page_size,
+            page: if pagination.page <= 0 { 1 } else { pagination.page as u32 },
+            page_size: if pagination.page_size <= 0 { 20 } else { pagination.page_size as u32 },
         };
         let resp = self
             .inner

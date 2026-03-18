@@ -152,9 +152,11 @@ impl QuotaService for QuotaServiceTonic {
         request: Request<ProtoListQuotaPoliciesRequest>,
     ) -> Result<Response<ProtoListQuotaPoliciesResponse>, Status> {
         let inner = request.into_inner();
+        // ページネーションパラメータを共通Paginationサブメッセージから取得
+        let pagination = inner.pagination.unwrap_or_default();
         let req = ListPoliciesRequest {
-            page: inner.page,
-            page_size: inner.page_size,
+            page: if pagination.page <= 0 { 1 } else { pagination.page as u32 },
+            page_size: if pagination.page_size <= 0 { 20 } else { pagination.page_size as u32 },
             subject_type: inner.subject_type,
             subject_id: inner.subject_id,
             enabled_only: inner.enabled_only,

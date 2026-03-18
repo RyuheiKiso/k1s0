@@ -147,68 +147,87 @@ pub async fn upsert_config_schema(
     }
 }
 
+/// スキーマ upsert リクエストのバリデーションを実行し、ErrorDetail のリストを返す。
 fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetail> {
     let mut details = Vec::new();
 
+    // namespace_prefix が空でないことを検証する
     if req.namespace_prefix.trim().is_empty() {
-        details.push(ErrorDetail {
-            field: "namespace_prefix".to_string(),
-            message: "namespace_prefix is required".to_string(),
-        });
+        details.push(ErrorDetail::new(
+            "namespace_prefix",
+            "required",
+            "namespace_prefix is required",
+        ));
     }
 
+    // categories が空でないことを検証する
     if req.categories.is_empty() {
-        details.push(ErrorDetail {
-            field: "categories".to_string(),
-            message: "at least one category is required".to_string(),
-        });
+        details.push(ErrorDetail::new(
+            "categories",
+            "required",
+            "at least one category is required",
+        ));
     }
 
     for (cat_idx, category) in req.categories.iter().enumerate() {
+        // カテゴリ ID が空でないことを検証する
         if category.id.trim().is_empty() {
-            details.push(ErrorDetail {
-                field: format!("categories[{}].id", cat_idx),
-                message: "category id is required".to_string(),
-            });
+            details.push(ErrorDetail::new(
+                format!("categories[{}].id", cat_idx),
+                "required",
+                "category id is required",
+            ));
         }
+        // カテゴリ label が空でないことを検証する
         if category.label.trim().is_empty() {
-            details.push(ErrorDetail {
-                field: format!("categories[{}].label", cat_idx),
-                message: "category label is required".to_string(),
-            });
+            details.push(ErrorDetail::new(
+                format!("categories[{}].label", cat_idx),
+                "required",
+                "category label is required",
+            ));
         }
+        // namespaces が空でないことを検証する
         if category.namespaces.is_empty() {
-            details.push(ErrorDetail {
-                field: format!("categories[{}].namespaces", cat_idx),
-                message: "at least one namespace is required".to_string(),
-            });
+            details.push(ErrorDetail::new(
+                format!("categories[{}].namespaces", cat_idx),
+                "required",
+                "at least one namespace is required",
+            ));
         }
         for (ns_idx, namespace) in category.namespaces.iter().enumerate() {
+            // 各 namespace が空でないことを検証する
             if namespace.trim().is_empty() {
-                details.push(ErrorDetail {
-                    field: format!("categories[{}].namespaces[{}]", cat_idx, ns_idx),
-                    message: "namespace must not be empty".to_string(),
-                });
+                details.push(ErrorDetail::new(
+                    format!("categories[{}].namespaces[{}]", cat_idx, ns_idx),
+                    "required",
+                    "namespace must not be empty",
+                ));
             }
         }
         for (field_idx, field) in category.fields.iter().enumerate() {
+            // フィールド key が空でないことを検証する
             if field.key.trim().is_empty() {
-                details.push(ErrorDetail {
-                    field: format!("categories[{}].fields[{}].key", cat_idx, field_idx),
-                    message: "field key is required".to_string(),
-                });
+                details.push(ErrorDetail::new(
+                    format!("categories[{}].fields[{}].key", cat_idx, field_idx),
+                    "required",
+                    "field key is required",
+                ));
             }
+            // フィールド label が空でないことを検証する
             if field.label.trim().is_empty() {
-                details.push(ErrorDetail {
-                    field: format!("categories[{}].fields[{}].label", cat_idx, field_idx),
-                    message: "field label is required".to_string(),
-                });
+                details.push(ErrorDetail::new(
+                    format!("categories[{}].fields[{}].label", cat_idx, field_idx),
+                    "required",
+                    "field label is required",
+                ));
             }
+            // Enum フィールドには options が必要であることを検証する
             if field.field_type == ConfigFieldType::Enum && field.options.is_empty() {
-                details.push(ErrorDetail {
-                    field: format!("categories[{}].fields[{}].options", cat_idx, field_idx),
-                    message: "enum field requires at least one option".to_string(),
-                });
+                details.push(ErrorDetail::new(
+                    format!("categories[{}].fields[{}].options", cat_idx, field_idx),
+                    "required",
+                    "enum field requires at least one option",
+                ));
             }
         }
     }

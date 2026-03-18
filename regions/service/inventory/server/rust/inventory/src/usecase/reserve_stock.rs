@@ -13,6 +13,9 @@ impl ReserveStockUseCase {
         Self { inventory_repo }
     }
 
+    /// 最大リトライ回数（楽観ロック競合時）
+    const MAX_RETRIES: u32 = 3;
+
     pub async fn execute(
         &self,
         product_id: &str,
@@ -20,27 +23,52 @@ impl ReserveStockUseCase {
         quantity: i32,
         order_id: &str,
     ) -> anyhow::Result<InventoryItem> {
-        let item = self
-            .inventory_repo
-            .find_by_product_and_warehouse(product_id, warehouse_id)
-            .await?
-            .ok_or_else(|| {
-                InventoryError::NotFound(format!(
-                    "product_id={}, warehouse_id={}",
-                    product_id, warehouse_id
-                ))
-            })?;
+        // 楽観ロック競合時にリトライする（指数バックオフ付き）
+        for attempt in 0..Self::MAX_RETRIES {
+            let item = self
+                .inventory_repo
+                .find_by_product_and_warehouse(product_id, warehouse_id)
+                .await?
+                .ok_or_else(|| {
+                    InventoryError::NotFound(format!(
+                        "product_id={}, warehouse_id={}",
+                        product_id, warehouse_id
+                    ))
+                })?;
 
-        // ドメインバリデーション
-        InventoryDomainService::validate_reserve(&item, quantity)?;
+            // ドメインバリデーション
+            InventoryDomainService::validate_reserve(&item, quantity)?;
 
-        // 予約実行（Outbox イベントも同一トランザクション内で挿入される）
-        let updated = self
-            .inventory_repo
-            .reserve_stock(item.id, quantity, item.version, order_id)
-            .await?;
+            // 予約実行（Outbox イベントも同一トランザクション内で挿入される）
+            match self
+                .inventory_repo
+                .reserve_stock(item.id, quantity, item.version, order_id)
+                .await
+            {
+                Ok(updated) => return Ok(updated),
+                Err(e) => {
+                    let is_version_conflict = e
+                        .downcast_ref::<InventoryError>()
+                        .map(|ie| matches!(ie, InventoryError::VersionConflict(_)))
+                        .unwrap_or(false);
 
-        Ok(updated)
+                    if is_version_conflict && attempt < Self::MAX_RETRIES - 1 {
+                        // 指数バックオフ: 10ms, 40ms, 90ms
+                        let backoff_ms = (attempt + 1) as u64 * (attempt + 1) as u64 * 10;
+                        tokio::time::sleep(tokio::time::Duration::from_millis(backoff_ms)).await;
+                        tracing::warn!(
+                            attempt = attempt + 1,
+                            product_id,
+                            warehouse_id,
+                            "version conflict on reserve_stock, retrying"
+                        );
+                        continue;
+                    }
+                    return Err(e);
+                }
+            }
+        }
+        unreachable!()
     }
 }
 

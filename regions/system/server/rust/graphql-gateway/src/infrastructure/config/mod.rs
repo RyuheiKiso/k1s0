@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use std::fs;
 
+/// graphql-gateway のルート設定。
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
@@ -10,6 +11,9 @@ pub struct Config {
     pub backends: BackendsConfig,
     #[serde(default)]
     pub observability: ObservabilityConfig,
+    /// サーキットブレーカー設定（外部 gRPC 呼び出しの障害伝播防止）
+    #[serde(default)]
+    pub circuit_breaker: CircuitBreakerConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -240,6 +244,42 @@ fn default_metrics_enabled() -> bool {
 }
 fn default_metrics_path() -> String {
     "/metrics".to_string()
+}
+
+/// サーキットブレーカーの設定。外部 gRPC サービス呼び出し時の障害伝播を防止する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct CircuitBreakerConfig {
+    /// オープン状態に遷移する連続失敗回数の閾値
+    #[serde(default = "default_cb_failure_threshold")]
+    pub failure_threshold: u32,
+    /// ハーフオープンからクローズに遷移する連続成功回数の閾値
+    #[serde(default = "default_cb_success_threshold")]
+    pub success_threshold: u32,
+    /// オープン状態の持続時間（秒）。この時間経過後にハーフオープンに遷移する。
+    #[serde(default = "default_cb_timeout_secs")]
+    pub timeout_secs: u64,
+}
+
+fn default_cb_failure_threshold() -> u32 {
+    5
+}
+
+fn default_cb_success_threshold() -> u32 {
+    3
+}
+
+fn default_cb_timeout_secs() -> u64 {
+    30
+}
+
+impl Default for CircuitBreakerConfig {
+    fn default() -> Self {
+        Self {
+            failure_threshold: default_cb_failure_threshold(),
+            success_threshold: default_cb_success_threshold(),
+            timeout_secs: default_cb_timeout_secs(),
+        }
+    }
 }
 
 impl Config {

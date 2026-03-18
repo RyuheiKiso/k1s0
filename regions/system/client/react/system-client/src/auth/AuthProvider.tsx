@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { AuthContext, type User } from './AuthContext';
 import { createApiClient, setCsrfToken } from '../http/apiClient';
 import { navigateTo } from './navigation';
@@ -19,11 +19,11 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 401 未認証エラー時にログインページへリダイレクトするコールバックを設定
-  const apiClient = createApiClient({
+  // APIクライアントをメモ化し、apiBaseURL が変わらない限り再生成しない（レンダーごとの無駄な生成を防止）
+  const apiClient = useMemo(() => createApiClient({
     baseURL: apiBaseURL,
     onUnauthorized: () => { navigateTo(`${apiBaseURL}/auth/login`); },
-  });
+  }), [apiBaseURL]);
 
   // 初期化時にセッション確認（BFF の /auth/session エンドポイントを使用）
   useEffect(() => {

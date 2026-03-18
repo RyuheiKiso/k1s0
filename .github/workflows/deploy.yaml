@@ -6,12 +6,19 @@ on:
   push:
     branches: [main]
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 env:
   REGISTRY: harbor.internal.example.com
 
 jobs:
+  # 変更されたサービスの検出
   detect-services:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     outputs:
       services: ${{ steps.detect.outputs.services }}
     steps:
@@ -37,10 +44,16 @@ jobs:
             done | sort -u | head -20)
           echo "services=$(echo "$CHANGED" | jq -R -s -c 'split("\n") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
 
+  # Docker イメージのビルド・プッシュ・署名
   build-and-push:
     needs: detect-services
     if: needs.detect-services.outputs.services != '[]'
     runs-on: ubuntu-latest
+    # コードの読み取り、パッケージの書き込み（Docker push）、OIDC トークン（Cosign 署名）が必要
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     strategy:
       matrix:
         service: ${{ fromJson(needs.detect-services.outputs.services) }}
@@ -57,10 +70,12 @@ jobs:
           # 直近の Git タグからバージョンを取得（例: v1.2.3 → 1.2.3）
           VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Login to Harbor
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.HARBOR_USERNAME }}
@@ -70,8 +85,9 @@ jobs:
         run: |
           TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
           echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: regions/${{ matrix.service }}
           push: true
@@ -81,8 +97,9 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
       - name: Sign image with Cosign
         run: |
           cosign sign --yes \
@@ -93,9 +110,14 @@ jobs:
   # NOTE: デプロイジョブはクラスタネットワーク内の self-hosted ランナーで実行する。
   # 各環境のランナーはそれぞれのクラスタ内で動作し、Kubernetes API や
   # 内部サービスへの直接アクセスが可能となる。
+  # dev 環境へのデプロイ
   deploy-dev:
     needs: [build-and-push, detect-services]
     runs-on: [self-hosted, dev]
+    # コードの読み取りと OIDC トークン（Cosign 署名検証）が必要
+    permissions:
+      contents: read
+      id-token: write
     environment: dev
     strategy:
       matrix:
@@ -139,14 +161,16 @@ jobs:
           echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
           echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
           echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
-      - uses: sigstore/cosign-installer@v3
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
       - name: Verify image signature
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-      - uses: azure/setup-helm@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       - name: Deploy to dev
@@ -157,9 +181,14 @@ jobs:
             -f ./infra/helm/services/${{ steps.meta.outputs.helm_path }}/values-dev.yaml \
             --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
 
+  # staging 環境へのデプロイ
   deploy-staging:
     needs: [deploy-dev, detect-services]
     runs-on: [self-hosted, staging]
+    # コードの読み取りと OIDC トークン（Cosign 署名検証）が必要
+    permissions:
+      contents: read
+      id-token: write
     environment: staging
     strategy:
       matrix:
@@ -203,14 +232,16 @@ jobs:
           echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
           echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
           echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
-      - uses: sigstore/cosign-installer@v3
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
       - name: Verify image signature
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-      - uses: azure/setup-helm@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       - name: Deploy to staging
@@ -224,9 +255,14 @@ jobs:
   # ---------- Deploy to prod (manual approval) ----------
   # IMPORTANT: GitHub リポジトリ設定で prod 環境に Required reviewers（最低2名）を設定すること。
   # Settings → Environments → prod → Required reviewers
+  # prod 環境へのデプロイ（手動承認が必要）
   deploy-prod:
     needs: [deploy-staging, detect-services]
     runs-on: [self-hosted, prod]
+    # コードの読み取りと OIDC トークン（Cosign 署名検証）が必要
+    permissions:
+      contents: read
+      id-token: write
     environment:
       name: prod
       url: https://api.k1s0.internal.example.com
@@ -272,14 +308,16 @@ jobs:
           echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
           echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
           echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
-      - uses: sigstore/cosign-installer@v3
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
       - name: Verify image signature
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-      - uses: azure/setup-helm@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       - name: Deploy to prod

@@ -2,8 +2,16 @@ use anyhow::{bail, Context, Result};
 use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
+use std::sync::OnceLock;
 
 use super::types::EventsConfig;
+
+/// kebab-case パターンの正規表現キャッシュ
+static KEBAB_RE: OnceLock<Regex> = OnceLock::new();
+/// イベント名パターンの正規表現キャッシュ
+static EVENT_NAME_RE: OnceLock<Regex> = OnceLock::new();
+/// snake_case パターンの正規表現キャッシュ
+static SNAKE_RE: OnceLock<Regex> = OnceLock::new();
 
 /// 許可されるフィールド型 (proto3)
 const VALID_FIELD_TYPES: &[&str] = &[
@@ -43,9 +51,12 @@ pub fn parse_events_yaml(path: &str) -> Result<EventsConfig> {
 ///
 /// 正規表現のコンパイルに失敗した場合にパニックする（定数パターンのため発生しない）。
 pub fn validate(config: &EventsConfig) -> Result<()> {
-    let kebab_re = Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").unwrap();
-    let event_name_re = Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*(\.[a-z0-9]+(-[a-z0-9]+)*)+$").unwrap();
-    let snake_re = Regex::new(r"^[a-z_][a-z0-9_]*$").unwrap();
+    // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+    let kebab_re = KEBAB_RE.get_or_init(|| Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").unwrap());
+    let event_name_re = EVENT_NAME_RE.get_or_init(|| {
+        Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*(\.[a-z0-9]+(-[a-z0-9]+)*)+$").unwrap()
+    });
+    let snake_re = SNAKE_RE.get_or_init(|| Regex::new(r"^[a-z_][a-z0-9_]*$").unwrap());
 
     // domain
     if !kebab_re.is_match(&config.domain) {

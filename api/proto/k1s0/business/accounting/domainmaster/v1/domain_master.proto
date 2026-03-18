@@ -1,5 +1,6 @@
 // k1s0 ドメインマスタサービス gRPC 定義。
 // 会計ドメインのマスタデータ管理（カテゴリ・項目・バージョン・テナント拡張）を提供する。
+// Timestamp 型を k1s0.system.common.v1.Timestamp に統一（google.protobuf.Timestamp から移行）。
 syntax = "proto3";
 
 package k1s0.business.accounting.domainmaster.v1;
@@ -7,7 +8,6 @@ package k1s0.business.accounting.domainmaster.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/business/accounting/domainmaster/v1;domainmasterv1";
 
 import "google/protobuf/struct.proto";
-import "google/protobuf/timestamp.proto";
 import "k1s0/system/common/v1/types.proto";
 
 service DomainMasterService {
@@ -47,8 +47,8 @@ message MasterCategory {
   bool is_active = 6;
   int32 sort_order = 7;
   string created_by = 8;
-  google.protobuf.Timestamp created_at = 9;
-  google.protobuf.Timestamp updated_at = 10;
+  k1s0.system.common.v1.Timestamp created_at = 9;
+  k1s0.system.common.v1.Timestamp updated_at = 10;
 }
 
 // マスタ項目
@@ -60,13 +60,13 @@ message MasterItem {
   string description = 5;
   google.protobuf.Struct attributes = 6;
   optional string parent_item_id = 7;
-  google.protobuf.Timestamp effective_from = 8;
-  optional google.protobuf.Timestamp effective_until = 9;
+  k1s0.system.common.v1.Timestamp effective_from = 8;
+  optional k1s0.system.common.v1.Timestamp effective_until = 9;
   bool is_active = 10;
   int32 sort_order = 11;
   string created_by = 12;
-  google.protobuf.Timestamp created_at = 13;
-  google.protobuf.Timestamp updated_at = 14;
+  k1s0.system.common.v1.Timestamp created_at = 13;
+  k1s0.system.common.v1.Timestamp updated_at = 14;
 }
 
 // マスタ項目バージョン
@@ -78,7 +78,7 @@ message MasterItemVersion {
   google.protobuf.Struct after_data = 5;
   string changed_by = 6;
   string change_reason = 7;
-  google.protobuf.Timestamp created_at = 8;
+  k1s0.system.common.v1.Timestamp created_at = 8;
 }
 
 // テナントマスタ拡張
@@ -89,8 +89,8 @@ message TenantMasterExtension {
   optional string display_name_override = 4;
   google.protobuf.Struct attributes_override = 5;
   bool is_enabled = 6;
-  google.protobuf.Timestamp created_at = 7;
-  google.protobuf.Timestamp updated_at = 8;
+  k1s0.system.common.v1.Timestamp created_at = 7;
+  k1s0.system.common.v1.Timestamp updated_at = 8;
 }
 
 // テナントマージ項目（マージビュー用）
@@ -183,8 +183,8 @@ message CreateItemRequest {
   optional string description = 4;
   google.protobuf.Struct attributes = 5;
   optional string parent_item_id = 6;
-  optional google.protobuf.Timestamp effective_from = 7;
-  optional google.protobuf.Timestamp effective_until = 8;
+  optional k1s0.system.common.v1.Timestamp effective_from = 7;
+  optional k1s0.system.common.v1.Timestamp effective_until = 8;
   optional bool is_active = 9;
   optional int32 sort_order = 10;
 }
@@ -199,8 +199,8 @@ message UpdateItemRequest {
   optional string description = 3;
   google.protobuf.Struct attributes = 4;
   optional string parent_item_id = 5;
-  optional google.protobuf.Timestamp effective_from = 6;
-  optional google.protobuf.Timestamp effective_until = 7;
+  optional k1s0.system.common.v1.Timestamp effective_from = 6;
+  optional k1s0.system.common.v1.Timestamp effective_until = 7;
   optional bool is_active = 8;
   optional int32 sort_order = 9;
 }

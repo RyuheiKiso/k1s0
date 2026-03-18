@@ -6,38 +6,46 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+/// PostgreSQL を使用したテナント拡張リポジトリの実装。
+/// 各メソッドはジェネリック Executor を受け取り、トランザクション内でも使用可能。
 pub struct TenantExtensionPostgresRepository {
     pool: PgPool,
 }
 
 impl TenantExtensionPostgresRepository {
+    /// 新しいテナント拡張リポジトリを生成する。
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
-}
 
-#[async_trait]
-impl TenantExtensionRepository for TenantExtensionPostgresRepository {
-    async fn find_by_tenant_and_item(
-        &self,
+    /// テナントIDとアイテムIDで拡張を検索する。任意の sqlx Executor を受け取る。
+    pub async fn find_by_tenant_and_item_with_executor<'e, E>(
+        executor: E,
         tenant_id: &str,
         item_id: Uuid,
-    ) -> anyhow::Result<Option<TenantMasterExtension>> {
+    ) -> anyhow::Result<Option<TenantMasterExtension>>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let row = sqlx::query_as::<_, TenantExtensionRow>(
             "SELECT * FROM domain_master.tenant_master_extensions WHERE tenant_id = $1 AND item_id = $2",
         )
         .bind(tenant_id)
         .bind(item_id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(executor)
         .await?;
         Ok(row.map(|r| r.into()))
     }
 
-    async fn find_by_tenant_and_category(
-        &self,
+    /// テナントIDとカテゴリIDで拡張一覧を取得する。任意の sqlx Executor を受け取る。
+    pub async fn find_by_tenant_and_category_with_executor<'e, E>(
+        executor: E,
         tenant_id: &str,
         category_id: Uuid,
-    ) -> anyhow::Result<Vec<TenantMasterExtension>> {
+    ) -> anyhow::Result<Vec<TenantMasterExtension>>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let rows = sqlx::query_as::<_, TenantExtensionRow>(
             r#"SELECT te.* FROM domain_master.tenant_master_extensions te
                INNER JOIN domain_master.master_items mi ON te.item_id = mi.id
@@ -45,17 +53,21 @@ impl TenantExtensionRepository for TenantExtensionPostgresRepository {
         )
         .bind(tenant_id)
         .bind(category_id)
-        .fetch_all(&self.pool)
+        .fetch_all(executor)
         .await?;
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
 
-    async fn upsert(
-        &self,
+    /// テナント拡張を挿入または更新する。任意の sqlx Executor を受け取る。
+    pub async fn upsert_with_executor<'e, E>(
+        executor: E,
         tenant_id: &str,
         item_id: Uuid,
         input: &UpsertTenantMasterExtension,
-    ) -> anyhow::Result<TenantMasterExtension> {
+    ) -> anyhow::Result<TenantMasterExtension>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let row = sqlx::query_as::<_, TenantExtensionRow>(
             r#"INSERT INTO domain_master.tenant_master_extensions
                (tenant_id, item_id, display_name_override, attributes_override, is_enabled)
@@ -72,20 +84,69 @@ impl TenantExtensionRepository for TenantExtensionPostgresRepository {
         .bind(&input.display_name_override)
         .bind(&input.attributes_override)
         .bind(input.is_enabled.unwrap_or(true))
-        .fetch_one(&self.pool)
+        .fetch_one(executor)
         .await?;
         Ok(row.into())
     }
 
-    async fn delete(&self, tenant_id: &str, item_id: Uuid) -> anyhow::Result<()> {
+    /// テナント拡張を削除する。任意の sqlx Executor を受け取る。
+    pub async fn delete_with_executor<'e, E>(
+        executor: E,
+        tenant_id: &str,
+        item_id: Uuid,
+    ) -> anyhow::Result<()>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         sqlx::query(
             "DELETE FROM domain_master.tenant_master_extensions WHERE tenant_id = $1 AND item_id = $2",
         )
         .bind(tenant_id)
         .bind(item_id)
-        .execute(&self.pool)
+        .execute(executor)
         .await?;
         Ok(())
+    }
+
+    /// トランザクションを開始して返す。ユースケース層で複数リポジトリ操作を束ねるために使用する。
+    pub async fn begin_tx(&self) -> anyhow::Result<sqlx::Transaction<'_, sqlx::Postgres>> {
+        Ok(self.pool.begin().await?)
+    }
+}
+
+#[async_trait]
+impl TenantExtensionRepository for TenantExtensionPostgresRepository {
+    /// トレイト経由のテナント・アイテム検索。内部で pool を Executor として使用する。
+    async fn find_by_tenant_and_item(
+        &self,
+        tenant_id: &str,
+        item_id: Uuid,
+    ) -> anyhow::Result<Option<TenantMasterExtension>> {
+        Self::find_by_tenant_and_item_with_executor(&self.pool, tenant_id, item_id).await
+    }
+
+    /// トレイト経由のテナント・カテゴリ検索。内部で pool を Executor として使用する。
+    async fn find_by_tenant_and_category(
+        &self,
+        tenant_id: &str,
+        category_id: Uuid,
+    ) -> anyhow::Result<Vec<TenantMasterExtension>> {
+        Self::find_by_tenant_and_category_with_executor(&self.pool, tenant_id, category_id).await
+    }
+
+    /// トレイト経由のupsert。内部で pool を Executor として使用する。
+    async fn upsert(
+        &self,
+        tenant_id: &str,
+        item_id: Uuid,
+        input: &UpsertTenantMasterExtension,
+    ) -> anyhow::Result<TenantMasterExtension> {
+        Self::upsert_with_executor(&self.pool, tenant_id, item_id, input).await
+    }
+
+    /// トレイト経由の削除。内部で pool を Executor として使用する。
+    async fn delete(&self, tenant_id: &str, item_id: Uuid) -> anyhow::Result<()> {
+        Self::delete_with_executor(&self.pool, tenant_id, item_id).await
     }
 }
 

@@ -40,6 +40,10 @@ pub fn execute_seed(service_paths: &[String], ports: &PortAssignments) -> Result
 
             let content = std::fs::read_to_string(seed_file)?;
 
+            // PGPASSWORD は環境変数から取得する（ハードコード禁止）
+            let pg_password =
+                std::env::var("K1S0_DEV_PG_PASSWORD").unwrap_or_else(|_| "password".to_string());
+
             let status = std::process::Command::new("psql")
                 .args([
                     "-h",
@@ -51,7 +55,7 @@ pub fn execute_seed(service_paths: &[String], ports: &PortAssignments) -> Result
                     "-c",
                     &content,
                 ])
-                .env("PGPASSWORD", "password")
+                .env("PGPASSWORD", &pg_password)
                 .output();
 
             match status {

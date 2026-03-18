@@ -274,8 +274,8 @@ pub struct ReassignTaskRequest {
 
 // --- 共通ヘルパー ---
 
-/// エラーレスポンスをJSON値に変換するヘルパー
-pub(crate) fn error_json(code: &str, message: &str) -> serde_json::Value {
-    // エラーレスポンスをJSON値に変換（ErrorResponseは常にシリアライズ可能）
-    serde_json::to_value(ErrorResponse::new(code, message)).expect("ErrorResponseのJSON変換に失敗")
+/// エラーレスポンスを生成するヘルパー。
+/// .expect() を排除し、ErrorResponse を直接返す。
+pub(crate) fn error_json(code: &str, message: &str) -> ErrorResponse {
+    ErrorResponse::new(code, message)
 }

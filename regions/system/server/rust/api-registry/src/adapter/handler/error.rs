@@ -3,108 +3,88 @@ use axum::{http::StatusCode, Json};
 use k1s0_server_common::error as codes;
 use k1s0_server_common::{ErrorResponse, ServiceError};
 
-/// ApiError provides convenience constructors for api-registry error responses.
+/// ApiError は api-registry 用のエラーレスポンス生成ヘルパー。
 ///
-/// Error codes follow the `SYS_APIREG_*` pattern via k1s0-server-common.
+/// エラーコードは k1s0-server-common の `SYS_APIREG_*` パターンに従う。
+/// `.expect()` による serde_json::to_value を廃止し、Json<ErrorResponse> を直接返す。
 pub struct ApiError;
 
 impl ApiError {
-    pub fn not_found(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    /// 404 Not Found エラーレスポンスを生成する
+    pub fn not_found(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::not_found(), message);
-        (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::NOT_FOUND, Json(err))
     }
 
-    pub fn schema_not_found(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    /// 404 スキーマ未検出エラーレスポンスを生成する
+    pub fn schema_not_found(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::schema_not_found(), message);
-        (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::NOT_FOUND, Json(err))
     }
 
-    pub fn version_not_found(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    /// 404 バージョン未検出エラーレスポンスを生成する
+    pub fn version_not_found(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::version_not_found(), message);
-        (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::NOT_FOUND, Json(err))
     }
 
-    pub fn bad_request(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    /// 400 Bad Request エラーレスポンスを生成する
+    pub fn bad_request(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::bad_request(), message);
-        (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::BAD_REQUEST, Json(err))
     }
 
-    pub fn conflict(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    /// 409 Conflict エラーレスポンスを生成する
+    pub fn conflict(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::conflict(), message);
-        (
-            StatusCode::CONFLICT,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::CONFLICT, Json(err))
     }
 
-    pub fn already_exists(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    /// 409 既に存在するエラーレスポンスを生成する
+    pub fn already_exists(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::already_exists(), message);
-        (
-            StatusCode::CONFLICT,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::CONFLICT, Json(err))
     }
 
+    /// 409 最新バージョン削除不可エラーレスポンスを生成する
     pub fn cannot_delete_latest(
         message: impl Into<String>,
-    ) -> (StatusCode, Json<serde_json::Value>) {
+    ) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::cannot_delete_latest(), message);
-        (
-            StatusCode::CONFLICT,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::CONFLICT, Json(err))
     }
 
+    /// 422 スキーマ不正エラーレスポンスを生成する
     pub fn unprocessable_entity(
         message: impl Into<String>,
-    ) -> (StatusCode, Json<serde_json::Value>) {
+    ) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::schema_invalid(), message);
-        (
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::UNPROCESSABLE_ENTITY, Json(err))
     }
 
-    pub fn validator_error(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    /// 502 バリデーター呼び出し失敗エラーレスポンスを生成する
+    pub fn validator_error(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::validator_error(), message);
-        (
-            StatusCode::BAD_GATEWAY,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::BAD_GATEWAY, Json(err))
     }
 
-    pub fn unauthorized(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    /// 401 Unauthorized エラーレスポンスを生成する
+    pub fn unauthorized(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::unauthorized(), message);
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::UNAUTHORIZED, Json(err))
     }
 
-    pub fn internal(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    /// 500 Internal Server Error レスポンスを生成する
+    pub fn internal(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::internal_error(), message);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
-        )
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(err))
     }
 }
 
-/// ServiceErrorを(StatusCode, Json<Value>)タプル形式に変換する
-/// api-registryハンドラで使用するヘルパー関数。
-pub fn service_error_to_response(err: ServiceError) -> (StatusCode, Json<serde_json::Value>) {
+/// ServiceError を (StatusCode, Json<ErrorResponse>) タプル形式に変換する。
+/// api-registry ハンドラで使用するヘルパー関数。
+/// `.expect()` を排除し、Json<ErrorResponse> を直接返す。
+pub fn service_error_to_response(err: ServiceError) -> (StatusCode, Json<ErrorResponse>) {
     let status = match &err {
         ServiceError::NotFound { .. } => StatusCode::NOT_FOUND,
         ServiceError::BadRequest { .. } => StatusCode::BAD_REQUEST,
@@ -117,5 +97,5 @@ pub fn service_error_to_response(err: ServiceError) -> (StatusCode, Json<serde_j
         ServiceError::ServiceUnavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
     };
     let body = err.to_error_response();
-    (status, Json(serde_json::to_value(&body).expect("ServiceErrorのJSON変換に失敗")))
+    (status, Json(body))
 }

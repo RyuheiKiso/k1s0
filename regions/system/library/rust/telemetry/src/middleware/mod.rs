@@ -2,6 +2,43 @@ use std::sync::Arc;
 
 use crate::metrics::Metrics;
 
+/// 機密情報を含むクエリパラメータのキー一覧。
+const SENSITIVE_PARAMS: &[&str] = &[
+    "token", "key", "secret", "password", "api_key", "apikey",
+    "access_token", "refresh_token", "authorization", "credential",
+];
+
+/// HTTP パスからセンシティブなクエリパラメータをマスクする。
+/// 例: `/api/users?token=abc123` → `/api/users?token=***`
+pub fn sanitize_path(path: &str) -> String {
+    // クエリパラメータがない場合はそのまま返す
+    let Some(query_start) = path.find('?') else {
+        return path.to_string();
+    };
+
+    let base = &path[..query_start];
+    let query = &path[query_start + 1..];
+
+    let sanitized_params: Vec<String> = query
+        .split('&')
+        .map(|param| {
+            if let Some(eq_pos) = param.find('=') {
+                let key = &param[..eq_pos];
+                let key_lower = key.to_ascii_lowercase();
+                if SENSITIVE_PARAMS.iter().any(|s| key_lower.contains(s)) {
+                    format!("{}=***", key)
+                } else {
+                    param.to_string()
+                }
+            } else {
+                param.to_string()
+            }
+        })
+        .collect();
+
+    format!("{}?{}", base, sanitized_params.join("&"))
+}
+
 #[cfg(any(feature = "grpc-layer", test))]
 mod grpc_layer;
 #[cfg(any(feature = "axum-layer", test))]
@@ -43,22 +80,26 @@ impl TelemetryMiddleware {
     }
 
     /// on_request はリクエスト開始時にトレーシングスパンを作成する。
-    /// axum の middleware::from_fn 等から呼び出す。
+    /// パス内のセンシティブ情報をマスクしてからスパンに記録する。
     pub fn on_request(&self, method: &str, path: &str) {
-        tracing::info_span!("http_request", http.method = method, http.path = path,);
+        let safe_path = sanitize_path(path);
+        tracing::info_span!("http_request", http.method = method, http.path = %safe_path,);
     }
 
     /// on_response はレスポンス完了時にメトリクスを記録する。
     /// ステータスコードとレイテンシを記録し、構造化ログを出力する。
+    /// パス内のセンシティブ情報をマスクしてからログ・メトリクスに記録する。
     pub fn on_response(&self, method: &str, path: &str, status: u16, duration_secs: f64) {
+        let safe_path = sanitize_path(path);
         let status_str = status.to_string();
-        self.metrics.record_http_request(method, path, &status_str);
         self.metrics
-            .record_http_duration(method, path, duration_secs);
+            .record_http_request(method, &safe_path, &status_str);
+        self.metrics
+            .record_http_duration(method, &safe_path, duration_secs);
 
         tracing::info!(
             http.method = method,
-            http.path = path,
+            http.path = %safe_path,
             http.status_code = status,
             duration_secs = duration_secs,
             "Request completed"

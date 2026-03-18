@@ -118,6 +118,51 @@ fn test_consul_service_defaults_has_namespace() {
     );
 }
 
+/// Consul バックエンド設定が HTTPS スキームを使用していることを検証する
+#[test]
+fn test_consul_backend_uses_https() {
+    let Some((tmp, _)) = render_consul("order-api", "service") else {
+        eprintln!("SKIP: consul テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "backend-config.tf");
+    assert!(
+        content.contains("scheme  = \"https\""),
+        "Backend config should use HTTPS scheme\n--- backend-config.tf ---\n{content}"
+    );
+}
+
+/// Consul バックエンド設定に ACL トークンのコメントが含まれることを検証する
+#[test]
+fn test_consul_backend_has_acl_token_comment() {
+    let Some((tmp, _)) = render_consul("order-api", "service") else {
+        eprintln!("SKIP: consul テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "backend-config.tf");
+    assert!(
+        content.contains("CONSUL_HTTP_TOKEN"),
+        "Backend config should reference CONSUL_HTTP_TOKEN\n--- backend-config.tf ---\n{content}"
+    );
+}
+
+/// Consul サービスデフォルト設定に connect-inject アノテーションが含まれることを検証する
+#[test]
+fn test_consul_service_defaults_has_connect_inject() {
+    let Some((tmp, _)) = render_consul("order-api", "service") else {
+        eprintln!("SKIP: consul テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "service-defaults.yaml");
+    assert!(
+        content.contains("connect-inject"),
+        "Service defaults should contain connect-inject annotation\n--- service-defaults.yaml ---\n{content}"
+    );
+}
+
 #[test]
 fn test_consul_no_tera_syntax() {
     let Some((tmp, names)) = render_consul("order-api", "service") else {

@@ -4,7 +4,8 @@ use crate::proto::k1s0::event::service::payment::v1::{
 };
 use crate::proto::k1s0::system::common::v1::EventMetadata;
 use crate::usecase::event_publisher::PaymentEventPublisher;
-use prost_types::Timestamp;
+// カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
+use crate::proto::k1s0::system::common::v1::Timestamp;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time;
@@ -65,6 +66,12 @@ fn extract_metadata(payload: &serde_json::Value) -> Option<EventMetadata> {
             .get("schema_version")
             .and_then(|v| v.as_i64())
             .unwrap_or(1) as i32,
+        // 因果関係追跡用 ID
+        causation_id: metadata
+            .get("causation_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
     })
 }
 

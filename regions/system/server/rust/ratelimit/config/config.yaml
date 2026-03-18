@@ -32,16 +32,16 @@ observability:
     path: "/metrics"
 
 # === Production configuration (uncomment as needed) ===
-# database:
-#   host: "localhost"
-#   port: 5432
-#   name: "k1s0_system"
-#   user: "app"
-#   password: ""
-#   ssl_mode: "disable"
-#   max_open_conns: 25
-#   max_idle_conns: 5
-#   conn_max_lifetime: "5m"
+database:
+  host: "localhost"
+  port: 5432
+  name: "ratelimit_db"
+  user: "app"
+  password: ""
+  ssl_mode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
 # kafka:
 #   brokers:
 #     - "localhost:9092"

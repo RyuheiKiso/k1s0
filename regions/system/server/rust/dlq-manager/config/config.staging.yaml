@@ -21,4 +21,5 @@ kafka:
     - "kafka-0.messaging-staging.svc.cluster.local:9092"
   consumer_group: "dlq-manager.staging"
   security_protocol: "PLAINTEXT"
-  dlq_topic_pattern: "*.dlq.v1"
+  # DLQトピックのマッチングパターン（*.v1.dlq 形式に統一）
+  dlq_topic_pattern: "*.v1.dlq"

@@ -6,18 +6,29 @@ on:
     paths:
       - '**/api/openapi/**'
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 jobs:
+  # OpenAPI 定義の検証
   openapi-validate:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Validate OpenAPI
         run: |
           npx @redocly/cli lint api/openapi/openapi.yaml
 
+  # Go サーバーコード生成の検証
   openapi-codegen:
     needs: openapi-validate
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Generate Go server code
@@ -27,9 +38,13 @@ jobs:
       - name: Verify no diff
         run: git diff --exit-code
 
+  # TypeScript SDK 生成の検証
   sdk-generate-typescript:
     needs: openapi-validate
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Generate TypeScript SDK
@@ -42,9 +57,13 @@ jobs:
       - name: Verify no diff
         run: git diff --exit-code gen/ts-client
 
+  # Dart SDK 生成の検証
   sdk-generate-dart:
     needs: openapi-validate
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Generate Dart SDK

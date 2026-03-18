@@ -121,57 +121,6 @@ func TestComputeDelay_NoJitter(t *testing.T) {
 	assert.Equal(t, 150*time.Millisecond, d1)
 }
 
-// サーキットブレーカーが失敗閾値に達するとオープン状態になることを確認する。
-func TestCircuitBreaker_OpensAfterThreshold(t *testing.T) {
-	cb := retry.NewCircuitBreaker(&retry.CircuitBreakerConfig{
-		FailureThreshold: 3,
-		HalfOpenSuccess:  2,
-		OpenTimeout:      30 * time.Second,
-	})
-
-	assert.False(t, cb.IsOpen())
-	cb.RecordFailure()
-	cb.RecordFailure()
-	assert.False(t, cb.IsOpen())
-	cb.RecordFailure()
-	assert.True(t, cb.IsOpen())
-}
-
-// オープンタイムアウト経過後にサーキットブレーカーがハーフオープン状態に遷移することを確認する。
-func TestCircuitBreaker_TransitionsToHalfOpen(t *testing.T) {
-	cb := retry.NewCircuitBreaker(&retry.CircuitBreakerConfig{
-		FailureThreshold: 2,
-		HalfOpenSuccess:  1,
-		OpenTimeout:      50 * time.Millisecond,
-	})
-
-	cb.RecordFailure()
-	cb.RecordFailure()
-	assert.True(t, cb.IsOpen())
-
-	time.Sleep(60 * time.Millisecond)
-	assert.False(t, cb.IsOpen())
-	assert.Equal(t, retry.StateHalfOpen, cb.GetState())
-}
-
-// ハーフオープン状態で必要な成功回数を記録するとサーキットブレーカーがクローズ状態に戻ることを確認する。
-func TestCircuitBreaker_ClosesAfterSuccesses(t *testing.T) {
-	cb := retry.NewCircuitBreaker(&retry.CircuitBreakerConfig{
-		FailureThreshold: 2,
-		HalfOpenSuccess:  2,
-		OpenTimeout:      50 * time.Millisecond,
-	})
-
-	cb.RecordFailure()
-	cb.RecordFailure()
-	assert.True(t, cb.IsOpen())
-
-	time.Sleep(60 * time.Millisecond)
-	assert.False(t, cb.IsOpen())
-	assert.Equal(t, retry.StateHalfOpen, cb.GetState())
-
-	cb.RecordSuccess()
-	assert.Equal(t, retry.StateHalfOpen, cb.GetState())
-	cb.RecordSuccess()
-	assert.Equal(t, retry.StateClosed, cb.GetState())
-}
+// NOTE: サーキットブレーカーのテストは専用パッケージ circuit-breaker に移動済み。
+// 重複を避けるため、retryパッケージからサーキットブレーカーの実装とテストを削除した。
+// サーキットブレーカーを使用する場合は github.com/k1s0-platform/system-library-go-circuit-breaker を参照。

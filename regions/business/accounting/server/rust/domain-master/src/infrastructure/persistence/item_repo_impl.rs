@@ -4,71 +4,90 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+/// PostgreSQL を使用したアイテムリポジトリの実装。
+/// 各メソッドはジェネリック Executor を受け取り、トランザクション内でも使用可能。
 pub struct ItemPostgresRepository {
     pool: PgPool,
 }
 
 impl ItemPostgresRepository {
+    /// 新しいアイテムリポジトリを生成する。
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
-}
 
-#[async_trait]
-impl ItemRepository for ItemPostgresRepository {
-    async fn find_by_category(
-        &self,
+    /// カテゴリIDに属するアイテムを取得する。任意の sqlx Executor を受け取る。
+    pub async fn find_by_category_with_executor<'e, E>(
+        executor: E,
         category_id: Uuid,
         active_only: bool,
-    ) -> anyhow::Result<Vec<MasterItem>> {
+    ) -> anyhow::Result<Vec<MasterItem>>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let rows = if active_only {
             sqlx::query_as::<_, ItemRow>(
                 "SELECT * FROM domain_master.master_items WHERE category_id = $1 AND is_active = true ORDER BY sort_order, code",
             )
             .bind(category_id)
-            .fetch_all(&self.pool)
+            .fetch_all(executor)
             .await?
         } else {
             sqlx::query_as::<_, ItemRow>(
                 "SELECT * FROM domain_master.master_items WHERE category_id = $1 ORDER BY sort_order, code",
             )
             .bind(category_id)
-            .fetch_all(&self.pool)
+            .fetch_all(executor)
             .await?
         };
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
 
-    async fn find_by_category_and_code(
-        &self,
+    /// カテゴリIDとコードでアイテムを検索する。任意の sqlx Executor を受け取る。
+    pub async fn find_by_category_and_code_with_executor<'e, E>(
+        executor: E,
         category_id: Uuid,
         code: &str,
-    ) -> anyhow::Result<Option<MasterItem>> {
+    ) -> anyhow::Result<Option<MasterItem>>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let row = sqlx::query_as::<_, ItemRow>(
             "SELECT * FROM domain_master.master_items WHERE category_id = $1 AND code = $2",
         )
         .bind(category_id)
         .bind(code)
-        .fetch_optional(&self.pool)
+        .fetch_optional(executor)
         .await?;
         Ok(row.map(|r| r.into()))
     }
 
-    async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<MasterItem>> {
+    /// IDでアイテムを検索する。任意の sqlx Executor を受け取る。
+    pub async fn find_by_id_with_executor<'e, E>(
+        executor: E,
+        id: Uuid,
+    ) -> anyhow::Result<Option<MasterItem>>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let row =
             sqlx::query_as::<_, ItemRow>("SELECT * FROM domain_master.master_items WHERE id = $1")
                 .bind(id)
-                .fetch_optional(&self.pool)
+                .fetch_optional(executor)
                 .await?;
         Ok(row.map(|r| r.into()))
     }
 
-    async fn create(
-        &self,
+    /// アイテムを新規作成する。任意の sqlx Executor を受け取る。
+    pub async fn create_with_executor<'e, E>(
+        executor: E,
         category_id: Uuid,
         input: &CreateMasterItem,
         created_by: &str,
-    ) -> anyhow::Result<MasterItem> {
+    ) -> anyhow::Result<MasterItem>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let row = sqlx::query_as::<_, ItemRow>(
             r#"INSERT INTO domain_master.master_items
                (category_id, code, display_name, description, attributes,
@@ -87,12 +106,20 @@ impl ItemRepository for ItemPostgresRepository {
         .bind(input.is_active.unwrap_or(true))
         .bind(input.sort_order.unwrap_or(0))
         .bind(created_by)
-        .fetch_one(&self.pool)
+        .fetch_one(executor)
         .await?;
         Ok(row.into())
     }
 
-    async fn update(&self, id: Uuid, input: &UpdateMasterItem) -> anyhow::Result<MasterItem> {
+    /// アイテムを更新する。任意の sqlx Executor を受け取る。
+    pub async fn update_with_executor<'e, E>(
+        executor: E,
+        id: Uuid,
+        input: &UpdateMasterItem,
+    ) -> anyhow::Result<MasterItem>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let row = sqlx::query_as::<_, ItemRow>(
             r#"UPDATE domain_master.master_items SET
                display_name = COALESCE($2, display_name),
@@ -115,17 +142,75 @@ impl ItemRepository for ItemPostgresRepository {
         .bind(input.effective_until)
         .bind(input.is_active)
         .bind(input.sort_order)
-        .fetch_one(&self.pool)
+        .fetch_one(executor)
         .await?;
         Ok(row.into())
     }
 
-    async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
+    /// アイテムを削除する。任意の sqlx Executor を受け取る。
+    pub async fn delete_with_executor<'e, E>(
+        executor: E,
+        id: Uuid,
+    ) -> anyhow::Result<()>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         sqlx::query("DELETE FROM domain_master.master_items WHERE id = $1")
             .bind(id)
-            .execute(&self.pool)
+            .execute(executor)
             .await?;
         Ok(())
+    }
+
+    /// トランザクションを開始して返す。ユースケース層で複数リポジトリ操作を束ねるために使用する。
+    pub async fn begin_tx(&self) -> anyhow::Result<sqlx::Transaction<'_, sqlx::Postgres>> {
+        Ok(self.pool.begin().await?)
+    }
+}
+
+#[async_trait]
+impl ItemRepository for ItemPostgresRepository {
+    /// トレイト経由のカテゴリ別取得。内部で pool を Executor として使用する。
+    async fn find_by_category(
+        &self,
+        category_id: Uuid,
+        active_only: bool,
+    ) -> anyhow::Result<Vec<MasterItem>> {
+        Self::find_by_category_with_executor(&self.pool, category_id, active_only).await
+    }
+
+    /// トレイト経由のカテゴリ・コード検索。内部で pool を Executor として使用する。
+    async fn find_by_category_and_code(
+        &self,
+        category_id: Uuid,
+        code: &str,
+    ) -> anyhow::Result<Option<MasterItem>> {
+        Self::find_by_category_and_code_with_executor(&self.pool, category_id, code).await
+    }
+
+    /// トレイト経由のID検索。内部で pool を Executor として使用する。
+    async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<MasterItem>> {
+        Self::find_by_id_with_executor(&self.pool, id).await
+    }
+
+    /// トレイト経由の作成。内部で pool を Executor として使用する。
+    async fn create(
+        &self,
+        category_id: Uuid,
+        input: &CreateMasterItem,
+        created_by: &str,
+    ) -> anyhow::Result<MasterItem> {
+        Self::create_with_executor(&self.pool, category_id, input, created_by).await
+    }
+
+    /// トレイト経由の更新。内部で pool を Executor として使用する。
+    async fn update(&self, id: Uuid, input: &UpdateMasterItem) -> anyhow::Result<MasterItem> {
+        Self::update_with_executor(&self.pool, id, input).await
+    }
+
+    /// トレイト経由の削除。内部で pool を Executor として使用する。
+    async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
+        Self::delete_with_executor(&self.pool, id).await
     }
 }
 

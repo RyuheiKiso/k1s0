@@ -18,9 +18,11 @@ pub struct KafkaEventProducer {
 impl KafkaEventProducer {
     /// ブローカーリストから KafkaEventProducer を生成する。
     pub fn new(brokers: &str) -> Result<Self, MessagingError> {
+        // 冪等プロデューサーを有効化し、メッセージの重複送信を防止する
         let producer: FutureProducer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
             .set("message.timeout.ms", "30000")
+            .set("enable.idempotence", "true")
             .create()
             .map_err(|e| MessagingError::ConnectionError(e.to_string()))?;
         Ok(Self { producer })

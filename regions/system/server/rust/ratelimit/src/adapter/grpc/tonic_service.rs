@@ -245,13 +245,15 @@ impl RateLimitService for RateLimitServiceTonic {
         request: Request<ProtoListRulesRequest>,
     ) -> Result<Response<ProtoListRulesResponse>, Status> {
         let inner = request.into_inner();
+        // ページネーションパラメータを共通Paginationサブメッセージから取得
+        let pagination = inner.pagination.unwrap_or_default();
         let resp = self
             .inner
             .list_rules(ListRulesRequest {
                 scope: inner.scope,
                 enabled_only: inner.enabled_only,
-                page: inner.page,
-                page_size: inner.page_size,
+                page: if pagination.page <= 0 { 1 } else { pagination.page as u32 },
+                page_size: if pagination.page_size <= 0 { 20 } else { pagination.page_size as u32 },
             })
             .await
             .map_err(Into::<Status>::into)?;

@@ -207,46 +207,6 @@ pub fn router(state: AppState) -> Router {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
 }
 
-/// ErrorResponse は統一エラーレスポンス。
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct ErrorResponse {
-    pub error: ErrorBody,
-}
-
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct ErrorBody {
-    pub code: String,
-    pub message: String,
-    pub request_id: String,
-    pub details: Vec<ErrorDetail>,
-}
-
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct ErrorDetail {
-    pub field: String,
-    pub message: String,
-}
-
-impl ErrorResponse {
-    pub fn new(code: &str, message: &str) -> Self {
-        Self {
-            error: ErrorBody {
-                code: code.to_string(),
-                message: message.to_string(),
-                request_id: uuid::Uuid::new_v4().to_string(),
-                details: vec![],
-            },
-        }
-    }
-
-    pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
-        Self {
-            error: ErrorBody {
-                code: code.to_string(),
-                message: message.to_string(),
-                request_id: uuid::Uuid::new_v4().to_string(),
-                details,
-            },
-        }
-    }
-}
+/// server-common の統一エラーレスポンス型を再エクスポートする。
+/// 各サーバーで重複定義を避け、ErrorResponse / ErrorBody / ErrorDetail を共通化する。
+pub use k1s0_server_common::{ErrorBody, ErrorDetail, ErrorResponse};

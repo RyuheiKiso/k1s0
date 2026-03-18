@@ -13,7 +13,7 @@ server:
 database:
   host: "postgres"
   port: 5432
-  name: "k1s0"
+  name: "k1s0_system"
   schema: "master_maintenance"
   user: "dev"
   password: "dev"

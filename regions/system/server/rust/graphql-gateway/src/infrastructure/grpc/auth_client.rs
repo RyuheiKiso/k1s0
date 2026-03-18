@@ -184,7 +184,7 @@ impl AuthGrpcClient {
         user_id: Option<&str>,
         event_type: Option<&str>,
         result: Option<&str>,
-    ) -> anyhow::Result<(Vec<AuditLog>, i32, bool)> {
+    ) -> anyhow::Result<(Vec<AuditLog>, i64, bool)> {
         let request = tonic::Request::new(proto::k1s0::system::auth::v1::SearchAuditLogsRequest {
             pagination: Some(proto::k1s0::system::common::v1::Pagination {
                 page: page.unwrap_or(1),

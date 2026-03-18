@@ -1,0 +1,49 @@
+# Docker環境用設定ファイル
+# ホスト名をDockerコンテナ名に変更し、ポートをコンテナ内部ポートに設定する
+app:
+  name: "k1s0-order-server"
+  version: "0.1.0"
+  environment: "docker"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  grpc_port: 50051
+
+database:
+  host: "postgres"
+  port: 5432
+  name: "k1s0_order"
+  schema: "order_service"
+  user: "dev"
+  password: "dev"
+  ssl_mode: "disable"
+  max_connections: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  order_created_topic: "k1s0.service.order.created.v1"
+  order_updated_topic: "k1s0.service.order.updated.v1"
+  order_cancelled_topic: "k1s0.service.order.cancelled.v1"
+  security_protocol: "PLAINTEXT"
+
+auth:
+  jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+  issuer: "http://keycloak:8080/realms/k1s0"
+  audience: "k1s0-service"
+  jwks_cache_ttl_secs: 300
+
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: true
+    endpoint: "http://otel-collector:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"

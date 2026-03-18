@@ -32,8 +32,9 @@ pub async fn list_flags(State(state): State<AppState>) -> impl IntoResponse {
 pub async fn get_flag(State(state): State<AppState>, Path(key): Path<String>) -> impl IntoResponse {
     match state.get_flag_uc.execute(&key).await {
         Ok(flag) => {
+            // フラグレスポンスを直接 Json<FlagResponse> として返す（.expect() 排除）
             let resp = FlagResponse::from(flag);
-            (StatusCode::OK, Json(serde_json::to_value(resp).expect("フラグ取得レスポンスのJSON変換に失敗"))).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(e) => {
             let msg = e.to_string();
@@ -64,12 +65,9 @@ pub async fn create_flag(
 
     match state.create_flag_uc.execute(&input).await {
         Ok(flag) => {
+            // フラグレスポンスを直接 Json<FlagResponse> として返す（.expect() 排除）
             let resp = FlagResponse::from(flag);
-            (
-                StatusCode::CREATED,
-                Json(serde_json::to_value(resp).expect("フラグ作成レスポンスのJSON変換に失敗")),
-            )
-                .into_response()
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(e) => {
             let msg = e.to_string();
@@ -106,8 +104,9 @@ pub async fn update_flag(
 
     match state.update_flag_uc.execute(&input).await {
         Ok(flag) => {
+            // フラグレスポンスを直接 Json<FlagResponse> として返す（.expect() 排除）
             let resp = FlagResponse::from(flag);
-            (StatusCode::OK, Json(serde_json::to_value(resp).expect("フラグ更新レスポンスのJSON変換に失敗"))).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(e) => {
             let msg = e.to_string();
@@ -272,12 +271,13 @@ impl From<crate::domain::entity::feature_flag::FeatureFlag> for FlagResponse {
     }
 }
 
+/// エラーレスポンスを生成するヘルパー関数。
+/// Json<ErrorResponse> を直接返すことで .expect() を排除する。
 fn error_response(
     status: StatusCode,
     code: impl Into<k1s0_server_common::ErrorCode>,
     message: impl Into<String>,
 ) -> Response {
     let err = ErrorResponse::new(code, message);
-    // エラーレスポンスをJSON値に変換（ErrorResponseは常にシリアライズ可能）
-    (status, Json(serde_json::to_value(err).expect("ErrorResponseのJSON変換に失敗"))).into_response()
+    (status, Json(err)).into_response()
 }

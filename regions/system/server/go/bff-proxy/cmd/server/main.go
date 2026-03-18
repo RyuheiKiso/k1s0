@@ -78,8 +78,10 @@ func run() error {
 		})
 	}
 
-	// Verify Redis connectivity.
-	if err := redisClient.(*redis.Client).Ping(ctx).Err(); err != nil {
+	// Redis接続を確認する。
+	// redis.Cmdable インターフェース経由で Ping を呼び出すことで、
+	// スタンドアロン・Sentinel どちらのモードでも安全に動作する。
+	if err := redisClient.Ping(ctx).Err(); err != nil {
 		logger.Warn("Redis not reachable at startup", slog.String("error", err.Error()))
 	}
 

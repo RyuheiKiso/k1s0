@@ -28,27 +28,26 @@ use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
 use crate::domain::repository::NotificationTemplateRepository;
 use crate::domain::service::DeliveryClient;
+use k1s0_server_common::startup::{ObservabilityFields, ServerBuilder};
 
 pub async fn run() -> anyhow::Result<()> {
+    // 設定ファイルを読み込む
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
     let cfg = Config::load(&config_path)?;
 
-    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
-        service_name: "k1s0-notification-server".to_string(),
-        version: "0.1.0".to_string(),
-        tier: "system".to_string(),
-        environment: cfg.app.environment.clone(),
-        trace_endpoint: cfg
-            .observability
-            .trace
-            .enabled
-            .then(|| cfg.observability.trace.endpoint.clone()),
-        sample_rate: cfg.observability.trace.sample_rate,
-        log_level: cfg.observability.log.level.clone(),
-        log_format: cfg.observability.log.format.clone(),
-    };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+    // ServerBuilder でテレメトリを初期化する（全サーバー共通の初期化パターン）
+    let server = ServerBuilder::new("k1s0-notification-server", "0.1.0");
+    server.init_telemetry(
+        &cfg.app.environment,
+        &ObservabilityFields {
+            trace_enabled: cfg.observability.trace.enabled,
+            trace_endpoint: cfg.observability.trace.endpoint.clone(),
+            sample_rate: cfg.observability.trace.sample_rate,
+            log_level: cfg.observability.log.level.clone(),
+            log_format: cfg.observability.log.format.clone(),
+        },
+    )?;
 
     info!(
         app_name = %cfg.app.name,
@@ -227,9 +226,8 @@ pub async fn run() -> anyhow::Result<()> {
             send_notification_uc.clone(),
         ) {
             Ok(consumer) => {
-                let consumer = consumer.with_metrics(Arc::new(
-                    k1s0_telemetry::metrics::Metrics::new("k1s0-notification-server"),
-                ));
+                // Kafka consumer にも同一の Metrics インスタンスを使用する
+                let consumer = consumer.with_metrics(server.create_metrics());
                 info!("kafka consumer initialized, starting background ingestion");
                 tokio::spawn(async move {
                     if let Err(e) = consumer.run().await {
@@ -268,26 +266,26 @@ pub async fn run() -> anyhow::Result<()> {
     use proto::k1s0::system::notification::v1::notification_service_server::NotificationServiceServer;
     let notification_tonic = adapter::grpc::NotificationServiceTonic::new(grpc_svc);
 
-    // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
-        "k1s0-notification-server",
-    ));
+    // Metrics: ServerBuilder 経由でサービス名付きメトリクスを生成する
+    let metrics = server.create_metrics();
 
-    // Token verifier (JWKS verifier if auth configured)
+    // Token verifier: ServerBuilder 経由で JWKS 検証器を作成し、認証状態を構築する
     let auth_state = k1s0_server_common::require_auth_state(
         "notification-server",
         &cfg.app.environment,
         cfg.auth.as_ref().map(|auth_cfg| {
-        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for notification-server");
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ).expect("Failed to create JWKS verifier"));
-        adapter::middleware::auth::NotificationAuthState {
-            verifier: jwks_verifier,
-        }
+            // ServerBuilder の init_jwks_verifier で JWKS 検証器を構築する
+            let jwks_verifier = server
+                .init_jwks_verifier(&k1s0_server_common::startup::JwksAuthConfig {
+                    jwks_url: auth_cfg.jwks_url.clone(),
+                    issuer: auth_cfg.issuer.clone(),
+                    audience: auth_cfg.audience.clone(),
+                    cache_ttl_secs: auth_cfg.jwks_cache_ttl_secs,
+                })
+                .expect("JWKS 検証器の作成に失敗");
+            adapter::middleware::auth::NotificationAuthState {
+                verifier: jwks_verifier,
+            }
         }),
     )?;
 
@@ -356,8 +354,8 @@ pub async fn run() -> anyhow::Result<()> {
         }
     }
 
-    // テレメトリのシャットダウン処理を実行
-    k1s0_telemetry::shutdown();
+    // ServerBuilder 経由でテレメトリのシャットダウン処理を実行する
+    server.shutdown_telemetry();
 
     Ok(())
 }

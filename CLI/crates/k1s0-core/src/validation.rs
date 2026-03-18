@@ -1,11 +1,18 @@
+use std::sync::OnceLock;
+
+/// 名前バリデーション用の正規表現キャッシュ（一度だけコンパイルする）
+static NAME_RE: OnceLock<regex::Regex> = OnceLock::new();
+
 /// 名前バリデーション: [a-z0-9-]+, 先頭末尾ハイフン禁止
 ///
 /// # Errors
 /// 名前が無効な場合。
 pub fn validate_name(name: &str) -> Result<(), String> {
-    // 静的に正しい正規表現のため expect を使用する（L-1: unwrap 禁止対応）
-    let re = regex::Regex::new(r"^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$")
-        .expect("名前バリデーション用の正規表現は静的に正しい");
+    // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+    let re = NAME_RE.get_or_init(|| {
+        regex::Regex::new(r"^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$")
+            .expect("名前バリデーション用の正規表現は静的に正しい")
+    });
     if !re.is_match(name) {
         return Err("英小文字・ハイフン・数字のみ許可。先頭末尾のハイフンは禁止。".into());
     }

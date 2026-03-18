@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -42,7 +43,10 @@ type Client struct {
 	redirectURI  string
 	scopes       []string
 	httpClient   *http.Client
-	oidcConfig   *OIDCConfig
+	// mu はoidcConfigとverifierへの並行アクセスを保護するRWMutex。
+	// Discover/ClearDiscoveryCacheは書き込みロック、読み取り系メソッドは読み取りロックを使用する。
+	mu         sync.RWMutex
+	oidcConfig *OIDCConfig
 	// discovered はOIDC discoveryが正常に完了したかを示すフラグ（goroutine間で安全にアクセスするためatomic）
 	discovered atomic.Bool
 	// verifier はJWT署名検証器。初回のExtractSubject呼び出し時に生成してキャッシュする。
@@ -62,7 +66,22 @@ func NewClient(discoveryURL, clientID, clientSecret, redirectURI string, scopes 
 }
 
 // Discover fetches the OIDC discovery document and caches the endpoints.
+// 複数goroutineから同時に呼ばれてもデータ競合が起きないようRWMutexで保護する。
 func (c *Client) Discover(ctx context.Context) (*OIDCConfig, error) {
+	// まず読み取りロックでキャッシュを確認する（高速パス）
+	c.mu.RLock()
+	if c.oidcConfig != nil {
+		cfg := c.oidcConfig
+		c.mu.RUnlock()
+		return cfg, nil
+	}
+	c.mu.RUnlock()
+
+	// キャッシュミス時は書き込みロックを取得してdiscoveryを実行する
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// ダブルチェック: 他のgoroutineが先にdiscoveryを完了した可能性がある
 	if c.oidcConfig != nil {
 		return c.oidcConfig, nil
 	}
@@ -222,13 +241,19 @@ func (c *Client) tokenRequest(ctx context.Context, endpoint string, data url.Val
 
 // ClearDiscoveryCache はキャッシュ済みの OIDC discovery 結果と verifier をクリアする。
 // ログアウト時に呼び出し、次回ログインで最新のプロバイダ情報を再取得させる。
+// 書き込みロックで保護し、読み取り中のgoroutineとのデータ競合を防止する。
 func (c *Client) ClearDiscoveryCache() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.oidcConfig = nil
 	c.verifier = nil
 	c.discovered.Store(false)
 }
 
+// ensureDiscovered はoidcConfigが存在することを読み取りロックで安全に確認する。
 func (c *Client) ensureDiscovered() (*OIDCConfig, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	if c.oidcConfig != nil {
 		return c.oidcConfig, nil
 	}
@@ -254,16 +279,31 @@ func (c *Client) ExtractSubject(ctx context.Context, idToken string) (string, er
 // ensureVerifier はverifierを初期化してキャッシュする。
 // RemoteKeySetはcontext.Backgroundで生成し、JWKS鍵のHTTPフェッチを
 // リクエストコンテキストのキャンセルから切り離す。
+// 読み取りロックでキャッシュを確認し、未初期化の場合は書き込みロックで初期化する。
 func (c *Client) ensureVerifier() (*oidc.IDTokenVerifier, error) {
+	// まず読み取りロックでキャッシュを確認する（高速パス）
+	c.mu.RLock()
+	if c.verifier != nil {
+		v := c.verifier
+		c.mu.RUnlock()
+		return v, nil
+	}
+	c.mu.RUnlock()
+
+	// キャッシュミス時は書き込みロックを取得してverifierを初期化する
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// ダブルチェック: 他のgoroutineが先に初期化を完了した可能性がある
 	if c.verifier != nil {
 		return c.verifier, nil
 	}
 
-	cfg, err := c.ensureDiscovered()
-	if err != nil {
-		return nil, fmt.Errorf("OIDC not discovered: %w", err)
+	if c.oidcConfig == nil {
+		return nil, fmt.Errorf("OIDC not discovered: OIDC discovery not performed; call Discover() first")
 	}
 
+	cfg := c.oidcConfig
 	if cfg.JwksURI == "" {
 		return nil, fmt.Errorf("jwks_uri not available in OIDC discovery document")
 	}

@@ -11,9 +11,23 @@ pub struct MasterKey {
 
 impl MasterKey {
     /// 環境変数 `VAULT_MASTER_KEY` から hex エンコードされた 32 バイト鍵を読み込む。
-    /// 未設定の場合はゼロ鍵（開発用デフォルト）を使用する。
+    /// 本番環境ではゼロ鍵での起動を拒否する。
     pub fn from_env() -> anyhow::Result<Self> {
-        let key_hex = std::env::var("VAULT_MASTER_KEY").unwrap_or_else(|_| "0".repeat(64)); // 32 bytes hex = 64 chars, dev default
+        let environment = std::env::var("APP_ENVIRONMENT").unwrap_or_default();
+        let key_hex = match std::env::var("VAULT_MASTER_KEY") {
+            Ok(key) => key,
+            Err(_) => {
+                // 本番・ステージング環境ではゼロ鍵を許可しない
+                if environment == "production" || environment == "staging" {
+                    return Err(anyhow::anyhow!(
+                        "VAULT_MASTER_KEY must be set in {} environment",
+                        environment
+                    ));
+                }
+                tracing::warn!("VAULT_MASTER_KEY not set, using zero key (development only)");
+                "0".repeat(64) // 32 bytes hex = 64 chars, dev default
+            }
+        };
         let key_bytes = hex::decode(&key_hex)?;
         if key_bytes.len() != 32 {
             return Err(anyhow::anyhow!(

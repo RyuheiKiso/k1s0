@@ -1,6 +1,8 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use tower::limit::ConcurrencyLimitLayer;
+use tower_http::limit::RequestBodyLimitLayer;
 use tracing::info;
 
 use super::auth::JwksVerifier;
@@ -127,6 +129,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     // --- Router ---
     // CorrelationLayerを追加してリクエスト間の相関IDを伝播する
+    // ConcurrencyLimitLayerで同時リクエスト数を制限する（最大100並列）
+    // RequestBodyLimitLayerでリクエストボディサイズを2MBに制限する
     let app = graphql_handler::router(
         jwks_verifier,
         clients,
@@ -134,7 +138,9 @@ pub async fn run() -> anyhow::Result<()> {
         cfg.graphql.clone(),
         metrics,
     )
-    .layer(k1s0_correlation::layer::CorrelationLayer::new());
+    .layer(k1s0_correlation::layer::CorrelationLayer::new())
+    .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
+    .layer(ConcurrencyLimitLayer::new(100));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("graphql-gateway starting on {}", addr);

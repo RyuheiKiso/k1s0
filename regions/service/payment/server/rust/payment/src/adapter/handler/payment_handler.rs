@@ -1,7 +1,9 @@
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use axum::Extension;
 use axum::Json;
+use k1s0_auth::{actor_from_claims, Claims};
 use k1s0_server_common::error::ServiceError;
 use serde::Deserialize;
 use uuid::Uuid;
@@ -50,10 +52,15 @@ pub struct ListPaymentsQuery {
     pub offset: Option<i64>,
 }
 
+/// 決済開始ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
 pub async fn initiate_payment(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(body): Json<InitiatePaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みユーザーのアクター情報を抽出する
+    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+
     let input = InitiatePayment {
         order_id: body.order_id,
         customer_id: body.customer_id,
@@ -124,11 +131,15 @@ pub async fn list_payments(
     Ok(Json(response))
 }
 
+/// 決済完了ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
 pub async fn complete_payment(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(payment_id): Path<String>,
     Json(body): Json<CompletePaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みユーザーのアクター情報を抽出する
+    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
     let id = parse_uuid(&payment_id)?;
 
     let payment = state
@@ -141,11 +152,15 @@ pub async fn complete_payment(
     Ok(Json(response))
 }
 
+/// 決済失敗ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
 pub async fn fail_payment(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(payment_id): Path<String>,
     Json(body): Json<FailPaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みユーザーのアクター情報を抽出する
+    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
     let id = parse_uuid(&payment_id)?;
 
     let payment = state
@@ -158,16 +173,21 @@ pub async fn fail_payment(
     Ok(Json(response))
 }
 
+/// 決済返金ハンドラー。認証済みユーザーのClaimsを抽出し、返金理由をユースケースに伝播する。
 pub async fn refund_payment(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(payment_id): Path<String>,
-    Json(_body): Json<RefundPaymentRequest>,
+    Json(body): Json<RefundPaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みユーザーのアクター情報を抽出する
+    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
     let id = parse_uuid(&payment_id)?;
 
+    // 返金理由をユースケースに伝播する
     let payment = state
         .refund_payment_uc
-        .execute(id)
+        .execute(id, body.reason.as_deref())
         .await
         .map_err(map_payment_error)?;
 

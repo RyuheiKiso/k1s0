@@ -102,6 +102,27 @@ fn check_permission(tier: Tier, roles: &[String], action: &str) -> bool {
     false
 }
 
+/// 読み取り操作の認可チェック。sys_admin / sys_operator / sys_auditor ロールが必要。
+fn ensure_read_permission(ctx: &Context<'_>) -> FieldResult<()> {
+    let roles = if let Ok(gql_ctx) = ctx.data::<GraphqlContext>() {
+        gql_ctx.roles.clone()
+    } else if let Ok(claims) = ctx.data::<Claims>() {
+        claims.roles()
+    } else {
+        vec![]
+    };
+
+    if check_permission(Tier::System, &roles, "read") {
+        Ok(())
+    } else {
+        Err(gql_error(
+            CODE_FORBIDDEN,
+            "insufficient permissions for this operation",
+        ))
+    }
+}
+
+/// 書き込み操作の認可チェック。sys_admin / sys_operator ロールが必要。
 fn ensure_write_permission(ctx: &Context<'_>) -> FieldResult<()> {
     let roles = if let Ok(gql_ctx) = ctx.data::<GraphqlContext>() {
         gql_ctx.roles.clone()
@@ -123,217 +144,425 @@ fn ensure_write_permission(ctx: &Context<'_>) -> FieldResult<()> {
 
 // --- Input types ---
 
+/// テナント作成の入力型
 #[derive(async_graphql::InputObject)]
 pub struct CreateTenantInput {
+    /// テナント名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: String,
 }
 
+/// テナント更新の入力型
 #[derive(async_graphql::InputObject)]
 pub struct UpdateTenantInput {
+    /// テナント名（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: Option<String>,
     pub status: Option<TenantStatus>,
 }
 
+/// フィーチャーフラグ設定の入力型
 #[derive(async_graphql::InputObject)]
 pub struct SetFeatureFlagInput {
     pub enabled: bool,
+    /// ロールアウト割合（0〜100）
+    #[graphql(validator(minimum = 0, maximum = 100))]
     pub rollout_percentage: Option<i32>,
+    /// 対象環境リスト
     pub target_environments: Option<Vec<String>>,
 }
 
+/// サービス登録の入力型
 #[derive(async_graphql::InputObject)]
 pub struct RegisterServiceInput {
+    /// サービス名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: String,
+    /// 表示名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub display_name: String,
+    /// 説明（1〜2000文字）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub description: String,
+    /// ティア（1〜50文字）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub tier: String,
+    /// バージョン（1〜50文字）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub version: String,
+    /// ベースURL（1〜2000文字）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub base_url: String,
+    /// gRPCエンドポイント（1〜2000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub grpc_endpoint: Option<String>,
+    /// ヘルスチェックURL（1〜2000文字）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub health_url: String,
 }
 
+/// サービス更新の入力型
 #[derive(async_graphql::InputObject)]
 pub struct UpdateServiceInput {
+    /// 表示名（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub display_name: Option<String>,
+    /// 説明（1〜2000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub description: Option<String>,
+    /// バージョン（1〜50文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub version: Option<String>,
+    /// ベースURL（1〜2000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub base_url: Option<String>,
+    /// gRPCエンドポイント（1〜2000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub grpc_endpoint: Option<String>,
+    /// ヘルスチェックURL（1〜2000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub health_url: Option<String>,
 }
 
 // --- Auth / Session Input types ---
 
+/// 監査ログ記録の入力型
 #[derive(async_graphql::InputObject)]
 pub struct RecordAuditLogInput {
+    /// イベント種別（1〜100文字）
+    #[graphql(validator(min_length = 1, max_length = 100))]
     pub event_type: String,
+    /// ユーザーID（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub user_id: String,
+    /// IPアドレス（1〜45文字）
+    #[graphql(validator(min_length = 1, max_length = 45))]
     pub ip_address: String,
+    /// ユーザーエージェント（1〜500文字）
+    #[graphql(validator(min_length = 1, max_length = 500))]
     pub user_agent: String,
+    /// リソース名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub resource: String,
+    /// アクション名（1〜100文字）
+    #[graphql(validator(min_length = 1, max_length = 100))]
     pub action: String,
+    /// 結果（1〜100文字）
+    #[graphql(validator(min_length = 1, max_length = 100))]
     pub result: String,
+    /// リソースID（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub resource_id: Option<String>,
+    /// トレースID（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub trace_id: Option<String>,
 }
 
+/// セッション作成の入力型
 #[derive(async_graphql::InputObject)]
 pub struct CreateSessionInput {
+    /// ユーザーID（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub user_id: String,
+    /// デバイスID（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub device_id: String,
+    /// デバイス名（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub device_name: Option<String>,
+    /// デバイス種別（1〜50文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub device_type: Option<String>,
+    /// ユーザーエージェント（1〜500文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 500))]
     pub user_agent: Option<String>,
+    /// IPアドレス（1〜45文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 45))]
     pub ip_address: Option<String>,
+    /// TTL秒数（省略可）
     pub ttl_seconds: Option<i32>,
 }
 
+/// セッションリフレッシュの入力型
 #[derive(async_graphql::InputObject)]
 pub struct RefreshSessionInput {
+    /// セッションID（1文字以上）
+    #[graphql(validator(min_length = 1))]
     pub session_id: String,
+    /// TTL秒数（省略可）
     pub ttl_seconds: Option<i32>,
 }
 
 // --- Vault Input types ---
 
+/// シークレット設定の入力型
 #[derive(async_graphql::InputObject)]
 pub struct SetSecretInput {
+    /// シークレットパス（1〜500文字）
+    #[graphql(validator(min_length = 1, max_length = 500))]
     pub path: String,
     pub data: Vec<SecretKeyValue>,
 }
 
+/// シークレットのキー・バリューペア
 #[derive(async_graphql::InputObject)]
 pub struct SecretKeyValue {
+    /// キー名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub key: String,
+    /// 値（1〜10000文字）
+    #[graphql(validator(min_length = 1, max_length = 10000))]
     pub value: String,
 }
 
+/// シークレットローテーションの入力型
 #[derive(async_graphql::InputObject)]
 pub struct RotateSecretInput {
+    /// シークレットパス（1〜500文字）
+    #[graphql(validator(min_length = 1, max_length = 500))]
     pub path: String,
     pub data: Vec<SecretKeyValue>,
 }
 
 // --- Scheduler Input types ---
 
+/// ジョブ作成の入力型
 #[derive(async_graphql::InputObject)]
 pub struct CreateJobInput {
+    /// ジョブ名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: String,
+    /// 説明（1〜2000文字）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub description: String,
+    /// cron式（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub cron_expression: String,
+    /// タイムゾーン（1〜50文字）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub timezone: String,
+    /// ターゲット種別（1〜50文字）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub target_type: String,
+    /// ターゲット（1〜2000文字）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub target: String,
 }
 
+/// ジョブ更新の入力型
 #[derive(async_graphql::InputObject)]
 pub struct UpdateJobInput {
+    /// ジョブ名（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: Option<String>,
+    /// 説明（1〜2000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub description: Option<String>,
+    /// cron式（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub cron_expression: Option<String>,
+    /// タイムゾーン（1〜50文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub timezone: Option<String>,
+    /// ターゲット種別（1〜50文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub target_type: Option<String>,
+    /// ターゲット（1〜2000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub target: Option<String>,
 }
 
 // --- Notification Input types ---
 
+/// 通知送信の入力型
 #[derive(async_graphql::InputObject)]
 pub struct SendNotificationInput {
+    /// チャネルID（1文字以上）
+    #[graphql(validator(min_length = 1))]
     pub channel_id: String,
+    /// テンプレートID（1文字以上、省略可）
+    #[graphql(validator(min_length = 1))]
     pub template_id: Option<String>,
+    /// 受信者（1〜500文字）
+    #[graphql(validator(min_length = 1, max_length = 500))]
     pub recipient: String,
+    /// 件名（1〜500文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 500))]
     pub subject: Option<String>,
+    /// 本文（1〜50000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 50000))]
     pub body: Option<String>,
+    /// テンプレート変数（省略可）
     pub template_variables: Option<Vec<TemplateVariableInput>>,
 }
 
+/// テンプレート変数のキー・バリューペア
 #[derive(async_graphql::InputObject)]
 pub struct TemplateVariableInput {
+    /// キー名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub key: String,
+    /// 値（1〜10000文字）
+    #[graphql(validator(min_length = 1, max_length = 10000))]
     pub value: String,
 }
 
+/// 通知チャネル作成の入力型
 #[derive(async_graphql::InputObject)]
 pub struct CreateChannelInput {
+    /// チャネル名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: String,
+    /// チャネル種別（1〜50文字）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub channel_type: String,
+    /// 設定JSON（1〜10000文字）
+    #[graphql(validator(min_length = 1, max_length = 10000))]
     pub config_json: String,
     pub enabled: bool,
 }
 
+/// 通知チャネル更新の入力型
 #[derive(async_graphql::InputObject)]
 pub struct UpdateChannelInput {
+    /// チャネル名（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: Option<String>,
     pub enabled: Option<bool>,
+    /// 設定JSON（1〜10000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 10000))]
     pub config_json: Option<String>,
 }
 
+/// 通知テンプレート作成の入力型
 #[derive(async_graphql::InputObject)]
 pub struct CreateTemplateInput {
+    /// テンプレート名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: String,
+    /// チャネル種別（1〜50文字）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub channel_type: String,
+    /// 件名テンプレート（1〜500文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 500))]
     pub subject_template: Option<String>,
+    /// 本文テンプレート（1〜50000文字）
+    #[graphql(validator(min_length = 1, max_length = 50000))]
     pub body_template: String,
 }
 
+/// 通知テンプレート更新の入力型
 #[derive(async_graphql::InputObject)]
 pub struct UpdateTemplateInput {
+    /// テンプレート名（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: Option<String>,
+    /// 件名テンプレート（1〜500文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 500))]
     pub subject_template: Option<String>,
+    /// 本文テンプレート（1〜50000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 50000))]
     pub body_template: Option<String>,
 }
 
 // --- Workflow Input types ---
 
+/// ワークフロー作成の入力型
 #[derive(async_graphql::InputObject)]
 pub struct CreateWorkflowInput {
+    /// ワークフロー名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: String,
+    /// 説明（1〜2000文字）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub description: String,
     pub enabled: bool,
     pub steps: Vec<WorkflowStepInput>,
 }
 
+/// ワークフローステップの入力型
 #[derive(Debug, async_graphql::InputObject)]
 pub struct WorkflowStepInput {
+    /// ステップID（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub step_id: String,
+    /// ステップ名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: String,
+    /// ステップ種別（1〜50文字）
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub step_type: String,
+    /// 担当ロール（1〜100文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 100))]
     pub assignee_role: Option<String>,
+    /// タイムアウト時間（省略可）
     pub timeout_hours: Option<i32>,
+    /// 承認時の遷移先ステップ（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub on_approve: Option<String>,
+    /// 却下時の遷移先ステップ（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub on_reject: Option<String>,
 }
 
+/// ワークフロー更新の入力型
 #[derive(async_graphql::InputObject)]
 pub struct UpdateWorkflowInput {
+    /// ワークフロー名（1〜255文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: Option<String>,
+    /// 説明（1〜2000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub description: Option<String>,
     pub enabled: Option<bool>,
     pub steps: Option<Vec<WorkflowStepInput>>,
 }
 
+/// ワークフローインスタンス開始の入力型
 #[derive(async_graphql::InputObject)]
 pub struct StartInstanceInput {
+    /// ワークフローID（1文字以上）
+    #[graphql(validator(min_length = 1))]
     pub workflow_id: String,
+    /// タイトル（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
     pub title: String,
+    /// 起票者ID（1文字以上）
+    #[graphql(validator(min_length = 1))]
     pub initiator_id: String,
+    /// コンテキストJSON（1〜50000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 50000))]
     pub context_json: Option<String>,
 }
 
+/// タスク再割り当ての入力型
 #[derive(async_graphql::InputObject)]
 pub struct ReassignTaskInput {
+    /// タスクID（1文字以上）
+    #[graphql(validator(min_length = 1))]
     pub task_id: String,
+    /// 新しい担当者ID（1文字以上）
+    #[graphql(validator(min_length = 1))]
     pub new_assignee_id: String,
+    /// 理由（1〜2000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub reason: Option<String>,
+    /// 操作者ID（1文字以上）
+    #[graphql(validator(min_length = 1))]
     pub actor_id: String,
 }
 
+/// タスク判断（承認/却下）の入力型
 #[derive(async_graphql::InputObject)]
 pub struct TaskDecisionInput {
+    /// タスクID（1文字以上）
+    #[graphql(validator(min_length = 1))]
     pub task_id: String,
+    /// 操作者ID（1文字以上）
+    #[graphql(validator(min_length = 1))]
     pub actor_id: String,
+    /// コメント（1〜2000文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 2000))]
     pub comment: Option<String>,
 }
 
@@ -398,9 +627,10 @@ pub struct QueryRoot {
 impl QueryRoot {
     async fn tenant(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         id: async_graphql::ID,
     ) -> FieldResult<Option<Tenant>> {
+        ensure_read_permission(ctx)?;
         self.tenant_query
             .get_tenant(id.as_str())
             .await
@@ -409,10 +639,11 @@ impl QueryRoot {
 
     async fn tenants(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         first: Option<i32>,
         after: Option<String>,
     ) -> FieldResult<TenantConnection> {
+        ensure_read_permission(ctx)?;
         self.tenant_query
             .list_tenants(first, after)
             .await
@@ -421,9 +652,10 @@ impl QueryRoot {
 
     async fn feature_flag(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         key: String,
     ) -> FieldResult<Option<FeatureFlag>> {
+        ensure_read_permission(ctx)?;
         self.feature_flag_query
             .get_feature_flag(&key)
             .await
@@ -432,9 +664,10 @@ impl QueryRoot {
 
     async fn feature_flags(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         environment: Option<String>,
     ) -> FieldResult<Vec<FeatureFlag>> {
+        ensure_read_permission(ctx)?;
         self.feature_flag_query
             .list_feature_flags(environment.as_deref())
             .await
@@ -442,6 +675,7 @@ impl QueryRoot {
     }
 
     async fn config(&self, ctx: &Context<'_>, key: String) -> FieldResult<Option<ConfigEntry>> {
+        ensure_read_permission(ctx)?;
         if let Ok(gql_ctx) = ctx.data::<GraphqlContext>() {
             return gql_ctx
                 .config_loader
@@ -458,9 +692,10 @@ impl QueryRoot {
 
     async fn navigation(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         bearer_token: Option<String>,
     ) -> FieldResult<Navigation> {
+        ensure_read_permission(ctx)?;
         let token = bearer_token.unwrap_or_default();
         self.navigation_query
             .get_navigation(&token)
@@ -470,9 +705,10 @@ impl QueryRoot {
 
     async fn catalog_service(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         id: async_graphql::ID,
     ) -> FieldResult<Option<CatalogService>> {
+        ensure_read_permission(ctx)?;
         self.service_catalog_query
             .get_service(id.as_str())
             .await
@@ -481,12 +717,13 @@ impl QueryRoot {
 
     async fn catalog_services(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         first: Option<i32>,
         tier: Option<String>,
         status: Option<String>,
         search: Option<String>,
     ) -> FieldResult<CatalogServiceConnection> {
+        ensure_read_permission(ctx)?;
         self.service_catalog_query
             .list_services(first, tier.as_deref(), status.as_deref(), search.as_deref())
             .await
@@ -495,9 +732,10 @@ impl QueryRoot {
 
     async fn service_health(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         service_id: Option<String>,
     ) -> FieldResult<Vec<ServiceHealth>> {
+        ensure_read_permission(ctx)?;
         self.service_catalog_query
             .health_check(service_id.as_deref())
             .await
@@ -508,9 +746,10 @@ impl QueryRoot {
 
     async fn user(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         user_id: async_graphql::ID,
     ) -> FieldResult<Option<User>> {
+        ensure_read_permission(ctx)?;
         self.auth_query
             .get_user(user_id.as_str())
             .await
@@ -519,12 +758,13 @@ impl QueryRoot {
 
     async fn users(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         first: Option<i32>,
         after: Option<i32>,
         search: Option<String>,
         enabled: Option<bool>,
     ) -> FieldResult<Vec<User>> {
+        ensure_read_permission(ctx)?;
         self.auth_query
             .list_users(first, after, search.as_deref(), enabled)
             .await
@@ -533,9 +773,10 @@ impl QueryRoot {
 
     async fn user_roles(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         user_id: async_graphql::ID,
     ) -> FieldResult<Vec<Role>> {
+        ensure_read_permission(ctx)?;
         self.auth_query
             .get_user_roles(user_id.as_str())
             .await
@@ -544,12 +785,13 @@ impl QueryRoot {
 
     async fn check_permission(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         permission: String,
         resource: String,
         roles: Vec<String>,
         user_id: Option<String>,
     ) -> FieldResult<PermissionCheck> {
+        ensure_read_permission(ctx)?;
         self.auth_query
             .check_permission(user_id.as_deref(), &permission, &resource, &roles)
             .await
@@ -558,13 +800,14 @@ impl QueryRoot {
 
     async fn search_audit_logs(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         first: Option<i32>,
         after: Option<i32>,
         user_id: Option<String>,
         event_type: Option<String>,
         result: Option<String>,
     ) -> FieldResult<AuditLogConnection> {
+        ensure_read_permission(ctx)?;
         self.auth_query
             .search_audit_logs(
                 first,
@@ -581,9 +824,10 @@ impl QueryRoot {
 
     async fn session(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         session_id: async_graphql::ID,
     ) -> FieldResult<Option<Session>> {
+        ensure_read_permission(ctx)?;
         self.session_query
             .get_session(session_id.as_str())
             .await
@@ -592,9 +836,10 @@ impl QueryRoot {
 
     async fn user_sessions(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         user_id: async_graphql::ID,
     ) -> FieldResult<Vec<Session>> {
+        ensure_read_permission(ctx)?;
         self.session_query
             .list_user_sessions(user_id.as_str())
             .await
@@ -605,9 +850,10 @@ impl QueryRoot {
 
     async fn secret_metadata(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         path: String,
     ) -> FieldResult<Option<SecretMetadata>> {
+        ensure_read_permission(ctx)?;
         self.vault_query
             .get_secret_metadata(&path)
             .await
@@ -616,9 +862,10 @@ impl QueryRoot {
 
     async fn secrets(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         prefix: Option<String>,
     ) -> FieldResult<Vec<String>> {
+        ensure_read_permission(ctx)?;
         self.vault_query
             .list_secrets(prefix.as_deref())
             .await
@@ -627,10 +874,11 @@ impl QueryRoot {
 
     async fn vault_audit_logs(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         offset: Option<i32>,
         limit: Option<i32>,
     ) -> FieldResult<Vec<VaultAuditLogEntry>> {
+        ensure_read_permission(ctx)?;
         self.vault_query
             .list_audit_logs(offset, limit)
             .await
@@ -639,7 +887,8 @@ impl QueryRoot {
 
     // --- Scheduler queries ---
 
-    async fn job(&self, _ctx: &Context<'_>, job_id: async_graphql::ID) -> FieldResult<Option<Job>> {
+    async fn job(&self, ctx: &Context<'_>, job_id: async_graphql::ID) -> FieldResult<Option<Job>> {
+        ensure_read_permission(ctx)?;
         self.scheduler_query
             .get_job(job_id.as_str())
             .await
@@ -648,11 +897,12 @@ impl QueryRoot {
 
     async fn jobs(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         status: Option<String>,
         first: Option<i32>,
         after: Option<i32>,
     ) -> FieldResult<Vec<Job>> {
+        ensure_read_permission(ctx)?;
         self.scheduler_query
             .list_jobs(status.as_deref(), first, after)
             .await
@@ -661,9 +911,10 @@ impl QueryRoot {
 
     async fn job_execution(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         execution_id: async_graphql::ID,
     ) -> FieldResult<Option<JobExecution>> {
+        ensure_read_permission(ctx)?;
         self.scheduler_query
             .get_job_execution(execution_id.as_str())
             .await
@@ -672,12 +923,13 @@ impl QueryRoot {
 
     async fn job_executions(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         job_id: async_graphql::ID,
         first: Option<i32>,
         after: Option<i32>,
         status: Option<String>,
     ) -> FieldResult<Vec<JobExecution>> {
+        ensure_read_permission(ctx)?;
         self.scheduler_query
             .list_executions(job_id.as_str(), first, after, status.as_deref())
             .await
@@ -688,9 +940,10 @@ impl QueryRoot {
 
     async fn notification(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         notification_id: async_graphql::ID,
     ) -> FieldResult<Option<NotificationLog>> {
+        ensure_read_permission(ctx)?;
         self.notification_query
             .get_notification(notification_id.as_str())
             .await
@@ -699,12 +952,13 @@ impl QueryRoot {
 
     async fn notifications(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         channel_id: Option<String>,
         status: Option<String>,
         page: Option<i32>,
         page_size: Option<i32>,
     ) -> FieldResult<Vec<NotificationLog>> {
+        ensure_read_permission(ctx)?;
         self.notification_query
             .list_notifications(channel_id.as_deref(), status.as_deref(), page, page_size)
             .await
@@ -713,9 +967,10 @@ impl QueryRoot {
 
     async fn notification_channel(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         id: async_graphql::ID,
     ) -> FieldResult<Option<NotificationChannel>> {
+        ensure_read_permission(ctx)?;
         self.notification_query
             .get_channel(id.as_str())
             .await
@@ -724,12 +979,13 @@ impl QueryRoot {
 
     async fn notification_channels(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         channel_type: Option<String>,
         enabled_only: Option<bool>,
         page: Option<i32>,
         page_size: Option<i32>,
     ) -> FieldResult<Vec<NotificationChannel>> {
+        ensure_read_permission(ctx)?;
         self.notification_query
             .list_channels(
                 channel_type.as_deref(),
@@ -743,9 +999,10 @@ impl QueryRoot {
 
     async fn notification_template(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         id: async_graphql::ID,
     ) -> FieldResult<Option<NotificationTemplate>> {
+        ensure_read_permission(ctx)?;
         self.notification_query
             .get_template(id.as_str())
             .await
@@ -754,11 +1011,12 @@ impl QueryRoot {
 
     async fn notification_templates(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         channel_type: Option<String>,
         page: Option<i32>,
         page_size: Option<i32>,
     ) -> FieldResult<Vec<NotificationTemplate>> {
+        ensure_read_permission(ctx)?;
         self.notification_query
             .list_templates(channel_type.as_deref(), page, page_size)
             .await
@@ -769,9 +1027,10 @@ impl QueryRoot {
 
     async fn workflow(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         workflow_id: async_graphql::ID,
     ) -> FieldResult<Option<WorkflowDefinition>> {
+        ensure_read_permission(ctx)?;
         self.workflow_query
             .get_workflow(workflow_id.as_str())
             .await
@@ -780,11 +1039,12 @@ impl QueryRoot {
 
     async fn workflows(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         enabled_only: Option<bool>,
         first: Option<i32>,
         after: Option<i32>,
     ) -> FieldResult<Vec<WorkflowDefinition>> {
+        ensure_read_permission(ctx)?;
         self.workflow_query
             .list_workflows(enabled_only.unwrap_or(false), first, after)
             .await
@@ -793,9 +1053,10 @@ impl QueryRoot {
 
     async fn workflow_instance(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         instance_id: async_graphql::ID,
     ) -> FieldResult<Option<WorkflowInstance>> {
+        ensure_read_permission(ctx)?;
         self.workflow_query
             .get_instance(instance_id.as_str())
             .await
@@ -804,13 +1065,14 @@ impl QueryRoot {
 
     async fn workflow_instances(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         status: Option<String>,
         workflow_id: Option<String>,
         initiator_id: Option<String>,
         first: Option<i32>,
         after: Option<i32>,
     ) -> FieldResult<Vec<WorkflowInstance>> {
+        ensure_read_permission(ctx)?;
         self.workflow_query
             .list_instances(
                 status.as_deref(),
@@ -826,7 +1088,7 @@ impl QueryRoot {
     #[allow(clippy::too_many_arguments)]
     async fn workflow_tasks(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         assignee_id: Option<String>,
         status: Option<String>,
         instance_id: Option<String>,
@@ -834,6 +1096,7 @@ impl QueryRoot {
         first: Option<i32>,
         after: Option<i32>,
     ) -> FieldResult<Vec<WorkflowTask>> {
+        ensure_read_permission(ctx)?;
         self.workflow_query
             .list_tasks(
                 assignee_id.as_deref(),

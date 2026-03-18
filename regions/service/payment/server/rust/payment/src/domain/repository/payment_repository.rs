@@ -9,6 +9,9 @@ pub trait PaymentRepository: Send + Sync {
     /// 決済をIDで取得する。
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<Payment>>;
 
+    /// 注文IDで決済を取得する（冪等性チェック用）。
+    async fn find_by_order_id(&self, order_id: &str) -> anyhow::Result<Option<Payment>>;
+
     /// フィルター条件で決済一覧を取得する。
     async fn find_all(&self, filter: &PaymentFilter) -> anyhow::Result<Vec<Payment>>;
 
@@ -35,8 +38,13 @@ pub trait PaymentRepository: Send + Sync {
         expected_version: i32,
     ) -> anyhow::Result<Payment>;
 
-    /// 決済を返金する（楽観ロック付き）。
-    async fn refund(&self, id: Uuid, expected_version: i32) -> anyhow::Result<Payment>;
+    /// 決済を返金する（楽観ロック付き）。返金理由をOutboxイベントに記録する。
+    async fn refund(
+        &self,
+        id: Uuid,
+        expected_version: i32,
+        reason: Option<&str>,
+    ) -> anyhow::Result<Payment>;
 
     /// Outbox イベントを挿入する。
     async fn insert_outbox_event(

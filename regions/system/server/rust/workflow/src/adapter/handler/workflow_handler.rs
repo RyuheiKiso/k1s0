@@ -65,11 +65,8 @@ pub async fn create_workflow(
                 created_at: def.created_at.to_rfc3339(),
                 updated_at: def.updated_at.to_rfc3339(),
             };
-            (
-                StatusCode::CREATED,
-                Json(serde_json::to_value(resp).expect("ワークフロー作成レスポンスのJSON変換に失敗")),
-            )
-                .into_response()
+            // レスポンスDTOを直接 Json として返す（.expect() 排除）
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         // 同名のワークフローが既に存在する場合
         Err(CreateWorkflowError::AlreadyExists(name)) => (
@@ -118,7 +115,8 @@ pub async fn get_workflow(
                 created_at: def.created_at.to_rfc3339(),
                 updated_at: def.updated_at.to_rfc3339(),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).expect("ワークフロー取得レスポンスのJSON変換に失敗"))).into_response()
+            // レスポンスDTOを直接 Json として返す（.expect() 排除）
+            (StatusCode::OK, Json(resp)).into_response()
         }
         // ワークフローが見つからない場合
         Err(GetWorkflowError::NotFound(_)) => (
@@ -180,7 +178,8 @@ pub async fn list_workflows(
                     has_next: output.has_next,
                 },
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).expect("ワークフロー一覧レスポンスのJSON変換に失敗"))).into_response()
+            // レスポンスDTOを直接 Json として返す（.expect() 排除）
+            (StatusCode::OK, Json(resp)).into_response()
         }
         // 内部エラー
         Err(ListWorkflowsError::Internal(msg)) => (
@@ -242,7 +241,8 @@ pub async fn update_workflow(
                 created_at: def.created_at.to_rfc3339(),
                 updated_at: def.updated_at.to_rfc3339(),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).expect("ワークフロー更新レスポンスのJSON変換に失敗"))).into_response()
+            // レスポンスDTOを直接 Json として返す（.expect() 排除）
+            (StatusCode::OK, Json(resp)).into_response()
         }
         // ワークフローが見つからない場合
         Err(UpdateWorkflowError::NotFound(_)) => (

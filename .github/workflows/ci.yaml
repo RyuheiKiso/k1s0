@@ -9,9 +9,17 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 jobs:
+  # ファイル変更の検出（言語ごとのフィルタリング）
   detect-changes:
     runs-on: ubuntu-latest
+    # コードの読み取りと PR 情報の読み取り（paths-filter）が必要
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       go: ${{ steps.filter.outputs.go }}
       rust: ${{ steps.filter.outputs.rust }}
@@ -23,7 +31,8 @@ jobs:
       shell: ${{ steps.filter.outputs.shell }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
           filters: |
@@ -57,6 +66,9 @@ jobs:
   # 検出失敗は即座に可視化されるべきため continue-on-error は設定しない
   detect-modules:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     outputs:
       go_modules: ${{ steps.modules.outputs.go_modules }}
       rust_modules: ${{ steps.modules.outputs.rust_modules }}
@@ -87,10 +99,14 @@ jobs:
           echo "Affected TS modules: $ts_mods"
           echo "Affected Dart modules: $dart_mods"
 
+  # Go コードの静的解析
   lint-go:
     needs: [detect-changes, detect-modules]
     if: needs.detect-changes.outputs.go == 'true'
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -125,17 +141,23 @@ jobs:
             done
           fi
 
+  # Rust コードの静的解析
   lint-rust:
     needs: [detect-changes, detect-modules]
     if: needs.detect-changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93 — Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
-      - uses: Swatinem/rust-cache@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: |
             regions/system
@@ -214,10 +236,14 @@ jobs:
             exit 1
           fi
 
+  # TypeScript コードの静的解析
   lint-ts:
     needs: [detect-changes, detect-modules]
     if: needs.detect-changes.outputs.ts == 'true'
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -260,13 +286,18 @@ jobs:
             done
           fi
 
+  # Dart/Flutter コードの静的解析
   lint-dart:
     needs: [detect-changes, detect-modules]
     if: needs.detect-changes.outputs.dart == 'true'
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       # Dart/Flutter パッケージキャッシュ
@@ -312,6 +343,9 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.shell == 'true'
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: shellcheck のインストール
@@ -324,11 +358,15 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.proto == 'true'
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: bufbuild/buf-setup-action@v1
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           version: "1.47.2"              # devcontainer設計.md の BUF_VERSION と同期
       - name: buf lint
@@ -336,9 +374,13 @@ jobs:
       - name: buf breaking change detection
         run: buf breaking api/proto --against '.git#branch=main'
 
+  # Go ユニットテスト
   test-go:
     needs: [lint-go, detect-modules]
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -409,14 +451,20 @@ jobs:
           name: go-coverage
           path: coverage/
 
+  # Rust ユニットテスト
   test-rust:
     needs: [lint-rust, detect-modules]
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93 — Dockerイメージ戦略.md / devcontainer設計.md と同期
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
-      - uses: Swatinem/rust-cache@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: |
             regions/system
@@ -469,10 +517,15 @@ jobs:
     needs: [detect-changes, lint-rust]
     if: needs.detect-changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93
-      - uses: Swatinem/rust-cache@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: |
             regions/system
@@ -484,11 +537,16 @@ jobs:
   coverage-rust:
     needs: lint-rust
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
-      - uses: Swatinem/rust-cache@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: |
             regions/system
@@ -539,9 +597,13 @@ jobs:
           name: rust-coverage
           path: coverage/
 
+  # TypeScript ユニットテスト
   test-ts:
     needs: lint-ts
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -567,6 +629,9 @@ jobs:
   coverage-ts:
     needs: lint-ts
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -605,12 +670,17 @@ jobs:
           name: ts-coverage
           path: coverage/
 
+  # Dart/Flutter ユニットテスト
   test-dart:
     needs: lint-dart
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       # Dart/Flutter パッケージキャッシュ
@@ -645,9 +715,13 @@ jobs:
   coverage-dart:
     needs: lint-dart
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       # Dart/Flutter パッケージキャッシュ
@@ -725,9 +799,13 @@ jobs:
           name: dart-coverage
           path: coverage/
 
+  # Go ビルド検証
   build-go:
     needs: test-go
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -741,14 +819,20 @@ jobs:
           echo "=== Building all Go modules via go.work ==="
           go build ./...
 
+  # Rust ビルド検証
   build-rust:
     needs: test-rust
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
-      - uses: Swatinem/rust-cache@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: |
             regions/system
@@ -789,9 +873,13 @@ jobs:
               fi
           done
 
+  # TypeScript ビルド検証
   build-ts:
     needs: test-ts
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -813,6 +901,7 @@ jobs:
             )
           done
 
+  # Docker イメージのビルド検証
   build-docker:
     needs:
       - detect-changes
@@ -820,6 +909,9 @@ jobs:
       - build-rust
     if: always() && !contains(needs.*.result, 'failure') && (needs.detect-changes.outputs.docker == 'true' || needs.detect-changes.outputs.go == 'true' || needs.detect-changes.outputs.rust == 'true')
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Build service Docker images
@@ -850,10 +942,14 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
         with:
           components: clippy
       - name: Check ai-agent
@@ -872,13 +968,18 @@ jobs:
   # NOTE: proto チェック(buf lint / buf breaking)は ci.yaml の lint-proto ジョブと
   # 専用ワークフロー proto.yaml の両方で実行される。
 
+  # Helm チャートのリント
   helm-lint:
     needs: detect-changes
     if: needs.detect-changes.outputs.helm == 'true'
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       - run: |
@@ -888,6 +989,7 @@ jobs:
             fi
           done
 
+  # 全ビルドの集約ジョブ
   build:
     needs:
       - build-go
@@ -897,6 +999,9 @@ jobs:
       - build-docker
     if: always() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Build validation summary
@@ -906,6 +1011,9 @@ jobs:
   # 未登録のモジュールがあれば error で CI を失敗させる
   validate-modules:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: modules.yaml とディスク上マニフェストの整合性チェック
@@ -953,6 +1061,9 @@ jobs:
   # Vault policy の広域 wildcard 検出
   validate-vault-policies:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Check for overly broad Vault wildcards
@@ -966,6 +1077,9 @@ jobs:
   # TypeScript パッケージの lockfile 存在チェック
   validate-ts-lockfiles:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Check package-lock.json exists for all TS packages
@@ -983,12 +1097,17 @@ jobs:
             exit 1
           fi
 
+  # セキュリティスキャン（Trivy）
   security-scan:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
         with:
           scan-type: fs
           scan-ref: .

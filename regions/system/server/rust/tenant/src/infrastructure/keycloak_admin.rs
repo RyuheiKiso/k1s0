@@ -18,10 +18,16 @@ pub struct KeycloakAdminClient {
 }
 
 impl KeycloakAdminClient {
+    /// 新しい KeycloakAdminClient を生成する。
+    /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
     pub fn new(config: KeycloakAdminConfig) -> Self {
+        let http_client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .expect("HTTP client の作成に失敗");
         Self {
             config,
-            http_client: reqwest::Client::new(),
+            http_client,
         }
     }
 

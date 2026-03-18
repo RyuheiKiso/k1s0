@@ -3,7 +3,7 @@ SET search_path TO payment_service;
 
 CREATE TABLE IF NOT EXISTS payments (
     id              UUID         PRIMARY KEY,
-    order_id        TEXT         NOT NULL,
+    order_id        TEXT         NOT NULL UNIQUE,
     customer_id     TEXT         NOT NULL,
     amount          BIGINT       NOT NULL,
     currency        TEXT         NOT NULL DEFAULT 'JPY',

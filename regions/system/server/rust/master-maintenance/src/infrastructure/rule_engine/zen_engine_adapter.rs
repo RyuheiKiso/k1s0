@@ -23,6 +23,10 @@ impl ZenEngineAdapter {
 
 #[async_trait]
 impl RuleEngineService for ZenEngineAdapter {
+    /// カスタムルールを評価する。
+    ///
+    /// ZEN エンジンの Future は Send ではないため、spawn_blocking で
+    /// 専用スレッド上で同期版を実行することでネストランタイムを回避する。
     async fn evaluate_rule(
         &self,
         rule: &ConsistencyRule,
@@ -33,13 +37,12 @@ impl RuleEngineService for ZenEngineAdapter {
                 let rule = rule.clone();
                 let record_data = record_data.clone();
                 tokio::task::spawn_blocking(move || {
-                    ZenEngineAdapter::evaluate_custom_rule(&rule, &record_data)
+                    Self::evaluate_custom_rule(&rule, &record_data)
                 })
-                .await
-                .map_err(|err| anyhow::anyhow!("custom rule task failed: {}", err))?
+                .await?
             }
             _ => {
-                // Non-custom rules are evaluated by the use case layer
+                // カスタムルール以外はユースケース層で評価される
                 Ok(RuleResult::pass())
             }
         }
@@ -79,6 +82,10 @@ impl ZenEngineAdapter {
             .or_else(|| (!default_message.is_empty()).then(|| default_message.to_string()))
     }
 
+    /// ZEN エンジンでカスタムルールを同期評価する。
+    ///
+    /// ZEN の evaluate Future は !Send のため、spawn_blocking 上で
+    /// 一時的なランタイムを使って実行する。
     fn evaluate_custom_rule(
         rule: &ConsistencyRule,
         record_data: &Value,
@@ -91,22 +98,27 @@ impl ZenEngineAdapter {
         let response = runtime.block_on(async { decision.evaluate(record_data).await })?;
         let result = response.result;
 
+        Self::map_rule_result(rule, &result)
+    }
+
+    /// ZEN エンジンの結果を RuleResult にマッピングする。
+    fn map_rule_result(rule: &ConsistencyRule, result: &Value) -> anyhow::Result<RuleResult> {
         match result.get("_result").and_then(|v| v.as_str()) {
             Some("fail") => Ok(Self::result_with_severity(
                 rule,
                 false,
-                Self::message_from_result(&result, &rule.error_message_template),
+                Self::message_from_result(result, &rule.error_message_template),
             )),
             Some("warning") => Ok(Self::result_with_severity(
                 rule,
                 true,
-                Self::message_from_result(&result, &rule.error_message_template),
+                Self::message_from_result(result, &rule.error_message_template),
             )),
             Some("pass") | None => Ok(Self::result_with_severity(rule, true, None)),
             Some(other) => Ok(Self::result_with_severity(
                 rule,
                 other.eq_ignore_ascii_case("pass"),
-                Self::message_from_result(&result, &rule.error_message_template),
+                Self::message_from_result(result, &rule.error_message_template),
             )),
         }
     }

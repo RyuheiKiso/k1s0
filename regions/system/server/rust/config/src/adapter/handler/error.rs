@@ -3,8 +3,8 @@ use axum::response::IntoResponse;
 use axum::Json;
 
 use k1s0_server_common::error as codes;
-
-use super::{ErrorDetail, ErrorResponse};
+// server-common の統一 ErrorResponse / ErrorDetail を使用する
+use k1s0_server_common::{ErrorDetail, ErrorResponse};
 use crate::usecase::delete_config::DeleteConfigError;
 use crate::usecase::get_config::GetConfigError;
 use crate::usecase::get_config_schema::GetConfigSchemaError;
@@ -60,14 +60,16 @@ impl IntoResponse for UpdateConfigError {
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
+            // バージョン競合エラー: 楽観的ロックの失敗を示す
             UpdateConfigError::VersionConflict { expected, current } => {
                 let err = ErrorResponse::with_details(
                     codes::config::version_conflict().as_str(),
                     "設定値が他のユーザーによって更新されています。最新のバージョンを取得してください",
-                    vec![ErrorDetail {
-                        field: "version".to_string(),
-                        message: format!("期待値: {}, 現在値: {}", expected, current),
-                    }],
+                    vec![ErrorDetail::new(
+                        "version",
+                        "version_conflict",
+                        format!("期待値: {}, 現在値: {}", expected, current),
+                    )],
                 );
                 (StatusCode::CONFLICT, Json(err)).into_response()
             }

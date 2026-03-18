@@ -20,12 +20,12 @@ observability:
     path: "/metrics"
 
 # --- Production configuration (uncomment as needed) ---
-# database:
-#   url: "postgresql://app:@postgres.k1s0-system.svc.cluster.local:5432/k1s0_system"
-#   schema: "event_store"
-#   max_connections: 20
-#   min_connections: 5
-#   connect_timeout_seconds: 5
+database:
+  url: "postgresql://app:@postgres.k1s0-system.svc.cluster.local:5432/event_store_db"
+  schema: "event_store"
+  max_connections: 20
+  min_connections: 5
+  connect_timeout_seconds: 5
 # kafka:
 #   brokers:
 #     - "kafka-0.messaging.svc.cluster.local:9092"

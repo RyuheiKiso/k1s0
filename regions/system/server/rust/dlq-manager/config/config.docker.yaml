@@ -20,5 +20,6 @@ kafka:
   brokers:
     - "kafka:9092"
   consumer_group: "dlq-manager.docker"
-  dlq_topic_pattern: "*.dlq.v1"
+  # DLQトピックのマッチングパターン（*.v1.dlq 形式に統一）
+  dlq_topic_pattern: "*.v1.dlq"
   security_protocol: "PLAINTEXT"

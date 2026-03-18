@@ -38,6 +38,8 @@ impl TargetJobExecutor {
             client_config.set("security.protocol", &cfg.security_protocol);
             client_config.set("acks", "all");
             client_config.set("message.timeout.ms", "5000");
+            // 冪等プロデューサーを有効化し、メッセージの重複送信を防止する
+            client_config.set("enable.idempotence", "true");
             Some(client_config.create()?)
         } else {
             None

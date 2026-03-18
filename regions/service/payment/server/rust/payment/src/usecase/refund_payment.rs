@@ -14,7 +14,12 @@ impl RefundPaymentUseCase {
         Self { payment_repo }
     }
 
-    pub async fn execute(&self, payment_id: Uuid) -> anyhow::Result<Payment> {
+    /// 返金を実行する。返金理由（reason）をリポジトリ層に伝播し、Outboxイベントに記録する。
+    pub async fn execute(
+        &self,
+        payment_id: Uuid,
+        reason: Option<&str>,
+    ) -> anyhow::Result<Payment> {
         let existing = self
             .payment_repo
             .find_by_id(payment_id)
@@ -28,9 +33,10 @@ impl RefundPaymentUseCase {
         )?;
 
         // ステータス更新（Outbox イベントも同一トランザクション内で挿入される）
+        // 返金理由をリポジトリに渡してOutboxイベントに記録する
         let updated = self
             .payment_repo
-            .refund(payment_id, existing.version)
+            .refund(payment_id, existing.version, reason)
             .await?;
 
         Ok(updated)
@@ -81,10 +87,11 @@ mod tests {
         mock_repo
             .expect_refund()
             .times(1)
-            .returning(move |_, _| Ok(refunded_clone.clone()));
+            .returning(move |_, _, _| Ok(refunded_clone.clone()));
 
         let uc = RefundPaymentUseCase::new(Arc::new(mock_repo));
-        let result = uc.execute(payment_id).await;
+        // 返金理由を指定してユースケースを実行する
+        let result = uc.execute(payment_id, Some("顧客要望")).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, PaymentStatus::Refunded);
     }
@@ -103,7 +110,8 @@ mod tests {
             .returning(move |_| Ok(Some(payment_clone.clone())));
 
         let uc = RefundPaymentUseCase::new(Arc::new(mock_repo));
-        let result = uc.execute(payment_id).await;
+        // 返金理由なしで無効なステータス遷移をテストする
+        let result = uc.execute(payment_id, None).await;
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
