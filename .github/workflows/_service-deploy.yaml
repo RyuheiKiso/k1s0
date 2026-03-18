@@ -293,7 +293,7 @@ jobs:
       # デプロイ結果を GitHub Deployment Status として記録
       - name: デプロイ結果通知
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const status = '${{ job.status }}' === 'success' ? 'success' : 'failure';
