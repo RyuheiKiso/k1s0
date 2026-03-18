@@ -15,6 +15,7 @@ pub struct EvaluatePolicyInput {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct EvaluatePolicyOutput {
     pub allowed: bool,
     pub package_path: String,

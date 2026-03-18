@@ -239,7 +239,7 @@ impl SagaGrpcService {
             .start_saga_uc
             .execute(req.workflow_name, json_payload, correlation, initiator)
             .await
-            .map_err(|e| map_anyhow_to_grpc_error(e))?;
+            .map_err(map_anyhow_to_grpc_error)?;
 
         Ok(StartSagaResponse {
             saga_id: saga_id.to_string(),
@@ -433,7 +433,7 @@ impl SagaGrpcService {
             .register_workflow_uc
             .execute(req.workflow_yaml)
             .await
-            .map_err(|e| map_anyhow_to_grpc_error(e))?;
+            .map_err(map_anyhow_to_grpc_error)?;
 
         Ok(RegisterWorkflowResponse {
             name,

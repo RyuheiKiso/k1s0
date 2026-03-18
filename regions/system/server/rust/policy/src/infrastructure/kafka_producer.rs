@@ -74,6 +74,7 @@ impl PolicyChangedEvent {
 #[async_trait]
 pub trait PolicyEventPublisher: Send + Sync {
     async fn publish_policy_changed(&self, event: &PolicyChangedEvent) -> anyhow::Result<()>;
+    #[allow(dead_code)]
     async fn close(&self) -> anyhow::Result<()>;
 }
 

@@ -78,6 +78,12 @@ impl CircuitBreakerRegistry {
     }
 }
 
+impl Default for CircuitBreakerRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

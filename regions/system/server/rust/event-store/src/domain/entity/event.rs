@@ -108,6 +108,7 @@ impl Snapshot {
     }
 }
 
+#[allow(dead_code)]
 impl StoredEvent {
     /// イベントスキーマを最新バージョンにアップキャストする（M-12）。
     /// version フィールドに基づいて、古いスキーマから新しいスキーマへの

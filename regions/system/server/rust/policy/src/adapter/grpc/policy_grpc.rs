@@ -32,6 +32,7 @@ pub struct PolicyData {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PolicyBundleData {
     pub id: String,
     pub name: String,

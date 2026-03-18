@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PolicyEvaluation {
     pub id: Uuid,
     pub policy_id: Option<Uuid>,

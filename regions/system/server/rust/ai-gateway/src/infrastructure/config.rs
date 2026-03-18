@@ -19,6 +19,7 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 
 /// アプリケーション全体の設定
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
@@ -140,6 +141,7 @@ pub struct LlmConfig {
 
 /// Redis設定
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct RedisConfig {
     /// Redis接続URL（例: redis://localhost:6379）
     pub url: String,

@@ -18,6 +18,7 @@ pub enum GrpcError {
 }
 
 /// gRPC補完リクエスト
+#[allow(dead_code)]
 pub struct GrpcCompleteRequest {
     pub model: String,
     pub messages: Vec<GrpcMessage>,
@@ -27,18 +28,21 @@ pub struct GrpcCompleteRequest {
 }
 
 /// gRPCメッセージ
+#[allow(dead_code)]
 pub struct GrpcMessage {
     pub role: String,
     pub content: String,
 }
 
 /// gRPCエンベディングリクエスト
+#[allow(dead_code)]
 pub struct GrpcEmbedRequest {
     pub model: String,
     pub inputs: Vec<String>,
 }
 
 /// gRPC使用量取得リクエスト
+#[allow(dead_code)]
 pub struct GrpcGetUsageRequest {
     pub tenant_id: String,
     pub start: String,
@@ -47,6 +51,7 @@ pub struct GrpcGetUsageRequest {
 
 /// AI Gateway gRPCサービス。
 /// ユースケースを呼び出してgRPC固有の変換を行う。
+#[allow(dead_code)]
 pub struct AiGatewayGrpcService {
     complete_uc: Arc<CompleteUseCase>,
     embed_uc: Arc<EmbedUseCase>,
@@ -54,6 +59,7 @@ pub struct AiGatewayGrpcService {
     get_usage_uc: Arc<GetUsageUseCase>,
 }
 
+#[allow(dead_code)]
 impl AiGatewayGrpcService {
     /// 新しいgRPCサービスを生成する。
     pub fn new(
