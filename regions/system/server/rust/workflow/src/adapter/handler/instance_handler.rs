@@ -49,7 +49,7 @@ pub async fn execute_workflow(
             };
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).unwrap()),
+                Json(serde_json::to_value(resp).expect("インスタンス実行レスポンスのJSON変換に失敗")),
             )
                 .into_response()
         }
@@ -113,7 +113,7 @@ pub async fn get_instance_status(
                 created_at: inst.created_at.to_rfc3339(),
                 completed_at: inst.completed_at.map(|t| t.to_rfc3339()),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(serde_json::to_value(resp).expect("インスタンスステータスレスポンスのJSON変換に失敗"))).into_response()
         }
         // インスタンスが見つからない場合
         Err(GetInstanceError::NotFound(_)) => (
@@ -216,7 +216,7 @@ pub async fn get_instance(
                 created_at: inst.created_at.to_rfc3339(),
                 completed_at: inst.completed_at.map(|t| t.to_rfc3339()),
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(serde_json::to_value(resp).expect("インスタンス詳細レスポンスのJSON変換に失敗"))).into_response()
         }
         // インスタンスが見つからない場合
         Err(GetInstanceError::NotFound(_)) => (

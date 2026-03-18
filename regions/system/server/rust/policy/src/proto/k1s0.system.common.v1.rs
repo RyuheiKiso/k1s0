@@ -12,9 +12,9 @@ pub struct Pagination {
 /// PaginationResult はページネーション結果。
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct PaginationResult {
-    /// 全件数
-    #[prost(int32, tag = "1")]
-    pub total_count: i32,
+    /// 全件数（大規模データ対応のため int64 を使用）
+    #[prost(int64, tag = "1")]
+    pub total_count: i64,
     /// 現在のページ番号
     #[prost(int32, tag = "2")]
     pub page: i32,

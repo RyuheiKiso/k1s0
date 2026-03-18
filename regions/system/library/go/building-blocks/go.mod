@@ -1,4 +1,4 @@
-module github.com/anthropics/k1s0/regions/system/library/go/building-blocks
+module github.com/k1s0-platform/system-library-go-building-blocks
 
 go 1.24.0
 

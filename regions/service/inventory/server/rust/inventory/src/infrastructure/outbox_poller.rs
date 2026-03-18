@@ -1,20 +1,22 @@
 use crate::domain::repository::inventory_repository::InventoryRepository;
-use crate::usecase::event_publisher::InventoryEventPublisher;
-use prost_types::Timestamp;
 use crate::proto::k1s0::event::service::inventory::v1::{
-    InventoryReservedEvent, InventoryReleasedEvent,
+    InventoryReleasedEvent, InventoryReservedEvent,
 };
 use crate::proto::k1s0::system::common::v1::EventMetadata;
+use crate::usecase::event_publisher::InventoryEventPublisher;
+use prost_types::Timestamp;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time;
 
 // ISO 8601 文字列を prost Timestamp に変換する
 fn parse_timestamp(s: &str) -> Option<Timestamp> {
-    chrono::DateTime::parse_from_rfc3339(s).ok().map(|dt| Timestamp {
-        seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
-    })
+    chrono::DateTime::parse_from_rfc3339(s)
+        .ok()
+        .map(|dt| Timestamp {
+            seconds: dt.timestamp(),
+            nanos: dt.timestamp_subsec_nanos() as i32,
+        })
 }
 
 /// OutboxPoller — 未パブリッシュの Outbox イベントを定期的にポーリングし、
@@ -86,19 +88,63 @@ impl OutboxPoller {
                     let metadata = payload.get("metadata").cloned().unwrap_or_default();
                     let proto_event = InventoryReservedEvent {
                         metadata: Some(EventMetadata {
-                            event_id: metadata.get("event_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                            event_type: metadata.get("event_type").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                            source: metadata.get("source").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                            timestamp: metadata.get("timestamp").and_then(|v| v.as_i64()).unwrap_or_default(),
-                            trace_id: metadata.get("trace_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                            correlation_id: metadata.get("correlation_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                            schema_version: metadata.get("schema_version").and_then(|v| v.as_i64()).unwrap_or(1) as i32,
+                            event_id: metadata
+                                .get("event_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
+                            event_type: metadata
+                                .get("event_type")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
+                            source: metadata
+                                .get("source")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
+                            timestamp: metadata
+                                .get("timestamp")
+                                .and_then(|v| v.as_i64())
+                                .unwrap_or_default(),
+                            trace_id: metadata
+                                .get("trace_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
+                            correlation_id: metadata
+                                .get("correlation_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
+                            schema_version: metadata
+                                .get("schema_version")
+                                .and_then(|v| v.as_i64())
+                                .unwrap_or(1) as i32,
                         }),
-                        order_id: payload.get("order_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        product_id: payload.get("product_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        quantity: payload.get("quantity").and_then(|v| v.as_i64()).unwrap_or_default() as i32,
-                        warehouse_id: payload.get("warehouse_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        reserved_at: payload.get("reserved_at").and_then(|v| v.as_str()).and_then(parse_timestamp),
+                        order_id: payload
+                            .get("order_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        product_id: payload
+                            .get("product_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        quantity: payload
+                            .get("quantity")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or_default() as i32,
+                        warehouse_id: payload
+                            .get("warehouse_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        reserved_at: payload
+                            .get("reserved_at")
+                            .and_then(|v| v.as_str())
+                            .and_then(parse_timestamp),
                     };
                     self.event_publisher
                         .publish_inventory_reserved(&proto_event)
@@ -110,20 +156,68 @@ impl OutboxPoller {
                     let metadata = payload.get("metadata").cloned().unwrap_or_default();
                     let proto_event = InventoryReleasedEvent {
                         metadata: Some(EventMetadata {
-                            event_id: metadata.get("event_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                            event_type: metadata.get("event_type").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                            source: metadata.get("source").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                            timestamp: metadata.get("timestamp").and_then(|v| v.as_i64()).unwrap_or_default(),
-                            trace_id: metadata.get("trace_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                            correlation_id: metadata.get("correlation_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                            schema_version: metadata.get("schema_version").and_then(|v| v.as_i64()).unwrap_or(1) as i32,
+                            event_id: metadata
+                                .get("event_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
+                            event_type: metadata
+                                .get("event_type")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
+                            source: metadata
+                                .get("source")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
+                            timestamp: metadata
+                                .get("timestamp")
+                                .and_then(|v| v.as_i64())
+                                .unwrap_or_default(),
+                            trace_id: metadata
+                                .get("trace_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
+                            correlation_id: metadata
+                                .get("correlation_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string(),
+                            schema_version: metadata
+                                .get("schema_version")
+                                .and_then(|v| v.as_i64())
+                                .unwrap_or(1) as i32,
                         }),
-                        order_id: payload.get("order_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        product_id: payload.get("product_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        quantity: payload.get("quantity").and_then(|v| v.as_i64()).unwrap_or_default() as i32,
-                        warehouse_id: payload.get("warehouse_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        reason: payload.get("reason").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        released_at: payload.get("released_at").and_then(|v| v.as_str()).and_then(parse_timestamp),
+                        order_id: payload
+                            .get("order_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        product_id: payload
+                            .get("product_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        quantity: payload
+                            .get("quantity")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or_default() as i32,
+                        warehouse_id: payload
+                            .get("warehouse_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        reason: payload
+                            .get("reason")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        released_at: payload
+                            .get("released_at")
+                            .and_then(|v| v.as_str())
+                            .and_then(parse_timestamp),
                     };
                     self.event_publisher
                         .publish_inventory_released(&proto_event)

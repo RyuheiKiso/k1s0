@@ -3,7 +3,7 @@ version: 0.1.0
 description: k1s0 auth library for OAuth2 Authorization Code + PKCE flow (client-side).
 
 environment:
-  sdk: ">=3.4.0 <4.0.0"
+  sdk: '>=3.7.0 <4.0.0'
 
 dependencies:
   http: ^1.2.0

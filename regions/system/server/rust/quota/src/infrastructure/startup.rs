@@ -223,12 +223,15 @@ pub async fn run() -> anyhow::Result<()> {
         &cfg.app.environment,
         cfg.auth.as_ref().map(|auth_cfg| {
             info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for quota-server");
-            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-                &auth_cfg.jwks_url,
-                &auth_cfg.issuer,
-                &auth_cfg.audience,
-                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-            ));
+            let jwks_verifier = Arc::new(
+                k1s0_auth::JwksVerifier::new(
+                    &auth_cfg.jwks_url,
+                    &auth_cfg.issuer,
+                    &auth_cfg.audience,
+                    std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+                )
+                .expect("Failed to create JWKS verifier"),
+            );
             adapter::middleware::auth::QuotaAuthState {
                 verifier: jwks_verifier,
             }
@@ -354,7 +357,8 @@ async fn run_reset_cron(
 
         for (label, cron) in &schedules {
             if let Ok(next) = cron.find_next_occurrence(&now, false) {
-                if next_fire.is_none() || next < next_fire.unwrap().0 {
+                // 次の発火時刻が未設定、または現在の候補より早い場合に更新する
+                if next_fire.is_none() || next < next_fire.expect("next_fireの値が存在するはず").0 {
                     next_fire = Some((next, label));
                 }
             }

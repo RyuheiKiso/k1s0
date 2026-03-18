@@ -128,7 +128,10 @@ async fn test_output_binding_lifecycle() {
 #[tokio::test]
 async fn test_output_binding_invoke() {
     let binding = InMemoryOutputBinding::new("test-output");
-    let response = binding.invoke("create", b"data-payload", None).await.unwrap();
+    let response = binding
+        .invoke("create", b"data-payload", None)
+        .await
+        .unwrap();
     assert_eq!(response.data, b"data-payload");
 }
 

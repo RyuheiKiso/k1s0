@@ -134,7 +134,7 @@ impl EventMonitorService for EventMonitorServiceTonic {
         Ok(Response::new(ProtoListEventsResponse {
             events: events.into_iter().map(to_proto_event).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count.min(i32::MAX as u64) as i32,
+                total_count: total_count as i64,
                 page,
                 page_size,
                 has_next,
@@ -227,7 +227,7 @@ impl EventMonitorService for EventMonitorServiceTonic {
         Ok(Response::new(ProtoListFlowsResponse {
             flows: flows.into_iter().map(to_proto_flow).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count.min(i32::MAX as u64) as i32,
+                total_count: total_count as i64,
                 page,
                 page_size,
                 has_next,

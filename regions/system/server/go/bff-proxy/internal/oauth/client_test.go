@@ -148,3 +148,39 @@ func TestClient_EnsureDiscovered_Error(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "OIDC discovery not performed")
 }
+
+// TestClient_ClearDiscoveryCache はキャッシュクリア後に再discoveryが必要になることを確認する。
+func TestClient_ClearDiscoveryCache(t *testing.T) {
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(OIDCConfig{
+			Issuer:                "https://idp.example.com",
+			AuthorizationEndpoint: "https://idp.example.com/authorize",
+		})
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "client-id", "", "http://localhost/callback", nil)
+
+	// 初回 discovery を実行する
+	_, err := client.Discover(context.Background())
+	require.NoError(t, err)
+	assert.True(t, client.IsDiscovered())
+	assert.Equal(t, 1, callCount)
+
+	// キャッシュをクリアすると discovered が false に戻ること
+	client.ClearDiscoveryCache()
+	assert.False(t, client.IsDiscovered())
+
+	// クリア後の AuthCodeURL はエラーを返すこと（再discovery が必要）
+	_, err = client.AuthCodeURL("state", "challenge")
+	assert.Error(t, err)
+
+	// 再 discovery が成功すること（サーバーへの2回目のリクエスト）
+	_, err = client.Discover(context.Background())
+	require.NoError(t, err)
+	assert.True(t, client.IsDiscovered())
+	assert.Equal(t, 2, callCount, "キャッシュクリア後は再度 discovery リクエストが送信されること")
+}

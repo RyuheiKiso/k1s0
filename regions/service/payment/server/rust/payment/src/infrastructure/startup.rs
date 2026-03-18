@@ -117,12 +117,15 @@ pub async fn run() -> anyhow::Result<()> {
 
     // 9. Auth
     let auth_state = if let Some(ref auth_cfg) = cfg.auth {
-        let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &auth_cfg.jwks_url,
-            &auth_cfg.issuer,
-            &auth_cfg.audience,
-            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
+        let verifier = Arc::new(
+            k1s0_auth::JwksVerifier::new(
+                &auth_cfg.jwks_url,
+                &auth_cfg.issuer,
+                &auth_cfg.audience,
+                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+            )
+            .expect("Failed to create JWKS verifier"),
+        );
         Some(AuthState { verifier })
     } else {
         None

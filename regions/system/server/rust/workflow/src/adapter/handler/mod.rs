@@ -39,9 +39,15 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         // GET -> workflows/read 権限が必要なルート
         let read_routes = Router::new()
             .route("/api/v1/workflows", get(workflow_handler::list_workflows))
-            .route("/api/v1/workflows/{id}", get(workflow_handler::get_workflow))
+            .route(
+                "/api/v1/workflows/{id}",
+                get(workflow_handler::get_workflow),
+            )
             .route("/api/v1/instances", get(instance_handler::list_instances))
-            .route("/api/v1/instances/{id}", get(instance_handler::get_instance))
+            .route(
+                "/api/v1/instances/{id}",
+                get(instance_handler::get_instance),
+            )
             .route(
                 "/api/v1/instances/{id}/status",
                 get(instance_handler::get_instance_status),
@@ -118,7 +124,10 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
                 post(instance_handler::execute_workflow),
             )
             .route("/api/v1/instances", get(instance_handler::list_instances))
-            .route("/api/v1/instances/{id}", get(instance_handler::get_instance))
+            .route(
+                "/api/v1/instances/{id}",
+                get(instance_handler::get_instance),
+            )
             .route(
                 "/api/v1/instances/{id}/status",
                 get(instance_handler::get_instance_status),

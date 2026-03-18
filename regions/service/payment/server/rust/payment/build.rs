@@ -3,9 +3,5 @@
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 共通ライブラリを使用して proto をコンパイル
-    k1s0_proto_build::compile_service_protos(
-        "payment",
-        "../../../../../../api/proto",
-        "src/proto",
-    )
+    k1s0_proto_build::compile_service_protos("payment", "../../../../../../api/proto", "src/proto")
 }

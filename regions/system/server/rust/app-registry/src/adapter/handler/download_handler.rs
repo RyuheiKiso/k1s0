@@ -60,7 +60,7 @@ pub async fn get_latest(
         .await
     {
         Ok(version) => {
-            (StatusCode::OK, Json(serde_json::to_value(version).unwrap())).into_response()
+            (StatusCode::OK, Json(serde_json::to_value(version).expect("バージョン情報のJSON変換に失敗"))).into_response()
         }
         Err(crate::usecase::get_latest::GetLatestError::AppNotFound(_)) => {
             let err =

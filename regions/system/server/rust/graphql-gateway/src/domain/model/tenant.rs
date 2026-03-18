@@ -31,7 +31,7 @@ impl From<String> for TenantStatus {
 pub struct TenantConnection {
     pub edges: Vec<TenantEdge>,
     pub page_info: PageInfo,
-    pub total_count: i32,
+    pub total_count: i64,
 }
 
 #[derive(Debug, Clone, SimpleObject)]

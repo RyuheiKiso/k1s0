@@ -143,7 +143,10 @@ pub fn router(state: AppState) -> Router {
     let user_routes = Router::new()
         .route("/api/v1/users", get(auth_handler::list_users))
         .route("/api/v1/users/{id}", get(auth_handler::get_user))
-        .route("/api/v1/users/{id}/roles", get(auth_handler::get_user_roles))
+        .route(
+            "/api/v1/users/{id}/roles",
+            get(auth_handler::get_user_roles),
+        )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             make_rbac_middleware("users", "read"),

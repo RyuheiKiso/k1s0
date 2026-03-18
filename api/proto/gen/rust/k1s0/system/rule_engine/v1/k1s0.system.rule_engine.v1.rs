@@ -277,5 +277,46 @@ pub struct EvaluateResponse {
     #[prost(message, optional, tag="8")]
     pub evaluated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
+/// ドライラン評価リクエスト: EvaluateDryRun RPC 専用のリクエストメッセージ
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EvaluateDryRunRequest {
+    /// 評価対象のルールセット識別子
+    #[prost(string, tag="1")]
+    pub rule_set: ::prost::alloc::string::String,
+    /// 評価入力データ（JSON 形式）
+    #[prost(bytes="vec", tag="2")]
+    pub input_json: ::prost::alloc::vec::Vec<u8>,
+    /// 評価コンテキスト（JSON 形式）
+    #[prost(bytes="vec", tag="3")]
+    pub context_json: ::prost::alloc::vec::Vec<u8>,
+}
+/// ドライラン評価レスポンス: EvaluateDryRun RPC 専用のレスポンスメッセージ
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EvaluateDryRunResponse {
+    /// 評価の一意識別子
+    #[prost(string, tag="1")]
+    pub evaluation_id: ::prost::alloc::string::String,
+    /// 評価対象のルールセット識別子
+    #[prost(string, tag="2")]
+    pub rule_set: ::prost::alloc::string::String,
+    /// 使用されたルールセットのバージョン
+    #[prost(uint32, tag="3")]
+    pub rule_set_version: u32,
+    /// マッチしたルールのリスト
+    #[prost(message, repeated, tag="4")]
+    pub matched_rules: ::prost::alloc::vec::Vec<MatchedRule>,
+    /// 最終評価結果（JSON 形式）
+    #[prost(bytes="vec", tag="5")]
+    pub result_json: ::prost::alloc::vec::Vec<u8>,
+    /// デフォルト値が適用されたかどうか
+    #[prost(bool, tag="6")]
+    pub default_applied: bool,
+    /// キャッシュから返されたかどうか
+    #[prost(bool, tag="7")]
+    pub cached: bool,
+    /// 評価日時
+    #[prost(message, optional, tag="8")]
+    pub evaluated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+}
 include!("k1s0.system.rule_engine.v1.tonic.rs");
 // @@protoc_insertion_point(module)

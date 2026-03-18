@@ -1,7 +1,7 @@
-use async_trait::async_trait;
 use crate::proto::k1s0::event::service::payment::v1::{
-    PaymentInitiatedEvent, PaymentCompletedEvent, PaymentFailedEvent, PaymentRefundedEvent,
+    PaymentCompletedEvent, PaymentFailedEvent, PaymentInitiatedEvent, PaymentRefundedEvent,
 };
+use async_trait::async_trait;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -21,11 +21,17 @@ pub struct NoopPaymentEventPublisher;
 
 #[async_trait]
 impl PaymentEventPublisher for NoopPaymentEventPublisher {
-    async fn publish_payment_initiated(&self, _event: &PaymentInitiatedEvent) -> anyhow::Result<()> {
+    async fn publish_payment_initiated(
+        &self,
+        _event: &PaymentInitiatedEvent,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 
-    async fn publish_payment_completed(&self, _event: &PaymentCompletedEvent) -> anyhow::Result<()> {
+    async fn publish_payment_completed(
+        &self,
+        _event: &PaymentCompletedEvent,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 

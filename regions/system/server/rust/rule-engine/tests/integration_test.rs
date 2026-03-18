@@ -188,10 +188,7 @@ fn make_test_app() -> axum::Router {
             rule_set_repo.clone(),
             version_repo.clone(),
         )),
-        rollback_rule_set_uc: Arc::new(RollbackRuleSetUseCase::new(
-            rule_set_repo,
-            version_repo,
-        )),
+        rollback_rule_set_uc: Arc::new(RollbackRuleSetUseCase::new(rule_set_repo, version_repo)),
         evaluate_uc: Arc::new(EvaluateUseCase::new(
             Arc::new(StubRuleSetRepository),
             rule_repo,

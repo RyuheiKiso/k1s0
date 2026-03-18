@@ -66,10 +66,7 @@ impl NotificationLogRepository for StubLogRepo {
     async fn find_by_id(&self, _id: &str) -> anyhow::Result<Option<NotificationLog>> {
         Ok(None)
     }
-    async fn find_by_channel_id(
-        &self,
-        _channel_id: &str,
-    ) -> anyhow::Result<Vec<NotificationLog>> {
+    async fn find_by_channel_id(&self, _channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
         Ok(vec![])
     }
     async fn find_all_paginated(
@@ -130,12 +127,15 @@ fn make_test_app() -> axum::Router {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("notification-test"));
 
     // ダミーの JwksVerifier を作成（テスト中は実際にトークン検証しない）
-    let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-        "https://dummy.example.com/jwks",
-        "https://dummy.example.com",
-        "dummy-audience",
-        Duration::from_secs(600),
-    ));
+    let verifier = Arc::new(
+        k1s0_auth::JwksVerifier::new(
+            "https://dummy.example.com/jwks",
+            "https://dummy.example.com",
+            "dummy-audience",
+            Duration::from_secs(600),
+        )
+        .expect("Failed to create JWKS verifier"),
+    );
     let auth_state = NotificationAuthState { verifier };
 
     let state = AppState {

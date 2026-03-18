@@ -97,11 +97,7 @@ impl ExecuteSagaUseCase {
     }
 
     /// run の内部実装。タイムアウトラッパーから呼び出される。
-    async fn run_inner(
-        &self,
-        saga_id: Uuid,
-        workflow: &WorkflowDefinition,
-    ) -> anyhow::Result<()> {
+    async fn run_inner(&self, saga_id: Uuid, workflow: &WorkflowDefinition) -> anyhow::Result<()> {
         let state = self
             .saga_repo
             .find_by_id(saga_id)
@@ -457,11 +453,7 @@ impl ExecuteSagaUseCase {
     }
 
     /// 補償失敗イベントをDLQトピックへ発行する（エスカレーション）。
-    async fn publish_compensation_failure(
-        &self,
-        state: &SagaState,
-        dlq_event: &serde_json::Value,
-    ) {
+    async fn publish_compensation_failure(&self, state: &SagaState, dlq_event: &serde_json::Value) {
         if let Some(ref publisher) = self.publisher {
             if let Err(e) = publisher
                 .publish_saga_event(

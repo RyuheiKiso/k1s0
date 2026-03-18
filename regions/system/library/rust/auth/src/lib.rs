@@ -14,7 +14,7 @@
 //!     "https://auth.example.com/realms/k1s0",
 //!     "k1s0-api",
 //!     Duration::from_secs(600),
-//! );
+//! ).expect("Failed to create JWKS verifier");
 //!
 //! let claims = verifier.verify_token("eyJ...").await?;
 //! ```

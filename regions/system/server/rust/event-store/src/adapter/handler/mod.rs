@@ -85,7 +85,10 @@ pub fn router(state: AppState) -> Router {
         // GET -> events/read
         let read_routes = Router::new()
             .route("/api/v1/events", get(event_handler::list_events))
-            .route("/api/v1/events/{stream_id}", get(event_handler::read_events))
+            .route(
+                "/api/v1/events/{stream_id}",
+                get(event_handler::read_events),
+            )
             .route(
                 "/api/v1/streams/{stream_id}/events/{sequence}",
                 get(event_handler::read_event_by_sequence),
@@ -136,7 +139,10 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/events",
                 post(event_handler::append_events).get(event_handler::list_events),
             )
-            .route("/api/v1/events/{stream_id}", get(event_handler::read_events))
+            .route(
+                "/api/v1/events/{stream_id}",
+                get(event_handler::read_events),
+            )
             .route(
                 "/api/v1/streams/{stream_id}/events/{sequence}",
                 get(event_handler::read_event_by_sequence),

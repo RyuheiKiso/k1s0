@@ -4,8 +4,8 @@
 use std::collections::HashMap;
 
 use k1s0_messaging::{
-    ConsumerConfig, EventEnvelope, EventMetadata, EventProducer, MessagingConfig,
-    MessagingError, NoOpEventProducer,
+    ConsumerConfig, EventEnvelope, EventMetadata, EventProducer, MessagingConfig, MessagingError,
+    NoOpEventProducer,
 };
 
 // --- NoOpEventProducer テスト ---
@@ -90,9 +90,7 @@ fn test_event_envelope_full_fields() {
     let mut metadata = HashMap::new();
     metadata.insert("trace_id".to_string(), "trace-abc".to_string());
 
-    let headers = vec![
-        ("content-type".to_string(), b"application/json".to_vec()),
-    ];
+    let headers = vec![("content-type".to_string(), b"application/json".to_vec())];
 
     let envelope = EventEnvelope {
         topic: "my.topic".to_string(),

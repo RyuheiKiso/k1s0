@@ -1,13 +1,13 @@
 use crate::infrastructure::config::KafkaConfig;
+use crate::proto::k1s0::event::service::order::v1::{
+    OrderCancelledEvent, OrderCreatedEvent, OrderUpdatedEvent,
+};
 use crate::usecase::event_publisher::OrderEventPublisher;
 use async_trait::async_trait;
 use prost::Message;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use std::time::Duration;
-use crate::proto::k1s0::event::service::order::v1::{
-    OrderCreatedEvent, OrderUpdatedEvent, OrderCancelledEvent,
-};
 
 // Kafka を使った注文イベント publisher 実装
 pub struct OrderKafkaProducer {
@@ -78,9 +78,9 @@ impl OrderEventPublisher for OrderKafkaProducer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use prost::Message;
     use crate::proto::k1s0::event::service::order::v1::OrderItem;
     use crate::proto::k1s0::system::common::v1::EventMetadata;
+    use prost::Message;
 
     #[test]
     fn test_order_created_event_serialization() {

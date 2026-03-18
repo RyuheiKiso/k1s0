@@ -44,6 +44,9 @@ type OAuthClient interface {
 	ExtractSubject(ctx context.Context, idToken string) (string, error)
 	// LogoutURL は IdP のログアウト URL を返す。
 	LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error)
+	// ClearDiscoveryCache はキャッシュ済みの OIDC discovery 結果をクリアする。
+	// ログアウト時に呼び出し、次回ログインで最新のプロバイダ情報を再取得させる。
+	ClearDiscoveryCache()
 }
 
 // AuthHandler handles the OAuth2/OIDC browser flow.
@@ -241,6 +244,9 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 
 // Logout destroys the session and redirects to the IdP logout endpoint.
 func (h *AuthHandler) Logout(c *gin.Context) {
+	// ログアウト時にOIDC discoveryキャッシュをクリアし、次回ログインで最新のプロバイダ情報を再取得させる
+	h.oauthClient.ClearDiscoveryCache()
+
 	sessionID, err := c.Cookie(CookieName)
 	if err == nil && sessionID != "" {
 		sess, _ := h.sessionStore.Get(c.Request.Context(), sessionID)

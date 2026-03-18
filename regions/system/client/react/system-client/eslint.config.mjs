@@ -2,6 +2,8 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
+// ブラウザグローバル変数の定義（window, document等）
+import globals from 'globals';
 
 export default tseslint.config(
   js.configs.recommended,
@@ -13,6 +15,10 @@ export default tseslint.config(
       'react-hooks': reactHooksPlugin,
     },
     languageOptions: {
+      // ブラウザ環境のグローバル変数を許可
+      globals: {
+        ...globals.browser,
+      },
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -22,6 +28,8 @@ export default tseslint.config(
     settings: {
       react: {
         version: 'detect',
+        // React 17+ JSX Transform（import React不要）
+        runtime: 'automatic',
       },
     },
     rules: {

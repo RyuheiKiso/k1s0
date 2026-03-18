@@ -220,6 +220,14 @@ func (c *Client) tokenRequest(ctx context.Context, endpoint string, data url.Val
 	return &tokenResp, nil
 }
 
+// ClearDiscoveryCache はキャッシュ済みの OIDC discovery 結果と verifier をクリアする。
+// ログアウト時に呼び出し、次回ログインで最新のプロバイダ情報を再取得させる。
+func (c *Client) ClearDiscoveryCache() {
+	c.oidcConfig = nil
+	c.verifier = nil
+	c.discovered.Store(false)
+}
+
 func (c *Client) ensureDiscovered() (*OIDCConfig, error) {
 	if c.oidcConfig != nil {
 		return c.oidcConfig, nil

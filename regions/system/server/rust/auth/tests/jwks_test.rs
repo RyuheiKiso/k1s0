@@ -47,7 +47,8 @@ mod jwks_wiremock_tests {
             "http://localhost:8180/realms/k1s0",
             "k1s0-api",
             Duration::from_secs(60),
-        );
+        )
+        .expect("Failed to create JWKS verifier");
 
         // Verify that an invalid token returns an error
         // (keys are fetched successfully but the token itself is invalid)
@@ -75,7 +76,8 @@ mod jwks_wiremock_tests {
             "http://localhost:8180/realms/k1s0",
             "k1s0-api",
             Duration::from_secs(60),
-        );
+        )
+        .expect("Failed to create JWKS verifier");
 
         let result = verifier.verify_token("some-token").await;
         assert!(result.is_err());
@@ -97,12 +99,15 @@ mod jwks_wiremock_tests {
             mock_server.uri()
         );
 
-        let verifier = Arc::new(JwksVerifier::new(
-            &jwks_url,
-            "http://localhost:8180/realms/k1s0",
-            "k1s0-api",
-            Duration::from_secs(60),
-        ));
+        let verifier = Arc::new(
+            JwksVerifier::new(
+                &jwks_url,
+                "http://localhost:8180/realms/k1s0",
+                "k1s0-api",
+                Duration::from_secs(60),
+            )
+            .expect("Failed to create JWKS verifier"),
+        );
 
         // First call fetches keys
         let _ = verifier.verify_token("invalid-token").await;
@@ -136,7 +141,8 @@ mod jwks_wiremock_tests {
             "http://localhost:8180/realms/k1s0",
             "k1s0-api",
             Duration::from_secs(60),
-        );
+        )
+        .expect("Failed to create JWKS verifier");
 
         // Should fail because no keys match
         let result = verifier.verify_token("invalid-jwt-token").await;
@@ -171,7 +177,8 @@ mod jwks_wiremock_tests {
             "http://localhost:8180/realms/k1s0",
             "k1s0-api",
             Duration::ZERO,
-        );
+        )
+        .expect("Failed to create JWKS verifier");
 
         let _ = verifier.verify_token("invalid-token").await;
         let _ = verifier.verify_token("invalid-token").await;
@@ -202,7 +209,8 @@ mod jwks_wiremock_tests {
             "http://localhost:8180/realms/k1s0",
             "k1s0-api",
             Duration::from_secs(3600),
-        );
+        )
+        .expect("Failed to create JWKS verifier");
 
         let _ = verifier.verify_token("invalid-token").await;
         let _ = verifier.verify_token("invalid-token").await;
@@ -226,12 +234,15 @@ mod jwks_wiremock_tests {
             mock_server.uri()
         );
 
-        let verifier = Arc::new(JwksVerifier::new(
-            &jwks_url,
-            "http://localhost:8180/realms/k1s0",
-            "k1s0-api",
-            Duration::from_secs(3600),
-        ));
+        let verifier = Arc::new(
+            JwksVerifier::new(
+                &jwks_url,
+                "http://localhost:8180/realms/k1s0",
+                "k1s0-api",
+                Duration::from_secs(3600),
+            )
+            .expect("Failed to create JWKS verifier"),
+        );
 
         // 4 つの並行リクエストを発行
         let v1 = verifier.clone();

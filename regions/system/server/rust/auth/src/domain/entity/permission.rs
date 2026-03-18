@@ -88,7 +88,10 @@ mod tests {
         ];
         for (input, expected) in cases {
             let result = Action::from_str(input).unwrap();
-            assert_eq!(result, expected, "Action::from_str(\"{input}\") の結果が不正");
+            assert_eq!(
+                result, expected,
+                "Action::from_str(\"{input}\") の結果が不正"
+            );
         }
     }
 
@@ -98,7 +101,10 @@ mod tests {
         let invalid_inputs = vec!["unknown", "", "readwrite", "SUDO"];
         for input in invalid_inputs {
             let result = Action::from_str(input);
-            assert!(result.is_err(), "Action::from_str(\"{input}\") はエラーであるべき");
+            assert!(
+                result.is_err(),
+                "Action::from_str(\"{input}\") はエラーであるべき"
+            );
         }
     }
 

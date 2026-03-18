@@ -30,6 +30,12 @@ export default [
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
     },
+    settings: {
+      react: {
+        // React 17+ JSX Transform（import React不要）
+        runtime: 'automatic',
+      },
+    },
     rules: {
       ...tsPlugin.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,

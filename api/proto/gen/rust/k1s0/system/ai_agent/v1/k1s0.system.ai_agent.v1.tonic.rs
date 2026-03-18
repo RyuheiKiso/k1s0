@@ -118,9 +118,9 @@ pub mod ai_agent_service_client {
         }
         pub async fn execute_stream(
             &mut self,
-            request: impl tonic::IntoRequest<super::ExecuteRequest>,
+            request: impl tonic::IntoRequest<super::ExecuteStreamRequest>,
         ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::ExecutionEvent>>,
+            tonic::Response<tonic::codec::Streaming<super::ExecuteStreamResponse>>,
             tonic::Status,
         > {
             self.inner
@@ -224,13 +224,13 @@ pub mod ai_agent_service_server {
         ) -> std::result::Result<tonic::Response<super::ExecuteResponse>, tonic::Status>;
         /// Server streaming response type for the ExecuteStream method.
         type ExecuteStreamStream: tonic::codegen::tokio_stream::Stream<
-                Item = std::result::Result<super::ExecutionEvent, tonic::Status>,
+                Item = std::result::Result<super::ExecuteStreamResponse, tonic::Status>,
             >
             + std::marker::Send
             + 'static;
         async fn execute_stream(
             &self,
-            request: tonic::Request<super::ExecuteRequest>,
+            request: tonic::Request<super::ExecuteStreamRequest>,
         ) -> std::result::Result<
             tonic::Response<Self::ExecuteStreamStream>,
             tonic::Status,
@@ -376,9 +376,9 @@ pub mod ai_agent_service_server {
                     struct ExecuteStreamSvc<T: AiAgentService>(pub Arc<T>);
                     impl<
                         T: AiAgentService,
-                    > tonic::server::ServerStreamingService<super::ExecuteRequest>
+                    > tonic::server::ServerStreamingService<super::ExecuteStreamRequest>
                     for ExecuteStreamSvc<T> {
-                        type Response = super::ExecutionEvent;
+                        type Response = super::ExecuteStreamResponse;
                         type ResponseStream = T::ExecuteStreamStream;
                         type Future = BoxFuture<
                             tonic::Response<Self::ResponseStream>,
@@ -386,7 +386,7 @@ pub mod ai_agent_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::ExecuteRequest>,
+                            request: tonic::Request<super::ExecuteStreamRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {

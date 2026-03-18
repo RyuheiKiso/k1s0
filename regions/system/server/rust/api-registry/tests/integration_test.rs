@@ -11,9 +11,7 @@ use tower::ServiceExt;
 
 use k1s0_api_registry_server::adapter::handler::{router, AppState};
 use k1s0_api_registry_server::adapter::middleware::auth::ApiRegistryAuthState;
-use k1s0_api_registry_server::domain::entity::api_registration::{
-    ApiSchema, ApiSchemaVersion,
-};
+use k1s0_api_registry_server::domain::entity::api_registration::{ApiSchema, ApiSchemaVersion};
 use k1s0_api_registry_server::domain::repository::{
     ApiSchemaRepository, ApiSchemaVersionRepository,
 };
@@ -59,10 +57,7 @@ impl ApiSchemaVersionRepository for StubVersionRepo {
     ) -> anyhow::Result<Option<ApiSchemaVersion>> {
         Ok(None)
     }
-    async fn find_latest_by_name(
-        &self,
-        _name: &str,
-    ) -> anyhow::Result<Option<ApiSchemaVersion>> {
+    async fn find_latest_by_name(&self, _name: &str) -> anyhow::Result<Option<ApiSchemaVersion>> {
         Ok(None)
     }
     async fn find_all_by_name(
@@ -165,12 +160,15 @@ async fn test_unauthorized_without_token() {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("test"));
 
     // 認証ありの AppState を構築（不正な JWKS URL でダミー verifier を生成）
-    let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-        "https://invalid.example.com/.well-known/jwks.json",
-        "https://invalid.example.com",
-        "test-audience",
-        std::time::Duration::from_secs(60),
-    ));
+    let verifier = Arc::new(
+        k1s0_auth::JwksVerifier::new(
+            "https://invalid.example.com/.well-known/jwks.json",
+            "https://invalid.example.com",
+            "test-audience",
+            std::time::Duration::from_secs(60),
+        )
+        .expect("Failed to create JWKS verifier"),
+    );
     let auth_state = ApiRegistryAuthState { verifier };
 
     let state = AppState {

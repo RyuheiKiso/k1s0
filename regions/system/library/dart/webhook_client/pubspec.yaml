@@ -3,7 +3,7 @@ description: Webhook client for k1s0 platform
 version: 0.1.0
 
 environment:
-  sdk: '>=3.4.0 <4.0.0'
+  sdk: '>=3.7.0 <4.0.0'
 
 dependencies:
   crypto: ^3.0.0

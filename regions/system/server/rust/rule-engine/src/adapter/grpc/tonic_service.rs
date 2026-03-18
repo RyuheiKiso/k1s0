@@ -12,7 +12,10 @@ use crate::proto::k1s0::system::rule_engine::v1::{
     CreateRuleSetResponse as ProtoCreateRuleSetResponse,
     DeleteRuleRequest as ProtoDeleteRuleRequest, DeleteRuleResponse as ProtoDeleteRuleResponse,
     DeleteRuleSetRequest as ProtoDeleteRuleSetRequest,
-    DeleteRuleSetResponse as ProtoDeleteRuleSetResponse, EvaluateRequest as ProtoEvaluateRequest,
+    DeleteRuleSetResponse as ProtoDeleteRuleSetResponse,
+    EvaluateDryRunRequest as ProtoEvaluateDryRunRequest,
+    EvaluateDryRunResponse as ProtoEvaluateDryRunResponse,
+    EvaluateRequest as ProtoEvaluateRequest,
     EvaluateResponse as ProtoEvaluateResponse, GetRuleRequest as ProtoGetRuleRequest,
     GetRuleResponse as ProtoGetRuleResponse, GetRuleSetRequest as ProtoGetRuleSetRequest,
     GetRuleSetResponse as ProtoGetRuleSetResponse, ListRuleSetsRequest as ProtoListRuleSetsRequest,
@@ -126,7 +129,7 @@ impl RuleEngineService for RuleEngineServiceTonic {
         Ok(Response::new(ProtoListRulesResponse {
             rules: rules.into_iter().map(to_proto_rule).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count.min(i32::MAX as u64) as i32,
+                total_count: total_count as i64,
                 page: p,
                 page_size: ps,
                 has_next,
@@ -224,7 +227,7 @@ impl RuleEngineService for RuleEngineServiceTonic {
         Ok(Response::new(ProtoListRuleSetsResponse {
             rule_sets: rule_sets.into_iter().map(to_proto_rule_set).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count.min(i32::MAX as u64) as i32,
+                total_count: total_count as i64,
                 page: p,
                 page_size: ps,
                 has_next,
@@ -343,22 +346,48 @@ impl RuleEngineService for RuleEngineServiceTonic {
 
     async fn evaluate_dry_run(
         &self,
-        request: Request<ProtoEvaluateRequest>,
-    ) -> Result<Response<ProtoEvaluateResponse>, Status> {
+        request: Request<ProtoEvaluateDryRunRequest>,
+    ) -> Result<Response<ProtoEvaluateDryRunResponse>, Status> {
         let inner = request.into_inner();
         let output = self
             .inner
             .evaluate(inner.rule_set, inner.input_json, inner.context_json, true)
             .await
             .map_err(Into::<Status>::into)?;
-        Ok(Response::new(to_proto_evaluate_response(output)))
+        Ok(Response::new(to_proto_evaluate_dry_run_response(output)))
     }
 }
 
+// 評価結果を EvaluateResponse に変換する
 fn to_proto_evaluate_response(
     output: crate::usecase::evaluate::EvaluateOutput,
 ) -> ProtoEvaluateResponse {
     ProtoEvaluateResponse {
+        evaluation_id: output.evaluation_id.to_string(),
+        rule_set: output.rule_set,
+        rule_set_version: output.rule_set_version,
+        matched_rules: output
+            .matched_rules
+            .into_iter()
+            .map(|m| ProtoMatchedRule {
+                id: m.id.to_string(),
+                name: m.name,
+                priority: m.priority,
+                result_json: serde_json::to_vec(&m.result).unwrap_or_default(),
+            })
+            .collect(),
+        result_json: serde_json::to_vec(&output.result).unwrap_or_default(),
+        default_applied: output.default_applied,
+        cached: output.cached,
+        evaluated_at: to_proto_timestamp(output.evaluated_at),
+    }
+}
+
+// ドライラン評価結果を EvaluateDryRunResponse に変換する
+fn to_proto_evaluate_dry_run_response(
+    output: crate::usecase::evaluate::EvaluateOutput,
+) -> ProtoEvaluateDryRunResponse {
+    ProtoEvaluateDryRunResponse {
         evaluation_id: output.evaluation_id.to_string(),
         rule_set: output.rule_set,
         rule_set_version: output.rule_set_version,

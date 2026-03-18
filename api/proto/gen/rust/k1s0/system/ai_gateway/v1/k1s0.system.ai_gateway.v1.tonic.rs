@@ -121,9 +121,9 @@ pub mod ai_gateway_service_client {
         }
         pub async fn complete_stream(
             &mut self,
-            request: impl tonic::IntoRequest<super::CompleteRequest>,
+            request: impl tonic::IntoRequest<super::CompleteStreamRequest>,
         ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::StreamChunk>>,
+            tonic::Response<tonic::codec::Streaming<super::CompleteStreamResponse>>,
             tonic::Status,
         > {
             self.inner
@@ -256,13 +256,13 @@ pub mod ai_gateway_service_server {
         >;
         /// Server streaming response type for the CompleteStream method.
         type CompleteStreamStream: tonic::codegen::tokio_stream::Stream<
-                Item = std::result::Result<super::StreamChunk, tonic::Status>,
+                Item = std::result::Result<super::CompleteStreamResponse, tonic::Status>,
             >
             + std::marker::Send
             + 'static;
         async fn complete_stream(
             &self,
-            request: tonic::Request<super::CompleteRequest>,
+            request: tonic::Request<super::CompleteStreamRequest>,
         ) -> std::result::Result<
             tonic::Response<Self::CompleteStreamStream>,
             tonic::Status,
@@ -412,9 +412,9 @@ pub mod ai_gateway_service_server {
                     struct CompleteStreamSvc<T: AiGatewayService>(pub Arc<T>);
                     impl<
                         T: AiGatewayService,
-                    > tonic::server::ServerStreamingService<super::CompleteRequest>
+                    > tonic::server::ServerStreamingService<super::CompleteStreamRequest>
                     for CompleteStreamSvc<T> {
-                        type Response = super::StreamChunk;
+                        type Response = super::CompleteStreamResponse;
                         type ResponseStream = T::CompleteStreamStream;
                         type Future = BoxFuture<
                             tonic::Response<Self::ResponseStream>,
@@ -422,7 +422,7 @@ pub mod ai_gateway_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::CompleteRequest>,
+                            request: tonic::Request<super::CompleteStreamRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {

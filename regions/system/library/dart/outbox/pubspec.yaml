@@ -3,7 +3,7 @@ description: Transactional outbox pattern library for k1s0 platform
 version: 0.1.0
 
 environment:
-  sdk: '>=3.4.0 <4.0.0'
+  sdk: '>=3.7.0 <4.0.0'
 
 dependencies:
   uuid: ^4.4.0

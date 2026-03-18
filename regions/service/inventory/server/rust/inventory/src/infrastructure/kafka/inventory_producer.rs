@@ -7,7 +7,7 @@ use rdkafka::producer::{FutureProducer, FutureRecord};
 use std::time::Duration;
 
 use crate::proto::k1s0::event::service::inventory::v1::{
-    InventoryReservedEvent, InventoryReleasedEvent,
+    InventoryReleasedEvent, InventoryReservedEvent,
 };
 
 pub struct InventoryKafkaProducer {
@@ -52,25 +52,33 @@ impl InventoryKafkaProducer {
 #[async_trait]
 impl InventoryEventPublisher for InventoryKafkaProducer {
     // 在庫予約イベントを Protobuf シリアライズして Kafka に publish する
-    async fn publish_inventory_reserved(&self, event: &InventoryReservedEvent) -> anyhow::Result<()> {
+    async fn publish_inventory_reserved(
+        &self,
+        event: &InventoryReservedEvent,
+    ) -> anyhow::Result<()> {
         let payload = event.encode_to_vec();
         let key = event.order_id.as_str();
-        self.publish(&self.inventory_reserved_topic, key, &payload).await
+        self.publish(&self.inventory_reserved_topic, key, &payload)
+            .await
     }
 
     // 在庫解放イベントを Protobuf シリアライズして Kafka に publish する
-    async fn publish_inventory_released(&self, event: &InventoryReleasedEvent) -> anyhow::Result<()> {
+    async fn publish_inventory_released(
+        &self,
+        event: &InventoryReleasedEvent,
+    ) -> anyhow::Result<()> {
         let payload = event.encode_to_vec();
         let key = event.order_id.as_str();
-        self.publish(&self.inventory_released_topic, key, &payload).await
+        self.publish(&self.inventory_released_topic, key, &payload)
+            .await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use prost::Message;
     use crate::proto::k1s0::system::common::v1::EventMetadata;
+    use prost::Message;
 
     #[test]
     fn test_inventory_reserved_event_serialization() {

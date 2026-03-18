@@ -233,7 +233,7 @@ impl TenantService for TenantServiceTonic {
         Ok(Response::new(ProtoListTenantsResponse {
             tenants,
             pagination: Some(crate::proto::k1s0::system::common::v1::PaginationResult {
-                total_count: pagination.total_count.min(i64::from(i32::MAX)) as i32,
+                total_count: pagination.total_count,
                 page: pagination.page,
                 page_size: pagination.page_size,
                 has_next: pagination.has_next,

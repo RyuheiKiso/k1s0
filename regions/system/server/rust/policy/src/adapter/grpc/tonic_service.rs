@@ -148,7 +148,7 @@ impl PolicyService for PolicyServiceTonic {
         Ok(Response::new(ProtoListPoliciesResponse {
             policies: resp.policies.into_iter().map(to_proto_policy).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                total_count: resp.total_count as i64,
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,

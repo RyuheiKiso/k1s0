@@ -49,12 +49,15 @@ pub async fn run() -> anyhow::Result<()> {
 
     // Token verifier (JWKS verifier if configured, stub otherwise)
     let token_verifier: Arc<dyn super::TokenVerifier> = if let Some(jwks_config) = &cfg.auth.jwks {
-        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-            &jwks_config.url,
-            &cfg.auth.jwt.issuer,
-            &cfg.auth.jwt.audience,
-            std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
-        ));
+        let jwks_verifier = Arc::new(
+            k1s0_auth::JwksVerifier::new(
+                &jwks_config.url,
+                &cfg.auth.jwt.issuer,
+                &cfg.auth.jwt.audience,
+                std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
+            )
+            .expect("Failed to create JWKS verifier"),
+        );
         Arc::new(super::JwksVerifierAdapter::new(jwks_verifier))
     } else {
         Arc::new(StubTokenVerifier)

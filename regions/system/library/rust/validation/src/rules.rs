@@ -24,8 +24,10 @@ pub fn validate_email(field: &str, email: &str) -> Result<(), ValidationError> {
 
 // UUID v4 のみを許可する（4言語統一パターン H-18）
 pub fn validate_uuid(field: &str, id: &str) -> Result<(), ValidationError> {
-    let re = Regex::new(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")
-        .expect("valid uuid v4 regex");
+    let re = Regex::new(
+        r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+    )
+    .expect("valid uuid v4 regex");
     if re.is_match(id) {
         Ok(())
     } else {

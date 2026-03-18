@@ -1,13 +1,13 @@
 use crate::infrastructure::config::KafkaConfig;
+use crate::proto::k1s0::event::service::payment::v1::{
+    PaymentCompletedEvent, PaymentFailedEvent, PaymentInitiatedEvent, PaymentRefundedEvent,
+};
 use crate::usecase::event_publisher::PaymentEventPublisher;
 use async_trait::async_trait;
 use prost::Message;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use std::time::Duration;
-use crate::proto::k1s0::event::service::payment::v1::{
-    PaymentInitiatedEvent, PaymentCompletedEvent, PaymentFailedEvent, PaymentRefundedEvent,
-};
 
 // Kafka に Protobuf エンコードされた決済イベントを送信するプロデューサー
 pub struct PaymentKafkaProducer {
@@ -58,33 +58,53 @@ impl PaymentEventPublisher for PaymentKafkaProducer {
     // 決済開始イベントを Protobuf エンコードして Kafka に publish する
     async fn publish_payment_initiated(&self, event: &PaymentInitiatedEvent) -> anyhow::Result<()> {
         let payload = event.encode_to_vec();
-        self.publish(&self.payment_initiated_topic, event.payment_id.as_str(), &payload).await
+        self.publish(
+            &self.payment_initiated_topic,
+            event.payment_id.as_str(),
+            &payload,
+        )
+        .await
     }
 
     // 決済完了イベントを Protobuf エンコードして Kafka に publish する
     async fn publish_payment_completed(&self, event: &PaymentCompletedEvent) -> anyhow::Result<()> {
         let payload = event.encode_to_vec();
-        self.publish(&self.payment_completed_topic, event.payment_id.as_str(), &payload).await
+        self.publish(
+            &self.payment_completed_topic,
+            event.payment_id.as_str(),
+            &payload,
+        )
+        .await
     }
 
     // 決済失敗イベントを Protobuf エンコードして Kafka に publish する
     async fn publish_payment_failed(&self, event: &PaymentFailedEvent) -> anyhow::Result<()> {
         let payload = event.encode_to_vec();
-        self.publish(&self.payment_failed_topic, event.payment_id.as_str(), &payload).await
+        self.publish(
+            &self.payment_failed_topic,
+            event.payment_id.as_str(),
+            &payload,
+        )
+        .await
     }
 
     // 返金イベントを Protobuf エンコードして Kafka に publish する
     async fn publish_payment_refunded(&self, event: &PaymentRefundedEvent) -> anyhow::Result<()> {
         let payload = event.encode_to_vec();
-        self.publish(&self.payment_refunded_topic, event.payment_id.as_str(), &payload).await
+        self.publish(
+            &self.payment_refunded_topic,
+            event.payment_id.as_str(),
+            &payload,
+        )
+        .await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use prost::Message;
     use crate::proto::k1s0::system::common::v1::EventMetadata;
+    use prost::Message;
 
     #[test]
     fn test_payment_initiated_event_serialization() {

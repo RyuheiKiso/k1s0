@@ -178,7 +178,7 @@ async fn main() -> anyhow::Result<()> {
 
     // 8. Auth — JWKS ベース JWT 検証（auth 設定がない場合は認証なし）
     let auth_state = cfg.auth.as_ref().map(|auth_cfg| AuthState {
-        verifier: Arc::new(JwksVerifier::new(...)),
+        verifier: Arc::new(JwksVerifier::new(...).expect("Failed to create JWKS verifier")),
     });
 
     // 9. AppState + Router

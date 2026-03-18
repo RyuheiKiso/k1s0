@@ -85,7 +85,7 @@ impl FileService for FileServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
         let has_next = ((page * page_size) as u64) < total;
-        let total_count = total.min(i32::MAX as u64) as i32;
+        let total_count = total as i64;
         Ok(Response::new(ListFilesResponse {
             files: files.iter().map(domain_to_proto).collect(),
             pagination: Some(ProtoPaginationResult {

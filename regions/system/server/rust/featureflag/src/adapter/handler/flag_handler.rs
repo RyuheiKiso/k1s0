@@ -33,7 +33,7 @@ pub async fn get_flag(State(state): State<AppState>, Path(key): Path<String>) ->
     match state.get_flag_uc.execute(&key).await {
         Ok(flag) => {
             let resp = FlagResponse::from(flag);
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(serde_json::to_value(resp).expect("フラグ取得レスポンスのJSON変換に失敗"))).into_response()
         }
         Err(e) => {
             let msg = e.to_string();
@@ -67,7 +67,7 @@ pub async fn create_flag(
             let resp = FlagResponse::from(flag);
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).unwrap()),
+                Json(serde_json::to_value(resp).expect("フラグ作成レスポンスのJSON変換に失敗")),
             )
                 .into_response()
         }
@@ -107,7 +107,7 @@ pub async fn update_flag(
     match state.update_flag_uc.execute(&input).await {
         Ok(flag) => {
             let resp = FlagResponse::from(flag);
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(serde_json::to_value(resp).expect("フラグ更新レスポンスのJSON変換に失敗"))).into_response()
         }
         Err(e) => {
             let msg = e.to_string();
@@ -278,5 +278,6 @@ fn error_response(
     message: impl Into<String>,
 ) -> Response {
     let err = ErrorResponse::new(code, message);
-    (status, Json(serde_json::to_value(err).unwrap())).into_response()
+    // エラーレスポンスをJSON値に変換（ErrorResponseは常にシリアライズ可能）
+    (status, Json(serde_json::to_value(err).expect("ErrorResponseのJSON変換に失敗"))).into_response()
 }

@@ -11,7 +11,9 @@ use tower::ServiceExt;
 use k1s0_scheduler_server::adapter::handler::{router, AppState};
 use k1s0_scheduler_server::domain::entity::scheduler_execution::SchedulerExecution;
 use k1s0_scheduler_server::domain::entity::scheduler_job::SchedulerJob;
-use k1s0_scheduler_server::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
+use k1s0_scheduler_server::domain::repository::{
+    SchedulerExecutionRepository, SchedulerJobRepository,
+};
 use k1s0_scheduler_server::infrastructure::kafka_producer::NoopSchedulerEventPublisher;
 use k1s0_scheduler_server::usecase::{
     CreateJobUseCase, DeleteJobUseCase, GetJobUseCase, ListExecutionsUseCase, ListJobsUseCase,

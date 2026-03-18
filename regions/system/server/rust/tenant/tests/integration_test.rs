@@ -28,11 +28,15 @@ fn make_test_app() -> axum::Router {
     tenant_repo.expect_find_by_name().returning(|_| Ok(None));
     tenant_repo.expect_create().returning(|_| Ok(()));
     tenant_repo.expect_update().returning(|_| Ok(()));
-    member_repo.expect_find_by_tenant().returning(|_| Ok(vec![]));
+    member_repo
+        .expect_find_by_tenant()
+        .returning(|_| Ok(vec![]));
     member_repo.expect_find_member().returning(|_, _| Ok(None));
     member_repo.expect_add().returning(|_| Ok(()));
     member_repo.expect_remove().returning(|_, _| Ok(false));
-    member_repo.expect_update_role().returning(|_, _, _| Ok(None));
+    member_repo
+        .expect_update_role()
+        .returning(|_, _, _| Ok(None));
     member_repo.expect_find_job().returning(|_| Ok(None));
 
     // Arc でラップ
@@ -111,7 +115,9 @@ async fn test_api_routes_are_reachable() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // レスポンスボディを取得し、JSON としてパース
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     // テナント一覧が空配列であることを検証

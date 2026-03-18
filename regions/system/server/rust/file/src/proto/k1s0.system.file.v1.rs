@@ -43,10 +43,9 @@ pub struct GetFileMetadataResponse {
 pub struct ListFilesRequest {
     #[prost(string, tag = "1")]
     pub tenant_id: ::prost::alloc::string::String,
-    #[prost(int32, tag = "2")]
-    pub page: i32,
-    #[prost(int32, tag = "3")]
-    pub page_size: i32,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
     #[prost(string, optional, tag = "4")]
     pub uploaded_by: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "5")]

@@ -469,9 +469,9 @@ pub mod rule_engine_service_client {
         }
         pub async fn evaluate_dry_run(
             &mut self,
-            request: impl tonic::IntoRequest<super::EvaluateRequest>,
+            request: impl tonic::IntoRequest<super::EvaluateDryRunRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::EvaluateResponse>,
+            tonic::Response<super::EvaluateDryRunResponse>,
             tonic::Status,
         > {
             self.inner
@@ -601,9 +601,9 @@ pub mod rule_engine_service_server {
         >;
         async fn evaluate_dry_run(
             &self,
-            request: tonic::Request<super::EvaluateRequest>,
+            request: tonic::Request<super::EvaluateDryRunRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::EvaluateResponse>,
+            tonic::Response<super::EvaluateDryRunResponse>,
             tonic::Status,
         >;
     }
@@ -1280,16 +1280,16 @@ pub mod rule_engine_service_server {
                     struct EvaluateDryRunSvc<T: RuleEngineService>(pub Arc<T>);
                     impl<
                         T: RuleEngineService,
-                    > tonic::server::UnaryService<super::EvaluateRequest>
+                    > tonic::server::UnaryService<super::EvaluateDryRunRequest>
                     for EvaluateDryRunSvc<T> {
-                        type Response = super::EvaluateResponse;
+                        type Response = super::EvaluateDryRunResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::EvaluateRequest>,
+                            request: tonic::Request<super::EvaluateDryRunRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {

@@ -131,12 +131,15 @@ pub async fn run() -> anyhow::Result<()> {
         .auth
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("auth configuration is required"))?;
-    let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-        &auth_cfg.jwks_url,
-        &auth_cfg.issuer,
-        &auth_cfg.audience,
-        std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-    ));
+    let verifier = Arc::new(
+        k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        )
+        .expect("Failed to create JWKS verifier"),
+    );
     let auth_state = Some(AuthState { verifier });
 
     // 9. AppState + Router

@@ -19,7 +19,7 @@ service RuleEngineService {
   rpc PublishRuleSet(PublishRuleSetRequest) returns (PublishRuleSetResponse);
   rpc RollbackRuleSet(RollbackRuleSetRequest) returns (RollbackRuleSetResponse);
   rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
-  rpc EvaluateDryRun(EvaluateRequest) returns (EvaluateResponse);
+  rpc EvaluateDryRun(EvaluateDryRunRequest) returns (EvaluateDryRunResponse);
 }
 
 // --- Rule messages ---
@@ -204,5 +204,35 @@ message EvaluateResponse {
   bytes result_json = 5;
   bool default_applied = 6;
   bool cached = 7;
+  k1s0.system.common.v1.Timestamp evaluated_at = 8;
+}
+
+// ドライラン評価リクエスト: EvaluateDryRun RPC 専用のリクエストメッセージ
+message EvaluateDryRunRequest {
+  // 評価対象のルールセット識別子
+  string rule_set = 1;
+  // 評価入力データ（JSON 形式）
+  bytes input_json = 2;
+  // 評価コンテキスト（JSON 形式）
+  bytes context_json = 3;
+}
+
+// ドライラン評価レスポンス: EvaluateDryRun RPC 専用のレスポンスメッセージ
+message EvaluateDryRunResponse {
+  // 評価の一意識別子
+  string evaluation_id = 1;
+  // 評価対象のルールセット識別子
+  string rule_set = 2;
+  // 使用されたルールセットのバージョン
+  uint32 rule_set_version = 3;
+  // マッチしたルールのリスト
+  repeated MatchedRule matched_rules = 4;
+  // 最終評価結果（JSON 形式）
+  bytes result_json = 5;
+  // デフォルト値が適用されたかどうか
+  bool default_applied = 6;
+  // キャッシュから返されたかどうか
+  bool cached = 7;
+  // 評価日時
   k1s0.system.common.v1.Timestamp evaluated_at = 8;
 }

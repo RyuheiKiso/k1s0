@@ -92,7 +92,7 @@ pub async fn list_quotas(
 /// GET /api/v1/quotas/:id
 pub async fn get_quota(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     match state.get_policy_uc.execute(&id).await {
-        Ok(policy) => (StatusCode::OK, Json(serde_json::to_value(policy).unwrap())).into_response(),
+        Ok(policy) => (StatusCode::OK, Json(serde_json::to_value(policy).expect("クォータポリシーのJSON変換に失敗"))).into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
@@ -125,7 +125,7 @@ pub async fn create_quota(
     match state.create_policy_uc.execute(&input).await {
         Ok(policy) => (
             StatusCode::CREATED,
-            Json(serde_json::to_value(policy).unwrap()),
+            Json(serde_json::to_value(policy).expect("クォータポリシーのJSON変換に失敗")),
         )
             .into_response(),
         Err(e) => {
@@ -166,7 +166,7 @@ pub async fn update_quota(
     };
 
     match state.update_policy_uc.execute(&input).await {
-        Ok(policy) => (StatusCode::OK, Json(serde_json::to_value(policy).unwrap())).into_response(),
+        Ok(policy) => (StatusCode::OK, Json(serde_json::to_value(policy).expect("クォータポリシーのJSON変換に失敗"))).into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
@@ -190,7 +190,7 @@ pub async fn check_quota(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.get_usage_uc.execute(&id).await {
-        Ok(usage) => (StatusCode::OK, Json(serde_json::to_value(usage).unwrap())).into_response(),
+        Ok(usage) => (StatusCode::OK, Json(serde_json::to_value(usage).expect("クォータ使用量のJSON変換に失敗"))).into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
             let err =
                 ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
@@ -264,7 +264,7 @@ pub async fn get_usage(State(state): State<AppState>, Path(id): Path<String>) ->
     use crate::usecase::get_quota_usage::GetQuotaUsageError;
 
     match state.get_usage_uc.execute(&id).await {
-        Ok(usage) => (StatusCode::OK, Json(serde_json::to_value(usage).unwrap())).into_response(),
+        Ok(usage) => (StatusCode::OK, Json(serde_json::to_value(usage).expect("クォータ使用量のJSON変換に失敗"))).into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
             let err =
                 ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
@@ -291,7 +291,7 @@ pub async fn increment_usage(
     };
 
     match state.increment_usage_uc.execute(&input).await {
-        Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
+        Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).expect("クォータ増分結果のJSON変換に失敗"))).into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
@@ -324,7 +324,7 @@ pub async fn reset_usage(
     };
 
     match state.reset_usage_uc.execute(&input).await {
-        Ok(output) => (StatusCode::OK, Json(serde_json::to_value(output).unwrap())).into_response(),
+        Ok(output) => (StatusCode::OK, Json(serde_json::to_value(output).expect("クォータリセット結果のJSON変換に失敗"))).into_response(),
         Err(ResetQuotaUsageError::NotFound(id)) => {
             let err =
                 ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));

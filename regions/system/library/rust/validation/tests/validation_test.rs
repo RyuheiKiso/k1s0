@@ -145,13 +145,13 @@ fn test_uuid_valid_v4() {
 // 小文字の UUID 検証が成功することを確認する。
 #[test]
 fn test_uuid_valid_lowercase() {
-    assert!(validate_uuid("id", "a1b2c3d4-e5f6-7890-abcd-ef1234567890").is_ok());
+    assert!(validate_uuid("id", "a1b2c3d4-e5f6-4890-abcd-ef1234567890").is_ok());
 }
 
 // 大文字の UUID 検証が成功することを確認する。
 #[test]
 fn test_uuid_valid_uppercase() {
-    assert!(validate_uuid("id", "A1B2C3D4-E5F6-7890-ABCD-EF1234567890").is_ok());
+    assert!(validate_uuid("id", "A1B2C3D4-E5F6-4890-ABCD-EF1234567890").is_ok());
 }
 
 // UUID 形式でない文字列の検証がエラーを返し INVALID_UUID コードを持つことを確認する。
@@ -174,11 +174,11 @@ fn test_uuid_invalid_too_short() {
     assert!(validate_uuid("id", "550e8400-e29b-41d4-a716").is_err());
 }
 
-// ハイフンなしの UUID 文字列が uuid クレートに受け入れられることを確認する。
+// ハイフンなしの UUID 文字列はバリデーションエラーになるべきことを確認する。
 #[test]
 fn test_uuid_invalid_missing_hyphens() {
-    // uuid crate actually accepts this without hyphens
-    assert!(validate_uuid("id", "550e8400e29b41d4a716446655440000").is_ok());
+    // ハイフンなしの UUID はフォーマット不正として拒否すべき
+    assert!(validate_uuid("id", "550e8400e29b41d4a716446655440000").is_err());
 }
 
 // ===========================================================================
@@ -203,10 +203,10 @@ fn test_pagination_valid_per_page_1() {
     assert!(validate_pagination("pagination", 1, 1).is_ok());
 }
 
-// per_page が上限値の 200 のページネーション検証が成功することを確認する。
+// per_page が上限値の 100 のページネーション検証が成功することを確認する。
 #[test]
-fn test_pagination_valid_per_page_200() {
-    assert!(validate_pagination("pagination", 1, 200).is_ok());
+fn test_pagination_valid_per_page_100() {
+    assert!(validate_pagination("pagination", 1, 100).is_ok());
 }
 
 // per_page が 0 のとき INVALID_PAGINATION エラーが返されることを確認する。
@@ -217,10 +217,10 @@ fn test_pagination_invalid_per_page_0() {
     assert!(err.message.contains("per_page"));
 }
 
-// per_page が 201 のとき INVALID_PAGINATION エラーが返されることを確認する。
+// per_page が 101 のとき INVALID_PAGINATION エラーが返されることを確認する。
 #[test]
-fn test_pagination_invalid_per_page_201() {
-    let err = validate_pagination("pagination", 1, 201).unwrap_err();
+fn test_pagination_invalid_per_page_101() {
+    let err = validate_pagination("pagination", 1, 101).unwrap_err();
     assert_eq!(err.code, "INVALID_PAGINATION");
     assert!(err.message.contains("per_page"));
 }
@@ -277,7 +277,7 @@ fn test_tenant_id_valid_max_length_63() {
 fn test_tenant_id_invalid_too_short() {
     let err = validate_tenant_id("tenant", "ab").unwrap_err();
     assert_eq!(err.code, "INVALID_TENANT_ID");
-    assert!(err.message.contains("length"));
+    assert!(err.message.contains("3-63"));
 }
 
 // 空文字列のテナント ID 検証がエラーを返すことを確認する。
@@ -298,7 +298,7 @@ fn test_tenant_id_invalid_too_long() {
     let id = "a".repeat(64);
     let err = validate_tenant_id("tenant", &id).unwrap_err();
     assert_eq!(err.code, "INVALID_TENANT_ID");
-    assert!(err.message.contains("length"));
+    assert!(err.message.contains("3-63"));
 }
 
 // アンダースコアを含むテナント ID 検証がエラーを返すことを確認する。
@@ -527,9 +527,9 @@ fn test_url_error_message_contains_input() {
     assert!(err.message.contains("not-a-url"));
 }
 
-// テナント ID 検証エラーメッセージに実際の長さ情報が含まれることを確認する。
+// テナント ID 検証エラーメッセージに入力値が含まれることを確認する。
 #[test]
 fn test_tenant_id_error_message_contains_length_info() {
     let err = validate_tenant_id("tenant", "ab").unwrap_err();
-    assert!(err.message.contains("2")); // got length 2
+    assert!(err.message.contains("ab")); // エラーメッセージに入力値が含まれる
 }

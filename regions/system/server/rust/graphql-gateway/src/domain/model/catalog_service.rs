@@ -26,7 +26,7 @@ pub struct MetadataEntry {
 #[derive(Debug, Clone, SimpleObject)]
 pub struct CatalogServiceConnection {
     pub services: Vec<CatalogService>,
-    pub total_count: i32,
+    pub total_count: i64,
     pub has_next: bool,
 }
 

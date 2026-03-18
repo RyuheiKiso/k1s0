@@ -1,7 +1,7 @@
-use async_trait::async_trait;
 use crate::proto::k1s0::event::service::order::v1::{
-    OrderCreatedEvent, OrderUpdatedEvent, OrderCancelledEvent,
+    OrderCancelledEvent, OrderCreatedEvent, OrderUpdatedEvent,
 };
+use async_trait::async_trait;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]

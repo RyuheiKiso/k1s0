@@ -11,7 +11,6 @@
 package aigatewayv1
 
 import (
-	_ "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -254,33 +253,37 @@ func (x *CompleteResponse) GetCompletionTokens() int32 {
 	return 0
 }
 
-// ストリーミングチャンク: ストリーミング補完の部分的なレスポンス
-type StreamChunk struct {
+// ストリーミング補完リクエスト: CompleteStream RPC 専用のリクエストメッセージ
+type CompleteStreamRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// ストリームの一意識別子
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// 差分テキスト
-	Delta string `protobuf:"bytes,2,opt,name=delta,proto3" json:"delta,omitempty"`
-	// ストリームが完了したかどうか
-	Finished      bool `protobuf:"varint,3,opt,name=finished,proto3" json:"finished,omitempty"`
+	// 使用する AI モデルの識別子
+	Model string `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	// 補完に使用するメッセージ履歴
+	Messages []*Message `protobuf:"bytes,2,rep,name=messages,proto3" json:"messages,omitempty"`
+	// 生成する最大トークン数
+	MaxTokens int32 `protobuf:"varint,3,opt,name=max_tokens,json=maxTokens,proto3" json:"max_tokens,omitempty"`
+	// 生成のランダム性を制御する温度パラメータ（0.0〜2.0）
+	Temperature float32 `protobuf:"fixed32,4,opt,name=temperature,proto3" json:"temperature,omitempty"`
+	// リクエスト元のテナント識別子
+	TenantId      string `protobuf:"bytes,5,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StreamChunk) Reset() {
-	*x = StreamChunk{}
+func (x *CompleteStreamRequest) Reset() {
+	*x = CompleteStreamRequest{}
 	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StreamChunk) String() string {
+func (x *CompleteStreamRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StreamChunk) ProtoMessage() {}
+func (*CompleteStreamRequest) ProtoMessage() {}
 
-func (x *StreamChunk) ProtoReflect() protoreflect.Message {
+func (x *CompleteStreamRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -292,26 +295,104 @@ func (x *StreamChunk) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StreamChunk.ProtoReflect.Descriptor instead.
-func (*StreamChunk) Descriptor() ([]byte, []int) {
+// Deprecated: Use CompleteStreamRequest.ProtoReflect.Descriptor instead.
+func (*CompleteStreamRequest) Descriptor() ([]byte, []int) {
 	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *StreamChunk) GetId() string {
+func (x *CompleteStreamRequest) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *CompleteStreamRequest) GetMessages() []*Message {
+	if x != nil {
+		return x.Messages
+	}
+	return nil
+}
+
+func (x *CompleteStreamRequest) GetMaxTokens() int32 {
+	if x != nil {
+		return x.MaxTokens
+	}
+	return 0
+}
+
+func (x *CompleteStreamRequest) GetTemperature() float32 {
+	if x != nil {
+		return x.Temperature
+	}
+	return 0
+}
+
+func (x *CompleteStreamRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+// ストリーミング補完レスポンス: ストリーミング補完の部分的なレスポンス
+type CompleteStreamResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ストリームの一意識別子
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// 差分テキスト
+	Delta string `protobuf:"bytes,2,opt,name=delta,proto3" json:"delta,omitempty"`
+	// ストリームが完了したかどうか
+	Finished      bool `protobuf:"varint,3,opt,name=finished,proto3" json:"finished,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteStreamResponse) Reset() {
+	*x = CompleteStreamResponse{}
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteStreamResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteStreamResponse) ProtoMessage() {}
+
+func (x *CompleteStreamResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteStreamResponse.ProtoReflect.Descriptor instead.
+func (*CompleteStreamResponse) Descriptor() ([]byte, []int) {
+	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CompleteStreamResponse) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *StreamChunk) GetDelta() string {
+func (x *CompleteStreamResponse) GetDelta() string {
 	if x != nil {
 		return x.Delta
 	}
 	return ""
 }
 
-func (x *StreamChunk) GetFinished() bool {
+func (x *CompleteStreamResponse) GetFinished() bool {
 	if x != nil {
 		return x.Finished
 	}
@@ -333,7 +414,7 @@ type EmbedRequest struct {
 
 func (x *EmbedRequest) Reset() {
 	*x = EmbedRequest{}
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[4]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -345,7 +426,7 @@ func (x *EmbedRequest) String() string {
 func (*EmbedRequest) ProtoMessage() {}
 
 func (x *EmbedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[4]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -358,7 +439,7 @@ func (x *EmbedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmbedRequest.ProtoReflect.Descriptor instead.
 func (*EmbedRequest) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{4}
+	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *EmbedRequest) GetModel() string {
@@ -395,7 +476,7 @@ type EmbedResponse struct {
 
 func (x *EmbedResponse) Reset() {
 	*x = EmbedResponse{}
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[5]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -407,7 +488,7 @@ func (x *EmbedResponse) String() string {
 func (*EmbedResponse) ProtoMessage() {}
 
 func (x *EmbedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[5]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -420,7 +501,7 @@ func (x *EmbedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmbedResponse.ProtoReflect.Descriptor instead.
 func (*EmbedResponse) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{5}
+	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EmbedResponse) GetModel() string {
@@ -450,7 +531,7 @@ type Embedding struct {
 
 func (x *Embedding) Reset() {
 	*x = Embedding{}
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[6]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -462,7 +543,7 @@ func (x *Embedding) String() string {
 func (*Embedding) ProtoMessage() {}
 
 func (x *Embedding) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[6]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -475,7 +556,7 @@ func (x *Embedding) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Embedding.ProtoReflect.Descriptor instead.
 func (*Embedding) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{6}
+	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Embedding) GetIndex() int32 {
@@ -511,7 +592,7 @@ type AiModel struct {
 
 func (x *AiModel) Reset() {
 	*x = AiModel{}
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[7]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -523,7 +604,7 @@ func (x *AiModel) String() string {
 func (*AiModel) ProtoMessage() {}
 
 func (x *AiModel) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[7]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -536,7 +617,7 @@ func (x *AiModel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AiModel.ProtoReflect.Descriptor instead.
 func (*AiModel) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{7}
+	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *AiModel) GetId() string {
@@ -585,7 +666,7 @@ type ListModelsRequest struct {
 
 func (x *ListModelsRequest) Reset() {
 	*x = ListModelsRequest{}
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[8]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -597,7 +678,7 @@ func (x *ListModelsRequest) String() string {
 func (*ListModelsRequest) ProtoMessage() {}
 
 func (x *ListModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[8]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -610,7 +691,7 @@ func (x *ListModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListModelsRequest.ProtoReflect.Descriptor instead.
 func (*ListModelsRequest) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{8}
+	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListModelsRequest) GetProviderFilter() string {
@@ -631,7 +712,7 @@ type ListModelsResponse struct {
 
 func (x *ListModelsResponse) Reset() {
 	*x = ListModelsResponse{}
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[9]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -643,7 +724,7 @@ func (x *ListModelsResponse) String() string {
 func (*ListModelsResponse) ProtoMessage() {}
 
 func (x *ListModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[9]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -656,7 +737,7 @@ func (x *ListModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListModelsResponse.ProtoReflect.Descriptor instead.
 func (*ListModelsResponse) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{9}
+	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListModelsResponse) GetModels() []*AiModel {
@@ -681,7 +762,7 @@ type GetUsageRequest struct {
 
 func (x *GetUsageRequest) Reset() {
 	*x = GetUsageRequest{}
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[10]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -693,7 +774,7 @@ func (x *GetUsageRequest) String() string {
 func (*GetUsageRequest) ProtoMessage() {}
 
 func (x *GetUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[10]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -706,7 +787,7 @@ func (x *GetUsageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsageRequest.ProtoReflect.Descriptor instead.
 func (*GetUsageRequest) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{10}
+	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetUsageRequest) GetTenantId() string {
@@ -747,7 +828,7 @@ type GetUsageResponse struct {
 
 func (x *GetUsageResponse) Reset() {
 	*x = GetUsageResponse{}
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[11]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -759,7 +840,7 @@ func (x *GetUsageResponse) String() string {
 func (*GetUsageResponse) ProtoMessage() {}
 
 func (x *GetUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[11]
+	mi := &file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -772,7 +853,7 @@ func (x *GetUsageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsageResponse.ProtoReflect.Descriptor instead.
 func (*GetUsageResponse) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{11}
+	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetUsageResponse) GetTenantId() string {
@@ -807,7 +888,7 @@ var File_k1s0_system_ai_gateway_v1_ai_gateway_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDesc = "" +
 	"\n" +
-	"*k1s0/system/ai_gateway/v1/ai_gateway.proto\x12\x19k1s0.system.ai_gateway.v1\x1a!k1s0/system/common/v1/types.proto\"\xdd\x01\n" +
+	"*k1s0/system/ai_gateway/v1/ai_gateway.proto\x12\x19k1s0.system.ai_gateway.v1\"\xdd\x01\n" +
 	"\x0fCompleteRequest\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12>\n" +
 	"\bmessages\x18\x02 \x03(\v2\".k1s0.system.ai_gateway.v1.MessageR\bmessages\x12\x1d\n" +
@@ -824,8 +905,15 @@ const file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDesc = "" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12\x18\n" +
 	"\acontent\x18\x03 \x01(\tR\acontent\x12#\n" +
 	"\rprompt_tokens\x18\x04 \x01(\x05R\fpromptTokens\x12+\n" +
-	"\x11completion_tokens\x18\x05 \x01(\x05R\x10completionTokens\"O\n" +
-	"\vStreamChunk\x12\x0e\n" +
+	"\x11completion_tokens\x18\x05 \x01(\x05R\x10completionTokens\"\xcb\x01\n" +
+	"\x15CompleteStreamRequest\x12\x14\n" +
+	"\x05model\x18\x01 \x01(\tR\x05model\x12>\n" +
+	"\bmessages\x18\x02 \x03(\v2\".k1s0.system.ai_gateway.v1.MessageR\bmessages\x12\x1d\n" +
+	"\n" +
+	"max_tokens\x18\x03 \x01(\x05R\tmaxTokens\x12 \n" +
+	"\vtemperature\x18\x04 \x01(\x02R\vtemperature\x12\x1b\n" +
+	"\ttenant_id\x18\x05 \x01(\tR\btenantId\"Z\n" +
+	"\x16CompleteStreamResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05delta\x18\x02 \x01(\tR\x05delta\x12\x1a\n" +
 	"\bfinished\x18\x03 \x01(\bR\bfinished\"Y\n" +
@@ -860,10 +948,10 @@ const file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDesc = "" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12.\n" +
 	"\x13total_prompt_tokens\x18\x02 \x01(\x03R\x11totalPromptTokens\x126\n" +
 	"\x17total_completion_tokens\x18\x03 \x01(\x03R\x15totalCompletionTokens\x12$\n" +
-	"\x0etotal_cost_usd\x18\x04 \x01(\x01R\ftotalCostUsd2\x8b\x04\n" +
+	"\x0etotal_cost_usd\x18\x04 \x01(\x01R\ftotalCostUsd2\x9c\x04\n" +
 	"\x10AiGatewayService\x12c\n" +
-	"\bComplete\x12*.k1s0.system.ai_gateway.v1.CompleteRequest\x1a+.k1s0.system.ai_gateway.v1.CompleteResponse\x12f\n" +
-	"\x0eCompleteStream\x12*.k1s0.system.ai_gateway.v1.CompleteRequest\x1a&.k1s0.system.ai_gateway.v1.StreamChunk0\x01\x12Z\n" +
+	"\bComplete\x12*.k1s0.system.ai_gateway.v1.CompleteRequest\x1a+.k1s0.system.ai_gateway.v1.CompleteResponse\x12w\n" +
+	"\x0eCompleteStream\x120.k1s0.system.ai_gateway.v1.CompleteStreamRequest\x1a1.k1s0.system.ai_gateway.v1.CompleteStreamResponse0\x01\x12Z\n" +
 	"\x05Embed\x12'.k1s0.system.ai_gateway.v1.EmbedRequest\x1a(.k1s0.system.ai_gateway.v1.EmbedResponse\x12i\n" +
 	"\n" +
 	"ListModels\x12,.k1s0.system.ai_gateway.v1.ListModelsRequest\x1a-.k1s0.system.ai_gateway.v1.ListModelsResponse\x12c\n" +
@@ -881,40 +969,42 @@ func file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescData
 }
 
-var file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_k1s0_system_ai_gateway_v1_ai_gateway_proto_goTypes = []any{
-	(*CompleteRequest)(nil),    // 0: k1s0.system.ai_gateway.v1.CompleteRequest
-	(*Message)(nil),            // 1: k1s0.system.ai_gateway.v1.Message
-	(*CompleteResponse)(nil),   // 2: k1s0.system.ai_gateway.v1.CompleteResponse
-	(*StreamChunk)(nil),        // 3: k1s0.system.ai_gateway.v1.StreamChunk
-	(*EmbedRequest)(nil),       // 4: k1s0.system.ai_gateway.v1.EmbedRequest
-	(*EmbedResponse)(nil),      // 5: k1s0.system.ai_gateway.v1.EmbedResponse
-	(*Embedding)(nil),          // 6: k1s0.system.ai_gateway.v1.Embedding
-	(*AiModel)(nil),            // 7: k1s0.system.ai_gateway.v1.AiModel
-	(*ListModelsRequest)(nil),  // 8: k1s0.system.ai_gateway.v1.ListModelsRequest
-	(*ListModelsResponse)(nil), // 9: k1s0.system.ai_gateway.v1.ListModelsResponse
-	(*GetUsageRequest)(nil),    // 10: k1s0.system.ai_gateway.v1.GetUsageRequest
-	(*GetUsageResponse)(nil),   // 11: k1s0.system.ai_gateway.v1.GetUsageResponse
+	(*CompleteRequest)(nil),        // 0: k1s0.system.ai_gateway.v1.CompleteRequest
+	(*Message)(nil),                // 1: k1s0.system.ai_gateway.v1.Message
+	(*CompleteResponse)(nil),       // 2: k1s0.system.ai_gateway.v1.CompleteResponse
+	(*CompleteStreamRequest)(nil),  // 3: k1s0.system.ai_gateway.v1.CompleteStreamRequest
+	(*CompleteStreamResponse)(nil), // 4: k1s0.system.ai_gateway.v1.CompleteStreamResponse
+	(*EmbedRequest)(nil),           // 5: k1s0.system.ai_gateway.v1.EmbedRequest
+	(*EmbedResponse)(nil),          // 6: k1s0.system.ai_gateway.v1.EmbedResponse
+	(*Embedding)(nil),              // 7: k1s0.system.ai_gateway.v1.Embedding
+	(*AiModel)(nil),                // 8: k1s0.system.ai_gateway.v1.AiModel
+	(*ListModelsRequest)(nil),      // 9: k1s0.system.ai_gateway.v1.ListModelsRequest
+	(*ListModelsResponse)(nil),     // 10: k1s0.system.ai_gateway.v1.ListModelsResponse
+	(*GetUsageRequest)(nil),        // 11: k1s0.system.ai_gateway.v1.GetUsageRequest
+	(*GetUsageResponse)(nil),       // 12: k1s0.system.ai_gateway.v1.GetUsageResponse
 }
 var file_k1s0_system_ai_gateway_v1_ai_gateway_proto_depIdxs = []int32{
 	1,  // 0: k1s0.system.ai_gateway.v1.CompleteRequest.messages:type_name -> k1s0.system.ai_gateway.v1.Message
-	6,  // 1: k1s0.system.ai_gateway.v1.EmbedResponse.embeddings:type_name -> k1s0.system.ai_gateway.v1.Embedding
-	7,  // 2: k1s0.system.ai_gateway.v1.ListModelsResponse.models:type_name -> k1s0.system.ai_gateway.v1.AiModel
-	0,  // 3: k1s0.system.ai_gateway.v1.AiGatewayService.Complete:input_type -> k1s0.system.ai_gateway.v1.CompleteRequest
-	0,  // 4: k1s0.system.ai_gateway.v1.AiGatewayService.CompleteStream:input_type -> k1s0.system.ai_gateway.v1.CompleteRequest
-	4,  // 5: k1s0.system.ai_gateway.v1.AiGatewayService.Embed:input_type -> k1s0.system.ai_gateway.v1.EmbedRequest
-	8,  // 6: k1s0.system.ai_gateway.v1.AiGatewayService.ListModels:input_type -> k1s0.system.ai_gateway.v1.ListModelsRequest
-	10, // 7: k1s0.system.ai_gateway.v1.AiGatewayService.GetUsage:input_type -> k1s0.system.ai_gateway.v1.GetUsageRequest
-	2,  // 8: k1s0.system.ai_gateway.v1.AiGatewayService.Complete:output_type -> k1s0.system.ai_gateway.v1.CompleteResponse
-	3,  // 9: k1s0.system.ai_gateway.v1.AiGatewayService.CompleteStream:output_type -> k1s0.system.ai_gateway.v1.StreamChunk
-	5,  // 10: k1s0.system.ai_gateway.v1.AiGatewayService.Embed:output_type -> k1s0.system.ai_gateway.v1.EmbedResponse
-	9,  // 11: k1s0.system.ai_gateway.v1.AiGatewayService.ListModels:output_type -> k1s0.system.ai_gateway.v1.ListModelsResponse
-	11, // 12: k1s0.system.ai_gateway.v1.AiGatewayService.GetUsage:output_type -> k1s0.system.ai_gateway.v1.GetUsageResponse
-	8,  // [8:13] is the sub-list for method output_type
-	3,  // [3:8] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	1,  // 1: k1s0.system.ai_gateway.v1.CompleteStreamRequest.messages:type_name -> k1s0.system.ai_gateway.v1.Message
+	7,  // 2: k1s0.system.ai_gateway.v1.EmbedResponse.embeddings:type_name -> k1s0.system.ai_gateway.v1.Embedding
+	8,  // 3: k1s0.system.ai_gateway.v1.ListModelsResponse.models:type_name -> k1s0.system.ai_gateway.v1.AiModel
+	0,  // 4: k1s0.system.ai_gateway.v1.AiGatewayService.Complete:input_type -> k1s0.system.ai_gateway.v1.CompleteRequest
+	3,  // 5: k1s0.system.ai_gateway.v1.AiGatewayService.CompleteStream:input_type -> k1s0.system.ai_gateway.v1.CompleteStreamRequest
+	5,  // 6: k1s0.system.ai_gateway.v1.AiGatewayService.Embed:input_type -> k1s0.system.ai_gateway.v1.EmbedRequest
+	9,  // 7: k1s0.system.ai_gateway.v1.AiGatewayService.ListModels:input_type -> k1s0.system.ai_gateway.v1.ListModelsRequest
+	11, // 8: k1s0.system.ai_gateway.v1.AiGatewayService.GetUsage:input_type -> k1s0.system.ai_gateway.v1.GetUsageRequest
+	2,  // 9: k1s0.system.ai_gateway.v1.AiGatewayService.Complete:output_type -> k1s0.system.ai_gateway.v1.CompleteResponse
+	4,  // 10: k1s0.system.ai_gateway.v1.AiGatewayService.CompleteStream:output_type -> k1s0.system.ai_gateway.v1.CompleteStreamResponse
+	6,  // 11: k1s0.system.ai_gateway.v1.AiGatewayService.Embed:output_type -> k1s0.system.ai_gateway.v1.EmbedResponse
+	10, // 12: k1s0.system.ai_gateway.v1.AiGatewayService.ListModels:output_type -> k1s0.system.ai_gateway.v1.ListModelsResponse
+	12, // 13: k1s0.system.ai_gateway.v1.AiGatewayService.GetUsage:output_type -> k1s0.system.ai_gateway.v1.GetUsageResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_ai_gateway_v1_ai_gateway_proto_init() }
@@ -928,7 +1018,7 @@ func file_k1s0_system_ai_gateway_v1_ai_gateway_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDesc), len(file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

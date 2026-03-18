@@ -123,7 +123,7 @@ impl PaymentService for PaymentGrpcService {
             payments: payments.into_iter().map(proto_payment).collect(),
             total_count,
             pagination: Some(PaginationResult {
-                total_count: total_count as i32,
+                total_count: total_count as i64,
                 page,
                 page_size,
                 has_next,

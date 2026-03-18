@@ -166,7 +166,7 @@ impl WorkflowService for WorkflowServiceTonic {
                 .map(to_proto_definition)
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                total_count: resp.total_count as i64,
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
@@ -322,7 +322,7 @@ impl WorkflowService for WorkflowServiceTonic {
         Ok(Response::new(ProtoListInstancesResponse {
             instances: resp.instances.into_iter().map(to_proto_instance).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                total_count: resp.total_count as i64,
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
@@ -372,7 +372,7 @@ impl WorkflowService for WorkflowServiceTonic {
         Ok(Response::new(ProtoListTasksResponse {
             tasks: resp.tasks.into_iter().map(to_proto_task).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                total_count: resp.total_count as i64,
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
