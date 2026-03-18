@@ -12,7 +12,7 @@
     "argon2": "^0.41.1"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^25.5.0",
     "vite": "^6.2.0",
     "vitest": "^4.0.0",
     "typescript": "^5.0.0"
