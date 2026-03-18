@@ -1,23 +1,46 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { defineConfig, globalIgnores } from 'eslint/config'
+// ESLint flat config（ルート eslint.config.mjs と統一したフォーマット）
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
+// ブラウザグローバル変数の定義（window, document等）
+import globals from 'globals';
 
-export default defineConfig([
-  globalIgnores(['dist']),
+export default tseslint.config(
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
+    files: ['src/**/*.{ts,tsx}'],
+    plugins: {
+      'react-hooks': reactHooksPlugin,
+    },
     languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
+      // ブラウザ環境のグローバル変数を許可
+      globals: {
+        ...globals.browser,
+      },
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+    rules: {
+      // React Hooks
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+
+      // TypeScript
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+
+      // General
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
-])
+  {
+    ignores: ['dist/**', 'node_modules/**', '*.config.*'],
+  },
+);

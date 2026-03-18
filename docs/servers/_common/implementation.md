@@ -10,6 +10,8 @@ system-server（認証サーバー）の Rust 実装仕様。概要・API 定義
 
 ### ディレクトリ構成
 
+> **注記**: 以下は実際のリポジトリ配置に基づく構成。`infrastructure/` 直下にフラットに配置するパターンを採用している。
+
 ```
 regions/system/server/rust/auth/
 ├── src/
@@ -45,31 +47,22 @@ regions/system/server/rust/auth/
 │   │   │   ├── rest_handler.rs          # axum REST ハンドラー
 │   │   │   ├── grpc_handler.rs          # tonic gRPC ハンドラー
 │   │   │   └── error.rs                 # エラーレスポンス
-│   │   ├── presenter/
-│   │   │   ├── mod.rs
-│   │   │   └── response.rs
-│   │   ├── gateway/
-│   │   │   ├── mod.rs
-│   │   │   └── keycloak_client.rs       # Keycloak Admin API クライアント
 │   │   └── middleware/
 │   │       ├── mod.rs
 │   │       ├── auth.rs                  # JWT 認証ミドルウェア
 │   │       └── rbac.rs                  # RBAC ミドルウェア
 │   └── infrastructure/
 │       ├── mod.rs
-│       ├── config/
-│       │   ├── mod.rs
-│       │   └── logger.rs
-│       ├── persistence/
-│       │   ├── mod.rs
-│       │   ├── db.rs
-│       │   └── audit_log_repository.rs
-│       ├── auth/
-│       │   ├── mod.rs
-│       │   └── jwks.rs                  # JWKS 検証
-│       └── messaging/
-│           ├── mod.rs
-│           └── producer.rs              # Kafka プロデューサー
+│       ├── config.rs                    # 設定構造体・読み込み
+│       ├── startup.rs                   # サーバー起動シーケンス
+│       ├── database.rs                  # DB 接続・リポジトリ実装
+│       ├── keycloak_client.rs           # Keycloak Admin API クライアント
+│       ├── jwks_adapter.rs              # JWKS アダプター
+│       ├── jwks_provider.rs             # JWKS プロバイダー
+│       ├── kafka_producer.rs            # Kafka プロデューサー
+│       ├── permission_cache.rs          # パーミッションキャッシュ
+│       ├── user_cache.rs                # ユーザーキャッシュ
+│       └── keycloak_role_permission_source.rs  # Keycloak ロール・パーミッション取得
 ├── api/
 │   └── proto/
 │       └── k1s0/system/auth/v1/

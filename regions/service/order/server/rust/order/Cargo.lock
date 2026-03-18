@@ -1305,6 +1305,7 @@ dependencies = [
  "axum-test",
  "chrono",
  "k1s0-auth",
+ "k1s0-outbox",
  "k1s0-proto-build",
  "k1s0-server-common",
  "k1s0-telemetry",
@@ -1331,6 +1332,22 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "validator",
+]
+
+[[package]]
+name = "k1s0-outbox"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

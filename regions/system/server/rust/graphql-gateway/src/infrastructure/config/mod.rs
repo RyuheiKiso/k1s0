@@ -3,6 +3,7 @@ use std::fs;
 
 /// graphql-gateway のルート設定。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
@@ -299,6 +300,7 @@ impl Default for RateLimitConfig {
 
 /// サーキットブレーカーの設定。外部 gRPC サービス呼び出し時の障害伝播を防止する。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct CircuitBreakerConfig {
     /// オープン状態に遷移する連続失敗回数の閾値
     #[serde(default = "default_cb_failure_threshold")]

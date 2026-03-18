@@ -1,20 +1,23 @@
+import { lazy } from 'react';
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import Layout from './components/Layout';
-import DashboardPage from './pages/DashboardPage';
-import AuthPage from './pages/AuthPage';
-import InitPage from './pages/InitPage';
-import GeneratePage from './pages/GeneratePage';
-import DepsPage from './pages/DepsPage';
-import DevPage from './pages/DevPage';
-import MigratePage from './pages/MigratePage';
-import TemplateMigratePage from './pages/TemplateMigratePage';
-import ConfigTypesPage from './pages/ConfigTypesPage';
-import NavigationTypesPage from './pages/NavigationTypesPage';
-import EventCodegenPage from './pages/EventCodegenPage';
-import ValidatePage from './pages/ValidatePage';
-import BuildPage from './pages/BuildPage';
-import TestPage from './pages/TestPage';
-import DeployPage from './pages/DeployPage';
+
+/// 各ページコンポーネントを遅延読み込みして初期バンドルサイズを削減する
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const InitPage = lazy(() => import('./pages/InitPage'));
+const GeneratePage = lazy(() => import('./pages/GeneratePage'));
+const DepsPage = lazy(() => import('./pages/DepsPage'));
+const DevPage = lazy(() => import('./pages/DevPage'));
+const MigratePage = lazy(() => import('./pages/MigratePage'));
+const TemplateMigratePage = lazy(() => import('./pages/TemplateMigratePage'));
+const ConfigTypesPage = lazy(() => import('./pages/ConfigTypesPage'));
+const NavigationTypesPage = lazy(() => import('./pages/NavigationTypesPage'));
+const EventCodegenPage = lazy(() => import('./pages/EventCodegenPage'));
+const ValidatePage = lazy(() => import('./pages/ValidatePage'));
+const BuildPage = lazy(() => import('./pages/BuildPage'));
+const TestPage = lazy(() => import('./pages/TestPage'));
+const DeployPage = lazy(() => import('./pages/DeployPage'));
 
 const rootRoute = createRootRoute({
   component: Layout,

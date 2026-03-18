@@ -67,7 +67,7 @@ pub async fn create_api_key(
     match state.create_api_key_uc.execute(create_req).await {
         Ok(resp) => (
             StatusCode::CREATED,
-            Json(serde_json::to_value(resp).unwrap()),
+            Json(resp),
         )
             .into_response(),
         Err(crate::usecase::create_api_key::CreateApiKeyError::Validation(msg)) => {
@@ -96,7 +96,7 @@ pub async fn create_api_key(
 pub async fn get_api_key(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.get_api_key_uc.execute(id).await {
         Ok(summary) => {
-            (StatusCode::OK, Json(serde_json::to_value(summary).unwrap())).into_response()
+            (StatusCode::OK, Json(summary)).into_response()
         }
         Err(crate::usecase::get_api_key::GetApiKeyError::NotFound(_)) => {
             let err = ErrorResponse::new(
@@ -127,7 +127,7 @@ pub async fn list_api_keys(
     Query(query): Query<ListApiKeysQuery>,
 ) -> impl IntoResponse {
     match state.list_api_keys_uc.execute(&query.tenant_id).await {
-        Ok(keys) => (StatusCode::OK, Json(serde_json::to_value(keys).unwrap())).into_response(),
+        Ok(keys) => (StatusCode::OK, Json(keys)).into_response(),
         Err(crate::usecase::list_api_keys::ListApiKeysError::Validation(msg)) => {
             let err = ErrorResponse::new("SYS_AUTH_API_KEY_VALIDATION", &msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
@@ -187,58 +187,46 @@ pub async fn validate_api_key(
     match state.validate_api_key_uc.execute(&req.api_key).await {
         Ok(result) => (
             StatusCode::OK,
-            Json(
-                serde_json::to_value(ValidateApiKeyResponse {
-                    valid: true,
-                    tenant_id: Some(result.tenant_id),
-                    name: Some(result.name),
-                    scopes: result.scopes,
-                    reason: None,
-                })
-                .unwrap(),
-            ),
+            Json(ValidateApiKeyResponse {
+                valid: true,
+                tenant_id: Some(result.tenant_id),
+                name: Some(result.name),
+                scopes: result.scopes,
+                reason: None,
+            }),
         )
             .into_response(),
         Err(ValidateApiKeyError::Invalid) => (
             StatusCode::OK,
-            Json(
-                serde_json::to_value(ValidateApiKeyResponse {
-                    valid: false,
-                    tenant_id: None,
-                    name: None,
-                    scopes: vec![],
-                    reason: Some("invalid".to_string()),
-                })
-                .unwrap(),
-            ),
+            Json(ValidateApiKeyResponse {
+                valid: false,
+                tenant_id: None,
+                name: None,
+                scopes: vec![],
+                reason: Some("invalid".to_string()),
+            }),
         )
             .into_response(),
         Err(ValidateApiKeyError::Revoked) => (
             StatusCode::OK,
-            Json(
-                serde_json::to_value(ValidateApiKeyResponse {
-                    valid: false,
-                    tenant_id: None,
-                    name: None,
-                    scopes: vec![],
-                    reason: Some("revoked".to_string()),
-                })
-                .unwrap(),
-            ),
+            Json(ValidateApiKeyResponse {
+                valid: false,
+                tenant_id: None,
+                name: None,
+                scopes: vec![],
+                reason: Some("revoked".to_string()),
+            }),
         )
             .into_response(),
         Err(ValidateApiKeyError::Expired) => (
             StatusCode::OK,
-            Json(
-                serde_json::to_value(ValidateApiKeyResponse {
-                    valid: false,
-                    tenant_id: None,
-                    name: None,
-                    scopes: vec![],
-                    reason: Some("expired".to_string()),
-                })
-                .unwrap(),
-            ),
+            Json(ValidateApiKeyResponse {
+                valid: false,
+                tenant_id: None,
+                name: None,
+                scopes: vec![],
+                reason: Some("expired".to_string()),
+            }),
         )
             .into_response(),
         Err(ValidateApiKeyError::Internal(msg)) => {

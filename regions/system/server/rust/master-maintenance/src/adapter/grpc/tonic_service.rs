@@ -1262,7 +1262,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         Ok(Response::new(ListTableAuditLogsResponse {
             logs: logs.into_iter().map(domain_audit_log_to_proto).collect(),
             pagination: Some(PaginationResult {
-                total_count: total as i64,
+                total_count: total,
                 page: p.page,
                 page_size: p.page_size,
                 has_next: (p.page as i64 * p.page_size as i64) < total,
@@ -1295,7 +1295,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         Ok(Response::new(ListRecordAuditLogsResponse {
             logs: logs.into_iter().map(domain_audit_log_to_proto).collect(),
             pagination: Some(PaginationResult {
-                total_count: total as i64,
+                total_count: total,
                 page: p.page,
                 page_size: p.page_size,
                 has_next: (p.page as i64 * p.page_size as i64) < total,

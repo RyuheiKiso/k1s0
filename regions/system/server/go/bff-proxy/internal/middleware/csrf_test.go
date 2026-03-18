@@ -87,3 +87,30 @@ func TestCSRFMiddleware_ValidToken(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
+
+// TestCSRFMiddleware_WithSessionMiddleware は SessionMiddleware と組み合わせた場合に
+// コンテキストからセッションを取得し、冗長な store.Get() を回避することを検証する。
+func TestCSRFMiddleware_WithSessionMiddleware(t *testing.T) {
+	store := newTestStore()
+	store.sessions["my-session"] = &session.SessionData{
+		AccessToken: "token",
+		CSRFToken:   "valid-csrf",
+		ExpiresAt:   time.Now().Add(10 * time.Minute).Unix(),
+	}
+
+	router := gin.New()
+	// SessionMiddleware → CSRFMiddleware の順（本番と同じチェーン）
+	router.Use(SessionMiddleware(store, "session", 30*time.Minute, false))
+	router.Use(CSRFMiddleware(store, "X-CSRF-Token", "session"))
+	router.POST("/test", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/test", nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: "my-session"})
+	req.Header.Set("X-CSRF-Token", "valid-csrf")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}

@@ -131,7 +131,8 @@ impl MigrationRunner for InMemoryMigrationRunner {
             if applied.is_empty() {
                 break;
             }
-            let removed = applied.pop().unwrap();
+            // ループ条件で applied が空でないことを確認済みのため安全に取り出す
+            let removed = applied.pop().expect("ループ条件により applied は空でない");
             if !self.down_migrations.contains_key(&removed.version) {
                 warn!(version = %removed.version, "no down migration found, skipping");
             }

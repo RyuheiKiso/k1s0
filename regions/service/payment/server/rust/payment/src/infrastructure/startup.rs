@@ -81,9 +81,9 @@ pub async fn run() -> anyhow::Result<()> {
             Arc::new(usecase::event_publisher::NoopPaymentEventPublisher)
         };
 
-    // 7. Outbox Poller -- バックグラウンドタスクとして起動
+    // 7. Outbox Poller — k1s0-outbox の汎用ポーラーをバックグラウンドタスクとして起動
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let outbox_poller = Arc::new(super::outbox_poller::OutboxPoller::new(
+    let outbox_poller = Arc::new(super::outbox_poller::new_outbox_poller(
         payment_repo.clone(),
         event_publisher.clone(),
         Duration::from_secs(5),

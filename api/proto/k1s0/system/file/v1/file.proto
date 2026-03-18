@@ -1,7 +1,7 @@
 syntax = "proto3";
 package k1s0.system.file.v1;
 
-option go_package = "github.com/k1s0-platform/system-proto-go/file/v1;filev1";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/file/v1;filev1";
 
 import "k1s0/system/common/v1/types.proto";
 

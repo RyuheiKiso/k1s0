@@ -219,22 +219,22 @@ fn datetime_to_timestamp(value: DateTime<Utc>) -> Timestamp {
     }
 }
 
+/// anyhow::Error をドメインエラー型で型ベースに tonic::Status へ変換する。
+/// ダウンキャストに失敗した場合は internal エラーとする。
 fn map_anyhow_to_status(err: anyhow::Error) -> Status {
-    let msg = err.to_string();
-    let lower = msg.to_ascii_lowercase();
+    use crate::domain::error::PaymentError;
 
-    if lower.contains("not found") {
-        return Status::not_found(msg);
+    match err.downcast::<PaymentError>() {
+        Ok(domain_err) => {
+            let msg = domain_err.to_string();
+            match domain_err {
+                PaymentError::NotFound(_) => Status::not_found(msg),
+                PaymentError::InvalidStatusTransition { .. } => Status::failed_precondition(msg),
+                PaymentError::ValidationFailed(_) => Status::invalid_argument(msg),
+                PaymentError::VersionConflict(_) => Status::aborted(msg),
+                PaymentError::Internal(_) => Status::internal(msg),
+            }
+        }
+        Err(err) => Status::internal(err.to_string()),
     }
-    if lower.contains("invalid status transition") {
-        return Status::failed_precondition(msg);
-    }
-    if lower.contains("validation") {
-        return Status::invalid_argument(msg);
-    }
-    if lower.contains("version conflict") {
-        return Status::aborted(msg);
-    }
-
-    Status::internal(msg)
 }

@@ -136,14 +136,12 @@ impl PaymentRepository for InMemoryPaymentRepository {
         Ok(())
     }
 
-    /// 未パブリッシュの Outbox イベントを取得する（統合テストでは空を返す）。
-    async fn fetch_unpublished_events(&self, _limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
+    /// 未パブリッシュの Outbox イベントを取得しパブリッシュ済みとしてマークする（統合テストでは空を返す）。
+    async fn fetch_and_mark_events_published(
+        &self,
+        _limit: i64,
+    ) -> anyhow::Result<Vec<OutboxEvent>> {
         Ok(vec![])
-    }
-
-    /// Outbox イベントをパブリッシュ済みとしてマークする（統合テストでは何もしない）。
-    async fn mark_event_published(&self, _event_id: Uuid) -> anyhow::Result<()> {
-        Ok(())
     }
 }
 

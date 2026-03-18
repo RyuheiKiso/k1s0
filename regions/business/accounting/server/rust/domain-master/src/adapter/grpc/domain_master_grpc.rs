@@ -542,21 +542,24 @@ fn prost_value_to_json(value: Value) -> serde_json::Value {
     }
 }
 
+/// anyhow::Error をドメインエラー型で型ベースに tonic::Status へ変換する。
+/// ダウンキャストに失敗した場合は internal エラーとする。
 fn map_anyhow_to_status(err: anyhow::Error) -> Status {
-    let msg = err.to_string();
-    let lower = msg.to_ascii_lowercase();
+    use crate::domain::error::AccountingDomainMasterError;
 
-    if lower.contains("not found") {
-        return Status::not_found(msg);
+    match err.downcast::<AccountingDomainMasterError>() {
+        Ok(domain_err) => {
+            let msg = domain_err.to_string();
+            match domain_err {
+                AccountingDomainMasterError::NotFound(_) => Status::not_found(msg),
+                AccountingDomainMasterError::AlreadyExists(_) => Status::already_exists(msg),
+                AccountingDomainMasterError::VersionConflict(_) => Status::aborted(msg),
+                AccountingDomainMasterError::ValidationFailed(_) => Status::invalid_argument(msg),
+                AccountingDomainMasterError::Internal(_) => Status::internal(msg),
+            }
+        }
+        Err(err) => Status::internal(err.to_string()),
     }
-    if lower.contains("duplicate code") || lower.contains("already exists") {
-        return Status::already_exists(msg);
-    }
-    if lower.contains("validation error") || lower.contains("invalid ") {
-        return Status::invalid_argument(msg);
-    }
-
-    Status::internal(msg)
 }
 
 #[cfg(test)]

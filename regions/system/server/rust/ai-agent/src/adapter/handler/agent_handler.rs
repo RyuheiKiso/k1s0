@@ -53,6 +53,7 @@ pub struct ReviewStepBody {
 
 /// エージェントレスポンス
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 pub struct AgentResponse {
     pub id: String,
     pub name: String,

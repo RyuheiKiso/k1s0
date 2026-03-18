@@ -1,19 +1,36 @@
-use crate::proto::k1s0::event::service::payment::v1::{
-    PaymentCompletedEvent, PaymentFailedEvent, PaymentInitiatedEvent, PaymentRefundedEvent,
+// 決済イベントパブリッシャートレイト。
+// usecase層はドメインイベント型のみに依存し、Proto型には依存しない。
+// Proto型への変換はインフラ層（Kafka producer）で行う。
+
+use crate::domain::entity::event::{
+    PaymentCompletedDomainEvent, PaymentFailedDomainEvent, PaymentInitiatedDomainEvent,
+    PaymentRefundedDomainEvent,
 };
 use async_trait::async_trait;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait PaymentEventPublisher: Send + Sync {
-    // 決済開始イベントを Protobuf 形式で Kafka に publish する
-    async fn publish_payment_initiated(&self, event: &PaymentInitiatedEvent) -> anyhow::Result<()>;
-    // 決済完了イベントを Protobuf 形式で Kafka に publish する
-    async fn publish_payment_completed(&self, event: &PaymentCompletedEvent) -> anyhow::Result<()>;
-    // 決済失敗イベントを Protobuf 形式で Kafka に publish する
-    async fn publish_payment_failed(&self, event: &PaymentFailedEvent) -> anyhow::Result<()>;
-    // 返金イベントを Protobuf 形式で Kafka に publish する
-    async fn publish_payment_refunded(&self, event: &PaymentRefundedEvent) -> anyhow::Result<()>;
+    // 決済開始イベントをドメインイベント型で publish する
+    async fn publish_payment_initiated(
+        &self,
+        event: &PaymentInitiatedDomainEvent,
+    ) -> anyhow::Result<()>;
+    // 決済完了イベントをドメインイベント型で publish する
+    async fn publish_payment_completed(
+        &self,
+        event: &PaymentCompletedDomainEvent,
+    ) -> anyhow::Result<()>;
+    // 決済失敗イベントをドメインイベント型で publish する
+    async fn publish_payment_failed(
+        &self,
+        event: &PaymentFailedDomainEvent,
+    ) -> anyhow::Result<()>;
+    // 返金イベントをドメインイベント型で publish する
+    async fn publish_payment_refunded(
+        &self,
+        event: &PaymentRefundedDomainEvent,
+    ) -> anyhow::Result<()>;
 }
 
 // イベントを何も行わずに成功を返す Noop 実装（テスト・開発用）
@@ -23,23 +40,29 @@ pub struct NoopPaymentEventPublisher;
 impl PaymentEventPublisher for NoopPaymentEventPublisher {
     async fn publish_payment_initiated(
         &self,
-        _event: &PaymentInitiatedEvent,
+        _event: &PaymentInitiatedDomainEvent,
     ) -> anyhow::Result<()> {
         Ok(())
     }
 
     async fn publish_payment_completed(
         &self,
-        _event: &PaymentCompletedEvent,
+        _event: &PaymentCompletedDomainEvent,
     ) -> anyhow::Result<()> {
         Ok(())
     }
 
-    async fn publish_payment_failed(&self, _event: &PaymentFailedEvent) -> anyhow::Result<()> {
+    async fn publish_payment_failed(
+        &self,
+        _event: &PaymentFailedDomainEvent,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 
-    async fn publish_payment_refunded(&self, _event: &PaymentRefundedEvent) -> anyhow::Result<()> {
+    async fn publish_payment_refunded(
+        &self,
+        _event: &PaymentRefundedDomainEvent,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -47,12 +70,12 @@ impl PaymentEventPublisher for NoopPaymentEventPublisher {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::proto::k1s0::system::common::v1::EventMetadata;
+    use crate::domain::entity::event::EventMetadata;
 
     #[tokio::test]
     async fn test_noop_publisher_payment_initiated() {
         let publisher = NoopPaymentEventPublisher;
-        let event = PaymentInitiatedEvent {
+        let event = PaymentInitiatedDomainEvent {
             metadata: Some(EventMetadata {
                 event_id: "evt-001".to_string(),
                 event_type: "payment.initiated".to_string(),
@@ -61,7 +84,6 @@ mod tests {
                 trace_id: "".to_string(),
                 correlation_id: "".to_string(),
                 schema_version: 1,
-                // 因果関係IDは空文字列で初期化する
                 causation_id: "".to_string(),
             }),
             payment_id: "pay-001".to_string(),
@@ -78,7 +100,7 @@ mod tests {
     #[tokio::test]
     async fn test_noop_publisher_payment_completed() {
         let publisher = NoopPaymentEventPublisher;
-        let event = PaymentCompletedEvent {
+        let event = PaymentCompletedDomainEvent {
             metadata: None,
             payment_id: "pay-001".to_string(),
             order_id: "order-001".to_string(),
@@ -93,7 +115,7 @@ mod tests {
     #[tokio::test]
     async fn test_noop_publisher_payment_failed() {
         let publisher = NoopPaymentEventPublisher;
-        let event = PaymentFailedEvent {
+        let event = PaymentFailedDomainEvent {
             metadata: None,
             payment_id: "pay-001".to_string(),
             order_id: "order-001".to_string(),
@@ -107,7 +129,7 @@ mod tests {
     #[tokio::test]
     async fn test_noop_publisher_payment_refunded() {
         let publisher = NoopPaymentEventPublisher;
-        let event = PaymentRefundedEvent {
+        let event = PaymentRefundedDomainEvent {
             metadata: None,
             payment_id: "pay-001".to_string(),
             order_id: "order-001".to_string(),

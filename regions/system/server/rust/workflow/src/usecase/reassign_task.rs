@@ -4,11 +4,14 @@ use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::domain::repository::WorkflowTaskRepository;
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ReassignTaskInput {
     pub task_id: String,
     pub new_assignee_id: String,
+    /// 再割り当て理由（将来のログ・監査用に保持）
+    #[allow(dead_code)]
     pub reason: Option<String>,
+    /// 操作者ID（将来の監査ログ用に保持）
+    #[allow(dead_code)]
     pub actor_id: String,
 }
 

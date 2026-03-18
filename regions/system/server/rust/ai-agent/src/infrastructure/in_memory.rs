@@ -24,6 +24,12 @@ impl InMemoryAgentRepository {
     }
 }
 
+impl Default for InMemoryAgentRepository {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl AgentRepository for InMemoryAgentRepository {
     /// IDでエージェント定義を検索する
@@ -62,6 +68,12 @@ impl InMemoryExecutionRepository {
         Self {
             executions: Arc::new(RwLock::new(Vec::new())),
         }
+    }
+}
+
+impl Default for InMemoryExecutionRepository {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

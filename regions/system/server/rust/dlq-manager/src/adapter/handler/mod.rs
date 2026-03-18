@@ -8,7 +8,7 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::adapter::middleware::auth::{auth_middleware, DlqAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
     DeleteMessageUseCase, GetMessageUseCase, ListMessagesUseCase, RetryAllUseCase,
@@ -25,11 +25,11 @@ pub struct AppState {
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub db_pool: Option<Arc<sqlx::PgPool>>,
     pub publisher: Option<Arc<dyn crate::infrastructure::kafka::producer::DlqEventPublisher>>,
-    pub auth_state: Option<DlqAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: DlqAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

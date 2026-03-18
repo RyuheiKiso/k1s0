@@ -3,9 +3,9 @@
 // テキスト補完、ストリーミング、埋め込み生成、モデル管理、使用量追跡を含む。
 syntax = "proto3";
 
-package k1s0.system.ai_gateway.v1;
+package k1s0.system.aigateway.v1;
 
-option go_package = "github.com/k1s0-platform/system-proto-go/ai_gateway/v1;aigatewayv1";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/aigateway/v1;aigatewayv1";
 
 // AI ゲートウェイサービス: AI モデルへの補完・埋め込みリクエストを仲介する
 service AiGatewayService {

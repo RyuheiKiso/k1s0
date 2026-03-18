@@ -16,13 +16,16 @@ const (
 
 // CSRFMiddleware validates the CSRF token from the request header against the
 // session-bound token. Only enforced for state-changing methods (POST, PUT, PATCH, DELETE).
+// SessionMiddleware がチェーン上で先に実行されている場合は gin.Context からセッションを取得し、
+// 冗長なストアへの問い合わせを回避する。コンテキストにセッションがない場合はフォールバックとして
+// ストアから直接取得する。
 func CSRFMiddleware(store session.Store, headerName string, sessionCookie string) gin.HandlerFunc {
 	if headerName == "" {
 		headerName = DefaultCSRFHeader
 	}
 
 	return func(c *gin.Context) {
-		// Safe methods are exempt from CSRF checks.
+		// 安全なメソッド（GET, HEAD, OPTIONS）は CSRF チェックを免除する。
 		if c.Request.Method == http.MethodGet ||
 			c.Request.Method == http.MethodHead ||
 			c.Request.Method == http.MethodOptions {
@@ -30,24 +33,30 @@ func CSRFMiddleware(store session.Store, headerName string, sessionCookie string
 			return
 		}
 
-		sessionID, err := c.Cookie(sessionCookie)
-		if err != nil || sessionID == "" {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error":      "BFF_CSRF_NO_SESSION",
-				"message":    "Session not found",
-				"request_id": GetRequestID(c),
-			})
-			return
-		}
+		// SessionMiddleware がセットしたセッションをコンテキストから取得する。
+		// これにより、SessionMiddleware の後に実行される場合は冗長な store.Get() を回避できる。
+		sess, ok := GetSessionData(c)
+		if !ok {
+			// フォールバック: SessionMiddleware が未実行の場合はストアから直接取得する。
+			sessionID, err := c.Cookie(sessionCookie)
+			if err != nil || sessionID == "" {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"error":      "BFF_CSRF_NO_SESSION",
+					"message":    "Session not found",
+					"request_id": GetRequestID(c),
+				})
+				return
+			}
 
-		sess, err := store.Get(c.Request.Context(), sessionID)
-		if err != nil || sess == nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error":      "BFF_CSRF_INVALID_SESSION",
-				"message":    "Invalid session",
-				"request_id": GetRequestID(c),
-			})
-			return
+			sess, err = store.Get(c.Request.Context(), sessionID)
+			if err != nil || sess == nil {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"error":      "BFF_CSRF_INVALID_SESSION",
+					"message":    "Invalid session",
+					"request_id": GetRequestID(c),
+				})
+				return
+			}
 		}
 
 		csrfHeader := c.GetHeader(headerName)

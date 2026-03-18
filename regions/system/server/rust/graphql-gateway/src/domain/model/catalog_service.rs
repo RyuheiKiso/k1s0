@@ -39,9 +39,3 @@ pub struct ServiceHealth {
     pub error_message: Option<String>,
     pub checked_at: String,
 }
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, SimpleObject)]
-pub struct DeleteServiceResult {
-    pub success: bool,
-}

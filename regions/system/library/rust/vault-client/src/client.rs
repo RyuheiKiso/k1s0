@@ -47,7 +47,8 @@ impl InMemoryVaultClient {
     }
 
     pub fn put_secret(&self, secret: Secret) {
-        let mut store = self.store.lock().unwrap();
+        // シークレットストアへの書き込みロックを取得する
+        let mut store = self.store.lock().expect("シークレットストアの Mutex ロック取得");
         store.insert(secret.path.clone(), secret);
     }
 }
@@ -55,7 +56,8 @@ impl InMemoryVaultClient {
 #[async_trait]
 impl VaultClient for InMemoryVaultClient {
     async fn get_secret(&self, path: &str) -> Result<Secret, VaultError> {
-        let store = self.store.lock().unwrap();
+        // シークレットストアからの読み取りロックを取得する
+        let store = self.store.lock().expect("シークレットストアの Mutex ロック取得");
         store
             .get(path)
             .cloned()
@@ -72,7 +74,8 @@ impl VaultClient for InMemoryVaultClient {
     }
 
     async fn list_secrets(&self, path_prefix: &str) -> Result<Vec<String>, VaultError> {
-        let store = self.store.lock().unwrap();
+        // シークレットストアからの読み取りロックを取得する
+        let store = self.store.lock().expect("シークレットストアの Mutex ロック取得");
         let paths: Vec<String> = store
             .keys()
             .filter(|k| k.starts_with(path_prefix))

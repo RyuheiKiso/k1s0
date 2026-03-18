@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -57,7 +58,11 @@ func (l *InMemoryLock) Acquire(_ context.Context, key string, ttl time.Duration)
 		return nil, ErrAlreadyLocked
 	}
 
-	token := generateToken()
+	// ロック所有権を識別するためのランダムトークンを生成する
+	token, err := generateToken()
+	if err != nil {
+		return nil, err
+	}
 	l.locks[key] = &lockEntry{
 		token:     token,
 		expiresAt: time.Now().Add(ttl),
@@ -92,11 +97,11 @@ func (l *InMemoryLock) IsLocked(_ context.Context, key string) (bool, error) {
 }
 
 // generateToken はロック所有権を識別するためのランダムトークンを生成する。
-// 暗号学的に安全な乱数を使用し、エラー時はパニックする。
-func generateToken() string {
+// 暗号学的に安全な乱数を使用し、失敗時はエラーを返す。
+func generateToken() (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		panic("crypto/rand.Read failed: " + err.Error())
+		return "", fmt.Errorf("crypto/rand.Read failed: %w", err)
 	}
-	return hex.EncodeToString(b)
+	return hex.EncodeToString(b), nil
 }

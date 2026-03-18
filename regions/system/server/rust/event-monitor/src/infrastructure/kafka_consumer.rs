@@ -181,11 +181,10 @@ impl EventKafkaConsumer {
                 if let Some(flow) = flow_defs.iter().find(|f| f.id == flow_id) {
                     if step_index as usize >= flow.steps.len() - 1 {
                         instance.status = FlowInstanceStatus::Completed;
-                        instance.completed_at = Some(chrono::Utc::now());
-                        let duration = instance
-                            .completed_at
-                            .unwrap()
-                            .signed_duration_since(instance.started_at);
+                        let completed_at = chrono::Utc::now();
+                        instance.completed_at = Some(completed_at);
+                        // 直前に Some を設定しているため安全に参照できる
+                        let duration = completed_at.signed_duration_since(instance.started_at);
                         instance.duration_ms = Some(duration.num_milliseconds());
                     }
                 }

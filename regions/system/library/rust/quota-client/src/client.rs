@@ -140,7 +140,8 @@ impl<C: QuotaClient> QuotaClient for CachedQuotaClient<C> {
 
     async fn get_policy(&self, quota_id: &str) -> Result<QuotaPolicy, QuotaClientError> {
         {
-            let cache = self.policy_cache.lock().unwrap();
+            // ポリシーキャッシュの読み取りロックを取得する
+            let cache = self.policy_cache.lock().expect("ポリシーキャッシュの Mutex ロック取得");
             if let Some(entry) = cache.get(quota_id) {
                 if entry.inserted_at.elapsed() < self.policy_ttl {
                     return Ok(entry.value.clone());
@@ -149,7 +150,8 @@ impl<C: QuotaClient> QuotaClient for CachedQuotaClient<C> {
         }
         let policy = self.inner.get_policy(quota_id).await?;
         {
-            let mut cache = self.policy_cache.lock().unwrap();
+            // ポリシーキャッシュの書き込みロックを取得する
+            let mut cache = self.policy_cache.lock().expect("ポリシーキャッシュの Mutex ロック取得");
             cache.insert(
                 quota_id.to_string(),
                 CacheEntry {
@@ -183,7 +185,7 @@ impl InMemoryQuotaClient {
     }
 
     pub fn set_policy(&self, quota_id: impl Into<String>, policy: QuotaPolicy) {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.lock().expect("InMemoryQuotaClient の Mutex ロック取得");
         state.policies.insert(quota_id.into(), policy);
     }
 
@@ -232,7 +234,7 @@ impl Default for InMemoryQuotaClient {
 #[async_trait]
 impl QuotaClient for InMemoryQuotaClient {
     async fn check(&self, quota_id: &str, amount: u64) -> Result<QuotaStatus, QuotaClientError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.lock().expect("InMemoryQuotaClient の Mutex ロック取得");
         let usage = Self::get_or_create_usage(&mut state, quota_id);
         let remaining = usage.limit.saturating_sub(usage.used);
         Ok(QuotaStatus {
@@ -244,7 +246,7 @@ impl QuotaClient for InMemoryQuotaClient {
     }
 
     async fn increment(&self, quota_id: &str, amount: u64) -> Result<QuotaUsage, QuotaClientError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.lock().expect("InMemoryQuotaClient の Mutex ロック取得");
         let mut usage = Self::get_or_create_usage(&mut state, quota_id);
         usage.used = usage.used.saturating_add(amount);
         state.usages.insert(quota_id.to_string(), usage.clone());
@@ -252,12 +254,12 @@ impl QuotaClient for InMemoryQuotaClient {
     }
 
     async fn get_usage(&self, quota_id: &str) -> Result<QuotaUsage, QuotaClientError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.lock().expect("InMemoryQuotaClient の Mutex ロック取得");
         Ok(Self::get_or_create_usage(&mut state, quota_id))
     }
 
     async fn get_policy(&self, quota_id: &str) -> Result<QuotaPolicy, QuotaClientError> {
-        let state = self.state.lock().unwrap();
+        let state = self.state.lock().expect("InMemoryQuotaClient の Mutex ロック取得");
         Ok(Self::get_policy_internal(&state, quota_id))
     }
 }

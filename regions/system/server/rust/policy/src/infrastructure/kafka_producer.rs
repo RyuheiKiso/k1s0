@@ -132,11 +132,6 @@ impl KafkaPolicyProducer {
         self
     }
 
-    /// 配信先トピック名を返す。
-    #[allow(dead_code)]
-    pub fn topic(&self) -> &str {
-        &self.topic
-    }
 }
 
 #[async_trait]

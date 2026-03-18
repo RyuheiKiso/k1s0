@@ -1,9 +1,23 @@
 # .github/workflows/ci.yaml
 name: CI
 
+# 個別サービス CI ワークフロー (*-ci.yaml) がカバーするパスを除外し、CI の重複実行を防止する
+# 個別 CI が存在しないパス（ライブラリ、クライアント等）の変更のみで全体 CI を起動する
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      # 個別 CI ワークフローがカバーするサービスパス（重複実行の回避）
+      - 'regions/system/server/rust/auth/**'
+      - 'regions/system/server/rust/app-registry/**'
+      - 'regions/system/server/rust/config/**'
+      - 'regions/system/server/rust/saga/**'
+      - 'regions/system/server/rust/dlq-manager/**'
+      - 'regions/system/server/go/bff-proxy/**'
+      - 'regions/service/order/**'
+      - 'regions/service/inventory/**'
+      - 'regions/service/payment/**'
+      - 'regions/business/accounting/**'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -1107,7 +1121,7 @@ jobs:
       - uses: actions/checkout@v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: fs
           scan-ref: .

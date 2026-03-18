@@ -24,6 +24,8 @@ pub const DEFAULT_OTEL_ENDPOINT: &str = "http://otel-collector.observability:431
 
 pub use auth::{allow_insecure_no_auth, require_auth_state};
 pub use error::{ErrorBody, ErrorCode, ErrorDetail, ErrorResponse, ServiceError};
+#[cfg(feature = "grpc-auth")]
+pub use error::{map_anyhow_to_grpc_status, IntoGrpcStatus};
 pub use infra_guard::{allow_in_memory_infra, require_infra, InfraKind};
 pub use pagination::{PaginatedResponse, PaginationResponse};
 pub use response::ApiResponse;

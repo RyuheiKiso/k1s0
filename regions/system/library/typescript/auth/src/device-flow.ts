@@ -94,8 +94,8 @@ export class DeviceAuthClient {
   ): Promise<DeviceTokenResponse> {
     let intervalMs = (interval <= 0 ? 5 : interval) * 1000;
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    // デバイス認証のポーリングループ: トークン取得またはエラーまで継続する
+    for (;;) {
       const params = new URLSearchParams({
         grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
         device_code: deviceCode,

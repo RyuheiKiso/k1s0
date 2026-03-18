@@ -209,7 +209,7 @@ pub async fn get_flow(State(state): State<AppState>, Path(id): Path<Uuid>) -> im
     match state.get_flow_uc.execute(&id).await {
         Ok(flow) => {
             let resp = FlowResponse::from(flow);
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(crate::usecase::get_flow::GetFlowError::NotFound(_)) => {
             let err = ErrorResponse::new(
@@ -251,7 +251,7 @@ pub async fn create_flow(
             let resp = FlowResponse::from(flow);
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).unwrap()),
+                Json(resp),
             )
                 .into_response()
         }
@@ -297,7 +297,7 @@ pub async fn update_flow(
     match state.update_flow_uc.execute(&input).await {
         Ok(flow) => {
             let resp = FlowResponse::from(flow);
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(crate::usecase::update_flow::UpdateFlowError::NotFound(id)) => {
             let err = ErrorResponse::new(
@@ -391,7 +391,7 @@ pub async fn get_flow_instance(
     match state.get_flow_instance_uc.execute(&instance_id).await {
         Ok(instance) => {
             let resp = FlowInstanceResponse::from(instance);
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(crate::usecase::get_flow_instance::GetFlowInstanceError::NotFound(_)) => {
             let err = ErrorResponse::new(

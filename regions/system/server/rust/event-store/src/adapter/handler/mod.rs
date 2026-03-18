@@ -12,7 +12,7 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::adapter::middleware::auth::{auth_middleware, EventStoreAuthState};
+use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::infrastructure::kafka::EventPublisher;
 use crate::usecase::{
@@ -34,11 +34,11 @@ pub struct AppState {
     pub stream_repo: Arc<dyn crate::domain::repository::EventStreamRepository>,
     pub event_publisher: Arc<dyn EventPublisher>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<EventStoreAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: EventStoreAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }

@@ -30,6 +30,8 @@ services:
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
+          # Redis 認証: 不正アクセス防止のためパスワードを設定
+          redis_password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: true
           hide_client_headers: false
     routes:
@@ -47,6 +49,8 @@ services:
               minute: 30                  # ブルートフォース防止（REST-API設計.md 参照）
               policy: ${KONG_RATE_REDIS_POLICY}
               redis_host: redis.k1s0-system.svc.cluster.local
+              # Redis 認証: 不正アクセス防止のためパスワードを設定
+              redis_password: ${KONG_REDIS_PASSWORD}
 
   - name: config-v1
     url: http://config-server.k1s0-system.svc.cluster.local:80
@@ -59,6 +63,8 @@ services:
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
+          # Redis 認証: 不正アクセス防止のためパスワードを設定
+          redis_password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: true
           hide_client_headers: false
     routes:
@@ -78,6 +84,8 @@ services:
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
+          # Redis 認証: 不正アクセス防止のためパスワードを設定
+          redis_password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: true
           hide_client_headers: false
     routes:
@@ -108,6 +116,8 @@ services:
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
+          # Redis 認証: 不正アクセス防止のためパスワードを設定
+          redis_password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: true
           hide_client_headers: false
       - name: jwt
@@ -137,6 +147,8 @@ services:
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
+          # Redis 認証: 不正アクセス防止のためパスワードを設定
+          redis_password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: true
           hide_client_headers: false
       - name: jwt
@@ -163,6 +175,8 @@ services:
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
+          # Redis 認証: 不正アクセス防止のためパスワードを設定
+          redis_password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: true
           hide_client_headers: false
     routes:
@@ -182,6 +196,8 @@ services:
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
+          # Redis 認証: 不正アクセス防止のためパスワードを設定
+          redis_password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: true
           hide_client_headers: false
     routes:
@@ -204,6 +220,8 @@ services:
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
+          # Redis 認証: 不正アクセス防止のためパスワードを設定
+          redis_password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: true
           hide_client_headers: false
     routes:
@@ -223,6 +241,8 @@ services:
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
+          # Redis 認証: 不正アクセス防止のためパスワードを設定
+          redis_password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: true
           hide_client_headers: false
     routes:
@@ -244,6 +264,8 @@ plugins:
       redis_host: redis.k1s0-system.svc.cluster.local
       redis_port: 6379
       redis_database: 1
+      # Redis 認証: 不正アクセス防止のためパスワードを設定
+      redis_password: ${KONG_REDIS_PASSWORD}
       fault_tolerant: true           # Redis 障害時は制限なしで通過
       hide_client_headers: false     # X-RateLimit-* ヘッダーを返却
 

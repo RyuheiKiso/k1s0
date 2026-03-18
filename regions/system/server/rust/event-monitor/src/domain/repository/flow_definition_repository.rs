@@ -14,6 +14,7 @@ pub trait FlowDefinitionRepository: Send + Sync {
         page_size: u32,
         domain: Option<String>,
     ) -> anyhow::Result<(Vec<FlowDefinition>, u64)>;
+    #[allow(dead_code)]
     async fn find_by_domain_and_event_type(
         &self,
         domain: String,

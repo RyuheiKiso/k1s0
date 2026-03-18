@@ -44,7 +44,7 @@ pub struct UpdateTeamRequest {
 )]
 pub async fn list_teams(State(state): State<AppState>) -> impl IntoResponse {
     match state.list_teams_uc.execute().await {
-        Ok(teams) => (StatusCode::OK, Json(serde_json::to_value(teams).unwrap())).into_response(),
+        Ok(teams) => (StatusCode::OK, Json(teams)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
@@ -73,7 +73,7 @@ pub async fn get_team_services(
     match state.list_services_uc.execute(filters).await {
         Ok(services) => (
             StatusCode::OK,
-            Json(serde_json::to_value(services).unwrap()),
+            Json(services),
         )
             .into_response(),
         Err(e) => {
@@ -89,7 +89,7 @@ pub async fn get_team(
     Path(team_id): Path<Uuid>,
 ) -> impl IntoResponse {
     match state.get_team_uc.execute(team_id).await {
-        Ok(team) => (StatusCode::OK, Json(serde_json::to_value(team).unwrap())).into_response(),
+        Ok(team) => (StatusCode::OK, Json(team)).into_response(),
         Err(GetTeamError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_006", "team not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()
@@ -116,7 +116,7 @@ pub async fn create_team(
     match state.create_team_uc.execute(input).await {
         Ok(team) => (
             StatusCode::CREATED,
-            Json(serde_json::to_value(team).unwrap()),
+            Json(team),
         )
             .into_response(),
         Err(CreateTeamError::Validation(msg)) => {
@@ -145,7 +145,7 @@ pub async fn update_team(
     };
 
     match state.update_team_uc.execute(input).await {
-        Ok(team) => (StatusCode::OK, Json(serde_json::to_value(team).unwrap())).into_response(),
+        Ok(team) => (StatusCode::OK, Json(team)).into_response(),
         Err(UpdateTeamError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_006", "team not found");
             (StatusCode::NOT_FOUND, Json(err)).into_response()

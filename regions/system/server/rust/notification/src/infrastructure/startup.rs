@@ -1,3 +1,4 @@
+use anyhow::Context;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -273,7 +274,7 @@ pub async fn run() -> anyhow::Result<()> {
     let auth_state = k1s0_server_common::require_auth_state(
         "notification-server",
         &cfg.app.environment,
-        cfg.auth.as_ref().map(|auth_cfg| {
+        cfg.auth.as_ref().map(|auth_cfg| -> anyhow::Result<_> {
             // ServerBuilder の init_jwks_verifier で JWKS 検証器を構築する
             let jwks_verifier = server
                 .init_jwks_verifier(&k1s0_server_common::startup::JwksAuthConfig {
@@ -282,11 +283,11 @@ pub async fn run() -> anyhow::Result<()> {
                     audience: auth_cfg.audience.clone(),
                     cache_ttl_secs: auth_cfg.jwks_cache_ttl_secs,
                 })
-                .expect("JWKS 検証器の作成に失敗");
-            adapter::middleware::auth::NotificationAuthState {
+                .context("JWKS 検証器の作成に失敗")?;
+            Ok(adapter::middleware::auth::AuthState {
                 verifier: jwks_verifier,
-            }
-        }),
+            })
+        }).transpose()?,
     )?;
 
     let mut state = adapter::handler::AppState {

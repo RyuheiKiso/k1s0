@@ -1,3 +1,4 @@
+use anyhow::Context;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -9,7 +10,7 @@ use crate::infrastructure;
 use crate::usecase;
 
 use crate::adapter::handler::{self, AppState};
-use crate::adapter::middleware::auth::MasterMaintenanceAuthState;
+use crate::adapter::middleware::auth::AuthState;
 use crate::adapter::middleware::grpc_auth::GrpcAuthLayer;
 use crate::infrastructure::config::{Config, DatabaseConfig};
 use crate::MIGRATOR;
@@ -34,7 +35,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
 
     // 2. Config
     info!("starting {}", cfg.app.name);
@@ -206,9 +207,9 @@ pub async fn run() -> anyhow::Result<()> {
             &auth_cfg.audience,
             std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
         )
-        .expect("Failed to create JWKS verifier"),
+        .context("JWKS 検証器の作成に失敗")?,
     );
-    let auth_state = Some(MasterMaintenanceAuthState { verifier });
+    let auth_state = Some(AuthState { verifier });
 
     // 10. AppState + Router
     let state = AppState {

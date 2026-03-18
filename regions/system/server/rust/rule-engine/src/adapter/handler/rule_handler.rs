@@ -73,7 +73,7 @@ pub async fn get_rule(State(state): State<AppState>, Path(id): Path<Uuid>) -> im
     match state.get_rule_uc.execute(&id).await {
         Ok(Some(rule)) => {
             let resp = RuleResponse::from(rule);
-            (StatusCode::OK, Json(serde_json::to_value(resp).expect("ルールレスポンスのJSON変換に失敗"))).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Ok(None) => {
             let err = ErrorResponse::new("SYS_RULE_NOT_FOUND", &format!("rule not found: {}", id));
@@ -103,7 +103,7 @@ pub async fn create_rule(
             let resp = RuleResponse::from(rule);
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).expect("ルールレスポンスのJSON変換に失敗")),
+                Json(resp),
             )
                 .into_response()
         }
@@ -146,7 +146,7 @@ pub async fn update_rule(
     match state.update_rule_uc.execute(&input).await {
         Ok(rule) => {
             let resp = RuleResponse::from(rule);
-            (StatusCode::OK, Json(serde_json::to_value(resp).expect("ルールレスポンスのJSON変換に失敗"))).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(crate::usecase::update_rule::UpdateRuleError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_RULE_NOT_FOUND", &format!("rule not found: {}", id));
@@ -235,7 +235,7 @@ pub async fn get_rule_set(
     match state.get_rule_set_uc.execute(&id).await {
         Ok(Some(rs)) => {
             let resp = RuleSetResponse::from(rs);
-            (StatusCode::OK, Json(serde_json::to_value(resp).expect("ルールレスポンスのJSON変換に失敗"))).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Ok(None) => {
             let err = ErrorResponse::new(
@@ -278,7 +278,7 @@ pub async fn create_rule_set(
             let resp = RuleSetResponse::from(rs);
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).expect("ルールレスポンスのJSON変換に失敗")),
+                Json(resp),
             )
                 .into_response()
         }
@@ -332,7 +332,7 @@ pub async fn update_rule_set(
     match state.update_rule_set_uc.execute(&input).await {
         Ok(rs) => {
             let resp = RuleSetResponse::from(rs);
-            (StatusCode::OK, Json(serde_json::to_value(resp).expect("ルールレスポンスのJSON変換に失敗"))).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(crate::usecase::update_rule_set::UpdateRuleSetError::NotFound(_)) => {
             let err = ErrorResponse::new(

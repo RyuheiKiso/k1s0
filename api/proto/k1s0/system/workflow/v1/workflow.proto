@@ -5,7 +5,7 @@ syntax = "proto3";
 
 package k1s0.system.workflow.v1;
 
-option go_package = "github.com/k1s0-platform/system-proto-go/workflow/v1;workflowv1";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/workflow/v1;workflowv1";
 
 import "k1s0/system/common/v1/types.proto";
 

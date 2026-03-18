@@ -3,7 +3,9 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
@@ -172,10 +174,27 @@ func Load(basePath string, envPath ...string) (*Config, error) {
 
 // Validate は設定値のバリデーションを実行する。
 // バリデーション失敗時は ErrConfigValidation をラップして返す。
+// OIDC の DiscoveryURL/JWKSURI が TLS (https) を使用していない場合は警告ログを出力する。
 func (c *Config) Validate() error {
 	v := validator.New()
 	if err := v.Struct(c); err != nil {
 		return fmt.Errorf("%w: %v", ErrConfigValidation, err)
 	}
+
+	// OIDC エンドポイントが TLS を使用していない場合に警告する
+	// 本番環境では IdP との通信に https を使用すべき
+	if c.Auth.OIDC != nil {
+		if c.Auth.OIDC.DiscoveryURL != "" && !strings.HasPrefix(c.Auth.OIDC.DiscoveryURL, "https://") {
+			slog.Warn("OIDC discovery_url が TLS (https) を使用していません。本番環境では https を使用してください",
+				slog.String("discovery_url", c.Auth.OIDC.DiscoveryURL),
+			)
+		}
+		if c.Auth.OIDC.JWKSURI != "" && !strings.HasPrefix(c.Auth.OIDC.JWKSURI, "https://") {
+			slog.Warn("OIDC jwks_uri が TLS (https) を使用していません。本番環境では https を使用してください",
+				slog.String("jwks_uri", c.Auth.OIDC.JWKSURI),
+			)
+		}
+	}
+
 	return nil
 }

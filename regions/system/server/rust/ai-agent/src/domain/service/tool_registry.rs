@@ -9,6 +9,7 @@ pub struct ToolRegistry {
     tools: Vec<Tool>,
 }
 
+#[allow(dead_code)]
 impl ToolRegistry {
     /// 新しいToolRegistryを生成する
     pub fn new() -> Self {
@@ -25,18 +26,18 @@ impl ToolRegistry {
     pub fn get_schema_for_llm(&self) -> Vec<serde_json::Value> {
         self.tools
             .iter()
-            .filter_map(|tool| {
+            .map(|tool| {
                 // パラメータスキーマをJSONとしてパースする
                 let params: serde_json::Value =
                     serde_json::from_str(&tool.parameters_schema).unwrap_or_default();
-                Some(serde_json::json!({
+                serde_json::json!({
                     "type": "function",
                     "function": {
                         "name": tool.name,
                         "description": tool.description,
                         "parameters": params,
                     }
-                }))
+                })
             })
             .collect()
     }

@@ -77,6 +77,7 @@ impl FlowDefinitionCache {
 
     /// フロー定義の変更時にキャッシュを無効化する。
     /// create/update/delete 操作後に呼び出すことで、次回アクセス時に最新データを取得する。
+    #[allow(dead_code)]
     pub async fn invalidate(&self) {
         self.inner.invalidate(ALL_FLOWS_KEY).await;
     }

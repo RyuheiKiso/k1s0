@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"time"
 )
 
 // ClientErrorKind はクライアントエラーの種別。
@@ -189,7 +190,8 @@ func NewGraphQlHttpClient(endpoint string, headers map[string]string) *GraphQlHt
 	return &GraphQlHttpClient{
 		endpoint:   endpoint,
 		headers:    h,
-		httpClient: &http.Client{},
+		// 無限待ちを防止するため30秒のタイムアウトを設定
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}
 }
 

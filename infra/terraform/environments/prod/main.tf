@@ -10,9 +10,10 @@ terraform {
       source  = "hashicorp/helm"
       version = "~> 2.11"
     }
+    # Vault プロバイダー: modules/vault と統一（~> 4.0）
     vault = {
       source  = "hashicorp/vault"
-      version = "~> 3.20"
+      version = "~> 4.0"
     }
     harbor = {
       source  = "goharbor/harbor"

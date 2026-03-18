@@ -44,6 +44,7 @@ impl DlqGrpcService {
         }
     }
 
+    /// DLQメッセージ一覧を取得する。ドメインエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn list_messages(
         &self,
         topic: &str,
@@ -53,51 +54,65 @@ impl DlqGrpcService {
         self.list_messages_uc
             .execute(topic, page, page_size)
             .await
-            .map_err(|e| GrpcError::Internal(e.to_string()))
+            .map_err(map_anyhow_to_grpc_error)
     }
 
+    /// DLQメッセージを取得する。ドメインエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn get_message(&self, id: &str) -> Result<DlqMessage, GrpcError> {
         let uuid = Uuid::parse_str(id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
-        self.get_message_uc.execute(uuid).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else {
-                GrpcError::Internal(msg)
-            }
-        })
+        self.get_message_uc
+            .execute(uuid)
+            .await
+            .map_err(map_anyhow_to_grpc_error)
     }
 
+    /// DLQメッセージをリトライする。ドメインエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn retry_message(&self, id: &str) -> Result<DlqMessage, GrpcError> {
         let uuid = Uuid::parse_str(id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
-        self.retry_message_uc.execute(uuid).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else if msg.contains("not retryable") {
-                GrpcError::FailedPrecondition(msg)
-            } else {
-                GrpcError::Internal(msg)
-            }
-        })
+        self.retry_message_uc
+            .execute(uuid)
+            .await
+            .map_err(map_anyhow_to_grpc_error)
     }
 
+    /// DLQメッセージを削除する。ドメインエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn delete_message(&self, id: &str) -> Result<(), GrpcError> {
         let uuid = Uuid::parse_str(id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
         self.delete_message_uc
             .execute(uuid)
             .await
-            .map_err(|e| GrpcError::Internal(e.to_string()))
+            .map_err(map_anyhow_to_grpc_error)
     }
 
+    /// トピック内の全DLQメッセージをリトライする。
     pub async fn retry_all(&self, topic: &str) -> Result<i64, GrpcError> {
         self.retry_all_uc
             .execute(topic)
             .await
-            .map_err(|e| GrpcError::Internal(e.to_string()))
+            .map_err(map_anyhow_to_grpc_error)
+    }
+}
+
+/// anyhow::Error をドメインエラー型で型ベースに GrpcError へ変換する。
+/// ダウンキャストに失敗した場合は internal エラーとする。
+fn map_anyhow_to_grpc_error(err: anyhow::Error) -> GrpcError {
+    use crate::domain::error::DlqManagerError;
+
+    match err.downcast::<DlqManagerError>() {
+        Ok(domain_err) => {
+            let msg = domain_err.to_string();
+            match domain_err {
+                DlqManagerError::NotFound(_) => GrpcError::NotFound(msg),
+                DlqManagerError::ProcessFailed(_) => GrpcError::Internal(msg),
+                DlqManagerError::AlreadyProcessed(_) => GrpcError::FailedPrecondition(msg),
+                DlqManagerError::ValidationFailed(_) => GrpcError::InvalidArgument(msg),
+                DlqManagerError::Internal(_) => GrpcError::Internal(msg),
+            }
+        }
+        Err(err) => GrpcError::Internal(err.to_string()),
     }
 }
 

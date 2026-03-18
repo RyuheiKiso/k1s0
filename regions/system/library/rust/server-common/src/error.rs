@@ -428,6 +428,74 @@ impl axum::response::IntoResponse for ErrorResponse {
     }
 }
 
+// --- tonic (gRPC) integration ---
+
+/// ドメインエラーを gRPC ステータスコードにマッピングするトレイト。
+///
+/// 各サーバーの DomainError に実装することで、gRPC ハンドラーから
+/// 統一的に `tonic::Status` へ変換できる。
+/// 典型的な実装: DomainError -> ServiceError -> tonic::Status の変換チェーン。
+#[cfg(feature = "grpc-auth")]
+pub trait IntoGrpcStatus {
+    /// ドメインエラーを gRPC ステータスに変換する。
+    fn into_grpc_status(self) -> tonic::Status;
+}
+
+/// ServiceError から tonic::Status への変換実装。
+/// HTTP ステータスコードと gRPC ステータスコードの標準的な対応関係に従う。
+#[cfg(feature = "grpc-auth")]
+impl From<ServiceError> for tonic::Status {
+    fn from(err: ServiceError) -> Self {
+        let msg = err.to_string();
+        match err {
+            ServiceError::NotFound { .. } => tonic::Status::not_found(msg),
+            ServiceError::BadRequest { .. } => tonic::Status::invalid_argument(msg),
+            ServiceError::Unauthorized { .. } => tonic::Status::unauthenticated(msg),
+            ServiceError::Forbidden { .. } => tonic::Status::permission_denied(msg),
+            ServiceError::Conflict { .. } => tonic::Status::already_exists(msg),
+            ServiceError::UnprocessableEntity { .. } => tonic::Status::failed_precondition(msg),
+            ServiceError::TooManyRequests { .. } => tonic::Status::resource_exhausted(msg),
+            ServiceError::Internal { .. } => tonic::Status::internal(msg),
+            ServiceError::ServiceUnavailable { .. } => tonic::Status::unavailable(msg),
+        }
+    }
+}
+
+/// ServiceError は IntoGrpcStatus を直接実装する。
+#[cfg(feature = "grpc-auth")]
+impl IntoGrpcStatus for ServiceError {
+    fn into_grpc_status(self) -> tonic::Status {
+        self.into()
+    }
+}
+
+/// anyhow::Error からドメインエラー型をダウンキャストして tonic::Status に変換するヘルパー。
+///
+/// ユースケースが anyhow::Result を返す場合に、gRPC ハンドラーで使用する。
+/// ダウンキャストに成功した場合は IntoGrpcStatus 経由で変換し、
+/// 失敗した場合は internal エラーとして扱う。
+///
+/// # 使用例
+/// ```ignore
+/// use k1s0_server_common::error::map_anyhow_to_grpc_status;
+/// use crate::domain::error::MyDomainError;
+///
+/// let status = map_anyhow_to_grpc_status::<MyDomainError>(anyhow_err);
+/// ```
+#[cfg(feature = "grpc-auth")]
+pub fn map_anyhow_to_grpc_status<E>(err: anyhow::Error) -> tonic::Status
+where
+    E: std::error::Error + Send + Sync + 'static + Into<ServiceError>,
+{
+    match err.downcast::<E>() {
+        Ok(domain_err) => {
+            let service_err: ServiceError = domain_err.into();
+            service_err.into()
+        }
+        Err(err) => tonic::Status::internal(err.to_string()),
+    }
+}
+
 // --- Well-known error codes for system tier services ---
 
 /// Well-known error codes for the Auth service.
@@ -1084,5 +1152,147 @@ mod tests {
             session::max_devices_exceeded().as_str(),
             "SYS_SESSION_MAX_DEVICES_EXCEEDED"
         );
+    }
+}
+
+/// gRPC 変換のテストモジュール。
+/// tonic feature が有効な場合のみコンパイルされる。
+#[cfg(all(test, feature = "grpc-auth"))]
+mod grpc_tests {
+    use super::*;
+
+    // ServiceError::NotFound が tonic::Status::not_found に変換されることを確認する。
+    #[test]
+    fn test_service_error_not_found_to_grpc_status() {
+        let err = ServiceError::not_found("TEST", "item not found");
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::NotFound);
+        assert!(status.message().contains("item not found"));
+    }
+
+    // ServiceError::BadRequest が tonic::Status::invalid_argument に変換されることを確認する。
+    #[test]
+    fn test_service_error_bad_request_to_grpc_status() {
+        let err = ServiceError::bad_request("TEST", "invalid input");
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+    }
+
+    // ServiceError::Unauthorized が tonic::Status::unauthenticated に変換されることを確認する。
+    #[test]
+    fn test_service_error_unauthorized_to_grpc_status() {
+        let err = ServiceError::unauthorized("TEST", "not authenticated");
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::Unauthenticated);
+    }
+
+    // ServiceError::Forbidden が tonic::Status::permission_denied に変換されることを確認する。
+    #[test]
+    fn test_service_error_forbidden_to_grpc_status() {
+        let err = ServiceError::forbidden("TEST", "access denied");
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::PermissionDenied);
+    }
+
+    // ServiceError::Conflict が tonic::Status::already_exists に変換されることを確認する。
+    #[test]
+    fn test_service_error_conflict_to_grpc_status() {
+        let err = ServiceError::conflict("TEST", "already exists");
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::AlreadyExists);
+    }
+
+    // ServiceError::UnprocessableEntity が tonic::Status::failed_precondition に変換されることを確認する。
+    #[test]
+    fn test_service_error_unprocessable_to_grpc_status() {
+        let err = ServiceError::unprocessable_entity("TEST", "business rule violation");
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::FailedPrecondition);
+    }
+
+    // ServiceError::TooManyRequests が tonic::Status::resource_exhausted に変換されることを確認する。
+    #[test]
+    fn test_service_error_too_many_requests_to_grpc_status() {
+        let err = ServiceError::too_many_requests("TEST", "rate limit exceeded");
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::ResourceExhausted);
+    }
+
+    // ServiceError::Internal が tonic::Status::internal に変換されることを確認する。
+    #[test]
+    fn test_service_error_internal_to_grpc_status() {
+        let err = ServiceError::internal("TEST", "internal error");
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::Internal);
+    }
+
+    // ServiceError::ServiceUnavailable が tonic::Status::unavailable に変換されることを確認する。
+    #[test]
+    fn test_service_error_unavailable_to_grpc_status() {
+        let err = ServiceError::service_unavailable("TEST", "service unavailable");
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::Unavailable);
+    }
+
+    // IntoGrpcStatus トレイトが ServiceError で正しく動作することを確認する。
+    #[test]
+    fn test_into_grpc_status_trait() {
+        let err = ServiceError::not_found("TEST", "not found via trait");
+        let status = err.into_grpc_status();
+        assert_eq!(status.code(), tonic::Code::NotFound);
+    }
+
+    // map_anyhow_to_grpc_status がドメインエラーのダウンキャストに成功する場合を確認する。
+    #[test]
+    fn test_map_anyhow_to_grpc_status_with_domain_error() {
+        /// テスト用ドメインエラー
+        #[derive(Debug, thiserror::Error)]
+        enum TestDomainError {
+            #[error("test not found: {0}")]
+            NotFound(String),
+        }
+
+        impl From<TestDomainError> for ServiceError {
+            fn from(err: TestDomainError) -> Self {
+                match err {
+                    TestDomainError::NotFound(msg) => ServiceError::NotFound {
+                        code: ErrorCode::new("TEST_NOT_FOUND"),
+                        message: msg,
+                    },
+                }
+            }
+        }
+
+        let anyhow_err: anyhow::Error = TestDomainError::NotFound("item-1".to_string()).into();
+        let status = map_anyhow_to_grpc_status::<TestDomainError>(anyhow_err);
+        assert_eq!(status.code(), tonic::Code::NotFound);
+        assert!(status.message().contains("item-1"));
+    }
+
+    // map_anyhow_to_grpc_status がダウンキャスト失敗時に internal を返すことを確認する。
+    #[test]
+    fn test_map_anyhow_to_grpc_status_fallback_to_internal() {
+        /// テスト用ドメインエラー（ダウンキャスト対象ではない）
+        #[derive(Debug, thiserror::Error)]
+        enum UnrelatedError {
+            #[error("unrelated: {0}")]
+            Other(String),
+        }
+
+        impl From<UnrelatedError> for ServiceError {
+            fn from(err: UnrelatedError) -> Self {
+                match err {
+                    UnrelatedError::Other(msg) => ServiceError::Internal {
+                        code: ErrorCode::new("TEST_INTERNAL"),
+                        message: msg,
+                    },
+                }
+            }
+        }
+
+        let anyhow_err = anyhow::anyhow!("unknown error");
+        let status = map_anyhow_to_grpc_status::<UnrelatedError>(anyhow_err);
+        assert_eq!(status.code(), tonic::Code::Internal);
+        assert!(status.message().contains("unknown error"));
     }
 }

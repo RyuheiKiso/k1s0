@@ -1,276 +1,132 @@
-use crate::domain::repository::order_repository::OrderRepository;
-use crate::proto::k1s0::event::service::order::v1::{
-    OrderCancelledEvent, OrderCreatedEvent, OrderItem, OrderUpdatedEvent,
+use crate::domain::entity::event::{
+    EventMetadata, OrderCancelledDomainEvent, OrderCreatedDomainEvent, OrderItemEvent,
+    OrderUpdatedDomainEvent,
 };
-use crate::proto::k1s0::system::common::v1::EventMetadata;
+use crate::domain::repository::order_repository::OrderRepository;
 use crate::usecase::event_publisher::OrderEventPublisher;
+use k1s0_outbox::util::{json_i32, json_i64, json_str};
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::time;
 
-/// JSON の metadata オブジェクトから EventMetadata Protobuf メッセージに変換する
+/// JSON の metadata オブジェクトからドメインイベント用 EventMetadata に変換する
 fn json_to_event_metadata(metadata: &serde_json::Value) -> EventMetadata {
     EventMetadata {
-        event_id: metadata
-            .get("event_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string(),
-        event_type: metadata
-            .get("event_type")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string(),
-        source: metadata
-            .get("source")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string(),
-        timestamp: metadata
-            .get("timestamp")
-            .and_then(|v| v.as_i64())
-            .unwrap_or_default(),
-        trace_id: metadata
-            .get("trace_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string(),
-        correlation_id: metadata
-            .get("correlation_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string(),
-        schema_version: metadata
-            .get("schema_version")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(1) as i32,
-        // 因果関係追跡用 ID
-        causation_id: metadata
-            .get("causation_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string(),
+        event_id: json_str(metadata, "event_id"),
+        event_type: json_str(metadata, "event_type"),
+        source: json_str(metadata, "source"),
+        timestamp: json_i64(metadata, "timestamp"),
+        trace_id: json_str(metadata, "trace_id"),
+        correlation_id: json_str(metadata, "correlation_id"),
+        schema_version: json_i32(metadata, "schema_version").max(1),
+        causation_id: json_str(metadata, "causation_id"),
     }
 }
 
-/// JSON の items 配列から OrderItem Protobuf メッセージのベクタに変換する
-fn json_to_order_items(items: Option<&serde_json::Value>) -> Vec<OrderItem> {
+/// JSON の items 配列からドメインイベント用 OrderItemEvent のベクタに変換する
+fn json_to_order_items(items: Option<&serde_json::Value>) -> Vec<OrderItemEvent> {
     items
         .and_then(|v| v.as_array())
         .map(|arr| {
             arr.iter()
-                .map(|item| OrderItem {
-                    product_id: item
-                        .get("product_id")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or_default()
-                        .to_string(),
-                    quantity: item
-                        .get("quantity")
-                        .and_then(|v| v.as_i64())
-                        .unwrap_or_default() as i32,
-                    unit_price: item
-                        .get("unit_price")
-                        .and_then(|v| v.as_i64())
-                        .unwrap_or_default(),
+                .map(|item| OrderItemEvent {
+                    product_id: json_str(item, "product_id"),
+                    quantity: json_i32(item, "quantity"),
+                    unit_price: json_i64(item, "unit_price"),
                 })
                 .collect()
         })
         .unwrap_or_default()
 }
 
-/// OutboxPoller — 未パブリッシュの Outbox イベントを定期的にポーリングし、
-/// Kafka へ Protobuf 形式でパブリッシュ後にパブリッシュ済みとしてマークする。
-pub struct OutboxPoller {
-    order_repo: Arc<dyn OrderRepository>,
-    event_publisher: Arc<dyn OrderEventPublisher>,
-    poll_interval: Duration,
-    batch_size: i64,
+/// OrderRepository を OutboxEventFetcher として使えるようにするアダプタ実装。
+/// ドメイン OutboxEvent は k1s0_outbox::OutboxEvent の再エクスポートのため、
+/// 型変換なしで直接返せる。
+#[async_trait::async_trait]
+impl k1s0_outbox::OutboxEventFetcher for dyn OrderRepository {
+    async fn fetch_and_mark_events_published(
+        &self,
+        limit: i64,
+    ) -> anyhow::Result<Vec<k1s0_outbox::OutboxEvent>> {
+        OrderRepository::fetch_and_mark_events_published(self, limit).await
+    }
 }
 
-impl OutboxPoller {
-    pub fn new(
-        order_repo: Arc<dyn OrderRepository>,
-        event_publisher: Arc<dyn OrderEventPublisher>,
-        poll_interval: Duration,
-        batch_size: i64,
-    ) -> Self {
-        Self {
-            order_repo,
-            event_publisher,
-            poll_interval,
-            batch_size,
-        }
-    }
+/// OutboxEventHandler の実装 — イベント種別ごとに JSON を ドメインイベントに変換して publish する
+struct OrderOutboxHandler {
+    publisher: Arc<dyn OrderEventPublisher>,
+}
 
-    /// バックグラウンドタスクとしてポーリングを開始する。
-    /// CancellationToken 等で停止制御する場合は shutdown_rx を使う。
-    pub async fn run(&self, mut shutdown_rx: tokio::sync::watch::Receiver<bool>) {
-        tracing::info!(
-            poll_interval_ms = self.poll_interval.as_millis() as u64,
-            batch_size = self.batch_size,
-            "outbox poller started"
-        );
+#[async_trait::async_trait]
+impl k1s0_outbox::OutboxEventHandler for OrderOutboxHandler {
+    /// イベント種別に応じて JSON payload をドメインイベントに変換し publish する
+    async fn handle_event(&self, event: &k1s0_outbox::OutboxEvent) -> anyhow::Result<bool> {
+        let payload = &event.payload;
 
-        let mut interval = time::interval(self.poll_interval);
-
-        loop {
-            tokio::select! {
-                _ = interval.tick() => {
-                    if let Err(err) = self.poll_and_publish().await {
-                        tracing::error!(error = %err, "outbox poller failed to process events");
-                    }
-                }
-                _ = shutdown_rx.changed() => {
-                    tracing::info!("outbox poller shutting down");
-                    break;
-                }
+        match event.event_type.as_str() {
+            // JSON payload から OrderCreatedDomainEvent に変換して publish する
+            "order.created" => {
+                let metadata = payload.get("metadata").cloned().unwrap_or_default();
+                let domain_event = OrderCreatedDomainEvent {
+                    metadata: Some(json_to_event_metadata(&metadata)),
+                    order_id: json_str(payload, "order_id"),
+                    customer_id: json_str(payload, "customer_id"),
+                    items: json_to_order_items(payload.get("items")),
+                    total_amount: json_i64(payload, "total_amount"),
+                    currency: json_str(payload, "currency"),
+                };
+                self.publisher
+                    .publish_order_created(&domain_event)
+                    .await?;
+                Ok(true)
             }
-        }
-    }
-
-    async fn poll_and_publish(&self) -> anyhow::Result<()> {
-        let events = self
-            .order_repo
-            .fetch_unpublished_events(self.batch_size)
-            .await?;
-
-        if events.is_empty() {
-            return Ok(());
-        }
-
-        tracing::debug!(count = events.len(), "processing outbox events");
-
-        for event in &events {
-            let payload = &event.payload;
-
-            // イベント種別に応じて JSON payload を Protobuf メッセージに変換し publish する
-            let publish_result = match event.event_type.as_str() {
-                "order.created" => {
-                    // JSON payload から OrderCreatedEvent Protobuf メッセージに変換
-                    let metadata = payload.get("metadata").cloned().unwrap_or_default();
-                    let proto_event = OrderCreatedEvent {
-                        metadata: Some(json_to_event_metadata(&metadata)),
-                        order_id: payload
-                            .get("order_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        customer_id: payload
-                            .get("customer_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        items: json_to_order_items(payload.get("items")),
-                        total_amount: payload
-                            .get("total_amount")
-                            .and_then(|v| v.as_i64())
-                            .unwrap_or_default(),
-                        currency: payload
-                            .get("currency")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                    };
-                    self.event_publisher
-                        .publish_order_created(&proto_event)
-                        .await
-                }
-                "order.updated" => {
-                    // JSON payload から OrderUpdatedEvent Protobuf メッセージに変換
-                    let metadata = payload.get("metadata").cloned().unwrap_or_default();
-                    let proto_event = OrderUpdatedEvent {
-                        metadata: Some(json_to_event_metadata(&metadata)),
-                        order_id: payload
-                            .get("order_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        user_id: payload
-                            .get("user_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        items: json_to_order_items(payload.get("items")),
-                        total_amount: payload
-                            .get("total_amount")
-                            .and_then(|v| v.as_i64())
-                            .unwrap_or_default(),
-                        status: payload
-                            .get("status")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                    };
-                    self.event_publisher
-                        .publish_order_updated(&proto_event)
-                        .await
-                }
-                "order.cancelled" => {
-                    // JSON payload から OrderCancelledEvent Protobuf メッセージに変換
-                    let metadata = payload.get("metadata").cloned().unwrap_or_default();
-                    let proto_event = OrderCancelledEvent {
-                        metadata: Some(json_to_event_metadata(&metadata)),
-                        order_id: payload
-                            .get("order_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        user_id: payload
-                            .get("user_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                        reason: payload
-                            .get("reason")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default()
-                            .to_string(),
-                    };
-                    self.event_publisher
-                        .publish_order_cancelled(&proto_event)
-                        .await
-                }
-                unknown => {
-                    tracing::warn!(
-                        event_type = unknown,
-                        event_id = %event.id,
-                        "unknown outbox event type, skipping"
-                    );
-                    continue;
-                }
-            };
-
-            match publish_result {
-                Ok(()) => {
-                    if let Err(err) = self.order_repo.mark_event_published(event.id).await {
-                        tracing::error!(
-                            error = %err,
-                            event_id = %event.id,
-                            "failed to mark outbox event as published"
-                        );
-                    } else {
-                        tracing::debug!(
-                            event_id = %event.id,
-                            event_type = %event.event_type,
-                            "outbox event published and marked"
-                        );
-                    }
-                }
-                Err(err) => {
-                    tracing::warn!(
-                        error = %err,
-                        event_id = %event.id,
-                        event_type = %event.event_type,
-                        "failed to publish outbox event, will retry"
-                    );
-                    // 次のポーリングサイクルでリトライされる
-                }
+            // JSON payload から OrderUpdatedDomainEvent に変換して publish する
+            "order.updated" => {
+                let metadata = payload.get("metadata").cloned().unwrap_or_default();
+                let domain_event = OrderUpdatedDomainEvent {
+                    metadata: Some(json_to_event_metadata(&metadata)),
+                    order_id: json_str(payload, "order_id"),
+                    user_id: json_str(payload, "user_id"),
+                    items: json_to_order_items(payload.get("items")),
+                    total_amount: json_i64(payload, "total_amount"),
+                    status: json_str(payload, "status"),
+                };
+                self.publisher
+                    .publish_order_updated(&domain_event)
+                    .await?;
+                Ok(true)
             }
+            // JSON payload から OrderCancelledDomainEvent に変換して publish する
+            "order.cancelled" => {
+                let metadata = payload.get("metadata").cloned().unwrap_or_default();
+                let domain_event = OrderCancelledDomainEvent {
+                    metadata: Some(json_to_event_metadata(&metadata)),
+                    order_id: json_str(payload, "order_id"),
+                    user_id: json_str(payload, "user_id"),
+                    reason: json_str(payload, "reason"),
+                };
+                self.publisher
+                    .publish_order_cancelled(&domain_event)
+                    .await?;
+                Ok(true)
+            }
+            // 未知のイベント種別はスキップする
+            _ => Ok(false),
         }
-
-        Ok(())
     }
+}
+
+/// OutboxEventPoller のファクトリ関数。
+/// startup.rs から呼び出して汎用ポーラーを構築する。
+/// k1s0_outbox::poller::new_poller を使い、OutboxSource ボイラープレートを削除。
+pub fn new_outbox_poller(
+    order_repo: Arc<dyn OrderRepository>,
+    event_publisher: Arc<dyn OrderEventPublisher>,
+    poll_interval: std::time::Duration,
+    batch_size: i64,
+) -> k1s0_outbox::OutboxEventPoller {
+    let handler = Arc::new(OrderOutboxHandler {
+        publisher: event_publisher,
+    });
+    k1s0_outbox::poller::new_poller(order_repo, handler, poll_interval, batch_size)
 }
 
 #[cfg(test)]
@@ -280,6 +136,7 @@ mod tests {
     use crate::domain::repository::order_repository::MockOrderRepository;
     use crate::usecase::event_publisher::MockOrderEventPublisher;
     use chrono::Utc;
+    use std::time::Duration;
     use uuid::Uuid;
 
     fn sample_outbox_event(event_type: &str) -> OutboxEvent {
@@ -294,142 +151,37 @@ mod tests {
         }
     }
 
+    // ファクトリ関数でポーラーが正常に構築されることを確認する
     #[tokio::test]
-    async fn test_poll_and_publish_empty() {
+    async fn test_new_outbox_poller_creation() {
         let mut mock_repo = MockOrderRepository::new();
         let mock_publisher = MockOrderEventPublisher::new();
 
+        // fetch_and_mark_events_published が空リストを返す
         mock_repo
-            .expect_fetch_unpublished_events()
-            .times(1)
+            .expect_fetch_and_mark_events_published()
             .returning(|_| Ok(vec![]));
 
-        let poller = OutboxPoller::new(
+        let _poller = new_outbox_poller(
             Arc::new(mock_repo),
             Arc::new(mock_publisher),
             Duration::from_secs(1),
             10,
         );
-
-        let result = poller.poll_and_publish().await;
-        assert!(result.is_ok());
     }
 
-    #[tokio::test]
-    async fn test_poll_and_publish_created_event() {
-        let event = sample_outbox_event("order.created");
-        let event_id = event.id;
-        let events = vec![event];
-
-        let mut mock_repo = MockOrderRepository::new();
-        let mut mock_publisher = MockOrderEventPublisher::new();
-
-        mock_repo
-            .expect_fetch_unpublished_events()
-            .times(1)
-            .returning(move |_| Ok(events.clone()));
-
-        mock_publisher
-            .expect_publish_order_created()
-            .times(1)
-            .returning(|_| Ok(()));
-
-        mock_repo
-            .expect_mark_event_published()
-            .withf(move |id| *id == event_id)
-            .times(1)
-            .returning(|_| Ok(()));
-
-        let poller = OutboxPoller::new(
-            Arc::new(mock_repo),
-            Arc::new(mock_publisher),
-            Duration::from_secs(1),
-            10,
-        );
-
-        let result = poller.poll_and_publish().await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_poll_and_publish_cancelled_event() {
-        let event = sample_outbox_event("order.cancelled");
-        let event_id = event.id;
-        let events = vec![event];
-
-        let mut mock_repo = MockOrderRepository::new();
-        let mut mock_publisher = MockOrderEventPublisher::new();
-
-        mock_repo
-            .expect_fetch_unpublished_events()
-            .times(1)
-            .returning(move |_| Ok(events.clone()));
-
-        mock_publisher
-            .expect_publish_order_cancelled()
-            .times(1)
-            .returning(|_| Ok(()));
-
-        mock_repo
-            .expect_mark_event_published()
-            .withf(move |id| *id == event_id)
-            .times(1)
-            .returning(|_| Ok(()));
-
-        let poller = OutboxPoller::new(
-            Arc::new(mock_repo),
-            Arc::new(mock_publisher),
-            Duration::from_secs(1),
-            10,
-        );
-
-        let result = poller.poll_and_publish().await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_poll_and_publish_failure_does_not_mark() {
-        let event = sample_outbox_event("order.created");
-        let events = vec![event];
-
-        let mut mock_repo = MockOrderRepository::new();
-        let mut mock_publisher = MockOrderEventPublisher::new();
-
-        mock_repo
-            .expect_fetch_unpublished_events()
-            .times(1)
-            .returning(move |_| Ok(events.clone()));
-
-        mock_publisher
-            .expect_publish_order_created()
-            .times(1)
-            .returning(|_| Err(anyhow::anyhow!("kafka unavailable")));
-
-        // mark_event_published should NOT be called when publish fails
-        mock_repo.expect_mark_event_published().times(0);
-
-        let poller = OutboxPoller::new(
-            Arc::new(mock_repo),
-            Arc::new(mock_publisher),
-            Duration::from_secs(1),
-            10,
-        );
-
-        let result = poller.poll_and_publish().await;
-        assert!(result.is_ok()); // poller itself should not fail
-    }
-
+    // シャットダウンシグナルを受信すると run が正常終了することを確認する
     #[tokio::test]
     async fn test_run_shutdown() {
         let mut mock_repo = MockOrderRepository::new();
         let mock_publisher = MockOrderEventPublisher::new();
 
-        // Allow any number of poll calls before shutdown
+        // シャットダウンまでの間、任意回数のポーリングを許可する
         mock_repo
-            .expect_fetch_unpublished_events()
+            .expect_fetch_and_mark_events_published()
             .returning(|_| Ok(vec![]));
 
-        let poller = Arc::new(OutboxPoller::new(
+        let poller = Arc::new(new_outbox_poller(
             Arc::new(mock_repo),
             Arc::new(mock_publisher),
             Duration::from_millis(50),
@@ -443,10 +195,124 @@ mod tests {
             poller_clone.run(shutdown_rx).await;
         });
 
-        // Let it poll at least once
+        // 少なくとも1回ポーリングさせる
         tokio::time::sleep(Duration::from_millis(100)).await;
 
-        // Signal shutdown
+        // シャットダウンシグナルを送信
+        shutdown_tx.send(true).unwrap();
+        handle.await.unwrap();
+    }
+
+    // order.created イベントが正常にパブリッシュされることを確認する
+    #[tokio::test]
+    async fn test_poll_and_publish_created_event() {
+        let event = sample_outbox_event("order.created");
+        let events = vec![event];
+
+        let mut mock_repo = MockOrderRepository::new();
+        let mut mock_publisher = MockOrderEventPublisher::new();
+
+        mock_repo
+            .expect_fetch_and_mark_events_published()
+            .times(1)
+            .returning(move |_| Ok(events.clone()));
+
+        mock_publisher
+            .expect_publish_order_created()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let poller = new_outbox_poller(
+            Arc::new(mock_repo),
+            Arc::new(mock_publisher),
+            Duration::from_secs(1),
+            10,
+        );
+
+        let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+        let poller = Arc::new(poller);
+        let poller_clone = poller.clone();
+        let handle = tokio::spawn(async move {
+            poller_clone.run(shutdown_rx).await;
+        });
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        shutdown_tx.send(true).unwrap();
+        handle.await.unwrap();
+    }
+
+    // order.cancelled イベントが正常にパブリッシュされることを確認する
+    #[tokio::test]
+    async fn test_poll_and_publish_cancelled_event() {
+        let event = sample_outbox_event("order.cancelled");
+        let events = vec![event];
+
+        let mut mock_repo = MockOrderRepository::new();
+        let mut mock_publisher = MockOrderEventPublisher::new();
+
+        mock_repo
+            .expect_fetch_and_mark_events_published()
+            .times(1)
+            .returning(move |_| Ok(events.clone()));
+
+        mock_publisher
+            .expect_publish_order_cancelled()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let poller = new_outbox_poller(
+            Arc::new(mock_repo),
+            Arc::new(mock_publisher),
+            Duration::from_secs(1),
+            10,
+        );
+
+        let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+        let poller = Arc::new(poller);
+        let poller_clone = poller.clone();
+        let handle = tokio::spawn(async move {
+            poller_clone.run(shutdown_rx).await;
+        });
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        shutdown_tx.send(true).unwrap();
+        handle.await.unwrap();
+    }
+
+    // publish 失敗時もポーラー自体はエラーにならないことを確認する
+    #[tokio::test]
+    async fn test_poll_and_publish_failure_logs_warning() {
+        let event = sample_outbox_event("order.created");
+        let events = vec![event];
+
+        let mut mock_repo = MockOrderRepository::new();
+        let mut mock_publisher = MockOrderEventPublisher::new();
+
+        mock_repo
+            .expect_fetch_and_mark_events_published()
+            .times(1)
+            .returning(move |_| Ok(events.clone()));
+
+        mock_publisher
+            .expect_publish_order_created()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("kafka unavailable")));
+
+        let poller = new_outbox_poller(
+            Arc::new(mock_repo),
+            Arc::new(mock_publisher),
+            Duration::from_secs(1),
+            10,
+        );
+
+        let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+        let poller = Arc::new(poller);
+        let poller_clone = poller.clone();
+        let handle = tokio::spawn(async move {
+            poller_clone.run(shutdown_rx).await;
+        });
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
         shutdown_tx.send(true).unwrap();
         handle.await.unwrap();
     }

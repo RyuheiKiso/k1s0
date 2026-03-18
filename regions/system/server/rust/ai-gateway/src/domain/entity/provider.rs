@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 /// AIプロバイダーを表すエンティティ。
 /// API接続先のベースURLや有効状態を保持する。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct Provider {
     /// プロバイダーの一意識別子
     pub id: String,
@@ -17,6 +18,7 @@ pub struct Provider {
     pub enabled: bool,
 }
 
+#[allow(dead_code)]
 impl Provider {
     /// 新しいプロバイダーインスタンスを生成する。
     pub fn new(id: String, name: String, api_base_url: String, enabled: bool) -> Self {

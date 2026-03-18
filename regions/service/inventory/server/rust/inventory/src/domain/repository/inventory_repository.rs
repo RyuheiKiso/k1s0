@@ -66,9 +66,12 @@ pub trait InventoryRepository: Send + Sync {
         payload: &serde_json::Value,
     ) -> anyhow::Result<()>;
 
-    /// 未パブリッシュの Outbox イベントを取得する。
-    async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>>;
-
-    /// Outbox イベントをパブリッシュ済みとしてマークする。
-    async fn mark_event_published(&self, event_id: Uuid) -> anyhow::Result<()>;
+    /// 未パブリッシュの Outbox イベントを単一トランザクション内で取得し、
+    /// パブリッシュ済みとしてマークする。
+    /// FOR UPDATE SKIP LOCKED によるロックと mark を同一トランザクションで実行することで、
+    /// 並行ポーラー間での重複処理を防止する。
+    async fn fetch_and_mark_events_published(
+        &self,
+        limit: i64,
+    ) -> anyhow::Result<Vec<OutboxEvent>>;
 }

@@ -50,6 +50,9 @@ jobs:
         server: ${{ fromJson(needs.detect-servers.outputs.matrix) }}
 
     services:
+      # NOTE: DB認証情報は平文で記載しているが、これはエフェメラルCIランナー上の
+      # サービスコンテナ専用であり、テスト完了後に自動破棄される。
+      # 本番環境の認証情報は GitHub Secrets / Vault 経由で管理する。
       postgres:
         image: postgres:17
         env:

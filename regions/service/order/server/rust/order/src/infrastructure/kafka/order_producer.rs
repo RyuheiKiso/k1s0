@@ -1,7 +1,14 @@
+// Kafka を使った注文イベント publisher 実装。
+// ドメインイベント型を受け取り、Proto型に変換してからProtobufシリアライズしてKafkaに送信する。
+
+use crate::domain::entity::event::{
+    OrderCancelledDomainEvent, OrderCreatedDomainEvent, OrderUpdatedDomainEvent,
+};
 use crate::infrastructure::config::KafkaConfig;
 use crate::proto::k1s0::event::service::order::v1::{
-    OrderCancelledEvent, OrderCreatedEvent, OrderUpdatedEvent,
+    OrderCancelledEvent, OrderCreatedEvent, OrderItem as ProtoOrderItem, OrderUpdatedEvent,
 };
+use crate::proto::k1s0::system::common::v1::EventMetadata as ProtoEventMetadata;
 use crate::usecase::event_publisher::OrderEventPublisher;
 use async_trait::async_trait;
 use prost::Message;
@@ -53,25 +60,82 @@ impl OrderKafkaProducer {
     }
 }
 
+// ドメインイベントメタデータからProto型メタデータへの変換
+fn convert_metadata(
+    metadata: &Option<crate::domain::entity::event::EventMetadata>,
+) -> Option<ProtoEventMetadata> {
+    metadata.as_ref().map(|m| ProtoEventMetadata {
+        event_id: m.event_id.clone(),
+        event_type: m.event_type.clone(),
+        source: m.source.clone(),
+        timestamp: m.timestamp,
+        trace_id: m.trace_id.clone(),
+        correlation_id: m.correlation_id.clone(),
+        schema_version: m.schema_version,
+        causation_id: m.causation_id.clone(),
+    })
+}
+
 #[async_trait]
 impl OrderEventPublisher for OrderKafkaProducer {
-    // 注文作成イベントを Protobuf シリアライズして Kafka に publish する
-    async fn publish_order_created(&self, event: &OrderCreatedEvent) -> anyhow::Result<()> {
-        let payload = event.encode_to_vec();
+    // 注文作成ドメインイベントをProto型に変換し、Protobuf シリアライズして Kafka に publish する
+    async fn publish_order_created(&self, event: &OrderCreatedDomainEvent) -> anyhow::Result<()> {
+        let proto_event = OrderCreatedEvent {
+            metadata: convert_metadata(&event.metadata),
+            order_id: event.order_id.clone(),
+            customer_id: event.customer_id.clone(),
+            items: event
+                .items
+                .iter()
+                .map(|i| ProtoOrderItem {
+                    product_id: i.product_id.clone(),
+                    quantity: i.quantity,
+                    unit_price: i.unit_price,
+                })
+                .collect(),
+            total_amount: event.total_amount,
+            currency: event.currency.clone(),
+        };
+        let payload = proto_event.encode_to_vec();
         self.publish(&self.order_created_topic, &event.order_id, &payload)
             .await
     }
 
-    // 注文更新イベントを Protobuf シリアライズして Kafka に publish する
-    async fn publish_order_updated(&self, event: &OrderUpdatedEvent) -> anyhow::Result<()> {
-        let payload = event.encode_to_vec();
+    // 注文更新ドメインイベントをProto型に変換し、Protobuf シリアライズして Kafka に publish する
+    async fn publish_order_updated(&self, event: &OrderUpdatedDomainEvent) -> anyhow::Result<()> {
+        let proto_event = OrderUpdatedEvent {
+            metadata: convert_metadata(&event.metadata),
+            order_id: event.order_id.clone(),
+            user_id: event.user_id.clone(),
+            items: event
+                .items
+                .iter()
+                .map(|i| ProtoOrderItem {
+                    product_id: i.product_id.clone(),
+                    quantity: i.quantity,
+                    unit_price: i.unit_price,
+                })
+                .collect(),
+            total_amount: event.total_amount,
+            status: event.status.clone(),
+        };
+        let payload = proto_event.encode_to_vec();
         self.publish(&self.order_updated_topic, &event.order_id, &payload)
             .await
     }
 
-    // 注文キャンセルイベントを Protobuf シリアライズして Kafka に publish する
-    async fn publish_order_cancelled(&self, event: &OrderCancelledEvent) -> anyhow::Result<()> {
-        let payload = event.encode_to_vec();
+    // 注文キャンセルドメインイベントをProto型に変換し、Protobuf シリアライズして Kafka に publish する
+    async fn publish_order_cancelled(
+        &self,
+        event: &OrderCancelledDomainEvent,
+    ) -> anyhow::Result<()> {
+        let proto_event = OrderCancelledEvent {
+            metadata: convert_metadata(&event.metadata),
+            order_id: event.order_id.clone(),
+            user_id: event.user_id.clone(),
+            reason: event.reason.clone(),
+        };
+        let payload = proto_event.encode_to_vec();
         self.publish(&self.order_cancelled_topic, &event.order_id, &payload)
             .await
     }
@@ -80,14 +144,13 @@ impl OrderEventPublisher for OrderKafkaProducer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::proto::k1s0::event::service::order::v1::OrderItem;
-    use crate::proto::k1s0::system::common::v1::EventMetadata;
+    use crate::domain::entity::event::{EventMetadata, OrderItemEvent};
     use prost::Message;
 
     #[test]
     fn test_order_created_event_serialization() {
-        // Protobuf シリアライズ・デシリアライズの往復検証
-        let event = OrderCreatedEvent {
+        // ドメインイベントからProto型への変換とProtobuf往復検証
+        let domain_event = OrderCreatedDomainEvent {
             metadata: Some(EventMetadata {
                 event_id: "evt-001".to_string(),
                 event_type: "order.created".to_string(),
@@ -96,12 +159,11 @@ mod tests {
                 trace_id: "".to_string(),
                 correlation_id: "order-001".to_string(),
                 schema_version: 1,
-                // 因果関係IDは空文字列で初期化する
                 causation_id: "".to_string(),
             }),
             order_id: "order-001".to_string(),
             customer_id: "cust-001".to_string(),
-            items: vec![OrderItem {
+            items: vec![OrderItemEvent {
                 product_id: "prod-001".to_string(),
                 quantity: 2,
                 unit_price: 1000,
@@ -110,7 +172,25 @@ mod tests {
             currency: "JPY".to_string(),
         };
 
-        let bytes = event.encode_to_vec();
+        // ドメインイベントからProto型に変換
+        let proto_event = OrderCreatedEvent {
+            metadata: convert_metadata(&domain_event.metadata),
+            order_id: domain_event.order_id.clone(),
+            customer_id: domain_event.customer_id.clone(),
+            items: domain_event
+                .items
+                .iter()
+                .map(|i| ProtoOrderItem {
+                    product_id: i.product_id.clone(),
+                    quantity: i.quantity,
+                    unit_price: i.unit_price,
+                })
+                .collect(),
+            total_amount: domain_event.total_amount,
+            currency: domain_event.currency.clone(),
+        };
+
+        let bytes = proto_event.encode_to_vec();
         assert!(!bytes.is_empty());
 
         // デシリアライズして元のフィールド値と一致することを確認

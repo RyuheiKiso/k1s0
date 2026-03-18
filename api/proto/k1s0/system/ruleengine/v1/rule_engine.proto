@@ -1,5 +1,5 @@
 syntax = "proto3";
-package k1s0.system.rule_engine.v1;
+package k1s0.system.ruleengine.v1;
 
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/ruleengine/v1;ruleenginev1";
 

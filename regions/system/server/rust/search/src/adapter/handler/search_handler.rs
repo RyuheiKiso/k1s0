@@ -15,7 +15,7 @@ use crate::usecase::{
     SearchUseCase,
 };
 
-use crate::adapter::middleware::auth::SearchAuthState;
+use crate::adapter::middleware::auth::AuthState;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -25,11 +25,11 @@ pub struct AppState {
     pub create_index_uc: Arc<CreateIndexUseCase>,
     pub list_indices_uc: Arc<ListIndicesUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
-    pub auth_state: Option<SearchAuthState>,
+    pub auth_state: Option<AuthState>,
 }
 
 impl AppState {
-    pub fn with_auth(mut self, auth_state: SearchAuthState) -> Self {
+    pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
@@ -162,7 +162,7 @@ pub async fn search(
                     has_next: result.pagination.has_next,
                 },
             };
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(resp)).into_response()
         }
         Err(SearchError::IndexNotFound(name)) => error_response(
             StatusCode::NOT_FOUND,
@@ -223,7 +223,7 @@ pub async fn index_document(
             };
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).unwrap()),
+                Json(resp),
             )
                 .into_response()
         }

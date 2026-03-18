@@ -21,7 +21,7 @@ impl IntoResponse for GetConfigError {
             GetConfigError::NotFound(ns, key) => {
                 let err = ErrorResponse::new(
                     codes::config::key_not_found().as_str(),
-                    &format!("指定された設定キーが見つかりません: {}/{}", ns, key),
+                    format!("指定された設定キーが見つかりません: {}/{}", ns, key),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
@@ -56,7 +56,7 @@ impl IntoResponse for UpdateConfigError {
             UpdateConfigError::NotFound(ns, key) => {
                 let err = ErrorResponse::new(
                     codes::config::key_not_found().as_str(),
-                    &format!("指定された設定キーが見つかりません: {}/{}", ns, key),
+                    format!("指定された設定キーが見つかりません: {}/{}", ns, key),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
@@ -96,7 +96,7 @@ impl IntoResponse for DeleteConfigError {
             DeleteConfigError::NotFound(ns, key) => {
                 let err = ErrorResponse::new(
                     codes::config::key_not_found().as_str(),
-                    &format!("指定された設定キーが見つかりません: {}/{}", ns, key),
+                    format!("指定された設定キーが見つかりません: {}/{}", ns, key),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
@@ -115,7 +115,7 @@ impl IntoResponse for GetServiceConfigError {
             GetServiceConfigError::NotFound(name) => {
                 let err = ErrorResponse::new(
                     codes::config::service_not_found().as_str(),
-                    &format!("指定されたサービスの設定が見つかりません: {}", name),
+                    format!("指定されたサービスの設定が見つかりません: {}", name),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
@@ -134,7 +134,7 @@ impl IntoResponse for GetConfigSchemaError {
             GetConfigSchemaError::NotFound(name) => {
                 let err = ErrorResponse::new(
                     codes::config::schema_not_found().as_str(),
-                    &format!("指定されたサービスの設定スキーマが見つかりません: {}", name),
+                    format!("指定されたサービスの設定スキーマが見つかりません: {}", name),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
@@ -178,8 +178,8 @@ mod tests {
         let status = resp.status();
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("test operation should succeed");
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("test operation should succeed");
         (status, json)
     }
 
@@ -204,7 +204,7 @@ mod tests {
 
         assert_eq!(status, StatusCode::CONFLICT);
         assert_eq!(json["error"]["code"], "SYS_CONFIG_VERSION_CONFLICT");
-        assert!(!json["error"]["details"].as_array().unwrap().is_empty());
+        assert!(!json["error"]["details"].as_array().expect("details should be an array").is_empty());
     }
 
     #[tokio::test]

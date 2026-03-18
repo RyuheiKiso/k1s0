@@ -9,12 +9,16 @@ use k1s0_circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitBreakerE
 use tokio::sync::RwLock;
 
 /// サーキットブレーカーのデフォルト設定値
+#[allow(dead_code)]
 const DEFAULT_FAILURE_THRESHOLD: u32 = 5;
+#[allow(dead_code)]
 const DEFAULT_SUCCESS_THRESHOLD: u32 = 3;
+#[allow(dead_code)]
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
 
 /// バックエンドサービス名ごとにサーキットブレーカーを保持するレジストリ。
 /// graphql-gateway が呼び出す各 gRPC バックエンドの障害を個別に管理する。
+#[allow(dead_code)]
 pub struct CircuitBreakerRegistry {
     /// サービス名 → サーキットブレーカーのマッピング
     breakers: RwLock<HashMap<String, Arc<CircuitBreaker>>>,
@@ -22,6 +26,7 @@ pub struct CircuitBreakerRegistry {
     default_config: CircuitBreakerConfig,
 }
 
+#[allow(dead_code)]
 impl CircuitBreakerRegistry {
     /// デフォルト設定でレジストリを生成する。
     pub fn new() -> Self {
@@ -75,6 +80,12 @@ impl CircuitBreakerRegistry {
     {
         let cb = self.get(service_name).await;
         cb.call(f).await
+    }
+}
+
+impl Default for CircuitBreakerRegistry {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

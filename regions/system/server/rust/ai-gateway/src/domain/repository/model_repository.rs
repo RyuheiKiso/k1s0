@@ -13,5 +13,6 @@ pub trait ModelRepository: Send + Sync {
     async fn find_all(&self) -> Vec<AiModel>;
 
     /// 指定IDのモデルを取得する。存在しない場合はNone。
+    #[allow(dead_code)]
     async fn find_by_id(&self, id: &str) -> Option<AiModel>;
 }

@@ -5,16 +5,16 @@ use axum::http::{self, Request, Response};
 use tonic::body::{empty_body, BoxBody};
 use tower::{Layer, Service};
 
-use crate::adapter::middleware::auth::MasterMaintenanceAuthState;
+use crate::adapter::middleware::auth::AuthState;
 use crate::adapter::middleware::rbac::check_system_permission;
 
 #[derive(Clone)]
 pub struct GrpcAuthLayer {
-    auth_state: Option<MasterMaintenanceAuthState>,
+    auth_state: Option<AuthState>,
 }
 
 impl GrpcAuthLayer {
-    pub fn new(auth_state: Option<MasterMaintenanceAuthState>) -> Self {
+    pub fn new(auth_state: Option<AuthState>) -> Self {
         Self { auth_state }
     }
 }
@@ -33,7 +33,7 @@ impl<S> Layer<S> for GrpcAuthLayer {
 #[derive(Clone)]
 pub struct GrpcAuthService<S> {
     inner: S,
-    auth_state: Option<MasterMaintenanceAuthState>,
+    auth_state: Option<AuthState>,
 }
 
 impl<S, ReqBody> Service<Request<ReqBody>> for GrpcAuthService<S>

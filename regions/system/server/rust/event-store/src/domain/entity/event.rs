@@ -108,6 +108,7 @@ impl Snapshot {
     }
 }
 
+#[allow(dead_code)]
 impl StoredEvent {
     /// イベントスキーマを最新バージョンにアップキャストする（M-12）。
     /// version フィールドに基づいて、古いスキーマから新しいスキーマへの
@@ -223,8 +224,8 @@ mod tests {
             payload: serde_json::json!({"total": 3000}),
             metadata: EventMetadata::new(Some("user-001".to_string()), None, None),
         };
-        let json = serde_json::to_string(&data).unwrap();
-        let parsed: EventData = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&data).expect("test serialization should succeed");
+        let parsed: EventData = serde_json::from_str(&json).expect("test serialization should succeed");
         assert_eq!(parsed.event_type, "OrderPlaced");
         assert_eq!(parsed.payload["total"], 3000);
     }

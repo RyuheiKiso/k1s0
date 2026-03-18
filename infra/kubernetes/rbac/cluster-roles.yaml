@@ -25,22 +25,65 @@ rules:
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 # インフラ管理者用 Role
+# ワイルドカードを排除し、管理に必要なリソースとverbを明示的に列挙する
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: k1s0-admin
 rules:
-  - apiGroups: ["*"]
-    resources: ["*"]
-    verbs: ["*"]
+  # コアリソース（Pod、Service、ConfigMap、Secret、Namespace、PersistentVolumeClaim等）の全操作
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "secrets", "namespaces", "persistentvolumeclaims", "serviceaccounts", "events", "endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # apps グループ（Deployment、StatefulSet、DaemonSet、ReplicaSet）の全操作
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # batch グループ（Job、CronJob）の全操作
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # ネットワークポリシーの管理
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # RBAC リソースの管理
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # オートスケーリングの管理
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # ストレージの管理
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 # 運用監視用 readonly Role
-# 全リソースの参照のみ(get, list, watch)を許可
+# 参照のみ(get, list, watch)を許可。secrets は機密情報のため除外する
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: readonly
 rules:
-  - apiGroups: ["*"]
-    resources: ["*"]
+  # コアリソースの参照（secrets を除外してセキュリティを確保）
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "namespaces", "persistentvolumeclaims", "serviceaccounts", "events", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  # apps グループの参照
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  # batch グループの参照
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  # ネットワークリソースの参照
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch"]
+  # オートスケーリングの参照
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
     verbs: ["get", "list", "watch"]

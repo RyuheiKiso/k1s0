@@ -1,5 +1,6 @@
 # Build stage
-FROM golang:1.23-alpine AS builder
+# Go 1.24 にアップデートしてセキュリティパッチと最新機能を適用する
+FROM golang:1.24-alpine AS builder
 
 RUN apk add --no-cache ca-certificates git
 

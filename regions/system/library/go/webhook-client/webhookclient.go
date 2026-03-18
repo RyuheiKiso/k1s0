@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"time"
@@ -124,6 +124,7 @@ type HTTPWebhookClient struct {
 	Secret     string
 	Config     WebhookConfig
 	HTTPClient *http.Client
+	Logger     *slog.Logger
 }
 
 // NewHTTPWebhookClient は新しい HTTPWebhookClient を生成する。
@@ -134,6 +135,7 @@ func NewHTTPWebhookClient(secret string) *HTTPWebhookClient {
 		HTTPClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		Logger: slog.Default(),
 	}
 }
 
@@ -145,6 +147,7 @@ func NewHTTPWebhookClientWithConfig(secret string, config WebhookConfig) *HTTPWe
 		HTTPClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		Logger: slog.Default(),
 	}
 }
 
@@ -152,6 +155,12 @@ func (c *HTTPWebhookClient) Send(ctx context.Context, url string, payload *Webho
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return 0, fmt.Errorf("ペイロードのJSON変換に失敗: %w", err)
+	}
+
+	// ロガーを取得する（nil の場合はデフォルトロガーを使用）
+	logger := c.Logger
+	if logger == nil {
+		logger = slog.Default()
 	}
 
 	signature := GenerateSignature(c.Secret, body)
@@ -162,10 +171,20 @@ func (c *HTTPWebhookClient) Send(ctx context.Context, url string, payload *Webho
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		if attempt > 0 {
 			delay := calculateBackoff(attempt-1, c.Config.InitialBackoffMs, c.Config.MaxBackoffMs)
-			log.Printf("[webhook-client] リトライ attempt=%d/%d, 待機=%v, url=%s", attempt+1, maxAttempts, delay, url)
+			// リトライ時のログ: 試行回数と待機時間を構造化フィールドで記録する
+			logger.Info("Webhookリトライ",
+				slog.Int("attempt", attempt+1),
+				slog.Int("max_attempts", maxAttempts),
+				slog.Duration("delay", delay),
+				slog.String("url", url),
+			)
 			sleepFunc(delay)
 		} else {
-			log.Printf("[webhook-client] 送信開始 url=%s, idempotency_key=%s", url, idempotencyKey)
+			// 初回送信のログ
+			logger.Info("Webhook送信開始",
+				slog.String("url", url),
+				slog.String("idempotency_key", idempotencyKey),
+			)
 		}
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
@@ -178,7 +197,12 @@ func (c *HTTPWebhookClient) Send(ctx context.Context, url string, payload *Webho
 
 		resp, err := c.HTTPClient.Do(req)
 		if err != nil {
-			log.Printf("[webhook-client] 送信エラー attempt=%d/%d, error=%v", attempt+1, maxAttempts, err)
+			// 送信エラーをログに記録する
+			logger.Error("Webhook送信エラー",
+				slog.Int("attempt", attempt+1),
+				slog.Int("max_attempts", maxAttempts),
+				slog.String("error", err.Error()),
+			)
 			if attempt == maxAttempts-1 {
 				return 0, fmt.Errorf("Webhook送信に失敗: %w", err)
 			}
@@ -188,11 +212,21 @@ func (c *HTTPWebhookClient) Send(ctx context.Context, url string, payload *Webho
 		lastStatusCode = resp.StatusCode
 
 		if !isRetryableStatus(lastStatusCode) {
-			log.Printf("[webhook-client] 送信完了 status=%d, attempt=%d/%d", lastStatusCode, attempt+1, maxAttempts)
+			// 送信完了のログ
+			logger.Info("Webhook送信完了",
+				slog.Int("status", lastStatusCode),
+				slog.Int("attempt", attempt+1),
+				slog.Int("max_attempts", maxAttempts),
+			)
 			return lastStatusCode, nil
 		}
 
-		log.Printf("[webhook-client] リトライ対象ステータス status=%d, attempt=%d/%d", lastStatusCode, attempt+1, maxAttempts)
+		// リトライ対象ステータスのログ
+		logger.Warn("Webhookリトライ対象ステータス",
+			slog.Int("status", lastStatusCode),
+			slog.Int("attempt", attempt+1),
+			slog.Int("max_attempts", maxAttempts),
+		)
 	}
 
 	return lastStatusCode, &MaxRetriesExceededError{

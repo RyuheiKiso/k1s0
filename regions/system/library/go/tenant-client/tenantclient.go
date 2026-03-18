@@ -241,7 +241,8 @@ type HttpTenantClient struct {
 func NewHttpTenantClient(addr string, config TenantClientConfig) (*HttpTenantClient, error) {
 	return &HttpTenantClient{
 		baseURL:    addr,
-		httpClient: &http.Client{},
+		// 無限待ちを防止するため30秒のタイムアウトを設定
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 		config:     config,
 	}, nil
 }

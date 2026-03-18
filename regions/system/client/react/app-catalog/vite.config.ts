@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { readFileSync, existsSync } from 'fs';
 import { parse } from 'yaml';
 import deepmerge from 'deepmerge';
+import path from 'path';
 
 /// 環境変数から実行環境を取得（デフォルト: development）
 const env = process.env.APP_ENV ?? 'development';
@@ -18,6 +19,12 @@ const config = deepmerge(base, overlay);
 /// Viteビルド設定: YAML設定からプロキシとアプリ設定を注入（ポート5173を維持）
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    // system-client パッケージへのエイリアス（相対パス依存を排除）
+    alias: {
+      'system-client': path.resolve(__dirname, '../system-client/src'),
+    },
+  },
   define: { __APP_CONFIG__: JSON.stringify(config) },
   server: {
     port: 5173,

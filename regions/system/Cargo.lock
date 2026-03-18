@@ -4227,6 +4227,7 @@ dependencies = [
 name = "k1s0-outbox"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "chrono",
  "mockall",

@@ -94,8 +94,9 @@ func NewResiliencyDecorator(policy ResiliencyPolicy) *ResiliencyDecorator {
 	return d
 }
 
-// Execute runs the provided function with the configured resiliency policy.
-func Execute[T any](ctx context.Context, d *ResiliencyDecorator, fn func() (T, error)) (T, error) {
+// Execute は設定されたレジリエンシーポリシーに従って関数を実行する。
+// fn に context.Context を渡すことで、タイムアウトやキャンセルの伝播を可能にする。
+func Execute[T any](ctx context.Context, d *ResiliencyDecorator, fn func(ctx context.Context) (T, error)) (T, error) {
 	var zero T
 
 	// Check circuit breaker
@@ -163,12 +164,16 @@ func Execute[T any](ctx context.Context, d *ResiliencyDecorator, fn func() (T, e
 	}
 }
 
-func executeWithTimeout[T any](ctx context.Context, d *ResiliencyDecorator, fn func() (T, error)) (T, error) {
+// executeWithTimeout はタイムアウト付きで関数を実行する。
+// タイムアウト未設定の場合は現在のコンテキストをそのまま fn に渡す。
+func executeWithTimeout[T any](ctx context.Context, d *ResiliencyDecorator, fn func(ctx context.Context) (T, error)) (T, error) {
 	var zero T
+	// タイムアウト未設定の場合は現在のコンテキストで直接実行
 	if d.policy.Timeout <= 0 {
-		return fn()
+		return fn(ctx)
 	}
 
+	// タイムアウト付きコンテキストを生成し、fn に渡してキャンセル伝播を可能にする
 	ctx, cancel := context.WithTimeout(ctx, d.policy.Timeout)
 	defer cancel()
 
@@ -179,7 +184,8 @@ func executeWithTimeout[T any](ctx context.Context, d *ResiliencyDecorator, fn f
 
 	ch := make(chan result, 1)
 	go func() {
-		v, e := fn()
+		// タイムアウト付きコンテキストを fn に渡すことで、fn 内部でキャンセルを検知可能
+		v, e := fn(ctx)
 		ch <- result{v, e}
 	}()
 

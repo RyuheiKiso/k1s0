@@ -543,17 +543,17 @@ impl NotificationGrpcService {
         })
     }
 
+    /// チャンネルを取得する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn get_channel(
         &self,
         req: GetChannelRequest,
     ) -> Result<GetChannelResponse, GrpcError> {
         let uc = Self::require(&self.get_channel_uc, "get_channel")?;
         let channel = uc.execute(&req.id).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else {
-                GrpcError::Internal(msg)
+            use crate::usecase::get_channel::GetChannelError;
+            match e {
+                GetChannelError::NotFound(msg) => GrpcError::NotFound(msg),
+                GetChannelError::Internal(msg) => GrpcError::Internal(msg),
             }
         })?;
         Ok(GetChannelResponse {
@@ -579,12 +579,12 @@ impl NotificationGrpcService {
             enabled: req.enabled,
             config,
         };
+        // チャンネル更新。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
         let channel = uc.execute(&input).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else {
-                GrpcError::Internal(msg)
+            use crate::usecase::update_channel::UpdateChannelError;
+            match e {
+                UpdateChannelError::NotFound(msg) => GrpcError::NotFound(msg),
+                UpdateChannelError::Internal(msg) => GrpcError::Internal(msg),
             }
         })?;
         Ok(UpdateChannelResponse {
@@ -592,17 +592,17 @@ impl NotificationGrpcService {
         })
     }
 
+    /// チャンネルを削除する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn delete_channel(
         &self,
         req: DeleteChannelRequest,
     ) -> Result<DeleteChannelResponse, GrpcError> {
         let uc = Self::require(&self.delete_channel_uc, "delete_channel")?;
         uc.execute(&req.id).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else {
-                GrpcError::Internal(msg)
+            use crate::usecase::delete_channel::DeleteChannelError;
+            match e {
+                DeleteChannelError::NotFound(msg) => GrpcError::NotFound(msg),
+                DeleteChannelError::Internal(msg) => GrpcError::Internal(msg),
             }
         })?;
         Ok(DeleteChannelResponse {
@@ -655,17 +655,17 @@ impl NotificationGrpcService {
         })
     }
 
+    /// テンプレートを取得する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn get_template(
         &self,
         req: GetTemplateRequest,
     ) -> Result<GetTemplateResponse, GrpcError> {
         let uc = Self::require(&self.get_template_uc, "get_template")?;
         let template = uc.execute(&req.id).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else {
-                GrpcError::Internal(msg)
+            use crate::usecase::get_template::GetTemplateError;
+            match e {
+                GetTemplateError::NotFound(msg) => GrpcError::NotFound(msg),
+                GetTemplateError::Internal(msg) => GrpcError::Internal(msg),
             }
         })?;
         Ok(GetTemplateResponse {
@@ -684,12 +684,12 @@ impl NotificationGrpcService {
             subject_template: req.subject_template,
             body_template: req.body_template,
         };
+        // テンプレート更新。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
         let template = uc.execute(&input).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else {
-                GrpcError::Internal(msg)
+            use crate::usecase::update_template::UpdateTemplateError;
+            match e {
+                UpdateTemplateError::NotFound(msg) => GrpcError::NotFound(msg),
+                UpdateTemplateError::Internal(msg) => GrpcError::Internal(msg),
             }
         })?;
         Ok(UpdateTemplateResponse {
@@ -697,17 +697,17 @@ impl NotificationGrpcService {
         })
     }
 
+    /// テンプレートを削除する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
     pub async fn delete_template(
         &self,
         req: DeleteTemplateRequest,
     ) -> Result<DeleteTemplateResponse, GrpcError> {
         let uc = Self::require(&self.delete_template_uc, "delete_template")?;
         uc.execute(&req.id).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else {
-                GrpcError::Internal(msg)
+            use crate::usecase::delete_template::DeleteTemplateError;
+            match e {
+                DeleteTemplateError::NotFound(msg) => GrpcError::NotFound(msg),
+                DeleteTemplateError::Internal(msg) => GrpcError::Internal(msg),
             }
         })?;
         Ok(DeleteTemplateResponse {

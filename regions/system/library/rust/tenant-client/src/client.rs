@@ -59,9 +59,10 @@ impl InMemoryTenantClient {
     }
 
     pub fn add_tenant(&self, tenant: Tenant) {
+        // テナントストアへの書き込みロックを取得してテナントを追加する
         self.tenants
             .lock()
-            .unwrap()
+            .expect("テナントストアの Mutex ロック取得")
             .insert(tenant.id.clone(), tenant);
     }
 }
@@ -75,7 +76,8 @@ impl Default for InMemoryTenantClient {
 #[async_trait]
 impl TenantClient for InMemoryTenantClient {
     async fn get_tenant(&self, tenant_id: &str) -> Result<Tenant, TenantError> {
-        let tenants = self.tenants.lock().unwrap();
+        // テナントストアからの読み取りロックを取得する
+        let tenants = self.tenants.lock().expect("テナントストアの Mutex ロック取得");
         tenants
             .get(tenant_id)
             .cloned()
@@ -83,7 +85,8 @@ impl TenantClient for InMemoryTenantClient {
     }
 
     async fn list_tenants(&self, filter: TenantFilter) -> Result<Vec<Tenant>, TenantError> {
-        let tenants = self.tenants.lock().unwrap();
+        // テナントストアからの読み取りロックを取得する
+        let tenants = self.tenants.lock().expect("テナントストアの Mutex ロック取得");
         let result: Vec<Tenant> = tenants
             .values()
             .filter(|t| {
@@ -124,7 +127,8 @@ impl TenantClient for InMemoryTenantClient {
             created_at: chrono::Utc::now(),
         };
         {
-            let mut tenants = self.tenants.lock().unwrap();
+            // テナントストアへの書き込みロックを取得する
+            let mut tenants = self.tenants.lock().expect("テナントストアの Mutex ロック取得");
             tenants.insert(tenant.id.clone(), tenant.clone());
         }
         // Set provisioning status to Pending
@@ -141,7 +145,8 @@ impl TenantClient for InMemoryTenantClient {
     ) -> Result<TenantMember, TenantError> {
         // Verify tenant exists
         {
-            let tenants = self.tenants.lock().unwrap();
+            // テナント存在確認のため読み取りロックを取得する
+            let tenants = self.tenants.lock().expect("テナントストアの Mutex ロック取得");
             if !tenants.contains_key(tenant_id) {
                 return Err(TenantError::NotFound(tenant_id.to_string()));
             }

@@ -55,7 +55,7 @@ pub async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse
 pub async fn list_categories(
     State(state): State<AppState>,
     Query(query): Query<ListCategoriesQuery>,
-) -> Result<Json<serde_json::Value>, ServiceError> {
+) -> Result<impl IntoResponse, ServiceError> {
     let categories = state
         .manage_categories_uc
         .list_categories(query.active_only.unwrap_or(false))
@@ -67,7 +67,7 @@ pub async fn list_categories(
 pub async fn get_category(
     State(state): State<AppState>,
     Path(code): Path<String>,
-) -> Result<Json<serde_json::Value>, ServiceError> {
+) -> Result<impl IntoResponse, ServiceError> {
     let category = state
         .manage_categories_uc
         .get_category(&code)
@@ -77,14 +77,14 @@ pub async fn get_category(
             code: k1s0_server_common::ErrorCode::new("BIZ_DOMAINMASTER_CATEGORY_NOT_FOUND"),
             message: format!("Category '{}' not found", code),
         })?;
-    Ok(Json(serde_json::to_value(category).unwrap()))
+    Ok(Json(category))
 }
 
 pub async fn create_category(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Json(input): Json<CreateMasterCategory>,
-) -> Result<(StatusCode, Json<serde_json::Value>), ServiceError> {
+) -> Result<impl IntoResponse, ServiceError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let category = state
         .manage_categories_uc
@@ -93,7 +93,7 @@ pub async fn create_category(
         .map_err(from_anyhow)?;
     Ok((
         StatusCode::CREATED,
-        Json(serde_json::to_value(category).unwrap()),
+        Json(category),
     ))
 }
 
@@ -102,14 +102,14 @@ pub async fn update_category(
     Path(code): Path<String>,
     claims: Option<Extension<Claims>>,
     Json(input): Json<UpdateMasterCategory>,
-) -> Result<Json<serde_json::Value>, ServiceError> {
+) -> Result<impl IntoResponse, ServiceError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let category = state
         .manage_categories_uc
         .update_category(&code, &actor, &input)
         .await
         .map_err(from_anyhow)?;
-    Ok(Json(serde_json::to_value(category).unwrap()))
+    Ok(Json(category))
 }
 
 pub async fn delete_category(

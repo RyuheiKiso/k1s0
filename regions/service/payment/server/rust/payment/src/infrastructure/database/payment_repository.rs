@@ -447,8 +447,16 @@ impl PaymentRepository for PaymentPostgresRepository {
         Ok(())
     }
 
-    async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
-        // マルチインスタンス環境での重複処理を防止するため FOR UPDATE SKIP LOCKED を使用する
+    /// 単一トランザクション内で未パブリッシュイベントを取得し、即座にパブリッシュ済みとしてマークする。
+    /// FOR UPDATE SKIP LOCKED でロックを取得した行を同一トランザクション内で更新することで、
+    /// 並行ポーラーによる重複処理を確実に防止する。
+    async fn fetch_and_mark_events_published(
+        &self,
+        limit: i64,
+    ) -> anyhow::Result<Vec<OutboxEvent>> {
+        let mut tx = self.pool.begin().await?;
+
+        // 未パブリッシュイベントを FOR UPDATE SKIP LOCKED でロック付き取得する
         let rows = sqlx::query_as::<_, OutboxEventRow>(
             r#"
             SELECT id, aggregate_type, aggregate_id, event_type, payload,
@@ -461,25 +469,30 @@ impl PaymentRepository for PaymentPostgresRepository {
             "#,
         )
         .bind(limit)
-        .fetch_all(&self.pool)
+        .fetch_all(&mut *tx)
         .await?;
 
-        Ok(rows.into_iter().map(OutboxEvent::from).collect())
-    }
+        if rows.is_empty() {
+            tx.commit().await?;
+            return Ok(vec![]);
+        }
 
-    async fn mark_event_published(&self, event_id: Uuid) -> anyhow::Result<()> {
+        // 取得したイベントのIDを収集し、一括でパブリッシュ済みにマークする
+        let event_ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
         sqlx::query(
             r#"
             UPDATE outbox_events
             SET published_at = NOW()
-            WHERE id = $1
+            WHERE id = ANY($1)
             "#,
         )
-        .bind(event_id)
-        .execute(&self.pool)
+        .bind(&event_ids)
+        .execute(&mut *tx)
         .await?;
 
-        Ok(())
+        tx.commit().await?;
+
+        Ok(rows.into_iter().map(OutboxEvent::from).collect())
     }
 }
 

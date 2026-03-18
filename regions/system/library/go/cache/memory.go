@@ -19,16 +19,66 @@ func (e *entry) isExpired() bool {
 }
 
 // InMemoryCacheClient はメモリ内キャッシュの実装。
+// バックグラウンドの sweeper goroutine で期限切れエントリを定期的にクリーンアップする。
 type InMemoryCacheClient struct {
 	mu    sync.RWMutex
 	store map[string]*entry
+	// stopSweeper は sweeper goroutine を停止するためのチャネル。
+	stopSweeper chan struct{}
 }
 
-// NewInMemoryCacheClient は新しい InMemoryCacheClient を生成する。
+// デフォルトの sweeper 実行間隔（1分）。
+const defaultSweepInterval = 1 * time.Minute
+
+// NewInMemoryCacheClient は新しい InMemoryCacheClient を生成し、
+// デフォルト間隔（1分）で期限切れエントリの sweeper を起動する。
 func NewInMemoryCacheClient() *InMemoryCacheClient {
-	return &InMemoryCacheClient{
-		store: make(map[string]*entry),
+	return NewInMemoryCacheClientWithSweep(defaultSweepInterval)
+}
+
+// NewInMemoryCacheClientWithSweep は指定間隔で sweeper を起動する InMemoryCacheClient を生成する。
+// interval が 0 以下の場合は sweeper を起動しない。
+func NewInMemoryCacheClientWithSweep(interval time.Duration) *InMemoryCacheClient {
+	c := &InMemoryCacheClient{
+		store:       make(map[string]*entry),
+		stopSweeper: make(chan struct{}),
 	}
+	if interval > 0 {
+		go c.runSweeper(interval)
+	}
+	return c
+}
+
+// runSweeper はバックグラウンドで定期的に期限切れエントリを削除する。
+func (c *InMemoryCacheClient) runSweeper(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			c.sweep()
+		case <-c.stopSweeper:
+			return
+		}
+	}
+}
+
+// sweep は期限切れエントリをすべて削除する。
+func (c *InMemoryCacheClient) sweep() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for key, e := range c.store {
+		if e.isExpired() {
+			delete(c.store, key)
+		}
+	}
+}
+
+// Close は sweeper goroutine を停止する。
+func (c *InMemoryCacheClient) Close() {
+	close(c.stopSweeper)
 }
 
 func (c *InMemoryCacheClient) Get(_ context.Context, key string) (*string, error) {

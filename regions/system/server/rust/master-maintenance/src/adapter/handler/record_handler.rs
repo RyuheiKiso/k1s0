@@ -6,6 +6,7 @@ use crate::adapter::handler::{
 use axum::{
     extract::{Extension, Path, Query, State},
     http::StatusCode,
+    response::IntoResponse,
     Json,
 };
 use k1s0_auth::Claims;
@@ -26,7 +27,7 @@ pub async fn list_records(
     State(state): State<AppState>,
     Path(name): Path<String>,
     Query(query): Query<ListRecordsQuery>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let result = state
         .crud_records_uc
         .list_records(
@@ -59,7 +60,7 @@ pub async fn get_record(
     State(state): State<AppState>,
     Path((name, id)): Path<(String, String)>,
     Query(ds_query): Query<DomainScopeQuery>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let record = state
         .crud_records_uc
         .get_record(&name, &id, ds_query.domain_scope.as_deref())
@@ -74,7 +75,7 @@ pub async fn create_record(
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
     Json(data): Json<serde_json::Value>,
-) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let result = state
         .crud_records_uc
@@ -115,7 +116,7 @@ pub async fn update_record(
     Path((name, id)): Path<(String, String)>,
     Query(ds_query): Query<DomainScopeQuery>,
     Json(data): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
     let result = state
         .crud_records_uc

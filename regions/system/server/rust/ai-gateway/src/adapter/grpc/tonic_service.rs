@@ -3,12 +3,9 @@
 
 use std::sync::Arc;
 
-use tonic::{Request, Response, Status};
+use tonic::Status;
 
-use super::ai_grpc::{
-    AiGatewayGrpcService, GrpcCompleteRequest, GrpcEmbedRequest, GrpcError, GrpcGetUsageRequest,
-    GrpcMessage,
-};
+use super::ai_grpc::{AiGatewayGrpcService, GrpcError};
 
 /// GrpcErrorからtonic::Statusへの変換。
 impl From<GrpcError> for Status {
@@ -23,10 +20,12 @@ impl From<GrpcError> for Status {
 
 /// AI Gateway tonicサービス。
 /// proto生成のサービストレイトを実装するラッパー。
+#[allow(dead_code)]
 pub struct AiGatewayServiceTonic {
     inner: Arc<AiGatewayGrpcService>,
 }
 
+#[allow(dead_code)]
 impl AiGatewayServiceTonic {
     /// 新しいtonicサービスを生成する。
     pub fn new(inner: Arc<AiGatewayGrpcService>) -> Self {

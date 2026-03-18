@@ -697,7 +697,7 @@ fn error_response(
     message: impl Into<String>,
 ) -> Response {
     let err = ErrorResponse::new(code, message);
-    (status, Json(serde_json::to_value(err).unwrap())).into_response()
+    (status, Json(err)).into_response()
 }
 
 fn strip_sensitive_config(config: &serde_json::Value) -> serde_json::Value {

@@ -12,7 +12,8 @@ spec:
         spec:
           containers:
             - name: fault-injection
-              image: bitnami/kubectl:latest
+              # バージョン固定+SHA digest でサプライチェーン攻撃を防止
+              image: bitnami/kubectl:1.31.4@sha256:4485082c8619b0474221377c32590636851e3d0e235e39af0c0130de129de027
               command:
                 - /bin/sh
                 - -c

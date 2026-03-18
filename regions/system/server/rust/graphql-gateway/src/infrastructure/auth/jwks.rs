@@ -42,10 +42,11 @@ impl JwksVerifier {
     pub fn new(jwks_url: String) -> Self {
         Self {
             jwks_url,
+            // HTTPクライアントを構築する（タイムアウト10秒）
             http_client: Client::builder()
                 .timeout(Duration::from_secs(10))
                 .build()
-                .unwrap(),
+                .expect("HTTPクライアントの構築に失敗: TLS バックエンドが利用不可"),
             cache: Arc::new(RwLock::new(None)),
             cache_ttl: Duration::from_secs(600), // 10分
         }

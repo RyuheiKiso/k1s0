@@ -21,3 +21,44 @@ spec:
         - namespaceSelector:
             matchLabels:
               tier: service
+---
+# k1s0-system: Egress を必要な宛先に制限する
+# DNS、同一 Namespace、messaging（Kafka）、observability（メトリクス/トレース送信）のみ許可
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: restrict-egress
+  namespace: k1s0-system
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS 解決を許可（kube-dns / CoreDNS）
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # 同一 Namespace 内の通信を許可
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              tier: system
+    # messaging Namespace（Kafka ブローカー）への通信を許可
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: messaging
+      ports:
+        - protocol: TCP
+          port: 9092
+        - protocol: TCP
+          port: 9093
+    # observability Namespace（メトリクス・トレース送信）への通信を許可
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability

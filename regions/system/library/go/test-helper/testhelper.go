@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"strings"
 	"sync"
 	"time"
@@ -287,7 +287,7 @@ func (FixtureBuilder) Int(min, max int) int {
 	if min >= max {
 		return min
 	}
-	return min + rand.Intn(max-min)
+	return min + rand.IntN(max-min)
 }
 
 // TenantID はテスト用テナント ID を生成する。

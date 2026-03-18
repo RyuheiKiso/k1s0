@@ -2,6 +2,7 @@ use crate::adapter::handler::error::AppError;
 use crate::adapter::handler::AppState;
 use axum::{
     extract::{Path, Query, State},
+    response::IntoResponse,
     Json,
 };
 use serde::Deserialize;
@@ -16,7 +17,7 @@ pub async fn list_table_audit_logs(
     State(state): State<AppState>,
     Path(name): Path<String>,
     Query(query): Query<AuditLogQuery>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let (logs, total) = state
         .get_audit_logs_uc
         .get_table_logs(
@@ -33,7 +34,7 @@ pub async fn list_record_audit_logs(
     State(state): State<AppState>,
     Path((name, id)): Path<(String, String)>,
     Query(query): Query<AuditLogQuery>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let (logs, total) = state
         .get_audit_logs_uc
         .get_record_logs(

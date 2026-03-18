@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // GrpcSearchClient は search-server への HTTP クライアント実装。
@@ -27,7 +28,8 @@ func NewGrpcSearchClient(addr string) (*GrpcSearchClient, error) {
 	endpoint = strings.TrimRight(endpoint, "/")
 	return &GrpcSearchClient{
 		endpoint:   endpoint,
-		httpClient: &http.Client{},
+		// 無限待ちを防止するため30秒のタイムアウトを設定
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}, nil
 }
 

@@ -31,8 +31,8 @@ pub struct PolicyData {
     pub updated_at: DateTime<Utc>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PolicyBundleData {
     pub id: String,
     pub name: String,

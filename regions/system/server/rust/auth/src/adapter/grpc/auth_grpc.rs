@@ -113,7 +113,7 @@ impl AuthGrpcService {
                 Ok(ListUsersResponse {
                     users: proto_users,
                     pagination: Some(PaginationResult {
-                        total_count: result.pagination.total_count as i64,
+                        total_count: result.pagination.total_count,
                         page: result.pagination.page,
                         page_size: result.pagination.page_size,
                         has_next: result.pagination.has_next,
@@ -320,10 +320,10 @@ mod tests {
         let req = ValidateTokenRequest {
             token: "valid-token".to_string(),
         };
-        let resp = svc.validate_token(req).await.unwrap();
+        let resp = svc.validate_token(req).await.expect("validate_token should succeed");
 
         assert!(resp.valid);
-        let proto_claims = resp.claims.unwrap();
+        let proto_claims = resp.claims.expect("claims should be present");
         assert_eq!(proto_claims.sub, "user-uuid-1234");
         assert_eq!(proto_claims.preferred_username, "taro.yamada");
         assert_eq!(proto_claims.email, "taro.yamada@example.com");
@@ -342,7 +342,7 @@ mod tests {
         let req = ValidateTokenRequest {
             token: "invalid-token".to_string(),
         };
-        let resp = svc.validate_token(req).await.unwrap();
+        let resp = svc.validate_token(req).await.expect("validate_token should succeed");
 
         assert!(!resp.valid);
         assert!(resp.claims.is_none());
@@ -361,7 +361,7 @@ mod tests {
         let req = ValidateTokenRequest {
             token: "".to_string(),
         };
-        let resp = svc.validate_token(req).await.unwrap();
+        let resp = svc.validate_token(req).await.expect("validate_token should succeed");
 
         assert!(!resp.valid);
         assert!(!resp.error_message.is_empty());
@@ -405,8 +405,8 @@ mod tests {
         let req = GetUserRequest {
             user_id: "user-uuid-1234".to_string(),
         };
-        let resp = svc.get_user(req).await.unwrap();
-        let user = resp.user.unwrap();
+        let resp = svc.get_user(req).await.expect("get_user should succeed");
+        let user = resp.user.expect("user should be present");
 
         assert_eq!(user.id, "user-uuid-1234");
         assert_eq!(user.username, "taro.yamada");
@@ -493,12 +493,12 @@ mod tests {
             search: String::new(),
             enabled: None,
         };
-        let resp = svc.list_users(req).await.unwrap();
+        let resp = svc.list_users(req).await.expect("list_users should succeed");
 
         assert_eq!(resp.users.len(), 1);
         assert_eq!(resp.users[0].id, "user-1");
 
-        let pagination = resp.pagination.unwrap();
+        let pagination = resp.pagination.expect("pagination should be present");
         assert_eq!(pagination.total_count, 25);
         assert_eq!(pagination.page, 2);
         assert_eq!(pagination.page_size, 10);
@@ -558,7 +558,7 @@ mod tests {
         let req = GetUserRolesRequest {
             user_id: "user-uuid-1234".to_string(),
         };
-        let resp = svc.get_user_roles(req).await.unwrap();
+        let resp = svc.get_user_roles(req).await.expect("get_user_roles should succeed");
 
         assert_eq!(resp.user_id, "user-uuid-1234");
         assert_eq!(resp.realm_roles.len(), 2);
@@ -580,7 +580,7 @@ mod tests {
             resource: "users".to_string(),
             roles: vec!["sys_admin".to_string()],
         };
-        let resp = svc.check_permission(req).await.unwrap();
+        let resp = svc.check_permission(req).await.expect("check_permission should succeed");
 
         assert!(resp.allowed);
         assert!(resp.reason.is_empty());
@@ -598,7 +598,7 @@ mod tests {
             resource: "users".to_string(),
             roles: vec!["user".to_string()],
         };
-        let resp = svc.check_permission(req).await.unwrap();
+        let resp = svc.check_permission(req).await.expect("check_permission should succeed");
 
         assert!(!resp.allowed);
         assert!(resp.reason.contains("insufficient permissions"));
@@ -630,7 +630,7 @@ mod tests {
             resource: "users".to_string(),
             roles: vec!["user".to_string()],
         };
-        let resp = svc.check_permission(req).await.unwrap();
+        let resp = svc.check_permission(req).await.expect("check_permission should succeed");
 
         assert!(resp.allowed);
     }

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // DlqClient は DLQ 管理サーバーへの REST クライアント。
@@ -20,7 +21,8 @@ type DlqClient struct {
 func NewDlqClient(endpoint string) *DlqClient {
 	return &DlqClient{
 		endpoint:   strings.TrimRight(endpoint, "/"),
-		httpClient: &http.Client{},
+		// 無限待ちを防止するため30秒のタイムアウトを設定
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
