@@ -3,7 +3,7 @@ module github.com/k1s0-platform/system-library-go-migration
 go 1.24.0
 
 require (
-	github.com/BurntSushi/toml v1.4.0
+	github.com/BurntSushi/toml v1.6.0
 	github.com/lib/pq v1.11.2
 	github.com/stretchr/testify v1.11.1
 )
