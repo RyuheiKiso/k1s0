@@ -263,14 +263,20 @@ pub(super) fn print_confirmation(config: &GenerateConfig) {
 pub(super) fn format_confirmation(config: &GenerateConfig) -> String {
     let mut out = String::new();
     out.push_str("\n[確認] 以下の内容で生成します。よろしいですか？\n");
-    writeln!(out, "    種別:     {}", config.kind.label()).expect("String への書き込みは失敗しない");
-    writeln!(out, "    Tier:     {}", config.tier.as_str()).expect("String への書き込みは失敗しない");
+    writeln!(out, "    種別:     {}", config.kind.label())
+        .expect("String への書き込みは失敗しない");
+    writeln!(out, "    Tier:     {}", config.tier.as_str())
+        .expect("String への書き込みは失敗しない");
 
     // 配置先
     if let Some(ref p) = config.placement {
         match config.tier {
-            Tier::Business => writeln!(out, "    領域:     {p}").expect("String への書き込みは失敗しない"),
-            Tier::Service => writeln!(out, "    サービス: {p}").expect("String への書き込みは失敗しない"),
+            Tier::Business => {
+                writeln!(out, "    領域:     {p}").expect("String への書き込みは失敗しない")
+            }
+            Tier::Service => {
+                writeln!(out, "    サービス: {p}").expect("String への書き込みは失敗しない")
+            }
             Tier::System => {}
         }
     }
@@ -285,7 +291,8 @@ pub(super) fn format_confirmation(config: &GenerateConfig) -> String {
                 }
             }
             if let LangFw::Language(lang) = config.lang_fw {
-                writeln!(out, "    言語:     {}", lang.as_str()).expect("String への書き込みは失敗しない");
+                writeln!(out, "    言語:     {}", lang.as_str())
+                    .expect("String への書き込みは失敗しない");
             }
             if !config.detail.api_styles.is_empty() {
                 let api_strs: Vec<&str> = config
@@ -294,14 +301,18 @@ pub(super) fn format_confirmation(config: &GenerateConfig) -> String {
                     .iter()
                     .map(k1s0_core::commands::generate::ApiStyle::short_label)
                     .collect();
-                writeln!(out, "    API:      {}", api_strs.join(", ")).expect("String への書き込みは失敗しない");
+                writeln!(out, "    API:      {}", api_strs.join(", "))
+                    .expect("String への書き込みは失敗しない");
             }
             // BFF 情報（service Tier + GraphQL 時のみ表示）
             if let Some(bff_lang) = config.detail.bff_language {
-                writeln!(out, "    BFF:      あり ({})", bff_lang.as_str()).expect("String への書き込みは失敗しない");
+                writeln!(out, "    BFF:      あり ({})", bff_lang.as_str())
+                    .expect("String への書き込みは失敗しない");
             }
             match &config.detail.db {
-                Some(db) => writeln!(out, "    DB:       {db}").expect("String への書き込みは失敗しない"),
+                Some(db) => {
+                    writeln!(out, "    DB:       {db}").expect("String への書き込みは失敗しない")
+                }
                 None => out.push_str("    DB:       なし\n"),
             }
             writeln!(
@@ -327,15 +338,18 @@ pub(super) fn format_confirmation(config: &GenerateConfig) -> String {
         }
         Kind::Client => {
             if let LangFw::Framework(fw) = config.lang_fw {
-                writeln!(out, "    フレームワーク: {}", fw.as_str()).expect("String への書き込みは失敗しない");
+                writeln!(out, "    フレームワーク: {}", fw.as_str())
+                    .expect("String への書き込みは失敗しない");
             }
             if let Some(ref name) = config.detail.name {
-                writeln!(out, "    アプリ名:       {name}").expect("String への書き込みは失敗しない");
+                writeln!(out, "    アプリ名:       {name}")
+                    .expect("String への書き込みは失敗しない");
             }
         }
         Kind::Library => {
             if let LangFw::Language(lang) = config.lang_fw {
-                writeln!(out, "    言語:         {}", lang.as_str()).expect("String への書き込みは失敗しない");
+                writeln!(out, "    言語:         {}", lang.as_str())
+                    .expect("String への書き込みは失敗しない");
             }
             if let Some(ref name) = config.detail.name {
                 writeln!(out, "    ライブラリ名: {name}").expect("String への書き込みは失敗しない");
@@ -343,8 +357,10 @@ pub(super) fn format_confirmation(config: &GenerateConfig) -> String {
         }
         Kind::Database => {
             if let LangFw::Database { ref name, rdbms } = config.lang_fw {
-                writeln!(out, "    データベース名: {name}").expect("String への書き込みは失敗しない");
-                writeln!(out, "    RDBMS:          {}", rdbms.as_str()).expect("String への書き込みは失敗しない");
+                writeln!(out, "    データベース名: {name}")
+                    .expect("String への書き込みは失敗しない");
+                writeln!(out, "    RDBMS:          {}", rdbms.as_str())
+                    .expect("String への書き込みは失敗しない");
             }
         }
     }

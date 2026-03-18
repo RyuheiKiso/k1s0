@@ -257,7 +257,7 @@ pub async fn run() -> anyhow::Result<()> {
             &auth_cfg.issuer,
             &auth_cfg.audience,
             std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-        ));
+        ).expect("Failed to create JWKS verifier"));
         crate::adapter::middleware::auth::FeatureflagAuthState {
             verifier: jwks_verifier,
         }

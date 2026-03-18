@@ -533,6 +533,86 @@ export interface EvaluateResponse {
      */
     evaluatedAt?: Timestamp;
 }
+/**
+ * ドライラン評価リクエスト: EvaluateDryRun RPC 専用のリクエストメッセージ
+ *
+ * @generated from protobuf message k1s0.system.rule_engine.v1.EvaluateDryRunRequest
+ */
+export interface EvaluateDryRunRequest {
+    /**
+     * 評価対象のルールセット識別子
+     *
+     * @generated from protobuf field: string rule_set = 1
+     */
+    ruleSet: string;
+    /**
+     * 評価入力データ（JSON 形式）
+     *
+     * @generated from protobuf field: bytes input_json = 2
+     */
+    inputJson: Uint8Array;
+    /**
+     * 評価コンテキスト（JSON 形式）
+     *
+     * @generated from protobuf field: bytes context_json = 3
+     */
+    contextJson: Uint8Array;
+}
+/**
+ * ドライラン評価レスポンス: EvaluateDryRun RPC 専用のレスポンスメッセージ
+ *
+ * @generated from protobuf message k1s0.system.rule_engine.v1.EvaluateDryRunResponse
+ */
+export interface EvaluateDryRunResponse {
+    /**
+     * 評価の一意識別子
+     *
+     * @generated from protobuf field: string evaluation_id = 1
+     */
+    evaluationId: string;
+    /**
+     * 評価対象のルールセット識別子
+     *
+     * @generated from protobuf field: string rule_set = 2
+     */
+    ruleSet: string;
+    /**
+     * 使用されたルールセットのバージョン
+     *
+     * @generated from protobuf field: uint32 rule_set_version = 3
+     */
+    ruleSetVersion: number;
+    /**
+     * マッチしたルールのリスト
+     *
+     * @generated from protobuf field: repeated k1s0.system.rule_engine.v1.MatchedRule matched_rules = 4
+     */
+    matchedRules: MatchedRule[];
+    /**
+     * 最終評価結果（JSON 形式）
+     *
+     * @generated from protobuf field: bytes result_json = 5
+     */
+    resultJson: Uint8Array;
+    /**
+     * デフォルト値が適用されたかどうか
+     *
+     * @generated from protobuf field: bool default_applied = 6
+     */
+    defaultApplied: boolean;
+    /**
+     * キャッシュから返されたかどうか
+     *
+     * @generated from protobuf field: bool cached = 7
+     */
+    cached: boolean;
+    /**
+     * 評価日時
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp evaluated_at = 8
+     */
+    evaluatedAt?: Timestamp;
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class Rule$Type extends MessageType<Rule> {
     constructor() {
@@ -2371,6 +2451,171 @@ class EvaluateResponse$Type extends MessageType<EvaluateResponse> {
  * @generated MessageType for protobuf message k1s0.system.rule_engine.v1.EvaluateResponse
  */
 export const EvaluateResponse = new EvaluateResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class EvaluateDryRunRequest$Type extends MessageType<EvaluateDryRunRequest> {
+    constructor() {
+        super("k1s0.system.rule_engine.v1.EvaluateDryRunRequest", [
+            { no: 1, name: "rule_set", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "input_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 3, name: "context_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<EvaluateDryRunRequest>): EvaluateDryRunRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.ruleSet = "";
+        message.inputJson = new Uint8Array(0);
+        message.contextJson = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<EvaluateDryRunRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: EvaluateDryRunRequest): EvaluateDryRunRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string rule_set */ 1:
+                    message.ruleSet = reader.string();
+                    break;
+                case /* bytes input_json */ 2:
+                    message.inputJson = reader.bytes();
+                    break;
+                case /* bytes context_json */ 3:
+                    message.contextJson = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: EvaluateDryRunRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string rule_set = 1; */
+        if (message.ruleSet !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.ruleSet);
+        /* bytes input_json = 2; */
+        if (message.inputJson.length)
+            writer.tag(2, WireType.LengthDelimited).bytes(message.inputJson);
+        /* bytes context_json = 3; */
+        if (message.contextJson.length)
+            writer.tag(3, WireType.LengthDelimited).bytes(message.contextJson);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.rule_engine.v1.EvaluateDryRunRequest
+ */
+export const EvaluateDryRunRequest = new EvaluateDryRunRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class EvaluateDryRunResponse$Type extends MessageType<EvaluateDryRunResponse> {
+    constructor() {
+        super("k1s0.system.rule_engine.v1.EvaluateDryRunResponse", [
+            { no: 1, name: "evaluation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "rule_set", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "rule_set_version", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "matched_rules", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MatchedRule },
+            { no: 5, name: "result_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 6, name: "default_applied", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "cached", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "evaluated_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<EvaluateDryRunResponse>): EvaluateDryRunResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.evaluationId = "";
+        message.ruleSet = "";
+        message.ruleSetVersion = 0;
+        message.matchedRules = [];
+        message.resultJson = new Uint8Array(0);
+        message.defaultApplied = false;
+        message.cached = false;
+        if (value !== undefined)
+            reflectionMergePartial<EvaluateDryRunResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: EvaluateDryRunResponse): EvaluateDryRunResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string evaluation_id */ 1:
+                    message.evaluationId = reader.string();
+                    break;
+                case /* string rule_set */ 2:
+                    message.ruleSet = reader.string();
+                    break;
+                case /* uint32 rule_set_version */ 3:
+                    message.ruleSetVersion = reader.uint32();
+                    break;
+                case /* repeated k1s0.system.rule_engine.v1.MatchedRule matched_rules */ 4:
+                    message.matchedRules.push(MatchedRule.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* bytes result_json */ 5:
+                    message.resultJson = reader.bytes();
+                    break;
+                case /* bool default_applied */ 6:
+                    message.defaultApplied = reader.bool();
+                    break;
+                case /* bool cached */ 7:
+                    message.cached = reader.bool();
+                    break;
+                case /* k1s0.system.common.v1.Timestamp evaluated_at */ 8:
+                    message.evaluatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.evaluatedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: EvaluateDryRunResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string evaluation_id = 1; */
+        if (message.evaluationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.evaluationId);
+        /* string rule_set = 2; */
+        if (message.ruleSet !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.ruleSet);
+        /* uint32 rule_set_version = 3; */
+        if (message.ruleSetVersion !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.ruleSetVersion);
+        /* repeated k1s0.system.rule_engine.v1.MatchedRule matched_rules = 4; */
+        for (let i = 0; i < message.matchedRules.length; i++)
+            MatchedRule.internalBinaryWrite(message.matchedRules[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* bytes result_json = 5; */
+        if (message.resultJson.length)
+            writer.tag(5, WireType.LengthDelimited).bytes(message.resultJson);
+        /* bool default_applied = 6; */
+        if (message.defaultApplied !== false)
+            writer.tag(6, WireType.Varint).bool(message.defaultApplied);
+        /* bool cached = 7; */
+        if (message.cached !== false)
+            writer.tag(7, WireType.Varint).bool(message.cached);
+        /* k1s0.system.common.v1.Timestamp evaluated_at = 8; */
+        if (message.evaluatedAt)
+            Timestamp.internalBinaryWrite(message.evaluatedAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.rule_engine.v1.EvaluateDryRunResponse
+ */
+export const EvaluateDryRunResponse = new EvaluateDryRunResponse$Type();
 /**
  * @generated ServiceType for protobuf service k1s0.system.rule_engine.v1.RuleEngineService
  */
@@ -2388,5 +2633,5 @@ export const RuleEngineService = new ServiceType("k1s0.system.rule_engine.v1.Rul
     { name: "PublishRuleSet", options: {}, I: PublishRuleSetRequest, O: PublishRuleSetResponse },
     { name: "RollbackRuleSet", options: {}, I: RollbackRuleSetRequest, O: RollbackRuleSetResponse },
     { name: "Evaluate", options: {}, I: EvaluateRequest, O: EvaluateResponse },
-    { name: "EvaluateDryRun", options: {}, I: EvaluateRequest, O: EvaluateResponse }
+    { name: "EvaluateDryRun", options: {}, I: EvaluateDryRunRequest, O: EvaluateDryRunResponse }
 ]);

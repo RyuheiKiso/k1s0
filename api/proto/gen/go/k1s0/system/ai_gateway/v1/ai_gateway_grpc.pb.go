@@ -39,7 +39,7 @@ type AiGatewayServiceClient interface {
 	// テキスト補完リクエストを実行する
 	Complete(ctx context.Context, in *CompleteRequest, opts ...grpc.CallOption) (*CompleteResponse, error)
 	// ストリーミング形式でテキスト補完を実行する
-	CompleteStream(ctx context.Context, in *CompleteRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamChunk], error)
+	CompleteStream(ctx context.Context, in *CompleteStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CompleteStreamResponse], error)
 	// テキスト埋め込みベクトルを生成する
 	Embed(ctx context.Context, in *EmbedRequest, opts ...grpc.CallOption) (*EmbedResponse, error)
 	// 利用可能な AI モデル一覧を取得する
@@ -66,13 +66,13 @@ func (c *aiGatewayServiceClient) Complete(ctx context.Context, in *CompleteReque
 	return out, nil
 }
 
-func (c *aiGatewayServiceClient) CompleteStream(ctx context.Context, in *CompleteRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamChunk], error) {
+func (c *aiGatewayServiceClient) CompleteStream(ctx context.Context, in *CompleteStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CompleteStreamResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &AiGatewayService_ServiceDesc.Streams[0], AiGatewayService_CompleteStream_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[CompleteRequest, StreamChunk]{ClientStream: stream}
+	x := &grpc.GenericClientStream[CompleteStreamRequest, CompleteStreamResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (c *aiGatewayServiceClient) CompleteStream(ctx context.Context, in *Complet
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AiGatewayService_CompleteStreamClient = grpc.ServerStreamingClient[StreamChunk]
+type AiGatewayService_CompleteStreamClient = grpc.ServerStreamingClient[CompleteStreamResponse]
 
 func (c *aiGatewayServiceClient) Embed(ctx context.Context, in *EmbedRequest, opts ...grpc.CallOption) (*EmbedResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -124,7 +124,7 @@ type AiGatewayServiceServer interface {
 	// テキスト補完リクエストを実行する
 	Complete(context.Context, *CompleteRequest) (*CompleteResponse, error)
 	// ストリーミング形式でテキスト補完を実行する
-	CompleteStream(*CompleteRequest, grpc.ServerStreamingServer[StreamChunk]) error
+	CompleteStream(*CompleteStreamRequest, grpc.ServerStreamingServer[CompleteStreamResponse]) error
 	// テキスト埋め込みベクトルを生成する
 	Embed(context.Context, *EmbedRequest) (*EmbedResponse, error)
 	// 利用可能な AI モデル一覧を取得する
@@ -144,7 +144,7 @@ type UnimplementedAiGatewayServiceServer struct{}
 func (UnimplementedAiGatewayServiceServer) Complete(context.Context, *CompleteRequest) (*CompleteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Complete not implemented")
 }
-func (UnimplementedAiGatewayServiceServer) CompleteStream(*CompleteRequest, grpc.ServerStreamingServer[StreamChunk]) error {
+func (UnimplementedAiGatewayServiceServer) CompleteStream(*CompleteStreamRequest, grpc.ServerStreamingServer[CompleteStreamResponse]) error {
 	return status.Error(codes.Unimplemented, "method CompleteStream not implemented")
 }
 func (UnimplementedAiGatewayServiceServer) Embed(context.Context, *EmbedRequest) (*EmbedResponse, error) {
@@ -196,15 +196,15 @@ func _AiGatewayService_Complete_Handler(srv interface{}, ctx context.Context, de
 }
 
 func _AiGatewayService_CompleteStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(CompleteRequest)
+	m := new(CompleteStreamRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(AiGatewayServiceServer).CompleteStream(m, &grpc.GenericServerStream[CompleteRequest, StreamChunk]{ServerStream: stream})
+	return srv.(AiGatewayServiceServer).CompleteStream(m, &grpc.GenericServerStream[CompleteStreamRequest, CompleteStreamResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AiGatewayService_CompleteStreamServer = grpc.ServerStreamingServer[StreamChunk]
+type AiGatewayService_CompleteStreamServer = grpc.ServerStreamingServer[CompleteStreamResponse]
 
 func _AiGatewayService_Embed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(EmbedRequest)

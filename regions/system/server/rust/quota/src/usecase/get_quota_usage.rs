@@ -46,11 +46,13 @@ impl GetQuotaUsageUseCase {
             .unwrap_or(0);
 
         let now = Utc::now();
+        // 期間の開始・終了・リセット日時を算出する
         let (period_start, period_end, reset_at) = match policy.period {
             Period::Daily => {
                 let start = Utc
                     .with_ymd_and_hms(now.year(), now.month(), now.day(), 0, 0, 0)
-                    .unwrap();
+                    .single()
+                    .expect("日次期間の開始日時の生成に失敗");
                 let end = start + chrono::Duration::days(1) - chrono::Duration::milliseconds(1);
                 let reset = start + chrono::Duration::days(1);
                 (start, end, reset)
@@ -58,12 +60,16 @@ impl GetQuotaUsageUseCase {
             Period::Monthly => {
                 let start = Utc
                     .with_ymd_and_hms(now.year(), now.month(), 1, 0, 0, 0)
-                    .unwrap();
+                    .single()
+                    .expect("月次期間の開始日時の生成に失敗");
                 let next_month = if now.month() == 12 {
-                    Utc.with_ymd_and_hms(now.year() + 1, 1, 1, 0, 0, 0).unwrap()
+                    Utc.with_ymd_and_hms(now.year() + 1, 1, 1, 0, 0, 0)
+                        .single()
+                        .expect("翌年1月の日時の生成に失敗")
                 } else {
                     Utc.with_ymd_and_hms(now.year(), now.month() + 1, 1, 0, 0, 0)
-                        .unwrap()
+                        .single()
+                        .expect("翌月の日時の生成に失敗")
                 };
                 let end = next_month - chrono::Duration::milliseconds(1);
                 (start, end, next_month)

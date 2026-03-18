@@ -8,7 +8,9 @@ use tonic::{Request, Response, Status};
 use crate::proto::k1s0::system::ai_agent::v1::{
     ai_agent_service_server::AiAgentService, CancelExecutionRequest as ProtoCancelExecutionRequest,
     CancelExecutionResponse as ProtoCancelExecutionResponse, ExecuteRequest as ProtoExecuteRequest,
-    ExecuteResponse as ProtoExecuteResponse, ExecutionEvent as ProtoExecutionEvent,
+    ExecuteResponse as ProtoExecuteResponse,
+    ExecuteStreamRequest as ProtoExecuteStreamRequest,
+    ExecuteStreamResponse as ProtoExecuteStreamResponse,
     ExecutionStep as ProtoExecutionStep, ReviewStepRequest as ProtoReviewStepRequest,
     ReviewStepResponse as ProtoReviewStepResponse,
 };
@@ -78,11 +80,11 @@ impl AiAgentService for AiAgentServiceTonic {
 
     /// ストリーミング形式でエージェントを実行する（未実装、将来拡張用）
     type ExecuteStreamStream =
-        tokio_stream::wrappers::ReceiverStream<Result<ProtoExecutionEvent, Status>>;
+        tokio_stream::wrappers::ReceiverStream<Result<ProtoExecuteStreamResponse, Status>>;
 
     async fn execute_stream(
         &self,
-        request: Request<ProtoExecuteRequest>,
+        request: Request<ProtoExecuteStreamRequest>,
     ) -> Result<Response<Self::ExecuteStreamStream>, Status> {
         let inner = request.into_inner();
 
@@ -103,7 +105,7 @@ impl AiAgentService for AiAgentServiceTonic {
                 Ok(resp) => {
                     // 各ステップをイベントとして送信する
                     for (i, step) in resp.steps.iter().enumerate() {
-                        let event = ProtoExecutionEvent {
+                        let event = ProtoExecuteStreamResponse {
                             execution_id: resp.execution_id.clone(),
                             event_type: step.step_type.clone(),
                             data: serde_json::json!({
@@ -120,7 +122,7 @@ impl AiAgentService for AiAgentServiceTonic {
                     }
                     // 最終出力イベントを送信する
                     let _ = tx
-                        .send(Ok(ProtoExecutionEvent {
+                        .send(Ok(ProtoExecuteStreamResponse {
                             execution_id: resp.execution_id,
                             event_type: "output".to_string(),
                             data: resp.output,

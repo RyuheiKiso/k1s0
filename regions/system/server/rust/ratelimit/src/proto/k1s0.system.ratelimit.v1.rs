@@ -93,10 +93,9 @@ pub struct ListRulesRequest {
     pub scope: ::prost::alloc::string::String,
     #[prost(bool, optional, tag = "2")]
     pub enabled_only: ::core::option::Option<bool>,
-    #[prost(uint32, tag = "3")]
-    pub page: u32,
-    #[prost(uint32, tag = "4")]
-    pub page_size: u32,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag = "3")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListRulesResponse {

@@ -52,7 +52,7 @@ type RuleEngineServiceClient interface {
 	PublishRuleSet(ctx context.Context, in *PublishRuleSetRequest, opts ...grpc.CallOption) (*PublishRuleSetResponse, error)
 	RollbackRuleSet(ctx context.Context, in *RollbackRuleSetRequest, opts ...grpc.CallOption) (*RollbackRuleSetResponse, error)
 	Evaluate(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateResponse, error)
-	EvaluateDryRun(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateResponse, error)
+	EvaluateDryRun(ctx context.Context, in *EvaluateDryRunRequest, opts ...grpc.CallOption) (*EvaluateDryRunResponse, error)
 }
 
 type ruleEngineServiceClient struct {
@@ -193,9 +193,9 @@ func (c *ruleEngineServiceClient) Evaluate(ctx context.Context, in *EvaluateRequ
 	return out, nil
 }
 
-func (c *ruleEngineServiceClient) EvaluateDryRun(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateResponse, error) {
+func (c *ruleEngineServiceClient) EvaluateDryRun(ctx context.Context, in *EvaluateDryRunRequest, opts ...grpc.CallOption) (*EvaluateDryRunResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(EvaluateResponse)
+	out := new(EvaluateDryRunResponse)
 	err := c.cc.Invoke(ctx, RuleEngineService_EvaluateDryRun_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -220,7 +220,7 @@ type RuleEngineServiceServer interface {
 	PublishRuleSet(context.Context, *PublishRuleSetRequest) (*PublishRuleSetResponse, error)
 	RollbackRuleSet(context.Context, *RollbackRuleSetRequest) (*RollbackRuleSetResponse, error)
 	Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error)
-	EvaluateDryRun(context.Context, *EvaluateRequest) (*EvaluateResponse, error)
+	EvaluateDryRun(context.Context, *EvaluateDryRunRequest) (*EvaluateDryRunResponse, error)
 	mustEmbedUnimplementedRuleEngineServiceServer()
 }
 
@@ -270,7 +270,7 @@ func (UnimplementedRuleEngineServiceServer) RollbackRuleSet(context.Context, *Ro
 func (UnimplementedRuleEngineServiceServer) Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Evaluate not implemented")
 }
-func (UnimplementedRuleEngineServiceServer) EvaluateDryRun(context.Context, *EvaluateRequest) (*EvaluateResponse, error) {
+func (UnimplementedRuleEngineServiceServer) EvaluateDryRun(context.Context, *EvaluateDryRunRequest) (*EvaluateDryRunResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method EvaluateDryRun not implemented")
 }
 func (UnimplementedRuleEngineServiceServer) mustEmbedUnimplementedRuleEngineServiceServer() {}
@@ -529,7 +529,7 @@ func _RuleEngineService_Evaluate_Handler(srv interface{}, ctx context.Context, d
 }
 
 func _RuleEngineService_EvaluateDryRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EvaluateRequest)
+	in := new(EvaluateDryRunRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -541,7 +541,7 @@ func _RuleEngineService_EvaluateDryRun_Handler(srv interface{}, ctx context.Cont
 		FullMethod: RuleEngineService_EvaluateDryRun_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuleEngineServiceServer).EvaluateDryRun(ctx, req.(*EvaluateRequest))
+		return srv.(RuleEngineServiceServer).EvaluateDryRun(ctx, req.(*EvaluateDryRunRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

@@ -93,7 +93,7 @@ impl DlqService for DlqServiceTonic {
         Ok(Response::new(ProtoListMessagesResponse {
             messages: messages.into_iter().map(domain_to_proto).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total.min(i32::MAX as i64) as i32,
+                total_count: total,
                 page,
                 page_size,
                 has_next,

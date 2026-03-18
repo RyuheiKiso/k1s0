@@ -35,9 +35,28 @@ pub struct ExecuteResponse {
     #[prost(message, repeated, tag="4")]
     pub steps: ::prost::alloc::vec::Vec<ExecutionStep>,
 }
-/// 実行イベント: ストリーミング中に送信される個別イベント
+/// ストリーミング実行リクエスト: ExecuteStream RPC 専用のリクエストメッセージ
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteStreamRequest {
+    /// 実行するエージェントの識別子
+    #[prost(string, tag="1")]
+    pub agent_id: ::prost::alloc::string::String,
+    /// エージェントへの入力テキスト
+    #[prost(string, tag="2")]
+    pub input: ::prost::alloc::string::String,
+    /// セッション識別子（会話の継続に使用）
+    #[prost(string, tag="3")]
+    pub session_id: ::prost::alloc::string::String,
+    /// リクエスト元のテナント識別子
+    #[prost(string, tag="4")]
+    pub tenant_id: ::prost::alloc::string::String,
+    /// エージェント実行に渡す追加コンテキスト
+    #[prost(map="string, string", tag="5")]
+    pub context: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
+}
+/// ストリーミング実行レスポンス: ストリーミング中に送信される個別イベント
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ExecutionEvent {
+pub struct ExecuteStreamResponse {
     /// 実行の一意識別子
     #[prost(string, tag="1")]
     pub execution_id: ::prost::alloc::string::String,

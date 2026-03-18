@@ -86,12 +86,15 @@ fn make_test_app() -> axum::Router {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("policy-test"));
 
     // ダミーの JwksVerifier を作成（テスト中は実際にトークン検証しない）
-    let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-        "https://dummy.example.com/jwks",
-        "https://dummy.example.com",
-        "dummy-audience",
-        Duration::from_secs(600),
-    ));
+    let verifier = Arc::new(
+        k1s0_auth::JwksVerifier::new(
+            "https://dummy.example.com/jwks",
+            "https://dummy.example.com",
+            "dummy-audience",
+            Duration::from_secs(600),
+        )
+        .expect("Failed to create JWKS verifier"),
+    );
     let auth_state = PolicyAuthState { verifier };
 
     let state = AppState {

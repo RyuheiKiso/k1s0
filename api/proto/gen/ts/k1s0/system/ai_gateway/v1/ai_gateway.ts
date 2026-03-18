@@ -111,11 +111,48 @@ export interface CompleteResponse {
     completionTokens: number;
 }
 /**
- * ストリーミングチャンク: ストリーミング補完の部分的なレスポンス
+ * ストリーミング補完リクエスト: CompleteStream RPC 専用のリクエストメッセージ
  *
- * @generated from protobuf message k1s0.system.ai_gateway.v1.StreamChunk
+ * @generated from protobuf message k1s0.system.ai_gateway.v1.CompleteStreamRequest
  */
-export interface StreamChunk {
+export interface CompleteStreamRequest {
+    /**
+     * 使用する AI モデルの識別子
+     *
+     * @generated from protobuf field: string model = 1
+     */
+    model: string;
+    /**
+     * 補完に使用するメッセージ履歴
+     *
+     * @generated from protobuf field: repeated k1s0.system.ai_gateway.v1.Message messages = 2
+     */
+    messages: Message[];
+    /**
+     * 生成する最大トークン数
+     *
+     * @generated from protobuf field: int32 max_tokens = 3
+     */
+    maxTokens: number;
+    /**
+     * 生成のランダム性を制御する温度パラメータ（0.0〜2.0）
+     *
+     * @generated from protobuf field: float temperature = 4
+     */
+    temperature: number;
+    /**
+     * リクエスト元のテナント識別子
+     *
+     * @generated from protobuf field: string tenant_id = 5
+     */
+    tenantId: string;
+}
+/**
+ * ストリーミング補完レスポンス: ストリーミング補完の部分的なレスポンス
+ *
+ * @generated from protobuf message k1s0.system.ai_gateway.v1.CompleteStreamResponse
+ */
+export interface CompleteStreamResponse {
     /**
      * ストリームの一意識別子
      *
@@ -539,24 +576,103 @@ class CompleteResponse$Type extends MessageType<CompleteResponse> {
  */
 export const CompleteResponse = new CompleteResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class StreamChunk$Type extends MessageType<StreamChunk> {
+class CompleteStreamRequest$Type extends MessageType<CompleteStreamRequest> {
     constructor() {
-        super("k1s0.system.ai_gateway.v1.StreamChunk", [
+        super("k1s0.system.ai_gateway.v1.CompleteStreamRequest", [
+            { no: 1, name: "model", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "messages", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => Message },
+            { no: 3, name: "max_tokens", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "temperature", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 5, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CompleteStreamRequest>): CompleteStreamRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.model = "";
+        message.messages = [];
+        message.maxTokens = 0;
+        message.temperature = 0;
+        message.tenantId = "";
+        if (value !== undefined)
+            reflectionMergePartial<CompleteStreamRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CompleteStreamRequest): CompleteStreamRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string model */ 1:
+                    message.model = reader.string();
+                    break;
+                case /* repeated k1s0.system.ai_gateway.v1.Message messages */ 2:
+                    message.messages.push(Message.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* int32 max_tokens */ 3:
+                    message.maxTokens = reader.int32();
+                    break;
+                case /* float temperature */ 4:
+                    message.temperature = reader.float();
+                    break;
+                case /* string tenant_id */ 5:
+                    message.tenantId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CompleteStreamRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string model = 1; */
+        if (message.model !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.model);
+        /* repeated k1s0.system.ai_gateway.v1.Message messages = 2; */
+        for (let i = 0; i < message.messages.length; i++)
+            Message.internalBinaryWrite(message.messages[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* int32 max_tokens = 3; */
+        if (message.maxTokens !== 0)
+            writer.tag(3, WireType.Varint).int32(message.maxTokens);
+        /* float temperature = 4; */
+        if (message.temperature !== 0)
+            writer.tag(4, WireType.Bit32).float(message.temperature);
+        /* string tenant_id = 5; */
+        if (message.tenantId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.tenantId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.ai_gateway.v1.CompleteStreamRequest
+ */
+export const CompleteStreamRequest = new CompleteStreamRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CompleteStreamResponse$Type extends MessageType<CompleteStreamResponse> {
+    constructor() {
+        super("k1s0.system.ai_gateway.v1.CompleteStreamResponse", [
             { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "delta", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "finished", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
-    create(value?: PartialMessage<StreamChunk>): StreamChunk {
+    create(value?: PartialMessage<CompleteStreamResponse>): CompleteStreamResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.id = "";
         message.delta = "";
         message.finished = false;
         if (value !== undefined)
-            reflectionMergePartial<StreamChunk>(this, message, value);
+            reflectionMergePartial<CompleteStreamResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StreamChunk): StreamChunk {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CompleteStreamResponse): CompleteStreamResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -581,7 +697,7 @@ class StreamChunk$Type extends MessageType<StreamChunk> {
         }
         return message;
     }
-    internalBinaryWrite(message: StreamChunk, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: CompleteStreamResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string id = 1; */
         if (message.id !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.id);
@@ -598,9 +714,9 @@ class StreamChunk$Type extends MessageType<StreamChunk> {
     }
 }
 /**
- * @generated MessageType for protobuf message k1s0.system.ai_gateway.v1.StreamChunk
+ * @generated MessageType for protobuf message k1s0.system.ai_gateway.v1.CompleteStreamResponse
  */
-export const StreamChunk = new StreamChunk$Type();
+export const CompleteStreamResponse = new CompleteStreamResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class EmbedRequest$Type extends MessageType<EmbedRequest> {
     constructor() {
@@ -1094,7 +1210,7 @@ export const GetUsageResponse = new GetUsageResponse$Type();
  */
 export const AiGatewayService = new ServiceType("k1s0.system.ai_gateway.v1.AiGatewayService", [
     { name: "Complete", options: {}, I: CompleteRequest, O: CompleteResponse },
-    { name: "CompleteStream", serverStreaming: true, options: {}, I: CompleteRequest, O: StreamChunk },
+    { name: "CompleteStream", serverStreaming: true, options: {}, I: CompleteStreamRequest, O: CompleteStreamResponse },
     { name: "Embed", options: {}, I: EmbedRequest, O: EmbedResponse },
     { name: "ListModels", options: {}, I: ListModelsRequest, O: ListModelsResponse },
     { name: "GetUsage", options: {}, I: GetUsageRequest, O: GetUsageResponse }

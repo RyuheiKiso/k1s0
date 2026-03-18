@@ -3,7 +3,7 @@ version: 0.1.0
 description: k1s0 platform telemetry library for structured logging and observability.
 
 environment:
-  sdk: ">=3.4.0 <4.0.0"
+  sdk: '>=3.7.0 <4.0.0'
 
 dependencies:
   logging: ^1.2.0

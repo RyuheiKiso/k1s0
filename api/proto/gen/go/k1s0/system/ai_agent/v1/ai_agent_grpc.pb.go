@@ -38,7 +38,7 @@ type AiAgentServiceClient interface {
 	// エージェントを実行し、結果を返す
 	Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (*ExecuteResponse, error)
 	// エージェントを実行し、ストリーミング形式でイベントを返す
-	ExecuteStream(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ExecutionEvent], error)
+	ExecuteStream(ctx context.Context, in *ExecuteStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ExecuteStreamResponse], error)
 	// 実行中のエージェントをキャンセルする
 	CancelExecution(ctx context.Context, in *CancelExecutionRequest, opts ...grpc.CallOption) (*CancelExecutionResponse, error)
 	// 実行ステップをレビュー（承認/却下）する
@@ -63,13 +63,13 @@ func (c *aiAgentServiceClient) Execute(ctx context.Context, in *ExecuteRequest, 
 	return out, nil
 }
 
-func (c *aiAgentServiceClient) ExecuteStream(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ExecutionEvent], error) {
+func (c *aiAgentServiceClient) ExecuteStream(ctx context.Context, in *ExecuteStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ExecuteStreamResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &AiAgentService_ServiceDesc.Streams[0], AiAgentService_ExecuteStream_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[ExecuteRequest, ExecutionEvent]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ExecuteStreamRequest, ExecuteStreamResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (c *aiAgentServiceClient) ExecuteStream(ctx context.Context, in *ExecuteReq
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AiAgentService_ExecuteStreamClient = grpc.ServerStreamingClient[ExecutionEvent]
+type AiAgentService_ExecuteStreamClient = grpc.ServerStreamingClient[ExecuteStreamResponse]
 
 func (c *aiAgentServiceClient) CancelExecution(ctx context.Context, in *CancelExecutionRequest, opts ...grpc.CallOption) (*CancelExecutionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -111,7 +111,7 @@ type AiAgentServiceServer interface {
 	// エージェントを実行し、結果を返す
 	Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error)
 	// エージェントを実行し、ストリーミング形式でイベントを返す
-	ExecuteStream(*ExecuteRequest, grpc.ServerStreamingServer[ExecutionEvent]) error
+	ExecuteStream(*ExecuteStreamRequest, grpc.ServerStreamingServer[ExecuteStreamResponse]) error
 	// 実行中のエージェントをキャンセルする
 	CancelExecution(context.Context, *CancelExecutionRequest) (*CancelExecutionResponse, error)
 	// 実行ステップをレビュー（承認/却下）する
@@ -129,7 +129,7 @@ type UnimplementedAiAgentServiceServer struct{}
 func (UnimplementedAiAgentServiceServer) Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Execute not implemented")
 }
-func (UnimplementedAiAgentServiceServer) ExecuteStream(*ExecuteRequest, grpc.ServerStreamingServer[ExecutionEvent]) error {
+func (UnimplementedAiAgentServiceServer) ExecuteStream(*ExecuteStreamRequest, grpc.ServerStreamingServer[ExecuteStreamResponse]) error {
 	return status.Error(codes.Unimplemented, "method ExecuteStream not implemented")
 }
 func (UnimplementedAiAgentServiceServer) CancelExecution(context.Context, *CancelExecutionRequest) (*CancelExecutionResponse, error) {
@@ -178,15 +178,15 @@ func _AiAgentService_Execute_Handler(srv interface{}, ctx context.Context, dec f
 }
 
 func _AiAgentService_ExecuteStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ExecuteRequest)
+	m := new(ExecuteStreamRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(AiAgentServiceServer).ExecuteStream(m, &grpc.GenericServerStream[ExecuteRequest, ExecutionEvent]{ServerStream: stream})
+	return srv.(AiAgentServiceServer).ExecuteStream(m, &grpc.GenericServerStream[ExecuteStreamRequest, ExecuteStreamResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AiAgentService_ExecuteStreamServer = grpc.ServerStreamingServer[ExecutionEvent]
+type AiAgentService_ExecuteStreamServer = grpc.ServerStreamingServer[ExecuteStreamResponse]
 
 func _AiAgentService_CancelExecution_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CancelExecutionRequest)

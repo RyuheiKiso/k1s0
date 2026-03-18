@@ -89,7 +89,7 @@ trait ServiceCatalogClient: Send + Sync {
 /// gRPC TenantPage equivalent for test stub
 struct TenantPage {
     nodes: Vec<Tenant>,
-    total_count: i32,
+    total_count: i64,
     has_next: bool,
 }
 
@@ -148,7 +148,7 @@ impl TenantClient for StubTenantClient {
         let has_next = (page * page_size) < total;
         Ok(TenantPage {
             nodes,
-            total_count: total,
+            total_count: i64::from(total),
             has_next,
         })
     }

@@ -6,7 +6,8 @@ lint:
   use:
     - STANDARD
   except:
-    - PACKAGE_VERSION_SUFFIX   # v1 パッケージを許容
+    - PACKAGE_VERSION_SUFFIX       # v1 パッケージを許容
+    - PACKAGE_DIRECTORY_MATCH      # eventmonitor/ruleengine ディレクトリ名を許容（go_package 互換性維持）
 breaking:
   use:
     - FILE

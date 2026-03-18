@@ -8,7 +8,8 @@ import type { ReviewStepResponse } from "./ai_agent";
 import type { ReviewStepRequest } from "./ai_agent";
 import type { CancelExecutionResponse } from "./ai_agent";
 import type { CancelExecutionRequest } from "./ai_agent";
-import type { ExecutionEvent } from "./ai_agent";
+import type { ExecuteStreamResponse } from "./ai_agent";
+import type { ExecuteStreamRequest } from "./ai_agent";
 import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
 import { stackIntercept } from "@protobuf-ts/runtime-rpc";
 import type { ExecuteResponse } from "./ai_agent";
@@ -32,7 +33,7 @@ export interface IAiAgentServiceClient {
      *
      * @generated from protobuf rpc: ExecuteStream
      */
-    executeStream(input: ExecuteRequest, options?: RpcOptions): ServerStreamingCall<ExecuteRequest, ExecutionEvent>;
+    executeStream(input: ExecuteStreamRequest, options?: RpcOptions): ServerStreamingCall<ExecuteStreamRequest, ExecuteStreamResponse>;
     /**
      * 実行中のエージェントをキャンセルする
      *
@@ -71,9 +72,9 @@ export class AiAgentServiceClient implements IAiAgentServiceClient, ServiceInfo 
      *
      * @generated from protobuf rpc: ExecuteStream
      */
-    executeStream(input: ExecuteRequest, options?: RpcOptions): ServerStreamingCall<ExecuteRequest, ExecutionEvent> {
+    executeStream(input: ExecuteStreamRequest, options?: RpcOptions): ServerStreamingCall<ExecuteStreamRequest, ExecuteStreamResponse> {
         const method = this.methods[1], opt = this._transport.mergeOptions(options);
-        return stackIntercept<ExecuteRequest, ExecutionEvent>("serverStreaming", this._transport, method, opt, input);
+        return stackIntercept<ExecuteStreamRequest, ExecuteStreamResponse>("serverStreaming", this._transport, method, opt, input);
     }
     /**
      * 実行中のエージェントをキャンセルする

@@ -11,7 +11,6 @@
 package aiagentv1
 
 import (
-	_ "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -181,8 +180,90 @@ func (x *ExecuteResponse) GetSteps() []*ExecutionStep {
 	return nil
 }
 
-// 実行イベント: ストリーミング中に送信される個別イベント
-type ExecutionEvent struct {
+// ストリーミング実行リクエスト: ExecuteStream RPC 専用のリクエストメッセージ
+type ExecuteStreamRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 実行するエージェントの識別子
+	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// エージェントへの入力テキスト
+	Input string `protobuf:"bytes,2,opt,name=input,proto3" json:"input,omitempty"`
+	// セッション識別子（会話の継続に使用）
+	SessionId string `protobuf:"bytes,3,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// リクエスト元のテナント識別子
+	TenantId string `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	// エージェント実行に渡す追加コンテキスト
+	Context       map[string]string `protobuf:"bytes,5,rep,name=context,proto3" json:"context,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExecuteStreamRequest) Reset() {
+	*x = ExecuteStreamRequest{}
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecuteStreamRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecuteStreamRequest) ProtoMessage() {}
+
+func (x *ExecuteStreamRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecuteStreamRequest.ProtoReflect.Descriptor instead.
+func (*ExecuteStreamRequest) Descriptor() ([]byte, []int) {
+	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ExecuteStreamRequest) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *ExecuteStreamRequest) GetInput() string {
+	if x != nil {
+		return x.Input
+	}
+	return ""
+}
+
+func (x *ExecuteStreamRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *ExecuteStreamRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *ExecuteStreamRequest) GetContext() map[string]string {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+// ストリーミング実行レスポンス: ストリーミング中に送信される個別イベント
+type ExecuteStreamResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// 実行の一意識別子
 	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
@@ -196,21 +277,21 @@ type ExecutionEvent struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ExecutionEvent) Reset() {
-	*x = ExecutionEvent{}
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[2]
+func (x *ExecuteStreamResponse) Reset() {
+	*x = ExecuteStreamResponse{}
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ExecutionEvent) String() string {
+func (x *ExecuteStreamResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ExecutionEvent) ProtoMessage() {}
+func (*ExecuteStreamResponse) ProtoMessage() {}
 
-func (x *ExecutionEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[2]
+func (x *ExecuteStreamResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -221,33 +302,33 @@ func (x *ExecutionEvent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ExecutionEvent.ProtoReflect.Descriptor instead.
-func (*ExecutionEvent) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{2}
+// Deprecated: Use ExecuteStreamResponse.ProtoReflect.Descriptor instead.
+func (*ExecuteStreamResponse) Descriptor() ([]byte, []int) {
+	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ExecutionEvent) GetExecutionId() string {
+func (x *ExecuteStreamResponse) GetExecutionId() string {
 	if x != nil {
 		return x.ExecutionId
 	}
 	return ""
 }
 
-func (x *ExecutionEvent) GetEventType() string {
+func (x *ExecuteStreamResponse) GetEventType() string {
 	if x != nil {
 		return x.EventType
 	}
 	return ""
 }
 
-func (x *ExecutionEvent) GetData() string {
+func (x *ExecuteStreamResponse) GetData() string {
 	if x != nil {
 		return x.Data
 	}
 	return ""
 }
 
-func (x *ExecutionEvent) GetStepIndex() int32 {
+func (x *ExecuteStreamResponse) GetStepIndex() int32 {
 	if x != nil {
 		return x.StepIndex
 	}
@@ -275,7 +356,7 @@ type ExecutionStep struct {
 
 func (x *ExecutionStep) Reset() {
 	*x = ExecutionStep{}
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[3]
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -287,7 +368,7 @@ func (x *ExecutionStep) String() string {
 func (*ExecutionStep) ProtoMessage() {}
 
 func (x *ExecutionStep) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[3]
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -300,7 +381,7 @@ func (x *ExecutionStep) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecutionStep.ProtoReflect.Descriptor instead.
 func (*ExecutionStep) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{3}
+	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ExecutionStep) GetIndex() int32 {
@@ -356,7 +437,7 @@ type CancelExecutionRequest struct {
 
 func (x *CancelExecutionRequest) Reset() {
 	*x = CancelExecutionRequest{}
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[4]
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -368,7 +449,7 @@ func (x *CancelExecutionRequest) String() string {
 func (*CancelExecutionRequest) ProtoMessage() {}
 
 func (x *CancelExecutionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[4]
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -381,7 +462,7 @@ func (x *CancelExecutionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelExecutionRequest.ProtoReflect.Descriptor instead.
 func (*CancelExecutionRequest) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{4}
+	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CancelExecutionRequest) GetExecutionId() string {
@@ -402,7 +483,7 @@ type CancelExecutionResponse struct {
 
 func (x *CancelExecutionResponse) Reset() {
 	*x = CancelExecutionResponse{}
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[5]
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -414,7 +495,7 @@ func (x *CancelExecutionResponse) String() string {
 func (*CancelExecutionResponse) ProtoMessage() {}
 
 func (x *CancelExecutionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[5]
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -427,7 +508,7 @@ func (x *CancelExecutionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelExecutionResponse.ProtoReflect.Descriptor instead.
 func (*CancelExecutionResponse) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{5}
+	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CancelExecutionResponse) GetSuccess() bool {
@@ -454,7 +535,7 @@ type ReviewStepRequest struct {
 
 func (x *ReviewStepRequest) Reset() {
 	*x = ReviewStepRequest{}
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[6]
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -466,7 +547,7 @@ func (x *ReviewStepRequest) String() string {
 func (*ReviewStepRequest) ProtoMessage() {}
 
 func (x *ReviewStepRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[6]
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -479,7 +560,7 @@ func (x *ReviewStepRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReviewStepRequest.ProtoReflect.Descriptor instead.
 func (*ReviewStepRequest) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{6}
+	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ReviewStepRequest) GetExecutionId() string {
@@ -523,7 +604,7 @@ type ReviewStepResponse struct {
 
 func (x *ReviewStepResponse) Reset() {
 	*x = ReviewStepResponse{}
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[7]
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -535,7 +616,7 @@ func (x *ReviewStepResponse) String() string {
 func (*ReviewStepResponse) ProtoMessage() {}
 
 func (x *ReviewStepResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[7]
+	mi := &file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -548,7 +629,7 @@ func (x *ReviewStepResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReviewStepResponse.ProtoReflect.Descriptor instead.
 func (*ReviewStepResponse) Descriptor() ([]byte, []int) {
-	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{7}
+	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ReviewStepResponse) GetExecutionId() string {
@@ -569,7 +650,7 @@ var File_k1s0_system_ai_agent_v1_ai_agent_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDesc = "" +
 	"\n" +
-	"&k1s0/system/ai_agent/v1/ai_agent.proto\x12\x17k1s0.system.ai_agent.v1\x1a!k1s0/system/common/v1/types.proto\"\x89\x02\n" +
+	"&k1s0/system/ai_agent/v1/ai_agent.proto\x12\x17k1s0.system.ai_agent.v1\"\x89\x02\n" +
 	"\x0eExecuteRequest\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x14\n" +
 	"\x05input\x18\x02 \x01(\tR\x05input\x12\x1d\n" +
@@ -584,8 +665,18 @@ const file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDesc = "" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x16\n" +
 	"\x06output\x18\x03 \x01(\tR\x06output\x12<\n" +
-	"\x05steps\x18\x04 \x03(\v2&.k1s0.system.ai_agent.v1.ExecutionStepR\x05steps\"\x85\x01\n" +
-	"\x0eExecutionEvent\x12!\n" +
+	"\x05steps\x18\x04 \x03(\v2&.k1s0.system.ai_agent.v1.ExecutionStepR\x05steps\"\x95\x02\n" +
+	"\x14ExecuteStreamRequest\x12\x19\n" +
+	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x14\n" +
+	"\x05input\x18\x02 \x01(\tR\x05input\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x03 \x01(\tR\tsessionId\x12\x1b\n" +
+	"\ttenant_id\x18\x04 \x01(\tR\btenantId\x12T\n" +
+	"\acontext\x18\x05 \x03(\v2:.k1s0.system.ai_agent.v1.ExecuteStreamRequest.ContextEntryR\acontext\x1a:\n" +
+	"\fContextEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8c\x01\n" +
+	"\x15ExecuteStreamResponse\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x02 \x01(\tR\teventType\x12\x12\n" +
@@ -611,10 +702,10 @@ const file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDesc = "" +
 	"\bfeedback\x18\x04 \x01(\tR\bfeedback\"Q\n" +
 	"\x12ReviewStepResponse\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x18\n" +
-	"\aresumed\x18\x02 \x01(\bR\aresumed2\xb0\x03\n" +
+	"\aresumed\x18\x02 \x01(\bR\aresumed2\xbd\x03\n" +
 	"\x0eAiAgentService\x12\\\n" +
-	"\aExecute\x12'.k1s0.system.ai_agent.v1.ExecuteRequest\x1a(.k1s0.system.ai_agent.v1.ExecuteResponse\x12c\n" +
-	"\rExecuteStream\x12'.k1s0.system.ai_agent.v1.ExecuteRequest\x1a'.k1s0.system.ai_agent.v1.ExecutionEvent0\x01\x12t\n" +
+	"\aExecute\x12'.k1s0.system.ai_agent.v1.ExecuteRequest\x1a(.k1s0.system.ai_agent.v1.ExecuteResponse\x12p\n" +
+	"\rExecuteStream\x12-.k1s0.system.ai_agent.v1.ExecuteStreamRequest\x1a..k1s0.system.ai_agent.v1.ExecuteStreamResponse0\x01\x12t\n" +
 	"\x0fCancelExecution\x12/.k1s0.system.ai_agent.v1.CancelExecutionRequest\x1a0.k1s0.system.ai_agent.v1.CancelExecutionResponse\x12e\n" +
 	"\n" +
 	"ReviewStep\x12*.k1s0.system.ai_agent.v1.ReviewStepRequest\x1a+.k1s0.system.ai_agent.v1.ReviewStepResponseB@Z>github.com/k1s0-platform/system-proto-go/ai_agent/v1;aiagentv1b\x06proto3"
@@ -631,34 +722,37 @@ func file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescData
 }
 
-var file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_k1s0_system_ai_agent_v1_ai_agent_proto_goTypes = []any{
 	(*ExecuteRequest)(nil),          // 0: k1s0.system.ai_agent.v1.ExecuteRequest
 	(*ExecuteResponse)(nil),         // 1: k1s0.system.ai_agent.v1.ExecuteResponse
-	(*ExecutionEvent)(nil),          // 2: k1s0.system.ai_agent.v1.ExecutionEvent
-	(*ExecutionStep)(nil),           // 3: k1s0.system.ai_agent.v1.ExecutionStep
-	(*CancelExecutionRequest)(nil),  // 4: k1s0.system.ai_agent.v1.CancelExecutionRequest
-	(*CancelExecutionResponse)(nil), // 5: k1s0.system.ai_agent.v1.CancelExecutionResponse
-	(*ReviewStepRequest)(nil),       // 6: k1s0.system.ai_agent.v1.ReviewStepRequest
-	(*ReviewStepResponse)(nil),      // 7: k1s0.system.ai_agent.v1.ReviewStepResponse
-	nil,                             // 8: k1s0.system.ai_agent.v1.ExecuteRequest.ContextEntry
+	(*ExecuteStreamRequest)(nil),    // 2: k1s0.system.ai_agent.v1.ExecuteStreamRequest
+	(*ExecuteStreamResponse)(nil),   // 3: k1s0.system.ai_agent.v1.ExecuteStreamResponse
+	(*ExecutionStep)(nil),           // 4: k1s0.system.ai_agent.v1.ExecutionStep
+	(*CancelExecutionRequest)(nil),  // 5: k1s0.system.ai_agent.v1.CancelExecutionRequest
+	(*CancelExecutionResponse)(nil), // 6: k1s0.system.ai_agent.v1.CancelExecutionResponse
+	(*ReviewStepRequest)(nil),       // 7: k1s0.system.ai_agent.v1.ReviewStepRequest
+	(*ReviewStepResponse)(nil),      // 8: k1s0.system.ai_agent.v1.ReviewStepResponse
+	nil,                             // 9: k1s0.system.ai_agent.v1.ExecuteRequest.ContextEntry
+	nil,                             // 10: k1s0.system.ai_agent.v1.ExecuteStreamRequest.ContextEntry
 }
 var file_k1s0_system_ai_agent_v1_ai_agent_proto_depIdxs = []int32{
-	8, // 0: k1s0.system.ai_agent.v1.ExecuteRequest.context:type_name -> k1s0.system.ai_agent.v1.ExecuteRequest.ContextEntry
-	3, // 1: k1s0.system.ai_agent.v1.ExecuteResponse.steps:type_name -> k1s0.system.ai_agent.v1.ExecutionStep
-	0, // 2: k1s0.system.ai_agent.v1.AiAgentService.Execute:input_type -> k1s0.system.ai_agent.v1.ExecuteRequest
-	0, // 3: k1s0.system.ai_agent.v1.AiAgentService.ExecuteStream:input_type -> k1s0.system.ai_agent.v1.ExecuteRequest
-	4, // 4: k1s0.system.ai_agent.v1.AiAgentService.CancelExecution:input_type -> k1s0.system.ai_agent.v1.CancelExecutionRequest
-	6, // 5: k1s0.system.ai_agent.v1.AiAgentService.ReviewStep:input_type -> k1s0.system.ai_agent.v1.ReviewStepRequest
-	1, // 6: k1s0.system.ai_agent.v1.AiAgentService.Execute:output_type -> k1s0.system.ai_agent.v1.ExecuteResponse
-	2, // 7: k1s0.system.ai_agent.v1.AiAgentService.ExecuteStream:output_type -> k1s0.system.ai_agent.v1.ExecutionEvent
-	5, // 8: k1s0.system.ai_agent.v1.AiAgentService.CancelExecution:output_type -> k1s0.system.ai_agent.v1.CancelExecutionResponse
-	7, // 9: k1s0.system.ai_agent.v1.AiAgentService.ReviewStep:output_type -> k1s0.system.ai_agent.v1.ReviewStepResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	9,  // 0: k1s0.system.ai_agent.v1.ExecuteRequest.context:type_name -> k1s0.system.ai_agent.v1.ExecuteRequest.ContextEntry
+	4,  // 1: k1s0.system.ai_agent.v1.ExecuteResponse.steps:type_name -> k1s0.system.ai_agent.v1.ExecutionStep
+	10, // 2: k1s0.system.ai_agent.v1.ExecuteStreamRequest.context:type_name -> k1s0.system.ai_agent.v1.ExecuteStreamRequest.ContextEntry
+	0,  // 3: k1s0.system.ai_agent.v1.AiAgentService.Execute:input_type -> k1s0.system.ai_agent.v1.ExecuteRequest
+	2,  // 4: k1s0.system.ai_agent.v1.AiAgentService.ExecuteStream:input_type -> k1s0.system.ai_agent.v1.ExecuteStreamRequest
+	5,  // 5: k1s0.system.ai_agent.v1.AiAgentService.CancelExecution:input_type -> k1s0.system.ai_agent.v1.CancelExecutionRequest
+	7,  // 6: k1s0.system.ai_agent.v1.AiAgentService.ReviewStep:input_type -> k1s0.system.ai_agent.v1.ReviewStepRequest
+	1,  // 7: k1s0.system.ai_agent.v1.AiAgentService.Execute:output_type -> k1s0.system.ai_agent.v1.ExecuteResponse
+	3,  // 8: k1s0.system.ai_agent.v1.AiAgentService.ExecuteStream:output_type -> k1s0.system.ai_agent.v1.ExecuteStreamResponse
+	6,  // 9: k1s0.system.ai_agent.v1.AiAgentService.CancelExecution:output_type -> k1s0.system.ai_agent.v1.CancelExecutionResponse
+	8,  // 10: k1s0.system.ai_agent.v1.AiAgentService.ReviewStep:output_type -> k1s0.system.ai_agent.v1.ReviewStepResponse
+	7,  // [7:11] is the sub-list for method output_type
+	3,  // [3:7] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_ai_agent_v1_ai_agent_proto_init() }
@@ -672,7 +766,7 @@ func file_k1s0_system_ai_agent_v1_ai_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDesc), len(file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -1,11 +1,24 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
+)
+
+// センチネルエラー: errors.Is() によるエラー判定を可能にする。
+var (
+	// ErrConfigNotFound は設定ファイルが見つからない場合のエラー。
+	ErrConfigNotFound = errors.New("設定ファイルが見つからない")
+	// ErrConfigInvalid は設定ファイルの内容が無効（パース不可）な場合のエラー。
+	ErrConfigInvalid = errors.New("設定が無効")
+	// ErrConfigLoadFailed は設定の読み込みに失敗した場合の汎用エラー。
+	ErrConfigLoadFailed = errors.New("設定の読み込みに失敗")
+	// ErrConfigValidation は設定値のバリデーションに失敗した場合のエラー。
+	ErrConfigValidation = errors.New("設定のバリデーションに失敗")
 )
 
 // Config は config設計.md のスキーマに準拠する。
@@ -129,20 +142,28 @@ type OIDCConfig struct {
 }
 
 // Load は basePath の YAML を読み込み、envPath があればマージする。
+// ファイルが見つからない場合は ErrConfigNotFound、パース失敗時は ErrConfigInvalid、
+// その他の読み込み失敗時は ErrConfigLoadFailed をラップして返す。
 func Load(basePath string, envPath ...string) (*Config, error) {
 	data, err := os.ReadFile(basePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config: %w", err)
+		// ファイルが存在しない場合は ErrConfigNotFound、それ以外は ErrConfigLoadFailed
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("%w: %s: %v", ErrConfigNotFound, basePath, err)
+		}
+		return nil, fmt.Errorf("%w: %s: %v", ErrConfigLoadFailed, basePath, err)
 	}
 
 	var cfg Config
+	// YAML パースに失敗した場合は ErrConfigInvalid
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse config: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrConfigInvalid, err)
 	}
 
 	if len(envPath) > 0 && envPath[0] != "" {
+		// 環境設定ファイルのマージに失敗した場合は ErrConfigLoadFailed
 		if err := mergeFromFile(&cfg, envPath[0]); err != nil {
-			return nil, fmt.Errorf("failed to merge env config: %w", err)
+			return nil, fmt.Errorf("%w: %v", ErrConfigLoadFailed, err)
 		}
 	}
 
@@ -150,10 +171,11 @@ func Load(basePath string, envPath ...string) (*Config, error) {
 }
 
 // Validate は設定値のバリデーションを実行する。
+// バリデーション失敗時は ErrConfigValidation をラップして返す。
 func (c *Config) Validate() error {
 	v := validator.New()
 	if err := v.Struct(c); err != nil {
-		return fmt.Errorf("config validation failed: %w", err)
+		return fmt.Errorf("%w: %v", ErrConfigValidation, err)
 	}
 	return nil
 }

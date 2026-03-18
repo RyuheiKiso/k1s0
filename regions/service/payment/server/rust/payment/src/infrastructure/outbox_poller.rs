@@ -1,10 +1,10 @@
 use crate::domain::repository::payment_repository::PaymentRepository;
-use crate::usecase::event_publisher::PaymentEventPublisher;
-use prost_types::Timestamp;
 use crate::proto::k1s0::event::service::payment::v1::{
-    PaymentInitiatedEvent, PaymentCompletedEvent, PaymentFailedEvent, PaymentRefundedEvent,
+    PaymentCompletedEvent, PaymentFailedEvent, PaymentInitiatedEvent, PaymentRefundedEvent,
 };
 use crate::proto::k1s0::system::common::v1::EventMetadata;
+use crate::usecase::event_publisher::PaymentEventPublisher;
+use prost_types::Timestamp;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time;
@@ -20,23 +20,51 @@ pub struct OutboxPoller {
 
 // ISO 8601 文字列を prost Timestamp に変換する
 fn parse_timestamp(s: &str) -> Option<Timestamp> {
-    chrono::DateTime::parse_from_rfc3339(s).ok().map(|dt| Timestamp {
-        seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
-    })
+    chrono::DateTime::parse_from_rfc3339(s)
+        .ok()
+        .map(|dt| Timestamp {
+            seconds: dt.timestamp(),
+            nanos: dt.timestamp_subsec_nanos() as i32,
+        })
 }
 
 // JSON の metadata オブジェクトから EventMetadata proto を構築する
 fn extract_metadata(payload: &serde_json::Value) -> Option<EventMetadata> {
     let metadata = payload.get("metadata")?;
     Some(EventMetadata {
-        event_id: metadata.get("event_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-        event_type: metadata.get("event_type").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-        source: metadata.get("source").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-        timestamp: metadata.get("timestamp").and_then(|v| v.as_i64()).unwrap_or_default(),
-        trace_id: metadata.get("trace_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-        correlation_id: metadata.get("correlation_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-        schema_version: metadata.get("schema_version").and_then(|v| v.as_i64()).unwrap_or(1) as i32,
+        event_id: metadata
+            .get("event_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        event_type: metadata
+            .get("event_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        source: metadata
+            .get("source")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        timestamp: metadata
+            .get("timestamp")
+            .and_then(|v| v.as_i64())
+            .unwrap_or_default(),
+        trace_id: metadata
+            .get("trace_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        correlation_id: metadata
+            .get("correlation_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        schema_version: metadata
+            .get("schema_version")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(1) as i32,
     })
 }
 
@@ -102,48 +130,137 @@ impl OutboxPoller {
                 "payment.initiated" => {
                     let proto_event = PaymentInitiatedEvent {
                         metadata: extract_metadata(payload),
-                        payment_id: payload.get("payment_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        order_id: payload.get("order_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        customer_id: payload.get("customer_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        amount: payload.get("amount").and_then(|v| v.as_i64()).unwrap_or_default(),
-                        currency: payload.get("currency").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        payment_method: payload.get("payment_method").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        initiated_at: payload.get("initiated_at").and_then(|v| v.as_str()).and_then(parse_timestamp),
+                        payment_id: payload
+                            .get("payment_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        order_id: payload
+                            .get("order_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        customer_id: payload
+                            .get("customer_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        amount: payload
+                            .get("amount")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or_default(),
+                        currency: payload
+                            .get("currency")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        payment_method: payload
+                            .get("payment_method")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        initiated_at: payload
+                            .get("initiated_at")
+                            .and_then(|v| v.as_str())
+                            .and_then(parse_timestamp),
                     };
                     publisher.publish_payment_initiated(&proto_event).await
                 }
                 "payment.completed" => {
                     let proto_event = PaymentCompletedEvent {
                         metadata: extract_metadata(payload),
-                        payment_id: payload.get("payment_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        order_id: payload.get("order_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        amount: payload.get("amount").and_then(|v| v.as_i64()).unwrap_or_default(),
-                        currency: payload.get("currency").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        transaction_id: payload.get("transaction_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        completed_at: payload.get("completed_at").and_then(|v| v.as_str()).and_then(parse_timestamp),
+                        payment_id: payload
+                            .get("payment_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        order_id: payload
+                            .get("order_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        amount: payload
+                            .get("amount")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or_default(),
+                        currency: payload
+                            .get("currency")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        transaction_id: payload
+                            .get("transaction_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        completed_at: payload
+                            .get("completed_at")
+                            .and_then(|v| v.as_str())
+                            .and_then(parse_timestamp),
                     };
                     publisher.publish_payment_completed(&proto_event).await
                 }
                 "payment.failed" => {
                     let proto_event = PaymentFailedEvent {
                         metadata: extract_metadata(payload),
-                        payment_id: payload.get("payment_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        order_id: payload.get("order_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        reason: payload.get("reason").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        error_code: payload.get("error_code").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        failed_at: payload.get("failed_at").and_then(|v| v.as_str()).and_then(parse_timestamp),
+                        payment_id: payload
+                            .get("payment_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        order_id: payload
+                            .get("order_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        reason: payload
+                            .get("reason")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        error_code: payload
+                            .get("error_code")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        failed_at: payload
+                            .get("failed_at")
+                            .and_then(|v| v.as_str())
+                            .and_then(parse_timestamp),
                     };
                     publisher.publish_payment_failed(&proto_event).await
                 }
                 "payment.refunded" => {
                     let proto_event = PaymentRefundedEvent {
                         metadata: extract_metadata(payload),
-                        payment_id: payload.get("payment_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        order_id: payload.get("order_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        refund_amount: payload.get("refund_amount").and_then(|v| v.as_i64()).unwrap_or_default(),
-                        currency: payload.get("currency").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        reason: payload.get("reason").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        refunded_at: payload.get("refunded_at").and_then(|v| v.as_str()).and_then(parse_timestamp),
+                        payment_id: payload
+                            .get("payment_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        order_id: payload
+                            .get("order_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        refund_amount: payload
+                            .get("refund_amount")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or_default(),
+                        currency: payload
+                            .get("currency")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        reason: payload
+                            .get("reason")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        refunded_at: payload
+                            .get("refunded_at")
+                            .and_then(|v| v.as_str())
+                            .and_then(parse_timestamp),
                     };
                     publisher.publish_payment_refunded(&proto_event).await
                 }

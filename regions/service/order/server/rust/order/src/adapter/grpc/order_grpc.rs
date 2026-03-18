@@ -126,7 +126,7 @@ impl OrderService for OrderGrpcService {
             orders: orders.into_iter().map(|o| proto_order(o, vec![])).collect(),
             total_count,
             pagination: Some(PaginationResult {
-                total_count: total_count as i32,
+                total_count: total_count as i64,
                 page,
                 page_size,
                 has_next,

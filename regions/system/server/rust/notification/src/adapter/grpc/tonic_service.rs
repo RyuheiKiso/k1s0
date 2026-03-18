@@ -225,7 +225,7 @@ impl NotificationService for NotificationServiceTonic {
                 })
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total as i32,
+                total_count: resp.total as i64,
                 page: resp.page as i32,
                 page_size: resp.page_size as i32,
                 has_next: resp.has_next,
@@ -252,7 +252,7 @@ impl NotificationService for NotificationServiceTonic {
         Ok(Response::new(ProtoListChannelsResponse {
             channels: resp.channels.iter().map(channel_to_proto).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total as i32,
+                total_count: resp.total as i64,
                 page: resp.page as i32,
                 page_size: resp.page_size as i32,
                 has_next: resp.has_next,
@@ -357,7 +357,7 @@ impl NotificationService for NotificationServiceTonic {
         Ok(Response::new(ProtoListTemplatesResponse {
             templates: resp.templates.iter().map(template_to_proto).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total as i32,
+                total_count: resp.total as i64,
                 page: resp.page as i32,
                 page_size: resp.page_size as i32,
                 has_next: resp.has_next,

@@ -4,6 +4,8 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuleEngineService } from "./rule_engine";
+import type { EvaluateDryRunResponse } from "./rule_engine";
+import type { EvaluateDryRunRequest } from "./rule_engine";
 import type { EvaluateResponse } from "./rule_engine";
 import type { EvaluateRequest } from "./rule_engine";
 import type { RollbackRuleSetResponse } from "./rule_engine";
@@ -92,7 +94,7 @@ export interface IRuleEngineServiceClient {
     /**
      * @generated from protobuf rpc: EvaluateDryRun
      */
-    evaluateDryRun(input: EvaluateRequest, options?: RpcOptions): UnaryCall<EvaluateRequest, EvaluateResponse>;
+    evaluateDryRun(input: EvaluateDryRunRequest, options?: RpcOptions): UnaryCall<EvaluateDryRunRequest, EvaluateDryRunResponse>;
 }
 /**
  * @generated from protobuf service k1s0.system.rule_engine.v1.RuleEngineService
@@ -197,8 +199,8 @@ export class RuleEngineServiceClient implements IRuleEngineServiceClient, Servic
     /**
      * @generated from protobuf rpc: EvaluateDryRun
      */
-    evaluateDryRun(input: EvaluateRequest, options?: RpcOptions): UnaryCall<EvaluateRequest, EvaluateResponse> {
+    evaluateDryRun(input: EvaluateDryRunRequest, options?: RpcOptions): UnaryCall<EvaluateDryRunRequest, EvaluateDryRunResponse> {
         const method = this.methods[13], opt = this._transport.mergeOptions(options);
-        return stackIntercept<EvaluateRequest, EvaluateResponse>("unary", this._transport, method, opt, input);
+        return stackIntercept<EvaluateDryRunRequest, EvaluateDryRunResponse>("unary", this._transport, method, opt, input);
     }
 }

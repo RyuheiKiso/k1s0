@@ -392,7 +392,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                     page_size: 100,
                 });
 
-        let total_count = tables.len() as i32;
+        let total_count = tables.len() as i64;
         let start = ((pagination.page - 1) * pagination.page_size) as usize;
         let page_tables: Vec<_> = tables
             .into_iter()
@@ -531,8 +531,8 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         let proto_records: Vec<prost_types::Struct> =
             result.records.iter().filter_map(json_to_struct).collect();
 
-        let total_count = result.total as i32;
-        let has_next = (pagination.page * pagination.page_size) < total_count;
+        let total_count = result.total as i64;
+        let has_next = (i64::from(pagination.page) * i64::from(pagination.page_size)) < total_count;
 
         Ok(Response::new(ListRecordsResponse {
             records: proto_records,
@@ -811,7 +811,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .list_rules(table_name, rule_type, severity, None)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
-        let total_count = rules.len() as i32;
+        let total_count = rules.len() as i64;
         let start = ((pagination.page - 1) * pagination.page_size) as usize;
         let paged: Vec<_> = rules
             .iter()
@@ -1262,7 +1262,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         Ok(Response::new(ListTableAuditLogsResponse {
             logs: logs.into_iter().map(domain_audit_log_to_proto).collect(),
             pagination: Some(PaginationResult {
-                total_count: total as i32,
+                total_count: total as i64,
                 page: p.page,
                 page_size: p.page_size,
                 has_next: (p.page as i64 * p.page_size as i64) < total,
@@ -1295,7 +1295,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         Ok(Response::new(ListRecordAuditLogsResponse {
             logs: logs.into_iter().map(domain_audit_log_to_proto).collect(),
             pagination: Some(PaginationResult {
-                total_count: total as i32,
+                total_count: total as i64,
                 page: p.page,
                 page_size: p.page_size,
                 has_next: (p.page as i64 * p.page_size as i64) < total,

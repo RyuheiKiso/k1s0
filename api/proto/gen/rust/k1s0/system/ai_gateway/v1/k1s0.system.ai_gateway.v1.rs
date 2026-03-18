@@ -51,9 +51,28 @@ pub struct CompleteResponse {
     #[prost(int32, tag="5")]
     pub completion_tokens: i32,
 }
-/// ストリーミングチャンク: ストリーミング補完の部分的なレスポンス
+/// ストリーミング補完リクエスト: CompleteStream RPC 専用のリクエストメッセージ
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CompleteStreamRequest {
+    /// 使用する AI モデルの識別子
+    #[prost(string, tag="1")]
+    pub model: ::prost::alloc::string::String,
+    /// 補完に使用するメッセージ履歴
+    #[prost(message, repeated, tag="2")]
+    pub messages: ::prost::alloc::vec::Vec<Message>,
+    /// 生成する最大トークン数
+    #[prost(int32, tag="3")]
+    pub max_tokens: i32,
+    /// 生成のランダム性を制御する温度パラメータ（0.0〜2.0）
+    #[prost(float, tag="4")]
+    pub temperature: f32,
+    /// リクエスト元のテナント識別子
+    #[prost(string, tag="5")]
+    pub tenant_id: ::prost::alloc::string::String,
+}
+/// ストリーミング補完レスポンス: ストリーミング補完の部分的なレスポンス
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct StreamChunk {
+pub struct CompleteStreamResponse {
     /// ストリームの一意識別子
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,

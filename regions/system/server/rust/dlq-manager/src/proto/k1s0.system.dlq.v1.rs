@@ -29,10 +29,9 @@ pub struct DlqMessage {
 pub struct ListMessagesRequest {
     #[prost(string, tag = "1")]
     pub topic: ::prost::alloc::string::String,
-    #[prost(int32, tag = "2")]
-    pub page: i32,
-    #[prost(int32, tag = "3")]
-    pub page_size: i32,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
 }
 /// / ListMessagesResponse は一覧取得レスポンス。
 #[derive(Clone, PartialEq, ::prost::Message)]

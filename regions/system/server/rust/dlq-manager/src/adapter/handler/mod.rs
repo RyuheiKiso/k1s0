@@ -88,7 +88,10 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/dlq/messages/{id}",
                 axum::routing::delete(dlq_handler::delete_message),
             )
-            .route("/api/v1/dlq/{topic}/retry-all", post(dlq_handler::retry_all))
+            .route(
+                "/api/v1/dlq/{topic}/retry-all",
+                post(dlq_handler::retry_all),
+            )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "dlq", "admin",
             )));
@@ -112,7 +115,10 @@ pub fn router(state: AppState) -> Router {
                 post(dlq_handler::retry_message),
             )
             .route("/api/v1/dlq/{topic}", get(dlq_handler::list_messages))
-            .route("/api/v1/dlq/{topic}/retry-all", post(dlq_handler::retry_all))
+            .route(
+                "/api/v1/dlq/{topic}/retry-all",
+                post(dlq_handler::retry_all),
+            )
     };
 
     // with_state で Router<()> に変換後、SwaggerUI を merge する

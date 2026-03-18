@@ -154,7 +154,10 @@ fn make_test_app() -> axum::Router {
     let state_store: Arc<dyn RateLimitStateStore> = Arc::new(StubRateLimitStateStore);
 
     let state = AppState::new(
-        Arc::new(CheckRateLimitUseCase::new(repo.clone(), state_store.clone())),
+        Arc::new(CheckRateLimitUseCase::new(
+            repo.clone(),
+            state_store.clone(),
+        )),
         Arc::new(CreateRuleUseCase::new(repo.clone())),
         Arc::new(GetRuleUseCase::new(repo.clone())),
         Arc::new(ListRulesUseCase::new(repo.clone())),

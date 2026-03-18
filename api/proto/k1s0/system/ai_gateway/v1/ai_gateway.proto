@@ -7,14 +7,12 @@ package k1s0.system.ai_gateway.v1;
 
 option go_package = "github.com/k1s0-platform/system-proto-go/ai_gateway/v1;aigatewayv1";
 
-import "k1s0/system/common/v1/types.proto";
-
 // AI ゲートウェイサービス: AI モデルへの補完・埋め込みリクエストを仲介する
 service AiGatewayService {
   // テキスト補完リクエストを実行する
   rpc Complete(CompleteRequest) returns (CompleteResponse);
   // ストリーミング形式でテキスト補完を実行する
-  rpc CompleteStream(CompleteRequest) returns (stream StreamChunk);
+  rpc CompleteStream(CompleteStreamRequest) returns (stream CompleteStreamResponse);
   // テキスト埋め込みベクトルを生成する
   rpc Embed(EmbedRequest) returns (EmbedResponse);
   // 利用可能な AI モデル一覧を取得する
@@ -61,8 +59,22 @@ message CompleteResponse {
   int32 completion_tokens = 5;
 }
 
-// ストリーミングチャンク: ストリーミング補完の部分的なレスポンス
-message StreamChunk {
+// ストリーミング補完リクエスト: CompleteStream RPC 専用のリクエストメッセージ
+message CompleteStreamRequest {
+  // 使用する AI モデルの識別子
+  string model = 1;
+  // 補完に使用するメッセージ履歴
+  repeated Message messages = 2;
+  // 生成する最大トークン数
+  int32 max_tokens = 3;
+  // 生成のランダム性を制御する温度パラメータ（0.0〜2.0）
+  float temperature = 4;
+  // リクエスト元のテナント識別子
+  string tenant_id = 5;
+}
+
+// ストリーミング補完レスポンス: ストリーミング補完の部分的なレスポンス
+message CompleteStreamResponse {
   // ストリームの一意識別子
   string id = 1;
   // 差分テキスト

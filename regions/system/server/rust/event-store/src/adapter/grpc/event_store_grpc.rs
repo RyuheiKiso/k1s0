@@ -116,7 +116,7 @@ impl EventStoreGrpcService {
                 })
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count.min(i32::MAX as u64) as i32,
+                total_count: total_count as i64,
                 page: page as i32,
                 page_size: page_size as i32,
                 has_next,
@@ -209,7 +209,7 @@ impl EventStoreGrpcService {
                     .collect(),
                 current_version: output.current_version,
                 pagination: Some(ProtoPaginationResult {
-                    total_count: output.pagination.total_count.min(i32::MAX as u64) as i32,
+                    total_count: output.pagination.total_count as i64,
                     page: req.page as i32,
                     page_size: req.page_size as i32,
                     has_next: output.pagination.has_next,

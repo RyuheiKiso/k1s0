@@ -7,14 +7,12 @@ package k1s0.system.ai_agent.v1;
 
 option go_package = "github.com/k1s0-platform/system-proto-go/ai_agent/v1;aiagentv1";
 
-import "k1s0/system/common/v1/types.proto";
-
 // AI エージェントサービス: エージェントの実行とステップ管理を行う
 service AiAgentService {
   // エージェントを実行し、結果を返す
   rpc Execute(ExecuteRequest) returns (ExecuteResponse);
   // エージェントを実行し、ストリーミング形式でイベントを返す
-  rpc ExecuteStream(ExecuteRequest) returns (stream ExecutionEvent);
+  rpc ExecuteStream(ExecuteStreamRequest) returns (stream ExecuteStreamResponse);
   // 実行中のエージェントをキャンセルする
   rpc CancelExecution(CancelExecutionRequest) returns (CancelExecutionResponse);
   // 実行ステップをレビュー（承認/却下）する
@@ -47,8 +45,22 @@ message ExecuteResponse {
   repeated ExecutionStep steps = 4;
 }
 
-// 実行イベント: ストリーミング中に送信される個別イベント
-message ExecutionEvent {
+// ストリーミング実行リクエスト: ExecuteStream RPC 専用のリクエストメッセージ
+message ExecuteStreamRequest {
+  // 実行するエージェントの識別子
+  string agent_id = 1;
+  // エージェントへの入力テキスト
+  string input = 2;
+  // セッション識別子（会話の継続に使用）
+  string session_id = 3;
+  // リクエスト元のテナント識別子
+  string tenant_id = 4;
+  // エージェント実行に渡す追加コンテキスト
+  map<string, string> context = 5;
+}
+
+// ストリーミング実行レスポンス: ストリーミング中に送信される個別イベント
+message ExecuteStreamResponse {
   // 実行の一意識別子
   string execution_id = 1;
   // イベント種別（step_start / step_end / tool_call / output / error）

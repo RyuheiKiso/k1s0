@@ -143,7 +143,7 @@ impl SearchService for SearchServiceTonic {
         Ok(Response::new(ProtoSearchResponse {
             hits: proto_hits,
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                total_count: resp.total_count as i64,
                 page: resp.page as i32,
                 page_size: resp.page_size as i32,
                 has_next: resp.has_next,

@@ -382,7 +382,7 @@ fn parse_uuid(raw: &str, field_name: &str) -> Result<Uuid, Status> {
 
 fn pagination_result(total_count: usize, page: i32, page_size: i32) -> PaginationResult {
     PaginationResult {
-        total_count: total_count as i32,
+        total_count: total_count as i64,
         page,
         page_size,
         has_next: (page as usize * page_size as usize) < total_count,

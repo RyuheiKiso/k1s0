@@ -153,9 +153,15 @@ fn test_registered_schema_serde_roundtrip() {
 fn test_compatibility_mode_serialization() {
     let cases = vec![
         (CompatibilityMode::Backward, r#""BACKWARD""#),
-        (CompatibilityMode::BackwardTransitive, r#""BACKWARD_TRANSITIVE""#),
+        (
+            CompatibilityMode::BackwardTransitive,
+            r#""BACKWARD_TRANSITIVE""#,
+        ),
         (CompatibilityMode::Forward, r#""FORWARD""#),
-        (CompatibilityMode::ForwardTransitive, r#""FORWARD_TRANSITIVE""#),
+        (
+            CompatibilityMode::ForwardTransitive,
+            r#""FORWARD_TRANSITIVE""#,
+        ),
         (CompatibilityMode::Full, r#""FULL""#),
         (CompatibilityMode::FullTransitive, r#""FULL_TRANSITIVE""#),
         (CompatibilityMode::None, r#""NONE""#),

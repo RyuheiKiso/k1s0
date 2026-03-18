@@ -51,7 +51,7 @@ async fn main() {
         &config.auth.jwt.issuer,
         &config.auth.jwt.audience,
         std::time::Duration::from_secs(600),
-    );
+    ).expect("Failed to create JWKS verifier");
 {% endif %}
 
 {% if has_database %}

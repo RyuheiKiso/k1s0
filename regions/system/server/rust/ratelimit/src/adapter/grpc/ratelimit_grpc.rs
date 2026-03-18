@@ -120,7 +120,7 @@ pub struct ListRulesResponse {
 
 #[derive(Debug)]
 pub struct PaginationResponse {
-    pub total_count: i32,
+    pub total_count: i64,
     pub page: i32,
     pub page_size: i32,
     pub has_next: bool,
@@ -485,7 +485,7 @@ impl RateLimitGrpcService {
                 })
                 .collect(),
             pagination: PaginationResponse {
-                total_count: output.total_count.min(i32::MAX as u64) as i32,
+                total_count: output.total_count as i64,
                 page: output.page.min(i32::MAX as u32) as i32,
                 page_size: output.page_size.min(i32::MAX as u32) as i32,
                 has_next: output.has_next,

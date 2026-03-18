@@ -204,11 +204,7 @@ impl ConsistencyRuleRepository for StubRuleRepo {
     ) -> anyhow::Result<ConsistencyRule> {
         anyhow::bail!("stub: not implemented")
     }
-    async fn update(
-        &self,
-        _id: Uuid,
-        _rule: &ConsistencyRule,
-    ) -> anyhow::Result<ConsistencyRule> {
+    async fn update(&self, _id: Uuid, _rule: &ConsistencyRule) -> anyhow::Result<ConsistencyRule> {
         anyhow::bail!("stub: not implemented")
     }
     async fn replace_conditions(
@@ -271,16 +267,10 @@ impl TableRelationshipRepository for StubRelationshipRepo {
     async fn find_by_id(&self, _id: Uuid) -> anyhow::Result<Option<TableRelationship>> {
         Ok(None)
     }
-    async fn find_by_table_id(
-        &self,
-        _table_id: Uuid,
-    ) -> anyhow::Result<Vec<TableRelationship>> {
+    async fn find_by_table_id(&self, _table_id: Uuid) -> anyhow::Result<Vec<TableRelationship>> {
         Ok(vec![])
     }
-    async fn create(
-        &self,
-        _relationship: &TableRelationship,
-    ) -> anyhow::Result<TableRelationship> {
+    async fn create(&self, _relationship: &TableRelationship) -> anyhow::Result<TableRelationship> {
         anyhow::bail!("stub: not implemented")
     }
     async fn update(
@@ -311,11 +301,7 @@ impl DisplayConfigRepository for StubDisplayConfigRepo {
     async fn create(&self, _config: &DisplayConfig) -> anyhow::Result<DisplayConfig> {
         anyhow::bail!("stub: not implemented")
     }
-    async fn update(
-        &self,
-        _id: Uuid,
-        _config: &DisplayConfig,
-    ) -> anyhow::Result<DisplayConfig> {
+    async fn update(&self, _id: Uuid, _config: &DisplayConfig) -> anyhow::Result<DisplayConfig> {
         anyhow::bail!("stub: not implemented")
     }
     async fn delete(&self, _id: Uuid) -> anyhow::Result<()> {
@@ -370,7 +356,9 @@ fn make_test_app() -> axum::Router {
     let display_config_repo: Arc<dyn DisplayConfigRepository> = Arc::new(StubDisplayConfigRepo);
     let import_job_repo: Arc<dyn ImportJobRepository> = Arc::new(StubImportJobRepo);
     let rule_engine: Arc<dyn RuleEngineService> = Arc::new(StubRuleEngine);
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("master-maintenance-test"));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "master-maintenance-test",
+    ));
 
     // 遅延接続でプールを作成（テスト中はDBアクセスしないため接続不要）
     let pool = sqlx::postgres::PgPoolOptions::new()
@@ -449,12 +437,15 @@ fn make_test_app() -> axum::Router {
     );
 
     // ダミーの JwksVerifier を作成（テスト中は実際にトークン検証しない）
-    let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-        "https://dummy.example.com/jwks",
-        "https://dummy.example.com",
-        "dummy-audience",
-        Duration::from_secs(600),
-    ));
+    let verifier = Arc::new(
+        k1s0_auth::JwksVerifier::new(
+            "https://dummy.example.com/jwks",
+            "https://dummy.example.com",
+            "dummy-audience",
+            Duration::from_secs(600),
+        )
+        .expect("Failed to create JWKS verifier"),
+    );
     let auth_state = MasterMaintenanceAuthState { verifier };
 
     let state = AppState {

@@ -4,7 +4,8 @@
 set -euo pipefail
 
 echo "=== Dart/Flutter Dependency Check ==="
-mapfile -t packages < <(rg --files -g 'pubspec.yaml' regions CLI | sort)
+# ripgrep (rg) への依存を排除し、POSIX 互換の find コマンドで pubspec.yaml を検索する
+mapfile -t packages < <(find regions CLI -name 'pubspec.yaml' -type f 2>/dev/null | sort)
 echo "Found ${#packages[@]} Dart/Flutter package(s)"
 
 failed=0

@@ -51,7 +51,10 @@ pub fn router(state: AppState) -> Router {
         let read_routes = Router::new()
             .route("/api/v1/quotas", get(quota_handler::list_quotas))
             .route("/api/v1/quotas/{id}", get(quota_handler::get_quota))
-            .route("/api/v1/quotas/{id}/check", post(quota_handler::check_quota))
+            .route(
+                "/api/v1/quotas/{id}/check",
+                post(quota_handler::check_quota),
+            )
             .route("/api/v1/quotas/{id}/usage", get(quota_handler::get_usage))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "quotas", "read",
@@ -103,7 +106,10 @@ pub fn router(state: AppState) -> Router {
                     .put(quota_handler::update_quota)
                     .delete(quota_handler::delete_quota),
             )
-            .route("/api/v1/quotas/{id}/check", post(quota_handler::check_quota))
+            .route(
+                "/api/v1/quotas/{id}/check",
+                post(quota_handler::check_quota),
+            )
             .route("/api/v1/quotas/{id}/usage", get(quota_handler::get_usage))
             .route(
                 "/api/v1/quotas/{id}/usage/increment",

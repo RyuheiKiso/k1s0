@@ -14,9 +14,7 @@ use k1s0_featureflag_server::adapter::handler::{router, AppState};
 use k1s0_featureflag_server::adapter::middleware::auth::FeatureflagAuthState;
 use k1s0_featureflag_server::domain::entity::feature_flag::FeatureFlag;
 use k1s0_featureflag_server::domain::entity::flag_audit_log::FlagAuditLog;
-use k1s0_featureflag_server::domain::repository::{
-    FeatureFlagRepository, FlagAuditLogRepository,
-};
+use k1s0_featureflag_server::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
 use k1s0_featureflag_server::infrastructure::kafka_producer::FlagEventPublisher;
 use k1s0_featureflag_server::usecase::*;
 
@@ -162,12 +160,15 @@ async fn test_unauthorized_without_token() {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("test"));
 
     // 認証ありの AppState を構築（不正な JWKS URL でダミー verifier を生成）
-    let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-        "https://invalid.example.com/.well-known/jwks.json",
-        "https://invalid.example.com",
-        "test-audience",
-        std::time::Duration::from_secs(60),
-    ));
+    let verifier = Arc::new(
+        k1s0_auth::JwksVerifier::new(
+            "https://invalid.example.com/.well-known/jwks.json",
+            "https://invalid.example.com",
+            "test-audience",
+            std::time::Duration::from_secs(60),
+        )
+        .expect("Failed to create JWKS verifier"),
+    );
     let auth_state = FeatureflagAuthState { verifier };
 
     let state = AppState {

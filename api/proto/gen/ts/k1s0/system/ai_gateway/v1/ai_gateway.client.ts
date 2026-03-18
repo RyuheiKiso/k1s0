@@ -10,7 +10,8 @@ import type { ListModelsResponse } from "./ai_gateway";
 import type { ListModelsRequest } from "./ai_gateway";
 import type { EmbedResponse } from "./ai_gateway";
 import type { EmbedRequest } from "./ai_gateway";
-import type { StreamChunk } from "./ai_gateway";
+import type { CompleteStreamResponse } from "./ai_gateway";
+import type { CompleteStreamRequest } from "./ai_gateway";
 import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
 import { stackIntercept } from "@protobuf-ts/runtime-rpc";
 import type { CompleteResponse } from "./ai_gateway";
@@ -34,7 +35,7 @@ export interface IAiGatewayServiceClient {
      *
      * @generated from protobuf rpc: CompleteStream
      */
-    completeStream(input: CompleteRequest, options?: RpcOptions): ServerStreamingCall<CompleteRequest, StreamChunk>;
+    completeStream(input: CompleteStreamRequest, options?: RpcOptions): ServerStreamingCall<CompleteStreamRequest, CompleteStreamResponse>;
     /**
      * テキスト埋め込みベクトルを生成する
      *
@@ -79,9 +80,9 @@ export class AiGatewayServiceClient implements IAiGatewayServiceClient, ServiceI
      *
      * @generated from protobuf rpc: CompleteStream
      */
-    completeStream(input: CompleteRequest, options?: RpcOptions): ServerStreamingCall<CompleteRequest, StreamChunk> {
+    completeStream(input: CompleteStreamRequest, options?: RpcOptions): ServerStreamingCall<CompleteStreamRequest, CompleteStreamResponse> {
         const method = this.methods[1], opt = this._transport.mergeOptions(options);
-        return stackIntercept<CompleteRequest, StreamChunk>("serverStreaming", this._transport, method, opt, input);
+        return stackIntercept<CompleteStreamRequest, CompleteStreamResponse>("serverStreaming", this._transport, method, opt, input);
     }
     /**
      * テキスト埋め込みベクトルを生成する

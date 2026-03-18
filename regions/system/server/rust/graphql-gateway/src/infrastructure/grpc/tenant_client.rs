@@ -12,7 +12,7 @@ use crate::infrastructure::config::BackendConfig;
 /// gRPC レスポンスの中間表現。GraphQL の TenantConnection に変換前の生データ。
 pub struct TenantPage {
     pub nodes: Vec<Tenant>,
-    pub total_count: i32,
+    pub total_count: i64,
     pub has_next: bool,
 }
 

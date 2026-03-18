@@ -82,11 +82,50 @@ export interface ExecuteResponse {
     steps: ExecutionStep[];
 }
 /**
- * 実行イベント: ストリーミング中に送信される個別イベント
+ * ストリーミング実行リクエスト: ExecuteStream RPC 専用のリクエストメッセージ
  *
- * @generated from protobuf message k1s0.system.ai_agent.v1.ExecutionEvent
+ * @generated from protobuf message k1s0.system.ai_agent.v1.ExecuteStreamRequest
  */
-export interface ExecutionEvent {
+export interface ExecuteStreamRequest {
+    /**
+     * 実行するエージェントの識別子
+     *
+     * @generated from protobuf field: string agent_id = 1
+     */
+    agentId: string;
+    /**
+     * エージェントへの入力テキスト
+     *
+     * @generated from protobuf field: string input = 2
+     */
+    input: string;
+    /**
+     * セッション識別子（会話の継続に使用）
+     *
+     * @generated from protobuf field: string session_id = 3
+     */
+    sessionId: string;
+    /**
+     * リクエスト元のテナント識別子
+     *
+     * @generated from protobuf field: string tenant_id = 4
+     */
+    tenantId: string;
+    /**
+     * エージェント実行に渡す追加コンテキスト
+     *
+     * @generated from protobuf field: map<string, string> context = 5
+     */
+    context: {
+        [key: string]: string;
+    };
+}
+/**
+ * ストリーミング実行レスポンス: ストリーミング中に送信される個別イベント
+ *
+ * @generated from protobuf message k1s0.system.ai_agent.v1.ExecuteStreamResponse
+ */
+export interface ExecuteStreamResponse {
     /**
      * 実行の一意識別子
      *
@@ -398,26 +437,121 @@ class ExecuteResponse$Type extends MessageType<ExecuteResponse> {
  */
 export const ExecuteResponse = new ExecuteResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ExecutionEvent$Type extends MessageType<ExecutionEvent> {
+class ExecuteStreamRequest$Type extends MessageType<ExecuteStreamRequest> {
     constructor() {
-        super("k1s0.system.ai_agent.v1.ExecutionEvent", [
+        super("k1s0.system.ai_agent.v1.ExecuteStreamRequest", [
+            { no: 1, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "input", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "context", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
+        ]);
+    }
+    create(value?: PartialMessage<ExecuteStreamRequest>): ExecuteStreamRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.input = "";
+        message.sessionId = "";
+        message.tenantId = "";
+        message.context = {};
+        if (value !== undefined)
+            reflectionMergePartial<ExecuteStreamRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecuteStreamRequest): ExecuteStreamRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_id */ 1:
+                    message.agentId = reader.string();
+                    break;
+                case /* string input */ 2:
+                    message.input = reader.string();
+                    break;
+                case /* string session_id */ 3:
+                    message.sessionId = reader.string();
+                    break;
+                case /* string tenant_id */ 4:
+                    message.tenantId = reader.string();
+                    break;
+                case /* map<string, string> context */ 5:
+                    this.binaryReadMap5(message.context, reader, options);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    private binaryReadMap5(map: ExecuteStreamRequest["context"], reader: IBinaryReader, options: BinaryReadOptions): void {
+        let len = reader.uint32(), end = reader.pos + len, key: keyof ExecuteStreamRequest["context"] | undefined, val: ExecuteStreamRequest["context"][any] | undefined;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case 1:
+                    key = reader.string();
+                    break;
+                case 2:
+                    val = reader.string();
+                    break;
+                default: throw new globalThis.Error("unknown map entry field for k1s0.system.ai_agent.v1.ExecuteStreamRequest.context");
+            }
+        }
+        map[key ?? ""] = val ?? "";
+    }
+    internalBinaryWrite(message: ExecuteStreamRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_id = 1; */
+        if (message.agentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentId);
+        /* string input = 2; */
+        if (message.input !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.input);
+        /* string session_id = 3; */
+        if (message.sessionId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.sessionId);
+        /* string tenant_id = 4; */
+        if (message.tenantId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.tenantId);
+        /* map<string, string> context = 5; */
+        for (let k of globalThis.Object.keys(message.context))
+            writer.tag(5, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.context[k]).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.ai_agent.v1.ExecuteStreamRequest
+ */
+export const ExecuteStreamRequest = new ExecuteStreamRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ExecuteStreamResponse$Type extends MessageType<ExecuteStreamResponse> {
+    constructor() {
+        super("k1s0.system.ai_agent.v1.ExecuteStreamResponse", [
             { no: 1, name: "execution_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "data", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "step_index", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
-    create(value?: PartialMessage<ExecutionEvent>): ExecutionEvent {
+    create(value?: PartialMessage<ExecuteStreamResponse>): ExecuteStreamResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.executionId = "";
         message.eventType = "";
         message.data = "";
         message.stepIndex = 0;
         if (value !== undefined)
-            reflectionMergePartial<ExecutionEvent>(this, message, value);
+            reflectionMergePartial<ExecuteStreamResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecutionEvent): ExecutionEvent {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecuteStreamResponse): ExecuteStreamResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -445,7 +579,7 @@ class ExecutionEvent$Type extends MessageType<ExecutionEvent> {
         }
         return message;
     }
-    internalBinaryWrite(message: ExecutionEvent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: ExecuteStreamResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string execution_id = 1; */
         if (message.executionId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.executionId);
@@ -465,9 +599,9 @@ class ExecutionEvent$Type extends MessageType<ExecutionEvent> {
     }
 }
 /**
- * @generated MessageType for protobuf message k1s0.system.ai_agent.v1.ExecutionEvent
+ * @generated MessageType for protobuf message k1s0.system.ai_agent.v1.ExecuteStreamResponse
  */
-export const ExecutionEvent = new ExecutionEvent$Type();
+export const ExecuteStreamResponse = new ExecuteStreamResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ExecutionStep$Type extends MessageType<ExecutionStep> {
     constructor() {
@@ -780,7 +914,7 @@ export const ReviewStepResponse = new ReviewStepResponse$Type();
  */
 export const AiAgentService = new ServiceType("k1s0.system.ai_agent.v1.AiAgentService", [
     { name: "Execute", options: {}, I: ExecuteRequest, O: ExecuteResponse },
-    { name: "ExecuteStream", serverStreaming: true, options: {}, I: ExecuteRequest, O: ExecutionEvent },
+    { name: "ExecuteStream", serverStreaming: true, options: {}, I: ExecuteStreamRequest, O: ExecuteStreamResponse },
     { name: "CancelExecution", options: {}, I: CancelExecutionRequest, O: CancelExecutionResponse },
     { name: "ReviewStep", options: {}, I: ReviewStepRequest, O: ReviewStepResponse }
 ]);

@@ -4,6 +4,8 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+// ブラウザグローバル変数の定義（window, document等）
+import globals from 'globals';
 
 export default [
   // 基本のJavaScript推奨ルール
@@ -12,11 +14,21 @@ export default [
     // TypeScriptファイルに対するルール設定
     files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
+      // ブラウザ環境のグローバル変数を許可
+      globals: {
+        ...globals.browser,
+      },
       parser: tsParser,
       parserOptions: {
         ecmaVersion: 2020,
         sourceType: 'module',
         ecmaFeatures: { jsx: true },
+      },
+    },
+    settings: {
+      react: {
+        // React 17+ JSX Transform（import React不要）
+        runtime: 'automatic',
       },
     },
     plugins: {

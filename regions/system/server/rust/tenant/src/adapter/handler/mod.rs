@@ -55,7 +55,10 @@ pub fn router(state: AppState) -> Router {
 
         // DELETE/suspend/activate -> tenants/admin
         let admin_routes = Router::new()
-            .route("/api/v1/tenants/{id}", delete(tenant_handler::delete_tenant))
+            .route(
+                "/api/v1/tenants/{id}",
+                delete(tenant_handler::delete_tenant),
+            )
             .route(
                 "/api/v1/tenants/{id}/suspend",
                 post(tenant_handler::suspend_tenant),

@@ -89,7 +89,7 @@ pub struct ListSagasResponse {
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct PaginationResponse {
-    pub total_count: i32,
+    pub total_count: i64,
     pub page: i32,
     pub page_size: i32,
     pub has_next: bool,
@@ -243,12 +243,13 @@ pub async fn list_sagas(
         })
         .collect();
 
-    let has_next = (query.page as i64 * query.page_size as i64) < i64::from(total);
+    let total_i64 = i64::from(total);
+    let has_next = (query.page as i64 * query.page_size as i64) < total_i64;
 
     Ok(Json(ListSagasResponse {
         sagas: saga_responses,
         pagination: PaginationResponse {
-            total_count: total,
+            total_count: total_i64,
             page: query.page,
             page_size: query.page_size,
             has_next,

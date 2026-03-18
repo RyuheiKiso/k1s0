@@ -1,0 +1,40 @@
+# CODEOWNERS — リポジトリの各領域に対するコードオーナーを定義する
+# PRレビュー時に自動的に該当チームがレビュアーとしてアサインされる
+
+# === ディレクトリベースのオーナーシップ ===
+
+# システム基盤レイヤー（共通ライブラリ・基盤サーバー）
+regions/system/ @k1s0-platform/system-team
+
+# サービスレイヤー（ドメインサービス）
+regions/service/ @k1s0-platform/service-team
+
+# ビジネスレイヤー（ビジネスロジック・BFF）
+regions/business/ @k1s0-platform/business-team
+
+# CLI ツール（Rust製対話式CLI）
+CLI/ @k1s0-platform/cli-team
+
+# ドキュメント（設計書・アーキテクチャ文書）
+docs/ @k1s0-platform/docs-team
+
+# CI/CD・GitHub 設定（ワークフロー・Dependabot 等）
+.github/ @k1s0-platform/platform-team
+
+# === 言語別ギルドのオーナーシップ ===
+# 各言語の専門チームが横断的にレビューする
+
+# Rust コード
+*.rs @k1s0-platform/rust-guild
+
+# Go コード
+*.go @k1s0-platform/go-guild
+
+# TypeScript / JavaScript コード
+*.ts @k1s0-platform/ts-guild
+*.tsx @k1s0-platform/ts-guild
+*.js @k1s0-platform/ts-guild
+*.jsx @k1s0-platform/ts-guild
+
+# Dart / Flutter コード
+*.dart @k1s0-platform/dart-guild

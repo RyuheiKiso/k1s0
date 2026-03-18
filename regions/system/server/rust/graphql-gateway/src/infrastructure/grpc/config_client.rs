@@ -76,10 +76,7 @@ impl ConfigGrpcClient {
     ///
     /// namespace ごとにグルーピングし、1回の ListConfigs RPC で該当エントリを取得する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn list_configs_by_keys(
-        &self,
-        keys: &[String],
-    ) -> anyhow::Result<Vec<ConfigEntry>> {
+    pub async fn list_configs_by_keys(&self, keys: &[String]) -> anyhow::Result<Vec<ConfigEntry>> {
         // namespace ごとにキーをグルーピング
         let mut ns_keys: std::collections::HashMap<String, Vec<String>> =
             std::collections::HashMap::new();
@@ -95,21 +92,19 @@ impl ConfigGrpcClient {
 
         let mut results = Vec::new();
         for (namespace, target_keys) in &ns_keys {
-            let request = tonic::Request::new(
-                proto::k1s0::system::config::v1::ListConfigsRequest {
+            let request =
+                tonic::Request::new(proto::k1s0::system::config::v1::ListConfigsRequest {
                     namespace: namespace.clone(),
                     pagination: None,
                     search: String::new(),
-                },
-            );
+                });
             match self.client.clone().list_configs(request).await {
                 Ok(resp) => {
                     let target_set: std::collections::HashSet<&str> =
                         target_keys.iter().map(|s| s.as_str()).collect();
                     for entry in resp.into_inner().entries {
                         if target_set.contains(entry.key.as_str()) {
-                            let value_str =
-                                String::from_utf8(entry.value).unwrap_or_default();
+                            let value_str = String::from_utf8(entry.value).unwrap_or_default();
                             results.push(ConfigEntry {
                                 key: format!("{}/{}", entry.namespace, entry.key),
                                 value: value_str,
@@ -119,10 +114,7 @@ impl ConfigGrpcClient {
                     }
                 }
                 Err(e) => {
-                    return Err(anyhow::anyhow!(
-                        "ConfigService.ListConfigs failed: {}",
-                        e
-                    ));
+                    return Err(anyhow::anyhow!("ConfigService.ListConfigs failed: {}", e));
                 }
             }
         }

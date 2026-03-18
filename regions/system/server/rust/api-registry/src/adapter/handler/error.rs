@@ -13,7 +13,7 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::not_found(), message);
         (
             StatusCode::NOT_FOUND,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 
@@ -21,7 +21,7 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::schema_not_found(), message);
         (
             StatusCode::NOT_FOUND,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 
@@ -29,7 +29,7 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::version_not_found(), message);
         (
             StatusCode::NOT_FOUND,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 
@@ -37,7 +37,7 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::bad_request(), message);
         (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 
@@ -45,7 +45,7 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::conflict(), message);
         (
             StatusCode::CONFLICT,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 
@@ -53,7 +53,7 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::already_exists(), message);
         (
             StatusCode::CONFLICT,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 
@@ -63,7 +63,7 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::cannot_delete_latest(), message);
         (
             StatusCode::CONFLICT,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 
@@ -73,7 +73,7 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::schema_invalid(), message);
         (
             StatusCode::UNPROCESSABLE_ENTITY,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 
@@ -81,7 +81,7 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::validator_error(), message);
         (
             StatusCode::BAD_GATEWAY,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 
@@ -89,7 +89,7 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::unauthorized(), message);
         (
             StatusCode::UNAUTHORIZED,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 
@@ -97,13 +97,13 @@ impl ApiError {
         let err = ErrorResponse::new(codes::api_registry::internal_error(), message);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(&err).unwrap()),
+            Json(serde_json::to_value(&err).expect("ErrorResponseのJSON変換に失敗")),
         )
     }
 }
 
-/// Convert a ServiceError into the (StatusCode, Json<Value>) tuple format
-/// used by the api-registry handlers.
+/// ServiceErrorを(StatusCode, Json<Value>)タプル形式に変換する
+/// api-registryハンドラで使用するヘルパー関数。
 pub fn service_error_to_response(err: ServiceError) -> (StatusCode, Json<serde_json::Value>) {
     let status = match &err {
         ServiceError::NotFound { .. } => StatusCode::NOT_FOUND,
@@ -117,5 +117,5 @@ pub fn service_error_to_response(err: ServiceError) -> (StatusCode, Json<serde_j
         ServiceError::ServiceUnavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
     };
     let body = err.to_error_response();
-    (status, Json(serde_json::to_value(&body).unwrap()))
+    (status, Json(serde_json::to_value(&body).expect("ServiceErrorのJSON変換に失敗")))
 }

@@ -57,12 +57,7 @@ impl UsageRepository for StubUsageRepository {
         Ok(())
     }
 
-    async fn find_by_tenant(
-        &self,
-        _tenant_id: &str,
-        _start: &str,
-        _end: &str,
-    ) -> Vec<UsageRecord> {
+    async fn find_by_tenant(&self, _tenant_id: &str, _start: &str, _end: &str) -> Vec<UsageRecord> {
         vec![]
     }
 }
@@ -76,10 +71,7 @@ fn make_test_app() -> axum::Router {
 
     // ドメインサービスを生成
     let guardrail = Arc::new(GuardrailService::new());
-    let routing = Arc::new(RoutingService::new(
-        model_repo.clone(),
-        routing_rule_repo,
-    ));
+    let routing = Arc::new(RoutingService::new(model_repo.clone(), routing_rule_repo));
 
     // LLMクライアント（テスト用のダミーURL）
     let llm_client = Arc::new(LlmClient::new(

@@ -126,7 +126,7 @@ impl AuditGrpcService {
                 Ok(SearchAuditLogsResponse {
                     logs: proto_logs,
                     pagination: Some(PaginationResult {
-                        total_count: result.pagination.total_count as i32,
+                        total_count: result.pagination.total_count as i64,
                         page: result.pagination.page,
                         page_size: result.pagination.page_size,
                         has_next: result.pagination.has_next,

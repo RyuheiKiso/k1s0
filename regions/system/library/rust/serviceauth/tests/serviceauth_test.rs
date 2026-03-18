@@ -1,7 +1,7 @@
 // serviceauth の外部結合テスト。
 // SpiffeId のパース、ServiceToken の動作、設定バリデーションを検証する。
 
-use k1s0_serviceauth::{ServiceAuthConfig, ServiceAuthError, SpiffeId, ServiceToken};
+use k1s0_serviceauth::{ServiceAuthConfig, ServiceAuthError, ServiceToken, SpiffeId};
 
 // --- SpiffeId パーステスト ---
 
@@ -17,8 +17,7 @@ fn test_spiffe_id_parse_valid() {
 // business ネームスペースの SPIFFE URI が正しく解析されることを確認する。
 #[test]
 fn test_spiffe_id_parse_business() {
-    let spiffe =
-        SpiffeId::parse("spiffe://k1s0.internal/ns/business/sa/order-service").unwrap();
+    let spiffe = SpiffeId::parse("spiffe://k1s0.internal/ns/business/sa/order-service").unwrap();
     assert_eq!(spiffe.namespace, "business");
     assert_eq!(spiffe.service_account, "order-service");
 }
@@ -26,8 +25,7 @@ fn test_spiffe_id_parse_business() {
 // service ネームスペースの SPIFFE URI が正しく解析されることを確認する。
 #[test]
 fn test_spiffe_id_parse_service() {
-    let spiffe =
-        SpiffeId::parse("spiffe://example.io/ns/service/sa/notification-svc").unwrap();
+    let spiffe = SpiffeId::parse("spiffe://example.io/ns/service/sa/notification-svc").unwrap();
     assert_eq!(spiffe.trust_domain, "example.io");
     assert_eq!(spiffe.namespace, "service");
     assert_eq!(spiffe.service_account, "notification-svc");
@@ -83,8 +81,7 @@ fn test_spiffe_id_tier_access() {
     assert!(business_svc.allows_tier_access("business"));
     assert!(business_svc.allows_tier_access("service"));
 
-    let service_svc =
-        SpiffeId::parse("spiffe://k1s0.internal/ns/service/sa/leaf-service").unwrap();
+    let service_svc = SpiffeId::parse("spiffe://k1s0.internal/ns/service/sa/leaf-service").unwrap();
     assert!(!service_svc.allows_tier_access("system"));
     assert!(!service_svc.allows_tier_access("business"));
     assert!(service_svc.allows_tier_access("service"));
@@ -105,11 +102,7 @@ fn test_spiffe_id_equality() {
 // ServiceToken::new が正しいフィールドで生成されることを確認する。
 #[test]
 fn test_service_token_new() {
-    let token = ServiceToken::new(
-        "my-access-token".to_string(),
-        "Bearer".to_string(),
-        900,
-    );
+    let token = ServiceToken::new("my-access-token".to_string(), "Bearer".to_string(), 900);
     assert_eq!(token.access_token, "my-access-token");
     assert_eq!(token.token_type, "Bearer");
     assert_eq!(token.expires_in, 900);
@@ -118,55 +111,35 @@ fn test_service_token_new() {
 // bearer_header が "Bearer <token>" 形式の文字列を返すことを確認する。
 #[test]
 fn test_service_token_bearer_header() {
-    let token = ServiceToken::new(
-        "abc-def-123".to_string(),
-        "Bearer".to_string(),
-        3600,
-    );
+    let token = ServiceToken::new("abc-def-123".to_string(), "Bearer".to_string(), 3600);
     assert_eq!(token.bearer_header(), "Bearer abc-def-123");
 }
 
 // 新規作成直後のトークンが有効期限切れでないことを確認する。
 #[test]
 fn test_service_token_not_expired() {
-    let token = ServiceToken::new(
-        "tok".to_string(),
-        "Bearer".to_string(),
-        3600,
-    );
+    let token = ServiceToken::new("tok".to_string(), "Bearer".to_string(), 3600);
     assert!(!token.is_expired());
 }
 
 // expires_in が 0 のトークンが即座に期限切れになることを確認する。
 #[test]
 fn test_service_token_zero_expires_in() {
-    let token = ServiceToken::new(
-        "tok".to_string(),
-        "Bearer".to_string(),
-        0,
-    );
+    let token = ServiceToken::new("tok".to_string(), "Bearer".to_string(), 0);
     assert!(token.is_expired());
 }
 
 // 新規作成直後のトークンがリフレッシュ不要であることを確認する。
 #[test]
 fn test_service_token_should_not_refresh_when_fresh() {
-    let token = ServiceToken::new(
-        "tok".to_string(),
-        "Bearer".to_string(),
-        3600,
-    );
+    let token = ServiceToken::new("tok".to_string(), "Bearer".to_string(), 3600);
     assert!(!token.should_refresh(120));
 }
 
 // ServiceToken の Clone が正しく動作することを確認する。
 #[test]
 fn test_service_token_clone() {
-    let token = ServiceToken::new(
-        "clone-me".to_string(),
-        "Bearer".to_string(),
-        1800,
-    );
+    let token = ServiceToken::new("clone-me".to_string(), "Bearer".to_string(), 1800);
     let cloned = token.clone();
     assert_eq!(cloned.access_token, token.access_token);
     assert_eq!(cloned.token_type, token.token_type);
@@ -179,11 +152,8 @@ fn test_service_token_clone() {
 // ServiceAuthConfig::new がデフォルト値を正しく設定することを確認する。
 #[test]
 fn test_config_defaults() {
-    let config = ServiceAuthConfig::new(
-        "https://auth.example.com/token",
-        "my-service",
-        "my-secret",
-    );
+    let config =
+        ServiceAuthConfig::new("https://auth.example.com/token", "my-service", "my-secret");
     assert_eq!(config.token_endpoint, "https://auth.example.com/token");
     assert_eq!(config.client_id, "my-service");
     assert_eq!(config.client_secret, "my-secret");
@@ -195,14 +165,10 @@ fn test_config_defaults() {
 // ビルダーメソッドチェーンで全オプションを設定できることを確認する。
 #[test]
 fn test_config_builder_chain() {
-    let config = ServiceAuthConfig::new(
-        "https://auth.example.com/token",
-        "svc",
-        "sec",
-    )
-    .with_jwks_uri("https://auth.example.com/certs")
-    .with_refresh_before_secs(60)
-    .with_timeout_secs(30);
+    let config = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec")
+        .with_jwks_uri("https://auth.example.com/certs")
+        .with_refresh_before_secs(60)
+        .with_timeout_secs(30);
 
     assert_eq!(
         config.jwks_uri.as_deref(),
@@ -229,14 +195,10 @@ fn test_config_serde_defaults() {
 // ServiceAuthConfig の JSON ラウンドトリップが全フィールドを保持することを確認する。
 #[test]
 fn test_config_serde_roundtrip() {
-    let original = ServiceAuthConfig::new(
-        "https://auth.example.com/token",
-        "svc",
-        "sec",
-    )
-    .with_jwks_uri("https://auth.example.com/certs")
-    .with_refresh_before_secs(90)
-    .with_timeout_secs(15);
+    let original = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec")
+        .with_jwks_uri("https://auth.example.com/certs")
+        .with_refresh_before_secs(90)
+        .with_timeout_secs(15);
 
     let json = serde_json::to_string(&original).unwrap();
     let deserialized: ServiceAuthConfig = serde_json::from_str(&json).unwrap();
@@ -245,7 +207,10 @@ fn test_config_serde_roundtrip() {
     assert_eq!(deserialized.client_id, original.client_id);
     assert_eq!(deserialized.client_secret, original.client_secret);
     assert_eq!(deserialized.jwks_uri, original.jwks_uri);
-    assert_eq!(deserialized.refresh_before_secs, original.refresh_before_secs);
+    assert_eq!(
+        deserialized.refresh_before_secs,
+        original.refresh_before_secs
+    );
     assert_eq!(deserialized.timeout_secs, original.timeout_secs);
 }
 

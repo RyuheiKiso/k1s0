@@ -23,10 +23,11 @@ import (
 // mockOAuthClient は OAuthClient インターフェースのテスト用モック。
 // 関数フィールドでメソッドの振る舞いを差し替える。
 type mockOAuthClient struct {
-	authCodeURLFn    func(state, codeChallenge string) (string, error)
-	exchangeCodeFn   func(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
-	extractSubjectFn func(ctx context.Context, idToken string) (string, error)
-	logoutURLFn      func(idTokenHint, postLogoutRedirectURI string) (string, error)
+	authCodeURLFn          func(state, codeChallenge string) (string, error)
+	exchangeCodeFn         func(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
+	extractSubjectFn       func(ctx context.Context, idToken string) (string, error)
+	logoutURLFn            func(idTokenHint, postLogoutRedirectURI string) (string, error)
+	discoveryCacheCleared  bool
 }
 
 // AuthCodeURL は認可コードフローの URL を構築するモック実装。
@@ -47,6 +48,12 @@ func (m *mockOAuthClient) ExtractSubject(ctx context.Context, idToken string) (s
 // LogoutURL は IdP のログアウト URL を返すモック実装。
 func (m *mockOAuthClient) LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error) {
 	return m.logoutURLFn(idTokenHint, postLogoutRedirectURI)
+}
+
+// ClearDiscoveryCache は OIDC discovery キャッシュクリアのモック実装。
+// 呼び出されたことを記録する。
+func (m *mockOAuthClient) ClearDiscoveryCache() {
+	m.discoveryCacheCleared = true
 }
 
 // mockSessionStore は session.Store インターフェースのテスト用モック。
@@ -242,6 +249,7 @@ func TestCallback_CodeMissing(t *testing.T) {
 
 // TestLogout_WithSession は Logout 正常系のテスト。
 // セッションが存在する場合、セッション削除後に IdP ログアウト URL へリダイレクトする。
+// また、OIDC discovery キャッシュがクリアされることを検証する。
 func TestLogout_WithSession(t *testing.T) {
 	mock := &mockOAuthClient{
 		logoutURLFn: func(idTokenHint, postLogoutRedirectURI string) (string, error) {
@@ -271,10 +279,13 @@ func TestLogout_WithSession(t *testing.T) {
 
 	// セッションが削除されていること
 	assert.Empty(t, store.sessions)
+
+	// OIDC discovery キャッシュがクリアされていること
+	assert.True(t, mock.discoveryCacheCleared, "logout 時に discovery キャッシュがクリアされること")
 }
 
 // TestLogout_NoSession はセッションなしの Logout テスト。
-// セッションがない場合、postLogoutURI へリダイレクトする。
+// セッションがない場合でも discovery キャッシュはクリアされ、postLogoutURI へリダイレクトする。
 func TestLogout_NoSession(t *testing.T) {
 	mock := &mockOAuthClient{}
 	h := newTestAuthHandler(mock, newMockSessionStore())
@@ -287,6 +298,9 @@ func TestLogout_NoSession(t *testing.T) {
 	// postLogoutURI へのリダイレクトであること
 	assert.Equal(t, http.StatusFound, w.Code)
 	assert.Equal(t, "https://app.example.com", w.Header().Get("Location"))
+
+	// セッションがなくても discovery キャッシュはクリアされること
+	assert.True(t, mock.discoveryCacheCleared, "セッションなしでも discovery キャッシュがクリアされること")
 }
 
 // TestSession_Valid は有効なセッションでの Session エンドポイントテスト。

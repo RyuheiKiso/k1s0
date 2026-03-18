@@ -48,6 +48,6 @@ pub struct AuditLog {
 #[derive(Debug, Clone, SimpleObject)]
 pub struct AuditLogConnection {
     pub logs: Vec<AuditLog>,
-    pub total_count: i32,
+    pub total_count: i64,
     pub has_next: bool,
 }

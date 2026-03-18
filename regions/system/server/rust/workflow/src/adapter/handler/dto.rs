@@ -276,5 +276,6 @@ pub struct ReassignTaskRequest {
 
 /// エラーレスポンスをJSON値に変換するヘルパー
 pub(crate) fn error_json(code: &str, message: &str) -> serde_json::Value {
-    serde_json::to_value(ErrorResponse::new(code, message)).unwrap()
+    // エラーレスポンスをJSON値に変換（ErrorResponseは常にシリアライズ可能）
+    serde_json::to_value(ErrorResponse::new(code, message)).expect("ErrorResponseのJSON変換に失敗")
 }

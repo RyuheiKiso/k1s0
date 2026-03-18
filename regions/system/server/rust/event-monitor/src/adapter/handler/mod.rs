@@ -94,7 +94,10 @@ pub fn router(state: AppState) -> Router {
         // write -> event_monitor/write (sys_operator+)
         let write_routes = Router::new()
             .route("/api/v1/flows", post(event_monitor_handler::create_flow))
-            .route("/api/v1/flows/{id}", put(event_monitor_handler::update_flow))
+            .route(
+                "/api/v1/flows/{id}",
+                put(event_monitor_handler::update_flow),
+            )
             .route(
                 "/api/v1/replay/preview",
                 post(event_monitor_handler::preview_replay),
@@ -137,7 +140,10 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/flows", get(event_monitor_handler::list_flows))
             .route("/api/v1/flows/{id}", get(event_monitor_handler::get_flow))
             .route("/api/v1/flows", post(event_monitor_handler::create_flow))
-            .route("/api/v1/flows/{id}", put(event_monitor_handler::update_flow))
+            .route(
+                "/api/v1/flows/{id}",
+                put(event_monitor_handler::update_flow),
+            )
             .route(
                 "/api/v1/flows/{id}",
                 delete(event_monitor_handler::delete_flow),

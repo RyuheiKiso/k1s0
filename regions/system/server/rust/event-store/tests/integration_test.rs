@@ -209,12 +209,15 @@ async fn test_unauthorized_without_token() {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("test"));
 
     // 認証ありの AppState を構築（不正な JWKS URL でダミー verifier を生成）
-    let verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-        "https://invalid.example.com/.well-known/jwks.json",
-        "https://invalid.example.com",
-        "test-audience",
-        std::time::Duration::from_secs(60),
-    ));
+    let verifier = Arc::new(
+        k1s0_auth::JwksVerifier::new(
+            "https://invalid.example.com/.well-known/jwks.json",
+            "https://invalid.example.com",
+            "test-audience",
+            std::time::Duration::from_secs(60),
+        )
+        .expect("Failed to create JWKS verifier"),
+    );
     let auth_state = EventStoreAuthState { verifier };
 
     let state = AppState {

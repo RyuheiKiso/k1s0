@@ -1,0 +1,59 @@
+# Dependabot 自動依存更新設定
+# 各パッケージエコシステムに対して週次で依存関係の更新PRを作成する
+version: 2
+
+updates:
+  # Go モジュールの依存更新（週次）
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "go"
+    open-pull-requests-limit: 10
+
+  # Rust (Cargo) の依存更新（週次）
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "rust"
+    open-pull-requests-limit: 10
+
+  # npm の依存更新（週次）
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "npm"
+    open-pull-requests-limit: 10
+
+  # Dart (pub) の依存更新（週次）
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "dart"
+    open-pull-requests-limit: 10
+
+  # GitHub Actions の依存更新（週次）
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "ci"
+    open-pull-requests-limit: 10

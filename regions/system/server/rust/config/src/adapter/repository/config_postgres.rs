@@ -330,7 +330,7 @@ impl ConfigRepository for ConfigPostgresRepository {
             (entries, count_row.0)
         };
 
-        let has_next = (offset + page_size) < total_count as i32;
+        let has_next = (i64::from(offset) + i64::from(page_size)) < total_count;
 
         Ok(ConfigListResult {
             entries,

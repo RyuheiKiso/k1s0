@@ -240,7 +240,7 @@ impl SchedulerService for SchedulerServiceTonic {
         Ok(Response::new(ProtoListJobsResponse {
             jobs: resp.jobs.into_iter().map(to_proto_job).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                total_count: resp.total_count as i64,
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
@@ -390,7 +390,7 @@ impl SchedulerService for SchedulerServiceTonic {
                 .map(to_proto_execution)
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                total_count: resp.total_count as i64,
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,

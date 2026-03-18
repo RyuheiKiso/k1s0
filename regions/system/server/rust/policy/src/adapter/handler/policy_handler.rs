@@ -80,7 +80,7 @@ pub async fn get_policy(State(state): State<AppState>, Path(id): Path<Uuid>) -> 
     match state.get_policy_uc.execute(&id).await {
         Ok(Some(policy)) => {
             let resp = PolicyResponse::from(policy);
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(serde_json::to_value(resp).expect("ポリシーレスポンスのJSON変換に失敗"))).into_response()
         }
         Ok(None) => {
             let err =
@@ -138,7 +138,7 @@ pub async fn create_policy(
             let resp = PolicyResponse::from(policy);
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).unwrap()),
+                Json(serde_json::to_value(resp).expect("ポリシーレスポンスのJSON変換に失敗")),
             )
                 .into_response()
         }
@@ -176,7 +176,7 @@ pub async fn update_policy(
     match state.update_policy_uc.execute(&input).await {
         Ok(policy) => {
             let resp = PolicyResponse::from(policy);
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(serde_json::to_value(resp).expect("ポリシーレスポンスのJSON変換に失敗"))).into_response()
         }
         Err(e) => {
             let msg = e.to_string();
@@ -279,7 +279,7 @@ pub async fn get_bundle(State(state): State<AppState>, Path(id): Path<Uuid>) -> 
     match state.get_bundle_uc.execute(&id).await {
         Ok(bundle) => {
             let resp = BundleResponse::from(bundle);
-            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (StatusCode::OK, Json(serde_json::to_value(resp).expect("ポリシーレスポンスのJSON変換に失敗"))).into_response()
         }
         Err(crate::usecase::get_bundle::GetBundleError::NotFound(_)) => {
             let err =
@@ -323,7 +323,7 @@ pub async fn create_bundle(
             let resp = BundleResponse::from(bundle);
             (
                 StatusCode::CREATED,
-                Json(serde_json::to_value(resp).unwrap()),
+                Json(serde_json::to_value(resp).expect("ポリシーレスポンスのJSON変換に失敗")),
             )
                 .into_response()
         }

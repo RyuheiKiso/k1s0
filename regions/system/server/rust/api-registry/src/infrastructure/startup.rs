@@ -173,12 +173,15 @@ pub async fn run() -> anyhow::Result<()> {
         &cfg.app.environment,
         cfg.auth.as_ref().map(|auth_cfg| {
             info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for api-registry");
-            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-                &auth_cfg.jwks_url,
-                &auth_cfg.issuer,
-                &auth_cfg.audience,
-                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-            ));
+            let jwks_verifier = Arc::new(
+                k1s0_auth::JwksVerifier::new(
+                    &auth_cfg.jwks_url,
+                    &auth_cfg.issuer,
+                    &auth_cfg.audience,
+                    std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+                )
+                .expect("Failed to create JWKS verifier"),
+            );
             crate::adapter::middleware::auth::ApiRegistryAuthState {
                 verifier: jwks_verifier,
             }

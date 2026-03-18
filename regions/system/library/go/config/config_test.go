@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,14 +39,14 @@ auth:
 	assert.Equal(t, 8080, cfg.Server.Port)
 }
 
-// 存在しないファイルを読み込もうとするとエラーが返ることを確認する。
+// 存在しないファイルを読み込もうとすると ErrConfigNotFound が返ることを確認する。
 func TestLoad_FileNotFound(t *testing.T) {
 	_, err := Load("/nonexistent/config.yaml")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read config")
+	assert.True(t, errors.Is(err, ErrConfigNotFound), "errors.Is で ErrConfigNotFound を判定できること")
 }
 
-// 不正なYAMLファイルを読み込もうとするとパースエラーが返ることを確認する。
+// 不正なYAMLファイルを読み込もうとすると ErrConfigInvalid が返ることを確認する。
 func TestLoad_InvalidYAML(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "config.yaml")
@@ -53,7 +54,7 @@ func TestLoad_InvalidYAML(t *testing.T) {
 
 	_, err := Load(base)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to parse config")
+	assert.True(t, errors.Is(err, ErrConfigInvalid), "errors.Is で ErrConfigInvalid を判定できること")
 }
 
 // 環境固有のYAMLファイルでベース設定が上書きされることを確認する。
@@ -155,11 +156,12 @@ auth:
 	assert.NoError(t, err)
 }
 
-// 必須フィールドが欠けた設定でValidateがエラーを返すことを確認する。
+// 必須フィールドが欠けた設定で Validate が ErrConfigValidation を返すことを確認する。
 func TestValidate_MissingRequired(t *testing.T) {
 	cfg := &Config{}
 	err := cfg.Validate()
 	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrConfigValidation), "errors.Is で ErrConfigValidation を判定できること")
 }
 
 // 無効なTier値を持つ設定でValidateがエラーを返すことを確認する。

@@ -2,8 +2,8 @@
 // InMemoryPubSub の publish/subscribe ラウンドトリップを検証する。
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use k1s0_bb_core::{Component, ComponentStatus};
 use k1s0_bb_pubsub::{InMemoryPubSub, Message, MessageHandler, PubSub, PubSubError};
@@ -119,7 +119,10 @@ async fn test_publish_with_metadata() {
 
     let mut meta = HashMap::new();
     meta.insert("trace_id".to_string(), "trace-123".to_string());
-    pubsub.publish("events", b"event-data", Some(meta)).await.unwrap();
+    pubsub
+        .publish("events", b"event-data", Some(meta))
+        .await
+        .unwrap();
 
     assert_eq!(count.load(Ordering::SeqCst), 1);
 }

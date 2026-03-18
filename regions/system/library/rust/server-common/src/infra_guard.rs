@@ -121,7 +121,12 @@ mod tests {
     #[test]
     fn test_require_infra_some() {
         let _guard = env_lock().lock().unwrap();
-        let result = require_infra("test-server", InfraKind::Database, "production", Some("url"));
+        let result = require_infra(
+            "test-server",
+            InfraKind::Database,
+            "production",
+            Some("url"),
+        );
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some("url"));
     }

@@ -128,7 +128,10 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/apps/{id}/versions",
             get(version_handler::list_versions),
         )
-        .route("/api/v1/apps/{id}/latest", get(download_handler::get_latest))
+        .route(
+            "/api/v1/apps/{id}/latest",
+            get(download_handler::get_latest),
+        )
         .route(
             "/api/v1/apps/{id}/versions/{version}/download",
             get(download_handler::download_version),

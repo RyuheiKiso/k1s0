@@ -63,12 +63,39 @@ pub struct JwkKey {
 }
 
 /// DefaultJwksFetcher は HTTP 経由で JWKS を取得するデフォルト実装。
-pub struct DefaultJwksFetcher;
+/// タイムアウト付きの reqwest::Client を保持し、JWKS エンドポイントへの接続遅延を防ぐ。
+pub struct DefaultJwksFetcher {
+    /// タイムアウト設定済みの HTTP クライアント
+    client: reqwest::Client,
+}
+
+impl DefaultJwksFetcher {
+    /// 新しい DefaultJwksFetcher を生成する。
+    /// HTTP クライアントにタイムアウトを設定し、JWKS 取得時の無限待ちを防止する。
+    pub fn new() -> Result<Self, AuthError> {
+        // 全体タイムアウト: 10秒。JWKS レスポンスは通常小さいため、
+        // 10秒以内に完了しない場合はネットワーク障害と判断する。
+        // 接続タイムアウト: 5秒。DNS 解決やTCPハンドシェイクが
+        // 5秒以上かかる場合はエンドポイント到達不能と判断する。
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .connect_timeout(Duration::from_secs(5))
+            .build()
+            .map_err(|e| AuthError::JwksFetchFailed(e.to_string()))?;
+
+        Ok(Self { client })
+    }
+}
 
 #[async_trait::async_trait]
 impl JwksFetcher for DefaultJwksFetcher {
+    /// JWKS エンドポイントから公開鍵一覧を取得する。
+    /// タイムアウト付きクライアントを使用して HTTP リクエストを送信する。
     async fn fetch_keys(&self, jwks_url: &str) -> Result<Vec<JwkKey>, AuthError> {
-        let resp: JwksResponse = reqwest::get(jwks_url)
+        let resp: JwksResponse = self
+            .client
+            .get(jwks_url)
+            .send()
             .await
             .map_err(|e| AuthError::JwksFetchFailed(e.to_string()))?
             .json()
@@ -105,15 +132,21 @@ pub struct JwksVerifier {
 
 impl JwksVerifier {
     /// 新しい JwksVerifier を生成する。
-    pub fn new(jwks_url: &str, issuer: &str, audience: &str, cache_ttl: Duration) -> Self {
-        Self {
+    /// DefaultJwksFetcher の HTTP クライアント構築に失敗した場合はエラーを返す。
+    pub fn new(
+        jwks_url: &str,
+        issuer: &str,
+        audience: &str,
+        cache_ttl: Duration,
+    ) -> Result<Self, AuthError> {
+        Ok(Self {
             jwks_url: jwks_url.to_string(),
             issuer: issuer.to_string(),
             audience: audience.to_string(),
             cache_ttl,
             cache: Arc::new(RwLock::new(None)),
-            fetcher: Arc::new(DefaultJwksFetcher),
-        }
+            fetcher: Arc::new(DefaultJwksFetcher::new()?),
+        })
     }
 
     /// カスタムフェッチャーを使う JwksVerifier を生成する（テスト用）。

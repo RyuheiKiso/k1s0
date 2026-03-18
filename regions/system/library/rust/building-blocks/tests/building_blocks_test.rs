@@ -10,15 +10,17 @@ use k1s0_building_blocks::Component;
 #[test]
 fn test_component_status_accessible() {
     let status = k1s0_building_blocks::ComponentStatus::Ready;
-    assert_eq!(status, k1s0_building_blocks::component::ComponentStatus::Ready);
+    assert_eq!(
+        status,
+        k1s0_building_blocks::component::ComponentStatus::Ready
+    );
 }
 
 // ComponentConfig が building-blocks の config モジュールからアクセスできることを確認する。
 #[test]
 fn test_component_config_accessible() {
     let json = r#"{"name": "test", "type": "statestore"}"#;
-    let cfg: k1s0_building_blocks::config::ComponentConfig =
-        serde_json::from_str(json).unwrap();
+    let cfg: k1s0_building_blocks::config::ComponentConfig = serde_json::from_str(json).unwrap();
     assert_eq!(cfg.name, "test");
     assert_eq!(cfg.component_type, "statestore");
 }
@@ -101,8 +103,7 @@ async fn test_secretstore_accessible() {
 // SecretStoreError が building-blocks::secretstore からアクセスできることを確認する。
 #[test]
 fn test_secretstore_error_accessible() {
-    let err =
-        k1s0_building_blocks::secretstore::SecretStoreError::NotFound("test".to_string());
+    let err = k1s0_building_blocks::secretstore::SecretStoreError::NotFound("test".to_string());
     assert!(err.to_string().contains("test"));
 }
 

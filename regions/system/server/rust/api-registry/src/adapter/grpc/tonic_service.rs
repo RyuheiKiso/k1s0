@@ -155,7 +155,7 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
         Ok(Response::new(ProtoListSchemasResponse {
             schemas: resp.schemas.into_iter().map(to_proto_schema).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                total_count: resp.total_count as i64,
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
@@ -226,7 +226,7 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
                 .map(to_proto_schema_version)
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                total_count: resp.total_count as i64,
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
