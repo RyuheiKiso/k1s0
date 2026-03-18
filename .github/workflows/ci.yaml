@@ -270,7 +270,7 @@ jobs:
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       # Dart/Flutter パッケージキャッシュ
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.pub-cache
           key: dart-pub-${{ hashFiles('**/pubspec.lock') }}
@@ -614,7 +614,7 @@ jobs:
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       # Dart/Flutter パッケージキャッシュ
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.pub-cache
           key: dart-pub-${{ hashFiles('**/pubspec.lock') }}
@@ -651,7 +651,7 @@ jobs:
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       # Dart/Flutter パッケージキャッシュ
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.pub-cache
           key: dart-pub-${{ hashFiles('**/pubspec.lock') }}
