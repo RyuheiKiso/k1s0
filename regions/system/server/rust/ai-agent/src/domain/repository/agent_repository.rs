@@ -12,6 +12,7 @@ pub trait AgentRepository: Send + Sync {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<AgentDefinition>>;
 
     /// すべてのエージェント定義を取得する
+    #[allow(dead_code)]
     async fn find_all(&self) -> anyhow::Result<Vec<AgentDefinition>>;
 
     /// エージェント定義を保存する

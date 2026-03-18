@@ -65,6 +65,7 @@ pub enum CompleteError {
     #[error("LLMリクエストエラー: {0}")]
     LlmError(String),
     #[error("内部エラー: {0}")]
+    #[allow(dead_code)]
     Internal(String),
 }
 

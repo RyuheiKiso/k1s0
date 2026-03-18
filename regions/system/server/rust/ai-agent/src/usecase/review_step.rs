@@ -16,6 +16,7 @@ pub struct ReviewStepUseCase {
 }
 
 /// ステップレビューリクエスト
+#[allow(dead_code)]
 pub struct ReviewStepRequest {
     pub execution_id: String,
     pub step_index: i32,

@@ -5,11 +5,13 @@ use redis::AsyncCommands;
 
 /// Redisキャッシュクライアント。
 /// キーバリュー形式でデータをキャッシュする。
+#[allow(dead_code)]
 pub struct RedisCache {
     /// Redis接続クライアント
     client: redis::Client,
 }
 
+#[allow(dead_code)]
 impl RedisCache {
     /// 新しいRedisCacheを生成する。
     /// url: Redis接続URL（例: redis://localhost:6379）

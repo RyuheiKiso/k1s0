@@ -9,6 +9,7 @@ pub struct ToolRegistry {
     tools: Vec<Tool>,
 }
 
+#[allow(dead_code)]
 impl ToolRegistry {
     /// 新しいToolRegistryを生成する
     pub fn new() -> Self {
