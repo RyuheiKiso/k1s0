@@ -10,8 +10,17 @@ on:
     paths:
       - 'regions/system/server/rust/dlq-manager/**'
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 jobs:
+  # 再利用可能ワークフローを呼び出してデプロイ実行
   deploy:
+    # コードの読み取り、パッケージの書き込み（Docker push）、OIDC トークン（Cosign 署名）が必要
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     uses: ./.github/workflows/_service-deploy.yaml
     with:
       service-name: dlq-manager

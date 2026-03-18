@@ -7,11 +7,15 @@ on:
     tags:
       - 'cli-v*'  # e.g. cli-v0.1.0
 
-permissions:
-  contents: write  # for creating GitHub releases
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
 
 jobs:
+  # クロスプラットフォームバイナリのビルド
   build:
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -36,7 +40,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@1.93
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
         with:
           targets: ${{ matrix.target }}
 
@@ -80,9 +85,13 @@ jobs:
           name: k1s0-cli-${{ matrix.target }}
           path: ${{ env.ARCHIVE_NAME }}
 
+  # GitHub Release の作成とバイナリのアップロード
   release:
     needs: build
     runs-on: ubuntu-latest
+    # リリース作成のためコンテンツの書き込み権限が必要
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -92,7 +101,8 @@ jobs:
           merge-multiple: true
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2
         with:
           generate_release_notes: true
           files: artifacts/*

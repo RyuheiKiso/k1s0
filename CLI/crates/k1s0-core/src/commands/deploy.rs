@@ -5,10 +5,16 @@ use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::OnceLock;
 
 use super::command_runner::run_streaming_command;
 use crate::config::CliConfig;
 use crate::progress::ProgressEvent;
+
+/// Cargo.toml バージョン正規表現キャッシュ
+static CARGO_VERSION_RE: OnceLock<Regex> = OnceLock::new();
+/// pubspec.yaml バージョン正規表現キャッシュ
+static PUBSPEC_VERSION_RE: OnceLock<Regex> = OnceLock::new();
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeployStep {
@@ -509,8 +515,11 @@ fn detect_version(target_path: &Path) -> Result<String> {
     if target_path.join("Cargo.toml").exists() {
         let cargo_toml = fs::read_to_string(target_path.join("Cargo.toml"))
             .map_err(|error| anyhow!("failed to read Cargo.toml: {error}"))?;
-        let regex = Regex::new(r#"(?m)^version\s*=\s*"([^"]+)""#)
-            .expect("Cargo.toml バージョン正規表現は有効なリテラル");
+        // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+        let regex = CARGO_VERSION_RE.get_or_init(|| {
+            Regex::new(r#"(?m)^version\s*=\s*"([^"]+)""#)
+                .expect("Cargo.toml バージョン正規表現は有効なリテラル")
+        });
         let version = regex
             .captures(&cargo_toml)
             .and_then(|captures| captures.get(1))
@@ -534,8 +543,11 @@ fn detect_version(target_path: &Path) -> Result<String> {
     if target_path.join("pubspec.yaml").exists() {
         let pubspec = fs::read_to_string(target_path.join("pubspec.yaml"))
             .map_err(|error| anyhow!("failed to read pubspec.yaml: {error}"))?;
-        let regex = Regex::new(r"(?m)^version:\s*([^\s]+)")
-            .expect("pubspec.yaml バージョン正規表現は有効なリテラル");
+        // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+        let regex = PUBSPEC_VERSION_RE.get_or_init(|| {
+            Regex::new(r"(?m)^version:\s*([^\s]+)")
+                .expect("pubspec.yaml バージョン正規表現は有効なリテラル")
+        });
         let version = regex
             .captures(&pubspec)
             .and_then(|captures| captures.get(1))
@@ -614,21 +626,8 @@ fn resolve_helm_path(
     bail!("failed to resolve helm path for {module_path}")
 }
 
-fn find_workspace_root(start: &Path) -> Option<PathBuf> {
-    start.ancestors().find_map(|ancestor| {
-        let has_regions = ancestor.join("regions").is_dir();
-        let has_helm = ancestor
-            .join("infra")
-            .join("helm")
-            .join("services")
-            .is_dir();
-        if has_regions && has_helm {
-            Some(ancestor.to_path_buf())
-        } else {
-            None
-        }
-    })
-}
+// find_workspace_root は crate::workspace::find_workspace_root に統合済み
+use crate::workspace::find_workspace_root;
 
 fn to_relative_path(root: &Path, path: &Path) -> Result<String> {
     let relative = path
@@ -691,16 +690,8 @@ fn build_error(plan: &DeployPlan, step: DeployStep, error: &anyhow::Error) -> De
     }
 }
 
-fn emit<F>(on_progress: Option<&F>, event: ProgressEvent)
-where
-    F: Fn(ProgressEvent),
-{
-    if let Some(callback) = on_progress {
-        callback(event);
-    } else {
-        crate::progress::print_progress(&event);
-    }
-}
+// emit は crate::progress::emit に統合済み
+use crate::progress::emit;
 
 pub fn scan_deployable_targets() -> Vec<String> {
     scan_deployable_targets_at(Path::new("."))

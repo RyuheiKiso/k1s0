@@ -84,10 +84,16 @@ pub async fn run() -> anyhow::Result<()> {
         (event_repo, flow_def_repo, flow_inst_repo)
     };
 
-    // KPI Cache
+    // KPI キャッシュ: KPI 集計結果の一時保存
     let kpi_cache = Arc::new(super::cache::KpiCache::new(
         cfg.cache.kpi_max_entries,
         cfg.cache.kpi_ttl_seconds,
+    ));
+
+    // フロー定義キャッシュ: Kafka メッセージ処理時の N+1 クエリを防止する
+    let flow_def_cache = Arc::new(super::cache::FlowDefinitionCache::new(
+        cfg.cache.flow_def_max_entries,
+        cfg.cache.flow_def_ttl_seconds,
     ));
 
     // DLQ Manager client
@@ -243,6 +249,7 @@ pub async fn run() -> anyhow::Result<()> {
                 event_repo,
                 flow_def_repo,
                 flow_inst_repo,
+                flow_def_cache,
             ) {
                 Ok(consumer) => {
                     if let Err(e) = consumer.run().await {

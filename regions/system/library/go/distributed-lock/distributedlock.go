@@ -91,8 +91,12 @@ func (l *InMemoryLock) IsLocked(_ context.Context, key string) (bool, error) {
 	return true, nil
 }
 
+// generateToken はロック所有権を識別するためのランダムトークンを生成する。
+// 暗号学的に安全な乱数を使用し、エラー時はパニックする。
 func generateToken() string {
 	b := make([]byte, 16)
-	_, _ = rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		panic("crypto/rand.Read failed: " + err.Error())
+	}
 	return hex.EncodeToString(b)
 }

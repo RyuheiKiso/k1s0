@@ -48,11 +48,25 @@ export function validateUUID(id: string): void {
   }
 }
 
+// URLバリデーション: スキームをhttp/httpsのみに制限する。
+// javascript:, data:, file: 等の危険なスキームを許可すると、
+// XSSやローカルファイル読み取りなどの攻撃に悪用される可能性がある。
 export function validateURL(url: string): void {
+  let parsed: URL;
   try {
-    new URL(url);
+    parsed = new URL(url);
   } catch {
     throw new ValidationError('url', `invalid URL: ${url}`, 'INVALID_URL');
+  }
+
+  // 許可するスキームをhttp/httpsのみに制限する
+  const allowedProtocols = ['http:', 'https:'];
+  if (!allowedProtocols.includes(parsed.protocol)) {
+    throw new ValidationError(
+      'url',
+      `unsupported URL scheme: ${parsed.protocol} (only http and https are allowed)`,
+      'INVALID_URL_SCHEME',
+    );
   }
 }
 

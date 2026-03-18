@@ -16,6 +16,16 @@ impl InitiatePaymentUseCase {
         // ドメインバリデーション（PaymentError を返す）
         PaymentDomainService::validate_initiate_payment(input)?;
 
+        // 冪等性チェック: 同一 order_id の決済が既に存在する場合はそれを返す（二重課金防止）
+        if let Some(existing) = self.payment_repo.find_by_order_id(&input.order_id).await? {
+            tracing::info!(
+                order_id = %input.order_id,
+                payment_id = %existing.id,
+                "idempotent payment request detected, returning existing payment"
+            );
+            return Ok(existing);
+        }
+
         // 永続化（Outbox イベントも同一トランザクション内で挿入される）
         let payment = self.payment_repo.create(input).await?;
 

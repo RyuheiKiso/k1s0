@@ -30,3 +30,37 @@ groups:
           severity: warning
         annotations:
           summary: "{{ $labels.service }} P99 latency > 1s"
+
+      # gRPC エラー率が 5% を超えた場合にアラートを発火する
+      - alert: GrpcHighErrorRate
+        expr: |
+          sum(rate(grpc_server_handled_total{namespace=~"k1s0-business|k1s0-service", grpc_code!="OK"}[5m])) by (service, grpc_service)
+          / sum(rate(grpc_server_handled_total{namespace=~"k1s0-business|k1s0-service"}[5m])) by (service, grpc_service) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }}/{{ $labels.grpc_service }} gRPC error rate > 5%"
+          description: "{{ $labels.service }} の gRPC エラー率が {{ $value | humanizePercentage }} です"
+
+      # DB コネクションプールの使用率が 90% を超えた場合にアラートを発火する
+      - alert: DbPoolExhaustion
+        expr: |
+          (db_pool_connections_in_use{namespace=~"k1s0-business|k1s0-service"} / db_pool_connections_max{namespace=~"k1s0-business|k1s0-service"}) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }} DB pool usage > 90%"
+          description: "{{ $labels.service }} の DB コネクションプール使用率が {{ $value | humanizePercentage }} です。プール枯渇の恐れがあります"
+
+      # Kafka コンシューマーラグが 1000 を超えた場合にアラートを発火する
+      - alert: KafkaConsumerLagHigh
+        expr: |
+          kafka_consumergroup_lag_sum{namespace=~"k1s0-business|k1s0-service"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer group {{ $labels.consumergroup }} lag > 1000"
+          description: "コンシューマーグループ {{ $labels.consumergroup }} のラグが {{ $value }} メッセージです"

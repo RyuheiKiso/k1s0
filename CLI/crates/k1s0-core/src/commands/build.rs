@@ -186,16 +186,8 @@ where
     })
 }
 
-fn emit<F>(on_progress: Option<&F>, event: ProgressEvent)
-where
-    F: Fn(ProgressEvent),
-{
-    if let Some(callback) = on_progress {
-        callback(event);
-    } else {
-        crate::progress::print_progress(&event);
-    }
-}
+// emit は crate::progress::emit に統合済み
+use crate::progress::emit;
 
 pub fn scan_buildable_targets() -> Vec<String> {
     scan_buildable_targets_at(Path::new("."))

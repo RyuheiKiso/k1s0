@@ -14,7 +14,7 @@ database:
   name: "k1s0"
   schema: "domain_master"
   user: "k1s0"
-  password: "k1s0"
+  password: "${DB_PASSWORD}"
   ssl_mode: "disable"
   max_connections: 25
   max_idle_conns: 5

@@ -1,6 +1,8 @@
 // LLMクライアントの実装。
 // reqwestを使用してOpenAI互換APIにHTTPリクエストを送信する。
 
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
@@ -44,9 +46,14 @@ pub struct LlmClient {
 
 impl LlmClient {
     /// 新しいLLMクライアントを生成する。
+    /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
     pub fn new(base_url: String, api_key: String) -> Self {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(30))
+            .build()
+            .expect("HTTP client の作成に失敗");
         Self {
-            client: reqwest::Client::new(),
+            client,
             base_url,
             api_key,
         }

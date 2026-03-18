@@ -1,12 +1,12 @@
 // k1s0 注文サービス gRPC 定義。
 // 注文の作成・取得・一覧・ステータス更新を提供する。
+// Timestamp 型を k1s0.system.common.v1.Timestamp に統一（google.protobuf.Timestamp から移行）。
 syntax = "proto3";
 
 package k1s0.service.order.v1;
 
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/order/v1;orderv1";
 
-import "google/protobuf/timestamp.proto";
 import "k1s0/system/common/v1/types.proto";
 
 service OrderService {
@@ -34,8 +34,8 @@ message Order {
   optional string updated_by = 8;
   int32 version = 9;
   repeated OrderItem items = 10;
-  google.protobuf.Timestamp created_at = 11;
-  google.protobuf.Timestamp updated_at = 12;
+  k1s0.system.common.v1.Timestamp created_at = 11;
+  k1s0.system.common.v1.Timestamp updated_at = 12;
 }
 
 // 注文明細
@@ -47,7 +47,7 @@ message OrderItem {
   int32 quantity = 5;
   int64 unit_price = 6;
   int64 subtotal = 7;
-  google.protobuf.Timestamp created_at = 8;
+  k1s0.system.common.v1.Timestamp created_at = 8;
 }
 
 // ---------- リクエスト/レスポンス ----------

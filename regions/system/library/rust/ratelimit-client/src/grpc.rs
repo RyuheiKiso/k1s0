@@ -14,8 +14,13 @@ mod inner {
     }
 
     impl GrpcRateLimitClient {
+        /// デフォルトタイムアウト30秒でHTTPクライアントを構築して接続する
         pub async fn new(server_url: impl Into<String>) -> Result<Self, RateLimitError> {
-            Self::with_http_client(server_url, reqwest::Client::new())
+            let client = reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(30))
+                .build()
+                .map_err(|e| RateLimitError::ConnectionError(e.to_string()))?;
+            Self::with_http_client(server_url, client)
         }
 
         pub fn with_http_client(

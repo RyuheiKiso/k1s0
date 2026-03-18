@@ -166,12 +166,21 @@ fn default_dlq_timeout_ms() -> u64 {
     5000
 }
 
+/// キャッシュ設定。KPI キャッシュとフロー定義キャッシュの両方を管理する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct CacheConfig {
+    /// KPI キャッシュの最大エントリ数
     #[serde(default = "default_max_entries")]
     pub kpi_max_entries: u64,
+    /// KPI キャッシュの TTL（秒）
     #[serde(default = "default_ttl_seconds")]
     pub kpi_ttl_seconds: u64,
+    /// フロー定義キャッシュの最大エントリ数
+    #[serde(default = "default_flow_def_max_entries")]
+    pub flow_def_max_entries: u64,
+    /// フロー定義キャッシュの TTL（秒）。短すぎると DB 負荷が増え、長すぎると変更反映が遅れる。
+    #[serde(default = "default_flow_def_ttl_seconds")]
+    pub flow_def_ttl_seconds: u64,
 }
 
 impl Default for CacheConfig {
@@ -179,8 +188,20 @@ impl Default for CacheConfig {
         Self {
             kpi_max_entries: default_max_entries(),
             kpi_ttl_seconds: default_ttl_seconds(),
+            flow_def_max_entries: default_flow_def_max_entries(),
+            flow_def_ttl_seconds: default_flow_def_ttl_seconds(),
         }
     }
+}
+
+/// フロー定義キャッシュのデフォルト最大エントリ数
+fn default_flow_def_max_entries() -> u64 {
+    100
+}
+
+/// フロー定義キャッシュのデフォルト TTL（秒）
+fn default_flow_def_ttl_seconds() -> u64 {
+    60
 }
 
 fn default_max_entries() -> u64 {
@@ -318,11 +339,14 @@ fn default_metrics_path() -> String {
 mod tests {
     use super::*;
 
+    // CacheConfig のデフォルト値が KPI・フロー定義キャッシュの両方で正しいことを確認する。
     #[test]
     fn test_cache_config_defaults() {
         let cache = CacheConfig::default();
         assert_eq!(cache.kpi_max_entries, 10000);
         assert_eq!(cache.kpi_ttl_seconds, 30);
+        assert_eq!(cache.flow_def_max_entries, 100);
+        assert_eq!(cache.flow_def_ttl_seconds, 60);
     }
 
     #[test]

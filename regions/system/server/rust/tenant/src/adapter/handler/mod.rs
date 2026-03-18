@@ -164,7 +164,11 @@ mod tests {
             db_pool: None,
             kafka_brokers: None,
             keycloak_health_url: None,
-            http_client: reqwest::Client::new(),
+            // テスト用HTTPクライアント（タイムアウト10秒）
+            http_client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(10))
+                .build()
+                .expect("HTTP client の作成に失敗"),
         }
     }
 

@@ -30,6 +30,12 @@ impl TryFrom<WorkflowDefinitionRow> for WorkflowDefinition {
     type Error = anyhow::Error;
 
     fn try_from(row: WorkflowDefinitionRow) -> anyhow::Result<Self> {
+        // definition JSON から total_timeout_secs を取得（なければデフォルト300秒）
+        let total_timeout_secs = row
+            .definition
+            .get("total_timeout_secs")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(300);
         let steps: Vec<WorkflowStep> = if row.definition.is_array() {
             // Backward compatibility: previous schema stored the step array directly.
             serde_json::from_value(row.definition)?
@@ -45,6 +51,7 @@ impl TryFrom<WorkflowDefinitionRow> for WorkflowDefinition {
             name: row.name,
             version: row.version,
             enabled: row.enabled,
+            total_timeout_secs,
             steps,
         })
     }

@@ -17,9 +17,16 @@ concurrency:
   group: ci-${{ github.ref }}-tauri
   cancel-in-progress: true
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 jobs:
+  # フロントエンドの lint とテスト
   lint:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,8 +43,12 @@ jobs:
       - run: npm test
         working-directory: CLI/crates/k1s0-gui/ui
 
+  # クロスプラットフォーム Tauri アプリケーションのビルド
   build:
     needs: lint
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -58,7 +69,8 @@ jobs:
           cache: npm
           cache-dependency-path: CLI/crates/k1s0-gui/ui/package-lock.json
 
-      - uses: dtolnay/rust-toolchain@1.93
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
         with:
           targets: ${{ matrix.target }}
 
@@ -78,7 +90,8 @@ jobs:
 
       - name: Build Tauri application
         id: tauri
-        uses: tauri-apps/tauri-action@v0
+        # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

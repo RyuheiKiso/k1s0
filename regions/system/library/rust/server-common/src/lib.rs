@@ -13,6 +13,10 @@ pub mod response;
 /// グレースフルシャットダウン用のシグナル待機モジュール
 #[cfg(feature = "shutdown")]
 pub mod shutdown;
+/// サーバー起動ボイラープレート削減のための ServerBuilder モジュール。
+/// テレメトリ初期化・DB プール・JWKS 検証器・Metrics 生成の共通処理を提供する。
+#[cfg(feature = "startup")]
+pub mod startup;
 
 /// デフォルトの OpenTelemetry コレクターエンドポイント。
 /// 全サーバーの設定デフォルト値として使用する。エンドポイント変更時はここだけ修正すればよい。

@@ -317,6 +317,7 @@ impl OrderRepository for OrderPostgresRepository {
     }
 
     async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
+        // マルチインスタンス環境での重複処理を防止するため FOR UPDATE SKIP LOCKED を使用する
         let rows = sqlx::query_as::<_, OutboxEventRow>(
             r#"
             SELECT id, aggregate_type, aggregate_id, event_type, payload,
@@ -325,6 +326,7 @@ impl OrderRepository for OrderPostgresRepository {
             WHERE published_at IS NULL
             ORDER BY created_at ASC
             LIMIT $1
+            FOR UPDATE SKIP LOCKED
             "#,
         )
         .bind(limit)

@@ -1,12 +1,12 @@
 // k1s0 決済サービス gRPC 定義。
 // 決済の開始・取得・一覧・完了・失敗・返金を提供する。
+// Timestamp 型を k1s0.system.common.v1.Timestamp に統一（google.protobuf.Timestamp から移行）。
 syntax = "proto3";
 
 package k1s0.service.payment.v1;
 
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/payment/v1;paymentv1";
 
-import "google/protobuf/timestamp.proto";
 import "k1s0/system/common/v1/types.proto";
 
 service PaymentService {
@@ -39,8 +39,8 @@ message Payment {
   optional string error_code = 9;
   optional string error_message = 10;
   int32 version = 11;
-  google.protobuf.Timestamp created_at = 12;
-  google.protobuf.Timestamp updated_at = 13;
+  k1s0.system.common.v1.Timestamp created_at = 12;
+  k1s0.system.common.v1.Timestamp updated_at = 13;
 }
 
 // ---------- リクエスト/レスポンス ----------

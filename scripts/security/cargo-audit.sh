@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rust ワークスペースの脆弱性監査を実行する
+# Rust ワークスペース・クレートの脆弱性監査を実行する
 set -euo pipefail
 
 echo "=== Cargo Audit ==="
@@ -20,5 +20,25 @@ if [ -f "regions/system/Cargo.lock" ]; then
         failed=1
     fi
 fi
+
+# business 層の Rust クレートを検索してスキャン
+# 各サービスが独立した Cargo.toml を持つため、個別にロックファイルを生成して監査する
+for cargo_toml in $(find regions/business -name "Cargo.toml" -path "*/rust/*/Cargo.toml" 2>/dev/null); do
+    dir=$(dirname "$cargo_toml")
+    echo "--- Scanning $dir ---"
+    if ! (cd "$dir" && cargo generate-lockfile --quiet 2>/dev/null; cargo audit); then
+        failed=1
+    fi
+done
+
+# service 層の Rust クレートを検索してスキャン
+# 各サービスが独立した Cargo.toml を持つため、個別にロックファイルを生成して監査する
+for cargo_toml in $(find regions/service -name "Cargo.toml" -path "*/rust/*/Cargo.toml" 2>/dev/null); do
+    dir=$(dirname "$cargo_toml")
+    echo "--- Scanning $dir ---"
+    if ! (cd "$dir" && cargo generate-lockfile --quiet 2>/dev/null; cargo audit); then
+        failed=1
+    fi
+done
 
 exit $failed

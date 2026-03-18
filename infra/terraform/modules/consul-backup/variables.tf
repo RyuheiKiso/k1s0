@@ -22,10 +22,11 @@ variable "consul_version" {
   default     = "1.17"
 }
 
+# Consul接続先アドレス: 本番環境ではHTTPSを使用すること
 variable "consul_http_addr" {
   description = "Consul HTTP address for snapshot API"
   type        = string
-  default     = "http://consul-server:8500"
+  default     = "https://consul-server:8501"
 }
 
 variable "consul_token_secret_name" {

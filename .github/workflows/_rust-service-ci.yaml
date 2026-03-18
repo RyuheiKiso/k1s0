@@ -4,6 +4,9 @@
 # 各サービス CI から workflow_call で呼び出される
 name: _rust-service-ci
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 on:
   workflow_call:
     inputs:
@@ -34,13 +37,18 @@ jobs:
   # フォーマットチェック + Clippy 静的解析
   lint:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
         with:
           toolchain: ${{ inputs.rust-version }}
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: ${{ inputs.workspace-path }}
       - name: Format check
@@ -58,12 +66,17 @@ jobs:
   test:
     needs: lint
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
         with:
           toolchain: ${{ inputs.rust-version }}
-      - uses: Swatinem/rust-cache@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: ${{ inputs.workspace-path }}
       - name: Run tests (standalone)
@@ -77,12 +90,17 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
         with:
           toolchain: ${{ inputs.rust-version }}
-      - uses: Swatinem/rust-cache@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: ${{ inputs.workspace-path }}
       - name: Build (standalone)

@@ -3,7 +3,7 @@ use serde::Deserialize;
 use super::kafka_producer::KafkaConfig;
 use super::keycloak_admin::KeycloakAdminConfig;
 
-/// Application configuration for tenant server.
+/// アプリケーション全体の設定。
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
@@ -18,6 +18,9 @@ pub struct Config {
     pub kafka: Option<KafkaConfig>,
     #[serde(default)]
     pub keycloak: Option<KeycloakAdminConfig>,
+    /// テナント検索結果のインメモリキャッシュ設定
+    #[serde(default)]
+    pub cache: CacheConfig,
 }
 
 impl Config {
@@ -229,6 +232,36 @@ pub fn default_max_idle_conns() -> u32 {
 
 pub fn default_conn_max_lifetime() -> String {
     "5m".to_string()
+}
+
+/// テナントキャッシュの設定。find_by_id / find_by_name の結果をインメモリにキャッシュする。
+#[derive(Debug, Clone, Deserialize)]
+pub struct CacheConfig {
+    /// キャッシュエントリの有効期限（秒）。デフォルト60秒。
+    #[serde(default = "default_cache_ttl_secs")]
+    pub ttl_secs: u64,
+    /// キャッシュの最大エントリ数。デフォルト100。
+    #[serde(default = "default_cache_max_entries")]
+    pub max_entries: u64,
+}
+
+impl Default for CacheConfig {
+    fn default() -> Self {
+        Self {
+            ttl_secs: default_cache_ttl_secs(),
+            max_entries: default_cache_max_entries(),
+        }
+    }
+}
+
+/// キャッシュ TTL のデフォルト値（60秒）
+fn default_cache_ttl_secs() -> u64 {
+    60
+}
+
+/// キャッシュ最大エントリ数のデフォルト値（100件）
+fn default_cache_max_entries() -> u64 {
+    100
 }
 
 pub fn parse_pool_duration(value: &str) -> Option<std::time::Duration> {

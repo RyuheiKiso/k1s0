@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Context;
 use futures::StreamExt;
 use rdkafka::config::ClientConfig;
-use rdkafka::consumer::{Consumer, StreamConsumer};
+use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::Message;
 use serde::Deserialize;
 
@@ -15,15 +15,19 @@ struct FlagChangedEvent {
     flag_key: String,
 }
 
+/// フィーチャーフラグ変更イベントを購読し、キャッシュを無効化するバックグラウンドタスクを起動する。
+///
+/// at-least-once セマンティクスのため auto.commit を無効化し、処理成功後に手動コミットする。
 pub fn spawn_flag_cache_invalidator(
     kafka: KafkaConfig,
     cache: Arc<FlagCache>,
 ) -> anyhow::Result<tokio::task::JoinHandle<()>> {
+    // at-least-once セマンティクスのため auto.commit を無効化する
     let consumer: StreamConsumer = ClientConfig::new()
         .set("group.id", "featureflag-cache-invalidator")
         .set("bootstrap.servers", kafka.brokers.join(","))
         .set("security.protocol", kafka.security_protocol)
-        .set("enable.auto.commit", "true")
+        .set("enable.auto.commit", "false")
         .set("auto.offset.reset", "latest")
         .create()
         .context("failed to create featureflag kafka consumer")?;
@@ -46,6 +50,10 @@ pub fn spawn_flag_cache_invalidator(
                                 tracing::warn!(error = %e, "failed to decode FLAG_CHANGED event");
                             }
                         }
+                    }
+                    // 処理成功後にオフセットを手動コミットする
+                    if let Err(e) = consumer.commit_message(&m, CommitMode::Async) {
+                        tracing::warn!(error = %e, "failed to commit kafka offset");
                     }
                 }
                 Err(e) => {

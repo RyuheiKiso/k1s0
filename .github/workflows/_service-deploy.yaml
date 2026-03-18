@@ -4,6 +4,9 @@
 # build-and-push → deploy-dev → deploy-staging → deploy-prod のパイプラインを統一
 name: _service-deploy
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 on:
   workflow_call:
     inputs:
@@ -55,6 +58,11 @@ jobs:
   # ---------- Docker イメージのビルド・プッシュ・署名・スキャン ----------
   build-and-push:
     runs-on: ubuntu-latest
+    # コードの読み取り、パッケージの書き込み（Docker push）、OIDC トークン（Cosign 署名）が必要
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -68,10 +76,12 @@ jobs:
           # 直近の Git タグからバージョンを取得（例: v1.2.3 → 1.2.3）
           VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Login to Harbor
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.HARBOR_USERNAME }}
@@ -79,7 +89,8 @@ jobs:
       # Dockerfile がコンテキスト内にある標準パターン
       - name: Build and push
         if: inputs.dockerfile == ''
-        uses: docker/build-push-action@v6
+        # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ inputs.context-path }}
           push: true
@@ -92,7 +103,8 @@ jobs:
       # Dockerfile がコンテキスト外にある場合（例: workspace root をコンテキストとして使用）
       - name: Build and push (custom Dockerfile)
         if: inputs.dockerfile != ''
-        uses: docker/build-push-action@v6
+        # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ inputs.context-path }}
           file: ${{ inputs.dockerfile }}
@@ -104,7 +116,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
+        # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
       - name: Sign image with Cosign
         run: |
           cosign sign --yes \
@@ -112,13 +125,15 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "1"
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@0.28.0
+        # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           severity: HIGH,CRITICAL
           exit-code: 1
       - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+        # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+        uses: anchore/sbom-action@57aae528053a48a3f6235f2d9461b05fbcb7366d # v0
         with:
           image: ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           output-file: sbom.spdx.json
@@ -127,6 +142,10 @@ jobs:
   deploy-dev:
     needs: build-and-push
     runs-on: [self-hosted, dev]
+    # コードの読み取りと OIDC トークン（Cosign 署名検証）が必要
+    permissions:
+      contents: read
+      id-token: write
     environment: dev
     steps:
       - uses: actions/checkout@v4
@@ -140,14 +159,16 @@ jobs:
         run: |
           VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
-      - uses: sigstore/cosign-installer@v3
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
       - name: Verify image signature
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
             ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-      - uses: azure/setup-helm@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"
       - name: Deploy to dev
@@ -162,6 +183,10 @@ jobs:
   deploy-staging:
     needs: deploy-dev
     runs-on: [self-hosted, staging]
+    # コードの読み取りと OIDC トークン（Cosign 署名検証）が必要
+    permissions:
+      contents: read
+      id-token: write
     environment: staging
     steps:
       - uses: actions/checkout@v4
@@ -175,14 +200,16 @@ jobs:
         run: |
           VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
-      - uses: sigstore/cosign-installer@v3
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
       - name: Verify image signature
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
             ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-      - uses: azure/setup-helm@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"
       - name: Deploy to staging
@@ -199,6 +226,10 @@ jobs:
   deploy-prod:
     needs: deploy-staging
     runs-on: [self-hosted, prod]
+    # コードの読み取りと OIDC トークン（Cosign 署名検証）が必要
+    permissions:
+      contents: read
+      id-token: write
     environment:
       name: prod
       url: ${{ inputs.prod-url }}
@@ -214,14 +245,16 @@ jobs:
         run: |
           VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
-      - uses: sigstore/cosign-installer@v3
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
       - name: Verify image signature
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
             ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-      - uses: azure/setup-helm@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: "3.16"
       - name: Deploy to prod

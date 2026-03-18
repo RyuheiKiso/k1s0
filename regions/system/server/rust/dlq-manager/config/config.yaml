@@ -21,7 +21,8 @@ kafka:
     - "kafka-0.messaging.svc.cluster.local:9092"
   consumer_group: "dlq-manager.default"
   security_protocol: "PLAINTEXT"
-  dlq_topic_pattern: "*.dlq.v1"
+  # DLQトピックのマッチングパターン（*.v1.dlq 形式に統一）
+  dlq_topic_pattern: "*.v1.dlq"
 
 observability:
   log:
@@ -36,16 +37,16 @@ observability:
     path: "/metrics"
 
 # === Production configuration (uncomment as needed) ===
-# database:
-#   host: "localhost"
-#   port: 5432
-#   name: "k1s0_system"
-#   user: "app"
-#   password: ""
-#   ssl_mode: "disable"
-#   max_open_conns: 25
-#   max_idle_conns: 5
-#   conn_max_lifetime: "5m"
+database:
+  host: "localhost"
+  port: 5432
+  name: "dlq_db"
+  user: "app"
+  password: ""
+  ssl_mode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
 # kafka:
 #   brokers:
 #     - "localhost:9092"

@@ -24,7 +24,8 @@ impl DlqKafkaConsumer {
         client_config.set("group.id", &config.consumer_group);
         client_config.set("security.protocol", &config.security_protocol);
         client_config.set("auto.offset.reset", "earliest");
-        client_config.set("enable.auto.commit", "true");
+        // at-least-once セマンティクスのため auto.commit を無効化する
+        client_config.set("enable.auto.commit", "false");
 
         let consumer: rdkafka::consumer::StreamConsumer = client_config.create()?;
 
@@ -53,6 +54,7 @@ impl DlqKafkaConsumer {
 
     /// バックグラウンドでメッセージ取り込みを開始する。
     pub async fn run(&self) -> anyhow::Result<()> {
+        use rdkafka::consumer::Consumer;
         use rdkafka::message::Headers;
         use rdkafka::Message;
 
@@ -119,6 +121,11 @@ impl DlqKafkaConsumer {
                             is_poison = is_poison,
                             "DLQ message ingested"
                         );
+                    }
+
+                    // 処理成功後にオフセットを手動コミットする
+                    if let Err(e) = consumer.commit_message(&msg, rdkafka::consumer::CommitMode::Async) {
+                        tracing::warn!(error = %e, "failed to commit kafka offset");
                     }
                 }
             }

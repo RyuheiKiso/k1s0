@@ -25,14 +25,20 @@ pub struct HttpVaultClient {
 }
 
 impl HttpVaultClient {
+    /// 新しい HttpVaultClient を生成する。
+    /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
     pub fn new(config: VaultClientConfig) -> Self {
         let cache = Cache::builder()
             .max_capacity(config.cache_max_capacity as u64)
             .time_to_live(config.cache_ttl)
             .build();
+        let http = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .expect("HTTP client の作成に失敗");
         Self {
             config,
-            http: reqwest::Client::new(),
+            http,
             cache,
         }
     }

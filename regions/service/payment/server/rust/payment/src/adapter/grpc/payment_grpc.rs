@@ -10,7 +10,8 @@ use crate::proto::k1s0::service::payment::v1::{
 use crate::proto::k1s0::system::common::v1::PaginationResult;
 use crate::usecase;
 use chrono::{DateTime, Utc};
-use prost_types::Timestamp;
+// カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
+use crate::proto::k1s0::system::common::v1::Timestamp;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -121,7 +122,6 @@ impl PaymentService for PaymentGrpcService {
         let has_next = (page as i64 * page_size as i64) < total_count;
         Ok(Response::new(ListPaymentsResponse {
             payments: payments.into_iter().map(proto_payment).collect(),
-            total_count,
             pagination: Some(PaginationResult {
                 total_count: total_count as i64,
                 page,
@@ -167,6 +167,7 @@ impl PaymentService for PaymentGrpcService {
         }))
     }
 
+    /// gRPC返金ハンドラー。リクエストの返金理由をユースケースに伝播する。
     async fn refund_payment(
         &self,
         request: Request<RefundPaymentRequest>,
@@ -174,9 +175,10 @@ impl PaymentService for PaymentGrpcService {
         let req = request.into_inner();
         let payment_id = parse_uuid(&req.payment_id, "payment_id")?;
 
+        // 返金理由をユースケースに伝播する
         let payment = self
             .refund_payment_uc
-            .execute(payment_id)
+            .execute(payment_id, req.reason.as_deref())
             .await
             .map_err(map_anyhow_to_status)?;
 

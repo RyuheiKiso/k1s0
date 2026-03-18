@@ -124,8 +124,12 @@ func (l *RedisLock) IsLocked(ctx context.Context, key string) (bool, error) {
 	return count > 0, nil
 }
 
+// generateRedisToken はRedisロック所有権を識別するためのランダムトークンを生成する。
+// 暗号学的に安全な乱数を使用し、エラー時はパニックする。
 func generateRedisToken() string {
 	b := make([]byte, 16)
-	_, _ = rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		panic("crypto/rand.Read failed: " + err.Error())
+	}
 	return hex.EncodeToString(b)
 }

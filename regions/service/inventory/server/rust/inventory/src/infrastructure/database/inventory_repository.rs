@@ -115,7 +115,7 @@ impl InventoryRepository for InventoryPostgresRepository {
                 qty_reserved = qty_reserved + $2,
                 version = version + 1,
                 updated_at = $3
-            WHERE id = $1 AND version = $4
+            WHERE id = $1 AND version = $4 AND qty_available >= $2
             RETURNING id, product_id, warehouse_id, qty_available, qty_reserved,
                       version, created_at, updated_at
             "#,
@@ -370,6 +370,7 @@ impl InventoryRepository for InventoryPostgresRepository {
     }
 
     async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
+        // マルチインスタンス環境での重複処理を防止するため FOR UPDATE SKIP LOCKED を使用する
         let rows = sqlx::query_as::<_, OutboxEventRow>(
             r#"
             SELECT id, aggregate_type, aggregate_id, event_type, payload,
@@ -378,6 +379,7 @@ impl InventoryRepository for InventoryPostgresRepository {
             WHERE published_at IS NULL
             ORDER BY created_at ASC
             LIMIT $1
+            FOR UPDATE SKIP LOCKED
             "#,
         )
         .bind(limit)

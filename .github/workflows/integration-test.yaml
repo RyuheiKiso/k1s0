@@ -15,9 +15,16 @@ concurrency:
   group: integration-${{ github.ref }}
   cancel-in-progress: true
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 jobs:
+  # 結合テスト対象サーバーの検出
   detect-servers:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     outputs:
       matrix: ${{ steps.detect.outputs.matrix }}
     steps:
@@ -30,9 +37,13 @@ jobs:
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           echo "Detected servers: $matrix"
 
+  # 結合テストの実行（Postgres + Kafka + Keycloak）
   integration-test:
     needs: detect-servers
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -72,10 +83,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@1.93
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
 
       # 26サーバー並列ビルドのため Rust 依存キャッシュを有効化
-      - uses: Swatinem/rust-cache@v2
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: regions/system
 

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::Result;
 use async_trait::async_trait;
 
@@ -34,9 +36,15 @@ pub struct HttpSagaClient {
 }
 
 impl HttpSagaClient {
+    /// 新しい HttpSagaClient を生成する。
+    /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
     pub fn new(base_url: &str) -> Self {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(30))
+            .build()
+            .expect("HTTP client の作成に失敗");
         Self {
-            client: reqwest::Client::new(),
+            client,
             base_url: base_url.trim_end_matches('/').to_string(),
         }
     }

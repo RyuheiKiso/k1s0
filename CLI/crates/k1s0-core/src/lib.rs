@@ -5,6 +5,7 @@ pub mod config;
 pub mod progress;
 pub mod template;
 pub mod validation;
+pub mod workspace;
 
 pub use config::{load_config, CliConfig};
 pub use template::context::{
@@ -12,3 +13,4 @@ pub use template::context::{
 };
 pub use template::TemplateEngine;
 pub use validation::validate_name;
+pub use workspace::find_workspace_root;

@@ -190,13 +190,17 @@ impl EventStoreGrpcService {
         &self,
         req: ProtoReadEventsRequest,
     ) -> Result<ProtoReadEventsResponse, GrpcError> {
+        // ページネーションパラメータを共通Paginationサブメッセージから取得
+        let pagination = req.pagination.unwrap_or_default();
+        let page = if pagination.page <= 0 { 1 } else { pagination.page as u32 };
+        let page_size = if pagination.page_size <= 0 { 20 } else { pagination.page_size as u32 };
         let input = ReadEventsInput {
             stream_id: req.stream_id,
             from_version: req.from_version,
             to_version: req.to_version,
             event_type: req.event_type,
-            page: req.page,
-            page_size: req.page_size,
+            page,
+            page_size,
         };
 
         match self.read_events_uc.execute(&input).await {
@@ -210,8 +214,8 @@ impl EventStoreGrpcService {
                 current_version: output.current_version,
                 pagination: Some(ProtoPaginationResult {
                     total_count: output.pagination.total_count as i64,
-                    page: req.page as i32,
-                    page_size: req.page_size as i32,
+                    page: page as i32,
+                    page_size: page_size as i32,
                     has_next: output.pagination.has_next,
                 }),
             }),

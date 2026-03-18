@@ -9,7 +9,8 @@ use crate::proto::k1s0::service::inventory::v1::{
 use crate::proto::k1s0::system::common::v1::PaginationResult;
 use crate::usecase;
 use chrono::{DateTime, Utc};
-use prost_types::Timestamp;
+// カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
+use crate::proto::k1s0::system::common::v1::Timestamp;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -130,7 +131,6 @@ impl InventoryService for InventoryGrpcService {
         let has_next = (page as i64 * page_size as i64) < total_count;
         Ok(Response::new(ListInventoryResponse {
             items: items.into_iter().map(proto_inventory_item).collect(),
-            total_count,
             pagination: Some(PaginationResult {
                 total_count: total_count as i64,
                 page,

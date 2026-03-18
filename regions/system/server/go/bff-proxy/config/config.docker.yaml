@@ -13,7 +13,9 @@ auth:
 
 session:
   redis:
-    addr: "redis:6379"
+    addr: "redis-session:6379"
+    # Redis 認証: requirepass が有効なためパスワードを設定する
+    password: "dev"
 
 upstream:
-  base_url: "http://auth-server:8080"
+  base_url: "http://auth-rust:8080"

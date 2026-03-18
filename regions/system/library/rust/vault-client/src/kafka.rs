@@ -11,10 +11,11 @@ pub struct VaultSecretRotationSubscriber {
 
 impl VaultSecretRotationSubscriber {
     pub fn new(brokers: &str, consumer_group: &str, topic: &str) -> Result<Self, VaultError> {
+        // at-least-once セマンティクスのため auto.commit を無効化する
         let consumer: StreamConsumer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
             .set("group.id", consumer_group)
-            .set("enable.auto.commit", "true")
+            .set("enable.auto.commit", "false")
             .set("auto.offset.reset", "earliest")
             .create()
             .map_err(|e| VaultError::ServerError(format!("kafka create consumer failed: {e}")))?;
@@ -26,6 +27,7 @@ impl VaultSecretRotationSubscriber {
         Ok(Self { consumer })
     }
 
+    /// 次のシークレットローテーションイベントを取得し、成功後にオフセットをコミットする。
     pub async fn next_event(&self) -> Result<SecretRotatedEvent, VaultError> {
         let message = self
             .consumer
@@ -37,7 +39,14 @@ impl VaultSecretRotationSubscriber {
             .payload()
             .ok_or_else(|| VaultError::ServerError("kafka payload is empty".to_string()))?;
 
-        serde_json::from_slice::<SecretRotatedEvent>(payload)
-            .map_err(|e| VaultError::ServerError(format!("kafka payload decode failed: {e}")))
+        let event = serde_json::from_slice::<SecretRotatedEvent>(payload)
+            .map_err(|e| VaultError::ServerError(format!("kafka payload decode failed: {e}")))?;
+
+        // 処理成功後にオフセットを手動コミットする
+        self.consumer
+            .commit_message(&message, rdkafka::consumer::CommitMode::Async)
+            .map_err(|e| VaultError::ServerError(format!("kafka commit failed: {e}")))?;
+
+        Ok(event)
     }
 }

@@ -88,7 +88,8 @@ services:
       retries: 5
 
   kafka-ui:
-    image: provectuslabs/kafka-ui:latest
+    # バージョン固定: latest タグを避け再現性を確保する
+    image: provectuslabs/kafka-ui:v0.7.2
     profiles: [infra]
     environment:
       KAFKA_CLUSTERS_0_NAME: local

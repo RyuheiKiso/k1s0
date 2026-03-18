@@ -68,7 +68,11 @@ impl AppUpdater for AppRegistryAppUpdater {
             url.push_str(&params.join("&"));
         }
 
-        let client = reqwest::Client::new();
+        // デフォルトタイムアウト30秒、config.timeout があればリクエスト単位で上書きする
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|e| AppUpdaterError::Connection(e.to_string()))?;
         let mut builder = client.get(&url);
         if let Some(timeout) = self.config.timeout {
             builder = builder.timeout(timeout);

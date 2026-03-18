@@ -1305,6 +1305,7 @@ dependencies = [
  "axum-test",
  "chrono",
  "k1s0-auth",
+ "k1s0-proto-build",
  "k1s0-server-common",
  "k1s0-telemetry",
  "mockall",
@@ -1323,7 +1324,6 @@ dependencies = [
  "tokio",
  "tokio-test",
  "tonic",
- "tonic-build",
  "tower 0.5.3",
  "tower-http",
  "tracing",
@@ -1331,6 +1331,13 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "validator",
+]
+
+[[package]]
+name = "k1s0-proto-build"
+version = "0.1.0"
+dependencies = [
+ "tonic-build",
 ]
 
 [[package]]
@@ -3266,6 +3273,7 @@ dependencies = [
  "pin-project-lite",
  "sync_wrapper",
  "tokio",
+ "tokio-util",
  "tower-layer",
  "tower-service",
  "tracing",

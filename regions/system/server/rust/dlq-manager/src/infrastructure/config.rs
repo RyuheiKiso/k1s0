@@ -224,12 +224,12 @@ kafka:
   brokers:
     - "localhost:9092"
   consumer_group: "dlq-manager.default"
-  dlq_topic_pattern: "*.dlq.v1"
+  dlq_topic_pattern: "*.v1.dlq"
 "#;
         let config: Config = serde_yaml::from_str(yaml).unwrap();
         assert!(config.kafka.is_some());
         let kafka = config.kafka.unwrap();
         assert_eq!(kafka.brokers.len(), 1);
-        assert_eq!(kafka.dlq_topic_pattern, "*.dlq.v1");
+        assert_eq!(kafka.dlq_topic_pattern, "*.v1.dlq");
     }
 }

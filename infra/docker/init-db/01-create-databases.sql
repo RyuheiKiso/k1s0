@@ -67,3 +67,15 @@ CREATE DATABASE workflow_db;
 
 -- file-server 用DB
 CREATE DATABASE file_db;
+
+-- service-catalog 用DB
+CREATE DATABASE service_catalog_db;
+
+-- saga-server 用DB
+CREATE DATABASE saga_db;
+
+-- master-maintenance 用スキーマ (k1s0_system 内)
+-- master_maintenance スキーマは k1s0_system DB 内で作成される
+
+-- app-registry 用DB
+CREATE DATABASE app_registry_db;

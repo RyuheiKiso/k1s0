@@ -7,6 +7,9 @@ on:
     paths:
       - 'infra/kong/**'
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 # prod デフォルト値。sync-dev / sync-staging はジョブレベルで上書きする。
 env:
   KONG_RATE_SYSTEM_MINUTE: "3000"
@@ -20,8 +23,12 @@ env:
   KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
 
 jobs:
+  # Kong 設定ファイルのバリデーション
   validate:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Install decK
@@ -39,9 +46,13 @@ jobs:
   # dev クラスタのランナー → dev の Kong、staging クラスタのランナー → staging の Kong、
   # prod クラスタのランナー → prod の Kong にそれぞれ接続される。
 
+  # Kong 設定の差分表示
   diff:
     needs: validate
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Install decK
@@ -55,9 +66,13 @@ jobs:
           deck diff -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
+  # dev 環境への Kong 設定同期
   sync-dev:
     needs: diff
     runs-on: [self-hosted, dev]
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     environment: dev
     env:
       KONG_RATE_SYSTEM_MINUTE: "30000"
@@ -79,9 +94,13 @@ jobs:
           deck sync -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
+  # staging 環境への Kong 設定同期
   sync-staging:
     needs: sync-dev
     runs-on: [self-hosted, staging]
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     environment: staging
     env:
       KONG_RATE_SYSTEM_MINUTE: "6000"
@@ -103,9 +122,13 @@ jobs:
           deck sync -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
+  # prod 環境への Kong 設定同期
   sync-prod:
     needs: sync-staging
     runs-on: [self-hosted, prod]
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     environment:
       name: prod
     # env: ワークフローレベルの prod デフォルト値を継承

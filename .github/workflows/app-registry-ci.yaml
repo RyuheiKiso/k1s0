@@ -13,8 +13,15 @@ concurrency:
   group: app-registry-ci-${{ github.ref }}
   cancel-in-progress: true
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 jobs:
+  # 再利用可能ワークフローを呼び出してCI実行
   ci:
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     uses: ./.github/workflows/_rust-service-ci.yaml
     with:
       service-path: regions/system/server/rust/app-registry

@@ -76,7 +76,11 @@ impl DeviceFlowHttpClient for DefaultDeviceFlowHttpClient {
         url: &str,
         params: &[(&str, &str)],
     ) -> Result<(u16, String), DeviceFlowError> {
-        let client = reqwest::Client::new();
+        // タイムアウト30秒でHTTPクライアントを構築する
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|e| DeviceFlowError::HttpError(e.to_string()))?;
         let resp = client
             .post(url)
             .form(params)

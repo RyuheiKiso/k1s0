@@ -4,6 +4,9 @@
 # 各サービス CI から workflow_call で呼び出される
 name: _go-service-ci
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 on:
   workflow_call:
     inputs:
@@ -26,6 +29,9 @@ jobs:
   # Go vet + golangci-lint 静的解析
   lint:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -47,6 +53,9 @@ jobs:
   test:
     needs: lint
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -61,6 +70,9 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

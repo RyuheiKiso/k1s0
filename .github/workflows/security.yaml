@@ -7,13 +7,21 @@ on:
   pull_request:
     branches: [main]
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 jobs:
+  # ファイルシステム全体の脆弱性スキャン（Trivy）
   trivy-scan:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
         with:
           scan-type: fs
           scan-ref: .
@@ -21,8 +29,12 @@ jobs:
           format: table
           exit-code: 1
 
+  # 各言語の依存関係脆弱性チェック
   dependency-check:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -36,8 +48,9 @@ jobs:
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
       # Rust ツールチェインのセットアップ
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Rust セットアップ
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
       # cargo-audit コマンドのインストール
       - name: cargo-audit インストール
         run: cargo install cargo-audit
@@ -49,8 +62,9 @@ jobs:
           node-version: '22'
 
       # Flutter/Dart SDK のセットアップ
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Flutter セットアップ
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2
         with:
           channel: stable
 
@@ -97,14 +111,88 @@ jobs:
             exit 1
           fi
 
+  # 全ティアのコンテナイメージ脆弱性スキャン（定期実行のみ）
+  # マトリクス戦略で system / business / service ティアの全サービスイメージをスキャン
   image-scan:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
+    # コンテナイメージの読み取りのみ必要
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # --- system ティア ---
+          - tier: system
+            service: auth
+          - tier: system
+            service: config
+          - tier: system
+            service: saga
+          - tier: system
+            service: bff-proxy
+          - tier: system
+            service: app-registry
+          - tier: system
+            service: dlq-manager
+          - tier: system
+            service: graphql-gateway
+          # --- business ティア ---
+          - tier: business
+            service: domain-master
+          # --- service ティア ---
+          - tier: service
+            service: order
+          - tier: service
+            service: payment
+          - tier: service
+            service: inventory
     steps:
-      - name: Scan latest images
-        uses: aquasecurity/trivy-action@0.28.0
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - name: コンテナイメージの脆弱性スキャン (${{ matrix.tier }}/${{ matrix.service }})
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
         with:
           scan-type: image
-          image-ref: harbor.internal.example.com/k1s0-service/order:latest
+          image-ref: harbor.internal.example.com/k1s0-${{ matrix.tier }}/${{ matrix.service }}:latest
           severity: HIGH,CRITICAL
           format: table
+
+  # IaC（Infrastructure as Code）構成ミススキャン
+  # Terraform / Kubernetes マニフェストの設定ミスを Trivy で検出
+  iac-scan:
+    runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - name: Trivy IaC 構成スキャン
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
+        with:
+          scan-type: config
+          scan-ref: infra/
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: 1
+
+  # ライセンスコンプライアンスチェック
+  # 依存関係のライセンスが許容範囲内かを Trivy で検証
+  license-scan:
+    runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - name: Trivy ライセンスコンプライアンススキャン
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: license
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: 1

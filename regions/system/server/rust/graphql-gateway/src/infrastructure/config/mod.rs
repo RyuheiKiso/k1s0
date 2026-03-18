@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use std::fs;
 
+/// graphql-gateway のルート設定。
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
@@ -10,6 +11,12 @@ pub struct Config {
     pub backends: BackendsConfig,
     #[serde(default)]
     pub observability: ObservabilityConfig,
+    /// レート制限設定（ratelimit gRPC サービスと連携してリクエストレートを制御）
+    #[serde(default)]
+    pub ratelimit: RateLimitConfig,
+    /// サーキットブレーカー設定（外部 gRPC 呼び出しの障害伝播防止）
+    #[serde(default)]
+    pub circuit_breaker: CircuitBreakerConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -240,6 +247,90 @@ fn default_metrics_enabled() -> bool {
 }
 fn default_metrics_path() -> String {
     "/metrics".to_string()
+}
+
+/// レート制限の設定。ratelimit gRPC サービスと連携してリクエストレートを制御する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct RateLimitConfig {
+    /// レート制限を有効化するか
+    #[serde(default)]
+    pub enabled: bool,
+    /// ratelimit サービスの URL（例: "http://ratelimit-server:50051"）
+    #[serde(default = "default_ratelimit_server_url")]
+    pub server_url: String,
+    /// レート制限のスコープ（キープレフィックスとして使用）
+    #[serde(default = "default_ratelimit_scope")]
+    pub scope: String,
+    /// ウィンドウ内の最大リクエスト数
+    #[serde(default = "default_requests_per_window")]
+    pub requests_per_window: u32,
+    /// レート制限ウィンドウの秒数
+    #[serde(default = "default_window_secs")]
+    pub window_secs: u64,
+}
+
+fn default_ratelimit_server_url() -> String {
+    "http://localhost:50051".to_string()
+}
+
+fn default_ratelimit_scope() -> String {
+    "graphql-gateway".to_string()
+}
+
+fn default_requests_per_window() -> u32 {
+    100
+}
+
+fn default_window_secs() -> u64 {
+    60
+}
+
+impl Default for RateLimitConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            server_url: default_ratelimit_server_url(),
+            scope: default_ratelimit_scope(),
+            requests_per_window: default_requests_per_window(),
+            window_secs: default_window_secs(),
+        }
+    }
+}
+
+/// サーキットブレーカーの設定。外部 gRPC サービス呼び出し時の障害伝播を防止する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct CircuitBreakerConfig {
+    /// オープン状態に遷移する連続失敗回数の閾値
+    #[serde(default = "default_cb_failure_threshold")]
+    pub failure_threshold: u32,
+    /// ハーフオープンからクローズに遷移する連続成功回数の閾値
+    #[serde(default = "default_cb_success_threshold")]
+    pub success_threshold: u32,
+    /// オープン状態の持続時間（秒）。この時間経過後にハーフオープンに遷移する。
+    #[serde(default = "default_cb_timeout_secs")]
+    pub timeout_secs: u64,
+}
+
+fn default_cb_failure_threshold() -> u32 {
+    5
+}
+
+fn default_cb_success_threshold() -> u32 {
+    3
+}
+
+fn default_cb_timeout_secs() -> u64 {
+    30
+}
+
+impl Default for CircuitBreakerConfig {
+    fn default() -> Self {
+        Self {
+            failure_threshold: default_cb_failure_threshold(),
+            success_threshold: default_cb_success_threshold(),
+            timeout_secs: default_cb_timeout_secs(),
+        }
+    }
 }
 
 impl Config {

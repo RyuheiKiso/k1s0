@@ -70,9 +70,15 @@ pub struct GraphQlHttpClient {
 
 #[cfg(feature = "grpc")]
 impl GraphQlHttpClient {
+    /// 新しい GraphQlHttpClient を生成する。
+    /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
     pub fn new(endpoint: impl Into<String>, headers: HashMap<String, String>) -> Self {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .expect("HTTP client の作成に失敗");
         Self {
-            client: reqwest::Client::new(),
+            client,
             endpoint: endpoint.into(),
             headers,
         }

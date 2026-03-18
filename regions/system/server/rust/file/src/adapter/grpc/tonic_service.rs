@@ -62,15 +62,17 @@ impl FileService for FileServiceTonic {
         request: Request<ListFilesRequest>,
     ) -> Result<Response<ListFilesResponse>, Status> {
         let inner = request.into_inner();
-        let page = if inner.page <= 0 {
+        // ページネーションパラメータを共通Paginationサブメッセージから取得
+        let pagination = inner.pagination.unwrap_or_default();
+        let page = if pagination.page <= 0 {
             1
         } else {
-            inner.page as u32
+            pagination.page as u32
         };
-        let page_size = if inner.page_size <= 0 {
+        let page_size = if pagination.page_size <= 0 {
             20
         } else {
-            inner.page_size as u32
+            pagination.page_size as u32
         };
         let (files, total) = self
             .inner

@@ -40,7 +40,9 @@ impl KafkaSchemaEventPublisher {
         let mut cfg = ClientConfig::new();
         cfg.set("bootstrap.servers", brokers.join(","))
             .set("message.timeout.ms", "5000")
-            .set("acks", "all");
+            .set("acks", "all")
+            // 冪等プロデューサーを有効化し、メッセージの重複送信を防止する
+            .set("enable.idempotence", "true");
         if let Some(protocol) = security_protocol {
             if !protocol.trim().is_empty() {
                 cfg.set("security.protocol", protocol.trim());

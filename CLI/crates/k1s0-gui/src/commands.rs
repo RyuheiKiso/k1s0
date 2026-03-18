@@ -115,13 +115,37 @@ fn resolve_workspace_root_from_option(base_dir: Option<String>) -> Result<PathBu
     }
 }
 
-fn resolve_workspace_path(workspace_root: &Path, path: &str) -> PathBuf {
+// ワークスペースルートからの相対パスを解決する。
+// パストラバーサル攻撃を防止するため、".." コンポーネントを含むパスを拒否する。
+fn resolve_workspace_path(workspace_root: &Path, path: &str) -> Result<PathBuf, String> {
     let candidate = Path::new(path);
-    if candidate.is_absolute() {
+
+    // パストラバーサル防止: ".." を含むパスを拒否する
+    for component in candidate.components() {
+        if matches!(component, std::path::Component::ParentDir) {
+            return Err("パスに '..' を含めることはできません".to_string());
+        }
+    }
+
+    let resolved = if candidate.is_absolute() {
         candidate.to_path_buf()
     } else {
         workspace_root.join(candidate)
+    };
+
+    // 解決後のパスがワークスペースルート内にあることを検証する
+    let canonical_root = workspace_root
+        .canonicalize()
+        .map_err(|e| format!("ワークスペースルートの正規化に失敗: {e}"))?;
+    let canonical_resolved = resolved
+        .canonicalize()
+        .unwrap_or_else(|_| resolved.clone());
+
+    if !canonical_resolved.starts_with(&canonical_root) {
+        return Err("パスがワークスペース外を参照しています".to_string());
     }
+
+    Ok(resolved)
 }
 
 fn with_workspace_cwd<T>(
@@ -419,7 +443,7 @@ pub fn execute_validate_config_schema(
 ) -> Result<Vec<ValidationDiagnostic>, String> {
     ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
-    let resolved = resolve_workspace_path(&workspace_root, &path);
+    let resolved = resolve_workspace_path(&workspace_root, &path)?;
     config_schema_validate::collect_config_schema_diagnostics(&resolved.to_string_lossy())
         .map_err(|error| error.to_string())
 }
@@ -432,7 +456,7 @@ pub fn execute_validate_navigation(
 ) -> Result<Vec<ValidationDiagnostic>, String> {
     ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
-    let resolved = resolve_workspace_path(&workspace_root, &path);
+    let resolved = resolve_workspace_path(&workspace_root, &path)?;
     nav_validate::collect_navigation_diagnostics(&resolved.to_string_lossy())
         .map_err(|error| error.to_string())
 }
@@ -446,7 +470,7 @@ pub fn execute_generate_config_types(
 ) -> Result<String, String> {
     ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
-    let resolved = resolve_workspace_path(&workspace_root, &schema_path);
+    let resolved = resolve_workspace_path(&workspace_root, &schema_path)?;
     match target.as_str() {
         "typescript" => {
             config_types_cmd::generate_typescript_types_from_file(&resolved.to_string_lossy())
@@ -467,7 +491,7 @@ pub fn execute_generate_navigation_types(
 ) -> Result<String, String> {
     ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
-    let resolved = resolve_workspace_path(&workspace_root, &nav_path);
+    let resolved = resolve_workspace_path(&workspace_root, &nav_path)?;
     match target.as_str() {
         "typescript" => {
             nav_gen_cmd::generate_typescript_routes_from_file(&resolved.to_string_lossy())
@@ -489,8 +513,8 @@ pub fn write_config_types(
 ) -> Result<Vec<GeneratedFileResult>, String> {
     ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
-    let resolved_schema = resolve_workspace_path(&workspace_root, &schema_path);
-    let resolved_output_dir = resolve_workspace_path(&workspace_root, &output_dir);
+    let resolved_schema = resolve_workspace_path(&workspace_root, &schema_path)?;
+    let resolved_output_dir = resolve_workspace_path(&workspace_root, &output_dir)?;
     let target_refs: Vec<&str> = targets.iter().map(String::as_str).collect();
     let written = config_types_cmd::write_generated_types_from_file(
         &resolved_schema,
@@ -520,8 +544,8 @@ pub fn write_navigation_types(
 ) -> Result<Vec<GeneratedFileResult>, String> {
     ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_path(Path::new(&base_dir))?;
-    let resolved_nav = resolve_workspace_path(&workspace_root, &nav_path);
-    let resolved_output_dir = resolve_workspace_path(&workspace_root, &output_dir);
+    let resolved_nav = resolve_workspace_path(&workspace_root, &nav_path)?;
+    let resolved_output_dir = resolve_workspace_path(&workspace_root, &output_dir)?;
     let target_refs: Vec<&str> = targets.iter().map(String::as_str).collect();
     let written = nav_gen_cmd::write_generated_routes_from_file(
         &resolved_nav,
@@ -935,7 +959,7 @@ pub fn preview_event_codegen(
 ) -> Result<String, String> {
     ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
-    let resolved = resolve_workspace_path(&workspace_root, &events_path);
+    let resolved = resolve_workspace_path(&workspace_root, &events_path)?;
     let config = event_codegen_cmd::parse_events_yaml(&resolved.to_string_lossy())
         .map_err(|error| error.to_string())?;
     Ok(event_codegen_cmd::format_generation_summary(&config))
@@ -949,7 +973,7 @@ pub fn execute_event_codegen(
 ) -> Result<Vec<String>, String> {
     ensure_authenticated()?;
     let workspace_root = resolve_workspace_root_from_option(base_dir)?;
-    let resolved = resolve_workspace_path(&workspace_root, &events_path);
+    let resolved = resolve_workspace_path(&workspace_root, &events_path)?;
     let config = event_codegen_cmd::parse_events_yaml(&resolved.to_string_lossy())
         .map_err(|error| error.to_string())?;
     let template_dir = resolve_event_template_dir(&workspace_root)?;
@@ -1232,21 +1256,8 @@ fn resolve_workspace_root_path(path: &Path) -> Result<PathBuf, String> {
     find_workspace_root(&canonical).ok_or_else(|| "path is not inside a k1s0 workspace".to_string())
 }
 
-fn find_workspace_root(start: &Path) -> Option<PathBuf> {
-    start.ancestors().find_map(|ancestor| {
-        let has_regions = ancestor.join("regions").is_dir();
-        let has_helm = ancestor
-            .join("infra")
-            .join("helm")
-            .join("services")
-            .is_dir();
-        if has_regions && has_helm {
-            Some(ancestor.to_path_buf())
-        } else {
-            None
-        }
-    })
-}
+// find_workspace_root は k1s0_core::workspace に統合済み
+use k1s0_core::find_workspace_root;
 
 // テストコードでは unwrap() の使用を許可する
 #[cfg(test)]

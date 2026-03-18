@@ -6,10 +6,28 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::sync::OnceLock;
 
 use regex::Regex;
 
 use super::types::{Dependency, DependencyType, ServiceInfo};
+
+/// gRPC proto import パターンの正規表現キャッシュ
+static GRPC_IMPORT_RE: OnceLock<Regex> = OnceLock::new();
+/// Kafka トピック名パターンの正規表現キャッシュ
+static TOPIC_RE: OnceLock<Regex> = OnceLock::new();
+/// REST サービス名パターンの正規表現キャッシュ
+static REST_SERVICE_RE: OnceLock<Regex> = OnceLock::new();
+/// GraphQL パターンの正規表現キャッシュ
+static GRAPHQL_RE: OnceLock<Regex> = OnceLock::new();
+/// Cargo.toml k1s0 ライブラリ依存パターンの正規表現キャッシュ
+static CARGO_LIB_RE: OnceLock<Regex> = OnceLock::new();
+/// go.mod k1s0 ライブラリ依存パターンの正規表現キャッシュ
+static GOMOD_LIB_RE: OnceLock<Regex> = OnceLock::new();
+/// package.json @k1s0 ライブラリ依存パターンの正規表現キャッシュ
+static NPM_LIB_RE: OnceLock<Regex> = OnceLock::new();
+/// pubspec.yaml k1s0_ ライブラリ依存パターンの正規表現キャッシュ
+static DART_LIB_RE: OnceLock<Regex> = OnceLock::new();
 
 /// regions/ 配下のサーバーを走査してサービス情報を返す。
 ///
@@ -142,7 +160,9 @@ fn is_server_dir(path: &Path) -> bool {
 /// Panics only if a hard-coded regular expression becomes invalid.
 pub fn scan_grpc_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
-    let re = Regex::new(r#"import\s+"k1s0/(\w+)/(\w[\w-]*)/v\d+/"#).unwrap();
+    // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+    let re = GRPC_IMPORT_RE
+        .get_or_init(|| Regex::new(r#"import\s+"k1s0/(\w+)/(\w[\w-]*)/v\d+/"#).unwrap());
 
     // サービス名→tier のマップを構築
     let service_tier_map: HashMap<String, String> = services
@@ -245,7 +265,10 @@ pub fn scan_kafka_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Ve
     }
 
     // パブリッシャーとサブスクライバーをマッチさせて依存関係を構築
-    let topic_re = Regex::new(r"k1s0\.(\w+)\.(\w[\w-]*)\.").ok();
+    // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+    let topic_re = Some(
+        TOPIC_RE.get_or_init(|| Regex::new(r"k1s0\.(\w+)\.(\w[\w-]*)\.").unwrap()),
+    );
 
     for (topic, subscribers) in &topic_subscribers {
         for subscriber in subscribers {
@@ -371,9 +394,10 @@ fn extract_topics(
 /// Panics only if a hard-coded regular expression becomes invalid.
 pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
-    // {service-name}.k1s0-{tier} パターン
-    let re = Regex::new(r"([\w-]+)\.k1s0-(system|business|service)").unwrap();
-    let graphql_re = Regex::new(r"(?i)graphql|/graphql").unwrap();
+    // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+    let re = REST_SERVICE_RE
+        .get_or_init(|| Regex::new(r"([\w-]+)\.k1s0-(system|business|service)").unwrap());
+    let graphql_re = GRAPHQL_RE.get_or_init(|| Regex::new(r"(?i)graphql|/graphql").unwrap());
 
     let service_tier_map: HashMap<String, String> = services
         .iter()
@@ -454,10 +478,12 @@ pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
 pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
 
-    let cargo_re = Regex::new(r"k1s0-([\w-]+)").unwrap();
-    let gomod_re = Regex::new(r"k1s0/regions/system/library/go/([\w-]+)").unwrap();
-    let npm_re = Regex::new(r"@k1s0/([\w-]+)").unwrap();
-    let dart_re = Regex::new(r"k1s0_([\w]+)").unwrap();
+    // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+    let cargo_re = CARGO_LIB_RE.get_or_init(|| Regex::new(r"k1s0-([\w-]+)").unwrap());
+    let gomod_re =
+        GOMOD_LIB_RE.get_or_init(|| Regex::new(r"k1s0/regions/system/library/go/([\w-]+)").unwrap());
+    let npm_re = NPM_LIB_RE.get_or_init(|| Regex::new(r"@k1s0/([\w-]+)").unwrap());
+    let dart_re = DART_LIB_RE.get_or_init(|| Regex::new(r"k1s0_([\w]+)").unwrap());
 
     for service in services {
         // Cargo.toml

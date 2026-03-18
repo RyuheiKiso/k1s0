@@ -47,6 +47,13 @@ resource "vault_database_secret_backend_role" "auth_server_rw" {
     "GRANT ALL ON ALL TABLES IN SCHEMA auth TO \"{{name}}\";",
     "GRANT USAGE ON SCHEMA auth TO \"{{name}}\";"
   ]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA auth FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA auth FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA auth FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
+  ]
   default_ttl = var.credential_ttl
   max_ttl     = var.credential_max_ttl
 }
@@ -59,6 +66,13 @@ resource "vault_database_secret_backend_role" "auth_server_ro" {
     "CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';",
     "GRANT SELECT ON ALL TABLES IN SCHEMA auth TO \"{{name}}\";",
     "GRANT USAGE ON SCHEMA auth TO \"{{name}}\";"
+  ]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA auth FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA auth FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA auth FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
   ]
   default_ttl = var.credential_ttl
   max_ttl     = var.credential_max_ttl
@@ -77,6 +91,13 @@ resource "vault_database_secret_backend_role" "config_server_rw" {
     "GRANT ALL ON ALL TABLES IN SCHEMA config TO \"{{name}}\";",
     "GRANT USAGE ON SCHEMA config TO \"{{name}}\";"
   ]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA config FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA config FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA config FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
+  ]
   default_ttl = var.credential_ttl
   max_ttl     = var.credential_max_ttl
 }
@@ -89,6 +110,13 @@ resource "vault_database_secret_backend_role" "config_server_ro" {
     "CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';",
     "GRANT SELECT ON ALL TABLES IN SCHEMA config TO \"{{name}}\";",
     "GRANT USAGE ON SCHEMA config TO \"{{name}}\";"
+  ]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA config FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA config FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA config FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
   ]
   default_ttl = var.credential_ttl
   max_ttl     = var.credential_max_ttl
@@ -107,6 +135,13 @@ resource "vault_database_secret_backend_role" "saga_server_rw" {
     "GRANT ALL ON ALL TABLES IN SCHEMA saga TO \"{{name}}\";",
     "GRANT USAGE ON SCHEMA saga TO \"{{name}}\";"
   ]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA saga FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA saga FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA saga FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
+  ]
   default_ttl = var.credential_ttl
   max_ttl     = var.credential_max_ttl
 }
@@ -119,6 +154,13 @@ resource "vault_database_secret_backend_role" "saga_server_ro" {
     "CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';",
     "GRANT SELECT ON ALL TABLES IN SCHEMA saga TO \"{{name}}\";",
     "GRANT USAGE ON SCHEMA saga TO \"{{name}}\";"
+  ]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA saga FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA saga FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA saga FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
   ]
   default_ttl = var.credential_ttl
   max_ttl     = var.credential_max_ttl
@@ -137,6 +179,13 @@ resource "vault_database_secret_backend_role" "dlq_manager_rw" {
     "GRANT ALL ON ALL TABLES IN SCHEMA dlq TO \"{{name}}\";",
     "GRANT USAGE ON SCHEMA dlq TO \"{{name}}\";"
   ]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA dlq FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA dlq FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA dlq FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
+  ]
   default_ttl = var.credential_ttl
   max_ttl     = var.credential_max_ttl
 }
@@ -149,6 +198,13 @@ resource "vault_database_secret_backend_role" "dlq_manager_ro" {
     "CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';",
     "GRANT SELECT ON ALL TABLES IN SCHEMA dlq TO \"{{name}}\";",
     "GRANT USAGE ON SCHEMA dlq TO \"{{name}}\";"
+  ]
+  # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
+  revocation_statements = [
+    "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA dlq FROM \"{{name}}\";",
+    "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA dlq FROM \"{{name}}\";",
+    "REVOKE USAGE ON SCHEMA dlq FROM \"{{name}}\";",
+    "DROP ROLE IF EXISTS \"{{name}}\";"
   ]
   default_ttl = var.credential_ttl
   max_ttl     = var.credential_max_ttl

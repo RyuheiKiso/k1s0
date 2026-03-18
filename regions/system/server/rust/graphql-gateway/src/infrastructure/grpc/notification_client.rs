@@ -126,12 +126,15 @@ impl NotificationGrpcClient {
         page: Option<i32>,
         page_size: Option<i32>,
     ) -> anyhow::Result<Vec<NotificationLog>> {
+        // ページネーションパラメータを共通Paginationサブメッセージで構成
         let request = tonic::Request::new(
             proto::k1s0::system::notification::v1::ListNotificationsRequest {
                 channel_id: channel_id.map(|s| s.to_owned()),
                 status: status.map(|s| s.to_owned()),
-                page: page.unwrap_or(1) as u32,
-                page_size: page_size.unwrap_or(20) as u32,
+                pagination: Some(proto::k1s0::system::common::v1::Pagination {
+                    page: page.unwrap_or(1),
+                    page_size: page_size.unwrap_or(20),
+                }),
             },
         );
 
@@ -239,12 +242,15 @@ impl NotificationGrpcClient {
         page: Option<i32>,
         page_size: Option<i32>,
     ) -> anyhow::Result<Vec<NotificationChannel>> {
+        // ページネーションパラメータを共通Paginationサブメッセージで構成
         let request =
             tonic::Request::new(proto::k1s0::system::notification::v1::ListChannelsRequest {
                 channel_type: channel_type.map(|s| s.to_owned()),
                 enabled_only,
-                page: page.unwrap_or(1) as u32,
-                page_size: page_size.unwrap_or(20) as u32,
+                pagination: Some(proto::k1s0::system::common::v1::Pagination {
+                    page: page.unwrap_or(1),
+                    page_size: page_size.unwrap_or(20),
+                }),
             });
 
         let resp = self
@@ -371,11 +377,14 @@ impl NotificationGrpcClient {
         page: Option<i32>,
         page_size: Option<i32>,
     ) -> anyhow::Result<Vec<NotificationTemplate>> {
+        // ページネーションパラメータを共通Paginationサブメッセージで構成
         let request = tonic::Request::new(
             proto::k1s0::system::notification::v1::ListTemplatesRequest {
                 channel_type: channel_type.map(|s| s.to_owned()),
-                page: page.unwrap_or(1) as u32,
-                page_size: page_size.unwrap_or(20) as u32,
+                pagination: Some(proto::k1s0::system::common::v1::Pagination {
+                    page: page.unwrap_or(1),
+                    page_size: page_size.unwrap_or(20),
+                }),
             },
         );
 

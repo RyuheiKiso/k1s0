@@ -1,9 +1,11 @@
+// k1s0 会計イベント定義。
+// Timestamp 型を k1s0.system.common.v1.Timestamp に統一（google.protobuf.Timestamp から移行）。
 syntax = "proto3";
 package k1s0.event.business.accounting.v1;
 
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/event/business/accounting/v1;accountingeventv1";
 
-import "google/protobuf/timestamp.proto";
+import "k1s0/system/common/v1/types.proto";
 import "k1s0/system/common/v1/event_metadata.proto";
 
 message EntryCreatedEvent {
@@ -13,14 +15,14 @@ message EntryCreatedEvent {
   int64 amount = 4;
   string currency = 5;
   EntryType entry_type = 6;
-  google.protobuf.Timestamp created_at = 7;
+  k1s0.system.common.v1.Timestamp created_at = 7;
 }
 
 message EntryApprovedEvent {
   k1s0.system.common.v1.EventMetadata metadata = 1;
   string entry_id = 2;
   string approved_by = 3;
-  google.protobuf.Timestamp approved_at = 4;
+  k1s0.system.common.v1.Timestamp approved_at = 4;
 }
 
 enum EntryType {

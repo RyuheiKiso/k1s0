@@ -8,12 +8,20 @@ on:
       - 'api/proto/buf.yaml'
       - 'api/proto/buf.gen.yaml'
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 jobs:
+  # Proto ファイルの lint・破壊的変更検出・コード生成検証
   proto-lint:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: bufbuild/buf-setup-action@v1
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           version: "1.47.2"              # devcontainer設計.md の BUF_VERSION と同期
       - name: Lint

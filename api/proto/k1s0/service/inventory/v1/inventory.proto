@@ -1,12 +1,12 @@
 // k1s0 在庫サービス gRPC 定義。
 // 在庫の予約・解放・取得・一覧・更新を提供する。
+// Timestamp 型を k1s0.system.common.v1.Timestamp に統一（google.protobuf.Timestamp から移行）。
 syntax = "proto3";
 
 package k1s0.service.inventory.v1;
 
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/inventory/v1;inventoryv1";
 
-import "google/protobuf/timestamp.proto";
 import "k1s0/system/common/v1/types.proto";
 
 service InventoryService {
@@ -32,8 +32,8 @@ message InventoryItem {
   int32 qty_available = 4;
   int32 qty_reserved = 5;
   int32 version = 6;
-  google.protobuf.Timestamp created_at = 7;
-  google.protobuf.Timestamp updated_at = 8;
+  k1s0.system.common.v1.Timestamp created_at = 7;
+  k1s0.system.common.v1.Timestamp updated_at = 8;
 }
 
 // ---------- リクエスト/レスポンス ----------
