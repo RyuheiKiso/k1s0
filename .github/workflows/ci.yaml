@@ -166,7 +166,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93 — Dockerイメージ戦略.md / devcontainer設計.md と同期
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # 1.93 — Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
@@ -475,7 +475,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93 — Dockerイメージ戦略.md / devcontainer設計.md と同期
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # 1.93 — Dockerイメージ戦略.md / devcontainer設計.md と同期
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
@@ -537,7 +537,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # 1.93
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
@@ -557,7 +557,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # 1.93
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
@@ -843,7 +843,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # 1.93
       # Rust 依存キャッシュ（regions/system, CLI, standalone サーバー）
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
@@ -963,7 +963,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # 1.93
         with:
           components: clippy
       - name: Check ai-agent

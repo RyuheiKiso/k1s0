@@ -70,7 +70,7 @@ jobs:
           cache-dependency-path: CLI/crates/k1s0-gui/ui/package-lock.json
 
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # 1.93
         with:
           targets: ${{ matrix.target }}
 
