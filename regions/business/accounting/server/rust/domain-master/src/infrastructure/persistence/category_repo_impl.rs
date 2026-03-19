@@ -89,11 +89,12 @@ impl CategoryPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, CategoryRow>(
             r#"INSERT INTO domain_master.master_categories
                (code, display_name, description, validation_schema, is_active, sort_order, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7)
-               RETURNING *"#,
+               RETURNING id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at"#,
         )
         .bind(&input.code)
         .bind(&input.display_name)
