@@ -124,6 +124,7 @@ impl ItemPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, ItemRow>(
             r#"UPDATE domain_master.master_items SET
                display_name = COALESCE($2, display_name),
@@ -135,7 +136,7 @@ impl ItemPostgresRepository {
                is_active = COALESCE($8, is_active),
                sort_order = COALESCE($9, sort_order),
                updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at"#,
         )
         .bind(id)
         .bind(&input.display_name)
