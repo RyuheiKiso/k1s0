@@ -144,7 +144,7 @@ CREATE INDEX idx_change_logs_table
 CREATE INDEX idx_change_logs_record
     ON master_maintenance.change_logs(target_table, target_record_id, created_at DESC);
 
-CREATE TABLE master_maintenance.import_jobs (
+CREATE TABLE IF NOT EXISTS master_maintenance.import_jobs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     table_id UUID NOT NULL REFERENCES master_maintenance.table_definitions(id) ON DELETE CASCADE,
     file_name VARCHAR(255) NOT NULL,

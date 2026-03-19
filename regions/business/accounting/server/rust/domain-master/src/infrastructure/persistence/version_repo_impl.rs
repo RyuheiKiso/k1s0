@@ -24,8 +24,9 @@ impl VersionPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let rows = sqlx::query_as::<_, VersionRow>(
-            "SELECT * FROM domain_master.master_item_versions WHERE item_id = $1 ORDER BY version_number DESC",
+            "SELECT id, item_id, version_number, before_data, after_data, changed_by, change_reason, created_at FROM domain_master.master_item_versions WHERE item_id = $1 ORDER BY version_number DESC",
         )
         .bind(item_id)
         .fetch_all(executor)
@@ -63,11 +64,12 @@ impl VersionPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, VersionRow>(
             r#"INSERT INTO domain_master.master_item_versions
                (item_id, version_number, before_data, after_data, changed_by, change_reason)
                VALUES ($1, $2, $3, $4, $5, $6)
-               RETURNING *"#,
+               RETURNING id, item_id, version_number, before_data, after_data, changed_by, change_reason, created_at"#,
         )
         .bind(item_id)
         .bind(version_number)
