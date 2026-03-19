@@ -31,7 +31,7 @@ class ConfigFieldList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: category.fields.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      separatorBuilder: (_, _) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final field = category.fields[index];
         final fieldWidget = _buildFieldWidget(field);
