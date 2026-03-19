@@ -27,8 +27,9 @@ impl TenantExtensionPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, TenantExtensionRow>(
-            "SELECT * FROM domain_master.tenant_master_extensions WHERE tenant_id = $1 AND item_id = $2",
+            "SELECT id, tenant_id, item_id, display_name_override, attributes_override, is_enabled, created_at, updated_at FROM domain_master.tenant_master_extensions WHERE tenant_id = $1 AND item_id = $2",
         )
         .bind(tenant_id)
         .bind(item_id)

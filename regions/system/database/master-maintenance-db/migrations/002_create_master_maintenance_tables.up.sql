@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS master_maintenance.column_definitions (
 CREATE INDEX idx_column_definitions_table
     ON master_maintenance.column_definitions(table_id);
 
-CREATE TABLE master_maintenance.table_relationships (
+CREATE TABLE IF NOT EXISTS master_maintenance.table_relationships (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     source_table_id UUID NOT NULL REFERENCES master_maintenance.table_definitions(id) ON DELETE CASCADE,
     source_column VARCHAR(255) NOT NULL,
