@@ -1,4 +1,4 @@
-CREATE TABLE domain_master.master_categories (
+CREATE TABLE IF NOT EXISTS domain_master.master_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code VARCHAR(100) NOT NULL UNIQUE,
     display_name VARCHAR(255) NOT NULL,
