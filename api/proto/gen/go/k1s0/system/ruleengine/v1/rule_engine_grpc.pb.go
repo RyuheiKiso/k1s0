@@ -19,20 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuleEngineService_ListRules_FullMethodName       = "/k1s0.system.rule_engine.v1.RuleEngineService/ListRules"
-	RuleEngineService_GetRule_FullMethodName         = "/k1s0.system.rule_engine.v1.RuleEngineService/GetRule"
-	RuleEngineService_CreateRule_FullMethodName      = "/k1s0.system.rule_engine.v1.RuleEngineService/CreateRule"
-	RuleEngineService_UpdateRule_FullMethodName      = "/k1s0.system.rule_engine.v1.RuleEngineService/UpdateRule"
-	RuleEngineService_DeleteRule_FullMethodName      = "/k1s0.system.rule_engine.v1.RuleEngineService/DeleteRule"
-	RuleEngineService_ListRuleSets_FullMethodName    = "/k1s0.system.rule_engine.v1.RuleEngineService/ListRuleSets"
-	RuleEngineService_GetRuleSet_FullMethodName      = "/k1s0.system.rule_engine.v1.RuleEngineService/GetRuleSet"
-	RuleEngineService_CreateRuleSet_FullMethodName   = "/k1s0.system.rule_engine.v1.RuleEngineService/CreateRuleSet"
-	RuleEngineService_UpdateRuleSet_FullMethodName   = "/k1s0.system.rule_engine.v1.RuleEngineService/UpdateRuleSet"
-	RuleEngineService_DeleteRuleSet_FullMethodName   = "/k1s0.system.rule_engine.v1.RuleEngineService/DeleteRuleSet"
-	RuleEngineService_PublishRuleSet_FullMethodName  = "/k1s0.system.rule_engine.v1.RuleEngineService/PublishRuleSet"
-	RuleEngineService_RollbackRuleSet_FullMethodName = "/k1s0.system.rule_engine.v1.RuleEngineService/RollbackRuleSet"
-	RuleEngineService_Evaluate_FullMethodName        = "/k1s0.system.rule_engine.v1.RuleEngineService/Evaluate"
-	RuleEngineService_EvaluateDryRun_FullMethodName  = "/k1s0.system.rule_engine.v1.RuleEngineService/EvaluateDryRun"
+	RuleEngineService_ListRules_FullMethodName       = "/k1s0.system.ruleengine.v1.RuleEngineService/ListRules"
+	RuleEngineService_GetRule_FullMethodName         = "/k1s0.system.ruleengine.v1.RuleEngineService/GetRule"
+	RuleEngineService_CreateRule_FullMethodName      = "/k1s0.system.ruleengine.v1.RuleEngineService/CreateRule"
+	RuleEngineService_UpdateRule_FullMethodName      = "/k1s0.system.ruleengine.v1.RuleEngineService/UpdateRule"
+	RuleEngineService_DeleteRule_FullMethodName      = "/k1s0.system.ruleengine.v1.RuleEngineService/DeleteRule"
+	RuleEngineService_ListRuleSets_FullMethodName    = "/k1s0.system.ruleengine.v1.RuleEngineService/ListRuleSets"
+	RuleEngineService_GetRuleSet_FullMethodName      = "/k1s0.system.ruleengine.v1.RuleEngineService/GetRuleSet"
+	RuleEngineService_CreateRuleSet_FullMethodName   = "/k1s0.system.ruleengine.v1.RuleEngineService/CreateRuleSet"
+	RuleEngineService_UpdateRuleSet_FullMethodName   = "/k1s0.system.ruleengine.v1.RuleEngineService/UpdateRuleSet"
+	RuleEngineService_DeleteRuleSet_FullMethodName   = "/k1s0.system.ruleengine.v1.RuleEngineService/DeleteRuleSet"
+	RuleEngineService_PublishRuleSet_FullMethodName  = "/k1s0.system.ruleengine.v1.RuleEngineService/PublishRuleSet"
+	RuleEngineService_RollbackRuleSet_FullMethodName = "/k1s0.system.ruleengine.v1.RuleEngineService/RollbackRuleSet"
+	RuleEngineService_Evaluate_FullMethodName        = "/k1s0.system.ruleengine.v1.RuleEngineService/Evaluate"
+	RuleEngineService_EvaluateDryRun_FullMethodName  = "/k1s0.system.ruleengine.v1.RuleEngineService/EvaluateDryRun"
 )
 
 // RuleEngineServiceClient is the client API for RuleEngineService service.
@@ -550,7 +550,7 @@ func _RuleEngineService_EvaluateDryRun_Handler(srv interface{}, ctx context.Cont
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var RuleEngineService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "k1s0.system.rule_engine.v1.RuleEngineService",
+	ServiceName: "k1s0.system.ruleengine.v1.RuleEngineService",
 	HandlerType: (*RuleEngineServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

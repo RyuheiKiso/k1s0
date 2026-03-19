@@ -1,6 +1,7 @@
 [package]
 name = "k1s0-bb-secretstore"
 version = "0.1.0"
+# TODO: edition統一 - プロジェクト全体の方針決定後に統一（大多数は edition = "2021"）
 edition = "2024"
 rust-version = "1.93"
 

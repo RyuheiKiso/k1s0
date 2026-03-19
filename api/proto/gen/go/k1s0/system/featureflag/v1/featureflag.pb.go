@@ -1142,7 +1142,7 @@ const file_k1s0_system_featureflag_v1_featureflag_proto_rawDesc = "" +
 	"UpdateFlag\x12-.k1s0.system.featureflag.v1.UpdateFlagRequest\x1a..k1s0.system.featureflag.v1.UpdateFlagResponse\x12k\n" +
 	"\n" +
 	"DeleteFlag\x12-.k1s0.system.featureflag.v1.DeleteFlagRequest\x1a..k1s0.system.featureflag.v1.DeleteFlagResponse\x12\x7f\n" +
-	"\x10WatchFeatureFlag\x123.k1s0.system.featureflag.v1.WatchFeatureFlagRequest\x1a4.k1s0.system.featureflag.v1.WatchFeatureFlagResponse0\x01BGZEgithub.com/k1s0-platform/system-proto-go/featureflag/v1;featureflagv1b\x06proto3"
+	"\x10WatchFeatureFlag\x123.k1s0.system.featureflag.v1.WatchFeatureFlagRequest\x1a4.k1s0.system.featureflag.v1.WatchFeatureFlagResponse0\x01BNZLgithub.com/k1s0-platform/api/gen/go/k1s0/system/featureflag/v1;featureflagv1b\x06proto3"
 
 var (
 	file_k1s0_system_featureflag_v1_featureflag_proto_rawDescOnce sync.Once

@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 
+// TODO: dead_code監査 - このモジュール全体が未使用。entity::user にも同名の Role/UserRoles が定義されており、
+// 他のモジュールは entity::user 側を使用している。このモジュールの削除を検討
+
 /// Role はユーザーのロール情報を表す。
 /// Keycloak の realm_roles / client_roles に対応。
 #[allow(dead_code)]

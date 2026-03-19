@@ -28,9 +28,9 @@ pub struct Payment {
     #[prost(int32, tag="11")]
     pub version: i32,
     #[prost(message, optional, tag="12")]
-    pub created_at: ::core::option::Option<super::super::super::super::google::protobuf::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::super::system::common::v1::Timestamp>,
     #[prost(message, optional, tag="13")]
-    pub updated_at: ::core::option::Option<super::super::super::super::google::protobuf::Timestamp>,
+    pub updated_at: ::core::option::Option<super::super::super::system::common::v1::Timestamp>,
 }
 // ---------- リクエスト/レスポンス ----------
 

@@ -1585,7 +1585,7 @@ const file_k1s0_system_tenant_v1_tenant_proto_rawDesc = "" +
 	"\vListMembers\x12).k1s0.system.tenant.v1.ListMembersRequest\x1a*.k1s0.system.tenant.v1.ListMembersResponse\x12g\n" +
 	"\fRemoveMember\x12*.k1s0.system.tenant.v1.RemoveMemberRequest\x1a+.k1s0.system.tenant.v1.RemoveMemberResponse\x12\x82\x01\n" +
 	"\x15GetProvisioningStatus\x123.k1s0.system.tenant.v1.GetProvisioningStatusRequest\x1a4.k1s0.system.tenant.v1.GetProvisioningStatusResponse\x12f\n" +
-	"\vWatchTenant\x12).k1s0.system.tenant.v1.WatchTenantRequest\x1a*.k1s0.system.tenant.v1.WatchTenantResponse0\x01B=Z;github.com/k1s0-platform/system-proto-go/tenant/v1;tenantv1b\x06proto3"
+	"\vWatchTenant\x12).k1s0.system.tenant.v1.WatchTenantRequest\x1a*.k1s0.system.tenant.v1.WatchTenantResponse0\x01BDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/tenant/v1;tenantv1b\x06proto3"
 
 var (
 	file_k1s0_system_tenant_v1_tenant_proto_rawDescOnce sync.Once

@@ -10,7 +10,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { Timestamp } from "../../../../../google/protobuf/timestamp";
+import { Timestamp } from "../../../../system/common/v1/types";
 import { EventMetadata } from "../../../../system/common/v1/event_metadata";
 /**
  * @generated from protobuf message k1s0.event.business.accounting.v1.EntryCreatedEvent
@@ -41,7 +41,7 @@ export interface EntryCreatedEvent {
      */
     entryType: EntryType;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp created_at = 7
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 7
      */
     createdAt?: Timestamp;
 }
@@ -62,7 +62,7 @@ export interface EntryApprovedEvent {
      */
     approvedBy: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp approved_at = 4
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp approved_at = 4
      */
     approvedAt?: Timestamp;
 }
@@ -130,7 +130,7 @@ class EntryCreatedEvent$Type extends MessageType<EntryCreatedEvent> {
                 case /* k1s0.event.business.accounting.v1.EntryType entry_type */ 6:
                     message.entryType = reader.int32();
                     break;
-                case /* google.protobuf.Timestamp created_at */ 7:
+                case /* k1s0.system.common.v1.Timestamp created_at */ 7:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
                 default:
@@ -163,7 +163,7 @@ class EntryCreatedEvent$Type extends MessageType<EntryCreatedEvent> {
         /* k1s0.event.business.accounting.v1.EntryType entry_type = 6; */
         if (message.entryType !== 0)
             writer.tag(6, WireType.Varint).int32(message.entryType);
-        /* google.protobuf.Timestamp created_at = 7; */
+        /* k1s0.system.common.v1.Timestamp created_at = 7; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
@@ -208,7 +208,7 @@ class EntryApprovedEvent$Type extends MessageType<EntryApprovedEvent> {
                 case /* string approved_by */ 3:
                     message.approvedBy = reader.string();
                     break;
-                case /* google.protobuf.Timestamp approved_at */ 4:
+                case /* k1s0.system.common.v1.Timestamp approved_at */ 4:
                     message.approvedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.approvedAt);
                     break;
                 default:
@@ -232,7 +232,7 @@ class EntryApprovedEvent$Type extends MessageType<EntryApprovedEvent> {
         /* string approved_by = 3; */
         if (message.approvedBy !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.approvedBy);
-        /* google.protobuf.Timestamp approved_at = 4; */
+        /* k1s0.system.common.v1.Timestamp approved_at = 4; */
         if (message.approvedAt)
             Timestamp.internalBinaryWrite(message.approvedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;

@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[allow(dead_code)]
+// アプリケーション設定のルート構造体。startup.rs から Config::load() で使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
@@ -48,7 +48,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-#[allow(dead_code)]
+// サーバー設定。startup.rs でリスニングアドレス・ポートの取得に使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -71,7 +71,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-#[allow(dead_code)]
+// データベース設定。database.rs の connect() で接続 URL 構築に使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -128,7 +128,7 @@ fn default_jwks_cache_ttl_secs() -> u64 {
     3600
 }
 
-#[allow(dead_code)]
+// Kafka設定。kafka_consumer.rs でコンシューマー構成に使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -154,7 +154,7 @@ fn default_event_topic_pattern() -> String {
     "k1s0.*.*.*.v1".to_string()
 }
 
-#[allow(dead_code)]
+// DLQ Manager 設定。DLQ クライアント接続に使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct DlqManagerConfig {
     pub grpc_endpoint: String,
@@ -212,7 +212,7 @@ fn default_ttl_seconds() -> u64 {
     30
 }
 
-#[allow(dead_code)]
+// スケジューラ設定。タイムアウト検出やクリーンアップ間隔の制御に使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SchedulerConfig {
     #[serde(default = "default_timeout_check_interval")]
@@ -229,7 +229,7 @@ fn default_cleanup_interval() -> u64 {
     3600
 }
 
-#[allow(dead_code)]
+// 通知設定。通知エンドポイントの接続構成に使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct NotificationConfig {
     pub endpoint: String,
@@ -241,7 +241,7 @@ fn default_notification_timeout() -> u64 {
     10
 }
 
-#[allow(dead_code)]
+// オブザーバビリティ設定。startup.rs でテレメトリ初期化に使用される。
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -289,7 +289,7 @@ impl Default for TraceConfig {
     }
 }
 
-#[allow(dead_code)]
+// メトリクス設定。ObservabilityConfig の一部として使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]

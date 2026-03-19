@@ -1098,7 +1098,7 @@ const file_k1s0_system_session_v1_session_proto_rawDesc = "" +
 	"\x0eRefreshSession\x12-.k1s0.system.session.v1.RefreshSessionRequest\x1a..k1s0.system.session.v1.RefreshSessionResponse\x12l\n" +
 	"\rRevokeSession\x12,.k1s0.system.session.v1.RevokeSessionRequest\x1a-.k1s0.system.session.v1.RevokeSessionResponse\x12x\n" +
 	"\x11RevokeAllSessions\x120.k1s0.system.session.v1.RevokeAllSessionsRequest\x1a1.k1s0.system.session.v1.RevokeAllSessionsResponse\x12u\n" +
-	"\x10ListUserSessions\x12/.k1s0.system.session.v1.ListUserSessionsRequest\x1a0.k1s0.system.session.v1.ListUserSessionsResponseB?Z=github.com/k1s0-platform/system-proto-go/session/v1;sessionv1b\x06proto3"
+	"\x10ListUserSessions\x12/.k1s0.system.session.v1.ListUserSessionsRequest\x1a0.k1s0.system.session.v1.ListUserSessionsResponseBFZDgithub.com/k1s0-platform/api/gen/go/k1s0/system/session/v1;sessionv1b\x06proto3"
 
 var (
 	file_k1s0_system_session_v1_session_proto_rawDescOnce sync.Once

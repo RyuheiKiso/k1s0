@@ -358,6 +358,10 @@ spec:
 - `successfulJobsHistoryLimit: 3` / `failedJobsHistoryLimit: 3`
 - `serviceAccountName: backup-operator`
 - バックアップデータは PVC `backup-pvc` にマウントして保存（Ceph バックアップを除く）
+- **S3 オフサイト保存**: etcd および Vault のバックアップは PVC 保存後に S3 互換ストレージへアップロードする（DR 対策）
+  - S3 クレデンシャルは `backup-s3-credentials` Secret から環境変数で注入
+  - バケット命名: `k1s0-backup-{component}-{environment}`
+  - S3 アップロード失敗時はバックアップ自体は成功とし、アラート通知のみ実施
 
 ### PostgreSQL バックアップ対象 DB
 

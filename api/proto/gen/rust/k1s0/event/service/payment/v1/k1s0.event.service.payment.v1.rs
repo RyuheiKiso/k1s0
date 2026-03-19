@@ -18,7 +18,7 @@ pub struct PaymentInitiatedEvent {
     #[prost(string, tag="7")]
     pub payment_method: ::prost::alloc::string::String,
     #[prost(message, optional, tag="8")]
-    pub initiated_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub initiated_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PaymentCompletedEvent {
@@ -35,7 +35,7 @@ pub struct PaymentCompletedEvent {
     #[prost(string, tag="6")]
     pub transaction_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="7")]
-    pub completed_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub completed_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PaymentFailedEvent {
@@ -50,7 +50,7 @@ pub struct PaymentFailedEvent {
     #[prost(string, tag="5")]
     pub error_code: ::prost::alloc::string::String,
     #[prost(message, optional, tag="6")]
-    pub failed_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub failed_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PaymentRefundedEvent {
@@ -67,6 +67,6 @@ pub struct PaymentRefundedEvent {
     #[prost(string, tag="6")]
     pub reason: ::prost::alloc::string::String,
     #[prost(message, optional, tag="7")]
-    pub refunded_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub refunded_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 // @@protoc_insertion_point(module)

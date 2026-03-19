@@ -1,5 +1,5 @@
 import { trace, SpanStatusCode } from '@opentelemetry/api';
-import type { Metrics } from './metrics';
+import type { Metrics } from './metrics.js';
 
 /**
  * gRPC メソッドパスからサービス名とメソッド名を抽出する。

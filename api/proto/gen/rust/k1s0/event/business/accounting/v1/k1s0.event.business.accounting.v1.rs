@@ -15,7 +15,7 @@ pub struct EntryCreatedEvent {
     #[prost(enumeration="EntryType", tag="6")]
     pub entry_type: i32,
     #[prost(message, optional, tag="7")]
-    pub created_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct EntryApprovedEvent {
@@ -26,7 +26,7 @@ pub struct EntryApprovedEvent {
     #[prost(string, tag="3")]
     pub approved_by: ::prost::alloc::string::String,
     #[prost(message, optional, tag="4")]
-    pub approved_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub approved_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

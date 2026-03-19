@@ -63,10 +63,53 @@ resource "kubernetes_cluster_role" "k1s0_admin" {
     }
   }
 
+  # コアリソース（Pod、Service、ConfigMap、Secret、Namespace、PVC等）の全操作を許可
   rule {
-    api_groups = ["*"]
-    resources  = ["*"]
-    verbs      = ["*"]
+    api_groups = [""]
+    resources  = ["pods", "services", "configmaps", "secrets", "namespaces", "persistentvolumeclaims", "serviceaccounts", "events", "endpoints"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+
+  # apps グループ（Deployment、StatefulSet、DaemonSet、ReplicaSet）の全操作を許可
+  rule {
+    api_groups = ["apps"]
+    resources  = ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+
+  # batch グループ（Job、CronJob）の全操作を許可
+  rule {
+    api_groups = ["batch"]
+    resources  = ["jobs", "cronjobs"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+
+  # ネットワークポリシー（Ingress、NetworkPolicy）の管理を許可
+  rule {
+    api_groups = ["networking.k8s.io"]
+    resources  = ["ingresses", "networkpolicies"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+
+  # RBAC リソース（Role、ClusterRole およびそのバインディング）の管理を許可
+  rule {
+    api_groups = ["rbac.authorization.k8s.io"]
+    resources  = ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+
+  # オートスケーリング（HPA）の管理を許可
+  rule {
+    api_groups = ["autoscaling"]
+    resources  = ["horizontalpodautoscalers"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+
+  # ストレージ（StorageClass、PersistentVolume）の管理を許可
+  rule {
+    api_groups = ["storage.k8s.io"]
+    resources  = ["storageclasses", "persistentvolumes"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
 }
 
@@ -120,9 +163,38 @@ resource "kubernetes_cluster_role" "readonly" {
     }
   }
 
+  # コアリソースの参照を許可（secrets は機密情報のため意図的に除外）
   rule {
-    api_groups = ["*"]
-    resources  = ["*"]
+    api_groups = [""]
+    resources  = ["pods", "services", "configmaps", "namespaces", "persistentvolumeclaims", "serviceaccounts", "events", "endpoints"]
+    verbs      = ["get", "list", "watch"]
+  }
+
+  # apps グループ（Deployment、StatefulSet、DaemonSet、ReplicaSet）の参照を許可
+  rule {
+    api_groups = ["apps"]
+    resources  = ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs      = ["get", "list", "watch"]
+  }
+
+  # batch グループ（Job、CronJob）の参照を許可
+  rule {
+    api_groups = ["batch"]
+    resources  = ["jobs", "cronjobs"]
+    verbs      = ["get", "list", "watch"]
+  }
+
+  # ネットワークリソース（Ingress、NetworkPolicy）の参照を許可
+  rule {
+    api_groups = ["networking.k8s.io"]
+    resources  = ["ingresses", "networkpolicies"]
+    verbs      = ["get", "list", "watch"]
+  }
+
+  # オートスケーリング（HPA）の参照を許可
+  rule {
+    api_groups = ["autoscaling"]
+    resources  = ["horizontalpodautoscalers"]
     verbs      = ["get", "list", "watch"]
   }
 }

@@ -962,7 +962,7 @@ const file_k1s0_system_vault_v1_vault_proto_rawDesc = "" +
 	"\fDeleteSecret\x12).k1s0.system.vault.v1.DeleteSecretRequest\x1a*.k1s0.system.vault.v1.DeleteSecretResponse\x12t\n" +
 	"\x11GetSecretMetadata\x12..k1s0.system.vault.v1.GetSecretMetadataRequest\x1a/.k1s0.system.vault.v1.GetSecretMetadataResponse\x12b\n" +
 	"\vListSecrets\x12(.k1s0.system.vault.v1.ListSecretsRequest\x1a).k1s0.system.vault.v1.ListSecretsResponse\x12h\n" +
-	"\rListAuditLogs\x12*.k1s0.system.vault.v1.ListAuditLogsRequest\x1a+.k1s0.system.vault.v1.ListAuditLogsResponseB;Z9github.com/k1s0-platform/system-proto-go/vault/v1;vaultv1b\x06proto3"
+	"\rListAuditLogs\x12*.k1s0.system.vault.v1.ListAuditLogsRequest\x1a+.k1s0.system.vault.v1.ListAuditLogsResponseBBZ@github.com/k1s0-platform/api/gen/go/k1s0/system/vault/v1;vaultv1b\x06proto3"
 
 var (
 	file_k1s0_system_vault_v1_vault_proto_rawDescOnce sync.Once

@@ -214,6 +214,7 @@ impl SagaRepository for SagaPostgresRepository {
         Ok((sagas?, total))
     }
 
+    /// 未完了Sagaを検索する。一度に大量のSagaをロードしないようLIMITで件数を制限する。
     async fn find_incomplete(&self) -> anyhow::Result<Vec<SagaState>> {
         let rows = sqlx::query_as::<_, SagaStateRow>(
             r#"
@@ -221,6 +222,7 @@ impl SagaRepository for SagaPostgresRepository {
             FROM saga.saga_states
             WHERE status IN ('STARTED', 'RUNNING', 'COMPENSATING')
             ORDER BY created_at
+            LIMIT 100
             "#,
         )
         .fetch_all(&self.pool)

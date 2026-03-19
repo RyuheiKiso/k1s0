@@ -1,5 +1,6 @@
 /// 注文サービスのデータモデル定義
 /// freezed/json_serializableを使用せず、手書きのfromJson/toJsonで実装する
+library;
 
 /// 注文ステータスの列挙型
 /// 注文のライフサイクルにおける各状態を定義する

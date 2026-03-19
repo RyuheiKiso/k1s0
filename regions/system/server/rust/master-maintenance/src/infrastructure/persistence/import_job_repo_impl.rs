@@ -18,7 +18,8 @@ impl ImportJobPostgresRepository {
 impl ImportJobRepository for ImportJobPostgresRepository {
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<ImportJob>> {
         let row = sqlx::query_as::<_, ImportJobRow>(
-            "SELECT * FROM master_maintenance.import_jobs WHERE id = $1",
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, table_id, file_name, status, total_rows, processed_rows, error_rows, error_details, started_by, started_at, completed_at FROM master_maintenance.import_jobs WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -32,7 +33,8 @@ impl ImportJobRepository for ImportJobPostgresRepository {
                (id, table_id, file_name, status, total_rows, processed_rows, error_rows,
                 error_details, started_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-               RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               RETURNING id, table_id, file_name, status, total_rows, processed_rows, error_rows, error_details, started_by, started_at, completed_at"#,
         )
         .bind(job.id)
         .bind(job.table_id)
@@ -56,7 +58,8 @@ impl ImportJobRepository for ImportJobPostgresRepository {
                error_rows = $4,
                error_details = $5,
                completed_at = $6
-               WHERE id = $1 RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               WHERE id = $1 RETURNING id, table_id, file_name, status, total_rows, processed_rows, error_rows, error_details, started_by, started_at, completed_at"#,
         )
         .bind(id)
         .bind(&job.status)

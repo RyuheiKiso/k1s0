@@ -11,7 +11,8 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 use k1s0_policy_server::adapter::handler::{router, AppState};
-use k1s0_policy_server::adapter::middleware::auth::PolicyAuthState;
+// 認証状態の型をインポート（共通AuthStateを使用）
+use k1s0_policy_server::adapter::middleware::auth::AuthState;
 use k1s0_policy_server::domain::entity::policy::Policy;
 use k1s0_policy_server::domain::entity::policy_bundle::PolicyBundle;
 use k1s0_policy_server::domain::repository::{PolicyBundleRepository, PolicyRepository};
@@ -95,7 +96,8 @@ fn make_test_app() -> axum::Router {
         )
         .expect("Failed to create JWKS verifier"),
     );
-    let auth_state = PolicyAuthState { verifier };
+    // 共通AuthStateを使用して認証状態を構築
+    let auth_state = AuthState { verifier };
 
     let state = AppState {
         create_policy_uc: Arc::new(CreatePolicyUseCase::new(policy_repo.clone())),

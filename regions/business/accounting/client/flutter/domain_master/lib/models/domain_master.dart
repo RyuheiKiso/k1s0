@@ -1,5 +1,6 @@
 /// ドメインマスタのデータモデル定義
 /// freezed/json_serializableを使用せず、手書きのfromJson/toJsonで実装する
+library;
 
 /// マスタカテゴリモデル
 /// マスタデータの分類単位を表す（例：勘定科目、部門、通貨など）

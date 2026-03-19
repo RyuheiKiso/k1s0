@@ -2698,7 +2698,7 @@ var File_k1s0_system_eventmonitor_v1_event_monitor_proto protoreflect.FileDescri
 
 const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\n" +
-	"/k1s0/system/eventmonitor/v1/event_monitor.proto\x12\x1ck1s0.system.event_monitor.v1\x1a!k1s0/system/common/v1/types.proto\"\xf1\x02\n" +
+	"/k1s0/system/eventmonitor/v1/event_monitor.proto\x12\x1bk1s0.system.eventmonitor.v1\x1a!k1s0/system/common/v1/types.proto\"\xf1\x02\n" +
 	"\vEventRecord\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
 	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\x12\x1d\n" +
@@ -2731,9 +2731,9 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\a_sourceB\a\n" +
 	"\x05_fromB\x05\n" +
 	"\x03_toB\t\n" +
-	"\a_status\"\xa0\x01\n" +
-	"\x12ListEventsResponse\x12A\n" +
-	"\x06events\x18\x01 \x03(\v2).k1s0.system.event_monitor.v1.EventRecordR\x06events\x12G\n" +
+	"\a_status\"\x9f\x01\n" +
+	"\x12ListEventsResponse\x12@\n" +
+	"\x06events\x18\x01 \x03(\v2(.k1s0.system.eventmonitor.v1.EventRecordR\x06events\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
 	"pagination\"B\n" +
@@ -2764,12 +2764,12 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x12?\n" +
 	"\n" +
 	"started_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tstartedAt\x12'\n" +
-	"\x0felapsed_seconds\x18\x05 \x01(\x03R\x0eelapsedSeconds\"\x94\x02\n" +
+	"\x0felapsed_seconds\x18\x05 \x01(\x03R\x0eelapsedSeconds\"\x91\x02\n" +
 	"\x1aTraceByCorrelationResponse\x12%\n" +
-	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationId\x12=\n" +
-	"\x04flow\x18\x02 \x01(\v2).k1s0.system.event_monitor.v1.FlowSummaryR\x04flow\x12@\n" +
-	"\x06events\x18\x03 \x03(\v2(.k1s0.system.event_monitor.v1.TraceEventR\x06events\x12N\n" +
-	"\rpending_steps\x18\x04 \x03(\v2).k1s0.system.event_monitor.v1.PendingStepR\fpendingSteps\"\x8c\x01\n" +
+	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationId\x12<\n" +
+	"\x04flow\x18\x02 \x01(\v2(.k1s0.system.eventmonitor.v1.FlowSummaryR\x04flow\x12?\n" +
+	"\x06events\x18\x03 \x03(\v2'.k1s0.system.eventmonitor.v1.TraceEventR\x06events\x12M\n" +
+	"\rpending_steps\x18\x04 \x03(\v2(.k1s0.system.eventmonitor.v1.PendingStepR\fpendingSteps\"\x8c\x01\n" +
 	"\bFlowStep\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\tR\teventType\x12\x16\n" +
@@ -2779,14 +2779,14 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\aFlowSlo\x12:\n" +
 	"\x19target_completion_seconds\x18\x01 \x01(\x05R\x17targetCompletionSeconds\x12.\n" +
 	"\x13target_success_rate\x18\x02 \x01(\x01R\x11targetSuccessRate\x12,\n" +
-	"\x12alert_on_violation\x18\x03 \x01(\bR\x10alertOnViolation\"\x81\x03\n" +
+	"\x12alert_on_violation\x18\x03 \x01(\bR\x10alertOnViolation\"\xff\x02\n" +
 	"\x0eFlowDefinition\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x16\n" +
-	"\x06domain\x18\x04 \x01(\tR\x06domain\x12<\n" +
-	"\x05steps\x18\x05 \x03(\v2&.k1s0.system.event_monitor.v1.FlowStepR\x05steps\x127\n" +
-	"\x03slo\x18\x06 \x01(\v2%.k1s0.system.event_monitor.v1.FlowSloR\x03slo\x12\x18\n" +
+	"\x06domain\x18\x04 \x01(\tR\x06domain\x12;\n" +
+	"\x05steps\x18\x05 \x03(\v2%.k1s0.system.eventmonitor.v1.FlowStepR\x05steps\x126\n" +
+	"\x03slo\x18\x06 \x01(\v2$.k1s0.system.eventmonitor.v1.FlowSloR\x03slo\x12\x18\n" +
 	"\aenabled\x18\a \x01(\bR\aenabled\x12?\n" +
 	"\n" +
 	"created_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
@@ -2797,36 +2797,36 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"pagination\x18\x01 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
 	"pagination\x12\x1b\n" +
 	"\x06domain\x18\x02 \x01(\tH\x00R\x06domain\x88\x01\x01B\t\n" +
-	"\a_domain\"\xa0\x01\n" +
-	"\x11ListFlowsResponse\x12B\n" +
-	"\x05flows\x18\x01 \x03(\v2,.k1s0.system.event_monitor.v1.FlowDefinitionR\x05flows\x12G\n" +
+	"\a_domain\"\x9f\x01\n" +
+	"\x11ListFlowsResponse\x12A\n" +
+	"\x05flows\x18\x01 \x03(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x05flows\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
 	"pagination\" \n" +
 	"\x0eGetFlowRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
-	"\x0fGetFlowResponse\x12@\n" +
-	"\x04flow\x18\x01 \x01(\v2,.k1s0.system.event_monitor.v1.FlowDefinitionR\x04flow\"\xd8\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"R\n" +
+	"\x0fGetFlowResponse\x12?\n" +
+	"\x04flow\x18\x01 \x01(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x04flow\"\xd6\x01\n" +
 	"\x11CreateFlowRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +
-	"\x06domain\x18\x03 \x01(\tR\x06domain\x12<\n" +
-	"\x05steps\x18\x04 \x03(\v2&.k1s0.system.event_monitor.v1.FlowStepR\x05steps\x127\n" +
-	"\x03slo\x18\x05 \x01(\v2%.k1s0.system.event_monitor.v1.FlowSloR\x03slo\"V\n" +
-	"\x12CreateFlowResponse\x12@\n" +
-	"\x04flow\x18\x01 \x01(\v2,.k1s0.system.event_monitor.v1.FlowDefinitionR\x04flow\"\x89\x02\n" +
+	"\x06domain\x18\x03 \x01(\tR\x06domain\x12;\n" +
+	"\x05steps\x18\x04 \x03(\v2%.k1s0.system.eventmonitor.v1.FlowStepR\x05steps\x126\n" +
+	"\x03slo\x18\x05 \x01(\v2$.k1s0.system.eventmonitor.v1.FlowSloR\x03slo\"U\n" +
+	"\x12CreateFlowResponse\x12?\n" +
+	"\x04flow\x18\x01 \x01(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x04flow\"\x87\x02\n" +
 	"\x11UpdateFlowRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
-	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12<\n" +
-	"\x05steps\x18\x03 \x03(\v2&.k1s0.system.event_monitor.v1.FlowStepR\x05steps\x12<\n" +
-	"\x03slo\x18\x04 \x01(\v2%.k1s0.system.event_monitor.v1.FlowSloH\x01R\x03slo\x88\x01\x01\x12\x1d\n" +
+	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12;\n" +
+	"\x05steps\x18\x03 \x03(\v2%.k1s0.system.eventmonitor.v1.FlowStepR\x05steps\x12;\n" +
+	"\x03slo\x18\x04 \x01(\v2$.k1s0.system.eventmonitor.v1.FlowSloH\x01R\x03slo\x88\x01\x01\x12\x1d\n" +
 	"\aenabled\x18\x05 \x01(\bH\x02R\aenabled\x88\x01\x01B\x0e\n" +
 	"\f_descriptionB\x06\n" +
 	"\x04_sloB\n" +
 	"\n" +
-	"\b_enabled\"V\n" +
-	"\x12UpdateFlowResponse\x12@\n" +
-	"\x04flow\x18\x01 \x01(\v2,.k1s0.system.event_monitor.v1.FlowDefinitionR\x04flow\"#\n" +
+	"\b_enabled\"U\n" +
+	"\x12UpdateFlowResponse\x12?\n" +
+	"\x04flow\x18\x01 \x01(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x04flow\"#\n" +
 	"\x11DeleteFlowRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"H\n" +
 	"\x12DeleteFlowResponse\x12\x18\n" +
@@ -2846,7 +2846,7 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\vis_violated\x18\x04 \x01(\bR\n" +
 	"isViolated\x12\x1b\n" +
 	"\tburn_rate\x18\x05 \x01(\x01R\bburnRate\x12I\n" +
-	"!estimated_budget_exhaustion_hours\x18\x06 \x01(\x01R\x1eestimatedBudgetExhaustionHours\"\xee\x03\n" +
+	"!estimated_budget_exhaustion_hours\x18\x06 \x01(\x01R\x1eestimatedBudgetExhaustionHours\"\xed\x03\n" +
 	"\aFlowKpi\x12#\n" +
 	"\rtotal_started\x18\x01 \x01(\x03R\ftotalStarted\x12'\n" +
 	"\x0ftotal_completed\x18\x02 \x01(\x03R\x0etotalCompleted\x12!\n" +
@@ -2856,20 +2856,20 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\x14avg_duration_seconds\x18\x06 \x01(\x01R\x12avgDurationSeconds\x120\n" +
 	"\x14p50_duration_seconds\x18\a \x01(\x01R\x12p50DurationSeconds\x120\n" +
 	"\x14p95_duration_seconds\x18\b \x01(\x01R\x12p95DurationSeconds\x120\n" +
-	"\x14p99_duration_seconds\x18\t \x01(\x01R\x12p99DurationSeconds\x12U\n" +
+	"\x14p99_duration_seconds\x18\t \x01(\x01R\x12p99DurationSeconds\x12T\n" +
 	"\x0fbottleneck_step\x18\n" +
-	" \x01(\v2,.k1s0.system.event_monitor.v1.BottleneckStepR\x0ebottleneckStep\"T\n" +
+	" \x01(\v2+.k1s0.system.eventmonitor.v1.BottleneckStepR\x0ebottleneckStep\"T\n" +
 	"\x11GetFlowKpiRequest\x12\x17\n" +
 	"\aflow_id\x18\x01 \x01(\tR\x06flowId\x12\x1b\n" +
 	"\x06period\x18\x02 \x01(\tH\x00R\x06period\x88\x01\x01B\t\n" +
-	"\a_period\"\xe3\x01\n" +
+	"\a_period\"\xe1\x01\n" +
 	"\x12GetFlowKpiResponse\x12\x17\n" +
 	"\aflow_id\x18\x01 \x01(\tR\x06flowId\x12\x1b\n" +
 	"\tflow_name\x18\x02 \x01(\tR\bflowName\x12\x16\n" +
-	"\x06period\x18\x03 \x01(\tR\x06period\x127\n" +
-	"\x03kpi\x18\x04 \x01(\v2%.k1s0.system.event_monitor.v1.FlowKpiR\x03kpi\x12F\n" +
+	"\x06period\x18\x03 \x01(\tR\x06period\x126\n" +
+	"\x03kpi\x18\x04 \x01(\v2$.k1s0.system.eventmonitor.v1.FlowKpiR\x03kpi\x12E\n" +
 	"\n" +
-	"slo_status\x18\x05 \x01(\v2'.k1s0.system.event_monitor.v1.SloStatusR\tsloStatus\"\x81\x02\n" +
+	"slo_status\x18\x05 \x01(\v2&.k1s0.system.eventmonitor.v1.SloStatusR\tsloStatus\"\x81\x02\n" +
 	"\x0eFlowKpiSummary\x12\x17\n" +
 	"\aflow_id\x18\x01 \x01(\tR\x06flowId\x12\x1b\n" +
 	"\tflow_name\x18\x02 \x01(\tR\bflowName\x12\x16\n" +
@@ -2880,10 +2880,10 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\fslo_violated\x18\a \x01(\bR\vsloViolated\">\n" +
 	"\x14GetKpiSummaryRequest\x12\x1b\n" +
 	"\x06period\x18\x01 \x01(\tH\x00R\x06period\x88\x01\x01B\t\n" +
-	"\a_period\"\x85\x02\n" +
+	"\a_period\"\x84\x02\n" +
 	"\x15GetKpiSummaryResponse\x12\x16\n" +
-	"\x06period\x18\x01 \x01(\tR\x06period\x12B\n" +
-	"\x05flows\x18\x02 \x03(\v2,.k1s0.system.event_monitor.v1.FlowKpiSummaryR\x05flows\x12\x1f\n" +
+	"\x06period\x18\x01 \x01(\tR\x06period\x12A\n" +
+	"\x05flows\x18\x02 \x03(\v2+.k1s0.system.eventmonitor.v1.FlowKpiSummaryR\x05flows\x12\x1f\n" +
 	"\vtotal_flows\x18\x03 \x01(\x05R\n" +
 	"totalFlows\x127\n" +
 	"\x18flows_with_slo_violation\x18\x04 \x01(\x05R\x15flowsWithSloViolation\x126\n" +
@@ -2895,19 +2895,19 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\vis_violated\x18\x03 \x01(\bR\n" +
 	"isViolated\x12\x1b\n" +
 	"\tburn_rate\x18\x04 \x01(\x01R\bburnRate\x124\n" +
-	"\x16error_budget_remaining\x18\x05 \x01(\x01R\x14errorBudgetRemaining\"Y\n" +
-	"\x14GetSloStatusResponse\x12A\n" +
-	"\x05flows\x18\x01 \x03(\v2+.k1s0.system.event_monitor.v1.SloFlowStatusR\x05flows\"{\n" +
+	"\x16error_budget_remaining\x18\x05 \x01(\x01R\x14errorBudgetRemaining\"X\n" +
+	"\x14GetSloStatusResponse\x12@\n" +
+	"\x05flows\x18\x01 \x03(\v2*.k1s0.system.eventmonitor.v1.SloFlowStatusR\x05flows\"{\n" +
 	"\x0eBurnRateWindow\x12\x16\n" +
 	"\x06window\x18\x01 \x01(\tR\x06window\x12\x1b\n" +
 	"\tburn_rate\x18\x02 \x01(\x01R\bburnRate\x124\n" +
 	"\x16error_budget_remaining\x18\x03 \x01(\x01R\x14errorBudgetRemaining\"0\n" +
 	"\x15GetSloBurnRateRequest\x12\x17\n" +
-	"\aflow_id\x18\x01 \x01(\tR\x06flowId\"\x99\x02\n" +
+	"\aflow_id\x18\x01 \x01(\tR\x06flowId\"\x98\x02\n" +
 	"\x16GetSloBurnRateResponse\x12\x17\n" +
 	"\aflow_id\x18\x01 \x01(\tR\x06flowId\x12\x1b\n" +
-	"\tflow_name\x18\x02 \x01(\tR\bflowName\x12F\n" +
-	"\awindows\x18\x03 \x03(\v2,.k1s0.system.event_monitor.v1.BurnRateWindowR\awindows\x12!\n" +
+	"\tflow_name\x18\x02 \x01(\tR\bflowName\x12E\n" +
+	"\awindows\x18\x03 \x03(\v2+.k1s0.system.eventmonitor.v1.BurnRateWindowR\awindows\x12!\n" +
 	"\falert_status\x18\x04 \x01(\tR\valertStatus\x12K\n" +
 	"\x0ealert_fired_at\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampH\x00R\falertFiredAt\x88\x01\x01B\x11\n" +
 	"\x0f_alert_fired_at\"\xab\x01\n" +
@@ -2919,11 +2919,11 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\x14PreviewReplayRequest\x12'\n" +
 	"\x0fcorrelation_ids\x18\x01 \x03(\tR\x0ecorrelationIds\x12&\n" +
 	"\x0ffrom_step_index\x18\x02 \x01(\x05R\rfromStepIndex\x12-\n" +
-	"\x12include_downstream\x18\x03 \x01(\bR\x11includeDownstream\"\xbd\x02\n" +
+	"\x12include_downstream\x18\x03 \x01(\bR\x11includeDownstream\"\xbc\x02\n" +
 	"\x15PreviewReplayResponse\x123\n" +
 	"\x16total_events_to_replay\x18\x01 \x01(\x05R\x13totalEventsToReplay\x12+\n" +
-	"\x11affected_services\x18\x02 \x03(\tR\x10affectedServices\x12V\n" +
-	"\x0eaffected_flows\x18\x03 \x03(\v2/.k1s0.system.event_monitor.v1.ReplayFlowPreviewR\raffectedFlows\x12,\n" +
+	"\x11affected_services\x18\x02 \x03(\tR\x10affectedServices\x12U\n" +
+	"\x0eaffected_flows\x18\x03 \x03(\v2..k1s0.system.eventmonitor.v1.ReplayFlowPreviewR\raffectedFlows\x12,\n" +
 	"\x12dlq_messages_found\x18\x04 \x01(\x05R\x10dlqMessagesFound\x12<\n" +
 	"\x1aestimated_duration_seconds\x18\x05 \x01(\x05R\x18estimatedDurationSeconds\"\xaf\x01\n" +
 	"\x14ExecuteReplayRequest\x12'\n" +
@@ -2937,26 +2937,26 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\ftotal_events\x18\x03 \x01(\x05R\vtotalEvents\x12'\n" +
 	"\x0freplayed_events\x18\x04 \x01(\x05R\x0ereplayedEvents\x12?\n" +
 	"\n" +
-	"started_at\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\tstartedAt2\x8c\f\n" +
-	"\x13EventMonitorService\x12o\n" +
+	"started_at\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\tstartedAt2\xf2\v\n" +
+	"\x13EventMonitorService\x12m\n" +
 	"\n" +
-	"ListEvents\x12/.k1s0.system.event_monitor.v1.ListEventsRequest\x1a0.k1s0.system.event_monitor.v1.ListEventsResponse\x12\x87\x01\n" +
-	"\x12TraceByCorrelation\x127.k1s0.system.event_monitor.v1.TraceByCorrelationRequest\x1a8.k1s0.system.event_monitor.v1.TraceByCorrelationResponse\x12l\n" +
-	"\tListFlows\x12..k1s0.system.event_monitor.v1.ListFlowsRequest\x1a/.k1s0.system.event_monitor.v1.ListFlowsResponse\x12f\n" +
-	"\aGetFlow\x12,.k1s0.system.event_monitor.v1.GetFlowRequest\x1a-.k1s0.system.event_monitor.v1.GetFlowResponse\x12o\n" +
+	"ListEvents\x12..k1s0.system.eventmonitor.v1.ListEventsRequest\x1a/.k1s0.system.eventmonitor.v1.ListEventsResponse\x12\x85\x01\n" +
+	"\x12TraceByCorrelation\x126.k1s0.system.eventmonitor.v1.TraceByCorrelationRequest\x1a7.k1s0.system.eventmonitor.v1.TraceByCorrelationResponse\x12j\n" +
+	"\tListFlows\x12-.k1s0.system.eventmonitor.v1.ListFlowsRequest\x1a..k1s0.system.eventmonitor.v1.ListFlowsResponse\x12d\n" +
+	"\aGetFlow\x12+.k1s0.system.eventmonitor.v1.GetFlowRequest\x1a,.k1s0.system.eventmonitor.v1.GetFlowResponse\x12m\n" +
 	"\n" +
-	"CreateFlow\x12/.k1s0.system.event_monitor.v1.CreateFlowRequest\x1a0.k1s0.system.event_monitor.v1.CreateFlowResponse\x12o\n" +
+	"CreateFlow\x12..k1s0.system.eventmonitor.v1.CreateFlowRequest\x1a/.k1s0.system.eventmonitor.v1.CreateFlowResponse\x12m\n" +
 	"\n" +
-	"UpdateFlow\x12/.k1s0.system.event_monitor.v1.UpdateFlowRequest\x1a0.k1s0.system.event_monitor.v1.UpdateFlowResponse\x12o\n" +
+	"UpdateFlow\x12..k1s0.system.eventmonitor.v1.UpdateFlowRequest\x1a/.k1s0.system.eventmonitor.v1.UpdateFlowResponse\x12m\n" +
 	"\n" +
-	"DeleteFlow\x12/.k1s0.system.event_monitor.v1.DeleteFlowRequest\x1a0.k1s0.system.event_monitor.v1.DeleteFlowResponse\x12o\n" +
+	"DeleteFlow\x12..k1s0.system.eventmonitor.v1.DeleteFlowRequest\x1a/.k1s0.system.eventmonitor.v1.DeleteFlowResponse\x12m\n" +
 	"\n" +
-	"GetFlowKpi\x12/.k1s0.system.event_monitor.v1.GetFlowKpiRequest\x1a0.k1s0.system.event_monitor.v1.GetFlowKpiResponse\x12x\n" +
-	"\rGetKpiSummary\x122.k1s0.system.event_monitor.v1.GetKpiSummaryRequest\x1a3.k1s0.system.event_monitor.v1.GetKpiSummaryResponse\x12u\n" +
-	"\fGetSloStatus\x121.k1s0.system.event_monitor.v1.GetSloStatusRequest\x1a2.k1s0.system.event_monitor.v1.GetSloStatusResponse\x12{\n" +
-	"\x0eGetSloBurnRate\x123.k1s0.system.event_monitor.v1.GetSloBurnRateRequest\x1a4.k1s0.system.event_monitor.v1.GetSloBurnRateResponse\x12x\n" +
-	"\rPreviewReplay\x122.k1s0.system.event_monitor.v1.PreviewReplayRequest\x1a3.k1s0.system.event_monitor.v1.PreviewReplayResponse\x12x\n" +
-	"\rExecuteReplay\x122.k1s0.system.event_monitor.v1.ExecuteReplayRequest\x1a3.k1s0.system.event_monitor.v1.ExecuteReplayResponseBPZNgithub.com/k1s0-platform/api/gen/go/k1s0/system/eventmonitor/v1;eventmonitorv1b\x06proto3"
+	"GetFlowKpi\x12..k1s0.system.eventmonitor.v1.GetFlowKpiRequest\x1a/.k1s0.system.eventmonitor.v1.GetFlowKpiResponse\x12v\n" +
+	"\rGetKpiSummary\x121.k1s0.system.eventmonitor.v1.GetKpiSummaryRequest\x1a2.k1s0.system.eventmonitor.v1.GetKpiSummaryResponse\x12s\n" +
+	"\fGetSloStatus\x120.k1s0.system.eventmonitor.v1.GetSloStatusRequest\x1a1.k1s0.system.eventmonitor.v1.GetSloStatusResponse\x12y\n" +
+	"\x0eGetSloBurnRate\x122.k1s0.system.eventmonitor.v1.GetSloBurnRateRequest\x1a3.k1s0.system.eventmonitor.v1.GetSloBurnRateResponse\x12v\n" +
+	"\rPreviewReplay\x121.k1s0.system.eventmonitor.v1.PreviewReplayRequest\x1a2.k1s0.system.eventmonitor.v1.PreviewReplayResponse\x12v\n" +
+	"\rExecuteReplay\x121.k1s0.system.eventmonitor.v1.ExecuteReplayRequest\x1a2.k1s0.system.eventmonitor.v1.ExecuteReplayResponseBPZNgithub.com/k1s0-platform/api/gen/go/k1s0/system/eventmonitor/v1;eventmonitorv1b\x06proto3"
 
 var (
 	file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDescOnce sync.Once
@@ -2972,111 +2972,111 @@ func file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDescGZIP() []byte {
 
 var file_k1s0_system_eventmonitor_v1_event_monitor_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_k1s0_system_eventmonitor_v1_event_monitor_proto_goTypes = []any{
-	(*EventRecord)(nil),                // 0: k1s0.system.event_monitor.v1.EventRecord
-	(*ListEventsRequest)(nil),          // 1: k1s0.system.event_monitor.v1.ListEventsRequest
-	(*ListEventsResponse)(nil),         // 2: k1s0.system.event_monitor.v1.ListEventsResponse
-	(*TraceByCorrelationRequest)(nil),  // 3: k1s0.system.event_monitor.v1.TraceByCorrelationRequest
-	(*TraceEvent)(nil),                 // 4: k1s0.system.event_monitor.v1.TraceEvent
-	(*PendingStep)(nil),                // 5: k1s0.system.event_monitor.v1.PendingStep
-	(*FlowSummary)(nil),                // 6: k1s0.system.event_monitor.v1.FlowSummary
-	(*TraceByCorrelationResponse)(nil), // 7: k1s0.system.event_monitor.v1.TraceByCorrelationResponse
-	(*FlowStep)(nil),                   // 8: k1s0.system.event_monitor.v1.FlowStep
-	(*FlowSlo)(nil),                    // 9: k1s0.system.event_monitor.v1.FlowSlo
-	(*FlowDefinition)(nil),             // 10: k1s0.system.event_monitor.v1.FlowDefinition
-	(*ListFlowsRequest)(nil),           // 11: k1s0.system.event_monitor.v1.ListFlowsRequest
-	(*ListFlowsResponse)(nil),          // 12: k1s0.system.event_monitor.v1.ListFlowsResponse
-	(*GetFlowRequest)(nil),             // 13: k1s0.system.event_monitor.v1.GetFlowRequest
-	(*GetFlowResponse)(nil),            // 14: k1s0.system.event_monitor.v1.GetFlowResponse
-	(*CreateFlowRequest)(nil),          // 15: k1s0.system.event_monitor.v1.CreateFlowRequest
-	(*CreateFlowResponse)(nil),         // 16: k1s0.system.event_monitor.v1.CreateFlowResponse
-	(*UpdateFlowRequest)(nil),          // 17: k1s0.system.event_monitor.v1.UpdateFlowRequest
-	(*UpdateFlowResponse)(nil),         // 18: k1s0.system.event_monitor.v1.UpdateFlowResponse
-	(*DeleteFlowRequest)(nil),          // 19: k1s0.system.event_monitor.v1.DeleteFlowRequest
-	(*DeleteFlowResponse)(nil),         // 20: k1s0.system.event_monitor.v1.DeleteFlowResponse
-	(*BottleneckStep)(nil),             // 21: k1s0.system.event_monitor.v1.BottleneckStep
-	(*SloStatus)(nil),                  // 22: k1s0.system.event_monitor.v1.SloStatus
-	(*FlowKpi)(nil),                    // 23: k1s0.system.event_monitor.v1.FlowKpi
-	(*GetFlowKpiRequest)(nil),          // 24: k1s0.system.event_monitor.v1.GetFlowKpiRequest
-	(*GetFlowKpiResponse)(nil),         // 25: k1s0.system.event_monitor.v1.GetFlowKpiResponse
-	(*FlowKpiSummary)(nil),             // 26: k1s0.system.event_monitor.v1.FlowKpiSummary
-	(*GetKpiSummaryRequest)(nil),       // 27: k1s0.system.event_monitor.v1.GetKpiSummaryRequest
-	(*GetKpiSummaryResponse)(nil),      // 28: k1s0.system.event_monitor.v1.GetKpiSummaryResponse
-	(*GetSloStatusRequest)(nil),        // 29: k1s0.system.event_monitor.v1.GetSloStatusRequest
-	(*SloFlowStatus)(nil),              // 30: k1s0.system.event_monitor.v1.SloFlowStatus
-	(*GetSloStatusResponse)(nil),       // 31: k1s0.system.event_monitor.v1.GetSloStatusResponse
-	(*BurnRateWindow)(nil),             // 32: k1s0.system.event_monitor.v1.BurnRateWindow
-	(*GetSloBurnRateRequest)(nil),      // 33: k1s0.system.event_monitor.v1.GetSloBurnRateRequest
-	(*GetSloBurnRateResponse)(nil),     // 34: k1s0.system.event_monitor.v1.GetSloBurnRateResponse
-	(*ReplayFlowPreview)(nil),          // 35: k1s0.system.event_monitor.v1.ReplayFlowPreview
-	(*PreviewReplayRequest)(nil),       // 36: k1s0.system.event_monitor.v1.PreviewReplayRequest
-	(*PreviewReplayResponse)(nil),      // 37: k1s0.system.event_monitor.v1.PreviewReplayResponse
-	(*ExecuteReplayRequest)(nil),       // 38: k1s0.system.event_monitor.v1.ExecuteReplayRequest
-	(*ExecuteReplayResponse)(nil),      // 39: k1s0.system.event_monitor.v1.ExecuteReplayResponse
+	(*EventRecord)(nil),                // 0: k1s0.system.eventmonitor.v1.EventRecord
+	(*ListEventsRequest)(nil),          // 1: k1s0.system.eventmonitor.v1.ListEventsRequest
+	(*ListEventsResponse)(nil),         // 2: k1s0.system.eventmonitor.v1.ListEventsResponse
+	(*TraceByCorrelationRequest)(nil),  // 3: k1s0.system.eventmonitor.v1.TraceByCorrelationRequest
+	(*TraceEvent)(nil),                 // 4: k1s0.system.eventmonitor.v1.TraceEvent
+	(*PendingStep)(nil),                // 5: k1s0.system.eventmonitor.v1.PendingStep
+	(*FlowSummary)(nil),                // 6: k1s0.system.eventmonitor.v1.FlowSummary
+	(*TraceByCorrelationResponse)(nil), // 7: k1s0.system.eventmonitor.v1.TraceByCorrelationResponse
+	(*FlowStep)(nil),                   // 8: k1s0.system.eventmonitor.v1.FlowStep
+	(*FlowSlo)(nil),                    // 9: k1s0.system.eventmonitor.v1.FlowSlo
+	(*FlowDefinition)(nil),             // 10: k1s0.system.eventmonitor.v1.FlowDefinition
+	(*ListFlowsRequest)(nil),           // 11: k1s0.system.eventmonitor.v1.ListFlowsRequest
+	(*ListFlowsResponse)(nil),          // 12: k1s0.system.eventmonitor.v1.ListFlowsResponse
+	(*GetFlowRequest)(nil),             // 13: k1s0.system.eventmonitor.v1.GetFlowRequest
+	(*GetFlowResponse)(nil),            // 14: k1s0.system.eventmonitor.v1.GetFlowResponse
+	(*CreateFlowRequest)(nil),          // 15: k1s0.system.eventmonitor.v1.CreateFlowRequest
+	(*CreateFlowResponse)(nil),         // 16: k1s0.system.eventmonitor.v1.CreateFlowResponse
+	(*UpdateFlowRequest)(nil),          // 17: k1s0.system.eventmonitor.v1.UpdateFlowRequest
+	(*UpdateFlowResponse)(nil),         // 18: k1s0.system.eventmonitor.v1.UpdateFlowResponse
+	(*DeleteFlowRequest)(nil),          // 19: k1s0.system.eventmonitor.v1.DeleteFlowRequest
+	(*DeleteFlowResponse)(nil),         // 20: k1s0.system.eventmonitor.v1.DeleteFlowResponse
+	(*BottleneckStep)(nil),             // 21: k1s0.system.eventmonitor.v1.BottleneckStep
+	(*SloStatus)(nil),                  // 22: k1s0.system.eventmonitor.v1.SloStatus
+	(*FlowKpi)(nil),                    // 23: k1s0.system.eventmonitor.v1.FlowKpi
+	(*GetFlowKpiRequest)(nil),          // 24: k1s0.system.eventmonitor.v1.GetFlowKpiRequest
+	(*GetFlowKpiResponse)(nil),         // 25: k1s0.system.eventmonitor.v1.GetFlowKpiResponse
+	(*FlowKpiSummary)(nil),             // 26: k1s0.system.eventmonitor.v1.FlowKpiSummary
+	(*GetKpiSummaryRequest)(nil),       // 27: k1s0.system.eventmonitor.v1.GetKpiSummaryRequest
+	(*GetKpiSummaryResponse)(nil),      // 28: k1s0.system.eventmonitor.v1.GetKpiSummaryResponse
+	(*GetSloStatusRequest)(nil),        // 29: k1s0.system.eventmonitor.v1.GetSloStatusRequest
+	(*SloFlowStatus)(nil),              // 30: k1s0.system.eventmonitor.v1.SloFlowStatus
+	(*GetSloStatusResponse)(nil),       // 31: k1s0.system.eventmonitor.v1.GetSloStatusResponse
+	(*BurnRateWindow)(nil),             // 32: k1s0.system.eventmonitor.v1.BurnRateWindow
+	(*GetSloBurnRateRequest)(nil),      // 33: k1s0.system.eventmonitor.v1.GetSloBurnRateRequest
+	(*GetSloBurnRateResponse)(nil),     // 34: k1s0.system.eventmonitor.v1.GetSloBurnRateResponse
+	(*ReplayFlowPreview)(nil),          // 35: k1s0.system.eventmonitor.v1.ReplayFlowPreview
+	(*PreviewReplayRequest)(nil),       // 36: k1s0.system.eventmonitor.v1.PreviewReplayRequest
+	(*PreviewReplayResponse)(nil),      // 37: k1s0.system.eventmonitor.v1.PreviewReplayResponse
+	(*ExecuteReplayRequest)(nil),       // 38: k1s0.system.eventmonitor.v1.ExecuteReplayRequest
+	(*ExecuteReplayResponse)(nil),      // 39: k1s0.system.eventmonitor.v1.ExecuteReplayResponse
 	(*v1.Timestamp)(nil),               // 40: k1s0.system.common.v1.Timestamp
 	(*v1.Pagination)(nil),              // 41: k1s0.system.common.v1.Pagination
 	(*v1.PaginationResult)(nil),        // 42: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_eventmonitor_v1_event_monitor_proto_depIdxs = []int32{
-	40, // 0: k1s0.system.event_monitor.v1.EventRecord.timestamp:type_name -> k1s0.system.common.v1.Timestamp
-	41, // 1: k1s0.system.event_monitor.v1.ListEventsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	40, // 2: k1s0.system.event_monitor.v1.ListEventsRequest.from:type_name -> k1s0.system.common.v1.Timestamp
-	40, // 3: k1s0.system.event_monitor.v1.ListEventsRequest.to:type_name -> k1s0.system.common.v1.Timestamp
-	0,  // 4: k1s0.system.event_monitor.v1.ListEventsResponse.events:type_name -> k1s0.system.event_monitor.v1.EventRecord
-	42, // 5: k1s0.system.event_monitor.v1.ListEventsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	40, // 6: k1s0.system.event_monitor.v1.TraceEvent.timestamp:type_name -> k1s0.system.common.v1.Timestamp
-	40, // 7: k1s0.system.event_monitor.v1.FlowSummary.started_at:type_name -> k1s0.system.common.v1.Timestamp
-	6,  // 8: k1s0.system.event_monitor.v1.TraceByCorrelationResponse.flow:type_name -> k1s0.system.event_monitor.v1.FlowSummary
-	4,  // 9: k1s0.system.event_monitor.v1.TraceByCorrelationResponse.events:type_name -> k1s0.system.event_monitor.v1.TraceEvent
-	5,  // 10: k1s0.system.event_monitor.v1.TraceByCorrelationResponse.pending_steps:type_name -> k1s0.system.event_monitor.v1.PendingStep
-	8,  // 11: k1s0.system.event_monitor.v1.FlowDefinition.steps:type_name -> k1s0.system.event_monitor.v1.FlowStep
-	9,  // 12: k1s0.system.event_monitor.v1.FlowDefinition.slo:type_name -> k1s0.system.event_monitor.v1.FlowSlo
-	40, // 13: k1s0.system.event_monitor.v1.FlowDefinition.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	40, // 14: k1s0.system.event_monitor.v1.FlowDefinition.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	41, // 15: k1s0.system.event_monitor.v1.ListFlowsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	10, // 16: k1s0.system.event_monitor.v1.ListFlowsResponse.flows:type_name -> k1s0.system.event_monitor.v1.FlowDefinition
-	42, // 17: k1s0.system.event_monitor.v1.ListFlowsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	10, // 18: k1s0.system.event_monitor.v1.GetFlowResponse.flow:type_name -> k1s0.system.event_monitor.v1.FlowDefinition
-	8,  // 19: k1s0.system.event_monitor.v1.CreateFlowRequest.steps:type_name -> k1s0.system.event_monitor.v1.FlowStep
-	9,  // 20: k1s0.system.event_monitor.v1.CreateFlowRequest.slo:type_name -> k1s0.system.event_monitor.v1.FlowSlo
-	10, // 21: k1s0.system.event_monitor.v1.CreateFlowResponse.flow:type_name -> k1s0.system.event_monitor.v1.FlowDefinition
-	8,  // 22: k1s0.system.event_monitor.v1.UpdateFlowRequest.steps:type_name -> k1s0.system.event_monitor.v1.FlowStep
-	9,  // 23: k1s0.system.event_monitor.v1.UpdateFlowRequest.slo:type_name -> k1s0.system.event_monitor.v1.FlowSlo
-	10, // 24: k1s0.system.event_monitor.v1.UpdateFlowResponse.flow:type_name -> k1s0.system.event_monitor.v1.FlowDefinition
-	21, // 25: k1s0.system.event_monitor.v1.FlowKpi.bottleneck_step:type_name -> k1s0.system.event_monitor.v1.BottleneckStep
-	23, // 26: k1s0.system.event_monitor.v1.GetFlowKpiResponse.kpi:type_name -> k1s0.system.event_monitor.v1.FlowKpi
-	22, // 27: k1s0.system.event_monitor.v1.GetFlowKpiResponse.slo_status:type_name -> k1s0.system.event_monitor.v1.SloStatus
-	26, // 28: k1s0.system.event_monitor.v1.GetKpiSummaryResponse.flows:type_name -> k1s0.system.event_monitor.v1.FlowKpiSummary
-	30, // 29: k1s0.system.event_monitor.v1.GetSloStatusResponse.flows:type_name -> k1s0.system.event_monitor.v1.SloFlowStatus
-	32, // 30: k1s0.system.event_monitor.v1.GetSloBurnRateResponse.windows:type_name -> k1s0.system.event_monitor.v1.BurnRateWindow
-	40, // 31: k1s0.system.event_monitor.v1.GetSloBurnRateResponse.alert_fired_at:type_name -> k1s0.system.common.v1.Timestamp
-	35, // 32: k1s0.system.event_monitor.v1.PreviewReplayResponse.affected_flows:type_name -> k1s0.system.event_monitor.v1.ReplayFlowPreview
-	40, // 33: k1s0.system.event_monitor.v1.ExecuteReplayResponse.started_at:type_name -> k1s0.system.common.v1.Timestamp
-	1,  // 34: k1s0.system.event_monitor.v1.EventMonitorService.ListEvents:input_type -> k1s0.system.event_monitor.v1.ListEventsRequest
-	3,  // 35: k1s0.system.event_monitor.v1.EventMonitorService.TraceByCorrelation:input_type -> k1s0.system.event_monitor.v1.TraceByCorrelationRequest
-	11, // 36: k1s0.system.event_monitor.v1.EventMonitorService.ListFlows:input_type -> k1s0.system.event_monitor.v1.ListFlowsRequest
-	13, // 37: k1s0.system.event_monitor.v1.EventMonitorService.GetFlow:input_type -> k1s0.system.event_monitor.v1.GetFlowRequest
-	15, // 38: k1s0.system.event_monitor.v1.EventMonitorService.CreateFlow:input_type -> k1s0.system.event_monitor.v1.CreateFlowRequest
-	17, // 39: k1s0.system.event_monitor.v1.EventMonitorService.UpdateFlow:input_type -> k1s0.system.event_monitor.v1.UpdateFlowRequest
-	19, // 40: k1s0.system.event_monitor.v1.EventMonitorService.DeleteFlow:input_type -> k1s0.system.event_monitor.v1.DeleteFlowRequest
-	24, // 41: k1s0.system.event_monitor.v1.EventMonitorService.GetFlowKpi:input_type -> k1s0.system.event_monitor.v1.GetFlowKpiRequest
-	27, // 42: k1s0.system.event_monitor.v1.EventMonitorService.GetKpiSummary:input_type -> k1s0.system.event_monitor.v1.GetKpiSummaryRequest
-	29, // 43: k1s0.system.event_monitor.v1.EventMonitorService.GetSloStatus:input_type -> k1s0.system.event_monitor.v1.GetSloStatusRequest
-	33, // 44: k1s0.system.event_monitor.v1.EventMonitorService.GetSloBurnRate:input_type -> k1s0.system.event_monitor.v1.GetSloBurnRateRequest
-	36, // 45: k1s0.system.event_monitor.v1.EventMonitorService.PreviewReplay:input_type -> k1s0.system.event_monitor.v1.PreviewReplayRequest
-	38, // 46: k1s0.system.event_monitor.v1.EventMonitorService.ExecuteReplay:input_type -> k1s0.system.event_monitor.v1.ExecuteReplayRequest
-	2,  // 47: k1s0.system.event_monitor.v1.EventMonitorService.ListEvents:output_type -> k1s0.system.event_monitor.v1.ListEventsResponse
-	7,  // 48: k1s0.system.event_monitor.v1.EventMonitorService.TraceByCorrelation:output_type -> k1s0.system.event_monitor.v1.TraceByCorrelationResponse
-	12, // 49: k1s0.system.event_monitor.v1.EventMonitorService.ListFlows:output_type -> k1s0.system.event_monitor.v1.ListFlowsResponse
-	14, // 50: k1s0.system.event_monitor.v1.EventMonitorService.GetFlow:output_type -> k1s0.system.event_monitor.v1.GetFlowResponse
-	16, // 51: k1s0.system.event_monitor.v1.EventMonitorService.CreateFlow:output_type -> k1s0.system.event_monitor.v1.CreateFlowResponse
-	18, // 52: k1s0.system.event_monitor.v1.EventMonitorService.UpdateFlow:output_type -> k1s0.system.event_monitor.v1.UpdateFlowResponse
-	20, // 53: k1s0.system.event_monitor.v1.EventMonitorService.DeleteFlow:output_type -> k1s0.system.event_monitor.v1.DeleteFlowResponse
-	25, // 54: k1s0.system.event_monitor.v1.EventMonitorService.GetFlowKpi:output_type -> k1s0.system.event_monitor.v1.GetFlowKpiResponse
-	28, // 55: k1s0.system.event_monitor.v1.EventMonitorService.GetKpiSummary:output_type -> k1s0.system.event_monitor.v1.GetKpiSummaryResponse
-	31, // 56: k1s0.system.event_monitor.v1.EventMonitorService.GetSloStatus:output_type -> k1s0.system.event_monitor.v1.GetSloStatusResponse
-	34, // 57: k1s0.system.event_monitor.v1.EventMonitorService.GetSloBurnRate:output_type -> k1s0.system.event_monitor.v1.GetSloBurnRateResponse
-	37, // 58: k1s0.system.event_monitor.v1.EventMonitorService.PreviewReplay:output_type -> k1s0.system.event_monitor.v1.PreviewReplayResponse
-	39, // 59: k1s0.system.event_monitor.v1.EventMonitorService.ExecuteReplay:output_type -> k1s0.system.event_monitor.v1.ExecuteReplayResponse
+	40, // 0: k1s0.system.eventmonitor.v1.EventRecord.timestamp:type_name -> k1s0.system.common.v1.Timestamp
+	41, // 1: k1s0.system.eventmonitor.v1.ListEventsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	40, // 2: k1s0.system.eventmonitor.v1.ListEventsRequest.from:type_name -> k1s0.system.common.v1.Timestamp
+	40, // 3: k1s0.system.eventmonitor.v1.ListEventsRequest.to:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 4: k1s0.system.eventmonitor.v1.ListEventsResponse.events:type_name -> k1s0.system.eventmonitor.v1.EventRecord
+	42, // 5: k1s0.system.eventmonitor.v1.ListEventsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	40, // 6: k1s0.system.eventmonitor.v1.TraceEvent.timestamp:type_name -> k1s0.system.common.v1.Timestamp
+	40, // 7: k1s0.system.eventmonitor.v1.FlowSummary.started_at:type_name -> k1s0.system.common.v1.Timestamp
+	6,  // 8: k1s0.system.eventmonitor.v1.TraceByCorrelationResponse.flow:type_name -> k1s0.system.eventmonitor.v1.FlowSummary
+	4,  // 9: k1s0.system.eventmonitor.v1.TraceByCorrelationResponse.events:type_name -> k1s0.system.eventmonitor.v1.TraceEvent
+	5,  // 10: k1s0.system.eventmonitor.v1.TraceByCorrelationResponse.pending_steps:type_name -> k1s0.system.eventmonitor.v1.PendingStep
+	8,  // 11: k1s0.system.eventmonitor.v1.FlowDefinition.steps:type_name -> k1s0.system.eventmonitor.v1.FlowStep
+	9,  // 12: k1s0.system.eventmonitor.v1.FlowDefinition.slo:type_name -> k1s0.system.eventmonitor.v1.FlowSlo
+	40, // 13: k1s0.system.eventmonitor.v1.FlowDefinition.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	40, // 14: k1s0.system.eventmonitor.v1.FlowDefinition.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	41, // 15: k1s0.system.eventmonitor.v1.ListFlowsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	10, // 16: k1s0.system.eventmonitor.v1.ListFlowsResponse.flows:type_name -> k1s0.system.eventmonitor.v1.FlowDefinition
+	42, // 17: k1s0.system.eventmonitor.v1.ListFlowsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	10, // 18: k1s0.system.eventmonitor.v1.GetFlowResponse.flow:type_name -> k1s0.system.eventmonitor.v1.FlowDefinition
+	8,  // 19: k1s0.system.eventmonitor.v1.CreateFlowRequest.steps:type_name -> k1s0.system.eventmonitor.v1.FlowStep
+	9,  // 20: k1s0.system.eventmonitor.v1.CreateFlowRequest.slo:type_name -> k1s0.system.eventmonitor.v1.FlowSlo
+	10, // 21: k1s0.system.eventmonitor.v1.CreateFlowResponse.flow:type_name -> k1s0.system.eventmonitor.v1.FlowDefinition
+	8,  // 22: k1s0.system.eventmonitor.v1.UpdateFlowRequest.steps:type_name -> k1s0.system.eventmonitor.v1.FlowStep
+	9,  // 23: k1s0.system.eventmonitor.v1.UpdateFlowRequest.slo:type_name -> k1s0.system.eventmonitor.v1.FlowSlo
+	10, // 24: k1s0.system.eventmonitor.v1.UpdateFlowResponse.flow:type_name -> k1s0.system.eventmonitor.v1.FlowDefinition
+	21, // 25: k1s0.system.eventmonitor.v1.FlowKpi.bottleneck_step:type_name -> k1s0.system.eventmonitor.v1.BottleneckStep
+	23, // 26: k1s0.system.eventmonitor.v1.GetFlowKpiResponse.kpi:type_name -> k1s0.system.eventmonitor.v1.FlowKpi
+	22, // 27: k1s0.system.eventmonitor.v1.GetFlowKpiResponse.slo_status:type_name -> k1s0.system.eventmonitor.v1.SloStatus
+	26, // 28: k1s0.system.eventmonitor.v1.GetKpiSummaryResponse.flows:type_name -> k1s0.system.eventmonitor.v1.FlowKpiSummary
+	30, // 29: k1s0.system.eventmonitor.v1.GetSloStatusResponse.flows:type_name -> k1s0.system.eventmonitor.v1.SloFlowStatus
+	32, // 30: k1s0.system.eventmonitor.v1.GetSloBurnRateResponse.windows:type_name -> k1s0.system.eventmonitor.v1.BurnRateWindow
+	40, // 31: k1s0.system.eventmonitor.v1.GetSloBurnRateResponse.alert_fired_at:type_name -> k1s0.system.common.v1.Timestamp
+	35, // 32: k1s0.system.eventmonitor.v1.PreviewReplayResponse.affected_flows:type_name -> k1s0.system.eventmonitor.v1.ReplayFlowPreview
+	40, // 33: k1s0.system.eventmonitor.v1.ExecuteReplayResponse.started_at:type_name -> k1s0.system.common.v1.Timestamp
+	1,  // 34: k1s0.system.eventmonitor.v1.EventMonitorService.ListEvents:input_type -> k1s0.system.eventmonitor.v1.ListEventsRequest
+	3,  // 35: k1s0.system.eventmonitor.v1.EventMonitorService.TraceByCorrelation:input_type -> k1s0.system.eventmonitor.v1.TraceByCorrelationRequest
+	11, // 36: k1s0.system.eventmonitor.v1.EventMonitorService.ListFlows:input_type -> k1s0.system.eventmonitor.v1.ListFlowsRequest
+	13, // 37: k1s0.system.eventmonitor.v1.EventMonitorService.GetFlow:input_type -> k1s0.system.eventmonitor.v1.GetFlowRequest
+	15, // 38: k1s0.system.eventmonitor.v1.EventMonitorService.CreateFlow:input_type -> k1s0.system.eventmonitor.v1.CreateFlowRequest
+	17, // 39: k1s0.system.eventmonitor.v1.EventMonitorService.UpdateFlow:input_type -> k1s0.system.eventmonitor.v1.UpdateFlowRequest
+	19, // 40: k1s0.system.eventmonitor.v1.EventMonitorService.DeleteFlow:input_type -> k1s0.system.eventmonitor.v1.DeleteFlowRequest
+	24, // 41: k1s0.system.eventmonitor.v1.EventMonitorService.GetFlowKpi:input_type -> k1s0.system.eventmonitor.v1.GetFlowKpiRequest
+	27, // 42: k1s0.system.eventmonitor.v1.EventMonitorService.GetKpiSummary:input_type -> k1s0.system.eventmonitor.v1.GetKpiSummaryRequest
+	29, // 43: k1s0.system.eventmonitor.v1.EventMonitorService.GetSloStatus:input_type -> k1s0.system.eventmonitor.v1.GetSloStatusRequest
+	33, // 44: k1s0.system.eventmonitor.v1.EventMonitorService.GetSloBurnRate:input_type -> k1s0.system.eventmonitor.v1.GetSloBurnRateRequest
+	36, // 45: k1s0.system.eventmonitor.v1.EventMonitorService.PreviewReplay:input_type -> k1s0.system.eventmonitor.v1.PreviewReplayRequest
+	38, // 46: k1s0.system.eventmonitor.v1.EventMonitorService.ExecuteReplay:input_type -> k1s0.system.eventmonitor.v1.ExecuteReplayRequest
+	2,  // 47: k1s0.system.eventmonitor.v1.EventMonitorService.ListEvents:output_type -> k1s0.system.eventmonitor.v1.ListEventsResponse
+	7,  // 48: k1s0.system.eventmonitor.v1.EventMonitorService.TraceByCorrelation:output_type -> k1s0.system.eventmonitor.v1.TraceByCorrelationResponse
+	12, // 49: k1s0.system.eventmonitor.v1.EventMonitorService.ListFlows:output_type -> k1s0.system.eventmonitor.v1.ListFlowsResponse
+	14, // 50: k1s0.system.eventmonitor.v1.EventMonitorService.GetFlow:output_type -> k1s0.system.eventmonitor.v1.GetFlowResponse
+	16, // 51: k1s0.system.eventmonitor.v1.EventMonitorService.CreateFlow:output_type -> k1s0.system.eventmonitor.v1.CreateFlowResponse
+	18, // 52: k1s0.system.eventmonitor.v1.EventMonitorService.UpdateFlow:output_type -> k1s0.system.eventmonitor.v1.UpdateFlowResponse
+	20, // 53: k1s0.system.eventmonitor.v1.EventMonitorService.DeleteFlow:output_type -> k1s0.system.eventmonitor.v1.DeleteFlowResponse
+	25, // 54: k1s0.system.eventmonitor.v1.EventMonitorService.GetFlowKpi:output_type -> k1s0.system.eventmonitor.v1.GetFlowKpiResponse
+	28, // 55: k1s0.system.eventmonitor.v1.EventMonitorService.GetKpiSummary:output_type -> k1s0.system.eventmonitor.v1.GetKpiSummaryResponse
+	31, // 56: k1s0.system.eventmonitor.v1.EventMonitorService.GetSloStatus:output_type -> k1s0.system.eventmonitor.v1.GetSloStatusResponse
+	34, // 57: k1s0.system.eventmonitor.v1.EventMonitorService.GetSloBurnRate:output_type -> k1s0.system.eventmonitor.v1.GetSloBurnRateResponse
+	37, // 58: k1s0.system.eventmonitor.v1.EventMonitorService.PreviewReplay:output_type -> k1s0.system.eventmonitor.v1.PreviewReplayResponse
+	39, // 59: k1s0.system.eventmonitor.v1.EventMonitorService.ExecuteReplay:output_type -> k1s0.system.eventmonitor.v1.ExecuteReplayResponse
 	47, // [47:60] is the sub-list for method output_type
 	34, // [34:47] is the sub-list for method input_type
 	34, // [34:34] is the sub-list for extension type_name

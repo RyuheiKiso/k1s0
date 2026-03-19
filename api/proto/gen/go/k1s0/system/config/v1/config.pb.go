@@ -1664,7 +1664,7 @@ const file_k1s0_system_config_v1_config_proto_rawDesc = "" +
 	"\vWatchConfig\x12).k1s0.system.config.v1.WatchConfigRequest\x1a*.k1s0.system.config.v1.WatchConfigResponse0\x01\x12p\n" +
 	"\x0fGetConfigSchema\x12-.k1s0.system.config.v1.GetConfigSchemaRequest\x1a..k1s0.system.config.v1.GetConfigSchemaResponse\x12y\n" +
 	"\x12UpsertConfigSchema\x120.k1s0.system.config.v1.UpsertConfigSchemaRequest\x1a1.k1s0.system.config.v1.UpsertConfigSchemaResponse\x12v\n" +
-	"\x11ListConfigSchemas\x12/.k1s0.system.config.v1.ListConfigSchemasRequest\x1a0.k1s0.system.config.v1.ListConfigSchemasResponseBXZVgithub.com/k1s0-platform/system-server-go-config/gen/go/k1s0/system/config/v1;configv1b\x06proto3"
+	"\x11ListConfigSchemas\x12/.k1s0.system.config.v1.ListConfigSchemasRequest\x1a0.k1s0.system.config.v1.ListConfigSchemasResponseBDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/config/v1;configv1b\x06proto3"
 
 var (
 	file_k1s0_system_config_v1_config_proto_rawDescOnce sync.Once

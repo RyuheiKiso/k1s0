@@ -323,10 +323,10 @@ mod tests {
                 Request::builder()
                     .uri("/healthz")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("healthzリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("healthzリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -341,10 +341,10 @@ mod tests {
                 Request::builder()
                     .uri("/readyz")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("readyzリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("readyzリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -362,10 +362,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/v1/dlq/orders.dlq.v1")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("list messagesリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("list messagesリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -383,10 +383,10 @@ mod tests {
                 Request::builder()
                     .uri(format!("/api/v1/dlq/messages/{}", id))
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("get message not_foundリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("get message not_foundリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
@@ -413,10 +413,10 @@ mod tests {
                 Request::builder()
                     .uri(format!("/api/v1/dlq/messages/{}", msg_id))
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("get message foundリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("get message foundリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -431,10 +431,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/v1/dlq/messages/not-a-uuid")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("get message invalid_idリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("get message invalid_idリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
@@ -453,10 +453,10 @@ mod tests {
                     .method("DELETE")
                     .uri(format!("/api/v1/dlq/messages/{}", id))
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("delete messageリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("delete messageリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -476,10 +476,10 @@ mod tests {
                     .uri(format!("/api/v1/dlq/messages/{}/retry", id))
                     .header("content-type", "application/json")
                     .body(Body::from("{}"))
-                    .unwrap(),
+                    .expect("retry message not_foundリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("retry message not_foundリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
@@ -499,10 +499,10 @@ mod tests {
                     .uri("/api/v1/dlq/orders.dlq.v1/retry-all")
                     .header("content-type", "application/json")
                     .body(Body::from("{}"))
-                    .unwrap(),
+                    .expect("retry allリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("retry allリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -522,10 +522,10 @@ mod tests {
                     .method("DELETE")
                     .uri(format!("/api/v1/dlq/messages/{}", msg_id))
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("delete message successリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("delete message successリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }

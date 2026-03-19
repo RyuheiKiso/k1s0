@@ -13,7 +13,7 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { PaginationResult } from "../../../../system/common/v1/types";
 import { Pagination } from "../../../../system/common/v1/types";
-import { Timestamp } from "../../../../../google/protobuf/timestamp";
+import { Timestamp } from "../../../../system/common/v1/types";
 import { Struct } from "../../../../../google/protobuf/struct";
 // ---------- メッセージ型 ----------
 
@@ -56,11 +56,11 @@ export interface MasterCategory {
      */
     createdBy: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp created_at = 9
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 9
      */
     createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 10
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 10
      */
     updatedAt?: Timestamp;
 }
@@ -99,11 +99,11 @@ export interface MasterItem {
      */
     parentItemId?: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp effective_from = 8
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp effective_from = 8
      */
     effectiveFrom?: Timestamp;
     /**
-     * @generated from protobuf field: optional google.protobuf.Timestamp effective_until = 9
+     * @generated from protobuf field: optional k1s0.system.common.v1.Timestamp effective_until = 9
      */
     effectiveUntil?: Timestamp;
     /**
@@ -119,11 +119,11 @@ export interface MasterItem {
      */
     createdBy: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp created_at = 13
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 13
      */
     createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 14
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 14
      */
     updatedAt?: Timestamp;
 }
@@ -162,7 +162,7 @@ export interface MasterItemVersion {
      */
     changeReason: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp created_at = 8
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 8
      */
     createdAt?: Timestamp;
 }
@@ -197,11 +197,11 @@ export interface TenantMasterExtension {
      */
     isEnabled: boolean;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp created_at = 7
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 7
      */
     createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 8
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 8
      */
     updatedAt?: Timestamp;
 }
@@ -447,11 +447,11 @@ export interface CreateItemRequest {
      */
     parentItemId?: string;
     /**
-     * @generated from protobuf field: optional google.protobuf.Timestamp effective_from = 7
+     * @generated from protobuf field: optional k1s0.system.common.v1.Timestamp effective_from = 7
      */
     effectiveFrom?: Timestamp;
     /**
-     * @generated from protobuf field: optional google.protobuf.Timestamp effective_until = 8
+     * @generated from protobuf field: optional k1s0.system.common.v1.Timestamp effective_until = 8
      */
     effectiveUntil?: Timestamp;
     /**
@@ -497,11 +497,11 @@ export interface UpdateItemRequest {
      */
     parentItemId?: string;
     /**
-     * @generated from protobuf field: optional google.protobuf.Timestamp effective_from = 6
+     * @generated from protobuf field: optional k1s0.system.common.v1.Timestamp effective_from = 6
      */
     effectiveFrom?: Timestamp;
     /**
-     * @generated from protobuf field: optional google.protobuf.Timestamp effective_until = 7
+     * @generated from protobuf field: optional k1s0.system.common.v1.Timestamp effective_until = 7
      */
     effectiveUntil?: Timestamp;
     /**
@@ -740,10 +740,10 @@ class MasterCategory$Type extends MessageType<MasterCategory> {
                 case /* string created_by */ 8:
                     message.createdBy = reader.string();
                     break;
-                case /* google.protobuf.Timestamp created_at */ 9:
+                case /* k1s0.system.common.v1.Timestamp created_at */ 9:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* google.protobuf.Timestamp updated_at */ 10:
+                case /* k1s0.system.common.v1.Timestamp updated_at */ 10:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
                 default:
@@ -782,10 +782,10 @@ class MasterCategory$Type extends MessageType<MasterCategory> {
         /* string created_by = 8; */
         if (message.createdBy !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.createdBy);
-        /* google.protobuf.Timestamp created_at = 9; */
+        /* k1s0.system.common.v1.Timestamp created_at = 9; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp updated_at = 10; */
+        /* k1s0.system.common.v1.Timestamp updated_at = 10; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
@@ -858,10 +858,10 @@ class MasterItem$Type extends MessageType<MasterItem> {
                 case /* optional string parent_item_id */ 7:
                     message.parentItemId = reader.string();
                     break;
-                case /* google.protobuf.Timestamp effective_from */ 8:
+                case /* k1s0.system.common.v1.Timestamp effective_from */ 8:
                     message.effectiveFrom = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.effectiveFrom);
                     break;
-                case /* optional google.protobuf.Timestamp effective_until */ 9:
+                case /* optional k1s0.system.common.v1.Timestamp effective_until */ 9:
                     message.effectiveUntil = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.effectiveUntil);
                     break;
                 case /* bool is_active */ 10:
@@ -873,10 +873,10 @@ class MasterItem$Type extends MessageType<MasterItem> {
                 case /* string created_by */ 12:
                     message.createdBy = reader.string();
                     break;
-                case /* google.protobuf.Timestamp created_at */ 13:
+                case /* k1s0.system.common.v1.Timestamp created_at */ 13:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* google.protobuf.Timestamp updated_at */ 14:
+                case /* k1s0.system.common.v1.Timestamp updated_at */ 14:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
                 default:
@@ -912,10 +912,10 @@ class MasterItem$Type extends MessageType<MasterItem> {
         /* optional string parent_item_id = 7; */
         if (message.parentItemId !== undefined)
             writer.tag(7, WireType.LengthDelimited).string(message.parentItemId);
-        /* google.protobuf.Timestamp effective_from = 8; */
+        /* k1s0.system.common.v1.Timestamp effective_from = 8; */
         if (message.effectiveFrom)
             Timestamp.internalBinaryWrite(message.effectiveFrom, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* optional google.protobuf.Timestamp effective_until = 9; */
+        /* optional k1s0.system.common.v1.Timestamp effective_until = 9; */
         if (message.effectiveUntil)
             Timestamp.internalBinaryWrite(message.effectiveUntil, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         /* bool is_active = 10; */
@@ -927,10 +927,10 @@ class MasterItem$Type extends MessageType<MasterItem> {
         /* string created_by = 12; */
         if (message.createdBy !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.createdBy);
-        /* google.protobuf.Timestamp created_at = 13; */
+        /* k1s0.system.common.v1.Timestamp created_at = 13; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp updated_at = 14; */
+        /* k1s0.system.common.v1.Timestamp updated_at = 14; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
@@ -994,7 +994,7 @@ class MasterItemVersion$Type extends MessageType<MasterItemVersion> {
                 case /* string change_reason */ 7:
                     message.changeReason = reader.string();
                     break;
-                case /* google.protobuf.Timestamp created_at */ 8:
+                case /* k1s0.system.common.v1.Timestamp created_at */ 8:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
                 default:
@@ -1030,7 +1030,7 @@ class MasterItemVersion$Type extends MessageType<MasterItemVersion> {
         /* string change_reason = 7; */
         if (message.changeReason !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.changeReason);
-        /* google.protobuf.Timestamp created_at = 8; */
+        /* k1s0.system.common.v1.Timestamp created_at = 8; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
@@ -1090,10 +1090,10 @@ class TenantMasterExtension$Type extends MessageType<TenantMasterExtension> {
                 case /* bool is_enabled */ 6:
                     message.isEnabled = reader.bool();
                     break;
-                case /* google.protobuf.Timestamp created_at */ 7:
+                case /* k1s0.system.common.v1.Timestamp created_at */ 7:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* google.protobuf.Timestamp updated_at */ 8:
+                case /* k1s0.system.common.v1.Timestamp updated_at */ 8:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
                 default:
@@ -1126,10 +1126,10 @@ class TenantMasterExtension$Type extends MessageType<TenantMasterExtension> {
         /* bool is_enabled = 6; */
         if (message.isEnabled !== false)
             writer.tag(6, WireType.Varint).bool(message.isEnabled);
-        /* google.protobuf.Timestamp created_at = 7; */
+        /* k1s0.system.common.v1.Timestamp created_at = 7; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp updated_at = 8; */
+        /* k1s0.system.common.v1.Timestamp updated_at = 8; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
@@ -2019,10 +2019,10 @@ class CreateItemRequest$Type extends MessageType<CreateItemRequest> {
                 case /* optional string parent_item_id */ 6:
                     message.parentItemId = reader.string();
                     break;
-                case /* optional google.protobuf.Timestamp effective_from */ 7:
+                case /* optional k1s0.system.common.v1.Timestamp effective_from */ 7:
                     message.effectiveFrom = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.effectiveFrom);
                     break;
-                case /* optional google.protobuf.Timestamp effective_until */ 8:
+                case /* optional k1s0.system.common.v1.Timestamp effective_until */ 8:
                     message.effectiveUntil = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.effectiveUntil);
                     break;
                 case /* optional bool is_active */ 9:
@@ -2061,10 +2061,10 @@ class CreateItemRequest$Type extends MessageType<CreateItemRequest> {
         /* optional string parent_item_id = 6; */
         if (message.parentItemId !== undefined)
             writer.tag(6, WireType.LengthDelimited).string(message.parentItemId);
-        /* optional google.protobuf.Timestamp effective_from = 7; */
+        /* optional k1s0.system.common.v1.Timestamp effective_from = 7; */
         if (message.effectiveFrom)
             Timestamp.internalBinaryWrite(message.effectiveFrom, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
-        /* optional google.protobuf.Timestamp effective_until = 8; */
+        /* optional k1s0.system.common.v1.Timestamp effective_until = 8; */
         if (message.effectiveUntil)
             Timestamp.internalBinaryWrite(message.effectiveUntil, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         /* optional bool is_active = 9; */
@@ -2171,10 +2171,10 @@ class UpdateItemRequest$Type extends MessageType<UpdateItemRequest> {
                 case /* optional string parent_item_id */ 5:
                     message.parentItemId = reader.string();
                     break;
-                case /* optional google.protobuf.Timestamp effective_from */ 6:
+                case /* optional k1s0.system.common.v1.Timestamp effective_from */ 6:
                     message.effectiveFrom = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.effectiveFrom);
                     break;
-                case /* optional google.protobuf.Timestamp effective_until */ 7:
+                case /* optional k1s0.system.common.v1.Timestamp effective_until */ 7:
                     message.effectiveUntil = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.effectiveUntil);
                     break;
                 case /* optional bool is_active */ 8:
@@ -2210,10 +2210,10 @@ class UpdateItemRequest$Type extends MessageType<UpdateItemRequest> {
         /* optional string parent_item_id = 5; */
         if (message.parentItemId !== undefined)
             writer.tag(5, WireType.LengthDelimited).string(message.parentItemId);
-        /* optional google.protobuf.Timestamp effective_from = 6; */
+        /* optional k1s0.system.common.v1.Timestamp effective_from = 6; */
         if (message.effectiveFrom)
             Timestamp.internalBinaryWrite(message.effectiveFrom, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
-        /* optional google.protobuf.Timestamp effective_until = 7; */
+        /* optional k1s0.system.common.v1.Timestamp effective_until = 7; */
         if (message.effectiveUntil)
             Timestamp.internalBinaryWrite(message.effectiveUntil, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         /* optional bool is_active = 8; */

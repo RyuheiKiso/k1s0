@@ -1314,7 +1314,7 @@ const file_k1s0_system_eventstore_v1_event_store_proto_rawDesc = "" +
 	"\x13ReadEventBySequence\x125.k1s0.system.eventstore.v1.ReadEventBySequenceRequest\x1a6.k1s0.system.eventstore.v1.ReadEventBySequenceResponse\x12u\n" +
 	"\x0eCreateSnapshot\x120.k1s0.system.eventstore.v1.CreateSnapshotRequest\x1a1.k1s0.system.eventstore.v1.CreateSnapshotResponse\x12~\n" +
 	"\x11GetLatestSnapshot\x123.k1s0.system.eventstore.v1.GetLatestSnapshotRequest\x1a4.k1s0.system.eventstore.v1.GetLatestSnapshotResponse\x12o\n" +
-	"\fDeleteStream\x12..k1s0.system.eventstore.v1.DeleteStreamRequest\x1a/.k1s0.system.eventstore.v1.DeleteStreamResponseBEZCgithub.com/k1s0-platform/system-proto-go/eventstore/v1;eventstorev1b\x06proto3"
+	"\fDeleteStream\x12..k1s0.system.eventstore.v1.DeleteStreamRequest\x1a/.k1s0.system.eventstore.v1.DeleteStreamResponseBLZJgithub.com/k1s0-platform/api/gen/go/k1s0/system/eventstore/v1;eventstorev1b\x06proto3"
 
 var (
 	file_k1s0_system_eventstore_v1_event_store_proto_rawDescOnce sync.Once

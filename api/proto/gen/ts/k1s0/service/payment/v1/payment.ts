@@ -13,7 +13,7 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { PaginationResult } from "../../../system/common/v1/types";
 import { Pagination } from "../../../system/common/v1/types";
-import { Timestamp } from "../../../../google/protobuf/timestamp";
+import { Timestamp } from "../../../system/common/v1/types";
 // ---------- メッセージ型 ----------
 
 /**
@@ -67,11 +67,11 @@ export interface Payment {
      */
     version: number;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp created_at = 12
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 12
      */
     createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 13
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 13
      */
     updatedAt?: Timestamp;
 }
@@ -303,10 +303,10 @@ class Payment$Type extends MessageType<Payment> {
                 case /* int32 version */ 11:
                     message.version = reader.int32();
                     break;
-                case /* google.protobuf.Timestamp created_at */ 12:
+                case /* k1s0.system.common.v1.Timestamp created_at */ 12:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* google.protobuf.Timestamp updated_at */ 13:
+                case /* k1s0.system.common.v1.Timestamp updated_at */ 13:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
                 default:
@@ -354,10 +354,10 @@ class Payment$Type extends MessageType<Payment> {
         /* int32 version = 11; */
         if (message.version !== 0)
             writer.tag(11, WireType.Varint).int32(message.version);
-        /* google.protobuf.Timestamp created_at = 12; */
+        /* k1s0.system.common.v1.Timestamp created_at = 12; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp updated_at = 13; */
+        /* k1s0.system.common.v1.Timestamp updated_at = 13; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;

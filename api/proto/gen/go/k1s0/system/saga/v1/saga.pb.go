@@ -1197,7 +1197,7 @@ const file_k1s0_system_saga_v1_saga_proto_rawDesc = "" +
 	"CancelSaga\x12&.k1s0.system.saga.v1.CancelSagaRequest\x1a'.k1s0.system.saga.v1.CancelSagaResponse\x12i\n" +
 	"\x0eCompensateSaga\x12*.k1s0.system.saga.v1.CompensateSagaRequest\x1a+.k1s0.system.saga.v1.CompensateSagaResponse\x12o\n" +
 	"\x10RegisterWorkflow\x12,.k1s0.system.saga.v1.RegisterWorkflowRequest\x1a-.k1s0.system.saga.v1.RegisterWorkflowResponse\x12f\n" +
-	"\rListWorkflows\x12).k1s0.system.saga.v1.ListWorkflowsRequest\x1a*.k1s0.system.saga.v1.ListWorkflowsResponseBRZPgithub.com/k1s0-platform/system-server-go-saga/gen/go/k1s0/system/saga/v1;sagav1b\x06proto3"
+	"\rListWorkflows\x12).k1s0.system.saga.v1.ListWorkflowsRequest\x1a*.k1s0.system.saga.v1.ListWorkflowsResponseB@Z>github.com/k1s0-platform/api/gen/go/k1s0/system/saga/v1;sagav1b\x06proto3"
 
 var (
 	file_k1s0_system_saga_v1_saga_proto_rawDescOnce sync.Once

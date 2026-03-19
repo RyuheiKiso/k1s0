@@ -120,11 +120,26 @@ func (s *PostgresEventStore) Append(ctx context.Context, streamID StreamId, even
 	return version, nil
 }
 
+// defaultLoadLimit は Load() メソッドのデフォルト取得件数上限。
+// 無制限クエリによるメモリ枯渇やレスポンス遅延を防ぐ安全策として設定する。
+const defaultLoadLimit = 10000
+
+// Load はストリームの全イベントをデフォルト上限付きで読み込む。
+// 安全策として LIMIT を付与し、無制限の結果セットによるメモリ圧迫を防止する。
+// 明示的に件数を指定したい場合は LoadWithLimit を使用すること。
 func (s *PostgresEventStore) Load(ctx context.Context, streamID StreamId) ([]*EventEnvelope, error) {
+	return s.LoadWithLimit(ctx, streamID, defaultLoadLimit)
+}
+
+// LoadWithLimit は指定された件数上限でストリームのイベントを読み込む。
+// limit パラメータにより取得件数を明示的に制御できる。
+// ページネーションが必要な場合や、大量イベントの段階的読み込みに使用する。
+func (s *PostgresEventStore) LoadWithLimit(ctx context.Context, streamID StreamId, limit int) ([]*EventEnvelope, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT event_id, stream_id, version, event_type, payload, metadata, recorded_at
-		 FROM events WHERE stream_id = $1 ORDER BY version ASC`,
+		 FROM events WHERE stream_id = $1 ORDER BY version ASC LIMIT $2`,
 		streamID.String(),
+		limit,
 	)
 	if err != nil {
 		return nil, &EventStoreError{Code: "QUERY_ERROR", Message: err.Error()}

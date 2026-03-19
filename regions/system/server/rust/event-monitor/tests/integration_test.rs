@@ -12,7 +12,8 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 use k1s0_event_monitor_server::adapter::handler::{router, AppState};
-use k1s0_event_monitor_server::adapter::middleware::auth::EventMonitorAuthState;
+// 認証状態の型をインポート（共通AuthStateを使用）
+use k1s0_event_monitor_server::adapter::middleware::auth::AuthState;
 use k1s0_event_monitor_server::domain::entity::event_record::EventRecord;
 use k1s0_event_monitor_server::domain::entity::flow_definition::FlowDefinition;
 use k1s0_event_monitor_server::domain::entity::flow_instance::FlowInstance;
@@ -232,7 +233,8 @@ async fn test_unauthorized_without_token() {
         )
         .expect("Failed to create JWKS verifier"),
     );
-    let auth_state = EventMonitorAuthState { verifier };
+    // 共通AuthStateを使用して認証状態を構築
+    let auth_state = AuthState { verifier };
 
     let state = AppState {
         list_events_uc: Arc::new(ListEventsUseCase::new(event_repo.clone())),

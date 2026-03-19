@@ -888,10 +888,10 @@ var File_k1s0_system_ai_gateway_v1_ai_gateway_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDesc = "" +
 	"\n" +
-	"*k1s0/system/ai_gateway/v1/ai_gateway.proto\x12\x19k1s0.system.ai_gateway.v1\"\xdd\x01\n" +
+	"*k1s0/system/ai_gateway/v1/ai_gateway.proto\x12\x18k1s0.system.aigateway.v1\"\xdc\x01\n" +
 	"\x0fCompleteRequest\x12\x14\n" +
-	"\x05model\x18\x01 \x01(\tR\x05model\x12>\n" +
-	"\bmessages\x18\x02 \x03(\v2\".k1s0.system.ai_gateway.v1.MessageR\bmessages\x12\x1d\n" +
+	"\x05model\x18\x01 \x01(\tR\x05model\x12=\n" +
+	"\bmessages\x18\x02 \x03(\v2!.k1s0.system.aigateway.v1.MessageR\bmessages\x12\x1d\n" +
 	"\n" +
 	"max_tokens\x18\x03 \x01(\x05R\tmaxTokens\x12 \n" +
 	"\vtemperature\x18\x04 \x01(\x02R\vtemperature\x12\x16\n" +
@@ -905,10 +905,10 @@ const file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDesc = "" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12\x18\n" +
 	"\acontent\x18\x03 \x01(\tR\acontent\x12#\n" +
 	"\rprompt_tokens\x18\x04 \x01(\x05R\fpromptTokens\x12+\n" +
-	"\x11completion_tokens\x18\x05 \x01(\x05R\x10completionTokens\"\xcb\x01\n" +
+	"\x11completion_tokens\x18\x05 \x01(\x05R\x10completionTokens\"\xca\x01\n" +
 	"\x15CompleteStreamRequest\x12\x14\n" +
-	"\x05model\x18\x01 \x01(\tR\x05model\x12>\n" +
-	"\bmessages\x18\x02 \x03(\v2\".k1s0.system.ai_gateway.v1.MessageR\bmessages\x12\x1d\n" +
+	"\x05model\x18\x01 \x01(\tR\x05model\x12=\n" +
+	"\bmessages\x18\x02 \x03(\v2!.k1s0.system.aigateway.v1.MessageR\bmessages\x12\x1d\n" +
 	"\n" +
 	"max_tokens\x18\x03 \x01(\x05R\tmaxTokens\x12 \n" +
 	"\vtemperature\x18\x04 \x01(\x02R\vtemperature\x12\x1b\n" +
@@ -920,11 +920,11 @@ const file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDesc = "" +
 	"\fEmbedRequest\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12\x16\n" +
 	"\x06inputs\x18\x02 \x03(\tR\x06inputs\x12\x1b\n" +
-	"\ttenant_id\x18\x03 \x01(\tR\btenantId\"k\n" +
+	"\ttenant_id\x18\x03 \x01(\tR\btenantId\"j\n" +
 	"\rEmbedResponse\x12\x14\n" +
-	"\x05model\x18\x01 \x01(\tR\x05model\x12D\n" +
+	"\x05model\x18\x01 \x01(\tR\x05model\x12C\n" +
 	"\n" +
-	"embeddings\x18\x02 \x03(\v2$.k1s0.system.ai_gateway.v1.EmbeddingR\n" +
+	"embeddings\x18\x02 \x03(\v2#.k1s0.system.aigateway.v1.EmbeddingR\n" +
 	"embeddings\"9\n" +
 	"\tEmbedding\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x16\n" +
@@ -936,9 +936,9 @@ const file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDesc = "" +
 	"\x0econtext_window\x18\x04 \x01(\x05R\rcontextWindow\x12\x18\n" +
 	"\aenabled\x18\x05 \x01(\bR\aenabled\"<\n" +
 	"\x11ListModelsRequest\x12'\n" +
-	"\x0fprovider_filter\x18\x01 \x01(\tR\x0eproviderFilter\"P\n" +
-	"\x12ListModelsResponse\x12:\n" +
-	"\x06models\x18\x01 \x03(\v2\".k1s0.system.ai_gateway.v1.AiModelR\x06models\"h\n" +
+	"\x0fprovider_filter\x18\x01 \x01(\tR\x0eproviderFilter\"O\n" +
+	"\x12ListModelsResponse\x129\n" +
+	"\x06models\x18\x01 \x03(\v2!.k1s0.system.aigateway.v1.AiModelR\x06models\"h\n" +
 	"\x0fGetUsageRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1d\n" +
 	"\n" +
@@ -948,14 +948,14 @@ const file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDesc = "" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12.\n" +
 	"\x13total_prompt_tokens\x18\x02 \x01(\x03R\x11totalPromptTokens\x126\n" +
 	"\x17total_completion_tokens\x18\x03 \x01(\x03R\x15totalCompletionTokens\x12$\n" +
-	"\x0etotal_cost_usd\x18\x04 \x01(\x01R\ftotalCostUsd2\x9c\x04\n" +
-	"\x10AiGatewayService\x12c\n" +
-	"\bComplete\x12*.k1s0.system.ai_gateway.v1.CompleteRequest\x1a+.k1s0.system.ai_gateway.v1.CompleteResponse\x12w\n" +
-	"\x0eCompleteStream\x120.k1s0.system.ai_gateway.v1.CompleteStreamRequest\x1a1.k1s0.system.ai_gateway.v1.CompleteStreamResponse0\x01\x12Z\n" +
-	"\x05Embed\x12'.k1s0.system.ai_gateway.v1.EmbedRequest\x1a(.k1s0.system.ai_gateway.v1.EmbedResponse\x12i\n" +
+	"\x0etotal_cost_usd\x18\x04 \x01(\x01R\ftotalCostUsd2\x92\x04\n" +
+	"\x10AiGatewayService\x12a\n" +
+	"\bComplete\x12).k1s0.system.aigateway.v1.CompleteRequest\x1a*.k1s0.system.aigateway.v1.CompleteResponse\x12u\n" +
+	"\x0eCompleteStream\x12/.k1s0.system.aigateway.v1.CompleteStreamRequest\x1a0.k1s0.system.aigateway.v1.CompleteStreamResponse0\x01\x12X\n" +
+	"\x05Embed\x12&.k1s0.system.aigateway.v1.EmbedRequest\x1a'.k1s0.system.aigateway.v1.EmbedResponse\x12g\n" +
 	"\n" +
-	"ListModels\x12,.k1s0.system.ai_gateway.v1.ListModelsRequest\x1a-.k1s0.system.ai_gateway.v1.ListModelsResponse\x12c\n" +
-	"\bGetUsage\x12*.k1s0.system.ai_gateway.v1.GetUsageRequest\x1a+.k1s0.system.ai_gateway.v1.GetUsageResponseBDZBgithub.com/k1s0-platform/system-proto-go/ai_gateway/v1;aigatewayv1b\x06proto3"
+	"ListModels\x12+.k1s0.system.aigateway.v1.ListModelsRequest\x1a,.k1s0.system.aigateway.v1.ListModelsResponse\x12a\n" +
+	"\bGetUsage\x12).k1s0.system.aigateway.v1.GetUsageRequest\x1a*.k1s0.system.aigateway.v1.GetUsageResponseBJZHgithub.com/k1s0-platform/api/gen/go/k1s0/system/aigateway/v1;aigatewayv1b\x06proto3"
 
 var (
 	file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescOnce sync.Once
@@ -971,35 +971,35 @@ func file_k1s0_system_ai_gateway_v1_ai_gateway_proto_rawDescGZIP() []byte {
 
 var file_k1s0_system_ai_gateway_v1_ai_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_k1s0_system_ai_gateway_v1_ai_gateway_proto_goTypes = []any{
-	(*CompleteRequest)(nil),        // 0: k1s0.system.ai_gateway.v1.CompleteRequest
-	(*Message)(nil),                // 1: k1s0.system.ai_gateway.v1.Message
-	(*CompleteResponse)(nil),       // 2: k1s0.system.ai_gateway.v1.CompleteResponse
-	(*CompleteStreamRequest)(nil),  // 3: k1s0.system.ai_gateway.v1.CompleteStreamRequest
-	(*CompleteStreamResponse)(nil), // 4: k1s0.system.ai_gateway.v1.CompleteStreamResponse
-	(*EmbedRequest)(nil),           // 5: k1s0.system.ai_gateway.v1.EmbedRequest
-	(*EmbedResponse)(nil),          // 6: k1s0.system.ai_gateway.v1.EmbedResponse
-	(*Embedding)(nil),              // 7: k1s0.system.ai_gateway.v1.Embedding
-	(*AiModel)(nil),                // 8: k1s0.system.ai_gateway.v1.AiModel
-	(*ListModelsRequest)(nil),      // 9: k1s0.system.ai_gateway.v1.ListModelsRequest
-	(*ListModelsResponse)(nil),     // 10: k1s0.system.ai_gateway.v1.ListModelsResponse
-	(*GetUsageRequest)(nil),        // 11: k1s0.system.ai_gateway.v1.GetUsageRequest
-	(*GetUsageResponse)(nil),       // 12: k1s0.system.ai_gateway.v1.GetUsageResponse
+	(*CompleteRequest)(nil),        // 0: k1s0.system.aigateway.v1.CompleteRequest
+	(*Message)(nil),                // 1: k1s0.system.aigateway.v1.Message
+	(*CompleteResponse)(nil),       // 2: k1s0.system.aigateway.v1.CompleteResponse
+	(*CompleteStreamRequest)(nil),  // 3: k1s0.system.aigateway.v1.CompleteStreamRequest
+	(*CompleteStreamResponse)(nil), // 4: k1s0.system.aigateway.v1.CompleteStreamResponse
+	(*EmbedRequest)(nil),           // 5: k1s0.system.aigateway.v1.EmbedRequest
+	(*EmbedResponse)(nil),          // 6: k1s0.system.aigateway.v1.EmbedResponse
+	(*Embedding)(nil),              // 7: k1s0.system.aigateway.v1.Embedding
+	(*AiModel)(nil),                // 8: k1s0.system.aigateway.v1.AiModel
+	(*ListModelsRequest)(nil),      // 9: k1s0.system.aigateway.v1.ListModelsRequest
+	(*ListModelsResponse)(nil),     // 10: k1s0.system.aigateway.v1.ListModelsResponse
+	(*GetUsageRequest)(nil),        // 11: k1s0.system.aigateway.v1.GetUsageRequest
+	(*GetUsageResponse)(nil),       // 12: k1s0.system.aigateway.v1.GetUsageResponse
 }
 var file_k1s0_system_ai_gateway_v1_ai_gateway_proto_depIdxs = []int32{
-	1,  // 0: k1s0.system.ai_gateway.v1.CompleteRequest.messages:type_name -> k1s0.system.ai_gateway.v1.Message
-	1,  // 1: k1s0.system.ai_gateway.v1.CompleteStreamRequest.messages:type_name -> k1s0.system.ai_gateway.v1.Message
-	7,  // 2: k1s0.system.ai_gateway.v1.EmbedResponse.embeddings:type_name -> k1s0.system.ai_gateway.v1.Embedding
-	8,  // 3: k1s0.system.ai_gateway.v1.ListModelsResponse.models:type_name -> k1s0.system.ai_gateway.v1.AiModel
-	0,  // 4: k1s0.system.ai_gateway.v1.AiGatewayService.Complete:input_type -> k1s0.system.ai_gateway.v1.CompleteRequest
-	3,  // 5: k1s0.system.ai_gateway.v1.AiGatewayService.CompleteStream:input_type -> k1s0.system.ai_gateway.v1.CompleteStreamRequest
-	5,  // 6: k1s0.system.ai_gateway.v1.AiGatewayService.Embed:input_type -> k1s0.system.ai_gateway.v1.EmbedRequest
-	9,  // 7: k1s0.system.ai_gateway.v1.AiGatewayService.ListModels:input_type -> k1s0.system.ai_gateway.v1.ListModelsRequest
-	11, // 8: k1s0.system.ai_gateway.v1.AiGatewayService.GetUsage:input_type -> k1s0.system.ai_gateway.v1.GetUsageRequest
-	2,  // 9: k1s0.system.ai_gateway.v1.AiGatewayService.Complete:output_type -> k1s0.system.ai_gateway.v1.CompleteResponse
-	4,  // 10: k1s0.system.ai_gateway.v1.AiGatewayService.CompleteStream:output_type -> k1s0.system.ai_gateway.v1.CompleteStreamResponse
-	6,  // 11: k1s0.system.ai_gateway.v1.AiGatewayService.Embed:output_type -> k1s0.system.ai_gateway.v1.EmbedResponse
-	10, // 12: k1s0.system.ai_gateway.v1.AiGatewayService.ListModels:output_type -> k1s0.system.ai_gateway.v1.ListModelsResponse
-	12, // 13: k1s0.system.ai_gateway.v1.AiGatewayService.GetUsage:output_type -> k1s0.system.ai_gateway.v1.GetUsageResponse
+	1,  // 0: k1s0.system.aigateway.v1.CompleteRequest.messages:type_name -> k1s0.system.aigateway.v1.Message
+	1,  // 1: k1s0.system.aigateway.v1.CompleteStreamRequest.messages:type_name -> k1s0.system.aigateway.v1.Message
+	7,  // 2: k1s0.system.aigateway.v1.EmbedResponse.embeddings:type_name -> k1s0.system.aigateway.v1.Embedding
+	8,  // 3: k1s0.system.aigateway.v1.ListModelsResponse.models:type_name -> k1s0.system.aigateway.v1.AiModel
+	0,  // 4: k1s0.system.aigateway.v1.AiGatewayService.Complete:input_type -> k1s0.system.aigateway.v1.CompleteRequest
+	3,  // 5: k1s0.system.aigateway.v1.AiGatewayService.CompleteStream:input_type -> k1s0.system.aigateway.v1.CompleteStreamRequest
+	5,  // 6: k1s0.system.aigateway.v1.AiGatewayService.Embed:input_type -> k1s0.system.aigateway.v1.EmbedRequest
+	9,  // 7: k1s0.system.aigateway.v1.AiGatewayService.ListModels:input_type -> k1s0.system.aigateway.v1.ListModelsRequest
+	11, // 8: k1s0.system.aigateway.v1.AiGatewayService.GetUsage:input_type -> k1s0.system.aigateway.v1.GetUsageRequest
+	2,  // 9: k1s0.system.aigateway.v1.AiGatewayService.Complete:output_type -> k1s0.system.aigateway.v1.CompleteResponse
+	4,  // 10: k1s0.system.aigateway.v1.AiGatewayService.CompleteStream:output_type -> k1s0.system.aigateway.v1.CompleteStreamResponse
+	6,  // 11: k1s0.system.aigateway.v1.AiGatewayService.Embed:output_type -> k1s0.system.aigateway.v1.EmbedResponse
+	10, // 12: k1s0.system.aigateway.v1.AiGatewayService.ListModels:output_type -> k1s0.system.aigateway.v1.ListModelsResponse
+	12, // 13: k1s0.system.aigateway.v1.AiGatewayService.GetUsage:output_type -> k1s0.system.aigateway.v1.GetUsageResponse
 	9,  // [9:14] is the sub-list for method output_type
 	4,  // [4:9] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name

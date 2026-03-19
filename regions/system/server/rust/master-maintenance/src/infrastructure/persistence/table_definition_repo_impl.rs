@@ -19,6 +19,7 @@ impl TableDefinitionPostgresRepository {
 
 #[async_trait]
 impl TableDefinitionRepository for TableDefinitionPostgresRepository {
+    // テーブル定義の一覧取得（パラメータ化クエリでSQLインジェクションを防止）
     async fn find_all(
         &self,
         category: Option<&str>,
@@ -26,27 +27,41 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
         domain_filter: &DomainFilter,
     ) -> anyhow::Result<Vec<TableDefinition>> {
         let mut query =
-            String::from("SELECT * FROM master_maintenance.table_definitions WHERE 1=1");
+            // 明示的カラム指定によるクエリ安全性の確保
+            String::from("SELECT id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope FROM master_maintenance.table_definitions WHERE 1=1");
+        let mut param_idx = 1u32;
+        let mut bind_values: Vec<String> = Vec::new();
+
+        // アクティブフィルタ（固定値のためバインド不要）
         if active_only {
             query.push_str(" AND is_active = true");
         }
+        // カテゴリフィルタ（ユーザー入力のためパラメータ化必須）
         if let Some(cat) = category {
-            query.push_str(&format!(" AND category = '{}'", cat));
+            query.push_str(&format!(" AND category = ${}", param_idx));
+            bind_values.push(cat.to_string());
+            param_idx += 1;
         }
+        // ドメインスコープフィルタ（ユーザー入力のためパラメータ化必須）
         match domain_filter {
             DomainFilter::All => {}
             DomainFilter::System => {
                 query.push_str(" AND domain_scope IS NULL");
             }
             DomainFilter::Domain(domain) => {
-                query.push_str(&format!(" AND domain_scope = '{}'", domain));
+                query.push_str(&format!(" AND domain_scope = ${}", param_idx));
+                bind_values.push(domain.to_string());
             }
         }
         query.push_str(" ORDER BY sort_order, name");
 
-        let rows = sqlx::query_as::<_, TableDefinitionRow>(&query)
-            .fetch_all(&self.pool)
-            .await?;
+        // 動的に構築したクエリにバインドパラメータを適用
+        let mut q = sqlx::query_as::<_, TableDefinitionRow>(&query);
+        for val in &bind_values {
+            q = q.bind(val.clone());
+        }
+
+        let rows = q.fetch_all(&self.pool).await?;
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
 
@@ -57,7 +72,8 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
     ) -> anyhow::Result<Option<TableDefinition>> {
         let row = if let Some(ds) = domain_scope {
             sqlx::query_as::<_, TableDefinitionRow>(
-                "SELECT * FROM master_maintenance.table_definitions WHERE name = $1 AND domain_scope = $2",
+                // 明示的カラム指定によるクエリ安全性の確保
+                "SELECT id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope FROM master_maintenance.table_definitions WHERE name = $1 AND domain_scope = $2",
             )
             .bind(name)
             .bind(ds)
@@ -65,7 +81,8 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
             .await?
         } else {
             sqlx::query_as::<_, TableDefinitionRow>(
-                "SELECT * FROM master_maintenance.table_definitions WHERE name = $1 AND domain_scope IS NULL",
+                // 明示的カラム指定によるクエリ安全性の確保
+                "SELECT id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope FROM master_maintenance.table_definitions WHERE name = $1 AND domain_scope IS NULL",
             )
             .bind(name)
             .fetch_optional(&self.pool)
@@ -76,7 +93,8 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<TableDefinition>> {
         let row = sqlx::query_as::<_, TableDefinitionRow>(
-            "SELECT * FROM master_maintenance.table_definitions WHERE id = $1",
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope FROM master_maintenance.table_definitions WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -95,7 +113,8 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
                 allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles,
                 sort_order, created_by, domain_scope)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-               RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               RETURNING id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope"#,
         )
         .bind(&input.name)
         .bind(&input.schema_name)
@@ -138,7 +157,8 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
                    admin_roles = COALESCE($11, admin_roles),
                    sort_order = COALESCE($12, sort_order),
                    updated_at = now()
-                   WHERE name = $1 AND domain_scope = $13 RETURNING *"#,
+                   -- 明示的カラム指定によるクエリ安全性の確保
+                   WHERE name = $1 AND domain_scope = $13 RETURNING id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope"#,
             )
             .bind(name)
             .bind(&input.display_name)
@@ -170,7 +190,8 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
                    admin_roles = COALESCE($11, admin_roles),
                    sort_order = COALESCE($12, sort_order),
                    updated_at = now()
-                   WHERE name = $1 AND domain_scope IS NULL RETURNING *"#,
+                   -- 明示的カラム指定によるクエリ安全性の確保
+                   WHERE name = $1 AND domain_scope IS NULL RETURNING id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope"#,
             )
             .bind(name)
             .bind(&input.display_name)

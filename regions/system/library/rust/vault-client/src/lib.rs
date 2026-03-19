@@ -7,6 +7,7 @@ pub mod http;
 #[cfg(feature = "kafka")]
 pub mod kafka;
 pub mod secret;
+pub mod startup;
 
 pub use client::{InMemoryVaultClient, VaultClient};
 pub use config::VaultClientConfig;
@@ -17,6 +18,7 @@ pub use http::HttpVaultClient;
 #[cfg(feature = "kafka")]
 pub use kafka::VaultSecretRotationSubscriber;
 pub use secret::{Secret, SecretRotatedEvent};
+pub use startup::fetch_secrets_with_fallback;
 
 #[cfg(feature = "mock")]
 pub use client::MockVaultClient;

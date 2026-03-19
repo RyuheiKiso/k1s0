@@ -356,3 +356,126 @@ async fn inmemory_secret_with_many_keys() {
         assert_eq!(val, *v);
     }
 }
+
+// ===========================================================================
+// VaultClientConfig — vault_required フラグ
+// ===========================================================================
+
+// vault_required のデフォルト値が true（本番安全）であることを確認する。
+#[test]
+fn config_vault_required_defaults_to_true() {
+    let cfg = VaultClientConfig::new("http://vault:8200");
+    assert!(cfg.vault_required);
+}
+
+// vault_required ビルダーで false に設定できることを確認する。
+#[test]
+fn config_vault_required_can_be_set_to_false() {
+    let cfg = VaultClientConfig::new("http://vault:8200").vault_required(false);
+    assert!(!cfg.vault_required);
+}
+
+// vault_required ビルダーで true に明示設定できることを確認する。
+#[test]
+fn config_vault_required_can_be_set_to_true() {
+    let cfg = VaultClientConfig::new("http://vault:8200").vault_required(true);
+    assert!(cfg.vault_required);
+}
+
+// vault_required を含むビルダーチェーンが正しく動作することを確認する。
+#[test]
+fn config_builder_chain_with_vault_required() {
+    let cfg = VaultClientConfig::new("http://vault:8200")
+        .cache_ttl(Duration::from_secs(120))
+        .cache_max_capacity(200)
+        .vault_required(false);
+    assert_eq!(cfg.server_url, "http://vault:8200");
+    assert_eq!(cfg.cache_ttl, Duration::from_secs(120));
+    assert_eq!(cfg.cache_max_capacity, 200);
+    assert!(!cfg.vault_required);
+}
+
+// Default 実装でも vault_required が true であることを確認する。
+#[test]
+fn config_default_vault_required_is_true() {
+    let cfg = VaultClientConfig::default();
+    assert!(cfg.vault_required);
+}
+
+// ===========================================================================
+// VaultError — ConnectionUnavailable バリアント
+// ===========================================================================
+
+// VaultError::ConnectionUnavailable バリアントが正しく生成されることを確認する。
+#[test]
+fn error_connection_unavailable_variant() {
+    let err = VaultError::ConnectionUnavailable("connection refused".to_string());
+    assert!(matches!(err, VaultError::ConnectionUnavailable(_)));
+    assert!(err.to_string().contains("connection refused"));
+}
+
+// ===========================================================================
+// fetch_secrets_with_fallback — 統合テスト
+// ===========================================================================
+
+// fetch_secrets_with_fallback でシークレットが正しく取得されることを確認する。
+#[tokio::test]
+async fn fetch_secrets_with_fallback_success() {
+    use k1s0_vault_client::fetch_secrets_with_fallback;
+
+    let client = InMemoryVaultClient::new();
+    client.put_secret(make_secret_with_data(
+        "system/order/secrets",
+        &[("database.password", "vault-pw"), ("redis.password", "redis-pw")],
+    ));
+
+    let result = fetch_secrets_with_fallback(
+        &client,
+        "system/order/secrets",
+        &["database.password", "redis.password"],
+        true,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result.get("database.password").unwrap(), "vault-pw");
+    assert_eq!(result.get("redis.password").unwrap(), "redis-pw");
+}
+
+// vault_required=true でパスが存在しない場合にエラーが返されることを確認する。
+#[tokio::test]
+async fn fetch_secrets_with_fallback_required_not_found() {
+    use k1s0_vault_client::fetch_secrets_with_fallback;
+
+    let client = InMemoryVaultClient::new();
+
+    let result = fetch_secrets_with_fallback(
+        &client,
+        "system/missing/secrets",
+        &["database.password"],
+        true,
+    )
+    .await;
+
+    assert!(result.is_err());
+}
+
+// vault_required=false でも NotFound はフォールバックせずエラーになることを確認する。
+#[tokio::test]
+async fn fetch_secrets_with_fallback_not_required_not_found_still_errors() {
+    use k1s0_vault_client::fetch_secrets_with_fallback;
+
+    let client = InMemoryVaultClient::new();
+
+    let result = fetch_secrets_with_fallback(
+        &client,
+        "system/missing/secrets",
+        &["database.password"],
+        false,
+    )
+    .await;
+
+    // NotFound は設定ミスの可能性があるためフォールバック対象外
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), VaultError::NotFound(_)));
+}

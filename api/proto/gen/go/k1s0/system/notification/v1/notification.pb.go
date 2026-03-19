@@ -1996,7 +1996,7 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\x0eCreateTemplate\x122.k1s0.system.notification.v1.CreateTemplateRequest\x1a3.k1s0.system.notification.v1.CreateTemplateResponse\x12p\n" +
 	"\vGetTemplate\x12/.k1s0.system.notification.v1.GetTemplateRequest\x1a0.k1s0.system.notification.v1.GetTemplateResponse\x12y\n" +
 	"\x0eUpdateTemplate\x122.k1s0.system.notification.v1.UpdateTemplateRequest\x1a3.k1s0.system.notification.v1.UpdateTemplateResponse\x12y\n" +
-	"\x0eDeleteTemplate\x122.k1s0.system.notification.v1.DeleteTemplateRequest\x1a3.k1s0.system.notification.v1.DeleteTemplateResponseBIZGgithub.com/k1s0-platform/system-proto-go/notification/v1;notificationv1b\x06proto3"
+	"\x0eDeleteTemplate\x122.k1s0.system.notification.v1.DeleteTemplateRequest\x1a3.k1s0.system.notification.v1.DeleteTemplateResponseBPZNgithub.com/k1s0-platform/api/gen/go/k1s0/system/notification/v1;notificationv1b\x06proto3"
 
 var (
 	file_k1s0_system_notification_v1_notification_proto_rawDescOnce sync.Once

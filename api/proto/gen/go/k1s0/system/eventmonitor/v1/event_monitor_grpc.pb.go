@@ -19,19 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	EventMonitorService_ListEvents_FullMethodName         = "/k1s0.system.event_monitor.v1.EventMonitorService/ListEvents"
-	EventMonitorService_TraceByCorrelation_FullMethodName = "/k1s0.system.event_monitor.v1.EventMonitorService/TraceByCorrelation"
-	EventMonitorService_ListFlows_FullMethodName          = "/k1s0.system.event_monitor.v1.EventMonitorService/ListFlows"
-	EventMonitorService_GetFlow_FullMethodName            = "/k1s0.system.event_monitor.v1.EventMonitorService/GetFlow"
-	EventMonitorService_CreateFlow_FullMethodName         = "/k1s0.system.event_monitor.v1.EventMonitorService/CreateFlow"
-	EventMonitorService_UpdateFlow_FullMethodName         = "/k1s0.system.event_monitor.v1.EventMonitorService/UpdateFlow"
-	EventMonitorService_DeleteFlow_FullMethodName         = "/k1s0.system.event_monitor.v1.EventMonitorService/DeleteFlow"
-	EventMonitorService_GetFlowKpi_FullMethodName         = "/k1s0.system.event_monitor.v1.EventMonitorService/GetFlowKpi"
-	EventMonitorService_GetKpiSummary_FullMethodName      = "/k1s0.system.event_monitor.v1.EventMonitorService/GetKpiSummary"
-	EventMonitorService_GetSloStatus_FullMethodName       = "/k1s0.system.event_monitor.v1.EventMonitorService/GetSloStatus"
-	EventMonitorService_GetSloBurnRate_FullMethodName     = "/k1s0.system.event_monitor.v1.EventMonitorService/GetSloBurnRate"
-	EventMonitorService_PreviewReplay_FullMethodName      = "/k1s0.system.event_monitor.v1.EventMonitorService/PreviewReplay"
-	EventMonitorService_ExecuteReplay_FullMethodName      = "/k1s0.system.event_monitor.v1.EventMonitorService/ExecuteReplay"
+	EventMonitorService_ListEvents_FullMethodName         = "/k1s0.system.eventmonitor.v1.EventMonitorService/ListEvents"
+	EventMonitorService_TraceByCorrelation_FullMethodName = "/k1s0.system.eventmonitor.v1.EventMonitorService/TraceByCorrelation"
+	EventMonitorService_ListFlows_FullMethodName          = "/k1s0.system.eventmonitor.v1.EventMonitorService/ListFlows"
+	EventMonitorService_GetFlow_FullMethodName            = "/k1s0.system.eventmonitor.v1.EventMonitorService/GetFlow"
+	EventMonitorService_CreateFlow_FullMethodName         = "/k1s0.system.eventmonitor.v1.EventMonitorService/CreateFlow"
+	EventMonitorService_UpdateFlow_FullMethodName         = "/k1s0.system.eventmonitor.v1.EventMonitorService/UpdateFlow"
+	EventMonitorService_DeleteFlow_FullMethodName         = "/k1s0.system.eventmonitor.v1.EventMonitorService/DeleteFlow"
+	EventMonitorService_GetFlowKpi_FullMethodName         = "/k1s0.system.eventmonitor.v1.EventMonitorService/GetFlowKpi"
+	EventMonitorService_GetKpiSummary_FullMethodName      = "/k1s0.system.eventmonitor.v1.EventMonitorService/GetKpiSummary"
+	EventMonitorService_GetSloStatus_FullMethodName       = "/k1s0.system.eventmonitor.v1.EventMonitorService/GetSloStatus"
+	EventMonitorService_GetSloBurnRate_FullMethodName     = "/k1s0.system.eventmonitor.v1.EventMonitorService/GetSloBurnRate"
+	EventMonitorService_PreviewReplay_FullMethodName      = "/k1s0.system.eventmonitor.v1.EventMonitorService/PreviewReplay"
+	EventMonitorService_ExecuteReplay_FullMethodName      = "/k1s0.system.eventmonitor.v1.EventMonitorService/ExecuteReplay"
 )
 
 // EventMonitorServiceClient is the client API for EventMonitorService service.
@@ -516,7 +516,7 @@ func _EventMonitorService_ExecuteReplay_Handler(srv interface{}, ctx context.Con
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var EventMonitorService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "k1s0.system.event_monitor.v1.EventMonitorService",
+	ServiceName: "k1s0.system.eventmonitor.v1.EventMonitorService",
 	HandlerType: (*EventMonitorServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

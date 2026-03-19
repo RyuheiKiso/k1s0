@@ -807,7 +807,7 @@ const file_k1s0_system_search_v1_search_proto_rawDesc = "" +
 	"\vListIndices\x12).k1s0.system.search.v1.ListIndicesRequest\x1a*.k1s0.system.search.v1.ListIndicesResponse\x12j\n" +
 	"\rIndexDocument\x12+.k1s0.system.search.v1.IndexDocumentRequest\x1a,.k1s0.system.search.v1.IndexDocumentResponse\x12U\n" +
 	"\x06Search\x12$.k1s0.system.search.v1.SearchRequest\x1a%.k1s0.system.search.v1.SearchResponse\x12m\n" +
-	"\x0eDeleteDocument\x12,.k1s0.system.search.v1.DeleteDocumentRequest\x1a-.k1s0.system.search.v1.DeleteDocumentResponseB=Z;github.com/k1s0-platform/system-proto-go/search/v1;searchv1b\x06proto3"
+	"\x0eDeleteDocument\x12,.k1s0.system.search.v1.DeleteDocumentRequest\x1a-.k1s0.system.search.v1.DeleteDocumentResponseBDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/search/v1;searchv1b\x06proto3"
 
 var (
 	file_k1s0_system_search_v1_search_proto_rawDescOnce sync.Once

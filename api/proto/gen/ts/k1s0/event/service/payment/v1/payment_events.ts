@@ -10,7 +10,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { Timestamp } from "../../../../../google/protobuf/timestamp";
+import { Timestamp } from "../../../../system/common/v1/types";
 import { EventMetadata } from "../../../../system/common/v1/event_metadata";
 /**
  * @generated from protobuf message k1s0.event.service.payment.v1.PaymentInitiatedEvent
@@ -44,7 +44,7 @@ export interface PaymentInitiatedEvent {
      */
     paymentMethod: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp initiated_at = 8
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp initiated_at = 8
      */
     initiatedAt?: Timestamp;
 }
@@ -77,7 +77,7 @@ export interface PaymentCompletedEvent {
      */
     transactionId: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp completed_at = 7
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp completed_at = 7
      */
     completedAt?: Timestamp;
 }
@@ -106,7 +106,7 @@ export interface PaymentFailedEvent {
      */
     errorCode: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp failed_at = 6
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp failed_at = 6
      */
     failedAt?: Timestamp;
 }
@@ -139,7 +139,7 @@ export interface PaymentRefundedEvent {
      */
     reason: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp refunded_at = 7
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp refunded_at = 7
      */
     refundedAt?: Timestamp;
 }
@@ -195,7 +195,7 @@ class PaymentInitiatedEvent$Type extends MessageType<PaymentInitiatedEvent> {
                 case /* string payment_method */ 7:
                     message.paymentMethod = reader.string();
                     break;
-                case /* google.protobuf.Timestamp initiated_at */ 8:
+                case /* k1s0.system.common.v1.Timestamp initiated_at */ 8:
                     message.initiatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.initiatedAt);
                     break;
                 default:
@@ -231,7 +231,7 @@ class PaymentInitiatedEvent$Type extends MessageType<PaymentInitiatedEvent> {
         /* string payment_method = 7; */
         if (message.paymentMethod !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.paymentMethod);
-        /* google.protobuf.Timestamp initiated_at = 8; */
+        /* k1s0.system.common.v1.Timestamp initiated_at = 8; */
         if (message.initiatedAt)
             Timestamp.internalBinaryWrite(message.initiatedAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
@@ -291,7 +291,7 @@ class PaymentCompletedEvent$Type extends MessageType<PaymentCompletedEvent> {
                 case /* string transaction_id */ 6:
                     message.transactionId = reader.string();
                     break;
-                case /* google.protobuf.Timestamp completed_at */ 7:
+                case /* k1s0.system.common.v1.Timestamp completed_at */ 7:
                     message.completedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.completedAt);
                     break;
                 default:
@@ -324,7 +324,7 @@ class PaymentCompletedEvent$Type extends MessageType<PaymentCompletedEvent> {
         /* string transaction_id = 6; */
         if (message.transactionId !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.transactionId);
-        /* google.protobuf.Timestamp completed_at = 7; */
+        /* k1s0.system.common.v1.Timestamp completed_at = 7; */
         if (message.completedAt)
             Timestamp.internalBinaryWrite(message.completedAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
@@ -379,7 +379,7 @@ class PaymentFailedEvent$Type extends MessageType<PaymentFailedEvent> {
                 case /* string error_code */ 5:
                     message.errorCode = reader.string();
                     break;
-                case /* google.protobuf.Timestamp failed_at */ 6:
+                case /* k1s0.system.common.v1.Timestamp failed_at */ 6:
                     message.failedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.failedAt);
                     break;
                 default:
@@ -409,7 +409,7 @@ class PaymentFailedEvent$Type extends MessageType<PaymentFailedEvent> {
         /* string error_code = 5; */
         if (message.errorCode !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.errorCode);
-        /* google.protobuf.Timestamp failed_at = 6; */
+        /* k1s0.system.common.v1.Timestamp failed_at = 6; */
         if (message.failedAt)
             Timestamp.internalBinaryWrite(message.failedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
@@ -469,7 +469,7 @@ class PaymentRefundedEvent$Type extends MessageType<PaymentRefundedEvent> {
                 case /* string reason */ 6:
                     message.reason = reader.string();
                     break;
-                case /* google.protobuf.Timestamp refunded_at */ 7:
+                case /* k1s0.system.common.v1.Timestamp refunded_at */ 7:
                     message.refundedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.refundedAt);
                     break;
                 default:
@@ -502,7 +502,7 @@ class PaymentRefundedEvent$Type extends MessageType<PaymentRefundedEvent> {
         /* string reason = 6; */
         if (message.reason !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.reason);
-        /* google.protobuf.Timestamp refunded_at = 7; */
+        /* k1s0.system.common.v1.Timestamp refunded_at = 7; */
         if (message.refundedAt)
             Timestamp.internalBinaryWrite(message.refundedAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;

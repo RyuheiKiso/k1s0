@@ -664,6 +664,8 @@ Kafka イベント一覧:
 ## 特記事項
 
 - **RecoverSagasUseCase**: 起動時に `find_incomplete()` で STARTED / RUNNING / COMPENSATING 状態の Saga を自動検出し、`ExecuteSagaUseCase` で再開する。リカバリされた件数をログに出力する
+  - **並行数制限**: `tokio::sync::Semaphore` により同時リカバリ数を `MAX_CONCURRENT_RECOVERIES`（デフォルト 10）に制限し、起動時の負荷スパイクを防止する
+  - **クエリ制限**: `find_incomplete()` は `LIMIT 100` でバッチ取得し、大量の未完了 Saga による OOM を防止する
 - **YAMLワークフローローダー**: `WorkflowLoader` が `workflows/` ディレクトリから `.yaml` / `.yml` ファイルを読み込み、`InMemoryWorkflowRepository` に登録する。無効な YAML ファイルはスキップして他のファイルのロードを継続する
 - **gRPCステップ実行レジストリ**: `ServiceRegistry` が `config.yaml` の `services` セクションからサービス名→エンドポイントの静的マッピングを提供する。`TonicGrpcCaller` がチャネルプーリング付きで動的 gRPC 呼び出しを行う
 - **InMemoryリポジトリ**: `DATABASE_URL` 未設定時のdev/test用に `main.rs` に `InMemorySagaRepository` を実装済み。`RwLock<Vec<SagaState>>` と `RwLock<Vec<SagaStepLog>>` で状態を管理する

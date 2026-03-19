@@ -64,7 +64,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2
@@ -125,7 +125,7 @@ jobs:
 
       # ビルド成果物を GitHub Actions Artifact にアップロードし、publish ジョブに引き継ぐ
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: app-${{ matrix.platform }}-${{ matrix.arch }}
           path: ./dist/
@@ -162,7 +162,7 @@ jobs:
     steps:
       # ビルドジョブで保存した成果物をダウンロード
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: app-${{ matrix.platform }}-${{ matrix.arch }}
           path: ./dist

@@ -13,7 +13,7 @@ pub struct InventoryReservedEvent {
     #[prost(string, tag="5")]
     pub warehouse_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="6")]
-    pub reserved_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub reserved_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InventoryReleasedEvent {
@@ -30,6 +30,6 @@ pub struct InventoryReleasedEvent {
     #[prost(string, tag="6")]
     pub reason: ::prost::alloc::string::String,
     #[prost(message, optional, tag="7")]
-    pub released_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub released_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 // @@protoc_insertion_point(module)

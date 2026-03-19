@@ -19,7 +19,8 @@ impl TableRelationshipPostgresRepository {
 impl TableRelationshipRepository for TableRelationshipPostgresRepository {
     async fn find_all(&self) -> anyhow::Result<Vec<TableRelationship>> {
         let rows = sqlx::query_as::<_, TableRelationshipRow>(
-            "SELECT * FROM master_maintenance.table_relationships ORDER BY created_at",
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, source_table_id, source_column, target_table_id, target_column, relationship_type, display_name, is_cascade_delete, created_at FROM master_maintenance.table_relationships ORDER BY created_at",
         )
         .fetch_all(&self.pool)
         .await?;
@@ -28,7 +29,8 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<TableRelationship>> {
         let row = sqlx::query_as::<_, TableRelationshipRow>(
-            "SELECT * FROM master_maintenance.table_relationships WHERE id = $1",
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, source_table_id, source_column, target_table_id, target_column, relationship_type, display_name, is_cascade_delete, created_at FROM master_maintenance.table_relationships WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -38,7 +40,8 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
 
     async fn find_by_table_id(&self, table_id: Uuid) -> anyhow::Result<Vec<TableRelationship>> {
         let rows = sqlx::query_as::<_, TableRelationshipRow>(
-            "SELECT * FROM master_maintenance.table_relationships WHERE source_table_id = $1 OR target_table_id = $1 ORDER BY created_at"
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, source_table_id, source_column, target_table_id, target_column, relationship_type, display_name, is_cascade_delete, created_at FROM master_maintenance.table_relationships WHERE source_table_id = $1 OR target_table_id = $1 ORDER BY created_at"
         )
         .bind(table_id)
         .fetch_all(&self.pool)
@@ -52,7 +55,8 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
                (id, source_table_id, source_column, target_table_id, target_column,
                 relationship_type, display_name, is_cascade_delete)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-               RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               RETURNING id, source_table_id, source_column, target_table_id, target_column, relationship_type, display_name, is_cascade_delete, created_at"#,
         )
         .bind(relationship.id)
         .bind(relationship.source_table_id)
@@ -79,7 +83,8 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
                relationship_type = $4,
                display_name = $5,
                is_cascade_delete = $6
-               WHERE id = $1 RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               WHERE id = $1 RETURNING id, source_table_id, source_column, target_table_id, target_column, relationship_type, display_name, is_cascade_delete, created_at"#,
         )
         .bind(id)
         .bind(&relationship.source_column)

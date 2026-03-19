@@ -10,7 +10,8 @@ use axum::http::{Request, StatusCode};
 use tower::ServiceExt;
 
 use k1s0_event_store_server::adapter::handler::{router, AppState};
-use k1s0_event_store_server::adapter::middleware::auth::EventStoreAuthState;
+// 認証状態の型をインポート（共通AuthStateを使用）
+use k1s0_event_store_server::adapter::middleware::auth::AuthState;
 use k1s0_event_store_server::domain::entity::event::{EventStream, Snapshot, StoredEvent};
 use k1s0_event_store_server::domain::repository::{
     EventRepository, EventStreamRepository, SnapshotRepository,
@@ -218,7 +219,8 @@ async fn test_unauthorized_without_token() {
         )
         .expect("Failed to create JWKS verifier"),
     );
-    let auth_state = EventStoreAuthState { verifier };
+    // 共通AuthStateを使用して認証状態を構築
+    let auth_state = AuthState { verifier };
 
     let state = AppState {
         append_events_uc: Arc::new(AppendEventsUseCase::new(

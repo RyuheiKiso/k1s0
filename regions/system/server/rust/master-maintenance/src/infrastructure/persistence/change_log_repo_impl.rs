@@ -21,7 +21,8 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
                (id, target_table, target_record_id, operation, before_data, after_data,
                 changed_columns, changed_by, change_reason, trace_id, domain_scope)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-               RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               RETURNING id, target_table, target_record_id, operation, before_data, after_data, changed_columns, changed_by, change_reason, trace_id, domain_scope, created_at"#,
         )
         .bind(log.id)
         .bind(&log.target_table)
@@ -55,7 +56,8 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
         .await?;
 
         let rows = sqlx::query_as::<_, ChangeLogRow>(
-            "SELECT * FROM master_maintenance.change_logs WHERE target_table = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, target_table, target_record_id, operation, before_data, after_data, changed_columns, changed_by, change_reason, trace_id, domain_scope, created_at FROM master_maintenance.change_logs WHERE target_table = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
         )
         .bind(table_name)
         .bind(page_size as i64)
@@ -84,7 +86,8 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
         .await?;
 
         let rows = sqlx::query_as::<_, ChangeLogRow>(
-            "SELECT * FROM master_maintenance.change_logs WHERE target_table = $1 AND target_record_id = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4"
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, target_table, target_record_id, operation, before_data, after_data, changed_columns, changed_by, change_reason, trace_id, domain_scope, created_at FROM master_maintenance.change_logs WHERE target_table = $1 AND target_record_id = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4"
         )
         .bind(table_name)
         .bind(record_id)

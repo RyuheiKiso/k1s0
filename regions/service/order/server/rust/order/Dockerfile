@@ -1,6 +1,8 @@
 # chef ベースステージ: cargo-chef とビルド依存のインストール
 # Note: build context is repo root (to include system library dependencies)
 # x86_64 ライブラリを直接コピーするためプラットフォームを明示固定
+# セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
+# TODO: ダイジェスト固定 - docker pull rust:1.93-bookworm && docker inspect --format="{{index .RepoDigests 0}}" rust:1.93-bookworm
 FROM --platform=linux/amd64 rust:1.93-bookworm AS chef
 
 # cargo-chef のインストール（依存キャッシュ用）
@@ -38,9 +40,13 @@ RUN if [ -n "${CARGO_FEATURES}" ]; then \
       cargo build --release --manifest-path regions/service/order/server/rust/order/Cargo.toml; \
     fi
 
+# セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
+# TODO: ダイジェスト固定 - docker pull busybox:1.36.1-musl && docker inspect --format="{{index .RepoDigests 0}}" busybox:1.36.1-musl
 FROM busybox:1.36.1-musl AS busybox
 
 # Runtime stage
+# セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
+# TODO: ダイジェスト固定 - docker pull gcr.io/distroless/cc-debian12:nonroot && docker inspect --format="{{index .RepoDigests 0}}" gcr.io/distroless/cc-debian12:nonroot
 FROM gcr.io/distroless/cc-debian12:nonroot
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1

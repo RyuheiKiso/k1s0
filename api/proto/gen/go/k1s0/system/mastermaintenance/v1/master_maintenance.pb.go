@@ -5349,7 +5349,7 @@ const file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDesc = "
 	"\x13DeleteDisplayConfig\x12<.k1s0.system.mastermaintenance.v1.DeleteDisplayConfigRequest\x1a=.k1s0.system.mastermaintenance.v1.DeleteDisplayConfigResponse\x12\x8f\x01\n" +
 	"\x12ListTableAuditLogs\x12;.k1s0.system.mastermaintenance.v1.ListTableAuditLogsRequest\x1a<.k1s0.system.mastermaintenance.v1.ListTableAuditLogsResponse\x12\x92\x01\n" +
 	"\x13ListRecordAuditLogs\x12<.k1s0.system.mastermaintenance.v1.ListRecordAuditLogsRequest\x1a=.k1s0.system.mastermaintenance.v1.ListRecordAuditLogsResponse\x12z\n" +
-	"\vListDomains\x124.k1s0.system.mastermaintenance.v1.ListDomainsRequest\x1a5.k1s0.system.mastermaintenance.v1.ListDomainsResponseBSZQgithub.com/k1s0-platform/system-proto-go/mastermaintenance/v1;mastermaintenancev1b\x06proto3"
+	"\vListDomains\x124.k1s0.system.mastermaintenance.v1.ListDomainsRequest\x1a5.k1s0.system.mastermaintenance.v1.ListDomainsResponseBZZXgithub.com/k1s0-platform/api/gen/go/k1s0/system/mastermaintenance/v1;mastermaintenancev1b\x06proto3"
 
 var (
 	file_k1s0_system_mastermaintenance_v1_master_maintenance_proto_rawDescOnce sync.Once

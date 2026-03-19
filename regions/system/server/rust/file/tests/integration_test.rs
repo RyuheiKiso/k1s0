@@ -11,7 +11,8 @@ use axum::http::{Request, StatusCode};
 use tower::ServiceExt;
 
 use k1s0_file_server::adapter::handler::{router, AppState};
-use k1s0_file_server::adapter::middleware::auth::FileAuthState;
+// 認証状態の型をインポート（共通AuthStateを使用）
+use k1s0_file_server::adapter::middleware::auth::AuthState;
 use k1s0_file_server::domain::entity::file::FileMetadata;
 use k1s0_file_server::domain::repository::{FileMetadataRepository, FileStorageRepository};
 use k1s0_file_server::infrastructure::kafka_producer::FileEventPublisher;
@@ -176,7 +177,8 @@ async fn test_unauthorized_without_token() {
         )
         .expect("Failed to create JWKS verifier"),
     );
-    let auth_state = FileAuthState { verifier };
+    // 共通AuthStateを使用して認証状態を構築
+    let auth_state = AuthState { verifier };
 
     let state = AppState {
         list_files_uc: Arc::new(ListFilesUseCase::new(metadata_repo.clone())),

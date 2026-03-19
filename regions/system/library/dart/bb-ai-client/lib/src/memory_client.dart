@@ -20,7 +20,7 @@ class InMemoryAiClient implements AiClient {
 
   @override
   Future<CompleteResponse> complete(CompleteRequest req) async {
-    if (_completeFn != null) return _completeFn!(req);
+    if (_completeFn != null) return _completeFn(req);
     // デフォルトはダミーレスポンスを返す
     return CompleteResponse(
       id: 'mock-id',
@@ -32,7 +32,7 @@ class InMemoryAiClient implements AiClient {
 
   @override
   Future<EmbedResponse> embed(EmbedRequest req) async {
-    if (_embedFn != null) return _embedFn!(req);
+    if (_embedFn != null) return _embedFn(req);
     // デフォルトは空の埋め込みを返す
     return EmbedResponse(
       model: req.model,
@@ -42,7 +42,7 @@ class InMemoryAiClient implements AiClient {
 
   @override
   Future<List<ModelInfo>> listModels() async {
-    if (_listModelsFn != null) return _listModelsFn!();
+    if (_listModelsFn != null) return _listModelsFn();
     // デフォルトは空リストを返す
     return [];
   }

@@ -727,10 +727,10 @@ mod tests {
                 Request::builder()
                     .uri("/healthz")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("healthzリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("healthzリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -753,10 +753,10 @@ mod tests {
                 Request::builder()
                     .uri("/readyz")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("readyzリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("readyzリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -801,17 +801,20 @@ mod tests {
             }]
         });
 
+        // イベント追加リクエストを送信する
         let response = app
             .oneshot(
                 Request::builder()
                     .method("POST")
                     .uri("/api/v1/events")
                     .header("content-type", "application/json")
-                    .body(Body::from(serde_json::to_vec(&body).unwrap()))
-                    .unwrap(),
+                    .body(Body::from(
+                        serde_json::to_vec(&body).expect("リクエストボディのJSON変換に失敗"),
+                    ))
+                    .expect("append eventsリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("append eventsリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::CREATED);
     }
@@ -843,10 +846,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/v1/events/order-001")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("read eventsリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("read eventsリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -870,10 +873,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/v1/events/order-999")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("read events not_foundリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("read events not_foundリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
@@ -896,10 +899,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/v1/events")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("list eventsリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("list eventsリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -922,10 +925,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/v1/streams")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("list streamsリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("list streamsリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -960,10 +963,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/v1/streams/order-001/snapshot")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("get snapshotリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("get snapshotリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -990,10 +993,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/v1/streams/order-001/snapshot")
                     .body(Body::empty())
-                    .unwrap(),
+                    .expect("get snapshot not_foundリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("get snapshot not_foundリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
@@ -1021,17 +1024,20 @@ mod tests {
             "state": {"status": "shipped"}
         });
 
+        // スナップショット作成リクエストを送信する
         let response = app
             .oneshot(
                 Request::builder()
                     .method("POST")
                     .uri("/api/v1/streams/order-001/snapshot")
                     .header("content-type", "application/json")
-                    .body(Body::from(serde_json::to_vec(&body).unwrap()))
-                    .unwrap(),
+                    .body(Body::from(
+                        serde_json::to_vec(&body).expect("リクエストボディのJSON変換に失敗"),
+                    ))
+                    .expect("create snapshotリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("create snapshotリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::CREATED);
     }
@@ -1056,17 +1062,20 @@ mod tests {
             "state": {"status": "shipped"}
         });
 
+        // 存在しないストリームへのスナップショット作成リクエスト
         let response = app
             .oneshot(
                 Request::builder()
                     .method("POST")
                     .uri("/api/v1/streams/order-999/snapshot")
                     .header("content-type", "application/json")
-                    .body(Body::from(serde_json::to_vec(&body).unwrap()))
-                    .unwrap(),
+                    .body(Body::from(
+                        serde_json::to_vec(&body).expect("リクエストボディのJSON変換に失敗"),
+                    ))
+                    .expect("create snapshot not_foundリクエストの構築に失敗"),
             )
             .await
-            .unwrap();
+            .expect("create snapshot not_foundリクエストの送信に失敗");
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }

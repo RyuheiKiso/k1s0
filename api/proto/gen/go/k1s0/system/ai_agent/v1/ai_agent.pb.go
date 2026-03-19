@@ -650,29 +650,29 @@ var File_k1s0_system_ai_agent_v1_ai_agent_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDesc = "" +
 	"\n" +
-	"&k1s0/system/ai_agent/v1/ai_agent.proto\x12\x17k1s0.system.ai_agent.v1\"\x89\x02\n" +
+	"&k1s0/system/ai_agent/v1/ai_agent.proto\x12\x16k1s0.system.aiagent.v1\"\x88\x02\n" +
 	"\x0eExecuteRequest\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x14\n" +
 	"\x05input\x18\x02 \x01(\tR\x05input\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x03 \x01(\tR\tsessionId\x12\x1b\n" +
-	"\ttenant_id\x18\x04 \x01(\tR\btenantId\x12N\n" +
-	"\acontext\x18\x05 \x03(\v24.k1s0.system.ai_agent.v1.ExecuteRequest.ContextEntryR\acontext\x1a:\n" +
+	"\ttenant_id\x18\x04 \x01(\tR\btenantId\x12M\n" +
+	"\acontext\x18\x05 \x03(\v23.k1s0.system.aiagent.v1.ExecuteRequest.ContextEntryR\acontext\x1a:\n" +
 	"\fContextEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa2\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa1\x01\n" +
 	"\x0fExecuteResponse\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x16\n" +
-	"\x06output\x18\x03 \x01(\tR\x06output\x12<\n" +
-	"\x05steps\x18\x04 \x03(\v2&.k1s0.system.ai_agent.v1.ExecutionStepR\x05steps\"\x95\x02\n" +
+	"\x06output\x18\x03 \x01(\tR\x06output\x12;\n" +
+	"\x05steps\x18\x04 \x03(\v2%.k1s0.system.aiagent.v1.ExecutionStepR\x05steps\"\x94\x02\n" +
 	"\x14ExecuteStreamRequest\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x14\n" +
 	"\x05input\x18\x02 \x01(\tR\x05input\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x03 \x01(\tR\tsessionId\x12\x1b\n" +
-	"\ttenant_id\x18\x04 \x01(\tR\btenantId\x12T\n" +
-	"\acontext\x18\x05 \x03(\v2:.k1s0.system.ai_agent.v1.ExecuteStreamRequest.ContextEntryR\acontext\x1a:\n" +
+	"\ttenant_id\x18\x04 \x01(\tR\btenantId\x12S\n" +
+	"\acontext\x18\x05 \x03(\v29.k1s0.system.aiagent.v1.ExecuteStreamRequest.ContextEntryR\acontext\x1a:\n" +
 	"\fContextEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8c\x01\n" +
@@ -702,13 +702,13 @@ const file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDesc = "" +
 	"\bfeedback\x18\x04 \x01(\tR\bfeedback\"Q\n" +
 	"\x12ReviewStepResponse\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x18\n" +
-	"\aresumed\x18\x02 \x01(\bR\aresumed2\xbd\x03\n" +
-	"\x0eAiAgentService\x12\\\n" +
-	"\aExecute\x12'.k1s0.system.ai_agent.v1.ExecuteRequest\x1a(.k1s0.system.ai_agent.v1.ExecuteResponse\x12p\n" +
-	"\rExecuteStream\x12-.k1s0.system.ai_agent.v1.ExecuteStreamRequest\x1a..k1s0.system.ai_agent.v1.ExecuteStreamResponse0\x01\x12t\n" +
-	"\x0fCancelExecution\x12/.k1s0.system.ai_agent.v1.CancelExecutionRequest\x1a0.k1s0.system.ai_agent.v1.CancelExecutionResponse\x12e\n" +
+	"\aresumed\x18\x02 \x01(\bR\aresumed2\xb5\x03\n" +
+	"\x0eAiAgentService\x12Z\n" +
+	"\aExecute\x12&.k1s0.system.aiagent.v1.ExecuteRequest\x1a'.k1s0.system.aiagent.v1.ExecuteResponse\x12n\n" +
+	"\rExecuteStream\x12,.k1s0.system.aiagent.v1.ExecuteStreamRequest\x1a-.k1s0.system.aiagent.v1.ExecuteStreamResponse0\x01\x12r\n" +
+	"\x0fCancelExecution\x12..k1s0.system.aiagent.v1.CancelExecutionRequest\x1a/.k1s0.system.aiagent.v1.CancelExecutionResponse\x12c\n" +
 	"\n" +
-	"ReviewStep\x12*.k1s0.system.ai_agent.v1.ReviewStepRequest\x1a+.k1s0.system.ai_agent.v1.ReviewStepResponseB@Z>github.com/k1s0-platform/system-proto-go/ai_agent/v1;aiagentv1b\x06proto3"
+	"ReviewStep\x12).k1s0.system.aiagent.v1.ReviewStepRequest\x1a*.k1s0.system.aiagent.v1.ReviewStepResponseBFZDgithub.com/k1s0-platform/api/gen/go/k1s0/system/aiagent/v1;aiagentv1b\x06proto3"
 
 var (
 	file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescOnce sync.Once
@@ -724,30 +724,30 @@ func file_k1s0_system_ai_agent_v1_ai_agent_proto_rawDescGZIP() []byte {
 
 var file_k1s0_system_ai_agent_v1_ai_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_k1s0_system_ai_agent_v1_ai_agent_proto_goTypes = []any{
-	(*ExecuteRequest)(nil),          // 0: k1s0.system.ai_agent.v1.ExecuteRequest
-	(*ExecuteResponse)(nil),         // 1: k1s0.system.ai_agent.v1.ExecuteResponse
-	(*ExecuteStreamRequest)(nil),    // 2: k1s0.system.ai_agent.v1.ExecuteStreamRequest
-	(*ExecuteStreamResponse)(nil),   // 3: k1s0.system.ai_agent.v1.ExecuteStreamResponse
-	(*ExecutionStep)(nil),           // 4: k1s0.system.ai_agent.v1.ExecutionStep
-	(*CancelExecutionRequest)(nil),  // 5: k1s0.system.ai_agent.v1.CancelExecutionRequest
-	(*CancelExecutionResponse)(nil), // 6: k1s0.system.ai_agent.v1.CancelExecutionResponse
-	(*ReviewStepRequest)(nil),       // 7: k1s0.system.ai_agent.v1.ReviewStepRequest
-	(*ReviewStepResponse)(nil),      // 8: k1s0.system.ai_agent.v1.ReviewStepResponse
-	nil,                             // 9: k1s0.system.ai_agent.v1.ExecuteRequest.ContextEntry
-	nil,                             // 10: k1s0.system.ai_agent.v1.ExecuteStreamRequest.ContextEntry
+	(*ExecuteRequest)(nil),          // 0: k1s0.system.aiagent.v1.ExecuteRequest
+	(*ExecuteResponse)(nil),         // 1: k1s0.system.aiagent.v1.ExecuteResponse
+	(*ExecuteStreamRequest)(nil),    // 2: k1s0.system.aiagent.v1.ExecuteStreamRequest
+	(*ExecuteStreamResponse)(nil),   // 3: k1s0.system.aiagent.v1.ExecuteStreamResponse
+	(*ExecutionStep)(nil),           // 4: k1s0.system.aiagent.v1.ExecutionStep
+	(*CancelExecutionRequest)(nil),  // 5: k1s0.system.aiagent.v1.CancelExecutionRequest
+	(*CancelExecutionResponse)(nil), // 6: k1s0.system.aiagent.v1.CancelExecutionResponse
+	(*ReviewStepRequest)(nil),       // 7: k1s0.system.aiagent.v1.ReviewStepRequest
+	(*ReviewStepResponse)(nil),      // 8: k1s0.system.aiagent.v1.ReviewStepResponse
+	nil,                             // 9: k1s0.system.aiagent.v1.ExecuteRequest.ContextEntry
+	nil,                             // 10: k1s0.system.aiagent.v1.ExecuteStreamRequest.ContextEntry
 }
 var file_k1s0_system_ai_agent_v1_ai_agent_proto_depIdxs = []int32{
-	9,  // 0: k1s0.system.ai_agent.v1.ExecuteRequest.context:type_name -> k1s0.system.ai_agent.v1.ExecuteRequest.ContextEntry
-	4,  // 1: k1s0.system.ai_agent.v1.ExecuteResponse.steps:type_name -> k1s0.system.ai_agent.v1.ExecutionStep
-	10, // 2: k1s0.system.ai_agent.v1.ExecuteStreamRequest.context:type_name -> k1s0.system.ai_agent.v1.ExecuteStreamRequest.ContextEntry
-	0,  // 3: k1s0.system.ai_agent.v1.AiAgentService.Execute:input_type -> k1s0.system.ai_agent.v1.ExecuteRequest
-	2,  // 4: k1s0.system.ai_agent.v1.AiAgentService.ExecuteStream:input_type -> k1s0.system.ai_agent.v1.ExecuteStreamRequest
-	5,  // 5: k1s0.system.ai_agent.v1.AiAgentService.CancelExecution:input_type -> k1s0.system.ai_agent.v1.CancelExecutionRequest
-	7,  // 6: k1s0.system.ai_agent.v1.AiAgentService.ReviewStep:input_type -> k1s0.system.ai_agent.v1.ReviewStepRequest
-	1,  // 7: k1s0.system.ai_agent.v1.AiAgentService.Execute:output_type -> k1s0.system.ai_agent.v1.ExecuteResponse
-	3,  // 8: k1s0.system.ai_agent.v1.AiAgentService.ExecuteStream:output_type -> k1s0.system.ai_agent.v1.ExecuteStreamResponse
-	6,  // 9: k1s0.system.ai_agent.v1.AiAgentService.CancelExecution:output_type -> k1s0.system.ai_agent.v1.CancelExecutionResponse
-	8,  // 10: k1s0.system.ai_agent.v1.AiAgentService.ReviewStep:output_type -> k1s0.system.ai_agent.v1.ReviewStepResponse
+	9,  // 0: k1s0.system.aiagent.v1.ExecuteRequest.context:type_name -> k1s0.system.aiagent.v1.ExecuteRequest.ContextEntry
+	4,  // 1: k1s0.system.aiagent.v1.ExecuteResponse.steps:type_name -> k1s0.system.aiagent.v1.ExecutionStep
+	10, // 2: k1s0.system.aiagent.v1.ExecuteStreamRequest.context:type_name -> k1s0.system.aiagent.v1.ExecuteStreamRequest.ContextEntry
+	0,  // 3: k1s0.system.aiagent.v1.AiAgentService.Execute:input_type -> k1s0.system.aiagent.v1.ExecuteRequest
+	2,  // 4: k1s0.system.aiagent.v1.AiAgentService.ExecuteStream:input_type -> k1s0.system.aiagent.v1.ExecuteStreamRequest
+	5,  // 5: k1s0.system.aiagent.v1.AiAgentService.CancelExecution:input_type -> k1s0.system.aiagent.v1.CancelExecutionRequest
+	7,  // 6: k1s0.system.aiagent.v1.AiAgentService.ReviewStep:input_type -> k1s0.system.aiagent.v1.ReviewStepRequest
+	1,  // 7: k1s0.system.aiagent.v1.AiAgentService.Execute:output_type -> k1s0.system.aiagent.v1.ExecuteResponse
+	3,  // 8: k1s0.system.aiagent.v1.AiAgentService.ExecuteStream:output_type -> k1s0.system.aiagent.v1.ExecuteStreamResponse
+	6,  // 9: k1s0.system.aiagent.v1.AiAgentService.CancelExecution:output_type -> k1s0.system.aiagent.v1.CancelExecutionResponse
+	8,  // 10: k1s0.system.aiagent.v1.AiAgentService.ReviewStep:output_type -> k1s0.system.aiagent.v1.ReviewStepResponse
 	7,  // [7:11] is the sub-list for method output_type
 	3,  // [3:7] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name

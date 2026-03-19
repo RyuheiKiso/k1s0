@@ -610,8 +610,8 @@ const file_k1s0_system_navigation_v1_navigation_proto_rawDesc = "" +
 	"\x0ePARAM_TYPE_INT\x10\x02\x12\x13\n" +
 	"\x0fPARAM_TYPE_UUID\x10\x032\x87\x01\n" +
 	"\x11NavigationService\x12r\n" +
-	"\rGetNavigation\x12/.k1s0.system.navigation.v1.GetNavigationRequest\x1a0.k1s0.system.navigation.v1.GetNavigationResponseBa\n" +
-	"\x1cio.k1s0.system.navigation.v1ZAgithub.com/k1s0/api/gen/go/k1s0/system/navigation/v1;navigationv1b\x06proto3"
+	"\rGetNavigation\x12/.k1s0.system.navigation.v1.GetNavigationRequest\x1a0.k1s0.system.navigation.v1.GetNavigationResponseBj\n" +
+	"\x1cio.k1s0.system.navigation.v1ZJgithub.com/k1s0-platform/api/gen/go/k1s0/system/navigation/v1;navigationv1b\x06proto3"
 
 var (
 	file_k1s0_system_navigation_v1_navigation_proto_rawDescOnce sync.Once

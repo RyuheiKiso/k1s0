@@ -1979,7 +1979,7 @@ var File_k1s0_system_ruleengine_v1_rule_engine_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\n" +
-	"+k1s0/system/ruleengine/v1/rule_engine.proto\x12\x1ak1s0.system.rule_engine.v1\x1a!k1s0/system/common/v1/types.proto\"\xd8\x02\n" +
+	"+k1s0/system/ruleengine/v1/rule_engine.proto\x12\x19k1s0.system.ruleengine.v1\x1a!k1s0/system/common/v1/types.proto\"\xd8\x02\n" +
 	"\x04Rule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -2001,24 +2001,24 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\vrule_set_id\x18\x02 \x01(\tH\x00R\truleSetId\x88\x01\x01\x12\x1b\n" +
 	"\x06domain\x18\x03 \x01(\tH\x01R\x06domain\x88\x01\x01B\x0e\n" +
 	"\f_rule_set_idB\t\n" +
-	"\a_domain\"\x94\x01\n" +
-	"\x11ListRulesResponse\x126\n" +
-	"\x05rules\x18\x01 \x03(\v2 .k1s0.system.rule_engine.v1.RuleR\x05rules\x12G\n" +
+	"\a_domain\"\x93\x01\n" +
+	"\x11ListRulesResponse\x125\n" +
+	"\x05rules\x18\x01 \x03(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x05rules\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
 	"pagination\" \n" +
 	"\x0eGetRuleRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"G\n" +
-	"\x0fGetRuleResponse\x124\n" +
-	"\x04rule\x18\x01 \x01(\v2 .k1s0.system.rule_engine.v1.RuleR\x04rule\"\x9f\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"F\n" +
+	"\x0fGetRuleResponse\x123\n" +
+	"\x04rule\x18\x01 \x01(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x04rule\"\x9f\x01\n" +
 	"\x11CreateRuleRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +
 	"\bpriority\x18\x03 \x01(\x05R\bpriority\x12\x1b\n" +
 	"\twhen_json\x18\x04 \x01(\fR\bwhenJson\x12\x1b\n" +
-	"\tthen_json\x18\x05 \x01(\fR\bthenJson\"J\n" +
-	"\x12CreateRuleResponse\x124\n" +
-	"\x04rule\x18\x01 \x01(\v2 .k1s0.system.rule_engine.v1.RuleR\x04rule\"\x93\x02\n" +
+	"\tthen_json\x18\x05 \x01(\fR\bthenJson\"I\n" +
+	"\x12CreateRuleResponse\x123\n" +
+	"\x04rule\x18\x01 \x01(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x04rule\"\x93\x02\n" +
 	"\x11UpdateRuleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
 	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12\x1f\n" +
@@ -2033,9 +2033,9 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\n" +
 	"_then_jsonB\n" +
 	"\n" +
-	"\b_enabled\"J\n" +
-	"\x12UpdateRuleResponse\x124\n" +
-	"\x04rule\x18\x01 \x01(\v2 .k1s0.system.rule_engine.v1.RuleR\x04rule\"#\n" +
+	"\b_enabled\"I\n" +
+	"\x12UpdateRuleResponse\x123\n" +
+	"\x04rule\x18\x01 \x01(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x04rule\"#\n" +
 	"\x11DeleteRuleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"H\n" +
 	"\x12DeleteRuleResponse\x12\x18\n" +
@@ -2061,25 +2061,25 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"pagination\x18\x01 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
 	"pagination\x12\x1b\n" +
 	"\x06domain\x18\x02 \x01(\tH\x00R\x06domain\x88\x01\x01B\t\n" +
-	"\a_domain\"\xa1\x01\n" +
-	"\x14ListRuleSetsResponse\x12@\n" +
-	"\trule_sets\x18\x01 \x03(\v2#.k1s0.system.rule_engine.v1.RuleSetR\bruleSets\x12G\n" +
+	"\a_domain\"\xa0\x01\n" +
+	"\x14ListRuleSetsResponse\x12?\n" +
+	"\trule_sets\x18\x01 \x03(\v2\".k1s0.system.ruleengine.v1.RuleSetR\bruleSets\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
 	"pagination\"#\n" +
 	"\x11GetRuleSetRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"T\n" +
-	"\x12GetRuleSetResponse\x12>\n" +
-	"\brule_set\x18\x01 \x01(\v2#.k1s0.system.rule_engine.v1.RuleSetR\aruleSet\"\xd8\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
+	"\x12GetRuleSetResponse\x12=\n" +
+	"\brule_set\x18\x01 \x01(\v2\".k1s0.system.ruleengine.v1.RuleSetR\aruleSet\"\xd8\x01\n" +
 	"\x14CreateRuleSetRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +
 	"\x06domain\x18\x03 \x01(\tR\x06domain\x12'\n" +
 	"\x0fevaluation_mode\x18\x04 \x01(\tR\x0eevaluationMode\x12.\n" +
 	"\x13default_result_json\x18\x05 \x01(\fR\x11defaultResultJson\x12\x19\n" +
-	"\brule_ids\x18\x06 \x03(\tR\aruleIds\"W\n" +
-	"\x15CreateRuleSetResponse\x12>\n" +
-	"\brule_set\x18\x01 \x01(\v2#.k1s0.system.rule_engine.v1.RuleSetR\aruleSet\"\xb2\x02\n" +
+	"\brule_ids\x18\x06 \x03(\tR\aruleIds\"V\n" +
+	"\x15CreateRuleSetResponse\x12=\n" +
+	"\brule_set\x18\x01 \x01(\v2\".k1s0.system.ruleengine.v1.RuleSetR\aruleSet\"\xb2\x02\n" +
 	"\x14UpdateRuleSetRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
 	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12,\n" +
@@ -2091,9 +2091,9 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\x10_evaluation_modeB\x16\n" +
 	"\x14_default_result_jsonB\n" +
 	"\n" +
-	"\b_enabled\"W\n" +
-	"\x15UpdateRuleSetResponse\x12>\n" +
-	"\brule_set\x18\x01 \x01(\v2#.k1s0.system.rule_engine.v1.RuleSetR\aruleSet\"&\n" +
+	"\b_enabled\"V\n" +
+	"\x15UpdateRuleSetResponse\x12=\n" +
+	"\brule_set\x18\x01 \x01(\v2\".k1s0.system.ruleengine.v1.RuleSetR\aruleSet\"&\n" +
 	"\x14DeleteRuleSetRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"K\n" +
 	"\x15DeleteRuleSetResponse\x12\x18\n" +
@@ -2123,12 +2123,12 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
 	"\bpriority\x18\x03 \x01(\x05R\bpriority\x12\x1f\n" +
 	"\vresult_json\x18\x04 \x01(\fR\n" +
-	"resultJson\"\xf1\x02\n" +
+	"resultJson\"\xf0\x02\n" +
 	"\x10EvaluateResponse\x12#\n" +
 	"\revaluation_id\x18\x01 \x01(\tR\fevaluationId\x12\x19\n" +
 	"\brule_set\x18\x02 \x01(\tR\aruleSet\x12(\n" +
-	"\x10rule_set_version\x18\x03 \x01(\rR\x0eruleSetVersion\x12L\n" +
-	"\rmatched_rules\x18\x04 \x03(\v2'.k1s0.system.rule_engine.v1.MatchedRuleR\fmatchedRules\x12\x1f\n" +
+	"\x10rule_set_version\x18\x03 \x01(\rR\x0eruleSetVersion\x12K\n" +
+	"\rmatched_rules\x18\x04 \x03(\v2&.k1s0.system.ruleengine.v1.MatchedRuleR\fmatchedRules\x12\x1f\n" +
 	"\vresult_json\x18\x05 \x01(\fR\n" +
 	"resultJson\x12'\n" +
 	"\x0fdefault_applied\x18\x06 \x01(\bR\x0edefaultApplied\x12\x16\n" +
@@ -2138,36 +2138,36 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\brule_set\x18\x01 \x01(\tR\aruleSet\x12\x1d\n" +
 	"\n" +
 	"input_json\x18\x02 \x01(\fR\tinputJson\x12!\n" +
-	"\fcontext_json\x18\x03 \x01(\fR\vcontextJson\"\xf7\x02\n" +
+	"\fcontext_json\x18\x03 \x01(\fR\vcontextJson\"\xf6\x02\n" +
 	"\x16EvaluateDryRunResponse\x12#\n" +
 	"\revaluation_id\x18\x01 \x01(\tR\fevaluationId\x12\x19\n" +
 	"\brule_set\x18\x02 \x01(\tR\aruleSet\x12(\n" +
-	"\x10rule_set_version\x18\x03 \x01(\rR\x0eruleSetVersion\x12L\n" +
-	"\rmatched_rules\x18\x04 \x03(\v2'.k1s0.system.rule_engine.v1.MatchedRuleR\fmatchedRules\x12\x1f\n" +
+	"\x10rule_set_version\x18\x03 \x01(\rR\x0eruleSetVersion\x12K\n" +
+	"\rmatched_rules\x18\x04 \x03(\v2&.k1s0.system.ruleengine.v1.MatchedRuleR\fmatchedRules\x12\x1f\n" +
 	"\vresult_json\x18\x05 \x01(\fR\n" +
 	"resultJson\x12'\n" +
 	"\x0fdefault_applied\x18\x06 \x01(\bR\x0edefaultApplied\x12\x16\n" +
 	"\x06cached\x18\a \x01(\bR\x06cached\x12C\n" +
-	"\fevaluated_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\vevaluatedAt2\xbf\f\n" +
-	"\x11RuleEngineService\x12h\n" +
-	"\tListRules\x12,.k1s0.system.rule_engine.v1.ListRulesRequest\x1a-.k1s0.system.rule_engine.v1.ListRulesResponse\x12b\n" +
-	"\aGetRule\x12*.k1s0.system.rule_engine.v1.GetRuleRequest\x1a+.k1s0.system.rule_engine.v1.GetRuleResponse\x12k\n" +
+	"\fevaluated_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\vevaluatedAt2\xa3\f\n" +
+	"\x11RuleEngineService\x12f\n" +
+	"\tListRules\x12+.k1s0.system.ruleengine.v1.ListRulesRequest\x1a,.k1s0.system.ruleengine.v1.ListRulesResponse\x12`\n" +
+	"\aGetRule\x12).k1s0.system.ruleengine.v1.GetRuleRequest\x1a*.k1s0.system.ruleengine.v1.GetRuleResponse\x12i\n" +
 	"\n" +
-	"CreateRule\x12-.k1s0.system.rule_engine.v1.CreateRuleRequest\x1a..k1s0.system.rule_engine.v1.CreateRuleResponse\x12k\n" +
+	"CreateRule\x12,.k1s0.system.ruleengine.v1.CreateRuleRequest\x1a-.k1s0.system.ruleengine.v1.CreateRuleResponse\x12i\n" +
 	"\n" +
-	"UpdateRule\x12-.k1s0.system.rule_engine.v1.UpdateRuleRequest\x1a..k1s0.system.rule_engine.v1.UpdateRuleResponse\x12k\n" +
+	"UpdateRule\x12,.k1s0.system.ruleengine.v1.UpdateRuleRequest\x1a-.k1s0.system.ruleengine.v1.UpdateRuleResponse\x12i\n" +
 	"\n" +
-	"DeleteRule\x12-.k1s0.system.rule_engine.v1.DeleteRuleRequest\x1a..k1s0.system.rule_engine.v1.DeleteRuleResponse\x12q\n" +
-	"\fListRuleSets\x12/.k1s0.system.rule_engine.v1.ListRuleSetsRequest\x1a0.k1s0.system.rule_engine.v1.ListRuleSetsResponse\x12k\n" +
+	"DeleteRule\x12,.k1s0.system.ruleengine.v1.DeleteRuleRequest\x1a-.k1s0.system.ruleengine.v1.DeleteRuleResponse\x12o\n" +
+	"\fListRuleSets\x12..k1s0.system.ruleengine.v1.ListRuleSetsRequest\x1a/.k1s0.system.ruleengine.v1.ListRuleSetsResponse\x12i\n" +
 	"\n" +
-	"GetRuleSet\x12-.k1s0.system.rule_engine.v1.GetRuleSetRequest\x1a..k1s0.system.rule_engine.v1.GetRuleSetResponse\x12t\n" +
-	"\rCreateRuleSet\x120.k1s0.system.rule_engine.v1.CreateRuleSetRequest\x1a1.k1s0.system.rule_engine.v1.CreateRuleSetResponse\x12t\n" +
-	"\rUpdateRuleSet\x120.k1s0.system.rule_engine.v1.UpdateRuleSetRequest\x1a1.k1s0.system.rule_engine.v1.UpdateRuleSetResponse\x12t\n" +
-	"\rDeleteRuleSet\x120.k1s0.system.rule_engine.v1.DeleteRuleSetRequest\x1a1.k1s0.system.rule_engine.v1.DeleteRuleSetResponse\x12w\n" +
-	"\x0ePublishRuleSet\x121.k1s0.system.rule_engine.v1.PublishRuleSetRequest\x1a2.k1s0.system.rule_engine.v1.PublishRuleSetResponse\x12z\n" +
-	"\x0fRollbackRuleSet\x122.k1s0.system.rule_engine.v1.RollbackRuleSetRequest\x1a3.k1s0.system.rule_engine.v1.RollbackRuleSetResponse\x12e\n" +
-	"\bEvaluate\x12+.k1s0.system.rule_engine.v1.EvaluateRequest\x1a,.k1s0.system.rule_engine.v1.EvaluateResponse\x12w\n" +
-	"\x0eEvaluateDryRun\x121.k1s0.system.rule_engine.v1.EvaluateDryRunRequest\x1a2.k1s0.system.rule_engine.v1.EvaluateDryRunResponseBLZJgithub.com/k1s0-platform/api/gen/go/k1s0/system/ruleengine/v1;ruleenginev1b\x06proto3"
+	"GetRuleSet\x12,.k1s0.system.ruleengine.v1.GetRuleSetRequest\x1a-.k1s0.system.ruleengine.v1.GetRuleSetResponse\x12r\n" +
+	"\rCreateRuleSet\x12/.k1s0.system.ruleengine.v1.CreateRuleSetRequest\x1a0.k1s0.system.ruleengine.v1.CreateRuleSetResponse\x12r\n" +
+	"\rUpdateRuleSet\x12/.k1s0.system.ruleengine.v1.UpdateRuleSetRequest\x1a0.k1s0.system.ruleengine.v1.UpdateRuleSetResponse\x12r\n" +
+	"\rDeleteRuleSet\x12/.k1s0.system.ruleengine.v1.DeleteRuleSetRequest\x1a0.k1s0.system.ruleengine.v1.DeleteRuleSetResponse\x12u\n" +
+	"\x0ePublishRuleSet\x120.k1s0.system.ruleengine.v1.PublishRuleSetRequest\x1a1.k1s0.system.ruleengine.v1.PublishRuleSetResponse\x12x\n" +
+	"\x0fRollbackRuleSet\x121.k1s0.system.ruleengine.v1.RollbackRuleSetRequest\x1a2.k1s0.system.ruleengine.v1.RollbackRuleSetResponse\x12c\n" +
+	"\bEvaluate\x12*.k1s0.system.ruleengine.v1.EvaluateRequest\x1a+.k1s0.system.ruleengine.v1.EvaluateResponse\x12u\n" +
+	"\x0eEvaluateDryRun\x120.k1s0.system.ruleengine.v1.EvaluateDryRunRequest\x1a1.k1s0.system.ruleengine.v1.EvaluateDryRunResponseBLZJgithub.com/k1s0-platform/api/gen/go/k1s0/system/ruleengine/v1;ruleenginev1b\x06proto3"
 
 var (
 	file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDescOnce sync.Once
@@ -2183,92 +2183,92 @@ func file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDescGZIP() []byte {
 
 var file_k1s0_system_ruleengine_v1_rule_engine_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_k1s0_system_ruleengine_v1_rule_engine_proto_goTypes = []any{
-	(*Rule)(nil),                    // 0: k1s0.system.rule_engine.v1.Rule
-	(*ListRulesRequest)(nil),        // 1: k1s0.system.rule_engine.v1.ListRulesRequest
-	(*ListRulesResponse)(nil),       // 2: k1s0.system.rule_engine.v1.ListRulesResponse
-	(*GetRuleRequest)(nil),          // 3: k1s0.system.rule_engine.v1.GetRuleRequest
-	(*GetRuleResponse)(nil),         // 4: k1s0.system.rule_engine.v1.GetRuleResponse
-	(*CreateRuleRequest)(nil),       // 5: k1s0.system.rule_engine.v1.CreateRuleRequest
-	(*CreateRuleResponse)(nil),      // 6: k1s0.system.rule_engine.v1.CreateRuleResponse
-	(*UpdateRuleRequest)(nil),       // 7: k1s0.system.rule_engine.v1.UpdateRuleRequest
-	(*UpdateRuleResponse)(nil),      // 8: k1s0.system.rule_engine.v1.UpdateRuleResponse
-	(*DeleteRuleRequest)(nil),       // 9: k1s0.system.rule_engine.v1.DeleteRuleRequest
-	(*DeleteRuleResponse)(nil),      // 10: k1s0.system.rule_engine.v1.DeleteRuleResponse
-	(*RuleSet)(nil),                 // 11: k1s0.system.rule_engine.v1.RuleSet
-	(*ListRuleSetsRequest)(nil),     // 12: k1s0.system.rule_engine.v1.ListRuleSetsRequest
-	(*ListRuleSetsResponse)(nil),    // 13: k1s0.system.rule_engine.v1.ListRuleSetsResponse
-	(*GetRuleSetRequest)(nil),       // 14: k1s0.system.rule_engine.v1.GetRuleSetRequest
-	(*GetRuleSetResponse)(nil),      // 15: k1s0.system.rule_engine.v1.GetRuleSetResponse
-	(*CreateRuleSetRequest)(nil),    // 16: k1s0.system.rule_engine.v1.CreateRuleSetRequest
-	(*CreateRuleSetResponse)(nil),   // 17: k1s0.system.rule_engine.v1.CreateRuleSetResponse
-	(*UpdateRuleSetRequest)(nil),    // 18: k1s0.system.rule_engine.v1.UpdateRuleSetRequest
-	(*UpdateRuleSetResponse)(nil),   // 19: k1s0.system.rule_engine.v1.UpdateRuleSetResponse
-	(*DeleteRuleSetRequest)(nil),    // 20: k1s0.system.rule_engine.v1.DeleteRuleSetRequest
-	(*DeleteRuleSetResponse)(nil),   // 21: k1s0.system.rule_engine.v1.DeleteRuleSetResponse
-	(*PublishRuleSetRequest)(nil),   // 22: k1s0.system.rule_engine.v1.PublishRuleSetRequest
-	(*PublishRuleSetResponse)(nil),  // 23: k1s0.system.rule_engine.v1.PublishRuleSetResponse
-	(*RollbackRuleSetRequest)(nil),  // 24: k1s0.system.rule_engine.v1.RollbackRuleSetRequest
-	(*RollbackRuleSetResponse)(nil), // 25: k1s0.system.rule_engine.v1.RollbackRuleSetResponse
-	(*EvaluateRequest)(nil),         // 26: k1s0.system.rule_engine.v1.EvaluateRequest
-	(*MatchedRule)(nil),             // 27: k1s0.system.rule_engine.v1.MatchedRule
-	(*EvaluateResponse)(nil),        // 28: k1s0.system.rule_engine.v1.EvaluateResponse
-	(*EvaluateDryRunRequest)(nil),   // 29: k1s0.system.rule_engine.v1.EvaluateDryRunRequest
-	(*EvaluateDryRunResponse)(nil),  // 30: k1s0.system.rule_engine.v1.EvaluateDryRunResponse
+	(*Rule)(nil),                    // 0: k1s0.system.ruleengine.v1.Rule
+	(*ListRulesRequest)(nil),        // 1: k1s0.system.ruleengine.v1.ListRulesRequest
+	(*ListRulesResponse)(nil),       // 2: k1s0.system.ruleengine.v1.ListRulesResponse
+	(*GetRuleRequest)(nil),          // 3: k1s0.system.ruleengine.v1.GetRuleRequest
+	(*GetRuleResponse)(nil),         // 4: k1s0.system.ruleengine.v1.GetRuleResponse
+	(*CreateRuleRequest)(nil),       // 5: k1s0.system.ruleengine.v1.CreateRuleRequest
+	(*CreateRuleResponse)(nil),      // 6: k1s0.system.ruleengine.v1.CreateRuleResponse
+	(*UpdateRuleRequest)(nil),       // 7: k1s0.system.ruleengine.v1.UpdateRuleRequest
+	(*UpdateRuleResponse)(nil),      // 8: k1s0.system.ruleengine.v1.UpdateRuleResponse
+	(*DeleteRuleRequest)(nil),       // 9: k1s0.system.ruleengine.v1.DeleteRuleRequest
+	(*DeleteRuleResponse)(nil),      // 10: k1s0.system.ruleengine.v1.DeleteRuleResponse
+	(*RuleSet)(nil),                 // 11: k1s0.system.ruleengine.v1.RuleSet
+	(*ListRuleSetsRequest)(nil),     // 12: k1s0.system.ruleengine.v1.ListRuleSetsRequest
+	(*ListRuleSetsResponse)(nil),    // 13: k1s0.system.ruleengine.v1.ListRuleSetsResponse
+	(*GetRuleSetRequest)(nil),       // 14: k1s0.system.ruleengine.v1.GetRuleSetRequest
+	(*GetRuleSetResponse)(nil),      // 15: k1s0.system.ruleengine.v1.GetRuleSetResponse
+	(*CreateRuleSetRequest)(nil),    // 16: k1s0.system.ruleengine.v1.CreateRuleSetRequest
+	(*CreateRuleSetResponse)(nil),   // 17: k1s0.system.ruleengine.v1.CreateRuleSetResponse
+	(*UpdateRuleSetRequest)(nil),    // 18: k1s0.system.ruleengine.v1.UpdateRuleSetRequest
+	(*UpdateRuleSetResponse)(nil),   // 19: k1s0.system.ruleengine.v1.UpdateRuleSetResponse
+	(*DeleteRuleSetRequest)(nil),    // 20: k1s0.system.ruleengine.v1.DeleteRuleSetRequest
+	(*DeleteRuleSetResponse)(nil),   // 21: k1s0.system.ruleengine.v1.DeleteRuleSetResponse
+	(*PublishRuleSetRequest)(nil),   // 22: k1s0.system.ruleengine.v1.PublishRuleSetRequest
+	(*PublishRuleSetResponse)(nil),  // 23: k1s0.system.ruleengine.v1.PublishRuleSetResponse
+	(*RollbackRuleSetRequest)(nil),  // 24: k1s0.system.ruleengine.v1.RollbackRuleSetRequest
+	(*RollbackRuleSetResponse)(nil), // 25: k1s0.system.ruleengine.v1.RollbackRuleSetResponse
+	(*EvaluateRequest)(nil),         // 26: k1s0.system.ruleengine.v1.EvaluateRequest
+	(*MatchedRule)(nil),             // 27: k1s0.system.ruleengine.v1.MatchedRule
+	(*EvaluateResponse)(nil),        // 28: k1s0.system.ruleengine.v1.EvaluateResponse
+	(*EvaluateDryRunRequest)(nil),   // 29: k1s0.system.ruleengine.v1.EvaluateDryRunRequest
+	(*EvaluateDryRunResponse)(nil),  // 30: k1s0.system.ruleengine.v1.EvaluateDryRunResponse
 	(*v1.Timestamp)(nil),            // 31: k1s0.system.common.v1.Timestamp
 	(*v1.Pagination)(nil),           // 32: k1s0.system.common.v1.Pagination
 	(*v1.PaginationResult)(nil),     // 33: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_ruleengine_v1_rule_engine_proto_depIdxs = []int32{
-	31, // 0: k1s0.system.rule_engine.v1.Rule.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	31, // 1: k1s0.system.rule_engine.v1.Rule.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	32, // 2: k1s0.system.rule_engine.v1.ListRulesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	0,  // 3: k1s0.system.rule_engine.v1.ListRulesResponse.rules:type_name -> k1s0.system.rule_engine.v1.Rule
-	33, // 4: k1s0.system.rule_engine.v1.ListRulesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	0,  // 5: k1s0.system.rule_engine.v1.GetRuleResponse.rule:type_name -> k1s0.system.rule_engine.v1.Rule
-	0,  // 6: k1s0.system.rule_engine.v1.CreateRuleResponse.rule:type_name -> k1s0.system.rule_engine.v1.Rule
-	0,  // 7: k1s0.system.rule_engine.v1.UpdateRuleResponse.rule:type_name -> k1s0.system.rule_engine.v1.Rule
-	31, // 8: k1s0.system.rule_engine.v1.RuleSet.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	31, // 9: k1s0.system.rule_engine.v1.RuleSet.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	32, // 10: k1s0.system.rule_engine.v1.ListRuleSetsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	11, // 11: k1s0.system.rule_engine.v1.ListRuleSetsResponse.rule_sets:type_name -> k1s0.system.rule_engine.v1.RuleSet
-	33, // 12: k1s0.system.rule_engine.v1.ListRuleSetsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	11, // 13: k1s0.system.rule_engine.v1.GetRuleSetResponse.rule_set:type_name -> k1s0.system.rule_engine.v1.RuleSet
-	11, // 14: k1s0.system.rule_engine.v1.CreateRuleSetResponse.rule_set:type_name -> k1s0.system.rule_engine.v1.RuleSet
-	11, // 15: k1s0.system.rule_engine.v1.UpdateRuleSetResponse.rule_set:type_name -> k1s0.system.rule_engine.v1.RuleSet
-	31, // 16: k1s0.system.rule_engine.v1.PublishRuleSetResponse.published_at:type_name -> k1s0.system.common.v1.Timestamp
-	31, // 17: k1s0.system.rule_engine.v1.RollbackRuleSetResponse.rolled_back_at:type_name -> k1s0.system.common.v1.Timestamp
-	27, // 18: k1s0.system.rule_engine.v1.EvaluateResponse.matched_rules:type_name -> k1s0.system.rule_engine.v1.MatchedRule
-	31, // 19: k1s0.system.rule_engine.v1.EvaluateResponse.evaluated_at:type_name -> k1s0.system.common.v1.Timestamp
-	27, // 20: k1s0.system.rule_engine.v1.EvaluateDryRunResponse.matched_rules:type_name -> k1s0.system.rule_engine.v1.MatchedRule
-	31, // 21: k1s0.system.rule_engine.v1.EvaluateDryRunResponse.evaluated_at:type_name -> k1s0.system.common.v1.Timestamp
-	1,  // 22: k1s0.system.rule_engine.v1.RuleEngineService.ListRules:input_type -> k1s0.system.rule_engine.v1.ListRulesRequest
-	3,  // 23: k1s0.system.rule_engine.v1.RuleEngineService.GetRule:input_type -> k1s0.system.rule_engine.v1.GetRuleRequest
-	5,  // 24: k1s0.system.rule_engine.v1.RuleEngineService.CreateRule:input_type -> k1s0.system.rule_engine.v1.CreateRuleRequest
-	7,  // 25: k1s0.system.rule_engine.v1.RuleEngineService.UpdateRule:input_type -> k1s0.system.rule_engine.v1.UpdateRuleRequest
-	9,  // 26: k1s0.system.rule_engine.v1.RuleEngineService.DeleteRule:input_type -> k1s0.system.rule_engine.v1.DeleteRuleRequest
-	12, // 27: k1s0.system.rule_engine.v1.RuleEngineService.ListRuleSets:input_type -> k1s0.system.rule_engine.v1.ListRuleSetsRequest
-	14, // 28: k1s0.system.rule_engine.v1.RuleEngineService.GetRuleSet:input_type -> k1s0.system.rule_engine.v1.GetRuleSetRequest
-	16, // 29: k1s0.system.rule_engine.v1.RuleEngineService.CreateRuleSet:input_type -> k1s0.system.rule_engine.v1.CreateRuleSetRequest
-	18, // 30: k1s0.system.rule_engine.v1.RuleEngineService.UpdateRuleSet:input_type -> k1s0.system.rule_engine.v1.UpdateRuleSetRequest
-	20, // 31: k1s0.system.rule_engine.v1.RuleEngineService.DeleteRuleSet:input_type -> k1s0.system.rule_engine.v1.DeleteRuleSetRequest
-	22, // 32: k1s0.system.rule_engine.v1.RuleEngineService.PublishRuleSet:input_type -> k1s0.system.rule_engine.v1.PublishRuleSetRequest
-	24, // 33: k1s0.system.rule_engine.v1.RuleEngineService.RollbackRuleSet:input_type -> k1s0.system.rule_engine.v1.RollbackRuleSetRequest
-	26, // 34: k1s0.system.rule_engine.v1.RuleEngineService.Evaluate:input_type -> k1s0.system.rule_engine.v1.EvaluateRequest
-	29, // 35: k1s0.system.rule_engine.v1.RuleEngineService.EvaluateDryRun:input_type -> k1s0.system.rule_engine.v1.EvaluateDryRunRequest
-	2,  // 36: k1s0.system.rule_engine.v1.RuleEngineService.ListRules:output_type -> k1s0.system.rule_engine.v1.ListRulesResponse
-	4,  // 37: k1s0.system.rule_engine.v1.RuleEngineService.GetRule:output_type -> k1s0.system.rule_engine.v1.GetRuleResponse
-	6,  // 38: k1s0.system.rule_engine.v1.RuleEngineService.CreateRule:output_type -> k1s0.system.rule_engine.v1.CreateRuleResponse
-	8,  // 39: k1s0.system.rule_engine.v1.RuleEngineService.UpdateRule:output_type -> k1s0.system.rule_engine.v1.UpdateRuleResponse
-	10, // 40: k1s0.system.rule_engine.v1.RuleEngineService.DeleteRule:output_type -> k1s0.system.rule_engine.v1.DeleteRuleResponse
-	13, // 41: k1s0.system.rule_engine.v1.RuleEngineService.ListRuleSets:output_type -> k1s0.system.rule_engine.v1.ListRuleSetsResponse
-	15, // 42: k1s0.system.rule_engine.v1.RuleEngineService.GetRuleSet:output_type -> k1s0.system.rule_engine.v1.GetRuleSetResponse
-	17, // 43: k1s0.system.rule_engine.v1.RuleEngineService.CreateRuleSet:output_type -> k1s0.system.rule_engine.v1.CreateRuleSetResponse
-	19, // 44: k1s0.system.rule_engine.v1.RuleEngineService.UpdateRuleSet:output_type -> k1s0.system.rule_engine.v1.UpdateRuleSetResponse
-	21, // 45: k1s0.system.rule_engine.v1.RuleEngineService.DeleteRuleSet:output_type -> k1s0.system.rule_engine.v1.DeleteRuleSetResponse
-	23, // 46: k1s0.system.rule_engine.v1.RuleEngineService.PublishRuleSet:output_type -> k1s0.system.rule_engine.v1.PublishRuleSetResponse
-	25, // 47: k1s0.system.rule_engine.v1.RuleEngineService.RollbackRuleSet:output_type -> k1s0.system.rule_engine.v1.RollbackRuleSetResponse
-	28, // 48: k1s0.system.rule_engine.v1.RuleEngineService.Evaluate:output_type -> k1s0.system.rule_engine.v1.EvaluateResponse
-	30, // 49: k1s0.system.rule_engine.v1.RuleEngineService.EvaluateDryRun:output_type -> k1s0.system.rule_engine.v1.EvaluateDryRunResponse
+	31, // 0: k1s0.system.ruleengine.v1.Rule.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	31, // 1: k1s0.system.ruleengine.v1.Rule.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	32, // 2: k1s0.system.ruleengine.v1.ListRulesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	0,  // 3: k1s0.system.ruleengine.v1.ListRulesResponse.rules:type_name -> k1s0.system.ruleengine.v1.Rule
+	33, // 4: k1s0.system.ruleengine.v1.ListRulesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	0,  // 5: k1s0.system.ruleengine.v1.GetRuleResponse.rule:type_name -> k1s0.system.ruleengine.v1.Rule
+	0,  // 6: k1s0.system.ruleengine.v1.CreateRuleResponse.rule:type_name -> k1s0.system.ruleengine.v1.Rule
+	0,  // 7: k1s0.system.ruleengine.v1.UpdateRuleResponse.rule:type_name -> k1s0.system.ruleengine.v1.Rule
+	31, // 8: k1s0.system.ruleengine.v1.RuleSet.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	31, // 9: k1s0.system.ruleengine.v1.RuleSet.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	32, // 10: k1s0.system.ruleengine.v1.ListRuleSetsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	11, // 11: k1s0.system.ruleengine.v1.ListRuleSetsResponse.rule_sets:type_name -> k1s0.system.ruleengine.v1.RuleSet
+	33, // 12: k1s0.system.ruleengine.v1.ListRuleSetsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	11, // 13: k1s0.system.ruleengine.v1.GetRuleSetResponse.rule_set:type_name -> k1s0.system.ruleengine.v1.RuleSet
+	11, // 14: k1s0.system.ruleengine.v1.CreateRuleSetResponse.rule_set:type_name -> k1s0.system.ruleengine.v1.RuleSet
+	11, // 15: k1s0.system.ruleengine.v1.UpdateRuleSetResponse.rule_set:type_name -> k1s0.system.ruleengine.v1.RuleSet
+	31, // 16: k1s0.system.ruleengine.v1.PublishRuleSetResponse.published_at:type_name -> k1s0.system.common.v1.Timestamp
+	31, // 17: k1s0.system.ruleengine.v1.RollbackRuleSetResponse.rolled_back_at:type_name -> k1s0.system.common.v1.Timestamp
+	27, // 18: k1s0.system.ruleengine.v1.EvaluateResponse.matched_rules:type_name -> k1s0.system.ruleengine.v1.MatchedRule
+	31, // 19: k1s0.system.ruleengine.v1.EvaluateResponse.evaluated_at:type_name -> k1s0.system.common.v1.Timestamp
+	27, // 20: k1s0.system.ruleengine.v1.EvaluateDryRunResponse.matched_rules:type_name -> k1s0.system.ruleengine.v1.MatchedRule
+	31, // 21: k1s0.system.ruleengine.v1.EvaluateDryRunResponse.evaluated_at:type_name -> k1s0.system.common.v1.Timestamp
+	1,  // 22: k1s0.system.ruleengine.v1.RuleEngineService.ListRules:input_type -> k1s0.system.ruleengine.v1.ListRulesRequest
+	3,  // 23: k1s0.system.ruleengine.v1.RuleEngineService.GetRule:input_type -> k1s0.system.ruleengine.v1.GetRuleRequest
+	5,  // 24: k1s0.system.ruleengine.v1.RuleEngineService.CreateRule:input_type -> k1s0.system.ruleengine.v1.CreateRuleRequest
+	7,  // 25: k1s0.system.ruleengine.v1.RuleEngineService.UpdateRule:input_type -> k1s0.system.ruleengine.v1.UpdateRuleRequest
+	9,  // 26: k1s0.system.ruleengine.v1.RuleEngineService.DeleteRule:input_type -> k1s0.system.ruleengine.v1.DeleteRuleRequest
+	12, // 27: k1s0.system.ruleengine.v1.RuleEngineService.ListRuleSets:input_type -> k1s0.system.ruleengine.v1.ListRuleSetsRequest
+	14, // 28: k1s0.system.ruleengine.v1.RuleEngineService.GetRuleSet:input_type -> k1s0.system.ruleengine.v1.GetRuleSetRequest
+	16, // 29: k1s0.system.ruleengine.v1.RuleEngineService.CreateRuleSet:input_type -> k1s0.system.ruleengine.v1.CreateRuleSetRequest
+	18, // 30: k1s0.system.ruleengine.v1.RuleEngineService.UpdateRuleSet:input_type -> k1s0.system.ruleengine.v1.UpdateRuleSetRequest
+	20, // 31: k1s0.system.ruleengine.v1.RuleEngineService.DeleteRuleSet:input_type -> k1s0.system.ruleengine.v1.DeleteRuleSetRequest
+	22, // 32: k1s0.system.ruleengine.v1.RuleEngineService.PublishRuleSet:input_type -> k1s0.system.ruleengine.v1.PublishRuleSetRequest
+	24, // 33: k1s0.system.ruleengine.v1.RuleEngineService.RollbackRuleSet:input_type -> k1s0.system.ruleengine.v1.RollbackRuleSetRequest
+	26, // 34: k1s0.system.ruleengine.v1.RuleEngineService.Evaluate:input_type -> k1s0.system.ruleengine.v1.EvaluateRequest
+	29, // 35: k1s0.system.ruleengine.v1.RuleEngineService.EvaluateDryRun:input_type -> k1s0.system.ruleengine.v1.EvaluateDryRunRequest
+	2,  // 36: k1s0.system.ruleengine.v1.RuleEngineService.ListRules:output_type -> k1s0.system.ruleengine.v1.ListRulesResponse
+	4,  // 37: k1s0.system.ruleengine.v1.RuleEngineService.GetRule:output_type -> k1s0.system.ruleengine.v1.GetRuleResponse
+	6,  // 38: k1s0.system.ruleengine.v1.RuleEngineService.CreateRule:output_type -> k1s0.system.ruleengine.v1.CreateRuleResponse
+	8,  // 39: k1s0.system.ruleengine.v1.RuleEngineService.UpdateRule:output_type -> k1s0.system.ruleengine.v1.UpdateRuleResponse
+	10, // 40: k1s0.system.ruleengine.v1.RuleEngineService.DeleteRule:output_type -> k1s0.system.ruleengine.v1.DeleteRuleResponse
+	13, // 41: k1s0.system.ruleengine.v1.RuleEngineService.ListRuleSets:output_type -> k1s0.system.ruleengine.v1.ListRuleSetsResponse
+	15, // 42: k1s0.system.ruleengine.v1.RuleEngineService.GetRuleSet:output_type -> k1s0.system.ruleengine.v1.GetRuleSetResponse
+	17, // 43: k1s0.system.ruleengine.v1.RuleEngineService.CreateRuleSet:output_type -> k1s0.system.ruleengine.v1.CreateRuleSetResponse
+	19, // 44: k1s0.system.ruleengine.v1.RuleEngineService.UpdateRuleSet:output_type -> k1s0.system.ruleengine.v1.UpdateRuleSetResponse
+	21, // 45: k1s0.system.ruleengine.v1.RuleEngineService.DeleteRuleSet:output_type -> k1s0.system.ruleengine.v1.DeleteRuleSetResponse
+	23, // 46: k1s0.system.ruleengine.v1.RuleEngineService.PublishRuleSet:output_type -> k1s0.system.ruleengine.v1.PublishRuleSetResponse
+	25, // 47: k1s0.system.ruleengine.v1.RuleEngineService.RollbackRuleSet:output_type -> k1s0.system.ruleengine.v1.RollbackRuleSetResponse
+	28, // 48: k1s0.system.ruleengine.v1.RuleEngineService.Evaluate:output_type -> k1s0.system.ruleengine.v1.EvaluateResponse
+	30, // 49: k1s0.system.ruleengine.v1.RuleEngineService.EvaluateDryRun:output_type -> k1s0.system.ruleengine.v1.EvaluateDryRunResponse
 	36, // [36:50] is the sub-list for method output_type
 	22, // [22:36] is the sub-list for method input_type
 	22, // [22:22] is the sub-list for extension type_name
