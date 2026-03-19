@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS master_maintenance.rule_conditions (
 CREATE INDEX idx_rule_conditions_rule
     ON master_maintenance.rule_conditions(rule_id, condition_order);
 
-CREATE TABLE master_maintenance.display_configs (
+CREATE TABLE IF NOT EXISTS master_maintenance.display_configs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     table_id UUID NOT NULL REFERENCES master_maintenance.table_definitions(id) ON DELETE CASCADE,
     config_type VARCHAR(50) NOT NULL,
@@ -124,7 +124,7 @@ CREATE TABLE master_maintenance.display_configs (
 CREATE INDEX idx_display_configs_table
     ON master_maintenance.display_configs(table_id);
 
-CREATE TABLE master_maintenance.change_logs (
+CREATE TABLE IF NOT EXISTS master_maintenance.change_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     target_table VARCHAR(255) NOT NULL,
     target_record_id VARCHAR(255) NOT NULL,

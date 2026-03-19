@@ -72,6 +72,9 @@ void main() {
       ),
     );
 
+    /// Dioの非同期タイマーを消化し、ペンディングタイマーエラーを防ぐ
+    await tester.pumpAndSettle();
+
     /// AppBarのタイトルが表示されることを検証する
     expect(find.text('マスタカテゴリ管理'), findsOneWidget);
 
@@ -95,7 +98,7 @@ void main() {
       ),
     );
 
-    /// 非同期のAPI呼び出しが完了するまで待つ
+    /// Dioの非同期タイマーを消化し、ペンディングタイマーエラーを防ぐ
     await tester.pumpAndSettle();
 
     /// FABをタップする

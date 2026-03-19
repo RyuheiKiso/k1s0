@@ -70,6 +70,7 @@ impl TenantExtensionPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, TenantExtensionRow>(
             r#"INSERT INTO domain_master.tenant_master_extensions
                (tenant_id, item_id, display_name_override, attributes_override, is_enabled)
