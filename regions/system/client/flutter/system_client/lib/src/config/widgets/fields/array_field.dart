@@ -18,8 +18,8 @@ class ArrayField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentValue = value is List
-        ? value.map((item) => item.toString()).toList()
+    final List<String> currentValue = value is List
+        ? (value as List<dynamic>).map((item) => item.toString()).toList()
         : (schema.defaultValue as List<dynamic>? ?? const [])
             .map((item) => item.toString())
             .toList();
