@@ -27,15 +27,16 @@ impl CategoryPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let rows = if active_only {
             sqlx::query_as::<_, CategoryRow>(
-                "SELECT * FROM domain_master.master_categories WHERE is_active = true ORDER BY sort_order, code",
+                "SELECT id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_categories WHERE is_active = true ORDER BY sort_order, code",
             )
             .fetch_all(executor)
             .await?
         } else {
             sqlx::query_as::<_, CategoryRow>(
-                "SELECT * FROM domain_master.master_categories ORDER BY sort_order, code",
+                "SELECT id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_categories ORDER BY sort_order, code",
             )
             .fetch_all(executor)
             .await?
@@ -51,8 +52,9 @@ impl CategoryPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, CategoryRow>(
-            "SELECT * FROM domain_master.master_categories WHERE code = $1",
+            "SELECT id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_categories WHERE code = $1",
         )
         .bind(code)
         .fetch_optional(executor)
@@ -68,8 +70,9 @@ impl CategoryPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, CategoryRow>(
-            "SELECT * FROM domain_master.master_categories WHERE id = $1",
+            "SELECT id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_categories WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(executor)
