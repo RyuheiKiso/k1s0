@@ -14,7 +14,7 @@ class ServiceClaims {
   });
 }
 
-/// SPIFFE URI: spiffe://<trust-domain>/ns/<namespace>/sa/<service-account>
+/// SPIFFE URI: `spiffe://<trust-domain>/ns/<namespace>/sa/<service-account>`
 class SpiffeId {
   final String trustDomain;
   final String namespace;
