@@ -9,4 +9,4 @@ UPDATE outbox_events SET idempotency_key = gen_random_uuid()::text WHERE idempot
 ALTER TABLE outbox_events ALTER COLUMN idempotency_key SET NOT NULL;
 
 -- UNIQUE インデックスを追加（ON CONFLICT 句で使用）
-CREATE UNIQUE INDEX idx_outbox_events_idempotency_key ON outbox_events (idempotency_key);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_outbox_events_idempotency_key ON outbox_events (idempotency_key);

@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS rule_engine.rules (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rules_name ON rule_engine.rules (name);
-CREATE INDEX idx_rules_status ON rule_engine.rules (status);
-CREATE INDEX idx_rules_priority ON rule_engine.rules (priority);
+CREATE INDEX IF NOT EXISTS idx_rules_status ON rule_engine.rules (status);
+CREATE INDEX IF NOT EXISTS idx_rules_priority ON rule_engine.rules (priority);
 
 CREATE TRIGGER trigger_rules_updated_at
     BEFORE UPDATE ON rule_engine.rules
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS rule_engine.rule_sets (
     CONSTRAINT chk_rule_sets_status CHECK (status IN ('active', 'inactive', 'archived'))
 );
 
-CREATE UNIQUE INDEX idx_rule_sets_name ON rule_engine.rule_sets (name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_sets_name ON rule_engine.rule_sets (name);
 
 CREATE TRIGGER trigger_rule_sets_updated_at
     BEFORE UPDATE ON rule_engine.rule_sets
@@ -53,8 +53,8 @@ CREATE TABLE IF NOT EXISTS rule_engine.rule_set_versions (
     CONSTRAINT uq_rule_set_version UNIQUE (rule_set_id, version)
 );
 
-CREATE INDEX idx_rule_set_versions_rule_set ON rule_engine.rule_set_versions (rule_set_id);
-CREATE INDEX idx_rule_set_versions_status ON rule_engine.rule_set_versions (status);
+CREATE INDEX IF NOT EXISTS idx_rule_set_versions_rule_set ON rule_engine.rule_set_versions (rule_set_id);
+CREATE INDEX IF NOT EXISTS idx_rule_set_versions_status ON rule_engine.rule_set_versions (status);
 
 CREATE TRIGGER trigger_rule_set_versions_updated_at
     BEFORE UPDATE ON rule_engine.rule_set_versions
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS rule_engine.evaluation_logs (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_evaluation_logs_rule_set ON rule_engine.evaluation_logs (rule_set_id);
-CREATE INDEX idx_evaluation_logs_rule ON rule_engine.evaluation_logs (rule_id);
-CREATE INDEX idx_evaluation_logs_matched ON rule_engine.evaluation_logs (matched);
-CREATE INDEX idx_evaluation_logs_created_at ON rule_engine.evaluation_logs (created_at);
+CREATE INDEX IF NOT EXISTS idx_evaluation_logs_rule_set ON rule_engine.evaluation_logs (rule_set_id);
+CREATE INDEX IF NOT EXISTS idx_evaluation_logs_rule ON rule_engine.evaluation_logs (rule_id);
+CREATE INDEX IF NOT EXISTS idx_evaluation_logs_matched ON rule_engine.evaluation_logs (matched);
+CREATE INDEX IF NOT EXISTS idx_evaluation_logs_created_at ON rule_engine.evaluation_logs (created_at);
