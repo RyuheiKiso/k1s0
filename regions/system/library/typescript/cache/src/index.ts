@@ -84,8 +84,9 @@ export class RedisCacheClient implements CacheClient {
   ) {}
 
   static async fromUrl(url: string, keyPrefix = ''): Promise<RedisCacheClient> {
+    // ioredis の動的インポートで Redis コンストラクタを取得し、RedisLike として扱う
     const { default: Redis } = await import('ioredis');
-    const redis = new Redis(url) as unknown as RedisLike;
+    const redis = new (Redis as unknown as new (url: string) => RedisLike)(url);
     return new RedisCacheClient(redis, keyPrefix);
   }
 
