@@ -11,10 +11,10 @@ CREATE TABLE IF NOT EXISTS domain_master.master_categories (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_master_categories_code
+CREATE INDEX IF NOT EXISTS idx_master_categories_code
     ON domain_master.master_categories(code);
 
-CREATE INDEX idx_master_categories_active
+CREATE INDEX IF NOT EXISTS idx_master_categories_active
     ON domain_master.master_categories(is_active);
 
 CREATE TABLE IF NOT EXISTS domain_master.master_items (
@@ -35,16 +35,16 @@ CREATE TABLE IF NOT EXISTS domain_master.master_items (
     CONSTRAINT uq_master_items_category_code UNIQUE (category_id, code)
 );
 
-CREATE INDEX idx_master_items_category
+CREATE INDEX IF NOT EXISTS idx_master_items_category
     ON domain_master.master_items(category_id);
 
-CREATE INDEX idx_master_items_active
+CREATE INDEX IF NOT EXISTS idx_master_items_active
     ON domain_master.master_items(is_active);
 
-CREATE INDEX idx_master_items_parent
+CREATE INDEX IF NOT EXISTS idx_master_items_parent
     ON domain_master.master_items(parent_item_id);
 
-CREATE INDEX idx_master_items_effective
+CREATE INDEX IF NOT EXISTS idx_master_items_effective
     ON domain_master.master_items(effective_from, effective_until);
 
 CREATE TABLE IF NOT EXISTS domain_master.master_item_versions (
@@ -59,10 +59,10 @@ CREATE TABLE IF NOT EXISTS domain_master.master_item_versions (
     CONSTRAINT uq_master_item_versions_item_version UNIQUE (item_id, version_number)
 );
 
-CREATE INDEX idx_master_item_versions_item
+CREATE INDEX IF NOT EXISTS idx_master_item_versions_item
     ON domain_master.master_item_versions(item_id, created_at DESC);
 
-CREATE TABLE domain_master.tenant_master_extensions (
+CREATE TABLE IF NOT EXISTS domain_master.tenant_master_extensions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id VARCHAR(255) NOT NULL,
     item_id UUID NOT NULL REFERENCES domain_master.master_items(id) ON DELETE CASCADE,
@@ -74,8 +74,8 @@ CREATE TABLE domain_master.tenant_master_extensions (
     CONSTRAINT uq_tenant_master_extensions_tenant_item UNIQUE (tenant_id, item_id)
 );
 
-CREATE INDEX idx_tenant_master_extensions_tenant
+CREATE INDEX IF NOT EXISTS idx_tenant_master_extensions_tenant
     ON domain_master.tenant_master_extensions(tenant_id);
 
-CREATE INDEX idx_tenant_master_extensions_item
+CREATE INDEX IF NOT EXISTS idx_tenant_master_extensions_item
     ON domain_master.tenant_master_extensions(item_id);
