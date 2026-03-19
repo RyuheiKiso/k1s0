@@ -72,8 +72,9 @@ impl ItemPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row =
-            sqlx::query_as::<_, ItemRow>("SELECT * FROM domain_master.master_items WHERE id = $1")
+            sqlx::query_as::<_, ItemRow>("SELECT id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_items WHERE id = $1")
                 .bind(id)
                 .fetch_optional(executor)
                 .await?;
