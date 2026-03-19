@@ -93,7 +93,7 @@ CREATE INDEX idx_consistency_rules_source_table
 CREATE INDEX idx_consistency_rules_active
     ON master_maintenance.consistency_rules(is_active);
 
-CREATE TABLE master_maintenance.rule_conditions (
+CREATE TABLE IF NOT EXISTS master_maintenance.rule_conditions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     rule_id UUID NOT NULL REFERENCES master_maintenance.consistency_rules(id) ON DELETE CASCADE,
     condition_order INTEGER NOT NULL,

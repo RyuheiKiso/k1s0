@@ -79,7 +79,7 @@ impl TenantExtensionPostgresRepository {
                attributes_override = COALESCE($4, domain_master.tenant_master_extensions.attributes_override),
                is_enabled = COALESCE($5, domain_master.tenant_master_extensions.is_enabled),
                updated_at = now()
-               RETURNING *"#,
+               RETURNING id, tenant_id, item_id, display_name_override, attributes_override, is_enabled, created_at, updated_at"#,
         )
         .bind(tenant_id)
         .bind(item_id)
