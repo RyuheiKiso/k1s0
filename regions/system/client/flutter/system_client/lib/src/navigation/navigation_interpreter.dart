@@ -52,7 +52,7 @@ class NavigationInterpreter {
     if (route.redirectTo != null) {
       return GoRoute(
         path: route.path,
-        redirect: (_, __) => route.redirectTo,
+        redirect: (_, _) => route.redirectTo,
       );
     }
 
