@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS rule_engine.rules (
     CONSTRAINT chk_rules_status CHECK (status IN ('active', 'inactive', 'archived'))
 );
 
-CREATE UNIQUE INDEX idx_rules_name ON rule_engine.rules (name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rules_name ON rule_engine.rules (name);
 CREATE INDEX idx_rules_status ON rule_engine.rules (status);
 CREATE INDEX idx_rules_priority ON rule_engine.rules (priority);
 

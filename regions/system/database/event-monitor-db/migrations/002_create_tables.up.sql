@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS event_monitor.event_records (
 CREATE INDEX IF NOT EXISTS idx_event_records_event_type ON event_monitor.event_records (event_type);
 CREATE INDEX IF NOT EXISTS idx_event_records_source ON event_monitor.event_records (source);
 CREATE INDEX IF NOT EXISTS idx_event_records_status ON event_monitor.event_records (status);
-CREATE INDEX idx_event_records_created_at ON event_monitor.event_records (created_at);
+CREATE INDEX IF NOT EXISTS idx_event_records_created_at ON event_monitor.event_records (created_at);
 
 -- flow_instances: フロー実行インスタンス
 CREATE TABLE IF NOT EXISTS event_monitor.flow_instances (
@@ -54,9 +54,9 @@ CREATE TABLE IF NOT EXISTS event_monitor.flow_instances (
     CONSTRAINT chk_flow_instances_status CHECK (status IN ('pending', 'running', 'completed', 'failed', 'cancelled'))
 );
 
-CREATE INDEX idx_flow_instances_flow_def ON event_monitor.flow_instances (flow_definition_id);
-CREATE INDEX idx_flow_instances_event ON event_monitor.flow_instances (event_record_id);
-CREATE INDEX idx_flow_instances_status ON event_monitor.flow_instances (status);
+CREATE INDEX IF NOT EXISTS idx_flow_instances_flow_def ON event_monitor.flow_instances (flow_definition_id);
+CREATE INDEX IF NOT EXISTS idx_flow_instances_event ON event_monitor.flow_instances (event_record_id);
+CREATE INDEX IF NOT EXISTS idx_flow_instances_status ON event_monitor.flow_instances (status);
 
 CREATE TRIGGER trigger_flow_instances_updated_at
     BEFORE UPDATE ON event_monitor.flow_instances
