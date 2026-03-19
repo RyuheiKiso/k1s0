@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // bb-statestore の外部結合テスト。
 // InMemoryStateStore の get/set/delete（ETag、bulk 含む）を検証する。
 

@@ -113,7 +113,12 @@ impl PaymentRepository for InMemoryPaymentRepository {
     }
 
     /// 決済を返金する（楽観ロック付き）。返金理由をOutboxイベントに記録する。
-    async fn refund(&self, id: Uuid, expected_version: i32, _reason: Option<String>) -> anyhow::Result<Payment> {
+    async fn refund(
+        &self,
+        id: Uuid,
+        expected_version: i32,
+        _reason: Option<String>,
+    ) -> anyhow::Result<Payment> {
         let mut payments = self.payments.write().await;
         let payment = payments
             .iter_mut()

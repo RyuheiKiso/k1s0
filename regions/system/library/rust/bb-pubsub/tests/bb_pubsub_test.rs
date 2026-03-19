@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // bb-pubsub の外部結合テスト。
 // InMemoryPubSub の publish/subscribe ラウンドトリップを検証する。
 

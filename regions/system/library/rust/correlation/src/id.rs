@@ -76,6 +76,7 @@ impl std::fmt::Display for TraceId {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

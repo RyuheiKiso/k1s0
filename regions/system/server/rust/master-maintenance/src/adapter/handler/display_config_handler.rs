@@ -62,10 +62,7 @@ pub async fn create_display_config(
         }),
     )
     .await;
-    Ok((
-        StatusCode::CREATED,
-        Json(config),
-    ))
+    Ok((StatusCode::CREATED, Json(config)))
 }
 
 pub async fn update_display_config(

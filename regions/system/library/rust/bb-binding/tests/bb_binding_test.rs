@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // bb-binding の外部結合テスト。
 // InMemoryInputBinding / InMemoryOutputBinding の動作を検証する。
 

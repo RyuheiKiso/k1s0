@@ -96,6 +96,7 @@ pub fn parse_proto_content(content: &str) -> Result<ProtoService, CodegenError> 
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

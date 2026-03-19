@@ -8,6 +8,7 @@
 //! - Baggage overwrite semantics
 //! - TraceContext edge cases not covered inline
 //! - inject_context / extract_context (lib.rs top-level API) integration
+#![allow(clippy::unwrap_used)]
 
 use k1s0_tracing::*;
 use std::collections::HashMap;

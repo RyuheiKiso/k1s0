@@ -73,9 +73,7 @@ impl k1s0_outbox::OutboxEventHandler for OrderOutboxHandler {
                     total_amount: json_i64(payload, "total_amount"),
                     currency: json_str(payload, "currency"),
                 };
-                self.publisher
-                    .publish_order_created(&domain_event)
-                    .await?;
+                self.publisher.publish_order_created(&domain_event).await?;
                 Ok(true)
             }
             // JSON payload から OrderUpdatedDomainEvent に変換して publish する
@@ -89,9 +87,7 @@ impl k1s0_outbox::OutboxEventHandler for OrderOutboxHandler {
                     total_amount: json_i64(payload, "total_amount"),
                     status: json_str(payload, "status"),
                 };
-                self.publisher
-                    .publish_order_updated(&domain_event)
-                    .await?;
+                self.publisher.publish_order_updated(&domain_event).await?;
                 Ok(true)
             }
             // JSON payload から OrderCancelledDomainEvent に変換して publish する

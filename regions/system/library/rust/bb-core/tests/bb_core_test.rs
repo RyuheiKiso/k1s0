@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // bb-core の外部結合テスト。
 // ComponentRegistry と ComponentConfig の動作を検証する。
 

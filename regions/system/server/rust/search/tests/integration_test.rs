@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // k1s0-search-server の router 初期化 smoke test。
 // healthz/readyz の疎通確認と、認証なしでの保護エンドポイントアクセスを検証する。
 // search サーバーは router() 関数を公開していないため、startup.rs と同様に手動構築する。

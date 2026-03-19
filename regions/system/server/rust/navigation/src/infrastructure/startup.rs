@@ -31,7 +31,8 @@ pub async fn run() -> anyhow::Result<()> {
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+    k1s0_telemetry::init_telemetry(&telemetry_cfg)
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
 
     // Config
 
@@ -57,18 +58,24 @@ pub async fn run() -> anyhow::Result<()> {
         k1s0_server_common::require_auth_state(
             "navigation-server",
             &cfg.app.environment,
-            cfg.auth.as_ref().map(|auth_cfg| -> anyhow::Result<_> {
-                info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier");
-                Ok(Arc::new(JwksNavigationTokenVerifier::new(Arc::new(
-                    k1s0_auth::JwksVerifier::new(
-                        &auth_cfg.jwks_url,
-                        &auth_cfg.issuer,
-                        &auth_cfg.audience,
-                        std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-                    )
-                    .context("JWKS 検証器の作成に失敗")?,
-                ))) as Arc<dyn usecase::get_navigation::NavigationTokenVerifier>)
-            }).transpose()?,
+            cfg.auth
+                .as_ref()
+                .map(|auth_cfg| -> anyhow::Result<_> {
+                    info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier");
+                    Ok(Arc::new(JwksNavigationTokenVerifier::new(Arc::new(
+                        k1s0_auth::JwksVerifier::new(
+                            &auth_cfg.jwks_url,
+                            &auth_cfg.issuer,
+                            &auth_cfg.audience,
+                            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+                        )
+                        .context("JWKS 検証器の作成に失敗")?,
+                    )))
+                        as Arc<
+                            dyn usecase::get_navigation::NavigationTokenVerifier,
+                        >)
+                })
+                .transpose()?,
         )?;
 
     // Use case

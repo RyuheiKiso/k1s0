@@ -4,6 +4,7 @@
 //! テスト対象: KafkaProducer による SagaEventPublisher::publish_saga_event の
 //! 実際のメッセージ送信。KafkaConfig のデシリアライズとインメモリプロデューサーの
 //! ユニットテストは src/infrastructure/kafka_producer.rs で実施済み。
+#![allow(clippy::unwrap_used)]
 
 #[cfg(test)]
 mod tests {

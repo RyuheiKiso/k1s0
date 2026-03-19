@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_dlq_client::{DlqClient, DlqStatus, ListDlqMessagesRequest};
 use wiremock::matchers::{method, path, path_regex, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};

@@ -13,13 +13,19 @@ pub struct Config {
     pub auth: Option<AuthConfig>,
     #[serde(default)]
     pub kafka: Option<KafkaConfig>,
+    /// DLQ 転送機能で使用予定。YAML から読み込むため Deserialize に必要。
     #[serde(default)]
+    #[allow(dead_code)]
     pub dlq_manager: Option<DlqManagerConfig>,
     #[serde(default)]
     pub cache: CacheConfig,
+    /// タイムアウト検出・クリーンアップ機能で使用予定。YAML から読み込むため Deserialize に必要。
     #[serde(default)]
+    #[allow(dead_code)]
     pub scheduler: Option<SchedulerConfig>,
+    /// アラート通知機能で使用予定。YAML から読み込むため Deserialize に必要。
     #[serde(default)]
+    #[allow(dead_code)]
     pub notification: Option<NotificationConfig>,
 }
 
@@ -51,7 +57,9 @@ fn default_environment() -> String {
 // サーバー設定。startup.rs でリスニングアドレス・ポートの取得に使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
+    /// startup.rs では現在 0.0.0.0 をハードコードしているが、将来的にはこの値を参照する。
     #[serde(default = "default_host")]
+    #[allow(dead_code)]
     pub host: String,
     #[serde(default = "default_port")]
     pub port: u16,
@@ -84,9 +92,13 @@ pub struct DatabaseConfig {
     pub ssl_mode: String,
     #[serde(default = "default_max_open_conns")]
     pub max_open_conns: u32,
+    /// コネクションプール設定。sqlx の idle 接続数上限として使用予定。
     #[serde(default = "default_max_idle_conns")]
+    #[allow(dead_code)]
     pub max_idle_conns: u32,
+    /// コネクション最大生存期間。sqlx の max_lifetime として使用予定。
     #[serde(default = "default_conn_max_lifetime")]
+    #[allow(dead_code)]
     pub conn_max_lifetime: String,
 }
 

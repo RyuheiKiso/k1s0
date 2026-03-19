@@ -137,9 +137,7 @@ fn resolve_workspace_path(workspace_root: &Path, path: &str) -> Result<PathBuf, 
     let canonical_root = workspace_root
         .canonicalize()
         .map_err(|e| format!("ワークスペースルートの正規化に失敗: {e}"))?;
-    let canonical_resolved = resolved
-        .canonicalize()
-        .unwrap_or_else(|_| resolved.clone());
+    let canonical_resolved = resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
 
     if !canonical_resolved.starts_with(&canonical_root) {
         return Err("パスがワークスペース外を参照しています".to_string());

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_vault_client::{
     InMemoryVaultClient, Secret, SecretRotatedEvent, VaultClient, VaultClientConfig, VaultError,
 };
@@ -426,7 +427,10 @@ async fn fetch_secrets_with_fallback_success() {
     let client = InMemoryVaultClient::new();
     client.put_secret(make_secret_with_data(
         "system/order/secrets",
-        &[("database.password", "vault-pw"), ("redis.password", "redis-pw")],
+        &[
+            ("database.password", "vault-pw"),
+            ("redis.password", "redis-pw"),
+        ],
     ));
 
     let result = fetch_secrets_with_fallback(

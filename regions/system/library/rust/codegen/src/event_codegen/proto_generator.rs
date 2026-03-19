@@ -57,6 +57,7 @@ fn event_to_pascal(name: &str) -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::event_codegen::parser::parse_event_config_str;

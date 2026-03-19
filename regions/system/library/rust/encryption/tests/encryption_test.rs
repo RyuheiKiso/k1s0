@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_encryption::{
     aes_decrypt, aes_encrypt, generate_aes_key, generate_rsa_key_pair, hash_password, rsa_decrypt,
     rsa_encrypt, verify_password, EncryptionError,

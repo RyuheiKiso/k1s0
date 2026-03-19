@@ -29,11 +29,7 @@ pub async fn record_audit_log(
     Json(req): Json<CreateAuditLogRequest>,
 ) -> impl IntoResponse {
     match state.record_audit_log_uc.execute(req).await {
-        Ok(response) => (
-            StatusCode::CREATED,
-            Json(response),
-        )
-            .into_response(),
+        Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
         Err(RecordAuditLogError::Validation(msg)) => {
             let err = ErrorResponse::new(codes::auth::audit_validation(), msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()

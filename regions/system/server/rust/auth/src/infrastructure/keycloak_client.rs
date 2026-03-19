@@ -183,12 +183,7 @@ impl UserRepository for KeycloakClient {
         let http = &self.http_client;
         let resp = self
             .circuit_breaker
-            .call(|| async {
-                http.get(&url)
-                    .bearer_auth(&token)
-                    .send()
-                    .await
-            })
+            .call(|| async { http.get(&url).bearer_auth(&token).send().await })
             .await
             .map_err(|e| anyhow::anyhow!("keycloak find_by_id failed: {}", e))?;
 
@@ -225,12 +220,7 @@ impl UserRepository for KeycloakClient {
         let http = &self.http_client;
         let resp = self
             .circuit_breaker
-            .call(|| async {
-                http.get(&url)
-                    .bearer_auth(&token)
-                    .send()
-                    .await
-            })
+            .call(|| async { http.get(&url).bearer_auth(&token).send().await })
             .await
             .map_err(|e| anyhow::anyhow!("keycloak list users failed: {}", e))?;
 
@@ -245,12 +235,7 @@ impl UserRepository for KeycloakClient {
         // サーキットブレーカーでユーザー数取得リクエストを保護する
         let count_resp = self
             .circuit_breaker
-            .call(|| async {
-                http.get(&count_url)
-                    .bearer_auth(&count_token)
-                    .send()
-                    .await
-            })
+            .call(|| async { http.get(&count_url).bearer_auth(&count_token).send().await })
             .await
             .map_err(|e| anyhow::anyhow!("keycloak user count failed: {}", e))?;
         let total_count: i64 = count_resp.error_for_status()?.json().await?;
@@ -281,12 +266,7 @@ impl UserRepository for KeycloakClient {
         let http = &self.http_client;
         let resp = self
             .circuit_breaker
-            .call(|| async {
-                http.get(&realm_url)
-                    .bearer_auth(&token)
-                    .send()
-                    .await
-            })
+            .call(|| async { http.get(&realm_url).bearer_auth(&token).send().await })
             .await
             .map_err(|e| anyhow::anyhow!("keycloak get_roles failed: {}", e))?;
 
@@ -394,7 +374,9 @@ mod tests {
         assert_eq!(user.username, "taro.yamada");
         assert!(user.enabled);
         assert_eq!(
-            user.attributes.get("department").expect("department attribute should exist"),
+            user.attributes
+                .get("department")
+                .expect("department attribute should exist"),
             &vec!["engineering".to_string()]
         );
     }
@@ -420,7 +402,8 @@ realm: "k1s0"
 client_id: "auth-server"
 client_secret: "secret"
 "#;
-        let config: KeycloakConfig = serde_yaml::from_str(yaml).expect("YAML deserialization should succeed");
+        let config: KeycloakConfig =
+            serde_yaml::from_str(yaml).expect("YAML deserialization should succeed");
         assert_eq!(config.base_url, "https://auth.k1s0.internal.example.com");
         assert_eq!(config.realm, "k1s0");
     }

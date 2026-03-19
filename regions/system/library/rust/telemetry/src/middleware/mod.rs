@@ -4,8 +4,16 @@ use crate::metrics::Metrics;
 
 /// 機密情報を含むクエリパラメータのキー一覧。
 const SENSITIVE_PARAMS: &[&str] = &[
-    "token", "key", "secret", "password", "api_key", "apikey",
-    "access_token", "refresh_token", "authorization", "credential",
+    "token",
+    "key",
+    "secret",
+    "password",
+    "api_key",
+    "apikey",
+    "access_token",
+    "refresh_token",
+    "authorization",
+    "credential",
 ];
 
 /// HTTP パスからセンシティブなクエリパラメータをマスクする。

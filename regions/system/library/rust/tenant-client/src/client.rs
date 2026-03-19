@@ -77,7 +77,10 @@ impl Default for InMemoryTenantClient {
 impl TenantClient for InMemoryTenantClient {
     async fn get_tenant(&self, tenant_id: &str) -> Result<Tenant, TenantError> {
         // テナントストアからの読み取りロックを取得する
-        let tenants = self.tenants.lock().expect("テナントストアの Mutex ロック取得");
+        let tenants = self
+            .tenants
+            .lock()
+            .expect("テナントストアの Mutex ロック取得");
         tenants
             .get(tenant_id)
             .cloned()
@@ -86,7 +89,10 @@ impl TenantClient for InMemoryTenantClient {
 
     async fn list_tenants(&self, filter: TenantFilter) -> Result<Vec<Tenant>, TenantError> {
         // テナントストアからの読み取りロックを取得する
-        let tenants = self.tenants.lock().expect("テナントストアの Mutex ロック取得");
+        let tenants = self
+            .tenants
+            .lock()
+            .expect("テナントストアの Mutex ロック取得");
         let result: Vec<Tenant> = tenants
             .values()
             .filter(|t| {
@@ -128,7 +134,10 @@ impl TenantClient for InMemoryTenantClient {
         };
         {
             // テナントストアへの書き込みロックを取得する
-            let mut tenants = self.tenants.lock().expect("テナントストアの Mutex ロック取得");
+            let mut tenants = self
+                .tenants
+                .lock()
+                .expect("テナントストアの Mutex ロック取得");
             tenants.insert(tenant.id.clone(), tenant.clone());
         }
         // Set provisioning status to Pending
@@ -146,7 +155,10 @@ impl TenantClient for InMemoryTenantClient {
         // Verify tenant exists
         {
             // テナント存在確認のため読み取りロックを取得する
-            let tenants = self.tenants.lock().expect("テナントストアの Mutex ロック取得");
+            let tenants = self
+                .tenants
+                .lock()
+                .expect("テナントストアの Mutex ロック取得");
             if !tenants.contains_key(tenant_id) {
                 return Err(TenantError::NotFound(tenant_id.to_string()));
             }

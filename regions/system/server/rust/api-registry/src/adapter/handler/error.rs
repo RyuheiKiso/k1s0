@@ -47,17 +47,13 @@ impl ApiError {
     }
 
     /// 409 最新バージョン削除不可エラーレスポンスを生成する
-    pub fn cannot_delete_latest(
-        message: impl Into<String>,
-    ) -> (StatusCode, Json<ErrorResponse>) {
+    pub fn cannot_delete_latest(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::cannot_delete_latest(), message);
         (StatusCode::CONFLICT, Json(err))
     }
 
     /// 422 スキーマ不正エラーレスポンスを生成する
-    pub fn unprocessable_entity(
-        message: impl Into<String>,
-    ) -> (StatusCode, Json<ErrorResponse>) {
+    pub fn unprocessable_entity(message: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
         let err = ErrorResponse::new(codes::api_registry::schema_invalid(), message);
         (StatusCode::UNPROCESSABLE_ENTITY, Json(err))
     }

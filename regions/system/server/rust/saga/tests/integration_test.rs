@@ -1,6 +1,7 @@
 //! REST API統合テスト（インメモリリポジトリ使用）
 //!
 //! dlq-manager の統合テストパターン（tower::ServiceExt + oneshot）を踏襲。
+#![allow(clippy::unwrap_used)]
 
 use std::sync::Arc;
 

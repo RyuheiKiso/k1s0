@@ -221,11 +221,7 @@ pub async fn create_app(
     };
 
     match state.create_app_uc.execute(input).await {
-        Ok(app) => (
-            StatusCode::CREATED,
-            Json(app),
-        )
-            .into_response(),
+        Ok(app) => (StatusCode::CREATED, Json(app)).into_response(),
         Err(crate::usecase::CreateAppError::ValidationError(msg)) => {
             let err = ErrorResponse::new("SYS_APPS_VALIDATION_ERROR", &msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()

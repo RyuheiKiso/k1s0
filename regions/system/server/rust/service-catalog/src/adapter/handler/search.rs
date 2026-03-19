@@ -42,11 +42,7 @@ pub async fn search_services(
     let tier = params.tier.and_then(|t| t.parse::<ServiceTier>().ok());
 
     match state.search_services_uc.execute(params.q, tags, tier).await {
-        Ok(services) => (
-            StatusCode::OK,
-            Json(services),
-        )
-            .into_response(),
+        Ok(services) => (StatusCode::OK, Json(services)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()

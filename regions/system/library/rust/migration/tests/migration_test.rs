@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_migration::{
     InMemoryMigrationRunner, MigrationConfig, MigrationError, MigrationFile, MigrationReport,
     MigrationRunner, MigrationStatus, PendingMigration,

@@ -14,10 +14,8 @@ use crate::event::OutboxEvent;
 pub trait OutboxEventSource: Send + Sync {
     /// 未パブリッシュのイベントを取得しパブリッシュ済みとしてマークする。
     /// FOR UPDATE SKIP LOCKED により並行ポーラー間の排他を保証する。
-    async fn fetch_and_mark_events_published(
-        &self,
-        limit: i64,
-    ) -> anyhow::Result<Vec<OutboxEvent>>;
+    async fn fetch_and_mark_events_published(&self, limit: i64)
+        -> anyhow::Result<Vec<OutboxEvent>>;
 }
 
 /// OutboxEventHandler はイベント種別ごとの変換・パブリッシュロジックを抽象化する。
@@ -38,10 +36,8 @@ pub trait OutboxEventHandler: Send + Sync {
 #[async_trait]
 pub trait OutboxEventFetcher: Send + Sync {
     /// 未パブリッシュのイベントを取得しパブリッシュ済みとしてマークする。
-    async fn fetch_and_mark_events_published(
-        &self,
-        limit: i64,
-    ) -> anyhow::Result<Vec<OutboxEvent>>;
+    async fn fetch_and_mark_events_published(&self, limit: i64)
+        -> anyhow::Result<Vec<OutboxEvent>>;
 }
 
 /// RepositoryOutboxSource は OutboxEventFetcher を OutboxEventSource にアダプトする。
@@ -172,7 +168,10 @@ impl OutboxEventPoller {
         // 単一トランザクション内で「未パブリッシュイベントの取得」と「パブリッシュ済みマーク」を
         // 同時に実行する。FOR UPDATE SKIP LOCKED により並行ポーラー間の排他を保証する。
         // マークがディスパッチ前に完了するため、at-most-once セマンティクスとなる。
-        let events = self.source.fetch_and_mark_events_published(self.batch_size).await?;
+        let events = self
+            .source
+            .fetch_and_mark_events_published(self.batch_size)
+            .await?;
 
         if events.is_empty() {
             return Ok(());
@@ -217,6 +216,7 @@ impl OutboxEventPoller {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use chrono::Utc;

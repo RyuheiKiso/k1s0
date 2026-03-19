@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use chrono::{TimeZone, Utc};
 
 use k1s0_validation::{

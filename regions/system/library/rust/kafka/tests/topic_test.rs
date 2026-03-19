@@ -2,6 +2,7 @@
 //!
 //! Validates topic naming conventions and TopicConfig defaults
 //! without requiring a running Kafka broker.
+#![allow(clippy::unwrap_used)]
 
 use k1s0_kafka::TopicConfig;
 

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_featureflag::{
     EvaluationContext, FeatureFlag, FeatureFlagClient, FeatureFlagError, FlagVariant,
     InMemoryFeatureFlagClient,

@@ -91,6 +91,7 @@ impl DistributedLock for InMemoryDistributedLock {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

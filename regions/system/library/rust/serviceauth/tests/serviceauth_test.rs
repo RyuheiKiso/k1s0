@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // serviceauth の外部結合テスト。
 // SpiffeId のパース、ServiceToken の動作、設定バリデーションを検証する。
 

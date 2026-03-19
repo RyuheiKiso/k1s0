@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_eventstore::{
     EventEnvelope, EventStore, InMemoryEventStore, InMemorySnapshotStore, Snapshot, SnapshotStore,
     StreamId,

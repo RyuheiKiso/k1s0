@@ -63,9 +63,7 @@ impl CachedTenantRepository {
     /// IDキャッシュとnameキャッシュの両方にテナントを格納する。
     async fn populate_caches(&self, tenant: &Tenant) {
         let arc_tenant = Arc::new(tenant.clone());
-        self.id_cache
-            .insert(tenant.id, arc_tenant.clone())
-            .await;
+        self.id_cache.insert(tenant.id, arc_tenant.clone()).await;
         self.name_cache
             .insert(tenant.name.clone(), arc_tenant)
             .await;
@@ -179,11 +177,10 @@ mod tests {
         let call_count_clone = call_count.clone();
 
         let mut mock = MockTenantRepository::new();
-        mock.expect_find_by_id()
-            .returning(move |_| {
-                call_count_clone.fetch_add(1, Ordering::SeqCst);
-                Ok(Some(tenant_clone.clone()))
-            });
+        mock.expect_find_by_id().returning(move |_| {
+            call_count_clone.fetch_add(1, Ordering::SeqCst);
+            Ok(Some(tenant_clone.clone()))
+        });
 
         let config = TenantCacheConfig {
             ttl_secs: 60,
@@ -192,13 +189,19 @@ mod tests {
         let cached_repo = CachedTenantRepository::new(Arc::new(mock), &config);
 
         // 1回目: キャッシュミス → DBアクセス
-        let result1 = cached_repo.find_by_id(&id).await.expect("find_by_id failed");
+        let result1 = cached_repo
+            .find_by_id(&id)
+            .await
+            .expect("find_by_id failed");
         assert!(result1.is_some());
         assert_eq!(result1.expect("should be some").name, "acme");
         assert_eq!(call_count.load(Ordering::SeqCst), 1);
 
         // 2回目: キャッシュヒット → DBアクセスなし
-        let result2 = cached_repo.find_by_id(&id).await.expect("find_by_id failed");
+        let result2 = cached_repo
+            .find_by_id(&id)
+            .await
+            .expect("find_by_id failed");
         assert!(result2.is_some());
         assert_eq!(call_count.load(Ordering::SeqCst), 1); // 呼び出し回数は増えない
     }
@@ -213,11 +216,10 @@ mod tests {
         let call_count_clone = call_count.clone();
 
         let mut mock = MockTenantRepository::new();
-        mock.expect_find_by_name()
-            .returning(move |_| {
-                call_count_clone.fetch_add(1, Ordering::SeqCst);
-                Ok(Some(tenant_clone.clone()))
-            });
+        mock.expect_find_by_name().returning(move |_| {
+            call_count_clone.fetch_add(1, Ordering::SeqCst);
+            Ok(Some(tenant_clone.clone()))
+        });
 
         let config = TenantCacheConfig {
             ttl_secs: 60,
@@ -226,12 +228,18 @@ mod tests {
         let cached_repo = CachedTenantRepository::new(Arc::new(mock), &config);
 
         // 1回目: キャッシュミス
-        let result1 = cached_repo.find_by_name("beta").await.expect("find_by_name failed");
+        let result1 = cached_repo
+            .find_by_name("beta")
+            .await
+            .expect("find_by_name failed");
         assert!(result1.is_some());
         assert_eq!(call_count.load(Ordering::SeqCst), 1);
 
         // 2回目: キャッシュヒット
-        let result2 = cached_repo.find_by_name("beta").await.expect("find_by_name failed");
+        let result2 = cached_repo
+            .find_by_name("beta")
+            .await
+            .expect("find_by_name failed");
         assert!(result2.is_some());
         assert_eq!(call_count.load(Ordering::SeqCst), 1);
     }
@@ -247,13 +255,11 @@ mod tests {
         let call_count_clone = call_count.clone();
 
         let mut mock = MockTenantRepository::new();
-        mock.expect_find_by_id()
-            .returning(move |_| {
-                call_count_clone.fetch_add(1, Ordering::SeqCst);
-                Ok(Some(tenant_clone.clone()))
-            });
-        mock.expect_create()
-            .returning(|_| Ok(()));
+        mock.expect_find_by_id().returning(move |_| {
+            call_count_clone.fetch_add(1, Ordering::SeqCst);
+            Ok(Some(tenant_clone.clone()))
+        });
+        mock.expect_create().returning(|_| Ok(()));
 
         let config = TenantCacheConfig {
             ttl_secs: 60,
@@ -266,7 +272,10 @@ mod tests {
         assert_eq!(call_count.load(Ordering::SeqCst), 1);
 
         // create でキャッシュが無効化される
-        cached_repo.create(&tenant_for_create).await.expect("create failed");
+        cached_repo
+            .create(&tenant_for_create)
+            .await
+            .expect("create failed");
 
         // 再取得時にDBアクセスが発生する（キャッシュ無効化の確認）
         let _ = cached_repo.find_by_id(&id).await;
@@ -284,13 +293,11 @@ mod tests {
         let call_count_clone = call_count.clone();
 
         let mut mock = MockTenantRepository::new();
-        mock.expect_find_by_id()
-            .returning(move |_| {
-                call_count_clone.fetch_add(1, Ordering::SeqCst);
-                Ok(Some(tenant_clone.clone()))
-            });
-        mock.expect_update()
-            .returning(|_| Ok(()));
+        mock.expect_find_by_id().returning(move |_| {
+            call_count_clone.fetch_add(1, Ordering::SeqCst);
+            Ok(Some(tenant_clone.clone()))
+        });
+        mock.expect_update().returning(|_| Ok(()));
 
         let config = TenantCacheConfig {
             ttl_secs: 60,
@@ -303,7 +310,10 @@ mod tests {
         assert_eq!(call_count.load(Ordering::SeqCst), 1);
 
         // update でキャッシュが無効化される
-        cached_repo.update(&tenant_for_update).await.expect("update failed");
+        cached_repo
+            .update(&tenant_for_update)
+            .await
+            .expect("update failed");
 
         // 再取得時にDBアクセスが発生する
         let _ = cached_repo.find_by_id(&id).await;

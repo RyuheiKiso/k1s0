@@ -860,11 +860,7 @@ impl QueryRoot {
             .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
 
-    async fn secrets(
-        &self,
-        ctx: &Context<'_>,
-        prefix: Option<String>,
-    ) -> FieldResult<Vec<String>> {
+    async fn secrets(&self, ctx: &Context<'_>, prefix: Option<String>) -> FieldResult<Vec<String>> {
         ensure_read_permission(ctx)?;
         self.vault_query
             .list_secrets(prefix.as_deref())

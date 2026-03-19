@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use async_trait::async_trait;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
@@ -409,14 +410,14 @@ impl ServiceCatalogClient for StubServiceCatalogClient {
         if let Some(st) = status {
             filtered.retain(|s| s.status == st);
         }
-        let total = filtered.len() as i32;
+        let total = filtered.len() as i64;
         let start = ((page - 1) * page_size) as usize;
         let page_services: Vec<CatalogService> = filtered
             .into_iter()
             .skip(start)
             .take(page_size as usize)
             .collect();
-        let has_next = (page * page_size) < total;
+        let has_next = i64::from(page * page_size) < total;
         Ok(CatalogServiceConnection {
             services: page_services,
             total_count: total,

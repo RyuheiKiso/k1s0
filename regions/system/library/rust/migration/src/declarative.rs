@@ -79,6 +79,7 @@ pub fn toml_to_create_sql(toml_str: &str) -> Result<String, MigrationError> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

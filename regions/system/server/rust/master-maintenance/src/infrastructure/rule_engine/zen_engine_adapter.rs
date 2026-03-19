@@ -36,10 +36,8 @@ impl RuleEngineService for ZenEngineAdapter {
             "custom" => {
                 let rule = rule.clone();
                 let record_data = record_data.clone();
-                tokio::task::spawn_blocking(move || {
-                    Self::evaluate_custom_rule(&rule, &record_data)
-                })
-                .await?
+                tokio::task::spawn_blocking(move || Self::evaluate_custom_rule(&rule, &record_data))
+                    .await?
             }
             _ => {
                 // カスタムルール以外はユースケース層で評価される

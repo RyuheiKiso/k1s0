@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_webhook_client::{
     generate_signature, verify_signature, WebhookConfig, WebhookError, WebhookPayload,
     IDEMPOTENCY_KEY_HEADER, SIGNATURE_HEADER,

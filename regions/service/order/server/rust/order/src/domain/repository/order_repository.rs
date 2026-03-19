@@ -50,8 +50,6 @@ pub trait OrderRepository: Send + Sync {
     /// パブリッシュ済みとしてマークする。
     /// FOR UPDATE SKIP LOCKED によるロックと mark を同一トランザクションで実行することで、
     /// 並行ポーラー間での重複処理を防止する。
-    async fn fetch_and_mark_events_published(
-        &self,
-        limit: i64,
-    ) -> anyhow::Result<Vec<OutboxEvent>>;
+    async fn fetch_and_mark_events_published(&self, limit: i64)
+        -> anyhow::Result<Vec<OutboxEvent>>;
 }

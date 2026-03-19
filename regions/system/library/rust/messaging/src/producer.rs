@@ -29,6 +29,7 @@ impl EventProducer for NoOpEventProducer {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::event::EventEnvelope;

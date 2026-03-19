@@ -208,7 +208,8 @@ pub fn validate_migration_name(name: &str) -> Result<(), String> {
     }
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
     let re = MIGRATION_NAME_RE.get_or_init(|| {
-        Regex::new(r"^[a-z0-9_]+$").expect("マイグレーション名バリデーション用の正規表現は静的に正しい")
+        Regex::new(r"^[a-z0-9_]+$")
+            .expect("マイグレーション名バリデーション用の正規表現は静的に正しい")
     });
     if !re.is_match(name) {
         return Err(

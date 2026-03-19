@@ -348,7 +348,10 @@ mod tests {
             .body(Body::empty())
             .expect("healthzリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.expect("healthzリクエストの送信に失敗");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("healthzリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
         // レスポンスボディを読み取り、JSONとしてパースする
@@ -374,7 +377,10 @@ mod tests {
             .body(Body::empty())
             .expect("readyzリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.expect("readyzリクエストの送信に失敗");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("readyzリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
         // レスポンスボディを読み取り、JSONとしてパースする

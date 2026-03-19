@@ -1,3 +1,5 @@
+import type {
+  TableColumnsType} from "antd";
 import {
   Alert,
   Button,
@@ -14,7 +16,6 @@ import {
   Row,
   Select,
   Space,
-  TableColumnsType,
   Switch,
   Table,
   Tag,
@@ -46,7 +47,8 @@ import {
 export function TableWorkbenchPage() {
   const { data, isLoading } = useTables();
   const createTable = useCreateTable();
-  const tables = data?.tables ?? [];
+  // テーブル一覧をメモ化してレンダーごとの参照変更を防止
+  const tables = useMemo(() => data?.tables ?? [], [data?.tables]);
   const [selectedTable, setSelectedTable] = useState<string>();
   const [tableDrawerOpen, setTableDrawerOpen] = useState(false);
   const [columnDrawerOpen, setColumnDrawerOpen] = useState(false);

@@ -8,11 +8,9 @@ use tonic::{Request, Response, Status};
 use crate::proto::k1s0::system::ai_agent::v1::{
     ai_agent_service_server::AiAgentService, CancelExecutionRequest as ProtoCancelExecutionRequest,
     CancelExecutionResponse as ProtoCancelExecutionResponse, ExecuteRequest as ProtoExecuteRequest,
-    ExecuteResponse as ProtoExecuteResponse,
-    ExecuteStreamRequest as ProtoExecuteStreamRequest,
-    ExecuteStreamResponse as ProtoExecuteStreamResponse,
-    ExecutionStep as ProtoExecutionStep, ReviewStepRequest as ProtoReviewStepRequest,
-    ReviewStepResponse as ProtoReviewStepResponse,
+    ExecuteResponse as ProtoExecuteResponse, ExecuteStreamRequest as ProtoExecuteStreamRequest,
+    ExecuteStreamResponse as ProtoExecuteStreamResponse, ExecutionStep as ProtoExecutionStep,
+    ReviewStepRequest as ProtoReviewStepRequest, ReviewStepResponse as ProtoReviewStepResponse,
 };
 
 use super::agent_grpc::{AiAgentGrpcService, GrpcError};

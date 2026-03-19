@@ -26,6 +26,7 @@ pub struct OutboxEvent {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

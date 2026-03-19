@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // router 初期化と基本エンドポイントの smoke test
 // featureflag サーバーの REST API ルーターが正しく構築され、
 // ヘルスチェックおよび認証ミドルウェアが期待どおり動作することを検証する。

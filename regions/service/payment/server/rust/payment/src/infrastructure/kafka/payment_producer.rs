@@ -139,10 +139,7 @@ impl PaymentEventPublisher for PaymentKafkaProducer {
     }
 
     // 決済失敗ドメインイベントをProto型に変換し、Protobuf エンコードして Kafka に publish する
-    async fn publish_payment_failed(
-        &self,
-        event: &PaymentFailedDomainEvent,
-    ) -> anyhow::Result<()> {
+    async fn publish_payment_failed(&self, event: &PaymentFailedDomainEvent) -> anyhow::Result<()> {
         let proto_event = PaymentFailedEvent {
             metadata: convert_metadata(&event.metadata),
             payment_id: event.payment_id.clone(),

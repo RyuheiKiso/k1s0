@@ -6,6 +6,7 @@
 //! - Validation boundary conditions not covered inline (database, redis, grpc constraints)
 //! - ConfigError Display formatting
 //! - End-to-end load + merge + validate workflows
+#![allow(clippy::unwrap_used)]
 
 use k1s0_config::*;
 use std::io::Write;

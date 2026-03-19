@@ -311,13 +311,17 @@ mod tests {
             .body(Body::empty())
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("request build should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("request build should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
         assert_eq!(json["status"], "ok");
     }
 
@@ -343,13 +347,17 @@ mod tests {
             .body(Body::empty())
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("request build should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("request build should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
         assert_eq!(json["status"], "ready");
         assert_eq!(json["checks"]["database"], "ok");
     }
@@ -364,7 +372,10 @@ mod tests {
             .body(Body::empty())
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::OK);
     }
 
@@ -384,13 +395,17 @@ mod tests {
             .body(Body::empty())
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("request build should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("request build should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
         assert_eq!(json["namespace"], "system.auth.database");
         assert_eq!(json["key"], "max_connections");
         assert_eq!(json["value"], 25);
@@ -411,13 +426,17 @@ mod tests {
             .body(Body::empty())
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("request build should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("request build should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
         assert_eq!(json["error"]["code"], "SYS_CONFIG_KEY_NOT_FOUND");
     }
 
@@ -456,14 +475,24 @@ mod tests {
             .body(Body::empty())
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("request build should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("request build should succeed");
-        assert_eq!(json["entries"].as_array().expect("entries should be an array").len(), 1);
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
+        assert_eq!(
+            json["entries"]
+                .as_array()
+                .expect("entries should be an array")
+                .len(),
+            1
+        );
         assert_eq!(json["pagination"]["total_count"], 1);
     }
 
@@ -501,13 +530,17 @@ mod tests {
             ))
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("request build should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("request build should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
         assert_eq!(json["value"], 50);
         assert_eq!(json["version"], 4);
     }
@@ -534,13 +567,17 @@ mod tests {
             .body(Body::from(r#"{"value":50,"version":3}"#))
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::CONFLICT);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("request build should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("request build should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
         assert_eq!(json["error"]["code"], "SYS_CONFIG_VERSION_CONFLICT");
     }
 
@@ -564,7 +601,10 @@ mod tests {
             .body(Body::empty())
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::NO_CONTENT);
     }
 
@@ -584,13 +624,17 @@ mod tests {
             .body(Body::empty())
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("request build should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("request build should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
         assert_eq!(json["error"]["code"], "SYS_CONFIG_KEY_NOT_FOUND");
     }
 
@@ -627,15 +671,25 @@ mod tests {
             .body(Body::empty())
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("request build should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("request build should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
         assert_eq!(json["service_name"], "auth-server");
-        assert_eq!(json["entries"].as_array().expect("entries should be an array").len(), 2);
+        assert_eq!(
+            json["entries"]
+                .as_array()
+                .expect("entries should be an array")
+                .len(),
+            2
+        );
     }
 
     #[tokio::test]
@@ -655,13 +709,17 @@ mod tests {
             .body(Body::empty())
             .expect("request build should succeed");
 
-        let resp = app.oneshot(req).await.expect("request build should succeed");
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("request build should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("request build should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
         assert_eq!(json["error"]["code"], "SYS_CONFIG_SERVICE_NOT_FOUND");
     }
 }

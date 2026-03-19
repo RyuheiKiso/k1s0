@@ -39,6 +39,7 @@ impl AuditClient for BufferedAuditClient {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use serde_json::json;

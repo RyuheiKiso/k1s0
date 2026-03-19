@@ -320,7 +320,10 @@ mod tests {
         let req = ValidateTokenRequest {
             token: "valid-token".to_string(),
         };
-        let resp = svc.validate_token(req).await.expect("validate_token should succeed");
+        let resp = svc
+            .validate_token(req)
+            .await
+            .expect("validate_token should succeed");
 
         assert!(resp.valid);
         let proto_claims = resp.claims.expect("claims should be present");
@@ -342,7 +345,10 @@ mod tests {
         let req = ValidateTokenRequest {
             token: "invalid-token".to_string(),
         };
-        let resp = svc.validate_token(req).await.expect("validate_token should succeed");
+        let resp = svc
+            .validate_token(req)
+            .await
+            .expect("validate_token should succeed");
 
         assert!(!resp.valid);
         assert!(resp.claims.is_none());
@@ -361,7 +367,10 @@ mod tests {
         let req = ValidateTokenRequest {
             token: "".to_string(),
         };
-        let resp = svc.validate_token(req).await.expect("validate_token should succeed");
+        let resp = svc
+            .validate_token(req)
+            .await
+            .expect("validate_token should succeed");
 
         assert!(!resp.valid);
         assert!(!resp.error_message.is_empty());
@@ -493,7 +502,10 @@ mod tests {
             search: String::new(),
             enabled: None,
         };
-        let resp = svc.list_users(req).await.expect("list_users should succeed");
+        let resp = svc
+            .list_users(req)
+            .await
+            .expect("list_users should succeed");
 
         assert_eq!(resp.users.len(), 1);
         assert_eq!(resp.users[0].id, "user-1");
@@ -558,7 +570,10 @@ mod tests {
         let req = GetUserRolesRequest {
             user_id: "user-uuid-1234".to_string(),
         };
-        let resp = svc.get_user_roles(req).await.expect("get_user_roles should succeed");
+        let resp = svc
+            .get_user_roles(req)
+            .await
+            .expect("get_user_roles should succeed");
 
         assert_eq!(resp.user_id, "user-uuid-1234");
         assert_eq!(resp.realm_roles.len(), 2);
@@ -580,7 +595,10 @@ mod tests {
             resource: "users".to_string(),
             roles: vec!["sys_admin".to_string()],
         };
-        let resp = svc.check_permission(req).await.expect("check_permission should succeed");
+        let resp = svc
+            .check_permission(req)
+            .await
+            .expect("check_permission should succeed");
 
         assert!(resp.allowed);
         assert!(resp.reason.is_empty());
@@ -598,7 +616,10 @@ mod tests {
             resource: "users".to_string(),
             roles: vec!["user".to_string()],
         };
-        let resp = svc.check_permission(req).await.expect("check_permission should succeed");
+        let resp = svc
+            .check_permission(req)
+            .await
+            .expect("check_permission should succeed");
 
         assert!(!resp.allowed);
         assert!(resp.reason.contains("insufficient permissions"));
@@ -630,7 +651,10 @@ mod tests {
             resource: "users".to_string(),
             roles: vec!["user".to_string()],
         };
-        let resp = svc.check_permission(req).await.expect("check_permission should succeed");
+        let resp = svc
+            .check_permission(req)
+            .await
+            .expect("check_permission should succeed");
 
         assert!(resp.allowed);
     }

@@ -52,9 +52,11 @@ impl RecoverSagasUseCase {
                 Ok(Some(workflow)) => {
                     let execute_uc = self.execute_saga_uc.clone();
                     // セマフォの許可を取得してから非同期タスクを起動する
-                    let permit = semaphore.clone().acquire_owned().await.map_err(|e| {
-                        anyhow::anyhow!("semaphore closed unexpectedly: {}", e)
-                    })?;
+                    let permit = semaphore
+                        .clone()
+                        .acquire_owned()
+                        .await
+                        .map_err(|e| anyhow::anyhow!("semaphore closed unexpectedly: {}", e))?;
                     tokio::spawn(async move {
                         info!(saga_id = %saga_id, workflow = %workflow_name, "resuming saga");
                         if let Err(e) = execute_uc.run(saga_id, &workflow).await {

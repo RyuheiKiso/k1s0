@@ -1,6 +1,6 @@
 # === Build Stage ===
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO: ダイジェスト固定 - docker pull golang:1.24-bookworm && docker inspect --format="{{index .RepoDigests 0}}" golang:1.24-bookworm
+# TODO: ダイジェスト固定 - docker pull golang:1.24-bookworm && docker inspect --format="{% raw %}{{index .RepoDigests 0}}{% endraw %}" golang:1.24-bookworm
 FROM golang:1.24-bookworm AS builder
 
 WORKDIR /app
@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /app/server 
 
 # === Runtime Stage ===
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO: ダイジェスト固定 - docker pull gcr.io/distroless/static-debian12 && docker inspect --format="{{index .RepoDigests 0}}" gcr.io/distroless/static-debian12
+# TODO: ダイジェスト固定 - docker pull gcr.io/distroless/static-debian12 && docker inspect --format="{% raw %}{{index .RepoDigests 0}}{% endraw %}" gcr.io/distroless/static-debian12
 FROM gcr.io/distroless/static-debian12
 
 COPY --from=builder /app/server /server

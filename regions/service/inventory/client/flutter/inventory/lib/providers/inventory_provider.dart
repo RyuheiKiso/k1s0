@@ -20,15 +20,19 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   return InventoryRepository(ref.watch(dioProvider));
 });
 
-/// 在庫一覧の状態を管理するStateNotifier
+/// 在庫一覧の状態を管理するNotifier
 /// 在庫操作（引当・引当解除・更新）とローディング/エラー状態を統一的に管理する
-class InventoryListNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
-  final InventoryRepository _repository;
-
-  InventoryListNotifier(this._repository) : super(const AsyncValue.loading()) {
+class InventoryListNotifier extends Notifier<AsyncValue<List<InventoryItem>>> {
+  @override
+  AsyncValue<List<InventoryItem>> build() {
     /// 初期化時に在庫一覧を自動取得する
     load();
+    return const AsyncValue.loading();
   }
+
+  /// リポジトリをrefから取得するヘルパー
+  InventoryRepository get _repository =>
+      ref.read(inventoryRepositoryProvider);
 
   /// 在庫一覧をサーバーから取得する
   Future<void> load() async {
@@ -61,8 +65,8 @@ class InventoryListNotifier extends StateNotifier<AsyncValue<List<InventoryItem>
 }
 
 /// 在庫一覧のProvider
-/// StateNotifierProviderを使用して状態管理を行う
+/// NotifierProviderを使用して状態管理を行う
 final inventoryListProvider =
-    StateNotifierProvider<InventoryListNotifier, AsyncValue<List<InventoryItem>>>(
-  (ref) => InventoryListNotifier(ref.watch(inventoryRepositoryProvider)),
+    NotifierProvider<InventoryListNotifier, AsyncValue<List<InventoryItem>>>(
+  InventoryListNotifier.new,
 );

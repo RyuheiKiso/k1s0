@@ -131,7 +131,6 @@ impl KafkaPolicyProducer {
         self.metrics = Some(metrics);
         self
     }
-
 }
 
 #[async_trait]

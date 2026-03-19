@@ -27,7 +27,8 @@ export function RelationshipMapPage() {
   const createRelationship = useCreateRelationship();
   const deleteRelationship = useDeleteRelationship();
   const updateRelationship = useUpdateRelationship();
-  const tables = data?.tables ?? [];
+  // テーブル一覧をメモ化してレンダーごとの参照変更を防止
+  const tables = useMemo(() => data?.tables ?? [], [data?.tables]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingRelationship, setEditingRelationship] = useState<TableRelationship | null>(null);
   const [form] = Form.useForm();

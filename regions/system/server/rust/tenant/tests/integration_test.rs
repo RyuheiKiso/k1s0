@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // テナントサーバーの統合テスト
 // router 初期化の smoke test として、ヘルスチェックと認証なしアクセスを検証する
 

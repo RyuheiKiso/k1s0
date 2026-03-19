@@ -266,9 +266,7 @@ pub fn scan_kafka_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Ve
 
     // パブリッシャーとサブスクライバーをマッチさせて依存関係を構築
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
-    let topic_re = Some(
-        TOPIC_RE.get_or_init(|| Regex::new(r"k1s0\.(\w+)\.(\w[\w-]*)\.").unwrap()),
-    );
+    let topic_re = Some(TOPIC_RE.get_or_init(|| Regex::new(r"k1s0\.(\w+)\.(\w[\w-]*)\.").unwrap()));
 
     for (topic, subscribers) in &topic_subscribers {
         for subscriber in subscribers {
@@ -480,8 +478,8 @@ pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> 
 
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
     let cargo_re = CARGO_LIB_RE.get_or_init(|| Regex::new(r"k1s0-([\w-]+)").unwrap());
-    let gomod_re =
-        GOMOD_LIB_RE.get_or_init(|| Regex::new(r"k1s0/regions/system/library/go/([\w-]+)").unwrap());
+    let gomod_re = GOMOD_LIB_RE
+        .get_or_init(|| Regex::new(r"k1s0/regions/system/library/go/([\w-]+)").unwrap());
     let npm_re = NPM_LIB_RE.get_or_init(|| Regex::new(r"@k1s0/([\w-]+)").unwrap());
     let dart_re = DART_LIB_RE.get_or_init(|| Regex::new(r"k1s0_([\w]+)").unwrap());
 

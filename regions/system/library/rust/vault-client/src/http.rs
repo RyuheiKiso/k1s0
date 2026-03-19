@@ -104,11 +104,7 @@ impl VaultClient for HttpVaultClient {
         let http = &self.http;
         let resp = self
             .circuit_breaker
-            .call(|| async {
-                http.get(&url)
-                    .send()
-                    .await
-            })
+            .call(|| async { http.get(&url).send().await })
             .await
             .map_err(|e| self.handle_connection_error(format!("circuit breaker: {}", e)))?;
 
@@ -157,11 +153,7 @@ impl VaultClient for HttpVaultClient {
         let http = &self.http;
         let resp = self
             .circuit_breaker
-            .call(|| async {
-                http.get(&url)
-                    .send()
-                    .await
-            })
+            .call(|| async { http.get(&url).send().await })
             .await
             .map_err(|e| self.handle_connection_error(format!("circuit breaker: {}", e)))?;
 

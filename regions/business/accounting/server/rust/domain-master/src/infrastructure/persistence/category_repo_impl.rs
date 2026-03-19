@@ -135,10 +135,7 @@ impl CategoryPostgresRepository {
     }
 
     /// カテゴリを削除する。任意の sqlx Executor を受け取る。
-    pub async fn delete_with_executor<'e, E>(
-        executor: E,
-        code: &str,
-    ) -> anyhow::Result<()>
+    pub async fn delete_with_executor<'e, E>(executor: E, code: &str) -> anyhow::Result<()>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {

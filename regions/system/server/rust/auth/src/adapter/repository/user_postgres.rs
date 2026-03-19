@@ -74,6 +74,9 @@ pub struct UserRow {
     pub display_name: String,
     pub status: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    /// DB テーブルの updated_at カラムに対応。sqlx::FromRow で SELECT 時に必要だが、
+    /// User ドメインモデルへの変換では使用しないため dead_code を許可する。
+    #[allow(dead_code)]
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 

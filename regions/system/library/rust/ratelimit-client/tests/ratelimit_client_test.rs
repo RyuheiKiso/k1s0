@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_ratelimit_client::{
     InMemoryRateLimitClient, RateLimitClient, RateLimitError, RateLimitPolicy,
 };

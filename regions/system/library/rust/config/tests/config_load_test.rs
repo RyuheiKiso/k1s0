@@ -5,6 +5,7 @@
 //! - Multi-layer overlay scenarios
 //! - Validation of valid full configs with all optional sections
 //! - Edge cases in env overlay + vault secret merging combined
+#![allow(clippy::unwrap_used)]
 
 use k1s0_config::*;
 use std::collections::HashMap;

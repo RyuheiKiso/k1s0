@@ -4,7 +4,6 @@ use axum::Json;
 
 use k1s0_server_common::error as codes;
 // server-common の統一 ErrorResponse / ErrorDetail を使用する
-use k1s0_server_common::{ErrorDetail, ErrorResponse};
 use crate::usecase::delete_config::DeleteConfigError;
 use crate::usecase::get_config::GetConfigError;
 use crate::usecase::get_config_schema::GetConfigSchemaError;
@@ -13,6 +12,7 @@ use crate::usecase::list_config_schemas::ListConfigSchemasError;
 use crate::usecase::list_configs::ListConfigsError;
 use crate::usecase::update_config::UpdateConfigError;
 use crate::usecase::upsert_config_schema::UpsertConfigSchemaError;
+use k1s0_server_common::{ErrorDetail, ErrorResponse};
 
 /// GetConfigError を HTTP レスポンスに変換する。
 impl IntoResponse for GetConfigError {
@@ -179,7 +179,8 @@ mod tests {
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .expect("test operation should succeed");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("test operation should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("test operation should succeed");
         (status, json)
     }
 
@@ -204,7 +205,10 @@ mod tests {
 
         assert_eq!(status, StatusCode::CONFLICT);
         assert_eq!(json["error"]["code"], "SYS_CONFIG_VERSION_CONFLICT");
-        assert!(!json["error"]["details"].as_array().expect("details should be an array").is_empty());
+        assert!(!json["error"]["details"]
+            .as_array()
+            .expect("details should be an array")
+            .is_empty());
     }
 
     #[tokio::test]

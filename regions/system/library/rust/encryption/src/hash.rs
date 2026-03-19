@@ -28,6 +28,7 @@ pub fn verify_password(password: &str, hash: &str) -> Result<bool, EncryptionErr
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

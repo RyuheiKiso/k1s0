@@ -79,7 +79,11 @@ impl DlqService for DlqServiceTonic {
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
-        let page = if pagination.page < 1 { 1 } else { pagination.page };
+        let page = if pagination.page < 1 {
+            1
+        } else {
+            pagination.page
+        };
         let page_size = if pagination.page_size < 1 {
             20
         } else {

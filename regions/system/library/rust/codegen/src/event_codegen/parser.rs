@@ -22,6 +22,7 @@ pub fn parse_event_config_str(yaml: &str) -> Result<EventConfig, CodegenError> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

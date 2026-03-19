@@ -136,11 +136,7 @@ pub async fn create_policy(
     match state.create_policy_uc.execute(&input).await {
         Ok(policy) => {
             let resp = PolicyResponse::from(policy);
-            (
-                StatusCode::CREATED,
-                Json(resp),
-            )
-                .into_response()
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(crate::usecase::create_policy::CreatePolicyError::AlreadyExists(name)) => {
             let err = ErrorResponse::new(
@@ -321,11 +317,7 @@ pub async fn create_bundle(
     match state.create_bundle_uc.execute(&input).await {
         Ok(bundle) => {
             let resp = BundleResponse::from(bundle);
-            (
-                StatusCode::CREATED,
-                Json(resp),
-            )
-                .into_response()
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(e) => {
             let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());

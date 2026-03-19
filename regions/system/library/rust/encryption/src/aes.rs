@@ -54,6 +54,7 @@ pub fn aes_decrypt(key: &[u8; 32], ciphertext: &str) -> Result<Vec<u8>, Encrypti
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

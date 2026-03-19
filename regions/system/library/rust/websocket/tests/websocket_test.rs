@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_websocket::{
     CloseFrame, ConnectionState, InMemoryWsClient, WsClient, WsConfig, WsError, WsMessage,
 };

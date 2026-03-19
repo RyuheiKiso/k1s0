@@ -41,8 +41,9 @@ impl KafkaJobCompletedSubscriber {
             .payload()
             .ok_or_else(|| SchedulerError::ServerError("kafka payload is empty".to_string()))?;
 
-        let event = serde_json::from_slice::<JobCompletedEvent>(payload)
-            .map_err(|e| SchedulerError::ServerError(format!("kafka payload decode failed: {e}")))?;
+        let event = serde_json::from_slice::<JobCompletedEvent>(payload).map_err(|e| {
+            SchedulerError::ServerError(format!("kafka payload decode failed: {e}"))
+        })?;
 
         // 処理成功後にオフセットを手動コミットする
         self.consumer

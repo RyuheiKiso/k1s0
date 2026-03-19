@@ -7,6 +7,7 @@
 //! このファイルは外部テストから InMemorySagaRepository + NoOpGrpcCaller を使った
 //! エンドツーエンドのワークフロー実行テストの追加先として残している。
 //! REST API 経由の統合テストは tests/integration_test.rs を参照。
+#![allow(clippy::unwrap_used)]
 
 #[cfg(test)]
 mod tests {

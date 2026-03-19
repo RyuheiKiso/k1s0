@@ -71,11 +71,7 @@ pub async fn get_team_services(
     };
 
     match state.list_services_uc.execute(filters).await {
-        Ok(services) => (
-            StatusCode::OK,
-            Json(services),
-        )
-            .into_response(),
+        Ok(services) => (StatusCode::OK, Json(services)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
@@ -114,11 +110,7 @@ pub async fn create_team(
     };
 
     match state.create_team_uc.execute(input).await {
-        Ok(team) => (
-            StatusCode::CREATED,
-            Json(team),
-        )
-            .into_response(),
+        Ok(team) => (StatusCode::CREATED, Json(team)).into_response(),
         Err(CreateTeamError::Validation(msg)) => {
             let err = ErrorResponse::new("SYS_SCAT_004", msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()

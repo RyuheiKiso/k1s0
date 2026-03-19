@@ -1,14 +1,12 @@
+#![allow(clippy::unwrap_used)]
 // GraphQL Gateway のスキーマレベルテスト。
 // ドメインモデルの構築、カーソルのエンコード・デコード、
 // エラー型の変換を検証する。
 
 use k1s0_graphql_gateway_server::domain::error::GraphqlGatewayError;
 use k1s0_graphql_gateway_server::domain::model::{
-    decode_cursor, encode_cursor, CatalogService, ConfigEntry, FeatureFlag, Job, JobExecution,
-    Navigation, NavigationRoute, NotificationChannel, NotificationLog, NotificationTemplate,
-    PageInfo, SecretMetadata, Session, SessionStatus, Tenant, TenantConnection, TenantEdge,
-    TenantStatus, VaultAuditLogEntry, WorkflowDefinition, WorkflowInstance, WorkflowStep,
-    WorkflowTask,
+    decode_cursor, encode_cursor, ConfigEntry, FeatureFlag, PageInfo, Session, SessionStatus,
+    Tenant, TenantConnection, TenantEdge, TenantStatus,
 };
 use k1s0_server_common::error::ServiceError;
 
@@ -54,7 +52,10 @@ fn test_cursor_decode_non_numeric() {
 #[test]
 fn test_tenant_status_from_string() {
     // 既知のステータス文字列が正しく変換されることを検証
-    assert_eq!(TenantStatus::from("ACTIVE".to_string()), TenantStatus::Active);
+    assert_eq!(
+        TenantStatus::from("ACTIVE".to_string()),
+        TenantStatus::Active
+    );
     assert_eq!(
         TenantStatus::from("SUSPENDED".to_string()),
         TenantStatus::Suspended
@@ -122,16 +123,12 @@ fn test_tenant_connection_construction() {
 fn test_config_entry_construction() {
     // ConfigEntry ドメインモデルが正しく構築できることを検証
     let entry = ConfigEntry {
-        namespace: "app".to_string(),
-        key: "feature.enabled".to_string(),
+        key: "app/feature.enabled".to_string(),
         value: "true".to_string(),
-        value_type: "bool".to_string(),
-        description: "Feature toggle".to_string(),
-        version: 1,
         updated_at: "2024-01-01T00:00:00Z".to_string(),
     };
-    assert_eq!(entry.namespace, "app");
-    assert_eq!(entry.key, "feature.enabled");
+    assert_eq!(entry.key, "app/feature.enabled");
+    assert_eq!(entry.value, "true");
 }
 
 #[test]
@@ -139,10 +136,10 @@ fn test_feature_flag_construction() {
     // FeatureFlag ドメインモデルが正しく構築できることを検証
     let flag = FeatureFlag {
         key: "dark-mode".to_string(),
+        name: "Dark mode toggle".to_string(),
         enabled: true,
-        description: "Dark mode toggle".to_string(),
-        environment: "production".to_string(),
-        updated_at: "2024-01-01T00:00:00Z".to_string(),
+        rollout_percentage: 100,
+        target_environments: vec!["production".to_string()],
     };
     assert_eq!(flag.key, "dark-mode");
     assert!(flag.enabled);
@@ -152,16 +149,19 @@ fn test_feature_flag_construction() {
 fn test_session_status_construction() {
     // Session モデルが正しく構築できることを検証
     let session = Session {
-        id: "sess-001".to_string(),
+        session_id: "sess-001".to_string(),
         user_id: "user-001".to_string(),
+        device_id: "device-001".to_string(),
+        device_name: Some("Test Device".to_string()),
+        device_type: Some("desktop".to_string()),
+        user_agent: Some("test-agent".to_string()),
+        ip_address: Some("127.0.0.1".to_string()),
         status: SessionStatus::Active,
-        ip_address: "127.0.0.1".to_string(),
-        user_agent: "test-agent".to_string(),
-        created_at: "2024-01-01T00:00:00Z".to_string(),
         expires_at: "2024-01-02T00:00:00Z".to_string(),
-        last_activity_at: "2024-01-01T12:00:00Z".to_string(),
+        created_at: "2024-01-01T00:00:00Z".to_string(),
+        last_accessed_at: Some("2024-01-01T12:00:00Z".to_string()),
     };
-    assert_eq!(session.id, "sess-001");
+    assert_eq!(session.session_id, "sess-001");
 }
 
 // --- エラー型変換テスト ---
