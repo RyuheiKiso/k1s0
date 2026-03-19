@@ -65,6 +65,7 @@ impl Default for InMemorySearchClient {
 
 #[async_trait]
 #[cfg(any(test, feature = "test-utils"))]
+#[allow(clippy::unwrap_used)]
 impl SearchClient for InMemorySearchClient {
     async fn index_document(
         &self,

@@ -10,7 +10,6 @@ use crate::domain::repository::NotificationLogRepository;
 use crate::domain::repository::NotificationTemplateRepository;
 use crate::domain::service::DeliveryClient;
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 use crate::domain::service::DeliveryError;
 use crate::infrastructure::kafka_producer::{
     NoopNotificationEventPublisher, NotificationEventPublisher,

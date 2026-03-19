@@ -16,10 +16,10 @@ CREATE TABLE IF NOT EXISTS master_maintenance.table_definitions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_table_definitions_category
+CREATE INDEX IF NOT EXISTS idx_table_definitions_category
     ON master_maintenance.table_definitions(category);
 
-CREATE INDEX idx_table_definitions_active
+CREATE INDEX IF NOT EXISTS idx_table_definitions_active
     ON master_maintenance.table_definitions(is_active);
 
 CREATE TABLE IF NOT EXISTS master_maintenance.column_definitions (
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS master_maintenance.column_definitions (
     CONSTRAINT uq_column_definitions_table_column UNIQUE (table_id, column_name)
 );
 
-CREATE INDEX idx_column_definitions_table
+CREATE INDEX IF NOT EXISTS idx_column_definitions_table
     ON master_maintenance.column_definitions(table_id);
 
 CREATE TABLE IF NOT EXISTS master_maintenance.table_relationships (
@@ -65,10 +65,10 @@ CREATE TABLE IF NOT EXISTS master_maintenance.table_relationships (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_table_relationships_source
+CREATE INDEX IF NOT EXISTS idx_table_relationships_source
     ON master_maintenance.table_relationships(source_table_id);
 
-CREATE INDEX idx_table_relationships_target
+CREATE INDEX IF NOT EXISTS idx_table_relationships_target
     ON master_maintenance.table_relationships(target_table_id);
 
 CREATE TABLE IF NOT EXISTS master_maintenance.consistency_rules (
@@ -87,10 +87,10 @@ CREATE TABLE IF NOT EXISTS master_maintenance.consistency_rules (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_consistency_rules_source_table
+CREATE INDEX IF NOT EXISTS idx_consistency_rules_source_table
     ON master_maintenance.consistency_rules(source_table_id);
 
-CREATE INDEX idx_consistency_rules_active
+CREATE INDEX IF NOT EXISTS idx_consistency_rules_active
     ON master_maintenance.consistency_rules(is_active);
 
 CREATE TABLE IF NOT EXISTS master_maintenance.rule_conditions (
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS master_maintenance.rule_conditions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_rule_conditions_rule
+CREATE INDEX IF NOT EXISTS idx_rule_conditions_rule
     ON master_maintenance.rule_conditions(rule_id, condition_order);
 
 CREATE TABLE IF NOT EXISTS master_maintenance.display_configs (
@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS master_maintenance.display_configs (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_display_configs_table
+CREATE INDEX IF NOT EXISTS idx_display_configs_table
     ON master_maintenance.display_configs(table_id);
 
 CREATE TABLE IF NOT EXISTS master_maintenance.change_logs (
@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS master_maintenance.change_logs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_change_logs_table
+CREATE INDEX IF NOT EXISTS idx_change_logs_table
     ON master_maintenance.change_logs(target_table, created_at DESC);
 
 CREATE INDEX idx_change_logs_record

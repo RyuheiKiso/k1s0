@@ -69,6 +69,9 @@ void main() {
       ),
     );
 
+    /// Dioの非同期タイマーを消化し、ペンディングタイマーエラーを防ぐ
+    await tester.pumpAndSettle();
+
     /// アプリタイトル「注文一覧」がAppBarに表示されていることを検証する
     expect(find.text('注文一覧'), findsOneWidget);
   });

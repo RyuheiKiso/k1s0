@@ -69,6 +69,9 @@ void main() {
       ),
     );
 
+    /// Dioの非同期タイマーを消化し、ペンディングタイマーエラーを防ぐ
+    await tester.pumpAndSettle();
+
     /// アプリタイトル「決済管理」がAppBarに表示されていることを検証する
     /// （画面タイトルは PaymentListScreen で「決済管理」と定義されている）
     expect(find.text('決済管理'), findsOneWidget);
