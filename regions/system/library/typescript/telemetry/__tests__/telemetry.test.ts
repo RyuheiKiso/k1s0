@@ -1,40 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// @opentelemetry/sdk-node と @opentelemetry/exporter-trace-otlp-grpc は
-// テスト環境では外部依存となるためモックする。
-vi.mock('@opentelemetry/sdk-node', () => {
-  const mockShutdown = vi.fn().mockResolvedValue(undefined);
-  const mockStart = vi.fn();
-  return {
-    NodeSDK: vi.fn().mockImplementation(() => ({
-      start: mockStart,
-      shutdown: mockShutdown,
-    })),
-  };
-});
-
-vi.mock('@opentelemetry/exporter-trace-otlp-grpc', () => ({
-  OTLPTraceExporter: vi.fn().mockImplementation(() => ({})),
+// @opentelemetry/sdk-node のモック: function式でnewに対応
+vi.mock('@opentelemetry/sdk-node', () => ({
+  NodeSDK: vi.fn().mockImplementation(function () {
+    return {
+      start: vi.fn(),
+      shutdown: vi.fn().mockResolvedValue(undefined),
+    };
+  }),
 }));
 
+// OTLPTraceExporterのモック: function式でnewに対応
+vi.mock('@opentelemetry/exporter-trace-otlp-grpc', () => ({
+  OTLPTraceExporter: vi.fn().mockImplementation(function () {
+    return {};
+  }),
+}));
+
+// OpenTelemetry APIのモック
 vi.mock('@opentelemetry/api', () => ({
   trace: {
     getActiveSpan: vi.fn().mockReturnValue(undefined),
   },
 }));
 
-vi.mock('pino', () => {
-  const mockLogger = {
+// pinoロガーのモック
+vi.mock('pino', () => ({
+  default: vi.fn().mockReturnValue({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
     level: 'info',
-  };
-  return {
-    default: vi.fn().mockReturnValue(mockLogger),
-  };
-});
+  }),
+}));
 
 import { initTelemetry, shutdown, type TelemetryConfig } from '../src/telemetry';
 import { createLogger } from '../src/logger';
