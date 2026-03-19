@@ -22,7 +22,7 @@ class DomainMasterRepository {
       '/api/v1/categories',
       queryParameters: {'active_only': activeOnly},
     );
-    final List<dynamic> data = response.data['categories'] as List<dynamic>;
+    final List<dynamic> data = (response.data as Map<String, dynamic>)['categories'] as List<dynamic>;
     return data
         .map((json) => MasterCategory.fromJson(json as Map<String, dynamic>))
         .toList();
@@ -75,7 +75,7 @@ class DomainMasterRepository {
       '/api/v1/categories/$categoryCode/items',
       queryParameters: {'active_only': activeOnly},
     );
-    final List<dynamic> data = response.data['items'] as List<dynamic>;
+    final List<dynamic> data = (response.data as Map<String, dynamic>)['items'] as List<dynamic>;
     return data
         .map((json) => MasterItem.fromJson(json as Map<String, dynamic>))
         .toList();
@@ -134,7 +134,7 @@ class DomainMasterRepository {
     final response = await _dio.get(
       '/api/v1/categories/$categoryCode/items/$itemCode/versions',
     );
-    final List<dynamic> data = response.data['versions'] as List<dynamic>;
+    final List<dynamic> data = (response.data as Map<String, dynamic>)['versions'] as List<dynamic>;
     return data
         .map((json) =>
             MasterItemVersion.fromJson(json as Map<String, dynamic>))
@@ -188,7 +188,7 @@ class DomainMasterRepository {
     final response = await _dio.get(
       '/api/v1/tenants/$tenantId/categories/$categoryCode/items',
     );
-    final List<dynamic> data = response.data['items'] as List<dynamic>;
+    final List<dynamic> data = (response.data as Map<String, dynamic>)['items'] as List<dynamic>;
     return data
         .map((json) => MasterItem.fromJson(json as Map<String, dynamic>))
         .toList();

@@ -160,7 +160,18 @@ fn test_client_react_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{{"), "Tera syntax {{{{ found in {name}");
+        // コメント行（#始まり）を除外して Tera 構文の残留をチェックする。
+        // Dockerfile の {% raw %} ブロックにより、レンダリング後のコメント行に
+        // Go/Docker テンプレート構文（例: {{index .RepoDigests 0}}）が残るのは正常。
+        let non_comment_content: String = content
+            .lines()
+            .filter(|line| !line.trim_start().starts_with('#'))
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(
+            !non_comment_content.contains("{{"),
+            "Tera syntax {{{{ found in {name}"
+        );
         assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
         assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }
@@ -297,7 +308,18 @@ fn test_client_flutter_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{{"), "Tera syntax {{{{ found in {name}");
+        // コメント行（#始まり）を除外して Tera 構文の残留をチェックする。
+        // Dockerfile の {% raw %} ブロックにより、レンダリング後のコメント行に
+        // Go/Docker テンプレート構文（例: {{index .RepoDigests 0}}）が残るのは正常。
+        let non_comment_content: String = content
+            .lines()
+            .filter(|line| !line.trim_start().starts_with('#'))
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(
+            !non_comment_content.contains("{{"),
+            "Tera syntax {{{{ found in {name}"
+        );
         assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
         assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }

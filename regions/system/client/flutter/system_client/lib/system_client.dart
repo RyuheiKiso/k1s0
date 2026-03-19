@@ -1,5 +1,3 @@
-library system_client;
-
 export 'src/auth/auth_state.dart';
 export 'src/auth/auth_provider.dart'
     show AuthNotifier, authProvider, authApiBaseUrlProvider, authCallbackSchemeProvider, webAuthCallbackProvider, WebAuthCallback;
