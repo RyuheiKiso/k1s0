@@ -1,4 +1,5 @@
 //! Integration tests for k1s0-test-helper.
+#![allow(clippy::unwrap_used)]
 
 use k1s0_test_helper::{
     AssertionHelper, FixtureBuilder, JwtTestHelper, MockServerBuilder, TestClaims,
@@ -43,7 +44,9 @@ fn jwt_admin_token_has_three_parts() {
 fn jwt_admin_token_has_admin_role() {
     let helper = JwtTestHelper::new_hs256("secret");
     let token = helper.create_admin_token();
-    let claims = helper.decode_claims(&token).unwrap();
+    let claims = helper
+        .decode_claims(&token)
+        .expect("admin token should decode");
     assert_eq!(claims.sub, "admin");
     assert!(claims.roles.contains(&"admin".to_string()));
 }
@@ -54,7 +57,9 @@ fn jwt_user_token_has_correct_sub_and_roles() {
     let helper = JwtTestHelper::new_hs256("test-secret");
     let roles = vec!["user".to_string(), "reader".to_string()];
     let token = helper.create_user_token("user-42", roles.clone());
-    let claims = helper.decode_claims(&token).unwrap();
+    let claims = helper
+        .decode_claims(&token)
+        .expect("user token should decode");
     assert_eq!(claims.sub, "user-42");
     assert_eq!(claims.roles, roles);
 }
@@ -70,7 +75,9 @@ fn jwt_custom_token_with_tenant_id() {
         ..Default::default()
     };
     let token = helper.create_token(&claims);
-    let decoded = helper.decode_claims(&token).unwrap();
+    let decoded = helper
+        .decode_claims(&token)
+        .expect("custom token with tenant should decode");
     assert_eq!(decoded.sub, "svc-account");
     assert_eq!(decoded.tenant_id, Some("tenant-xyz".to_string()));
     assert_eq!(decoded.roles, vec!["service"]);
@@ -87,7 +94,9 @@ fn jwt_custom_token_without_tenant_id() {
         ..Default::default()
     };
     let token = helper.create_token(&claims);
-    let decoded = helper.decode_claims(&token).unwrap();
+    let decoded = helper
+        .decode_claims(&token)
+        .expect("custom token without tenant should decode");
     assert!(decoded.tenant_id.is_none());
 }
 
@@ -126,9 +135,15 @@ fn jwt_different_secrets_produce_different_tokens() {
     let token1 = helper1.create_token(&claims);
     let token2 = helper2.create_token(&claims);
 
-    // Signatures should differ
-    let sig1 = token1.rsplit('.').next().unwrap();
-    let sig2 = token2.rsplit('.').next().unwrap();
+    // 署名部分が異なることを確認する
+    let sig1 = token1
+        .rsplit('.')
+        .next()
+        .expect("token1 should have signature part");
+    let sig2 = token2
+        .rsplit('.')
+        .next()
+        .expect("token2 should have signature part");
     assert_ne!(sig1, sig2);
 }
 
@@ -245,7 +260,9 @@ fn mock_server_builder_notification_with_health() {
         .with_health_ok()
         .build();
 
-    let (status, body) = server.handle("GET", "/health").unwrap();
+    let (status, body) = server
+        .handle("GET", "/health")
+        .expect("health route should match");
     assert_eq!(status, 200);
     assert!(body.contains("ok"));
 }
@@ -278,7 +295,9 @@ fn mock_server_success_response() {
         .with_success_response("/send", r#"{"id":"1","status":"sent"}"#)
         .build();
 
-    let (status, body) = server.handle("POST", "/send").unwrap();
+    let (status, body) = server
+        .handle("POST", "/send")
+        .expect("send route should match");
     assert_eq!(status, 200);
     assert!(body.contains("sent"));
 }
@@ -290,7 +309,9 @@ fn mock_server_error_response() {
         .with_error_response("/create", 500)
         .build();
 
-    let (status, body) = server.handle("POST", "/create").unwrap();
+    let (status, body) = server
+        .handle("POST", "/create")
+        .expect("create route should match");
     assert_eq!(status, 500);
     assert!(body.contains("error"));
 }
@@ -360,10 +381,13 @@ fn mock_server_multiple_routes() {
         .with_error_response("/fail", 503)
         .build();
 
-    assert_eq!(server.handle("GET", "/health").unwrap().0, 200);
-    assert_eq!(server.handle("POST", "/send").unwrap().0, 200);
-    assert_eq!(server.handle("POST", "/batch").unwrap().0, 200);
-    assert_eq!(server.handle("POST", "/fail").unwrap().0, 503);
+    assert_eq!(
+        server.handle("GET", "/health").expect("health route").0,
+        200
+    );
+    assert_eq!(server.handle("POST", "/send").expect("send route").0, 200);
+    assert_eq!(server.handle("POST", "/batch").expect("batch route").0, 200);
+    assert_eq!(server.handle("POST", "/fail").expect("fail route").0, 503);
 }
 
 // メソッドチェーンでビルダーを構築した後のリクエストカウントが 0 であることを確認する。

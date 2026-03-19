@@ -27,8 +27,9 @@ impl TenantExtensionPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, TenantExtensionRow>(
-            "SELECT * FROM domain_master.tenant_master_extensions WHERE tenant_id = $1 AND item_id = $2",
+            "SELECT id, tenant_id, item_id, display_name_override, attributes_override, is_enabled, created_at, updated_at FROM domain_master.tenant_master_extensions WHERE tenant_id = $1 AND item_id = $2",
         )
         .bind(tenant_id)
         .bind(item_id)
@@ -46,8 +47,9 @@ impl TenantExtensionPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let rows = sqlx::query_as::<_, TenantExtensionRow>(
-            r#"SELECT te.* FROM domain_master.tenant_master_extensions te
+            r#"SELECT te.id, te.tenant_id, te.item_id, te.display_name_override, te.attributes_override, te.is_enabled, te.created_at, te.updated_at FROM domain_master.tenant_master_extensions te
                INNER JOIN domain_master.master_items mi ON te.item_id = mi.id
                WHERE te.tenant_id = $1 AND mi.category_id = $2"#,
         )
@@ -68,6 +70,7 @@ impl TenantExtensionPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, TenantExtensionRow>(
             r#"INSERT INTO domain_master.tenant_master_extensions
                (tenant_id, item_id, display_name_override, attributes_override, is_enabled)
@@ -77,7 +80,7 @@ impl TenantExtensionPostgresRepository {
                attributes_override = COALESCE($4, domain_master.tenant_master_extensions.attributes_override),
                is_enabled = COALESCE($5, domain_master.tenant_master_extensions.is_enabled),
                updated_at = now()
-               RETURNING *"#,
+               RETURNING id, tenant_id, item_id, display_name_override, attributes_override, is_enabled, created_at, updated_at"#,
         )
         .bind(tenant_id)
         .bind(item_id)

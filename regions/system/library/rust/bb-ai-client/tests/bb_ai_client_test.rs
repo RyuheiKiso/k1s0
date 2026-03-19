@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // bb-ai-client の統合テスト
 // InMemoryAiClient を使用して外部依存なしでテストする
 

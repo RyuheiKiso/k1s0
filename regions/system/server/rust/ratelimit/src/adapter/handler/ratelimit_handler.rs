@@ -641,8 +641,11 @@ mod tests {
     use std::sync::Arc;
     use tower::ServiceExt;
 
+    // テスト用タイムスタンプヘルパー（指定秒数からUTCのDateTimeを生成する）
     fn ts(seconds: i64) -> DateTime<Utc> {
-        Utc.timestamp_opt(seconds, 0).single().unwrap()
+        Utc.timestamp_opt(seconds, 0)
+            .single()
+            .expect("テスト用タイムスタンプの生成に失敗")
     }
 
     fn make_reset_uc(
@@ -705,15 +708,20 @@ mod tests {
         let req = Request::builder()
             .uri("/healthz")
             .body(Body::empty())
-            .unwrap();
+            .expect("healthzリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("healthzリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // レスポンスボディを読み取り、JSONとしてパースする
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["status"], "ok");
     }
 
@@ -728,15 +736,20 @@ mod tests {
         let req = Request::builder()
             .uri("/readyz")
             .body(Body::empty())
-            .unwrap();
+            .expect("readyzリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("readyzリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // DB未設定時のreadyzレスポンスを確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["status"], "ready");
     }
 
@@ -751,9 +764,12 @@ mod tests {
         let req = Request::builder()
             .uri("/metrics")
             .body(Body::empty())
-            .unwrap();
+            .expect("metricsリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("metricsリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
     }
 
@@ -814,20 +830,28 @@ mod tests {
             "identifier": "user-123"
         });
 
+        // レート制限チェックリクエストのJSONをシリアライズする
         let req = Request::builder()
             .method("POST")
             .uri("/api/v1/ratelimit/check")
             .header("content-type", "application/json")
-            .body(Body::from(serde_json::to_string(&body).unwrap()))
-            .unwrap();
+            .body(Body::from(
+                serde_json::to_string(&body).expect("リクエストボディのJSON変換に失敗"),
+            ))
+            .expect("rate limit checkリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("rate limit checkリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // レート制限許可レスポンスを確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["allowed"], true);
         assert_eq!(json["remaining"], 99);
     }
@@ -896,20 +920,28 @@ mod tests {
             "identifier": "user-123"
         });
 
+        // レート制限拒否ケースのリクエストを送信する
         let req = Request::builder()
             .method("POST")
             .uri("/api/v1/ratelimit/check")
             .header("content-type", "application/json")
-            .body(Body::from(serde_json::to_string(&body).unwrap()))
-            .unwrap();
+            .body(Body::from(
+                serde_json::to_string(&body).expect("リクエストボディのJSON変換に失敗"),
+            ))
+            .expect("rate limit check deniedリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("rate limit check deniedリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // レート制限拒否レスポンスを確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["allowed"], false);
     }
 
@@ -957,20 +989,28 @@ mod tests {
             "enabled": true
         });
 
+        // ルール作成リクエストを送信する
         let req = Request::builder()
             .method("POST")
             .uri("/api/v1/ratelimit/rules")
             .header("content-type", "application/json")
-            .body(Body::from(serde_json::to_string(&body).unwrap()))
-            .unwrap();
+            .body(Body::from(
+                serde_json::to_string(&body).expect("リクエストボディのJSON変換に失敗"),
+            ))
+            .expect("create ruleリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("create ruleリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::CREATED);
 
+        // 作成されたルールのレスポンスを確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["scope"], "service");
         assert_eq!(json["identifier_pattern"], "global");
     }
@@ -1014,9 +1054,12 @@ mod tests {
         let req = Request::builder()
             .uri("/api/v1/ratelimit/rules/550e8400-e29b-41d4-a716-446655440000")
             .body(Body::empty())
-            .unwrap();
+            .expect("get rule not_foundリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("get rule not_foundリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 
@@ -1061,20 +1104,28 @@ mod tests {
             "identifier": "user-123"
         });
 
+        // レート制限リセットリクエストを送信する
         let req = Request::builder()
             .method("POST")
             .uri("/api/v1/ratelimit/reset")
             .header("content-type", "application/json")
-            .body(Body::from(serde_json::to_string(&body).unwrap()))
-            .unwrap();
+            .body(Body::from(
+                serde_json::to_string(&body).expect("リクエストボディのJSON変換に失敗"),
+            ))
+            .expect("rate limit resetリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("rate limit resetリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // リセット成功レスポンスを確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["success"], true);
     }
 }

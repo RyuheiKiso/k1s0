@@ -10,7 +10,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { Timestamp } from "../../../../../google/protobuf/timestamp";
+import { Timestamp } from "../../../../system/common/v1/types";
 import { EventMetadata } from "../../../../system/common/v1/event_metadata";
 /**
  * @generated from protobuf message k1s0.event.service.inventory.v1.InventoryReservedEvent
@@ -37,7 +37,7 @@ export interface InventoryReservedEvent {
      */
     warehouseId: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp reserved_at = 6
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp reserved_at = 6
      */
     reservedAt?: Timestamp;
 }
@@ -70,7 +70,7 @@ export interface InventoryReleasedEvent {
      */
     reason: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp released_at = 7
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp released_at = 7
      */
     releasedAt?: Timestamp;
 }
@@ -116,7 +116,7 @@ class InventoryReservedEvent$Type extends MessageType<InventoryReservedEvent> {
                 case /* string warehouse_id */ 5:
                     message.warehouseId = reader.string();
                     break;
-                case /* google.protobuf.Timestamp reserved_at */ 6:
+                case /* k1s0.system.common.v1.Timestamp reserved_at */ 6:
                     message.reservedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.reservedAt);
                     break;
                 default:
@@ -146,7 +146,7 @@ class InventoryReservedEvent$Type extends MessageType<InventoryReservedEvent> {
         /* string warehouse_id = 5; */
         if (message.warehouseId !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.warehouseId);
-        /* google.protobuf.Timestamp reserved_at = 6; */
+        /* k1s0.system.common.v1.Timestamp reserved_at = 6; */
         if (message.reservedAt)
             Timestamp.internalBinaryWrite(message.reservedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
@@ -206,7 +206,7 @@ class InventoryReleasedEvent$Type extends MessageType<InventoryReleasedEvent> {
                 case /* string reason */ 6:
                     message.reason = reader.string();
                     break;
-                case /* google.protobuf.Timestamp released_at */ 7:
+                case /* k1s0.system.common.v1.Timestamp released_at */ 7:
                     message.releasedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.releasedAt);
                     break;
                 default:
@@ -239,7 +239,7 @@ class InventoryReleasedEvent$Type extends MessageType<InventoryReleasedEvent> {
         /* string reason = 6; */
         if (message.reason !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.reason);
-        /* google.protobuf.Timestamp released_at = 7; */
+        /* k1s0.system.common.v1.Timestamp released_at = 7; */
         if (message.releasedAt)
             Timestamp.internalBinaryWrite(message.releasedAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;

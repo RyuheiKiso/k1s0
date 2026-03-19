@@ -230,6 +230,7 @@ fn generate_types_rs(config: &ClientSdkConfig) -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_bulkhead::{Bulkhead, BulkheadConfig, BulkheadError};
 use std::sync::Arc;
 use std::time::Duration;

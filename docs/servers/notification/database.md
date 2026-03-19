@@ -152,10 +152,16 @@ CREATE INDEX IF NOT EXISTS idx_notification_logs_created_at ON notification.noti
 | `004_create_notification_logs.down.sql` | テーブル削除 |
 | `005_add_retry_count_to_notification_logs.up.sql` | retry_count カラム追加 |
 | `005_add_retry_count_to_notification_logs.down.sql` | カラム削除 |
-| `006_add_sent_at_to_notification_logs.up.sql` | sent_at カラム追加 |
-| `006_add_sent_at_to_notification_logs.down.sql` | カラム削除 |
-| `007_convert_prefixed_ids.up.sql` | UUID → プレフィックス付き VARCHAR(64) ID に変換 |
-| `007_convert_prefixed_ids.down.sql` | ID 変換復元 |
+| `006_add_template_id_index.up.sql` | template_id インデックス追加 |
+| `006_add_template_id_index.down.sql` | インデックス削除 |
+| `007_add_sent_at_to_notification_logs.up.sql` | sent_at カラム追加 |
+| `007_add_sent_at_to_notification_logs.down.sql` | カラム削除 |
+| `008_convert_prefixed_ids.up.sql` | UUID → プレフィックス付き VARCHAR(64) ID に変換 |
+| `008_convert_prefixed_ids.down.sql` | ID 変換復元 |
+| `009_add_template_fk_on_delete.up.sql` | template_id FK に ON DELETE 設定追加 |
+| `009_add_template_fk_on_delete.down.sql` | FK 制約復元 |
+
+> **注記**: マイグレーション番号は C-2（重複番号修正）により 005 以降を再番号付けした（2026-03-19）。旧 005_add_template_id_index → 006、以降連番で繰り上げ。
 
 ---
 

@@ -88,7 +88,7 @@ class AppConfig {
     );
   }
 
-  /// YamlMap を Map<String, dynamic> に、YamlList を List<dynamic> に再帰的に変換する
+  /// `YamlMap` を `Map<String, dynamic>` に、`YamlList` を `List<dynamic>` に再帰的に変換する
   /// yaml パッケージの型を Dart の標準コレクション型に統一する
   static dynamic _yamlToNative(dynamic yaml) {
     if (yaml is YamlMap) {

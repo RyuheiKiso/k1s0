@@ -1,5 +1,6 @@
 /// 在庫管理のデータモデル定義
 /// freezed/json_serializableを使用せず、手書きのfromJson/toJsonで実装する
+library;
 
 /// 在庫ステータスを表す列挙型
 /// 在庫の状態に応じて表示色やアクションを切り替えるために使用する

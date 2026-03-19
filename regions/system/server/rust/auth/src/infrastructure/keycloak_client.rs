@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use k1s0_circuit_breaker::{CircuitBreaker, CircuitBreakerConfig};
 use tokio::sync::RwLock;
 
 use crate::domain::entity::user::{Pagination, Role, User, UserListResult, UserRoles};
@@ -74,14 +75,24 @@ struct CachedToken {
 }
 
 /// KeycloakClient は Keycloak Admin API クライアント。
+/// サーキットブレーカーにより、Keycloak 障害時の連鎖的な障害伝播を防止する。
 pub struct KeycloakClient {
     config: KeycloakConfig,
     http_client: reqwest::Client,
     admin_token: Arc<RwLock<Option<CachedToken>>>,
+    /// Keycloak への HTTP リクエストを保護するサーキットブレーカー。
+    /// 外部サービス障害時にリクエストを遮断し、システム全体の安定性を確保する。
+    circuit_breaker: CircuitBreaker,
 }
 
 impl KeycloakClient {
     pub fn new(config: KeycloakConfig) -> Self {
+        // サーキットブレーカー設定:
+        // - failure_threshold: 5回連続失敗でOpen状態に遷移（Keycloakの一時的な遅延を許容）
+        // - success_threshold: 3回連続成功でClosed状態に復帰（安定性を確認）
+        // - timeout: 30秒後にHalfOpen状態で再試行（Keycloakの再起動時間を考慮）
+        let cb_config = CircuitBreakerConfig::default();
+
         Self {
             config,
             // HTTP クライアントを構築する（デフォルト設定では失敗しない）
@@ -90,16 +101,24 @@ impl KeycloakClient {
                 .build()
                 .expect("reqwest::Client の構築に失敗: デフォルト TLS バックエンド未対応"),
             admin_token: Arc::new(RwLock::new(None)),
+            circuit_breaker: CircuitBreaker::new(cb_config),
         }
     }
 
     /// Keycloak のヘルスチェックを行う。
+    /// サーキットブレーカーで保護し、Keycloak 停止時の不要なリクエストを抑制する。
     #[allow(dead_code)]
     pub async fn healthy(&self) -> anyhow::Result<()> {
         let url = format!("{}/realms/{}", self.config.base_url, self.config.realm);
-        let resp = self.http_client.get(&url).send().await?;
-        resp.error_for_status()?;
-        Ok(())
+        let http = &self.http_client;
+        self.circuit_breaker
+            .call(|| async {
+                let resp = http.get(&url).send().await?;
+                resp.error_for_status()?;
+                Ok::<(), reqwest::Error>(())
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("keycloak health check failed: {}", e))
     }
 
     /// Admin API トークンを取得する（キャッシュ付き）。
@@ -123,9 +142,19 @@ impl KeycloakClient {
         let token_url = self.config.admin_token_url();
         let form = self.config.admin_token_form();
 
-        let resp = self.http_client.post(&token_url).form(&form).send().await?;
+        // サーキットブレーカーでトークン取得リクエストを保護する。
+        // Keycloak 障害時にトークン取得の連続失敗を防ぎ、キャッシュ期限切れ時の負荷集中を回避する。
+        let http = &self.http_client;
+        let body: serde_json::Value = self
+            .circuit_breaker
+            .call(|| async {
+                let resp = http.post(&token_url).form(&form).send().await?;
+                let body: serde_json::Value = resp.error_for_status()?.json().await?;
+                Ok::<serde_json::Value, reqwest::Error>(body)
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("keycloak token request failed: {}", e))?;
 
-        let body: serde_json::Value = resp.error_for_status()?.json().await?;
         let token = body["access_token"]
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("missing access_token in response"))?
@@ -150,12 +179,13 @@ impl UserRepository for KeycloakClient {
             self.config.base_url, self.config.realm, user_id
         );
 
+        // サーキットブレーカーでユーザー取得リクエストを保護する
+        let http = &self.http_client;
         let resp = self
-            .http_client
-            .get(&url)
-            .bearer_auth(&token)
-            .send()
-            .await?;
+            .circuit_breaker
+            .call(|| async { http.get(&url).bearer_auth(&token).send().await })
+            .await
+            .map_err(|e| anyhow::anyhow!("keycloak find_by_id failed: {}", e))?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             anyhow::bail!("user not found: {}", user_id);
@@ -186,12 +216,13 @@ impl UserRepository for KeycloakClient {
             url.push_str(&format!("&enabled={}", e));
         }
 
+        // サーキットブレーカーでユーザー一覧取得リクエストを保護する
+        let http = &self.http_client;
         let resp = self
-            .http_client
-            .get(&url)
-            .bearer_auth(&token)
-            .send()
-            .await?;
+            .circuit_breaker
+            .call(|| async { http.get(&url).bearer_auth(&token).send().await })
+            .await
+            .map_err(|e| anyhow::anyhow!("keycloak list users failed: {}", e))?;
 
         let kc_users: Vec<KeycloakUser> = resp.error_for_status()?.json().await?;
 
@@ -200,12 +231,13 @@ impl UserRepository for KeycloakClient {
             "{}/admin/realms/{}/users/count",
             self.config.base_url, self.config.realm
         );
+        let count_token = self.get_admin_token().await?;
+        // サーキットブレーカーでユーザー数取得リクエストを保護する
         let count_resp = self
-            .http_client
-            .get(&count_url)
-            .bearer_auth(&self.get_admin_token().await?)
-            .send()
-            .await?;
+            .circuit_breaker
+            .call(|| async { http.get(&count_url).bearer_auth(&count_token).send().await })
+            .await
+            .map_err(|e| anyhow::anyhow!("keycloak user count failed: {}", e))?;
         let total_count: i64 = count_resp.error_for_status()?.json().await?;
 
         let users: Vec<User> = kc_users.into_iter().map(|u| u.into()).collect();
@@ -230,12 +262,13 @@ impl UserRepository for KeycloakClient {
             "{}/admin/realms/{}/users/{}/role-mappings/realm",
             self.config.base_url, self.config.realm, user_id
         );
+        // サーキットブレーカーでロール取得リクエストを保護する
+        let http = &self.http_client;
         let resp = self
-            .http_client
-            .get(&realm_url)
-            .bearer_auth(&token)
-            .send()
-            .await?;
+            .circuit_breaker
+            .call(|| async { http.get(&realm_url).bearer_auth(&token).send().await })
+            .await
+            .map_err(|e| anyhow::anyhow!("keycloak get_roles failed: {}", e))?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             anyhow::bail!("user not found: {}", user_id);
@@ -341,7 +374,9 @@ mod tests {
         assert_eq!(user.username, "taro.yamada");
         assert!(user.enabled);
         assert_eq!(
-            user.attributes.get("department").expect("department attribute should exist"),
+            user.attributes
+                .get("department")
+                .expect("department attribute should exist"),
             &vec!["engineering".to_string()]
         );
     }
@@ -367,7 +402,8 @@ realm: "k1s0"
 client_id: "auth-server"
 client_secret: "secret"
 "#;
-        let config: KeycloakConfig = serde_yaml::from_str(yaml).expect("YAML deserialization should succeed");
+        let config: KeycloakConfig =
+            serde_yaml::from_str(yaml).expect("YAML deserialization should succeed");
         assert_eq!(config.base_url, "https://auth.k1s0.internal.example.com");
         assert_eq!(config.realm, "k1s0");
     }

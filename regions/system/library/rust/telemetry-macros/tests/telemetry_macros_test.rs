@@ -8,6 +8,7 @@
 //! expands to `#[tracing::instrument(...)]`. If the crate does not have `tracing`
 //! in dev-dependencies, these tests will fail to compile. In that case, the test
 //! file documents what SHOULD be tested once dependencies are available.
+#![allow(clippy::unwrap_used)]
 
 // Attempt to use the macro — this will only compile if `tracing` is available
 // as a dependency of this crate (or in dev-dependencies).

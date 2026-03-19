@@ -4,6 +4,7 @@
 //!
 //! テスト対象: SagaPostgresRepository の CRUD 操作とトランザクション整合性。
 //! saga スキーマ: infra/docker/init-db/04-saga-schema.sql
+#![allow(clippy::unwrap_used)]
 
 #[cfg(test)]
 mod tests {

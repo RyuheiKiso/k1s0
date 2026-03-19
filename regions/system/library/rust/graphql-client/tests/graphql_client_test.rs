@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_graphql_client::{
     ClientError, ErrorLocation, GraphQlClient, GraphQlError, GraphQlQuery, GraphQlResponse,
     InMemoryGraphQlClient,

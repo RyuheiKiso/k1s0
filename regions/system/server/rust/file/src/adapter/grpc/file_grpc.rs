@@ -105,16 +105,12 @@ impl FileGrpcService {
             page_size: if page_size == 0 { 20 } else { page_size },
         };
         // ファイル一覧取得。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
-        let output = self
-            .list_files_uc
-            .execute(&input)
-            .await
-            .map_err(|e| {
-                use crate::usecase::list_files::ListFilesError;
-                match e {
-                    ListFilesError::Internal(msg) => GrpcError::Internal(msg),
-                }
-            })?;
+        let output = self.list_files_uc.execute(&input).await.map_err(|e| {
+            use crate::usecase::list_files::ListFilesError;
+            match e {
+                ListFilesError::Internal(msg) => GrpcError::Internal(msg),
+            }
+        })?;
         Ok((output.files, output.total_count))
     }
 
@@ -213,9 +209,7 @@ impl FileGrpcService {
                 use crate::usecase::generate_download_url::GenerateDownloadUrlError;
                 match e {
                     GenerateDownloadUrlError::NotFound(msg) => GrpcError::NotFound(msg),
-                    GenerateDownloadUrlError::NotAvailable(msg) => {
-                        GrpcError::InvalidArgument(msg)
-                    }
+                    GenerateDownloadUrlError::NotAvailable(msg) => GrpcError::InvalidArgument(msg),
                     GenerateDownloadUrlError::Internal(msg) => GrpcError::Internal(msg),
                 }
             })?;

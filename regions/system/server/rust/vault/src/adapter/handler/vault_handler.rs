@@ -156,11 +156,7 @@ pub async fn create_secret(
                 version: output.version,
                 created_at: output.created_at.to_rfc3339(),
             };
-            (
-                StatusCode::CREATED,
-                Json(resp),
-            )
-                .into_response()
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(SetSecretError::Internal(msg)) => internal_error_response(&msg).into_response(),
     }

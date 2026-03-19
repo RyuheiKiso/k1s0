@@ -5,8 +5,8 @@ use std::sync::Arc;
 use crate::domain::entity::saga_state::SagaStatus;
 use crate::domain::repository::saga_repository::SagaListParams;
 use crate::usecase::{
-    CancelSagaUseCase, CompensateSagaError, ExecuteSagaUseCase, GetSagaUseCase, ListSagasUseCase,
-    ListWorkflowsUseCase, RegisterWorkflowUseCase, StartSagaUseCase,
+    CancelSagaError, CancelSagaUseCase, CompensateSagaError, ExecuteSagaUseCase, GetSagaUseCase,
+    ListSagasUseCase, ListWorkflowsUseCase, RegisterWorkflowUseCase, StartSagaUseCase,
 };
 
 // --- Proto 手動型定義 ---
@@ -178,6 +178,17 @@ fn map_anyhow_to_grpc_error(err: anyhow::Error) -> GrpcError {
             }
         }
         Err(err) => GrpcError::Internal(err.to_string()),
+    }
+}
+
+/// CancelSagaError を GrpcError に変換する。
+/// NotFound は not_found、AlreadyTerminal は failed_precondition、それ以外は internal とする。
+fn map_cancel_error_to_grpc_error(err: CancelSagaError) -> GrpcError {
+    let msg = err.to_string();
+    match err {
+        CancelSagaError::NotFound(_) => GrpcError::NotFound(msg),
+        CancelSagaError::AlreadyTerminal(_) => GrpcError::FailedPrecondition(msg),
+        CancelSagaError::Internal(_) => GrpcError::Internal(msg),
     }
 }
 
@@ -377,7 +388,7 @@ impl SagaGrpcService {
         self.cancel_saga_uc
             .execute(id)
             .await
-            .map_err(|e| map_anyhow_to_grpc_error(e.into()))?;
+            .map_err(map_cancel_error_to_grpc_error)?;
 
         Ok(CancelSagaResponse {
             success: true,

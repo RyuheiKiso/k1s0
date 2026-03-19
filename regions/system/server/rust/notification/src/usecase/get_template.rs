@@ -31,6 +31,7 @@ impl GetTemplateUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::repository::notification_template_repository::MockNotificationTemplateRepository;

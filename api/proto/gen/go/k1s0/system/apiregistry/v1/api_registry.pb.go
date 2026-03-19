@@ -1650,7 +1650,7 @@ const file_k1s0_system_apiregistry_v1_api_registry_proto_rawDesc = "" +
 	"\x10GetSchemaVersion\x123.k1s0.system.apiregistry.v1.GetSchemaVersionRequest\x1a4.k1s0.system.apiregistry.v1.GetSchemaVersionResponse\x12t\n" +
 	"\rDeleteVersion\x120.k1s0.system.apiregistry.v1.DeleteVersionRequest\x1a1.k1s0.system.apiregistry.v1.DeleteVersionResponse\x12\x83\x01\n" +
 	"\x12CheckCompatibility\x125.k1s0.system.apiregistry.v1.CheckCompatibilityRequest\x1a6.k1s0.system.apiregistry.v1.CheckCompatibilityResponse\x12b\n" +
-	"\aGetDiff\x12*.k1s0.system.apiregistry.v1.GetDiffRequest\x1a+.k1s0.system.apiregistry.v1.GetDiffResponseBGZEgithub.com/k1s0-platform/system-proto-go/apiregistry/v1;apiregistryv1b\x06proto3"
+	"\aGetDiff\x12*.k1s0.system.apiregistry.v1.GetDiffRequest\x1a+.k1s0.system.apiregistry.v1.GetDiffResponseBNZLgithub.com/k1s0-platform/api/gen/go/k1s0/system/apiregistry/v1;apiregistryv1b\x06proto3"
 
 var (
 	file_k1s0_system_apiregistry_v1_api_registry_proto_rawDescOnce sync.Once

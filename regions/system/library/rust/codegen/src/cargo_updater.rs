@@ -116,6 +116,7 @@ pub fn add_feature(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

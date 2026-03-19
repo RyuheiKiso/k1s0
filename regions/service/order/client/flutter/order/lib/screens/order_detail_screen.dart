@@ -135,7 +135,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 /// ステータス選択用のドロップダウン
                 Expanded(
                   child: DropdownButtonFormField<OrderStatus>(
-                    value: _selectedStatus ?? order.status,
+                    initialValue: _selectedStatus ?? order.status,
                     decoration: const InputDecoration(
                       labelText: '新しいステータス',
                       border: OutlineInputBorder(),

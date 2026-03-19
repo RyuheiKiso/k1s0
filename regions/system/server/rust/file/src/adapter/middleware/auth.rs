@@ -4,4 +4,3 @@
 //! このモジュールはサービス固有のカスタマイズポイントとして存在する。
 
 pub use k1s0_server_common::middleware::auth_middleware::{auth_middleware, AuthState};
-

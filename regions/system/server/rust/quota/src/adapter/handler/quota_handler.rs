@@ -123,11 +123,7 @@ pub async fn create_quota(
     };
 
     match state.create_policy_uc.execute(&input).await {
-        Ok(policy) => (
-            StatusCode::CREATED,
-            Json(policy),
-        )
-            .into_response(),
+        Ok(policy) => (StatusCode::CREATED, Json(policy)).into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("validation") {

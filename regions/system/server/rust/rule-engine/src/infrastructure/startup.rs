@@ -39,7 +39,8 @@ pub async fn run() -> anyhow::Result<()> {
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+    k1s0_telemetry::init_telemetry(&telemetry_cfg)
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
 
     info!(
         app_name = %cfg.app.name,

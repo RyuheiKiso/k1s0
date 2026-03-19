@@ -124,7 +124,9 @@ impl DlqKafkaConsumer {
                     }
 
                     // 処理成功後にオフセットを手動コミットする
-                    if let Err(e) = consumer.commit_message(&msg, rdkafka::consumer::CommitMode::Async) {
+                    if let Err(e) =
+                        consumer.commit_message(&msg, rdkafka::consumer::CommitMode::Async)
+                    {
                         tracing::warn!(error = %e, "failed to commit kafka offset");
                     }
                 }

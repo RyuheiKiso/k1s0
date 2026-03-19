@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_audit_client::{AuditClient, AuditError, AuditEvent, BufferedAuditClient};
 use serde_json::json;
 

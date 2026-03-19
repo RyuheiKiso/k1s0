@@ -672,7 +672,7 @@ const file_k1s0_system_dlq_v1_dlq_proto_rawDesc = "" +
 	"GetMessage\x12%.k1s0.system.dlq.v1.GetMessageRequest\x1a&.k1s0.system.dlq.v1.GetMessageResponse\x12a\n" +
 	"\fRetryMessage\x12'.k1s0.system.dlq.v1.RetryMessageRequest\x1a(.k1s0.system.dlq.v1.RetryMessageResponse\x12d\n" +
 	"\rDeleteMessage\x12(.k1s0.system.dlq.v1.DeleteMessageRequest\x1a).k1s0.system.dlq.v1.DeleteMessageResponse\x12U\n" +
-	"\bRetryAll\x12#.k1s0.system.dlq.v1.RetryAllRequest\x1a$.k1s0.system.dlq.v1.RetryAllResponseB5Z3github.com/k1s0/api/gen/go/k1s0/system/dlq/v1;dlqv1b\x06proto3"
+	"\bRetryAll\x12#.k1s0.system.dlq.v1.RetryAllRequest\x1a$.k1s0.system.dlq.v1.RetryAllResponseB>Z<github.com/k1s0-platform/api/gen/go/k1s0/system/dlq/v1;dlqv1b\x06proto3"
 
 var (
 	file_k1s0_system_dlq_v1_dlq_proto_rawDescOnce sync.Once

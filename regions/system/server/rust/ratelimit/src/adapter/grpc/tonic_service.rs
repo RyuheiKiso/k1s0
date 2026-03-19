@@ -252,8 +252,16 @@ impl RateLimitService for RateLimitServiceTonic {
             .list_rules(ListRulesRequest {
                 scope: inner.scope,
                 enabled_only: inner.enabled_only,
-                page: if pagination.page <= 0 { 1 } else { pagination.page as u32 },
-                page_size: if pagination.page_size <= 0 { 20 } else { pagination.page_size as u32 },
+                page: if pagination.page <= 0 {
+                    1
+                } else {
+                    pagination.page as u32
+                },
+                page_size: if pagination.page_size <= 0 {
+                    20
+                } else {
+                    pagination.page_size as u32
+                },
             })
             .await
             .map_err(Into::<Status>::into)?;

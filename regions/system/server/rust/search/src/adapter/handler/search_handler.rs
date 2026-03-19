@@ -221,11 +221,7 @@ pub async fn index_document(
                 index_name: doc.index_name,
                 indexed_at: doc.indexed_at.to_rfc3339(),
             };
-            (
-                StatusCode::CREATED,
-                Json(resp),
-            )
-                .into_response()
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(IndexDocumentError::IndexNotFound(name)) => error_response(
             StatusCode::NOT_FOUND,

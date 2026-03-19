@@ -22,10 +22,7 @@ pub trait PaymentEventPublisher: Send + Sync {
         event: &PaymentCompletedDomainEvent,
     ) -> anyhow::Result<()>;
     // 決済失敗イベントをドメインイベント型で publish する
-    async fn publish_payment_failed(
-        &self,
-        event: &PaymentFailedDomainEvent,
-    ) -> anyhow::Result<()>;
+    async fn publish_payment_failed(&self, event: &PaymentFailedDomainEvent) -> anyhow::Result<()>;
     // 返金イベントをドメインイベント型で publish する
     async fn publish_payment_refunded(
         &self,

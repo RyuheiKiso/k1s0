@@ -260,6 +260,8 @@ fn ensure(condition: bool, message: impl Into<String>) -> Result<(), ConfigError
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests;
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod vault_test;

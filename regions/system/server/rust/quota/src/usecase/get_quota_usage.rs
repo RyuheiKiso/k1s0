@@ -73,17 +73,13 @@ impl GetQuotaUsageUseCase {
                     Utc.with_ymd_and_hms(now.year() + 1, 1, 1, 0, 0, 0)
                         .single()
                         .ok_or_else(|| {
-                            GetQuotaUsageError::Internal(
-                                "翌年1月の日時の生成に失敗".to_string(),
-                            )
+                            GetQuotaUsageError::Internal("翌年1月の日時の生成に失敗".to_string())
                         })?
                 } else {
                     Utc.with_ymd_and_hms(now.year(), now.month() + 1, 1, 0, 0, 0)
                         .single()
                         .ok_or_else(|| {
-                            GetQuotaUsageError::Internal(
-                                "翌月の日時の生成に失敗".to_string(),
-                            )
+                            GetQuotaUsageError::Internal("翌月の日時の生成に失敗".to_string())
                         })?
                 };
                 let end = next_month - chrono::Duration::milliseconds(1);
@@ -102,6 +98,7 @@ impl GetQuotaUsageUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::quota::{Period, SubjectType};

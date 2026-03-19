@@ -62,6 +62,7 @@ fn convert_claims(c: k1s0_auth::Claims) -> Claims {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use std::collections::HashMap;

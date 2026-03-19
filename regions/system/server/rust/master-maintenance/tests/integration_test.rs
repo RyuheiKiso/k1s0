@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // マスターメンテナンスサーバーの統合テスト。
 // router の初期化と基本的なエンドポイントの動作を検証する。
 
@@ -12,7 +13,8 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 use k1s0_master_maintenance_server::adapter::handler::{router, AppState};
-use k1s0_master_maintenance_server::adapter::middleware::auth::MasterMaintenanceAuthState;
+// 認証状態の型をインポート（共通AuthStateを使用）
+use k1s0_master_maintenance_server::adapter::middleware::auth::AuthState;
 use k1s0_master_maintenance_server::domain::entity::change_log::ChangeLog;
 use k1s0_master_maintenance_server::domain::entity::column_definition::{
     ColumnDefinition, CreateColumnDefinition,
@@ -446,7 +448,8 @@ fn make_test_app() -> axum::Router {
         )
         .expect("Failed to create JWKS verifier"),
     );
-    let auth_state = MasterMaintenanceAuthState { verifier };
+    // 共通AuthStateを使用して認証状態を構築
+    let auth_state = AuthState { verifier };
 
     let state = AppState {
         manage_tables_uc,

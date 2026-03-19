@@ -351,6 +351,7 @@ fn urlencoding_simple(path: &str) -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

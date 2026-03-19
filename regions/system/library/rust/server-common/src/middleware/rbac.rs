@@ -14,9 +14,8 @@ pub enum Tier {
 }
 
 /// RBAC チェックの Future 型エイリアス
-type RbacFuture = std::pin::Pin<
-    Box<dyn std::future::Future<Output = Result<Response, ServiceError>> + Send>,
->;
+type RbacFuture =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, ServiceError>> + Send>>;
 
 /// RBAC ミドルウェアを返す。axum の from_fn で使用する。
 pub fn require_permission(

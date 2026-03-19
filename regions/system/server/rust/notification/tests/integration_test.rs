@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // 通知サーバーの統合テスト。
 // router の初期化と基本的なエンドポイントの動作を検証する。
 
@@ -10,7 +11,8 @@ use axum::http::{Request, StatusCode};
 use tower::ServiceExt;
 
 use k1s0_notification_server::adapter::handler::{router, AppState};
-use k1s0_notification_server::adapter::middleware::auth::NotificationAuthState;
+// 認証状態の型をインポート（共通AuthStateを使用）
+use k1s0_notification_server::adapter::middleware::auth::AuthState;
 use k1s0_notification_server::domain::entity::notification_channel::NotificationChannel;
 use k1s0_notification_server::domain::entity::notification_log::NotificationLog;
 use k1s0_notification_server::domain::entity::notification_template::NotificationTemplate;
@@ -136,7 +138,8 @@ fn make_test_app() -> axum::Router {
         )
         .expect("Failed to create JWKS verifier"),
     );
-    let auth_state = NotificationAuthState { verifier };
+    // 共通AuthStateを使用して認証状態を構築
+    let auth_state = AuthState { verifier };
 
     let state = AppState {
         send_notification_uc: Arc::new(SendNotificationUseCase::new(

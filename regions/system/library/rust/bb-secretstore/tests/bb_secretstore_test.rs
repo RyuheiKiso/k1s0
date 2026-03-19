@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // bb-secretstore の外部結合テスト。
 // InMemorySecretStore の get/set/delete（bulk 含む）を検証する。
 

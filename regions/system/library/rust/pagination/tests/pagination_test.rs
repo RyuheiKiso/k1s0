@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_pagination::{
     decode_cursor, default_page_request, encode_cursor, validate_per_page, CursorMeta,
     CursorRequest, PageRequest, PageResponse, PaginationError, PaginationMeta,

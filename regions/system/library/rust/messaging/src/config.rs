@@ -40,6 +40,7 @@ impl MessagingConfig {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -176,7 +177,8 @@ mod tests {
     // schema_registry_url を指定した場合に正しくデシリアライズされることを確認する。
     #[test]
     fn test_schema_registry_url() {
-        let json = r#"{"brokers": ["kafka:9092"], "schema_registry_url": "http://schema-registry:8081"}"#;
+        let json =
+            r#"{"brokers": ["kafka:9092"], "schema_registry_url": "http://schema-registry:8081"}"#;
         let cfg: MessagingConfig = serde_json::from_str(json).unwrap();
         assert_eq!(
             cfg.schema_registry_url,

@@ -2,6 +2,7 @@
 //!
 //! プロデューサーが送信したメッセージをコンシューマー側で正しく
 //! デシリアライズできることを検証する。
+#![allow(clippy::unwrap_used)]
 
 use k1s0_config_server::domain::entity::config_change_log::{
     ConfigChangeLog, CreateChangeLogRequest,

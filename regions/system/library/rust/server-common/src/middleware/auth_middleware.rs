@@ -43,6 +43,7 @@ fn extract_bearer_token(req: &Request<Body>) -> Option<String> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use axum::body::Body;

@@ -1,5 +1,6 @@
 /// 決済のデータモデル定義
 /// freezed/json_serializableを使用せず、手書きのfromJson/toJsonで実装する
+library;
 
 /// 決済ステータスの列挙型
 /// 決済のライフサイクル状態を表す

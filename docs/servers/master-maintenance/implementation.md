@@ -154,6 +154,13 @@ regions/system/server/rust/master-maintenance/
 - **ZEN Engine** (`infrastructure/rule_engine/zen_engine_adapter.rs`): Rust ネイティブのルールエンジンで整合性ルールを評価する
 - **Kafka Producer** (`infrastructure/messaging/kafka_producer.rs`): `k1s0.system.mastermaintenance.data_changed.v1` トピックにデータ変更を通知する
 
+### SQLクエリ安全性
+
+- **パラメータ化クエリ必須**: 全ての動的フィルタ条件はプレースホルダ（`$1`, `$2`, ...）を使用し、文字列結合による SQL 組み立てを禁止する
+- **参照実装**: `consistency_rule_repo_impl.rs` の `find_all()` メソッドがパラメータ化クエリのリファレンス実装
+- **明示的カラム指定**: `SELECT *` を使用せず、`FromRow` 構造体のフィールドに対応するカラムを明示的に列挙する
+- **監査履歴**: C-1（SQLインジェクション脆弱性）の修正として `table_definition_repo_impl.rs` の `find_all()` をパラメータ化クエリに移行済み（2026-03-19）
+
 ### エラーハンドリング方針
 
 - ユースケース層で `anyhow::Result` を返却し、adapter 層で HTTP/gRPC ステータスコードに変換する

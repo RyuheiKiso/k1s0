@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_resiliency::{
     BulkheadConfig, CircuitBreakerConfig, ExponentialBackoff, ResiliencyDecorator, ResiliencyError,
     ResiliencyMetrics, ResiliencyPolicy, RetryConfig,

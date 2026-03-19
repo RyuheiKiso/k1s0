@@ -5,6 +5,7 @@
 //!
 //! 注意: このテストは実際の Kafka ブローカーへの接続を必要としない。
 //! InMemory プロデューサーを使用してメッセージのシリアライズ/デシリアライズを検証する。
+#![allow(clippy::unwrap_used)]
 
 use k1s0_auth_server::domain::entity::audit_log::{AuditLog, CreateAuditLogRequest};
 use k1s0_auth_server::infrastructure::kafka_producer::{KafkaConfig, TopicsConfig};

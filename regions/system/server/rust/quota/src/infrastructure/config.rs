@@ -260,6 +260,7 @@ fn default_metrics_path() -> String {
     "/metrics".to_string()
 }
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

@@ -13,6 +13,7 @@
 //! - Metrics RED pattern end-to-end (record multiple + gather + verify output)
 //! - Metrics DB/Kafka/Cache recording
 //! - TelemetryConfig field boundary values
+#![allow(clippy::unwrap_used)]
 
 use k1s0_telemetry::error_classifier::{classify_error, ErrorSeverity};
 use k1s0_telemetry::logger::parse_log_level;

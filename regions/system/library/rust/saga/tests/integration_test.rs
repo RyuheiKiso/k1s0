@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_saga::{SagaClient, SagaStatus, StartSagaRequest};
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};

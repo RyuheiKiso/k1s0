@@ -230,6 +230,7 @@ impl K1s0AppReady {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use axum::body::Body;

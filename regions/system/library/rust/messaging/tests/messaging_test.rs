@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // messaging の外部結合テスト。
 // NoOpEventProducer、EventEnvelope 構築、ConsumerConfig、DLQ ヘルパーを検証する。
 
@@ -224,6 +225,7 @@ fn test_messaging_config_brokers_string() {
         security_protocol: "PLAINTEXT".to_string(),
         timeout_ms: 5000,
         batch_size: 100,
+        schema_registry_url: None,
     };
     assert_eq!(cfg.brokers_string(), "kafka-0:9092,kafka-1:9092");
 }

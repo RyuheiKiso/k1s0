@@ -24,7 +24,8 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         severity: Option<&str>,
     ) -> anyhow::Result<Vec<ConsistencyRule>> {
         let mut query =
-            String::from("SELECT * FROM master_maintenance.consistency_rules WHERE 1=1");
+            // 明示的カラム指定によるクエリ安全性の確保
+            String::from("SELECT id, name, description, rule_type, severity, is_active, source_table_id, evaluation_timing, error_message_template, zen_rule_json, created_by, created_at, updated_at FROM master_maintenance.consistency_rules WHERE 1=1");
         let mut param_idx = 1u32;
         let mut bind_values: Vec<String> = Vec::new();
 
@@ -60,7 +61,8 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<ConsistencyRule>> {
         let row = sqlx::query_as::<_, ConsistencyRuleRow>(
-            "SELECT * FROM master_maintenance.consistency_rules WHERE id = $1",
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, name, description, rule_type, severity, is_active, source_table_id, evaluation_timing, error_message_template, zen_rule_json, created_by, created_at, updated_at FROM master_maintenance.consistency_rules WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -75,7 +77,8 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
     ) -> anyhow::Result<Vec<ConsistencyRule>> {
         let rows = if let Some(t) = timing {
             sqlx::query_as::<_, ConsistencyRuleRow>(
-                "SELECT * FROM master_maintenance.consistency_rules WHERE source_table_id = $1 AND evaluation_timing = $2 AND is_active = true ORDER BY name"
+                // 明示的カラム指定によるクエリ安全性の確保
+                "SELECT id, name, description, rule_type, severity, is_active, source_table_id, evaluation_timing, error_message_template, zen_rule_json, created_by, created_at, updated_at FROM master_maintenance.consistency_rules WHERE source_table_id = $1 AND evaluation_timing = $2 AND is_active = true ORDER BY name"
             )
             .bind(table_id)
             .bind(t)
@@ -83,7 +86,8 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
             .await?
         } else {
             sqlx::query_as::<_, ConsistencyRuleRow>(
-                "SELECT * FROM master_maintenance.consistency_rules WHERE source_table_id = $1 AND is_active = true ORDER BY name"
+                // 明示的カラム指定によるクエリ安全性の確保
+                "SELECT id, name, description, rule_type, severity, is_active, source_table_id, evaluation_timing, error_message_template, zen_rule_json, created_by, created_at, updated_at FROM master_maintenance.consistency_rules WHERE source_table_id = $1 AND is_active = true ORDER BY name"
             )
             .bind(table_id)
             .fetch_all(&self.pool)
@@ -104,7 +108,8 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
                (id, name, description, rule_type, severity, is_active, source_table_id,
                 evaluation_timing, error_message_template, zen_rule_json, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-               RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               RETURNING id, name, description, rule_type, severity, is_active, source_table_id, evaluation_timing, error_message_template, zen_rule_json, created_by, created_at, updated_at"#,
         )
         .bind(rule.id)
         .bind(&rule.name)
@@ -157,7 +162,8 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
                error_message_template = $8,
                zen_rule_json = $9,
                updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               WHERE id = $1 RETURNING id, name, description, rule_type, severity, is_active, source_table_id, evaluation_timing, error_message_template, zen_rule_json, created_by, created_at, updated_at"#,
         )
         .bind(id)
         .bind(&rule.name)
@@ -232,7 +238,8 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         rule_id: Uuid,
     ) -> anyhow::Result<Vec<RuleCondition>> {
         let rows = sqlx::query_as::<_, RuleConditionRow>(
-            "SELECT * FROM master_maintenance.rule_conditions WHERE rule_id = $1 ORDER BY condition_order"
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, rule_id, condition_order, left_table_id, left_column, operator, right_table_id, right_column, right_value, logical_connector, created_at FROM master_maintenance.rule_conditions WHERE rule_id = $1 ORDER BY condition_order"
         )
         .bind(rule_id)
         .fetch_all(&self.pool)

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // クォータサーバーの統合テスト。
 // router の初期化と基本的なエンドポイントの動作を検証する。
 
@@ -10,7 +11,7 @@ use axum::http::{Request, StatusCode};
 use tower::ServiceExt;
 
 use k1s0_quota_server::adapter::handler::{router, AppState};
-use k1s0_quota_server::adapter::middleware::auth::QuotaAuthState;
+use k1s0_quota_server::adapter::middleware::auth::AuthState;
 use k1s0_quota_server::domain::entity::quota::QuotaPolicy;
 use k1s0_quota_server::domain::repository::{
     CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository,
@@ -96,7 +97,7 @@ fn make_test_app() -> axum::Router {
         )
         .expect("Failed to create JWKS verifier"),
     );
-    let auth_state = QuotaAuthState { verifier };
+    let auth_state = AuthState { verifier };
 
     let state = AppState {
         create_policy_uc: Arc::new(CreateQuotaPolicyUseCase::new(policy_repo.clone())),

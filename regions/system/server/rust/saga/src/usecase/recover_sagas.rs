@@ -1,9 +1,13 @@
 use std::sync::Arc;
 
+use tokio::sync::Semaphore;
 use tracing::{error, info, warn};
 
 use crate::domain::repository::{SagaRepository, WorkflowRepository};
 use crate::usecase::ExecuteSagaUseCase;
+
+/// 同時リカバリの最大並行数。リソース枯渇を防ぐために制限する。
+const MAX_CONCURRENT_RECOVERIES: usize = 10;
 
 /// RecoverSagasUseCase は起動時に未完了Sagaを再開する。
 pub struct RecoverSagasUseCase {
@@ -37,6 +41,9 @@ impl RecoverSagasUseCase {
 
         info!(count = count, "recovering incomplete sagas");
 
+        // セマフォで同時リカバリ数を制限し、DBやサービスへの負荷集中を防ぐ
+        let semaphore = Arc::new(Semaphore::new(MAX_CONCURRENT_RECOVERIES));
+
         for saga in incomplete {
             let saga_id = saga.saga_id;
             let workflow_name = saga.workflow_name.clone();
@@ -44,6 +51,12 @@ impl RecoverSagasUseCase {
             match self.workflow_repo.get(&workflow_name).await {
                 Ok(Some(workflow)) => {
                     let execute_uc = self.execute_saga_uc.clone();
+                    // セマフォの許可を取得してから非同期タスクを起動する
+                    let permit = semaphore
+                        .clone()
+                        .acquire_owned()
+                        .await
+                        .map_err(|e| anyhow::anyhow!("semaphore closed unexpectedly: {}", e))?;
                     tokio::spawn(async move {
                         info!(saga_id = %saga_id, workflow = %workflow_name, "resuming saga");
                         if let Err(e) = execute_uc.run(saga_id, &workflow).await {
@@ -53,6 +66,8 @@ impl RecoverSagasUseCase {
                                 "failed to recover saga"
                             );
                         }
+                        // タスク終了時にpermitをドロップして次のリカバリを許可する
+                        drop(permit);
                     });
                 }
                 Ok(None) => {
@@ -79,6 +94,7 @@ impl RecoverSagasUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::saga_state::SagaState;

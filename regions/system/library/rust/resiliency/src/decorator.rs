@@ -221,6 +221,7 @@ impl ResiliencyDecorator {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::policy::{BulkheadConfig, CircuitBreakerConfig, ExponentialBackoff, RetryConfig};

@@ -20,15 +20,19 @@ final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
   return PaymentRepository(ref.watch(dioProvider));
 });
 
-/// 決済一覧の状態を管理するStateNotifier
+/// 決済一覧の状態を管理するNotifier
 /// フィルタリングとローディング/エラー状態を統一的に管理する
-class PaymentListNotifier extends StateNotifier<AsyncValue<List<Payment>>> {
-  final PaymentRepository _repository;
-
-  PaymentListNotifier(this._repository) : super(const AsyncValue.loading()) {
+class PaymentListNotifier extends Notifier<AsyncValue<List<Payment>>> {
+  @override
+  AsyncValue<List<Payment>> build() {
     /// 初期化時に決済一覧を自動取得する
     load();
+    return const AsyncValue.loading();
   }
+
+  /// リポジトリをrefから取得するヘルパー
+  PaymentRepository get _repository =>
+      ref.read(paymentRepositoryProvider);
 
   /// 決済一覧をサーバーから取得する
   /// オプションのフィルタ条件で絞り込みを行う
@@ -73,8 +77,8 @@ class PaymentListNotifier extends StateNotifier<AsyncValue<List<Payment>>> {
 }
 
 /// 決済一覧のProvider
-/// StateNotifierProviderを使用して状態管理を行う
+/// NotifierProviderを使用して状態管理を行う
 final paymentListProvider =
-    StateNotifierProvider<PaymentListNotifier, AsyncValue<List<Payment>>>(
-  (ref) => PaymentListNotifier(ref.watch(paymentRepositoryProvider)),
+    NotifierProvider<PaymentListNotifier, AsyncValue<List<Payment>>>(
+  PaymentListNotifier.new,
 );

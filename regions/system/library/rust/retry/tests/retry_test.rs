@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_retry::circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitBreakerState};
 use k1s0_retry::error::RetryError;
 use k1s0_retry::policy::RetryConfig;

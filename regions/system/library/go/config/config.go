@@ -151,21 +151,21 @@ func Load(basePath string, envPath ...string) (*Config, error) {
 	if err != nil {
 		// ファイルが存在しない場合は ErrConfigNotFound、それ以外は ErrConfigLoadFailed
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("%w: %s: %v", ErrConfigNotFound, basePath, err)
+			return nil, fmt.Errorf("%w: %s: %w", ErrConfigNotFound, basePath, err)
 		}
-		return nil, fmt.Errorf("%w: %s: %v", ErrConfigLoadFailed, basePath, err)
+		return nil, fmt.Errorf("%w: %s: %w", ErrConfigLoadFailed, basePath, err)
 	}
 
 	var cfg Config
 	// YAML パースに失敗した場合は ErrConfigInvalid
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrConfigInvalid, err)
+		return nil, fmt.Errorf("%w: %w", ErrConfigInvalid, err)
 	}
 
 	if len(envPath) > 0 && envPath[0] != "" {
 		// 環境設定ファイルのマージに失敗した場合は ErrConfigLoadFailed
 		if err := mergeFromFile(&cfg, envPath[0]); err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrConfigLoadFailed, err)
+			return nil, fmt.Errorf("%w: %w", ErrConfigLoadFailed, err)
 		}
 	}
 
@@ -178,7 +178,7 @@ func Load(basePath string, envPath ...string) (*Config, error) {
 func (c *Config) Validate() error {
 	v := validator.New()
 	if err := v.Struct(c); err != nil {
-		return fmt.Errorf("%w: %v", ErrConfigValidation, err)
+		return fmt.Errorf("%w: %w", ErrConfigValidation, err)
 	}
 
 	// OIDC エンドポイントが TLS を使用していない場合に警告する

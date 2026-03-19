@@ -70,6 +70,7 @@ impl WatchFeatureFlagStreamHandler {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::usecase::watch_feature_flag::WatchFeatureFlagUseCase;

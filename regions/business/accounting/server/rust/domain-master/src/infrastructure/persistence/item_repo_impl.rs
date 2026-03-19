@@ -25,16 +25,17 @@ impl ItemPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let rows = if active_only {
             sqlx::query_as::<_, ItemRow>(
-                "SELECT * FROM domain_master.master_items WHERE category_id = $1 AND is_active = true ORDER BY sort_order, code",
+                "SELECT id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_items WHERE category_id = $1 AND is_active = true ORDER BY sort_order, code",
             )
             .bind(category_id)
             .fetch_all(executor)
             .await?
         } else {
             sqlx::query_as::<_, ItemRow>(
-                "SELECT * FROM domain_master.master_items WHERE category_id = $1 ORDER BY sort_order, code",
+                "SELECT id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_items WHERE category_id = $1 ORDER BY sort_order, code",
             )
             .bind(category_id)
             .fetch_all(executor)
@@ -52,8 +53,9 @@ impl ItemPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, ItemRow>(
-            "SELECT * FROM domain_master.master_items WHERE category_id = $1 AND code = $2",
+            "SELECT id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_items WHERE category_id = $1 AND code = $2",
         )
         .bind(category_id)
         .bind(code)
@@ -70,8 +72,9 @@ impl ItemPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row =
-            sqlx::query_as::<_, ItemRow>("SELECT * FROM domain_master.master_items WHERE id = $1")
+            sqlx::query_as::<_, ItemRow>("SELECT id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_items WHERE id = $1")
                 .bind(id)
                 .fetch_optional(executor)
                 .await?;
@@ -88,12 +91,13 @@ impl ItemPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, ItemRow>(
             r#"INSERT INTO domain_master.master_items
                (category_id, code, display_name, description, attributes,
                 parent_item_id, effective_from, effective_until, is_active, sort_order, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-               RETURNING *"#,
+               RETURNING id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at"#,
         )
         .bind(category_id)
         .bind(&input.code)
@@ -120,6 +124,7 @@ impl ItemPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, ItemRow>(
             r#"UPDATE domain_master.master_items SET
                display_name = COALESCE($2, display_name),
@@ -131,7 +136,7 @@ impl ItemPostgresRepository {
                is_active = COALESCE($8, is_active),
                sort_order = COALESCE($9, sort_order),
                updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               WHERE id = $1 RETURNING id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at"#,
         )
         .bind(id)
         .bind(&input.display_name)
@@ -148,10 +153,7 @@ impl ItemPostgresRepository {
     }
 
     /// アイテムを削除する。任意の sqlx Executor を受け取る。
-    pub async fn delete_with_executor<'e, E>(
-        executor: E,
-        id: Uuid,
-    ) -> anyhow::Result<()>
+    pub async fn delete_with_executor<'e, E>(executor: E, id: Uuid) -> anyhow::Result<()>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {

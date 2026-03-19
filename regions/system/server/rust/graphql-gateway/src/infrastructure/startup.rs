@@ -43,7 +43,8 @@ pub async fn run() -> anyhow::Result<()> {
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+    k1s0_telemetry::init_telemetry(&telemetry_cfg)
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
 
     // --- Config ---
     cfg.validate()?;
@@ -139,11 +140,10 @@ pub async fn run() -> anyhow::Result<()> {
             window_secs = cfg.ratelimit.window_secs,
             "レート制限を有効化"
         );
-        let ratelimit_client = k1s0_ratelimit_client::GrpcRateLimitClient::new(
-            cfg.ratelimit.server_url.clone(),
-        )
-        .await
-        .map_err(|e| anyhow::anyhow!("ratelimit クライアントの作成に失敗: {}", e))?;
+        let ratelimit_client =
+            k1s0_ratelimit_client::GrpcRateLimitClient::new(cfg.ratelimit.server_url.clone())
+                .await
+                .map_err(|e| anyhow::anyhow!("ratelimit クライアントの作成に失敗: {}", e))?;
         Some(RateLimitLayer::new(
             Arc::new(ratelimit_client),
             cfg.ratelimit.scope.clone(),

@@ -13,7 +13,7 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { PaginationResult } from "../../../system/common/v1/types";
 import { Pagination } from "../../../system/common/v1/types";
-import { Timestamp } from "../../../../google/protobuf/timestamp";
+import { Timestamp } from "../../../system/common/v1/types";
 // ---------- メッセージ型 ----------
 
 /**
@@ -63,11 +63,11 @@ export interface Order {
      */
     items: OrderItem[];
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp created_at = 11
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 11
      */
     createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 12
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 12
      */
     updatedAt?: Timestamp;
 }
@@ -106,7 +106,7 @@ export interface OrderItem {
      */
     subtotal: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp created_at = 8
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 8
      */
     createdAt?: Timestamp;
 }
@@ -300,10 +300,10 @@ class Order$Type extends MessageType<Order> {
                 case /* repeated k1s0.service.order.v1.OrderItem items */ 10:
                     message.items.push(OrderItem.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* google.protobuf.Timestamp created_at */ 11:
+                case /* k1s0.system.common.v1.Timestamp created_at */ 11:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* google.protobuf.Timestamp updated_at */ 12:
+                case /* k1s0.system.common.v1.Timestamp updated_at */ 12:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
                 default:
@@ -348,10 +348,10 @@ class Order$Type extends MessageType<Order> {
         /* repeated k1s0.service.order.v1.OrderItem items = 10; */
         for (let i = 0; i < message.items.length; i++)
             OrderItem.internalBinaryWrite(message.items[i], writer.tag(10, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp created_at = 11; */
+        /* k1s0.system.common.v1.Timestamp created_at = 11; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp updated_at = 12; */
+        /* k1s0.system.common.v1.Timestamp updated_at = 12; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
@@ -417,7 +417,7 @@ class OrderItem$Type extends MessageType<OrderItem> {
                 case /* int64 subtotal */ 7:
                     message.subtotal = reader.int64().toString();
                     break;
-                case /* google.protobuf.Timestamp created_at */ 8:
+                case /* k1s0.system.common.v1.Timestamp created_at */ 8:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
                 default:
@@ -453,7 +453,7 @@ class OrderItem$Type extends MessageType<OrderItem> {
         /* int64 subtotal = 7; */
         if (message.subtotal !== "0")
             writer.tag(7, WireType.Varint).int64(message.subtotal);
-        /* google.protobuf.Timestamp created_at = 8; */
+        /* k1s0.system.common.v1.Timestamp created_at = 8; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;

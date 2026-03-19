@@ -1,5 +1,6 @@
 //! レートリミットサーバーのユースケーステスト。
 //! StubRepository パターンを使用して各ユースケースの動作を検証する。
+#![allow(clippy::unwrap_used)]
 
 use std::sync::Arc;
 

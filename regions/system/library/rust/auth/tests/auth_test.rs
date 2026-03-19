@@ -2,6 +2,7 @@
 //!
 //! Complements the inline tests in src/tests.rs by testing the public API
 //! without relying on internal test helpers.
+#![allow(clippy::unwrap_used)]
 
 use k1s0_auth::{
     actor_from_claims, check_permission, has_permission, has_resource_role, has_role,

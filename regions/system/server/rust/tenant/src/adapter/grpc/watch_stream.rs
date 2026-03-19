@@ -75,6 +75,7 @@ impl WatchTenantStreamHandler {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::usecase::watch_tenant::WatchTenantUseCase;

@@ -23,11 +23,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AiGatewayService_Complete_FullMethodName       = "/k1s0.system.ai_gateway.v1.AiGatewayService/Complete"
-	AiGatewayService_CompleteStream_FullMethodName = "/k1s0.system.ai_gateway.v1.AiGatewayService/CompleteStream"
-	AiGatewayService_Embed_FullMethodName          = "/k1s0.system.ai_gateway.v1.AiGatewayService/Embed"
-	AiGatewayService_ListModels_FullMethodName     = "/k1s0.system.ai_gateway.v1.AiGatewayService/ListModels"
-	AiGatewayService_GetUsage_FullMethodName       = "/k1s0.system.ai_gateway.v1.AiGatewayService/GetUsage"
+	AiGatewayService_Complete_FullMethodName       = "/k1s0.system.aigateway.v1.AiGatewayService/Complete"
+	AiGatewayService_CompleteStream_FullMethodName = "/k1s0.system.aigateway.v1.AiGatewayService/CompleteStream"
+	AiGatewayService_Embed_FullMethodName          = "/k1s0.system.aigateway.v1.AiGatewayService/Embed"
+	AiGatewayService_ListModels_FullMethodName     = "/k1s0.system.aigateway.v1.AiGatewayService/ListModels"
+	AiGatewayService_GetUsage_FullMethodName       = "/k1s0.system.aigateway.v1.AiGatewayService/GetUsage"
 )
 
 // AiGatewayServiceClient is the client API for AiGatewayService service.
@@ -264,7 +264,7 @@ func _AiGatewayService_GetUsage_Handler(srv interface{}, ctx context.Context, de
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AiGatewayService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "k1s0.system.ai_gateway.v1.AiGatewayService",
+	ServiceName: "k1s0.system.aigateway.v1.AiGatewayService",
 	HandlerType: (*AiGatewayServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

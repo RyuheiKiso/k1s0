@@ -1,6 +1,6 @@
 import pino from 'pino';
 import { trace } from '@opentelemetry/api';
-import type { TelemetryConfig } from './telemetry';
+import type { TelemetryConfig } from './telemetry.js';
 
 /**
  * createLogger は pino ベースの構造化ロガーを生成する。

@@ -38,10 +38,7 @@ pub async fn create_relationship(
         }),
     )
     .await;
-    Ok((
-        StatusCode::CREATED,
-        Json(relationship),
-    ))
+    Ok((StatusCode::CREATED, Json(relationship)))
 }
 
 pub async fn update_relationship(

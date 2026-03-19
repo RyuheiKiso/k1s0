@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // schemaregistry の外部結合テスト。
 // 設定デフォルト値、スキーマ型、エラーバリアントを検証する。
 

@@ -34,6 +34,7 @@ pub fn extract_context(headers: &HashMap<String, String>) -> (Option<TraceContex
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

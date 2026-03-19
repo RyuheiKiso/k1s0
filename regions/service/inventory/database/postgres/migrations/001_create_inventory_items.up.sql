@@ -15,5 +15,5 @@ CREATE TABLE IF NOT EXISTS inventory_items (
     CONSTRAINT chk_qty_reserved CHECK (qty_reserved >= 0)
 );
 
-CREATE INDEX idx_inventory_product ON inventory_items (product_id);
-CREATE INDEX idx_inventory_warehouse ON inventory_items (warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_product ON inventory_items (product_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_warehouse ON inventory_items (warehouse_id);

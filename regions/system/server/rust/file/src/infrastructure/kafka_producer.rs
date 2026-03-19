@@ -46,7 +46,6 @@ impl FileKafkaProducer {
             metrics: None,
         })
     }
-
 }
 
 #[async_trait]

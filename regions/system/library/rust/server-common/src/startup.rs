@@ -97,10 +97,7 @@ impl ServerBuilder {
     ///
     /// 全サーバーで繰り返される PgPoolOptions 構築を一箇所に集約する。
     #[cfg(feature = "startup-db")]
-    pub async fn init_db_pool(
-        &self,
-        config: &DatabasePoolConfig,
-    ) -> anyhow::Result<sqlx::PgPool> {
+    pub async fn init_db_pool(&self, config: &DatabasePoolConfig) -> anyhow::Result<sqlx::PgPool> {
         // DATABASE_URL 環境変数を優先する（Kubernetes Secret 注入対応）
         let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| config.url.clone());
         info!(

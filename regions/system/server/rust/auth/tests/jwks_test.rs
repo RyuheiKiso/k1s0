@@ -1,5 +1,6 @@
 //! JWKS endpoint tests using wiremock.
 //! These tests verify that JwksVerifier correctly fetches keys from a JWKS endpoint.
+#![allow(clippy::unwrap_used)]
 
 #[cfg(test)]
 mod jwks_wiremock_tests {

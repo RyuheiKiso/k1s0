@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // building-blocks ファサードクレートの外部結合テスト。
 // 各サブクレートの型が building-blocks 経由でアクセスできることを確認する。
 

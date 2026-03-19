@@ -1,4 +1,5 @@
 //! Integration tests for k1s0-server-common.
+#![allow(clippy::unwrap_used)]
 
 use k1s0_server_common::{
     ApiResponse, ErrorBody, ErrorCode, ErrorDetail, ErrorResponse, PaginatedResponse,

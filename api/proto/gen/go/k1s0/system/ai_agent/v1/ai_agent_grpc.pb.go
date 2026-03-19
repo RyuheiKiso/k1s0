@@ -23,10 +23,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AiAgentService_Execute_FullMethodName         = "/k1s0.system.ai_agent.v1.AiAgentService/Execute"
-	AiAgentService_ExecuteStream_FullMethodName   = "/k1s0.system.ai_agent.v1.AiAgentService/ExecuteStream"
-	AiAgentService_CancelExecution_FullMethodName = "/k1s0.system.ai_agent.v1.AiAgentService/CancelExecution"
-	AiAgentService_ReviewStep_FullMethodName      = "/k1s0.system.ai_agent.v1.AiAgentService/ReviewStep"
+	AiAgentService_Execute_FullMethodName         = "/k1s0.system.aiagent.v1.AiAgentService/Execute"
+	AiAgentService_ExecuteStream_FullMethodName   = "/k1s0.system.aiagent.v1.AiAgentService/ExecuteStream"
+	AiAgentService_CancelExecution_FullMethodName = "/k1s0.system.aiagent.v1.AiAgentService/CancelExecution"
+	AiAgentService_ReviewStep_FullMethodName      = "/k1s0.system.aiagent.v1.AiAgentService/ReviewStep"
 )
 
 // AiAgentServiceClient is the client API for AiAgentService service.
@@ -228,7 +228,7 @@ func _AiAgentService_ReviewStep_Handler(srv interface{}, ctx context.Context, de
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AiAgentService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "k1s0.system.ai_agent.v1.AiAgentService",
+	ServiceName: "k1s0.system.aiagent.v1.AiAgentService",
 	HandlerType: (*AiAgentServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

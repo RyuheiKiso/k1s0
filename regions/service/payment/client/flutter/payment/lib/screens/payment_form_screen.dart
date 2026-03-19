@@ -127,7 +127,7 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
 
               /// 決済方法ドロップダウン
               DropdownButtonFormField<PaymentMethod>(
-                value: _selectedMethod,
+                initialValue: _selectedMethod,
                 decoration: const InputDecoration(
                   labelText: '決済方法',
                   border: OutlineInputBorder(),

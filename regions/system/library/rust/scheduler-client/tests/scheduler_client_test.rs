@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // scheduler-client の外部結合テスト。
 // InMemorySchedulerClient のジョブライフサイクル（作成→取得→更新→削除）を検証する。
 

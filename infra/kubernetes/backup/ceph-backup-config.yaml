@@ -25,6 +25,13 @@ spec:
           containers:
             - name: ceph-snapshot
               image: quay.io/ceph/ceph:v18
+              # セキュリティ強化: 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
               command:
                 - /bin/sh
                 - -c

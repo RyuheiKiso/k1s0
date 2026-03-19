@@ -91,10 +91,7 @@ pub async fn create_category(
         .create_category(&input, &actor)
         .await
         .map_err(from_anyhow)?;
-    Ok((
-        StatusCode::CREATED,
-        Json(category),
-    ))
+    Ok((StatusCode::CREATED, Json(category)))
 }
 
 pub async fn update_category(

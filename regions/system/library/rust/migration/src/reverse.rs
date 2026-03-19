@@ -69,6 +69,7 @@ pub fn generate_down_sql(up_sql: &str) -> Result<String, MigrationError> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

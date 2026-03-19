@@ -1,9 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:domain_master/config/app_config.dart';
 import 'package:domain_master/config/config_provider.dart';
+import 'package:domain_master/providers/domain_master_provider.dart';
 import 'package:domain_master/screens/category_list_screen.dart';
 
 /// テスト用のAppConfig定数
@@ -21,15 +23,48 @@ const _testConfig = AppConfig(
   features: {},
 );
 
+/// テスト用のDioアダプター
+/// 実際のHTTP通信を行わず、即座に空レスポンスを返すことでペンディングタイマーを防ぐ
+class _MockHttpClientAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    /// カテゴリ一覧APIへのリクエストに対し、空のカテゴリリストを返す
+    return ResponseBody.fromString(
+      '{"categories": []}',
+      200,
+      headers: {
+        'content-type': ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+/// テスト用のDioインスタンスを生成する
+/// 実際のHTTP通信を行わないモックアダプターを使用する
+Dio _createTestDio() {
+  final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080'));
+  dio.httpClientAdapter = _MockHttpClientAdapter();
+  return dio;
+}
+
 /// CategoryListScreenの基本的なウィジェットテスト
 void main() {
   /// CategoryListScreenが正常にレンダリングされることを確認する
   testWidgets('CategoryListScreen が正常に表示される', (tester) async {
     await tester.pumpWidget(
-      /// appConfigProviderをテスト用設定でoverrideし、UnimplementedErrorを回避する
+      /// appConfigProviderとdioProviderをテスト用にoverrideし、
+      /// 実際のHTTP通信を回避する
       ProviderScope(
         overrides: [
           appConfigProvider.overrideWithValue(_testConfig),
+          dioProvider.overrideWithValue(_createTestDio()),
         ],
         child: const MaterialApp(
           home: CategoryListScreen(),
@@ -37,12 +72,11 @@ void main() {
       ),
     );
 
+    /// Dioの非同期タイマーを消化し、ペンディングタイマーエラーを防ぐ
+    await tester.pumpAndSettle();
+
     /// AppBarのタイトルが表示されることを検証する
     expect(find.text('マスタカテゴリ管理'), findsOneWidget);
-
-    /// ローディングインジケーターが表示されることを検証する
-    /// （API接続がないため、ローディング状態のままとなる）
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
     /// FABが表示されることを検証する
     expect(find.byType(FloatingActionButton), findsOneWidget);
@@ -51,16 +85,21 @@ void main() {
   /// FABタップでカテゴリ作成ダイアログが表示されることを確認する
   testWidgets('FABタップでカテゴリ作成ダイアログが表示される', (tester) async {
     await tester.pumpWidget(
-      /// appConfigProviderをテスト用設定でoverrideし、UnimplementedErrorを回避する
+      /// appConfigProviderとdioProviderをテスト用にoverrideし、
+      /// 実際のHTTP通信を回避する
       ProviderScope(
         overrides: [
           appConfigProvider.overrideWithValue(_testConfig),
+          dioProvider.overrideWithValue(_createTestDio()),
         ],
         child: const MaterialApp(
           home: CategoryListScreen(),
         ),
       ),
     );
+
+    /// Dioの非同期タイマーを消化し、ペンディングタイマーエラーを防ぐ
+    await tester.pumpAndSettle();
 
     /// FABをタップする
     await tester.tap(find.byType(FloatingActionButton));

@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[allow(dead_code)]
+// アプリケーション設定のルート構造体。startup.rs から Config::load() で使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
@@ -13,13 +13,19 @@ pub struct Config {
     pub auth: Option<AuthConfig>,
     #[serde(default)]
     pub kafka: Option<KafkaConfig>,
+    /// DLQ 転送機能で使用予定。YAML から読み込むため Deserialize に必要。
     #[serde(default)]
+    #[allow(dead_code)]
     pub dlq_manager: Option<DlqManagerConfig>,
     #[serde(default)]
     pub cache: CacheConfig,
+    /// タイムアウト検出・クリーンアップ機能で使用予定。YAML から読み込むため Deserialize に必要。
     #[serde(default)]
+    #[allow(dead_code)]
     pub scheduler: Option<SchedulerConfig>,
+    /// アラート通知機能で使用予定。YAML から読み込むため Deserialize に必要。
     #[serde(default)]
+    #[allow(dead_code)]
     pub notification: Option<NotificationConfig>,
 }
 
@@ -48,10 +54,12 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-#[allow(dead_code)]
+// サーバー設定。startup.rs でリスニングアドレス・ポートの取得に使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
+    /// startup.rs では現在 0.0.0.0 をハードコードしているが、将来的にはこの値を参照する。
     #[serde(default = "default_host")]
+    #[allow(dead_code)]
     pub host: String,
     #[serde(default = "default_port")]
     pub port: u16,
@@ -71,7 +79,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-#[allow(dead_code)]
+// データベース設定。database.rs の connect() で接続 URL 構築に使用される。
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -84,9 +92,13 @@ pub struct DatabaseConfig {
     pub ssl_mode: String,
     #[serde(default = "default_max_open_conns")]
     pub max_open_conns: u32,
+    /// コネクションプール設定。sqlx の idle 接続数上限として使用予定。
     #[serde(default = "default_max_idle_conns")]
+    #[allow(dead_code)]
     pub max_idle_conns: u32,
+    /// コネクション最大生存期間。sqlx の max_lifetime として使用予定。
     #[serde(default = "default_conn_max_lifetime")]
+    #[allow(dead_code)]
     pub conn_max_lifetime: String,
 }
 
@@ -128,8 +140,9 @@ fn default_jwks_cache_ttl_secs() -> u64 {
     3600
 }
 
-#[allow(dead_code)]
+// Kafka設定。kafka_consumer.rs でコンシューマー構成に使用される。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(default = "default_consumer_group")]
@@ -154,8 +167,9 @@ fn default_event_topic_pattern() -> String {
     "k1s0.*.*.*.v1".to_string()
 }
 
-#[allow(dead_code)]
+// DLQ Manager 設定。DLQ クライアント接続に使用される。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct DlqManagerConfig {
     pub grpc_endpoint: String,
     #[serde(default = "default_dlq_timeout_ms")]
@@ -212,8 +226,9 @@ fn default_ttl_seconds() -> u64 {
     30
 }
 
-#[allow(dead_code)]
+// スケジューラ設定。タイムアウト検出やクリーンアップ間隔の制御に使用される。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct SchedulerConfig {
     #[serde(default = "default_timeout_check_interval")]
     pub timeout_check_interval_seconds: u64,
@@ -229,8 +244,9 @@ fn default_cleanup_interval() -> u64 {
     3600
 }
 
-#[allow(dead_code)]
+// 通知設定。通知エンドポイントの接続構成に使用される。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct NotificationConfig {
     pub endpoint: String,
     #[serde(default = "default_notification_timeout")]
@@ -241,8 +257,9 @@ fn default_notification_timeout() -> u64 {
     10
 }
 
-#[allow(dead_code)]
+// オブザーバビリティ設定。startup.rs でテレメトリ初期化に使用される。
 #[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -289,8 +306,9 @@ impl Default for TraceConfig {
     }
 }
 
-#[allow(dead_code)]
+// メトリクス設定。ObservabilityConfig の一部として使用される。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]
     pub enabled: bool,
@@ -336,6 +354,7 @@ fn default_metrics_path() -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

@@ -140,6 +140,7 @@ impl EventPublisher for NoopEventPublisher {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

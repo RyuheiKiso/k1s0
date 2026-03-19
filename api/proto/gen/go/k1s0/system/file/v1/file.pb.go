@@ -990,7 +990,7 @@ const file_k1s0_system_file_v1_file_proto_rawDesc = "" +
 	"\x13GenerateDownloadUrl\x12/.k1s0.system.file.v1.GenerateDownloadUrlRequest\x1a0.k1s0.system.file.v1.GenerateDownloadUrlResponse\x12i\n" +
 	"\x0eUpdateFileTags\x12*.k1s0.system.file.v1.UpdateFileTagsRequest\x1a+.k1s0.system.file.v1.UpdateFileTagsResponse\x12]\n" +
 	"\n" +
-	"DeleteFile\x12&.k1s0.system.file.v1.DeleteFileRequest\x1a'.k1s0.system.file.v1.DeleteFileResponseB9Z7github.com/k1s0-platform/system-proto-go/file/v1;filev1b\x06proto3"
+	"DeleteFile\x12&.k1s0.system.file.v1.DeleteFileRequest\x1a'.k1s0.system.file.v1.DeleteFileResponseB@Z>github.com/k1s0-platform/api/gen/go/k1s0/system/file/v1;filev1b\x06proto3"
 
 var (
 	file_k1s0_system_file_v1_file_proto_rawDescOnce sync.Once

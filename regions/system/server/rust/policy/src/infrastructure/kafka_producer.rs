@@ -131,7 +131,6 @@ impl KafkaPolicyProducer {
         self.metrics = Some(metrics);
         self
     }
-
 }
 
 #[async_trait]
@@ -167,6 +166,7 @@ impl PolicyEventPublisher for KafkaPolicyProducer {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

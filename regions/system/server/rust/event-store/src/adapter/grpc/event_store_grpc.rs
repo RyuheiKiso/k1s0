@@ -192,8 +192,16 @@ impl EventStoreGrpcService {
     ) -> Result<ProtoReadEventsResponse, GrpcError> {
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = req.pagination.unwrap_or_default();
-        let page = if pagination.page <= 0 { 1 } else { pagination.page as u32 };
-        let page_size = if pagination.page_size <= 0 { 20 } else { pagination.page_size as u32 };
+        let page = if pagination.page <= 0 {
+            1
+        } else {
+            pagination.page as u32
+        };
+        let page_size = if pagination.page_size <= 0 {
+            20
+        } else {
+            pagination.page_size as u32
+        };
         let input = ReadEventsInput {
             stream_id: req.stream_id,
             from_version: req.from_version,

@@ -22,9 +22,9 @@ pub struct MasterCategory {
     #[prost(string, tag="8")]
     pub created_by: ::prost::alloc::string::String,
     #[prost(message, optional, tag="9")]
-    pub created_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
     #[prost(message, optional, tag="10")]
-    pub updated_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub updated_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 /// マスタ項目
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -44,9 +44,9 @@ pub struct MasterItem {
     #[prost(string, optional, tag="7")]
     pub parent_item_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag="8")]
-    pub effective_from: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub effective_from: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
     #[prost(message, optional, tag="9")]
-    pub effective_until: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub effective_until: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
     #[prost(bool, tag="10")]
     pub is_active: bool,
     #[prost(int32, tag="11")]
@@ -54,9 +54,9 @@ pub struct MasterItem {
     #[prost(string, tag="12")]
     pub created_by: ::prost::alloc::string::String,
     #[prost(message, optional, tag="13")]
-    pub created_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
     #[prost(message, optional, tag="14")]
-    pub updated_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub updated_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 /// マスタ項目バージョン
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -76,7 +76,7 @@ pub struct MasterItemVersion {
     #[prost(string, tag="7")]
     pub change_reason: ::prost::alloc::string::String,
     #[prost(message, optional, tag="8")]
-    pub created_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 /// テナントマスタ拡張
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -94,9 +94,9 @@ pub struct TenantMasterExtension {
     #[prost(bool, tag="6")]
     pub is_enabled: bool,
     #[prost(message, optional, tag="7")]
-    pub created_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
     #[prost(message, optional, tag="8")]
-    pub updated_at: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub updated_at: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
 }
 /// テナントマージ項目（マージビュー用）
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -229,9 +229,9 @@ pub struct CreateItemRequest {
     #[prost(string, optional, tag="6")]
     pub parent_item_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag="7")]
-    pub effective_from: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub effective_from: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
     #[prost(message, optional, tag="8")]
-    pub effective_until: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub effective_until: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
     #[prost(bool, optional, tag="9")]
     pub is_active: ::core::option::Option<bool>,
     #[prost(int32, optional, tag="10")]
@@ -255,9 +255,9 @@ pub struct UpdateItemRequest {
     #[prost(string, optional, tag="5")]
     pub parent_item_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag="6")]
-    pub effective_from: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub effective_from: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
     #[prost(message, optional, tag="7")]
-    pub effective_until: ::core::option::Option<super::super::super::super::super::google::protobuf::Timestamp>,
+    pub effective_until: ::core::option::Option<super::super::super::super::system::common::v1::Timestamp>,
     #[prost(bool, optional, tag="8")]
     pub is_active: ::core::option::Option<bool>,
     #[prost(int32, optional, tag="9")]

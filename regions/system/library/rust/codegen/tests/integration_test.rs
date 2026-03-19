@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_codegen::{generate, ApiStyle, DatabaseType, ScaffoldConfig, Tier};
 use std::path::Path;
 

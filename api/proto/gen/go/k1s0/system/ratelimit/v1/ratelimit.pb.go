@@ -1200,7 +1200,7 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"\tListRules\x12*.k1s0.system.ratelimit.v1.ListRulesRequest\x1a+.k1s0.system.ratelimit.v1.ListRulesResponse\x12a\n" +
 	"\bGetUsage\x12).k1s0.system.ratelimit.v1.GetUsageRequest\x1a*.k1s0.system.ratelimit.v1.GetUsageResponse\x12g\n" +
 	"\n" +
-	"ResetLimit\x12+.k1s0.system.ratelimit.v1.ResetLimitRequest\x1a,.k1s0.system.ratelimit.v1.ResetLimitResponseBCZAgithub.com/k1s0-platform/system-proto-go/ratelimit/v1;ratelimitv1b\x06proto3"
+	"ResetLimit\x12+.k1s0.system.ratelimit.v1.ResetLimitRequest\x1a,.k1s0.system.ratelimit.v1.ResetLimitResponseBJZHgithub.com/k1s0-platform/api/gen/go/k1s0/system/ratelimit/v1;ratelimitv1b\x06proto3"
 
 var (
 	file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDescOnce sync.Once

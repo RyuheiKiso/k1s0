@@ -133,6 +133,7 @@ fn get_policy(state: &InMemoryState, key: &str) -> RateLimitPolicy {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

@@ -610,6 +610,7 @@ fn domain_job_to_pb(j: &ProvisioningJob) -> PbProvisioningJob {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::{ProvisioningStatus, TenantStatus};

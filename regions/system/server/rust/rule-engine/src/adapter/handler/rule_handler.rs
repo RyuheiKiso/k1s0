@@ -101,11 +101,7 @@ pub async fn create_rule(
     match state.create_rule_uc.execute(&input).await {
         Ok(rule) => {
             let resp = RuleResponse::from(rule);
-            (
-                StatusCode::CREATED,
-                Json(resp),
-            )
-                .into_response()
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(crate::usecase::create_rule::CreateRuleError::AlreadyExists(name)) => {
             let err = ErrorResponse::new(
@@ -276,11 +272,7 @@ pub async fn create_rule_set(
     match state.create_rule_set_uc.execute(&input).await {
         Ok(rs) => {
             let resp = RuleSetResponse::from(rs);
-            (
-                StatusCode::CREATED,
-                Json(resp),
-            )
-                .into_response()
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(crate::usecase::create_rule_set::CreateRuleSetError::AlreadyExists(name)) => {
             let err = ErrorResponse::new(

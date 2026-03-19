@@ -19,7 +19,7 @@ class InventoryRepository {
   /// サーバーから全在庫アイテムのリストを取得して返す
   Future<List<InventoryItem>> listInventory() async {
     final response = await _dio.get('/api/v1/list_inventory');
-    final List<dynamic> data = response.data['items'] as List<dynamic>;
+    final List<dynamic> data = (response.data as Map<String, dynamic>)['items'] as List<dynamic>;
     return data
         .map((json) => InventoryItem.fromJson(json as Map<String, dynamic>))
         .toList();

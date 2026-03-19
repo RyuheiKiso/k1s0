@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // k1s0-ratelimit-server の router 初期化 smoke test。
 // healthz/readyz の疎通確認と、認証なしでの保護エンドポイントアクセスを検証する。
 

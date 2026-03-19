@@ -2,6 +2,7 @@
 //!
 //! Tests the public API for CorrelationId, TraceId, CorrelationContext,
 //! and CorrelationHeaders from the consumer perspective (external crate).
+#![allow(clippy::unwrap_used)]
 
 use k1s0_correlation::{CorrelationContext, CorrelationHeaders, CorrelationId, TraceId};
 

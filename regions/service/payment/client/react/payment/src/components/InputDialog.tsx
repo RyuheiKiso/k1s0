@@ -32,35 +32,39 @@ interface InputDialogProps {
 }
 
 // 入力ダイアログコンポーネント: window.promptの代替としてReactコンポーネントベースで実装
-export function InputDialog({
-  open,
+// open時に内部コンポーネントをマウントすることで状態を自然にリセット
+export function InputDialog({ open, ...rest }: InputDialogProps) {
+  // 非表示時はレンダリングしない（アンマウントにより状態が自動リセットされる）
+  if (!open) return null;
+  return <InputDialogInner {...rest} />;
+}
+
+// 内部ダイアログコンポーネント: open=trueの間のみマウントされる
+// マウント時に空の初期値で状態が生成されるため、useEffect内のsetStateが不要
+function InputDialogInner({
   title,
   fields,
   submitLabel = '送信',
   cancelLabel = 'キャンセル',
   onSubmit,
   onCancel,
-}: InputDialogProps) {
-  // 各フィールドの入力値を管理
-  const [values, setValues] = useState<Record<string, string>>({});
+}: Omit<InputDialogProps, 'open'>) {
+  // フィールド定義から初期値を生成（マウント時に一度だけ実行）
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    fields.forEach((f) => {
+      initial[f.key] = '';
+    });
+    return initial;
+  });
   // 最初の入力フィールドへのref（フォーカス管理用）
   const firstInputRef = useRef<HTMLInputElement>(null);
 
-  // ダイアログ表示時に値をリセットし、最初のフィールドにフォーカス
+  // マウント時に最初のフィールドにフォーカスを設定
   useEffect(() => {
-    if (open) {
-      const initial: Record<string, string> = {};
-      fields.forEach((f) => {
-        initial[f.key] = '';
-      });
-      setValues(initial);
-      // レンダリング後にフォーカスを設定
-      setTimeout(() => firstInputRef.current?.focus(), 0);
-    }
-  }, [open, fields]);
-
-  // 非表示時はレンダリングしない
-  if (!open) return null;
+    // レンダリング後にフォーカスを設定
+    setTimeout(() => firstInputRef.current?.focus(), 0);
+  }, []);
 
   // フォーム送信: 必須フィールドの検証後にコールバックを呼び出し
   const handleSubmit = (e: React.FormEvent) => {

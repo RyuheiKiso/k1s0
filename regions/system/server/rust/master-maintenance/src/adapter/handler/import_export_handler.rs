@@ -39,10 +39,7 @@ pub async fn import_records(
         }),
     )
     .await;
-    Ok((
-        StatusCode::CREATED,
-        Json(job),
-    ))
+    Ok((StatusCode::CREATED, Json(job)))
 }
 
 pub async fn import_records_file(
@@ -107,10 +104,7 @@ pub async fn import_records_file(
         }),
     )
     .await;
-    Ok((
-        StatusCode::CREATED,
-        Json(job),
-    ))
+    Ok((StatusCode::CREATED, Json(job)))
 }
 
 pub async fn export_records(
@@ -147,7 +141,10 @@ pub async fn export_records(
                 .map_err(|_| {
                     AppError::internal(
                         "SYS_MM_EXPORT_HEADER_INVALID",
-                        &format!("invalid content_disposition header value: {}", file.file_name),
+                        &format!(
+                            "invalid content_disposition header value: {}",
+                            file.file_name
+                        ),
                     )
                 })?,
         );

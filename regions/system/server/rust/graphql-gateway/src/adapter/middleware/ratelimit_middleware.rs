@@ -137,9 +137,7 @@ where
                         "レート制限チェック通過"
                     );
                 }
-                Err(k1s0_ratelimit_client::RateLimitError::LimitExceeded {
-                    retry_after_secs,
-                }) => {
+                Err(k1s0_ratelimit_client::RateLimitError::LimitExceeded { retry_after_secs }) => {
                     // LimitExceeded エラーの場合も HTTP 429 を返す
                     warn!(
                         key = %rate_limit_key,
@@ -190,6 +188,7 @@ fn rate_limit_exceeded_response(retry_after_secs: u64) -> Response {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use axum::body::Body;

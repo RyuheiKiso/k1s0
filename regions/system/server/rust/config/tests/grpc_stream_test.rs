@@ -1,5 +1,6 @@
 //! WatchConfig gRPC ストリームの統合テスト（外部テストファイル）。
 //! watch_stream.rs の inline テストを補完する。
+#![allow(clippy::unwrap_used)]
 
 use k1s0_config_server::adapter::grpc::watch_stream::WatchConfigStreamHandler;
 use k1s0_config_server::usecase::watch_config::{ConfigChangeEvent, WatchConfigUseCase};

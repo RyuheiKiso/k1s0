@@ -40,20 +40,14 @@ fn bad_request_response(
     code: k1s0_server_common::ErrorCode,
     msg: impl Into<String>,
 ) -> (StatusCode, Json<ErrorResponse>) {
-    (
-        StatusCode::BAD_REQUEST,
-        Json(ErrorResponse::new(code, msg)),
-    )
+    (StatusCode::BAD_REQUEST, Json(ErrorResponse::new(code, msg)))
 }
 
 fn conflict_response(
     code: k1s0_server_common::ErrorCode,
     msg: impl Into<String>,
 ) -> (StatusCode, Json<ErrorResponse>) {
-    (
-        StatusCode::CONFLICT,
-        Json(ErrorResponse::new(code, msg)),
-    )
+    (StatusCode::CONFLICT, Json(ErrorResponse::new(code, msg)))
 }
 
 fn internal_response(msg: impl Into<String>) -> (StatusCode, Json<ErrorResponse>) {
@@ -386,11 +380,7 @@ pub async fn create_tenant(
                 created_at: t.created_at.to_rfc3339(),
                 updated_at: t.updated_at.to_rfc3339(),
             };
-            (
-                StatusCode::CREATED,
-                Json(resp),
-            )
-                .into_response()
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(CreateTenantError::NameConflict(name)) => conflict_response(
             codes::tenant::name_conflict(),
@@ -671,11 +661,7 @@ pub async fn add_member(
                 role: member.role,
                 joined_at: member.joined_at.to_rfc3339(),
             };
-            (
-                StatusCode::CREATED,
-                Json(resp),
-            )
-                .into_response()
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(AddMemberError::AlreadyMember) => {
             conflict_response(codes::tenant::member_conflict(), "member already exists")

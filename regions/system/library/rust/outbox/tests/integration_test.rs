@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use std::sync::Arc;
 
 use k1s0_outbox::processor::OutboxPublisher;

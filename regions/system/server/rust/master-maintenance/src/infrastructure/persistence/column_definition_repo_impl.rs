@@ -18,7 +18,8 @@ impl ColumnDefinitionPostgresRepository {
 impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
     async fn find_by_table_id(&self, table_id: Uuid) -> anyhow::Result<Vec<ColumnDefinition>> {
         let rows = sqlx::query_as::<_, ColumnDefinitionRow>(
-            "SELECT * FROM master_maintenance.column_definitions WHERE table_id = $1 ORDER BY display_order, column_name"
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, table_id, column_name, display_name, data_type, is_primary_key, is_nullable, is_unique, default_value, max_length, min_value, max_value, regex_pattern, display_order, is_searchable, is_sortable, is_filterable, is_visible_in_list, is_visible_in_form, is_readonly, input_type, select_options, created_at, updated_at FROM master_maintenance.column_definitions WHERE table_id = $1 ORDER BY display_order, column_name"
         )
         .bind(table_id)
         .fetch_all(&self.pool)
@@ -32,7 +33,8 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
         column_name: &str,
     ) -> anyhow::Result<Option<ColumnDefinition>> {
         let row = sqlx::query_as::<_, ColumnDefinitionRow>(
-            "SELECT * FROM master_maintenance.column_definitions WHERE table_id = $1 AND column_name = $2"
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, table_id, column_name, display_name, data_type, is_primary_key, is_nullable, is_unique, default_value, max_length, min_value, max_value, regex_pattern, display_order, is_searchable, is_sortable, is_filterable, is_visible_in_list, is_visible_in_form, is_readonly, input_type, select_options, created_at, updated_at FROM master_maintenance.column_definitions WHERE table_id = $1 AND column_name = $2"
         )
         .bind(table_id)
         .bind(column_name)
@@ -57,7 +59,8 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
                     display_order, is_searchable, is_sortable, is_filterable,
                     is_visible_in_list, is_visible_in_form, is_readonly, input_type, select_options)
                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-                   RETURNING *"#
+                   -- 明示的カラム指定によるクエリ安全性の確保
+                   RETURNING id, table_id, column_name, display_name, data_type, is_primary_key, is_nullable, is_unique, default_value, max_length, min_value, max_value, regex_pattern, display_order, is_searchable, is_sortable, is_filterable, is_visible_in_list, is_visible_in_form, is_readonly, input_type, select_options, created_at, updated_at"#
             )
             .bind(table_id)
             .bind(&col.column_name)
@@ -117,7 +120,8 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
                input_type = COALESCE($20, input_type),
                select_options = $21,
                updated_at = now()
-               WHERE table_id = $1 AND column_name = $2 RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               WHERE table_id = $1 AND column_name = $2 RETURNING id, table_id, column_name, display_name, data_type, is_primary_key, is_nullable, is_unique, default_value, max_length, min_value, max_value, regex_pattern, display_order, is_searchable, is_sortable, is_filterable, is_visible_in_list, is_visible_in_form, is_readonly, input_type, select_options, created_at, updated_at"#,
         )
         .bind(table_id)
         .bind(column_name)

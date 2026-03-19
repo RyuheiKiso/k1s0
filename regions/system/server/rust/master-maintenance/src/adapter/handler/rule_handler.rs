@@ -70,10 +70,7 @@ pub async fn create_rule(
         }),
     )
     .await;
-    Ok((
-        StatusCode::CREATED,
-        Json(rule),
-    ))
+    Ok((StatusCode::CREATED, Json(rule)))
 }
 
 pub async fn update_rule(

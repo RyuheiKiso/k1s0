@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 #[cfg(feature = "db-tests")]
 mod with_db {
     use chrono::Utc;

@@ -44,6 +44,7 @@ pub fn decode_cursor(cursor: &str) -> Result<(String, String), PerPageValidation
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

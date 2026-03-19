@@ -97,6 +97,7 @@ pub fn validate_date_range(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use chrono::{TimeZone, Utc};
 

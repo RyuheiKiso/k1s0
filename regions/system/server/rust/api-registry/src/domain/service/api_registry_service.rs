@@ -212,8 +212,9 @@ impl Default for ApiRegistryDomainService {
 fn extract_proto_fields(content: &str) -> Vec<(String, String)> {
     let mut fields = Vec::new();
     // protoフィールド定義を抽出する正規表現パターン
-    let re_field = regex::Regex::new(r"\s+\w+\s+(\w+)\s*=\s*(\d+);")
-        .unwrap_or_else(|_| regex::Regex::new(r"x").expect("フォールバック正規表現のコンパイルに失敗"));
+    let re_field = regex::Regex::new(r"\s+\w+\s+(\w+)\s*=\s*(\d+);").unwrap_or_else(|_| {
+        regex::Regex::new(r"x").expect("フォールバック正規表現のコンパイルに失敗")
+    });
     for cap in re_field.captures_iter(content) {
         let field_name = cap
             .get(1)

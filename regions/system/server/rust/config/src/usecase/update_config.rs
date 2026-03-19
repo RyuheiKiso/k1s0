@@ -272,6 +272,7 @@ fn validate_value_against_schema(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::repository::config_repository::MockConfigRepository;

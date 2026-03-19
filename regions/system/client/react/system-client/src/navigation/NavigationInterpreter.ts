@@ -110,15 +110,14 @@ function isLazyImport(
   if (typeof entry === 'function' && entry.prototype?.isReactComponent) {
     return false;
   }
-  // React.memo / forwardRef have $$typeof
-  if ((entry as any).$$typeof) {
+  // React.memo / forwardRef は $$typeof プロパティを持つ
+  if ((entry as unknown as Record<string, unknown>).$$typeof) {
     return false;
   }
-  // Lazy imports are zero-arity arrow functions without a prototype property
-  // Function components (including arrow) always accept at least props
-  // Lazy: () => import('...') has length 0
-  // Component: (props) => <div/> or function Comp(props) has length >= 0
-  // Best heuristic: lazy imports have no 'prototype' (arrow fn) and length === 0
-  const fn = entry as Function;
+  // 遅延インポートはprototypeを持たないゼロ引数のアロー関数
+  // コンポーネント関数は常にpropsを受け取る（length >= 0）
+  // 遅延インポート: () => import('...') は length === 0
+  // ヒューリスティック: prototypeを持たず length === 0 なら遅延インポートと判定
+  const fn = entry as (...args: unknown[]) => unknown;
   return !fn.prototype && fn.length === 0;
 }

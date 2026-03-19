@@ -20,15 +20,19 @@ final domainMasterRepositoryProvider = Provider<DomainMasterRepository>((ref) {
   return DomainMasterRepository(ref.watch(dioProvider));
 });
 
-/// カテゴリ一覧の状態を管理するStateNotifier
+/// カテゴリ一覧の状態を管理するNotifier
 /// CRUD操作とローディング/エラー状態を統一的に管理する
-class CategoryListNotifier extends StateNotifier<AsyncValue<List<MasterCategory>>> {
-  final DomainMasterRepository _repository;
-
-  CategoryListNotifier(this._repository) : super(const AsyncValue.loading()) {
+class CategoryListNotifier extends Notifier<AsyncValue<List<MasterCategory>>> {
+  @override
+  AsyncValue<List<MasterCategory>> build() {
     /// 初期化時にカテゴリ一覧を自動取得する
     load();
+    return const AsyncValue.loading();
   }
+
+  /// リポジトリをrefから取得するヘルパー
+  DomainMasterRepository get _repository =>
+      ref.read(domainMasterRepositoryProvider);
 
   /// カテゴリ一覧をサーバーから取得する
   Future<void> load({bool activeOnly = false}) async {
@@ -58,99 +62,111 @@ class CategoryListNotifier extends StateNotifier<AsyncValue<List<MasterCategory>
 }
 
 /// カテゴリ一覧のProvider
-/// StateNotifierProviderを使用して状態管理を行う
+/// NotifierProviderを使用して状態管理を行う
 final categoryListProvider =
-    StateNotifierProvider<CategoryListNotifier, AsyncValue<List<MasterCategory>>>(
-  (ref) => CategoryListNotifier(ref.watch(domainMasterRepositoryProvider)),
+    NotifierProvider<CategoryListNotifier, AsyncValue<List<MasterCategory>>>(
+  CategoryListNotifier.new,
 );
 
-/// アイテム一覧の状態を管理するStateNotifier
+/// アイテム一覧の状態を管理するNotifier
 /// カテゴリコードに紐づくアイテムのCRUD操作を管理する
-class ItemListNotifier extends StateNotifier<AsyncValue<List<MasterItem>>> {
-  final DomainMasterRepository _repository;
-  final String _categoryCode;
+/// familyプロバイダーのため、コンストラクタでカテゴリコードを受け取る
+class ItemListNotifier extends Notifier<AsyncValue<List<MasterItem>>> {
+  /// familyの引数（カテゴリコード）
+  ItemListNotifier(this.arg);
+  final String arg;
 
-  ItemListNotifier(this._repository, this._categoryCode)
-      : super(const AsyncValue.loading()) {
+  @override
+  AsyncValue<List<MasterItem>> build() {
     /// 初期化時にアイテム一覧を自動取得する
     load();
+    return const AsyncValue.loading();
   }
+
+  /// リポジトリをrefから取得するヘルパー
+  DomainMasterRepository get _repository =>
+      ref.read(domainMasterRepositoryProvider);
 
   /// アイテム一覧をサーバーから取得する
   Future<void> load({bool activeOnly = false}) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => _repository.listItems(_categoryCode, activeOnly: activeOnly),
+      () => _repository.listItems(arg, activeOnly: activeOnly),
     );
   }
 
   /// 新規アイテムを作成し、一覧を再取得する
   Future<void> create(CreateItemInput input) async {
-    await _repository.createItem(_categoryCode, input);
+    await _repository.createItem(arg, input);
     await load();
   }
 
   /// アイテムを更新し、一覧を再取得する
   Future<void> update(String itemCode, UpdateItemInput input) async {
-    await _repository.updateItem(_categoryCode, itemCode, input);
+    await _repository.updateItem(arg, itemCode, input);
     await load();
   }
 
   /// アイテムを削除し、一覧を再取得する
   Future<void> delete(String itemCode) async {
-    await _repository.deleteItem(_categoryCode, itemCode);
+    await _repository.deleteItem(arg, itemCode);
     await load();
   }
 }
 
 /// アイテム一覧のProviderファミリー
 /// カテゴリコードごとに独立した状態を管理する
-final itemListProvider = StateNotifierProvider.family<ItemListNotifier,
+final itemListProvider = NotifierProvider.family<ItemListNotifier,
     AsyncValue<List<MasterItem>>, String>(
-  (ref, categoryCode) =>
-      ItemListNotifier(ref.watch(domainMasterRepositoryProvider), categoryCode),
+  ItemListNotifier.new,
 );
 
-/// バージョン履歴の状態を管理するStateNotifier
+/// バージョン履歴の状態を管理するNotifier
+/// familyプロバイダーのため、コンストラクタでカテゴリコードとアイテムコードのレコードを受け取る
 class VersionListNotifier
-    extends StateNotifier<AsyncValue<List<MasterItemVersion>>> {
-  final DomainMasterRepository _repository;
-  final String _categoryCode;
-  final String _itemCode;
+    extends Notifier<AsyncValue<List<MasterItemVersion>>> {
+  /// familyの引数（カテゴリコードとアイテムコードの組み合わせ）
+  VersionListNotifier(this.arg);
+  final ({String categoryCode, String itemCode}) arg;
 
-  VersionListNotifier(this._repository, this._categoryCode, this._itemCode)
-      : super(const AsyncValue.loading()) {
+  @override
+  AsyncValue<List<MasterItemVersion>> build() {
     /// 初期化時にバージョン履歴を自動取得する
     load();
+    return const AsyncValue.loading();
   }
+
+  /// リポジトリをrefから取得するヘルパー
+  DomainMasterRepository get _repository =>
+      ref.read(domainMasterRepositoryProvider);
 
   /// バージョン履歴をサーバーから取得する
   Future<void> load() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => _repository.listVersions(_categoryCode, _itemCode),
+      () => _repository.listVersions(arg.categoryCode, arg.itemCode),
     );
   }
 }
 
 /// バージョン履歴のProviderファミリー
 /// カテゴリコードとアイテムコードの組み合わせで状態を管理する
-final versionListProvider = StateNotifierProvider.family<VersionListNotifier,
+final versionListProvider = NotifierProvider.family<VersionListNotifier,
     AsyncValue<List<MasterItemVersion>>, ({String categoryCode, String itemCode})>(
-  (ref, params) => VersionListNotifier(
-    ref.watch(domainMasterRepositoryProvider),
-    params.categoryCode,
-    params.itemCode,
-  ),
+  VersionListNotifier.new,
 );
 
-/// テナント拡張の状態を管理するStateNotifier
+/// テナント拡張の状態を管理するNotifier
 class TenantExtensionNotifier
-    extends StateNotifier<AsyncValue<TenantMasterExtension?>> {
-  final DomainMasterRepository _repository;
+    extends Notifier<AsyncValue<TenantMasterExtension?>> {
+  @override
+  AsyncValue<TenantMasterExtension?> build() {
+    return const AsyncValue.data(null);
+  }
 
-  TenantExtensionNotifier(this._repository)
-      : super(const AsyncValue.data(null));
+  /// リポジトリをrefから取得するヘルパー
+  DomainMasterRepository get _repository =>
+      ref.read(domainMasterRepositoryProvider);
 
   /// テナント拡張情報をサーバーから取得する
   Future<void> load(String tenantId, String itemId) async {
@@ -178,7 +194,7 @@ class TenantExtensionNotifier
 }
 
 /// テナント拡張のProvider
-final tenantExtensionProvider = StateNotifierProvider<TenantExtensionNotifier,
+final tenantExtensionProvider = NotifierProvider<TenantExtensionNotifier,
     AsyncValue<TenantMasterExtension?>>(
-  (ref) => TenantExtensionNotifier(ref.watch(domainMasterRepositoryProvider)),
+  TenantExtensionNotifier.new,
 );

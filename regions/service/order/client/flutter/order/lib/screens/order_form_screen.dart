@@ -48,7 +48,9 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
     _notesController.dispose();
     /// 全明細のコントローラーを破棄する
     for (final controllers in _itemControllers) {
-      controllers.values.forEach((c) => c.dispose());
+      for (final c in controllers.values) {
+        c.dispose();
+      }
     }
     super.dispose();
   }
@@ -71,7 +73,9 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
   void _removeItem(int index) {
     if (_itemControllers.length <= 1) return;
     setState(() {
-      _itemControllers[index].values.forEach((c) => c.dispose());
+      for (final c in _itemControllers[index].values) {
+        c.dispose();
+      }
       _itemControllers.removeAt(index);
       _itemSubtotals.removeAt(index);
     });

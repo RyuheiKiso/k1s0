@@ -61,6 +61,7 @@ impl GetLatestSnapshotUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::event::{EventStream, Snapshot};

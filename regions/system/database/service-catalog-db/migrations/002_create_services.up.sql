@@ -1,4 +1,4 @@
-CREATE TABLE service_catalog.services (
+CREATE TABLE IF NOT EXISTS service_catalog.services (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,

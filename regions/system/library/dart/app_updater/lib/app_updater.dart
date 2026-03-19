@@ -1,4 +1,4 @@
-library k1s0_app_updater;
+library;
 
 export 'src/app_updater.dart';
 export 'src/config.dart';

@@ -90,6 +90,7 @@ impl Default for CircuitBreakerRegistry {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -116,9 +117,8 @@ mod tests {
     #[tokio::test]
     async fn test_call_success() {
         let registry = CircuitBreakerRegistry::new();
-        let result: Result<i32, CircuitBreakerError<anyhow::Error>> = registry
-            .call("test-service", || async { Ok(42) })
-            .await;
+        let result: Result<i32, CircuitBreakerError<anyhow::Error>> =
+            registry.call("test-service", || async { Ok(42) }).await;
         assert_eq!(result.unwrap(), 42);
     }
 
@@ -142,9 +142,8 @@ mod tests {
         }
 
         // オープン状態では即座にエラーが返る
-        let result: Result<i32, CircuitBreakerError<anyhow::Error>> = registry
-            .call("test-service", || async { Ok(42) })
-            .await;
+        let result: Result<i32, CircuitBreakerError<anyhow::Error>> =
+            registry.call("test-service", || async { Ok(42) }).await;
         assert!(matches!(result, Err(CircuitBreakerError::Open)));
     }
 }

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_circuit_breaker::{
     CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError, CircuitBreakerState,
 };

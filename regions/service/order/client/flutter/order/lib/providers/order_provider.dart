@@ -20,15 +20,19 @@ final orderRepositoryProvider = Provider<OrderRepository>((ref) {
   return OrderRepository(ref.watch(dioProvider));
 });
 
-/// 注文一覧の状態を管理するStateNotifier
+/// 注文一覧の状態を管理するNotifier
 /// CRUD操作とローディング/エラー状態を統一的に管理する
-class OrderListNotifier extends StateNotifier<AsyncValue<List<Order>>> {
-  final OrderRepository _repository;
-
-  OrderListNotifier(this._repository) : super(const AsyncValue.loading()) {
+class OrderListNotifier extends Notifier<AsyncValue<List<Order>>> {
+  @override
+  AsyncValue<List<Order>> build() {
     /// 初期化時に注文一覧を自動取得する
     load();
+    return const AsyncValue.loading();
   }
+
+  /// リポジトリをrefから取得するヘルパー
+  OrderRepository get _repository =>
+      ref.read(orderRepositoryProvider);
 
   /// 注文一覧をサーバーから取得する
   /// [customerId] で顧客IDによるフィルタリングが可能
@@ -57,8 +61,8 @@ class OrderListNotifier extends StateNotifier<AsyncValue<List<Order>>> {
 }
 
 /// 注文一覧のProvider
-/// StateNotifierProviderを使用して状態管理を行う
+/// NotifierProviderを使用して状態管理を行う
 final orderListProvider =
-    StateNotifierProvider<OrderListNotifier, AsyncValue<List<Order>>>(
-  (ref) => OrderListNotifier(ref.watch(orderRepositoryProvider)),
+    NotifierProvider<OrderListNotifier, AsyncValue<List<Order>>>(
+  OrderListNotifier.new,
 );

@@ -225,7 +225,8 @@ mod tests {
             metadata: EventMetadata::new(Some("user-001".to_string()), None, None),
         };
         let json = serde_json::to_string(&data).expect("test serialization should succeed");
-        let parsed: EventData = serde_json::from_str(&json).expect("test serialization should succeed");
+        let parsed: EventData =
+            serde_json::from_str(&json).expect("test serialization should succeed");
         assert_eq!(parsed.event_type, "OrderPlaced");
         assert_eq!(parsed.payload["total"], 3000);
     }

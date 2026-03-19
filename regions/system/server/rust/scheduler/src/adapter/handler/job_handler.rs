@@ -86,11 +86,7 @@ pub async fn create_job(
     };
 
     match state.create_job_uc.execute(&input).await {
-        Ok(job) => (
-            StatusCode::CREATED,
-            Json(job),
-        )
-            .into_response(),
+        Ok(job) => (StatusCode::CREATED, Json(job)).into_response(),
         Err(CreateJobError::InvalidCron(expr)) => {
             let err = ErrorResponse::new(
                 "SYS_SCHED_INVALID_CRON",
@@ -251,11 +247,7 @@ pub async fn trigger_job(
     use crate::usecase::trigger_job::TriggerJobError;
 
     match state.trigger_job_uc.execute(&id).await {
-        Ok(execution) => (
-            StatusCode::CREATED,
-            Json(execution),
-        )
-            .into_response(),
+        Ok(execution) => (StatusCode::CREATED, Json(execution)).into_response(),
         Err(TriggerJobError::NotFound(id)) => {
             let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()

@@ -25,11 +25,7 @@ pub async fn get_scorecard(
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match state.get_scorecard_uc.execute(id).await {
-        Ok(scorecard) => (
-            StatusCode::OK,
-            Json(scorecard),
-        )
-            .into_response(),
+        Ok(scorecard) => (StatusCode::OK, Json(scorecard)).into_response(),
         Err(crate::usecase::get_scorecard::GetScorecardError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "No scorecard found for this service");
             (StatusCode::NOT_FOUND, Json(err)).into_response()

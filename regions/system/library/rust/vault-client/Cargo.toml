@@ -16,8 +16,12 @@ thiserror = {workspace = true}
 chrono = {workspace = true}
 tokio = {workspace = true}
 reqwest = {workspace = true}
+tracing = {workspace = true}
 mockall = {workspace = true, optional = true}
 moka = { version = "0.12", features = ["future"] }
+
+# Circuit breaker (外部サービス障害時のレジリエンス確保)
+k1s0-circuit-breaker = { path = "../circuit-breaker" }
 tonic = {workspace = true, optional = true}
 rdkafka = { version = "0.37", optional = true, features = ["cmake-build"] }
 

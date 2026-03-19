@@ -27,15 +27,16 @@ impl CategoryPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let rows = if active_only {
             sqlx::query_as::<_, CategoryRow>(
-                "SELECT * FROM domain_master.master_categories WHERE is_active = true ORDER BY sort_order, code",
+                "SELECT id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_categories WHERE is_active = true ORDER BY sort_order, code",
             )
             .fetch_all(executor)
             .await?
         } else {
             sqlx::query_as::<_, CategoryRow>(
-                "SELECT * FROM domain_master.master_categories ORDER BY sort_order, code",
+                "SELECT id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_categories ORDER BY sort_order, code",
             )
             .fetch_all(executor)
             .await?
@@ -51,8 +52,9 @@ impl CategoryPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, CategoryRow>(
-            "SELECT * FROM domain_master.master_categories WHERE code = $1",
+            "SELECT id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_categories WHERE code = $1",
         )
         .bind(code)
         .fetch_optional(executor)
@@ -68,8 +70,9 @@ impl CategoryPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, CategoryRow>(
-            "SELECT * FROM domain_master.master_categories WHERE id = $1",
+            "SELECT id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_categories WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(executor)
@@ -86,11 +89,12 @@ impl CategoryPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, CategoryRow>(
             r#"INSERT INTO domain_master.master_categories
                (code, display_name, description, validation_schema, is_active, sort_order, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7)
-               RETURNING *"#,
+               RETURNING id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at"#,
         )
         .bind(&input.code)
         .bind(&input.display_name)
@@ -113,6 +117,7 @@ impl CategoryPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, CategoryRow>(
             r#"UPDATE domain_master.master_categories SET
                display_name = COALESCE($2, display_name),
@@ -121,7 +126,7 @@ impl CategoryPostgresRepository {
                is_active = COALESCE($5, is_active),
                sort_order = COALESCE($6, sort_order),
                updated_at = now()
-               WHERE code = $1 RETURNING *"#,
+               WHERE code = $1 RETURNING id, code, display_name, description, validation_schema, is_active, sort_order, created_by, created_at, updated_at"#,
         )
         .bind(code)
         .bind(&input.display_name)
@@ -135,10 +140,7 @@ impl CategoryPostgresRepository {
     }
 
     /// カテゴリを削除する。任意の sqlx Executor を受け取る。
-    pub async fn delete_with_executor<'e, E>(
-        executor: E,
-        code: &str,
-    ) -> anyhow::Result<()>
+    pub async fn delete_with_executor<'e, E>(executor: E, code: &str) -> anyhow::Result<()>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {

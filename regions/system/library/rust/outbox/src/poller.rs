@@ -14,10 +14,8 @@ use crate::event::OutboxEvent;
 pub trait OutboxEventSource: Send + Sync {
     /// 未パブリッシュのイベントを取得しパブリッシュ済みとしてマークする。
     /// FOR UPDATE SKIP LOCKED により並行ポーラー間の排他を保証する。
-    async fn fetch_and_mark_events_published(
-        &self,
-        limit: i64,
-    ) -> anyhow::Result<Vec<OutboxEvent>>;
+    async fn fetch_and_mark_events_published(&self, limit: i64)
+        -> anyhow::Result<Vec<OutboxEvent>>;
 }
 
 /// OutboxEventHandler はイベント種別ごとの変換・パブリッシュロジックを抽象化する。
@@ -38,10 +36,8 @@ pub trait OutboxEventHandler: Send + Sync {
 #[async_trait]
 pub trait OutboxEventFetcher: Send + Sync {
     /// 未パブリッシュのイベントを取得しパブリッシュ済みとしてマークする。
-    async fn fetch_and_mark_events_published(
-        &self,
-        limit: i64,
-    ) -> anyhow::Result<Vec<OutboxEvent>>;
+    async fn fetch_and_mark_events_published(&self, limit: i64)
+        -> anyhow::Result<Vec<OutboxEvent>>;
 }
 
 /// RepositoryOutboxSource は OutboxEventFetcher を OutboxEventSource にアダプトする。
@@ -143,11 +139,39 @@ impl OutboxEventPoller {
     }
 
     /// 未パブリッシュイベントを取得し、ハンドラに委譲してパブリッシュする。
-    /// マークは取得時にトランザクション内で完了済みのため、
-    /// publish 失敗時は at-most-once セマンティクスとなる。
+    ///
+    /// # At-Most-Once 配信セマンティクス
+    ///
+    /// このメソッドは意図的に at-most-once（最大1回）配信を採用している。
+    /// イベントはディスパッチ（Kafka publish）の **前に** パブリッシュ済みとしてマークされる。
+    /// これにより、以下の動作となる：
+    ///
+    /// - ディスパッチ成功時：イベントは正確に1回配信される
+    /// - ディスパッチ失敗時：イベントはリトライされない（イベントロストの可能性）
+    ///
+    /// ## なぜ at-most-once を選択したか
+    ///
+    /// at-least-once（最低1回）を採用すると、ディスパッチ失敗時にイベントが未マークのまま残り、
+    /// 次回ポーリングで再取得・再送信される。これはコンシューマー側での重複イベント処理
+    /// （冪等性の実装）が必要となり、システム全体の複雑性が増す。
+    /// at-most-once は重複イベントを完全に防止し、コンシューマーの実装をシンプルに保つ。
+    ///
+    /// ## トレードオフ
+    ///
+    /// - メリット：重複イベントが発生しない。コンシューマーに冪等性が不要
+    /// - デメリット：Kafka 障害時にイベントが失われる可能性がある
+    ///
+    /// 将来 at-least-once が必要になった場合は、マークをディスパッチ後に移動し、
+    /// コンシューマー側に冪等性チェックを追加する必要がある。
     async fn poll_and_publish(&self) -> anyhow::Result<()> {
-        // 単一トランザクション内で fetch + mark を実行し、重複処理を防止する
-        let events = self.source.fetch_and_mark_events_published(self.batch_size).await?;
+        // アトミック fetch-and-mark パターン：
+        // 単一トランザクション内で「未パブリッシュイベントの取得」と「パブリッシュ済みマーク」を
+        // 同時に実行する。FOR UPDATE SKIP LOCKED により並行ポーラー間の排他を保証する。
+        // マークがディスパッチ前に完了するため、at-most-once セマンティクスとなる。
+        let events = self
+            .source
+            .fetch_and_mark_events_published(self.batch_size)
+            .await?;
 
         if events.is_empty() {
             return Ok(());
@@ -174,7 +198,9 @@ impl OutboxEventPoller {
                     );
                 }
                 Err(err) => {
-                    // publish 失敗（マークは既にトランザクション内で完了済み）
+                    // publish 失敗時：マークは既にトランザクション内で完了済みのため、
+                    // このイベントはリトライされない（at-most-once 保証）。
+                    // これは意図的な設計であり、重複イベント処理を防ぐためのトレードオフ。
                     tracing::warn!(
                         error = %err,
                         event_id = %event.id,
@@ -190,6 +216,7 @@ impl OutboxEventPoller {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use chrono::Utc;

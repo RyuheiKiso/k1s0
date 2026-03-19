@@ -65,11 +65,7 @@ pub async fn create_api_key(
     };
 
     match state.create_api_key_uc.execute(create_req).await {
-        Ok(resp) => (
-            StatusCode::CREATED,
-            Json(resp),
-        )
-            .into_response(),
+        Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
         Err(crate::usecase::create_api_key::CreateApiKeyError::Validation(msg)) => {
             let err = ErrorResponse::new("SYS_AUTH_API_KEY_VALIDATION", &msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
@@ -95,9 +91,7 @@ pub async fn create_api_key(
 )]
 pub async fn get_api_key(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.get_api_key_uc.execute(id).await {
-        Ok(summary) => {
-            (StatusCode::OK, Json(summary)).into_response()
-        }
+        Ok(summary) => (StatusCode::OK, Json(summary)).into_response(),
         Err(crate::usecase::get_api_key::GetApiKeyError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_AUTH_API_KEY_NOT_FOUND",

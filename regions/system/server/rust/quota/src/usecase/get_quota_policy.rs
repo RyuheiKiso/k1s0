@@ -31,6 +31,7 @@ impl GetQuotaPolicyUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::quota::{Period, SubjectType};

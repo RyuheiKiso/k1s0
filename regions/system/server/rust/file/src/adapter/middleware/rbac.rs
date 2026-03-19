@@ -87,6 +87,7 @@ async fn rbac_check(req: Request<Body>, next: Next, resource: &str, action: &str
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use axum::body::Body;

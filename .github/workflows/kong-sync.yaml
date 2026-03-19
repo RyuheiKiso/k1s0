@@ -30,7 +30,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       # decK CLI をバージョン固定 + SHA256 チェックサム検証でインストール（サプライチェーン攻撃防止）
       - name: Install decK
         run: |
@@ -61,7 +61,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Install decK
         run: |
           DECK_VERSION="1.40.2"
@@ -97,7 +97,7 @@ jobs:
       KONG_CORS_ORIGINS: "http://localhost:3000"
       KONG_KEYCLOAK_ISSUER: "http://keycloak.k1s0-system.svc.cluster.local:8080/realms/k1s0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Resolve environment variables
         run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Sync to dev
@@ -125,7 +125,7 @@ jobs:
       KONG_CORS_ORIGINS: "https://*.staging.k1s0.internal.example.com"
       KONG_KEYCLOAK_ISSUER: "https://auth.staging.k1s0.internal.example.com/realms/k1s0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Resolve environment variables
         run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Sync to staging
@@ -145,7 +145,7 @@ jobs:
       name: prod
     # env: ワークフローレベルの prod デフォルト値を継承
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Resolve environment variables
         run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Sync to prod

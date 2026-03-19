@@ -148,10 +148,7 @@ pub async fn create_table(
         }),
     )
     .await;
-    Ok((
-        StatusCode::CREATED,
-        Json(table),
-    ))
+    Ok((StatusCode::CREATED, Json(table)))
 }
 
 pub async fn update_table(
@@ -213,10 +210,7 @@ pub async fn create_columns(
         .manage_columns_uc
         .create_columns(&name, &input, ds_query.domain_scope.as_deref())
         .await?;
-    Ok((
-        StatusCode::CREATED,
-        Json(columns),
-    ))
+    Ok((StatusCode::CREATED, Json(columns)))
 }
 
 pub async fn update_column(
@@ -244,9 +238,7 @@ pub async fn delete_column(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub async fn list_domains(
-    State(state): State<AppState>,
-) -> Result<impl IntoResponse, AppError> {
+pub async fn list_domains(State(state): State<AppState>) -> Result<impl IntoResponse, AppError> {
     let domains = state.manage_tables_uc.list_domains().await?;
     let domain_list: Vec<serde_json::Value> = domains
         .into_iter()

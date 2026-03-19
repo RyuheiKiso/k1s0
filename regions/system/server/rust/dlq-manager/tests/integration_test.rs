@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 /// dlq-manager integration tests
 /// インメモリリポジトリを使って REST API のエンドツーエンド動作を検証する。
 use std::sync::{Arc, Mutex};

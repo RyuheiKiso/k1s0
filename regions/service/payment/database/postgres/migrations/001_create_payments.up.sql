@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS payments (
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_payments_order ON payments (order_id);
-CREATE INDEX idx_payments_customer ON payments (customer_id);
-CREATE INDEX idx_payments_status ON payments (status);
-CREATE INDEX idx_payments_created_at ON payments (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payments_order ON payments (order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_customer ON payments (customer_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments (status);
+CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments (created_at DESC);

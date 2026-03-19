@@ -1,11 +1,12 @@
 import { PlusOutlined } from "@ant-design/icons";
+import type {
+  FormListFieldData} from "antd";
 import {
   Alert,
   Button,
   Drawer,
   Empty,
   Form,
-  FormListFieldData,
   Input,
   List,
   Space,
@@ -14,13 +15,14 @@ import {
   Tag,
   message,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ShellCard } from "../components/ShellCard";
 import { useColumns, useCreateRule, useRuleCheck, useRules, useTables } from "../hooks";
 
 export function RuleConsolePage() {
   const { data } = useTables();
-  const tables = data?.tables ?? [];
+  // テーブル一覧をメモ化してレンダーごとの参照変更を防止
+  const tables = useMemo(() => data?.tables ?? [], [data?.tables]);
   const [tableName, setTableName] = useState<string>();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form] = Form.useForm();

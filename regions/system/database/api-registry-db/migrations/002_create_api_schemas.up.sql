@@ -1,4 +1,4 @@
-CREATE TABLE apiregistry.api_schemas (
+CREATE TABLE IF NOT EXISTS apiregistry.api_schemas (
     name VARCHAR(255) PRIMARY KEY,
     description TEXT NOT NULL DEFAULT '',
     schema_type VARCHAR(50) NOT NULL,

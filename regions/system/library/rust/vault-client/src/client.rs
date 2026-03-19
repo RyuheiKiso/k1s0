@@ -48,7 +48,10 @@ impl InMemoryVaultClient {
 
     pub fn put_secret(&self, secret: Secret) {
         // シークレットストアへの書き込みロックを取得する
-        let mut store = self.store.lock().expect("シークレットストアの Mutex ロック取得");
+        let mut store = self
+            .store
+            .lock()
+            .expect("シークレットストアの Mutex ロック取得");
         store.insert(secret.path.clone(), secret);
     }
 }
@@ -57,7 +60,10 @@ impl InMemoryVaultClient {
 impl VaultClient for InMemoryVaultClient {
     async fn get_secret(&self, path: &str) -> Result<Secret, VaultError> {
         // シークレットストアからの読み取りロックを取得する
-        let store = self.store.lock().expect("シークレットストアの Mutex ロック取得");
+        let store = self
+            .store
+            .lock()
+            .expect("シークレットストアの Mutex ロック取得");
         store
             .get(path)
             .cloned()
@@ -75,7 +81,10 @@ impl VaultClient for InMemoryVaultClient {
 
     async fn list_secrets(&self, path_prefix: &str) -> Result<Vec<String>, VaultError> {
         // シークレットストアからの読み取りロックを取得する
-        let store = self.store.lock().expect("シークレットストアの Mutex ロック取得");
+        let store = self
+            .store
+            .lock()
+            .expect("シークレットストアの Mutex ロック取得");
         let paths: Vec<String> = store
             .keys()
             .filter(|k| k.starts_with(path_prefix))
@@ -94,6 +103,7 @@ impl VaultClient for InMemoryVaultClient {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use chrono::Utc;

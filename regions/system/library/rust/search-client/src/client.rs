@@ -65,6 +65,7 @@ impl Default for InMemorySearchClient {
 
 #[async_trait]
 #[cfg(any(test, feature = "test-utils"))]
+#[allow(clippy::unwrap_used)]
 impl SearchClient for InMemorySearchClient {
     async fn index_document(
         &self,
@@ -155,6 +156,7 @@ impl SearchClient for InMemorySearchClient {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::document::BulkFailure;

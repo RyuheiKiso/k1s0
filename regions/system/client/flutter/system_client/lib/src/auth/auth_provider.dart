@@ -52,16 +52,22 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   /// BFF の /auth/session エンドポイントでセッションを確認する
+  /// 非同期操作後にプロバイダーが破棄されている可能性があるため、
+  /// state 更新前に ref.mounted をチェックする（Riverpod 3.x 対応）
   Future<void> _checkSession() async {
     try {
       final response =
           await _apiClient.get<Map<String, dynamic>>('/auth/session');
+      // 非同期操作完了後、プロバイダーが既に破棄されていれば何もしない
+      if (!ref.mounted) return;
       final data = response.data;
       if (data != null && data['authenticated'] == true && data['id'] != null) {
         _csrfToken = data['csrf_token'] as String?;
         state = AuthAuthenticated(userId: data['id'] as String);
       }
     } catch (_) {
+      // 非同期操作完了後、プロバイダーが既に破棄されていれば何もしない
+      if (!ref.mounted) return;
       state = const AuthUnauthenticated();
     }
   }

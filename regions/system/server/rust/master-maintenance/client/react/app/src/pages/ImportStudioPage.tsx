@@ -6,10 +6,12 @@ import { useCsvExport, useImportUpload, useTables } from "../hooks";
 
 export function ImportStudioPage() {
   const { data } = useTables();
-  const tables = data?.tables ?? [];
+  // テーブル一覧をメモ化してレンダーごとの参照変更を防止
+  const tables = useMemo(() => data?.tables ?? [], [data?.tables]);
   const [tableName, setTableName] = useState<string | undefined>(tables[0]?.name);
   const upload = useImportUpload(tableName);
   const exportCsv = useCsvExport(tableName);
+  // テーブル選択肢のオプション配列を生成
   const options = useMemo(
     () => tables.map((table) => ({ label: table.display_name, value: table.name })),
     [tables]

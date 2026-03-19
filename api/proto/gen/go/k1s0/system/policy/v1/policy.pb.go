@@ -1280,7 +1280,7 @@ const file_k1s0_system_policy_v1_policy_proto_rawDesc = "" +
 	"\fDeletePolicy\x12*.k1s0.system.policy.v1.DeletePolicyRequest\x1a+.k1s0.system.policy.v1.DeletePolicyResponse\x12g\n" +
 	"\fCreateBundle\x12*.k1s0.system.policy.v1.CreateBundleRequest\x1a+.k1s0.system.policy.v1.CreateBundleResponse\x12d\n" +
 	"\vListBundles\x12).k1s0.system.policy.v1.ListBundlesRequest\x1a*.k1s0.system.policy.v1.ListBundlesResponse\x12^\n" +
-	"\tGetBundle\x12'.k1s0.system.policy.v1.GetBundleRequest\x1a(.k1s0.system.policy.v1.GetBundleResponseB=Z;github.com/k1s0-platform/system-proto-go/policy/v1;policyv1b\x06proto3"
+	"\tGetBundle\x12'.k1s0.system.policy.v1.GetBundleRequest\x1a(.k1s0.system.policy.v1.GetBundleResponseBDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/policy/v1;policyv1b\x06proto3"
 
 var (
 	file_k1s0_system_policy_v1_policy_proto_rawDescOnce sync.Once

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // AI Gateway サーバーの統合テスト
 // router 初期化と healthz エンドポイントの smoke test を行う
 

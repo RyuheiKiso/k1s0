@@ -25,6 +25,13 @@ spec:
           containers:
             - name: vault-backup
               image: hashicorp/vault:1.17
+              # セキュリティ強化: 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
               command:
                 - /bin/sh
                 - -c
@@ -48,6 +55,13 @@ spec:
                   find "${BACKUP_DIR}" -name "vault-raft-*.snap" -mtime +30 -delete
 
                   echo "Vault backup completed."
+
+                  # S3オフサイトバックアップ: 災害復旧のためリモートストレージにコピー
+                  echo "Uploading Vault backup to S3..."
+                  aws s3 cp "${BACKUP_FILE}" "s3://${S3_BUCKET}/vault/vault-raft-${TIMESTAMP}.snap" \
+                    --endpoint-url "${S3_ENDPOINT}" \
+                    --no-progress
+                  echo "S3 upload completed: s3://${S3_BUCKET}/vault/vault-raft-${TIMESTAMP}.snap"
               env:
                 - name: VAULT_ADDR
                   value: "https://vault.k1s0-system.svc.cluster.local:8200"
@@ -58,6 +72,27 @@ spec:
                       key: token
                 - name: VAULT_CACERT
                   value: "/vault/tls/ca.crt"
+                # S3オフサイトバックアップ用の認証情報とエンドポイント設定
+                - name: S3_BUCKET
+                  valueFrom:
+                    secretKeyRef:
+                      name: s3-backup-credentials
+                      key: bucket
+                - name: S3_ENDPOINT
+                  valueFrom:
+                    secretKeyRef:
+                      name: s3-backup-credentials
+                      key: endpoint
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: s3-backup-credentials
+                      key: access-key-id
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: s3-backup-credentials
+                      key: secret-access-key
               volumeMounts:
                 - name: backup-volume
                   mountPath: /backup

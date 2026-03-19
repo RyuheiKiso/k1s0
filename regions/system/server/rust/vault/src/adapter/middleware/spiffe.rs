@@ -72,6 +72,7 @@ pub async fn spiffe_auth_middleware(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use axum::body::Body;

@@ -1,4 +1,4 @@
-CREATE TABLE app_registry.apps (
+CREATE TABLE IF NOT EXISTS app_registry.apps (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,

@@ -32,7 +32,7 @@ class ErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     final statusCode = err.response?.statusCode;
-    final message = err.response?.data?['error'] ?? err.message;
+    final message = (err.response?.data as Map<String, dynamic>?)?['error'] ?? err.message;
 
     /// ステータスコードに応じたエラーメッセージを生成する
     final errorMessage = switch (statusCode) {

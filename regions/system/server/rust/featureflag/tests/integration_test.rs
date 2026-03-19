@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // router 初期化と基本エンドポイントの smoke test
 // featureflag サーバーの REST API ルーターが正しく構築され、
 // ヘルスチェックおよび認証ミドルウェアが期待どおり動作することを検証する。
@@ -11,7 +12,8 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 use k1s0_featureflag_server::adapter::handler::{router, AppState};
-use k1s0_featureflag_server::adapter::middleware::auth::FeatureflagAuthState;
+// 認証状態の型をインポート（共通AuthStateを使用）
+use k1s0_featureflag_server::adapter::middleware::auth::AuthState;
 use k1s0_featureflag_server::domain::entity::feature_flag::FeatureFlag;
 use k1s0_featureflag_server::domain::entity::flag_audit_log::FlagAuditLog;
 use k1s0_featureflag_server::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
@@ -169,7 +171,8 @@ async fn test_unauthorized_without_token() {
         )
         .expect("Failed to create JWKS verifier"),
     );
-    let auth_state = FeatureflagAuthState { verifier };
+    // 共通AuthStateを使用して認証状態を構築
+    let auth_state = AuthState { verifier };
 
     let state = AppState {
         flag_repo: flag_repo.clone(),

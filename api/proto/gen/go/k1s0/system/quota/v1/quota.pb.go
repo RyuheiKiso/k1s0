@@ -1411,7 +1411,7 @@ const file_k1s0_system_quota_v1_quota_proto_rawDesc = "" +
 	"\n" +
 	"CheckQuota\x12'.k1s0.system.quota.v1.CheckQuotaRequest\x1a(.k1s0.system.quota.v1.CheckQuotaResponse\x12z\n" +
 	"\x13IncrementQuotaUsage\x120.k1s0.system.quota.v1.IncrementQuotaUsageRequest\x1a1.k1s0.system.quota.v1.IncrementQuotaUsageResponse\x12n\n" +
-	"\x0fResetQuotaUsage\x12,.k1s0.system.quota.v1.ResetQuotaUsageRequest\x1a-.k1s0.system.quota.v1.ResetQuotaUsageResponseB9Z7github.com/k1s0/api/gen/go/k1s0/system/quota/v1;quotav1b\x06proto3"
+	"\x0fResetQuotaUsage\x12,.k1s0.system.quota.v1.ResetQuotaUsageRequest\x1a-.k1s0.system.quota.v1.ResetQuotaUsageResponseBBZ@github.com/k1s0-platform/api/gen/go/k1s0/system/quota/v1;quotav1b\x06proto3"
 
 var (
 	file_k1s0_system_quota_v1_quota_proto_rawDescOnce sync.Once

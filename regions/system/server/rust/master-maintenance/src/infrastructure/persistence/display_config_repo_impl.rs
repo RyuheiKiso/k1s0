@@ -18,7 +18,8 @@ impl DisplayConfigPostgresRepository {
 impl DisplayConfigRepository for DisplayConfigPostgresRepository {
     async fn find_by_table_id(&self, table_id: Uuid) -> anyhow::Result<Vec<DisplayConfig>> {
         let rows = sqlx::query_as::<_, DisplayConfigRow>(
-            "SELECT * FROM master_maintenance.display_configs WHERE table_id = $1 ORDER BY created_at"
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, table_id, config_type, config_json, is_default, created_by, created_at, updated_at FROM master_maintenance.display_configs WHERE table_id = $1 ORDER BY created_at"
         )
         .bind(table_id)
         .fetch_all(&self.pool)
@@ -28,7 +29,8 @@ impl DisplayConfigRepository for DisplayConfigPostgresRepository {
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<DisplayConfig>> {
         let row = sqlx::query_as::<_, DisplayConfigRow>(
-            "SELECT * FROM master_maintenance.display_configs WHERE id = $1",
+            // 明示的カラム指定によるクエリ安全性の確保
+            "SELECT id, table_id, config_type, config_json, is_default, created_by, created_at, updated_at FROM master_maintenance.display_configs WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -41,7 +43,8 @@ impl DisplayConfigRepository for DisplayConfigPostgresRepository {
             r#"INSERT INTO master_maintenance.display_configs
                (id, table_id, config_type, config_json, is_default, created_by)
                VALUES ($1, $2, $3, $4, $5, $6)
-               RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               RETURNING id, table_id, config_type, config_json, is_default, created_by, created_at, updated_at"#,
         )
         .bind(config.id)
         .bind(config.table_id)
@@ -61,7 +64,8 @@ impl DisplayConfigRepository for DisplayConfigPostgresRepository {
                config_json = $3,
                is_default = $4,
                updated_at = now()
-               WHERE id = $1 RETURNING *"#,
+               -- 明示的カラム指定によるクエリ安全性の確保
+               WHERE id = $1 RETURNING id, table_id, config_type, config_json, is_default, created_by, created_at, updated_at"#,
         )
         .bind(id)
         .bind(&config.config_type)

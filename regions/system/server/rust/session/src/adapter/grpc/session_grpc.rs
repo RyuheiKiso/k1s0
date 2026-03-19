@@ -363,6 +363,7 @@ impl SessionGrpcService {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::adapter::repository::session_metadata_postgres::NoopSessionMetadataRepository;

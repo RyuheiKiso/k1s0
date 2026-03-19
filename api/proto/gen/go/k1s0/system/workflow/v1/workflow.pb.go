@@ -2258,7 +2258,7 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\fReassignTask\x12,.k1s0.system.workflow.v1.ReassignTaskRequest\x1a-.k1s0.system.workflow.v1.ReassignTaskResponse\x12h\n" +
 	"\vApproveTask\x12+.k1s0.system.workflow.v1.ApproveTaskRequest\x1a,.k1s0.system.workflow.v1.ApproveTaskResponse\x12e\n" +
 	"\n" +
-	"RejectTask\x12*.k1s0.system.workflow.v1.RejectTaskRequest\x1a+.k1s0.system.workflow.v1.RejectTaskResponseBAZ?github.com/k1s0-platform/system-proto-go/workflow/v1;workflowv1b\x06proto3"
+	"RejectTask\x12*.k1s0.system.workflow.v1.RejectTaskRequest\x1a+.k1s0.system.workflow.v1.RejectTaskResponseBHZFgithub.com/k1s0-platform/api/gen/go/k1s0/system/workflow/v1;workflowv1b\x06proto3"
 
 var (
 	file_k1s0_system_workflow_v1_workflow_proto_rawDescOnce sync.Once

@@ -155,8 +155,16 @@ impl QuotaService for QuotaServiceTonic {
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
         let req = ListPoliciesRequest {
-            page: if pagination.page <= 0 { 1 } else { pagination.page as u32 },
-            page_size: if pagination.page_size <= 0 { 20 } else { pagination.page_size as u32 },
+            page: if pagination.page <= 0 {
+                1
+            } else {
+                pagination.page as u32
+            },
+            page_size: if pagination.page_size <= 0 {
+                20
+            } else {
+                pagination.page_size as u32
+            },
             subject_type: inner.subject_type,
             subject_id: inner.subject_id,
             enabled_only: inner.enabled_only,
@@ -301,6 +309,7 @@ impl QuotaService for QuotaServiceTonic {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::quota::{Period, SubjectType};
@@ -471,8 +480,10 @@ mod tests {
 
         let tonic_svc = make_tonic_service(policy_mock, usage_mock);
         let req = Request::new(ProtoListQuotaPoliciesRequest {
-            page: 1,
-            page_size: 20,
+            pagination: Some(crate::proto::k1s0::system::common::v1::Pagination {
+                page: 1,
+                page_size: 20,
+            }),
             subject_type: None,
             subject_id: None,
             enabled_only: None,

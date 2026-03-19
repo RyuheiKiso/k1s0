@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 use k1s0_search_client::{
     Filter, IndexDocument, IndexMapping, SearchClient, SearchError, SearchQuery,
 };

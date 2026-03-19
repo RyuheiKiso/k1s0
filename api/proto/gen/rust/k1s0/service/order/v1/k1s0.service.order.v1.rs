@@ -26,9 +26,9 @@ pub struct Order {
     #[prost(message, repeated, tag="10")]
     pub items: ::prost::alloc::vec::Vec<OrderItem>,
     #[prost(message, optional, tag="11")]
-    pub created_at: ::core::option::Option<super::super::super::super::google::protobuf::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::super::system::common::v1::Timestamp>,
     #[prost(message, optional, tag="12")]
-    pub updated_at: ::core::option::Option<super::super::super::super::google::protobuf::Timestamp>,
+    pub updated_at: ::core::option::Option<super::super::super::system::common::v1::Timestamp>,
 }
 /// 注文明細
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -48,7 +48,7 @@ pub struct OrderItem {
     #[prost(int64, tag="7")]
     pub subtotal: i64,
     #[prost(message, optional, tag="8")]
-    pub created_at: ::core::option::Option<super::super::super::super::google::protobuf::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::super::system::common::v1::Timestamp>,
 }
 // ---------- リクエスト/レスポンス ----------
 

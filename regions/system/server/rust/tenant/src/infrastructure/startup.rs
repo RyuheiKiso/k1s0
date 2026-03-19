@@ -33,7 +33,8 @@ pub async fn run() -> anyhow::Result<()> {
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+    k1s0_telemetry::init_telemetry(&telemetry_cfg)
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -78,9 +79,10 @@ pub async fn run() -> anyhow::Result<()> {
                     pool.clone(),
                 ),
             );
-            let cached_repo = Arc::new(
-                crate::infrastructure::cache::CachedTenantRepository::new(pg_repo, &cache_config),
-            );
+            let cached_repo = Arc::new(crate::infrastructure::cache::CachedTenantRepository::new(
+                pg_repo,
+                &cache_config,
+            ));
             info!("テナントキャッシュを初期化");
             (
                 cached_repo as Arc<dyn TenantRepository>,
@@ -108,9 +110,10 @@ pub async fn run() -> anyhow::Result<()> {
                     pool.clone(),
                 ),
             );
-            let cached_repo = Arc::new(
-                crate::infrastructure::cache::CachedTenantRepository::new(pg_repo, &cache_config),
-            );
+            let cached_repo = Arc::new(crate::infrastructure::cache::CachedTenantRepository::new(
+                pg_repo,
+                &cache_config,
+            ));
             info!("テナントキャッシュを初期化");
             (
                 cached_repo as Arc<dyn TenantRepository>,

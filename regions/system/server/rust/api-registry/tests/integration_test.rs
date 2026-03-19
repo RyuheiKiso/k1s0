@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // router 初期化と基本エンドポイントの smoke test
 // api-registry サーバーの REST API ルーターが正しく構築され、
 // ヘルスチェックおよび認証ミドルウェアが期待どおり動作することを検証する。
@@ -10,7 +11,8 @@ use axum::http::{Request, StatusCode};
 use tower::ServiceExt;
 
 use k1s0_api_registry_server::adapter::handler::{router, AppState};
-use k1s0_api_registry_server::adapter::middleware::auth::ApiRegistryAuthState;
+// 認証状態の型をインポート（共通AuthStateを使用）
+use k1s0_api_registry_server::adapter::middleware::auth::AuthState;
 use k1s0_api_registry_server::domain::entity::api_registration::{ApiSchema, ApiSchemaVersion};
 use k1s0_api_registry_server::domain::repository::{
     ApiSchemaRepository, ApiSchemaVersionRepository,
@@ -169,7 +171,8 @@ async fn test_unauthorized_without_token() {
         )
         .expect("Failed to create JWKS verifier"),
     );
-    let auth_state = ApiRegistryAuthState { verifier };
+    // 共通AuthStateを使用して認証状態を構築
+    let auth_state = AuthState { verifier };
 
     let state = AppState {
         list_schemas_uc: Arc::new(ListSchemasUseCase::new(schema_repo.clone())),

@@ -249,11 +249,7 @@ pub async fn create_flow(
     match state.create_flow_uc.execute(&input).await {
         Ok(flow) => {
             let resp = FlowResponse::from(flow);
-            (
-                StatusCode::CREATED,
-                Json(resp),
-            )
-                .into_response()
+            (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(crate::usecase::create_flow::CreateFlowError::AlreadyExists(name)) => {
             let err = ErrorResponse::new(

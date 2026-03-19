@@ -1,6 +1,7 @@
 //! Database integration tests using testcontainers.
 //! These tests spin up a real PostgreSQL container and run migrations.
 //! Requires Docker to be available.
+#![allow(clippy::unwrap_used)]
 
 #[cfg(test)]
 mod testcontainers_db_tests {

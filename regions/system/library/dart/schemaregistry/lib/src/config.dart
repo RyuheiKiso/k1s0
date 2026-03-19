@@ -11,7 +11,7 @@ class SchemaRegistryConfig {
     this.password,
   });
 
-  /// Confluent naming convention: <topic>-value or <topic>-key
+  /// Confluent naming convention: `<topic>-value` or `<topic>-key`
   static String subjectName(String topic, String keyOrValue) =>
       '$topic-$keyOrValue';
 

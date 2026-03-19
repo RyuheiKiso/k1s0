@@ -81,6 +81,7 @@ const fn default_transition_duration_ms() -> u32 {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

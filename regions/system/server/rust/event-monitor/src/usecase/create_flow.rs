@@ -74,6 +74,7 @@ impl CreateFlowUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::repository::flow_definition_repository::MockFlowDefinitionRepository;

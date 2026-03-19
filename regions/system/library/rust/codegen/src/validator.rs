@@ -42,6 +42,7 @@ pub fn validate_generated(output_dir: &Path) -> ValidationResult {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

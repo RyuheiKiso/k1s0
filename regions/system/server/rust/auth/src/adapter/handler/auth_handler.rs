@@ -346,15 +346,20 @@ mod tests {
         let req = Request::builder()
             .uri("/healthz")
             .body(Body::empty())
-            .unwrap();
+            .expect("healthzリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("healthzリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // レスポンスボディを読み取り、JSONとしてパースする
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["status"], "ok");
     }
 
@@ -370,15 +375,20 @@ mod tests {
         let req = Request::builder()
             .uri("/readyz")
             .body(Body::empty())
-            .unwrap();
+            .expect("readyzリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("readyzリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // レスポンスボディを読み取り、JSONとしてパースする
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["status"], "ready");
     }
 
@@ -403,15 +413,20 @@ mod tests {
             .uri("/api/v1/auth/token/validate")
             .header("content-type", "application/json")
             .body(Body::from(r#"{"token":"valid-jwt-token"}"#))
-            .unwrap();
+            .expect("validateリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("validateリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // レスポンスボディを読み取り、トークン検証結果を確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["valid"], true);
         assert_eq!(json["claims"]["sub"], "user-uuid-1234");
     }
@@ -435,15 +450,20 @@ mod tests {
             .uri("/api/v1/auth/token/validate")
             .header("content-type", "application/json")
             .body(Body::from(r#"{"token":"invalid-token"}"#))
-            .unwrap();
+            .expect("invalidトークンリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("invalidトークンリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
 
+        // 無効トークンのエラーレスポンスを確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["error"]["code"], "SYS_AUTH_TOKEN_INVALID");
     }
 
@@ -472,15 +492,20 @@ mod tests {
             .body(Body::from(
                 r#"{"token":"valid-jwt-token","token_type_hint":"access_token"}"#,
             ))
-            .unwrap();
+            .expect("introspectリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("introspectリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // アクティブなトークンのイントロスペクション結果を確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["active"], true);
         assert_eq!(json["sub"], "user-uuid-1234");
         assert_eq!(json["username"], "taro.yamada");
@@ -507,15 +532,20 @@ mod tests {
             .uri("/api/v1/auth/token/introspect")
             .header("content-type", "application/json")
             .body(Body::from(r#"{"token":"expired-token"}"#))
-            .unwrap();
+            .expect("introspect inactiveリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("introspect inactiveリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // 無効トークンの場合 active: false が返ることを確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["active"], false);
     }
 
@@ -552,15 +582,20 @@ mod tests {
             .uri("/api/v1/users/user-uuid-1234")
             .header("Authorization", "Bearer valid-token")
             .body(Body::empty())
-            .unwrap();
+            .expect("get_userリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("get_userリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // ユーザー情報のレスポンスを確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["id"], "user-uuid-1234");
         assert_eq!(json["username"], "taro.yamada");
     }
@@ -585,15 +620,20 @@ mod tests {
             .uri("/api/v1/users/nonexistent")
             .header("Authorization", "Bearer valid-token")
             .body(Body::empty())
-            .unwrap();
+            .expect("get_user not_foundリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("get_user not_foundリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 
+        // ユーザー未発見のエラーレスポンスを確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["error"]["code"], "SYS_AUTH_USER_NOT_FOUND");
     }
 
@@ -635,16 +675,24 @@ mod tests {
             .uri("/api/v1/users?page=1&page_size=20")
             .header("Authorization", "Bearer valid-token")
             .body(Body::empty())
-            .unwrap();
+            .expect("list_usersリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("list_usersリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // ユーザー一覧レスポンスのページネーション結果を確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(json["users"].as_array().unwrap().len(), 1);
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
+        let users = json["users"]
+            .as_array()
+            .expect("usersフィールドが配列ではない");
+        assert_eq!(users.len(), 1);
         assert_eq!(json["pagination"]["total_count"], 1);
     }
 
@@ -679,17 +727,25 @@ mod tests {
             .uri("/api/v1/users/user-uuid-1234/roles")
             .header("Authorization", "Bearer valid-token")
             .body(Body::empty())
-            .unwrap();
+            .expect("get_user_rolesリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("get_user_rolesリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
 
+        // ユーザーロール一覧のレスポンスを確認する
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["user_id"], "user-uuid-1234");
-        assert_eq!(json["realm_roles"].as_array().unwrap().len(), 1);
+        let realm_roles = json["realm_roles"]
+            .as_array()
+            .expect("realm_rolesフィールドが配列ではない");
+        assert_eq!(realm_roles.len(), 1);
     }
 
     #[tokio::test]
@@ -704,9 +760,12 @@ mod tests {
         let req = Request::builder()
             .uri("/metrics")
             .body(Body::empty())
-            .unwrap();
+            .expect("metricsリクエストの構築に失敗");
 
-        let resp = app.oneshot(req).await.unwrap();
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("metricsリクエストの送信に失敗");
         assert_eq!(resp.status(), StatusCode::OK);
     }
 }

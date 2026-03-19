@@ -220,6 +220,7 @@ impl GraphQlClient for InMemoryGraphQlClient {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

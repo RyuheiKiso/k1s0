@@ -61,10 +61,7 @@ pub async fn create_item(
         .create_item(&category_code, &input, &actor)
         .await
         .map_err(from_anyhow)?;
-    Ok((
-        StatusCode::CREATED,
-        Json(item),
-    ))
+    Ok((StatusCode::CREATED, Json(item)))
 }
 
 pub async fn update_item(

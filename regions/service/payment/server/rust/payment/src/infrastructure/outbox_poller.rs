@@ -92,9 +92,7 @@ impl k1s0_outbox::OutboxEventHandler for PaymentOutboxHandler {
                     error_code: json_str(payload, "error_code"),
                     failed_at: json_datetime(payload, "failed_at"),
                 };
-                self.publisher
-                    .publish_payment_failed(&domain_event)
-                    .await?;
+                self.publisher.publish_payment_failed(&domain_event).await?;
                 Ok(true)
             }
             // JSON payload を PaymentRefundedDomainEvent に変換して publish する
