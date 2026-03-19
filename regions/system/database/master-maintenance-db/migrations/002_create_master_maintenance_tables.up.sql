@@ -1,4 +1,4 @@
-CREATE TABLE master_maintenance.table_definitions (
+CREATE TABLE IF NOT EXISTS master_maintenance.table_definitions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL UNIQUE,
     schema_name VARCHAR(100) NOT NULL,
@@ -22,7 +22,7 @@ CREATE INDEX idx_table_definitions_category
 CREATE INDEX idx_table_definitions_active
     ON master_maintenance.table_definitions(is_active);
 
-CREATE TABLE master_maintenance.column_definitions (
+CREATE TABLE IF NOT EXISTS master_maintenance.column_definitions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     table_id UUID NOT NULL REFERENCES master_maintenance.table_definitions(id) ON DELETE CASCADE,
     column_name VARCHAR(255) NOT NULL,
