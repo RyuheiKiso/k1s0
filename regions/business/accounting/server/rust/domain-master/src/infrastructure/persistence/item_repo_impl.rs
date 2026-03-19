@@ -91,12 +91,13 @@ impl ItemPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, ItemRow>(
             r#"INSERT INTO domain_master.master_items
                (category_id, code, display_name, description, attributes,
                 parent_item_id, effective_from, effective_until, is_active, sort_order, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-               RETURNING *"#,
+               RETURNING id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at"#,
         )
         .bind(category_id)
         .bind(&input.code)
