@@ -89,9 +89,11 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
+# Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
+# NOTE: bff-proxy は service Tier の auth role に登録されている
 serviceAccount:
   create: true
-  name: ""
+  name: "bff-proxy"
   annotations: {}
 
 podAnnotations: {}

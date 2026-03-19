@@ -142,7 +142,7 @@ pub async fn run() -> anyhow::Result<()> {
         snapshot_repo.clone(),
     ));
 
-    // gRPC service
+    // gRPC service（event_publisher を渡して REST と同様に Kafka publish を行う）
     let grpc_svc = Arc::new(EventStoreGrpcService::new(
         append_events_uc.clone(),
         read_events_uc.clone(),
@@ -151,6 +151,7 @@ pub async fn run() -> anyhow::Result<()> {
         get_latest_snapshot_uc.clone(),
         delete_stream_uc.clone(),
         stream_repo.clone(),
+        event_publisher.clone(),
     ));
 
     let grpc_addr: std::net::SocketAddr =

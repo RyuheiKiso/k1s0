@@ -74,12 +74,20 @@ class AppConfig {
             ?.map((k, v) => MapEntry(k, v as bool)) ??
         {};
 
+    /// base_urlが未設定の場合はlocalhostフォールバックせず即座にエラーで失敗する
+    final baseUrl = api['base_url'] as String?;
+    if (baseUrl == null || baseUrl.isEmpty) {
+      throw StateError(
+        'api.base_url が設定されていません。環境別設定ファイル (config.$env.yaml) に base_url を指定してください。',
+      );
+    }
+
     return AppConfig(
       appName: app['name'] as String,
       version: app['version'] as String,
       env: app['env'] as String,
       api: ApiConfig(
-        baseUrl: api['base_url'] as String,
+        baseUrl: baseUrl,
         timeout: api['timeout'] as int,
         retryMaxAttempts: retry['max_attempts'] as int,
         retryBackoffMs: retry['backoff_ms'] as int,

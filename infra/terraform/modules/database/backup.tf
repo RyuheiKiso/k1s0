@@ -22,11 +22,13 @@ resource "kubernetes_cron_job_v1" "postgresql_backup" {
             }
 
             container {
-              name    = "pg-backup"
-              image   = "bitnami/postgresql:${var.postgresql_version}"
+              name = "pg-backup"
+              # AWS CLI 付きイメージ: pg_dump 実行後に s3cmd で S3 へアップロードするため、
+              # PostgreSQL クライアントと S3 転送ツールの両方が必要
+              image   = "k1s0/postgresql-backup:${var.postgresql_version}-awscli"
               command = ["/bin/sh", "-c"]
               args    = [
-                "pg_dump -h postgresql -U $PGUSER -d $PGDATABASE | gzip > /backup/pg-$(date +%Y%m%d).sql.gz && s3cmd put /backup/pg-$(date +%Y%m%d).sql.gz s3://${var.backup_bucket}/postgresql/"
+                "pg_dump -h postgresql -U $PGUSER -d $PGDATABASE | gzip > /backup/pg-$(date +%Y%m%d).sql.gz && aws s3 cp /backup/pg-$(date +%Y%m%d).sql.gz s3://${var.backup_bucket}/postgresql/ --no-progress"
               ]
 
               # コンテナレベルのセキュリティコンテキスト
@@ -94,13 +96,15 @@ resource "kubernetes_cron_job_v1" "mysql_backup" {
             }
 
             container {
-              name    = "mysql-backup"
-              image   = "bitnami/mysql:${var.mysql_version}"
+              name = "mysql-backup"
+              # AWS CLI 付きイメージ: mysqldump 実行後に S3 へアップロードするため、
+              # MySQL クライアントと AWS CLI の両方が必要
+              image   = "k1s0/mysql-backup:${var.mysql_version}-awscli"
               command = ["/bin/sh", "-c"]
               # --defaults-extra-file を使用してパスワードを渡す
               # プロセスリストにパスワードが露出するのを防止する
               args    = [
-                "echo '[client]\nuser='\"$MYSQL_USER\"'\npassword='\"$MYSQL_PASSWORD\"'\nhost=mysql' > /tmp/my.cnf && mysqldump --defaults-extra-file=/tmp/my.cnf --all-databases | gzip > /backup/mysql-$(date +%Y%m%d).sql.gz && rm -f /tmp/my.cnf && s3cmd put /backup/mysql-$(date +%Y%m%d).sql.gz s3://${var.backup_bucket}/mysql/"
+                "echo '[client]\nuser='\"$MYSQL_USER\"'\npassword='\"$MYSQL_PASSWORD\"'\nhost=mysql' > /tmp/my.cnf && mysqldump --defaults-extra-file=/tmp/my.cnf --all-databases | gzip > /backup/mysql-$(date +%Y%m%d).sql.gz && rm -f /tmp/my.cnf && aws s3 cp /backup/mysql-$(date +%Y%m%d).sql.gz s3://${var.backup_bucket}/mysql/ --no-progress"
               ]
 
               # コンテナレベルのセキュリティコンテキスト

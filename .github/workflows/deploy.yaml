@@ -102,11 +102,27 @@ jobs:
             business) echo "service_name=$(echo "${{ matrix.service }}" | cut -d'/' -f5)" >> "$GITHUB_OUTPUT" ;;
             service)  echo "service_name=$(echo "${{ matrix.service }}" | cut -d'/' -f2)" >> "$GITHUB_OUTPUT" ;;
           esac
+      # Tier ルートを Docker ビルドコンテキストとして導出（Dockerfile は regions/{tier} を前提としているため）
+      - name: Determine build context
+        id: build-ctx
+        run: |
+          TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
+          case "$TIER" in
+            # system tier: Cargo workspace ルートをコンテキストに使用
+            system)   echo "context=regions/system" >> "$GITHUB_OUTPUT" ;;
+            # business tier: ドメインルートをコンテキストに使用
+            business) echo "context=regions/$(echo "${{ matrix.service }}" | cut -d'/' -f1-2)" >> "$GITHUB_OUTPUT" ;;
+            # service tier: サービスルートをコンテキストに使用
+            service)  echo "context=regions/$(echo "${{ matrix.service }}" | cut -d'/' -f1-2)" >> "$GITHUB_OUTPUT" ;;
+          esac
+          echo "dockerfile=regions/${{ matrix.service }}/Dockerfile" >> "$GITHUB_OUTPUT"
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Build and push
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          context: regions/${{ matrix.service }}
+          # Dockerfile が依存するライブラリを含む tier ルートをコンテキストに指定
+          context: ${{ steps.build-ctx.outputs.context }}
+          file: ${{ steps.build-ctx.outputs.dockerfile }}
           push: true
           # :latest タグは廃止。バージョン + git SHA で一意に特定可能なタグのみ使用する
           tags: |

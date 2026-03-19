@@ -23,7 +23,10 @@ jobs:
     uses: ./.github/workflows/_service-deploy.yaml
     with:
       service-name: auth
-      context-path: regions/system/server/rust/auth
+      # Dockerfile は regions/system をビルドコンテキストとして前提するため、tier ルートを指定
+      context-path: regions/system
+      # Dockerfile のパスを明示指定（コンテキストルートからの相対ではないため）
+      dockerfile: regions/system/server/rust/auth/Dockerfile
       registry-project: k1s0-system
       helm-chart-path: system/auth
       namespace: k1s0-system

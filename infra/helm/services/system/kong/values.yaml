@@ -9,7 +9,7 @@ image:
 
 env:
   database: postgres
-  pg_host: postgres.k1s0-system.svc.cluster.local
+  pg_host: postgresql.k1s0-system.svc.cluster.local
   pg_port: "5432"
   pg_user: kong
   pg_database: kong

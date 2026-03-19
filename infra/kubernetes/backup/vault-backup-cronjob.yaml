@@ -24,7 +24,10 @@ spec:
           serviceAccountName: backup-operator
           containers:
             - name: vault-backup
-              image: hashicorp/vault:1.17
+              # AWS CLI 付きイメージを使用: バックアップスクリプトで aws s3 cp を実行するため、
+              # vault CLI と AWS CLI の両方が必要。hashicorp/vault には AWS CLI が含まれないため
+              # amazon/aws-cli ベースのカスタムイメージに変更する
+              image: k1s0/vault-backup:1.17-awscli
               # セキュリティ強化: 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化
               securityContext:
                 runAsNonRoot: true

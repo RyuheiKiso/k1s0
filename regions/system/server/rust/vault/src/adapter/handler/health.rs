@@ -5,6 +5,7 @@ use axum::Json;
 
 use crate::adapter::handler::AppState;
 
+/// ヘルスチェックエンドポイント: サーバーが起動しているかを返す
 pub async fn healthz() -> impl IntoResponse {
     (
         StatusCode::OK,
@@ -14,13 +15,19 @@ pub async fn healthz() -> impl IntoResponse {
     )
 }
 
+/// レディネスチェックエンドポイント: バックエンド種別と疎通確認結果を返す。
+/// DB/Vault 未構成（in-memory フォールバック）時は degraded ステータスを返して
+/// 永続化バックエンド未構成であることを運用チームに明示する。
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     if let Some(ref pool) = state.db_pool {
+        // PostgreSQL または Vault KV v2 バックエンドが構成されている場合
         match sqlx::query("SELECT 1").execute(pool).await {
             Ok(_) => (
                 StatusCode::OK,
                 Json(serde_json::json!({
                     "status": "ready",
+                    "service": "vault",
+                    "backend": "postgres",
                     "checks": {
                         "database": "ok",
                     }
@@ -30,6 +37,8 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                 StatusCode::SERVICE_UNAVAILABLE,
                 Json(serde_json::json!({
                     "status": "not_ready",
+                    "service": "vault",
+                    "backend": "postgres",
                     "checks": {
                         "database": e.to_string(),
                     }
@@ -37,13 +46,14 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
             ),
         }
     } else {
+        // DB 未構成時は in-memory で動作中のため degraded を返す
         (
             StatusCode::OK,
             Json(serde_json::json!({
-                "status": "ready",
-                "checks": {
-                    "database": "not_configured",
-                }
+                "status": "degraded",
+                "service": "vault",
+                "backend": "in-memory",
+                "reason": "永続化バックエンド未構成のため in-memory で動作中"
             })),
         )
     }

@@ -91,10 +91,16 @@ fn default_page_size() -> u32 {
     50
 }
 
+// Kafka パブリッシュのリトライ初回遅延（ミリ秒）
 const INITIAL_PUBLISH_RETRY_DELAY_MS: u64 = 500;
+// Kafka パブリッシュのリトライ最大遅延（ミリ秒）
 const MAX_PUBLISH_RETRY_DELAY_MS: u64 = 30_000;
+// Kafka パブリッシュのリトライ最大試行回数。無制限リトライを防止する。
+const MAX_PUBLISH_RETRY_ATTEMPTS: u32 = 10;
 
-fn spawn_publish_events_with_retry(
+/// イベントの Kafka パブリッシュをバックグラウンドで実行し、失敗時はリトライする。
+/// リトライ上限（MAX_PUBLISH_RETRY_ATTEMPTS）に達した場合はエラーログを出力して終了する。
+pub(crate) fn spawn_publish_events_with_retry(
     publisher: Arc<dyn crate::infrastructure::kafka::EventPublisher>,
     stream_id: String,
     events: Vec<crate::domain::entity::event::StoredEvent>,
@@ -118,15 +124,29 @@ fn spawn_publish_events_with_retry(
                     break;
                 }
                 Err(e) => {
+                    // リトライ上限に達した場合はエラーログを出力して終了する
+                    if attempt >= MAX_PUBLISH_RETRY_ATTEMPTS {
+                        tracing::error!(
+                            error = %e,
+                            stream_id = %stream_id,
+                            attempts = attempt,
+                            max_attempts = MAX_PUBLISH_RETRY_ATTEMPTS,
+                            "failed to publish events to kafka after max retry attempts, giving up"
+                        );
+                        break;
+                    }
+
                     tracing::warn!(
                         error = %e,
                         stream_id = %stream_id,
                         attempts = attempt,
+                        max_attempts = MAX_PUBLISH_RETRY_ATTEMPTS,
                         next_retry_ms = retry_delay.as_millis() as u64,
                         "failed to publish events to kafka, will retry"
                     );
 
                     tokio::time::sleep(retry_delay).await;
+                    // 指数バックオフ（最大遅延で上限）
                     retry_delay = std::cmp::min(retry_delay.saturating_mul(2), max_retry_delay);
                 }
             }

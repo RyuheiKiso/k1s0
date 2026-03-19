@@ -88,9 +88,11 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
+# Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
+# NOTE: ai-agent は現時点で auth.tf の bound_service_account_names に未登録
 serviceAccount:
   create: true
-  name: ""
+  name: "ai-agent"
   annotations: {}
 
 podAnnotations: {}

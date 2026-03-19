@@ -293,6 +293,79 @@ while let Some(result) = join_set.join_next().await {
 
 ---
 
+## startup.rs コピペ構造の共通化方針 {#startup共通化}
+
+### 現状の問題
+
+service / business 層の 4 サーバー（order, inventory, payment, domain-master）および system 層の多数のサーバーで、`startup.rs` がほぼ同一のボイラープレートコードをコピペしている。具体的に重複しているのは以下の処理ブロックである:
+
+| # | 処理 | 重複行数（概算） | サーバー間の差分 |
+|---|------|-----------------|----------------|
+| 1 | Config ロード（CONFIG_PATH 環境変数 → Config::load） | ~3行 | なし |
+| 2 | TelemetryConfig 構築 + init_telemetry 呼び出し | ~15行 | service_name, tier のみ |
+| 3 | DB 接続（connect_database + MIGRATOR.run） | ~10行 | なし |
+| 4 | Metrics 生成 | ~1行 | ラベル名のみ |
+| 5 | Auth（JwksVerifier + AuthState 構築） | ~12行 | なし |
+| 6 | REST + gRPC サーバー起動 + tokio::select! | ~30行 | gRPC サービス型のみ |
+| 7 | Graceful shutdown シグナル処理 | ~10行 | なし |
+| 8 | connect_database 関数 | ~10行 | なし |
+
+**問題の影響**:
+- クロスカッティングな改善（例: テレメトリ初期化のエラーハンドリング変更）を全サーバーに手動で適用する必要がある
+- 改善漏れによるサーバー間の微妙な挙動差異が生まれる
+- 新サーバー追加時にコピペ元の選定と手動カスタマイズが必要
+
+### 既存の ServerBuilder との関係
+
+`k1s0-server-common` には既に `ServerBuilder`（`startup.rs`）が存在し、テレメトリ初期化・DB プール作成・JWKS 検証器・Metrics 生成を提供している。しかし、現時点では一部のサーバーのみが `ServerBuilder` を利用しており、大半のサーバーは従来のインライン実装を維持している。
+
+### 共通化方針
+
+`k1s0-server-common` クレートの `ServerBuilder` を拡張し、以下の初期化処理を追加で共通化する:
+
+1. **REST + gRPC 並行サーバー起動**: `ServerBuilder::serve()` メソッドを追加し、REST Router と gRPC Service を受け取って `tokio::select!` による並行起動 + graceful shutdown を一括で実行する
+2. **connect_database の統一**: 各サーバーにローカル定義されている `connect_database()` を `ServerBuilder::init_db_pool()` に完全移行する
+3. **Outbox Poller 起動の共通化**: Outbox を使用するサーバー向けに、ポーラーのバックグラウンド起動 + shutdown 連携を `ServerBuilder` に統合する
+
+#### trait によるサーバー固有設定の注入
+
+```rust
+// サーバー固有の設定を注入するための trait（設計案）
+#[async_trait::async_trait]
+pub trait ServerApp: Send + Sync + 'static {
+    /// サービス名（テレメトリ・メトリクスに使用）
+    fn service_name(&self) -> &str;
+    /// サービス階層
+    fn tier(&self) -> Tier;
+    /// REST ルーターを構築する
+    fn build_rest_router(&self, state: &CommonState) -> axum::Router;
+    /// gRPC サービスを構築し tonic Server に追加する
+    fn build_grpc_server(&self, builder: tonic::transport::Server)
+        -> tonic::transport::server::Router;
+    /// gRPC メソッド名 → 必要なアクションのマッピング
+    fn required_action(method: &str) -> &'static str;
+}
+```
+
+各サーバーは `ServerApp` trait を実装し、`ServerBuilder::run(app)` を呼び出すだけで起動できるようにする。
+
+### 移行ステップ
+
+| Phase | 内容 | 影響範囲 |
+|-------|------|---------|
+| Phase 1 | `ServerBuilder` に `serve()` メソッドを追加。REST/gRPC 並行起動 + graceful shutdown を共通化 | server-common のみ |
+| Phase 2 | 既存の `connect_database()` ローカル定義を持つサーバーを `ServerBuilder::init_db_pool()` に移行 | 全 Rust サーバー（段階的） |
+| Phase 3 | service 層 3 サーバー（order, payment, inventory）を `ServerApp` trait ベースに移行。Outbox Poller 起動も統合 | service 層 3 サーバー |
+| Phase 4 | business 層（domain-master）を移行 | domain-master |
+| Phase 5 | system 層の残りのサーバーを段階的に移行 | system 層サーバー（段階的） |
+
+**移行の原則**:
+- 既存の動作を変更しない（リファクタリングのみ）
+- 各 Phase で CI を通してからマージする
+- `ServerApp` trait の採用は任意とし、各サーバーの startup.rs で `ServerBuilder` の個別メソッドを呼び出す方式も引き続きサポートする
+
+---
+
 ## 関連ドキュメント
 
 - [system-server.md](../auth/server.md) -- auth-server 設計（参考実装）

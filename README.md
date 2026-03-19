@@ -287,13 +287,13 @@ ingress           Nginx Ingress Controller
 
 ### 前提条件
 
-- **Bash 環境**（WSL2 / Git Bash）— justfile・スクリプトが Bash 前提
+- **Bash 環境**（WSL2 または Git Bash **必須**）— justfile・スクリプトは全て Bash 前提のため、PowerShell / cmd.exe では動作しません
 - **just**（justfile 実行に必要）
 - **Docker / Docker Compose** v2（必須）
 - **Rust 1.93+**（CLI ビルド・サーバー開発時）
 - Go 1.24+ / Node.js 22+ / Dart 3.5+（各言語で開発する場合）
 
-> **Windows ユーザー**: justfile は Bash 前提です。WSL2（推奨）、Git Bash、または devcontainer 内で実行してください。PowerShell / cmd.exe からの直接実行はサポートしていません。
+> **Windows ユーザー**: justfile および全スクリプトは **WSL2（推奨）または Git Bash が必須**です。PowerShell / cmd.exe からの直接実行は**サポート対象外**であり、動作しません。devcontainer 内での実行も可能です。
 
 > **Note**: `master-maintenance` サーバーは `zen-engine` (rquickjs-sys) に依存しており、Windows ネイティブ環境ではビルドできません。WSL2 または devcontainer を使用してください。
 

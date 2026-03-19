@@ -88,9 +88,10 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
+# Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
 serviceAccount:
   create: true
-  name: ""
+  name: "event-monitor-rust"
   annotations: {}
 
 podAnnotations: {}

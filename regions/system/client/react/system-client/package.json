@@ -1,5 +1,5 @@
 {
-  "name": "system-client",
+  "name": "@k1s0/system-client",
   "version": "0.1.0",
   "description": "System-tier shared client SDK for authentication, API client, routing guard, and common components.",
   "type": "module",

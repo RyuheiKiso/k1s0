@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   useTenantExtension,
   useUpdateTenantExtension,
@@ -27,15 +27,15 @@ export function TenantExtensionForm({ tenantId, itemId }: TenantExtensionFormPro
   // JSON パースエラー
   const [jsonError, setJsonError] = useState('');
 
-  // 既存データが読み込まれたら入力欄に反映
-  useState(() => {
+  // 既存データが読み込まれたら入力欄に反映（副作用のためuseEffectを使用）
+  useEffect(() => {
     if (extension) {
       setDisplayNameOverride(extension.display_name_override ?? '');
       setAttributesOverrideJson(
         extension.attributes_override ? JSON.stringify(extension.attributes_override, null, 2) : ''
       );
     }
-  });
+  }, [extension]);
 
   // フォーム送信: テナント拡張の保存
   const handleSubmit = (e: React.FormEvent) => {

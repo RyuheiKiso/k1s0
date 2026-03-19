@@ -280,8 +280,8 @@ jobs:
                   cd "$dir"
                   # package-lock.json を使って依存関係をインストール
                   npm ci
-                  npm run lint --if-present
-                  npm run typecheck --if-present
+                  npm run lint
+                  npm run typecheck
                 )
               fi
             done
@@ -294,8 +294,8 @@ jobs:
                 cd "$package_dir"
                 # package-lock.json を使って依存関係をインストール
                 npm ci
-                npm run lint --if-present
-                npm run typecheck --if-present
+                npm run lint
+                npm run typecheck
               )
             done
           fi

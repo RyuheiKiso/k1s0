@@ -162,6 +162,10 @@ pub async fn run() -> anyhow::Result<()> {
         evaluate_uc.clone(),
     ));
 
+    // バックエンド種別を health エンドポイントで返すために設定
+    // 現在は in-memory リポジトリのみ。database 構成追加時に "postgres" へ変更すること。
+    let backend_kind = "in-memory".to_string();
+
     let mut state = adapter::handler::AppState {
         create_rule_uc,
         get_rule_uc,
@@ -179,6 +183,7 @@ pub async fn run() -> anyhow::Result<()> {
         list_evaluation_logs_uc,
         metrics: metrics.clone(),
         auth_state: None,
+        backend_kind,
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

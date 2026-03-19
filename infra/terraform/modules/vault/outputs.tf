@@ -8,11 +8,13 @@ output "vault_token_path" {
   value       = "/vault/secrets/token"
 }
 
+# Vault シークレットエンジンのマウントパスをまとめて出力する
+# database と pki はサブモジュール (vault-database, vault-pki) が canonical owner のため固定値を使用
 output "secret_paths" {
   description = "Map of Vault secret engine mount paths"
   value = {
     kv       = vault_mount.kv.path
-    database = vault_mount.database.path
-    pki      = vault_mount.pki.path
+    database = "database"
+    pki      = "pki"
   }
 }

@@ -34,6 +34,8 @@ pub struct AppState {
     pub event_publisher: Arc<dyn SessionEventPublisher>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
+    /// Redis が構成されているかを示すフラグ。health エンドポイントで使用。
+    pub redis_configured: bool,
 }
 
 impl AppState {

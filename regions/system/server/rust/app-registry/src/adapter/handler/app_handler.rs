@@ -38,37 +38,51 @@ pub async fn healthz() -> impl IntoResponse {
         (status = 503, description = "Not ready"),
     )
 )]
-/// レディネスチェックエンドポイント（DB 疎通確認を含む）
+/// レディネスチェックエンドポイント（DB 疎通確認を含む）。
+/// DB 未構成（in-memory/stub）時は degraded ステータスを返して
+/// 永続化バックエンド未構成であることを運用チームに明示する。
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
-    let mut db_status = "skipped";
-    let mut overall_ok = true;
-
-    // DB check
     if let Some(ref pool) = state.db_pool {
+        // DB が構成されている場合は疎通確認を行う
         match sqlx::query("SELECT 1").execute(pool).await {
-            Ok(_) => db_status = "ok",
-            Err(_) => {
-                db_status = "error";
-                overall_ok = false;
-            }
+            Ok(_) => (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "status": "ready",
+                    "service": "app-registry",
+                    "backend": "postgres",
+                    "checks": {
+                        "database": "ok"
+                    }
+                })),
+            )
+                .into_response(),
+            Err(_) => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({
+                    "status": "not_ready",
+                    "service": "app-registry",
+                    "backend": "postgres",
+                    "checks": {
+                        "database": "error"
+                    }
+                })),
+            )
+                .into_response(),
         }
-    }
-
-    let status_code = if overall_ok {
-        StatusCode::OK
     } else {
-        StatusCode::SERVICE_UNAVAILABLE
-    };
-    (
-        status_code,
-        Json(serde_json::json!({
-            "status": if overall_ok { "ready" } else { "not ready" },
-            "checks": {
-                "database": db_status
-            }
-        })),
-    )
-        .into_response()
+        // DB 未構成時は in-memory/stub で動作中のため degraded を返す
+        (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "status": "degraded",
+                "service": "app-registry",
+                "backend": "in-memory",
+                "reason": "永続化バックエンド未構成のため stub リポジトリで動作中"
+            })),
+        )
+            .into_response()
+    }
 }
 
 #[utoipa::path(

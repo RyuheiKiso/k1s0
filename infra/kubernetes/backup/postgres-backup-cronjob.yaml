@@ -61,7 +61,7 @@ spec:
                   echo "All PostgreSQL backups completed."
               env:
                 - name: PGHOST
-                  value: "postgres.k1s0-system.svc.cluster.local"
+                  value: "postgresql.k1s0-system.svc.cluster.local"
                 - name: PGUSER
                   valueFrom:
                     secretKeyRef:

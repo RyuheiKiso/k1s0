@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
+use crate::adapter::handler::event_handler::spawn_publish_events_with_retry;
 use crate::domain::entity::event::{EventData, EventMetadata};
 use crate::domain::repository::EventStreamRepository;
+use crate::infrastructure::kafka::EventPublisher;
 use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::eventstore::v1::{
     AppendEventsRequest as ProtoAppendEventsRequest,
@@ -49,6 +51,7 @@ pub enum GrpcError {
     Internal(String),
 }
 
+/// gRPC サービスの実装。各ユースケースとリポジトリ、Kafka パブリッシャーを保持する。
 pub struct EventStoreGrpcService {
     append_events_uc: Arc<AppendEventsUseCase>,
     read_events_uc: Arc<ReadEventsUseCase>,
@@ -57,6 +60,8 @@ pub struct EventStoreGrpcService {
     get_latest_snapshot_uc: Arc<GetLatestSnapshotUseCase>,
     delete_stream_uc: Arc<DeleteStreamUseCase>,
     stream_repo: Arc<dyn EventStreamRepository>,
+    /// Kafka イベントパブリッシャー。REST と同様に append 後にイベントを発行する。
+    event_publisher: Arc<dyn EventPublisher>,
 }
 
 impl EventStoreGrpcService {
@@ -69,6 +74,7 @@ impl EventStoreGrpcService {
         get_latest_snapshot_uc: Arc<GetLatestSnapshotUseCase>,
         delete_stream_uc: Arc<DeleteStreamUseCase>,
         stream_repo: Arc<dyn EventStreamRepository>,
+        event_publisher: Arc<dyn EventPublisher>,
     ) -> Self {
         Self {
             append_events_uc,
@@ -78,6 +84,7 @@ impl EventStoreGrpcService {
             get_latest_snapshot_uc,
             delete_stream_uc,
             stream_repo,
+            event_publisher,
         }
     }
 
@@ -158,15 +165,24 @@ impl EventStoreGrpcService {
         };
 
         match self.append_events_uc.execute(&input).await {
-            Ok(output) => Ok(ProtoAppendEventsResponse {
-                stream_id: output.stream_id,
-                events: output
-                    .events
-                    .into_iter()
-                    .map(stored_event_to_proto)
-                    .collect(),
-                current_version: output.current_version,
-            }),
+            Ok(output) => {
+                // REST と同様にバックグラウンドで Kafka にイベントを発行する
+                spawn_publish_events_with_retry(
+                    self.event_publisher.clone(),
+                    output.stream_id.clone(),
+                    output.events.clone(),
+                );
+
+                Ok(ProtoAppendEventsResponse {
+                    stream_id: output.stream_id,
+                    events: output
+                        .events
+                        .into_iter()
+                        .map(stored_event_to_proto)
+                        .collect(),
+                    current_version: output.current_version,
+                })
+            }
             Err(AppendEventsError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
             }

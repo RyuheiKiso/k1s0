@@ -39,10 +39,10 @@ jobs:
         with:
           context: {% endraw %}{{ module_path }}{% raw %}
           push: true
+          # :latest タグは廃止。バージョン + git SHA で一意に特定可能なタグのみ使用する
           tags: |
             ${{ env.REGISTRY }}/{% endraw %}{{ docker_project }}/{{ service_name }}{% raw %}:${{ steps.version.outputs.value }}
             ${{ env.REGISTRY }}/{% endraw %}{{ docker_project }}/{{ service_name }}{% raw %}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-            ${{ env.REGISTRY }}/{% endraw %}{{ docker_project }}/{{ service_name }}{% raw %}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Install Cosign

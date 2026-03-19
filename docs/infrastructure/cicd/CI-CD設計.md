@@ -1074,6 +1074,33 @@ Docker イメージタグから `:latest` を削除。`{version}` と `{version}
 
 `.github/dependabot.yml` で `directories` フィールドを使用し、モノレポ内の全マニフェストディレクトリ（Go, Rust, npm, Dart）に対応。ルートディレクトリのみの設定から個別ディレクトリ指定に拡張。
 
+## npm スクリプト実行の --if-present 削除方針
+
+### 背景
+
+CI（`ci.yaml`）と justfile の npm スクリプト実行で `--if-present` フラグを使用している箇所がある（`npm test --if-present`, `npm run build --if-present`, `npm run format --if-present` 等）。`--if-present` は該当スクリプトが `package.json` に定義されていない場合にサイレントスキップするフラグだが、以下の問題がある:
+
+- **テストの欠落を隠蔽**: `test` スクリプトが未定義のパッケージでもエラーにならず、テスト未実装が検出されない
+- **ビルド漏れの検出遅延**: `build` スクリプトの定義漏れが CI で検出されない
+
+### 対応方針
+
+- 全 TypeScript パッケージに `test`, `build`, `format` スクリプトを明示的に定義する
+- 定義を確認後、CI と justfile から `--if-present` を削除する
+- `validate-ts-lockfiles` lint ジョブを拡張し、必須スクリプト（`test`, `build`）の存在チェックを追加する
+
+## tier 別 CI ワークフローの拡張
+
+### 背景
+
+統合テスト（`integration-test.yaml`）は当初 system tier のサーバーのみを対象としていたが、service tier（order, payment, inventory）と business tier（domain-master）のサーバーも統合テストの対象とする必要がある。
+
+### 対応方針
+
+- `ci-list-integration-servers.sh` に `--tier` オプションを追加し、tier 別のサーバーリスト取得を可能にする
+- 各 tier は独自のワークスペース（`regions/system`, `regions/service/*/server/rust/*`, `regions/business/*/server/rust/*`）を持つため、tier 別の integration-test ジョブを分離する
+- `modules.yaml` に `tier` フィールドを追加し、CI スクリプトが tier を自動判定できるようにする
+
 ## 関連ドキュメント
 
 - [tier-architecture.md](../../architecture/overview/tier-architecture.md) — Tier アーキテクチャの詳細

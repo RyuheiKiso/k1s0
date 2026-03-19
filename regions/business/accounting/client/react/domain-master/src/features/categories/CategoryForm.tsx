@@ -43,7 +43,7 @@ export function CategoryForm({ category, onClose }: CategoryFormProps) {
       const result = updateCategorySchema.safeParse(input);
       if (!result.success) {
         const fieldErrors: Record<string, string> = {};
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           fieldErrors[err.path.join('.')] = err.message;
         });
         setErrors(fieldErrors);
@@ -54,7 +54,7 @@ export function CategoryForm({ category, onClose }: CategoryFormProps) {
       const result = createCategorySchema.safeParse(input);
       if (!result.success) {
         const fieldErrors: Record<string, string> = {};
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           fieldErrors[err.path.join('.')] = err.message;
         });
         setErrors(fieldErrors);

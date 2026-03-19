@@ -6,14 +6,24 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 # ローカル開発で起動する Docker Compose profile（infra + system tier）
 _dc_profiles := "--profile infra --profile system"
 
-# Windows ネイティブ環境チェック: Bash 環境が利用可能か確認する
+# Windows ネイティブ環境チェック: WSL2/Git Bash 以外の環境では警告を出す
 _check-env:
     #!/usr/bin/env bash
     set -euo pipefail
+    # MSYS (Git Bash) / Cygwin 環境を検出した場合は警告を表示
     if [[ "${OSTYPE:-}" == msys* ]] || [[ "${OSTYPE:-}" == cygwin* ]]; then
-        echo "WARNING: Windows ネイティブ環境を検出しました。"
-        echo "  WSL2 または Git Bash での実行を推奨します。"
-        echo "  一部のレシピは Windows ネイティブ環境で動作しません。"
+        echo "⚠ WARNING: Windows ネイティブ環境（MSYS/Cygwin）を検出しました。"
+        echo "  WSL2 での実行を強く推奨します（Git Bash は一部制限あり）。"
+        echo "  PowerShell / cmd.exe からの実行はサポート対象外です。"
+        echo "  詳細: README.md の「前提条件」セクションを参照してください。"
+        echo ""
+    fi
+    # PowerShell から bash を経由して呼ばれた場合の検出（PSModulePath が設定されている）
+    if [[ -n "${PSModulePath:-}" ]] && [[ -z "${WSL_DISTRO_NAME:-}" ]]; then
+        echo "⚠ ERROR: PowerShell 環境から実行されています。"
+        echo "  justfile は WSL2 または Git Bash 内で実行してください。"
+        echo "  PowerShell / cmd.exe からの直接実行はサポートしていません。"
+        exit 1
     fi
 
 # デフォルト: ヘルプ表示
@@ -88,7 +98,7 @@ lint-ts:
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Linting $dir ==="
             # package-lock.json を使って依存関係をインストールし、リント・型チェックを実行
-            (cd "$dir" && npm ci && npm run lint --if-present && npm run typecheck --if-present)
+            (cd "$dir" && npm ci && npm run lint && npm run typecheck)
         fi
     done
 

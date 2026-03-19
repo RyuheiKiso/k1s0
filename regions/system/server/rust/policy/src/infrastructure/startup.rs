@@ -167,6 +167,13 @@ pub async fn run() -> anyhow::Result<()> {
         }).transpose()?,
     )?;
 
+    // バックエンド種別を health エンドポイントで返すために判定
+    let backend_kind = if cfg.database.is_some() {
+        "postgres".to_string()
+    } else {
+        "in-memory".to_string()
+    };
+
     let mut state = adapter::handler::AppState {
         create_policy_uc,
         get_policy_uc,
@@ -179,6 +186,7 @@ pub async fn run() -> anyhow::Result<()> {
         list_bundles_uc,
         metrics: metrics.clone(),
         auth_state: None,
+        backend_kind,
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

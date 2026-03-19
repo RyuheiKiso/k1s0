@@ -36,6 +36,8 @@ pub struct AppState {
     pub list_evaluation_logs_uc: Arc<ListEvaluationLogsUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
+    /// バックエンド種別: "postgres" または "in-memory"。health エンドポイントで使用。
+    pub backend_kind: String,
 }
 
 impl AppState {

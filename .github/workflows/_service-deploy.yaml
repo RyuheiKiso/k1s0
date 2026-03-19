@@ -14,7 +14,8 @@ on:
       service-name:
         required: true
         type: string
-      # Docker ビルドコンテキストのパス（例: regions/system/server/rust/auth）
+      # Docker ビルドコンテキストのパス（tier ルートを指定。例: regions/system）
+      # Dockerfile がライブラリ等の依存を COPY するため、サービスディレクトリではなく tier ルートを渡す
       context-path:
         required: true
         type: string
