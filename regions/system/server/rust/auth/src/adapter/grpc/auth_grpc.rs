@@ -249,6 +249,7 @@ fn domain_user_to_proto(u: &User) -> proto_auth::User {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::claims::RealmAccess as DomainRealmAccess;

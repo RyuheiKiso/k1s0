@@ -105,6 +105,7 @@ impl SessionClient for InMemorySessionClient {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

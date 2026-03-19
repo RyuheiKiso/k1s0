@@ -105,6 +105,7 @@ fn permissions_allow(permissions: &[String], resource: &str, action: &str) -> bo
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

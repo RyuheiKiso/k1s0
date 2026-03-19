@@ -188,6 +188,7 @@ fn rate_limit_exceeded_response(retry_after_secs: u64) -> Response {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use axum::body::Body;

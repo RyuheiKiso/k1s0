@@ -228,6 +228,7 @@ impl KeycloakAdmin for NoopKeycloakAdmin {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

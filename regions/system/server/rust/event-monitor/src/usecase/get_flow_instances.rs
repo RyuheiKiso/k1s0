@@ -59,6 +59,7 @@ impl GetFlowInstancesUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::repository::flow_instance_repository::MockFlowInstanceRepository;

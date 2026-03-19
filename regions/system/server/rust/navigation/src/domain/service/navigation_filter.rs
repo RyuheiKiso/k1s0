@@ -75,6 +75,7 @@ fn collect_guard_ids(routes: &[Route]) -> HashSet<String> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::navigation::{Guard, GuardType, NavigationConfig, Route};

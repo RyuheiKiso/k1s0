@@ -73,6 +73,7 @@ fn extract_bearer_token(value: &str) -> Option<&str> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use std::sync::Arc;
 

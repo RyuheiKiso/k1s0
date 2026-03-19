@@ -109,6 +109,7 @@ pub(crate) fn parse_schema_type(s: &str) -> SchemaType {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

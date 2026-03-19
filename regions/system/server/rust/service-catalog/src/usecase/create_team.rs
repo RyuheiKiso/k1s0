@@ -60,6 +60,7 @@ impl CreateTeamUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::repository::team_repository::MockTeamRepository;

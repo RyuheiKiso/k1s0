@@ -119,6 +119,7 @@ impl CreateFlagUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::repository::flag_audit_log_repository::MockFlagAuditLogRepository;

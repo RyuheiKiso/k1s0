@@ -217,6 +217,7 @@ fn json_to_prost_value(v: &serde_json::Value) -> prost_types::Value {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::repository::audit_log_repository::MockAuditLogRepository;

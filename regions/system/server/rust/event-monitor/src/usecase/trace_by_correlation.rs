@@ -133,6 +133,7 @@ impl TraceByCorrelationUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::event_record::EventRecord;

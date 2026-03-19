@@ -499,6 +499,7 @@ fn excel_cell_to_json(cell: &calamine::Data) -> Value {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::column_definition::ColumnDefinition;

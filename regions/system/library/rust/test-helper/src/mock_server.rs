@@ -151,6 +151,7 @@ pub fn default_mock_routes(server_type: &str) -> HashMap<String, MockRoute> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

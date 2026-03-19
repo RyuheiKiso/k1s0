@@ -80,6 +80,7 @@ pub async fn fetch_secrets_with_fallback(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::client::InMemoryVaultClient;

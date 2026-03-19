@@ -41,6 +41,7 @@ impl ListApiKeysUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::api_key::ApiKey;

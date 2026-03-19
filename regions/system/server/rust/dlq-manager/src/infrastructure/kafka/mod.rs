@@ -24,6 +24,7 @@ fn default_dlq_topic_pattern() -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

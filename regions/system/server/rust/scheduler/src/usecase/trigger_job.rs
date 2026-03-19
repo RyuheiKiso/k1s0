@@ -125,6 +125,7 @@ impl TriggerJobUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::scheduler_job::SchedulerJob;

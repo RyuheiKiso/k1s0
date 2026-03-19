@@ -155,6 +155,7 @@ impl SearchClient for InMemorySearchClient {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::document::BulkFailure;

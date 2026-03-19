@@ -92,6 +92,7 @@ impl std::str::FromStr for ServiceLifecycle {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

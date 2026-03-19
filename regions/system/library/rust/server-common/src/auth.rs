@@ -52,6 +52,7 @@ Set auth.* in the config, or use ALLOW_INSECURE_NO_AUTH=true only for dev/test."
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::{allow_insecure_no_auth, require_auth_state};
     use std::sync::{Mutex, OnceLock};

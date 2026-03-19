@@ -73,6 +73,7 @@ pub async fn search_audit_logs(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::adapter::handler::router;

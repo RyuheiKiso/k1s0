@@ -127,6 +127,7 @@ async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use axum::body::Body;
