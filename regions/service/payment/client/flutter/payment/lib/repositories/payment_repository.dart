@@ -33,7 +33,7 @@ class PaymentRepository {
       '/api/v1/list_payments',
       queryParameters: queryParameters,
     );
-    final List<dynamic> data = response.data['payments'] as List<dynamic>;
+    final List<dynamic> data = (response.data as Map<String, dynamic>)['payments'] as List<dynamic>;
     return data
         .map((json) => Payment.fromJson(json as Map<String, dynamic>))
         .toList();

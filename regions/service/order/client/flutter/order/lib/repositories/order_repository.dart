@@ -31,7 +31,7 @@ class OrderRepository {
       '/api/v1/list_orders',
       queryParameters: queryParameters,
     );
-    final List<dynamic> data = response.data['orders'] as List<dynamic>;
+    final List<dynamic> data = (response.data as Map<String, dynamic>)['orders'] as List<dynamic>;
     return data
         .map((json) => Order.fromJson(json as Map<String, dynamic>))
         .toList();
