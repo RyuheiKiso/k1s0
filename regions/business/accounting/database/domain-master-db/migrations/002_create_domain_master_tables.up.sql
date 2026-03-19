@@ -17,7 +17,7 @@ CREATE INDEX idx_master_categories_code
 CREATE INDEX idx_master_categories_active
     ON domain_master.master_categories(is_active);
 
-CREATE TABLE domain_master.master_items (
+CREATE TABLE IF NOT EXISTS domain_master.master_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     category_id UUID NOT NULL REFERENCES domain_master.master_categories(id) ON DELETE CASCADE,
     code VARCHAR(255) NOT NULL,
@@ -47,7 +47,7 @@ CREATE INDEX idx_master_items_parent
 CREATE INDEX idx_master_items_effective
     ON domain_master.master_items(effective_from, effective_until);
 
-CREATE TABLE domain_master.master_item_versions (
+CREATE TABLE IF NOT EXISTS domain_master.master_item_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     item_id UUID NOT NULL REFERENCES domain_master.master_items(id) ON DELETE CASCADE,
     version_number INTEGER NOT NULL,
