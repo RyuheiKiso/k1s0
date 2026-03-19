@@ -71,7 +71,7 @@ CREATE INDEX idx_table_relationships_source
 CREATE INDEX idx_table_relationships_target
     ON master_maintenance.table_relationships(target_table_id);
 
-CREATE TABLE master_maintenance.consistency_rules (
+CREATE TABLE IF NOT EXISTS master_maintenance.consistency_rules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
