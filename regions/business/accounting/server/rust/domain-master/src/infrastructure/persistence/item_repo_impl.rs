@@ -25,16 +25,17 @@ impl ItemPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let rows = if active_only {
             sqlx::query_as::<_, ItemRow>(
-                "SELECT * FROM domain_master.master_items WHERE category_id = $1 AND is_active = true ORDER BY sort_order, code",
+                "SELECT id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_items WHERE category_id = $1 AND is_active = true ORDER BY sort_order, code",
             )
             .bind(category_id)
             .fetch_all(executor)
             .await?
         } else {
             sqlx::query_as::<_, ItemRow>(
-                "SELECT * FROM domain_master.master_items WHERE category_id = $1 ORDER BY sort_order, code",
+                "SELECT id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_items WHERE category_id = $1 ORDER BY sort_order, code",
             )
             .bind(category_id)
             .fetch_all(executor)
@@ -52,8 +53,9 @@ impl ItemPostgresRepository {
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
     {
+        // 明示的カラム指定によるクエリ安全性の確保
         let row = sqlx::query_as::<_, ItemRow>(
-            "SELECT * FROM domain_master.master_items WHERE category_id = $1 AND code = $2",
+            "SELECT id, category_id, code, display_name, description, attributes, parent_item_id, effective_from, effective_until, is_active, sort_order, created_by, created_at, updated_at FROM domain_master.master_items WHERE category_id = $1 AND code = $2",
         )
         .bind(category_id)
         .bind(code)

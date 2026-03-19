@@ -1,9 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:payment/config/app_config.dart';
 import 'package:payment/config/config_provider.dart';
 import 'package:payment/main.dart';
+import 'package:payment/providers/payment_provider.dart';
 
 /// テスト用のAppConfig定数
 /// 実際のYAML読み込みを回避し、テスト環境向けの設定値を直接提供する
@@ -20,21 +22,55 @@ const _testConfig = AppConfig(
   features: {},
 );
 
+/// テスト用のDioアダプター
+/// 実際のHTTP通信を行わず、即座に空レスポンスを返すことでペンディングタイマーを防ぐ
+class _MockHttpClientAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    /// 決済一覧APIへのリクエストに対し、空の決済リストを返す
+    return ResponseBody.fromString(
+      '{"payments": []}',
+      200,
+      headers: {
+        'content-type': ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+/// テスト用のDioインスタンスを生成する
+/// 実際のHTTP通信を行わないモックアダプターを使用する
+Dio _createTestDio() {
+  final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080'));
+  dio.httpClientAdapter = _MockHttpClientAdapter();
+  return dio;
+}
+
 /// 決済管理アプリの基本ウィジェットテスト
 /// アプリが正常に起動し、タイトルが表示されることを確認する
 void main() {
   testWidgets('アプリのタイトルが表示されることを確認する', (WidgetTester tester) async {
     await tester.pumpWidget(
-      /// appConfigProviderをテスト用設定でoverrideし、UnimplementedErrorを回避する
+      /// appConfigProviderとdioProviderをテスト用にoverrideし、
+      /// 実際のHTTP通信を回避する
       ProviderScope(
         overrides: [
           appConfigProvider.overrideWithValue(_testConfig),
+          dioProvider.overrideWithValue(_createTestDio()),
         ],
         child: const PaymentApp(),
       ),
     );
 
-    /// アプリタイトル「決済一覧」がAppBarに表示されていることを検証する
-    expect(find.text('決済一覧'), findsOneWidget);
+    /// アプリタイトル「決済管理」がAppBarに表示されていることを検証する
+    /// （画面タイトルは PaymentListScreen で「決済管理」と定義されている）
+    expect(find.text('決済管理'), findsOneWidget);
   });
 }
