@@ -66,6 +66,11 @@ fn test_client_react_file_list() {
         names.iter().any(|n| n == "tsconfig.json"),
         "tsconfig.json missing"
     );
+    // tsconfig.node.json の存在確認（Vite 用 Node.js 設定）
+    assert!(
+        names.iter().any(|n| n == "tsconfig.node.json"),
+        "tsconfig.node.json missing"
+    );
     assert!(
         names.iter().any(|n| n == "vite.config.ts"),
         "vite.config.ts missing"

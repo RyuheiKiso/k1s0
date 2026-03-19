@@ -3,6 +3,19 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
+# ローカル開発で起動する Docker Compose profile（infra + system tier）
+_dc_profiles := "--profile infra --profile system"
+
+# Windows ネイティブ環境チェック: Bash 環境が利用可能か確認する
+_check-env:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ "${OSTYPE:-}" == msys* ]] || [[ "${OSTYPE:-}" == cygwin* ]]; then
+        echo "WARNING: Windows ネイティブ環境を検出しました。"
+        echo "  WSL2 または Git Bash での実行を推奨します。"
+        echo "  一部のレシピは Windows ネイティブ環境で動作しません。"
+    fi
+
 # デフォルト: ヘルプ表示
 default:
     @just --list
@@ -328,28 +341,28 @@ docker-build:
     docker build -t k1s0-bff-proxy regions/system/server/go/bff-proxy
 
 # ローカル開発環境を起動（docker compose）
-local-up:
+local-up: _check-env
     #!/usr/bin/env bash
     set -euo pipefail
     echo "=== Starting local development environment ==="
     if [ -f docker-compose.yaml ] || [ -f docker-compose.yml ]; then
-        docker compose up -d
+        docker compose {{_dc_profiles}} up -d
     elif [ -f infra/docker/docker-compose.yaml ] || [ -f infra/docker/docker-compose.yml ]; then
-        docker compose -f infra/docker/docker-compose.yaml up -d
+        docker compose -f infra/docker/docker-compose.yaml {{_dc_profiles}} up -d
     else
         echo "docker-compose ファイルが見つかりません。scripts/start-local.sh を使用します。"
         bash scripts/start-local.sh
     fi
 
 # ローカル開発環境を停止
-local-down:
+local-down: _check-env
     #!/usr/bin/env bash
     set -euo pipefail
     echo "=== Stopping local development environment ==="
     if [ -f docker-compose.yaml ] || [ -f docker-compose.yml ]; then
-        docker compose down
+        docker compose {{_dc_profiles}} down
     elif [ -f infra/docker/docker-compose.yaml ] || [ -f infra/docker/docker-compose.yml ]; then
-        docker compose -f infra/docker/docker-compose.yaml down
+        docker compose -f infra/docker/docker-compose.yaml {{_dc_profiles}} down
     fi
 
 # 統合テストを実行

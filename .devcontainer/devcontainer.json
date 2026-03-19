@@ -87,6 +87,12 @@
     8180
   ],
 
+  // devcontainer ではインフラ（postgres/redis等）のみ Docker で起動し、
+  // system tier のアプリケーションサーバーはソースからビルド・実行する
+  "containerEnv": {
+    "COMPOSE_PROFILES": "infra"
+  },
+
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "remoteUser": "vscode"
 }

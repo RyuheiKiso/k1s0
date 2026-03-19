@@ -10,6 +10,12 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 - 環境別デプロイ: dev 自動 / staging 自動 / prod 手動承認
 - セキュリティスキャン（Trivy・依存関係チェック）を全パイプラインに組み込む
 
+### ビルド環境の制限事項
+
+| サーバー | 制限 | 対応 |
+|---------|------|------|
+| master-maintenance | zen-engine → rquickjs-sys が Windows 未対応 | CI は ubuntu-latest、ローカルは WSL2/devcontainer |
+
 ![CI/CD パイプライン全体像](images/cicd-pipeline-overview.svg)
 
 ---
