@@ -1,4 +1,4 @@
-CREATE TABLE apiregistry.api_schema_versions (
+CREATE TABLE IF NOT EXISTS apiregistry.api_schema_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL REFERENCES apiregistry.api_schemas(name) ON DELETE CASCADE,
     version INT NOT NULL,

@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS master_maintenance.change_logs (
 CREATE INDEX IF NOT EXISTS idx_change_logs_table
     ON master_maintenance.change_logs(target_table, created_at DESC);
 
-CREATE INDEX idx_change_logs_record
+CREATE INDEX IF NOT EXISTS idx_change_logs_record
     ON master_maintenance.change_logs(target_table, target_record_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS master_maintenance.import_jobs (
@@ -158,5 +158,5 @@ CREATE TABLE IF NOT EXISTS master_maintenance.import_jobs (
     completed_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_import_jobs_table
+CREATE INDEX IF NOT EXISTS idx_import_jobs_table
     ON master_maintenance.import_jobs(table_id, started_at DESC);

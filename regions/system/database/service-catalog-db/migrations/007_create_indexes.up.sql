@@ -1,5 +1,5 @@
 -- Services indexes
-CREATE INDEX idx_services_team_id ON service_catalog.services(team_id);
+CREATE INDEX IF NOT EXISTS idx_services_team_id ON service_catalog.services(team_id);
 CREATE INDEX idx_services_tier ON service_catalog.services(tier);
 CREATE INDEX idx_services_lifecycle ON service_catalog.services(lifecycle);
 CREATE INDEX idx_services_name ON service_catalog.services(name);

@@ -1,4 +1,4 @@
-CREATE TABLE service_catalog.scorecards (
+CREATE TABLE IF NOT EXISTS service_catalog.scorecards (
     service_id UUID PRIMARY KEY REFERENCES service_catalog.services(id) ON DELETE CASCADE,
     documentation_score DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     test_coverage_score DOUBLE PRECISION NOT NULL DEFAULT 0.0,

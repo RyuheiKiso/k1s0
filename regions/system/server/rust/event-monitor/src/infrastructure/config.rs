@@ -142,6 +142,7 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 
 // Kafka設定。kafka_consumer.rs でコンシューマー構成に使用される。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(default = "default_consumer_group")]
@@ -168,6 +169,7 @@ fn default_event_topic_pattern() -> String {
 
 // DLQ Manager 設定。DLQ クライアント接続に使用される。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct DlqManagerConfig {
     pub grpc_endpoint: String,
     #[serde(default = "default_dlq_timeout_ms")]
@@ -226,6 +228,7 @@ fn default_ttl_seconds() -> u64 {
 
 // スケジューラ設定。タイムアウト検出やクリーンアップ間隔の制御に使用される。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct SchedulerConfig {
     #[serde(default = "default_timeout_check_interval")]
     pub timeout_check_interval_seconds: u64,
@@ -243,6 +246,7 @@ fn default_cleanup_interval() -> u64 {
 
 // 通知設定。通知エンドポイントの接続構成に使用される。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct NotificationConfig {
     pub endpoint: String,
     #[serde(default = "default_notification_timeout")]
@@ -255,6 +259,7 @@ fn default_notification_timeout() -> u64 {
 
 // オブザーバビリティ設定。startup.rs でテレメトリ初期化に使用される。
 #[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
@@ -303,6 +308,7 @@ impl Default for TraceConfig {
 
 // メトリクス設定。ObservabilityConfig の一部として使用される。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]
     pub enabled: bool,
