@@ -3428,6 +3428,7 @@ dependencies = [
  "axum 0.8.8",
  "axum-test",
  "chrono",
+ "hmac",
  "jsonwebtoken",
  "k1s0-auth",
  "k1s0-circuit-breaker",
@@ -4058,6 +4059,7 @@ name = "k1s0-kafka"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "regex",
  "serde",
  "serde_json",
  "thiserror 2.0.18",

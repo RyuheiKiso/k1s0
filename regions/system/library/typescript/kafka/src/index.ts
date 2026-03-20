@@ -5,6 +5,14 @@ export interface KafkaConfig {
   saslMechanism?: string;
   saslUsername?: string;
   saslPassword?: string;
+  /** コンシューマーグループID */
+  consumerGroup: string;
+  /** 接続タイムアウト（ミリ秒）。デフォルト: 5000 */
+  connectionTimeoutMs?: number;
+  /** リクエストタイムアウト（ミリ秒）。デフォルト: 30000 */
+  requestTimeoutMs?: number;
+  /** 最大メッセージサイズ（バイト）。デフォルト: 1_000_000 */
+  maxMessageBytes?: number;
 }
 
 /** BootstrapServers をカンマ区切りの文字列に変換する。 */
@@ -19,6 +27,15 @@ export function usesTLS(config: KafkaConfig): boolean {
 
 const VALID_PROTOCOLS = new Set(['PLAINTEXT', 'SSL', 'SASL_PLAINTEXT', 'SASL_SSL']);
 
+/** 接続タイムアウトのデフォルト値（ミリ秒） */
+export const DEFAULT_CONNECTION_TIMEOUT_MS = 5000;
+
+/** リクエストタイムアウトのデフォルト値（ミリ秒） */
+export const DEFAULT_REQUEST_TIMEOUT_MS = 30000;
+
+/** 最大メッセージサイズのデフォルト値（バイト） */
+export const DEFAULT_MAX_MESSAGE_BYTES = 1_000_000;
+
 /** 設定を検証する。 */
 export function validateKafkaConfig(config: KafkaConfig): void {
   if (config.bootstrapServers.length === 0) {
@@ -26,6 +43,22 @@ export function validateKafkaConfig(config: KafkaConfig): void {
   }
   if (config.securityProtocol !== undefined && !VALID_PROTOCOLS.has(config.securityProtocol)) {
     throw new KafkaError(`invalid security protocol: ${config.securityProtocol}`);
+  }
+  /** コンシューマーグループIDが空でないことを検証する */
+  if (config.consumerGroup === '') {
+    throw new KafkaError('consumer group must not be empty');
+  }
+  /** 接続タイムアウトが正の値であることを検証する */
+  if (config.connectionTimeoutMs !== undefined && config.connectionTimeoutMs <= 0) {
+    throw new KafkaError('connection timeout must be positive');
+  }
+  /** リクエストタイムアウトが正の値であることを検証する */
+  if (config.requestTimeoutMs !== undefined && config.requestTimeoutMs <= 0) {
+    throw new KafkaError('request timeout must be positive');
+  }
+  /** 最大メッセージサイズが正の値であることを検証する */
+  if (config.maxMessageBytes !== undefined && config.maxMessageBytes <= 0) {
+    throw new KafkaError('max message bytes must be positive');
   }
 }
 

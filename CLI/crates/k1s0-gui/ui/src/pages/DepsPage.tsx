@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import { executeDeps, scanServices, type DepsConfig, type DepsResult, type ServiceInfo } from '../lib/tauri-commands';
@@ -101,7 +102,11 @@ export default function DepsPage() {
 
   return (
     <div className="glass max-w-6xl p-6 p3-animate-in" data-testid="deps-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">アーキテクチャ</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">アーキテクチャ</p>
+        <HelpButton helpKey="deps" size="md" />
+      </div>
       <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">依存関係マップの検査</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         選択したワークスペースの依存関係スキャンを実行し、オプションでMermaid出力をエクスポートします。
@@ -118,7 +123,10 @@ export default function DepsPage() {
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="space-y-5">
             <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-slate-200/82">スコープ</legend>
+              <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                スコープ
+                <HelpButton helpKey="deps.scope" />
+              </legend>
               {(['all', 'tier', 'services'] as ScopeMode[]).map((value) => (
                 <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input
@@ -180,7 +188,10 @@ export default function DepsPage() {
             )}
 
             <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-slate-200/82">出力</legend>
+              <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                出力
+                <HelpButton helpKey="deps.output" />
+              </legend>
               {(['terminal', 'mermaid', 'both'] as OutputMode[]).map((value) => (
                 <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input
@@ -200,7 +211,10 @@ export default function DepsPage() {
 
             {outputMode !== 'terminal' && (
               <div>
-                <label className="block text-sm font-medium text-slate-200/82">Mermaidパス</label>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                  Mermaidパス
+                  <HelpButton helpKey="deps.mermaidPath" />
+                </label>
                 <input
                   value={mermaidPath}
                   onChange={(event) => setMermaidPath(event.target.value)}
@@ -217,6 +231,7 @@ export default function DepsPage() {
                 onChange={(event) => setNoCache(event.target.checked)}
               />
               依存関係キャッシュを無効化
+              <HelpButton helpKey="deps.cacheDisable" />
             </label>
           </div>
 

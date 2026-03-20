@@ -206,6 +206,9 @@ pub async fn run() -> anyhow::Result<()> {
     info!("shutting down outbox poller");
     let _ = outbox_handle.await;
 
+    // テレメトリデータをフラッシュしてからシャットダウンする
+    k1s0_telemetry::shutdown();
+
     Ok(())
 }
 

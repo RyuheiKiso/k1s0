@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
+
 use crate::adapter::handler::event_handler::spawn_publish_events_with_retry;
 use crate::domain::entity::event::{EventData, EventMetadata};
 use crate::domain::repository::EventStreamRepository;
 use crate::infrastructure::kafka::EventPublisher;
 use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
+use crate::proto::k1s0::system::common::v1::Timestamp as ProtoTimestamp;
 use crate::proto::k1s0::system::eventstore::v1::{
     AppendEventsRequest as ProtoAppendEventsRequest,
     AppendEventsResponse as ProtoAppendEventsResponse,
@@ -118,8 +121,8 @@ impl EventStoreGrpcService {
                     id: stream.id,
                     aggregate_type: stream.aggregate_type,
                     current_version: stream.current_version,
-                    created_at: stream.created_at.to_rfc3339(),
-                    updated_at: stream.updated_at.to_rfc3339(),
+                    created_at: datetime_to_proto_timestamp(stream.created_at),
+                    updated_at: datetime_to_proto_timestamp(stream.updated_at),
                 })
                 .collect(),
             pagination: Some(ProtoPaginationResult {
@@ -295,7 +298,7 @@ impl EventStoreGrpcService {
                 id: output.id,
                 stream_id: output.stream_id,
                 snapshot_version: output.snapshot_version,
-                created_at: output.created_at.to_rfc3339(),
+                created_at: datetime_to_proto_timestamp(output.created_at),
                 aggregate_type: output.aggregate_type,
             }),
             Err(CreateSnapshotError::StreamNotFound(id)) => {
@@ -322,7 +325,7 @@ impl EventStoreGrpcService {
                     snapshot_version: snapshot.snapshot_version,
                     aggregate_type: snapshot.aggregate_type,
                     state: serde_json::to_vec(&snapshot.state).unwrap_or_default(),
-                    created_at: snapshot.created_at.to_rfc3339(),
+                    created_at: datetime_to_proto_timestamp(snapshot.created_at),
                 }),
             }),
             Err(GetLatestSnapshotError::StreamNotFound(id)) => {
@@ -360,6 +363,15 @@ impl EventStoreGrpcService {
     }
 }
 
+/// chrono::DateTime<Utc> を Proto の Timestamp メッセージに変換する。
+/// 他サーバー（api-registry, event-monitor, config）と同一のパターンを使用。
+fn datetime_to_proto_timestamp(dt: DateTime<Utc>) -> Option<ProtoTimestamp> {
+    Some(ProtoTimestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    })
+}
+
 fn stored_event_to_proto(e: crate::domain::entity::event::StoredEvent) -> ProtoStoredEvent {
     ProtoStoredEvent {
         stream_id: e.stream_id,
@@ -372,7 +384,7 @@ fn stored_event_to_proto(e: crate::domain::entity::event::StoredEvent) -> ProtoS
             correlation_id: e.metadata.correlation_id,
             causation_id: e.metadata.causation_id,
         }),
-        occurred_at: e.occurred_at.to_rfc3339(),
-        stored_at: e.stored_at.to_rfc3339(),
+        occurred_at: datetime_to_proto_timestamp(e.occurred_at),
+        stored_at: datetime_to_proto_timestamp(e.stored_at),
     }
 }

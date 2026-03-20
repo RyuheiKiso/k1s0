@@ -257,6 +257,14 @@ trivy fs --scanners secret .
 | シークレット | secret | 検出時にビルド失敗 |
 | ライセンス | license | 禁止ライセンス検出時に警告 |
 
+### SARIF レポートのアーティファクトアップロード
+
+技術監査対応として、`deploy.yaml` の build-and-push ジョブに **Trivy SARIF レポートのアーティファクトアップロード** を追加した。ビルド済みコンテナイメージに対して Trivy で CRITICAL/HIGH の脆弱性をスキャンし、結果を SARIF（Static Analysis Results Interchange Format）形式で `actions/upload-artifact` にアップロードする。これにより、デプロイ後の脆弱性追跡が可能になる。
+
+### Trivy バージョンの SHA ピン留め
+
+全ワークフローの `aquasecurity/trivy-action` を **0.29.0**（SHA: `76071ef0d7ec797419534a183b498b4d6a132a02`）に統一し、SHA ピン留めを適用した。従来の `@master` 参照はサプライチェーン攻撃のリスクがあるため廃止。
+
 ---
 
 ## 依存関係スキャン
@@ -390,7 +398,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy コンテナスキャン
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           image-ref: ${{ matrix.image }}:${{ github.sha }}
           format: sarif
@@ -426,7 +434,7 @@ jobs:
 | cargo-audit | >= 0.21 | `cargo install cargo-audit` |
 | gosec | >= 2.21 | `go install github.com/securego/gosec/v2/cmd/gosec@latest` |
 | govulncheck | latest | `go install golang.org/x/vuln/cmd/govulncheck@latest` |
-| trivy | >= 0.58 | `brew install trivy` / `choco install trivy` |
+| trivy | >= 0.58（CI では 0.29.0 を SHA ピン留め） | `brew install trivy` / `choco install trivy` |
 | npm | >= 10.0 | Node.js に同梱 |
 | dart | >= 3.6 | Dart SDK に同梱 |
 

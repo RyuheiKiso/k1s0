@@ -19,6 +19,41 @@ rust-version = "1.93"
 [workspace.lints.clippy]
 unwrap_used = "deny"
 
+# ワークスペース共通依存関係: 全メンバークレートで統一バージョンを使用する
+[workspace.dependencies]
+axum = { version = "0.8", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.5", features = ["util", "limit"] }
+tower-http = { version = "0.6", features = ["trace", "cors", "limit"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+tonic = "0.12"
+tonic-build = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+reqwest = { version = "0.12", features = ["json"] }
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+async-trait = "0.1"
+utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
+mockall = "0.13"
+tokio-test = "0.4"
+opentelemetry = "0.27"
+opentelemetry_sdk = "0.27"
+opentelemetry-otlp = "0.27"
+tracing-opentelemetry = "0.28"
+prometheus = "0.13"
+validator = { version = "0.18", features = ["derive"] }
+rdkafka = { version = "0.36", features = ["cmake-build"] }
+axum-test = "17"
+
 # リリースビルドの最適化設定
 [profile.dev]
 debug = 1

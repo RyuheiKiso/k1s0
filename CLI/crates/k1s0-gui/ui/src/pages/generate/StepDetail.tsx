@@ -3,6 +3,7 @@
  * モジュール名、APIスタイル、データベース設定、Kafka/Redis連携、BFF設定を行う
  */
 
+import HelpButton from '../../components/HelpButton';
 import { BFF_OPT_IN_NO, BFF_OPT_IN_YES } from '../../constants/messages';
 import { BFF_LANGUAGE_VALUES, getDefaultDetailName, type ServerDatabaseMode } from '../../lib/generate-wizard';
 import type { ApiStyle, DetailConfig, Kind, Rdbms, ScaffoldDatabaseInfo, Tier } from '../../lib/tauri-commands';
@@ -100,7 +101,10 @@ export default function StepDetail({
       className="p3-expand-in mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-detail"
     >
-      <h2 className="text-lg font-semibold text-white">詳細オプション</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-white">詳細オプション</h2>
+        <HelpButton helpKey="generate.detail" />
+      </div>
 
       {/* Serviceティア以外の場合はモジュール名入力 */}
       {tier !== 'Service' && (

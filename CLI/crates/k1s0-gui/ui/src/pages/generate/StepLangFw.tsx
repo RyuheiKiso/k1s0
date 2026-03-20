@@ -3,6 +3,7 @@
  * 種別に応じてフレームワーク、データベース設定、または言語を選択する
  */
 
+import HelpButton from '../../components/HelpButton';
 import { getLanguageOptions } from '../../lib/generate-wizard';
 import type { Framework, Kind, Language, Rdbms } from '../../lib/tauri-commands';
 
@@ -69,7 +70,10 @@ export default function StepLangFw({
       className="p3-expand-in mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-langfw"
     >
-      <h2 className="text-lg font-semibold text-white">言語またはフレームワーク</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-white">言語またはフレームワーク</h2>
+        <HelpButton helpKey="generate.langfw" />
+      </div>
 
       {/* Client種別の場合はフレームワーク選択 */}
       {kind === 'Client' && (

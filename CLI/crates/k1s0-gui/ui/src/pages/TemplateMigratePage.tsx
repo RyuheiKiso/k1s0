@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import {
   CONFLICT_KEEP_USER,
@@ -266,7 +267,11 @@ export default function TemplateMigratePage() {
 
   return (
     <div className="p3-animate-in glass max-w-6xl p-6" data-testid="template-migrate-page">
-      <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">テンプレート</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">テンプレート</p>
+        <HelpButton helpKey="templateMigrate" size="md" />
+      </div>
       <h1 className="p3-heading-glitch mt-2 text-3xl font-semibold text-white">テンプレート移行</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         ドライランでスキャフォールドのドリフトをプレビューし、マージコンフリクトを解決して、生成済みモジュールのロールバック手段を確保します。
@@ -282,7 +287,10 @@ export default function TemplateMigratePage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <section className="space-y-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div>
-            <label className="block text-sm font-medium text-slate-200/82">ターゲット</label>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              ターゲット
+              <HelpButton helpKey="templateMigrate.target" />
+            </label>
             <select
               value={selectedTarget?.path ?? ''}
               onChange={(event) => {
@@ -331,7 +339,10 @@ export default function TemplateMigratePage() {
           </button>
 
           <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4">
-            <p className="text-sm font-medium text-slate-200/82">ロールバック</p>
+            <p className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              ロールバック
+              <HelpButton helpKey="templateMigrate.rollback" />
+            </p>
             <p className="mt-2 text-sm leading-6 text-slate-300/72">
               移行結果が許容できない場合、キャプチャされたバックアップからプロジェクトツリー全体を復元します。
             </p>

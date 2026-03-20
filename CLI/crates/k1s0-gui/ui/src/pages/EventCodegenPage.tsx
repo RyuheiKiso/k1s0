@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import { executeEventCodegen, previewEventCodegen } from '../lib/tauri-commands';
@@ -49,7 +50,11 @@ export default function EventCodegenPage() {
 
   return (
     <div className="glass max-w-5xl p-6 p3-animate-in" data-testid="event-codegen-page">
-      <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">イベント</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">イベント</p>
+        <HelpButton helpKey="eventCodegen" size="md" />
+      </div>
       <h1 className="p3-heading-glitch mt-2 text-3xl font-semibold text-white">イベントアセットの生成</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         `events.yaml`からイベント生成をプレビューし、プロデューサー、コンシューマー、protoファイル、アウトボックスSQLを書き出します。
@@ -65,7 +70,10 @@ export default function EventCodegenPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div>
-            <label className="block text-sm font-medium text-slate-200/82">イベントファイル</label>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              イベントファイル
+              <HelpButton helpKey="eventCodegen.eventsFile" />
+            </label>
             <input
               value={eventsPath}
               onChange={(event) => setEventsPath(event.target.value)}

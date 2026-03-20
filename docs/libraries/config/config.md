@@ -9,7 +9,7 @@
 | 関数 | シグネチャ | 説明 |
 |------|-----------|------|
 | `Load` / `load` | `(basePath, envPath?) -> (Config, Error?)` | YAML を読み込み Config を返す |
-| `Validate` / `validate` | `(config) -> Error?` | 設定値のバリデーション |
+| `Validate` / `validate` | `(config) -> Error?` | 設定値のバリデーション（全 4 言語で実装済み） |
 | `MergeVaultSecrets` / `merge_vault_secrets` | `(receiver, secrets) -> void` | Vault シークレットで in-place 上書き |
 
 ### 設定スキーマ型（全言語エクスポート）

@@ -86,6 +86,27 @@ void main() {
     });
   });
 
+  group('expire', () {
+    test('存在するキーの有効期限を更新してtrueを返すこと', () async {
+      await cache.set('key', 'value', ttlMs: 60000);
+      // 有効期限を新しいTTLに更新する
+      expect(await cache.expire('key', 120000), isTrue);
+      // 値がまだ取得できることを確認する
+      expect(await cache.get('key'), equals('value'));
+    });
+
+    test('存在しないキーに対してfalseを返すこと', () async {
+      expect(await cache.expire('missing', 5000), isFalse);
+    });
+
+    test('有効期限切れのキーに対してfalseを返すこと', () async {
+      await cache.set('key', 'value', ttlMs: 1);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      // 期限切れのキーに対してexpireを呼ぶとfalseを返す
+      expect(await cache.expire('key', 60000), isFalse);
+    });
+  });
+
   group('CacheError', () {
     test('正しいフィールドを持つこと', () {
       const err = CacheError('test message', 'TEST_CODE');

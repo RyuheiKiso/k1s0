@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import {
@@ -206,7 +207,11 @@ export default function MigratePage() {
 
   return (
     <div className="p3-animate-in glass max-w-6xl p-6" data-testid="migrate-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">データベース</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">データベース</p>
+        <HelpButton helpKey="migrate" size="md" />
+      </div>
       <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">マイグレーション管理</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         同一のワークスペース対応UIからマイグレーションの作成、適用、ロールバック、検査、修復を行います。
@@ -222,7 +227,10 @@ export default function MigratePage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <section className="space-y-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div>
-            <label className="block text-sm font-medium text-slate-200/82">ターゲット</label>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              ターゲット
+              <HelpButton helpKey="migrate.target" />
+            </label>
             <select
               value={activeTargetKey}
               onChange={(event) => {
@@ -245,7 +253,10 @@ export default function MigratePage() {
           </div>
 
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-slate-200/82">接続</legend>
+            <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              接続
+              <HelpButton helpKey="migrate.connection" />
+            </legend>
             <label className="flex items-center gap-3 text-sm text-slate-200/82">
               <input
                 type="radio"
@@ -285,7 +296,10 @@ export default function MigratePage() {
           </fieldset>
 
           <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4">
-            <p className="text-sm font-medium text-slate-200/82">マイグレーションを作成</p>
+            <p className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              マイグレーションを作成
+              <HelpButton helpKey="migrate.create" />
+            </p>
             <input
               value={migrationName}
               onChange={(event) => setMigrationName(event.target.value)}
@@ -314,6 +328,7 @@ export default function MigratePage() {
 
           <ActionBlock
             title="マイグレーションを適用"
+            helpKey="migrate.up"
             buttonLabel="マイグレーションアップを確認"
             buttonTestId="btn-migrate-up"
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
@@ -348,6 +363,7 @@ export default function MigratePage() {
 
           <ActionBlock
             title="マイグレーションをロールバック"
+            helpKey="migrate.down"
             buttonLabel="マイグレーションダウンを確認"
             buttonTestId="btn-migrate-down"
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
@@ -382,6 +398,7 @@ export default function MigratePage() {
 
           <ActionBlock
             title="マイグレーション状態を修復"
+            helpKey="migrate.repair"
             buttonLabel="修復"
             buttonTestId="btn-migrate-repair"
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
@@ -555,6 +572,7 @@ function ActionBlock({
   title,
   buttonLabel,
   buttonTestId,
+  helpKey,
 }: {
   children: ReactNode;
   disabled: boolean;
@@ -562,10 +580,14 @@ function ActionBlock({
   title: string;
   buttonLabel: string;
   buttonTestId: string;
+  helpKey?: string;
 }) {
   return (
     <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4">
-      <p className="text-sm font-medium text-slate-200/82">{title}</p>
+      <p className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+        {title}
+        {helpKey && <HelpButton helpKey={helpKey} />}
+      </p>
       <div className="mt-3">{children}</div>
       <button
         type="button"

@@ -6,6 +6,7 @@ import {
   CircuitBreaker,
   defaultRetryConfig,
   type RetryConfig,
+  type CircuitBreakerConfig,
 } from '../src/index.js';
 
 describe('computeDelay', () => {
@@ -73,41 +74,49 @@ describe('withRetry', () => {
   });
 });
 
+// 正規モジュールから再エクスポートされたCircuitBreakerのテスト
 describe('CircuitBreaker', () => {
+  // テスト用のデフォルト設定（正規モジュールは完全なConfigを要求する）
+  const defaultConfig: CircuitBreakerConfig = {
+    failureThreshold: 5,
+    successThreshold: 2,
+    timeoutMs: 30_000,
+  };
+
   it('初期状態はclosed', () => {
-    const cb = new CircuitBreaker();
-    expect(cb.getState()).toBe('closed');
+    const cb = new CircuitBreaker(defaultConfig);
+    expect(cb.state).toBe('closed');
     expect(cb.isOpen()).toBe(false);
   });
 
   it('失敗がthresholdに達するとopenになる', () => {
-    const cb = new CircuitBreaker({ failureThreshold: 3 });
+    const cb = new CircuitBreaker({ ...defaultConfig, failureThreshold: 3 });
     cb.recordFailure();
     cb.recordFailure();
-    expect(cb.getState()).toBe('closed');
+    expect(cb.state).toBe('closed');
     cb.recordFailure();
-    expect(cb.getState()).toBe('open');
+    expect(cb.state).toBe('open');
     expect(cb.isOpen()).toBe(true);
   });
 
   it('成功で失敗カウントがリセットされる', () => {
-    const cb = new CircuitBreaker({ failureThreshold: 3 });
+    const cb = new CircuitBreaker({ ...defaultConfig, failureThreshold: 3 });
     cb.recordFailure();
     cb.recordFailure();
     cb.recordSuccess();
     cb.recordFailure();
     cb.recordFailure();
-    expect(cb.getState()).toBe('closed');
+    expect(cb.state).toBe('closed');
   });
 
   it('タイムアウト後にhalf-openに遷移する', () => {
-    const cb = new CircuitBreaker({ failureThreshold: 1, timeoutMs: 50 });
+    const cb = new CircuitBreaker({ ...defaultConfig, failureThreshold: 1, timeoutMs: 50 });
     cb.recordFailure();
-    expect(cb.getState()).toBe('open');
+    expect(cb.state).toBe('open');
 
     vi.useFakeTimers();
     vi.advanceTimersByTime(60);
-    expect(cb.getState()).toBe('half-open');
+    expect(cb.state).toBe('half-open');
     vi.useRealTimers();
   });
 
@@ -118,16 +127,16 @@ describe('CircuitBreaker', () => {
       timeoutMs: 50,
     });
     cb.recordFailure();
-    expect(cb.getState()).toBe('open');
+    expect(cb.state).toBe('open');
 
     vi.useFakeTimers();
     vi.advanceTimersByTime(60);
-    expect(cb.getState()).toBe('half-open');
+    expect(cb.state).toBe('half-open');
 
     cb.recordSuccess();
-    expect(cb.getState()).toBe('half-open');
+    expect(cb.state).toBe('half-open');
     cb.recordSuccess();
-    expect(cb.getState()).toBe('closed');
+    expect(cb.state).toBe('closed');
     vi.useRealTimers();
   });
 });

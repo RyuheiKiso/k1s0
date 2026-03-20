@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router';
+import HelpButton from '../components/HelpButton';
 
 const quickActions = [
   {
@@ -99,8 +100,12 @@ export default function DashboardPage() {
   return (
     <div className="p3-animate-in space-y-6" data-testid="dashboard-page">
       <section className="glass overflow-hidden p-8">
-        <div className="mb-4 inline-flex border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-100/80 p3-eyebrow-reveal">
-          ワークスペースコマンドセンター
+        {/* エイブロウとヘルプボタン */}
+        <div className="mb-4 flex items-center gap-3">
+          <div className="inline-flex border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-100/80 p3-eyebrow-reveal">
+            ワークスペースコマンドセンター
+          </div>
+          <HelpButton helpKey="dashboard" size="md" />
         </div>
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
           <div className="space-y-4">
@@ -119,23 +124,28 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      {/* クイックアクショングリッド — ペルソナ3タルタロスメニュー風 */}
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {quickActions.map((action, index) => (
           <Link
             key={action.id}
             to={action.to}
-            className="glass-subtle group flex min-h-52 flex-col justify-between border border-[rgba(0,200,255,0.12)] p-5 no-underline transition-all duration-200 hover:-translate-y-1 hover:border-cyan-200/30 hover:bg-[rgba(0,200,255,0.08)] p3-card-hover p3-stagger-in"
+            className="p3-tartarus-card glass-subtle flex min-h-52 flex-col justify-between border border-[rgba(0,200,255,0.12)] p-5 no-underline p3-stagger-in"
             data-testid={`dashboard-link-${action.id}`}
             style={{ '--p3-stagger': index } as React.CSSProperties}
           >
             <div className="space-y-3">
-              <p className="text-xs uppercase tracking-[0.28em] text-cyan-100/60">
+              {/* エイブロウ — ホバーでシアン発光＋レタースペーシング拡張 */}
+              <p className="p3-tartarus-eyebrow text-xs uppercase tracking-[0.28em] text-cyan-100/60 transition-all duration-300">
                 {action.eyebrow}
               </p>
-              <h2 className="text-xl font-semibold text-white">{action.title}</h2>
-              <p className="text-sm leading-6 text-slate-200/75">{action.description}</p>
+              {/* タイトル — ホバーでテキストグロー */}
+              <h2 className="p3-tartarus-title text-xl font-semibold text-white transition-all duration-300">{action.title}</h2>
+              {/* 説明文 — ホバーで明度アップ */}
+              <p className="p3-tartarus-desc text-sm leading-6 text-slate-200/75 transition-all duration-300">{action.description}</p>
             </div>
-            <div className="pt-6 text-sm font-medium text-cyan-100/90">フローを開く</div>
+            {/* CTA — ホバーで右スライド＋シアングロー */}
+            <div className="p3-tartarus-cta pt-6 text-sm font-medium text-cyan-100/90 transition-all duration-300">フローを開く ›</div>
           </Link>
         ))}
       </section>
@@ -143,11 +153,12 @@ export default function DashboardPage() {
   );
 }
 
+/* メトリックカード — ホバーでシアングロー＋スケール */
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="glass-subtle border border-[rgba(0,200,255,0.12)] p-4">
-      <p className="text-xs uppercase tracking-[0.24em] text-slate-200/55 p3-badge-pulse">{label}</p>
-      <p className="mt-3 text-2xl font-semibold text-white p3-metric-flash">{value}</p>
+    <div className="p3-tartarus-card glass-subtle border border-[rgba(0,200,255,0.12)] p-4">
+      <p className="p3-tartarus-eyebrow text-xs uppercase tracking-[0.24em] text-slate-200/55 transition-all duration-300">{label}</p>
+      <p className="p3-tartarus-title mt-3 text-2xl font-semibold text-white p3-metric-flash transition-all duration-300">{value}</p>
     </div>
   );
 }

@@ -3,6 +3,7 @@
  * 各ステップコンポーネントとカスタムフックを統合し、ウィザード全体のフローを制御する
  */
 
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import { STEP_LABELS } from '../lib/generate-wizard';
@@ -33,8 +34,11 @@ export default function GeneratePage() {
 
   return (
     <div className="glass max-w-5xl p-6 p3-animate-in" data-testid="generate-page">
-      {/* ページヘッダー */}
-      <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">生成</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">生成</p>
+        <HelpButton helpKey="generate" size="md" />
+      </div>
       <h1 className="p3-heading-glitch mt-2 text-3xl font-semibold text-white">ワークスペースアセットの生成</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         GUIはプロセスの作業ディレクトリではなく、選択したワークスペースルートから生成します。

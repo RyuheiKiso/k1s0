@@ -11,9 +11,9 @@
 #
 # フィールド:
 #   path:           モジュールのディレクトリパス
-#   lang:           言語 (rust, go, ts, dart)
+#   lang:           言語 (rust, go, ts, dart, yaml, hcl)
 #   status:         stable | experimental | archived
-#   type:           server | library | client | cli | workspace | proto | infra
+#   type:           server | library | client | cli | workspace | proto | infra | database
 #   workspace:      Cargo/Go ワークスペースルート（該当する場合）
 #   skip-ci:        true の場合 CI のリント・テスト・ビルドをスキップ
 #   language_scope: ライブラリが実装されている言語の一覧（library のみ）
@@ -1516,3 +1516,239 @@ modules:
     lang: dart
     status: stable
     type: client
+
+  # ============================================================
+  # データベースマイグレーション — system tier
+  # ============================================================
+  # 各サーバーに対応する SQLx マイグレーション定義（SQL + sqlx.toml）
+  - path: regions/system/database/api-registry-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/app-registry-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/auth-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/config-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/dlq-manager-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/event-monitor-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/event-store-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/featureflag-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/file-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/master-maintenance-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/notification-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/policy-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/quota-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/ratelimit-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/rule-engine-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/saga-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/scheduler-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/search-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/service-catalog-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/session-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/tenant-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/vault-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/workflow-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  # ============================================================
+  # インフラストラクチャ — 環境構築・デプロイ設定
+  # ============================================================
+  # Ansible による構成管理プレイブック
+  - path: infra/ansible
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # デモ環境構築用スクリプト・設定
+  - path: infra/demo
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Docker ベースイメージ・ローカル開発用コンテナ定義
+  - path: infra/docker
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Helm チャート（Kubernetes パッケージ管理）
+  - path: infra/helm
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Istio サービスメッシュ設定
+  - path: infra/istio
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Keycloak 認証・認可サーバー設定
+  - path: infra/keycloak
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Kong API ゲートウェイ設定
+  - path: infra/kong
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Kubernetes マニフェスト（デプロイメント・サービス等）
+  - path: infra/kubernetes
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # ローカル開発環境構築（docker-compose 等）
+  - path: infra/local
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # メッセージングインフラ（Kafka・スキーマレジストリ等）
+  - path: infra/messaging
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # 可観測性インフラ（Prometheus・Grafana・Loki 等）
+  - path: infra/observability
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Terraform によるクラウドリソース管理（IaC）
+  - path: infra/terraform
+    lang: hcl
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # HashiCorp Vault シークレット管理インフラ
+  - path: infra/vault
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true

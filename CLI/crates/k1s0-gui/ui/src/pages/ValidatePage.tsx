@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import {
@@ -57,7 +58,11 @@ export default function ValidatePage() {
 
   return (
     <div className="glass max-w-4xl p-6 p3-animate-in" data-testid="validate-page">
-      <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">品質</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">品質</p>
+        <HelpButton helpKey="validate" size="md" />
+      </div>
       <h1 className="p3-heading-glitch mt-2 text-3xl font-semibold text-white">コントラクトの検証</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         ビルド、テスト、デプロイの前に選択したワークスペースルートに対して設定ファイルとナビゲーションファイルを検証します。
@@ -73,7 +78,10 @@ export default function ValidatePage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="space-y-5 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-slate-200/82">ターゲット</legend>
+            <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              ターゲット
+              <HelpButton helpKey="validate.target" />
+            </legend>
             <label className="flex items-center gap-3 text-sm text-slate-200/82">
               <input
                 type="radio"
@@ -95,7 +103,10 @@ export default function ValidatePage() {
           </fieldset>
 
           <div>
-            <label className="block text-sm font-medium text-slate-200/82">ファイルパス</label>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              ファイルパス
+              <HelpButton helpKey="validate.filePath" />
+            </label>
             <input
               type="text"
               value={filePath}

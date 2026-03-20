@@ -49,6 +49,7 @@ services:
   postgres:
     image: postgres:17
     profiles: [infra]
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-dev}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev}
@@ -66,6 +67,7 @@ services:
   mysql:
     image: mysql:8.4
     profiles: [infra]
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dev}
       MYSQL_USER: ${MYSQL_USER:-dev}
@@ -83,6 +85,7 @@ services:
   redis:
     image: redis:7
     profiles: [infra]
+    restart: unless-stopped
     ports:
       - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
@@ -446,6 +449,17 @@ docker compose --profile infra --profile observability --profile system down -v
 - Kong ローカル開発用の設定には以下の4プラグインを使用する: `cors`（開発元オリジン許可）、`rate-limiting`（グローバル 5000 req/min、local policy）、`jwt`（Keycloak JWKS 連携、RS256、有効期限 900s）、`prometheus`（per_consumer メトリクス収集）
 - distroless / scratch ベースのコンテナ（bff-proxy 等）では `curl` が利用できないため、ビルド時に busybox をコピーし、`/busybox wget` でヘルスチェックを行う。YAML アンカー `x-rust-healthcheck` で Rust サーバー共通のヘルスチェック定義を再利用する
 - `vault-rust` の Vault 依存条件は `condition: service_healthy` とし、Vault のヘルスチェック通過を保証する（`service_started` ではヘルスチェック未通過で接続失敗の可能性がある）
+
+### 再起動ポリシー（restart policy）
+
+技術監査対応として、全インフラサービスに **`restart: unless-stopped`** を追加した。これにより、コンテナがクラッシュした場合に Docker が自動的に再起動し、開発者の手動介入なしにサービスが復旧する。明示的に `docker compose stop` / `docker compose down` で停止した場合は再起動しない。
+
+| ポリシー | 適用対象 | 動作 |
+|---------|---------|------|
+| `unless-stopped` | postgres, mysql, redis, redis-session, kafka, kafka-ui, schema-registry, keycloak, vault 等のインフラサービス | クラッシュ時に自動再起動。明示停止時は再起動しない |
+| `on-failure` | kafka-init（初期化コンテナ） | 失敗時のみリトライ。成功後は再起動しない |
+
+各サービスにはリソース制限（`deploy.resources.limits`）も併せて設定し、コンテナがホストのリソースを過剰に消費することを防止する。
 
 ## 共用開発サーバー対応
 

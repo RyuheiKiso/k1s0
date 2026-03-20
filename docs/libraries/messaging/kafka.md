@@ -99,6 +99,22 @@ let topic = TopicConfig {
 assert!(topic.validate_name());
 ```
 
+**KafkaConfig フィールド比較表（全 4 言語）:**
+
+| フィールド | Go | Rust | TypeScript | Dart |
+|-----------|:--:|:----:|:----------:|:----:|
+| bootstrapServers / brokers | o | o | o | o |
+| securityProtocol | o | o | o | o |
+| saslMechanism | o | o | o | o |
+| saslUsername | o | o | o | o |
+| saslPassword | o | o | o | o |
+| consumerGroup | o | o | o | o |
+| connectionTimeoutMs | o | o | o | o |
+| requestTimeoutMs | o | o | o | o |
+| maxMessageBytes | o | o | o | o |
+
+全言語で同一のフィールドセットを提供する。Go / Dart はゼロ値の場合にデフォルト値を返す `Effective*` / `effective*` メソッドを持つ。TypeScript も同名のヘルパー関数を提供する。
+
 **SASL フィールドに関する注記**: Rust / Go / TypeScript / Dart の `KafkaConfig` は `sasl_mechanism`（`saslMechanism`）・`sasl_username`（`saslUsername`）・`sasl_password`（`saslPassword`）を保持する。SASL 認証時は `security_protocol` を `SASL_PLAINTEXT` または `SASL_SSL` に設定する。
 
 ## Go 実装
@@ -193,11 +209,18 @@ export interface KafkaConfig {
   saslMechanism?: string;
   saslUsername?: string;
   saslPassword?: string;
+  consumerGroup?: string;
+  connectionTimeoutMs?: number;
+  requestTimeoutMs?: number;
+  maxMessageBytes?: number;
 }
 
 export function validateKafkaConfig(config: KafkaConfig): void;
 export function bootstrapServersString(config: KafkaConfig): string;
 export function usesTLS(config: KafkaConfig): boolean;
+export function effectiveConnectionTimeoutMs(config: KafkaConfig): number;
+export function effectiveRequestTimeoutMs(config: KafkaConfig): number;
+export function effectiveMaxMessageBytes(config: KafkaConfig): number;
 
 export interface TopicConfig {
   name: string;
@@ -246,10 +269,17 @@ class KafkaConfig {
   final String? saslMechanism;
   final String? saslUsername;
   final String? saslPassword;
+  final String? consumerGroup;
+  final int? connectionTimeoutMs;
+  final int? requestTimeoutMs;
+  final int? maxMessageBytes;
 
   String bootstrapServersString();
   bool usesTLS();
   void validate();
+  int effectiveConnectionTimeoutMs();
+  int effectiveRequestTimeoutMs();
+  int effectiveMaxMessageBytes();
 }
 
 class TopicConfig {

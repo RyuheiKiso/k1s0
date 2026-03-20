@@ -3,6 +3,7 @@
  * Server / Client / Library / Database の4種別から選択する
  */
 
+import HelpButton from '../../components/HelpButton';
 import type { Kind } from '../../lib/tauri-commands';
 
 /** StepKindコンポーネントのprops型定義 */
@@ -25,7 +26,10 @@ export default function StepKind({ kind, onKindChange, onNext }: StepKindProps) 
       className="p3-expand-in mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-kind"
     >
-      <h2 className="text-lg font-semibold text-white">モジュール種別を選択</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-white">モジュール種別を選択</h2>
+        <HelpButton helpKey="generate.kind" />
+      </div>
       {/* 4種別のラジオボタングリッド */}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {KIND_OPTIONS.map((value) => (

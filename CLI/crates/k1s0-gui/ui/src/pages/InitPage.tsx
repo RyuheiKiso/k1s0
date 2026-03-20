@@ -2,6 +2,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useEffect, useRef, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import { getCurrentDirectory, executeInitAt, type Tier } from '../lib/tauri-commands';
@@ -117,7 +118,11 @@ export default function InitPage() {
 
   return (
     <div className="glass max-w-3xl p-6 p3-animate-in" data-testid="init-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">初期設定</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">初期設定</p>
+        <HelpButton helpKey="init" size="md" />
+      </div>
       <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">k1s0ワークスペースの初期化</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         親ディレクトリを明示的に指定することで、生成されるワークスペースがデスクトップアプリのプロセス作業ディレクトリに依存しなくなります。
@@ -126,8 +131,9 @@ export default function InitPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
         <div>
-          <label htmlFor="baseDir" className="block text-sm font-medium text-slate-200/82">
+          <label htmlFor="baseDir" className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
             親ディレクトリ
+            <HelpButton helpKey="init.baseDir" />
           </label>
           <input
             {...baseDirField}
@@ -151,8 +157,9 @@ export default function InitPage() {
         </div>
 
         <div>
-          <label htmlFor="projectName" className="block text-sm font-medium text-slate-200/82">
+          <label htmlFor="projectName" className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
             プロジェクト名
+            <HelpButton helpKey="init.projectName" />
           </label>
           <input
             {...register('projectName')}
@@ -190,6 +197,7 @@ export default function InitPage() {
                 data-testid="checkbox-git-init"
               />
               Gitリポジトリを初期化する
+              <HelpButton helpKey="init.gitInit" />
             </label>
           )}
         />
@@ -206,6 +214,7 @@ export default function InitPage() {
                 data-testid="checkbox-sparse"
               />
               スパースチェックアウトを有効にする
+              <HelpButton helpKey="init.sparseCheckout" />
             </label>
           )}
         />
@@ -215,7 +224,10 @@ export default function InitPage() {
             className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-4 p3-expand-in"
             data-testid="tier-selection"
           >
-            <p className="text-sm font-medium text-slate-200/82">含めるティア</p>
+            <p className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              含めるティア
+              <HelpButton helpKey="init.tiers" />
+            </p>
             <div className="mt-3 space-y-2">
               {(['System', 'Business', 'Service'] as const).map((tier) => (
                 <Controller

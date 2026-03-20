@@ -1,4 +1,15 @@
+use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::sync::LazyLock;
+
+/// トピック名のバリデーション正規表現（Go 版と統一）
+/// パターン: k1s0.(system|business|service).<segment>.<segment>[.<segment>...]
+/// 最低4セグメント必要。各セグメントは小文字英数字とハイフンのみ許可。
+/// バージョンサフィックス（v1, v2 等）は任意。
+static TOPIC_NAME_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^k1s0\.(system|business|service)(\.[a-z0-9][a-z0-9-]*){2,}$")
+        .expect("トピック名正規表現のコンパイルに失敗")
+});
 
 /// TopicConfig はトピック作成・管理の設定を表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,41 +62,29 @@ pub struct TopicPartitionInfo {
 }
 
 impl TopicConfig {
-    /// トピック名が k1s0 の命名規則に従っているか検証する。
-    /// 形式: k1s0.{tier}.{domain}.{event-type}.{version}
+    /// トピック名が k1s0 の命名規則に従っているか正規表現で検証する（Go 版と統一）。
+    /// 形式: k1s0.(system|business|service).<domain>.<event>.v<version>
+    /// ドメインとイベント名は小文字英数字とハイフンのみ許可する。
     pub fn validate_name(&self) -> bool {
-        let parts: Vec<&str> = self.name.split('.').collect();
-        parts.len() >= 4 && parts[0] == "k1s0"
+        TOPIC_NAME_REGEX.is_match(&self.name)
     }
 
-    /// トピック名から tier を抽出する（system / business / service）。
+    /// トピック名から tier を正規表現で抽出する（system / business / service）。
     /// 名前が不正な場合は空文字列を返す。
     pub fn tier(&self) -> &str {
-        let parts: Vec<&str> = self.name.split('.').collect();
-        if parts.len() >= 2 && parts[0] == "k1s0" {
-            match parts[1] {
-                "system" | "business" | "service" => parts[1],
-                _ => "",
-            }
-        } else {
-            ""
-        }
+        TOPIC_NAME_REGEX
+            .captures(&self.name)
+            .and_then(|caps| caps.get(1))
+            .map(|m| m.as_str())
+            .unwrap_or("")
     }
 
     /// トピック名から tier を判定し、tier 別デフォルトパーティション数を設定した TopicConfig を返す。
     /// パーティション数が明示指定されていない（デフォルト値 3 のまま）場合に tier 別の値で上書きする。
     pub fn with_tier_defaults(mut self) -> Self {
-        let parts: Vec<&str> = self.name.split('.').collect();
-        let tier = if parts.len() >= 2 && parts[0] == "k1s0" {
-            match parts[1] {
-                "system" | "business" | "service" => parts[1],
-                _ => "",
-            }
-        } else {
-            ""
-        };
+        let tier = self.tier().to_string();
         if !tier.is_empty() {
-            self.partitions = default_partitions_for_tier(tier);
+            self.partitions = default_partitions_for_tier(&tier);
         }
         self
     }

@@ -218,6 +218,56 @@ CorrelationLayer は受信リクエストに対して:
 
 ---
 
+## 共通 ObservabilityConfig モジュール {#共通observabilityconfig}
+
+技術監査対応により、全サーバーで重複していた可観測性設定構造体を `k1s0-server-common` の `config` モジュールに集約した。各サーバーの `config.rs` にローカル定義されていた `ObservabilityConfig` / `LogConfig` / `TraceConfig` / `MetricsConfig` を廃止し、共通クレートからインポートする。
+
+### 集約された構造体
+
+| 構造体 | 説明 | デフォルト値 |
+|--------|------|-------------|
+| `ObservabilityConfig` | ログ・トレース・メトリクス設定の親構造体 | 各サブ設定のデフォルト |
+| `LogConfig` | ログレベル・フォーマット | `level: "info"`, `format: "json"` |
+| `TraceConfig` | 分散トレースの有効/無効・エンドポイント・サンプリングレート | `enabled: true`, `endpoint: DEFAULT_OTEL_ENDPOINT`, `sample_rate: 1.0` |
+| `MetricsConfig` | Prometheus メトリクスの有効/無効・エンドポイントパス | `enabled: true`, `path: "/metrics"` |
+
+### 使用方法
+
+```rust
+// 各サーバーの config.rs — 共通クレートからインポート
+use k1s0_server_common::config::ObservabilityConfig;
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Config {
+    pub app: AppConfig,
+    pub server: ServerConfig,
+    pub database: DatabaseConfig,
+    // 共通 ObservabilityConfig を使用（ローカル定義は不要）
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
+}
+```
+
+### Cargo.toml 設定
+
+```toml
+[dependencies]
+k1s0-server-common = { path = "../../system/library/rust/server-common", features = ["axum"] }
+# config モジュールは常に利用可能（feature フラグ不要）
+```
+
+### startup モジュールとの連携
+
+`ObservabilityConfig` から `startup::ObservabilityFields` への `From` 変換が実装されており（`startup` feature 有効時）、`ServerBuilder` との連携がシームレスに行える。
+
+### 設計判断
+
+- **デフォルト値の一元管理**: エンドポイント URL やログレベルの変更を1ファイルで完結させる
+- **serde(default) 対応**: YAML で省略されたフィールドには自動的にデフォルト値が適用される
+- **後方互換**: 既存の config.yaml フォーマットを変更せずに移行可能
+
+---
+
 ## 共通 config.yaml セクション {#共通configyaml}
 
 全サーバーの config.yaml に含まれる共通セクション。サービス固有セクションは各設計書を参照。
@@ -249,12 +299,21 @@ kafka:
     - "kafka-0.messaging.svc.cluster.local:9092"
   security_protocol: "PLAINTEXT"
 
+# ObservabilityConfig 構造体に対応（k1s0-server-common の config モジュールで定義）
 observability:
-  otlp_endpoint: "http://otel-collector.observability:4317"
-  log_level: "info"
-  log_format: "json"
-  metrics_enabled: true
+  log:
+    level: "info"              # ログレベル（info, debug, warn, error）
+    format: "json"             # 出力フォーマット（json, text）
+  trace:
+    enabled: true              # 分散トレースの有効/無効
+    endpoint: "http://otel-collector.observability:4317"  # OTLP エンドポイント
+    sample_rate: 1.0           # サンプリングレート（0.0〜1.0）
+  metrics:
+    enabled: true              # Prometheus メトリクスの有効/無効
+    path: "/metrics"           # メトリクスエンドポイントパス
 ```
+
+> **注記**: `observability` セクションは従来のフラット形式（`otlp_endpoint`, `log_level` 等）から構造化形式（`log.level`, `trace.endpoint` 等）に移行した。`k1s0-server-common` の `ObservabilityConfig` 構造体がこの構造化形式に対応している。
 
 ---
 

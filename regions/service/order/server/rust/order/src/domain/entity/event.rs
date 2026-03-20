@@ -2,8 +2,6 @@
 // usecase層はProto型に依存せず、このドメインイベント型を使用する。
 // インフラ層（Kafka producer）でProto型への変換を行う。
 
-use chrono::{DateTime, Utc};
-
 /// イベントメタデータ。全イベント共通の追跡情報を保持する。
 #[derive(Debug, Clone)]
 pub struct EventMetadata {

@@ -4,6 +4,9 @@
 //! unified error response types, and axum integration for HTTP error responses.
 
 pub mod auth;
+/// 可観測性（Observability）設定の共通構造体モジュール。
+/// 全サーバーで重複していた ObservabilityConfig 等を一箇所に集約する。
+pub mod config;
 pub mod error;
 pub mod infra_guard;
 #[cfg(any(feature = "middleware", test))]
@@ -29,3 +32,7 @@ pub use error::{ErrorBody, ErrorCode, ErrorDetail, ErrorResponse, ServiceError};
 pub use infra_guard::{allow_in_memory_infra, require_infra, InfraKind};
 pub use pagination::{PaginatedResponse, PaginationResponse};
 pub use response::ApiResponse;
+
+/// 可観測性設定の共通型を再エクスポートする。
+/// サーバー側で `use k1s0_server_common::{ObservabilityConfig, LogConfig, ...}` と書ける。
+pub use config::{LogConfig, MetricsConfig, ObservabilityConfig, TraceConfig};

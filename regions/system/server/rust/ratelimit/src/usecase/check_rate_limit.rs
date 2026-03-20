@@ -132,10 +132,20 @@ impl CheckRateLimitUseCase {
             }
         };
 
+        // バックエンド（Redis等）のエラー時は fail_open/fail_closed ポリシーに従う
         let mut decision = match backend_decision {
             Ok(decision) => decision,
             Err(e) => {
                 if self.fail_open {
+                    // セキュリティ上の注意: fail-open はバックエンド障害時にリクエストを許可する。
+                    // 攻撃者がバックエンドを意図的にダウンさせた場合、レートリミットが無効化される可能性がある。
+                    // 運用チームはこの警告を監視し、頻発する場合は fail_open=false への切替を検討すること。
+                    tracing::warn!(
+                        scope = scope,
+                        identifier = identifier,
+                        error = %e,
+                        "レートリミットバックエンドエラーにより fail-open でリクエストを許可しました。レートリミットが一時的に無効化されています"
+                    );
                     RateLimitDomainService::fail_open_decision(
                         scope,
                         identifier,

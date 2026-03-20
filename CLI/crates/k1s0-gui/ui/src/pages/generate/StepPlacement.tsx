@@ -3,6 +3,8 @@
  * 既存の配置から選択するか、新しい配置名を入力する
  */
 
+import HelpButton from '../../components/HelpButton';
+
 /** StepPlacementコンポーネントのprops型定義 */
 export interface StepPlacementProps {
   /** 現在の配置名 */
@@ -51,7 +53,10 @@ export default function StepPlacement({
       className="p3-expand-in mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-placement"
     >
-      <h2 className="text-lg font-semibold text-white">配置を選択</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-white">配置を選択</h2>
+        <HelpButton helpKey="generate.placement" />
+      </div>
 
       {/* 既存配置がある場合のセレクトボックス */}
       {existingPlacements.length > 0 && (

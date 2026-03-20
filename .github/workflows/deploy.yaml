@@ -137,12 +137,20 @@ jobs:
       # コンテナイメージの脆弱性スキャン（ビルド後・プッシュ済みイメージに対して実行）
       # CRITICAL/HIGH の脆弱性が検出された場合、SARIF レポートを出力する
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947e795f2d78448b512 # v0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+      # SARIF レポートをアーティファクトとしてアップロードし、セキュリティ監査・追跡に利用する
+      - name: Upload Trivy SARIF report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: trivy-sarif-${{ steps.image.outputs.service_name }}
+          path: trivy-results.sarif
+          if-no-files-found: warn
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Install Cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3

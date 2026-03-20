@@ -1,6 +1,14 @@
 /// Config クラス定義。config設計.md のスキーマに準拠する。
 library;
 
+/// 設定バリデーションエラー。
+class ConfigValidationError implements Exception {
+  final String message;
+  ConfigValidationError(this.message);
+  @override
+  String toString() => 'ConfigValidationError: $message';
+}
+
 class Config {
   final AppConfig app;
   final ServerConfig server;
@@ -48,6 +56,72 @@ class Config {
           yaml['observability'] as Map<String, dynamic>),
       auth: AuthConfig.fromYaml(yaml['auth'] as Map<String, dynamic>),
     );
+  }
+
+  /// 設定値のバリデーションを実行する。Go の Config.Validate() と同等。
+  /// 不正値は ConfigValidationError をスローする。
+  void validate() {
+    // app 必須フィールドの検証
+    if (app.name.isEmpty) {
+      throw ConfigValidationError('app.name is required');
+    }
+    if (app.version.isEmpty) {
+      throw ConfigValidationError('app.version is required');
+    }
+    if (!['system', 'business', 'service'].contains(app.tier)) {
+      throw ConfigValidationError(
+          'app.tier must be system, business, or service');
+    }
+    if (!['dev', 'staging', 'prod'].contains(app.environment)) {
+      throw ConfigValidationError(
+          'app.environment must be dev, staging, or prod');
+    }
+
+    // server 必須フィールドの検証
+    if (server.host.isEmpty) {
+      throw ConfigValidationError('server.host is required');
+    }
+    if (server.port <= 0 || server.port > 65535) {
+      throw ConfigValidationError('server.port must be between 1 and 65535');
+    }
+
+    // auth.jwt 必須フィールドの検証
+    if (auth.jwt.issuer.isEmpty) {
+      throw ConfigValidationError('auth.jwt.issuer is required');
+    }
+    if (auth.jwt.audience.isEmpty) {
+      throw ConfigValidationError('auth.jwt.audience is required');
+    }
+
+    // database ポート範囲の検証
+    if (database != null) {
+      if (database!.port <= 0 || database!.port > 65535) {
+        throw ConfigValidationError(
+            'database.port must be between 1 and 65535');
+      }
+    }
+
+    // grpc ポート範囲の検証
+    if (grpc != null) {
+      if (grpc!.port <= 0 || grpc!.port > 65535) {
+        throw ConfigValidationError('grpc.port must be between 1 and 65535');
+      }
+    }
+
+    // kafka ブローカーリストの検証
+    if (kafka != null) {
+      if (kafka!.brokers.isEmpty) {
+        throw ConfigValidationError(
+            'kafka.brokers must have at least one broker');
+      }
+    }
+
+    // redis ポート範囲の検証
+    if (redis != null) {
+      if (redis!.port <= 0 || redis!.port > 65535) {
+        throw ConfigValidationError('redis.port must be between 1 and 65535');
+      }
+    }
   }
 }
 

@@ -253,7 +253,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: fs
           scan-ref: .
@@ -650,7 +650,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: fs
           scan-ref: .
@@ -746,7 +746,7 @@ jobs:
             service: inventory
     steps:
       - name: コンテナイメージの脆弱性スキャン (${{ matrix.tier }}/${{ matrix.service }})
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: image
           image-ref: harbor.internal.example.com/k1s0-${{ matrix.tier }}/${{ matrix.service }}:latest
@@ -762,7 +762,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy IaC 構成スキャン
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: config
           scan-ref: infra/
@@ -779,7 +779,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy ライセンスコンプライアンススキャン
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: fs
           scan-ref: .
@@ -937,9 +937,19 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 | `path` | string | 必須 | モジュールのディレクトリパス |
 | `lang` | string | 必須 | 言語（`rust`, `go`, `ts`, `dart`） |
 | `status` | string | 必須 | `stable` / `experimental` / `archived` |
-| `type` | string | 必須 | `server` / `library` / `client` / `cli` / `workspace` / `proto` |
+| `type` | string | 必須 | `server` / `library` / `client` / `cli` / `workspace` / `proto` / `database` / `infra` |
 | `workspace` | string | 任意 | Cargo/Go ワークスペースルートパス |
 | `skip-ci` | bool | 任意 | `true` の場合 CI のリント・テスト・ビルドをスキップ |
+
+### database / infra モジュールタイプの追加
+
+技術監査対応として、`modules.yaml` に `database` および `infra` タイプのモジュールを追加した。
+
+**`database` タイプ**: system tier の全データベースクレート（`regions/system/database/*-db`）を登録。23 個の DB クレートが対象。`workspace: regions/system` を指定し、Cargo ワークスペースに属する。
+
+**`infra` タイプ**: `infra/` 配下のインフラストラクチャ設定（Ansible, Docker, Helm, Istio, Keycloak, Kong, Kubernetes, Terraform, Vault 等）を登録。全モジュールに `skip-ci: true` を設定し、CI のリント・テスト・ビルドの対象外とする（インフラ設定は言語固有の CI ジョブでは検証しないため）。
+
+これにより、`validate-modules` ジョブの双方向チェック（ディスク上のモジュールと `modules.yaml` の整合性検証）が全モジュールをカバーする。
 
 ### フィルタリングスクリプト
 
@@ -1123,13 +1133,40 @@ services:
       --health-retries 5
 ```
 
+### Trivy バージョン統一・SARIF レポートアップロード
+
+技術監査対応として、全ワークフロー（`ci.yaml`, `deploy.yaml`, `security.yaml`, `publish-app.yaml`, `_service-deploy.yaml`）の `aquasecurity/trivy-action` を **0.29.0**（SHA ピン留め: `76071ef0d7ec797419534a183b498b4d6a132a02`）に統一した。従来は `@master` や `@0.28.0` が混在しており、以下の問題があった:
+
+- `@master` 参照によるサプライチェーン攻撃リスク
+- バージョン不一致による脆弱性データベースの差異
+
+**deploy.yaml への SARIF レポート追加**: `deploy.yaml` の `build-and-push` ジョブに Trivy SARIF レポートの生成・アップロードステップを追加した。ビルド済みイメージに対して CRITICAL/HIGH の脆弱性スキャンを実行し、結果を SARIF 形式でアーティファクトに保存する。
+
+```yaml
+# deploy.yaml build-and-push ジョブ内（ビルド・プッシュ後）
+- name: Run Trivy vulnerability scanner
+  uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
+  with:
+    image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+    format: 'sarif'
+    output: 'trivy-results.sarif'
+    severity: 'CRITICAL,HIGH'
+- name: Upload Trivy SARIF report
+  uses: actions/upload-artifact@v4
+  if: always()
+  with:
+    name: trivy-sarif-${{ steps.image.outputs.service_name }}
+    path: trivy-results.sarif
+    if-no-files-found: warn
+```
+
 ### SBOM アーティファクト保存（_service-deploy.yaml）
 
 `_service-deploy.yaml` の build-push ジョブで `actions/upload-artifact@v4` により SBOM（Software Bill of Materials）をアーティファクトとして保存する。Trivy の `--format cyclonedx` で生成した SBOM を CI アーティファクトとしてアップロードし、監査時のソフトウェア構成追跡を可能にする。
 
 ```yaml
 - name: Generate SBOM
-  uses: aquasecurity/trivy-action@0.28.0
+  uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
   with:
     scan-type: image
     image-ref: ${{ env.IMAGE_REF }}

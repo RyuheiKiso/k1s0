@@ -3,6 +3,7 @@
  * 種別に応じた利用可能なティア一覧から選択する
  */
 
+import HelpButton from '../../components/HelpButton';
 import { getAvailableTiers } from '../../lib/generate-wizard';
 import type { Kind, Tier } from '../../lib/tauri-commands';
 
@@ -36,7 +37,10 @@ export default function StepTier({
       className="p3-expand-in mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-tier"
     >
-      <h2 className="text-lg font-semibold text-white">ティアを選択</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-white">ティアを選択</h2>
+        <HelpButton helpKey="generate.tier" />
+      </div>
       {/* ティアのラジオボタン一覧 */}
       <div className="mt-4 space-y-2">
         {getAvailableTiers(kind).map((value) => (

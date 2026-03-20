@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import {
@@ -85,7 +86,11 @@ export default function NavigationTypesPage() {
 
   return (
     <div className="glass max-w-4xl p-6 p3-animate-in" data-testid="navigation-types-page">
-      <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">型定義</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">型定義</p>
+        <HelpButton helpKey="navigationTypes" size="md" />
+      </div>
       <h1 className="p3-heading-glitch mt-2 text-3xl font-semibold text-white">ナビゲーションコントラクトの生成</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         選択したワークスペースからナビゲーションルート型をプレビュー・書き出しします。
@@ -102,7 +107,10 @@ export default function NavigationTypesPage() {
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">ナビゲーションファイル</label>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                ナビゲーションファイル
+                <HelpButton helpKey="navigationTypes.navFile" />
+              </label>
               <input
                 type="text"
                 value={navPath}
@@ -113,7 +121,10 @@ export default function NavigationTypesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">出力ディレクトリ</label>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                出力ディレクトリ
+                <HelpButton helpKey="navigationTypes.outputDir" />
+              </label>
               <input
                 type="text"
                 value={outputDir}
@@ -124,7 +135,10 @@ export default function NavigationTypesPage() {
             </div>
 
             <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-slate-200/82">ターゲット</legend>
+              <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                ターゲット
+                <HelpButton helpKey="navigationTypes.target" />
+              </legend>
               {(['typescript', 'dart', 'both'] as TypeOutputTarget[]).map((value) => (
                 <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input

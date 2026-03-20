@@ -12,6 +12,10 @@ name = "k1s0-saga-server"
 path = "src/main.rs"
 test = false
 
+[features]
+# 外部サービス（PostgreSQL, Kafka）を必要とする統合テストを有効化するフィーチャー
+integration-tests = []
+
 [dependencies]
 # gRPC / Protobuf
 tonic = {workspace = true}

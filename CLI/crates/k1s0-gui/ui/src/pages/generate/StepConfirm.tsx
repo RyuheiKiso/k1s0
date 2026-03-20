@@ -3,6 +3,7 @@
  * 選択した設定の最終確認と生成実行を行う
  */
 
+import HelpButton from '../../components/HelpButton';
 import {
   BFF_GENERATE_LABEL,
   BFF_GENERATE_NO,
@@ -92,7 +93,10 @@ export default function StepConfirm({
       className="p3-expand-in mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-confirm"
     >
-      <h2 className="text-lg font-semibold text-white">生成の確認</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-white">生成の確認</h2>
+        <HelpButton helpKey="generate.confirm" />
+      </div>
       {/* 設定サマリー */}
       <div className="mt-4 space-y-3 text-sm text-slate-200/82">
         <p>種別: {kind}</p>

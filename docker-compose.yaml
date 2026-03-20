@@ -30,6 +30,8 @@ services:
   postgres:
     image: postgres:17
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: DBサービスには大きめのメモリ・CPU を割り当てる
     mem_limit: 1g
     cpus: 1.0
@@ -61,6 +63,8 @@ services:
   mysql:
     image: mysql:8.4
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: DBサービスには大きめのメモリ・CPU を割り当てる
     mem_limit: 1g
     cpus: 1.0
@@ -92,6 +96,8 @@ services:
   redis:
     image: redis:7
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: Redis はメモリ使用量を制限する
     mem_limit: 512m
     cpus: 0.5
@@ -127,6 +133,8 @@ services:
   kafka:
     image: apache/kafka:3.8.0
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: Kafka はメッセージブローカーのため大きめのリソースを割り当てる
     mem_limit: 1g
     cpus: 1.0
@@ -167,6 +175,8 @@ services:
     # バージョン固定: latest タグを避け再現性を確保する
     image: provectuslabs/kafka-ui:v0.7.2
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: UI サービスは軽量
     mem_limit: 512m
     cpus: 0.5
@@ -193,6 +203,8 @@ services:
   schema-registry:
     image: confluentinc/cp-schema-registry:7.7.1
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: Schema Registry は中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5
@@ -224,6 +236,8 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: Keycloak は認証基盤のため大きめのリソースを割り当てる
     mem_limit: 1g
     cpus: 1.0
@@ -273,6 +287,8 @@ services:
   redis-session:
     image: redis:7
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: セッション用 Redis はメモリ使用量を制限する
     mem_limit: 512m
     cpus: 0.5
@@ -304,6 +320,8 @@ services:
   vault:
     image: hashicorp/vault:1.17
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: Vault は軽量
     mem_limit: 512m
     cpus: 0.5
@@ -335,6 +353,8 @@ services:
   kong:
     image: kong:3.8
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: API Gateway は中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5
@@ -377,6 +397,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/auth/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -410,6 +432,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/config/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -443,6 +467,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/saga/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -476,6 +502,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/dlq-manager/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -506,6 +534,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/featureflag/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -535,6 +565,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/ratelimit/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -566,6 +598,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/tenant/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -597,6 +631,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/vault/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -629,6 +665,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/api-registry/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -657,6 +695,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/app-registry/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -687,6 +727,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/event-monitor/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -718,6 +760,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/event-store/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -746,6 +790,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/file/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -774,6 +820,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/master-maintenance/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -803,6 +851,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/navigation/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -832,6 +882,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/notification/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -862,6 +914,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/policy/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -891,6 +945,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/quota/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -921,6 +977,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/rule-engine/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -950,6 +1008,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/scheduler/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -980,6 +1040,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/search/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1008,6 +1070,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/service-catalog/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1036,6 +1100,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/session/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1067,6 +1133,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/workflow/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1097,6 +1165,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/ai-gateway/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1126,6 +1196,8 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/ai-agent/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1157,6 +1229,8 @@ services:
       context: .
       dockerfile: ./regions/system/server/rust/graphql-gateway/Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1206,6 +1280,8 @@ services:
       context: ./regions/system/server/go/bff-proxy
       dockerfile: Dockerfile
     profiles: [system]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1244,6 +1320,8 @@ services:
       context: .
       dockerfile: ./regions/business/accounting/server/rust/domain-master/Dockerfile
     profiles: [business]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1280,6 +1358,8 @@ services:
       context: .
       dockerfile: ./regions/service/order/server/rust/order/Dockerfile
     profiles: [service]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1312,6 +1392,8 @@ services:
       context: .
       dockerfile: ./regions/service/inventory/server/rust/inventory/Dockerfile
     profiles: [service]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1344,6 +1426,8 @@ services:
       context: .
       dockerfile: ./regions/service/payment/server/rust/payment/Dockerfile
     profiles: [service]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: アプリケーションサービスの標準リソース
     mem_limit: 512m
     cpus: 0.5
@@ -1409,6 +1493,8 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:1.62
     profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: トレーシングサービスは中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5
@@ -1427,6 +1513,8 @@ services:
   prometheus:
     image: prom/prometheus:v2.55
     profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: メトリクス収集サービスは中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5
@@ -1446,6 +1534,8 @@ services:
   loki:
     image: grafana/loki:3.3
     profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: ログ集約サービスは中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5
@@ -1464,6 +1554,8 @@ services:
   promtail:
     image: grafana/promtail:2.9.0
     profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: ログ転送サービスは軽量
     mem_limit: 256m
     cpus: 0.25
@@ -1482,6 +1574,8 @@ services:
   grafana:
     image: grafana/grafana:11.3
     profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: ダッシュボード UI は中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import {
@@ -149,7 +150,11 @@ export default function DevPage() {
 
   return (
     <div className="glass max-w-6xl p-6 p3-animate-in" data-testid="dev-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">オペレーション</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">オペレーション</p>
+        <HelpButton helpKey="dev" size="md" />
+      </div>
       <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">ローカル開発環境の管理</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         選択したワークスペースのローカル依存関係の起動・停止、状態の確認、ログの収集を行います。
@@ -165,7 +170,10 @@ export default function DevPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div>
-            <p className="text-sm font-medium text-slate-200/82">サービス</p>
+            <p className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              サービス
+              <HelpButton helpKey="dev.services" />
+            </p>
             <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">
               {availableTargets.length === 0 ? (
                 <p className="text-sm text-slate-200/55">実行可能なサービスが見つかりませんでした。</p>
@@ -191,7 +199,10 @@ export default function DevPage() {
           </div>
 
           <fieldset className="mt-5 space-y-2">
-            <legend className="text-sm font-medium text-slate-200/82">認証モード</legend>
+            <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              認証モード
+              <HelpButton helpKey="dev.authMode" />
+            </legend>
             {(['Skip', 'Keycloak'] as AuthMode[]).map((value) => (
               <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                 <input
@@ -209,7 +220,10 @@ export default function DevPage() {
           </fieldset>
 
           <fieldset className="mt-5 space-y-2">
-            <legend className="text-sm font-medium text-slate-200/82">停止時のクリーンアップ</legend>
+            <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              停止時のクリーンアップ
+              <HelpButton helpKey="dev.cleanup" />
+            </legend>
             {(['ContainersOnly', 'ContainersAndVolumes'] as CleanupLevel[]).map((value) => (
               <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                 <input
@@ -224,8 +238,9 @@ export default function DevPage() {
           </fieldset>
 
           <div className="mt-5">
-            <label className="block text-sm font-medium text-slate-200/82">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
               ログのサービスフィルター
+              <HelpButton helpKey="dev.logFilter" />
             </label>
             <input
               value={logService}
@@ -390,7 +405,10 @@ export default function DevPage() {
         </section>
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white p3-heading-glow">出力</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white p3-heading-glow">出力</h2>
+            <HelpButton helpKey="dev.preview" />
+          </div>
           <div className="mt-4 border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.35)] p-4 p3-data-rain">
             <pre className="min-h-72 overflow-auto whitespace-pre-wrap text-xs text-slate-100">
               {output || 'ステータスまたはログを実行してローカル開発環境を確認します。'}

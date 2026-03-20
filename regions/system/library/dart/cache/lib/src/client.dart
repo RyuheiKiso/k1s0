@@ -18,6 +18,8 @@ abstract class CacheClient {
   Future<bool> delete(String key);
   Future<bool> exists(String key);
   Future<bool> setNX(String key, String value, int ttlMs);
+  // 指定キーの有効期限をミリ秒単位で更新する
+  Future<bool> expire(String key, int ttlMs);
 }
 
 class InMemoryCacheClient implements CacheClient {
@@ -66,6 +68,22 @@ class InMemoryCacheClient implements CacheClient {
     if (entry != null && !entry.isExpired) return false;
     _entries[key] = _Entry(
       value,
+      DateTime.now().millisecondsSinceEpoch + ttlMs,
+    );
+    return true;
+  }
+
+  // 指定キーの有効期限を更新する。キーが存在しないまたは期限切れの場合はfalseを返す
+  @override
+  Future<bool> expire(String key, int ttlMs) async {
+    final entry = _entries[key];
+    if (entry == null) return false;
+    if (entry.isExpired) {
+      _entries.remove(key);
+      return false;
+    }
+    _entries[key] = _Entry(
+      entry.value,
       DateTime.now().millisecondsSinceEpoch + ttlMs,
     );
     return true;
@@ -131,6 +149,14 @@ class RedisCacheClient implements CacheClient {
       'NX',
     ]);
     return result == 'OK';
+  }
+
+  // PEXPIREコマンドでキーの有効期限をミリ秒単位で設定する
+  @override
+  Future<bool> expire(String key, int ttlMs) async {
+    final result =
+        await _command.send_object(['PEXPIRE', _prefixedKey(key), ttlMs]);
+    return (result as int) > 0;
   }
 
   String _prefixedKey(String key) {

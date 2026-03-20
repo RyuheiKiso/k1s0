@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import { connectionFailureMessage } from '../constants/messages';
 import { useAuth } from '../lib/auth';
 import {
@@ -200,7 +201,11 @@ export default function AuthPage() {
   return (
     <div className="p3-animate-in space-y-6" data-testid="auth-page">
       <section className="glass max-w-5xl p-6">
-        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">認証</p>
+        {/* ページヘッダーとヘルプボタン */}
+        <div className="flex items-center gap-3">
+          <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">認証</p>
+          <HelpButton helpKey="auth" size="md" />
+        </div>
         <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">GUIセッションの認証</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-200/76">
           OIDC DiscoveryのURL、クライアントID、スコープをGUIで設定し、接続を確認してからDevice Authorization
@@ -238,8 +243,9 @@ export default function AuthPage() {
 
           <div className="mt-5 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
                 OIDC Discovery URL
+                <HelpButton helpKey="auth.discoveryUrl" />
               </label>
               <input
                 value={settings.discovery_url}
@@ -251,7 +257,10 @@ export default function AuthPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">クライアントID</label>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                クライアントID
+                <HelpButton helpKey="auth.clientId" />
+              </label>
               <input
                 value={settings.client_id}
                 onChange={(event) => updateSetting('client_id', event.target.value)}
@@ -262,7 +271,10 @@ export default function AuthPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">スコープ</label>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                スコープ
+                <HelpButton helpKey="auth.scope" />
+              </label>
               <input
                 value={settings.scope}
                 onChange={(event) => updateSetting('scope', event.target.value)}
@@ -369,7 +381,10 @@ export default function AuthPage() {
           </div>
 
           <div className="glass p-6">
-            <h2 className="text-xl font-semibold text-white p3-heading-glow">デバイスチャレンジ</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-white p3-heading-glow">デバイスチャレンジ</h2>
+              <HelpButton helpKey="auth.deviceChallenge" />
+            </div>
             {!challenge ? (
               <p className="mt-3 text-sm text-slate-200/72">
                 デバイスフローを開始して認証URLとユーザーコードを取得してください。

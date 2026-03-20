@@ -221,6 +221,9 @@ pub async fn run() -> anyhow::Result<()> {
         }
     }
 
+    // テレメトリデータをフラッシュしてからシャットダウンする
+    k1s0_telemetry::shutdown();
+
     Ok(())
 }
 

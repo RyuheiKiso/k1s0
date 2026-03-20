@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import ProgressLog from '../components/ProgressLog';
 import { useAuth } from '../lib/auth';
@@ -129,7 +130,11 @@ export default function TestPage() {
 
   return (
     <div className="glass max-w-4xl p-6 p3-animate-in" data-testid="test-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">品質</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">品質</p>
+        <HelpButton helpKey="test" size="md" />
+      </div>
       <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">テストスイートの実行</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         現在のワークスペースでユニットテスト、統合テスト、または全カバレッジテストを実行します。
@@ -144,7 +149,10 @@ export default function TestPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white p3-heading-glow">テスト種別</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white p3-heading-glow">テスト種別</h2>
+            <HelpButton helpKey="test.kind" />
+          </div>
           <div className="mt-4 space-y-2">
             {(['Unit', 'Integration', 'All'] as TestKind[]).map((value) => (
               <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
@@ -194,7 +202,10 @@ export default function TestPage() {
         {kind !== 'All' && (
           <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-white p3-heading-glow">ターゲット</h2>
+              <span className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-white p3-heading-glow">ターゲット</h2>
+                <HelpButton helpKey="test.targets" />
+              </span>
               {availableTargets.length > 0 && (
                 <label className="flex items-center gap-2 text-sm text-slate-200/72">
                   <input

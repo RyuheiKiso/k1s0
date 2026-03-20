@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProgressLog from '../components/ProgressLog';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
@@ -180,7 +181,11 @@ export default function DeployPage() {
 
   return (
     <div className="glass max-w-5xl p-6 p3-animate-in" data-testid="deploy-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">デリバリー</p>
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">デリバリー</p>
+        <HelpButton helpKey="deploy" size="md" />
+      </div>
       <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">サービスのデプロイ</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         デプロイフローはDockerビルド、プッシュ、Cosign署名、Helmデプロイを一つのパイプラインとして実行します。
@@ -195,7 +200,10 @@ export default function DeployPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white p3-heading-glow">環境</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white p3-heading-glow">環境</h2>
+            <HelpButton helpKey="deploy.environment" />
+          </div>
           <div className="mt-4 space-y-2">
             {(['Dev', 'Staging', 'Prod'] as Environment[]).map((value) => (
               <label
@@ -220,8 +228,9 @@ export default function DeployPage() {
               className="mt-5 border border-red-400/25 bg-red-400/10 p-4 p3-warning-flicker"
               data-testid="prod-confirm"
             >
-              <p className="text-sm text-red-100">
+              <p className="flex items-center gap-2 text-sm text-red-100">
                 本番デプロイには明示的な確認トークンが必要です。
+                <HelpButton helpKey="deploy.prodConfirm" />
               </p>
               <input
                 value={prodConfirm}
@@ -296,7 +305,10 @@ export default function DeployPage() {
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-white p3-heading-glow">ターゲット</h2>
+            <span className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-white p3-heading-glow">ターゲット</h2>
+              <HelpButton helpKey="deploy.targets" />
+            </span>
             {targets.length > 0 && (
               <label className="flex items-center gap-2 text-sm text-slate-200/72">
                 <input
