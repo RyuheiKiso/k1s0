@@ -262,10 +262,57 @@ body {
   }
 }
 
-/* プライマリボタンのグローパルス */
+/* プライマリボタンのグローパルス — 大きく明るく */
 @keyframes p3-primary-glow {
-  0%, 100% { box-shadow: 0 0 8px rgba(0, 200, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1); }
-  50% { box-shadow: 0 0 20px rgba(0, 200, 255, 0.35), 0 0 40px rgba(0, 200, 255, 0.1), inset 0 1px 0 rgba(255,255,255,0.15); }
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 200, 255, 0.25), 0 0 30px rgba(0, 200, 255, 0.08), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 200, 255, 0.45), 0 0 50px rgba(0, 200, 255, 0.15), 0 0 80px rgba(0, 200, 255, 0.05), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+}
+
+/* パネル左辺アクセントバーのグローパルス */
+@keyframes p3-accent-bar-pulse {
+  0%, 100% {
+    box-shadow: 3px 0 8px rgba(0, 200, 255, 0.15);
+    opacity: 0.7;
+  }
+  50% {
+    box-shadow: 3px 0 20px rgba(0, 200, 255, 0.35);
+    opacity: 1;
+  }
+}
+
+/* HUDコーナーマーカー — 四隅に表示されるL字型インジケータ */
+@keyframes p3-hud-corner-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+/* ボタンクリック時のフラッシュ — 白い閃光 */
+@keyframes p3-click-flash {
+  0% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+/* パネル内部の光彩グラデーション移動 */
+@keyframes p3-inner-gradient-drift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* ボタンテキストのレタースペーシング拡張 */
+@keyframes p3-letter-expand {
+  0% { letter-spacing: inherit; }
+  100% { letter-spacing: 0.08em; }
+}
+
+/* disabled状態のパルス — ゆっくりとした呼吸 */
+@keyframes p3-disabled-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.35; }
 }
 
 /* =============================================
