@@ -186,12 +186,13 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                 if let Some((col_name, val)) = part.split_once(':') {
                     let col_name = col_name.trim();
                     let val = val.trim();
-                    // Verify column exists in definitions
+                    // カラム定義に存在することを確認済みなので find で取得する
+                    // any() で存在確認済みだが、万が一見つからない場合はエラーとして伝播する
                     if columns.iter().any(|c| c.column_name == col_name) {
                         let column = columns
                             .iter()
                             .find(|c| c.column_name == col_name)
-                            .expect("column existence checked");
+                            .ok_or_else(|| anyhow::anyhow!("カラム '{}' が定義に見つかりません", col_name))?;
                         validate_identifier(col_name)?;
                         where_clauses.push(format!(
                             "{} = {}",

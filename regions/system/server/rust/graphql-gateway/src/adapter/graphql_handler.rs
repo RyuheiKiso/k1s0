@@ -1703,33 +1703,43 @@ pub struct SubscriptionRoot {
 
 #[Subscription]
 impl SubscriptionRoot {
+    /// 設定変更イベントをストリームで購読する。gRPC 接続失敗時は GraphQL エラーとして返す。
     #[graphql(name = "configChanged")]
     async fn config_changed(
         &self,
         _ctx: &Context<'_>,
         #[graphql(default)] namespaces: Vec<String>,
-    ) -> impl Stream<Item = ConfigEntry> {
-        self.subscription.watch_config(namespaces).await
+    ) -> async_graphql::Result<impl Stream<Item = ConfigEntry>> {
+        self.subscription
+            .watch_config(namespaces)
+            .await
+            .map_err(|e| async_graphql::Error::new(e.to_string()))
     }
 
+    /// テナント更新イベントをストリームで購読する。gRPC 接続失敗時は GraphQL エラーとして返す。
     #[graphql(name = "tenantUpdated")]
     async fn tenant_updated(
         &self,
         _ctx: &Context<'_>,
         tenant_id: async_graphql::ID,
-    ) -> impl Stream<Item = Tenant> {
+    ) -> async_graphql::Result<impl Stream<Item = Tenant>> {
         self.subscription
             .watch_tenant_updated(tenant_id.to_string())
             .await
+            .map_err(|e| async_graphql::Error::new(e.to_string()))
     }
 
+    /// フィーチャーフラグ変更イベントをストリームで購読する。gRPC 接続失敗時は GraphQL エラーとして返す。
     #[graphql(name = "featureFlagChanged")]
     async fn feature_flag_changed(
         &self,
         _ctx: &Context<'_>,
         key: String,
-    ) -> impl Stream<Item = FeatureFlag> {
-        self.subscription.watch_feature_flag_changed(key).await
+    ) -> async_graphql::Result<impl Stream<Item = FeatureFlag>> {
+        self.subscription
+            .watch_feature_flag_changed(key)
+            .await
+            .map_err(|e| async_graphql::Error::new(e.to_string()))
     }
 }
 

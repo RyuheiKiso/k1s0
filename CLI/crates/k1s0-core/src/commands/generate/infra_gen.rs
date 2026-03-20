@@ -22,7 +22,12 @@ pub(crate) fn generate_helm_chart(
     ctx: &crate::template::context::TemplateContext,
     output_dir: &Path,
 ) -> Result<Vec<PathBuf>> {
-    let mut engine = TemplateEngine::new(helm_tpl_dir.parent().unwrap())?;
+    // 親ディレクトリが存在しない場合はエラーを返す（unwrap を避けて安全に伝播）
+    let mut engine = TemplateEngine::new(
+        helm_tpl_dir
+            .parent()
+            .ok_or_else(|| anyhow::anyhow!("helm_tpl_dir に親ディレクトリがありません"))?,
+    )?;
     // helm ディレクトリ直下のテンプレートを直接レンダリング
     let tera_ctx = ctx.to_tera_context();
     let mut generated = Vec::new();
@@ -98,8 +103,14 @@ pub(crate) fn generate_cicd_workflows(
         let rendered = tera.render("ci.yaml", &tera_ctx)?;
 
         // 出力先パスの算出（output_dir の2階層上がベースディレクトリ）
-        let output_path =
-            build_ci_workflow_path(config, output_dir.parent().unwrap().parent().unwrap());
+        let output_path = build_ci_workflow_path(
+            config,
+            output_dir
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("output_dir に親ディレクトリがありません"))?
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("output_dir の祖父ディレクトリがありません"))?,
+        );
         if let Some(parent) = output_path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -115,9 +126,16 @@ pub(crate) fn generate_cicd_workflows(
             tera.add_raw_template("deploy.yaml", &template_content)?;
             let rendered = tera.render("deploy.yaml", &tera_ctx)?;
 
-            let output_path =
-                build_deploy_workflow_path(config, output_dir.parent().unwrap().parent().unwrap())
-                    .expect("server deploy workflow path should exist");
+            // Deploy ワークフローの出力先パスを2階層上のベースディレクトリから算出する
+            let output_path = build_deploy_workflow_path(
+                config,
+                output_dir
+                    .parent()
+                    .ok_or_else(|| anyhow::anyhow!("output_dir に親ディレクトリがありません"))?
+                    .parent()
+                    .ok_or_else(|| anyhow::anyhow!("output_dir の祖父ディレクトリがありません"))?,
+            )
+            .expect("server deploy workflow path should exist");
             if let Some(parent) = output_path.parent() {
                 fs::create_dir_all(parent)?;
             }

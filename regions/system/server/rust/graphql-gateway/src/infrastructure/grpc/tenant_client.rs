@@ -260,21 +260,22 @@ impl TenantGrpcClient {
     }
 
     /// WatchTenant Server-Side Streaming を購読し、変更イベントを Tenant として返す。
+    /// .expect() によるパニックを排除し、接続失敗時は anyhow::Error として伝播する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn watch_tenant(&self, tenant_id: &str) -> impl Stream<Item = Tenant> {
+    pub async fn watch_tenant(&self, tenant_id: &str) -> anyhow::Result<impl Stream<Item = Tenant>> {
         let request = tonic::Request::new(proto::k1s0::system::tenant::v1::WatchTenantRequest {
             tenant_id: tenant_id.to_owned(),
         });
 
+        // gRPC ストリーム接続を確立し、失敗時はエラーを返す（パニックしない）
         let stream = self
             .client
             .clone()
             .watch_tenant(request)
-            .await
-            .expect("WatchTenant stream failed")
+            .await?
             .into_inner();
 
-        async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
+        Ok(async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
             match stream.message().await {
                 Ok(Some(resp)) => {
                     let tenant = resp.tenant.map(Self::tenant_from_proto).unwrap_or(Tenant {
@@ -288,7 +289,7 @@ impl TenantGrpcClient {
                 }
                 _ => None,
             }
-        })
+        }))
     }
 }
 

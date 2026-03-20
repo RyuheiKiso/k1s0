@@ -142,10 +142,7 @@ void main() {
   });
 
   group('initTelemetry トレーサー初期化', () {
-    tearDown(() {
-      // 各テスト後にシャットダウンしてグローバル状態をクリアする
-      shutdown();
-    });
+    tearDown(shutdown);
 
     test('traceEndpoint なしの場合 TracerProvider が null であること', () {
       final cfg = TelemetryConfig(

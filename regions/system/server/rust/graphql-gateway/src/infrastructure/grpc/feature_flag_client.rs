@@ -208,23 +208,24 @@ impl FeatureFlagGrpcClient {
     }
 
     /// WatchFeatureFlag Server-Side Streaming を購読し、変更イベントを FeatureFlag として返す。
+    /// .expect() によるパニックを排除し、接続失敗時は anyhow::Error として伝播する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn watch_feature_flag(&self, key: &str) -> impl Stream<Item = FeatureFlag> {
+    pub async fn watch_feature_flag(&self, key: &str) -> anyhow::Result<impl Stream<Item = FeatureFlag>> {
         let request = tonic::Request::new(
             proto::k1s0::system::featureflag::v1::WatchFeatureFlagRequest {
                 flag_key: key.to_owned(),
             },
         );
 
+        // gRPC ストリーム接続を確立し、失敗時はエラーを返す（パニックしない）
         let stream = self
             .client
             .clone()
             .watch_feature_flag(request)
-            .await
-            .expect("WatchFeatureFlag stream failed")
+            .await?
             .into_inner();
 
-        async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
+        Ok(async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
             match stream.message().await {
                 Ok(Some(resp)) => {
                     let flag = resp
@@ -241,6 +242,6 @@ impl FeatureFlagGrpcClient {
                 }
                 _ => None,
             }
-        })
+        }))
     }
 }

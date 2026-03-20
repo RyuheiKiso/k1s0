@@ -13,6 +13,10 @@
 # Logs
 **/*.log
 
+# 機密情報ファイル（コンテナイメージへの混入を防ぐ）
+.env
+.env.*
+
 # Test artifacts
 **/test-results/
 **/coverage/

@@ -65,7 +65,7 @@ prost-types = {workspace = true}
 moka = { version = "0.12", features = ["future"] }
 
 # Kafka
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 
 [build-dependencies]
 tonic-build = {workspace = true}

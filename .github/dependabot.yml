@@ -71,6 +71,28 @@ updates:
       - "dart"
     open-pull-requests-limit: 10
 
+  # Docker イメージの依存更新（インフラ用 Dockerfile）
+  - package-ecosystem: "docker"
+    directory: "/infra/docker"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "docker"
+    open-pull-requests-limit: 5
+
+  # Terraform プロバイダーの依存更新
+  - package-ecosystem: "terraform"
+    directory: "/infra/terraform"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "terraform"
+    open-pull-requests-limit: 5
+
   # GitHub Actions の依存更新（週次）
   - package-ecosystem: "github-actions"
     directory: "/"

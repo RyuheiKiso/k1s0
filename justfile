@@ -239,7 +239,7 @@ fmt-dart:
 # --- Build ---
 
 # 全言語ビルド
-build: build-go build-rust build-ts
+build: build-go build-rust build-ts build-dart
 
 # Go ビルド
 build-go:
@@ -281,6 +281,25 @@ build-ts:
             echo "=== Building $dir ==="
             # package-lock.json を使って依存関係をインストールし、ビルドを実行
             (cd "$dir" && npm ci && npm run build --if-present)
+        fi
+    done
+
+# Dart ビルド（Flutter アプリは web ターゲット、純粋 Dart は compile exe）
+build-dart:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # modules.yaml から Dart の CI 対象モジュールを取得
+    mapfile -t packages < <(scripts/list-modules.sh --lang dart --no-skip-ci)
+    for dir in "${packages[@]}"; do
+        if [ -d "$dir" ] && [ -f "$dir/pubspec.yaml" ]; then
+            echo "=== Building $dir ==="
+            if grep -q "sdk: flutter" "$dir/pubspec.yaml"; then
+                # Flutter アプリは web ターゲットでビルド（CI 環境での検証用）
+                (cd "$dir" && flutter pub get && flutter build web --no-pub)
+            else
+                # 純粋 Dart ライブラリは pub get + analyze でビルド相当の検証を行う
+                (cd "$dir" && dart pub get && dart analyze)
+            fi
         fi
     done
 

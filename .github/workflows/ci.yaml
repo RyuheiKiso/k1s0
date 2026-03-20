@@ -1197,6 +1197,43 @@ jobs:
           fi
           echo "全 Dockerfile の CARGO_FEATURES デフォルト値は空文字です"
 
+  # ティア間依存関係の検証ジョブ
+  # system → business → service のティア依存方向を検証し、逆方向の依存を検出して CI を失敗させる
+  check-tier-deps:
+    runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: ティア間依存関係の検証
+        shell: bash
+        run: |
+          # system ティアが business/service ティアに依存していないことを確認する
+          # Cargo.toml の path 依存と workspace 依存を検査して逆方向の依存を検出する
+          failed=0
+
+          # system ティアのクレートが business/service ティアを参照していないか検証
+          while IFS= read -r cargo_toml; do
+            if grep -qE 'path\s*=\s*"[^"]*regions/(business|service)' "$cargo_toml" 2>/dev/null; then
+              echo "::error::$cargo_toml: system ティアから business/service ティアへの依存が検出されました（逆方向依存違反）"
+              failed=1
+            fi
+          done < <(find regions/system -name 'Cargo.toml' -not -path '*/target/*' 2>/dev/null)
+
+          # business ティアのクレートが service ティアを参照していないか検証
+          while IFS= read -r cargo_toml; do
+            if grep -qE 'path\s*=\s*"[^"]*regions/service' "$cargo_toml" 2>/dev/null; then
+              echo "::error::$cargo_toml: business ティアから service ティアへの依存が検出されました（逆方向依存違反）"
+              failed=1
+            fi
+          done < <(find regions/business -name 'Cargo.toml' -not -path '*/target/*' 2>/dev/null)
+
+          if [ "$failed" -eq 1 ]; then
+            exit 1
+          fi
+          echo "ティア間依存関係の検証が完了しました（逆方向依存なし）"
+
   # セキュリティスキャン（Trivy）
   security-scan:
     runs-on: ubuntu-latest

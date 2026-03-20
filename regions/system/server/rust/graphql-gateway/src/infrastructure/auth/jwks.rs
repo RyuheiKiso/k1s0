@@ -39,17 +39,21 @@ struct Jwk {
 }
 
 impl JwksVerifier {
-    pub fn new(jwks_url: String) -> Self {
-        Self {
+    /// 新しい JwksVerifier を生成する。
+    /// TLS バックエンドの初期化に失敗した場合は Err を返す。
+    pub fn new(jwks_url: String) -> anyhow::Result<Self> {
+        // HTTPクライアントを構築する（タイムアウト10秒）
+        // TLS バックエンドが利用不可の場合はエラーとして伝播する
+        let http_client = Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()
+            .map_err(|e| anyhow::anyhow!("HTTPクライアントの構築に失敗: {}", e))?;
+        Ok(Self {
             jwks_url,
-            // HTTPクライアントを構築する（タイムアウト10秒）
-            http_client: Client::builder()
-                .timeout(Duration::from_secs(10))
-                .build()
-                .expect("HTTPクライアントの構築に失敗: TLS バックエンドが利用不可"),
+            http_client,
             cache: Arc::new(RwLock::new(None)),
             cache_ttl: Duration::from_secs(600), // 10分
-        }
+        })
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]

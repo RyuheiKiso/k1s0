@@ -21,7 +21,7 @@ mockall = {workspace = true, optional = true}
 sqlx = {workspace = true, optional = true}
 deadpool-redis = { version = "0.18", optional = true }
 reqwest = {workspace = true, optional = true}
-rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
+rdkafka = { version = "0.37", features = ["cmake-build"], optional = true }
 
 [dev-dependencies]
 tokio = {workspace = true}

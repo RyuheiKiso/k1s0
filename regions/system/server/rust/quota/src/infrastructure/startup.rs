@@ -128,7 +128,14 @@ pub async fn run() -> anyhow::Result<()> {
             }
         }
     } else {
-        info!("no database config found, using InMemory repositories");
+        // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "quota",
+            k1s0_server_common::InfraKind::Database,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("no database config found, using InMemory repositories (dev/test bypass)");
         // usage_repo: Redis が使えればRedis、なければInMemory
         let usage_repo: Arc<dyn QuotaUsageRepository> = if let Some(ref cm) = redis_conn {
             let prefix = cfg

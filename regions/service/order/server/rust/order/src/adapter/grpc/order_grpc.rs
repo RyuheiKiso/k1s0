@@ -165,10 +165,21 @@ fn parse_uuid(raw: &str, field_name: &str) -> Result<Uuid, Status> {
 }
 
 fn proto_order(order: DomainOrder, items: Vec<DomainOrderItem>) -> Order {
+    // ドメインステータスを proto enum 値にマッピングする
+    use crate::proto::k1s0::service::order::v1::OrderStatus as ProtoStatus;
+    let status_enum = match order.status {
+        OrderStatus::Pending => ProtoStatus::Pending as i32,
+        OrderStatus::Confirmed => ProtoStatus::Confirmed as i32,
+        OrderStatus::Processing => ProtoStatus::Processing as i32,
+        OrderStatus::Shipped => ProtoStatus::Shipped as i32,
+        OrderStatus::Delivered => ProtoStatus::Delivered as i32,
+        OrderStatus::Cancelled => ProtoStatus::Cancelled as i32,
+    };
     Order {
         id: order.id.to_string(),
         customer_id: order.customer_id,
         status: order.status.as_str().to_string(),
+        status_enum,
         total_amount: order.total_amount,
         currency: order.currency,
         notes: order.notes,

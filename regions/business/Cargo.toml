@@ -47,7 +47,7 @@ opentelemetry-otlp = "0.27"
 tracing-opentelemetry = "0.28"
 prometheus = "0.13"
 validator = { version = "0.18", features = ["derive"] }
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 
 # リリースビルドの最適化設定
 [profile.dev]

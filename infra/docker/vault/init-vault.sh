@@ -11,6 +11,13 @@
 
 set -euo pipefail
 
+# 本番・ステージング環境では必須変数が設定されていることを検証する
+if [ "$ENVIRONMENT" = "production" ] || [ "$ENVIRONMENT" = "staging" ]; then
+    : "${VAULT_ADDR:?VAULT_ADDR must be set in production/staging}"
+    : "${VAULT_TOKEN:?VAULT_TOKEN must be set in production/staging}"
+    : "${VAULT_INIT_KEY:?VAULT_INIT_KEY must be set in production/staging}"
+fi
+
 # 環境変数から取得（未設定時はローカル開発用デフォルト値を使用）
 VAULT_ADDR="${VAULT_ADDR:-http://localhost:8200}"
 VAULT_TOKEN="${VAULT_TOKEN:-dev-token}"

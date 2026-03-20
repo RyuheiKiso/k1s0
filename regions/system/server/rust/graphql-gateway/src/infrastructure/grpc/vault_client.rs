@@ -94,11 +94,11 @@ impl VaultGrpcClient {
         offset: Option<i32>,
         limit: Option<i32>,
     ) -> anyhow::Result<Vec<VaultAuditLogEntry>> {
-        // offset/limit は Pagination サブメッセージに移行済み
+        // offset/limit は Pagination サブメッセージに移行済み（Option<i32> 型のため as i32 キャスト不要）
         let request = tonic::Request::new(proto::k1s0::system::vault::v1::ListAuditLogsRequest {
             pagination: Some(proto::k1s0::system::common::v1::Pagination {
-                page: offset.unwrap_or(0) as i32 + 1,
-                page_size: limit.unwrap_or(50) as i32,
+                page: offset.unwrap_or(0) + 1,
+                page_size: limit.unwrap_or(50),
             }),
         });
 

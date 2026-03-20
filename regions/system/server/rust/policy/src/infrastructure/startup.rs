@@ -82,7 +82,14 @@ pub async fn run() -> anyhow::Result<()> {
 
             (cached_policy_repo, bundle_repo)
         } else {
-            info!("no database configured, using in-memory repositories");
+            // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+            k1s0_server_common::require_infra(
+                "policy",
+                k1s0_server_common::InfraKind::Database,
+                &cfg.app.environment,
+                None::<String>,
+            )?;
+            info!("no database configured, using in-memory repositories (dev/test bypass)");
             let policy_repo: Arc<dyn PolicyRepository> = Arc::new(InMemoryPolicyRepository::new());
             let bundle_repo: Arc<dyn PolicyBundleRepository> =
                 Arc::new(InMemoryPolicyBundleRepository::new());

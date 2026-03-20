@@ -20,15 +20,17 @@ pub struct KeycloakAdminClient {
 impl KeycloakAdminClient {
     /// 新しい KeycloakAdminClient を生成する。
     /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
-    pub fn new(config: KeycloakAdminConfig) -> Self {
+    /// TLS バックエンドの初期化に失敗した場合は Err を返す。
+    pub fn new(config: KeycloakAdminConfig) -> anyhow::Result<Self> {
+        // reqwest の Client 構築: TLS バックエンドが利用不可の場合はエラーとして伝播する
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
-            .expect("HTTP client の作成に失敗");
-        Self {
+            .map_err(|e| anyhow::anyhow!("HTTP クライアントの構築に失敗: {}", e))?;
+        Ok(Self {
             config,
             http_client,
-        }
+        })
     }
 
     #[allow(dead_code)]

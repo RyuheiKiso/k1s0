@@ -93,7 +93,14 @@ pub async fn run() -> anyhow::Result<()> {
 
         (store, audit, Some(pool.as_ref().clone()))
     } else {
-        info!("using in-memory secret store (dev mode)");
+        // infra_guard: stable サービスでは DB/Vault 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "vault",
+            k1s0_server_common::InfraKind::Database,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("using in-memory secret store (dev mode / dev/test bypass)");
         let store: Arc<dyn SecretStore> = Arc::new(InMemorySecretStore::new());
         let audit: Arc<dyn AccessLogRepository> = Arc::new(NoopAccessLogRepository);
         (store, audit, None)

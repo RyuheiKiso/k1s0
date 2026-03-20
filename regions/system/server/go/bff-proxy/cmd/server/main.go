@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -81,8 +82,14 @@ func run() error {
 	// Redis接続を確認する。
 	// redis.Cmdable インターフェース経由で Ping を呼び出すことで、
 	// スタンドアロン・Sentinel どちらのモードでも安全に動作する。
+	// Redis接続が必須でない場合のみスキップを許可する
 	if err := redisClient.Ping(ctx).Err(); err != nil {
-		logger.Warn("Redis not reachable at startup", slog.String("error", err.Error()))
+		if os.Getenv("ALLOW_REDIS_SKIP") == "true" {
+			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします", slog.String("error", err.Error()))
+		} else {
+			logger.Error("Redis接続に失敗しました", slog.String("error", err.Error()))
+			return fmt.Errorf("Redis接続に失敗しました: %w", err)
+		}
 	}
 
 	// Initialize session store.
@@ -112,10 +119,16 @@ func run() error {
 	}
 
 	// OIDC discoveryを実行する。失敗した場合はバックグラウンドで再試行する。
+	// WaitGroupでゴルーチンのライフサイクルを追跡し、シャットダウン時に安全に完了を待機する
+	var oidcWg sync.WaitGroup
 	if _, err := oauthClient.Discover(ctx); err != nil {
 		logger.Warn("OIDC discovery failed at startup, will retry in background", slog.String("error", err.Error()))
 		// discoveryが未完了の場合、バックグラウンドで定期的に再試行するゴルーチンを起動する
-		go retryOIDCDiscovery(ctx, oauthClient, logger)
+		oidcWg.Add(1)
+		go func() {
+			defer oidcWg.Done()
+			retryOIDCDiscovery(ctx, oauthClient, logger)
+		}()
 	}
 
 	// Determine secure cookies based on environment.
@@ -227,6 +240,9 @@ func run() error {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("server shutdown error: %w", err)
 	}
+
+	// OIDCリトライゴルーチンの完了を待機する（コンテキストキャンセル済みのため速やかに終了する）
+	oidcWg.Wait()
 
 	logger.Info("BFF Proxy stopped")
 	return nil

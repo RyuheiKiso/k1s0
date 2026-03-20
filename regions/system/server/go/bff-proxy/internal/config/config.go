@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"time"
@@ -121,6 +122,7 @@ func ParseDuration(s string, fallback time.Duration) time.Duration {
 }
 
 // Load reads the base YAML configuration and optionally merges an environment overlay.
+// 未知フィールドが含まれる場合はエラーを返し、設定ミスを早期に検出する。
 func Load(basePath string, envPath ...string) (*BFFConfig, error) {
 	data, err := os.ReadFile(basePath)
 	if err != nil {
@@ -128,7 +130,10 @@ func Load(basePath string, envPath ...string) (*BFFConfig, error) {
 	}
 
 	var cfg BFFConfig
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
+	// 未知フィールドを拒否する: タイポや廃止フィールドの混入を防ぐ
+	baseDecoder := yaml.NewDecoder(bytes.NewReader(data))
+	baseDecoder.KnownFields(true)
+	if err := baseDecoder.Decode(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
@@ -137,7 +142,10 @@ func Load(basePath string, envPath ...string) (*BFFConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read env config: %w", err)
 		}
-		if err := yaml.Unmarshal(envData, &cfg); err != nil {
+		// 環境オーバーレイでも未知フィールドを拒否する
+		envDecoder := yaml.NewDecoder(bytes.NewReader(envData))
+		envDecoder.KnownFields(true)
+		if err := envDecoder.Decode(&cfg); err != nil {
 			return nil, fmt.Errorf("failed to merge env config: %w", err)
 		}
 	}

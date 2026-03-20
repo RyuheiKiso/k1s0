@@ -21,6 +21,12 @@ docs/ @k1s0-platform/docs-team
 # CI/CD・GitHub 設定（ワークフロー・Dependabot 等）
 .github/ @k1s0-platform/platform-team
 
+# インフラ設定（Kubernetes・Helm・Terraform など）
+/infra/ @k1s0-ops
+
+# 運用・CI スクリプト（デプロイ・メンテナンス用スクリプト）
+/scripts/ @k1s0-ops
+
 # === 言語別ギルドのオーナーシップ ===
 # 各言語の専門チームが横断的にレビューする
 

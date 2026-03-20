@@ -183,7 +183,8 @@ pub async fn run() -> anyhow::Result<()> {
     let saga_client: Arc<dyn super::saga_client::SagaClient> =
         if let Ok(saga_url) = std::env::var("SAGA_SERVER_URL") {
             info!(saga_url = %saga_url, "initializing HTTP saga client");
-            Arc::new(super::saga_client::HttpSagaClient::new(&saga_url))
+            // new() が Result を返すようになったため ? で伝播する
+            Arc::new(super::saga_client::HttpSagaClient::new(&saga_url)?)
         } else {
             info!("SAGA_SERVER_URL not set, using noop saga client");
             Arc::new(super::saga_client::NoopSagaClient)
@@ -196,9 +197,10 @@ pub async fn run() -> anyhow::Result<()> {
                 realm = %keycloak_cfg.realm,
                 "initializing keycloak admin client"
             );
+            // new() が Result を返すようになったため ? で伝播する
             Arc::new(super::keycloak_admin::KeycloakAdminClient::new(
                 keycloak_cfg.clone(),
-            ))
+            )?)
         } else {
             info!("keycloak config not set, using noop keycloak admin client");
             Arc::new(super::keycloak_admin::NoopKeycloakAdmin)

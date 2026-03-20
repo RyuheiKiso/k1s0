@@ -26,7 +26,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 
 | ワークフロー      | ファイル          | トリガー                    | 目的                     |
 | ----------------- | ----------------- | --------------------------- | ------------------------ |
-| CI                | `ci.yaml`         | PR 作成・更新時             | lint → test → build + モジュールレジストリ検証 |
+| CI                | `ci.yaml`         | PR 作成・更新時             | lint → test → build + モジュールレジストリ検証 + ティア間依存検証 |
 | Deploy            | `deploy.yaml`     | main マージ時               | image push → deploy     |
 | **Rust サービス CI (reusable)** | `_rust-service-ci.yaml` | `workflow_call` | Rust サービスの共通 lint → test → build |
 | **Go サービス CI (reusable)** | `_go-service-ci.yaml` | `workflow_call` | Go サービスの共通 lint → test → build |
@@ -56,6 +56,18 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | bff-proxy Deploy  | `bff-proxy-deploy.yaml` | main マージ時 (`regions/system/server/go/bff-proxy/**`) | `_service-deploy.yaml` 呼び出し (port-forward) |
 | App Publish       | `publish-app.yaml` | Git タグ push (`v*`) + `regions/**/flutter/**` 変更 | Flutter デスクトップアプリのクロスプラットフォームビルド・署名・Ceph RGW へのアップロード・App Registry へのメタデータ登録（[アプリ配布基盤設計](../distribution/アプリ配布基盤設計.md) 参照）|
 | coverage-rust     | `coverage-rust.yaml` | PR 時 (`regions/**/rust/**`) | Rust テストカバレッジを cargo-tarpaulin で計測し、JSON + HTML レポートをアーティファクトとしてアップロードする |
+
+### ci.yaml 追加ジョブ（セキュリティ監査対応）
+
+| ジョブ名 | 目的 |
+| --- | --- |
+| `check-tier-deps` | H5対応: system→business→service のティア依存方向を強制し、逆方向依存（system が business/service に依存する等）を CI で検出・失敗させる |
+
+### security.yaml 変更点（セキュリティ監査対応）
+
+| 変更点 | 内容 |
+| --- | --- |
+| H7対応: `dart-outdated.outcome` チェック追加 | `スキャン結果の集約` ステップに `dart-outdated.outcome` の failure 判定を追加し、Dart 依存チェック失敗時も CI 全体が失敗するよう修正 |
 
 ### CI ワークフロー（ci.yaml）
 

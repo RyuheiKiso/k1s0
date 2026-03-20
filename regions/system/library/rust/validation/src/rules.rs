@@ -1,7 +1,29 @@
+use std::sync::LazyLock;
+
 use chrono::{DateTime, Utc};
 use regex::Regex;
 
 use crate::error::ValidationError;
+
+// 静的正規表現: 初回アクセス時にコンパイルしてスレッドセーフにキャッシュする
+// メールアドレス検証用（TLD 2文字以上必須、4言語統一パターン H-18）
+static EMAIL_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+        .expect("静的 EMAIL_RE のコンパイルに失敗")
+});
+
+// UUID v4 検証用（バージョンビット・バリアントビット含む完全検証、4言語統一パターン H-18）
+static UUID_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+    )
+    .expect("静的 UUID_RE のコンパイルに失敗")
+});
+
+// テナント ID 検証用（小文字英数字・ハイフン許可、先頭末尾は英数字のみ、4言語統一パターン H-18）
+static TENANT_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$").expect("静的 TENANT_ID_RE のコンパイルに失敗")
+});
 
 fn err(field: &str, code: &str, message: String) -> ValidationError {
     ValidationError::new(field, code, message)
@@ -9,9 +31,7 @@ fn err(field: &str, code: &str, message: String) -> ValidationError {
 
 // メールアドレスを検証する。TLD 2文字以上を必須とする（4言語統一パターン H-18）
 pub fn validate_email(field: &str, email: &str) -> Result<(), ValidationError> {
-    let re = Regex::new(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
-        .expect("valid email regex");
-    if re.is_match(email) {
+    if EMAIL_RE.is_match(email) {
         Ok(())
     } else {
         Err(err(
@@ -24,11 +44,7 @@ pub fn validate_email(field: &str, email: &str) -> Result<(), ValidationError> {
 
 // UUID v4 のみを許可する（4言語統一パターン H-18）
 pub fn validate_uuid(field: &str, id: &str) -> Result<(), ValidationError> {
-    let re = Regex::new(
-        r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
-    )
-    .expect("valid uuid v4 regex");
-    if re.is_match(id) {
+    if UUID_RE.is_match(id) {
         Ok(())
     } else {
         Err(err(field, "INVALID_UUID", format!("invalid uuid v4: {id}")))
@@ -51,8 +67,7 @@ pub fn validate_url(field: &str, input: &str) -> Result<(), ValidationError> {
 
 // テナントIDを検証する。先頭・末尾は英数字、中間はハイフン許可（4言語統一パターン H-18）
 pub fn validate_tenant_id(field: &str, id: &str) -> Result<(), ValidationError> {
-    let re = Regex::new(r"^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$").expect("valid tenant regex");
-    if !re.is_match(id) {
+    if !TENANT_ID_RE.is_match(id) {
         return Err(err(
             field,
             "INVALID_TENANT_ID",

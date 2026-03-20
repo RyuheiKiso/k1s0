@@ -161,8 +161,9 @@ fn is_server_dir(path: &Path) -> bool {
 pub fn scan_grpc_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+    // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
     let re = GRPC_IMPORT_RE
-        .get_or_init(|| Regex::new(r#"import\s+"k1s0/(\w+)/(\w[\w-]*)/v\d+/"#).unwrap());
+        .get_or_init(|| Regex::new(r#"import\s+"k1s0/(\w+)/(\w[\w-]*)/v\d+/"#).expect("static regex"));
 
     // サービス名→tier のマップを構築
     let service_tier_map: HashMap<String, String> = services
@@ -266,7 +267,8 @@ pub fn scan_kafka_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Ve
 
     // パブリッシャーとサブスクライバーをマッチさせて依存関係を構築
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
-    let topic_re = Some(TOPIC_RE.get_or_init(|| Regex::new(r"k1s0\.(\w+)\.(\w[\w-]*)\.").unwrap()));
+    // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
+    let topic_re = Some(TOPIC_RE.get_or_init(|| Regex::new(r"k1s0\.(\w+)\.(\w[\w-]*)\.").expect("static regex")));
 
     for (topic, subscribers) in &topic_subscribers {
         for subscriber in subscribers {
@@ -393,9 +395,10 @@ fn extract_topics(
 pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
+    // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
     let re = REST_SERVICE_RE
-        .get_or_init(|| Regex::new(r"([\w-]+)\.k1s0-(system|business|service)").unwrap());
-    let graphql_re = GRAPHQL_RE.get_or_init(|| Regex::new(r"(?i)graphql|/graphql").unwrap());
+        .get_or_init(|| Regex::new(r"([\w-]+)\.k1s0-(system|business|service)").expect("static regex"));
+    let graphql_re = GRAPHQL_RE.get_or_init(|| Regex::new(r"(?i)graphql|/graphql").expect("static regex"));
 
     let service_tier_map: HashMap<String, String> = services
         .iter()
@@ -476,12 +479,12 @@ pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
 pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
 
-    // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
-    let cargo_re = CARGO_LIB_RE.get_or_init(|| Regex::new(r"k1s0-([\w-]+)").unwrap());
+    // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
+    let cargo_re = CARGO_LIB_RE.get_or_init(|| Regex::new(r"k1s0-([\w-]+)").expect("static regex"));
     let gomod_re = GOMOD_LIB_RE
-        .get_or_init(|| Regex::new(r"k1s0/regions/system/library/go/([\w-]+)").unwrap());
-    let npm_re = NPM_LIB_RE.get_or_init(|| Regex::new(r"@k1s0/([\w-]+)").unwrap());
-    let dart_re = DART_LIB_RE.get_or_init(|| Regex::new(r"k1s0_([\w]+)").unwrap());
+        .get_or_init(|| Regex::new(r"k1s0/regions/system/library/go/([\w-]+)").expect("static regex"));
+    let npm_re = NPM_LIB_RE.get_or_init(|| Regex::new(r"@k1s0/([\w-]+)").expect("static regex"));
+    let dart_re = DART_LIB_RE.get_or_init(|| Regex::new(r"k1s0_([\w]+)").expect("static regex"));
 
     for service in services {
         // Cargo.toml

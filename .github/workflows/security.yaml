@@ -106,7 +106,8 @@ jobs:
           echo "Dart: ${{ steps.dart-outdated.outcome }}"
           if [ "${{ steps.go-vulncheck.outcome }}" = "failure" ] || \
              [ "${{ steps.cargo-audit.outcome }}" = "failure" ] || \
-             [ "${{ steps.npm-audit.outcome }}" = "failure" ]; then
+             [ "${{ steps.npm-audit.outcome }}" = "failure" ] || \
+             [ "${{ steps.dart-outdated.outcome }}" = "failure" ]; then
             echo "::error::One or more security scans failed"
             exit 1
           fi

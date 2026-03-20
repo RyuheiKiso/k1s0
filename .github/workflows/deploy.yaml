@@ -389,5 +389,20 @@ jobs:
           echo "Waiting for rollout to complete..."
           kubectl rollout status deployment/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} --timeout=120s
           echo "Running health check..."
-          # ヘルスチェックのタイムアウトを5秒に設定し、無限待機を防止する
-          kubectl exec deploy/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} -- /busybox wget -qO- --timeout=5 http://127.0.0.1:8080/healthz
+          # サービスの言語を matrix.service パスから判定する:
+          # system/server/go/* は Go サービス（distroless のため /busybox が存在しない）
+          # それ以外（rust 等）は busybox の wget を使用する
+          LANG=$(echo "${{ matrix.service }}" | awk -F'/' '{for(i=1;i<=NF;i++) if ($i=="server") {print $(i+1); exit}}')
+          if [ "$LANG" = "go" ]; then
+            # Go サービスは distroless イメージを使用するため busybox が存在しない。
+            # kubectl port-forward 経由でホスト側から curl でヘルスチェックを実施する。
+            kubectl port-forward deploy/${{ steps.meta.outputs.service_name }} 18080:8080 -n ${{ steps.meta.outputs.namespace }} &
+            PF_PID=$!
+            sleep 2
+            curl -sf --max-time 5 http://127.0.0.1:18080/healthz
+            kill $PF_PID
+          else
+            # Rust サービスは busybox の wget を使用してコンテナ内からヘルスチェックを実施する。
+            # ヘルスチェックのタイムアウトを5秒に設定し、無限待機を防止する
+            kubectl exec deploy/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} -- /busybox wget -qO- --timeout=5 http://127.0.0.1:8080/healthz
+          fi

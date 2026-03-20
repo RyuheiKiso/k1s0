@@ -158,5 +158,10 @@ func (p *KafkaPubSub) Subscribe(ctx context.Context, topic string) (<-chan *Mess
 	if err := p.consumer.Subscribe(ctx, topic, handler); err != nil {
 		return nil, NewComponentError(p.name, "Subscribe", "failed to subscribe to Kafka topic", err)
 	}
+	// コンテキストがキャンセルされたときにチャネルをクローズして購読者にEOFを通知する
+	go func() {
+		<-ctx.Done()
+		close(ch)
+	}()
 	return ch, nil
 }

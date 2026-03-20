@@ -18,6 +18,10 @@ docs/
 **/.dart_tool/
 **/build/
 
+# 機密情報ファイル（コンテナイメージへの混入を防ぐ）
+.env
+.env.*
+
 # Misc
 **/*.log
 **/test-results/
