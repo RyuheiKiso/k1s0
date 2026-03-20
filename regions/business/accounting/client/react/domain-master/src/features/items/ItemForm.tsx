@@ -50,7 +50,7 @@ export function ItemForm({ categoryCode, item, items, onClose }: ItemFormProps) 
       const result = updateItemSchema.safeParse(input);
       if (!result.success) {
         const fieldErrors: Record<string, string> = {};
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           fieldErrors[err.path.join('.')] = err.message;
         });
         setErrors(fieldErrors);
@@ -61,7 +61,7 @@ export function ItemForm({ categoryCode, item, items, onClose }: ItemFormProps) 
       const result = createItemSchema.safeParse(input);
       if (!result.success) {
         const fieldErrors: Record<string, string> = {};
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           fieldErrors[err.path.join('.')] = err.message;
         });
         setErrors(fieldErrors);

@@ -63,6 +63,7 @@ k1s0-telemetry = { path = "../telemetry", features = ["axum-layer"] }
 k1s0-correlation = { path = "../correlation", features = ["tower-layer"] }
 k1s0-health = { path = "../health" }
 axum = {workspace = true}
+serde_yaml = {workspace = true}
 
 [lints]
 workspace = true

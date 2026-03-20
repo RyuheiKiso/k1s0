@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'app_config.dart';
 
 /// アプリケーション設定を提供するプロバイダー

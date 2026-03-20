@@ -37,8 +37,10 @@ func TestNewRedisLockFromURL_ValidURL(t *testing.T) {
 
 // generateRedisTokenが32文字の一意なトークンを生成することを確認する。
 func TestGenerateRedisToken(t *testing.T) {
-	token1 := generateRedisToken()
-	token2 := generateRedisToken()
+	token1, err1 := generateRedisToken()
+	require.NoError(t, err1)
+	token2, err2 := generateRedisToken()
+	require.NoError(t, err2)
 	assert.Len(t, token1, 32)
 	assert.Len(t, token2, 32)
 	assert.NotEqual(t, token1, token2)

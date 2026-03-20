@@ -35,7 +35,7 @@ describe('DepsPage', () => {
     const user = userEvent.setup();
     renderWithProviders(<DepsPage />);
 
-    await user.click(screen.getByRole('radio', { name: 'Selected services' }));
+    await user.click(screen.getByRole('radio', { name: '選択されたサービス' }));
     await waitFor(() => screen.getByText('auth'));
     await user.click(screen.getAllByRole('checkbox')[0]);
     await user.click(screen.getByTestId('btn-run-deps'));

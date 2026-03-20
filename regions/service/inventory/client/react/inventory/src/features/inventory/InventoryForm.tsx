@@ -47,7 +47,7 @@ export function InventoryForm({ productId, warehouseId, inventoryId }: Inventory
       if (!result.success) {
         // バリデーションエラーをフィールド別に整理
         const fieldErrors: Record<string, string> = {};
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           const field = err.path.join('.');
           fieldErrors[field] = err.message;
         });
@@ -72,7 +72,7 @@ export function InventoryForm({ productId, warehouseId, inventoryId }: Inventory
       const result = updateStockSchema.safeParse(input);
       if (!result.success) {
         const fieldErrors: Record<string, string> = {};
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           const field = err.path.join('.');
           fieldErrors[field] = err.message;
         });

@@ -96,11 +96,23 @@ fn generate_random_key() -> String {
     s
 }
 
+/// HMAC-SHA256 を使用して API キーをハッシュ化する。
+/// サーバー側ペッパーにより、DB 漏洩時でも元キーの復元を困難にする。
 fn hash_key(raw_key: &str) -> String {
-    use sha2::{Digest, Sha256};
-    let mut hasher = Sha256::new();
-    hasher.update(raw_key.as_bytes());
-    let digest = hasher.finalize();
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    type HmacSha256 = Hmac<Sha256>;
+
+    // サーバー側ペッパーを環境変数から取得（未設定時は開発用デフォルト）
+    let pepper = std::env::var("API_KEY_PEPPER")
+        .unwrap_or_else(|_| "k1s0-dev-pepper-do-not-use-in-production".to_string());
+
+    let mut mac = HmacSha256::new_from_slice(pepper.as_bytes())
+        .expect("HMAC accepts any key length");
+    mac.update(raw_key.as_bytes());
+    let result = mac.finalize();
+    let digest = result.into_bytes();
+
     let mut out = String::with_capacity(digest.len() * 2);
     for b in digest {
         use std::fmt::Write;
@@ -175,5 +187,46 @@ mod tests {
             CreateApiKeyError::Validation(msg) => assert!(msg.contains("tenant_id")),
             e => unreachable!("unexpected error: {:?}", e),
         }
+    }
+
+    /// 同一入力に対して hash_key が決定的な結果を返すことを確認する。
+    #[test]
+    fn test_hash_key_deterministic() {
+        // 環境変数を固定してテスト間の競合を防ぐ
+        std::env::set_var("API_KEY_PEPPER", "test-pepper-deterministic");
+        let key = "k1s0_test_deterministic_key";
+        let h1 = hash_key(key);
+        let h2 = hash_key(key);
+        assert_eq!(h1, h2, "同一入力に対するハッシュは一致すべき");
+    }
+
+    /// 異なる入力に対して hash_key が異なるハッシュを返すことを確認する。
+    #[test]
+    fn test_hash_key_different_inputs() {
+        let h1 = hash_key("k1s0_key_alpha");
+        let h2 = hash_key("k1s0_key_beta");
+        assert_ne!(h1, h2, "異なる入力に対するハッシュは異なるべき");
+    }
+
+    /// ペッパーが変わるとハッシュ値も変わることを確認する。
+    #[test]
+    fn test_hash_key_pepper_changes_output() {
+        let key = "k1s0_pepper_test_key_12345";
+
+        // デフォルトペッパーでハッシュ生成
+        std::env::remove_var("API_KEY_PEPPER");
+        let h_default = hash_key(key);
+
+        // カスタムペッパーでハッシュ生成
+        std::env::set_var("API_KEY_PEPPER", "custom-test-pepper");
+        let h_custom = hash_key(key);
+
+        // テスト後に環境変数をクリーンアップ
+        std::env::remove_var("API_KEY_PEPPER");
+
+        assert_ne!(
+            h_default, h_custom,
+            "ペッパーが異なればハッシュも異なるべき"
+        );
     }
 }

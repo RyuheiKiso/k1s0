@@ -7,6 +7,7 @@ void main() {
       test('複数のブローカーをカンマで結合すること', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker1:9092', 'broker2:9092', 'broker3:9092'],
+          consumerGroup: 'test-group',
         );
         expect(config.bootstrapServersString(),
             equals('broker1:9092,broker2:9092,broker3:9092'));
@@ -15,6 +16,7 @@ void main() {
       test('単一ブローカーをそのまま返すこと', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker1:9092'],
+          consumerGroup: 'test-group',
         );
         expect(config.bootstrapServersString(), equals('broker1:9092'));
       });
@@ -25,6 +27,7 @@ void main() {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SSL',
+          consumerGroup: 'test-group',
         );
         expect(config.usesTLS(), isTrue);
       });
@@ -33,6 +36,7 @@ void main() {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SASL_SSL',
+          consumerGroup: 'test-group',
         );
         expect(config.usesTLS(), isTrue);
       });
@@ -41,6 +45,7 @@ void main() {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'PLAINTEXT',
+          consumerGroup: 'test-group',
         );
         expect(config.usesTLS(), isFalse);
       });
@@ -49,6 +54,7 @@ void main() {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SASL_PLAINTEXT',
+          consumerGroup: 'test-group',
         );
         expect(config.usesTLS(), isFalse);
       });
@@ -56,6 +62,7 @@ void main() {
       test('securityProtocolがnullの場合にfalseを返すこと', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
         );
         expect(config.usesTLS(), isFalse);
       });
@@ -63,7 +70,7 @@ void main() {
 
     group('validate', () {
       test('bootstrapServersが空の場合にエラーを投げること', () {
-        final config = KafkaConfig(bootstrapServers: []);
+        final config = KafkaConfig(bootstrapServers: [], consumerGroup: 'test-group');
         expect(
           () => config.validate(),
           throwsA(isA<KafkaError>().having(
@@ -75,6 +82,7 @@ void main() {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'INVALID',
+          consumerGroup: 'test-group',
         );
         expect(
           () => config.validate(),
@@ -87,6 +95,7 @@ void main() {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'PLAINTEXT',
+          consumerGroup: 'test-group',
         );
         expect(() => config.validate(), returnsNormally);
       });
@@ -95,6 +104,7 @@ void main() {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SSL',
+          consumerGroup: 'test-group',
         );
         expect(() => config.validate(), returnsNormally);
       });
@@ -103,6 +113,7 @@ void main() {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SASL_PLAINTEXT',
+          consumerGroup: 'test-group',
         );
         expect(() => config.validate(), returnsNormally);
       });
@@ -111,6 +122,7 @@ void main() {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
           securityProtocol: 'SASL_SSL',
+          consumerGroup: 'test-group',
         );
         expect(() => config.validate(), returnsNormally);
       });
@@ -118,8 +130,97 @@ void main() {
       test('securityProtocolなしでバリデーションが通ること', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
         );
         expect(() => config.validate(), returnsNormally);
+      });
+
+      test('consumerGroupが空の場合にエラーを投げること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: '',
+        );
+        expect(
+          () => config.validate(),
+          throwsA(isA<KafkaError>().having(
+              (e) => e.message, 'message', contains('consumer group'))),
+        );
+      });
+
+      test('connectionTimeoutMsが0以下の場合にエラーを投げること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
+          connectionTimeoutMs: 0,
+        );
+        expect(
+          () => config.validate(),
+          throwsA(isA<KafkaError>().having(
+              (e) => e.message, 'message', contains('connection timeout'))),
+        );
+      });
+
+      test('requestTimeoutMsが0以下の場合にエラーを投げること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
+          requestTimeoutMs: -1,
+        );
+        expect(
+          () => config.validate(),
+          throwsA(isA<KafkaError>().having(
+              (e) => e.message, 'message', contains('request timeout'))),
+        );
+      });
+
+      test('maxMessageBytesが0以下の場合にエラーを投げること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
+          maxMessageBytes: 0,
+        );
+        expect(
+          () => config.validate(),
+          throwsA(isA<KafkaError>().having(
+              (e) => e.message, 'message', contains('max message bytes'))),
+        );
+      });
+
+      test('全オプションフィールド指定でバリデーションが通ること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
+          connectionTimeoutMs: 10000,
+          requestTimeoutMs: 60000,
+          maxMessageBytes: 2000000,
+        );
+        expect(() => config.validate(), returnsNormally);
+      });
+    });
+
+    group('デフォルト値', () {
+      test('connectionTimeoutMsのデフォルト値が5000であること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
+        );
+        expect(config.connectionTimeoutMs, equals(5000));
+      });
+
+      test('requestTimeoutMsのデフォルト値が30000であること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
+        );
+        expect(config.requestTimeoutMs, equals(30000));
+      });
+
+      test('maxMessageBytesのデフォルト値が1000000であること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
+        );
+        expect(config.maxMessageBytes, equals(1000000));
       });
     });
   });

@@ -96,7 +96,9 @@ pub async fn rbac_check(
     }
 
     let allowed = check_permission_with_role_table(&state, &roles, resource, action).await;
-    if state.permission_cache_refresh_on_miss {
+    // SEC-010: 許可結果のみキャッシュする。拒否結果をキャッシュすると、
+    // 権限付与後もキャッシュ TTL が切れるまで拒否が継続してしまうため除外する。
+    if state.permission_cache_refresh_on_miss && allowed {
         state.permission_cache.insert(cache_key, allowed).await;
     }
 

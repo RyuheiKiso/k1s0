@@ -109,6 +109,7 @@ func newTestAuthHandler(oauthClient OAuthClient, store session.Store) *AuthHandl
 		30*time.Minute,
 		"https://app.example.com",
 		false,
+		"",
 		slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})),
 	)
 }

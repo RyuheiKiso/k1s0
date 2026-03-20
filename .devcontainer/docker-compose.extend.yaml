@@ -5,6 +5,9 @@ services:
     volumes:
       - ..:/workspace:cached
     command: sleep infinity
+    # postgres/redis は infra profile に属するため、COMPOSE_PROFILES=infra で起動される
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

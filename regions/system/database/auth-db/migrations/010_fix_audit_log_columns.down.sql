@@ -1,3 +1,10 @@
--- ロールバック: detail → metadata, created_at → recorded_at
-ALTER TABLE auth.audit_logs RENAME COLUMN detail TO metadata;
-ALTER TABLE auth.audit_logs RENAME COLUMN created_at TO recorded_at;
+-- ============================================================
+-- 010_fix_audit_log_columns.down.sql
+-- ============================================================
+-- このマイグレーションは 013_squash_audit_columns に統合済み。
+-- 元の内容: 009 のリネームを再適用 (detail → metadata, created_at → recorded_at)
+--
+-- 既に適用済みの環境でマイグレーション履歴の整合性を保つため、
+-- 空の no-op マイグレーションとして残している。
+-- ============================================================
+DO $$ BEGIN END $$;

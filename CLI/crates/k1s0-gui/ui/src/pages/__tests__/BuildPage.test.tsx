@@ -25,7 +25,7 @@ describe('BuildPage', () => {
 
   it('shows an empty state when no targets are found', async () => {
     renderWithProviders(<BuildPage />);
-    expect(await screen.findByText('No buildable targets were found.')).toBeInTheDocument();
+    expect(await screen.findByText('ビルド可能なターゲットが見つかりませんでした。')).toBeInTheDocument();
   });
 
   it('renders targets returned by scanBuildableTargets', async () => {

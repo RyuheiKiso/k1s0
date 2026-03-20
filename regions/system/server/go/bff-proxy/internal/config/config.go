@@ -17,6 +17,14 @@ type BFFConfig struct {
 	Session       SessionConfig       `yaml:"session" validate:"required"`
 	CSRF          CSRFConfig          `yaml:"csrf"`
 	Upstream      UpstreamConfig      `yaml:"upstream" validate:"required"`
+	// Cookie は Cookie のデフォルト設定。
+	Cookie CookieConfig `yaml:"cookie"`
+}
+
+// CookieConfig は Cookie のデフォルト設定。
+type CookieConfig struct {
+	// Domain は Cookie を発行するドメイン。空文字の場合はブラウザがオリジンから自動設定する。
+	Domain string `yaml:"domain"`
 }
 
 // AppConfig identifies the service.

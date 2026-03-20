@@ -72,6 +72,52 @@ just proto
 | `security-ts` | TypeScript: `npm audit --audit-level=high`（全 package-lock.json 自動探索） |
 | `security-dart` | Dart/Flutter: `pub outdated`（advisory、全 pubspec.yaml 自動探索） |
 
+## 技術監査対応の改善事項
+
+### DRY 化: ワークスペース除外ロジックの集約
+
+実験系クレート（`ai-agent`, `ai-gateway` 等）のワークスペース除外ロジックを `scripts/list-experimental-excludes.sh` に集約した。justfile と CI の両方がこのスクリプトを呼び出すことで、除外対象の定義が一箇所に集約され、追加・削除時の変更漏れを防止する。
+
+```bash
+# scripts/list-experimental-excludes.sh の出力例:
+# --exclude ai-agent --exclude ai-gateway
+EXCLUDES=$(bash scripts/list-experimental-excludes.sh)
+cargo clippy --manifest-path regions/system/Cargo.toml --workspace $EXCLUDES -- -D warnings
+```
+
+### standalone サーバー変数化
+
+justfile 内でハードコードされていた standalone サーバーのパスを `_standalone_rust_servers` 変数に集約した。新しい standalone サーバーが追加された場合、この変数に追加するだけで全レシピに反映される。
+
+```just
+# standalone ワークスペースを持たない Rust サーバーのパス一覧
+_standalone_rust_servers := "regions/service/order/server/rust/order regions/service/inventory/server/rust/inventory regions/service/payment/server/rust/payment regions/business/accounting/server/rust/domain-master"
+```
+
+### --if-present オプションの追加（lint-ts / typecheck）
+
+`npm run lint` および `npm run typecheck` の実行に `--if-present` オプションを追加した。
+
+**理由**: モノリポ内の全 TypeScript パッケージが `lint` / `typecheck` スクリプトを `package.json` に定義しているとは限らない。一部のパッケージ（ユーティリティライブラリや設定パッケージ等）はこれらのスクリプトを持たず、`--if-present` なしでは `npm run lint` がエラー終了し、他のパッケージの lint が実行されなくなる。`--if-present` により、スクリプトが存在しないパッケージはスキップし、存在するパッケージのみ実行する。
+
+> **注意**: `test` / `build` スクリプトについては `--if-present` を使用しない方針である（「npm スクリプト実行の --if-present 削除方針」を参照）。`lint` / `typecheck` は補助的なチェックであるため許容するが、`test` / `build` はすべてのパッケージに必須とする。
+
+```just
+# TypeScript lint（--if-present: 全パッケージが lint スクリプトを持つとは限らないため）
+lint-ts:
+    npm run lint --if-present --workspaces
+    npm run typecheck --if-present --workspaces
+```
+
+### Cargo.toml 検索深度の制限
+
+justfile 内の `find` コマンドによる `Cargo.toml` 探索に `-maxdepth 4` を設定した。モノリポのディレクトリ階層が深いため、無制限の探索ではビルドに無関係な深い階層（`target/` 配下等）の `Cargo.toml` を誤検出するリスクがあった。`-maxdepth 4` により、`regions/{tier}/server/rust/` レベルまでの探索に限定し、検索速度の向上と誤検出の防止を実現する。
+
+```bash
+# 変更前: find regions -name Cargo.toml
+# 変更後: find regions -maxdepth 4 -name Cargo.toml
+```
+
 ## CI との整合性
 
 justfile と CI (`ci.yaml`) はともに `modules.yaml`（モジュールレジストリ）を唯一の情報源として使用する。

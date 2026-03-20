@@ -3,6 +3,7 @@
  * 種別に応じてフレームワーク、データベース設定、または言語を選択する
  */
 
+import HelpButton from '../../components/HelpButton';
 import { getLanguageOptions } from '../../lib/generate-wizard';
 import type { Framework, Kind, Language, Rdbms } from '../../lib/tauri-commands';
 
@@ -66,10 +67,13 @@ export default function StepLangFw({
 }: StepLangFwProps) {
   return (
     <section
-      className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5"
+      className="p3-expand-in mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-langfw"
     >
-      <h2 className="text-lg font-semibold text-white">言語またはフレームワーク</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-white">言語またはフレームワーク</h2>
+        <HelpButton helpKey="generate.langfw" />
+      </div>
 
       {/* Client種別の場合はフレームワーク選択 */}
       {kind === 'Client' && (
@@ -104,7 +108,7 @@ export default function StepLangFw({
                 void onValidateDatabaseName('databaseName', databaseName);
               }}
               placeholder="main"
-              className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+              className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
               data-testid="input-db-name"
             />
             {nameError && (
@@ -152,7 +156,7 @@ export default function StepLangFw({
         <button
           type="button"
           onClick={onBack}
-          className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
+          className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)]"
           data-testid="btn-back"
         >
           戻る
@@ -160,7 +164,7 @@ export default function StepLangFw({
         <button
           type="button"
           onClick={onNext}
-          className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+          className="bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500"
           data-testid="btn-next"
         >
           次へ

@@ -58,72 +58,10 @@ export async function withRetry<T>(
   throw new RetryError(config.maxAttempts, lastError!);
 }
 
-export type CircuitBreakerState = 'closed' | 'open' | 'half-open';
-
-export interface CircuitBreakerConfig {
-  failureThreshold: number;
-  successThreshold: number;
-  timeoutMs: number;
-}
-
-export const defaultCircuitBreakerConfig: CircuitBreakerConfig = {
-  failureThreshold: 5,
-  successThreshold: 2,
-  timeoutMs: 30_000,
-};
-
-export class CircuitBreaker {
-  private state: CircuitBreakerState = 'closed';
-  private failureCount = 0;
-  private successCount = 0;
-  private openedAt = 0;
-  private readonly config: CircuitBreakerConfig;
-
-  constructor(config: Partial<CircuitBreakerConfig> = {}) {
-    this.config = { ...defaultCircuitBreakerConfig, ...config };
-  }
-
-  getState(): CircuitBreakerState {
-    this.checkTimeout();
-    return this.state;
-  }
-
-  isOpen(): boolean {
-    this.checkTimeout();
-    return this.state === 'open';
-  }
-
-  recordSuccess(): void {
-    this.checkTimeout();
-    if (this.state === 'half-open') {
-      this.successCount++;
-      if (this.successCount >= this.config.successThreshold) {
-        this.state = 'closed';
-        this.failureCount = 0;
-        this.successCount = 0;
-        this.openedAt = 0;
-      }
-    } else if (this.state === 'closed') {
-      this.failureCount = 0;
-    }
-  }
-
-  recordFailure(): void {
-    this.checkTimeout();
-    this.failureCount++;
-    if (this.failureCount >= this.config.failureThreshold) {
-      this.state = 'open';
-      this.openedAt = Date.now();
-      this.failureCount = 0;
-    }
-  }
-
-  private checkTimeout(): void {
-    if (this.state === 'open' && this.openedAt > 0) {
-      if (Date.now() - this.openedAt >= this.config.timeoutMs) {
-        this.state = 'half-open';
-        this.successCount = 0;
-      }
-    }
-  }
-}
+// サーキットブレーカーは正規モジュールから再エクスポートする（重複実装を排除）
+export {
+  CircuitBreaker,
+  CircuitBreakerError,
+  type CircuitBreakerConfig,
+  type CircuitState,
+} from '@k1s0/circuit-breaker';

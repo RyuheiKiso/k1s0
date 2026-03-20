@@ -55,6 +55,8 @@ fn domain_to_proto(msg: crate::domain::entity::DlqMessage) -> ProtoDlqMessage {
             seconds: t.timestamp(),
             nanos: t.timestamp_subsec_nanos() as i32,
         }),
+        // 後方互換フィールド（0 = UNSPECIFIED）
+        status_enum: 0,
     }
 }
 

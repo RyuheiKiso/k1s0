@@ -218,6 +218,56 @@ CorrelationLayer は受信リクエストに対して:
 
 ---
 
+## 共通 ObservabilityConfig モジュール {#共通observabilityconfig}
+
+技術監査対応により、全サーバーで重複していた可観測性設定構造体を `k1s0-server-common` の `config` モジュールに集約した。各サーバーの `config.rs` にローカル定義されていた `ObservabilityConfig` / `LogConfig` / `TraceConfig` / `MetricsConfig` を廃止し、共通クレートからインポートする。
+
+### 集約された構造体
+
+| 構造体 | 説明 | デフォルト値 |
+|--------|------|-------------|
+| `ObservabilityConfig` | ログ・トレース・メトリクス設定の親構造体 | 各サブ設定のデフォルト |
+| `LogConfig` | ログレベル・フォーマット | `level: "info"`, `format: "json"` |
+| `TraceConfig` | 分散トレースの有効/無効・エンドポイント・サンプリングレート | `enabled: true`, `endpoint: DEFAULT_OTEL_ENDPOINT`, `sample_rate: 1.0` |
+| `MetricsConfig` | Prometheus メトリクスの有効/無効・エンドポイントパス | `enabled: true`, `path: "/metrics"` |
+
+### 使用方法
+
+```rust
+// 各サーバーの config.rs — 共通クレートからインポート
+use k1s0_server_common::config::ObservabilityConfig;
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Config {
+    pub app: AppConfig,
+    pub server: ServerConfig,
+    pub database: DatabaseConfig,
+    // 共通 ObservabilityConfig を使用（ローカル定義は不要）
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
+}
+```
+
+### Cargo.toml 設定
+
+```toml
+[dependencies]
+k1s0-server-common = { path = "../../system/library/rust/server-common", features = ["axum"] }
+# config モジュールは常に利用可能（feature フラグ不要）
+```
+
+### startup モジュールとの連携
+
+`ObservabilityConfig` から `startup::ObservabilityFields` への `From` 変換が実装されており（`startup` feature 有効時）、`ServerBuilder` との連携がシームレスに行える。
+
+### 設計判断
+
+- **デフォルト値の一元管理**: エンドポイント URL やログレベルの変更を1ファイルで完結させる
+- **serde(default) 対応**: YAML で省略されたフィールドには自動的にデフォルト値が適用される
+- **後方互換**: 既存の config.yaml フォーマットを変更せずに移行可能
+
+---
+
 ## 共通 config.yaml セクション {#共通configyaml}
 
 全サーバーの config.yaml に含まれる共通セクション。サービス固有セクションは各設計書を参照。
@@ -249,12 +299,21 @@ kafka:
     - "kafka-0.messaging.svc.cluster.local:9092"
   security_protocol: "PLAINTEXT"
 
+# ObservabilityConfig 構造体に対応（k1s0-server-common の config モジュールで定義）
 observability:
-  otlp_endpoint: "http://otel-collector.observability:4317"
-  log_level: "info"
-  log_format: "json"
-  metrics_enabled: true
+  log:
+    level: "info"              # ログレベル（info, debug, warn, error）
+    format: "json"             # 出力フォーマット（json, text）
+  trace:
+    enabled: true              # 分散トレースの有効/無効
+    endpoint: "http://otel-collector.observability:4317"  # OTLP エンドポイント
+    sample_rate: 1.0           # サンプリングレート（0.0〜1.0）
+  metrics:
+    enabled: true              # Prometheus メトリクスの有効/無効
+    path: "/metrics"           # メトリクスエンドポイントパス
 ```
+
+> **注記**: `observability` セクションは従来のフラット形式（`otlp_endpoint`, `log_level` 等）から構造化形式（`log.level`, `trace.endpoint` 等）に移行した。`k1s0-server-common` の `ObservabilityConfig` 構造体がこの構造化形式に対応している。
 
 ---
 
@@ -290,6 +349,79 @@ while let Some(result) = join_set.join_next().await {
 - **並列度制限**: バックプレッシャー制御のため、`concurrency` で同時実行数を制限
 - **冪等性保証**: `idempotency_key` により重複発行を防止（`ON CONFLICT DO NOTHING`）
 - **エラー伝播**: 個別タスクの失敗は次回のポーリングで再処理
+
+---
+
+## startup.rs コピペ構造の共通化方針 {#startup共通化}
+
+### 現状の問題
+
+service / business 層の 4 サーバー（order, inventory, payment, domain-master）および system 層の多数のサーバーで、`startup.rs` がほぼ同一のボイラープレートコードをコピペしている。具体的に重複しているのは以下の処理ブロックである:
+
+| # | 処理 | 重複行数（概算） | サーバー間の差分 |
+|---|------|-----------------|----------------|
+| 1 | Config ロード（CONFIG_PATH 環境変数 → Config::load） | ~3行 | なし |
+| 2 | TelemetryConfig 構築 + init_telemetry 呼び出し | ~15行 | service_name, tier のみ |
+| 3 | DB 接続（connect_database + MIGRATOR.run） | ~10行 | なし |
+| 4 | Metrics 生成 | ~1行 | ラベル名のみ |
+| 5 | Auth（JwksVerifier + AuthState 構築） | ~12行 | なし |
+| 6 | REST + gRPC サーバー起動 + tokio::select! | ~30行 | gRPC サービス型のみ |
+| 7 | Graceful shutdown シグナル処理 | ~10行 | なし |
+| 8 | connect_database 関数 | ~10行 | なし |
+
+**問題の影響**:
+- クロスカッティングな改善（例: テレメトリ初期化のエラーハンドリング変更）を全サーバーに手動で適用する必要がある
+- 改善漏れによるサーバー間の微妙な挙動差異が生まれる
+- 新サーバー追加時にコピペ元の選定と手動カスタマイズが必要
+
+### 既存の ServerBuilder との関係
+
+`k1s0-server-common` には既に `ServerBuilder`（`startup.rs`）が存在し、テレメトリ初期化・DB プール作成・JWKS 検証器・Metrics 生成を提供している。しかし、現時点では一部のサーバーのみが `ServerBuilder` を利用しており、大半のサーバーは従来のインライン実装を維持している。
+
+### 共通化方針
+
+`k1s0-server-common` クレートの `ServerBuilder` を拡張し、以下の初期化処理を追加で共通化する:
+
+1. **REST + gRPC 並行サーバー起動**: `ServerBuilder::serve()` メソッドを追加し、REST Router と gRPC Service を受け取って `tokio::select!` による並行起動 + graceful shutdown を一括で実行する
+2. **connect_database の統一**: 各サーバーにローカル定義されている `connect_database()` を `ServerBuilder::init_db_pool()` に完全移行する
+3. **Outbox Poller 起動の共通化**: Outbox を使用するサーバー向けに、ポーラーのバックグラウンド起動 + shutdown 連携を `ServerBuilder` に統合する
+
+#### trait によるサーバー固有設定の注入
+
+```rust
+// サーバー固有の設定を注入するための trait（設計案）
+#[async_trait::async_trait]
+pub trait ServerApp: Send + Sync + 'static {
+    /// サービス名（テレメトリ・メトリクスに使用）
+    fn service_name(&self) -> &str;
+    /// サービス階層
+    fn tier(&self) -> Tier;
+    /// REST ルーターを構築する
+    fn build_rest_router(&self, state: &CommonState) -> axum::Router;
+    /// gRPC サービスを構築し tonic Server に追加する
+    fn build_grpc_server(&self, builder: tonic::transport::Server)
+        -> tonic::transport::server::Router;
+    /// gRPC メソッド名 → 必要なアクションのマッピング
+    fn required_action(method: &str) -> &'static str;
+}
+```
+
+各サーバーは `ServerApp` trait を実装し、`ServerBuilder::run(app)` を呼び出すだけで起動できるようにする。
+
+### 移行ステップ
+
+| Phase | 内容 | 影響範囲 |
+|-------|------|---------|
+| Phase 1 | `ServerBuilder` に `serve()` メソッドを追加。REST/gRPC 並行起動 + graceful shutdown を共通化 | server-common のみ |
+| Phase 2 | 既存の `connect_database()` ローカル定義を持つサーバーを `ServerBuilder::init_db_pool()` に移行 | 全 Rust サーバー（段階的） |
+| Phase 3 | service 層 3 サーバー（order, payment, inventory）を `ServerApp` trait ベースに移行。Outbox Poller 起動も統合 | service 層 3 サーバー |
+| Phase 4 | business 層（domain-master）を移行 | domain-master |
+| Phase 5 | system 層の残りのサーバーを段階的に移行 | system 層サーバー（段階的） |
+
+**移行の原則**:
+- 既存の動作を変更しない（リファクタリングのみ）
+- 各 Phase で CI を通してからマージする
+- `ServerApp` trait の採用は任意とし、各サーバーの startup.rs で `ServerBuilder` の個別メソッドを呼び出す方式も引き続きサポートする
 
 ---
 

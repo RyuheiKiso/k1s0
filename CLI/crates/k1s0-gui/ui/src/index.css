@@ -1,171 +1,1392 @@
 @import "tailwindcss";
 
+/* ペルソナ3風デザインシステム — CSS変数定義 */
 :root {
-  --glass-bg: rgba(255, 255, 255, 0.12);
-  --glass-border: rgba(255, 255, 255, 0.2);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --glass-blur: 16px;
-  --accent: #6366f1;
-  --accent-light: #818cf8;
-  --accent-glow: rgba(99, 102, 241, 0.4);
+  --p3-card-bg: rgba(0, 200, 255, 0.04);
+  --p3-card-border: rgba(0, 200, 255, 0.15);
+  --p3-card-shadow: 0 0 20px rgba(0, 200, 255, 0.08);
+  --p3-accent: #00c8ff;
+  --p3-accent-light: #33d4ff;
+  --p3-accent-glow: rgba(0, 200, 255, 0.4);
+  --p3-crimson: #dc143c;
+  /* スタガーアニメーション用遅延（JSから上書き可能） */
+  --p3-stagger: 0;
 }
 
+/* ペルソナ3風グローバルスタイル — 漆黒背景＋シアンテキスト */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #e2e8f0;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #1e293b 100%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #c8e6ff;
+  background: linear-gradient(180deg, #05080f 0%, #0a1628 50%, #0d1f35 100%);
   background-attachment: fixed;
   min-height: 100vh;
+  letter-spacing: 0.01em;
 }
 
-/* Glass card utility */
+/* =============================================
+   キーフレーム定義
+   ============================================= */
+
+/* スキャンラインエフェクト — プログレスバー用 */
+@keyframes p3-scanline {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* グローパルス — アクティブ要素の呼吸するグロー */
+@keyframes p3-glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 200, 255, 0.3); }
+  50% { box-shadow: 0 0 24px rgba(0, 200, 255, 0.65); }
+}
+
+/* ページ出現 — スライドアップ＋フェードイン＋スケール＋ブラー解除 */
+@keyframes p3-slide-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* 背景グリッドの移動 — ゆっくりスクロール */
+@keyframes p3-grid-scroll {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(60px, 60px); }
+}
+
+/* 対角線ストライプの移動 */
+@keyframes p3-stripe-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 40px; }
+}
+
+/* ボーダーシマー — カード上辺を走る光の筋 */
+@keyframes p3-border-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* テキストグロー — 見出し用の呼吸するテキストシャドウ */
+@keyframes p3-text-glow {
+  0%, 100% { text-shadow: 0 0 8px rgba(0, 200, 255, 0.15); }
+  50% { text-shadow: 0 0 20px rgba(0, 200, 255, 0.4), 0 0 40px rgba(0, 200, 255, 0.12); }
+}
+
+/* CRTフリッカー — 微細な明滅（背景オーバーレイ用） */
+@keyframes p3-flicker {
+  0%, 100% { opacity: 0.03; }
+  50% { opacity: 0.06; }
+}
+
+/* フェードイン — 汎用フェード */
+@keyframes p3-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* セクションスライドイン — 左からスライド */
+@keyframes p3-slide-in-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ボタンプレス — 押下時の沈み込み */
+@keyframes p3-button-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+/* ステータスバッジのパルス — 成功/エラー表示用 */
+@keyframes p3-status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* CRT走査線スイープ — 画面全体を横断するスキャンライン */
+@keyframes p3-crt-sweep {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* グリッチテキスト — テキスト用の一瞬の歪み */
+@keyframes p3-glitch {
+  0%, 90%, 100% {
+    transform: translate(0);
+    text-shadow: 0 0 8px rgba(0, 200, 255, 0.15);
+  }
+  92% {
+    transform: translate(-2px, 1px);
+    text-shadow: 2px 0 #00c8ff, -2px 0 #dc143c;
+  }
+  94% {
+    transform: translate(2px, -1px);
+    text-shadow: -2px 0 #00c8ff, 2px 0 #dc143c;
+  }
+  96% {
+    transform: translate(0);
+    text-shadow: 0 0 16px rgba(0, 200, 255, 0.3);
+  }
+}
+
+/* ボーダートレース — カード周辺を1点の光が周回する */
+@keyframes p3-border-trace {
+  0% { background-position: 0% 0; }
+  25% { background-position: 100% 0; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0 100%; }
+  100% { background-position: 0% 0; }
+}
+
+/* アイドルパルス — バッジ/アイコンの穏やかなスケールパルス */
+@keyframes p3-idle-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* データストリーム — コード雨のような垂直落下パターン */
+@keyframes p3-data-rain {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 200px; }
+}
+
+/* セクション展開 — 高さ＋フェードインの展開アニメーション */
+@keyframes p3-expand {
+  0% {
+    opacity: 0;
+    max-height: 0;
+    transform: scaleY(0.95);
+  }
+  100% {
+    opacity: 1;
+    max-height: 2000px;
+    transform: scaleY(1);
+  }
+}
+
+/* エイブロウ（eyebrow）リビール — 左から右へ幅が広がる */
+@keyframes p3-reveal-width {
+  0% {
+    clip-path: inset(0 100% 0 0);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* メトリック数字のカウントアップ風フラッシュ */
+@keyframes p3-number-flash {
+  0%, 100% { opacity: 1; }
+  25% { opacity: 0.4; color: var(--p3-accent); }
+  50% { opacity: 0.8; }
+  75% { opacity: 0.6; color: var(--p3-accent-light); }
+}
+
+/* 確認パネルのグロー波動 */
+@keyframes p3-confirm-glow {
+  0%, 100% {
+    border-color: rgba(0, 200, 255, 0.2);
+    box-shadow: 0 0 8px rgba(0, 200, 255, 0.05);
+  }
+  50% {
+    border-color: rgba(0, 200, 255, 0.4);
+    box-shadow: 0 0 20px rgba(0, 200, 255, 0.12);
+  }
+}
+
+/* 警告パネルの微細フリッカー */
+@keyframes p3-warning-flicker {
+  0%, 95%, 100% { opacity: 1; }
+  96% { opacity: 0.85; }
+  97% { opacity: 1; }
+  98% { opacity: 0.9; }
+}
+
+/* ボタン内部の光スイープ — ホバー時に左から右へ光が走る */
+@keyframes p3-button-sweep {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(300%) skewX(-15deg); }
+}
+
+/* パネル内部のグラデーション呼吸 — 微細な背景変化 */
+@keyframes p3-panel-breathe {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* パネルコーナーのグローパルス */
+@keyframes p3-corner-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+/* ボタンのリングエクスパンド — クリック時の波紋 */
+@keyframes p3-ring-expand {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* サブパネルのフェードスライドイン */
+@keyframes p3-sub-panel-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+    border-color: transparent;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    border-color: rgba(0, 200, 255, 0.12);
+  }
+}
+
+/* プライマリボタンのグローパルス — 大きく明るく */
+@keyframes p3-primary-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 200, 255, 0.25), 0 0 30px rgba(0, 200, 255, 0.08), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 200, 255, 0.45), 0 0 50px rgba(0, 200, 255, 0.15), 0 0 80px rgba(0, 200, 255, 0.05), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+}
+
+/* パネル左辺アクセントバーのグローパルス */
+@keyframes p3-accent-bar-pulse {
+  0%, 100% {
+    box-shadow: 3px 0 8px rgba(0, 200, 255, 0.15);
+    opacity: 0.7;
+  }
+  50% {
+    box-shadow: 3px 0 20px rgba(0, 200, 255, 0.35);
+    opacity: 1;
+  }
+}
+
+/* HUDコーナーマーカー — 四隅に表示されるL字型インジケータ */
+@keyframes p3-hud-corner-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+/* ボタンクリック時のフラッシュ — 白い閃光 */
+@keyframes p3-click-flash {
+  0% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+/* パネル内部の光彩グラデーション移動 */
+@keyframes p3-inner-gradient-drift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* ボタンテキストのレタースペーシング拡張 */
+@keyframes p3-letter-expand {
+  0% { letter-spacing: inherit; }
+  100% { letter-spacing: 0.08em; }
+}
+
+/* disabled状態のパルス — ゆっくりとした呼吸 */
+@keyframes p3-disabled-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.35; }
+}
+
+/* ホバー時のボーダートレース高速化 — シマーが加速する */
+@keyframes p3-shimmer-fast {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* クリック衝撃波 — ボタン中心から外に広がるリング */
+@keyframes p3-shockwave {
+  0% {
+    transform: scale(0);
+    opacity: 0.7;
+    border-width: 3px;
+  }
+  60% {
+    opacity: 0.3;
+    border-width: 1px;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+    border-width: 0;
+  }
+}
+
+/* クリック閃光 — ボタン全体が一瞬白く光る */
+@keyframes p3-flash-white {
+  0% { background-color: rgba(0, 200, 255, 0.5); }
+  100% { background-color: transparent; }
+}
+
+/* ホバー時のパネル内スキャンライン — 水平走査線が上から下へ */
+@keyframes p3-panel-scan {
+  0% { top: -2px; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* チェックマーク出現のポップ — スケールバウンス */
+@keyframes p3-check-pop {
+  0% { transform: scale(0.5); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* ホバー時のパネル左アクセント出現 */
+@keyframes p3-accent-slide-in {
+  0% { height: 0; opacity: 0; }
+  100% { height: 100%; opacity: 1; }
+}
+
+/* カードホバーの外部グロー拡散 */
+@keyframes p3-glow-expand {
+  0% { box-shadow: 0 0 0 rgba(0, 200, 255, 0); }
+  100% { box-shadow: 0 0 50px rgba(0, 200, 255, 0.15), 0 0 100px rgba(0, 200, 255, 0.05); }
+}
+
+/* セレクトドロップダウン出現 — スケール＋フェード */
+@keyframes p3-dropdown-in {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.9) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+/* インプットフォーカスの浮遊 */
+@keyframes p3-input-float {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-1px); }
+}
+
+/* =============================================
+   ペルソナ3 タルタロスカード — 専用キーフレーム
+   ============================================= */
+
+/* ホバー時にカード内を走る水平スキャンライン */
+@keyframes p3-card-scanline {
+  0% {
+    top: -2px;
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    top: calc(100% + 2px);
+    opacity: 0;
+  }
+}
+
+/* エヴォーカーフラッシュ — クリック時の閃光バースト */
+@keyframes p3-evoker-flash {
+  0% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+/* エヴォーカーリング — クリック時に中心から広がるリング */
+@keyframes p3-evoker-ring {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.8;
+    border-color: rgba(0, 200, 255, 0.9);
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+    border-color: rgba(0, 200, 255, 0);
+  }
+}
+
+/* ターゲットロック — HUD風の照準が収束する */
+@keyframes p3-target-lock {
+  0% {
+    opacity: 0;
+    clip-path: inset(20% 20% 20% 20%);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0% 0% 0% 0%);
+  }
+}
+
+/* カード内グラデーションシフト — ホバー時に背景が動く */
+@keyframes p3-bg-shift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+/* CTAテキスト矢印スライド — 「フローを開く →」が右にスライド */
+@keyframes p3-arrow-slide {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(6px); }
+}
+
+/* カードボーダーの全周トレース — 光が四辺を走る */
+@keyframes p3-border-orbit {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 400% 0%;
+  }
+}
+
+/* =============================================
+   ユーティリティクラス
+   ============================================= */
+
+/* ページ出現アニメーション — 各ページの最外divに適用 */
+.p3-animate-in {
+  animation: p3-slide-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* カードホバーエフェクト — 大幅リフト＋多層グロー拡散＋スケール＋ボーダー発光 */
+.p3-card-hover {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease,
+              filter 0.3s ease;
+}
+.p3-card-hover:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow:
+    0 0 40px rgba(0, 200, 255, 0.22),
+    0 0 80px rgba(0, 200, 255, 0.08),
+    0 8px 30px rgba(0, 0, 0, 0.3),
+    inset 0 0 30px rgba(0, 200, 255, 0.02);
+  border-color: rgba(0, 200, 255, 0.45) !important;
+  border-left: 2px solid rgba(0, 200, 255, 0.6) !important;
+  filter: brightness(1.05);
+}
+.p3-card-hover:active {
+  transform: translateY(-2px) scale(0.99);
+  box-shadow: 0 0 20px rgba(0, 200, 255, 0.3), inset 0 0 20px rgba(0, 200, 255, 0.03);
+  transition-duration: 0.1s;
+  filter: brightness(1.15);
+}
+
+/* サイドバーアクティブグローインジケータ — パルスアニメーション付き */
+.p3-active-indicator {
+  border-left: 3px solid var(--p3-accent);
+  box-shadow: -4px 0 12px rgba(0, 200, 255, 0.3);
+  animation: p3-glow-pulse 2.5s ease-in-out infinite;
+  position: relative;
+}
+
+/* セクションヘッダー用斜線デコレータ */
+.p3-diagonal-decorator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -12px;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--p3-accent), transparent);
+  transform: skewX(-12deg);
+}
+
+/* 見出しグローエフェクト — h1/h2に適用 */
+.p3-heading-glow {
+  animation: p3-text-glow 3s ease-in-out infinite;
+}
+
+/* 見出しグリッチ — ホバー時にペルソナ3風のグリッチ発動 */
+.p3-heading-glitch {
+  animation: p3-glitch 8s ease-in-out infinite;
+}
+
+/* セクション順次出現 — CSS変数でstagger遅延を制御 */
+.p3-stagger-in {
+  animation: p3-slide-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--p3-stagger) * 80ms);
+}
+
+/* ナビアイテムの左スライド入場 — CSS変数でstagger遅延を制御 */
+.p3-nav-slide-in {
+  animation: p3-slide-in-left 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--p3-stagger) * 50ms);
+}
+
+/* ボーダーシマー — カード上辺を走るハイライト */
+.p3-border-shimmer::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.5) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: p3-border-shimmer 3s linear infinite;
+}
+
+/* CRT走査線オーバーレイ — 画面全体に薄い走査線を描画 */
+.p3-crt-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 200, 255, 0.015) 2px,
+    rgba(0, 200, 255, 0.015) 4px
+  );
+}
+/* CRT走査線スイープライン — 上から下へゆっくり移動する光帯 */
+.p3-crt-overlay::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(180deg, transparent, rgba(0, 200, 255, 0.06), transparent);
+  animation: p3-crt-sweep 6s linear infinite;
+}
+
+/* エイブロウテキストのリビール — 左から右に出現 */
+.p3-eyebrow-reveal {
+  animation: p3-reveal-width 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.2s;
+}
+
+/* メトリック数値のフラッシュ — 数値表示時の明滅 */
+.p3-metric-flash {
+  animation: p3-number-flash 0.6s ease-out both;
+}
+
+/* 確認パネルのグロー — ユーザーの注意を引く呼吸するグロー＋コーナーアクセント */
+.p3-confirm-glow {
+  animation: p3-confirm-glow 2s ease-in-out infinite;
+  position: relative;
+}
+.p3-confirm-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(circle at top left, rgba(0, 200, 255, 0.15), transparent 70%);
+  animation: p3-corner-glow 2s ease-in-out infinite;
+  pointer-events: none;
+}
+.p3-confirm-glow::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(circle at bottom right, rgba(0, 200, 255, 0.1), transparent 70%);
+  animation: p3-corner-glow 2s ease-in-out infinite 1s;
+  pointer-events: none;
+}
+
+/* 警告パネルの微細フリッカー — 赤グロー＋緊張感を演出 */
+.p3-warning-flicker {
+  animation: p3-warning-flicker 4s ease-in-out infinite;
+  position: relative;
+  box-shadow: inset 0 0 20px rgba(220, 20, 60, 0.03);
+  transition: box-shadow 0.3s ease;
+}
+.p3-warning-flicker:hover {
+  box-shadow: inset 0 0 30px rgba(220, 20, 60, 0.06), 0 0 12px rgba(220, 20, 60, 0.08);
+}
+
+/* アイドルパルス — バッジアイコンの穏やかなスケール */
+.p3-badge-pulse {
+  transition: transform 0.2s ease;
+}
+.p3-badge-pulse:hover {
+  animation: p3-idle-pulse 1s ease-in-out infinite;
+}
+
+/* ログ行のカスケードフェードイン — CSS変数で行ごとの遅延制御 */
+.p3-log-cascade {
+  animation: p3-fade-in 0.2s ease-out both;
+  animation-delay: calc(var(--p3-stagger) * 30ms);
+}
+
+/* データレインオーバーレイ — 出力パネルの背景装飾 */
+.p3-data-rain {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent,
+    transparent 18px,
+    rgba(0, 200, 255, 0.02) 18px,
+    rgba(0, 200, 255, 0.02) 19px
+  );
+  background-size: 100% 200px;
+  animation: p3-data-rain 4s linear infinite;
+}
+
+/* =============================================
+   ペルソナ3 タルタロスカード — ダッシュボード専用
+   ============================================= */
+
+/* タルタロスカード — ホバーでスキャンライン＋ターゲットロック＋グロー爆発 */
+.p3-tartarus-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.35s ease,
+    filter 0.35s ease,
+    background 0.35s ease;
+  cursor: pointer;
+}
+
+/* ホバー時のスキャンライン — カード内を上から下へ走査 */
+.p3-tartarus-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -2px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 10%, rgba(0, 200, 255, 0.7) 50%, transparent 90%);
+  box-shadow: 0 0 12px rgba(0, 200, 255, 0.4), 0 0 30px rgba(0, 200, 255, 0.15);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.p3-tartarus-card:hover::after {
+  animation: p3-card-scanline 1.2s linear infinite;
+}
+
+/* ホバー時のHUDコーナーブラケット — 四隅にL字マーカー出現 */
+.p3-tartarus-card::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 2px solid transparent;
+  pointer-events: none;
+  z-index: 4;
+  transition: border-color 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+  /* L字コーナーのみ表示するclip-path */
+  clip-path: polygon(
+    0 0, 16px 0, 16px 2px, 2px 2px, 2px 16px, 0 16px,
+    0 calc(100% - 16px), 2px calc(100% - 16px), 2px calc(100% - 2px), 16px calc(100% - 2px), 16px 100%, 0 100%,
+    100% 100%, calc(100% - 16px) 100%, calc(100% - 16px) calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) calc(100% - 16px), 100% calc(100% - 16px),
+    100% 16px, calc(100% - 2px) 16px, calc(100% - 2px) 2px, calc(100% - 16px) 2px, calc(100% - 16px) 0, 100% 0
+  );
+}
+.p3-tartarus-card:hover::before {
+  border-color: var(--p3-accent);
+  opacity: 1;
+  animation: p3-target-lock 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* タルタロスカード ホバー — 大幅リフト＋多層グロー＋左アクセント＋内部発光 */
+.p3-tartarus-card:hover {
+  transform: translateY(-10px) scale(1.03);
+  border-color: rgba(0, 200, 255, 0.5) !important;
+  border-left: 3px solid rgba(0, 200, 255, 0.8) !important;
+  box-shadow:
+    0 0 50px rgba(0, 200, 255, 0.25),
+    0 0 100px rgba(0, 200, 255, 0.1),
+    0 0 150px rgba(0, 200, 255, 0.03),
+    0 12px 40px rgba(0, 0, 0, 0.35),
+    inset 0 0 60px rgba(0, 200, 255, 0.04);
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(0, 200, 255, 0.08) 0%, transparent 60%),
+    rgba(0, 200, 255, 0.09) !important;
+  filter: brightness(1.1);
+}
+
+/* タルタロスカード アクティブ — エヴォーカーショット風の衝撃 */
+.p3-tartarus-card:active {
+  transform: scale(0.96) translateY(-2px);
+  transition-duration: 0.06s;
+  filter: brightness(1.8) saturate(1.5);
+  box-shadow:
+    0 0 80px rgba(0, 200, 255, 0.6),
+    0 0 160px rgba(0, 200, 255, 0.2),
+    inset 0 0 40px rgba(0, 200, 255, 0.1);
+  border-color: rgba(0, 200, 255, 1) !important;
+  background: rgba(0, 200, 255, 0.15) !important;
+}
+
+/* タルタロスカード内部のテキスト反応 */
+/* ホバー時にeyebrowテキストがシアンに光る */
+.p3-tartarus-card:hover .p3-tartarus-eyebrow {
+  color: var(--p3-accent);
+  text-shadow: 0 0 8px rgba(0, 200, 255, 0.4);
+  letter-spacing: 0.35em;
+}
+/* ホバー時にタイトルがグロー */
+.p3-tartarus-card:hover .p3-tartarus-title {
+  text-shadow: 0 0 16px rgba(0, 200, 255, 0.3), 0 0 32px rgba(0, 200, 255, 0.1);
+}
+/* ホバー時に説明文が明るくなる */
+.p3-tartarus-card:hover .p3-tartarus-desc {
+  color: rgba(203, 213, 225, 0.9);
+}
+/* ホバー時にCTAが右スライド＋グロー */
+.p3-tartarus-card:hover .p3-tartarus-cta {
+  color: var(--p3-accent);
+  text-shadow: 0 0 12px rgba(0, 200, 255, 0.5);
+  letter-spacing: 0.12em;
+  transform: translateX(8px);
+}
+/* アクティブ時にCTAが更に明るくフラッシュ */
+.p3-tartarus-card:active .p3-tartarus-cta {
+  color: white;
+  text-shadow: 0 0 20px rgba(0, 200, 255, 0.8);
+}
+
+/* セクション展開アニメーション — 条件付き表示パネル用 */
+.p3-expand-in {
+  animation: p3-expand 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top;
+}
+
+/* =============================================
+   グローバルコンポーネントスタイル
+   ============================================= */
+
+/* P3カードスタイル — HUDコーナー＋左アクセント＋内部光彩＋多層エフェクト */
 .glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  box-shadow: var(--glass-shadow);
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(0, 200, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(0, 200, 255, 0.03) 0%, transparent 50%),
+    linear-gradient(135deg, rgba(0, 200, 255, 0.04) 0%, transparent 40%, rgba(0, 200, 255, 0.02) 100%),
+    var(--p3-card-bg);
+  background-size: 200% 200%, 200% 200%, 100% 100%, 100% 100%;
+  animation: p3-inner-gradient-drift 12s ease-in-out infinite;
+  border: 1px solid var(--p3-card-border);
+  border-left: 2px solid rgba(0, 200, 255, 0.25);
+  border-radius: 0;
+  box-shadow:
+    var(--p3-card-shadow),
+    inset 0 1px 0 rgba(0, 200, 255, 0.08),
+    inset 0 0 60px rgba(0, 200, 255, 0.015),
+    inset -1px 0 30px rgba(0, 200, 255, 0.01);
+  transition: box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s ease,
+              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+.glass:hover {
+  box-shadow:
+    0 0 50px rgba(0, 200, 255, 0.25),
+    0 0 100px rgba(0, 200, 255, 0.06),
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(0, 200, 255, 0.15),
+    inset 0 0 100px rgba(0, 200, 255, 0.03);
+  border-color: rgba(0, 200, 255, 0.4);
+  border-left-color: rgba(0, 200, 255, 0.7);
+  border-left-width: 3px;
+  transform: translateY(-3px);
+}
+/* ホバー時にシマーラインが加速する */
+.glass:hover::before {
+  animation: p3-shimmer-fast 1.5s linear infinite;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.2) 15%,
+    rgba(0, 200, 255, 0.8) 50%,
+    rgba(0, 200, 255, 0.2) 85%,
+    transparent 100%
+  );
+}
+/* glassカード上辺のシマーライン — 高輝度・高速 */
+.glass::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.1) 20%,
+    rgba(0, 200, 255, 0.6) 50%,
+    rgba(0, 200, 255, 0.1) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: p3-border-shimmer 2.5s linear infinite;
+  z-index: 1;
+}
+/* glassカード下辺のシマーライン — 逆方向・時間差 */
+.glass::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.25) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: p3-border-shimmer 4s linear infinite reverse;
+  z-index: 1;
 }
 
+/* HUDコーナーマーカー — glassパネルの四隅にL字型インジケータ */
+.glass > :first-child::before,
+.glass > :first-child::after {
+  /* 上位のコンテンツは疑似要素が使えない場合があるため、
+     HUDコーナーはユーティリティクラスで適用 */
+}
+
+/* P3サブカードスタイル — 上辺シマー＋ホバーリフト＋グロー強化 */
 .glass-subtle {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(0, 200, 255, 0.02) 0%, transparent 60%),
+    rgba(0, 200, 255, 0.02);
+  border: 1px solid rgba(0, 200, 255, 0.10);
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.3s ease,
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* glass-subtleカード上辺のシマーライン */
+.glass-subtle::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.3) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: p3-border-shimmer 5s linear infinite;
+  z-index: 1;
+}
+.glass-subtle:hover {
+  border-color: rgba(0, 200, 255, 0.35);
+  border-left: 2px solid rgba(0, 200, 255, 0.5);
+  background:
+    linear-gradient(135deg, rgba(0, 200, 255, 0.06) 0%, transparent 50%),
+    rgba(0, 200, 255, 0.08);
+  box-shadow: 0 0 30px rgba(0, 200, 255, 0.12), 0 6px 20px rgba(0, 0, 0, 0.2), inset 0 0 40px rgba(0, 200, 255, 0.02);
+  transform: translateY(-4px) scale(1.005);
+}
+/* glass-subtleのホバー時にシマー加速 */
+.glass-subtle:hover::before {
+  animation: p3-shimmer-fast 2s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.5) 50%,
+    transparent 100%
+  );
 }
 
-/* Radix RadioGroup */
+/* サブパネル共通 — ページ内のセクションパネル（ホバーリフト＋内部グロー＋シマー） */
+section[class*="border-[rgba(0,200,255"] {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+section[class*="border-[rgba(0,200,255"]::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.25) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: p3-border-shimmer 6s linear infinite;
+  z-index: 1;
+}
+section[class*="border-[rgba(0,200,255"]:hover {
+  border-color: rgba(0, 200, 255, 0.28);
+  border-left: 2px solid rgba(0, 200, 255, 0.4);
+  box-shadow: 0 0 24px rgba(0, 200, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.12), inset 0 0 40px rgba(0, 200, 255, 0.01);
+  transform: translateY(-2px);
+}
+/* ホバー時にシマーライン加速 */
+section[class*="border-[rgba(0,200,255"]:hover::before {
+  animation: p3-shimmer-fast 2.5s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.4) 50%,
+    transparent 100%
+  );
+}
+
+/* リスト項目パネル — チェックボックスラベル等（ホバー時にインデント＋グロー） */
+label[class*="border-[rgba(0,200,255"] {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+label[class*="border-[rgba(0,200,255"]:hover {
+  border-color: rgba(0, 200, 255, 0.25);
+  background: rgba(0, 200, 255, 0.06) !important;
+  padding-left: 1.1rem;
+  box-shadow: inset 3px 0 0 rgba(0, 200, 255, 0.5), 0 0 12px rgba(0, 200, 255, 0.04);
+  transform: translateX(2px);
+  text-shadow: 0 0 4px rgba(0, 200, 255, 0.1);
+}
+
+/* 情報パネル共通 — border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] */
+div[class*="border-[rgba(0,200,255"][class*="bg-[rgba(0,200,255"] {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+div[class*="border-[rgba(0,200,255"][class*="bg-[rgba(0,200,255"]:hover {
+  border-color: rgba(0, 200, 255, 0.2);
+  box-shadow: 0 0 12px rgba(0, 200, 255, 0.04);
+}
+
+/* ボタン共通 — 多層グローエフェクト＋光スイープ＋レタースペーシング */
+button {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.02em;
+}
+/* ホバー時にレタースペーシング拡張＋リフト＋多層グロー */
+button:not(:disabled):hover {
+  letter-spacing: 0.06em;
+  box-shadow:
+    0 0 28px rgba(0, 200, 255, 0.22),
+    0 0 56px rgba(0, 200, 255, 0.06),
+    0 6px 16px rgba(0, 0, 0, 0.22);
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+/* アクティブ時の衝撃フラッシュ — 瞬間的な白い閃光＋沈み込み＋振動 */
+button:not(:disabled):active {
+  transform: scale(0.92) translateY(2px);
+  transition-duration: 0.06s;
+  filter: brightness(1.5) saturate(1.3);
+  box-shadow:
+    0 0 40px rgba(0, 200, 255, 0.5),
+    0 0 80px rgba(0, 200, 255, 0.15),
+    inset 0 0 20px rgba(0, 200, 255, 0.1);
+}
+/* ボタン下辺＋上辺のグローライン — 上下から挟むように光る */
+button:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.6) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+button:not(:disabled):hover::after {
+  opacity: 1;
+}
+/* ボタンホバー時の内部光スイープ — 斜めに走る光帯 */
+button:not(:disabled)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 200, 255, 0.12),
+    rgba(255, 255, 255, 0.04),
+    transparent
+  );
+  transform: translateX(-100%) skewX(-15deg);
+  transition: none;
+  pointer-events: none;
+  z-index: 1;
+}
+button:not(:disabled):hover::before {
+  animation: p3-button-sweep 0.5s ease-out;
+}
+/* disabled状態 — 微細な呼吸パルス */
+button:disabled {
+  animation: p3-disabled-pulse 3s ease-in-out infinite;
+}
+
+/* プライマリボタン — 常時グローパルス＋テキストグロー＋ホバーで爆発的グロー */
+button[class*="bg-cyan-500"] {
+  animation: p3-primary-glow 2.5s ease-in-out infinite;
+  text-shadow: 0 0 10px rgba(0, 200, 255, 0.35);
+  border: 1px solid rgba(0, 200, 255, 0.3);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 50%, rgba(0,0,0,0.1) 100%);
+  background-blend-mode: overlay;
+}
+button[class*="bg-cyan-500"]:not(:disabled):hover {
+  box-shadow:
+    0 0 40px rgba(0, 200, 255, 0.5),
+    0 0 80px rgba(0, 200, 255, 0.2),
+    0 0 120px rgba(0, 200, 255, 0.08),
+    0 0 160px rgba(0, 200, 255, 0.03),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  text-shadow: 0 0 20px rgba(0, 200, 255, 0.7), 0 0 40px rgba(0, 200, 255, 0.3);
+  transform: translateY(-3px) scale(1.03);
+  border-color: rgba(0, 200, 255, 0.6);
+  letter-spacing: 0.1em;
+  filter: brightness(1.1);
+}
+/* プライマリボタンのクリック — 爆発的閃光＋衝撃波＋色彩強化 */
+button[class*="bg-cyan-500"]:not(:disabled):active {
+  box-shadow:
+    0 0 60px rgba(0, 200, 255, 0.7),
+    0 0 120px rgba(0, 200, 255, 0.25),
+    inset 0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 0 30px rgba(0, 200, 255, 0.15);
+  transform: scale(0.93) translateY(2px);
+  filter: brightness(1.6) saturate(1.4);
+  transition-duration: 0.06s;
+  border-color: rgba(0, 200, 255, 0.9);
+}
+
+/* セカンダリボタン — ボーダーボタンのホバーエフェクト＋左アクセント */
+button[class*="border-[rgba(0,200,255"] {
+  backdrop-filter: blur(4px);
+}
+button[class*="border-[rgba(0,200,255"]:not(:disabled):hover {
+  border-color: rgba(0, 200, 255, 0.45);
+  border-left: 3px solid rgba(0, 200, 255, 0.7);
+  box-shadow:
+    0 0 24px rgba(0, 200, 255, 0.18),
+    0 0 48px rgba(0, 200, 255, 0.05),
+    inset 0 0 30px rgba(0, 200, 255, 0.04);
+  text-shadow: 0 0 10px rgba(0, 200, 255, 0.3);
+  background: rgba(0, 200, 255, 0.1) !important;
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+button[class*="border-[rgba(0,200,255"]:not(:disabled):active {
+  border-left: 4px solid rgba(0, 200, 255, 0.9);
+  box-shadow:
+    0 0 30px rgba(0, 200, 255, 0.3),
+    inset 0 0 20px rgba(0, 200, 255, 0.08);
+  filter: brightness(1.4) saturate(1.2);
+  transform: scale(0.95) translateY(1px);
+  transition-duration: 0.06s;
+}
+
+/* リンク要素 — ホバーグロー＋カラーシフト＋アンダーラインスライド */
+a {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+a:hover {
+  text-shadow: 0 0 16px rgba(0, 200, 255, 0.4), 0 0 32px rgba(0, 200, 255, 0.1);
+  color: var(--p3-accent-light);
+  filter: brightness(1.1);
+}
+/* リンクホバー時にシアンのアンダーラインが左から出現 */
+a:not([class*="no-underline"]):not([class*="glass"])::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--p3-accent), transparent);
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+a:not([class*="no-underline"]):not([class*="glass"]):hover::after {
+  width: 100%;
+}
+
+/* Radix RadioGroup — シャープエッジ＋シアンアクセント＋トランジション強化 */
 [data-radix-radio-group-item] {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(0, 200, 255, 0.3);
+  background: rgba(0, 200, 255, 0.06);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
 [data-radix-radio-group-item]:hover {
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(0, 200, 255, 0.6);
+  box-shadow: 0 0 12px rgba(0, 200, 255, 0.25), 0 0 24px rgba(0, 200, 255, 0.08);
+  transform: scale(1.15);
+  background: rgba(0, 200, 255, 0.1);
 }
 [data-radix-radio-group-item][data-state="checked"] {
-  border-color: var(--accent-light);
-  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--p3-accent-light);
+  background: rgba(0, 200, 255, 0.15);
+  box-shadow: 0 0 10px rgba(0, 200, 255, 0.25);
+  animation: p3-glow-pulse 2s ease-in-out infinite;
 }
 [data-radix-radio-group-indicator] {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent-light);
-  box-shadow: 0 0 6px var(--accent-glow);
+  background: var(--p3-accent-light);
+  box-shadow: 0 0 6px var(--p3-accent-glow);
+  animation: p3-fade-in 0.2s ease-out;
 }
 
-/* Radix Checkbox */
+/* Radix Checkbox — シャープエッジ＋シアンチェック＋アニメーション */
 button[role="checkbox"] {
   width: 18px;
   height: 18px;
-  border-radius: 5px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  border: 2px solid rgba(0, 200, 255, 0.3);
+  background: rgba(0, 200, 255, 0.06);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 button[role="checkbox"]:hover {
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(0, 200, 255, 0.6);
+  box-shadow: 0 0 14px rgba(0, 200, 255, 0.25), 0 0 28px rgba(0, 200, 255, 0.08);
+  transform: scale(1.15);
+  background: rgba(0, 200, 255, 0.1);
 }
 button[role="checkbox"][data-state="checked"] {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--p3-accent);
+  border-color: var(--p3-accent);
   color: white;
-  box-shadow: 0 0 8px var(--accent-glow);
+  box-shadow: 0 0 16px var(--p3-accent-glow), 0 0 32px rgba(0, 200, 255, 0.15);
+  animation: p3-check-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1), p3-glow-pulse 2s ease-in-out infinite 0.25s;
 }
 
-/* Radix Progress */
+/* Radix Progress — スキャンライン＋外部グロー＋内部光彩 */
 [data-radix-progress-root] {
   width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 9999px;
+  height: 10px;
+  background: rgba(0, 200, 255, 0.06);
+  border-radius: 0;
   overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 0 10px rgba(0, 200, 255, 0.04), 0 0 8px rgba(0, 200, 255, 0.03);
+  border: 1px solid rgba(0, 200, 255, 0.1);
 }
 [data-radix-progress-indicator] {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-light));
-  border-radius: 9999px;
-  transition: width 300ms ease;
-  box-shadow: 0 0 12px var(--accent-glow);
+  background: linear-gradient(90deg, rgba(0, 150, 200, 0.8), var(--p3-accent), var(--p3-accent-light));
+  border-radius: 0;
+  transition: width 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 20px var(--p3-accent-glow), 0 0 6px var(--p3-accent), 0 0 40px rgba(0, 200, 255, 0.15);
+  position: relative;
+}
+/* プログレスインジケータの先端グロー */
+[data-radix-progress-indicator]::before {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: -4px;
+  bottom: -4px;
+  width: 8px;
+  background: radial-gradient(ellipse, rgba(0, 200, 255, 0.8), transparent);
+  filter: blur(2px);
+}
+/* スキャンラインオーバーレイ */
+[data-radix-progress-indicator]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 6px,
+    rgba(255, 255, 255, 0.18) 6px,
+    rgba(255, 255, 255, 0.18) 12px
+  );
+  background-size: 200% 100%;
+  animation: p3-scanline 1.2s linear infinite;
 }
 
-/* Radix Select */
+/* Radix Select — シャープエッジ＋シアンテーマ＋トランジション */
 [data-radix-select-trigger] {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
+  border: 1px solid rgba(0, 200, 255, 0.15);
+  border-radius: 0;
   padding: 0.5rem 0.75rem;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
-  color: #e2e8f0;
+  background: rgba(0, 200, 255, 0.06);
+  color: #c8e6ff;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 [data-radix-select-trigger]:hover {
-  border-color: rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(0, 200, 255, 0.4);
+  border-left: 2px solid rgba(0, 200, 255, 0.5);
+  background: rgba(0, 200, 255, 0.12);
+  box-shadow: 0 0 16px rgba(0, 200, 255, 0.12), 0 0 32px rgba(0, 200, 255, 0.04);
+  transform: translateY(-1px);
 }
 [data-radix-select-content] {
-  background: rgba(30, 27, 75, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: rgba(5, 8, 15, 0.97);
+  border: 1px solid rgba(0, 200, 255, 0.2);
+  border-radius: 0;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(0, 200, 255, 0.1), 0 0 60px rgba(0, 200, 255, 0.04);
   overflow: hidden;
   z-index: 50;
+  animation: p3-dropdown-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top;
 }
 [data-radix-select-item] {
   padding: 0.5rem 0.75rem;
   cursor: pointer;
-  color: #e2e8f0;
-  transition: background 0.15s;
+  color: #c8e6ff;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
 [data-radix-select-item][data-highlighted] {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(0, 200, 255, 0.18);
+  padding-left: 1.2rem;
   outline: none;
+  text-shadow: 0 0 6px rgba(0, 200, 255, 0.2);
+  box-shadow: inset 3px 0 0 rgba(0, 200, 255, 0.5);
 }
 
-/* Glass inputs */
+/* グラスインプット — シャープエッジ＋シアンフォーカス＋多層グローアニメーション */
 input[type="text"],
 input:not([type]) {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-radius: 10px !important;
-  color: #e2e8f0 !important;
-  transition: all 0.2s;
+  background: rgba(0, 200, 255, 0.04) !important;
+  border: 1px solid rgba(0, 200, 255, 0.15) !important;
+  border-radius: 0 !important;
+  color: #c8e6ff !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+input[type="text"]:hover,
+input:not([type]):hover {
+  border-color: rgba(0, 200, 255, 0.3) !important;
+  background: rgba(0, 200, 255, 0.06) !important;
+  box-shadow: 0 0 10px rgba(0, 200, 255, 0.06);
 }
 input[type="text"]:focus,
 input:not([type]):focus {
   outline: none;
-  border-color: var(--accent-light) !important;
-  box-shadow: 0 0 0 3px var(--accent-glow);
-  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: var(--p3-accent) !important;
+  border-left: 3px solid var(--p3-accent) !important;
+  box-shadow:
+    0 0 0 2px var(--p3-accent-glow),
+    0 0 30px rgba(0, 200, 255, 0.25),
+    0 0 60px rgba(0, 200, 255, 0.08),
+    inset 0 0 16px rgba(0, 200, 255, 0.05);
+  background: rgba(0, 200, 255, 0.08) !important;
+  transform: translateY(-1px);
 }
 input::placeholder {
-  color: rgba(255, 255, 255, 0.35) !important;
+  color: rgba(0, 200, 255, 0.3) !important;
+  transition: color 0.2s ease;
+}
+input:focus::placeholder {
+  color: rgba(0, 200, 255, 0.15) !important;
 }
 
-/* Scrollbar */
+/* select要素 — シャープエッジ＋シアンテーマ */
+select {
+  border-radius: 0 !important;
+  transition: all 0.2s ease;
+}
+select:focus {
+  box-shadow: 0 0 0 2px var(--p3-accent-glow), 0 0 16px rgba(0, 200, 255, 0.12);
+}
+
+/* 全角丸を無効化 — シャープエッジ強制 */
+*:not(input[type="radio"]):not(input[type="checkbox"]):not([data-radix-radio-group-item]):not([data-radix-radio-group-indicator]) {
+  border-radius: 0;
+}
+
+/* fieldset/legend — フェードイントランジション */
+fieldset {
+  transition: opacity 0.2s ease;
+}
+
+/* ステータスメッセージ — フェードインアニメーション */
+p[data-testid*="error"],
+p[data-testid*="success"],
+p[data-testid*="message"] {
+  animation: p3-fade-in 0.3s ease-out;
+}
+
+/* スクロールバー — シアンテーマ */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -173,9 +1394,145 @@ input::placeholder {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  background: rgba(0, 200, 255, 0.15);
+  border-radius: 0;
+  transition: background 0.2s;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 200, 255, 0.3);
+}
+
+/* =============================================
+   ヘルプダイアログ — P3テーマ
+   ============================================= */
+
+/* ヘルプダイアログ出現アニメーション */
+@keyframes p3-dialog-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* オーバーレイのフェードイン */
+@keyframes p3-overlay-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* ヘルプトリガーボタン — 「?」のグロー＋ホバーエフェクト */
+.p3-help-trigger {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+.p3-help-trigger:hover {
+  border-color: rgba(0, 200, 255, 0.5);
+  background: rgba(0, 200, 255, 0.15);
+  color: var(--p3-accent);
+  box-shadow: 0 0 16px rgba(0, 200, 255, 0.25), 0 0 32px rgba(0, 200, 255, 0.08);
+  text-shadow: 0 0 8px rgba(0, 200, 255, 0.5);
+  transform: scale(1.15);
+}
+.p3-help-trigger:active {
+  transform: scale(0.9);
+  filter: brightness(1.5);
+  transition-duration: 0.06s;
+}
+
+/* オーバーレイ — 暗転＋ブラー */
+.p3-help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 15, 0.75);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  animation: p3-overlay-in 0.2s ease-out;
+}
+
+/* ダイアログ本体 — 中央配置のP3パネル */
+.p3-help-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 201;
+  width: min(480px, 90vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(0, 200, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(0, 200, 255, 0.04) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(8, 14, 28, 0.98) 0%, rgba(5, 8, 15, 0.99) 100%);
+  border: 1px solid rgba(0, 200, 255, 0.25);
+  border-left: 3px solid rgba(0, 200, 255, 0.5);
+  box-shadow:
+    0 0 60px rgba(0, 200, 255, 0.15),
+    0 0 120px rgba(0, 200, 255, 0.05),
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(0, 200, 255, 0.1),
+    inset 0 0 80px rgba(0, 200, 255, 0.02);
+  animation: p3-dialog-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ダイアログ上辺のシマーライン */
+.p3-help-shimmer {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.2) 15%,
+    rgba(0, 200, 255, 0.8) 50%,
+    rgba(0, 200, 255, 0.2) 85%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: p3-border-shimmer 2.5s linear infinite;
+  pointer-events: none;
+}
+
+/* 閉じるボタン — ホバーでグロー */
+.p3-help-close {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.p3-help-close:hover {
+  border-color: rgba(0, 200, 255, 0.5);
+  background: rgba(0, 200, 255, 0.12);
+  color: var(--p3-accent);
+  box-shadow: 0 0 12px rgba(0, 200, 255, 0.2);
+}
+.p3-help-close:active {
+  transform: scale(0.9);
+  filter: brightness(1.4);
+  transition-duration: 0.06s;
+}
+
+/* =============================================
+   アクセシビリティ — 運動削減設定対応
+   前庭障害や光過敏性てんかんのユーザーのため、
+   全アニメーション・トランジションを無効化する。
+   ============================================= */
+@media (prefers-reduced-motion: reduce) {
+  /* 全要素のアニメーションとトランジションを実質的に無効化 */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

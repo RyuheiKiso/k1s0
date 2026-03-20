@@ -58,10 +58,10 @@ impl FileClient for InMemoryFileClient {
         content_type: &str,
         expires_in: Duration,
     ) -> Result<PresignedUrl, FileClientError> {
-        // std::time::Duration から chrono::Duration への変換（有効範囲内のため安全）
-        let expires_at = chrono::Utc::now()
-            + chrono::Duration::from_std(expires_in)
-                .expect("expires_in が chrono::Duration の有効範囲を超えている");
+        // std::time::Duration から chrono::Duration への変換（範囲外の場合はエラーを返す）
+        let chrono_duration = chrono::Duration::from_std(expires_in)
+            .map_err(|e| FileClientError::InvalidDuration(e.to_string()))?;
+        let expires_at = chrono::Utc::now() + chrono_duration;
         let meta = FileMetadata {
             path: path.to_string(),
             size_bytes: 0,
@@ -88,10 +88,10 @@ impl FileClient for InMemoryFileClient {
         if !files.contains_key(path) {
             return Err(FileClientError::NotFound(path.to_string()));
         }
-        // std::time::Duration から chrono::Duration への変換（有効範囲内のため安全）
-        let expires_at = chrono::Utc::now()
-            + chrono::Duration::from_std(expires_in)
-                .expect("expires_in が chrono::Duration の有効範囲を超えている");
+        // std::time::Duration から chrono::Duration への変換（範囲外の場合はエラーを返す）
+        let chrono_duration = chrono::Duration::from_std(expires_in)
+            .map_err(|e| FileClientError::InvalidDuration(e.to_string()))?;
+        let expires_at = chrono::Utc::now() + chrono_duration;
         Ok(PresignedUrl {
             url: format!("https://storage.example.com/download/{}", path),
             method: "GET".to_string(),

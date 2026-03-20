@@ -394,7 +394,7 @@ concurrency:
 {% raw %}
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: fs
           scan-ref: {{ module_path }}
@@ -552,7 +552,7 @@ build-and-push ジョブ内で、Docker イメージに対する Trivy 脆弱性
 ```tera
       - name: Trivy image scan
 {% raw %}
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           image-ref: ${{ env.REGISTRY }}/{{ docker_project }}/{{ service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           severity: HIGH,CRITICAL

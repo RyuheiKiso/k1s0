@@ -19,7 +19,7 @@ config:
       app:
         environment: staging
       database:
-        host: postgres.k1s0-business.svc.cluster.local
+        host: postgresql.k1s0-business.svc.cluster.local
         ssl_mode: require
       observability:
         log:

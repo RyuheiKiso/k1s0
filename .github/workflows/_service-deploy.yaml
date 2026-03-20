@@ -14,7 +14,8 @@ on:
       service-name:
         required: true
         type: string
-      # Docker ビルドコンテキストのパス（例: regions/system/server/rust/auth）
+      # Docker ビルドコンテキストのパス（tier ルートを指定。例: regions/system）
+      # Dockerfile がライブラリ等の依存を COPY するため、サービスディレクトリではなく tier ルートを渡す
       context-path:
         required: true
         type: string
@@ -136,6 +137,13 @@ jobs:
         with:
           image: ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           output-file: sbom.spdx.json
+      # SBOM をアーティファクトとしてアップロードし、監査・コンプライアンス目的で保存する
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sbom-${{ inputs.service-name || github.event.inputs.service-name }}
+          path: sbom.spdx.json
+          if-no-files-found: warn
 
   # ---------- Deploy to dev ----------
   deploy-dev:

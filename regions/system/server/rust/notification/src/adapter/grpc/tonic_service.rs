@@ -68,6 +68,9 @@ fn channel_to_proto(ch: &super::notification_grpc::PbChannel) -> ProtoChannel {
         enabled: ch.enabled,
         created_at: ch.created_at.clone(),
         updated_at: ch.updated_at.clone(),
+        // 後方互換 Timestamp 型フィールド（移行中は None）
+        created_at_ts: None,
+        updated_at_ts: None,
     }
 }
 
@@ -80,6 +83,9 @@ fn template_to_proto(t: &super::notification_grpc::PbTemplate) -> ProtoTemplate 
         body_template: t.body_template.clone(),
         created_at: t.created_at.clone(),
         updated_at: t.updated_at.clone(),
+        // 後方互換 Timestamp 型フィールド（移行中は None）
+        created_at_ts: None,
+        updated_at_ts: None,
     }
 }
 
@@ -120,6 +126,8 @@ impl NotificationService for NotificationServiceTonic {
             notification_id: resp.notification_id,
             status: resp.status,
             created_at: resp.created_at,
+            // 後方互換 Timestamp 型フィールド（移行中は None）
+            created_at_ts: None,
         }))
     }
 
@@ -152,6 +160,10 @@ impl NotificationService for NotificationServiceTonic {
                 error_message: n.error_message,
                 sent_at: n.sent_at,
                 created_at: n.created_at,
+                // 後方互換フィールド（移行中は None/0）
+                created_at_ts: None,
+                sent_at_ts: None,
+                status_enum: 0,
             }),
         }))
     }
@@ -184,6 +196,10 @@ impl NotificationService for NotificationServiceTonic {
                 error_message: n.error_message,
                 sent_at: n.sent_at,
                 created_at: n.created_at,
+                // 後方互換フィールド（移行中は None/0）
+                created_at_ts: None,
+                sent_at_ts: None,
+                status_enum: 0,
             }),
         }))
     }
@@ -232,6 +248,10 @@ impl NotificationService for NotificationServiceTonic {
                     error_message: n.error_message,
                     sent_at: n.sent_at,
                     created_at: n.created_at,
+                    // 後方互換フィールド（移行中は None/0）
+                    created_at_ts: None,
+                    sent_at_ts: None,
+                    status_enum: 0,
                 })
                 .collect(),
             pagination: Some(ProtoPaginationResult {

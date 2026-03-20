@@ -9,6 +9,7 @@ dependencies:
   logging: ^1.2.0
   http: ^1.2.0
   shelf: ^1.4.0
+  opentelemetry: ^0.18.0
 
 dev_dependencies:
   test: ^1.25.0

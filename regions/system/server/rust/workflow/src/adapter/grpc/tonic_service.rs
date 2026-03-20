@@ -68,6 +68,8 @@ fn to_proto_step(step: WorkflowStepData) -> ProtoWorkflowStep {
         timeout_hours: step.timeout_hours,
         on_approve: step.on_approve,
         on_reject: step.on_reject,
+        // 後方互換フィールド（0 = UNSPECIFIED）
+        step_type_enum: 0,
     }
 }
 

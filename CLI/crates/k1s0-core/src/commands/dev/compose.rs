@@ -88,7 +88,7 @@ fn generate_postgres_service(ports: &PortAssignments, first_db_name: &str) -> St
 fn generate_pgadmin_service(ports: &PortAssignments) -> String {
     format!(
         r#"  pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:9.4
     container_name: k1s0-dev-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
@@ -139,7 +139,7 @@ fn generate_kafka_service(ports: &PortAssignments) -> String {
 fn generate_kafka_ui_service(ports: &PortAssignments) -> String {
     format!(
         r#"  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
+    image: provectuslabs/kafka-ui:v0.7.2
     container_name: k1s0-dev-kafka-ui
     environment:
       KAFKA_CLUSTERS_0_NAME: k1s0-dev

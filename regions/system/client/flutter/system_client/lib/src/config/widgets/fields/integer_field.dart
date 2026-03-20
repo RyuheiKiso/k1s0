@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../config_types.dart';
 
+/// 整数型設定フィールドの入力ウィジェット
+/// テキスト入力とスライダーで整数値を編集する
 class IntegerField extends StatelessWidget {
   const IntegerField({
     super.key,
@@ -13,15 +15,18 @@ class IntegerField extends StatelessWidget {
   });
 
   final ConfigFieldSchema schema;
-  final dynamic value;
+  /// 現在の設定値（ConfigValue sealed class で型安全に受け取る）
+  final ConfigValue value;
   final String? errorText;
   final ValueChanged<String?> onValidationChanged;
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final currentValue =
-        value is int ? value as int : (schema.defaultValue as int?) ?? 0;
+    /// ConfigValue から整数値を取り出す（型不一致時はデフォルト値にフォールバック）
+    final currentValue = value is NumberConfigValue
+        ? (value as NumberConfigValue).value.toInt()
+        : _defaultInt();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,6 +50,7 @@ class IntegerField extends StatelessWidget {
             onValidationChanged('Enter an integer');
           },
         ),
+        /// 最小値と最大値が設定されている場合はスライダーを表示する
         if (schema.min != null && schema.max != null)
           Slider(
             value: currentValue.toDouble().clamp(
@@ -59,5 +65,12 @@ class IntegerField extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  /// スキーマのデフォルト値から整数を取得する（存在しない場合は 0）
+  int _defaultInt() {
+    final def = schema.defaultValue;
+    if (def is NumberConfigValue) return def.value.toInt();
+    return 0;
   }
 }

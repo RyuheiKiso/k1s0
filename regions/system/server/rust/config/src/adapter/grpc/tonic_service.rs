@@ -180,6 +180,8 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
                     changed_by: notif.updated_by,
                     change_type: change_type.to_string(),
                     changed_at: None,
+                    // 後方互換フィールド（0 = UNSPECIFIED）
+                    change_type_enum: 0,
                 };
                 if tx.send(Ok(resp)).await.is_err() {
                     break;

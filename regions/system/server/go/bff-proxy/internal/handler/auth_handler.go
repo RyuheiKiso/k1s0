@@ -56,7 +56,9 @@ type AuthHandler struct {
 	sessionTTL    time.Duration
 	postLogoutURI string
 	secureCookie  bool
-	logger        *slog.Logger
+	// cookieDomain は発行する Cookie の Domain 属性。空文字の場合はブラウザがオリジンから自動設定する。
+	cookieDomain string
+	logger       *slog.Logger
 }
 
 // NewAuthHandler creates a new AuthHandler.
@@ -66,6 +68,7 @@ func NewAuthHandler(
 	sessionTTL time.Duration,
 	postLogoutURI string,
 	secureCookie bool,
+	cookieDomain string,
 	logger *slog.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
@@ -74,6 +77,7 @@ func NewAuthHandler(
 		sessionTTL:    sessionTTL,
 		postLogoutURI: postLogoutURI,
 		secureCookie:  secureCookie,
+		cookieDomain:  cookieDomain,
 		logger:        logger,
 	}
 }
@@ -104,14 +108,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// Store state and verifier in short-lived cookies.
 	maxAge := 300 // 5 minutes
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(stateCookieName, state, maxAge, "/", "", h.secureCookie, true)
-	c.SetCookie(verifierCookieName, pkce.CodeVerifier, maxAge, "/", "", h.secureCookie, true)
+	c.SetCookie(stateCookieName, state, maxAge, "/", h.cookieDomain, h.secureCookie, true)
+	c.SetCookie(verifierCookieName, pkce.CodeVerifier, maxAge, "/", h.cookieDomain, h.secureCookie, true)
 
 	// モバイルクライアント向け: redirect_to パラメータがあれば認証後のリダイレクト先を保存する
 	// セキュリティ: カスタムスキームのみ許可し、危険なスキームを明示的に拒否する
 	if redirectTo := c.Query("redirect_to"); redirectTo != "" {
 		if isAllowedRedirectScheme(redirectTo) {
-			c.SetCookie(postAuthRedirectCookie, redirectTo, maxAge, "/", "", h.secureCookie, true)
+			c.SetCookie(postAuthRedirectCookie, redirectTo, maxAge, "/", h.cookieDomain, h.secureCookie, true)
 		}
 	}
 
@@ -202,18 +206,18 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	}
 
 	// Clear OAuth flow cookies.
-	c.SetCookie(stateCookieName, "", -1, "/", "", h.secureCookie, true)
-	c.SetCookie(verifierCookieName, "", -1, "/", "", h.secureCookie, true)
+	c.SetCookie(stateCookieName, "", -1, "/", h.cookieDomain, h.secureCookie, true)
+	c.SetCookie(verifierCookieName, "", -1, "/", h.cookieDomain, h.secureCookie, true)
 
 	// Set session cookie.
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(CookieName, sessionID, int(h.sessionTTL.Seconds()), "/", "", h.secureCookie, true)
+	c.SetCookie(CookieName, sessionID, int(h.sessionTTL.Seconds()), "/", h.cookieDomain, h.secureCookie, true)
 
 	// モバイルクライアント向け: 認証後リダイレクト先が設定されている場合はワンタイム交換コードを発行してリダイレクトする
 	postAuthRedirect, redirectErr := c.Cookie(postAuthRedirectCookie)
 	if redirectErr == nil && postAuthRedirect != "" {
 		// リダイレクト用 Cookie をクリアする
-		c.SetCookie(postAuthRedirectCookie, "", -1, "/", "", h.secureCookie, true)
+		c.SetCookie(postAuthRedirectCookie, "", -1, "/", h.cookieDomain, h.secureCookie, true)
 
 		// ワンタイム交換コード: セッション ID への参照を短命なエントリとして保存する
 		exchangeData := &session.SessionData{
@@ -257,7 +261,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		}
 
 		// Clear session cookie.
-		c.SetCookie(CookieName, "", -1, "/", "", h.secureCookie, true)
+		c.SetCookie(CookieName, "", -1, "/", h.cookieDomain, h.secureCookie, true)
 
 		// Build IdP logout URL with id_token_hint if available.
 		if sess != nil && sess.IDToken != "" {
@@ -358,7 +362,7 @@ func (h *AuthHandler) Exchange(c *gin.Context) {
 
 	// セッションクッキーを発行する（モバイルクライアントの Dio が自動保存する）
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(CookieName, realSessionID, int(h.sessionTTL.Seconds()), "/", "", h.secureCookie, true)
+	c.SetCookie(CookieName, realSessionID, int(h.sessionTTL.Seconds()), "/", h.cookieDomain, h.secureCookie, true)
 
 	// セッション情報を返す
 	c.JSON(http.StatusOK, gin.H{

@@ -18,7 +18,9 @@ impl MasterKey {
             Ok(key) => key,
             Err(_) => {
                 // 本番・ステージング環境ではゼロ鍵を許可しない
-                if environment == "production" || environment == "staging" {
+                // 大文字小文字を無視して比較（"Production", "PRODUCTION" 等のバイパスを防止）
+                let env_lower = environment.to_lowercase();
+                if env_lower == "production" || env_lower == "staging" {
                     return Err(anyhow::anyhow!(
                         "VAULT_MASTER_KEY must be set in {} environment",
                         environment

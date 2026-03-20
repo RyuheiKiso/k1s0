@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import { connectionFailureMessage } from '../constants/messages';
 import { useAuth } from '../lib/auth';
 import {
@@ -198,10 +199,14 @@ export default function AuthPage() {
   const authFlowBusy = status === 'starting' || status === 'waiting';
 
   return (
-    <div className="space-y-6" data-testid="auth-page">
+    <div className="p3-animate-in space-y-6" data-testid="auth-page">
       <section className="glass max-w-5xl p-6">
-        <p className="text-xs uppercase tracking-[0.24em] text-sky-100/55">認証</p>
-        <h1 className="mt-2 text-3xl font-semibold text-white">GUIセッションの認証</h1>
+        {/* ページヘッダーとヘルプボタン */}
+        <div className="flex items-center gap-3">
+          <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">認証</p>
+          <HelpButton helpKey="auth" size="md" />
+        </div>
+        <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">GUIセッションの認証</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-200/76">
           OIDC DiscoveryのURL、クライアントID、スコープをGUIで設定し、接続を確認してからDevice Authorization
           Grantフローを開始してください。これらの設定はこのマシンにローカルで保存され、隠れたランタイム環境変数に依存しなくなります。
@@ -212,15 +217,15 @@ export default function AuthPage() {
         <div className="glass p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-white">OIDC設定</h2>
+              <h2 className="text-xl font-semibold text-white p3-heading-glow">OIDC設定</h2>
               <p className="mt-2 text-sm text-slate-200/72">
                 サインイン前に接続チェックを実行して、エンドポイントの障害をGUIで確認してください。
               </p>
             </div>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
+              className={`px-3 py-1 text-xs font-medium p3-badge-pulse ${
                 connectionStatus === 'success'
-                  ? 'bg-emerald-400/15 text-emerald-200'
+                  ? 'bg-cyan-400/15 text-cyan-200'
                   : connectionStatus === 'error'
                     ? 'bg-rose-400/15 text-rose-200'
                     : 'bg-slate-400/15 text-slate-200'
@@ -238,36 +243,43 @@ export default function AuthPage() {
 
           <div className="mt-5 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
                 OIDC Discovery URL
+                <HelpButton helpKey="auth.discoveryUrl" />
               </label>
               <input
                 value={settings.discovery_url}
                 onChange={(event) => updateSetting('discovery_url', event.target.value)}
                 disabled={!settingsReady || authFlowBusy}
-                className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white disabled:opacity-60"
+                className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white disabled:opacity-60"
                 data-testid="input-discovery-url"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">クライアントID</label>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                クライアントID
+                <HelpButton helpKey="auth.clientId" />
+              </label>
               <input
                 value={settings.client_id}
                 onChange={(event) => updateSetting('client_id', event.target.value)}
                 disabled={!settingsReady || authFlowBusy}
-                className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white disabled:opacity-60"
+                className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white disabled:opacity-60"
                 data-testid="input-client-id"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">スコープ</label>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                スコープ
+                <HelpButton helpKey="auth.scope" />
+              </label>
               <input
                 value={settings.scope}
                 onChange={(event) => updateSetting('scope', event.target.value)}
                 disabled={!settingsReady || authFlowBusy}
-                className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white disabled:opacity-60"
+                className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white disabled:opacity-60"
                 data-testid="input-scope"
               />
             </div>
@@ -280,7 +292,7 @@ export default function AuthPage() {
                 void handleConnectionCheck();
               }}
               disabled={!settingsReady || authFlowBusy || connectionStatus === 'loading'}
-              className="rounded-xl border border-white/15 bg-white/6 px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-check-connection"
             >
               {connectionStatus === 'loading' ? '確認中...' : '接続確認'}
@@ -291,7 +303,7 @@ export default function AuthPage() {
                 void beginDeviceFlow();
               }}
               disabled={!settingsReady || auth.loading || authFlowBusy}
-              className="rounded-xl bg-sky-500/85 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-500 disabled:opacity-50"
+              className="bg-cyan-500/85 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
               data-testid="btn-start-auth"
             >
               {authFlowBusy ? '開始中...' : 'デバイスフロー開始'}
@@ -300,7 +312,7 @@ export default function AuthPage() {
               type="button"
               onClick={resetSettings}
               disabled={!defaults || authFlowBusy}
-              className="rounded-xl border border-white/15 bg-white/6 px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-reset-defaults"
             >
               デフォルトに戻す
@@ -311,7 +323,7 @@ export default function AuthPage() {
                 onClick={() => {
                   void auth.clearSession();
                 }}
-                className="rounded-xl border border-white/15 bg-white/6 px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10"
+                className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)]"
                 data-testid="btn-sign-out"
               >
                 セッションを削除
@@ -322,14 +334,14 @@ export default function AuthPage() {
           {connectionMessage && (
             <p
               className={`mt-4 text-sm ${
-                connectionStatus === 'success' ? 'text-emerald-200' : 'text-rose-300'
+                connectionStatus === 'success' ? 'text-cyan-200' : 'text-rose-300'
               }`}
               data-testid="connection-message"
             >
               {connectionMessage}
             </p>
           )}
-          {message && <p className="mt-4 text-sm text-emerald-200">{message}</p>}
+          {message && <p className="mt-4 text-sm text-cyan-200">{message}</p>}
           {errorMessage && (
             <p className="mt-4 text-sm text-rose-300" data-testid="error-message">
               {errorMessage}
@@ -339,7 +351,7 @@ export default function AuthPage() {
 
         <div className="space-y-4">
           <div className="glass p-6">
-            <h2 className="text-xl font-semibold text-white">セッション状態</h2>
+            <h2 className="text-xl font-semibold text-white p3-heading-glow">セッション状態</h2>
             <p className="mt-2 text-sm text-slate-200/72">
               {auth.loading
                 ? 'セキュアなオペレーターセッションを確認しています。'
@@ -349,7 +361,7 @@ export default function AuthPage() {
             </p>
 
             {auth.session && (
-              <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200/80">
+              <div className="mt-4 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-4 text-sm text-slate-200/80">
                 <p>
                   <span className="text-slate-200/55">発行者:</span> {auth.session.issuer}
                 </p>
@@ -369,36 +381,39 @@ export default function AuthPage() {
           </div>
 
           <div className="glass p-6">
-            <h2 className="text-xl font-semibold text-white">デバイスチャレンジ</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-white p3-heading-glow">デバイスチャレンジ</h2>
+              <HelpButton helpKey="auth.deviceChallenge" />
+            </div>
             {!challenge ? (
               <p className="mt-3 text-sm text-slate-200/72">
                 デバイスフローを開始して認証URLとユーザーコードを取得してください。
               </p>
             ) : (
-              <div className="mt-4 space-y-4 text-sm text-slate-200/82">
+              <div className="mt-4 space-y-4 text-sm text-slate-200/82 p3-expand-in">
                 <div>
                   <p className="text-slate-200/55">認証URL</p>
                   <a
                     href={challenge.verification_uri_complete}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-1 block break-all text-sky-200 underline"
+                    className="mt-1 block break-all text-cyan-200 underline"
                   >
                     {challenge.verification_uri_complete}
                   </a>
                 </div>
                 <div>
                   <p className="text-slate-200/55">ユーザーコード</p>
-                  <code className="mt-1 block rounded-xl bg-slate-950/45 px-3 py-2 text-base text-white">
+                  <code className="mt-1 block bg-[rgba(5,8,15,0.45)] px-3 py-2 text-base text-white">
                     {challenge.user_code}
                   </code>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-3">
                     <p className="text-slate-200/55">ポーリング間隔</p>
                     <p className="mt-1 text-white">{challenge.interval}s</p>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-3">
                     <p className="text-slate-200/55">有効期限まで</p>
                     <p className="mt-1 text-white">{challenge.expires_in}s</p>
                   </div>

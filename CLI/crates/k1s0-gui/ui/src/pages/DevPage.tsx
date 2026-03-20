@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import {
@@ -148,33 +149,39 @@ export default function DevPage() {
   }
 
   return (
-    <div className="glass max-w-6xl p-6" data-testid="dev-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Operations</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Manage local development</h1>
+    <div className="glass max-w-6xl p-6 p3-animate-in" data-testid="dev-page">
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">オペレーション</p>
+        <HelpButton helpKey="dev" size="md" />
+      </div>
+      <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">ローカル開発環境の管理</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Start and stop local dependencies, inspect state, and collect logs from the selected
-        workspace.
+        選択したワークスペースのローカル依存関係の起動・停止、状態の確認、ログの収集を行います。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-          Configure a valid workspace root before managing local development services.
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100 p3-warning-flicker">
+          ローカル開発サービスを管理する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div>
-            <p className="text-sm font-medium text-slate-200/82">Services</p>
+            <p className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              サービス
+              <HelpButton helpKey="dev.services" />
+            </p>
             <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">
               {availableTargets.length === 0 ? (
-                <p className="text-sm text-slate-200/55">No runnable services were found.</p>
+                <p className="text-sm text-slate-200/55">実行可能なサービスが見つかりませんでした。</p>
               ) : (
                 availableTargets.map(([label, path]) => (
                   <label
                     key={path}
-                    className="flex items-center gap-3 rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm text-slate-100"
+                    className="flex items-center gap-3 border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.20)] px-3 py-2 text-sm text-slate-100"
                   >
                     <input
                       type="checkbox"
@@ -192,7 +199,10 @@ export default function DevPage() {
           </div>
 
           <fieldset className="mt-5 space-y-2">
-            <legend className="text-sm font-medium text-slate-200/82">Auth mode</legend>
+            <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              認証モード
+              <HelpButton helpKey="dev.authMode" />
+            </legend>
             {(['Skip', 'Keycloak'] as AuthMode[]).map((value) => (
               <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                 <input
@@ -210,7 +220,10 @@ export default function DevPage() {
           </fieldset>
 
           <fieldset className="mt-5 space-y-2">
-            <legend className="text-sm font-medium text-slate-200/82">Cleanup on stop</legend>
+            <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              停止時のクリーンアップ
+              <HelpButton helpKey="dev.cleanup" />
+            </legend>
             {(['ContainersOnly', 'ContainersAndVolumes'] as CleanupLevel[]).map((value) => (
               <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                 <input
@@ -219,20 +232,21 @@ export default function DevPage() {
                   onChange={() => setCleanup(value)}
                   name="dev-cleanup"
                 />
-                {value === 'ContainersOnly' ? 'Containers only' : 'Containers and volumes'}
+                {value === 'ContainersOnly' ? 'コンテナのみ' : 'コンテナとボリューム'}
               </label>
             ))}
           </fieldset>
 
           <div className="mt-5">
-            <label className="block text-sm font-medium text-slate-200/82">
-              Service filter for logs
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              ログのサービスフィルター
+              <HelpButton helpKey="dev.logFilter" />
             </label>
             <input
               value={logService}
               onChange={(event) => setLogService(event.target.value)}
-              placeholder="leave empty for all services"
-              className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+              placeholder="全サービスの場合は空のまま"
+              className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
               data-testid="input-log-service"
             />
           </div>
@@ -249,10 +263,10 @@ export default function DevPage() {
                 status === 'loading' ||
                 actionsLocked
               }
-              className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              className="bg-cyan-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
               data-testid="btn-dev-up"
             >
-              {status === 'loading' ? 'Preparing...' : 'Review start'}
+              {status === 'loading' ? '準備中...' : '起動内容を確認'}
             </button>
             <button
               type="button"
@@ -260,10 +274,10 @@ export default function DevPage() {
                 void runAction(() => executeDevDown({ cleanup }, activeWorkspaceRoot));
               }}
               disabled={workspaceUnavailable || status === 'loading' || actionsLocked}
-              className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-dev-down"
             >
-              Stop
+              停止
             </button>
             <button
               type="button"
@@ -271,10 +285,10 @@ export default function DevPage() {
                 void runAction(() => executeDevStatus(activeWorkspaceRoot));
               }}
               disabled={workspaceUnavailable || status === 'loading' || actionsLocked}
-              className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-dev-status"
             >
-              Status
+              ステータス
             </button>
             <button
               type="button"
@@ -282,23 +296,23 @@ export default function DevPage() {
                 void runAction(() => executeDevLogs(logService || null, activeWorkspaceRoot));
               }}
               disabled={workspaceUnavailable || status === 'loading' || actionsLocked}
-              className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-dev-logs"
             >
-              Logs
+              ログ
             </button>
           </div>
 
           {preview && (
             <div
-              className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4"
+              className="mt-6 border border-cyan-400/20 bg-cyan-400/10 p-4 p3-confirm-glow p3-expand-in"
               data-testid="dev-up-preview"
             >
-              <p className="text-sm font-medium text-emerald-100">Review local start plan</p>
+              <p className="text-sm font-medium text-cyan-100">ローカル起動プランの確認</p>
 
-              <div className="mt-4 space-y-4 text-sm text-emerald-50/90">
+              <div className="mt-4 space-y-4 text-sm text-cyan-50/90">
                 <div>
-                  <p className="font-medium">Selected services</p>
+                  <p className="font-medium">選択されたサービス</p>
                   <div className="mt-2 space-y-1">
                     {selectedServices.map(([label, path]) => (
                       <p key={path}>
@@ -309,36 +323,36 @@ export default function DevPage() {
                 </div>
 
                 <div>
-                  <p className="font-medium">Detected dependencies</p>
+                  <p className="font-medium">検出された依存関係</p>
                   <div className="mt-2 space-y-1">
                     <p>
-                      Databases:{' '}
+                      データベース:{' '}
                       {preview.dependencies.databases.length > 0
                         ? preview.dependencies.databases
                             .map((database) => `${database.name} (${database.service})`)
                             .join(', ')
-                        : 'none'}
+                        : 'なし'}
                     </p>
                     <p>
-                      Kafka topics:{' '}
+                      Kafkaトピック:{' '}
                       {preview.dependencies.kafka_topics.length > 0
                         ? preview.dependencies.kafka_topics.join(', ')
-                        : 'none'}
+                        : 'なし'}
                     </p>
-                    <p>Redis: {preview.dependencies.has_redis ? 'enabled' : 'disabled'}</p>
+                    <p>Redis: {preview.dependencies.has_redis ? '有効' : '無効'}</p>
                     <p>
-                      Redis session:{' '}
-                      {preview.dependencies.has_redis_session ? 'enabled' : 'disabled'}
+                      Redisセッション:{' '}
+                      {preview.dependencies.has_redis_session ? '有効' : '無効'}
                     </p>
-                    <p>Auth mode: {authMode}</p>
+                    <p>認証モード: {authMode}</p>
                   </div>
                 </div>
 
                 <div>
-                  <p className="font-medium">Additional services</p>
+                  <p className="font-medium">追加サービス</p>
                   <div className="mt-2 space-y-1">
                     {preview.additional_services.length === 0 ? (
-                      <p>none</p>
+                      <p>なし</p>
                     ) : (
                       preview.additional_services.map((service) => (
                         <p key={service.name}>
@@ -350,7 +364,7 @@ export default function DevPage() {
                 </div>
 
                 <div>
-                  <p className="font-medium">Resolved endpoints</p>
+                  <p className="font-medium">解決されたエンドポイント</p>
                   <div className="mt-2 space-y-1">
                     {getPreviewPorts().map((port) => (
                       <p key={port.name}>
@@ -365,19 +379,19 @@ export default function DevPage() {
                 <button
                   type="button"
                   onClick={() => setPreview(null)}
-                  className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
+                  className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)]"
                 >
-                  Back
+                  戻る
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     void handleConfirmStart();
                   }}
-                  className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+                  className="bg-cyan-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500"
                   data-testid="btn-confirm-dev-up"
                 >
-                  Confirm start
+                  起動を確定
                 </button>
               </div>
             </div>
@@ -390,11 +404,14 @@ export default function DevPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-white">Output</h2>
-          <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white p3-heading-glow">出力</h2>
+            <HelpButton helpKey="dev.preview" />
+          </div>
+          <div className="mt-4 border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.35)] p-4 p3-data-rain">
             <pre className="min-h-72 overflow-auto whitespace-pre-wrap text-xs text-slate-100">
-              {output || 'Run status or logs to inspect the local development environment.'}
+              {output || 'ステータスまたはログを実行してローカル開発環境を確認します。'}
             </pre>
           </div>
         </section>

@@ -2,6 +2,7 @@ package buildingblocks
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -146,6 +147,11 @@ func (p *KafkaPubSub) Subscribe(ctx context.Context, topic string) (<-chan *Mess
 		select {
 		case ch <- msg:
 		default:
+			// バッファが満杯のためメッセージをドロップした場合は警告ログを出力する
+			slog.Warn("Kafka メッセージドロップ: 受信バッファが満杯",
+				slog.String("topic", env.Topic),
+				slog.String("key", env.Key),
+			)
 		}
 		return nil
 	}

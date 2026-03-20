@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import { executeDeps, scanServices, type DepsConfig, type DepsResult, type ServiceInfo } from '../lib/tauri-commands';
@@ -100,25 +101,32 @@ export default function DepsPage() {
   }
 
   return (
-    <div className="glass max-w-6xl p-6" data-testid="deps-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Architecture</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Inspect dependency map</h1>
+    <div className="glass max-w-6xl p-6 p3-animate-in" data-testid="deps-page">
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">アーキテクチャ</p>
+        <HelpButton helpKey="deps" size="md" />
+      </div>
+      <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">依存関係マップの検査</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Run the dependency scan for the selected workspace and optionally export Mermaid output.
+        選択したワークスペースの依存関係スキャンを実行し、オプションでMermaid出力をエクスポートします。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-          Configure a valid workspace root before running the dependency scan.
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100 p3-warning-flicker">
+          依存関係スキャンを実行する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="space-y-5">
             <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-slate-200/82">Scope</legend>
+              <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                スコープ
+                <HelpButton helpKey="deps.scope" />
+              </legend>
               {(['all', 'tier', 'services'] as ScopeMode[]).map((value) => (
                 <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input
@@ -128,17 +136,17 @@ export default function DepsPage() {
                     name="deps-scope"
                   />
                   {value === 'all'
-                    ? 'All services'
+                    ? '全サービス'
                     : value === 'tier'
-                      ? 'Single tier'
-                      : 'Selected services'}
+                      ? '単一ティア'
+                      : '選択されたサービス'}
                 </label>
               ))}
             </fieldset>
 
             {scopeMode === 'tier' && (
               <fieldset className="space-y-2">
-                <legend className="text-sm font-medium text-slate-200/82">Tier</legend>
+                <legend className="text-sm font-medium text-slate-200/82">ティア</legend>
                 {(['system', 'business', 'service'] as const).map((value) => (
                   <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                     <input
@@ -155,15 +163,15 @@ export default function DepsPage() {
 
             {scopeMode === 'services' && (
               <div>
-                <p className="text-sm font-medium text-slate-200/82">Services</p>
+                <p className="text-sm font-medium text-slate-200/82">サービス</p>
                 <div className="mt-3 max-h-64 space-y-2 overflow-auto pr-1">
                   {availableServices.length === 0 ? (
-                    <p className="text-sm text-slate-200/55">No services were found.</p>
+                    <p className="text-sm text-slate-200/55">サービスが見つかりませんでした。</p>
                   ) : (
                     availableServices.map((service) => (
                       <label
                         key={service.path}
-                        className="flex items-center gap-3 rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm text-slate-100"
+                        className="flex items-center gap-3 border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.20)] px-3 py-2 text-sm text-slate-100"
                       >
                         <input
                           type="checkbox"
@@ -180,7 +188,10 @@ export default function DepsPage() {
             )}
 
             <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-slate-200/82">Output</legend>
+              <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                出力
+                <HelpButton helpKey="deps.output" />
+              </legend>
               {(['terminal', 'mermaid', 'both'] as OutputMode[]).map((value) => (
                 <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input
@@ -190,21 +201,24 @@ export default function DepsPage() {
                     name="deps-output"
                   />
                   {value === 'terminal'
-                    ? 'Terminal summary'
+                    ? 'ターミナルサマリー'
                     : value === 'mermaid'
-                      ? 'Mermaid file'
-                      : 'Terminal + Mermaid'}
+                      ? 'Mermaidファイル'
+                      : 'ターミナル + Mermaid'}
                 </label>
               ))}
             </fieldset>
 
             {outputMode !== 'terminal' && (
               <div>
-                <label className="block text-sm font-medium text-slate-200/82">Mermaid path</label>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                  Mermaidパス
+                  <HelpButton helpKey="deps.mermaidPath" />
+                </label>
                 <input
                   value={mermaidPath}
                   onChange={(event) => setMermaidPath(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                  className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
                   data-testid="input-mermaid-path"
                 />
               </div>
@@ -216,7 +230,8 @@ export default function DepsPage() {
                 checked={noCache}
                 onChange={(event) => setNoCache(event.target.checked)}
               />
-              Disable dependency cache
+              依存関係キャッシュを無効化
+              <HelpButton helpKey="deps.cacheDisable" />
             </label>
           </div>
 
@@ -232,10 +247,10 @@ export default function DepsPage() {
               (scopeMode === 'services' && selectedServiceNames.length === 0) ||
               (outputMode !== 'terminal' && !mermaidPath)
             }
-            className="mt-6 rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            className="mt-6 bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
             data-testid="btn-run-deps"
           >
-            {status === 'loading' ? 'Scanning...' : 'Run dependency scan'}
+            {status === 'loading' ? 'スキャン中...' : '依存関係スキャンを実行'}
           </button>
 
           {status === 'error' && (
@@ -245,30 +260,30 @@ export default function DepsPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-white">Result</h2>
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
+          <h2 className="text-lg font-semibold text-white p3-heading-glow">結果</h2>
           {!result ? (
             <p className="mt-4 text-sm text-slate-200/55">
-              Run the scan to inspect services, dependencies, and rule violations.
+              スキャンを実行してサービス、依存関係、ルール違反を検査します。
             </p>
           ) : (
             <div className="mt-4 space-y-5">
               <div className="grid gap-3 sm:grid-cols-3">
-                <SummaryCard label="Services" value={String(result.services.length)} />
-                <SummaryCard label="Dependencies" value={String(result.dependencies.length)} />
-                <SummaryCard label="Violations" value={String(result.violations.length)} />
+                <SummaryCard label="サービス" value={String(result.services.length)} />
+                <SummaryCard label="依存関係" value={String(result.dependencies.length)} />
+                <SummaryCard label="違反" value={String(result.violations.length)} />
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-200/82">Dependencies</p>
+                <p className="text-sm font-medium text-slate-200/82">依存関係</p>
                 <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">
                   {result.dependencies.length === 0 ? (
-                    <p className="text-sm text-slate-200/55">No dependencies were found.</p>
+                    <p className="text-sm text-slate-200/55">依存関係が見つかりませんでした。</p>
                   ) : (
                     result.dependencies.map((dependency) => (
                       <div
                         key={`${dependency.source}-${dependency.target}-${dependency.dep_type}-${dependency.locations.join(',')}`}
-                        className="rounded-xl border border-white/8 bg-slate-950/20 px-3 py-3 text-sm text-slate-100"
+                        className="border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.20)] px-3 py-3 text-sm text-slate-100"
                       >
                         <p>
                           {dependency.source} {'->'} {dependency.target} ({dependency.dep_type})
@@ -283,15 +298,15 @@ export default function DepsPage() {
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-200/82">Violations</p>
+                <p className="text-sm font-medium text-slate-200/82">違反</p>
                 <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">
                   {result.violations.length === 0 ? (
-                    <p className="text-sm text-emerald-300">No violations were found.</p>
+                    <p className="text-sm text-cyan-300">違反は見つかりませんでした。</p>
                   ) : (
                     result.violations.map((violation) => (
                       <div
                         key={`${violation.source}-${violation.target}-${violation.message}`}
-                        className="rounded-xl border border-white/8 bg-slate-950/20 px-3 py-3 text-sm text-slate-100"
+                        className="border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.20)] px-3 py-3 text-sm text-slate-100"
                       >
                         <p>
                           [{violation.severity}] {violation.source} {'->'} {violation.target}
@@ -306,7 +321,7 @@ export default function DepsPage() {
 
               {outputMode !== 'terminal' && (
                 <p className="text-sm text-slate-300/70">
-                  Mermaid output written to {toDisplayPath(activeWorkspaceRoot, mermaidPath)}.
+                  Mermaid出力の書き込み先: {toDisplayPath(activeWorkspaceRoot, mermaidPath)}.
                 </p>
               )}
             </div>
@@ -319,9 +334,9 @@ export default function DepsPage() {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4">
-      <p className="text-xs uppercase tracking-[0.24em] text-slate-200/55">{label}</p>
-      <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
+    <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4">
+      <p className="text-xs uppercase tracking-[0.24em] text-slate-200/55 p3-badge-pulse">{label}</p>
+      <p className="mt-3 text-2xl font-semibold text-white p3-metric-flash">{value}</p>
     </div>
   );
 }

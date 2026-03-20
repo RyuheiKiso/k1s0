@@ -6,13 +6,13 @@ import type { ProgressEvent } from '../../lib/tauri-commands';
 describe('ProgressLog', () => {
   it('renders an empty state when no events are present', () => {
     render(<ProgressLog events={[]} currentStep={0} totalSteps={0} />);
-    expect(screen.getByTestId('log-viewer')).toHaveTextContent('No logs yet.');
+    expect(screen.getByTestId('log-viewer')).toHaveTextContent('ログはまだありません。');
   });
 
   it('renders progress percentage from the current step', () => {
     const events: ProgressEvent[] = [{ kind: 'StepCompleted', step: 1, total: 4, message: 'ok' }];
     render(<ProgressLog events={events} currentStep={2} totalSteps={4} />);
-    expect(screen.getByTestId('progress-label')).toHaveTextContent('Step 2 / 4');
+    expect(screen.getByTestId('progress-label')).toHaveTextContent('ステップ 2 / 4');
     expect(screen.getByTestId('progress-percent')).toHaveTextContent('50%');
     expect(screen.getByTestId('progress-bar-bg')).toHaveAttribute('aria-valuenow', '50');
   });

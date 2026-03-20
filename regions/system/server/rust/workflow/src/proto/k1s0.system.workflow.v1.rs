@@ -5,6 +5,7 @@ pub struct WorkflowStep {
     pub step_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub name: ::prost::alloc::string::String,
+    /// Deprecated: use step_type_enum instead.
     #[prost(string, tag = "3")]
     pub step_type: ::prost::alloc::string::String,
     #[prost(string, optional, tag = "4")]
@@ -15,6 +16,9 @@ pub struct WorkflowStep {
     pub on_approve: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "7")]
     pub on_reject: ::core::option::Option<::prost::alloc::string::String>,
+    /// ステップ種別の enum 版（step_type の型付き版）。
+    #[prost(enumeration = "WorkflowStepType", tag = "8")]
+    pub step_type_enum: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WorkflowDefinition {
@@ -319,6 +323,43 @@ pub struct RejectTaskResponse {
     /// インスタンス状態（running / failed）
     #[prost(string, tag = "4")]
     pub instance_status: ::prost::alloc::string::String,
+}
+/// WorkflowStepType はワークフローステップの種別。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WorkflowStepType {
+    /// WORKFLOW_STEP_TYPE_UNSPECIFIED は未指定（デフォルト値）。
+    Unspecified = 0,
+    /// WORKFLOW_STEP_TYPE_APPROVAL は人間による承認タスク。
+    Approval = 1,
+    /// WORKFLOW_STEP_TYPE_AUTOMATED は自動実行タスク。
+    Automated = 2,
+    /// WORKFLOW_STEP_TYPE_NOTIFICATION は通知のみのタスク。
+    Notification = 3,
+}
+impl WorkflowStepType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "WORKFLOW_STEP_TYPE_UNSPECIFIED",
+            Self::Approval => "WORKFLOW_STEP_TYPE_APPROVAL",
+            Self::Automated => "WORKFLOW_STEP_TYPE_AUTOMATED",
+            Self::Notification => "WORKFLOW_STEP_TYPE_NOTIFICATION",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WORKFLOW_STEP_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "WORKFLOW_STEP_TYPE_APPROVAL" => Some(Self::Approval),
+            "WORKFLOW_STEP_TYPE_AUTOMATED" => Some(Self::Automated),
+            "WORKFLOW_STEP_TYPE_NOTIFICATION" => Some(Self::Notification),
+            _ => None,
+        }
+    }
 }
 /// Generated server implementations.
 pub mod workflow_service_server {

@@ -41,7 +41,7 @@ describe('MigratePage', () => {
     await waitFor(() => expect(screen.getByTestId('select-migrate-target')).toBeInTheDocument());
     await user.click(screen.getByTestId('btn-migrate-status'));
 
-    expect(await screen.findByText(/Applied at/)).toBeInTheDocument();
+    expect(await screen.findByText(/適用日時/)).toBeInTheDocument();
   });
 
   it('requires confirmation before rolling back the previous migration', async () => {
@@ -52,7 +52,7 @@ describe('MigratePage', () => {
     await user.click(screen.getByTestId('btn-migrate-down'));
 
     expect(await screen.findByTestId('migrate-confirmation')).toBeInTheDocument();
-    expect(screen.getByText(/roll back 1 migration/i)).toBeInTheDocument();
+    expect(screen.getByText(/1件のマイグレーションをロールバック/)).toBeInTheDocument();
 
     await user.click(screen.getByTestId('btn-confirm-migrate'));
 

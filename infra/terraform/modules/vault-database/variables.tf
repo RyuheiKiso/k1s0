@@ -3,7 +3,7 @@
 variable "postgres_host" {
   description = "PostgreSQL server hostname"
   type        = string
-  default     = "postgres.k1s0-system.svc.cluster.local"
+  default     = "postgresql.k1s0-system.svc.cluster.local"
 }
 
 variable "postgres_port" {

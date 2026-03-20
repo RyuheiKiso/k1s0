@@ -18,7 +18,7 @@ Vault から取得したキーを使った AES-256-GCM 対称暗号化と RSA-OA
 | `hash_password` | 関数 | Argon2id でパスワードをハッシュ化 |
 | `verify_password` | 関数 | パスワードとハッシュ値を検証 |
 | `EncryptionError` | enum | Rust 実装のエラー型（`EncryptFailed`, `DecryptFailed`, `HashFailed`, `RsaKeyGenerationFailed`, `RsaEncryptFailed`, `RsaDecryptFailed`） |
-| `generate_rsa_key_pair` | 関数 | 2048bit RSA キーペアを PEM 形式で生成（戻り値: `(public_pem, private_pem)`）|
+| `generate_rsa_key_pair` | 関数 | 3072bit RSA キーペアを PEM 形式で生成（戻り値: `(public_pem, private_pem)`）。NIST SP 800-57 推奨。|
 | `rsa_encrypt` | 関数 | RSA-OAEP-SHA256 で平文を暗号化（引数: `public_key_pem, plaintext`）|
 | `rsa_decrypt` | 関数 | RSA-OAEP-SHA256 で暗号文を復号（引数: `private_key_pem, ciphertext`）|
 
@@ -83,7 +83,7 @@ let hash = hash_password("user-password").unwrap();
 let valid = verify_password("user-password", &hash).unwrap();
 assert!(valid);
 
-// RSA-OAEP 非対称暗号化（2048bit、PEM形式）
+// RSA-OAEP 非対称暗号化（3072bit、PEM形式）
 let (pub_pem, priv_pem) = generate_rsa_key_pair().unwrap();
 let ciphertext = rsa_encrypt(&pub_pem, b"sensitive data").unwrap();
 let decrypted = rsa_decrypt(&priv_pem, &ciphertext).unwrap();
@@ -144,7 +144,7 @@ export function decrypt(key: Buffer, ciphertext: string): string;
 export async function hashPassword(password: string): Promise<string>;
 export async function verifyPassword(password: string, hash: string): Promise<boolean>;
 
-// RSA-OAEP-SHA256 非対称暗号化（2048bit、PEM形式）
+// RSA-OAEP-SHA256 非対称暗号化（3072bit、PEM形式）
 export function generateRsaKeyPair(): { publicKey: string; privateKey: string };
 export function rsaEncrypt(publicKeyPem: string, plaintext: Buffer): Buffer;
 export function rsaDecrypt(privateKeyPem: string, ciphertext: Buffer): Buffer;
@@ -178,7 +178,7 @@ String decrypt(Uint8List key, String ciphertext);
 String hashPassword(String password);
 bool verifyPassword(String password, String hash);
 
-// RSA-OAEP-SHA256 非対称暗号化（2048bit、PEM形式）
+// RSA-OAEP-SHA256 非対称暗号化（3072bit、PEM形式）
 Map<String, String> generateRsaKeyPair();
 Uint8List rsaEncrypt(String publicKeyPem, Uint8List plaintext);
 Uint8List rsaDecrypt(String privateKeyPem, Uint8List ciphertext);

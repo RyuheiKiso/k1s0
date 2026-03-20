@@ -114,9 +114,9 @@ impl JwksFetcher for DefaultJwksFetcher {
     }
 }
 
-/// JWKS キャッシュ。
+/// JWKS キャッシュ。Vec<JwkKey> を Arc で包み、クローン時のコピーコストを削減する。
 struct JwksCache {
-    keys: Vec<JwkKey>,
+    keys: Arc<Vec<JwkKey>>,
     fetched_at: Instant,
 }
 
@@ -197,13 +197,15 @@ impl JwksVerifier {
     }
 
     /// キャッシュから鍵を取得する。TTL を超えている場合は再取得する。
-    async fn get_keys(&self) -> Result<Vec<JwkKey>, AuthError> {
+    /// 返り値を Arc<Vec<JwkKey>> にしてクローン時の Vec コピーコストを排除する。
+    async fn get_keys(&self) -> Result<Arc<Vec<JwkKey>>, AuthError> {
         // Read lock でキャッシュを確認
         {
             let cache = self.cache.read().await;
             if let Some(ref c) = *cache {
                 if c.fetched_at.elapsed() < self.cache_ttl {
-                    return Ok(c.keys.clone());
+                    // Arc クローンは参照カウントのインクリメントのみ
+                    return Ok(Arc::clone(&c.keys));
                 }
             }
         }
@@ -211,25 +213,27 @@ impl JwksVerifier {
         // Write lock で再取得
         let mut cache = self.cache.write().await;
 
-        // ダブルチェック
+        // ダブルチェック: 他のスレッドが既に更新済みの場合はキャッシュを返す
         if let Some(ref c) = *cache {
             if c.fetched_at.elapsed() < self.cache_ttl {
-                return Ok(c.keys.clone());
+                return Ok(Arc::clone(&c.keys));
             }
         }
 
         match self.fetcher.fetch_keys(&self.jwks_url).await {
             Ok(keys) => {
+                // Arc で包んでキャッシュに格納する
+                let keys_arc = Arc::new(keys);
                 *cache = Some(JwksCache {
-                    keys: keys.clone(),
+                    keys: Arc::clone(&keys_arc),
                     fetched_at: Instant::now(),
                 });
-                Ok(keys)
+                Ok(keys_arc)
             }
             Err(err) => {
                 // fetch 失敗時、stale キャッシュがあればそれを返す（Go 実装と同等）
                 if let Some(ref c) = *cache {
-                    return Ok(c.keys.clone());
+                    return Ok(Arc::clone(&c.keys));
                 }
                 Err(err)
             }

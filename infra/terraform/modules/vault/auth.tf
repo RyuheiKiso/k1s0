@@ -11,7 +11,8 @@ resource "vault_auth_backend" "kubernetes" {
 
 resource "vault_kubernetes_auth_backend_config" "k8s" {
   backend            = vault_auth_backend.kubernetes.path
-  kubernetes_host    = "https://kubernetes.default.svc"
+  # Kubernetes API サーバーのエンドポイントを変数から参照する
+  kubernetes_host    = var.kubernetes_host
   kubernetes_ca_cert = file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 }
 

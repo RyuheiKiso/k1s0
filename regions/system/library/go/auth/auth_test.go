@@ -378,7 +378,8 @@ func TestHasPermission_ResourceAdmin(t *testing.T) {
 	assert.True(t, HasPermission(claims, "order-service", "delete"))
 }
 
-// HasTierAccess がクレームの TierAccess に指定ティアが含まれるか大文字小文字を区別せず正しく判定することを確認する。
+// HasTierAccess がティア階層ルールに従ってアクセス判定を行うことを確認する。
+// system(0) > business(1) > service(2) の階層で、上位ティアは下位ティアにもアクセス可能。
 func TestHasTierAccess(t *testing.T) {
 	claims := &Claims{
 		TierAccess: []string{"system", "business"},
@@ -386,8 +387,8 @@ func TestHasTierAccess(t *testing.T) {
 
 	assert.True(t, HasTierAccess(claims, "system"))
 	assert.True(t, HasTierAccess(claims, "business"))
-	assert.True(t, HasTierAccess(claims, "System")) // case insensitive
-	assert.False(t, HasTierAccess(claims, "service"))
+	assert.True(t, HasTierAccess(claims, "System")) // 大文字小文字を区別しない
+	assert.True(t, HasTierAccess(claims, "service")) // system/business ティアは service にもアクセス可能
 }
 
 // HasTierAccess が TierAccess が nil のクレームに対して false を返すことを確認する。
@@ -397,6 +398,89 @@ func TestHasTierAccess_Empty(t *testing.T) {
 	}
 
 	assert.False(t, HasTierAccess(claims, "system"))
+}
+
+// HasTierAccess_Hierarchy がティア階層に基づくアクセス制御を網羅的にテストする。
+// system ティアは system, business, service の全てにアクセス可能。
+// business ティアは business と service にアクセス可能。
+// service ティアは service のみアクセス可能。
+// 不明なティアは常に false を返す。
+func TestHasTierAccess_Hierarchy(t *testing.T) {
+	tests := []struct {
+		name         string
+		userTiers    []string
+		requiredTier string
+		want         bool
+	}{
+		// system ティアユーザーのアクセス判定
+		{
+			name:         "system ユーザーが system にアクセス → 許可",
+			userTiers:    []string{"system"},
+			requiredTier: "system",
+			want:         true,
+		},
+		{
+			name:         "system ユーザーが business にアクセス → 許可",
+			userTiers:    []string{"system"},
+			requiredTier: "business",
+			want:         true,
+		},
+		{
+			name:         "system ユーザーが service にアクセス → 許可",
+			userTiers:    []string{"system"},
+			requiredTier: "service",
+			want:         true,
+		},
+		// business ティアユーザーのアクセス判定
+		{
+			name:         "business ユーザーが system にアクセス → 拒否",
+			userTiers:    []string{"business"},
+			requiredTier: "system",
+			want:         false,
+		},
+		{
+			name:         "business ユーザーが business にアクセス → 許可",
+			userTiers:    []string{"business"},
+			requiredTier: "business",
+			want:         true,
+		},
+		{
+			name:         "business ユーザーが service にアクセス → 許可",
+			userTiers:    []string{"business"},
+			requiredTier: "service",
+			want:         true,
+		},
+		// service ティアユーザーのアクセス判定
+		{
+			name:         "service ユーザーが service にアクセス → 許可",
+			userTiers:    []string{"service"},
+			requiredTier: "service",
+			want:         true,
+		},
+		{
+			name:         "service ユーザーが business にアクセス → 拒否",
+			userTiers:    []string{"service"},
+			requiredTier: "business",
+			want:         false,
+		},
+		// 不明なティアの判定
+		{
+			name:         "不明なティアが要求された場合 → 拒否",
+			userTiers:    []string{"system"},
+			requiredTier: "unknown",
+			want:         false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			claims := &Claims{
+				TierAccess: tt.userTiers,
+			}
+			got := HasTierAccess(claims, tt.requiredTier)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 // --- Middleware テスト ---
@@ -648,12 +732,14 @@ func TestRequireTierAccess_Authorized(t *testing.T) {
 }
 
 // RequireTierAccess が必要なティアアクセスを持たないクレームのリクエストに 403 を返すことを確認する。
+// service ティアのみのユーザーが system ティアを要求するエンドポイントにアクセスした場合、拒否される。
 func TestRequireTierAccess_Forbidden(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	privKey, keySet := testKeyPair(t)
+	// service ティアのみを持つユーザーのトークンを生成
 	tokenStr := generateTestToken(t, privKey, func(token jwt.Token) {
-		_ = token.Set("tier_access", []interface{}{"system"})
+		_ = token.Set("tier_access", []interface{}{"service"})
 	})
 
 	verifier := NewJWKSVerifierWithFetcher(
@@ -668,7 +754,8 @@ func TestRequireTierAccess_Forbidden(t *testing.T) {
 	_, r := gin.CreateTestContext(w)
 
 	r.Use(AuthMiddleware(verifier))
-	r.Use(RequireTierAccess("service"))
+	// service ティアユーザーは system ティアにアクセスできない
+	r.Use(RequireTierAccess("system"))
 	r.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})

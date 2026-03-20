@@ -125,21 +125,68 @@
     - k8s_admin_conf.stat.exists or kubeadm_init is changed
 
 # ============================================================
+# Control-plane join（追加マスターノード用）
+# マルチマスター構成で HA を実現するため、2台目以降のマスターを
+# --control-plane オプション付きで既存クラスタに参加させる
+# ============================================================
+
+# join コマンドと certificate-key を初期マスターから取得する
+# --control-plane join には --certificate-key が必要なため、upload-certs も実行する
+- name: Get join command from primary master
+  ansible.builtin.command: kubeadm token create --print-join-command
+  register: join_command
+  when: inventory_hostname == groups['masters'][0] | default('')
+  changed_when: false
+
+# certificate-key を再アップロードし、追加 control-plane が証明書を取得できるようにする
+- name: Upload certs and get certificate key
+  ansible.builtin.shell: >
+    kubeadm init phase upload-certs --upload-certs 2>/dev/null
+    | tail -1
+  register: certificate_key
+  when: inventory_hostname == groups['masters'][0] | default('')
+  changed_when: false
+
+# 追加マスターノードが既にクラスタ参加済みかどうかを確認する
+- name: Check if additional master already joined
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubelet_conf_master
+  when:
+    - inventory_hostname in groups.get('masters', [])
+    - inventory_hostname != groups['masters'][0] | default('')
+
+# 追加マスターノードを control-plane として join させる
+# --control-plane と --certificate-key を付与することで、マスターとして参加する
+- name: Join additional control-plane node to cluster
+  ansible.builtin.command: >
+    {{ hostvars[groups['masters'][0]].join_command.stdout }}
+      --control-plane
+      --certificate-key {{ hostvars[groups['masters'][0]].certificate_key.stdout }}
+  when:
+    - inventory_hostname in groups.get('masters', [])
+    - inventory_hostname != groups['masters'][0] | default('')
+    - not kubelet_conf_master.stat.exists
+
+# ============================================================
 # Worker ノード join
 # ============================================================
 
+# ワーカーノード用の join コマンドを取得する（control-plane join と同じトークンを再利用可能）
 - name: Get join command from master
   ansible.builtin.command: kubeadm token create --print-join-command
   register: join_command
   when: inventory_hostname == groups['masters'][0] | default('')
   changed_when: false
 
+# ワーカーノードが既にクラスタ参加済みかどうかを確認する
 - name: Check if node already joined
   ansible.builtin.stat:
     path: /etc/kubernetes/kubelet.conf
   register: kubelet_conf
   when: inventory_hostname in groups.get('workers', [])
 
+# ワーカーノードをクラスタに参加させる（--control-plane なし）
 - name: Join worker node to cluster
   ansible.builtin.command: "{{ hostvars[groups['masters'][0]].join_command.stdout }}"
   when:

@@ -1,9 +1,10 @@
+# アプリケーション基本設定
 app:
   name: "payment"
   version: "0.1.0"
   env: "development"
+# API接続設定: base_urlは環境別設定ファイル（config.<env>.yaml）で必ず指定すること
 api:
-  base_url: "http://localhost:8080"
   timeout: 30
   retry:
     max_attempts: 3

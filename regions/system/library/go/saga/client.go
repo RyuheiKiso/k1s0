@@ -56,7 +56,11 @@ func (c *SagaClient) StartSaga(ctx context.Context, req *StartSagaRequest) (*Sta
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+		// レスポンスボディの読み取りエラーを処理する
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, &SagaError{Op: "start_saga", Err: fmt.Errorf("レスポンスボディの読み取りに失敗: %w", err)}
+		}
 		return nil, &SagaError{
 			Op:         "start_saga",
 			StatusCode: resp.StatusCode,
@@ -87,7 +91,11 @@ func (c *SagaClient) GetSaga(ctx context.Context, sagaID string) (*SagaState, er
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+		// レスポンスボディの読み取りエラーを処理する
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, &SagaError{Op: "get_saga", Err: fmt.Errorf("レスポンスボディの読み取りに失敗: %w", err)}
+		}
 		return nil, &SagaError{
 			Op:         "get_saga",
 			StatusCode: resp.StatusCode,
@@ -121,7 +129,11 @@ func (c *SagaClient) CancelSaga(ctx context.Context, sagaID string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+		// レスポンスボディの読み取りエラーを処理する
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return &SagaError{Op: "cancel_saga", Err: fmt.Errorf("レスポンスボディの読み取りに失敗: %w", err)}
+		}
 		return &SagaError{
 			Op:         "cancel_saga",
 			StatusCode: resp.StatusCode,

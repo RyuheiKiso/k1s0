@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import {
@@ -84,47 +85,60 @@ export default function NavigationTypesPage() {
   }
 
   return (
-    <div className="glass max-w-4xl p-6" data-testid="navigation-types-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Types</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Generate navigation contracts</h1>
+    <div className="glass max-w-4xl p-6 p3-animate-in" data-testid="navigation-types-page">
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">型定義</p>
+        <HelpButton helpKey="navigationTypes" size="md" />
+      </div>
+      <h1 className="p3-heading-glitch mt-2 text-3xl font-semibold text-white">ナビゲーションコントラクトの生成</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Preview and write navigation route types from the selected workspace.
+        選択したワークスペースからナビゲーションルート型をプレビュー・書き出しします。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-          Configure a valid workspace root before generating files.
+        <p className="p3-warning-flicker mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+          ファイルを生成する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">Navigation file</label>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                ナビゲーションファイル
+                <HelpButton helpKey="navigationTypes.navFile" />
+              </label>
               <input
                 type="text"
                 value={navPath}
                 onChange={(event) => setNavPath(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
                 data-testid="input-nav-path"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">Output directory</label>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                出力ディレクトリ
+                <HelpButton helpKey="navigationTypes.outputDir" />
+              </label>
               <input
                 type="text"
                 value={outputDir}
                 onChange={(event) => setOutputDir(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
                 data-testid="input-output-dir"
               />
             </div>
 
             <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-slate-200/82">Target</legend>
+              <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+                ターゲット
+                <HelpButton helpKey="navigationTypes.target" />
+              </legend>
               {(['typescript', 'dart', 'both'] as TypeOutputTarget[]).map((value) => (
                 <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input
@@ -148,10 +162,10 @@ export default function NavigationTypesPage() {
               disabled={
                 previewStatus === 'loading' || !navPath || workspaceUnavailable || actionsLocked
               }
-              className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-preview"
             >
-              {previewStatus === 'loading' ? 'Previewing...' : 'Preview'}
+              {previewStatus === 'loading' ? 'プレビュー中...' : 'プレビュー'}
             </button>
             <button
               type="button"
@@ -165,10 +179,10 @@ export default function NavigationTypesPage() {
                 workspaceUnavailable ||
                 actionsLocked
               }
-              className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              className="bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
               data-testid="btn-generate"
             >
-              {writeStatus === 'loading' ? 'Writing...' : 'Write files'}
+              {writeStatus === 'loading' ? '書き出し中...' : 'ファイルを書き出し'}
             </button>
           </div>
 
@@ -179,9 +193,9 @@ export default function NavigationTypesPage() {
           )}
 
           {writeStatus === 'success' && writtenFiles.length > 0 && (
-            <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
-              <p className="text-sm font-medium text-emerald-100">Generated files</p>
-              <div className="mt-3 space-y-2 text-sm text-emerald-50/90">
+            <div className="p3-confirm-glow p3-expand-in mt-5 border border-cyan-400/20 bg-cyan-400/10 p-4">
+              <p className="text-sm font-medium text-cyan-100">生成されたファイル</p>
+              <div className="mt-3 space-y-2 text-sm text-cyan-50/90">
                 {writtenFiles.map((file) => (
                   <p key={file.path}>{toDisplayPath(activeWorkspaceRoot, file.path)}</p>
                 ))}
@@ -190,12 +204,12 @@ export default function NavigationTypesPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-white">Preview</h2>
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
+          <h2 className="p3-heading-glow text-lg font-semibold text-white">プレビュー</h2>
           <div className="mt-4 space-y-4">
             {previewResults.length === 0 && writtenFiles.length === 0 ? (
               <p className="text-sm text-slate-200/55">
-                Run preview or write files to inspect generated output.
+                プレビューまたはファイル書き出しを実行して生成結果を確認します。
               </p>
             ) : (
               (previewResults.length > 0
@@ -207,7 +221,7 @@ export default function NavigationTypesPage() {
               ).map((result) => (
                 <div
                   key={result.label}
-                  className="rounded-2xl border border-white/10 bg-slate-950/40 p-4"
+                  className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.40)] p-4"
                 >
                   <p className="mb-3 text-sm font-medium text-slate-100">{result.label}</p>
                   <pre className="overflow-auto whitespace-pre-wrap text-xs text-slate-100">

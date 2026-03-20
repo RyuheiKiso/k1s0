@@ -38,7 +38,14 @@ pub async fn run() -> anyhow::Result<()> {
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+    // テレメトリ初期化: 失敗してもサーバーは起動を続行する（graceful degrade）
+    match k1s0_telemetry::init_telemetry(&telemetry_cfg) {
+        Ok(()) => {}
+        Err(e) => {
+            // テレメトリが利用不可でもサービス自体は機能するため、警告ログのみ出力
+            tracing::warn!("telemetry initialization failed, continuing without telemetry: {}", e);
+        }
+    }
 
     info!("starting {}", cfg.app.name);
 
@@ -48,6 +55,9 @@ pub async fn run() -> anyhow::Result<()> {
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("database configuration is required"))?;
     let db_pool = connect_database(db_cfg).await?;
+    // NOTE: マイグレーションはレプリカ間で競合する可能性がある。
+    // 本番環境では init container で advisory lock を取得して単一ポッドで実行することを推奨。
+    // 例: SELECT pg_advisory_lock(12345); MIGRATOR.run(...); SELECT pg_advisory_unlock(12345);
     MIGRATOR.run(&db_pool).await?;
     info!(
         schema = %db_cfg.schema,
@@ -195,6 +205,9 @@ pub async fn run() -> anyhow::Result<()> {
     // 13. Graceful shutdown — Outbox Poller を停止
     info!("shutting down outbox poller");
     let _ = outbox_handle.await;
+
+    // テレメトリデータをフラッシュしてからシャットダウンする
+    k1s0_telemetry::shutdown();
 
     Ok(())
 }

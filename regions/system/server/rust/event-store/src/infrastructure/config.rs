@@ -1,5 +1,8 @@
 use serde::Deserialize;
 
+/// 可観測性設定は server-common から共通型を使用する。
+pub use k1s0_server_common::ObservabilityConfig;
+
 /// Application configuration for event-store server.
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
@@ -65,7 +68,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺呻ｼ・RL蠖｢蠑擾ｼ峨・
+/// DatabaseConfig はデータベース接続設定を表す（URL形式）。
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
 pub struct DatabaseConfig {
@@ -96,7 +99,7 @@ fn default_connect_timeout_seconds() -> u64 {
     5
 }
 
-/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// KafkaConfig は Kafka ブローカー接続設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -109,8 +112,10 @@ pub struct KafkaConfig {
     pub producer_retries: u32,
 }
 
+/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
-    "PLAINTEXT".to_string()
+    "SASL_SSL".to_string()
 }
 
 fn default_producer_acks() -> String {
@@ -121,7 +126,7 @@ fn default_producer_retries() -> u32 {
     3
 }
 
-/// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
+/// AuthConfig は JWT 検証設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
@@ -135,7 +140,7 @@ fn default_jwks_cache_ttl() -> u64 {
     300
 }
 
-/// EventStoreConfig 縺ｯ繧､繝吶Φ繝医せ繝医い蝗ｺ譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
+/// EventStoreConfig はイベントストア固有の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
 pub struct EventStoreConfig {
@@ -162,86 +167,6 @@ fn default_max_page_size() -> u32 {
     200
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
-#[allow(dead_code)]
-pub struct ObservabilityConfig {
-    #[serde(default)]
-    pub log: LogConfig,
-    #[serde(default)]
-    pub trace: TraceConfig,
-    #[serde(default)]
-    pub metrics: MetricsConfig,
-}
-#[derive(Debug, Clone, Deserialize)]
-pub struct LogConfig {
-    #[serde(default = "default_log_level")]
-    pub level: String,
-    #[serde(default = "default_log_format")]
-    pub format: String,
-}
-impl Default for LogConfig {
-    fn default() -> Self {
-        Self {
-            level: default_log_level(),
-            format: default_log_format(),
-        }
-    }
-}
-#[derive(Debug, Clone, Deserialize)]
-pub struct TraceConfig {
-    #[serde(default = "default_trace_enabled")]
-    pub enabled: bool,
-    #[serde(default = "default_trace_endpoint")]
-    pub endpoint: String,
-    #[serde(default = "default_trace_sample_rate")]
-    pub sample_rate: f64,
-}
-impl Default for TraceConfig {
-    fn default() -> Self {
-        Self {
-            enabled: default_trace_enabled(),
-            endpoint: default_trace_endpoint(),
-            sample_rate: default_trace_sample_rate(),
-        }
-    }
-}
-#[derive(Debug, Clone, Deserialize)]
-#[allow(dead_code)]
-pub struct MetricsConfig {
-    #[serde(default = "default_metrics_enabled")]
-    pub enabled: bool,
-    #[serde(default = "default_metrics_path")]
-    pub path: String,
-}
-impl Default for MetricsConfig {
-    fn default() -> Self {
-        Self {
-            enabled: default_metrics_enabled(),
-            path: default_metrics_path(),
-        }
-    }
-}
-fn default_trace_enabled() -> bool {
-    true
-}
-fn default_trace_endpoint() -> String {
-    "http://otel-collector.observability:4317".to_string()
-}
-fn default_trace_sample_rate() -> f64 {
-    1.0
-}
-fn default_log_level() -> String {
-    "info".to_string()
-}
-fn default_log_format() -> String {
-    "json".to_string()
-}
-fn default_metrics_enabled() -> bool {
-    true
-}
-fn default_metrics_path() -> String {
-    "/metrics".to_string()
-}
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {

@@ -200,6 +200,8 @@ fn make_test_app() -> axum::Router {
             "k1s0-rule-engine-server-test",
         )),
         auth_state: None,
+        // テスト用バックエンド種別: インメモリリポジトリを使用
+        backend_kind: "in-memory".to_string(),
     };
     router(state)
 }

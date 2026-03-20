@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -74,7 +75,11 @@ func (l *RedisLock) lockKey(key string) string {
 
 func (l *RedisLock) Acquire(ctx context.Context, key string, ttl time.Duration) (*LockGuard, error) {
 	fullKey := l.lockKey(key)
-	token := generateRedisToken()
+	// トークン生成に失敗した場合はエラーを返す
+	token, err := generateRedisToken()
+	if err != nil {
+		return nil, err
+	}
 
 	ok, err := l.client.SetNX(ctx, fullKey, token, ttl).Result()
 	if err != nil {
@@ -125,11 +130,11 @@ func (l *RedisLock) IsLocked(ctx context.Context, key string) (bool, error) {
 }
 
 // generateRedisToken はRedisロック所有権を識別するためのランダムトークンを生成する。
-// 暗号学的に安全な乱数を使用し、エラー時はパニックする。
-func generateRedisToken() string {
+// 暗号学的に安全な乱数を使用する。乱数生成に失敗した場合はエラーを返す。
+func generateRedisToken() (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		panic("crypto/rand.Read failed: " + err.Error())
+		return "", fmt.Errorf("crypto/rand.Read に失敗: %w", err)
 	}
-	return hex.EncodeToString(b)
+	return hex.EncodeToString(b), nil
 }

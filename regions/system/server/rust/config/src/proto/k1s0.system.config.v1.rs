@@ -154,11 +154,15 @@ pub struct WatchConfigResponse {
     pub new_version: i32,
     #[prost(string, tag = "7")]
     pub changed_by: ::prost::alloc::string::String,
+    /// Deprecated: use change_type_enum instead.
     /// CREATED, UPDATED, DELETED
     #[prost(string, tag = "8")]
     pub change_type: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "9")]
     pub changed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    /// 変更操作の種別（change_type の enum 版）。
+    #[prost(enumeration = "super::super::common::v1::ChangeType", tag = "10")]
+    pub change_type_enum: i32,
 }
 /// ConfigFieldSchema は設定フィールドのスキーマ定義。
 #[derive(Clone, PartialEq, ::prost::Message)]

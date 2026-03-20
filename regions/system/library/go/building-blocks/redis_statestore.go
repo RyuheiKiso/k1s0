@@ -22,6 +22,13 @@ type CacheClient interface {
 	Exists(ctx context.Context, key string) (bool, error)
 }
 
+// BulkGetter は一括取得をサポートするオプションインターフェース。
+// Redis の MGET コマンドを使うことで N+1 問題を解消する。
+// CacheClient 実装がこのインターフェースも実装している場合、BulkGet で自動的に MGET を使用する。
+type BulkGetter interface {
+	MGet(ctx context.Context, keys []string) ([]*string, error)
+}
+
 // コンパイル時にインターフェース準拠を検証する。
 var _ StateStore = (*RedisStateStore)(nil)
 
@@ -171,8 +178,17 @@ func (s *RedisStateStore) Delete(ctx context.Context, key string, etag *ETag) er
 }
 
 // BulkGet は複数のキーに対して Redis から状態エントリをまとめて取得する。
-// いずれか一つでも取得に失敗した場合は即座にエラーを返す。
+// クライアントが BulkGetter を実装している場合は MGET で一括取得し N+1 問題を回避する。
+// そうでない場合は順次 Get を呼ぶ。
 func (s *RedisStateStore) BulkGet(ctx context.Context, keys []string) ([]*StateEntry, error) {
+	if len(keys) == 0 {
+		return nil, nil
+	}
+	// MGET をサポートするクライアントの場合はパイプラインで一括取得する
+	if bg, ok := s.client.(BulkGetter); ok {
+		return s.bulkGetMGet(ctx, keys, bg)
+	}
+	// フォールバック: 順次 Get（N+1 問題あり）
 	results := make([]*StateEntry, 0, len(keys))
 	for _, key := range keys {
 		entry, err := s.Get(ctx, key)
@@ -180,6 +196,44 @@ func (s *RedisStateStore) BulkGet(ctx context.Context, keys []string) ([]*StateE
 			return nil, fmt.Errorf("bulk get key %q: %w", key, err)
 		}
 		results = append(results, entry)
+	}
+	return results, nil
+}
+
+// bulkGetMGet は BulkGetter を使って MGET で一括取得する内部ヘルパー。
+// 値キーと ETag キー（suffix ":__etag"）をそれぞれ MGET でまとめて取得する。
+func (s *RedisStateStore) bulkGetMGet(ctx context.Context, keys []string, bg BulkGetter) ([]*StateEntry, error) {
+	// 値キーのリストを構築する（値は key をそのまま Redis キーとして使用する）
+	valueKeys := make([]string, len(keys))
+	for i, key := range keys {
+		valueKeys[i] = key
+	}
+	// ETag キーのリストを構築する
+	etagKeys := make([]string, len(keys))
+	for i, key := range keys {
+		etagKeys[i] = s.etagKey(key)
+	}
+
+	// 値と ETag を MGET で一括取得する
+	values, err := bg.MGet(ctx, valueKeys)
+	if err != nil {
+		return nil, NewComponentError(s.name, "BulkGet", "MGET 値の取得に失敗", err)
+	}
+	etags, err := bg.MGet(ctx, etagKeys)
+	if err != nil {
+		return nil, NewComponentError(s.name, "BulkGet", "MGET ETag の取得に失敗", err)
+	}
+
+	results := make([]*StateEntry, len(keys))
+	for i, key := range keys {
+		entry := &StateEntry{Key: key}
+		if values[i] != nil {
+			entry.Value = []byte(*values[i])
+		}
+		if etags[i] != nil {
+			entry.ETag = &ETag{Value: *etags[i]}
+		}
+		results[i] = entry
 	}
 	return results, nil
 }

@@ -212,7 +212,7 @@ fn test_consumer_config_roundtrip() {
 fn test_messaging_config_defaults() {
     let json = r#"{"brokers": ["kafka:9092"]}"#;
     let cfg: MessagingConfig = serde_json::from_str(json).unwrap();
-    assert_eq!(cfg.security_protocol, "PLAINTEXT");
+    assert_eq!(cfg.security_protocol, "SASL_SSL");
     assert_eq!(cfg.timeout_ms, 5000);
     assert_eq!(cfg.batch_size, 100);
 }

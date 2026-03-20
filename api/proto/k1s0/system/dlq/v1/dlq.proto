@@ -6,21 +6,30 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/dlq/v1;dlqv
 
 import "k1s0/system/common/v1/types.proto";
 
-/// DlqService は DLQ メッセージ管理サービス。
+// DlqMessageStatus は DLQ メッセージのステータス。
+enum DlqMessageStatus {
+  DLQ_MESSAGE_STATUS_UNSPECIFIED = 0;
+  DLQ_MESSAGE_STATUS_PENDING = 1;
+  DLQ_MESSAGE_STATUS_RETRYING = 2;
+  DLQ_MESSAGE_STATUS_SUCCEEDED = 3;
+  DLQ_MESSAGE_STATUS_FAILED = 4;
+}
+
+// DlqService は DLQ メッセージ管理サービス。
 service DlqService {
-  /// DLQ メッセージ一覧取得
+  // DLQ メッセージ一覧取得
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
-  /// DLQ メッセージ取得
+  // DLQ メッセージ取得
   rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
-  /// DLQ メッセージのリトライ
+  // DLQ メッセージのリトライ
   rpc RetryMessage(RetryMessageRequest) returns (RetryMessageResponse);
-  /// DLQ メッセージ削除
+  // DLQ メッセージ削除
   rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
-  /// DLQ メッセージ一括リトライ
+  // DLQ メッセージ一括リトライ
   rpc RetryAll(RetryAllRequest) returns (RetryAllResponse);
 }
 
-/// DlqMessage は DLQ メッセージ。
+// DlqMessage は DLQ メッセージ。
 message DlqMessage {
   string id = 1;
   string original_topic = 2;
@@ -29,13 +38,16 @@ message DlqMessage {
   int32 max_retries = 5;
   // JSON-encoded payload bytes.
   bytes payload = 6;
+  // Deprecated: use status_enum instead.
   string status = 7;
   k1s0.system.common.v1.Timestamp created_at = 8;
   k1s0.system.common.v1.Timestamp updated_at = 9;
   optional k1s0.system.common.v1.Timestamp last_retry_at = 10;
+  // メッセージステータスの enum 版（status の型付き版）。
+  DlqMessageStatus status_enum = 11;
 }
 
-/// ListMessagesRequest は一覧取得リクエスト。
+// ListMessagesRequest は一覧取得リクエスト。
 message ListMessagesRequest {
   string topic = 1;
   // ページネーションパラメータを共通型に統一
@@ -45,48 +57,48 @@ message ListMessagesRequest {
   reserved "page_size";
 }
 
-/// ListMessagesResponse は一覧取得レスポンス。
+// ListMessagesResponse は一覧取得レスポンス。
 message ListMessagesResponse {
   repeated DlqMessage messages = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
-/// GetMessageRequest はメッセージ取得リクエスト。
+// GetMessageRequest はメッセージ取得リクエスト。
 message GetMessageRequest {
   string id = 1;
 }
 
-/// GetMessageResponse はメッセージ取得レスポンス。
+// GetMessageResponse はメッセージ取得レスポンス。
 message GetMessageResponse {
   DlqMessage message = 1;
 }
 
-/// RetryMessageRequest はリトライリクエスト。
+// RetryMessageRequest はリトライリクエスト。
 message RetryMessageRequest {
   string id = 1;
 }
 
-/// RetryMessageResponse はリトライレスポンス。
+// RetryMessageResponse はリトライレスポンス。
 message RetryMessageResponse {
   DlqMessage message = 1;
 }
 
-/// DeleteMessageRequest は削除リクエスト。
+// DeleteMessageRequest は削除リクエスト。
 message DeleteMessageRequest {
   string id = 1;
 }
 
-/// DeleteMessageResponse は削除レスポンス。
+// DeleteMessageResponse は削除レスポンス。
 message DeleteMessageResponse {
   string id = 1;
 }
 
-/// RetryAllRequest は一括リトライリクエスト。
+// RetryAllRequest は一括リトライリクエスト。
 message RetryAllRequest {
   string topic = 1;
 }
 
-/// RetryAllResponse は一括リトライレスポンス。
+// RetryAllResponse は一括リトライレスポンス。
 message RetryAllResponse {
   int32 retried_count = 1;
   string message = 2;

@@ -6,17 +6,25 @@ use axum::{
 };
 use serde::Deserialize;
 use uuid::Uuid;
+use validator::Validate;
 
 use super::{AppState, ErrorResponse};
 use crate::domain::entity::api_key::CreateApiKeyRequest;
 use crate::usecase::validate_api_key::ValidateApiKeyError;
 
 /// POST /api/v1/api-keys のリクエストボディ。
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
+/// SEC-008: 入力バリデーションを追加し、不正な値の受け入れを防止する。
+#[derive(Debug, Deserialize, Validate, utoipa::ToSchema)]
 pub struct CreateApiKeyHttpRequest {
+    /// テナント ID（1〜128 文字）
+    #[validate(length(min = 1, max = 128))]
     pub tenant_id: String,
+    /// API キー名（1〜256 文字）
+    #[validate(length(min = 1, max = 256))]
     pub name: String,
+    /// スコープ一覧（最大 50 個）
     #[serde(default)]
+    #[validate(length(max = 50))]
     pub scopes: Vec<String>,
     pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
 }
@@ -57,6 +65,12 @@ pub async fn create_api_key(
     State(state): State<AppState>,
     Json(req): Json<CreateApiKeyHttpRequest>,
 ) -> impl IntoResponse {
+    // SEC-008: リクエストボディのバリデーションを実行し、不正な入力を早期に拒否する
+    if let Err(errors) = req.validate() {
+        let err = ErrorResponse::new("SYS_AUTH_API_KEY_VALIDATION", errors.to_string());
+        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+    }
+
     let create_req = CreateApiKeyRequest {
         tenant_id: req.tenant_id,
         name: req.name,
@@ -165,14 +179,17 @@ pub async fn revoke_api_key(
     }
 }
 
+/// SEC-001: Bearer トークン認証を必須化（サービス間検証用、RBAC 不要）
 #[utoipa::path(
     post,
     path = "/api/v1/api-keys/validate",
     request_body = ValidateApiKeyRequest,
     responses(
         (status = 200, description = "API key validation result", body = ValidateApiKeyResponse),
+        (status = 401, description = "Unauthorized"),
         (status = 500, description = "Internal error"),
-    )
+    ),
+    security(("bearer_auth" = []))
 )]
 pub async fn validate_api_key(
     State(state): State<AppState>,
@@ -225,6 +242,11 @@ pub async fn validate_api_key(
             .into_response(),
         Err(ValidateApiKeyError::Internal(msg)) => {
             let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+        // ペッパーが未設定の場合はサーバー設定エラーとして 500 を返す
+        Err(ValidateApiKeyError::PepperNotConfigured) => {
+            let err = ErrorResponse::new("SYS_AUTH_PEPPER_NOT_CONFIGURED", "server configuration error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

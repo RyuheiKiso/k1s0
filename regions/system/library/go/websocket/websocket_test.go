@@ -105,6 +105,26 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Nil(t, cfg.PingIntervalMs)
 }
 
+// バッファ満杯状態でcontext がキャンセルされた場合にSendがエラーを返すことを確認する。
+func TestSend_ContextCanceled(t *testing.T) {
+	c := websocket.NewInMemoryWsClient()
+	ctx := context.Background()
+	_ = c.Connect(ctx)
+
+	// バッファ（100件）を全て埋める
+	for i := 0; i < 100; i++ {
+		err := c.Send(ctx, websocket.WsMessage{Type: websocket.MessageText, Payload: []byte("fill")})
+		require.NoError(t, err)
+	}
+
+	// キャンセル済みのcontextでSendを呼び出すとエラーが返ることを確認する
+	canceledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := c.Send(canceledCtx, websocket.WsMessage{Type: websocket.MessageText, Payload: []byte("overflow")})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
 // DefaultConfigにURLを明示的に設定して使用するパターンを確認する。
 func TestDefaultConfig_WithExplicitURL(t *testing.T) {
 	cfg := websocket.DefaultConfig()

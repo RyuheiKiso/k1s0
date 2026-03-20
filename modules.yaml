@@ -1,13 +1,23 @@
 # モジュールレジストリ — リポジトリ内の全モジュールを一元管理する
 # CI・justfile のスキップリストを廃止し、このファイルを唯一の情報源とする
 #
+# 命名規約:
+# - Rust: snake_case (crate名は kebab-case)
+# - Go: camelCase / PascalCase
+# - TypeScript: camelCase / PascalCase
+# - Dart: snake_case (パッケージ名) / camelCase (変数)
+# - ディレクトリ名: kebab-case
+# - Proto: snake_case (フィールド) / PascalCase (メッセージ)
+#
 # フィールド:
-#   path:      モジュールのディレクトリパス
-#   lang:      言語 (rust, go, ts, dart)
-#   status:    stable | experimental | archived
-#   type:      server | library | client | cli | workspace | proto | infra
-#   workspace: Cargo/Go ワークスペースルート（該当する場合）
-#   skip-ci:   true の場合 CI のリント・テスト・ビルドをスキップ
+#   path:           モジュールのディレクトリパス
+#   lang:           言語 (rust, go, ts, dart, yaml, hcl)
+#   status:         stable | experimental | archived
+#   type:           server | library | client | cli | workspace | proto | infra | database
+#   workspace:      Cargo/Go ワークスペースルート（該当する場合）
+#   skip-ci:        true の場合 CI のリント・テスト・ビルドをスキップ
+#   language_scope: ライブラリが実装されている言語の一覧（library のみ）
+#   maturity:       モジュールの成熟度 (production/beta/experimental/template-only)
 #
 # ステータス定義:
 #   stable:       本番利用可能。CI で必ずリント・テスト・ビルドが実行される。
@@ -16,11 +26,115 @@
 #                 失敗しても全体のビルドをブロックしない。
 #   archived:     廃止済み。CI から完全に除外される。コード削除前の猶予期間に使用。
 
+# ============================================================
+# 層間の依存関係グラフ
+# ============================================================
+# service 層は business 層と system 層に依存可能
+# business 層は system 層にのみ依存可能
+# system 層は外部依存のみ（他の層に依存しない）
+tier_dependencies:
+  service:
+    depends_on: [business, system]
+  business:
+    depends_on: [system]
+  system:
+    depends_on: []
+
+# ============================================================
+# ライブラリ言語パリティ表
+# ============================================================
+# 各ライブラリがどの言語で実装されているかを明示する。
+# scope: all = 4言語全て (rust, go, ts, dart)
+#        rust-only = Rust のみ（ビルドツールや Rust 固有の抽象）
+#        server = サーバーサイド言語のみ (rust, go)
+#        partial = 一部言語のみ（詳細は languages フィールドを参照）
+library_parity:
+  # 4言語全てで実装済み（43ライブラリ）
+  all:
+    - app-updater
+    - audit-client
+    - auth
+    - bb-ai-client
+    - building-blocks
+    - bulkhead
+    - cache
+    - circuit-breaker
+    - codegen
+    - config
+    - correlation
+    - distributed-lock
+    - dlq-client
+    - encryption
+    - event-bus
+    - eventstore
+    - featureflag
+    - file-client
+    - graphql-client
+    - health
+    - idempotency
+    - kafka
+    - messaging
+    - migration
+    - notification-client
+    - outbox
+    - pagination
+    - quota-client
+    - ratelimit-client
+    - resiliency
+    - retry
+    - saga
+    - scheduler-client
+    - schemaregistry
+    - search-client
+    - server-common
+    - serviceauth
+    - session-client
+    - telemetry
+    - tenant-client
+    - test-helper
+    - tracing
+    - validation
+    - vault-client
+    - webhook-client
+    - websocket
+
+  # Rust のみ（ビルドツール・Rust 固有の抽象層）
+  rust_only:
+    - proto-build        # tonic-build ラッパー（Rust ビルド専用）
+    - bb-core            # Building Blocks コア抽象（Rust 専用）
+    - telemetry-macros   # proc-macro による計装マクロ（Rust 専用）
+
+  # サーバーサイド言語のみ (rust, go)
+  server_only:
+    # Rust では bb- prefix、Go では prefix なしの命名
+    - binding            # rust: bb-binding, go: binding
+    - pubsub             # rust: bb-pubsub, go: pubsub
+    - secretstore        # rust: bb-secretstore, go: secret-store
+    - statestore         # rust: bb-statestore, go: statestore
+
+  # Go のみ
+  go_only:
+    - telemetry-macros   # Go 版テレメトリマクロ（go generate ベース）
+
 modules:
   # ============================================================
   # ワークスペースルート（直接ビルド不可）
   # ============================================================
   - path: regions/system
+    lang: rust
+    status: stable
+    type: workspace
+    skip-ci: true
+
+  # Business 層ワークスペース（accounting 配下の Rust プロジェクトを管理）
+  - path: regions/business
+    lang: rust
+    status: stable
+    type: workspace
+    skip-ci: true
+
+  # Service 層ワークスペース（order, inventory, payment 配下の Rust プロジェクトを管理）
+  - path: regions/service
     lang: rust
     status: stable
     type: workspace
@@ -94,6 +208,7 @@ modules:
     status: stable
     type: server
     workspace: regions/system
+    maturity: beta
 
   - path: regions/system/server/rust/config
     lang: rust
@@ -247,6 +362,7 @@ modules:
     lang: go
     status: stable
     type: server
+    maturity: beta
 
   # ============================================================
   # Rust サーバー — business tier
@@ -255,6 +371,7 @@ modules:
     lang: rust
     status: stable
     type: server
+    workspace: regions/business
 
   # ============================================================
   # Rust サーバー — service tier
@@ -263,16 +380,19 @@ modules:
     lang: rust
     status: stable
     type: server
+    workspace: regions/service
 
   - path: regions/service/order/server/rust/order
     lang: rust
     status: stable
     type: server
+    workspace: regions/service
 
   - path: regions/service/payment/server/rust/payment
     lang: rust
     status: stable
     type: server
+    workspace: regions/service
 
   # ============================================================
   # Rust ライブラリ — system tier
@@ -306,30 +426,35 @@ modules:
     status: stable
     type: library
     workspace: regions/system
+    language_scope: [rust, go]  # Go 側は "binding"
 
   - path: regions/system/library/rust/bb-core
     lang: rust
     status: stable
     type: library
     workspace: regions/system
+    language_scope: [rust]  # Rust 固有の Building Blocks コア抽象
 
   - path: regions/system/library/rust/bb-pubsub
     lang: rust
     status: stable
     type: library
     workspace: regions/system
+    language_scope: [rust, go]  # Go 側は "pubsub"
 
   - path: regions/system/library/rust/bb-secretstore
     lang: rust
     status: stable
     type: library
     workspace: regions/system
+    language_scope: [rust, go]  # Go 側は "secret-store"
 
   - path: regions/system/library/rust/bb-statestore
     lang: rust
     status: stable
     type: library
     workspace: regions/system
+    language_scope: [rust, go]  # Go 側は "statestore"
 
   - path: regions/system/library/rust/building-blocks
     lang: rust
@@ -474,6 +599,7 @@ modules:
     status: stable
     type: library
     workspace: regions/system
+    language_scope: [rust]  # tonic-build ラッパー（Rust ビルド専用）
 
   - path: regions/system/library/rust/quota-client
     lang: rust
@@ -552,6 +678,7 @@ modules:
     status: stable
     type: library
     workspace: regions/system
+    language_scope: [rust]  # proc-macro による計装マクロ（Rust 専用）
 
   - path: regions/system/library/rust/tenant-client
     lang: rust
@@ -622,6 +749,7 @@ modules:
     lang: go
     status: stable
     type: library
+    language_scope: [rust, go]  # Rust 側は "bb-binding"
 
   - path: regions/system/library/go/building-blocks
     lang: go
@@ -652,6 +780,7 @@ modules:
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/correlation
     lang: go
@@ -742,6 +871,7 @@ modules:
     lang: go
     status: stable
     type: library
+    language_scope: [rust, go]  # Rust 側は "bb-pubsub"
 
   - path: regions/system/library/go/quota-client
     lang: go
@@ -767,6 +897,7 @@ modules:
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/scheduler-client
     lang: go
@@ -787,6 +918,7 @@ modules:
     lang: go
     status: stable
     type: library
+    language_scope: [rust, go]  # Rust 側は "bb-secretstore"
 
   - path: regions/system/library/go/server-common
     lang: go
@@ -807,6 +939,7 @@ modules:
     lang: go
     status: stable
     type: library
+    language_scope: [rust, go]  # Rust 側は "bb-statestore"
 
   - path: regions/system/library/go/telemetry
     lang: go
@@ -817,6 +950,7 @@ modules:
     lang: go
     status: stable
     type: library
+    language_scope: [rust, go]  # Rust 側は "telemetry-macros"
 
   - path: regions/system/library/go/tenant-client
     lang: go
@@ -1387,3 +1521,239 @@ modules:
     lang: dart
     status: stable
     type: client
+
+  # ============================================================
+  # データベースマイグレーション — system tier
+  # ============================================================
+  # 各サーバーに対応する SQLx マイグレーション定義（SQL + sqlx.toml）
+  - path: regions/system/database/api-registry-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/app-registry-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/auth-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/config-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/dlq-manager-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/event-monitor-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/event-store-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/featureflag-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/file-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/master-maintenance-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/notification-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/policy-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/quota-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/ratelimit-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/rule-engine-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/saga-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/scheduler-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/search-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/service-catalog-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/session-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/tenant-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/vault-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  - path: regions/system/database/workflow-db
+    lang: rust
+    status: stable
+    type: database
+    workspace: regions/system
+
+  # ============================================================
+  # インフラストラクチャ — 環境構築・デプロイ設定
+  # ============================================================
+  # Ansible による構成管理プレイブック
+  - path: infra/ansible
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # デモ環境構築用スクリプト・設定
+  - path: infra/demo
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Docker ベースイメージ・ローカル開発用コンテナ定義
+  - path: infra/docker
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Helm チャート（Kubernetes パッケージ管理）
+  - path: infra/helm
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Istio サービスメッシュ設定
+  - path: infra/istio
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Keycloak 認証・認可サーバー設定
+  - path: infra/keycloak
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Kong API ゲートウェイ設定
+  - path: infra/kong
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Kubernetes マニフェスト（デプロイメント・サービス等）
+  - path: infra/kubernetes
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # ローカル開発環境構築（docker-compose 等）
+  - path: infra/local
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # メッセージングインフラ（Kafka・スキーマレジストリ等）
+  - path: infra/messaging
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # 可観測性インフラ（Prometheus・Grafana・Loki 等）
+  - path: infra/observability
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # Terraform によるクラウドリソース管理（IaC）
+  - path: infra/terraform
+    lang: hcl
+    status: stable
+    type: infra
+    skip-ci: true
+
+  # HashiCorp Vault シークレット管理インフラ
+  - path: infra/vault
+    lang: yaml
+    status: stable
+    type: infra
+    skip-ci: true

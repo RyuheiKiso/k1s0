@@ -14,6 +14,8 @@ export interface CacheClient {
   delete(key: string): Promise<boolean>;
   exists(key: string): Promise<boolean>;
   setNX(key: string, value: string, ttlMs: number): Promise<boolean>;
+  // 指定キーの有効期限をミリ秒単位で更新する
+  expire(key: string, ttlMs: number): Promise<boolean>;
 }
 
 interface RedisLike {
@@ -21,6 +23,8 @@ interface RedisLike {
   set(key: string, value: string, mode?: string, duration?: number, nx?: string): Promise<"OK" | null>;
   del(key: string): Promise<number>;
   exists(key: string): Promise<number>;
+  // PEXPIREコマンドでキーの有効期限をミリ秒単位で設定する
+  pexpire(key: string, ttlMs: number): Promise<number>;
 }
 
 interface Entry {
@@ -72,6 +76,21 @@ export class InMemoryCacheClient implements CacheClient {
     return true;
   }
 
+  // 指定キーの有効期限を更新する。キーが存在しないまたは期限切れの場合はfalseを返す
+  async expire(key: string, ttlMs: number): Promise<boolean> {
+    const entry = this.entries.get(key);
+    if (!entry) return false;
+    if (this.isExpired(entry)) {
+      this.entries.delete(key);
+      return false;
+    }
+    this.entries.set(key, {
+      value: entry.value,
+      expiresAt: Date.now() + ttlMs,
+    });
+    return true;
+  }
+
   private isExpired(entry: Entry): boolean {
     return entry.expiresAt !== null && entry.expiresAt <= Date.now();
   }
@@ -118,6 +137,12 @@ export class RedisCacheClient implements CacheClient {
   async setNX(key: string, value: string, ttlMs: number): Promise<boolean> {
     const result = await this.redis.set(this.prefixedKey(key), value, 'PX', ttlMs, 'NX');
     return result === 'OK';
+  }
+
+  // PEXPIREコマンドでキーの有効期限をミリ秒単位で設定する
+  async expire(key: string, ttlMs: number): Promise<boolean> {
+    const result = await this.redis.pexpire(this.prefixedKey(key), ttlMs);
+    return result > 0;
   }
 
   private prefixedKey(key: string): string {

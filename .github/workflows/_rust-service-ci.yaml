@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
         with:
           toolchain: ${{ inputs.rust-version }}
           components: clippy, rustfmt
@@ -72,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
         with:
           toolchain: ${{ inputs.rust-version }}
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
@@ -96,7 +96,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
         with:
           toolchain: ${{ inputs.rust-version }}
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）

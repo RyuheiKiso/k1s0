@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import {
   CONFLICT_KEEP_USER,
@@ -265,24 +266,31 @@ export default function TemplateMigratePage() {
   }
 
   return (
-    <div className="glass max-w-6xl p-6" data-testid="template-migrate-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">テンプレート</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">テンプレート移行</h1>
+    <div className="p3-animate-in glass max-w-6xl p-6" data-testid="template-migrate-page">
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">テンプレート</p>
+        <HelpButton helpKey="templateMigrate" size="md" />
+      </div>
+      <h1 className="p3-heading-glitch mt-2 text-3xl font-semibold text-white">テンプレート移行</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         ドライランでスキャフォールドのドリフトをプレビューし、マージコンフリクトを解決して、生成済みモジュールのロールバック手段を確保します。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+        <p className="p3-warning-flicker mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
           テンプレート移行を実行する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="space-y-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div>
-            <label className="block text-sm font-medium text-slate-200/82">ターゲット</label>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              ターゲット
+              <HelpButton helpKey="templateMigrate.target" />
+            </label>
             <select
               value={selectedTarget?.path ?? ''}
               onChange={(event) => {
@@ -291,7 +299,7 @@ export default function TemplateMigratePage() {
                 setSuccessMessage('');
                 setErrorMessage('');
               }}
-              className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/35 px-3 py-2 text-white"
+              className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(5,8,15,0.35)] px-3 py-2 text-white"
               data-testid="select-template-target"
             >
               {targets.length === 0 ? (
@@ -308,7 +316,7 @@ export default function TemplateMigratePage() {
           </div>
 
           {selectedTarget && (
-            <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4 text-sm text-slate-200/82">
+            <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4 text-sm text-slate-200/82">
               <p>名前: {selectedTarget.manifest.metadata.name}</p>
               <p>種別: {selectedTarget.manifest.spec.template.type}</p>
               <p>言語: {selectedTarget.manifest.spec.template.language}</p>
@@ -324,14 +332,17 @@ export default function TemplateMigratePage() {
               void handlePreview();
             }}
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
-            className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            className="bg-cyan-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
             data-testid="btn-template-preview"
           >
             移行をプレビュー
           </button>
 
-          <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4">
-            <p className="text-sm font-medium text-slate-200/82">ロールバック</p>
+          <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4">
+            <p className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              ロールバック
+              <HelpButton helpKey="templateMigrate.rollback" />
+            </p>
             <p className="mt-2 text-sm leading-6 text-slate-300/72">
               移行結果が許容できない場合、キャプチャされたバックアップからプロジェクトツリー全体を復元します。
             </p>
@@ -339,7 +350,7 @@ export default function TemplateMigratePage() {
             <select
               value={selectedBackup}
               onChange={(event) => setSelectedBackup(event.target.value)}
-              className="mt-4 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+              className="mt-4 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
               data-testid="select-template-backup"
             >
               {backups.length === 0 ? (
@@ -365,7 +376,7 @@ export default function TemplateMigratePage() {
                 status === 'loading' ||
                 actionsLocked
               }
-              className="mt-4 rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="mt-4 border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-template-rollback"
             >
               ロールバック実行
@@ -378,16 +389,16 @@ export default function TemplateMigratePage() {
             </p>
           )}
           {status === 'success' && successMessage && (
-            <p className="text-sm text-emerald-300" data-testid="template-success-message">
+            <p className="text-sm text-cyan-300" data-testid="template-success-message">
               {successMessage}
             </p>
           )}
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">計画</h2>
+              <h2 className="p3-heading-glow text-lg font-semibold text-white">計画</h2>
               <p className="mt-1 text-sm text-slate-300/72">
                 ドライランの結果には追加、変更、削除、スキップ、コンフリクトが含まれます。
               </p>
@@ -405,7 +416,7 @@ export default function TemplateMigratePage() {
                   status === 'loading' ||
                   actionsLocked
                 }
-                className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                className="bg-cyan-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
                 data-testid="btn-template-apply"
               >
                 移行を適用
@@ -434,14 +445,14 @@ export default function TemplateMigratePage() {
                     return (
                       <article
                         key={change.path}
-                        className="rounded-2xl border border-white/10 bg-slate-950/20 p-4"
+                        className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4"
                         data-testid={`template-change-${change.path}`}
                       >
                         <div className="flex flex-wrap items-center gap-3">
-                          <span className="rounded-full bg-emerald-400/12 px-3 py-1 text-xs uppercase tracking-[0.22em] text-emerald-100">
+                          <span className="bg-cyan-400/12 px-3 py-1 text-xs uppercase tracking-[0.22em] text-cyan-100">
                             {change.change_type}
                           </span>
-                          <span className="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-slate-200/72">
+                          <span className="border border-[rgba(0,200,255,0.12)] px-3 py-1 text-xs uppercase tracking-[0.22em] text-slate-200/72">
                             {change.merge_strategy}
                           </span>
                           <code className="text-sm text-white">{toDisplayPath(activeWorkspaceRoot, change.path)}</code>
@@ -454,13 +465,13 @@ export default function TemplateMigratePage() {
                         )}
 
                         {cleanContent !== null && change.change_type !== 'Deleted' && (
-                          <pre className="mt-3 overflow-x-auto rounded-xl border border-white/8 bg-slate-950/35 p-3 text-xs text-slate-200/82">
+                          <pre className="mt-3 overflow-x-auto border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.35)] p-3 text-xs text-slate-200/82">
                             {previewText(cleanContent)}
                           </pre>
                         )}
 
                         {conflictHunks.length > 0 && (
-                          <div className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4">
+                          <div className="mt-4 border border-rose-400/20 bg-rose-400/10 p-4">
                             <p className="text-sm font-medium text-rose-100">{CONFLICT_RESOLUTION_HEADING}</p>
                             {conflictHunks.map((hunk, index) => (
                               <ConflictPreview key={index} index={index} hunk={hunk} />
@@ -469,21 +480,21 @@ export default function TemplateMigratePage() {
                               <button
                                 type="button"
                                 onClick={() => handleConflictResolution(change.path, 'template')}
-                                className="rounded-xl bg-rose-500/80 px-3 py-2 text-sm font-medium text-white transition hover:bg-rose-500"
+                                className="bg-rose-500/80 px-3 py-2 text-sm font-medium text-white transition hover:bg-rose-500"
                               >
                                 {CONFLICT_USE_TEMPLATE}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleConflictResolution(change.path, 'user')}
-                                className="rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10"
+                                className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)]"
                               >
                                 {CONFLICT_KEEP_USER}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleConflictResolution(change.path, 'skip')}
-                                className="rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10"
+                                className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)]"
                               >
                                 {CONFLICT_SKIP_FILE}
                               </button>
@@ -509,7 +520,7 @@ export default function TemplateMigratePage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4">
+    <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4">
       <p className="text-xs uppercase tracking-[0.24em] text-slate-200/55">{label}</p>
       <p className="mt-3 text-lg font-semibold text-white">{value}</p>
     </div>
@@ -527,11 +538,11 @@ function ConflictPreview({
   const userPreview = hunk.ours_preview ?? hunk.ours;
   return (
     <div className="mt-4 grid gap-3 lg:grid-cols-2">
-      <div className="rounded-xl border border-white/8 bg-slate-950/35 p-3">
+      <div className="border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.35)] p-3">
         <p className="text-xs uppercase tracking-[0.22em] text-rose-100/72">テンプレート #{index + 1}</p>
         <pre className="mt-2 overflow-x-auto text-xs text-rose-50/90">{previewText(templatePreview)}</pre>
       </div>
-      <div className="rounded-xl border border-white/8 bg-slate-950/35 p-3">
+      <div className="border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.35)] p-3">
         <p className="text-xs uppercase tracking-[0.22em] text-slate-200/72">ユーザー #{index + 1}</p>
         <pre className="mt-2 overflow-x-auto text-xs text-slate-100/90">{previewText(userPreview)}</pre>
       </div>

@@ -271,7 +271,7 @@ pub mod quota_service_server {
             tonic::Status,
         >;
     }
-    /// / QuotaService はクォータポリシー管理サービス。
+    /// QuotaService はクォータポリシー管理サービス。
     #[derive(Debug)]
     pub struct QuotaServiceServer<T> {
         inner: Arc<T>,

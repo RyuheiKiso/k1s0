@@ -181,6 +181,13 @@ func TestMessagingError_IsNilSafe(t *testing.T) {
 	assert.Contains(t, err.Error(), "timeout")
 }
 
+// MessagingErrorのErrがnilでもError()がパニックしないことを確認する。
+func TestMessagingError_NilErr(t *testing.T) {
+	err := &messaging.MessagingError{Op: "Publish", Err: nil}
+	// Err が nil の場合はオペレーション名のみ返し、パニックしないことを確認する
+	assert.Equal(t, "Publish", err.Error())
+}
+
 // EventEnvelopeのHeadersおよびPayloadがnilでも正常に扱えることを確認する。
 func TestEventEnvelope_NilHeadersAllowed(t *testing.T) {
 	meta := messaging.NewEventMetadata("test.v1", "corr-003", "svc")

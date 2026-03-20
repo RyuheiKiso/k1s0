@@ -17,6 +17,19 @@
 #   docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 # `docker compose up` のデフォルト動作では認証バイパスは無効です。
 
+x-app-service: &app-service-defaults
+  # アプリケーションサービス共通設定: 全アプリサービスで共有するセキュリティ・リソース・再起動ポリシー
+  restart: unless-stopped
+  mem_limit: 512m
+  cpus: 0.5
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  read_only: true
+  tmpfs:
+    - /tmp
+
 x-rust-healthcheck: &rust-healthcheck
   test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
   interval: 10s
@@ -30,6 +43,8 @@ services:
   postgres:
     image: postgres:17
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: DBサービスには大きめのメモリ・CPU を割り当てる
     mem_limit: 1g
     cpus: 1.0
@@ -61,6 +76,8 @@ services:
   mysql:
     image: mysql:8.4
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: DBサービスには大きめのメモリ・CPU を割り当てる
     mem_limit: 1g
     cpus: 1.0
@@ -92,6 +109,8 @@ services:
   redis:
     image: redis:7
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: Redis はメモリ使用量を制限する
     mem_limit: 512m
     cpus: 0.5
@@ -107,13 +126,15 @@ services:
     # コマンドライン引数での --requirepass 指定を避け、/proc 経由でのパスワード露出を防止する。
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-dev}
-    command: ["sh", "-c", "redis-server --requirepass \"$REDIS_PASSWORD\""]
+    # $$ でCompose変数展開を抑止し、コンテナ内シェルで環境変数REDIS_PASSWORDを解釈させる
+    # exec でシェルプロセスを置換し、redis-server を PID 1 として実行する
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
     ports:
       - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -125,6 +146,8 @@ services:
   kafka:
     image: apache/kafka:3.8.0
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: Kafka はメッセージブローカーのため大きめのリソースを割り当てる
     mem_limit: 1g
     cpus: 1.0
@@ -165,17 +188,7 @@ services:
     # バージョン固定: latest タグを避け再現性を確保する
     image: provectuslabs/kafka-ui:v0.7.2
     profiles: [infra]
-    # リソース制限: UI サービスは軽量
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
@@ -191,6 +204,8 @@ services:
   schema-registry:
     image: confluentinc/cp-schema-registry:7.7.1
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: Schema Registry は中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5
@@ -222,6 +237,8 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: Keycloak は認証基盤のため大きめのリソースを割り当てる
     mem_limit: 1g
     cpus: 1.0
@@ -271,6 +288,8 @@ services:
   redis-session:
     image: redis:7
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: セッション用 Redis はメモリ使用量を制限する
     mem_limit: 512m
     cpus: 0.5
@@ -286,13 +305,15 @@ services:
     # コマンドライン引数での --requirepass 指定を避け、/proc 経由でのパスワード露出を防止する。
     environment:
       REDIS_PASSWORD: ${REDIS_SESSION_PASSWORD:-dev}
-    command: ["sh", "-c", "redis-server --requirepass \"$REDIS_PASSWORD\""]
+    # $$ でCompose変数展開を抑止し、コンテナ内シェルで環境変数REDIS_PASSWORDを解釈させる
+    # exec でシェルプロセスを置換し、redis-server を PID 1 として実行する
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
     ports:
       - "${REDIS_SESSION_HOST_PORT:-6380}:6379"
     volumes:
       - redis-session-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -300,6 +321,8 @@ services:
   vault:
     image: hashicorp/vault:1.17
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: Vault は軽量
     mem_limit: 512m
     cpus: 0.5
@@ -331,6 +354,8 @@ services:
   kong:
     image: kong:3.8
     profiles: [infra]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: API Gateway は中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5
@@ -373,17 +398,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/auth/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${AUTH_REST_HOST_PORT:-8083}:8080"
       - "${AUTH_GRPC_HOST_PORT:-50052}:50051"
@@ -406,17 +421,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/config/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${CONFIG_REST_HOST_PORT:-8084}:8080"
       - "${CONFIG_GRPC_HOST_PORT:-50054}:50051"
@@ -439,17 +444,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/saga/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${SAGA_REST_HOST_PORT:-8085}:8080"
       - "${SAGA_GRPC_HOST_PORT:-50055}:50051"
@@ -472,17 +467,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/dlq-manager/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${DLQ_REST_HOST_PORT:-8086}:8080"
     environment:
@@ -502,17 +487,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/featureflag/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${FEATUREFLAG_REST_HOST_PORT:-8087}:8080"
       - "${FEATUREFLAG_GRPC_HOST_PORT:-50056}:50051"
@@ -531,17 +506,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/ratelimit/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${RATELIMIT_REST_HOST_PORT:-8088}:8080"
       - "${RATELIMIT_GRPC_HOST_PORT:-50057}:50051"
@@ -562,17 +527,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/tenant/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${TENANT_REST_HOST_PORT:-8089}:8080"
       - "${TENANT_GRPC_HOST_PORT:-50058}:50051"
@@ -593,17 +548,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/vault/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${VAULT_SVC_REST_HOST_PORT:-8091}:8080"
       - "${VAULT_SVC_GRPC_HOST_PORT:-50059}:50051"
@@ -613,8 +558,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # Vault の準備完了を確認してから起動する（service_started ではヘルスチェック未通過で接続失敗の可能性がある）
       vault:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./regions/system/server/rust/vault/config:/app/config
     healthcheck: *rust-healthcheck
@@ -624,17 +570,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/api-registry/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${API_REGISTRY_REST_HOST_PORT:-8093}:8080"
     environment:
@@ -652,17 +588,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/app-registry/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${APP_REGISTRY_REST_HOST_PORT:-8094}:8080"
     environment:
@@ -682,17 +608,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/event-monitor/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${EVENT_MONITOR_REST_HOST_PORT:-8095}:8080"
       - "${EVENT_MONITOR_GRPC_HOST_PORT:-50060}:50051"
@@ -713,17 +629,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/event-store/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${EVENT_STORE_REST_HOST_PORT:-8096}:8080"
     environment:
@@ -741,17 +647,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/file/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${FILE_REST_HOST_PORT:-8097}:8080"
     environment:
@@ -769,17 +665,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/master-maintenance/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}:8080"
       - "${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50061}:50051"
@@ -798,17 +684,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/navigation/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${NAVIGATION_REST_HOST_PORT:-8099}:8080"
       - "${NAVIGATION_GRPC_HOST_PORT:-50062}:50051"
@@ -827,17 +703,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/notification/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${NOTIFICATION_REST_HOST_PORT:-8100}:8080"
     environment:
@@ -857,17 +723,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/policy/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${POLICY_REST_HOST_PORT:-8101}:8080"
       - "${POLICY_GRPC_HOST_PORT:-50063}:50051"
@@ -886,17 +742,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/quota/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${QUOTA_REST_HOST_PORT:-8102}:8080"
     environment:
@@ -916,17 +762,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/rule-engine/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${RULE_ENGINE_REST_HOST_PORT:-8103}:8080"
       - "${RULE_ENGINE_GRPC_HOST_PORT:-50064}:50051"
@@ -945,17 +781,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/scheduler/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${SCHEDULER_REST_HOST_PORT:-8104}:8080"
     environment:
@@ -975,17 +801,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/search/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${SEARCH_REST_HOST_PORT:-8105}:8080"
     environment:
@@ -1003,17 +819,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/service-catalog/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${SERVICE_CATALOG_REST_HOST_PORT:-8108}:8080"
     environment:
@@ -1031,17 +837,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/session/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${SESSION_REST_HOST_PORT:-8106}:8080"
       - "${SESSION_GRPC_HOST_PORT:-50065}:50051"
@@ -1062,17 +858,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/workflow/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${WORKFLOW_REST_HOST_PORT:-8107}:8080"
     environment:
@@ -1092,17 +878,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/ai-gateway/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${AI_GATEWAY_REST_HOST_PORT:-8120}:8080"
       - "${AI_GATEWAY_GRPC_HOST_PORT:-50071}:50051"
@@ -1121,17 +897,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/ai-agent/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${AI_AGENT_REST_HOST_PORT:-8121}:8080"
       - "${AI_AGENT_GRPC_HOST_PORT:-50072}:50051"
@@ -1152,17 +918,7 @@ services:
       context: .
       dockerfile: ./regions/system/server/rust/graphql-gateway/Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${GRAPHQL_GW_HOST_PORT:-8092}:8080"
     environment:
@@ -1201,17 +957,7 @@ services:
       context: ./regions/system/server/go/bff-proxy
       dockerfile: Dockerfile
     profiles: [system]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${BFF_PROXY_HOST_PORT:-8082}:8080"
     environment:
@@ -1224,6 +970,12 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/go/bff-proxy/config:/app/config
+    # ヘルスチェック: busybox の wget で /healthz エンドポイントを確認
+    healthcheck:
+      test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ============================================================
   # Business プロファイル
@@ -1233,17 +985,7 @@ services:
       context: .
       dockerfile: ./regions/business/accounting/server/rust/domain-master/Dockerfile
     profiles: [business]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${DOMAIN_MASTER_REST_HOST_PORT:-8210}:8080"
       - "${DOMAIN_MASTER_GRPC_HOST_PORT:-9210}:50051"
@@ -1269,17 +1011,7 @@ services:
       context: .
       dockerfile: ./regions/service/order/server/rust/order/Dockerfile
     profiles: [service]
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${ORDER_REST_HOST_PORT:-8310}:8080"
       - "${ORDER_GRPC_HOST_PORT:-9310}:50051"
@@ -1293,6 +1025,50 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/service/order/server/rust/order/config:/app/config
+    healthcheck: *rust-healthcheck
+
+  # 在庫管理サービス: 在庫の入出庫・残高管理を担当
+  inventory-rust:
+    build:
+      context: .
+      dockerfile: ./regions/service/inventory/server/rust/inventory/Dockerfile
+    profiles: [service]
+    <<: *app-service-defaults
+    ports:
+      - "${INVENTORY_REST_HOST_PORT:-8320}:8080"
+      - "${INVENTORY_GRPC_HOST_PORT:-9320}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/service/inventory/server/rust/inventory/config:/app/config
+    healthcheck: *rust-healthcheck
+
+  # 決済サービス: 決済処理・決済ステータス管理を担当
+  payment-rust:
+    build:
+      context: .
+      dockerfile: ./regions/service/payment/server/rust/payment/Dockerfile
+    profiles: [service]
+    <<: *app-service-defaults
+    ports:
+      - "${PAYMENT_REST_HOST_PORT:-8330}:8080"
+      - "${PAYMENT_GRPC_HOST_PORT:-9330}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/service/payment/server/rust/payment/config:/app/config
     healthcheck: *rust-healthcheck
 
   # ============================================================
@@ -1322,7 +1098,8 @@ services:
     volumes:
       - ./infra/messaging/kafka/create-topics.sh:/scripts/create-topics.sh:ro
     entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
-    restart: "no"
+    # トピック作成失敗時にリトライする（Kafka ブローカーの一時的な未準備に対応）
+    restart: on-failure
 
   # ============================================================
   # 可観測性
@@ -1333,6 +1110,8 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:1.62
     profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: トレーシングサービスは中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5
@@ -1351,6 +1130,8 @@ services:
   prometheus:
     image: prom/prometheus:v2.55
     profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: メトリクス収集サービスは中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5
@@ -1370,6 +1151,8 @@ services:
   loki:
     image: grafana/loki:3.3
     profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: ログ集約サービスは中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5
@@ -1388,6 +1171,8 @@ services:
   promtail:
     image: grafana/promtail:2.9.0
     profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: ログ転送サービスは軽量
     mem_limit: 256m
     cpus: 0.25
@@ -1406,6 +1191,8 @@ services:
   grafana:
     image: grafana/grafana:11.3
     profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
+    restart: unless-stopped
     # リソース制限: ダッシュボード UI は中程度のリソースを使用
     mem_limit: 512m
     cpus: 0.5

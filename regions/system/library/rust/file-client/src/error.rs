@@ -14,4 +14,6 @@ pub enum FileClientError {
     InvalidConfig(String),
     #[error("内部エラー: {0}")]
     Internal(String),
+    #[error("Duration 変換エラー: {0}")]
+    InvalidDuration(String),
 }

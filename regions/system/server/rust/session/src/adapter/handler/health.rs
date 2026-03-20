@@ -6,11 +6,16 @@ use crate::adapter::handler::session_handler::AppState;
 use crate::error::SessionError;
 use crate::usecase::get_session::GetSessionInput;
 
+/// ヘルスチェックエンドポイント: サーバーが起動しているかを返す
 pub async fn healthz() -> impl IntoResponse {
     Json(serde_json::json!({"status": "ok", "service": "session"}))
 }
 
+/// レディネスチェックエンドポイント: 各バックエンドの疎通確認結果を返す。
+/// Redis 未構成（in-memory フォールバック）時は degraded ステータスを返して
+/// 永続化バックエンド未構成であることを運用チームに明示する。
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
+    // Redis 疎通確認: ダミーの get を発行してエラーの種類で判定
     let redis_check = state
         .get_uc
         .execute(&GetSessionInput {
@@ -21,18 +26,37 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let redis_ok = !matches!(redis_check, Err(SessionError::Internal(_)));
     let redis_status = if redis_ok { "ok" } else { "error" };
 
+    // PostgreSQL メタデータリポジトリの疎通確認
     let db_ok = state.metadata_repo.health_check().await.is_ok();
     let db_status = if db_ok { "ok" } else { "error" };
 
+    // Kafka イベントパブリッシャーの疎通確認
     let kafka_ok = state.event_publisher.health_check().await.is_ok();
     let kafka_status = if kafka_ok { "ok" } else { "error" };
 
-    let ready = redis_ok && db_ok && kafka_ok;
-    let status = if ready { "ready" } else { "not_ready" };
-    let code = if ready {
+    let all_backends_ok = redis_ok && db_ok && kafka_ok;
+
+    // in-memory フォールバック時は degraded を返す
+    let status = if !state.redis_configured {
+        "degraded"
+    } else if all_backends_ok {
+        "ready"
+    } else {
+        "not_ready"
+    };
+
+    // in-memory 時も 200 を返す（サービス自体は動作可能）。バックエンド障害時は 503。
+    let code = if !state.redis_configured || all_backends_ok {
         axum::http::StatusCode::OK
     } else {
         axum::http::StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    // バックエンド種別を応答に含める
+    let backend = if state.redis_configured {
+        "redis"
+    } else {
+        "in-memory"
     };
 
     (
@@ -40,6 +64,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         Json(serde_json::json!({
             "status": status,
             "service": "session",
+            "backend": backend,
             "checks": {
                 "redis": redis_status,
                 "postgresql": db_status,
@@ -71,6 +96,7 @@ mod tests {
         RevokeAllSessionsUseCase, RevokeSessionUseCase,
     };
 
+    /// テスト用の in-memory セッションリポジトリ
     struct InMemoryRepo;
 
     #[async_trait]
@@ -92,6 +118,7 @@ mod tests {
         }
     }
 
+    /// テスト用の AppState を構築する（in-memory バックエンド）
     fn test_state() -> AppState {
         let repo: Arc<dyn SessionRepository> = Arc::new(InMemoryRepo);
         let publisher = Arc::new(NoopSessionEventPublisher);
@@ -119,6 +146,7 @@ mod tests {
             event_publisher: publisher,
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("session-test")),
             auth_state: None,
+            redis_configured: false,
         }
     }
 
@@ -145,7 +173,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn readyz_check() {
+    async fn readyz_check_in_memory_returns_degraded() {
         let app = Router::new()
             .route("/readyz", get(super::readyz))
             .with_state(test_state());
@@ -159,13 +187,15 @@ mod tests {
             .await
             .unwrap();
 
+        // in-memory バックエンド時は 200 OK だが degraded ステータス
         assert_eq!(response.status(), StatusCode::OK);
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(json["status"], "ready");
+        assert_eq!(json["status"], "degraded");
         assert_eq!(json["service"], "session");
+        assert_eq!(json["backend"], "in-memory");
         assert_eq!(json["checks"]["redis"], "ok");
         assert_eq!(json["checks"]["postgresql"], "ok");
         assert_eq!(json["checks"]["kafka"], "ok");

@@ -302,6 +302,12 @@ path "secret/data/k1s0/system/kafka/sasl" {
 }
 ```
 
+### Vault パス照合の大文字小文字処理
+
+技術監査対応として、Vault シークレットパスの照合時に **大文字小文字を区別しない（case-insensitive）** 処理を導入した。vault-server のシークレット取得ロジックで、リクエストされたパスを `to_lowercase()` で正規化してから照合する。これにより、クライアント側でパスの大文字小文字が一致しない場合でも正しくシークレットを取得できる。
+
+> **注記**: Vault 本体（HashiCorp Vault）のパスは大文字小文字を区別するが、k1s0 の vault-server ラッパーが中間層として正規化を行う。パス命名規則（本ドキュメントの「シークレットパス体系」セクション）では引き続き小文字ケバブケース（例: `auth-server`）を標準とする。
+
 ### Kubernetes Auth 設定
 
 Kubernetes Auth ロールはサービス固有の ServiceAccount を指定する（ワイルドカード SA は使用しない）。各ロールにはサービス固有ポリシーのみを付与する。

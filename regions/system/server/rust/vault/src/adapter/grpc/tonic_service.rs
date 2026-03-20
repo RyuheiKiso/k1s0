@@ -167,7 +167,11 @@ impl VaultService for VaultServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
 
-        Ok(Response::new(ProtoListSecretsResponse { keys: resp.keys }))
+        Ok(Response::new(ProtoListSecretsResponse {
+            keys: resp.keys,
+            // 後方互換ページネーションフィールド（None = 全件返却）
+            pagination: None,
+        }))
     }
 
     async fn get_secret_metadata(
@@ -197,9 +201,11 @@ impl VaultService for VaultServiceTonic {
         request: Request<ProtoListAuditLogsRequest>,
     ) -> Result<Response<ProtoListAuditLogsResponse>, Status> {
         let inner = request.into_inner();
+        // pagination は共通 Pagination サブメッセージに移行済み（旧 offset/limit は reserved）
+        let pag = inner.pagination.unwrap_or_default();
         let req = ListAuditLogsRequest {
-            offset: inner.offset,
-            limit: inner.limit,
+            offset: pag.page.saturating_sub(1) * pag.page_size,
+            limit: pag.page_size,
         };
         let resp = self
             .inner
@@ -222,7 +228,11 @@ impl VaultService for VaultServiceTonic {
             })
             .collect();
 
-        Ok(Response::new(ProtoListAuditLogsResponse { logs }))
+        Ok(Response::new(ProtoListAuditLogsResponse {
+            logs,
+            // 後方互換ページネーションフィールド（None = 未設定）
+            pagination: None,
+        }))
     }
 }
 

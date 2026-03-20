@@ -206,6 +206,7 @@ pub struct CheckPermissionResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RecordAuditLogRequest {
     /// LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
+    /// Deprecated: event_type_enum を使用すること。
     #[prost(string, tag = "1")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
@@ -221,6 +222,7 @@ pub struct RecordAuditLogRequest {
     #[prost(string, tag = "6")]
     pub action: ::prost::alloc::string::String,
     /// SUCCESS / FAILURE
+    /// Deprecated: result_enum を使用すること。
     #[prost(string, tag = "7")]
     pub result: ::prost::alloc::string::String,
     /// 操作の詳細情報（client_id, grant_type 等）
@@ -232,6 +234,12 @@ pub struct RecordAuditLogRequest {
     /// OpenTelemetry トレース ID
     #[prost(string, tag = "10")]
     pub trace_id: ::prost::alloc::string::String,
+    /// 監査イベント種別（enum）
+    #[prost(enumeration = "AuditEventType", tag = "11")]
+    pub event_type_enum: i32,
+    /// 監査イベント結果（enum）
+    #[prost(enumeration = "AuditResult", tag = "12")]
+    pub result_enum: i32,
 }
 /// RecordAuditLogResponse は監査ログ記録レスポンス。
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -249,6 +257,7 @@ pub struct SearchAuditLogsRequest {
     pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
     #[prost(string, tag = "2")]
     pub user_id: ::prost::alloc::string::String,
+    /// Deprecated: event_type_enum を使用すること。
     #[prost(string, tag = "3")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
@@ -256,8 +265,15 @@ pub struct SearchAuditLogsRequest {
     #[prost(message, optional, tag = "5")]
     pub to: ::core::option::Option<super::super::common::v1::Timestamp>,
     /// SUCCESS / FAILURE
+    /// Deprecated: result_enum を使用すること。
     #[prost(string, tag = "6")]
     pub result: ::prost::alloc::string::String,
+    /// 監査イベント種別フィルタ（enum）
+    #[prost(enumeration = "AuditEventType", tag = "7")]
+    pub event_type_enum: i32,
+    /// 監査イベント結果フィルタ（enum）
+    #[prost(enumeration = "AuditResult", tag = "8")]
+    pub result_enum: i32,
 }
 /// SearchAuditLogsResponse は監査ログ検索レスポンス。
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -272,6 +288,7 @@ pub struct SearchAuditLogsResponse {
 pub struct AuditLog {
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
+    /// Deprecated: event_type_enum を使用すること。
     #[prost(string, tag = "2")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
@@ -284,6 +301,7 @@ pub struct AuditLog {
     pub resource: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
     pub action: ::prost::alloc::string::String,
+    /// Deprecated: result_enum を使用すること。
     #[prost(string, tag = "8")]
     pub result: ::prost::alloc::string::String,
     /// 操作の詳細情報（変更前後の値等）
@@ -297,6 +315,84 @@ pub struct AuditLog {
     /// OpenTelemetry トレース ID
     #[prost(string, tag = "12")]
     pub trace_id: ::prost::alloc::string::String,
+    /// 監査イベント種別（enum）
+    #[prost(enumeration = "AuditEventType", tag = "13")]
+    pub event_type_enum: i32,
+    /// 監査イベント結果（enum）
+    #[prost(enumeration = "AuditResult", tag = "14")]
+    pub result_enum: i32,
+}
+/// AuditEventType は監査イベントの種別。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AuditEventType {
+    Unspecified = 0,
+    Login = 1,
+    Logout = 2,
+    TokenRefresh = 3,
+    PermissionCheck = 4,
+    ApiKeyCreated = 5,
+    ApiKeyRevoked = 6,
+}
+impl AuditEventType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AUDIT_EVENT_TYPE_UNSPECIFIED",
+            Self::Login => "AUDIT_EVENT_TYPE_LOGIN",
+            Self::Logout => "AUDIT_EVENT_TYPE_LOGOUT",
+            Self::TokenRefresh => "AUDIT_EVENT_TYPE_TOKEN_REFRESH",
+            Self::PermissionCheck => "AUDIT_EVENT_TYPE_PERMISSION_CHECK",
+            Self::ApiKeyCreated => "AUDIT_EVENT_TYPE_API_KEY_CREATED",
+            Self::ApiKeyRevoked => "AUDIT_EVENT_TYPE_API_KEY_REVOKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AUDIT_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AUDIT_EVENT_TYPE_LOGIN" => Some(Self::Login),
+            "AUDIT_EVENT_TYPE_LOGOUT" => Some(Self::Logout),
+            "AUDIT_EVENT_TYPE_TOKEN_REFRESH" => Some(Self::TokenRefresh),
+            "AUDIT_EVENT_TYPE_PERMISSION_CHECK" => Some(Self::PermissionCheck),
+            "AUDIT_EVENT_TYPE_API_KEY_CREATED" => Some(Self::ApiKeyCreated),
+            "AUDIT_EVENT_TYPE_API_KEY_REVOKED" => Some(Self::ApiKeyRevoked),
+            _ => None,
+        }
+    }
+}
+/// AuditResult は監査イベントの結果。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AuditResult {
+    Unspecified = 0,
+    Success = 1,
+    Failure = 2,
+}
+impl AuditResult {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AUDIT_RESULT_UNSPECIFIED",
+            Self::Success => "AUDIT_RESULT_SUCCESS",
+            Self::Failure => "AUDIT_RESULT_FAILURE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AUDIT_RESULT_UNSPECIFIED" => Some(Self::Unspecified),
+            "AUDIT_RESULT_SUCCESS" => Some(Self::Success),
+            "AUDIT_RESULT_FAILURE" => Some(Self::Failure),
+            _ => None,
+        }
+    }
 }
 /// Generated server implementations.
 pub mod auth_service_server {

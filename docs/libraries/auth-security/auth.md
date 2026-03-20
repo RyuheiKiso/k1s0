@@ -28,12 +28,14 @@
 | `HasResourceRole` / `has_resource_role` | `(claims, resource, role) -> bool` | リソースロール保有チェック |
 | `CheckPermission` / `check_permission` | `(claims, resource, action) -> bool` | リソース × アクション権限チェック（推奨） |
 | `HasPermission` / `has_permission` | `(claims, resource, action) -> bool` | 後方互換エイリアス（`CheckPermission` を内部呼び出し） |
-| `HasTierAccess` / `has_tier_access` | `(claims, tier) -> bool` | tier_access 階層チェック（下記参照） |
+| `HasTierAccess` / `has_tier_access` | `(claims, tier) -> bool` | tier_access 階層チェック（下記参照）。全 4 言語で階層ロジックを実装済み |
 
-> **Tier 階層モデル**: `has_tier_access` は階層的な権限モデルを適用する。上位 tier を持つユーザーは下位 tier にもアクセス可能。
+> **Tier 階層モデル**: `has_tier_access` / `HasTierAccess` は全言語（Go・Rust・TypeScript・Dart）で階層的な権限モデルを適用する。上位 tier を持つユーザーは下位 tier にもアクセス可能。
 > - `system`(0) → system, business, service すべてにアクセス可能
 > - `business`(1) → business, service にアクセス可能
 > - `service`(2) → service のみアクセス可能
+>
+> Go 実装の `HasTierAccess` は `tierLevel` ヘルパー関数で各 tier を数値に変換し、ユーザーが保持する tier のうち最も権限の高い（数値の小さい）tier と要求 tier を比較する。単純な文字列一致ではなく、階層を考慮した判定を行う。
 
 ### ミドルウェア（HTTP / gRPC 認証ハンドラ）
 

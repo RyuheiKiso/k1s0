@@ -193,13 +193,13 @@ impl QuotaService for QuotaServiceTonic {
         request: Request<ProtoUpdateQuotaPolicyRequest>,
     ) -> Result<Response<ProtoUpdateQuotaPolicyResponse>, Status> {
         let inner = request.into_inner();
-        let alert_threshold_percent = inner
-            .alert_threshold_percent
-            .map(|v| {
-                u8::try_from(v)
-                    .map_err(|_| Status::invalid_argument("alert_threshold_percent must be <= 255"))
-            })
-            .transpose()?;
+        // alert_threshold_percentをu8に変換（範囲外の場合はgRPCエラーを返す）
+        let alert_threshold_percent = match inner.alert_threshold_percent {
+            Some(v) => Some(u8::try_from(v).map_err(|_| {
+                Status::invalid_argument("alert_threshold_percent must be <= 255")
+            })?),
+            None => None,
+        };
         let req = UpdatePolicyRequest {
             id: inner.id,
             name: inner.name,

@@ -124,6 +124,8 @@ impl WorkflowGrpcClient {
                 timeout_hours: s.timeout_hours.map(|v| v as u32),
                 on_approve: s.on_approve.clone(),
                 on_reject: s.on_reject.clone(),
+                // 後方互換フィールド（0 = UNSPECIFIED）
+                step_type_enum: 0,
             })
             .collect()
     }

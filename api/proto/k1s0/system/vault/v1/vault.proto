@@ -76,19 +76,28 @@ message GetSecretMetadataResponse {
 
 message ListSecretsRequest {
   string prefix = 1;
+  // ページネーションパラメータを共通型に統一
+  k1s0.system.common.v1.Pagination pagination = 2;
 }
 
 message ListSecretsResponse {
   repeated string keys = 1;
+  // ページネーション結果
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message ListAuditLogsRequest {
-  int32 offset = 1;
-  int32 limit = 2;
+  // ページネーションパラメータを共通型に統一
+  k1s0.system.common.v1.Pagination pagination = 3;
+  // フィールド番号 1, 2 は旧 offset, limit（Pagination に統一済み）
+  reserved 1, 2;
+  reserved "offset", "limit";
 }
 
 message ListAuditLogsResponse {
   repeated AuditLogEntry logs = 1;
+  // ページネーション結果
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message AuditLogEntry {

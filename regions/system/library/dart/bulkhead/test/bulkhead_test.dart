@@ -26,8 +26,9 @@ void main() {
     await bulkhead.acquire();
     await bulkhead.acquire();
 
-    expect(
-      () => bulkhead.acquire(),
+    // acquire()はFutureを返す非同期メソッドのため、expectLaterで非同期例外を検証する
+    await expectLater(
+      bulkhead.acquire(),
       throwsA(isA<BulkheadFullException>()),
     );
   });
@@ -63,8 +64,9 @@ void main() {
     await bulkhead.acquire();
     await bulkhead.acquire();
 
-    expect(
-      () => bulkhead.call(() async => 1),
+    // call()はFutureを返す非同期メソッドのため、expectLaterで非同期例外を検証する
+    await expectLater(
+      bulkhead.call(() async => 1),
       throwsA(isA<BulkheadFullException>()),
     );
 

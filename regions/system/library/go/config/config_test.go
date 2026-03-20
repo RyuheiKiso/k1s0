@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -375,4 +376,72 @@ auth:
 
 	err = cfg.Validate()
 	assert.NoError(t, err)
+}
+
+// DatabaseConfig の String() がパスワードをマスクすることを確認する。
+func TestDatabaseConfig_String_MasksPassword(t *testing.T) {
+	cfg := DatabaseConfig{
+		Host:     "localhost",
+		Port:     5432,
+		Name:     "mydb",
+		User:     "admin",
+		Password: "secret",
+	}
+	s := cfg.String()
+	if strings.Contains(s, "secret") {
+		t.Errorf("String() にパスワードが含まれている: %s", s)
+	}
+	if !strings.Contains(s, "***") {
+		t.Errorf("String() にマスク文字列が含まれていない: %s", s)
+	}
+}
+
+// KafkaSASLConfig の String() がパスワードをマスクすることを確認する。
+func TestKafkaSASLConfig_String_MasksPassword(t *testing.T) {
+	cfg := KafkaSASLConfig{
+		Mechanism: "SCRAM-SHA-512",
+		Username:  "kafka-user",
+		Password:  "kafka-secret",
+	}
+	s := cfg.String()
+	if strings.Contains(s, "kafka-secret") {
+		t.Errorf("String() にパスワードが含まれている: %s", s)
+	}
+	if !strings.Contains(s, "***") {
+		t.Errorf("String() にマスク文字列が含まれていない: %s", s)
+	}
+}
+
+// RedisConfig の String() がパスワードをマスクすることを確認する。
+func TestRedisConfig_String_MasksPassword(t *testing.T) {
+	cfg := RedisConfig{
+		Host:     "localhost",
+		Port:     6379,
+		Password: "redis-secret",
+	}
+	s := cfg.String()
+	if strings.Contains(s, "redis-secret") {
+		t.Errorf("String() にパスワードが含まれている: %s", s)
+	}
+	if !strings.Contains(s, "***") {
+		t.Errorf("String() にマスク文字列が含まれていない: %s", s)
+	}
+}
+
+// OIDCConfig の String() がクライアントシークレットをマスクすることを確認する。
+func TestOIDCConfig_String_MasksClientSecret(t *testing.T) {
+	cfg := OIDCConfig{
+		DiscoveryURL: "https://example.com/.well-known/openid-configuration",
+		ClientID:     "my-client",
+		ClientSecret: "oidc-secret",
+		RedirectURI:  "https://example.com/callback",
+		JWKSURI:      "https://example.com/jwks",
+	}
+	s := cfg.String()
+	if strings.Contains(s, "oidc-secret") {
+		t.Errorf("String() にクライアントシークレットが含まれている: %s", s)
+	}
+	if !strings.Contains(s, "***") {
+		t.Errorf("String() にマスク文字列が含まれていない: %s", s)
+	}
 }

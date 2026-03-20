@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../config_types.dart';
 
+/// 真偽値型設定フィールドの入力ウィジェット
+/// SwitchListTile で ON/OFF を切り替える
 class BooleanField extends StatelessWidget {
   const BooleanField({
     super.key,
@@ -12,14 +14,17 @@ class BooleanField extends StatelessWidget {
   });
 
   final ConfigFieldSchema schema;
-  final dynamic value;
+  /// 現在の設定値（ConfigValue sealed class で型安全に受け取る）
+  final ConfigValue value;
   final String? errorText;
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final currentValue =
-        value is bool ? value as bool : (schema.defaultValue as bool?) ?? false;
+    /// ConfigValue から真偽値を取り出す（型不一致時はデフォルト値にフォールバック）
+    final currentValue = value is BoolConfigValue
+        ? (value as BoolConfigValue).value
+        : _defaultBool();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,5 +46,12 @@ class BooleanField extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  /// スキーマのデフォルト値から bool を取得する（存在しない場合は false）
+  bool _defaultBool() {
+    final def = schema.defaultValue;
+    if (def is BoolConfigValue) return def.value;
+    return false;
   }
 }

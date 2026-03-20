@@ -1,5 +1,7 @@
 # Vault Module - Secret Engine Configuration
 # Configures database connections and roles for dynamic credential generation.
+# database mount は vault-database サブモジュールが canonical owner のため、
+# backend には固定パス "database" を使用する。
 
 # ============================================================
 # Database Secret Backend Connections
@@ -7,23 +9,23 @@
 
 # Order service database connection (service Tier)
 resource "vault_database_secret_backend_connection" "order_db" {
-  backend       = vault_mount.database.path
+  backend       = "database"
   name          = "service-order"
   allowed_roles = ["service-order-rw", "service-order-ro"]
 
   postgresql {
-    connection_url = "postgresql://{{username}}:{{password}}@postgres.k1s0-service.svc.cluster.local:5432/order_db"
+    connection_url = "postgresql://{{username}}:{{password}}@postgresql.k1s0-service.svc.cluster.local:5432/order_db"
   }
 }
 
 # Auth service database connection (system Tier)
 resource "vault_database_secret_backend_connection" "auth_db" {
-  backend       = vault_mount.database.path
+  backend       = "database"
   name          = "system-auth"
   allowed_roles = ["system-auth-rw", "system-auth-ro"]
 
   postgresql {
-    connection_url = "postgresql://{{username}}:{{password}}@postgres.k1s0-system.svc.cluster.local:5432/k1s0_system"
+    connection_url = "postgresql://{{username}}:{{password}}@postgresql.k1s0-system.svc.cluster.local:5432/k1s0_system"
   }
 }
 
@@ -33,7 +35,7 @@ resource "vault_database_secret_backend_connection" "auth_db" {
 
 # Order service - Read/Write role
 resource "vault_database_secret_backend_role" "order_rw" {
-  backend             = vault_mount.database.path
+  backend             = "database"
   name                = "service-order-rw"
   db_name             = vault_database_secret_backend_connection.order_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT ALL ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
@@ -50,7 +52,7 @@ resource "vault_database_secret_backend_role" "order_rw" {
 
 # Order service - Read-Only role
 resource "vault_database_secret_backend_role" "order_ro" {
-  backend             = vault_mount.database.path
+  backend             = "database"
   name                = "service-order-ro"
   db_name             = vault_database_secret_backend_connection.order_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
@@ -67,7 +69,7 @@ resource "vault_database_secret_backend_role" "order_ro" {
 
 # Auth service - Read/Write role
 resource "vault_database_secret_backend_role" "auth_rw" {
-  backend             = vault_mount.database.path
+  backend             = "database"
   name                = "system-auth-rw"
   db_name             = vault_database_secret_backend_connection.auth_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT ALL ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
@@ -84,7 +86,7 @@ resource "vault_database_secret_backend_role" "auth_rw" {
 
 # Auth service - Read-Only role
 resource "vault_database_secret_backend_role" "auth_ro" {
-  backend             = vault_mount.database.path
+  backend             = "database"
   name                = "system-auth-ro"
   db_name             = vault_database_secret_backend_connection.auth_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]

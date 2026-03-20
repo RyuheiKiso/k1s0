@@ -3,6 +3,7 @@
  * モジュール名、APIスタイル、データベース設定、Kafka/Redis連携、BFF設定を行う
  */
 
+import HelpButton from '../../components/HelpButton';
 import { BFF_OPT_IN_NO, BFF_OPT_IN_YES } from '../../constants/messages';
 import { BFF_LANGUAGE_VALUES, getDefaultDetailName, type ServerDatabaseMode } from '../../lib/generate-wizard';
 import type { ApiStyle, DetailConfig, Kind, Rdbms, ScaffoldDatabaseInfo, Tier } from '../../lib/tauri-commands';
@@ -97,10 +98,13 @@ export default function StepDetail({
 }: StepDetailProps) {
   return (
     <section
-      className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5"
+      className="p3-expand-in mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-detail"
     >
-      <h2 className="text-lg font-semibold text-white">詳細オプション</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-white">詳細オプション</h2>
+        <HelpButton helpKey="generate.detail" />
+      </div>
 
       {/* Serviceティア以外の場合はモジュール名入力 */}
       {tier !== 'Service' && (
@@ -120,7 +124,7 @@ export default function StepDetail({
               void onValidateDetailName(detail.name ?? '');
             }}
             placeholder={getDefaultDetailName(kind)}
-            className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+            className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
             data-testid="input-name"
           />
           {nameError && (
@@ -133,7 +137,7 @@ export default function StepDetail({
 
       {/* Serviceティアの場合は配置名から導出される旨を表示 */}
       {tier === 'Service' && (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/20 p-4 text-sm text-slate-200/82">
+        <div className="mt-4 border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4 text-sm text-slate-200/82">
           サービス名は配置から導出されます: <strong>{placement || '未設定'}</strong>
         </div>
       )}
@@ -201,7 +205,7 @@ export default function StepDetail({
                         onSetFormValue('selectedDatabasePath', event.target.value);
                         onClearErrors('selectedDatabasePath');
                       }}
-                      className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/35 px-3 py-2 text-white"
+                      className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(5,8,15,0.35)] px-3 py-2 text-white"
                       data-testid="select-server-db"
                     >
                       {availableDatabases.map((database) => (
@@ -233,7 +237,7 @@ export default function StepDetail({
                       void onValidateServerDatabaseName(newDatabaseName);
                     }}
                     placeholder="service-db"
-                    className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                    className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
                     data-testid="input-server-db-name"
                   />
                 </div>
@@ -373,7 +377,7 @@ export default function StepDetail({
         <button
           type="button"
           onClick={onBack}
-          className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
+          className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)]"
           data-testid="btn-back"
         >
           戻る
@@ -381,7 +385,7 @@ export default function StepDetail({
         <button
           type="button"
           onClick={onNext}
-          className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+          className="bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500"
           data-testid="btn-next"
         >
           次へ

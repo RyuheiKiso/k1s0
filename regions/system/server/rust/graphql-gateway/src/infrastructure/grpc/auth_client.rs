@@ -163,6 +163,9 @@ impl AuthGrpcClient {
             resource_id: resource_id.to_owned(),
             trace_id: trace_id.to_owned(),
             detail: None,
+            // 後方互換フィールド（0 = UNSPECIFIED）
+            event_type_enum: 0,
+            result_enum: 0,
         });
 
         let resp = self
@@ -195,6 +198,9 @@ impl AuthGrpcClient {
             result: result.unwrap_or_default().to_owned(),
             from: None,
             to: None,
+            // 後方互換フィールド（0 = UNSPECIFIED はフィルタなし）
+            event_type_enum: 0,
+            result_enum: 0,
         });
 
         let resp = self

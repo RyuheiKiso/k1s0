@@ -1,27 +1,22 @@
+# prod 環境の出力値
+# modules/environment の出力を中継する
+
 output "namespaces" {
-  description = "Created Kubernetes namespaces"
-  value       = module.kubernetes_base.namespaces
+  description = "作成された Kubernetes Namespace の一覧"
+  value       = module.environment.namespaces
 }
 
 output "storage_classes" {
-  description = "Created StorageClass names"
-  value = {
-    block      = "ceph-block"
-    filesystem = "ceph-filesystem"
-    block_fast = "ceph-block-fast"
-  }
+  description = "作成された StorageClass 名"
+  value       = module.environment.storage_classes
 }
 
 output "observability_status" {
-  description = "Observability stack deployment status"
-  value = {
-    prometheus = module.observability.prometheus_status
-    loki       = module.observability.loki_status
-    jaeger     = module.observability.jaeger_status
-  }
+  description = "Observability スタックのデプロイ状態"
+  value       = module.environment.observability_status
 }
 
 output "harbor_url" {
-  description = "Harbor registry URL"
-  value       = module.harbor.harbor_url
+  description = "Harbor レジストリ URL"
+  value       = module.environment.harbor_url
 }

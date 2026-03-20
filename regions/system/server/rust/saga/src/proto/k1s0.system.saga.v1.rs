@@ -11,6 +11,7 @@ pub struct SagaStateProto {
     /// 現在のステップインデックス
     #[prost(int32, tag = "3")]
     pub current_step: i32,
+    /// Deprecated: use status_enum instead.
     /// ステータス: STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED
     #[prost(string, tag = "4")]
     pub status: ::prost::alloc::string::String,
@@ -30,6 +31,9 @@ pub struct SagaStateProto {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "10")]
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    /// Saga ステータスの enum 版（status の型付き版）。
+    #[prost(enumeration = "SagaStatus", tag = "11")]
+    pub status_enum: i32,
 }
 /// SagaStepLogProto は Saga の各ステップ実行ログ。
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -199,6 +203,45 @@ pub struct ListWorkflowsRequest {}
 pub struct ListWorkflowsResponse {
     #[prost(message, repeated, tag = "1")]
     pub workflows: ::prost::alloc::vec::Vec<WorkflowSummary>,
+}
+/// SagaStatus は Saga の実行ステータス。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SagaStatus {
+    Unspecified = 0,
+    Running = 1,
+    Completed = 2,
+    Failed = 3,
+    Compensating = 4,
+    Compensated = 5,
+}
+impl SagaStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SAGA_STATUS_UNSPECIFIED",
+            Self::Running => "SAGA_STATUS_RUNNING",
+            Self::Completed => "SAGA_STATUS_COMPLETED",
+            Self::Failed => "SAGA_STATUS_FAILED",
+            Self::Compensating => "SAGA_STATUS_COMPENSATING",
+            Self::Compensated => "SAGA_STATUS_COMPENSATED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SAGA_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "SAGA_STATUS_RUNNING" => Some(Self::Running),
+            "SAGA_STATUS_COMPLETED" => Some(Self::Completed),
+            "SAGA_STATUS_FAILED" => Some(Self::Failed),
+            "SAGA_STATUS_COMPENSATING" => Some(Self::Compensating),
+            "SAGA_STATUS_COMPENSATED" => Some(Self::Compensated),
+            _ => None,
+        }
+    }
 }
 /// Generated server implementations.
 pub mod saga_service_server {

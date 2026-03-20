@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import ProgressLog from '../components/ProgressLog';
 import { useAuth } from '../lib/auth';
@@ -116,7 +117,7 @@ export default function TestPage() {
 
       if (!finished) {
         setStatus('error');
-        setErrorMessage('Test execution completed without a terminal progress event.');
+        setErrorMessage('終了イベントなしでテストの実行が完了しました。');
       }
     } catch (error) {
       setStatus('error');
@@ -128,23 +129,30 @@ export default function TestPage() {
     availableTargets.length > 0 && selectedTargets.length === availableTargets.length;
 
   return (
-    <div className="glass max-w-4xl p-6" data-testid="test-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Quality</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Run test suites</h1>
+    <div className="glass max-w-4xl p-6 p3-animate-in" data-testid="test-page">
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">品質</p>
+        <HelpButton helpKey="test" size="md" />
+      </div>
+      <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">テストスイートの実行</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Execute unit, integration, or full coverage tests for the current workspace.
+        現在のワークスペースでユニットテスト、統合テスト、または全カバレッジテストを実行します。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-          Configure a valid workspace root before scanning test targets.
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100 p3-warning-flicker">
+          テストターゲットをスキャンする前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-white">Test kind</h2>
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white p3-heading-glow">テスト種別</h2>
+            <HelpButton helpKey="test.kind" />
+          </div>
           <div className="mt-4 space-y-2">
             {(['Unit', 'Integration', 'All'] as TestKind[]).map((value) => (
               <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
@@ -173,15 +181,15 @@ export default function TestPage() {
               actionsLocked ||
               (kind !== 'All' && selectedTargets.length === 0)
             }
-            className="mt-6 rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            className="mt-6 bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
             data-testid="btn-test"
           >
-            {status === 'loading' ? 'Running...' : 'Run tests'}
+            {status === 'loading' ? '実行中...' : 'テストを実行'}
           </button>
 
           {status === 'success' && (
-            <p className="mt-4 text-sm text-emerald-300" data-testid="success-message">
-              Test execution completed successfully.
+            <p className="mt-4 text-sm text-cyan-300" data-testid="success-message">
+              テストの実行が正常に完了しました。
             </p>
           )}
           {status === 'error' && (
@@ -192,9 +200,12 @@ export default function TestPage() {
         </section>
 
         {kind !== 'All' && (
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-white">Targets</h2>
+              <span className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-white p3-heading-glow">ターゲット</h2>
+                <HelpButton helpKey="test.targets" />
+              </span>
               {availableTargets.length > 0 && (
                 <label className="flex items-center gap-2 text-sm text-slate-200/72">
                   <input
@@ -202,19 +213,19 @@ export default function TestPage() {
                     checked={allSelected}
                     onChange={(event) => handleToggleAll(event.target.checked)}
                   />
-                  All targets
+                  全ターゲット
                 </label>
               )}
             </div>
 
             <div className="mt-4 space-y-2">
               {availableTargets.length === 0 ? (
-                <p className="text-sm text-slate-200/55">No testable targets were found.</p>
+                <p className="text-sm text-slate-200/55">テスト可能なターゲットが見つかりませんでした。</p>
               ) : (
                 availableTargets.map((target) => (
                   <label
                     key={target}
-                    className="flex items-center gap-3 rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm text-slate-100"
+                    className="flex items-center gap-3 border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.20)] px-3 py-2 text-sm text-slate-100"
                   >
                     <input
                       type="checkbox"

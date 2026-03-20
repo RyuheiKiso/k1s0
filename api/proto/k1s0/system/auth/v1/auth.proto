@@ -199,9 +199,28 @@ message CheckPermissionResponse {
 // Audit Log
 // ============================================================
 
+// AuditEventType は監査イベントの種別。
+enum AuditEventType {
+  AUDIT_EVENT_TYPE_UNSPECIFIED = 0;
+  AUDIT_EVENT_TYPE_LOGIN = 1;
+  AUDIT_EVENT_TYPE_LOGOUT = 2;
+  AUDIT_EVENT_TYPE_TOKEN_REFRESH = 3;
+  AUDIT_EVENT_TYPE_PERMISSION_CHECK = 4;
+  AUDIT_EVENT_TYPE_API_KEY_CREATED = 5;
+  AUDIT_EVENT_TYPE_API_KEY_REVOKED = 6;
+}
+
+// AuditResult は監査イベントの結果。
+enum AuditResult {
+  AUDIT_RESULT_UNSPECIFIED = 0;
+  AUDIT_RESULT_SUCCESS = 1;
+  AUDIT_RESULT_FAILURE = 2;
+}
+
 // RecordAuditLogRequest は監査ログ記録リクエスト。
 message RecordAuditLogRequest {
   // LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
+  // Deprecated: event_type_enum を使用すること。
   string event_type = 1;
   string user_id = 2;
   string ip_address = 3;
@@ -211,6 +230,7 @@ message RecordAuditLogRequest {
   // HTTP メソッドまたは gRPC メソッド名
   string action = 6;
   // SUCCESS / FAILURE
+  // Deprecated: result_enum を使用すること。
   string result = 7;
   // 操作の詳細情報（client_id, grant_type 等）
   google.protobuf.Struct detail = 8;
@@ -218,6 +238,10 @@ message RecordAuditLogRequest {
   string resource_id = 9;
   // OpenTelemetry トレース ID
   string trace_id = 10;
+  // 監査イベント種別（enum）
+  AuditEventType event_type_enum = 11;
+  // 監査イベント結果（enum）
+  AuditResult result_enum = 12;
 }
 
 // RecordAuditLogResponse は監査ログ記録レスポンス。
@@ -231,11 +255,17 @@ message RecordAuditLogResponse {
 message SearchAuditLogsRequest {
   k1s0.system.common.v1.Pagination pagination = 1;
   string user_id = 2;
+  // Deprecated: event_type_enum を使用すること。
   string event_type = 3;
   k1s0.system.common.v1.Timestamp from = 4;
   k1s0.system.common.v1.Timestamp to = 5;
   // SUCCESS / FAILURE
+  // Deprecated: result_enum を使用すること。
   string result = 6;
+  // 監査イベント種別フィルタ（enum）
+  AuditEventType event_type_enum = 7;
+  // 監査イベント結果フィルタ（enum）
+  AuditResult result_enum = 8;
 }
 
 // SearchAuditLogsResponse は監査ログ検索レスポンス。
@@ -247,12 +277,14 @@ message SearchAuditLogsResponse {
 // AuditLog は監査ログエントリ。
 message AuditLog {
   string id = 1;
+  // Deprecated: event_type_enum を使用すること。
   string event_type = 2;
   string user_id = 3;
   string ip_address = 4;
   string user_agent = 5;
   string resource = 6;
   string action = 7;
+  // Deprecated: result_enum を使用すること。
   string result = 8;
   // 操作の詳細情報（変更前後の値等）
   google.protobuf.Struct detail = 9;
@@ -261,4 +293,8 @@ message AuditLog {
   string resource_id = 11;
   // OpenTelemetry トレース ID
   string trace_id = 12;
+  // 監査イベント種別（enum）
+  AuditEventType event_type_enum = 13;
+  // 監査イベント結果（enum）
+  AuditResult result_enum = 14;
 }

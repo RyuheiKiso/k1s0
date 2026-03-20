@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import { executeEventCodegen, previewEventCodegen } from '../lib/tauri-commands';
@@ -48,29 +49,35 @@ export default function EventCodegenPage() {
   }
 
   return (
-    <div className="glass max-w-5xl p-6" data-testid="event-codegen-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Events</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Generate event assets</h1>
+    <div className="glass max-w-5xl p-6 p3-animate-in" data-testid="event-codegen-page">
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">イベント</p>
+        <HelpButton helpKey="eventCodegen" size="md" />
+      </div>
+      <h1 className="p3-heading-glitch mt-2 text-3xl font-semibold text-white">イベントアセットの生成</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Preview event generation and write producers, consumers, proto files, and outbox SQL from
-        `events.yaml`.
+        `events.yaml`からイベント生成をプレビューし、プロデューサー、コンシューマー、protoファイル、アウトボックスSQLを書き出します。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-          Configure a valid workspace root before running event generation.
+        <p className="p3-warning-flicker mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+          イベント生成を実行する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div>
-            <label className="block text-sm font-medium text-slate-200/82">Events file</label>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              イベントファイル
+              <HelpButton helpKey="eventCodegen.eventsFile" />
+            </label>
             <input
               value={eventsPath}
               onChange={(event) => setEventsPath(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+              className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
               data-testid="input-events-path"
             />
           </div>
@@ -82,10 +89,10 @@ export default function EventCodegenPage() {
                 void handlePreview();
               }}
               disabled={workspaceUnavailable || !eventsPath || status === 'loading' || actionsLocked}
-              className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-preview-event"
             >
-              Preview
+              プレビュー
             </button>
             <button
               type="button"
@@ -93,10 +100,10 @@ export default function EventCodegenPage() {
                 void handleGenerate();
               }}
               disabled={workspaceUnavailable || !eventsPath || status === 'loading' || actionsLocked}
-              className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              className="bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
               data-testid="btn-generate-event"
             >
-              Generate
+              生成
             </button>
           </div>
 
@@ -107,8 +114,8 @@ export default function EventCodegenPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-white">Output</h2>
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
+          <h2 className="p3-heading-glow text-lg font-semibold text-white">出力</h2>
           {generatedFiles.length > 0 ? (
             <div className="mt-4 space-y-2">
               {generatedFiles.map((file) => (
@@ -118,8 +125,8 @@ export default function EventCodegenPage() {
               ))}
             </div>
           ) : (
-            <pre className="mt-4 min-h-72 overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-xs text-slate-100">
-              {preview || 'Preview the events file to inspect the planned generation output.'}
+            <pre className="mt-4 min-h-72 overflow-auto whitespace-pre-wrap border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.35)] p-4 text-xs text-slate-100">
+              {preview || 'イベントファイルをプレビューして生成予定の出力を確認します。'}
             </pre>
           )}
         </section>

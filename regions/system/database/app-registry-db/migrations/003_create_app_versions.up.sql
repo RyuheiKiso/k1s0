@@ -1,3 +1,4 @@
+-- app_versions テーブルの作成（べき等性あり）
 CREATE TABLE IF NOT EXISTS app_registry.app_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     app_id TEXT NOT NULL REFERENCES app_registry.apps(id) ON DELETE CASCADE,
@@ -13,9 +14,18 @@ CREATE TABLE IF NOT EXISTS app_registry.app_versions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE app_registry.app_versions
-    ADD CONSTRAINT uq_app_version_platform_arch
-    UNIQUE (app_id, version, platform, arch);
+-- べき等性ガード: 制約が既に存在する場合はスキップする
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'uq_app_version_platform_arch'
+    ) THEN
+        ALTER TABLE app_registry.app_versions
+            ADD CONSTRAINT uq_app_version_platform_arch
+            UNIQUE (app_id, version, platform, arch);
+    END IF;
+END $$;
 
+-- インデックス作成（べき等性あり）
 CREATE INDEX IF NOT EXISTS idx_app_versions_app_id ON app_registry.app_versions(app_id);
 CREATE INDEX IF NOT EXISTS idx_app_versions_published_at ON app_registry.app_versions(published_at DESC);

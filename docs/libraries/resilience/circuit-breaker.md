@@ -19,11 +19,11 @@
 | `CircuitBreaker` | 構造体 | 失敗閾値・オープン時間・ハーフオープン試行数の設定と状態管理 |
 | `CircuitBreakerState` | enum | `Closed`（正常）/ `Open`（遮断中）/ `HalfOpen`（試行中） |
 | `CircuitBreakerConfig` | 構造体 | failure_threshold, success_threshold, timeout 設定（デフォルト: 5 / 3 / 30s） |
-| `CircuitBreakerMetrics` | 構造体（Rust のみ） | OpenTelemetry メトリクス（状態変化・成功率） |
+| `CircuitBreakerMetrics` | 構造体（全 4 言語） | メトリクス（failure_count / success_count / state）。Rust は OpenTelemetry 連携、Go/TS/Dart は構造体/クラスとして提供 |
 | `CircuitBreakerError<E>` | enum | ジェネリックエラー型（`Open`・`Inner(E)`） |
 | `CircuitBreaker::record_success()` | メソッド | 成功を記録し、HalfOpen 状態での復旧判定を行う |
 | `CircuitBreaker::record_failure()` | メソッド | 失敗を記録し、閾値超過で Open 遷移。HalfOpen 状態では即座に Open へ戻る |
-| `CircuitBreaker::metrics()` | メソッド（Rust のみ） | 現在の failure_count / success_count / state を返す |
+| `CircuitBreaker::metrics()` | メソッド（全 4 言語） | 現在の failure_count / success_count / state を返す |
 
 ## Rust 実装
 
@@ -135,11 +135,18 @@ func (cb *CircuitBreaker) RecordSuccess()
 
 func (cb *CircuitBreaker) RecordFailure()
 
+func (cb *CircuitBreaker) Metrics() CircuitBreakerMetrics
+
+// CircuitBreakerMetrics はサーキットブレーカーの現在の状態メトリクスを保持する。
+type CircuitBreakerMetrics struct {
+    FailureCount uint32
+    SuccessCount uint32
+    State        State
+}
+
 // センチネルエラー: Open 状態で Call() を呼んだ場合に返される
 var ErrOpen = errors.New("circuit breaker is open")
 ```
-
-> Go 実装は `CircuitBreakerMetrics` 型を提供しない（N/A）。メトリクス連携は呼び出し側で状態変化を観測して実装する。
 
 ## TypeScript 実装
 
@@ -166,13 +173,18 @@ export class CircuitBreaker {
   isOpen(): boolean;
   recordSuccess(): void;
   recordFailure(): void;
+  metrics(): CircuitBreakerMetrics;
   async call<T>(fn: () => Promise<T>): Promise<T>;
+}
+
+export interface CircuitBreakerMetrics {
+  failureCount: number;
+  successCount: number;
+  state: CircuitState;
 }
 ```
 
 **カバレッジ目標**: 90%以上
-
-> TypeScript 実装は `CircuitBreakerMetrics` 型を提供しない（N/A）。メトリクス連携は呼び出し側で状態変化を観測して実装する。
 
 ## Dart 実装
 
@@ -207,13 +219,24 @@ class CircuitBreaker {
 
   void recordSuccess();
   void recordFailure();
+  CircuitBreakerMetrics get metrics;
   Future<T> call<T>(Future<T> Function() fn);
+}
+
+class CircuitBreakerMetrics {
+  final int failureCount;
+  final int successCount;
+  final CircuitState state;
+
+  const CircuitBreakerMetrics({
+    required this.failureCount,
+    required this.successCount,
+    required this.state,
+  });
 }
 ```
 
 **カバレッジ目標**: 90%以上
-
-> Dart 実装は `CircuitBreakerMetrics` 型を提供しない（N/A）。メトリクス連携は呼び出し側で状態変化を観測して実装する。
 
 ## テスト戦略
 

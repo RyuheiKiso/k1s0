@@ -73,6 +73,8 @@ impl VaultGrpcClient {
     pub async fn list_secrets(&self, prefix: Option<&str>) -> anyhow::Result<Vec<String>> {
         let request = tonic::Request::new(proto::k1s0::system::vault::v1::ListSecretsRequest {
             prefix: prefix.unwrap_or_default().to_owned(),
+            // pagination は None（全件取得）
+            pagination: None,
         });
 
         let resp = self
@@ -92,9 +94,12 @@ impl VaultGrpcClient {
         offset: Option<i32>,
         limit: Option<i32>,
     ) -> anyhow::Result<Vec<VaultAuditLogEntry>> {
+        // offset/limit は Pagination サブメッセージに移行済み
         let request = tonic::Request::new(proto::k1s0::system::vault::v1::ListAuditLogsRequest {
-            offset: offset.unwrap_or(0),
-            limit: limit.unwrap_or(50),
+            pagination: Some(proto::k1s0::system::common::v1::Pagination {
+                page: offset.unwrap_or(0) as i32 + 1,
+                page_size: limit.unwrap_or(50) as i32,
+            }),
         });
 
         let resp = self

@@ -10,6 +10,12 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 - 環境別デプロイ: dev 自動 / staging 自動 / prod 手動承認
 - セキュリティスキャン（Trivy・依存関係チェック）を全パイプラインに組み込む
 
+### ビルド環境の制限事項
+
+| サーバー | 制限 | 対応 |
+|---------|------|------|
+| master-maintenance | zen-engine → rquickjs-sys が Windows 未対応 | CI は ubuntu-latest、ローカルは WSL2/devcontainer |
+
 ![CI/CD パイプライン全体像](images/cicd-pipeline-overview.svg)
 
 ---
@@ -247,7 +253,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: fs
           scan-ref: .
@@ -644,7 +650,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: fs
           scan-ref: .
@@ -740,7 +746,7 @@ jobs:
             service: inventory
     steps:
       - name: コンテナイメージの脆弱性スキャン (${{ matrix.tier }}/${{ matrix.service }})
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: image
           image-ref: harbor.internal.example.com/k1s0-${{ matrix.tier }}/${{ matrix.service }}:latest
@@ -756,7 +762,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy IaC 構成スキャン
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: config
           scan-ref: infra/
@@ -773,7 +779,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy ライセンスコンプライアンススキャン
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           scan-type: fs
           scan-ref: .
@@ -931,9 +937,19 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 | `path` | string | 必須 | モジュールのディレクトリパス |
 | `lang` | string | 必須 | 言語（`rust`, `go`, `ts`, `dart`） |
 | `status` | string | 必須 | `stable` / `experimental` / `archived` |
-| `type` | string | 必須 | `server` / `library` / `client` / `cli` / `workspace` / `proto` |
+| `type` | string | 必須 | `server` / `library` / `client` / `cli` / `workspace` / `proto` / `database` / `infra` |
 | `workspace` | string | 任意 | Cargo/Go ワークスペースルートパス |
 | `skip-ci` | bool | 任意 | `true` の場合 CI のリント・テスト・ビルドをスキップ |
+
+### database / infra モジュールタイプの追加
+
+技術監査対応として、`modules.yaml` に `database` および `infra` タイプのモジュールを追加した。
+
+**`database` タイプ**: system tier の全データベースクレート（`regions/system/database/*-db`）を登録。23 個の DB クレートが対象。`workspace: regions/system` を指定し、Cargo ワークスペースに属する。
+
+**`infra` タイプ**: `infra/` 配下のインフラストラクチャ設定（Ansible, Docker, Helm, Istio, Keycloak, Kong, Kubernetes, Terraform, Vault 等）を登録。全モジュールに `skip-ci: true` を設定し、CI のリント・テスト・ビルドの対象外とする（インフラ設定は言語固有の CI ジョブでは検証しないため）。
+
+これにより、`validate-modules` ジョブの双方向チェック（ディスク上のモジュールと `modules.yaml` の整合性検証）が全モジュールをカバーする。
 
 ### フィルタリングスクリプト
 
@@ -1067,6 +1083,201 @@ Docker イメージタグから `:latest` を削除。`{version}` と `{version}
 ### Dependabot 複数ディレクトリ対応
 
 `.github/dependabot.yml` で `directories` フィールドを使用し、モノレポ内の全マニフェストディレクトリ（Go, Rust, npm, Dart）に対応。ルートディレクトリのみの設定から個別ディレクトリ指定に拡張。
+
+## npm スクリプト実行の --if-present 削除方針
+
+### 背景
+
+CI（`ci.yaml`）と justfile の npm スクリプト実行で `--if-present` フラグを使用している箇所がある（`npm test --if-present`, `npm run build --if-present`, `npm run format --if-present` 等）。`--if-present` は該当スクリプトが `package.json` に定義されていない場合にサイレントスキップするフラグだが、以下の問題がある:
+
+- **テストの欠落を隠蔽**: `test` スクリプトが未定義のパッケージでもエラーにならず、テスト未実装が検出されない
+- **ビルド漏れの検出遅延**: `build` スクリプトの定義漏れが CI で検出されない
+
+### 対応方針
+
+- 全 TypeScript パッケージに `test`, `build`, `format` スクリプトを明示的に定義する
+- 定義を確認後、CI と justfile から `--if-present` を削除する
+- `validate-ts-lockfiles` lint ジョブを拡張し、必須スクリプト（`test`, `build`）の存在チェックを追加する
+
+## tier 別 CI ワークフローの拡張
+
+### 背景
+
+統合テスト（`integration-test.yaml`）は当初 system tier のサーバーのみを対象としていたが、service tier（order, payment, inventory）と business tier（domain-master）のサーバーも統合テストの対象とする必要がある。
+
+### 対応方針
+
+- `ci-list-integration-servers.sh` に `--tier` オプションを追加し、tier 別のサーバーリスト取得を可能にする
+- 各 tier は独自のワークスペース（`regions/system`, `regions/service/*/server/rust/*`, `regions/business/*/server/rust/*`）を持つため、tier 別の integration-test ジョブを分離する
+- `modules.yaml` に `tier` フィールドを追加し、CI スクリプトが tier を自動判定できるようにする
+
+## 技術監査対応の改善事項
+
+### Vault 結合テスト（integration-test.yaml）
+
+`integration-test.yaml` のサービスコンテナに `hashicorp/vault:1.15` を追加し、サービス間認証の結合テストを可能にした。Vault コンテナは dev モード（`VAULT_DEV_ROOT_TOKEN_ID`）で起動し、統合テスト内で AppRole 認証やシークレット取得のフローを検証できる。
+
+```yaml
+services:
+  vault:
+    image: hashicorp/vault:1.15
+    env:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-token
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    ports:
+      - 8200:8200
+    options: >-
+      --health-cmd "vault status"
+      --health-interval 10s
+      --health-timeout 5s
+      --health-retries 5
+```
+
+### Trivy バージョン統一・SARIF レポートアップロード
+
+技術監査対応として、全ワークフロー（`ci.yaml`, `deploy.yaml`, `security.yaml`, `publish-app.yaml`, `_service-deploy.yaml`）の `aquasecurity/trivy-action` を **0.29.0**（SHA ピン留め: `76071ef0d7ec797419534a183b498b4d6a132a02`）に統一した。従来は `@master` や `@0.28.0` が混在しており、以下の問題があった:
+
+- `@master` 参照によるサプライチェーン攻撃リスク
+- バージョン不一致による脆弱性データベースの差異
+
+**deploy.yaml への SARIF レポート追加**: `deploy.yaml` の `build-and-push` ジョブに Trivy SARIF レポートの生成・アップロードステップを追加した。ビルド済みイメージに対して CRITICAL/HIGH の脆弱性スキャンを実行し、結果を SARIF 形式でアーティファクトに保存する。
+
+```yaml
+# deploy.yaml build-and-push ジョブ内（ビルド・プッシュ後）
+- name: Run Trivy vulnerability scanner
+  uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
+  with:
+    image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+    format: 'sarif'
+    output: 'trivy-results.sarif'
+    severity: 'CRITICAL,HIGH'
+- name: Upload Trivy SARIF report
+  uses: actions/upload-artifact@v4
+  if: always()
+  with:
+    name: trivy-sarif-${{ steps.image.outputs.service_name }}
+    path: trivy-results.sarif
+    if-no-files-found: warn
+```
+
+### SBOM アーティファクト保存（_service-deploy.yaml）
+
+`_service-deploy.yaml` の build-push ジョブで `actions/upload-artifact@v4` により SBOM（Software Bill of Materials）をアーティファクトとして保存する。Trivy の `--format cyclonedx` で生成した SBOM を CI アーティファクトとしてアップロードし、監査時のソフトウェア構成追跡を可能にする。
+
+```yaml
+- name: Generate SBOM
+  uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
+  with:
+    scan-type: image
+    image-ref: ${{ env.IMAGE_REF }}
+    format: cyclonedx
+    output: sbom.json
+
+- name: Upload SBOM artifact
+  uses: actions/upload-artifact@v4
+  with:
+    name: sbom-${{ inputs.service-name }}
+    path: sbom.json
+    retention-days: 90
+```
+
+### npm キャッシュ確認済み（ci.yaml）
+
+`ci.yaml` の `lint-ts` / `test-ts` ジョブで `actions/setup-node@v4` に `cache: 'npm'` を設定済みであることを確認。npm のグローバルキャッシュを活用し、依存関係のインストール時間を短縮している。キャッシュ戦略テーブル（本ドキュメント「キャッシュ戦略」セクション）にも反映済み。
+
+### KAFKA_CLUSTER_ID 共通化（integration-test.yaml）
+
+`integration-test.yaml` で Kafka サービスコンテナの `CLUSTER_ID` をワークフローレベルの `env` に定義し、DRY 化した。複数ジョブ間で同一の値を使い回す場合に定義が分散しないようにする。
+
+```yaml
+# ワークフローレベル env で共通定義
+env:
+  KAFKA_CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
+```
+
+### デプロイヘルスチェックタイムアウト（deploy.yaml）
+
+`deploy.yaml` のスモークテスト（ヘルスチェック）で使用する `wget` に `--timeout=5` を追加し、応答のないサービスに対してタイムアウトを設定した。これにより、ヘルスチェックがハングしてワークフロー全体の実行時間を浪費することを防止する。
+
+```yaml
+- name: Smoke test
+  run: |
+    wget --timeout=5 --tries=3 -qO- http://localhost:${{ steps.port.outputs.value }}/health
+```
+
+### カバレッジ閾値ロードマップ（LOW-08）
+
+テストカバレッジの段階的引き上げ計画。`coverage-rust.yaml` で計測した結果を基に、閾値を徐々に引き上げる。
+
+| フェーズ | ライブラリ閾値 | サーバー閾値 | 目標時期 | 内容 |
+|----------|---------------|-------------|----------|------|
+| Phase 1 | - | - | 現在 | ベースライン測定（現状の閾値を記録、CI は計測のみで失敗させない） |
+| Phase 2 | 60% | 40% | Phase 1 + 2ヶ月 | 最低限の閾値を設定し、CI でカバレッジ低下を検出 |
+| Phase 3 | 80% | 60% | Phase 2 + 3ヶ月 | 本番品質の閾値を適用、新規コードは必ずテスト付き |
+
+- **Phase 1（現在）**: `coverage-rust.yaml` でカバレッジレポートを生成・アップロードするが、閾値チェックは行わない。各サービス・ライブラリのベースラインを測定する
+- **Phase 2**: `cargo-tarpaulin` の `--fail-under` オプションでライブラリ 60% / サーバー 40% を設定。閾値未達の場合 CI を警告（`continue-on-error: true`）とする
+- **Phase 3**: 閾値をライブラリ 80% / サーバー 60% に引き上げ、`continue-on-error` を外して CI を失敗させる。新規コードのマージには必ずテストカバレッジの維持が求められる
+
+---
+
+## Docker ダイジェスト固定の自動化
+
+### 背景
+
+Dockerfile および GitHub Actions ワークフローのベースイメージ・アクションは SHA ダイジェストでピン留めし、サプライチェーン攻撃を防止する。ダイジェストの手動管理は運用負荷が高いため、自動化ツールで更新を管理する。
+
+### 自動更新ツール: Renovate / Dependabot
+
+| ツール | 設定ファイル | 対象 |
+| --- | --- | --- |
+| Dependabot | `.github/dependabot.yml` | GitHub Actions のアクションバージョン |
+| Renovate | `renovate.json`（導入時） | Dockerfile のベースイメージダイジェスト |
+
+#### Dependabot による GitHub Actions 自動更新
+
+`.github/dependabot.yml` で `package-ecosystem: github-actions` を設定し、アクションの SHA ピン留めを自動更新する。
+
+```yaml
+# .github/dependabot.yml（抜粋）
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+```
+
+#### Renovate による Dockerfile ダイジェスト自動更新（導入検討中）
+
+Renovate は Dockerfile 内のベースイメージタグをダイジェスト付きに自動変換・更新する。
+
+```json
+{
+  "extends": ["config:recommended"],
+  "dockerfile": {
+    "pinDigests": true
+  }
+}
+```
+
+### CI パイプラインでのダイジェスト検証
+
+`security.yaml` の `image-scan` ジョブで Harbor レジストリ上のイメージを Trivy スキャンし、既知の脆弱性を検出する。ダイジェスト固定により、スキャン済みイメージと実際にデプロイされるイメージの一致を保証する。
+
+### 手動更新手順
+
+自動化ツールで対応できない場合の手動更新手順:
+
+1. 対象イメージの最新ダイジェストを取得する
+   ```bash
+   # Docker Hub のイメージダイジェスト取得
+   docker pull rust:1.93-bookworm
+   docker inspect --format='{{index .RepoDigests 0}}' rust:1.93-bookworm
+   ```
+2. Dockerfile または workflow YAML の該当行を更新する
+3. `buf breaking` / `cargo check` / CI でビルド検証する
+4. PR を作成し、セキュリティチームのレビューを受ける
+
+---
 
 ## 関連ドキュメント
 

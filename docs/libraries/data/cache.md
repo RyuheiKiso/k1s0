@@ -22,11 +22,11 @@
 | `exists(key)` | bool + エラー | キーが存在するか確認 |
 | `setNX(key, value, ttl)` | bool + エラー | キーが存在しない場合のみセット |
 
-Go・Rust 追加 API:
+追加 API（全 4 言語）:
 
 | メソッド | 説明 |
 |---------|------|
-| `expire(key, ttl)` | キーの TTL を更新（Go・Rust のみ） |
+| `expire(key, ttl)` | キーの TTL を更新 |
 
 **`expire()` の言語別シグネチャ:**
 
@@ -34,6 +34,8 @@ Go・Rust 追加 API:
 |------|-----------|-------------|
 | Go | `Expire(ctx, key, ttl) (bool, error)` | bool: キーが存在し TTL を設定できた場合 true |
 | Rust | `expire(key, ttl) -> Result<bool, CacheError>` | bool: 同上（Go と同一セマンティクス） |
+| TypeScript | `expire(key, ttlMs) -> Promise<boolean>` | boolean: 同上（Go と同一セマンティクス） |
+| Dart | `expire(key, ttlMs) -> Future<bool>` | bool: 同上（Go と同一セマンティクス） |
 
 Rust 公開型:
 
@@ -179,6 +181,7 @@ export interface CacheClient {
   delete(key: string): Promise<boolean>;
   exists(key: string): Promise<boolean>;
   setNX(key: string, value: string, ttlMs: number): Promise<boolean>;
+  expire(key: string, ttlMs: number): Promise<boolean>;
 }
 
 export class InMemoryCacheClient implements CacheClient {
@@ -187,6 +190,7 @@ export class InMemoryCacheClient implements CacheClient {
   delete(key: string): Promise<boolean>;
   exists(key: string): Promise<boolean>;
   setNX(key: string, value: string, ttlMs: number): Promise<boolean>;
+  expire(key: string, ttlMs: number): Promise<boolean>;
 }
 
 export class RedisCacheClient implements CacheClient {
@@ -197,6 +201,7 @@ export class RedisCacheClient implements CacheClient {
   delete(key: string): Promise<boolean>;
   exists(key: string): Promise<boolean>;
   setNX(key: string, value: string, ttlMs: number): Promise<boolean>;
+  expire(key: string, ttlMs: number): Promise<boolean>;
 }
 ```
 
@@ -225,6 +230,7 @@ abstract class CacheClient {
   Future<bool> delete(String key);
   Future<bool> exists(String key);
   Future<bool> setNX(String key, String value, int ttlMs);
+  Future<bool> expire(String key, int ttlMs);
 }
 
 class InMemoryCacheClient implements CacheClient {

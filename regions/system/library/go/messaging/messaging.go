@@ -82,7 +82,11 @@ type MessagingError struct {
 }
 
 // Error は MessagingError の文字列表現を返す。
+// Err が nil の場合はオペレーション名のみ返す。
 func (e *MessagingError) Error() string {
+	if e.Err == nil {
+		return e.Op
+	}
 	return e.Op + ": " + e.Err.Error()
 }
 

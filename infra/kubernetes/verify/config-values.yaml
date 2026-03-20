@@ -45,7 +45,7 @@ config:
         port: 8080
 
       database:
-        host: postgres.k1s0-system.svc.cluster.local
+        host: postgresql.k1s0-system.svc.cluster.local
         port: 5432
         name: config_db
         user: dev

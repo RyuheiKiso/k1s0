@@ -12,6 +12,11 @@ fn default_timeout_secs() -> u64 {
     10
 }
 
+/// audience のデフォルト値（"k1s0-api"）。
+fn default_audience() -> String {
+    "k1s0-api".to_string()
+}
+
 /// ServiceAuthConfig はサービス間認証クライアントの設定を表す。
 ///
 /// Keycloak の Client Credentials フローで使用する設定値を保持する。
@@ -39,6 +44,10 @@ pub struct ServiceAuthConfig {
     /// HTTP タイムアウト秒数（デフォルト: 10 秒）。
     #[serde(default = "default_timeout_secs")]
     pub timeout_secs: u64,
+
+    /// トークン検証時に期待するオーディエンス（デフォルト: "k1s0-api"）。
+    #[serde(default = "default_audience")]
+    pub audience: String,
 }
 
 impl ServiceAuthConfig {
@@ -53,6 +62,7 @@ impl ServiceAuthConfig {
             jwks_uri: None,
             refresh_before_secs: default_refresh_before_secs(),
             timeout_secs: default_timeout_secs(),
+            audience: default_audience(),
         }
     }
 
@@ -71,6 +81,12 @@ impl ServiceAuthConfig {
     /// タイムアウト秒数を設定する。
     pub fn with_timeout_secs(mut self, secs: u64) -> Self {
         self.timeout_secs = secs;
+        self
+    }
+
+    /// オーディエンスを設定する。
+    pub fn with_audience(mut self, audience: &str) -> Self {
+        self.audience = audience.to_string();
         self
     }
 }
@@ -150,6 +166,22 @@ mod tests {
         assert_eq!(config.refresh_before_secs, 120);
         assert_eq!(config.timeout_secs, 10);
         assert!(config.jwks_uri.is_none());
+        assert_eq!(config.audience, "k1s0-api");
+    }
+
+    // with_audience() でオーディエンスが変更されることを確認する。
+    #[test]
+    fn test_with_audience() {
+        let config = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec")
+            .with_audience("custom-audience");
+        assert_eq!(config.audience, "custom-audience");
+    }
+
+    // new() で audience のデフォルト値が "k1s0-api" であることを確認する。
+    #[test]
+    fn test_default_audience() {
+        let config = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec");
+        assert_eq!(config.audience, "k1s0-api");
     }
 
     // ビルダーメソッドをチェーンして全オプションを設定できることを確認する。
@@ -158,13 +190,15 @@ mod tests {
         let config = ServiceAuthConfig::new("https://auth.example.com/token", "svc", "sec")
             .with_jwks_uri("https://auth.example.com/certs")
             .with_refresh_before_secs(60)
-            .with_timeout_secs(30);
+            .with_timeout_secs(30)
+            .with_audience("custom-aud");
         assert_eq!(
             config.jwks_uri.as_deref(),
             Some("https://auth.example.com/certs")
         );
         assert_eq!(config.refresh_before_secs, 60);
         assert_eq!(config.timeout_secs, 30);
+        assert_eq!(config.audience, "custom-aud");
     }
 
     // ServiceAuthConfig の Clone が全フィールドを正しくコピーすることを確認する。
@@ -177,6 +211,7 @@ mod tests {
         assert_eq!(cloned.client_id, original.client_id);
         assert_eq!(cloned.client_secret, original.client_secret);
         assert_eq!(cloned.jwks_uri, original.jwks_uri);
+        assert_eq!(cloned.audience, original.audience);
     }
 
     // 設定を JSON にシリアライズしてデシリアライズしても全フィールドが一致することを確認する。
@@ -199,5 +234,6 @@ mod tests {
             original.refresh_before_secs
         );
         assert_eq!(deserialized.timeout_secs, original.timeout_secs);
+        assert_eq!(deserialized.audience, original.audience);
     }
 }

@@ -289,13 +289,21 @@ npx tsc --noEmit             # TypeScript 型チェック
 |-----------|------|
 | `commands::init` | プロジェクト初期化 |
 | `commands::generate` | ひな形生成（種別・Tier・言語の組み合わせ） |
+| `commands::generate_events` | イベント定義生成 |
 | `commands::build` | ビルド実行 |
 | `commands::test_cmd` | テスト実行 |
 | `commands::deploy` | デプロイ実行 |
+| `commands::deps` | 依存関係管理 |
+| `commands::dev` | 開発サーバー起動 |
+| `commands::migrate` | マイグレーション実行 |
+| `commands::template_migrate` | テンプレートマイグレーション |
+| `commands::validate` | プロジェクトバリデーション |
+| `commands::command_runner` | コマンド実行基盤 |
 | `config` | CLI 設定の読み込み・バリデーション |
 | `template` | Tera テンプレート処理 |
 | `progress` | 進捗イベント（`ProgressEvent`） |
 | `validation` | 名前バリデーション（`[a-z0-9-]+`） |
+| `workspace` | ワークスペース管理 |
 
 ### k1s0-cli
 

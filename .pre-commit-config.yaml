@@ -48,10 +48,10 @@ repos:
         files: 'CLI/.*\.rs$'
         pass_filenames: false
 
-      # Rust Clippy（regions/system ワークスペース）
+      # Rust Clippy（regions/system ワークスペース）— experimental パッケージを除外
       - id: rust-clippy-system
         name: Rust Clippy (system)
-        entry: cargo clippy --manifest-path regions/system/Cargo.toml --workspace --all-targets -- -D warnings
+        entry: bash -c 'excludes=$(bash scripts/list-experimental-excludes.sh) && cargo clippy --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets -- -D warnings'
         language: system
         files: 'regions/system/.*\.rs$'
         pass_filenames: false

@@ -41,6 +41,9 @@ pub struct AppState {
     pub revoke_api_key_uc: Arc<RevokeApiKeyUseCase>,
     pub validate_api_key_uc: Arc<ValidateApiKeyUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    /// readyz 等の外部ヘルスチェックに使用する共有 HTTP クライアント。
+    /// リクエストごとの生成コストを避けるためシングルトンとして保持する。
+    pub http_client: reqwest::Client,
     pub db_pool: Option<sqlx::PgPool>,
     pub keycloak_url: Option<String>,
     pub jwks_provider: Option<crate::infrastructure::jwks_provider::JwksProvider>,
@@ -82,6 +85,11 @@ impl AppState {
             validate_api_key_uc: Arc::new(ValidateApiKeyUseCase::new(api_key_repo.clone())),
             revoke_api_key_uc: Arc::new(RevokeApiKeyUseCase::new(api_key_repo)),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server")),
+            // ヘルスチェック用 HTTP クライアント。タイムアウト3秒でシングルトン化。
+            http_client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(3))
+                .build()
+                .unwrap_or_default(),
             db_pool,
             keycloak_url,
             jwks_provider,
@@ -198,6 +206,13 @@ pub fn router(state: AppState) -> Router {
             make_rbac_middleware("api_keys", "read"),
         ));
 
+    // API キー検証: 認証必須だが RBAC 不要（サービス間検証用）
+    // SEC-001: validate_api_key を public から protected に移動し、Bearer トークン認証を必須化
+    let api_key_validate_routes = Router::new().route(
+        "/api/v1/api-keys/validate",
+        post(api_key_handler::validate_api_key),
+    );
+
     // Protected routes share auth_middleware for Bearer token validation
     let protected = Router::new()
         .merge(user_routes)
@@ -206,6 +221,7 @@ pub fn router(state: AppState) -> Router {
         .merge(audit_write_routes)
         .merge(api_key_read_routes)
         .merge(api_key_write_routes)
+        .merge(api_key_validate_routes)
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -228,10 +244,6 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/v1/auth/token/introspect",
             post(auth_handler::introspect_token),
-        )
-        .route(
-            "/api/v1/api-keys/validate",
-            post(api_key_handler::validate_api_key),
         );
 
     // with_state で Router<()> に変換後、SwaggerUI を merge する

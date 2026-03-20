@@ -1,7 +1,7 @@
 # Build stage
 # Go 1.24 にアップデートしてセキュリティパッチと最新機能を適用する
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO: ダイジェスト固定 - docker pull golang:1.24-alpine && docker inspect --format="{{index .RepoDigests 0}}" golang:1.24-alpine
+# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
 FROM golang:1.24-alpine AS builder
 
 RUN apk add --no-cache ca-certificates git
@@ -17,12 +17,19 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bff-proxy ./cmd/server/main.go
 
+# ヘルスチェック用の busybox（distroless には wget/curl が存在しないため）
+# セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
+# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
+FROM busybox:1.36.1-musl AS busybox
+
 # Runtime stage
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO: ダイジェスト固定 - docker pull gcr.io/distroless/static-debian12:nonroot && docker inspect --format="{{index .RepoDigests 0}}" gcr.io/distroless/static-debian12:nonroot
+# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
 FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=builder /bff-proxy /bff-proxy
+# ヘルスチェック用: distroless に wget を追加（Rust サービスと同じパターン）
+COPY --from=busybox /bin/busybox /busybox
 COPY --from=builder /app/config/ /etc/app/
 
 EXPOSE 8080

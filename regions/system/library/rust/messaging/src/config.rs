@@ -20,8 +20,10 @@ pub struct MessagingConfig {
     pub schema_registry_url: Option<String>,
 }
 
+/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
-    "PLAINTEXT".to_string()
+    "SASL_SSL".to_string()
 }
 
 fn default_timeout_ms() -> u64 {
@@ -75,7 +77,7 @@ mod tests {
     fn test_deserialize_defaults() {
         let json = r#"{"brokers": ["kafka:9092"]}"#;
         let cfg: MessagingConfig = serde_json::from_str(json).unwrap();
-        assert_eq!(cfg.security_protocol, "PLAINTEXT");
+        assert_eq!(cfg.security_protocol, "SASL_SSL");
         assert_eq!(cfg.timeout_ms, 5000);
         assert_eq!(cfg.batch_size, 100);
         assert!(cfg.schema_registry_url.is_none());

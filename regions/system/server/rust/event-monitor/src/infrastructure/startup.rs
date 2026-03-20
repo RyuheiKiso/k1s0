@@ -98,11 +98,20 @@ pub async fn run() -> anyhow::Result<()> {
         cfg.cache.flow_def_ttl_seconds,
     ));
 
-    // DLQ Manager client
-    let dlq_client: Arc<dyn DlqManagerClient> = {
-        info!("using no-op DLQ manager client");
-        Arc::new(NoopDlqClient)
-    };
+    // DLQ Manager client: config に dlq_manager セクションがあれば接続を試み、
+    // なければ NoopDlqClient にフォールバックする。Noop 使用時は health endpoint が degraded を返す。
+    let (dlq_client, dlq_noop): (Arc<dyn DlqManagerClient>, bool) =
+        if let Some(ref _dlq_cfg) = cfg.dlq_manager {
+            // TODO: DlqManagerConfig を使って実際の gRPC クライアントを生成する
+            // 現時点では config が存在しても Noop にフォールバックする
+            info!(
+                "dlq_manager config found but real client not yet implemented, using no-op DLQ client"
+            );
+            (Arc::new(NoopDlqClient), true)
+        } else {
+            info!("no dlq_manager config, using no-op DLQ client");
+            (Arc::new(NoopDlqClient), true)
+        };
 
     // Use cases
     let list_events_uc = Arc::new(usecase::ListEventsUseCase::new(event_repo.clone()));
@@ -196,6 +205,8 @@ pub async fn run() -> anyhow::Result<()> {
         execute_replay_uc,
         metrics: metrics.clone(),
         auth_state: None,
+        // DLQ クライアントが Noop かどうかを health endpoint に伝達する
+        dlq_noop,
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

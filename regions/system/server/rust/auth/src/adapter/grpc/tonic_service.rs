@@ -2,6 +2,36 @@
 //!
 //! proto 生成コード (`src/proto/`) の AuthService / AuditService トレイトを実装する。
 //! AuthGrpcService / AuditGrpcService が直接 proto 型を返すため、変換なしで委譲する。
+//!
+//! # gRPC トランスポートセキュリティ
+//!
+//! 本サービスの gRPC エンドポイントは Istio サービスメッシュの mTLS を一次防御として利用する。
+//! Istio の PeerAuthentication ポリシーにより、メッシュ内の全通信は自動的に mTLS で暗号化される。
+//! そのため、アプリケーションレベルでの TLS 設定（`ServerTlsConfig`）は冗長であり、
+//! 現時点では有効化していない。
+//!
+//! Istio を使用しない環境や、メッシュ外からの直接アクセスが必要な場合は、
+//! tonic の `ServerTlsConfig` を以下のように設定すること:
+//!
+//! ```ignore
+//! use tonic::transport::{Server, ServerTlsConfig, Identity, Certificate};
+//!
+//! let cert = std::fs::read("server.pem")?;
+//! let key = std::fs::read("server.key")?;
+//! let ca = std::fs::read("ca.pem")?;
+//!
+//! let tls = ServerTlsConfig::new()
+//!     .identity(Identity::from_pem(&cert, &key))
+//!     .client_ca_root(Certificate::from_pem(&ca)); // mTLS の場合
+//!
+//! Server::builder()
+//!     .tls_config(tls)?
+//!     .add_service(auth_service)
+//!     .serve(addr)
+//!     .await?;
+//! ```
+//!
+//! 参照: `docs/architecture/overview/gRPCセキュリティ方針.md`
 
 use std::sync::Arc;
 

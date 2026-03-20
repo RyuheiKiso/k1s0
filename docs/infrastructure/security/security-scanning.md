@@ -257,6 +257,14 @@ trivy fs --scanners secret .
 | シークレット | secret | 検出時にビルド失敗 |
 | ライセンス | license | 禁止ライセンス検出時に警告 |
 
+### SARIF レポートのアーティファクトアップロード
+
+技術監査対応として、`deploy.yaml` の build-and-push ジョブに **Trivy SARIF レポートのアーティファクトアップロード** を追加した。ビルド済みコンテナイメージに対して Trivy で CRITICAL/HIGH の脆弱性をスキャンし、結果を SARIF（Static Analysis Results Interchange Format）形式で `actions/upload-artifact` にアップロードする。これにより、デプロイ後の脆弱性追跡が可能になる。
+
+### Trivy バージョンの SHA ピン留め
+
+全ワークフローの `aquasecurity/trivy-action` を **0.29.0**（SHA: `76071ef0d7ec797419534a183b498b4d6a132a02`）に統一し、SHA ピン留めを適用した。従来の `@master` 参照はサプライチェーン攻撃のリスクがあるため廃止。
+
 ---
 
 ## 依存関係スキャン
@@ -390,7 +398,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy コンテナスキャン
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
         with:
           image-ref: ${{ matrix.image }}:${{ github.sha }}
           format: sarif
@@ -426,7 +434,7 @@ jobs:
 | cargo-audit | >= 0.21 | `cargo install cargo-audit` |
 | gosec | >= 2.21 | `go install github.com/securego/gosec/v2/cmd/gosec@latest` |
 | govulncheck | latest | `go install golang.org/x/vuln/cmd/govulncheck@latest` |
-| trivy | >= 0.58 | `brew install trivy` / `choco install trivy` |
+| trivy | >= 0.58（CI では 0.29.0 を SHA ピン留め） | `brew install trivy` / `choco install trivy` |
 | npm | >= 10.0 | Node.js に同梱 |
 | dart | >= 3.6 | Dart SDK に同梱 |
 
@@ -453,6 +461,64 @@ CI で使用する Docker イメージの一覧。
 FROM aquasec/trivy:latest AS trivy
 FROM ghcr.io/zaproxy/zaproxy:stable AS zap
 ```
+
+---
+
+## Docker イメージの固定化方針
+
+サプライチェーン攻撃対策として、本番環境の Dockerfile は以下の方針に従う。
+
+### 1. ベースイメージの SHA256 ダイジェスト固定
+
+`FROM image:tag` ではなく `FROM image:tag@sha256:...` を使用し、イメージの内容を完全に固定する。タグは人間が読みやすくするための注釈として残す。
+
+```dockerfile
+# 例: タグ + SHA256 ダイジェストによる固定
+FROM rust:1.93-bookworm@sha256:<digest> AS chef
+FROM gcr.io/distroless/cc-debian12:nonroot@sha256:<digest>
+FROM busybox:1.36.1-musl@sha256:<digest> AS busybox
+```
+
+ダイジェストの取得方法:
+
+```bash
+# ローカルにプルして取得する
+docker pull rust:1.93-bookworm
+docker inspect --format='{{index .RepoDigests 0}}' rust:1.93-bookworm
+
+# または crane ツールを使用する
+crane digest rust:1.93-bookworm
+```
+
+### 2. 自動更新
+
+Renovate または Dependabot でダイジェストの自動更新を設定する。手動管理はミスが多いため、自動化を前提とする。
+
+```json
+// renovate.json — Docker ダイジェスト自動更新設定例
+{
+  "dockerfile": {
+    "pinDigests": true
+  }
+}
+```
+
+### 3. CI でのイメージスキャン
+
+`docker scout` または `trivy` でイメージスキャンを CI に組み込む（[コンテナスキャン](#コンテナスキャン) 参照）。
+
+### 4. 対象 Dockerfile
+
+本リポジトリの Dockerfile は `regions/` 以下に 40 ファイル存在する。優先順位は以下の通り:
+
+| 優先度 | 対象 | 理由 |
+|--------|------|------|
+| 高 | `regions/system/server/rust/auth/Dockerfile` | 認証基盤のため最も攻撃対象になりやすい |
+| 高 | `regions/system/server/*/Dockerfile` | システム層は全サービス共通の基盤 |
+| 中 | `regions/business/*/Dockerfile` | ビジネスロジックを含む |
+| 低 | `regions/service/*/client/*/Dockerfile` | クライアントイメージはリスクが相対的に低い |
+
+> **注意**: 実際の SHA 値は `docker inspect` または `crane digest` で取得してから Dockerfile に記載すること。SHA 値なしでの記載はしない。
 
 ### ネットワーク要件
 

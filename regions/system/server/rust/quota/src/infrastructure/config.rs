@@ -129,8 +129,10 @@ pub struct KafkaConfig {
     pub topic_threshold: String,
 }
 
+/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
-    "PLAINTEXT".to_string()
+    "SASL_SSL".to_string()
 }
 
 /// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・

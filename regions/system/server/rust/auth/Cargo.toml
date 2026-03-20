@@ -43,6 +43,7 @@ thiserror = {workspace = true}
 validator = { version = "0.18", features = ["derive"] }
 async-trait = {workspace = true}
 sha2 = "0.10"
+hmac = "0.12"
 
 # Logging / Tracing
 tracing = {workspace = true}

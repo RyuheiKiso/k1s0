@@ -1,15 +1,20 @@
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
+
+use crate::adapter::handler::event_handler::spawn_publish_events_with_retry;
 use crate::domain::entity::event::{EventData, EventMetadata};
 use crate::domain::repository::EventStreamRepository;
+use crate::infrastructure::kafka::EventPublisher;
 use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
+use crate::proto::k1s0::system::common::v1::Timestamp as ProtoTimestamp;
 use crate::proto::k1s0::system::eventstore::v1::{
     AppendEventsRequest as ProtoAppendEventsRequest,
     AppendEventsResponse as ProtoAppendEventsResponse,
     CreateSnapshotRequest as ProtoCreateSnapshotRequest,
     CreateSnapshotResponse as ProtoCreateSnapshotResponse,
     DeleteStreamRequest as ProtoDeleteStreamRequest,
-    DeleteStreamResponse as ProtoDeleteStreamResponse, EventMetadata as ProtoEventMetadata,
+    DeleteStreamResponse as ProtoDeleteStreamResponse, EventStoreMetadata as ProtoEventMetadata,
     GetLatestSnapshotRequest as ProtoGetLatestSnapshotRequest,
     GetLatestSnapshotResponse as ProtoGetLatestSnapshotResponse,
     ListStreamsRequest as ProtoListStreamsRequest, ListStreamsResponse as ProtoListStreamsResponse,
@@ -49,6 +54,7 @@ pub enum GrpcError {
     Internal(String),
 }
 
+/// gRPC サービスの実装。各ユースケースとリポジトリ、Kafka パブリッシャーを保持する。
 pub struct EventStoreGrpcService {
     append_events_uc: Arc<AppendEventsUseCase>,
     read_events_uc: Arc<ReadEventsUseCase>,
@@ -57,6 +63,8 @@ pub struct EventStoreGrpcService {
     get_latest_snapshot_uc: Arc<GetLatestSnapshotUseCase>,
     delete_stream_uc: Arc<DeleteStreamUseCase>,
     stream_repo: Arc<dyn EventStreamRepository>,
+    /// Kafka イベントパブリッシャー。REST と同様に append 後にイベントを発行する。
+    event_publisher: Arc<dyn EventPublisher>,
 }
 
 impl EventStoreGrpcService {
@@ -69,6 +77,7 @@ impl EventStoreGrpcService {
         get_latest_snapshot_uc: Arc<GetLatestSnapshotUseCase>,
         delete_stream_uc: Arc<DeleteStreamUseCase>,
         stream_repo: Arc<dyn EventStreamRepository>,
+        event_publisher: Arc<dyn EventPublisher>,
     ) -> Self {
         Self {
             append_events_uc,
@@ -78,6 +87,7 @@ impl EventStoreGrpcService {
             get_latest_snapshot_uc,
             delete_stream_uc,
             stream_repo,
+            event_publisher,
         }
     }
 
@@ -111,8 +121,8 @@ impl EventStoreGrpcService {
                     id: stream.id,
                     aggregate_type: stream.aggregate_type,
                     current_version: stream.current_version,
-                    created_at: stream.created_at.to_rfc3339(),
-                    updated_at: stream.updated_at.to_rfc3339(),
+                    created_at: datetime_to_proto_timestamp(stream.created_at),
+                    updated_at: datetime_to_proto_timestamp(stream.updated_at),
                 })
                 .collect(),
             pagination: Some(ProtoPaginationResult {
@@ -158,15 +168,24 @@ impl EventStoreGrpcService {
         };
 
         match self.append_events_uc.execute(&input).await {
-            Ok(output) => Ok(ProtoAppendEventsResponse {
-                stream_id: output.stream_id,
-                events: output
-                    .events
-                    .into_iter()
-                    .map(stored_event_to_proto)
-                    .collect(),
-                current_version: output.current_version,
-            }),
+            Ok(output) => {
+                // REST と同様にバックグラウンドで Kafka にイベントを発行する
+                spawn_publish_events_with_retry(
+                    self.event_publisher.clone(),
+                    output.stream_id.clone(),
+                    output.events.clone(),
+                );
+
+                Ok(ProtoAppendEventsResponse {
+                    stream_id: output.stream_id,
+                    events: output
+                        .events
+                        .into_iter()
+                        .map(stored_event_to_proto)
+                        .collect(),
+                    current_version: output.current_version,
+                })
+            }
             Err(AppendEventsError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
             }
@@ -279,7 +298,7 @@ impl EventStoreGrpcService {
                 id: output.id,
                 stream_id: output.stream_id,
                 snapshot_version: output.snapshot_version,
-                created_at: output.created_at.to_rfc3339(),
+                created_at: datetime_to_proto_timestamp(output.created_at),
                 aggregate_type: output.aggregate_type,
             }),
             Err(CreateSnapshotError::StreamNotFound(id)) => {
@@ -306,7 +325,7 @@ impl EventStoreGrpcService {
                     snapshot_version: snapshot.snapshot_version,
                     aggregate_type: snapshot.aggregate_type,
                     state: serde_json::to_vec(&snapshot.state).unwrap_or_default(),
-                    created_at: snapshot.created_at.to_rfc3339(),
+                    created_at: datetime_to_proto_timestamp(snapshot.created_at),
                 }),
             }),
             Err(GetLatestSnapshotError::StreamNotFound(id)) => {
@@ -344,6 +363,15 @@ impl EventStoreGrpcService {
     }
 }
 
+/// chrono::DateTime<Utc> を Proto の Timestamp メッセージに変換する。
+/// 他サーバー（api-registry, event-monitor, config）と同一のパターンを使用。
+fn datetime_to_proto_timestamp(dt: DateTime<Utc>) -> Option<ProtoTimestamp> {
+    Some(ProtoTimestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    })
+}
+
 fn stored_event_to_proto(e: crate::domain::entity::event::StoredEvent) -> ProtoStoredEvent {
     ProtoStoredEvent {
         stream_id: e.stream_id,
@@ -356,7 +384,7 @@ fn stored_event_to_proto(e: crate::domain::entity::event::StoredEvent) -> ProtoS
             correlation_id: e.metadata.correlation_id,
             causation_id: e.metadata.causation_id,
         }),
-        occurred_at: e.occurred_at.to_rfc3339(),
-        stored_at: e.stored_at.to_rfc3339(),
+        occurred_at: datetime_to_proto_timestamp(e.occurred_at),
+        stored_at: datetime_to_proto_timestamp(e.stored_at),
     }
 }

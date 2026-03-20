@@ -7,7 +7,12 @@ lint:
     - STANDARD
   except:
     - PACKAGE_VERSION_SUFFIX       # v1 パッケージを許容
-    - PACKAGE_DIRECTORY_MATCH      # eventmonitor/ruleengine ディレクトリ名を許容（go_package 互換性維持）
+    # PACKAGE_DIRECTORY_MATCH 除外理由:
+    # proto ディレクトリ名（eventmonitor, ruleengine）はパッケージ名と一致している。
+    # サーバーディレクトリ名（event-monitor, rule-engine）はハイフン区切りだが、
+    # proto パッケージ名にハイフンは使用できないため、ハイフンなし命名で統一している。
+    # go_package との互換性を維持するため、ディレクトリ名の変更は行わない。
+    - PACKAGE_DIRECTORY_MATCH
 breaking:
   use:
     - FILE

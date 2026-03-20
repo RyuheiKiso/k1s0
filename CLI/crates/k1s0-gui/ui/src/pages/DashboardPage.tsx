@@ -1,141 +1,151 @@
 import { Link } from '@tanstack/react-router';
+import HelpButton from '../components/HelpButton';
 
 const quickActions = [
   {
     id: 'init',
     to: '/init',
-    eyebrow: 'Bootstrap',
-    title: 'Start a new workspace',
-    description: 'Run project initialization before generating modules or validating config.',
+    eyebrow: '初期設定',
+    title: '新しいワークスペースを作成',
+    description: 'モジュールの生成や設定の検証の前にプロジェクトの初期化を実行します。',
   },
   {
     id: 'generate',
     to: '/generate',
-    eyebrow: 'Scaffold',
-    title: 'Generate implementation assets',
-    description: 'Create services, clients, libraries, or database layers from the GUI flow.',
+    eyebrow: 'スキャフォールド',
+    title: '実装アセットを生成',
+    description: 'GUIフローからサービス、クライアント、ライブラリ、データベースレイヤーを作成します。',
   },
   {
     id: 'deps',
     to: '/deps',
-    eyebrow: 'Architecture',
-    title: 'Inspect dependency boundaries',
-    description: 'Run the dependency map flow and export Mermaid output from the workspace.',
+    eyebrow: 'アーキテクチャ',
+    title: '依存関係の境界を検査',
+    description: '依存関係マップフローを実行し、ワークスペースからMermaid出力をエクスポートします。',
   },
   {
     id: 'dev',
     to: '/dev',
-    eyebrow: 'Operations',
-    title: 'Control local development',
-    description: 'Start dependencies, inspect state, and collect container logs without leaving the GUI.',
+    eyebrow: 'オペレーション',
+    title: 'ローカル開発の制御',
+    description: 'GUIを離れることなく依存関係の起動、状態の確認、コンテナログの収集を行います。',
   },
   {
     id: 'migrate',
     to: '/migrate',
-    eyebrow: 'Database',
-    title: 'Manage database migrations',
-    description: 'Create, apply, roll back, and repair migration state for detected services.',
+    eyebrow: 'データベース',
+    title: 'データベースマイグレーション管理',
+    description: '検出されたサービスのマイグレーションの作成、適用、ロールバック、修復を行います。',
   },
   {
     id: 'template-migrate',
     to: '/template-migrate',
-    eyebrow: 'Scaffold',
-    title: 'Review template upgrades',
+    eyebrow: 'スキャフォールド',
+    title: 'テンプレートのアップグレードを確認',
     description:
-      'Preview template drift, resolve merge conflicts, and roll back generated modules safely.',
+      'テンプレートのドリフトをプレビューし、マージコンフリクトを解決して、生成済みモジュールを安全にロールバックします。',
   },
   {
     id: 'config-types',
     to: '/config-types',
-    eyebrow: 'Types',
-    title: 'Refresh config contracts',
-    description: 'Inspect and regenerate shared configuration types for downstream packages.',
+    eyebrow: '型定義',
+    title: '設定コントラクトを更新',
+    description: '下流パッケージ向けの共有設定型を検査・再生成します。',
   },
   {
     id: 'navigation-types',
     to: '/navigation-types',
-    eyebrow: 'Types',
-    title: 'Review navigation contracts',
-    description: 'Keep navigation definitions aligned with the generated application structure.',
+    eyebrow: '型定義',
+    title: 'ナビゲーションコントラクトを確認',
+    description: 'ナビゲーション定義を生成されたアプリケーション構造と整合させます。',
   },
   {
     id: 'event-codegen',
     to: '/event-codegen',
-    eyebrow: 'Events',
-    title: 'Generate event assets',
-    description: 'Preview and generate proto, producer, consumer, and outbox files from events.yaml.',
+    eyebrow: 'イベント',
+    title: 'イベントアセットを生成',
+    description: 'events.yamlからproto、プロデューサー、コンシューマー、アウトボックスファイルをプレビュー・生成します。',
   },
   {
     id: 'validate',
     to: '/validate',
-    eyebrow: 'Quality',
-    title: 'Validate the workspace',
-    description: 'Run structural validation before build, test, and deployment steps.',
+    eyebrow: '品質',
+    title: 'ワークスペースを検証',
+    description: 'ビルド、テスト、デプロイの前に構造検証を実行します。',
   },
   {
     id: 'build',
     to: '/build',
-    eyebrow: 'Delivery',
-    title: 'Build release artifacts',
-    description: 'Compile the current workspace and prepare distributable outputs.',
+    eyebrow: 'デリバリー',
+    title: 'リリースアーティファクトをビルド',
+    description: '現在のワークスペースをコンパイルし、配布可能な出力を準備します。',
   },
   {
     id: 'test',
     to: '/test',
-    eyebrow: 'Quality',
-    title: 'Run test suites',
-    description: 'Execute the available test pipeline once generation and validation are complete.',
+    eyebrow: '品質',
+    title: 'テストスイートを実行',
+    description: '生成と検証が完了したら利用可能なテストパイプラインを実行します。',
   },
   {
     id: 'deploy',
     to: '/deploy',
-    eyebrow: 'Delivery',
-    title: 'Open deployment workflow',
-    description: 'Continue into the deployment flow after the workspace is green.',
+    eyebrow: 'デリバリー',
+    title: 'デプロイワークフローを開始',
+    description: 'ワークスペースがグリーンになったらデプロイフローに進みます。',
   },
 ];
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6" data-testid="dashboard-page">
+    <div className="p3-animate-in space-y-6" data-testid="dashboard-page">
       <section className="glass overflow-hidden p-8">
-        <div className="mb-4 inline-flex rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-100/80">
-          Workspace Command Center
+        {/* エイブロウとヘルプボタン */}
+        <div className="mb-4 flex items-center gap-3">
+          <div className="inline-flex border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-100/80 p3-eyebrow-reveal">
+            ワークスペースコマンドセンター
+          </div>
+          <HelpButton helpKey="dashboard" size="md" />
         </div>
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
           <div className="space-y-4">
-            <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white">
-              Move from initialization to delivery without hunting through individual tools.
+            <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white p3-heading-glitch">
+              個別のツールを探し回ることなく初期化からデリバリーまで一貫して操作できます。
             </h1>
             <p className="max-w-2xl text-base leading-7 text-slate-200/80">
-              This dashboard surfaces the core GUI workflows in the order operators actually use
-              them: bootstrap, generate, validate, then ship.
+              このダッシュボードはオペレーターが実際に使用する順序でGUIワークフローを表示します：初期化、生成、検証、そしてデリバリー。
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            <Metric label="Primary route" value="/" />
-            <Metric label="Init route" value="/init" />
-            <Metric label="Quick actions" value={String(quickActions.length)} />
+            <Metric label="プライマリルート" value="/" />
+            <Metric label="初期化ルート" value="/init" />
+            <Metric label="クイックアクション" value={String(quickActions.length)} />
           </div>
         </div>
       </section>
 
+      {/* クイックアクショングリッド — ペルソナ3タルタロスメニュー風 */}
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {quickActions.map((action) => (
+        {quickActions.map((action, index) => (
           <Link
             key={action.id}
             to={action.to}
-            className="glass-subtle group flex min-h-52 flex-col justify-between border border-white/10 p-5 no-underline transition-all duration-200 hover:-translate-y-1 hover:border-cyan-200/30 hover:bg-white/10"
+            className="p3-tartarus-card glass-subtle flex min-h-52 flex-col justify-between border border-[rgba(0,200,255,0.12)] p-5 no-underline p3-stagger-in"
             data-testid={`dashboard-link-${action.id}`}
+            style={{ '--p3-stagger': index } as React.CSSProperties}
           >
             <div className="space-y-3">
-              <p className="text-xs uppercase tracking-[0.28em] text-cyan-100/60">
+              {/* エイブロウ — ホバーでシアン発光＋レタースペーシング拡張 */}
+              <p className="p3-tartarus-eyebrow text-xs uppercase tracking-[0.28em] text-cyan-100/60 transition-all duration-300">
                 {action.eyebrow}
               </p>
-              <h2 className="text-xl font-semibold text-white">{action.title}</h2>
-              <p className="text-sm leading-6 text-slate-200/75">{action.description}</p>
+              {/* タイトル — ホバーでテキストグロー */}
+              <h2 className="p3-tartarus-title text-xl font-semibold text-white transition-all duration-300">{action.title}</h2>
+              {/* 説明文 — ホバーで明度アップ */}
+              <p className="p3-tartarus-desc text-sm leading-6 text-slate-200/75 transition-all duration-300">{action.description}</p>
             </div>
-            <div className="pt-6 text-sm font-medium text-cyan-100/90">Open flow</div>
+            {/* CTA — ホバーで右スライド＋シアングロー */}
+            <div className="p3-tartarus-cta pt-6 text-sm font-medium text-cyan-100/90 transition-all duration-300">フローを開く ›</div>
           </Link>
         ))}
       </section>
@@ -143,11 +153,12 @@ export default function DashboardPage() {
   );
 }
 
+/* メトリックカード — ホバーでシアングロー＋スケール */
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="glass-subtle border border-white/10 p-4">
-      <p className="text-xs uppercase tracking-[0.24em] text-slate-200/55">{label}</p>
-      <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
+    <div className="p3-tartarus-card glass-subtle border border-[rgba(0,200,255,0.12)] p-4">
+      <p className="p3-tartarus-eyebrow text-xs uppercase tracking-[0.24em] text-slate-200/55 transition-all duration-300">{label}</p>
+      <p className="p3-tartarus-title mt-3 text-2xl font-semibold text-white p3-metric-flash transition-all duration-300">{value}</p>
     </div>
   );
 }

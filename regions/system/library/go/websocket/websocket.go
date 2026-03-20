@@ -110,15 +110,21 @@ func (c *InMemoryWsClient) Disconnect(_ context.Context) error {
 }
 
 // Send はメッセージを送信する。
-func (c *InMemoryWsClient) Send(_ context.Context, msg WsMessage) error {
+// バッファ満杯時にブロックせず、context がキャンセルされたらエラーを返す。
+func (c *InMemoryWsClient) Send(ctx context.Context, msg WsMessage) error {
 	c.mu.Lock()
 	state := c.state
 	c.mu.Unlock()
 	if state != StateConnected {
 		return ErrNotConnected
 	}
-	c.sendBuf <- msg
-	return nil
+	// バッファ満杯時にブロックせず、context がキャンセルされたらエラーを返す
+	select {
+	case c.sendBuf <- msg:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // Receive はメッセージを受信する。

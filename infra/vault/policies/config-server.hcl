@@ -27,8 +27,9 @@ path "database/creds/config-server-ro" {
   capabilities = ["read"]
 }
 
-# PKI certificate issuance (system tier)
-path "pki_int/issue/system" {
+# PKI 証明書発行（サービス固有ロールに制限）
+# 最小権限の原則: system tier 共通ロールではなく、config-server 専用ロールで発行する
+path "pki_int/issue/config-server" {
   capabilities = ["create", "update"]
 }
 

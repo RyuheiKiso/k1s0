@@ -176,9 +176,12 @@ message WatchConfigResponse {
   int32 old_version = 5;
   int32 new_version = 6;
   string changed_by = 7;
+  // Deprecated: use change_type_enum instead.
   // CREATED, UPDATED, DELETED
   string change_type = 8;
   k1s0.system.common.v1.Timestamp changed_at = 9;
+  // 変更操作の種別（change_type の enum 版）。
+  k1s0.system.common.v1.ChangeType change_type_enum = 10;
 }
 
 // ============================================================

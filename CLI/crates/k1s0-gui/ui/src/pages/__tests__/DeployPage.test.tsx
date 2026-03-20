@@ -61,7 +61,7 @@ describe('DeployPage', () => {
     await user.click(screen.getByTestId('btn-deploy'));
 
     expect(await screen.findByTestId('error-message')).toHaveTextContent(
-      'Type "deploy" to confirm a production deployment.',
+      '本番デプロイを確認するには「deploy」と入力してください。',
     );
   });
 

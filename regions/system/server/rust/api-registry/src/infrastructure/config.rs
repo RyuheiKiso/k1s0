@@ -113,8 +113,10 @@ pub struct KafkaConfig {
     pub security_protocol: String,
 }
 
+/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_kafka_security_protocol() -> String {
-    "PLAINTEXT".to_string()
+    "SASL_SSL".to_string()
 }
 
 impl Default for KafkaConfig {

@@ -117,15 +117,35 @@ func (s *VaultSecretStore) Get(ctx context.Context, key string) (*Secret, error)
 }
 
 // BulkGet は複数のパスに対して Vault からシークレットをまとめて取得する。
-// いずれか一つでも取得に失敗した場合は即座にエラーを返す。
+// sync.WaitGroup を使って並行フェッチし、N+1 問題（順次 Get）を解消する。
 func (s *VaultSecretStore) BulkGet(ctx context.Context, keys []string) ([]*Secret, error) {
-	results := make([]*Secret, 0, len(keys))
-	for _, key := range keys {
-		secret, err := s.Get(ctx, key)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, secret)
+	if len(keys) == 0 {
+		return nil, nil
+	}
+	results := make([]*Secret, len(keys))
+	// errCh はゴルーチン間でエラーを伝播するためのバッファ付きチャネル。
+	errCh := make(chan error, len(keys))
+
+	var wg sync.WaitGroup
+	for i, key := range keys {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			secret, err := s.Get(ctx, key)
+			if err != nil {
+				errCh <- fmt.Errorf("vault bulk get key %q: %w", key, err)
+				return
+			}
+			// インデックスごとに書き込むため排他制御は不要（各 goroutine が異なるインデックスを担当）
+			results[i] = secret
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+
+	// エラーチャネルにエラーがあれば最初のものを返す
+	if err := <-errCh; err != nil {
+		return nil, err
 	}
 	return results, nil
 }

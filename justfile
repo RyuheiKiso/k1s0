@@ -3,6 +3,32 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
+# ローカル開発で起動する Docker Compose profile（infra + system tier）
+_dc_profiles := "--profile infra --profile system"
+
+# standalone Rust サーバーパス一覧（business/service tier）
+_standalone_rust_servers := "regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment"
+
+# Windows ネイティブ環境チェック: WSL2/Git Bash 以外の環境では警告を出す
+_check-env:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # MSYS (Git Bash) / Cygwin 環境を検出した場合は警告を表示
+    if [[ "${OSTYPE:-}" == msys* ]] || [[ "${OSTYPE:-}" == cygwin* ]]; then
+        echo "⚠ WARNING: Windows ネイティブ環境（MSYS/Cygwin）を検出しました。"
+        echo "  WSL2 での実行を強く推奨します（Git Bash は一部制限あり）。"
+        echo "  PowerShell / cmd.exe からの実行はサポート対象外です。"
+        echo "  詳細: README.md の「前提条件」セクションを参照してください。"
+        echo ""
+    fi
+    # PowerShell から bash を経由して呼ばれた場合の検出（PSModulePath が設定されている）
+    if [[ -n "${PSModulePath:-}" ]] && [[ -z "${WSL_DISTRO_NAME:-}" ]]; then
+        echo "⚠ ERROR: PowerShell 環境から実行されています。"
+        echo "  justfile は WSL2 または Git Bash 内で実行してください。"
+        echo "  PowerShell / cmd.exe からの直接実行はサポートしていません。"
+        exit 1
+    fi
+
 # デフォルト: ヘルプ表示
 default:
     @just --list
@@ -33,30 +59,16 @@ lint-rust:
     echo "=== fmt regions/system ==="
     cargo fmt --all --manifest-path regions/system/Cargo.toml -- --check
     echo "=== clippy regions/system ==="
-    # modules.yaml から experimental Rust モジュールを取得し --exclude に変換
-    excludes=""
-    while IFS= read -r dir; do
-        # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
-        pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
-        excludes="$excludes --exclude $pkg_name"
-    done < <(scripts/list-modules.sh --lang rust --status experimental)
-    # exclude 対象が workspace に存在するか検証
-    ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
-    for exc in $excludes; do
-      if [ "$exc" = "--exclude" ]; then continue; fi
-      if ! echo "$ws_packages" | grep -qx "$exc"; then
-        echo "ERROR: excluded package '$exc' not found in workspace"
-        exit 1
-      fi
-    done
+    # 共通スクリプトで experimental パッケージの除外フラグを取得
+    excludes=$(bash scripts/list-experimental-excludes.sh)
     cargo clippy --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets -- -D warnings
     # CLI ワークスペース — k1s0-gui を除外
     echo "=== fmt CLI ==="
     cargo fmt --all --manifest-path CLI/Cargo.toml -- --check
     echo "=== clippy CLI ==="
     cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
-    # standalone Rust サーバー（business/service tier）
-    for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+    # standalone Rust サーバー（business/service tier）— 変数から参照
+    for dir in {{_standalone_rust_servers}}; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== fmt $dir ==="
             cargo fmt --all --manifest-path "$dir/Cargo.toml" -- --check
@@ -75,6 +87,7 @@ lint-ts:
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Linting $dir ==="
             # package-lock.json を使って依存関係をインストールし、リント・型チェックを実行
+            # --if-present: スクリプト未定義のパッケージでもエラーにしない
             (cd "$dir" && npm ci && npm run lint --if-present && npm run typecheck --if-present)
         fi
     done
@@ -120,27 +133,14 @@ test-rust:
     set -euo pipefail
     # regions/system ワークスペース一括テスト（experimental を除外）
     echo "=== Testing regions/system ==="
-    excludes=""
-    while IFS= read -r dir; do
-        # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
-        pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
-        excludes="$excludes --exclude $pkg_name"
-    done < <(scripts/list-modules.sh --lang rust --status experimental)
-    # exclude 対象が workspace に存在するか検証
-    ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
-    for exc in $excludes; do
-      if [ "$exc" = "--exclude" ]; then continue; fi
-      if ! echo "$ws_packages" | grep -qx "$exc"; then
-        echo "ERROR: excluded package '$exc' not found in workspace"
-        exit 1
-      fi
-    done
+    # 共通スクリプトで experimental パッケージの除外フラグを取得
+    excludes=$(bash scripts/list-experimental-excludes.sh)
     cargo test --manifest-path regions/system/Cargo.toml --workspace $excludes --features k1s0-tenant-server/test-utils
     # CLI ワークスペース一括テスト（k1s0-gui を除外）
     echo "=== Testing CLI ==="
     cargo test --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
-    # standalone Rust サーバー（business/service tier）
-    for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+    # standalone Rust サーバー（business/service tier）— 変数から参照
+    for dir in {{_standalone_rust_servers}}; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== Testing $dir ==="
             cargo test --manifest-path "$dir/Cargo.toml"
@@ -203,8 +203,8 @@ fmt-rust:
     cargo fmt --all --manifest-path regions/system/Cargo.toml
     echo "=== Formatting CLI ==="
     cargo fmt --all --manifest-path CLI/Cargo.toml
-    # standalone Rust サーバー（business/service tier）
-    for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+    # standalone Rust サーバー（business/service tier）— 変数から参照
+    for dir in {{_standalone_rust_servers}}; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== Formatting $dir ==="
             cargo fmt --all --manifest-path "$dir/Cargo.toml"
@@ -258,26 +258,13 @@ build-rust:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "=== Building regions/system ==="
-    excludes=""
-    while IFS= read -r dir; do
-        # Cargo.toml から実際の package name を取得（basename と package name が異なる場合に対応）
-        pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
-        excludes="$excludes --exclude $pkg_name"
-    done < <(scripts/list-modules.sh --lang rust --status experimental)
-    # exclude 対象が workspace に存在するか検証
-    ws_packages=$(grep -rh '^name' regions/system/*/Cargo.toml regions/system/*/*/Cargo.toml regions/system/*/*/*/Cargo.toml regions/system/*/*/*/*/Cargo.toml 2>/dev/null | sed 's/.*"\(.*\)"/\1/')
-    for exc in $excludes; do
-      if [ "$exc" = "--exclude" ]; then continue; fi
-      if ! echo "$ws_packages" | grep -qx "$exc"; then
-        echo "ERROR: excluded package '$exc' not found in workspace"
-        exit 1
-      fi
-    done
+    # 共通スクリプトで experimental パッケージの除外フラグを取得
+    excludes=$(bash scripts/list-experimental-excludes.sh)
     cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
     echo "=== Building CLI ==="
     cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
-    # standalone Rust サーバー（business/service tier）
-    for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+    # standalone Rust サーバー（business/service tier）— 変数から参照
+    for dir in {{_standalone_rust_servers}}; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== Building $dir ==="
             cargo build --manifest-path "$dir/Cargo.toml" --all-targets
@@ -328,28 +315,28 @@ docker-build:
     docker build -t k1s0-bff-proxy regions/system/server/go/bff-proxy
 
 # ローカル開発環境を起動（docker compose）
-local-up:
+local-up: _check-env
     #!/usr/bin/env bash
     set -euo pipefail
     echo "=== Starting local development environment ==="
     if [ -f docker-compose.yaml ] || [ -f docker-compose.yml ]; then
-        docker compose up -d
+        docker compose {{_dc_profiles}} up -d
     elif [ -f infra/docker/docker-compose.yaml ] || [ -f infra/docker/docker-compose.yml ]; then
-        docker compose -f infra/docker/docker-compose.yaml up -d
+        docker compose -f infra/docker/docker-compose.yaml {{_dc_profiles}} up -d
     else
         echo "docker-compose ファイルが見つかりません。scripts/start-local.sh を使用します。"
         bash scripts/start-local.sh
     fi
 
 # ローカル開発環境を停止
-local-down:
+local-down: _check-env
     #!/usr/bin/env bash
     set -euo pipefail
     echo "=== Stopping local development environment ==="
     if [ -f docker-compose.yaml ] || [ -f docker-compose.yml ]; then
-        docker compose down
+        docker compose {{_dc_profiles}} down
     elif [ -f infra/docker/docker-compose.yaml ] || [ -f infra/docker/docker-compose.yml ]; then
-        docker compose -f infra/docker/docker-compose.yaml down
+        docker compose -f infra/docker/docker-compose.yaml {{_dc_profiles}} down
     fi
 
 # 統合テストを実行

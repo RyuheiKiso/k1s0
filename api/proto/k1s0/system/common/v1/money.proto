@@ -1,0 +1,16 @@
+// api/proto/k1s0/system/common/v1/money.proto
+// Money 型：通貨金額を表す共通型。金融計算の精度を保証するため整数で表現する。
+syntax = "proto3";
+
+package k1s0.system.common.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1";
+
+// Money は通貨金額を表す。
+// amount は最小通貨単位（例: 円の場合は1円単位、ドルの場合はセント単位）で表現する。
+message Money {
+  // amount は金額（最小通貨単位）。負の値は返金・クレジットを表す。
+  int64 amount = 1;
+  // currency_code は ISO 4217 通貨コード（例: "JPY", "USD"）。
+  string currency_code = 2;
+}

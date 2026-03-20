@@ -26,18 +26,21 @@ resource "kubernetes_cron_job_v1" "consul_backup" {
           metadata {}
           spec {
             container {
-              name  = "consul-backup"
-              image = "hashicorp/consul:${var.consul_version}"
+              name = "consul-backup"
+              # AWS CLI 付きイメージ: consul snapshot save 後に S3 へアップロードするため、
+              # Consul CLI と AWS CLI の両方が必要。hashicorp/consul には AWS CLI が含まれない
+              image = "k1s0/consul-backup:${var.consul_version}-awscli"
 
               command = ["/bin/sh", "-c"]
               args = [
                 <<-EOT
                 set -e
                 SNAPSHOT_FILE="/backup/consul-snapshot-$(date +%%Y%%m%%d-%%H%%M%%S).snap"
+                # Consul Raft スナップショットを取得
                 consul snapshot save -http-addr=${var.consul_http_addr} "$SNAPSHOT_FILE"
-                # S3 にアップロード
-                s3cmd put "$SNAPSHOT_FILE" s3://${var.backup_bucket}/consul/
-                # ローカルの古いスナップショットを削除（7世代保持）
+                # AWS CLI を使用して S3 にアップロード
+                aws s3 cp "$SNAPSHOT_FILE" s3://${var.backup_bucket}/consul/ --no-progress
+                # ローカルの古いスナップショットを削除（保持世代数を超えた分を削除）
                 ls -t /backup/consul-snapshot-*.snap 2>/dev/null | tail -n +$((${var.retention_count} + 1)) | xargs -r rm -f
                 EOT
               ]

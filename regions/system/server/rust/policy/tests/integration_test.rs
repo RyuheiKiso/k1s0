@@ -112,6 +112,8 @@ fn make_test_app() -> axum::Router {
         list_bundles_uc: Arc::new(ListBundlesUseCase::new(bundle_repo.clone())),
         metrics,
         auth_state: Some(auth_state),
+        // テスト用バックエンド種別: インメモリリポジトリを使用
+        backend_kind: "in-memory".to_string(),
     };
     router(state)
 }

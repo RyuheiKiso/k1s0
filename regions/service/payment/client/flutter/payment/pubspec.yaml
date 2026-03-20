@@ -18,6 +18,9 @@ dependencies:
   dio: ^5.7.0
   # YAML 設定ファイル読み込み
   yaml: ^3.1.2
+  # システム共通クライアント SDK（設定・認証・API クライアント）
+  system_client:
+    path: ../../../../../system/client/flutter/system_client
 
 flutter:
   assets:

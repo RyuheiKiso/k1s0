@@ -88,7 +88,7 @@ export function OrderForm() {
     if (!result.success) {
       // バリデーションエラーをフィールド別に整理
       const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         const field = err.path.join('.');
         fieldErrors[field] = err.message;
       });

@@ -17,6 +17,23 @@ use crate::adapter::repository::cached_user_repository::CachedUserRepository;
 use crate::adapter::repository::user_postgres::UserPostgresRepository;
 use crate::usecase;
 
+/// DB 接続 URL のパスワードをマスクしてログ出力用文字列を返す。
+/// `postgres://user:password@host:port/db` → `postgres://user:***@host:port/db` 形式に変換する。
+fn mask_db_url(url: &str) -> String {
+    // "://" の後に "@" がある場合、"://" から "@" の間のパスワード部分をマスクする
+    if let Some(at_pos) = url.find('@') {
+        if let Some(scheme_end) = url.find("://") {
+            let after_scheme = &url[scheme_end + 3..at_pos];
+            if let Some(colon_pos) = after_scheme.find(':') {
+                let user = &after_scheme[..colon_pos];
+                let rest = &url[at_pos..];
+                return format!("{}://{}:***{}", &url[..scheme_end], user, rest);
+            }
+        }
+    }
+    url.to_string()
+}
+
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -68,7 +85,7 @@ pub async fn run() -> anyhow::Result<()> {
     // Database pool (optional)
     let db_pool = if let Some(ref db_config) = cfg.database {
         let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_config.connection_url());
-        info!(url = %url.replace(|c: char| c == ':' && url.contains("@"), "*"), "connecting to database");
+        info!(url = %mask_db_url(&url), "connecting to database");
         let lifetime = parse_pool_duration(&db_config.conn_max_lifetime)
             .unwrap_or_else(|| std::time::Duration::from_secs(300));
         let pool = sqlx::postgres::PgPoolOptions::new()

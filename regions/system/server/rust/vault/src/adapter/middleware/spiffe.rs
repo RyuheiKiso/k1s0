@@ -21,15 +21,27 @@ pub struct SpiffeAuthState {
 /// auth ミドルウェアが格納した `k1s0_auth::Claims` の `sub` フィールドを SPIFFE ID として使い、
 /// リクエストパスに一致するポリシーでアクセスを制御する。
 ///
-/// ポリシーが空の場合、またはパスに一致するポリシーがない場合はアクセスを許可する（permissive mode）。
+/// ポリシーが空の場合はアクセスを拒否する（deny-by-default）。
+/// これにより、ポリシー未設定のまま本番運用されるリスクを防止する。
+/// パスに一致するポリシーがない場合は許可する（ポリシー対象外のパスはフリーアクセス）。
 pub async fn spiffe_auth_middleware(
     State(spiffe_state): State<SpiffeAuthState>,
     request: Request,
     next: Next,
 ) -> Response {
-    // ポリシーが空の場合は全て許可
+    // ポリシーが空の場合はデフォルト拒否: ポリシー未設定のまま運用されることを防ぐ
     if spiffe_state.policies.is_empty() {
-        return next.run(request).await;
+        tracing::warn!("SPIFFE access policies are empty — denying all requests by default");
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({
+                "error": {
+                    "code": "SPIFFE_NO_POLICIES",
+                    "message": "No SPIFFE access policies configured — access denied by default"
+                }
+            })),
+        )
+            .into_response();
     }
 
     let raw_path = request.uri().path();
@@ -125,15 +137,22 @@ mod tests {
             ))
     }
 
+    /// 空ポリシー時はデフォルト拒否（deny-by-default）であることを検証
     #[tokio::test]
-    async fn test_empty_policies_allows_all() {
+    async fn test_empty_policies_denies_all() {
         let app = build_app(vec![]);
         let req = Request::builder()
             .uri("/api/v1/secrets/db-password")
             .body(Body::empty())
             .unwrap();
         let resp = app.oneshot(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["error"]["code"], "SPIFFE_NO_POLICIES");
     }
 
     #[tokio::test]

@@ -7,4 +7,5 @@ export 'src/init.dart';
 export 'src/logger.dart';
 export 'src/metrics.dart';
 export 'src/middleware.dart';
+export 'src/trace.dart';
 export 'src/trace_helper.dart';

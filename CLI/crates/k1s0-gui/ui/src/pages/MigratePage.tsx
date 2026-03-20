@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import HelpButton from '../components/HelpButton';
 import ProtectedActionNotice from '../components/ProtectedActionNotice';
 import { useAuth } from '../lib/auth';
 import {
@@ -85,14 +86,17 @@ export default function MigratePage() {
   const selectedTarget =
     availableTargets.find((target) => encodeTarget(target) === activeTargetKey) ?? null;
 
+  // 接続情報を構築する
   function buildConnection(): DbConnection {
     return connectionMode === 'local' ? 'LocalDev' : { Custom: customConnection };
   }
 
+  // マイグレーションアップの範囲を構築する
   function buildUpRange(mode: UpRangeMode, value: string): MigrateRange {
     return mode === 'all' ? 'All' : { UpTo: Number(value) };
   }
 
+  // マイグレーションダウンの範囲を構築する
   function buildDownRange(mode: DownRangeMode, value: string): MigrateRange {
     if (mode === 'previous') {
       return { Steps: 1 };
@@ -100,26 +104,30 @@ export default function MigratePage() {
     return mode === 'all' ? 'All' : { UpTo: Number(value) };
   }
 
+  // 結果表示をリセットする
   function resetResult() {
     setCreatedFiles(null);
     setMigrationStatus([]);
     setPendingAction(null);
   }
 
+  // マイグレーション範囲を日本語で説明する
   function describeRange(range: MigrateRange): string {
     if (range === 'All') {
-      return 'all migrations';
+      return '全マイグレーション';
     }
     if ('Steps' in range) {
-      return `roll back ${range.Steps} migration`;
+      return `${range.Steps}件のマイグレーションをロールバック`;
     }
-    return `up to version ${range.UpTo}`;
+    return `バージョン${range.UpTo}まで`;
   }
 
+  // 接続先を日本語で説明する
   function describeConnection(connection: DbConnection): string {
-    return connection === 'LocalDev' ? 'local development database' : connection.Custom;
+    return connection === 'LocalDev' ? 'ローカル開発データベース' : connection.Custom;
   }
 
+  // マイグレーションアクションを実行する
   async function runAction(action: () => Promise<void>) {
     setStatus('loading');
     setErrorMessage('');
@@ -133,6 +141,7 @@ export default function MigratePage() {
     }
   }
 
+  // マイグレーションファイルを作成する
   async function handleCreate() {
     if (!selectedTarget) {
       return;
@@ -155,6 +164,7 @@ export default function MigratePage() {
     }
   }
 
+  // マイグレーションステータスを取得する
   async function handleStatus() {
     if (!selectedTarget) {
       return;
@@ -178,6 +188,7 @@ export default function MigratePage() {
     }
   }
 
+  // 確認済みのマイグレーションアクションを実行する
   async function handleConfirmAction() {
     if (!pendingAction) {
       return;
@@ -195,35 +206,42 @@ export default function MigratePage() {
   }
 
   return (
-    <div className="glass max-w-6xl p-6" data-testid="migrate-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Database</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Manage migrations</h1>
+    <div className="p3-animate-in glass max-w-6xl p-6" data-testid="migrate-page">
+      {/* ページヘッダーとヘルプボタン */}
+      <div className="flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">データベース</p>
+        <HelpButton helpKey="migrate" size="md" />
+      </div>
+      <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">マイグレーション管理</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Create, apply, roll back, inspect, and repair migrations from the same workspace-aware UI.
+        同一のワークスペース対応UIからマイグレーションの作成、適用、ロールバック、検査、修復を行います。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-          Configure a valid workspace root before managing migrations.
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100 p3-warning-flicker">
+          マイグレーションを管理する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="space-y-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div>
-            <label className="block text-sm font-medium text-slate-200/82">Target</label>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              ターゲット
+              <HelpButton helpKey="migrate.target" />
+            </label>
             <select
               value={activeTargetKey}
               onChange={(event) => {
                 setSelectedTargetKey(event.target.value);
                 resetResult();
               }}
-              className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/35 px-3 py-2 text-white"
+              className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(5,8,15,0.35)] px-3 py-2 text-white"
               data-testid="select-migrate-target"
             >
               {availableTargets.length === 0 ? (
-                <option value="">No migration targets found</option>
+                <option value="">マイグレーションターゲットが見つかりません</option>
               ) : (
                 availableTargets.map((target) => (
                   <option key={encodeTarget(target)} value={encodeTarget(target)}>
@@ -235,7 +253,10 @@ export default function MigratePage() {
           </div>
 
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-slate-200/82">Connection</legend>
+            <legend className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              接続
+              <HelpButton helpKey="migrate.connection" />
+            </legend>
             <label className="flex items-center gap-3 text-sm text-slate-200/82">
               <input
                 type="radio"
@@ -246,7 +267,7 @@ export default function MigratePage() {
                 }}
                 name="migrate-connection"
               />
-              Local development
+              ローカル開発
             </label>
             <label className="flex items-center gap-3 text-sm text-slate-200/82">
               <input
@@ -258,7 +279,7 @@ export default function MigratePage() {
                 }}
                 name="migrate-connection"
               />
-              Custom connection string
+              カスタム接続文字列
             </label>
             {connectionMode === 'custom' && (
               <input
@@ -268,19 +289,22 @@ export default function MigratePage() {
                   setPendingAction(null);
                 }}
                 placeholder="postgres://user:pass@host:5432/db"
-                className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
                 data-testid="input-custom-connection"
               />
             )}
           </fieldset>
 
-          <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4">
-            <p className="text-sm font-medium text-slate-200/82">Create migration</p>
+          <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4">
+            <p className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+              マイグレーションを作成
+              <HelpButton helpKey="migrate.create" />
+            </p>
             <input
               value={migrationName}
               onChange={(event) => setMigrationName(event.target.value)}
               placeholder="add_new_column"
-              className="mt-3 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+              className="mt-3 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
               data-testid="input-migration-name"
             />
             <button
@@ -295,16 +319,17 @@ export default function MigratePage() {
                 status === 'loading' ||
                 actionsLocked
               }
-              className="mt-4 rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              className="mt-4 bg-cyan-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
               data-testid="btn-migrate-create"
             >
-              Create
+              作成
             </button>
           </div>
 
           <ActionBlock
-            title="Apply migrations"
-            buttonLabel="Review migrate up"
+            title="マイグレーションを適用"
+            helpKey="migrate.up"
+            buttonLabel="マイグレーションアップを確認"
             buttonTestId="btn-migrate-up"
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
             onClick={() => {
@@ -337,8 +362,9 @@ export default function MigratePage() {
           </ActionBlock>
 
           <ActionBlock
-            title="Roll back migrations"
-            buttonLabel="Review migrate down"
+            title="マイグレーションをロールバック"
+            helpKey="migrate.down"
+            buttonLabel="マイグレーションダウンを確認"
             buttonTestId="btn-migrate-down"
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
             onClick={() => {
@@ -371,8 +397,9 @@ export default function MigratePage() {
           </ActionBlock>
 
           <ActionBlock
-            title="Repair migration state"
-            buttonLabel="Repair"
+            title="マイグレーション状態を修復"
+            helpKey="migrate.repair"
+            buttonLabel="修復"
             buttonTestId="btn-migrate-repair"
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
             onClick={() => {
@@ -401,7 +428,7 @@ export default function MigratePage() {
                   onChange={() => setRepairMode('clearDirty')}
                   name="repair-mode"
                 />
-                Clear dirty state
+                ダーティ状態をクリア
               </label>
               <label className="flex items-center gap-3 text-sm text-slate-200/82">
                 <input
@@ -410,14 +437,14 @@ export default function MigratePage() {
                   onChange={() => setRepairMode('forceVersion')}
                   name="repair-mode"
                 />
-                Force version
+                バージョンを強制設定
               </label>
             </fieldset>
             {repairMode === 'forceVersion' && (
               <input
                 value={repairVersion}
                 onChange={(event) => setRepairVersion(event.target.value)}
-                className="mt-3 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                className="mt-3 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
                 data-testid="input-repair-version"
               />
             )}
@@ -429,42 +456,42 @@ export default function MigratePage() {
               void handleStatus();
             }}
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
-            className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+            className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
             data-testid="btn-migrate-status"
           >
-            Load status
+            ステータスを読み込み
           </button>
 
           {pendingAction && selectedTarget && (
             <div
-              className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4"
+              className="border border-cyan-400/20 bg-cyan-400/10 p-4 p3-confirm-glow p3-expand-in"
               data-testid="migrate-confirmation"
             >
-              <p className="text-sm font-medium text-emerald-100">Confirm migration action</p>
-              <div className="mt-3 space-y-2 text-sm text-emerald-50/90">
-                <p>Service: {selectedTarget.service_name}</p>
-                <p>Database: {selectedTarget.db_name}</p>
-                <p>Action: {pendingAction.kind === 'up' ? 'migrate up' : 'migrate down'}</p>
-                <p>Range: {describeRange(pendingAction.config.range)}</p>
-                <p>Connection: {describeConnection(pendingAction.config.connection)}</p>
+              <p className="text-sm font-medium text-cyan-100">マイグレーションアクションの確認</p>
+              <div className="mt-3 space-y-2 text-sm text-cyan-50/90">
+                <p>サービス: {selectedTarget.service_name}</p>
+                <p>データベース: {selectedTarget.db_name}</p>
+                <p>アクション: {pendingAction.kind === 'up' ? 'マイグレーションアップ' : 'マイグレーションダウン'}</p>
+                <p>範囲: {describeRange(pendingAction.config.range)}</p>
+                <p>接続: {describeConnection(pendingAction.config.connection)}</p>
               </div>
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() => setPendingAction(null)}
-                  className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
+                  className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)]"
                 >
-                  Back
+                  戻る
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     void handleConfirmAction();
                   }}
-                  className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+                  className="bg-cyan-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500"
                   data-testid="btn-confirm-migrate"
                 >
-                  Confirm
+                  確定
                 </button>
               </div>
             </div>
@@ -477,29 +504,29 @@ export default function MigratePage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-white">Result</h2>
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
+          <h2 className="text-lg font-semibold text-white p3-heading-glow">結果</h2>
 
           {selectedTarget && (
-            <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/20 p-4 text-sm text-slate-200/82">
-              <p>Service: {selectedTarget.service_name}</p>
-              <p>Tier: {selectedTarget.tier}</p>
-              <p>Language: {selectedTarget.language}</p>
-              <p>Database: {selectedTarget.db_name}</p>
+            <div className="mt-4 border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4 text-sm text-slate-200/82">
+              <p>サービス: {selectedTarget.service_name}</p>
+              <p>ティア: {selectedTarget.tier}</p>
+              <p>言語: {selectedTarget.language}</p>
+              <p>データベース: {selectedTarget.db_name}</p>
               <p>
-                Migrations dir:{' '}
+                マイグレーションディレクトリ:{' '}
                 {toDisplayPath(activeWorkspaceRoot, selectedTarget.migrations_dir)}
               </p>
             </div>
           )}
 
           {createdFiles && (
-            <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
-              <p className="text-sm font-medium text-emerald-100">Created files</p>
-              <p className="mt-3 text-sm text-emerald-50/90">
+            <div className="mt-5 border border-cyan-400/20 bg-cyan-400/10 p-4 p3-expand-in">
+              <p className="text-sm font-medium text-cyan-100">作成されたファイル</p>
+              <p className="mt-3 text-sm text-cyan-50/90">
                 {toDisplayPath(activeWorkspaceRoot, createdFiles[0])}
               </p>
-              <p className="text-sm text-emerald-50/90">
+              <p className="text-sm text-cyan-50/90">
                 {toDisplayPath(activeWorkspaceRoot, createdFiles[1])}
               </p>
             </div>
@@ -508,19 +535,19 @@ export default function MigratePage() {
           <div className="mt-5 space-y-2">
             {migrationStatus.length === 0 ? (
               <p className="text-sm text-slate-200/55">
-                Load status to inspect applied and pending migrations.
+                適用済みおよび保留中のマイグレーションを確認するにはステータスを読み込みます。
               </p>
             ) : (
               migrationStatus.map((item) => (
                 <div
                   key={`${item.number}-${item.description}`}
-                  className="rounded-xl border border-white/8 bg-slate-950/20 px-3 py-3 text-sm text-slate-100"
+                  className="border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.20)] px-3 py-3 text-sm text-slate-100"
                 >
                   <p>
                     {String(item.number).padStart(3, '0')} {item.description}
                   </p>
                   <p className="mt-1 text-slate-300/75">
-                    {item.applied ? `Applied at ${item.applied_at ?? 'unknown time'}` : 'Pending'}
+                    {item.applied ? `適用日時: ${item.applied_at ?? '不明'}` : '保留中'}
                   </p>
                 </div>
               ))
@@ -532,10 +559,12 @@ export default function MigratePage() {
   );
 }
 
+// ターゲットを一意のキーにエンコードする
 function encodeTarget(target: MigrateTarget | undefined) {
   return target ? `${target.service_name}:${target.migrations_dir}` : '';
 }
 
+// アクションブロックコンポーネント（タイトル、子要素、実行ボタンを含む共通レイアウト）
 function ActionBlock({
   children,
   disabled,
@@ -543,6 +572,7 @@ function ActionBlock({
   title,
   buttonLabel,
   buttonTestId,
+  helpKey,
 }: {
   children: ReactNode;
   disabled: boolean;
@@ -550,16 +580,20 @@ function ActionBlock({
   title: string;
   buttonLabel: string;
   buttonTestId: string;
+  helpKey?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4">
-      <p className="text-sm font-medium text-slate-200/82">{title}</p>
+    <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4">
+      <p className="flex items-center gap-2 text-sm font-medium text-slate-200/82">
+        {title}
+        {helpKey && <HelpButton helpKey={helpKey} />}
+      </p>
       <div className="mt-3">{children}</div>
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className="mt-4 rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+        className="mt-4 border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
         data-testid={buttonTestId}
       >
         {buttonLabel}
@@ -568,6 +602,7 @@ function ActionBlock({
   );
 }
 
+// マイグレーションアップの範囲選択コンポーネント
 function UpRangeSelector({
   name,
   mode,
@@ -590,7 +625,7 @@ function UpRangeSelector({
           onChange={() => onModeChange('all')}
           name={name}
         />
-        All pending migrations
+        保留中の全マイグレーション
       </label>
       <label className="mt-2 flex items-center gap-3 text-sm text-slate-200/82">
         <input
@@ -599,19 +634,20 @@ function UpRangeSelector({
           onChange={() => onModeChange('upTo')}
           name={name}
         />
-        Up to version
+        指定バージョンまで
       </label>
       {mode === 'upTo' && (
         <input
           value={value}
           onChange={(event) => onValueChange(event.target.value)}
-          className="mt-3 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+          className="mt-3 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
         />
       )}
     </>
   );
 }
 
+// マイグレーションダウンの範囲選択コンポーネント
 function DownRangeSelector({
   name,
   mode,
@@ -634,7 +670,7 @@ function DownRangeSelector({
           onChange={() => onModeChange('previous')}
           name={name}
         />
-        Roll back the previous migration
+        前回のマイグレーションをロールバック
       </label>
       <label className="mt-2 flex items-center gap-3 text-sm text-slate-200/82">
         <input
@@ -643,13 +679,13 @@ function DownRangeSelector({
           onChange={() => onModeChange('upTo')}
           name={name}
         />
-        Roll back to version
+        指定バージョンまでロールバック
       </label>
       {mode === 'upTo' && (
         <input
           value={value}
           onChange={(event) => onValueChange(event.target.value)}
-          className="mt-3 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+          className="mt-3 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
         />
       )}
       <label className="mt-2 flex items-center gap-3 text-sm text-slate-200/82">
@@ -659,7 +695,7 @@ function DownRangeSelector({
           onChange={() => onModeChange('all')}
           name={name}
         />
-        Roll back all migrations
+        全マイグレーションをロールバック
       </label>
     </>
   );

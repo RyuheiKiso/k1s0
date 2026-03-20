@@ -81,14 +81,22 @@ impl CircuitBreaker {
         let mut inner = self.inner.lock().await;
         inner.success_count += 1;
 
-        if inner.state == CircuitBreakerState::HalfOpen
-            && inner.success_count >= self.config.success_threshold
-        {
-            inner.state = CircuitBreakerState::Closed;
-            inner.failure_count = 0;
-            inner.success_count = 0;
-            inner.last_failure_time = None;
-            self.metrics.set_state(CircuitBreakerState::Closed);
+        match inner.state {
+            // Closed 状態では成功時に失敗カウントをリセットする（Go/TS/Dart と統一）
+            CircuitBreakerState::Closed => {
+                inner.failure_count = 0;
+            }
+            // HalfOpen 状態では成功閾値に達したら Closed へ遷移する
+            CircuitBreakerState::HalfOpen => {
+                if inner.success_count >= self.config.success_threshold {
+                    inner.state = CircuitBreakerState::Closed;
+                    inner.failure_count = 0;
+                    inner.success_count = 0;
+                    inner.last_failure_time = None;
+                    self.metrics.set_state(CircuitBreakerState::Closed);
+                }
+            }
+            _ => {}
         }
     }
 
@@ -249,5 +257,21 @@ mod tests {
         assert_eq!(m.success_count, 1);
         assert_eq!(m.failure_count, 1);
         assert_eq!(m.state, "Closed");
+    }
+
+    // Closed 状態で成功を記録すると失敗カウントがリセットされ、
+    // その後の失敗で Open にならないことを確認する（Go/TS/Dart と統一）。
+    #[tokio::test]
+    async fn test_success_resets_failure_count_in_closed() {
+        let cb = CircuitBreaker::new(test_config());
+
+        // 閾値(3)未満の失敗を記録した後、成功で失敗カウントをリセットする
+        cb.record_failure().await;
+        cb.record_failure().await;
+        cb.record_success().await;
+
+        // リセット後の1回の失敗では Open にならないことを確認する
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitBreakerState::Closed);
     }
 }

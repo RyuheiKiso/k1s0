@@ -29,6 +29,19 @@ func (c CorrelationId) IsEmpty() bool {
 	return c == ""
 }
 
+// CorrelationID は CorrelationId の Go 命名規約準拠のエイリアス。
+// 新規コードでは CorrelationID を使用すること。
+// Deprecated: 既存コードとの後方互換性のため CorrelationId も使用可能。
+type CorrelationID = CorrelationId
+
+// NewCorrelationID は NewCorrelationId の Go 命名規約準拠のエイリアス。
+// Deprecated: 既存コードとの後方互換性のため NewCorrelationId も使用可能。
+var NewCorrelationID = NewCorrelationId
+
+// ParseCorrelationID は ParseCorrelationId の Go 命名規約準拠のエイリアス。
+// Deprecated: 既存コードとの後方互換性のため ParseCorrelationId も使用可能。
+var ParseCorrelationID = ParseCorrelationId
+
 // TraceId は OpenTelemetry 互換の 32 文字小文字 hex トレース ID。
 type TraceId string
 

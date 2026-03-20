@@ -120,8 +120,11 @@ message WatchFeatureFlagRequest {
 // WatchFeatureFlagResponse はフラグ変更の監視レスポンス（ストリーミング）。
 message WatchFeatureFlagResponse {
   string flag_key = 1;
+  // Deprecated: use change_type_enum instead.
   // CREATED, UPDATED, DELETED
   string change_type = 2;
   FeatureFlag flag = 3;
   k1s0.system.common.v1.Timestamp changed_at = 4;
+  // 変更操作の種別（change_type の enum 版）。
+  k1s0.system.common.v1.ChangeType change_type_enum = 5;
 }

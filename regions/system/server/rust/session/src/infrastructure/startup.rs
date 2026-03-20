@@ -164,6 +164,9 @@ pub async fn run() -> anyhow::Result<()> {
         }).transpose()?,
     )?;
 
+    // Redis が構成されているかを health エンドポイントで判定するために記録
+    let redis_configured = cfg.redis.is_some();
+
     let mut state = crate::adapter::handler::session_handler::AppState {
         create_uc,
         get_uc,
@@ -175,6 +178,7 @@ pub async fn run() -> anyhow::Result<()> {
         event_publisher: event_publisher.clone(),
         metrics: metrics.clone(),
         auth_state: None,
+        redis_configured,
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

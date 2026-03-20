@@ -33,3 +33,15 @@ message Timestamp {
   // ナノ秒（0-999999999）
   int32 nanos = 2;
 }
+
+// ChangeType は設定・フラグ変更操作の種別。
+enum ChangeType {
+  // CHANGE_TYPE_UNSPECIFIED は未指定（デフォルト値）。
+  CHANGE_TYPE_UNSPECIFIED = 0;
+  // CHANGE_TYPE_CREATED は新規作成。
+  CHANGE_TYPE_CREATED = 1;
+  // CHANGE_TYPE_UPDATED は更新。
+  CHANGE_TYPE_UPDATED = 2;
+  // CHANGE_TYPE_DELETED は削除。
+  CHANGE_TYPE_DELETED = 3;
+}

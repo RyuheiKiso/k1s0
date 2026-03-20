@@ -115,6 +115,8 @@ impl RateLimitService for RateLimitServiceTonic {
             enabled: resp.rule.enabled,
             created_at: resp.rule.created_at.map(|ts| pb_timestamp(&ts)),
             updated_at: resp.rule.updated_at.map(|ts| pb_timestamp(&ts)),
+            // 後方互換フィールド（0 = UNSPECIFIED）
+            algorithm_enum: 0,
         };
 
         Ok(Response::new(ProtoCreateRuleResponse {
@@ -148,6 +150,8 @@ impl RateLimitService for RateLimitServiceTonic {
             enabled: resp.rule.enabled,
             created_at: resp.rule.created_at.map(|ts| pb_timestamp(&ts)),
             updated_at: resp.rule.updated_at.map(|ts| pb_timestamp(&ts)),
+            // 後方互換フィールド（0 = UNSPECIFIED）
+            algorithm_enum: 0,
         };
 
         Ok(Response::new(ProtoGetRuleResponse {
@@ -180,6 +184,8 @@ impl RateLimitService for RateLimitServiceTonic {
             used: resp.used,
             remaining: resp.remaining,
             reset_at: resp.reset_at,
+            // 後方互換フィールド（0 = UNSPECIFIED）
+            algorithm_enum: 0,
         }))
     }
 
@@ -215,6 +221,8 @@ impl RateLimitService for RateLimitServiceTonic {
             enabled: resp.rule.enabled,
             created_at: resp.rule.created_at.map(|ts| pb_timestamp(&ts)),
             updated_at: resp.rule.updated_at.map(|ts| pb_timestamp(&ts)),
+            // 後方互換フィールド（0 = UNSPECIFIED）
+            algorithm_enum: 0,
         };
 
         Ok(Response::new(ProtoUpdateRuleResponse {
@@ -279,6 +287,8 @@ impl RateLimitService for RateLimitServiceTonic {
                 enabled: rule.enabled,
                 created_at: rule.created_at.map(|ts| pb_timestamp(&ts)),
                 updated_at: rule.updated_at.map(|ts| pb_timestamp(&ts)),
+                // 後方互換フィールド（0 = UNSPECIFIED）
+                algorithm_enum: 0,
             })
             .collect();
         Ok(Response::new(ProtoListRulesResponse {

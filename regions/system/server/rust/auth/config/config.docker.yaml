@@ -27,6 +27,8 @@ kafka:
   brokers:
     - "kafka:9092"
   topic: "audit-events-dev"
+  # Docker 環境: コンテナ内 Kafka は TLS なしのため PLAINTEXT を明示指定
+  security_protocol: "PLAINTEXT"
 
 permission_cache:
   ttl_secs: 60

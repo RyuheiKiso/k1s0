@@ -125,8 +125,10 @@ pub struct KafkaConfig {
     pub consumer_group: String,
 }
 
+/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
-    "PLAINTEXT".to_string()
+    "SASL_SSL".to_string()
 }
 
 fn default_consumer_group() -> String {

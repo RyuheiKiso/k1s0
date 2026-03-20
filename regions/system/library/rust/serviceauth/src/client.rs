@@ -6,6 +6,7 @@ use crate::token::{ServiceToken, SpiffeId};
 use async_trait::async_trait;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error};
@@ -33,6 +34,9 @@ pub struct ServiceClaims {
 
     /// 発行時刻（Unix タイムスタンプ）。
     pub iat: i64,
+
+    /// トークンの対象オーディエンス（オプション）。
+    pub aud: Option<String>,
 }
 
 /// ServiceAuthClient は Client Credentials フローによるサービス間認証を提供するトレイト。
@@ -248,8 +252,11 @@ impl ServiceAuthClient for HttpServiceAuthClient {
         })?;
 
         let mut validation = Validation::new(Algorithm::RS256);
-        // サービストークンはオーディエンス検証を緩める（issuer のみ確認）
-        validation.validate_aud = false;
+        // サービストークンのオーディエンス検証を有効化する
+        validation.validate_aud = true;
+        let mut aud_set = HashSet::new();
+        aud_set.insert(self.config.audience.clone());
+        validation.aud = Some(aud_set);
 
         let token_data =
             decode::<ServiceClaims>(token, &decoding_key, &validation).map_err(|e| {
@@ -508,6 +515,7 @@ mod tests {
             iss: "https://auth.example.com/realms/k1s0".to_string(),
             exp: 1700000000,
             iat: 1699999000,
+            aud: Some("k1s0-api".to_string()),
         };
         let json = serde_json::to_string(&claims).unwrap();
         let restored: ServiceClaims = serde_json::from_str(&json).unwrap();
@@ -517,6 +525,7 @@ mod tests {
         assert_eq!(restored.iss, claims.iss);
         assert_eq!(restored.exp, claims.exp);
         assert_eq!(restored.iat, claims.iat);
+        assert_eq!(restored.aud.as_deref(), Some("k1s0-api"));
     }
 
     // ServiceClaims の client_id と scope が None でも正しくデシリアライズされることを確認する。
@@ -532,6 +541,7 @@ mod tests {
         assert_eq!(claims.sub, "svc");
         assert!(claims.client_id.is_none());
         assert!(claims.scope.is_none());
+        assert!(claims.aud.is_none());
     }
 
     // HttpServiceAuthClient が初期状態でトークンキャッシュが空であることを確認する。

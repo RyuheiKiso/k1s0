@@ -37,9 +37,12 @@ pub struct AppState {
     pub execute_replay_uc: Arc<ExecuteReplayUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
+    /// DLQ クライアントが Noop の場合 true。health endpoint で degraded ステータスを返すために使用。
+    pub dlq_noop: bool,
 }
 
 impl AppState {
+    // 認証ステートを設定する
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self

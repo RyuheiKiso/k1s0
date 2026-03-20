@@ -19,6 +19,10 @@ on:
 # 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
 permissions: {}
 
+# キャッシュ戦略:
+# - GitHub Actions Cache (type=gha): Docker ビルドレイヤーキャッシュ（cache-from/cache-to で利用）
+# - Cargo/Go キャッシュ: 各言語の依存関係は CI ワークフロー（ci.yaml）側で管理
+# - Docker Registry Cache: Harbor レジストリ上の既存レイヤーを活用（push 済みイメージ）
 env:
   REGISTRY: harbor.internal.example.com
 
@@ -102,11 +106,27 @@ jobs:
             business) echo "service_name=$(echo "${{ matrix.service }}" | cut -d'/' -f5)" >> "$GITHUB_OUTPUT" ;;
             service)  echo "service_name=$(echo "${{ matrix.service }}" | cut -d'/' -f2)" >> "$GITHUB_OUTPUT" ;;
           esac
+      # Tier ルートを Docker ビルドコンテキストとして導出（Dockerfile は regions/{tier} を前提としているため）
+      - name: Determine build context
+        id: build-ctx
+        run: |
+          TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
+          case "$TIER" in
+            # system tier: Cargo workspace ルートをコンテキストに使用
+            system)   echo "context=regions/system" >> "$GITHUB_OUTPUT" ;;
+            # business tier: ドメインルートをコンテキストに使用
+            business) echo "context=regions/$(echo "${{ matrix.service }}" | cut -d'/' -f1-2)" >> "$GITHUB_OUTPUT" ;;
+            # service tier: サービスルートをコンテキストに使用
+            service)  echo "context=regions/$(echo "${{ matrix.service }}" | cut -d'/' -f1-2)" >> "$GITHUB_OUTPUT" ;;
+          esac
+          echo "dockerfile=regions/${{ matrix.service }}/Dockerfile" >> "$GITHUB_OUTPUT"
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Build and push
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          context: regions/${{ matrix.service }}
+          # Dockerfile が依存するライブラリを含む tier ルートをコンテキストに指定
+          context: ${{ steps.build-ctx.outputs.context }}
+          file: ${{ steps.build-ctx.outputs.dockerfile }}
           push: true
           # :latest タグは廃止。バージョン + git SHA で一意に特定可能なタグのみ使用する
           tags: |
@@ -114,6 +134,23 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # コンテナイメージの脆弱性スキャン（ビルド後・プッシュ済みイメージに対して実行）
+      # CRITICAL/HIGH の脆弱性が検出された場合、SARIF レポートを出力する
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+      # SARIF レポートをアーティファクトとしてアップロードし、セキュリティ監査・追跡に利用する
+      - name: Upload Trivy SARIF report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: trivy-sarif-${{ steps.image.outputs.service_name }}
+          path: trivy-results.sarif
+          if-no-files-found: warn
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Install Cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
@@ -352,4 +389,5 @@ jobs:
           echo "Waiting for rollout to complete..."
           kubectl rollout status deployment/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} --timeout=120s
           echo "Running health check..."
-          kubectl exec deploy/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} -- /busybox wget -qO- http://127.0.0.1:8080/healthz
+          # ヘルスチェックのタイムアウトを5秒に設定し、無限待機を防止する
+          kubectl exec deploy/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} -- /busybox wget -qO- --timeout=5 http://127.0.0.1:8080/healthz

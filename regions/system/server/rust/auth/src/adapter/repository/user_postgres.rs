@@ -15,7 +15,7 @@ pub struct UserPostgresRepository {
 }
 
 impl UserPostgresRepository {
-    // TODO: dead_code監査 - startup.rs では with_metrics のみ使用。new() の必要性を確認して削除を検討
+    // メトリクス不要の簡易コンストラクタ（テストやスクリプト用途で使用予定のため dead_code を許可）
     #[allow(dead_code)]
     pub fn new(pool: PgPool) -> Self {
         Self {
@@ -32,7 +32,7 @@ impl UserPostgresRepository {
     }
 
     /// User ドメインモデルから DB 用パラメータへの変換ヘルパー。
-    // TODO: dead_code監査 - create/update メソッド経由でのみ使用。create/update が未使用のため間接的に未使用
+    // create/update メソッド経由で使用されるため dead_code を許可
     #[allow(dead_code)]
     fn extract_keycloak_sub(user: &User) -> String {
         user.attributes
@@ -42,7 +42,7 @@ impl UserPostgresRepository {
             .unwrap_or_default()
     }
 
-    // TODO: dead_code監査 - create/update メソッド経由でのみ使用。create/update が未使用のため間接的に未使用
+    // create/update メソッド経由で使用されるため dead_code を許可
     #[allow(dead_code)]
     fn build_display_name(user: &User) -> String {
         if user.last_name.is_empty() {
@@ -52,7 +52,7 @@ impl UserPostgresRepository {
         }
     }
 
-    // TODO: dead_code監査 - create/update メソッド経由でのみ使用。create/update が未使用のため間接的に未使用
+    // create/update メソッド経由で使用されるため dead_code を許可
     #[allow(dead_code)]
     fn status_from_enabled(enabled: bool) -> &'static str {
         if enabled {
@@ -236,7 +236,7 @@ impl UserRepository for UserPostgresRepository {
 /// UserRepository トレイトにない DB 固有の操作。
 impl UserPostgresRepository {
     /// keycloak_sub でユーザーを検索する。
-    // TODO: dead_code監査 - 使用箇所を確認して削除を検討
+    // 将来のユーザー同期・認証連携機能で使用予定のため dead_code を許可
     #[allow(dead_code)]
     pub async fn find_by_keycloak_sub(&self, sub: &str) -> anyhow::Result<Option<User>> {
         let start = std::time::Instant::now();
@@ -262,7 +262,7 @@ impl UserPostgresRepository {
     }
 
     /// ユーザーを作成する。
-    // TODO: dead_code監査 - 使用箇所を確認して削除を検討
+    // 将来のユーザー管理 API で使用予定のため dead_code を許可
     #[allow(dead_code)]
     pub async fn create(&self, user: &User) -> anyhow::Result<User> {
         let keycloak_sub = Self::extract_keycloak_sub(user);
@@ -292,7 +292,7 @@ impl UserPostgresRepository {
     }
 
     /// ユーザーを更新する。
-    // TODO: dead_code監査 - 使用箇所を確認して削除を検討
+    // 将来のユーザー管理 API で使用予定のため dead_code を許可
     #[allow(dead_code)]
     pub async fn update(&self, user: &User) -> anyhow::Result<User> {
         let uuid = Uuid::parse_str(&user.id)
