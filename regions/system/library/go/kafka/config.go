@@ -37,6 +37,10 @@ type KafkaConfig struct {
 	MaxMessageBytes int
 }
 
+// Config は KafkaConfig の Go 命名規約準拠の短縮エイリアス。
+// 新規コードでは Config を使用すること。
+type Config = KafkaConfig
+
 // BootstrapServersString は BootstrapServers をカンマ区切りの文字列に変換する。
 func (c *KafkaConfig) BootstrapServersString() string {
 	return strings.Join(c.BootstrapServers, ",")

@@ -68,6 +68,14 @@ type DatabaseConfig struct {
 	ConnMaxLifetime string `yaml:"conn_max_lifetime"`
 }
 
+// ToKafkaLibraryConfig は go/kafka ライブラリの KafkaConfig に変換する際の参考フィールドマッピング:
+//
+//	KafkaConfig.Brokers            → kafka.KafkaConfig.BootstrapServers
+//	KafkaConfig.SASL.Mechanism     → kafka.KafkaConfig.SASLMechanism
+//	KafkaConfig.SASL.Username      → kafka.KafkaConfig.SASLUsername
+//	KafkaConfig.SASL.Password      → kafka.KafkaConfig.SASLPassword
+//	KafkaConfig.SecurityProtocol   → kafka.KafkaConfig.SecurityProtocol
+//	KafkaConfig.ConsumerGroup      → kafka.KafkaConfig.ConsumerGroup
 type KafkaConfig struct {
 	Brokers          []string         `yaml:"brokers" validate:"required,min=1"`
 	ConsumerGroup    string           `yaml:"consumer_group" validate:"required"`

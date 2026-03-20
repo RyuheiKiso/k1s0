@@ -6,7 +6,7 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/quota/v1;qu
 
 import "k1s0/system/common/v1/types.proto";
 
-/// QuotaService はクォータポリシー管理サービス。
+// QuotaService はクォータポリシー管理サービス。
 service QuotaService {
   rpc CreateQuotaPolicy(CreateQuotaPolicyRequest) returns (CreateQuotaPolicyResponse);
   rpc GetQuotaPolicy(GetQuotaPolicyRequest) returns (GetQuotaPolicyResponse);

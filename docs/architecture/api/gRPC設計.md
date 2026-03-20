@@ -86,7 +86,7 @@ message Pagination {
 }
 
 message PaginationResult {
-  int32 total_count = 1;
+  int64 total_count = 1;
   int32 page = 2;
   int32 page_size = 3;
   bool has_next = 4;

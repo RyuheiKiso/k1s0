@@ -29,7 +29,7 @@ members = [
     "server/rust/workflow",
     "server/rust/ai-gateway",
     "server/rust/ai-agent",
-    # Libraries (40)
+    # Libraries (46)
     "library/rust/audit-client",
     "library/rust/auth",
     "library/rust/bulkhead",
@@ -76,7 +76,7 @@ members = [
     "library/rust/vault-client",
     "library/rust/webhook-client",
     "library/rust/websocket",
-    # Building Blocks (6)
+    # Building Blocks (7)
     "library/rust/bb-core",
     "library/rust/building-blocks",
     "library/rust/bb-pubsub",
