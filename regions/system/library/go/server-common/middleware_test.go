@@ -3,6 +3,7 @@ package servercommon
 import (
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 )
 
@@ -233,22 +234,12 @@ func TestGenerateIDNotEmpty(t *testing.T) {
 	}
 }
 
-// generateID が時間ベースの ID を生成し、一定の形式を持つことを確認する。
+// generateID が UUID v4 形式（xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）の ID を生成することを確認する。
 func TestGenerateIDFormat(t *testing.T) {
 	id := generateID()
-	// "20060102150405.000000000" の形式で 24 文字以上になることを確認する
-	if len(id) < 20 {
-		t.Errorf("expected ID with at least 20 characters, got %d: '%s'", len(id), id)
-	}
-	// ドット区切りがあることを確認する（日付部分.ナノ秒部分）
-	found := false
-	for _, c := range id {
-		if c == '.' {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("expected ID to contain a dot separator, got '%s'", id)
+	// UUID v4 の形式（8-4-4-4-12 の16進数とハイフン）に一致することを確認する
+	uuidPattern := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	if !uuidPattern.MatchString(id) {
+		t.Errorf("expected UUID v4 format, got '%s'", id)
 	}
 }

@@ -2,7 +2,8 @@ package servercommon
 
 import (
 	"net/http"
-	"time"
+
+	"github.com/google/uuid"
 )
 
 // MiddlewareFunc は HTTP ミドルウェアの型エイリアス。
@@ -68,7 +69,7 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// generateID はシンプルな ID を生成する（本番では UUID を使用することを推奨）。
+// generateID は UUID v4 を使用して一意な ID を生成する。
 func generateID() string {
-	return time.Now().Format("20060102150405.000000000")
+	return uuid.New().String()
 }

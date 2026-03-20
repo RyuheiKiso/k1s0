@@ -198,3 +198,39 @@ func (c *Config) Validate() error {
 
 	return nil
 }
+
+// String は DatabaseConfig の文字列表現を返す。パスワードはマスクされる。
+func (c DatabaseConfig) String() string {
+	// type alias で Stringer インターフェースを回避し無限再帰を防ぐ
+	type plain DatabaseConfig
+	p := plain(c)
+	p.Password = "***"
+	return fmt.Sprintf("%+v", p)
+}
+
+// String は KafkaSASLConfig の文字列表現を返す。パスワードはマスクされる。
+func (c KafkaSASLConfig) String() string {
+	// type alias で Stringer インターフェースを回避し無限再帰を防ぐ
+	type plain KafkaSASLConfig
+	p := plain(c)
+	p.Password = "***"
+	return fmt.Sprintf("%+v", p)
+}
+
+// String は RedisConfig の文字列表現を返す。パスワードはマスクされる。
+func (c RedisConfig) String() string {
+	// type alias で Stringer インターフェースを回避し無限再帰を防ぐ
+	type plain RedisConfig
+	p := plain(c)
+	p.Password = "***"
+	return fmt.Sprintf("%+v", p)
+}
+
+// String は OIDCConfig の文字列表現を返す。クライアントシークレットはマスクされる。
+func (c OIDCConfig) String() string {
+	// type alias で Stringer インターフェースを回避し無限再帰を防ぐ
+	type plain OIDCConfig
+	p := plain(c)
+	p.ClientSecret = "***"
+	return fmt.Sprintf("%+v", p)
+}

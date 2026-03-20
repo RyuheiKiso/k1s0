@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use crate::error::KafkaError;
 
 /// KafkaConfig は Kafka クライアントの基本設定を表す。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Debug トレイトはカスタム実装で sasl_password をマスクする。
+#[derive(Clone, Serialize, Deserialize)]
 pub struct KafkaConfig {
     /// Kafka ブローカーアドレスのリスト
     pub brokers: Vec<String>,
@@ -49,6 +50,23 @@ fn default_request_timeout_ms() -> u64 {
 
 fn default_max_message_bytes() -> usize {
     1_000_000
+}
+
+impl std::fmt::Debug for KafkaConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // sasl_password はセキュリティ上マスクして出力する
+        f.debug_struct("KafkaConfig")
+            .field("brokers", &self.brokers)
+            .field("security_protocol", &self.security_protocol)
+            .field("consumer_group", &self.consumer_group)
+            .field("sasl_mechanism", &self.sasl_mechanism)
+            .field("sasl_username", &self.sasl_username)
+            .field("sasl_password", &self.sasl_password.as_ref().map(|_| "***"))
+            .field("connection_timeout_ms", &self.connection_timeout_ms)
+            .field("request_timeout_ms", &self.request_timeout_ms)
+            .field("max_message_bytes", &self.max_message_bytes)
+            .finish()
+    }
 }
 
 impl KafkaConfig {
@@ -358,5 +376,20 @@ mod tests {
             .build()
             .unwrap_err();
         assert!(matches!(err, KafkaError::ConfigurationError(_)));
+    }
+
+    // Debug 出力に実パスワードが含まれないことを確認する。
+    #[test]
+    fn test_debug_masks_password() {
+        // Debug 出力に実パスワードが含まれないことを確認する
+        let cfg = KafkaConfig::builder()
+            .brokers(vec!["kafka:9092".to_string()])
+            .consumer_group("test-group")
+            .sasl_password("super-secret-password")
+            .build()
+            .unwrap();
+        let debug_output = format!("{:?}", cfg);
+        assert!(!debug_output.contains("super-secret-password"), "Debug 出力にパスワードが含まれていはいけない");
+        assert!(debug_output.contains("***"), "Debug 出力にマスク文字列が含まれるべき");
     }
 }

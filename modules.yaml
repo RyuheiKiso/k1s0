@@ -17,6 +17,7 @@
 #   workspace:      Cargo/Go ワークスペースルート（該当する場合）
 #   skip-ci:        true の場合 CI のリント・テスト・ビルドをスキップ
 #   language_scope: ライブラリが実装されている言語の一覧（library のみ）
+#   maturity:       モジュールの成熟度 (production/beta/experimental/template-only)
 #
 # ステータス定義:
 #   stable:       本番利用可能。CI で必ずリント・テスト・ビルドが実行される。
@@ -207,6 +208,7 @@ modules:
     status: stable
     type: server
     workspace: regions/system
+    maturity: beta
 
   - path: regions/system/server/rust/config
     lang: rust
@@ -360,6 +362,7 @@ modules:
     lang: go
     status: stable
     type: server
+    maturity: beta
 
   # ============================================================
   # Rust サーバー — business tier
@@ -777,6 +780,7 @@ modules:
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/correlation
     lang: go
@@ -893,6 +897,7 @@ modules:
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/scheduler-client
     lang: go

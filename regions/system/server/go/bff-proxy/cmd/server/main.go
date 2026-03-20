@@ -125,7 +125,7 @@ func run() error {
 	healthHandler := handler.NewHealthHandler(redisClient, oauthClient)
 	authHandler := handler.NewAuthHandler(
 		oauthClient, sessionStore, sessionTTL,
-		cfg.Auth.PostLogout, secureCookie, logger,
+		cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger,
 	)
 
 	upstreamTimeout := config.ParseDuration(cfg.Upstream.Timeout, 30*time.Second)
