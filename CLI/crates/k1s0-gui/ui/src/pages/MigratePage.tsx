@@ -206,14 +206,14 @@ export default function MigratePage() {
 
   return (
     <div className="p3-animate-in glass max-w-6xl p-6" data-testid="migrate-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">データベース</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">マイグレーション管理</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">データベース</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">マイグレーション管理</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         同一のワークスペース対応UIからマイグレーションの作成、適用、ロールバック、検査、修復を行います。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100 p3-warning-flicker">
           マイグレーションを管理する前に有効なワークスペースルートを設定してください。
         </p>
       )}
@@ -447,7 +447,7 @@ export default function MigratePage() {
 
           {pendingAction && selectedTarget && (
             <div
-              className="border border-cyan-400/20 bg-cyan-400/10 p-4"
+              className="border border-cyan-400/20 bg-cyan-400/10 p-4 p3-confirm-glow p3-expand-in"
               data-testid="migrate-confirmation"
             >
               <p className="text-sm font-medium text-cyan-100">マイグレーションアクションの確認</p>
@@ -488,7 +488,7 @@ export default function MigratePage() {
         </section>
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white">結果</h2>
+          <h2 className="text-lg font-semibold text-white p3-heading-glow">結果</h2>
 
           {selectedTarget && (
             <div className="mt-4 border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4 text-sm text-slate-200/82">
@@ -504,7 +504,7 @@ export default function MigratePage() {
           )}
 
           {createdFiles && (
-            <div className="mt-5 border border-cyan-400/20 bg-cyan-400/10 p-4">
+            <div className="mt-5 border border-cyan-400/20 bg-cyan-400/10 p-4 p3-expand-in">
               <p className="text-sm font-medium text-cyan-100">作成されたファイル</p>
               <p className="mt-3 text-sm text-cyan-50/90">
                 {toDisplayPath(activeWorkspaceRoot, createdFiles[0])}

@@ -124,14 +124,14 @@ export default function BuildPage() {
 
   return (
     <div className="glass max-w-4xl p-6 p3-animate-in" data-testid="build-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">デリバリー</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">リリースアーティファクトのビルド</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">デリバリー</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">リリースアーティファクトのビルド</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         検証済みのターゲットのみビルドを実行します。バックエンドが正常な終了イベントを発行した場合のみビルド成功と判定されます。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100 p3-warning-flicker">
           ビルドターゲットをスキャンする前に有効なワークスペースルートを設定してください。
         </p>
       )}
@@ -140,7 +140,7 @@ export default function BuildPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-white">ターゲット</h2>
+            <h2 className="text-lg font-semibold text-white p3-heading-glow">ターゲット</h2>
             {availableTargets.length > 0 && (
               <label className="flex items-center gap-2 text-sm text-slate-200/72">
                 <input
@@ -175,7 +175,7 @@ export default function BuildPage() {
         </section>
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white">モード</h2>
+          <h2 className="text-lg font-semibold text-white p3-heading-glow">モード</h2>
           <div className="mt-4 space-y-2">
             {(['Development', 'Production'] as BuildMode[]).map((value) => (
               <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">

@@ -66,7 +66,7 @@ export default function StepLangFw({
 }: StepLangFwProps) {
   return (
     <section
-      className="mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
+      className="p3-expand-in mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-langfw"
     >
       <h2 className="text-lg font-semibold text-white">言語またはフレームワーク</h2>

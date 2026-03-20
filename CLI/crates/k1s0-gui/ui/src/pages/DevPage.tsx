@@ -149,14 +149,14 @@ export default function DevPage() {
 
   return (
     <div className="glass max-w-6xl p-6 p3-animate-in" data-testid="dev-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">オペレーション</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">ローカル開発環境の管理</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">オペレーション</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">ローカル開発環境の管理</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         選択したワークスペースのローカル依存関係の起動・停止、状態の確認、ログの収集を行います。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100 p3-warning-flicker">
           ローカル開発サービスを管理する前に有効なワークスペースルートを設定してください。
         </p>
       )}
@@ -290,7 +290,7 @@ export default function DevPage() {
 
           {preview && (
             <div
-              className="mt-6 border border-cyan-400/20 bg-cyan-400/10 p-4"
+              className="mt-6 border border-cyan-400/20 bg-cyan-400/10 p-4 p3-confirm-glow p3-expand-in"
               data-testid="dev-up-preview"
             >
               <p className="text-sm font-medium text-cyan-100">ローカル起動プランの確認</p>
@@ -390,8 +390,8 @@ export default function DevPage() {
         </section>
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white">出力</h2>
-          <div className="mt-4 border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.35)] p-4">
+          <h2 className="text-lg font-semibold text-white p3-heading-glow">出力</h2>
+          <div className="mt-4 border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.35)] p-4 p3-data-rain">
             <pre className="min-h-72 overflow-auto whitespace-pre-wrap text-xs text-slate-100">
               {output || 'ステータスまたはログを実行してローカル開発環境を確認します。'}
             </pre>

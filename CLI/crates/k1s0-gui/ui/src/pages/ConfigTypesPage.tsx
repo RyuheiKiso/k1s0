@@ -85,14 +85,14 @@ export default function ConfigTypesPage() {
 
   return (
     <div className="glass max-w-4xl p-6 p3-animate-in" data-testid="config-types-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">型定義</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">設定コントラクトの生成</h1>
+      <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">型定義</p>
+      <h1 className="p3-heading-glitch mt-2 text-3xl font-semibold text-white">設定コントラクトの生成</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         ワークスペーススキーマからTypeScriptとDartの設定型をプレビュー・書き出しします。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+        <p className="p3-warning-flicker mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
           ファイルを生成する前に有効なワークスペースルートを設定してください。
         </p>
       )}
@@ -179,7 +179,7 @@ export default function ConfigTypesPage() {
           )}
 
           {writeStatus === 'success' && writtenFiles.length > 0 && (
-            <div className="mt-5 border border-cyan-400/20 bg-cyan-400/10 p-4">
+            <div className="p3-confirm-glow p3-expand-in mt-5 border border-cyan-400/20 bg-cyan-400/10 p-4">
               <p className="text-sm font-medium text-cyan-100">生成されたファイル</p>
               <div className="mt-3 space-y-2 text-sm text-cyan-50/90">
                 {writtenFiles.map((file) => (
@@ -191,7 +191,7 @@ export default function ConfigTypesPage() {
         </section>
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white">プレビュー</h2>
+          <h2 className="p3-heading-glow text-lg font-semibold text-white">プレビュー</h2>
           <div className="mt-4 space-y-4">
             {previewResults.length === 0 && writtenFiles.length === 0 ? (
               <p className="text-sm text-slate-200/55">

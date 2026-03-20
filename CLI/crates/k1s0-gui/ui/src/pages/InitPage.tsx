@@ -117,8 +117,8 @@ export default function InitPage() {
 
   return (
     <div className="glass max-w-3xl p-6 p3-animate-in" data-testid="init-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">初期設定</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">k1s0ワークスペースの初期化</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">初期設定</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">k1s0ワークスペースの初期化</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         親ディレクトリを明示的に指定することで、生成されるワークスペースがデスクトップアプリのプロセス作業ディレクトリに依存しなくなります。
       </p>
@@ -172,7 +172,7 @@ export default function InitPage() {
           className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-4"
           data-testid="destination-preview"
         >
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-200/55">生成先</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-200/55 p3-badge-pulse">生成先</p>
           <p className="mt-2 break-all text-sm text-slate-100">
             {destinationPreview || '親ディレクトリとプロジェクト名を入力してください。'}
           </p>
@@ -212,7 +212,7 @@ export default function InitPage() {
 
         {sparseCheckout && (
           <div
-            className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-4"
+            className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-4 p3-expand-in"
             data-testid="tier-selection"
           >
             <p className="text-sm font-medium text-slate-200/82">含めるティア</p>

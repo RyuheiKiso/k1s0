@@ -63,8 +63,8 @@ export default function Sidebar() {
     >
       {/* サイドバーヘッダー — シアンアクセント */}
       <div className="border border-[rgba(0,200,255,0.10)] bg-[rgba(0,200,255,0.04)] px-5 py-5">
-        <p className="text-xs uppercase tracking-[0.32em] text-cyan-100/55">k1s0</p>
-        <h1 className="mt-3 text-2xl font-semibold text-white">GUI コントロール</h1>
+        <p className="text-xs uppercase tracking-[0.32em] text-cyan-100/55 p3-eyebrow-reveal">k1s0</p>
+        <h1 className="mt-3 text-2xl font-semibold text-white p3-heading-glitch">GUI コントロール</h1>
         <p className="mt-2 text-sm leading-6 text-slate-200/70">
           ワークスペースのセットアップ、検証、ビルド、テスト、デプロイを別々のツールを使わずに一括で操作できます。
         </p>
@@ -72,7 +72,7 @@ export default function Sidebar() {
 
       {/* ナビゲーションメニュー — アクティブ時にシアングロー */}
       <NavigationMenu.List className="mt-3 flex flex-1 flex-col gap-1">
-        {menuItems.map((item) => {
+        {menuItems.map((item, index) => {
           const active = location.pathname === item.path;
           return (
             <NavigationMenu.Item key={item.page}>
@@ -80,14 +80,15 @@ export default function Sidebar() {
                 <button
                   type="button"
                   onClick={() => navigate({ to: item.path })}
-                  className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition ${
+                  className={`p3-nav-slide-in flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition ${
                     active
                       ? 'p3-active-indicator bg-[rgba(0,200,255,0.10)] text-white shadow-lg shadow-cyan-500/10'
                       : 'text-slate-200/72 hover:bg-[rgba(0,200,255,0.06)] hover:text-white'
                   }`}
+                  style={{ '--p3-stagger': index } as React.CSSProperties}
                   data-testid={`nav-${item.page}`}
                 >
-                  <span className="inline-flex h-9 w-9 items-center justify-center border border-[rgba(0,200,255,0.10)] bg-[rgba(0,200,255,0.06)] text-[11px] font-semibold tracking-[0.2em] text-white/85">
+                  <span className="p3-badge-pulse inline-flex h-9 w-9 items-center justify-center border border-[rgba(0,200,255,0.10)] bg-[rgba(0,200,255,0.06)] text-[11px] font-semibold tracking-[0.2em] text-white/85">
                     {item.shortLabel}
                   </span>
                   <span>{item.label}</span>

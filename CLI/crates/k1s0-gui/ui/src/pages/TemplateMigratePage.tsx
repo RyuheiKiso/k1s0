@@ -266,14 +266,14 @@ export default function TemplateMigratePage() {
 
   return (
     <div className="p3-animate-in glass max-w-6xl p-6" data-testid="template-migrate-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">テンプレート</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">テンプレート移行</h1>
+      <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">テンプレート</p>
+      <h1 className="p3-heading-glitch mt-2 text-3xl font-semibold text-white">テンプレート移行</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         ドライランでスキャフォールドのドリフトをプレビューし、マージコンフリクトを解決して、生成済みモジュールのロールバック手段を確保します。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+        <p className="p3-warning-flicker mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
           テンプレート移行を実行する前に有効なワークスペースルートを設定してください。
         </p>
       )}
@@ -387,7 +387,7 @@ export default function TemplateMigratePage() {
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">計画</h2>
+              <h2 className="p3-heading-glow text-lg font-semibold text-white">計画</h2>
               <p className="mt-1 text-sm text-slate-300/72">
                 ドライランの結果には追加、変更、削除、スキップ、コンフリクトが含まれます。
               </p>

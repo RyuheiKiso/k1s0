@@ -200,8 +200,8 @@ export default function AuthPage() {
   return (
     <div className="p3-animate-in space-y-6" data-testid="auth-page">
       <section className="glass max-w-5xl p-6">
-        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">認証</p>
-        <h1 className="mt-2 text-3xl font-semibold text-white">GUIセッションの認証</h1>
+        <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">認証</p>
+        <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">GUIセッションの認証</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-200/76">
           OIDC DiscoveryのURL、クライアントID、スコープをGUIで設定し、接続を確認してからDevice Authorization
           Grantフローを開始してください。これらの設定はこのマシンにローカルで保存され、隠れたランタイム環境変数に依存しなくなります。
@@ -212,13 +212,13 @@ export default function AuthPage() {
         <div className="glass p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-white">OIDC設定</h2>
+              <h2 className="text-xl font-semibold text-white p3-heading-glow">OIDC設定</h2>
               <p className="mt-2 text-sm text-slate-200/72">
                 サインイン前に接続チェックを実行して、エンドポイントの障害をGUIで確認してください。
               </p>
             </div>
             <span
-              className={`px-3 py-1 text-xs font-medium ${
+              className={`px-3 py-1 text-xs font-medium p3-badge-pulse ${
                 connectionStatus === 'success'
                   ? 'bg-cyan-400/15 text-cyan-200'
                   : connectionStatus === 'error'
@@ -339,7 +339,7 @@ export default function AuthPage() {
 
         <div className="space-y-4">
           <div className="glass p-6">
-            <h2 className="text-xl font-semibold text-white">セッション状態</h2>
+            <h2 className="text-xl font-semibold text-white p3-heading-glow">セッション状態</h2>
             <p className="mt-2 text-sm text-slate-200/72">
               {auth.loading
                 ? 'セキュアなオペレーターセッションを確認しています。'
@@ -369,13 +369,13 @@ export default function AuthPage() {
           </div>
 
           <div className="glass p-6">
-            <h2 className="text-xl font-semibold text-white">デバイスチャレンジ</h2>
+            <h2 className="text-xl font-semibold text-white p3-heading-glow">デバイスチャレンジ</h2>
             {!challenge ? (
               <p className="mt-3 text-sm text-slate-200/72">
                 デバイスフローを開始して認証URLとユーザーコードを取得してください。
               </p>
             ) : (
-              <div className="mt-4 space-y-4 text-sm text-slate-200/82">
+              <div className="mt-4 space-y-4 text-sm text-slate-200/82 p3-expand-in">
                 <div>
                   <p className="text-slate-200/55">認証URL</p>
                   <a

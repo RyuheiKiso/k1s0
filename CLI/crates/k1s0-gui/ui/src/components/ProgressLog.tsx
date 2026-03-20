@@ -11,12 +11,12 @@ export default function ProgressLog({ events, currentStep, totalSteps }: Progres
   const percentage = totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0;
 
   return (
-    <section className="mt-5" data-testid="progress-log">
+    <section className="mt-5 p3-expand-in" data-testid="progress-log">
       {totalSteps > 0 && (
         <div className="mb-3">
           {/* プログレスラベル — シアンテーマ */}
           <div className="mb-1 flex items-center justify-between text-sm text-slate-200/72">
-            <span data-testid="progress-label">
+            <span data-testid="progress-label" className="p3-heading-glow">
               ステップ {currentStep} / {totalSteps}
             </span>
             <span data-testid="progress-percent">{percentage}%</span>
@@ -30,14 +30,18 @@ export default function ProgressLog({ events, currentStep, totalSteps }: Progres
 
       {/* ログビューア — シアンボーダー */}
       <div
-        className="glass-subtle max-h-72 overflow-y-auto border border-[rgba(0,200,255,0.12)] p-3 font-mono text-xs"
+        className="glass-subtle p3-data-rain max-h-72 overflow-y-auto border border-[rgba(0,200,255,0.12)] p-3 font-mono text-xs"
         data-testid="log-viewer"
       >
         {events.length === 0 ? (
           <p className="text-slate-200/35">ログはまだありません。</p>
         ) : (
           events.map((event, index) => (
-            <div key={`${event.kind}-${index}`} className={getEventClassName(event)}>
+            <div
+              key={`${event.kind}-${index}`}
+              className={`p3-log-cascade ${getEventClassName(event)}`}
+              style={{ '--p3-stagger': index } as React.CSSProperties}
+            >
               {formatEvent(event)}
             </div>
           ))

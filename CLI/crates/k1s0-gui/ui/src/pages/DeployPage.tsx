@@ -180,14 +180,14 @@ export default function DeployPage() {
 
   return (
     <div className="glass max-w-5xl p-6 p3-animate-in" data-testid="deploy-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">デリバリー</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">サービスのデプロイ</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55 p3-eyebrow-reveal">デリバリー</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white p3-heading-glitch">サービスのデプロイ</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         デプロイフローはDockerビルド、プッシュ、Cosign署名、Helmデプロイを一つのパイプラインとして実行します。
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100 p3-warning-flicker">
           デプロイターゲットをスキャンする前に有効なワークスペースルートを設定してください。
         </p>
       )}
@@ -195,7 +195,7 @@ export default function DeployPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white">環境</h2>
+          <h2 className="text-lg font-semibold text-white p3-heading-glow">環境</h2>
           <div className="mt-4 space-y-2">
             {(['Dev', 'Staging', 'Prod'] as Environment[]).map((value) => (
               <label
@@ -217,7 +217,7 @@ export default function DeployPage() {
 
           {environment === 'Prod' && (
             <div
-              className="mt-5 border border-red-400/25 bg-red-400/10 p-4"
+              className="mt-5 border border-red-400/25 bg-red-400/10 p-4 p3-warning-flicker"
               data-testid="prod-confirm"
             >
               <p className="text-sm text-red-100">
@@ -259,7 +259,7 @@ export default function DeployPage() {
           )}
 
           {showRollbackPanel && (
-            <div className="mt-5 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-4">
+            <div className="mt-5 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-4 p3-expand-in">
               {failedRollbackTarget && (
                 <>
                   <p className="text-sm text-slate-200/76">
@@ -296,7 +296,7 @@ export default function DeployPage() {
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-white">ターゲット</h2>
+            <h2 className="text-lg font-semibold text-white p3-heading-glow">ターゲット</h2>
             {targets.length > 0 && (
               <label className="flex items-center gap-2 text-sm text-slate-200/72">
                 <input

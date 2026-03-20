@@ -9,6 +9,8 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen">
+      {/* CRT走査線オーバーレイ — 画面全体に薄い走査線とスイープラインを描画 */}
+      <div className="p3-crt-overlay" />
       {/* P3背景: ミッドナイトブルーグラデーション + アニメーション幾何学グリッド */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         {/* ベースグラデーション */}
@@ -33,8 +35,8 @@ export default function Layout() {
           }}
         />
         {/* コーナーグローアクセント */}
-        <div className="absolute -left-24 -top-24 h-48 w-48 bg-[rgba(0,200,255,0.06)] blur-3xl" />
-        <div className="absolute -bottom-24 -right-24 h-56 w-56 bg-[rgba(0,200,255,0.04)] blur-3xl" />
+        <div className="absolute -left-24 -top-24 h-48 w-48 bg-[rgba(0,200,255,0.06)] blur-3xl" style={{ animation: 'p3-glow-pulse 4s ease-in-out infinite' }} />
+        <div className="absolute -bottom-24 -right-24 h-56 w-56 bg-[rgba(0,200,255,0.04)] blur-3xl" style={{ animation: 'p3-glow-pulse 5s ease-in-out infinite 1s' }} />
       </div>
 
       <div className="flex min-h-screen">
@@ -45,15 +47,15 @@ export default function Layout() {
             <section className="glass p-5" data-testid="workspace-panel">
               <div className="mb-3 flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">
+                  <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">
                     ワークスペース
                   </p>
-                  <h1 className="mt-2 text-2xl font-semibold text-white">
+                  <h1 className="p3-heading-glow mt-2 text-2xl font-semibold text-white">
                     すべてのフローで共通のワークスペースルートを使用します。
                   </h1>
                 </div>
                 <span
-                  className={`px-3 py-1 text-xs font-medium ${
+                  className={`p3-badge-pulse px-3 py-1 text-xs font-medium ${
                     workspace.workspaceRoot
                       ? 'bg-cyan-400/15 text-cyan-200'
                       : 'bg-red-400/15 text-red-200'
@@ -108,10 +110,10 @@ export default function Layout() {
             </section>
 
             <section className="glass p-5" data-testid="auth-panel">
-              <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">
+              <p className="p3-eyebrow-reveal text-xs uppercase tracking-[0.24em] text-cyan-100/55">
                 認証
               </p>
-              <h2 className="mt-2 text-xl font-semibold text-white">オペレーターセッション</h2>
+              <h2 className="p3-heading-glow mt-2 text-xl font-semibold text-white">オペレーターセッション</h2>
               <p className="mt-3 text-sm text-slate-200/75">
                 {auth.loading
                   ? 'セキュアなオペレーターセッションを確認しています。'

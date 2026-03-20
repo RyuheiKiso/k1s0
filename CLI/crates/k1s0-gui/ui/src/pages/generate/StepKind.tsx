@@ -22,7 +22,7 @@ const KIND_OPTIONS: Kind[] = ['Server', 'Client', 'Library', 'Database'];
 export default function StepKind({ kind, onKindChange, onNext }: StepKindProps) {
   return (
     <section
-      className="mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
+      className="p3-expand-in mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-kind"
     >
       <h2 className="text-lg font-semibold text-white">モジュール種別を選択</h2>
