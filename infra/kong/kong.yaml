@@ -13,6 +13,12 @@
 #   CORS: "https://*.k1s0.internal.example.com"
 #   Keycloak: "https://auth.k1s0.internal.example.com/realms/k1s0"
 # See: docs/architecture/api/APIゲートウェイ設計.md（環境別構成セクション）
+#
+# rate-limiting 共通設定（各サービスの rate-limiting config から継承できないため個別に記載）:
+#   redis_host: redis.k1s0-system.svc.cluster.local
+#   redis_database: 1          （デフォルト 0 から変更）
+#   redis_password: ${KONG_REDIS_PASSWORD}
+#   fault_tolerant: false      （デフォルト true から変更: DDoS 耐性維持のため Redis 障害時もリミット強制）
 _format_version: "3.0"
 
 services:
@@ -28,14 +34,9 @@ services:
           second: ${KONG_RATE_SYSTEM_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
-          redis_port: 6379
           redis_database: 1
-          # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
-          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
           fault_tolerant: false
-          hide_client_headers: false
     routes:
       - name: auth-v1-route
         paths:
@@ -51,8 +52,9 @@ services:
               minute: 30                  # ブルートフォース防止（REST-API設計.md 参照）
               policy: ${KONG_RATE_REDIS_POLICY}
               redis_host: redis.k1s0-system.svc.cluster.local
-              # Redis 認証: 不正アクセス防止のためパスワードを設定
+              redis_database: 1
               redis_password: ${KONG_REDIS_PASSWORD}
+              fault_tolerant: false
 
   - name: config-v1
     url: http://config-server.k1s0-system.svc.cluster.local:80
@@ -63,14 +65,9 @@ services:
           second: ${KONG_RATE_SYSTEM_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
-          redis_port: 6379
           redis_database: 1
-          # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
-          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
           fault_tolerant: false
-          hide_client_headers: false
     routes:
       - name: config-v1-route
         paths:
@@ -86,14 +83,9 @@ services:
           second: ${KONG_RATE_SYSTEM_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
-          redis_port: 6379
           redis_database: 1
-          # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
-          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
           fault_tolerant: false
-          hide_client_headers: false
     routes:
       - name: master-v1-route
         paths:
@@ -120,14 +112,9 @@ services:
           second: ${KONG_RATE_SYSTEM_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
-          redis_port: 6379
           redis_database: 1
-          # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
-          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
           fault_tolerant: false
-          hide_client_headers: false
       - name: jwt
         config:
           secret_is_base64: false
@@ -153,14 +140,9 @@ services:
           second: ${KONG_RATE_SYSTEM_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
-          redis_port: 6379
           redis_database: 1
-          # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
-          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
           fault_tolerant: false
-          hide_client_headers: false
       - name: jwt
         config:
           secret_is_base64: false
@@ -183,14 +165,9 @@ services:
           second: ${KONG_RATE_BUSINESS_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
-          redis_port: 6379
           redis_database: 1
-          # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
-          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
           fault_tolerant: false
-          hide_client_headers: false
     routes:
       - name: ledger-v1-route
         paths:
@@ -206,14 +183,9 @@ services:
           second: ${KONG_RATE_BUSINESS_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
-          redis_port: 6379
           redis_database: 1
-          # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
-          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
           fault_tolerant: false
-          hide_client_headers: false
     routes:
       - name: accounts-v1-route
         paths:
@@ -232,14 +204,9 @@ services:
           second: ${KONG_RATE_SERVICE_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
-          redis_port: 6379
           redis_database: 1
-          # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
-          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
           fault_tolerant: false
-          hide_client_headers: false
     routes:
       - name: order-v1-route
         paths:
@@ -255,14 +222,9 @@ services:
           second: ${KONG_RATE_SERVICE_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
-          redis_port: 6379
           redis_database: 1
-          # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
-          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
           fault_tolerant: false
-          hide_client_headers: false
     routes:
       - name: dashboard-v1-route
         paths:
@@ -274,20 +236,17 @@ services:
 # ============================================================
 plugins:
   # Rate Limiting - グローバルデフォルト (service Tier: 500 req/min)
+  # サービスレベルの rate-limiting はこのグローバル設定を上書きする（継承はしない）
   - name: rate-limiting
     config:
       minute: ${KONG_RATE_SERVICE_MINUTE}   # デフォルト（service Tier）
       second: ${KONG_RATE_SERVICE_SECOND}   # 秒あたりの上限（バースト制御）
       policy: ${KONG_RATE_REDIS_POLICY}     # Redis で共有状態を管理
       redis_host: redis.k1s0-system.svc.cluster.local
-      redis_port: 6379
       redis_database: 1
-      # Redis 認証: 不正アクセス防止のためパスワードを設定
       redis_password: ${KONG_REDIS_PASSWORD}
-      # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
-      # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
-      fault_tolerant: false
-      hide_client_headers: false     # X-RateLimit-* ヘッダーを返却
+      fault_tolerant: false                 # Redis 障害時もレートリミットを強制（DDoS 耐性維持）
+      hide_client_headers: false            # X-RateLimit-* ヘッダーを返却
 
   # JWT - Keycloak JWKS 連携
   - name: jwt
