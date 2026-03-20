@@ -51,7 +51,10 @@ message SendNotificationRequest {
 message SendNotificationResponse {
   string notification_id = 1;
   string status = 2;
+  // Deprecated: created_at_ts を使用すること。
   string created_at = 3;
+  // created_at_ts は created_at の Timestamp 型。
+  k1s0.system.common.v1.Timestamp created_at_ts = 4;
 }
 
 message GetNotificationRequest {
@@ -97,10 +100,16 @@ message NotificationLog {
   string status = 8;
   uint32 retry_count = 9;
   optional string error_message = 10;
+  // Deprecated: sent_at_ts を使用すること。
   optional string sent_at = 11;
+  // Deprecated: created_at_ts を使用すること。
   string created_at = 12;
   // 通知ステータスの enum 版（status の型付き版）。
   NotificationStatus status_enum = 13;
+  // sent_at_ts は sent_at の Timestamp 型。
+  optional k1s0.system.common.v1.Timestamp sent_at_ts = 14;
+  // created_at_ts は created_at の Timestamp 型。
+  k1s0.system.common.v1.Timestamp created_at_ts = 15;
 }
 
 message Channel {
@@ -109,8 +118,14 @@ message Channel {
   string channel_type = 3;
   string config_json = 4;
   bool enabled = 5;
+  // Deprecated: created_at_ts を使用すること。
   string created_at = 6;
+  // Deprecated: updated_at_ts を使用すること。
   string updated_at = 7;
+  // created_at_ts は created_at の Timestamp 型。
+  k1s0.system.common.v1.Timestamp created_at_ts = 8;
+  // updated_at_ts は updated_at の Timestamp 型。
+  k1s0.system.common.v1.Timestamp updated_at_ts = 9;
 }
 
 message ListChannelsRequest {
@@ -173,8 +188,14 @@ message Template {
   string channel_type = 3;
   optional string subject_template = 4;
   string body_template = 5;
+  // Deprecated: created_at_ts を使用すること。
   string created_at = 6;
+  // Deprecated: updated_at_ts を使用すること。
   string updated_at = 7;
+  // created_at_ts は created_at の Timestamp 型。
+  k1s0.system.common.v1.Timestamp created_at_ts = 8;
+  // updated_at_ts は updated_at の Timestamp 型。
+  k1s0.system.common.v1.Timestamp updated_at_ts = 9;
 }
 
 message ListTemplatesRequest {

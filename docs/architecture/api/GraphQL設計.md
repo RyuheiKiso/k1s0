@@ -139,6 +139,12 @@ type PageInfo {
 }
 ```
 
+> **注意（型制限）**: GraphQL の `Int` 型は 32bit 符号付き整数（最大 2,147,483,647）である。
+> `totalCount` が 2^31 を超える可能性があるシステム（大規模データ集計など）では、
+> `Float` 型または `scalar BigInt` などカスタムスカラーを使用すること。
+> Proto 側の `PaginationResult.total_count` は `int64` であるため、
+> GraphQL 側が `Int` の場合はオーバーフローに注意が必要である。
+
 ### スキーマ進化によるバージョニング
 
 明示的なバージョニングを行わず、スキーマの進化的な変更で対応する。
@@ -160,6 +166,16 @@ type Order {
   totalPrice: Money!
 }
 ```
+
+### Proto との型整合性
+
+GraphQL スキーマと gRPC Proto の型を対応させる際、以下の点に注意すること。
+
+| 注意点 | 詳細 |
+| --- | --- |
+| `FeatureFlag` 型 | GraphQL の `FeatureFlag.enabled: Boolean!` は Proto の `bool enabled` に対応する。Proto 側でフィールドが追加された場合（例: `rollout_strategy` enum）は GraphQL スキーマにも対応する型・フィールドを追加すること |
+| enum の整合性 | Proto の enum 値（例: `FEATURE_FLAG_STATUS_ACTIVE`）を GraphQL enum にマッピングする際、プレフィックスを除去した形（例: `ACTIVE`）で定義する。Proto 側に値が追加された場合は GraphQL enum も同期して更新すること |
+| `totalCount` の型 | Proto の `PaginationResult.total_count` は `int64` だが、GraphQL の `Int` は 32bit 上限がある（前述「ページネーション」節を参照） |
 
 ### スキーマ設計例
 
