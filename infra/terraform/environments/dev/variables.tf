@@ -262,9 +262,28 @@ variable "flagger_version" {
 
 # --- Keycloak ---
 variable "keycloak_url" {
-  description = "Keycloak server URL"
+  description = "Keycloak サーバー URL"
   type        = string
   default     = "https://keycloak.k1s0-system.svc.cluster.local:8443"
+}
+
+# dev 環境: localhost ベースのリダイレクト URI
+variable "react_spa_redirect_uris" {
+  description = "Keycloak React SPA クライアントの許可リダイレクト URI リスト"
+  type        = list(string)
+  default     = ["http://localhost:3000/*"]
+}
+
+variable "react_spa_web_origins" {
+  description = "Keycloak React SPA クライアントの許可 Web オリジン リスト"
+  type        = list(string)
+  default     = ["http://localhost:3000"]
+}
+
+variable "bff_redirect_uris" {
+  description = "Keycloak BFF クライアントの許可リダイレクト URI リスト"
+  type        = list(string)
+  default     = ["http://localhost:8080/callback"]
 }
 
 # --- Vault Database ---

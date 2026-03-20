@@ -17,6 +17,19 @@
 #   docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 # `docker compose up` のデフォルト動作では認証バイパスは無効です。
 
+x-app-service: &app-service-defaults
+  # アプリケーションサービス共通設定: 全アプリサービスで共有するセキュリティ・リソース・再起動ポリシー
+  restart: unless-stopped
+  mem_limit: 512m
+  cpus: 0.5
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  read_only: true
+  tmpfs:
+    - /tmp
+
 x-rust-healthcheck: &rust-healthcheck
   test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
   interval: 10s
@@ -175,19 +188,7 @@ services:
     # バージョン固定: latest タグを避け再現性を確保する
     image: provectuslabs/kafka-ui:v0.7.2
     profiles: [infra]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: UI サービスは軽量
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
@@ -397,19 +398,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/auth/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${AUTH_REST_HOST_PORT:-8083}:8080"
       - "${AUTH_GRPC_HOST_PORT:-50052}:50051"
@@ -432,19 +421,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/config/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${CONFIG_REST_HOST_PORT:-8084}:8080"
       - "${CONFIG_GRPC_HOST_PORT:-50054}:50051"
@@ -467,19 +444,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/saga/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${SAGA_REST_HOST_PORT:-8085}:8080"
       - "${SAGA_GRPC_HOST_PORT:-50055}:50051"
@@ -502,19 +467,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/dlq-manager/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${DLQ_REST_HOST_PORT:-8086}:8080"
     environment:
@@ -534,19 +487,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/featureflag/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${FEATUREFLAG_REST_HOST_PORT:-8087}:8080"
       - "${FEATUREFLAG_GRPC_HOST_PORT:-50056}:50051"
@@ -565,19 +506,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/ratelimit/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${RATELIMIT_REST_HOST_PORT:-8088}:8080"
       - "${RATELIMIT_GRPC_HOST_PORT:-50057}:50051"
@@ -598,19 +527,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/tenant/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${TENANT_REST_HOST_PORT:-8089}:8080"
       - "${TENANT_GRPC_HOST_PORT:-50058}:50051"
@@ -631,19 +548,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/vault/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${VAULT_SVC_REST_HOST_PORT:-8091}:8080"
       - "${VAULT_SVC_GRPC_HOST_PORT:-50059}:50051"
@@ -665,19 +570,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/api-registry/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${API_REGISTRY_REST_HOST_PORT:-8093}:8080"
     environment:
@@ -695,19 +588,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/app-registry/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${APP_REGISTRY_REST_HOST_PORT:-8094}:8080"
     environment:
@@ -727,19 +608,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/event-monitor/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${EVENT_MONITOR_REST_HOST_PORT:-8095}:8080"
       - "${EVENT_MONITOR_GRPC_HOST_PORT:-50060}:50051"
@@ -760,19 +629,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/event-store/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${EVENT_STORE_REST_HOST_PORT:-8096}:8080"
     environment:
@@ -790,19 +647,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/file/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${FILE_REST_HOST_PORT:-8097}:8080"
     environment:
@@ -820,19 +665,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/master-maintenance/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}:8080"
       - "${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50061}:50051"
@@ -851,19 +684,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/navigation/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${NAVIGATION_REST_HOST_PORT:-8099}:8080"
       - "${NAVIGATION_GRPC_HOST_PORT:-50062}:50051"
@@ -882,19 +703,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/notification/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${NOTIFICATION_REST_HOST_PORT:-8100}:8080"
     environment:
@@ -914,19 +723,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/policy/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${POLICY_REST_HOST_PORT:-8101}:8080"
       - "${POLICY_GRPC_HOST_PORT:-50063}:50051"
@@ -945,19 +742,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/quota/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${QUOTA_REST_HOST_PORT:-8102}:8080"
     environment:
@@ -977,19 +762,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/rule-engine/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${RULE_ENGINE_REST_HOST_PORT:-8103}:8080"
       - "${RULE_ENGINE_GRPC_HOST_PORT:-50064}:50051"
@@ -1008,19 +781,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/scheduler/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${SCHEDULER_REST_HOST_PORT:-8104}:8080"
     environment:
@@ -1040,19 +801,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/search/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${SEARCH_REST_HOST_PORT:-8105}:8080"
     environment:
@@ -1070,19 +819,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/service-catalog/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${SERVICE_CATALOG_REST_HOST_PORT:-8108}:8080"
     environment:
@@ -1100,19 +837,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/session/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${SESSION_REST_HOST_PORT:-8106}:8080"
       - "${SESSION_GRPC_HOST_PORT:-50065}:50051"
@@ -1133,19 +858,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/workflow/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${WORKFLOW_REST_HOST_PORT:-8107}:8080"
     environment:
@@ -1165,19 +878,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/ai-gateway/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${AI_GATEWAY_REST_HOST_PORT:-8120}:8080"
       - "${AI_GATEWAY_GRPC_HOST_PORT:-50071}:50051"
@@ -1196,19 +897,7 @@ services:
       context: ./regions/system
       dockerfile: ./server/rust/ai-agent/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${AI_AGENT_REST_HOST_PORT:-8121}:8080"
       - "${AI_AGENT_GRPC_HOST_PORT:-50072}:50051"
@@ -1229,19 +918,7 @@ services:
       context: .
       dockerfile: ./regions/system/server/rust/graphql-gateway/Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${GRAPHQL_GW_HOST_PORT:-8092}:8080"
     environment:
@@ -1280,19 +957,7 @@ services:
       context: ./regions/system/server/go/bff-proxy
       dockerfile: Dockerfile
     profiles: [system]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${BFF_PROXY_HOST_PORT:-8082}:8080"
     environment:
@@ -1320,19 +985,7 @@ services:
       context: .
       dockerfile: ./regions/business/accounting/server/rust/domain-master/Dockerfile
     profiles: [business]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${DOMAIN_MASTER_REST_HOST_PORT:-8210}:8080"
       - "${DOMAIN_MASTER_GRPC_HOST_PORT:-9210}:50051"
@@ -1358,19 +1011,7 @@ services:
       context: .
       dockerfile: ./regions/service/order/server/rust/order/Dockerfile
     profiles: [service]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${ORDER_REST_HOST_PORT:-8310}:8080"
       - "${ORDER_GRPC_HOST_PORT:-9310}:50051"
@@ -1392,19 +1033,7 @@ services:
       context: .
       dockerfile: ./regions/service/inventory/server/rust/inventory/Dockerfile
     profiles: [service]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${INVENTORY_REST_HOST_PORT:-8320}:8080"
       - "${INVENTORY_GRPC_HOST_PORT:-9320}:50051"
@@ -1426,19 +1055,7 @@ services:
       context: .
       dockerfile: ./regions/service/payment/server/rust/payment/Dockerfile
     profiles: [service]
-    # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
-    restart: unless-stopped
-    # リソース制限: アプリケーションサービスの標準リソース
-    mem_limit: 512m
-    cpus: 0.5
-    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-service-defaults
     ports:
       - "${PAYMENT_REST_HOST_PORT:-8330}:8080"
       - "${PAYMENT_GRPC_HOST_PORT:-9330}:50051"
