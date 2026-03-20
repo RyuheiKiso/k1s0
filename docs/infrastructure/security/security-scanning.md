@@ -462,6 +462,64 @@ FROM aquasec/trivy:latest AS trivy
 FROM ghcr.io/zaproxy/zaproxy:stable AS zap
 ```
 
+---
+
+## Docker イメージの固定化方針
+
+サプライチェーン攻撃対策として、本番環境の Dockerfile は以下の方針に従う。
+
+### 1. ベースイメージの SHA256 ダイジェスト固定
+
+`FROM image:tag` ではなく `FROM image:tag@sha256:...` を使用し、イメージの内容を完全に固定する。タグは人間が読みやすくするための注釈として残す。
+
+```dockerfile
+# 例: タグ + SHA256 ダイジェストによる固定
+FROM rust:1.93-bookworm@sha256:<digest> AS chef
+FROM gcr.io/distroless/cc-debian12:nonroot@sha256:<digest>
+FROM busybox:1.36.1-musl@sha256:<digest> AS busybox
+```
+
+ダイジェストの取得方法:
+
+```bash
+# ローカルにプルして取得する
+docker pull rust:1.93-bookworm
+docker inspect --format='{{index .RepoDigests 0}}' rust:1.93-bookworm
+
+# または crane ツールを使用する
+crane digest rust:1.93-bookworm
+```
+
+### 2. 自動更新
+
+Renovate または Dependabot でダイジェストの自動更新を設定する。手動管理はミスが多いため、自動化を前提とする。
+
+```json
+// renovate.json — Docker ダイジェスト自動更新設定例
+{
+  "dockerfile": {
+    "pinDigests": true
+  }
+}
+```
+
+### 3. CI でのイメージスキャン
+
+`docker scout` または `trivy` でイメージスキャンを CI に組み込む（[コンテナスキャン](#コンテナスキャン) 参照）。
+
+### 4. 対象 Dockerfile
+
+本リポジトリの Dockerfile は `regions/` 以下に 40 ファイル存在する。優先順位は以下の通り:
+
+| 優先度 | 対象 | 理由 |
+|--------|------|------|
+| 高 | `regions/system/server/rust/auth/Dockerfile` | 認証基盤のため最も攻撃対象になりやすい |
+| 高 | `regions/system/server/*/Dockerfile` | システム層は全サービス共通の基盤 |
+| 中 | `regions/business/*/Dockerfile` | ビジネスロジックを含む |
+| 低 | `regions/service/*/client/*/Dockerfile` | クライアントイメージはリスクが相対的に低い |
+
+> **注意**: 実際の SHA 値は `docker inspect` または `crane digest` で取得してから Dockerfile に記載すること。SHA 値なしでの記載はしない。
+
 ### ネットワーク要件
 
 スキャンツールが参照する外部データベース。CI 環境のファイアウォールで以下の通信を許可する。

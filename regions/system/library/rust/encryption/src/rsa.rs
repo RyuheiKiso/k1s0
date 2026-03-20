@@ -6,7 +6,9 @@ use rsa::{
 };
 use sha2::Sha256;
 
-const KEY_BITS: usize = 2048;
+// RSA 鍵サイズ: NIST SP 800-57 に基づき 3072bit を推奨値とする。
+// 既存の 2048bit 鍵で暗号化済みのデータは rsa_decrypt で引き続き復号可能。
+const KEY_BITS: usize = 3072;
 
 pub fn generate_rsa_key_pair() -> Result<(String, String), EncryptionError> {
     let mut rng = OsRng;

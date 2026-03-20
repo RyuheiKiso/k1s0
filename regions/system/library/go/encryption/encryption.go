@@ -84,6 +84,10 @@ func Decrypt(key []byte, ciphertext string) ([]byte, error) {
 	return aead.Open(nil, nonce, sealed, nil)
 }
 
+// RSA 鍵サイズ定数: NIST SP 800-57 に基づき 3072bit を推奨とする。
+// 既存の 2048bit 鍵で暗号化済みのデータは RSADecrypt で引き続き復号可能。
+const defaultRSAKeyBits = 3072
+
 // Argon2id parameters
 const (
 	argon2Memory     = 19456
@@ -179,9 +183,11 @@ func splitArgon2Hash(encoded string) *argon2Params {
 	}
 }
 
-// GenerateRSAKeyPair は2048ビットのRSAキーペアをPEM形式で生成する。
+// GenerateRSAKeyPair は3072ビットのRSAキーペアをPEM形式で生成する。
+// NIST SP 800-57 の推奨に従い、2048bit から 3072bit に強化している。
+// 既存の 2048bit 鍵で生成した暗号文は RSADecrypt で引き続き復号可能。
 func GenerateRSAKeyPair() (publicKeyPEM string, privateKeyPEM string, err error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	privateKey, err := rsa.GenerateKey(rand.Reader, defaultRSAKeyBits)
 	if err != nil {
 		return "", "", fmt.Errorf("RSA key generation failed: %w", err)
 	}
