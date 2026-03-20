@@ -155,6 +155,9 @@ fn domain_audit_log_to_proto(log: &AuditLog) -> ProtoAuditLog {
             seconds: log.created_at.timestamp(),
             nanos: log.created_at.timestamp_subsec_nanos() as i32,
         }),
+        // 後方互換フィールド: string から enum への移行中は 0 (UNSPECIFIED) で返す
+        event_type_enum: 0,
+        result_enum: 0,
     }
 }
 
@@ -248,6 +251,9 @@ mod tests {
             result: "SUCCESS".to_string(),
             detail: None,
             trace_id: "trace-001".to_string(),
+            // 後方互換フィールド: 0 = UNSPECIFIED
+            event_type_enum: 0,
+            result_enum: 0,
         };
 
         let resp = svc
@@ -274,6 +280,9 @@ mod tests {
             result: "SUCCESS".to_string(),
             detail: None,
             trace_id: String::new(),
+            // 後方互換フィールド: 0 = UNSPECIFIED
+            event_type_enum: 0,
+            result_enum: 0,
         };
 
         let result = svc.record_audit_log(req).await;
@@ -309,6 +318,9 @@ mod tests {
             from: None,
             to: None,
             result: String::new(),
+            // 新規追加した enum フィールド（後方互換: 0 = UNSPECIFIED はフィルタなしを意味する）
+            event_type_enum: 0,
+            result_enum: 0,
         };
 
         let resp = svc
@@ -340,6 +352,9 @@ mod tests {
             from: None,
             to: None,
             result: String::new(),
+            // 新規追加した enum フィールド（後方互換: 0 = UNSPECIFIED はフィルタなしを意味する）
+            event_type_enum: 0,
+            result_enum: 0,
         };
 
         let resp = svc
