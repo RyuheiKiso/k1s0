@@ -45,13 +45,9 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         }
     }
 
-    // Keycloak check
+    // Keycloak check — AppState のシングルトン HTTP クライアントを使用する
     if let Some(ref url) = state.keycloak_url {
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(3))
-            .build()
-            .unwrap_or_default();
-        match client.get(url).send().await {
+        match state.http_client.get(url).send().await {
             Ok(_) => kc_status = "ok",
             Err(_) => {
                 kc_status = "error";

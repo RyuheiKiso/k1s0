@@ -1,7 +1,9 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::{body::Body, extract::State, http::Request, middleware::Next, response::Response};
 use k1s0_auth::JwksVerifier;
+use tokio::time::timeout;
 
 use crate::ServiceError;
 
@@ -20,10 +22,15 @@ pub async fn auth_middleware(
     let token = extract_bearer_token(&req)
         .ok_or_else(|| ServiceError::unauthorized("AUTH", "Missing bearer token"))?;
 
-    let claims = state
-        .verifier
-        .verify_token(&token)
+    /// トークン検証のタイムアウト上限（秒）。外部 JWKS エンドポイントの応答遅延によるリクエスト滞留を防ぐ。
+    const VERIFY_TIMEOUT: Duration = Duration::from_secs(2);
+
+    // verify_token をタイムアウト付きで実行し、応答遅延時は 503 を返す
+    let claims = timeout(VERIFY_TIMEOUT, state.verifier.verify_token(&token))
         .await
+        .map_err(|_| {
+            ServiceError::service_unavailable("AUTH", "Token verification timed out")
+        })?
         .map_err(|_| ServiceError::unauthorized("AUTH", "Invalid or expired token"))?;
 
     req.extensions_mut().insert(claims);

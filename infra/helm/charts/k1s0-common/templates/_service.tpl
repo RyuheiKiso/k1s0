@@ -6,10 +6,12 @@ metadata:
   labels:
     {{- include "k1s0-common.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.service.type }}
+  {{/* service.type が未設定の場合は ClusterIP をデフォルトとする */}}
+  type: {{ .Values.service.type | default "ClusterIP" }}
   ports:
     - name: http
-      port: {{ .Values.service.port }}
+      {{/* service.port が未設定の場合は 80 をデフォルトとする */}}
+      port: {{ .Values.service.port | default 80 }}
       targetPort: http
       protocol: TCP
     {{- if .Values.service.grpcPort }}

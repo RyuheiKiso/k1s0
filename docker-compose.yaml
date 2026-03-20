@@ -617,8 +617,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # Vault の準備完了を確認してから起動する（service_started ではヘルスチェック未通過で接続失敗の可能性がある）
       vault:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./regions/system/server/rust/vault/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1228,6 +1229,12 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/go/bff-proxy/config:/app/config
+    # ヘルスチェック: busybox の wget で /healthz エンドポイントを確認
+    healthcheck:
+      test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ============================================================
   # Business プロファイル
@@ -1299,6 +1306,70 @@ services:
       - ./regions/service/order/server/rust/order/config:/app/config
     healthcheck: *rust-healthcheck
 
+  # 在庫管理サービス: 在庫の入出庫・残高管理を担当
+  inventory-rust:
+    build:
+      context: .
+      dockerfile: ./regions/service/inventory/server/rust/inventory/Dockerfile
+    profiles: [service]
+    # リソース制限: アプリケーションサービスの標準リソース
+    mem_limit: 512m
+    cpus: 0.5
+    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    ports:
+      - "${INVENTORY_REST_HOST_PORT:-8320}:8080"
+      - "${INVENTORY_GRPC_HOST_PORT:-9320}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/service/inventory/server/rust/inventory/config:/app/config
+    healthcheck: *rust-healthcheck
+
+  # 決済サービス: 決済処理・決済ステータス管理を担当
+  payment-rust:
+    build:
+      context: .
+      dockerfile: ./regions/service/payment/server/rust/payment/Dockerfile
+    profiles: [service]
+    # リソース制限: アプリケーションサービスの標準リソース
+    mem_limit: 512m
+    cpus: 0.5
+    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    ports:
+      - "${PAYMENT_REST_HOST_PORT:-8330}:8080"
+      - "${PAYMENT_GRPC_HOST_PORT:-9330}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/service/payment/server/rust/payment/config:/app/config
+    healthcheck: *rust-healthcheck
+
   # ============================================================
   # Kafka トピック自動作成
   # ============================================================
@@ -1326,7 +1397,8 @@ services:
     volumes:
       - ./infra/messaging/kafka/create-topics.sh:/scripts/create-topics.sh:ro
     entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
-    restart: "no"
+    # トピック作成失敗時にリトライする（Kafka ブローカーの一時的な未準備に対応）
+    restart: on-failure
 
   # ============================================================
   # 可観測性

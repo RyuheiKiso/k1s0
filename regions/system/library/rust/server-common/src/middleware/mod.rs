@@ -12,6 +12,8 @@ pub mod kafka_setup;
 #[cfg(feature = "auth")]
 pub mod rbac;
 mod request_id;
+/// shutdown フィーチャーが有効な場合のみ、シャットダウンシグナルの再エクスポートを提供する
+#[cfg(feature = "shutdown")]
 pub mod shutdown;
 mod stack;
 mod standard_routes;

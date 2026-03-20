@@ -368,4 +368,5 @@ jobs:
           echo "Waiting for rollout to complete..."
           kubectl rollout status deployment/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} --timeout=120s
           echo "Running health check..."
-          kubectl exec deploy/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} -- /busybox wget -qO- http://127.0.0.1:8080/healthz
+          # ヘルスチェックのタイムアウトを5秒に設定し、無限待機を防止する
+          kubectl exec deploy/${{ steps.meta.outputs.service_name }} -n ${{ steps.meta.outputs.namespace }} -- /busybox wget -qO- --timeout=5 http://127.0.0.1:8080/healthz

@@ -137,6 +137,13 @@ jobs:
         with:
           image: ${{ env.REGISTRY }}/${{ inputs.registry-project }}/${{ inputs.service-name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           output-file: sbom.spdx.json
+      # SBOM をアーティファクトとしてアップロードし、監査・コンプライアンス目的で保存する
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ inputs.service_name || github.event.inputs.service_name }}
+          path: sbom.spdx.json
+          if-no-files-found: warn
 
   # ---------- Deploy to dev ----------
   deploy-dev:

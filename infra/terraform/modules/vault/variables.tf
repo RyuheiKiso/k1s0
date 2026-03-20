@@ -15,24 +15,28 @@ variable "kubernetes_host" {
 variable "ldap_url" {
   description = "LDAP server URL (LDAPS)"
   type        = string
+  # プレースホルダー: 本番環境では適切な値に置換すること
   default     = "ldaps://ldap.example.com:636"
 }
 
 variable "ldap_user_dn" {
   description = "LDAP user DN for user search"
   type        = string
+  # プレースホルダー: 本番環境では適切な値に置換すること
   default     = "ou=users,dc=example,dc=com"
 }
 
 variable "ldap_group_dn" {
   description = "LDAP group DN for group search"
   type        = string
+  # プレースホルダー: 本番環境では適切な値に置換すること
   default     = "ou=groups,dc=example,dc=com"
 }
 
 variable "ldap_bind_dn" {
   description = "LDAP bind DN for Vault authentication"
   type        = string
+  # プレースホルダー: 本番環境では適切な値に置換すること
   default     = "cn=vault,ou=service-accounts,dc=example,dc=com"
 }
 

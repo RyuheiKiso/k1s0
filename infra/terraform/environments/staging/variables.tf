@@ -176,6 +176,7 @@ variable "harbor_chart_version" {
 variable "harbor_domain" {
   description = "Harbor external domain"
   type        = string
+  # プレースホルダー: 本番環境では適切な値に置換すること
   default     = "harbor.internal.example.com"
 }
 
@@ -188,6 +189,7 @@ variable "harbor_s3_bucket" {
 variable "ceph_s3_endpoint" {
   description = "Ceph S3-compatible endpoint URL"
   type        = string
+  # プレースホルダー: 本番環境では適切な値に置換すること
   default     = "http://ceph-rgw.internal.example.com:8080"
 }
 
@@ -207,24 +209,28 @@ variable "kubernetes_host" {
 variable "ldap_url" {
   description = "LDAP server URL"
   type        = string
+  # プレースホルダー: 本番環境では適切な値に置換すること
   default     = "ldaps://ldap.example.com:636"
 }
 
 variable "ldap_user_dn" {
   description = "LDAP user DN"
   type        = string
+  # プレースホルダー: 本番環境では適切な値に置換すること
   default     = "ou=users,dc=example,dc=com"
 }
 
 variable "ldap_group_dn" {
   description = "LDAP group DN"
   type        = string
+  # プレースホルダー: 本番環境では適切な値に置換すること
   default     = "ou=groups,dc=example,dc=com"
 }
 
 variable "ldap_bind_dn" {
   description = "LDAP bind DN"
   type        = string
+  # プレースホルダー: 本番環境では適切な値に置換すること
   default     = "cn=vault,ou=service-accounts,dc=example,dc=com"
 }
 

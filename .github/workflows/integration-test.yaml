@@ -23,6 +23,10 @@ concurrency:
 # 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
 permissions: {}
 
+# Kafka クラスタ ID を一元管理し、各ジョブでの重複定義を排除する
+env:
+  KAFKA_CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+
 jobs:
   # ---------- system tier 結合テスト ----------
 
@@ -84,12 +88,27 @@ jobs:
           KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
           KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
           KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-          CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
+          # ワークフローレベルの env から Kafka クラスタ ID を参照（DRY 原則）
+          CLUSTER_ID: ${{ env.KAFKA_CLUSTER_ID }}
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
           KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
           KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
         ports:
           - 9092:9092
+
+      # シークレット管理用 Vault（開発モード: テスト専用のルートトークンで起動）
+      vault:
+        image: hashicorp/vault:1.15
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: root
+          VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+        ports:
+          - 8200:8200
+        options: >-
+          --health-cmd="vault status"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -203,12 +222,27 @@ jobs:
           KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
           KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
           KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-          CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
+          # ワークフローレベルの env から Kafka クラスタ ID を参照（DRY 原則）
+          CLUSTER_ID: ${{ env.KAFKA_CLUSTER_ID }}
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
           KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
           KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
         ports:
           - 9092:9092
+
+      # シークレット管理用 Vault（開発モード: テスト専用のルートトークンで起動）
+      vault:
+        image: hashicorp/vault:1.15
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: root
+          VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+        ports:
+          - 8200:8200
+        options: >-
+          --health-cmd="vault status"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -325,12 +359,27 @@ jobs:
           KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
           KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
           KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-          CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
+          # ワークフローレベルの env から Kafka クラスタ ID を参照（DRY 原則）
+          CLUSTER_ID: ${{ env.KAFKA_CLUSTER_ID }}
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
           KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
           KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
         ports:
           - 9092:9092
+
+      # シークレット管理用 Vault（開発モード: テスト専用のルートトークンで起動）
+      vault:
+        image: hashicorp/vault:1.15
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: root
+          VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+        ports:
+          - 8200:8200
+        options: >-
+          --health-cmd="vault status"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4

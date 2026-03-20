@@ -156,6 +156,8 @@ func run() error {
 	}
 	router := gin.New()
 	router.Use(gin.Recovery())
+	// セキュリティレスポンスヘッダーを全リクエストに付与する
+	router.Use(middleware.SecurityHeadersMiddleware())
 	router.Use(middleware.PrometheusMiddleware())
 	router.Use(otelgin.Middleware("bff-proxy"))
 	router.Use(middleware.OTelTraceIDMiddleware())

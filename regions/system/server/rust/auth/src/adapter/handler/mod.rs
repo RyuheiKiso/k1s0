@@ -41,6 +41,9 @@ pub struct AppState {
     pub revoke_api_key_uc: Arc<RevokeApiKeyUseCase>,
     pub validate_api_key_uc: Arc<ValidateApiKeyUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    /// readyz 等の外部ヘルスチェックに使用する共有 HTTP クライアント。
+    /// リクエストごとの生成コストを避けるためシングルトンとして保持する。
+    pub http_client: reqwest::Client,
     pub db_pool: Option<sqlx::PgPool>,
     pub keycloak_url: Option<String>,
     pub jwks_provider: Option<crate::infrastructure::jwks_provider::JwksProvider>,
@@ -82,6 +85,11 @@ impl AppState {
             validate_api_key_uc: Arc::new(ValidateApiKeyUseCase::new(api_key_repo.clone())),
             revoke_api_key_uc: Arc::new(RevokeApiKeyUseCase::new(api_key_repo)),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server")),
+            // ヘルスチェック用 HTTP クライアント。タイムアウト3秒でシングルトン化。
+            http_client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(3))
+                .build()
+                .unwrap_or_default(),
             db_pool,
             keycloak_url,
             jwks_provider,
