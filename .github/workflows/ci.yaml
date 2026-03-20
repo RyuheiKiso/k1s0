@@ -494,7 +494,7 @@ jobs:
           path: coverage/
       # Go カバレッジレポートを Codecov にアップロード
       - name: Upload coverage
-        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           fail_ci_if_error: false
 
@@ -645,7 +645,7 @@ jobs:
           path: coverage/
       # Rust カバレッジレポートを Codecov にアップロード
       - name: Upload coverage
-        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           fail_ci_if_error: false
 
@@ -723,7 +723,7 @@ jobs:
           path: coverage/
       # TypeScript カバレッジレポートを Codecov にアップロード
       - name: Upload coverage
-        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           fail_ci_if_error: false
 
@@ -857,7 +857,7 @@ jobs:
           path: coverage/
       # Dart/Flutter カバレッジレポートを Codecov にアップロード
       - name: Upload coverage
-        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           fail_ci_if_error: false
 
