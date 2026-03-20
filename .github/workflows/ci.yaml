@@ -343,7 +343,7 @@ jobs:
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       # Dart/Flutter パッケージキャッシュ
-      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v4
         with:
           path: ~/.pub-cache
           key: dart-pub-${{ hashFiles('**/pubspec.lock') }}
@@ -741,7 +741,7 @@ jobs:
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       # Dart/Flutter パッケージキャッシュ
-      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v4
         with:
           path: ~/.pub-cache
           key: dart-pub-${{ hashFiles('**/pubspec.lock') }}
@@ -782,7 +782,7 @@ jobs:
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       # Dart/Flutter パッケージキャッシュ
-      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v4
         with:
           path: ~/.pub-cache
           key: dart-pub-${{ hashFiles('**/pubspec.lock') }}
