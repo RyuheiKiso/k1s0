@@ -487,7 +487,7 @@ jobs:
             exit 1
           fi
           echo "全 Go モジュールのカバレッジが閾値 ${GO_COVERAGE_THRESHOLD}% を超えています"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: go-coverage
@@ -638,7 +638,7 @@ jobs:
             --fail-under "$RUST_COVERAGE_THRESHOLD" \
             --out Json Html \
             --output-dir coverage/cli
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: rust-coverage
@@ -716,7 +716,7 @@ jobs:
               fi
             )
           done
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: ts-coverage
@@ -850,7 +850,7 @@ jobs:
             exit 1
           fi
           echo "全 Dart/Flutter パッケージのカバレッジが閾値 ${DART_COVERAGE_THRESHOLD}% を超えています"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: dart-coverage
