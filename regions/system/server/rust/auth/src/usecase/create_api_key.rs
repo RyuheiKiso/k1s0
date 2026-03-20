@@ -192,6 +192,8 @@ mod tests {
     /// 同一入力に対して hash_key が決定的な結果を返すことを確認する。
     #[test]
     fn test_hash_key_deterministic() {
+        // 環境変数を固定してテスト間の競合を防ぐ
+        std::env::set_var("API_KEY_PEPPER", "test-pepper-deterministic");
         let key = "k1s0_test_deterministic_key";
         let h1 = hash_key(key);
         let h2 = hash_key(key);

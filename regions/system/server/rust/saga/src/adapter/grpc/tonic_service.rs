@@ -208,6 +208,8 @@ impl SagaService for SagaServiceTonic {
             error_message: empty_string_to_none(resp.saga.error_message),
             created_at: rfc3339_to_proto_timestamp(&resp.saga.created_at),
             updated_at: rfc3339_to_proto_timestamp(&resp.saga.updated_at),
+            // 後方互換フィールド（0 = UNSPECIFIED）
+            status_enum: 0,
         };
 
         let proto_step_logs = resp
@@ -274,6 +276,8 @@ impl SagaService for SagaServiceTonic {
                 error_message: empty_string_to_none(saga.error_message),
                 created_at: rfc3339_to_proto_timestamp(&saga.created_at),
                 updated_at: rfc3339_to_proto_timestamp(&saga.updated_at),
+                // 後方互換フィールド（0 = UNSPECIFIED）
+                status_enum: 0,
             })
             .collect();
 

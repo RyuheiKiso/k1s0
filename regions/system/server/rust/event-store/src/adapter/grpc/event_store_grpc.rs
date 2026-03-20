@@ -14,7 +14,7 @@ use crate::proto::k1s0::system::eventstore::v1::{
     CreateSnapshotRequest as ProtoCreateSnapshotRequest,
     CreateSnapshotResponse as ProtoCreateSnapshotResponse,
     DeleteStreamRequest as ProtoDeleteStreamRequest,
-    DeleteStreamResponse as ProtoDeleteStreamResponse, EventMetadata as ProtoEventMetadata,
+    DeleteStreamResponse as ProtoDeleteStreamResponse, EventStoreMetadata as ProtoEventMetadata,
     GetLatestSnapshotRequest as ProtoGetLatestSnapshotRequest,
     GetLatestSnapshotResponse as ProtoGetLatestSnapshotResponse,
     ListStreamsRequest as ProtoListStreamsRequest, ListStreamsResponse as ProtoListStreamsResponse,

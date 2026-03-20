@@ -96,6 +96,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
                         updated_at: None,
                     }),
                     changed_at: None,
+                    // 後方互換フィールド（0 = UNSPECIFIED）
+                    change_type_enum: 0,
                 };
                 if tx.send(Ok(resp)).await.is_err() {
                     break;
