@@ -17,7 +17,7 @@ export default function ProgressLog({ events, currentStep, totalSteps }: Progres
           {/* プログレスラベル — シアンテーマ */}
           <div className="mb-1 flex items-center justify-between text-sm text-slate-200/72">
             <span data-testid="progress-label">
-              Step {currentStep} / {totalSteps}
+              ステップ {currentStep} / {totalSteps}
             </span>
             <span data-testid="progress-percent">{percentage}%</span>
           </div>
@@ -34,7 +34,7 @@ export default function ProgressLog({ events, currentStep, totalSteps }: Progres
         data-testid="log-viewer"
       >
         {events.length === 0 ? (
-          <p className="text-slate-200/35">No logs yet.</p>
+          <p className="text-slate-200/35">ログはまだありません。</p>
         ) : (
           events.map((event, index) => (
             <div key={`${event.kind}-${index}`} className={getEventClassName(event)}>

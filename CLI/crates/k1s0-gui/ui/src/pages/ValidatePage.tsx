@@ -57,16 +57,15 @@ export default function ValidatePage() {
 
   return (
     <div className="glass max-w-4xl p-6 p3-animate-in" data-testid="validate-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">Quality</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Validate contracts</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">品質</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white">コントラクトの検証</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Validate configuration and navigation files against the selected workspace root before
-        build, test, or deploy.
+        ビルド、テスト、デプロイの前に選択したワークスペースルートに対して設定ファイルとナビゲーションファイルを検証します。
       </p>
 
       {workspaceUnavailable && (
         <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
-          Configure a valid workspace root before running validation.
+          検証を実行する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
@@ -74,7 +73,7 @@ export default function ValidatePage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="space-y-5 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-slate-200/82">Target</legend>
+            <legend className="text-sm font-medium text-slate-200/82">ターゲット</legend>
             <label className="flex items-center gap-3 text-sm text-slate-200/82">
               <input
                 type="radio"
@@ -82,7 +81,7 @@ export default function ValidatePage() {
                 onChange={() => handleTargetChange('config-schema')}
                 name="validate-target"
               />
-              Config schema
+              設定スキーマ
             </label>
             <label className="flex items-center gap-3 text-sm text-slate-200/82">
               <input
@@ -91,12 +90,12 @@ export default function ValidatePage() {
                 onChange={() => handleTargetChange('navigation')}
                 name="validate-target"
               />
-              Navigation
+              ナビゲーション
             </label>
           </fieldset>
 
           <div>
-            <label className="block text-sm font-medium text-slate-200/82">File path</label>
+            <label className="block text-sm font-medium text-slate-200/82">ファイルパス</label>
             <input
               type="text"
               value={filePath}
@@ -115,7 +114,7 @@ export default function ValidatePage() {
             className="bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
             data-testid="btn-validate"
           >
-            {status === 'loading' ? 'Validating...' : 'Validate'}
+            {status === 'loading' ? '検証中...' : '検証'}
           </button>
 
           {status === 'error' && (
@@ -126,18 +125,18 @@ export default function ValidatePage() {
         </section>
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white">Diagnostics</h2>
+          <h2 className="text-lg font-semibold text-white">診断結果</h2>
 
           {status !== 'success' ? (
             <p className="mt-4 text-sm text-slate-200/55">
-              Run validation to inspect detailed schema or navigation diagnostics.
+              詳細なスキーマまたはナビゲーションの診断結果を確認するには検証を実行します。
             </p>
           ) : diagnostics.length === 0 ? (
             <div
               className="mt-4 border border-cyan-400/20 bg-cyan-400/10 p-4"
               data-testid="validate-result"
             >
-              <p className="text-sm text-cyan-300">Validation completed with no errors.</p>
+              <p className="text-sm text-cyan-300">検証がエラーなしで完了しました。</p>
             </div>
           ) : (
             <div
@@ -145,7 +144,7 @@ export default function ValidatePage() {
               data-testid="validate-result"
             >
               <p className="text-sm font-medium text-rose-200">
-                Validation found {diagnostics.length} error(s).
+                {diagnostics.length}件のエラーが検出されました。
               </p>
               <div className="space-y-3">
                 {diagnostics.map((diagnostic, index) => (

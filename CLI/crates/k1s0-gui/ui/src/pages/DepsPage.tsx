@@ -101,15 +101,15 @@ export default function DepsPage() {
 
   return (
     <div className="glass max-w-6xl p-6 p3-animate-in" data-testid="deps-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">Architecture</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Inspect dependency map</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">アーキテクチャ</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white">依存関係マップの検査</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Run the dependency scan for the selected workspace and optionally export Mermaid output.
+        選択したワークスペースの依存関係スキャンを実行し、オプションでMermaid出力をエクスポートします。
       </p>
 
       {workspaceUnavailable && (
         <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
-          Configure a valid workspace root before running the dependency scan.
+          依存関係スキャンを実行する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
@@ -118,7 +118,7 @@ export default function DepsPage() {
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="space-y-5">
             <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-slate-200/82">Scope</legend>
+              <legend className="text-sm font-medium text-slate-200/82">スコープ</legend>
               {(['all', 'tier', 'services'] as ScopeMode[]).map((value) => (
                 <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input
@@ -128,17 +128,17 @@ export default function DepsPage() {
                     name="deps-scope"
                   />
                   {value === 'all'
-                    ? 'All services'
+                    ? '全サービス'
                     : value === 'tier'
-                      ? 'Single tier'
-                      : 'Selected services'}
+                      ? '単一ティア'
+                      : '選択されたサービス'}
                 </label>
               ))}
             </fieldset>
 
             {scopeMode === 'tier' && (
               <fieldset className="space-y-2">
-                <legend className="text-sm font-medium text-slate-200/82">Tier</legend>
+                <legend className="text-sm font-medium text-slate-200/82">ティア</legend>
                 {(['system', 'business', 'service'] as const).map((value) => (
                   <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                     <input
@@ -155,10 +155,10 @@ export default function DepsPage() {
 
             {scopeMode === 'services' && (
               <div>
-                <p className="text-sm font-medium text-slate-200/82">Services</p>
+                <p className="text-sm font-medium text-slate-200/82">サービス</p>
                 <div className="mt-3 max-h-64 space-y-2 overflow-auto pr-1">
                   {availableServices.length === 0 ? (
-                    <p className="text-sm text-slate-200/55">No services were found.</p>
+                    <p className="text-sm text-slate-200/55">サービスが見つかりませんでした。</p>
                   ) : (
                     availableServices.map((service) => (
                       <label
@@ -180,7 +180,7 @@ export default function DepsPage() {
             )}
 
             <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-slate-200/82">Output</legend>
+              <legend className="text-sm font-medium text-slate-200/82">出力</legend>
               {(['terminal', 'mermaid', 'both'] as OutputMode[]).map((value) => (
                 <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input
@@ -190,17 +190,17 @@ export default function DepsPage() {
                     name="deps-output"
                   />
                   {value === 'terminal'
-                    ? 'Terminal summary'
+                    ? 'ターミナルサマリー'
                     : value === 'mermaid'
-                      ? 'Mermaid file'
-                      : 'Terminal + Mermaid'}
+                      ? 'Mermaidファイル'
+                      : 'ターミナル + Mermaid'}
                 </label>
               ))}
             </fieldset>
 
             {outputMode !== 'terminal' && (
               <div>
-                <label className="block text-sm font-medium text-slate-200/82">Mermaid path</label>
+                <label className="block text-sm font-medium text-slate-200/82">Mermaidパス</label>
                 <input
                   value={mermaidPath}
                   onChange={(event) => setMermaidPath(event.target.value)}
@@ -216,7 +216,7 @@ export default function DepsPage() {
                 checked={noCache}
                 onChange={(event) => setNoCache(event.target.checked)}
               />
-              Disable dependency cache
+              依存関係キャッシュを無効化
             </label>
           </div>
 
@@ -235,7 +235,7 @@ export default function DepsPage() {
             className="mt-6 bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
             data-testid="btn-run-deps"
           >
-            {status === 'loading' ? 'Scanning...' : 'Run dependency scan'}
+            {status === 'loading' ? 'スキャン中...' : '依存関係スキャンを実行'}
           </button>
 
           {status === 'error' && (
@@ -246,24 +246,24 @@ export default function DepsPage() {
         </section>
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white">Result</h2>
+          <h2 className="text-lg font-semibold text-white">結果</h2>
           {!result ? (
             <p className="mt-4 text-sm text-slate-200/55">
-              Run the scan to inspect services, dependencies, and rule violations.
+              スキャンを実行してサービス、依存関係、ルール違反を検査します。
             </p>
           ) : (
             <div className="mt-4 space-y-5">
               <div className="grid gap-3 sm:grid-cols-3">
-                <SummaryCard label="Services" value={String(result.services.length)} />
-                <SummaryCard label="Dependencies" value={String(result.dependencies.length)} />
-                <SummaryCard label="Violations" value={String(result.violations.length)} />
+                <SummaryCard label="サービス" value={String(result.services.length)} />
+                <SummaryCard label="依存関係" value={String(result.dependencies.length)} />
+                <SummaryCard label="違反" value={String(result.violations.length)} />
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-200/82">Dependencies</p>
+                <p className="text-sm font-medium text-slate-200/82">依存関係</p>
                 <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">
                   {result.dependencies.length === 0 ? (
-                    <p className="text-sm text-slate-200/55">No dependencies were found.</p>
+                    <p className="text-sm text-slate-200/55">依存関係が見つかりませんでした。</p>
                   ) : (
                     result.dependencies.map((dependency) => (
                       <div
@@ -283,10 +283,10 @@ export default function DepsPage() {
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-200/82">Violations</p>
+                <p className="text-sm font-medium text-slate-200/82">違反</p>
                 <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">
                   {result.violations.length === 0 ? (
-                    <p className="text-sm text-cyan-300">No violations were found.</p>
+                    <p className="text-sm text-cyan-300">違反は見つかりませんでした。</p>
                   ) : (
                     result.violations.map((violation) => (
                       <div
@@ -306,7 +306,7 @@ export default function DepsPage() {
 
               {outputMode !== 'terminal' && (
                 <p className="text-sm text-slate-300/70">
-                  Mermaid output written to {toDisplayPath(activeWorkspaceRoot, mermaidPath)}.
+                  Mermaid出力の書き込み先: {toDisplayPath(activeWorkspaceRoot, mermaidPath)}.
                 </p>
               )}
             </div>

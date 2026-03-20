@@ -119,7 +119,7 @@ export default function DeployPage() {
   async function handleDeploy() {
     if (environment === 'Prod' && prodConfirm !== 'deploy') {
       setStatus('error');
-      setErrorMessage('Type "deploy" to confirm a production deployment.');
+      setErrorMessage('本番デプロイを確認するには「deploy」と入力してください。');
       return;
     }
 
@@ -144,7 +144,7 @@ export default function DeployPage() {
 
       if (!finished) {
         setStatus('error');
-        setErrorMessage('Deploy completed without a terminal progress event.');
+        setErrorMessage('終了イベントなしでデプロイが完了しました。');
       }
     } catch (error) {
       setStatus('error');
@@ -180,23 +180,22 @@ export default function DeployPage() {
 
   return (
     <div className="glass max-w-5xl p-6 p3-animate-in" data-testid="deploy-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">Delivery</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Deploy services</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">デリバリー</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white">サービスのデプロイ</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        The deployment flow runs Docker build, push, Cosign signing, and Helm deploy as a single
-        pipeline.
+        デプロイフローはDockerビルド、プッシュ、Cosign署名、Helmデプロイを一つのパイプラインとして実行します。
       </p>
 
       {workspaceUnavailable && (
         <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
-          Configure a valid workspace root before scanning deploy targets.
+          デプロイターゲットをスキャンする前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white">Environment</h2>
+          <h2 className="text-lg font-semibold text-white">環境</h2>
           <div className="mt-4 space-y-2">
             {(['Dev', 'Staging', 'Prod'] as Environment[]).map((value) => (
               <label
@@ -222,7 +221,7 @@ export default function DeployPage() {
               data-testid="prod-confirm"
             >
               <p className="text-sm text-red-100">
-                Production deploys require an explicit confirmation token.
+                本番デプロイには明示的な確認トークンが必要です。
               </p>
               <input
                 value={prodConfirm}
@@ -245,12 +244,12 @@ export default function DeployPage() {
             className="mt-6 bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
             data-testid="btn-deploy"
           >
-            {status === 'loading' ? 'Deploying...' : 'Deploy'}
+            {status === 'loading' ? 'デプロイ中...' : 'デプロイ'}
           </button>
 
           {status === 'success' && (
             <p className="mt-4 text-sm text-cyan-300" data-testid="success-message">
-              Deployment completed successfully.
+              デプロイが正常に完了しました。
             </p>
           )}
           {status === 'error' && (
@@ -264,10 +263,10 @@ export default function DeployPage() {
               {failedRollbackTarget && (
                 <>
                   <p className="text-sm text-slate-200/76">
-                    The last failed production deployment can be rolled back safely.
+                    最後に失敗した本番デプロイは安全にロールバックできます。
                   </p>
                   <p className="mt-2 text-sm text-slate-100">
-                    Target: {toDisplayPath(activeWorkspaceRoot, failedRollbackTarget)}
+                    ターゲット: {toDisplayPath(activeWorkspaceRoot, failedRollbackTarget)}
                   </p>
                   <button
                     type="button"
@@ -278,7 +277,7 @@ export default function DeployPage() {
                     className="mt-4 border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
                     data-testid="btn-rollback"
                   >
-                    {rollbackStatus === 'loading' ? 'Rolling back...' : 'Rollback'}
+                    {rollbackStatus === 'loading' ? 'ロールバック中...' : 'ロールバック'}
                   </button>
                 </>
               )}
@@ -297,7 +296,7 @@ export default function DeployPage() {
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-white">Targets</h2>
+            <h2 className="text-lg font-semibold text-white">ターゲット</h2>
             {targets.length > 0 && (
               <label className="flex items-center gap-2 text-sm text-slate-200/72">
                 <input
@@ -305,14 +304,14 @@ export default function DeployPage() {
                   checked={allSelected}
                   onChange={(event) => handleToggleAll(event.target.checked)}
                 />
-                All targets
+                全ターゲット
               </label>
             )}
           </div>
 
           <div className="mt-4 space-y-2">
             {targets.length === 0 ? (
-              <p className="text-sm text-slate-200/55">No deployable targets were found.</p>
+              <p className="text-sm text-slate-200/55">デプロイ可能なターゲットが見つかりませんでした。</p>
             ) : (
               targets.map((target) => (
                 <label

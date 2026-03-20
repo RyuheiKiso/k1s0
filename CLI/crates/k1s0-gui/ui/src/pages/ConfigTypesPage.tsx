@@ -85,15 +85,15 @@ export default function ConfigTypesPage() {
 
   return (
     <div className="glass max-w-4xl p-6 p3-animate-in" data-testid="config-types-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">Types</p>
-      <h1 className="mt-2 text-3xl font-semibold text-white">Generate config contracts</h1>
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">型定義</p>
+      <h1 className="mt-2 text-3xl font-semibold text-white">設定コントラクトの生成</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
-        Preview and write TypeScript and Dart config types from the workspace schema.
+        ワークスペーススキーマからTypeScriptとDartの設定型をプレビュー・書き出しします。
       </p>
 
       {workspaceUnavailable && (
         <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
-          Configure a valid workspace root before generating files.
+          ファイルを生成する前に有効なワークスペースルートを設定してください。
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
@@ -102,7 +102,7 @@ export default function ConfigTypesPage() {
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">Schema path</label>
+              <label className="block text-sm font-medium text-slate-200/82">スキーマパス</label>
               <input
                 type="text"
                 value={schemaPath}
@@ -113,7 +113,7 @@ export default function ConfigTypesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-200/82">Output directory</label>
+              <label className="block text-sm font-medium text-slate-200/82">出力ディレクトリ</label>
               <input
                 type="text"
                 value={outputDir}
@@ -124,7 +124,7 @@ export default function ConfigTypesPage() {
             </div>
 
             <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-slate-200/82">Target</legend>
+              <legend className="text-sm font-medium text-slate-200/82">ターゲット</legend>
               {(['typescript', 'dart', 'both'] as TypeOutputTarget[]).map((value) => (
                 <label key={value} className="flex items-center gap-3 text-sm text-slate-200/82">
                   <input
@@ -151,7 +151,7 @@ export default function ConfigTypesPage() {
               className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-preview"
             >
-              {previewStatus === 'loading' ? 'Previewing...' : 'Preview'}
+              {previewStatus === 'loading' ? 'プレビュー中...' : 'プレビュー'}
             </button>
             <button
               type="button"
@@ -168,7 +168,7 @@ export default function ConfigTypesPage() {
               className="bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
               data-testid="btn-generate"
             >
-              {writeStatus === 'loading' ? 'Writing...' : 'Write files'}
+              {writeStatus === 'loading' ? '書き出し中...' : 'ファイルを書き出し'}
             </button>
           </div>
 
@@ -180,7 +180,7 @@ export default function ConfigTypesPage() {
 
           {writeStatus === 'success' && writtenFiles.length > 0 && (
             <div className="mt-5 border border-cyan-400/20 bg-cyan-400/10 p-4">
-              <p className="text-sm font-medium text-cyan-100">Generated files</p>
+              <p className="text-sm font-medium text-cyan-100">生成されたファイル</p>
               <div className="mt-3 space-y-2 text-sm text-cyan-50/90">
                 {writtenFiles.map((file) => (
                   <p key={file.path}>{toDisplayPath(activeWorkspaceRoot, file.path)}</p>
@@ -191,11 +191,11 @@ export default function ConfigTypesPage() {
         </section>
 
         <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
-          <h2 className="text-lg font-semibold text-white">Preview</h2>
+          <h2 className="text-lg font-semibold text-white">プレビュー</h2>
           <div className="mt-4 space-y-4">
             {previewResults.length === 0 && writtenFiles.length === 0 ? (
               <p className="text-sm text-slate-200/55">
-                Run preview or write files to inspect generated output.
+                プレビューまたはファイル書き出しを実行して生成結果を確認します。
               </p>
             ) : (
               (previewResults.length > 0
