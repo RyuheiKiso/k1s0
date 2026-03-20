@@ -9,6 +9,18 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/workflow/v1
 
 import "k1s0/system/common/v1/types.proto";
 
+// WorkflowStepType はワークフローステップの種別。
+enum WorkflowStepType {
+  // WORKFLOW_STEP_TYPE_UNSPECIFIED は未指定（デフォルト値）。
+  WORKFLOW_STEP_TYPE_UNSPECIFIED = 0;
+  // WORKFLOW_STEP_TYPE_APPROVAL は人間による承認タスク。
+  WORKFLOW_STEP_TYPE_APPROVAL = 1;
+  // WORKFLOW_STEP_TYPE_AUTOMATED は自動実行タスク。
+  WORKFLOW_STEP_TYPE_AUTOMATED = 2;
+  // WORKFLOW_STEP_TYPE_NOTIFICATION は通知のみのタスク。
+  WORKFLOW_STEP_TYPE_NOTIFICATION = 3;
+}
+
 service WorkflowService {
   rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
   rpc CreateWorkflow(CreateWorkflowRequest) returns (CreateWorkflowResponse);
@@ -28,11 +40,14 @@ service WorkflowService {
 message WorkflowStep {
   string step_id = 1;
   string name = 2;
+  // Deprecated: use step_type_enum instead.
   string step_type = 3;
   optional string assignee_role = 4;
   optional uint32 timeout_hours = 5;
   optional string on_approve = 6;
   optional string on_reject = 7;
+  // ステップ種別の enum 版（step_type の型付き版）。
+  WorkflowStepType step_type_enum = 8;
 }
 
 message WorkflowDefinition {

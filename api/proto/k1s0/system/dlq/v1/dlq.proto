@@ -6,6 +6,15 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/dlq/v1;dlqv
 
 import "k1s0/system/common/v1/types.proto";
 
+// DlqMessageStatus は DLQ メッセージのステータス。
+enum DlqMessageStatus {
+  DLQ_MESSAGE_STATUS_UNSPECIFIED = 0;
+  DLQ_MESSAGE_STATUS_PENDING = 1;
+  DLQ_MESSAGE_STATUS_RETRYING = 2;
+  DLQ_MESSAGE_STATUS_SUCCEEDED = 3;
+  DLQ_MESSAGE_STATUS_FAILED = 4;
+}
+
 // DlqService は DLQ メッセージ管理サービス。
 service DlqService {
   // DLQ メッセージ一覧取得
@@ -29,10 +38,13 @@ message DlqMessage {
   int32 max_retries = 5;
   // JSON-encoded payload bytes.
   bytes payload = 6;
+  // Deprecated: use status_enum instead.
   string status = 7;
   k1s0.system.common.v1.Timestamp created_at = 8;
   k1s0.system.common.v1.Timestamp updated_at = 9;
   optional k1s0.system.common.v1.Timestamp last_retry_at = 10;
+  // メッセージステータスの enum 版（status の型付き版）。
+  DlqMessageStatus status_enum = 11;
 }
 
 // ListMessagesRequest は一覧取得リクエスト。

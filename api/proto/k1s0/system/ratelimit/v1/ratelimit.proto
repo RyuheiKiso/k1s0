@@ -6,6 +6,20 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/ratelimit/v
 
 import "k1s0/system/common/v1/types.proto";
 
+// RateLimitAlgorithm はレートリミットのアルゴリズム種別。
+enum RateLimitAlgorithm {
+  // RATE_LIMIT_ALGORITHM_UNSPECIFIED は未指定（デフォルト値）。
+  RATE_LIMIT_ALGORITHM_UNSPECIFIED = 0;
+  // RATE_LIMIT_ALGORITHM_SLIDING_WINDOW はスライディングウィンドウアルゴリズム。
+  RATE_LIMIT_ALGORITHM_SLIDING_WINDOW = 1;
+  // RATE_LIMIT_ALGORITHM_TOKEN_BUCKET はトークンバケットアルゴリズム。
+  RATE_LIMIT_ALGORITHM_TOKEN_BUCKET = 2;
+  // RATE_LIMIT_ALGORITHM_FIXED_WINDOW は固定ウィンドウアルゴリズム。
+  RATE_LIMIT_ALGORITHM_FIXED_WINDOW = 3;
+  // RATE_LIMIT_ALGORITHM_LEAKY_BUCKET はリーキーバケットアルゴリズム。
+  RATE_LIMIT_ALGORITHM_LEAKY_BUCKET = 4;
+}
+
 // RateLimitService は API レート制限サービス。
 // スライディングウィンドウ・トークンバケット等のアルゴリズムをサポートする。
 service RateLimitService {
@@ -107,11 +121,14 @@ message RateLimitRule {
   string identifier_pattern = 3;
   int64 limit = 4;
   int64 window_seconds = 5;
+  // Deprecated: use algorithm_enum instead.
   string algorithm = 6;
   bool enabled = 7;
   k1s0.system.common.v1.Timestamp created_at = 8;
   k1s0.system.common.v1.Timestamp updated_at = 9;
   string name = 10;
+  // レートリミットアルゴリズムの enum 版（algorithm の型付き版）。
+  RateLimitAlgorithm algorithm_enum = 11;
 }
 
 message GetUsageRequest {
@@ -123,11 +140,14 @@ message GetUsageResponse {
   string rule_name = 2;
   int64 limit = 3;
   int64 window_seconds = 4;
+  // Deprecated: use algorithm_enum instead.
   string algorithm = 5;
   bool enabled = 6;
   optional int64 used = 7;
   optional int64 remaining = 8;
   optional int64 reset_at = 9;
+  // レートリミットアルゴリズムの enum 版（algorithm の型付き版）。
+  RateLimitAlgorithm algorithm_enum = 10;
 }
 
 message ResetLimitRequest {

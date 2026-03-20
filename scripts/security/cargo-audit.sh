@@ -1,44 +1,24 @@
 #!/usr/bin/env bash
-# Rust ワークスペース・クレートの脆弱性監査を実行する
+# Rust ワークスペースの脆弱性監査を実行する
+# ハードコードされたパスの代わりに modules.yaml の type: workspace エントリを参照する
 set -euo pipefail
 
 echo "=== Cargo Audit ==="
 failed=0
 
-# CLI ワークスペース
-if [ -f "CLI/Cargo.lock" ]; then
-    echo "--- Scanning CLI/ ---"
-    if ! (cd CLI && cargo audit); then
-        failed=1
-    fi
-fi
+# スクリプトの場所からリポジトリルートを特定する
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# regions/system ワークスペース
-if [ -f "regions/system/Cargo.lock" ]; then
-    echo "--- Scanning regions/system/ ---"
-    if ! (cd regions/system && cargo audit); then
-        failed=1
+# modules.yaml から lang: rust かつ type: workspace のパスを取得し、
+# Cargo.lock が存在するワークスペースのみを監査対象とする
+while IFS= read -r workspace_path; do
+    if [ -f "$REPO_ROOT/$workspace_path/Cargo.lock" ]; then
+        echo "--- Scanning $workspace_path/ ---"
+        if ! (cd "$REPO_ROOT/$workspace_path" && cargo audit); then
+            failed=1
+        fi
     fi
-fi
-
-# business 層の Rust クレートを検索してスキャン
-# 各サービスが独立した Cargo.toml を持つため、個別にロックファイルを生成して監査する
-for cargo_toml in $(find regions/business -name "Cargo.toml" -path "*/rust/*/Cargo.toml" 2>/dev/null); do
-    dir=$(dirname "$cargo_toml")
-    echo "--- Scanning $dir ---"
-    if ! (cd "$dir" && cargo generate-lockfile --quiet 2>/dev/null; cargo audit); then
-        failed=1
-    fi
-done
-
-# service 層の Rust クレートを検索してスキャン
-# 各サービスが独立した Cargo.toml を持つため、個別にロックファイルを生成して監査する
-for cargo_toml in $(find regions/service -name "Cargo.toml" -path "*/rust/*/Cargo.toml" 2>/dev/null); do
-    dir=$(dirname "$cargo_toml")
-    echo "--- Scanning $dir ---"
-    if ! (cd "$dir" && cargo generate-lockfile --quiet 2>/dev/null; cargo audit); then
-        failed=1
-    fi
-done
+done < <("$SCRIPT_DIR/../list-modules.sh" --lang rust --type workspace)
 
 exit $failed
