@@ -85,7 +85,7 @@ describe('Sidebar', () => {
   it('marks the active route', async () => {
     renderWithRouter('/build');
     const buildNav = await screen.findByTestId('nav-build');
-    expect(buildNav.className).toContain('bg-emerald-400/14');
-    expect(screen.getByTestId('nav-dashboard').className).not.toContain('bg-emerald-400/14');
+    expect(buildNav.className).toContain('bg-[rgba(0,200,255,0.10)]');
+    expect(screen.getByTestId('nav-dashboard').className).not.toContain('bg-[rgba(0,200,255,0.10)]');
   });
 });

@@ -148,8 +148,8 @@ export default function DevPage() {
   }
 
   return (
-    <div className="glass max-w-6xl p-6" data-testid="dev-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Operations</p>
+    <div className="glass max-w-6xl p-6 p3-animate-in" data-testid="dev-page">
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">Operations</p>
       <h1 className="mt-2 text-3xl font-semibold text-white">Manage local development</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         Start and stop local dependencies, inspect state, and collect logs from the selected
@@ -157,14 +157,14 @@ export default function DevPage() {
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
           Configure a valid workspace root before managing local development services.
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div>
             <p className="text-sm font-medium text-slate-200/82">Services</p>
             <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">
@@ -174,7 +174,7 @@ export default function DevPage() {
                 availableTargets.map(([label, path]) => (
                   <label
                     key={path}
-                    className="flex items-center gap-3 rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm text-slate-100"
+                    className="flex items-center gap-3 border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.20)] px-3 py-2 text-sm text-slate-100"
                   >
                     <input
                       type="checkbox"
@@ -232,7 +232,7 @@ export default function DevPage() {
               value={logService}
               onChange={(event) => setLogService(event.target.value)}
               placeholder="leave empty for all services"
-              className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+              className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
               data-testid="input-log-service"
             />
           </div>
@@ -249,7 +249,7 @@ export default function DevPage() {
                 status === 'loading' ||
                 actionsLocked
               }
-              className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              className="bg-cyan-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
               data-testid="btn-dev-up"
             >
               {status === 'loading' ? 'Preparing...' : 'Review start'}
@@ -260,7 +260,7 @@ export default function DevPage() {
                 void runAction(() => executeDevDown({ cleanup }, activeWorkspaceRoot));
               }}
               disabled={workspaceUnavailable || status === 'loading' || actionsLocked}
-              className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-dev-down"
             >
               Stop
@@ -271,7 +271,7 @@ export default function DevPage() {
                 void runAction(() => executeDevStatus(activeWorkspaceRoot));
               }}
               disabled={workspaceUnavailable || status === 'loading' || actionsLocked}
-              className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-dev-status"
             >
               Status
@@ -282,7 +282,7 @@ export default function DevPage() {
                 void runAction(() => executeDevLogs(logService || null, activeWorkspaceRoot));
               }}
               disabled={workspaceUnavailable || status === 'loading' || actionsLocked}
-              className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
               data-testid="btn-dev-logs"
             >
               Logs
@@ -291,12 +291,12 @@ export default function DevPage() {
 
           {preview && (
             <div
-              className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4"
+              className="mt-6 border border-cyan-400/20 bg-cyan-400/10 p-4"
               data-testid="dev-up-preview"
             >
-              <p className="text-sm font-medium text-emerald-100">Review local start plan</p>
+              <p className="text-sm font-medium text-cyan-100">Review local start plan</p>
 
-              <div className="mt-4 space-y-4 text-sm text-emerald-50/90">
+              <div className="mt-4 space-y-4 text-sm text-cyan-50/90">
                 <div>
                   <p className="font-medium">Selected services</p>
                   <div className="mt-2 space-y-1">
@@ -365,7 +365,7 @@ export default function DevPage() {
                 <button
                   type="button"
                   onClick={() => setPreview(null)}
-                  className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
+                  className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)]"
                 >
                   Back
                 </button>
@@ -374,7 +374,7 @@ export default function DevPage() {
                   onClick={() => {
                     void handleConfirmStart();
                   }}
-                  className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+                  className="bg-cyan-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500"
                   data-testid="btn-confirm-dev-up"
                 >
                   Confirm start
@@ -390,9 +390,9 @@ export default function DevPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <h2 className="text-lg font-semibold text-white">Output</h2>
-          <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+          <div className="mt-4 border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.35)] p-4">
             <pre className="min-h-72 overflow-auto whitespace-pre-wrap text-xs text-slate-100">
               {output || 'Run status or logs to inspect the local development environment.'}
             </pre>

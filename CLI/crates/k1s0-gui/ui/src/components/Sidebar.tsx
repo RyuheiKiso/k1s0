@@ -58,17 +58,19 @@ export default function Sidebar() {
   return (
     <NavigationMenu.Root
       orientation="vertical"
-      className="m-4 mb-4 hidden w-72 shrink-0 flex-col rounded-[28px] border border-white/10 bg-slate-950/55 p-3 shadow-2xl shadow-black/20 backdrop-blur xl:flex"
+      className="m-4 mb-4 hidden w-72 shrink-0 flex-col border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.55)] p-3 shadow-2xl shadow-black/20 backdrop-blur xl:flex"
       data-testid="sidebar"
     >
-      <div className="rounded-[22px] border border-white/8 bg-white/6 px-5 py-5">
-        <p className="text-xs uppercase tracking-[0.32em] text-emerald-100/55">k1s0</p>
+      {/* サイドバーヘッダー — シアンアクセント */}
+      <div className="border border-[rgba(0,200,255,0.10)] bg-[rgba(0,200,255,0.04)] px-5 py-5">
+        <p className="text-xs uppercase tracking-[0.32em] text-cyan-100/55">k1s0</p>
         <h1 className="mt-3 text-2xl font-semibold text-white">GUI コントロール</h1>
         <p className="mt-2 text-sm leading-6 text-slate-200/70">
           ワークスペースのセットアップ、検証、ビルド、テスト、デプロイを別々のツールを使わずに一括で操作できます。
         </p>
       </div>
 
+      {/* ナビゲーションメニュー — アクティブ時にシアングロー */}
       <NavigationMenu.List className="mt-3 flex flex-1 flex-col gap-1">
         {menuItems.map((item) => {
           const active = location.pathname === item.path;
@@ -78,14 +80,14 @@ export default function Sidebar() {
                 <button
                   type="button"
                   onClick={() => navigate({ to: item.path })}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition ${
                     active
-                      ? 'bg-emerald-400/14 text-white shadow-lg shadow-emerald-500/10'
-                      : 'text-slate-200/72 hover:bg-white/8 hover:text-white'
+                      ? 'p3-active-indicator bg-[rgba(0,200,255,0.10)] text-white shadow-lg shadow-cyan-500/10'
+                      : 'text-slate-200/72 hover:bg-[rgba(0,200,255,0.06)] hover:text-white'
                   }`}
                   data-testid={`nav-${item.page}`}
                 >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/8 bg-white/8 text-[11px] font-semibold tracking-[0.2em] text-white/85">
+                  <span className="inline-flex h-9 w-9 items-center justify-center border border-[rgba(0,200,255,0.10)] bg-[rgba(0,200,255,0.06)] text-[11px] font-semibold tracking-[0.2em] text-white/85">
                     {item.shortLabel}
                   </span>
                   <span>{item.label}</span>

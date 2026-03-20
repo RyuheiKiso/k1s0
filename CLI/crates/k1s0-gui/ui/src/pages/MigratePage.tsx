@@ -195,22 +195,22 @@ export default function MigratePage() {
   }
 
   return (
-    <div className="glass max-w-6xl p-6" data-testid="migrate-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Database</p>
+    <div className="p3-animate-in glass max-w-6xl p-6" data-testid="migrate-page">
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">Database</p>
       <h1 className="mt-2 text-3xl font-semibold text-white">Manage migrations</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         Create, apply, roll back, inspect, and repair migrations from the same workspace-aware UI.
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
           Configure a valid workspace root before managing migrations.
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="space-y-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div>
             <label className="block text-sm font-medium text-slate-200/82">Target</label>
             <select
@@ -219,7 +219,7 @@ export default function MigratePage() {
                 setSelectedTargetKey(event.target.value);
                 resetResult();
               }}
-              className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/35 px-3 py-2 text-white"
+              className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(5,8,15,0.35)] px-3 py-2 text-white"
               data-testid="select-migrate-target"
             >
               {availableTargets.length === 0 ? (
@@ -268,19 +268,19 @@ export default function MigratePage() {
                   setPendingAction(null);
                 }}
                 placeholder="postgres://user:pass@host:5432/db"
-                className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
                 data-testid="input-custom-connection"
               />
             )}
           </fieldset>
 
-          <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4">
+          <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4">
             <p className="text-sm font-medium text-slate-200/82">Create migration</p>
             <input
               value={migrationName}
               onChange={(event) => setMigrationName(event.target.value)}
               placeholder="add_new_column"
-              className="mt-3 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+              className="mt-3 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
               data-testid="input-migration-name"
             />
             <button
@@ -295,7 +295,7 @@ export default function MigratePage() {
                 status === 'loading' ||
                 actionsLocked
               }
-              className="mt-4 rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              className="mt-4 bg-cyan-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
               data-testid="btn-migrate-create"
             >
               Create
@@ -417,7 +417,7 @@ export default function MigratePage() {
               <input
                 value={repairVersion}
                 onChange={(event) => setRepairVersion(event.target.value)}
-                className="mt-3 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+                className="mt-3 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
                 data-testid="input-repair-version"
               />
             )}
@@ -429,7 +429,7 @@ export default function MigratePage() {
               void handleStatus();
             }}
             disabled={!selectedTarget || workspaceUnavailable || status === 'loading' || actionsLocked}
-            className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+            className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
             data-testid="btn-migrate-status"
           >
             Load status
@@ -437,11 +437,11 @@ export default function MigratePage() {
 
           {pendingAction && selectedTarget && (
             <div
-              className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4"
+              className="border border-cyan-400/20 bg-cyan-400/10 p-4"
               data-testid="migrate-confirmation"
             >
-              <p className="text-sm font-medium text-emerald-100">Confirm migration action</p>
-              <div className="mt-3 space-y-2 text-sm text-emerald-50/90">
+              <p className="text-sm font-medium text-cyan-100">Confirm migration action</p>
+              <div className="mt-3 space-y-2 text-sm text-cyan-50/90">
                 <p>Service: {selectedTarget.service_name}</p>
                 <p>Database: {selectedTarget.db_name}</p>
                 <p>Action: {pendingAction.kind === 'up' ? 'migrate up' : 'migrate down'}</p>
@@ -452,7 +452,7 @@ export default function MigratePage() {
                 <button
                   type="button"
                   onClick={() => setPendingAction(null)}
-                  className="rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
+                  className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)]"
                 >
                   Back
                 </button>
@@ -461,7 +461,7 @@ export default function MigratePage() {
                   onClick={() => {
                     void handleConfirmAction();
                   }}
-                  className="rounded-xl bg-emerald-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+                  className="bg-cyan-500/85 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500"
                   data-testid="btn-confirm-migrate"
                 >
                   Confirm
@@ -477,11 +477,11 @@ export default function MigratePage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <h2 className="text-lg font-semibold text-white">Result</h2>
 
           {selectedTarget && (
-            <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/20 p-4 text-sm text-slate-200/82">
+            <div className="mt-4 border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4 text-sm text-slate-200/82">
               <p>Service: {selectedTarget.service_name}</p>
               <p>Tier: {selectedTarget.tier}</p>
               <p>Language: {selectedTarget.language}</p>
@@ -494,12 +494,12 @@ export default function MigratePage() {
           )}
 
           {createdFiles && (
-            <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
-              <p className="text-sm font-medium text-emerald-100">Created files</p>
-              <p className="mt-3 text-sm text-emerald-50/90">
+            <div className="mt-5 border border-cyan-400/20 bg-cyan-400/10 p-4">
+              <p className="text-sm font-medium text-cyan-100">Created files</p>
+              <p className="mt-3 text-sm text-cyan-50/90">
                 {toDisplayPath(activeWorkspaceRoot, createdFiles[0])}
               </p>
-              <p className="text-sm text-emerald-50/90">
+              <p className="text-sm text-cyan-50/90">
                 {toDisplayPath(activeWorkspaceRoot, createdFiles[1])}
               </p>
             </div>
@@ -514,7 +514,7 @@ export default function MigratePage() {
               migrationStatus.map((item) => (
                 <div
                   key={`${item.number}-${item.description}`}
-                  className="rounded-xl border border-white/8 bg-slate-950/20 px-3 py-3 text-sm text-slate-100"
+                  className="border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.20)] px-3 py-3 text-sm text-slate-100"
                 >
                   <p>
                     {String(item.number).padStart(3, '0')} {item.description}
@@ -552,14 +552,14 @@ function ActionBlock({
   buttonTestId: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/20 p-4">
+    <div className="border border-[rgba(0,200,255,0.12)] bg-[rgba(5,8,15,0.20)] p-4">
       <p className="text-sm font-medium text-slate-200/82">{title}</p>
       <div className="mt-3">{children}</div>
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className="mt-4 rounded-xl border border-white/15 bg-white/6 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+        className="mt-4 border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)] disabled:opacity-50"
         data-testid={buttonTestId}
       >
         {buttonLabel}
@@ -605,7 +605,7 @@ function UpRangeSelector({
         <input
           value={value}
           onChange={(event) => onValueChange(event.target.value)}
-          className="mt-3 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+          className="mt-3 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
         />
       )}
     </>
@@ -649,7 +649,7 @@ function DownRangeSelector({
         <input
           value={value}
           onChange={(event) => onValueChange(event.target.value)}
-          className="mt-3 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+          className="mt-3 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
         />
       )}
       <label className="mt-2 flex items-center gap-3 text-sm text-slate-200/82">

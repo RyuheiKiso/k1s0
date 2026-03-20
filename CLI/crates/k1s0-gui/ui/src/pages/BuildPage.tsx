@@ -123,8 +123,8 @@ export default function BuildPage() {
     availableTargets.length > 0 && selectedTargets.length === availableTargets.length;
 
   return (
-    <div className="glass max-w-4xl p-6" data-testid="build-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">Delivery</p>
+    <div className="glass max-w-4xl p-6 p3-animate-in" data-testid="build-page">
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">Delivery</p>
       <h1 className="mt-2 text-3xl font-semibold text-white">Build release artifacts</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         Run builds only against verified targets. A build is marked successful only after the
@@ -132,14 +132,14 @@ export default function BuildPage() {
       </p>
 
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
           Configure a valid workspace root before scanning build targets.
         </p>
       )}
       {actionsLocked && <ProtectedActionNotice loading={auth.loading} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-white">Targets</h2>
             {availableTargets.length > 0 && (
@@ -161,7 +161,7 @@ export default function BuildPage() {
               availableTargets.map((target) => (
                 <label
                   key={target}
-                  className="flex items-center gap-3 rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm text-slate-100"
+                  className="flex items-center gap-3 border border-[rgba(0,200,255,0.10)] bg-[rgba(5,8,15,0.20)] px-3 py-2 text-sm text-slate-100"
                 >
                   <input
                     type="checkbox"
@@ -175,7 +175,7 @@ export default function BuildPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <section className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5">
           <h2 className="text-lg font-semibold text-white">Mode</h2>
           <div className="mt-4 space-y-2">
             {(['Development', 'Production'] as BuildMode[]).map((value) => (
@@ -202,14 +202,14 @@ export default function BuildPage() {
               actionsLocked ||
               selectedTargets.length === 0
             }
-            className="mt-6 rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            className="mt-6 bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
             data-testid="btn-build"
           >
             {status === 'loading' ? 'Building...' : 'Build'}
           </button>
 
           {status === 'success' && (
-            <p className="mt-4 text-sm text-emerald-300" data-testid="success-message">
+            <p className="mt-4 text-sm text-cyan-300" data-testid="success-message">
               Build completed successfully.
             </p>
           )}

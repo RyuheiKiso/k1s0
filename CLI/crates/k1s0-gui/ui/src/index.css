@@ -1,49 +1,118 @@
 @import "tailwindcss";
 
+/* ペルソナ3風デザインシステム — CSS変数定義 */
 :root {
-  --glass-bg: rgba(255, 255, 255, 0.12);
-  --glass-border: rgba(255, 255, 255, 0.2);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --glass-blur: 16px;
-  --accent: #6366f1;
-  --accent-light: #818cf8;
-  --accent-glow: rgba(99, 102, 241, 0.4);
+  --p3-card-bg: rgba(0, 200, 255, 0.04);
+  --p3-card-border: rgba(0, 200, 255, 0.15);
+  --p3-card-shadow: 0 0 20px rgba(0, 200, 255, 0.08);
+  --p3-accent: #00c8ff;
+  --p3-accent-light: #33d4ff;
+  --p3-accent-glow: rgba(0, 200, 255, 0.4);
+  --p3-crimson: #dc143c;
 }
 
+/* ペルソナ3風グローバルスタイル — 漆黒背景＋シアンテキスト */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #e2e8f0;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #1e293b 100%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #c8e6ff;
+  background: linear-gradient(180deg, #05080f 0%, #0a1628 50%, #0d1f35 100%);
   background-attachment: fixed;
   min-height: 100vh;
+  letter-spacing: 0.01em;
 }
 
-/* Glass card utility */
+/* ペルソナ3風キーフレーム — スキャンラインエフェクト */
+@keyframes p3-scanline {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ペルソナ3風キーフレーム — グローパルスアニメーション */
+@keyframes p3-glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 200, 255, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(0, 200, 255, 0.6); }
+}
+
+/* ペルソナ3風キーフレーム — 要素出現アニメーション */
+@keyframes p3-slide-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ペルソナ3風キーフレーム — 背景グリッド移動 */
+@keyframes p3-grid-scroll {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(60px, 60px); }
+}
+
+/* ペルソナ3風キーフレーム — 対角線ストライプ移動 */
+@keyframes p3-stripe-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 40px; }
+}
+
+/* ページ出現アニメーション — 各ページの最外divに適用 */
+.p3-animate-in {
+  animation: p3-slide-in-up 0.4s ease-out both;
+}
+
+/* カードホバーエフェクト — 上方移動＋グロー強化 */
+.p3-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.p3-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 24px rgba(0, 200, 255, 0.15);
+  border-color: rgba(0, 200, 255, 0.3) !important;
+}
+
+/* サイドバーアクティブグローインジケータ — 左ボーダーグロー */
+.p3-active-indicator {
+  border-left: 3px solid var(--p3-accent);
+  box-shadow: -4px 0 12px rgba(0, 200, 255, 0.3);
+}
+
+/* セクションヘッダー用斜線デコレータ */
+.p3-diagonal-decorator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -12px;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--p3-accent), transparent);
+  transform: skewX(-12deg);
+}
+
+/* P3カードスタイル — グローボーダー付きシャープカード */
 .glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  box-shadow: var(--glass-shadow);
+  background: var(--p3-card-bg);
+  border: 1px solid var(--p3-card-border);
+  border-radius: 0;
+  box-shadow: var(--p3-card-shadow);
 }
 
+/* P3サブカードスタイル — 控えめなグローボーダー */
 .glass-subtle {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  background: rgba(0, 200, 255, 0.02);
+  border: 1px solid rgba(0, 200, 255, 0.10);
+  border-radius: 0;
 }
 
-/* Radix RadioGroup */
+/* Radix RadioGroup — シャープエッジ＋シアンアクセント */
 [data-radix-radio-group-item] {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(0, 200, 255, 0.3);
+  background: rgba(0, 200, 255, 0.06);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -52,27 +121,27 @@ body {
   transition: border-color 0.2s, background 0.2s;
 }
 [data-radix-radio-group-item]:hover {
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(0, 200, 255, 0.5);
 }
 [data-radix-radio-group-item][data-state="checked"] {
-  border-color: var(--accent-light);
-  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--p3-accent-light);
+  background: rgba(0, 200, 255, 0.15);
 }
 [data-radix-radio-group-indicator] {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent-light);
-  box-shadow: 0 0 6px var(--accent-glow);
+  background: var(--p3-accent-light);
+  box-shadow: 0 0 6px var(--p3-accent-glow);
 }
 
-/* Radix Checkbox */
+/* Radix Checkbox — シャープエッジ＋シアンチェック */
 button[role="checkbox"] {
   width: 18px;
   height: 18px;
-  border-radius: 5px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  border: 2px solid rgba(0, 200, 255, 0.3);
+  background: rgba(0, 200, 255, 0.06);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -81,91 +150,116 @@ button[role="checkbox"] {
   transition: all 0.2s;
 }
 button[role="checkbox"]:hover {
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(0, 200, 255, 0.5);
 }
 button[role="checkbox"][data-state="checked"] {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--p3-accent);
+  border-color: var(--p3-accent);
   color: white;
-  box-shadow: 0 0 8px var(--accent-glow);
+  box-shadow: 0 0 8px var(--p3-accent-glow);
 }
 
-/* Radix Progress */
+/* Radix Progress — スキャンラインオーバーレイ付き */
 [data-radix-progress-root] {
   width: 100%;
   height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 9999px;
+  background: rgba(0, 200, 255, 0.08);
+  border-radius: 0;
   overflow: hidden;
+  position: relative;
 }
 [data-radix-progress-indicator] {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-light));
-  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--p3-accent), var(--p3-accent-light));
+  border-radius: 0;
   transition: width 300ms ease;
-  box-shadow: 0 0 12px var(--accent-glow);
+  box-shadow: 0 0 12px var(--p3-accent-glow);
+  position: relative;
+}
+/* スキャンラインオーバーレイ */
+[data-radix-progress-indicator]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 8px,
+    rgba(255, 255, 255, 0.15) 8px,
+    rgba(255, 255, 255, 0.15) 16px
+  );
+  background-size: 200% 100%;
+  animation: p3-scanline 2s linear infinite;
 }
 
-/* Radix Select */
+/* Radix Select — シャープエッジ＋シアンテーマ */
 [data-radix-select-trigger] {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
+  border: 1px solid rgba(0, 200, 255, 0.15);
+  border-radius: 0;
   padding: 0.5rem 0.75rem;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
-  color: #e2e8f0;
+  background: rgba(0, 200, 255, 0.06);
+  color: #c8e6ff;
   cursor: pointer;
   transition: all 0.2s;
 }
 [data-radix-select-trigger]:hover {
-  border-color: rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(0, 200, 255, 0.35);
+  background: rgba(0, 200, 255, 0.10);
 }
 [data-radix-select-content] {
-  background: rgba(30, 27, 75, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: rgba(5, 8, 15, 0.95);
+  border: 1px solid rgba(0, 200, 255, 0.15);
+  border-radius: 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 16px rgba(0, 200, 255, 0.08);
   overflow: hidden;
   z-index: 50;
 }
 [data-radix-select-item] {
   padding: 0.5rem 0.75rem;
   cursor: pointer;
-  color: #e2e8f0;
+  color: #c8e6ff;
   transition: background 0.15s;
 }
 [data-radix-select-item][data-highlighted] {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(0, 200, 255, 0.15);
   outline: none;
 }
 
-/* Glass inputs */
+/* グラスインプット — シャープエッジ＋シアンフォーカス */
 input[type="text"],
 input:not([type]) {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-radius: 10px !important;
-  color: #e2e8f0 !important;
+  background: rgba(0, 200, 255, 0.04) !important;
+  border: 1px solid rgba(0, 200, 255, 0.15) !important;
+  border-radius: 0 !important;
+  color: #c8e6ff !important;
   transition: all 0.2s;
 }
 input[type="text"]:focus,
 input:not([type]):focus {
   outline: none;
-  border-color: var(--accent-light) !important;
-  box-shadow: 0 0 0 3px var(--accent-glow);
-  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: var(--p3-accent) !important;
+  box-shadow: 0 0 0 2px var(--p3-accent-glow), 0 0 16px rgba(0, 200, 255, 0.15);
+  background: rgba(0, 200, 255, 0.08) !important;
 }
 input::placeholder {
-  color: rgba(255, 255, 255, 0.35) !important;
+  color: rgba(0, 200, 255, 0.3) !important;
 }
 
-/* Scrollbar */
+/* select要素 — シャープエッジ＋シアンテーマ */
+select {
+  border-radius: 0 !important;
+}
+
+/* 全角丸を無効化 — シャープエッジ強制 */
+*:not(input[type="radio"]):not(input[type="checkbox"]):not([data-radix-radio-group-item]):not([data-radix-radio-group-indicator]) {
+  border-radius: 0;
+}
+
+/* スクロールバー — シアンテーマ */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -173,9 +267,9 @@ input::placeholder {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  background: rgba(0, 200, 255, 0.15);
+  border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 200, 255, 0.3);
 }

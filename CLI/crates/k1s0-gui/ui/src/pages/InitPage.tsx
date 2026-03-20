@@ -116,8 +116,8 @@ export default function InitPage() {
   }
 
   return (
-    <div className="glass max-w-3xl p-6" data-testid="init-page">
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">初期設定</p>
+    <div className="glass max-w-3xl p-6 p3-animate-in" data-testid="init-page">
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">初期設定</p>
       <h1 className="mt-2 text-3xl font-semibold text-white">k1s0ワークスペースの初期化</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         親ディレクトリを明示的に指定することで、生成されるワークスペースがデスクトップアプリのプロセス作業ディレクトリに依存しなくなります。
@@ -133,7 +133,7 @@ export default function InitPage() {
             {...baseDirField}
             id="baseDir"
             placeholder="C:/work/github"
-            className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+            className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
             data-testid="input-base-dir"
             onFocus={() => {
               baseDirEditedRef.current = true;
@@ -158,7 +158,7 @@ export default function InitPage() {
             {...register('projectName')}
             id="projectName"
             placeholder="my-project"
-            className="mt-2 w-full rounded-xl border border-white/15 bg-white/6 px-3 py-2 text-white"
+            className="mt-2 w-full border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-3 py-2 text-white"
             data-testid="input-project-name"
           />
           {errors.projectName && (
@@ -169,7 +169,7 @@ export default function InitPage() {
         </div>
 
         <div
-          className="rounded-2xl border border-white/10 bg-white/5 p-4"
+          className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-4"
           data-testid="destination-preview"
         >
           <p className="text-xs uppercase tracking-[0.18em] text-slate-200/55">生成先</p>
@@ -212,7 +212,7 @@ export default function InitPage() {
 
         {sparseCheckout && (
           <div
-            className="rounded-2xl border border-white/10 bg-white/5 p-4"
+            className="border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-4"
             data-testid="tier-selection"
           >
             <p className="text-sm font-medium text-slate-200/82">含めるティア</p>
@@ -248,14 +248,14 @@ export default function InitPage() {
         <button
           type="submit"
           disabled={status === 'loading' || actionsLocked}
-          className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+          className="bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
           data-testid="btn-submit"
         >
           {status === 'loading' ? '初期化中...' : '初期化'}
         </button>
 
         {status === 'success' && (
-          <p className="text-sm text-emerald-300" data-testid="success-message">
+          <p className="text-sm text-cyan-300" data-testid="success-message">
             ワークスペースの初期化が完了しました。アクティブなワークスペースルート: {createdWorkspaceRoot}
           </p>
         )}

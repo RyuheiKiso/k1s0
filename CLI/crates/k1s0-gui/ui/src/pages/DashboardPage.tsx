@@ -97,9 +97,9 @@ const quickActions = [
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6" data-testid="dashboard-page">
+    <div className="p3-animate-in space-y-6" data-testid="dashboard-page">
       <section className="glass overflow-hidden p-8">
-        <div className="mb-4 inline-flex rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-100/80">
+        <div className="mb-4 inline-flex border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-100/80">
           Workspace Command Center
         </div>
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
@@ -121,12 +121,13 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {quickActions.map((action) => (
+        {quickActions.map((action, index) => (
           <Link
             key={action.id}
             to={action.to}
-            className="glass-subtle group flex min-h-52 flex-col justify-between border border-white/10 p-5 no-underline transition-all duration-200 hover:-translate-y-1 hover:border-cyan-200/30 hover:bg-white/10"
+            className="glass-subtle group flex min-h-52 flex-col justify-between border border-[rgba(0,200,255,0.12)] p-5 no-underline transition-all duration-200 hover:-translate-y-1 hover:border-cyan-200/30 hover:bg-[rgba(0,200,255,0.08)] p3-card-hover"
             data-testid={`dashboard-link-${action.id}`}
+            style={{ animationDelay: `${index * 60}ms` }}
           >
             <div className="space-y-3">
               <p className="text-xs uppercase tracking-[0.28em] text-cyan-100/60">
@@ -145,7 +146,7 @@ export default function DashboardPage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="glass-subtle border border-white/10 p-4">
+    <div className="glass-subtle border border-[rgba(0,200,255,0.12)] p-4">
       <p className="text-xs uppercase tracking-[0.24em] text-slate-200/55">{label}</p>
       <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
     </div>

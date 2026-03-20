@@ -89,7 +89,7 @@ export default function StepConfirm({
 }: StepConfirmProps) {
   return (
     <section
-      className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5"
+      className="mt-6 border border-[rgba(0,200,255,0.12)] bg-[rgba(0,200,255,0.03)] p-5"
       data-testid="step-confirm"
     >
       <h2 className="text-lg font-semibold text-white">生成の確認</h2>
@@ -143,7 +143,7 @@ export default function StepConfirm({
         <button
           type="button"
           onClick={onBack}
-          className="rounded-xl border border-white/15 bg-white/6 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
+          className="border border-[rgba(0,200,255,0.15)] bg-[rgba(0,200,255,0.04)] px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-[rgba(0,200,255,0.08)]"
           data-testid="btn-back"
         >
           戻る
@@ -152,7 +152,7 @@ export default function StepConfirm({
           type="button"
           onClick={onGenerate}
           disabled={status === 'loading' || workspaceUnavailable || actionsLocked}
-          className="rounded-xl bg-emerald-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+          className="bg-cyan-500/85 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
           data-testid="btn-generate"
         >
           {status === 'loading' ? '生成中...' : '生成'}
@@ -161,7 +161,7 @@ export default function StepConfirm({
 
       {/* 成功メッセージ */}
       {status === 'success' && (
-        <p className="mt-4 text-sm text-emerald-300" data-testid="success-message">
+        <p className="mt-4 text-sm text-cyan-300" data-testid="success-message">
           生成が正常に完了しました。
         </p>
       )}

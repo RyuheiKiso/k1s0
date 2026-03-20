@@ -32,9 +32,9 @@ export default function GeneratePage() {
   };
 
   return (
-    <div className="glass max-w-5xl p-6" data-testid="generate-page">
+    <div className="glass max-w-5xl p-6 p3-animate-in" data-testid="generate-page">
       {/* ページヘッダー */}
-      <p className="text-xs uppercase tracking-[0.24em] text-emerald-100/55">生成</p>
+      <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/55">生成</p>
       <h1 className="mt-2 text-3xl font-semibold text-white">ワークスペースアセットの生成</h1>
       <p className="mt-3 text-sm leading-7 text-slate-200/76">
         GUIはプロセスの作業ディレクトリではなく、選択したワークスペースルートから生成します。
@@ -42,7 +42,7 @@ export default function GeneratePage() {
 
       {/* ワークスペース未設定の警告 */}
       {workspaceUnavailable && (
-        <p className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+        <p className="mt-5 border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-100">
           ファイルを生成する前に有効なワークスペースルートを設定してください。
         </p>
       )}
@@ -54,12 +54,12 @@ export default function GeneratePage() {
         {STEP_LABELS.map((label, index) => (
           <div
             key={label}
-            className={`rounded-full px-3 py-1 text-sm ${
+            className={`px-3 py-1 text-sm ${
               index === form.step
-                ? 'bg-emerald-500/85 text-white'
+                ? 'bg-cyan-500/85 text-white'
                 : index < form.step
-                  ? 'bg-emerald-500/20 text-emerald-100'
-                  : 'bg-white/8 text-slate-200/45'
+                  ? 'bg-cyan-500/20 text-cyan-100'
+                  : 'bg-[rgba(0,200,255,0.06)] text-slate-200/45'
             }`}
           >
             {label}
