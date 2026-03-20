@@ -43,22 +43,25 @@ pub struct HealthCollector {
 }
 
 impl HealthCollector {
+    /// 新しい HealthCollector を生成する。
+    /// HTTP クライアントの構築に失敗した場合は Err を返す。
     pub fn new(
         service_repo: Arc<dyn ServiceRepository>,
         health_repo: Arc<dyn HealthRepository>,
         config: HealthCollectorConfig,
-    ) -> Self {
+    ) -> anyhow::Result<Self> {
+        // reqwest の Client 構築: TLS バックエンドが利用不可の場合はエラーとして伝播する
         let http_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(config.timeout_secs))
             .build()
-            .expect("failed to build HTTP client");
+            .map_err(|e| anyhow::anyhow!("HTTP クライアントの構築に失敗: {}", e))?;
 
-        Self {
+        Ok(Self {
             service_repo,
             health_repo,
             http_client,
             config,
-        }
+        })
     }
 
     /// バックグラウンドタスクとしてヘルスチェックループを開始する。

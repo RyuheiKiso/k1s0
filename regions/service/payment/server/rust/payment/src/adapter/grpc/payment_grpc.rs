@@ -195,6 +195,14 @@ fn parse_uuid(raw: &str, field_name: &str) -> Result<Uuid, Status> {
 }
 
 fn proto_payment(payment: DomainPayment) -> Payment {
+    // ドメインステータスを proto enum 値にマッピングする
+    use crate::proto::k1s0::service::payment::v1::PaymentStatus as ProtoStatus;
+    let status_enum = match payment.status {
+        PaymentStatus::Initiated => ProtoStatus::Pending as i32,
+        PaymentStatus::Completed => ProtoStatus::Succeeded as i32,
+        PaymentStatus::Failed => ProtoStatus::Failed as i32,
+        PaymentStatus::Refunded => ProtoStatus::Refunded as i32,
+    };
     Payment {
         id: payment.id.to_string(),
         order_id: payment.order_id,
@@ -202,6 +210,7 @@ fn proto_payment(payment: DomainPayment) -> Payment {
         amount: payment.amount,
         currency: payment.currency,
         status: payment.status.as_str().to_string(),
+        status_enum,
         payment_method: payment.payment_method,
         transaction_id: payment.transaction_id,
         error_code: payment.error_code,

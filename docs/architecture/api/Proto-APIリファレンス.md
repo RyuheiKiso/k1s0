@@ -23,27 +23,40 @@
 
 ### `k1s0.system.auth.v1` — AuthService
 
-認証・認可の基盤サービス。
+認証・認可の基盤サービス。JWT トークン検証・ユーザー情報管理・パーミッション確認を提供する。
 
 | RPC | 説明 |
 |-----|------|
-| `Authenticate` | トークン検証・ユーザー認証 |
-| `Authorize` | リソースアクセスの認可判定 |
-| `ListUsers` | ユーザー一覧取得 |
+| `ValidateToken` | JWT トークン検証（TokenClaims を返す） |
 | `GetUser` | ユーザー詳細取得 |
+| `ListUsers` | ユーザー一覧取得（ページネーション・検索対応） |
+| `GetUserRoles` | ユーザーのグローバルロール・クライアント別ロール取得 |
+| `CheckPermission` | リソースアクセスの認可判定（role ベース） |
 
-関連サービス: `AuditService` — 監査ログの記録・取得
+#### `k1s0.system.auth.v1` — AuditService
+
+監査ログの記録・検索サービス。
+
+| RPC | 説明 |
+|-----|------|
+| `RecordAuditLog` | 監査ログ記録（`AuditEventType` enum・`AuditResult` enum 対応） |
+| `SearchAuditLogs` | 監査ログ検索（ページネーション・enum フィルタ対応） |
 
 ### `k1s0.system.config.v1` — ConfigService
 
-設定値管理サービス。namespace/key ベースの設定 CRUD。
+設定値管理サービス。namespace/key ベースの設定 CRUD・スキーマ管理・ストリーミング監視を提供する。
 
 | RPC | 説明 |
 |-----|------|
 | `GetConfig` | 設定値取得（namespace + key） |
-| `ListConfigs` | namespace 内の設定値一覧取得（ページネーション対応） |
-| `UpdateConfig` | 設定値更新（楽観的排他制御） |
-| `WatchConfig` | 設定変更の Server-Side Streaming |
+| `ListConfigs` | namespace 内の設定値一覧取得（ページネーション・キー部分一致検索対応） |
+| `UpdateConfig` | 設定値更新（楽観的排他制御: version フィールド） |
+| `DeleteConfig` | 設定値削除 |
+| `GetServiceConfig` | サービス名・環境指定の設定一括取得 |
+| `WatchConfig` | 設定変更の Server-Side Streaming（`ChangeType` enum 対応） |
+| `GetConfigSchema` | 設定エディタスキーマ取得 |
+| `UpsertConfigSchema` | 設定エディタスキーマ作成・更新 |
+| `ListConfigSchemas` | 設定エディタスキーマ一覧取得 |
 
 ### `k1s0.system.tenant.v1` — TenantService
 
@@ -72,36 +85,50 @@
 
 ### `k1s0.system.saga.v1` — SagaService
 
-サーガオーケストレーションサービス。
+サーガオーケストレーションサービス。分散トランザクションの開始・追跡・補償・ワークフロー管理を提供する。
 
 | RPC | 説明 |
 |-----|------|
-| `StartSaga` | サーガ開始 |
-| `GetSaga` | サーガ状態取得 |
+| `StartSaga` | Saga 開始（非同期実行） |
+| `GetSaga` | Saga 詳細取得（ステップログ含む） |
+| `ListSagas` | Saga 一覧取得（ページネーション・ステータス/相関ID フィルタ対応） |
+| `CancelSaga` | Saga キャンセル |
 | `CompensateSaga` | 補償トランザクション実行 |
+| `RegisterWorkflow` | ワークフロー登録（YAML 文字列） |
+| `ListWorkflows` | ワークフロー一覧取得 |
 
 ### `k1s0.system.dlq.v1` — DlqService
 
-デッドレターキュー管理サービス。
+デッドレターキュー管理サービス。`DlqMessageStatus` enum（PENDING/RETRYING/SUCCEEDED/FAILED）をサポート。
 
 | RPC | 説明 |
 |-----|------|
-| `ListMessages` | DLQ メッセージ一覧取得 |
-| `RetryMessage` | メッセージ再処理 |
-| `PurgeMessages` | メッセージ削除 |
+| `ListMessages` | DLQ メッセージ一覧取得（トピック・ページネーション対応） |
+| `GetMessage` | DLQ メッセージ取得（ID 指定） |
+| `RetryMessage` | メッセージ個別リトライ |
+| `DeleteMessage` | メッセージ削除（ID 指定） |
+| `RetryAll` | トピック内メッセージ一括リトライ |
 
 ### `k1s0.system.workflow.v1` — WorkflowService
 
-ワークフロー管理サービス。
+ワークフロー管理サービス。人間タスク・承認フロー込みのワークフローインスタンス管理を提供する。
+`WorkflowStepType` enum（APPROVAL/AUTOMATED/NOTIFICATION）をサポート。
 
 | RPC | 説明 |
 |-----|------|
+| `ListWorkflows` | ワークフロー定義一覧取得（enabled_only フィルタ対応） |
 | `CreateWorkflow` | ワークフロー定義作成 |
-| `GetWorkflow` | ワークフロー取得 |
-| `ListWorkflows` | ワークフロー一覧取得 |
-| `UpdateWorkflow` | ワークフロー更新 |
-| `DeleteWorkflow` | ワークフロー削除 |
-| `ExecuteWorkflow` | ワークフロー実行 |
+| `GetWorkflow` | ワークフロー定義取得 |
+| `UpdateWorkflow` | ワークフロー定義更新 |
+| `DeleteWorkflow` | ワークフロー定義削除 |
+| `StartInstance` | ワークフローインスタンス開始 |
+| `GetInstance` | インスタンス詳細取得 |
+| `ListInstances` | インスタンス一覧取得（ステータス・ワークフロー・開始者フィルタ） |
+| `CancelInstance` | インスタンスキャンセル |
+| `ListTasks` | タスク一覧取得（担当者・ステータス・期限超過フィルタ） |
+| `ReassignTask` | タスク担当者変更 |
+| `ApproveTask` | タスク承認 |
+| `RejectTask` | タスク却下 |
 
 ### `k1s0.system.eventstore.v1` — EventStoreService
 
@@ -144,24 +171,38 @@
 
 ### `k1s0.system.notification.v1` — NotificationService
 
-通知サービス。メール・Slack・Push 通知の統一管理。
+通知サービス。チャンネル・テンプレート管理と通知配信履歴を提供する。
+`NotificationStatus` enum（PENDING/SENT/FAILED/RETRYING）をサポート。
 
 | RPC | 説明 |
 |-----|------|
-| `SendNotification` | 通知送信 |
-| `ListNotifications` | 通知一覧取得 |
+| `SendNotification` | 通知送信（channel_id + template_id/body） |
 | `GetNotification` | 通知詳細取得 |
+| `RetryNotification` | 通知リトライ |
+| `ListNotifications` | 通知一覧取得（channel・status フィルタ・ページネーション対応） |
+| `ListChannels` | チャンネル一覧取得 |
+| `CreateChannel` | チャンネル作成 |
+| `GetChannel` | チャンネル取得 |
+| `UpdateChannel` | チャンネル更新 |
+| `DeleteChannel` | チャンネル削除 |
+| `ListTemplates` | テンプレート一覧取得 |
+| `CreateTemplate` | テンプレート作成 |
+| `GetTemplate` | テンプレート取得 |
+| `UpdateTemplate` | テンプレート更新 |
+| `DeleteTemplate` | テンプレート削除 |
 
 ### `k1s0.system.session.v1` — SessionService
 
-セッション管理サービス。
+セッション管理サービス。デバイス情報・TTL・メタデータ管理を提供する。
 
 | RPC | 説明 |
 |-----|------|
-| `CreateSession` | セッション作成 |
+| `CreateSession` | セッション作成（device_id・TTL・max_devices 対応） |
 | `GetSession` | セッション取得 |
-| `DeleteSession` | セッション削除 |
-| `ListSessions` | セッション一覧取得 |
+| `RefreshSession` | セッション更新（有効期限延長） |
+| `RevokeSession` | セッション個別失効 |
+| `RevokeAllSessions` | ユーザーの全セッション一括失効 |
+| `ListUserSessions` | ユーザーのセッション一覧取得 |
 
 ### `k1s0.system.navigation.v1` — NavigationService
 
@@ -186,13 +227,18 @@
 
 ### `k1s0.system.ratelimit.v1` — RateLimitService
 
-レート制限サービス。
+レート制限サービス。`RateLimitAlgorithm` enum（SLIDING_WINDOW/TOKEN_BUCKET/FIXED_WINDOW/LEAKY_BUCKET）をサポート。
 
 | RPC | 説明 |
 |-----|------|
-| `CheckRateLimit` | レート制限チェック |
-| `GetRateLimitConfig` | レート制限設定取得 |
-| `SetRateLimitConfig` | レート制限設定更新 |
+| `CheckRateLimit` | レート制限チェック（scope + identifier + window） |
+| `CreateRule` | レートリミットルール作成 |
+| `GetRule` | ルール取得（ID 指定） |
+| `UpdateRule` | ルール更新 |
+| `DeleteRule` | ルール削除 |
+| `ListRules` | ルール一覧取得（scope・enabled_only フィルタ対応） |
+| `GetUsage` | レートリミット使用状況取得 |
+| `ResetLimit` | レートリミット状態リセット |
 
 ### `k1s0.system.vault.v1` — VaultService
 
@@ -217,14 +263,19 @@
 
 ### `k1s0.system.quota.v1` — QuotaService
 
-クォータ管理サービス。
+クォータポリシー管理サービス。subject_type/subject_id ベースのポリシー CRUD・使用量管理を提供する。
 
 | RPC | 説明 |
 |-----|------|
-| `GetQuota` | クォータ取得 |
-| `SetQuota` | クォータ設定 |
-| `CheckQuota` | クォータチェック |
-| `ConsumeQuota` | クォータ消費 |
+| `CreateQuotaPolicy` | クォータポリシー作成 |
+| `GetQuotaPolicy` | クォータポリシー取得 |
+| `ListQuotaPolicies` | クォータポリシー一覧取得（subject フィルタ・enabled_only 対応） |
+| `UpdateQuotaPolicy` | クォータポリシー更新 |
+| `DeleteQuotaPolicy` | クォータポリシー削除 |
+| `GetQuotaUsage` | 使用量取得（期間・超過状況含む） |
+| `CheckQuota` | クォータ超過チェック |
+| `IncrementQuotaUsage` | 使用量加算（冪等性: request_id 対応） |
+| `ResetQuotaUsage` | 使用量リセット |
 
 ### `k1s0.system.file.v1` — FileService
 
@@ -239,15 +290,19 @@
 
 ### `k1s0.system.apiregistry.v1` — ApiRegistryService
 
-API レジストリサービス。サービスカタログと API バージョン管理。
+API スキーマレジストリサービス。スキーマ登録・バージョン管理・互換性チェック・差分取得を提供する。
 
 | RPC | 説明 |
 |-----|------|
-| `RegisterApi` | API 登録 |
-| `GetApi` | API 取得 |
-| `ListApis` | API 一覧取得 |
-| `UpdateApi` | API 更新 |
-| `DeleteApi` | API 削除 |
+| `ListSchemas` | スキーマ一覧取得（schema_type フィルタ・ページネーション対応） |
+| `RegisterSchema` | スキーマ新規登録（初回バージョン同時作成） |
+| `GetSchema` | スキーマ取得（最新コンテンツ含む） |
+| `ListVersions` | スキーマバージョン一覧取得 |
+| `RegisterVersion` | スキーマ新バージョン登録 |
+| `GetSchemaVersion` | 指定バージョン取得 |
+| `DeleteVersion` | バージョン削除 |
+| `CheckCompatibility` | バージョン間互換性チェック（破壊的変更検出） |
+| `GetDiff` | バージョン間差分取得（added/modified/removed） |
 
 ### `k1s0.system.mastermaintenance.v1` — MasterMaintenanceService
 

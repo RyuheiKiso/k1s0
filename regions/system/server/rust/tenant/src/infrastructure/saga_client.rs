@@ -38,15 +38,17 @@ pub struct HttpSagaClient {
 impl HttpSagaClient {
     /// 新しい HttpSagaClient を生成する。
     /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
-    pub fn new(base_url: &str) -> Self {
+    /// TLS バックエンドの初期化に失敗した場合は Err を返す。
+    pub fn new(base_url: &str) -> anyhow::Result<Self> {
+        // reqwest の Client 構築: TLS バックエンドが利用不可の場合はエラーとして伝播する
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
-            .expect("HTTP client の作成に失敗");
-        Self {
+            .map_err(|e| anyhow::anyhow!("HTTP クライアントの構築に失敗: {}", e))?;
+        Ok(Self {
             client,
             base_url: base_url.trim_end_matches('/').to_string(),
-        }
+        })
     }
 }
 

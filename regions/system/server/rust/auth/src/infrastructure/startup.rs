@@ -159,8 +159,9 @@ pub async fn run() -> anyhow::Result<()> {
                 metrics.clone(),
             ))
         } else if let Some(kc_config) = keycloak_config.clone() {
+            // new() が Result を返すようになったため ? で伝播する
             let inner: Arc<dyn crate::domain::repository::UserRepository> =
-                Arc::new(KeycloakClient::new(kc_config));
+                Arc::new(KeycloakClient::new(kc_config)?);
             Arc::new(CachedUserRepository::with_metrics(
                 inner,
                 user_cache,
@@ -172,10 +173,11 @@ pub async fn run() -> anyhow::Result<()> {
 
     // Keycloak Admin API role-permission table (cached + periodic refresh)
     let role_permission_table = if let Some(kc_config) = keycloak_config {
+        // new() が Result を返すようになったため ? で伝播する
         let source = Arc::new(KeycloakRolePermissionSource::new(
             kc_config,
             cfg.keycloak_admin.token_cache_ttl_secs,
-        ));
+        )?);
         let table = Arc::new(crate::domain::service::RolePermissionTable::new(
             source,
             cfg.permission_cache.ttl_secs,

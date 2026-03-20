@@ -31,7 +31,7 @@ thiserror = {workspace = true}
 async-trait = {workspace = true}
 tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 k1s0-auth = { path = "../../../library/rust/auth" }

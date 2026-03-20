@@ -59,6 +59,13 @@ pub async fn run() -> anyhow::Result<()> {
     ));
 
     // Repositories: InMemory fallback (PostgreSQL would be similar to policy-server)
+    // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+    k1s0_server_common::require_infra(
+        "rule-engine",
+        k1s0_server_common::InfraKind::Database,
+        &cfg.app.environment,
+        None::<String>,
+    )?;
     let rule_repo: Arc<dyn RuleRepository> = Arc::new(InMemoryRuleRepository::new());
     let rule_set_repo: Arc<dyn RuleSetRepository> = Arc::new(InMemoryRuleSetRepository::new());
     let version_repo: Arc<dyn RuleSetVersionRepository> =

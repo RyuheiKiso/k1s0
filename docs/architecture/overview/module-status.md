@@ -47,7 +47,7 @@
 | graphql-gateway | `template-only` | scaffold生成のみ |
 | master-maintenance | `template-only` | scaffold生成のみ |
 | navigation | `template-only` | scaffold生成のみ |
-| notification | `template-only` | scaffold生成のみ |
+| notification | `beta` | 通知機能実装済み、REST/gRPC二重サーバー対応 |
 | policy | `template-only` | scaffold生成のみ |
 | quota | `template-only` | scaffold生成のみ |
 | ratelimit | `template-only` | scaffold生成のみ |
@@ -56,7 +56,7 @@
 | search | `template-only` | scaffold生成のみ |
 | service-catalog | `template-only` | scaffold生成のみ |
 | session | `template-only` | scaffold生成のみ |
-| tenant | `template-only` | scaffold生成のみ |
+| tenant | `beta` | テナント管理機能実装済み、REST/gRPC二重サーバー対応 |
 | vault | `template-only` | scaffold生成のみ |
 
 ---
@@ -342,5 +342,7 @@
 
 | 日付 | モジュール | 変更前 | 変更後 | 理由 |
 |------|-----------|--------|--------|------|
+| 2026-03-21 | notification (Rust server) | `template-only` | `beta` | 通知機能実装確認・成熟度更新 |
+| 2026-03-21 | tenant (Rust server) | `template-only` | `beta` | テナント管理機能実装確認・成熟度更新 |
 | 2026-03-16 | Go codegen | `template-only` | `experimental` | コード生成機能の実験的実装開始 |
 | 2026-03-15 | — | — | — | 初版作成 |

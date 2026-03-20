@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -68,7 +70,13 @@ func (s *PostgresEventStore) Append(ctx context.Context, streamID StreamId, even
 	if err != nil {
 		return 0, &EventStoreError{Code: "TX_ERROR", Message: err.Error()}
 	}
-	defer tx.Rollback()
+	// トランザクションをロールバックし、エラーが発生した場合はログに記録する
+	// sql.ErrTxDone はコミット済みの場合に返される正常終了扱いのエラーのため除外する
+	defer func() {
+		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+			slog.Error("トランザクションのロールバックに失敗しました", slog.String("error", rbErr.Error()))
+		}
+	}()
 
 	// Get current version with row-level lock
 	var currentVersion int64

@@ -45,7 +45,7 @@ system tier の DLQ Manager は以下の機能を提供する。
 | 再処理方式 | 元トピックへの Kafka 再発行（プロデューサー経由） |
 | リトライ上限 | メッセージ毎に `max_retries`（デフォルト 3）で制御 |
 | 状態管理 | PostgreSQL に永続化（DLQ スキーマ） |
-| ステータス遷移 | PENDING -> RETRYING -> RESOLVED / DEAD |
+| ステータス遷移 | PENDING -> RETRYING -> SUCCEEDED / FAILED |
 | Kafka オプショナル | Kafka 未設定時も REST API は動作する（再処理時は Kafka 再発行をスキップ） |
 | DB オプショナル | DB 未設定時はインメモリリポジトリで動作（開発・テスト用） |
 

@@ -18,7 +18,7 @@ tracing = {workspace = true}
 uuid = {workspace = true}
 chrono = {workspace = true}
 mockall = {workspace = true, optional = true}
-rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
+rdkafka = { version = "0.37", features = ["cmake-build"], optional = true }
 futures = "0.3"
 prost = {workspace = true, optional = true}
 

@@ -74,7 +74,8 @@ pub async fn run() -> anyhow::Result<()> {
     let workflow_client = Arc::new(WorkflowGrpcClient::connect(&cfg.backends.workflow).await?);
 
     // --- JWT 検証 ---
-    let jwks_verifier = Arc::new(JwksVerifier::new(cfg.auth.jwks_url.clone()));
+    // new() が Result を返すようになったため ? で伝播する
+    let jwks_verifier = Arc::new(JwksVerifier::new(cfg.auth.jwks_url.clone())?);
 
     // --- Metrics ---
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(

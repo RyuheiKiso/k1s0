@@ -86,23 +86,27 @@ pub struct KeycloakClient {
 }
 
 impl KeycloakClient {
-    pub fn new(config: KeycloakConfig) -> Self {
+    /// 新しい KeycloakClient を生成する。
+    /// TLS バックエンドの初期化に失敗した場合は Err を返す。
+    pub fn new(config: KeycloakConfig) -> anyhow::Result<Self> {
         // サーキットブレーカー設定:
         // - failure_threshold: 5回連続失敗でOpen状態に遷移（Keycloakの一時的な遅延を許容）
         // - success_threshold: 3回連続成功でClosed状態に復帰（安定性を確認）
         // - timeout: 30秒後にHalfOpen状態で再試行（Keycloakの再起動時間を考慮）
         let cb_config = CircuitBreakerConfig::default();
 
-        Self {
+        // reqwest の Client 構築: TLS バックエンドが利用不可の場合はエラーとして伝播する
+        let http_client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
+            .map_err(|e| anyhow::anyhow!("reqwest::Client の構築に失敗: {}", e))?;
+
+        Ok(Self {
             config,
-            // HTTP クライアントを構築する（デフォルト設定では失敗しない）
-            http_client: reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(10))
-                .build()
-                .expect("reqwest::Client の構築に失敗: デフォルト TLS バックエンド未対応"),
+            http_client,
             admin_token: Arc::new(RwLock::new(None)),
             circuit_breaker: CircuitBreaker::new(cb_config),
-        }
+        })
     }
 
     /// Keycloak のヘルスチェックを行う。

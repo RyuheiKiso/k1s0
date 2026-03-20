@@ -206,11 +206,12 @@ pub async fn run() -> anyhow::Result<()> {
 
     // Health collector background task
     if db_pool.is_some() {
+        // new() が Result を返すようになったため ? で伝播する
         let collector = Arc::new(HealthCollector::new(
             service_repo.clone(),
             health_repo.clone(),
             cfg.health_collector.clone(),
-        ));
+        )?);
         tokio::spawn(async move {
             collector.run().await;
         });

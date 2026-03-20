@@ -164,7 +164,14 @@ pub async fn run() -> anyhow::Result<()> {
                 Some(cache),
             )
     } else {
-        info!("no database configured, using in-memory repository");
+        // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "featureflag",
+            k1s0_server_common::InfraKind::Database,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("no database configured, using in-memory repository (dev/test bypass)");
         (
             Arc::new(InMemoryFeatureFlagRepository::new()),
             Arc::new(NoopFlagAuditLogRepository),

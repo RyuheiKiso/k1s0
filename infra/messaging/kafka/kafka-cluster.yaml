@@ -8,7 +8,9 @@ spec:
     version: 3.6.1
     replicas: 3
     listeners:
-      # 平文リスナー（開発環境・マイグレーション用途のみ。本番では無効化を推奨）
+      # WARNING: PLAINTEXT は開発環境専用。本番環境では TLS (SSL) リスナーを使用すること。
+      # 本番環境での使用は通信傍受リスクがあり、セキュリティ要件に違反する。
+      # マイグレーション完了後はこのリスナーを削除し、TLS リスナーのみに統一すること。
       - name: plain
         port: 9092
         type: internal

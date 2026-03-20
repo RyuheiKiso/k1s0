@@ -60,10 +60,11 @@ just proto
 | `fmt-rust` | Rust: `cargo fmt --all` |
 | `fmt-ts` | TypeScript: `npm run format` |
 | `fmt-dart` | Dart: `dart format lib/ test/` |
-| `build` | 全言語ビルド (`build-go` + `build-rust` + `build-ts`) |
+| `build` | 全言語ビルド (`build-go` + `build-rust` + `build-ts` + `build-dart`) |
 | `build-go` | Go: `go build ./...` |
 | `build-rust` | Rust: `cargo build --all-targets` |
 | `build-ts` | TypeScript: `npm run build` |
+| `build-dart` | Dart/Flutter: `flutter build web` / `dart analyze`（ライブラリ） |
 | `proto` | Proto コード生成 (`scripts/generate-proto.sh`) |
 | `ci` | CI 全実行 (`lint` + `test` + `build`) |
 | `security` | 全言語セキュリティスキャン (`security-go` + `security-rust` + `security-ts` + `security-dart`) |

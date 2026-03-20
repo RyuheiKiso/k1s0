@@ -122,20 +122,21 @@ impl ConfigGrpcClient {
     }
 
     /// WatchConfig Server-Side Streaming を購読し、変更イベントを ConfigEntry として返す。
+    /// .expect() によるパニックを排除し、接続失敗時は anyhow::Error として伝播する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn watch_config(&self, namespaces: Vec<String>) -> impl Stream<Item = ConfigEntry> {
+    pub async fn watch_config(&self, namespaces: Vec<String>) -> anyhow::Result<impl Stream<Item = ConfigEntry>> {
         let request =
             tonic::Request::new(proto::k1s0::system::config::v1::WatchConfigRequest { namespaces });
 
+        // gRPC ストリーム接続を確立し、失敗時はエラーを返す（パニックしない）
         let stream = self
             .client
             .clone()
             .watch_config(request)
-            .await
-            .expect("WatchConfig stream failed")
+            .await?
             .into_inner();
 
-        async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
+        Ok(async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
             match stream.message().await {
                 Ok(Some(resp)) => {
                     let value_str = String::from_utf8(resp.new_value).unwrap_or_default();
@@ -148,7 +149,7 @@ impl ConfigGrpcClient {
                 }
                 _ => None,
             }
-        })
+        }))
     }
 }
 

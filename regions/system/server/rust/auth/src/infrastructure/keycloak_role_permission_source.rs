@@ -20,17 +20,20 @@ pub struct KeycloakRolePermissionSource {
 }
 
 impl KeycloakRolePermissionSource {
-    pub fn new(config: KeycloakConfig, token_cache_ttl_secs: u64) -> Self {
-        Self {
+    /// 新しい KeycloakRolePermissionSource を生成する。
+    /// TLS バックエンドの初期化に失敗した場合は Err を返す。
+    pub fn new(config: KeycloakConfig, token_cache_ttl_secs: u64) -> anyhow::Result<Self> {
+        // reqwest の Client 構築: TLS バックエンドが利用不可の場合はエラーとして伝播する
+        let http_client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
+            .map_err(|e| anyhow::anyhow!("reqwest::Client の構築に失敗: {}", e))?;
+        Ok(Self {
             config,
-            // HTTP クライアントを構築する（デフォルト設定では失敗しない）
-            http_client: reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(10))
-                .build()
-                .expect("reqwest::Client の構築に失敗: デフォルト TLS バックエンド未対応"),
+            http_client,
             admin_token: Arc::new(RwLock::new(None)),
             token_cache_ttl_secs,
-        }
+        })
     }
 
     async fn get_admin_token(&self) -> anyhow::Result<String> {

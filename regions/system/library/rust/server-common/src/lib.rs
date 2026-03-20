@@ -21,6 +21,11 @@ pub mod shutdown;
 #[cfg(feature = "startup")]
 pub mod startup;
 
+#[cfg(feature = "startup")]
+/// `parse_pool_duration` を再エクスポートする。
+/// 各サーバーの DB プール設定で `conn_max_lifetime` 文字列を Duration に変換するために使用する。
+pub use startup::parse_pool_duration;
+
 /// デフォルトの OpenTelemetry コレクターエンドポイント。
 /// 全サーバーの設定デフォルト値として使用する。エンドポイント変更時はここだけ修正すればよい。
 pub const DEFAULT_OTEL_ENDPOINT: &str = "http://otel-collector.observability:4317";

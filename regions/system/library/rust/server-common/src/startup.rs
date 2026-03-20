@@ -265,6 +265,30 @@ pub struct JwksAuthConfig {
     pub cache_ttl_secs: u64,
 }
 
+/// 文字列形式の時間指定（例: "5m", "30s", "1h", "100ms"）を `Duration` に変換する。
+///
+/// 複数サーバーで重複定義されていた `parse_pool_duration` を server-common に集約し、
+/// DB プール設定の `conn_max_lifetime` 解析に使用する。
+/// 不正な値・空文字の場合は `None` を返す。
+pub fn parse_pool_duration(raw: &str) -> Option<std::time::Duration> {
+    if raw.is_empty() {
+        return None;
+    }
+    // 単位別に分岐して Duration に変換する
+    if let Some(h) = raw.strip_suffix('h') {
+        h.parse::<u64>().ok().map(|v| std::time::Duration::from_secs(v * 3600))
+    } else if let Some(m) = raw.strip_suffix('m') {
+        m.parse::<u64>().ok().map(|v| std::time::Duration::from_secs(v * 60))
+    } else if let Some(ms) = raw.strip_suffix("ms") {
+        ms.parse::<u64>().ok().map(std::time::Duration::from_millis)
+    } else if let Some(s) = raw.strip_suffix('s') {
+        s.parse::<u64>().ok().map(std::time::Duration::from_secs)
+    } else {
+        // 単位なしは秒として解釈する
+        raw.parse::<u64>().ok().map(std::time::Duration::from_secs)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -332,5 +356,28 @@ mod tests {
         };
         assert_eq!(config.cache_ttl_secs, 3600);
         assert!(config.jwks_url.contains("jwks.json"));
+    }
+
+    /// parse_pool_duration が各単位文字列を正しく Duration に変換することを確認する。
+    #[test]
+    fn test_parse_pool_duration() {
+        assert_eq!(
+            parse_pool_duration("5m"),
+            Some(std::time::Duration::from_secs(300))
+        );
+        assert_eq!(
+            parse_pool_duration("30s"),
+            Some(std::time::Duration::from_secs(30))
+        );
+        assert_eq!(
+            parse_pool_duration("100ms"),
+            Some(std::time::Duration::from_millis(100))
+        );
+        assert_eq!(
+            parse_pool_duration("1h"),
+            Some(std::time::Duration::from_secs(3600))
+        );
+        assert_eq!(parse_pool_duration(""), None);
+        assert_eq!(parse_pool_duration("invalid"), None);
     }
 }

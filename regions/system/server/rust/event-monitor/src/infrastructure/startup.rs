@@ -76,7 +76,14 @@ pub async fn run() -> anyhow::Result<()> {
 
         (event_repo, flow_def_repo, flow_inst_repo)
     } else {
-        info!("no database configured, using in-memory repositories");
+        // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+        k1s0_server_common::require_infra(
+            "event-monitor",
+            k1s0_server_common::InfraKind::Database,
+            &cfg.app.environment,
+            None::<String>,
+        )?;
+        info!("no database configured, using in-memory repositories (dev/test bypass)");
         let event_repo: Arc<dyn EventRecordRepository> =
             Arc::new(InMemoryEventRecordRepository::new());
         let flow_def_repo: Arc<dyn FlowDefinitionRepository> =
