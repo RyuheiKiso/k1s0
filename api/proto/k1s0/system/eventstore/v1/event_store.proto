@@ -31,8 +31,10 @@ message StreamInfo {
   string id = 1;
   string aggregate_type = 2;
   int64 current_version = 3;
-  string created_at = 4;
-  string updated_at = 5;
+  // タイムスタンプ型を共通型に統一（string → Timestamp）
+  k1s0.system.common.v1.Timestamp created_at = 4;
+  // タイムスタンプ型を共通型に統一（string → Timestamp）
+  k1s0.system.common.v1.Timestamp updated_at = 5;
 }
 
 message AppendEventsRequest {
@@ -87,7 +89,8 @@ message CreateSnapshotResponse {
   string id = 1;
   string stream_id = 2;
   int64 snapshot_version = 3;
-  string created_at = 4;
+  // タイムスタンプ型を共通型に統一（string → Timestamp）
+  k1s0.system.common.v1.Timestamp created_at = 4;
   string aggregate_type = 5;
 }
 
@@ -121,8 +124,10 @@ message StoredEvent {
   int64 version = 4;
   bytes payload = 5;
   EventMetadata metadata = 6;
-  string occurred_at = 7;
-  string stored_at = 8;
+  // タイムスタンプ型を共通型に統一（string → Timestamp）
+  k1s0.system.common.v1.Timestamp occurred_at = 7;
+  // タイムスタンプ型を共通型に統一（string → Timestamp）
+  k1s0.system.common.v1.Timestamp stored_at = 8;
 }
 
 message EventMetadata {
@@ -137,5 +142,6 @@ message Snapshot {
   int64 snapshot_version = 3;
   string aggregate_type = 4;
   bytes state = 5;
-  string created_at = 6;
+  // タイムスタンプ型を共通型に統一（string → Timestamp）
+  k1s0.system.common.v1.Timestamp created_at = 6;
 }

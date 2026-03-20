@@ -1,2 +1,3 @@
-ALTER TABLE auth.audit_logs RENAME COLUMN detail TO metadata;
-ALTER TABLE auth.audit_logs RENAME COLUMN created_at TO recorded_at;
+-- このマイグレーションは 013_squash_audit_columns で統合されました
+-- 既に適用済みの環境との互換性のため、空のマイグレーションとして残します
+DO $$ BEGIN END $$;

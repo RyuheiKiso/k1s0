@@ -241,6 +241,34 @@ jobs:
             echo "=== clippy CLI ==="
             cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
           fi
+      # テスト（統合テスト含む）のコンパイルチェック（実行せずにビルドのみ）
+      # テストコードのコンパイルエラーを lint 段階で早期検出する
+      - name: Compile check tests (no run)
+        shell: bash
+        env:
+          AFFECTED_MODULES: ${{ needs.detect-modules.outputs.rust_modules }}
+        run: |
+          if [ -n "$AFFECTED_MODULES" ]; then
+            IFS=',' read -ra entries <<< "$AFFECTED_MODULES"
+            for entry in "${entries[@]}"; do
+              dir="${entry#rust:}"
+              if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+                echo "=== test --no-run $dir ==="
+                cargo test --no-run --manifest-path "$dir/Cargo.toml" --all
+              fi
+            done
+          else
+            chmod +x scripts/list-modules.sh
+            excludes=""
+            while IFS= read -r dir; do
+              pkg_name=$(grep -m1 '^name' "$dir/Cargo.toml" | sed 's/.*"\(.*\)"/\1/')
+              excludes="$excludes --exclude $pkg_name"
+            done < <(scripts/list-modules.sh --lang rust --status experimental)
+            echo "=== test --no-run regions/system ==="
+            cargo test --no-run --manifest-path regions/system/Cargo.toml --workspace $excludes
+            echo "=== test --no-run CLI ==="
+            cargo test --no-run --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
+          fi
       # axum 旧記法 :param の検出（{param} を使用すること）
       - name: Check for deprecated axum route syntax
         shell: bash
@@ -1130,6 +1158,44 @@ jobs:
           if [ "$missing" -eq 1 ]; then
             exit 1
           fi
+
+  # リリースビルドに dev フィーチャーが含まれないことを検証するジョブ
+  # SEC-005 / RUST-003: dev-auth-bypass / dev-infra-bypass が本番バイナリに混入する事故を防止する
+  verify-release-build:
+    runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # Dockerfile 内の cargo build --release 行に dev フィーチャーが直接指定されていないことを確認する
+      - name: Dockerfile に dev フィーチャーのハードコードがないことを検証
+        shell: bash
+        run: |
+          # cargo build --release 行に --features dev-* が直接記述されている場合はエラー
+          # 注意: CARGO_FEATURES ARG 経由の条件分岐は許可（デフォルト空文字のため安全）
+          if grep -rn 'cargo build.*--release.*--features.*dev-' --include='Dockerfile' regions/ 2>/dev/null | grep -v 'CARGO_FEATURES'; then
+            echo "::error::Dockerfile に dev フィーチャーがハードコードされています。CARGO_FEATURES ARG 経由でのみ指定してください。"
+            exit 1
+          fi
+          echo "Dockerfile に dev フィーチャーのハードコードはありません"
+      # CARGO_FEATURES ARG のデフォルト値が空文字であることを確認する
+      - name: CARGO_FEATURES ARG のデフォルト値が空文字であることを検証
+        shell: bash
+        run: |
+          failed=0
+          while IFS= read -r dockerfile; do
+            # ARG CARGO_FEATURES の行を取得し、デフォルト値を確認する
+            default_val=$(grep -oP 'ARG CARGO_FEATURES="\K[^"]*' "$dockerfile" 2>/dev/null || echo "")
+            if [ -n "$default_val" ]; then
+              echo "::error::$dockerfile: CARGO_FEATURES のデフォルト値が空文字ではありません: '$default_val'"
+              failed=1
+            fi
+          done < <(find regions/ -name 'Dockerfile' 2>/dev/null)
+          if [ "$failed" -eq 1 ]; then
+            exit 1
+          fi
+          echo "全 Dockerfile の CARGO_FEATURES デフォルト値は空文字です"
 
   # セキュリティスキャン（Trivy）
   security-scan:

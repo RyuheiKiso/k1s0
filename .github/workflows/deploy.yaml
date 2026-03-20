@@ -19,6 +19,10 @@ on:
 # 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
 permissions: {}
 
+# キャッシュ戦略:
+# - GitHub Actions Cache (type=gha): Docker ビルドレイヤーキャッシュ（cache-from/cache-to で利用）
+# - Cargo/Go キャッシュ: 各言語の依存関係は CI ワークフロー（ci.yaml）側で管理
+# - Docker Registry Cache: Harbor レジストリ上の既存レイヤーを活用（push 済みイメージ）
 env:
   REGISTRY: harbor.internal.example.com
 
@@ -130,6 +134,15 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # コンテナイメージの脆弱性スキャン（ビルド後・プッシュ済みイメージに対して実行）
+      # CRITICAL/HIGH の脆弱性が検出された場合、SARIF レポートを出力する
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947e795f2d78448b512 # v0.28.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Install Cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3

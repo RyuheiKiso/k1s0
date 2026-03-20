@@ -32,7 +32,9 @@ services:
           redis_database: 1
           # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: true
+          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
+          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
+          fault_tolerant: false
           hide_client_headers: false
     routes:
       - name: auth-v1-route
@@ -65,7 +67,9 @@ services:
           redis_database: 1
           # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: true
+          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
+          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
+          fault_tolerant: false
           hide_client_headers: false
     routes:
       - name: config-v1-route
@@ -86,7 +90,9 @@ services:
           redis_database: 1
           # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: true
+          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
+          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
+          fault_tolerant: false
           hide_client_headers: false
     routes:
       - name: master-v1-route
@@ -118,7 +124,9 @@ services:
           redis_database: 1
           # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: true
+          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
+          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
+          fault_tolerant: false
           hide_client_headers: false
       - name: jwt
         config:
@@ -149,7 +157,9 @@ services:
           redis_database: 1
           # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: true
+          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
+          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
+          fault_tolerant: false
           hide_client_headers: false
       - name: jwt
         config:
@@ -177,7 +187,9 @@ services:
           redis_database: 1
           # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: true
+          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
+          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
+          fault_tolerant: false
           hide_client_headers: false
     routes:
       - name: ledger-v1-route
@@ -198,7 +210,9 @@ services:
           redis_database: 1
           # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: true
+          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
+          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
+          fault_tolerant: false
           hide_client_headers: false
     routes:
       - name: accounts-v1-route
@@ -222,7 +236,9 @@ services:
           redis_database: 1
           # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: true
+          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
+          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
+          fault_tolerant: false
           hide_client_headers: false
     routes:
       - name: order-v1-route
@@ -243,7 +259,9 @@ services:
           redis_database: 1
           # Redis 認証: 不正アクセス防止のためパスワードを設定
           redis_password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: true
+          # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
+          # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
+          fault_tolerant: false
           hide_client_headers: false
     routes:
       - name: dashboard-v1-route
@@ -266,7 +284,9 @@ plugins:
       redis_database: 1
       # Redis 認証: 不正アクセス防止のためパスワードを設定
       redis_password: ${KONG_REDIS_PASSWORD}
-      fault_tolerant: true           # Redis 障害時は制限なしで通過
+      # セキュリティ: Redis HA 構成を前提とし、Redis 障害時はレートリミットを強制する（false）
+      # Redis が利用不可の場合にリクエストを通過させないことで、DDoS 耐性を維持する
+      fault_tolerant: false
       hide_client_headers: false     # X-RateLimit-* ヘッダーを返却
 
   # JWT - Keycloak JWKS 連携
@@ -348,10 +368,13 @@ plugins:
   # NOTE: Admin API (port 8001) への IP 制限は Kubernetes NetworkPolicy と
   # Istio PeerAuthentication で実装する。以下は Proxy 経由で管理系エンドポイントを
   # 公開する場合のテンプレート。環境別の許可 IP は Helm values で管理する。
-  # - name: ip-restriction
-  #   config:
-  #     allow:
-  #       - 10.0.0.0/8
+  # INFRA-005: Admin API への不正アクセスを防止するため、内部ネットワークからのみアクセスを許可する
+  - name: ip-restriction
+    config:
+      # 許可する IP レンジ: Kubernetes クラスター内部ネットワークのみ
+      # 環境別の値は Helm values または envsubst で上書きすること
+      allow:
+        - ${KONG_ADMIN_ALLOWED_IPS:-10.0.0.0/8}
 
 # ============================================================
 # Consumers - Keycloak JWKS 連携

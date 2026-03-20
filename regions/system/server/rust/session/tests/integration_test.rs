@@ -79,6 +79,8 @@ fn make_test_app() -> axum::Router {
             "k1s0-session-server-test",
         )),
         auth_state: None,
+        // テスト用: Redis未設定（インメモリリポジトリを使用）
+        redis_configured: false,
     };
 
     // startup.rs と同じ構成: public_routes + api_routes (auth_state=None)

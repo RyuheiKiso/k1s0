@@ -1,0 +1,29 @@
+# Service 層のワークスペース定義
+# order, inventory, payment 配下の Rust サーバーを一元管理する
+[workspace]
+resolver = "2"
+members = [
+    # 在庫管理サービスの Rust サーバー
+    "inventory/server/rust/inventory",
+    # 受注管理サービスの Rust サーバー
+    "order/server/rust/order",
+    # 決済サービスの Rust サーバー
+    "payment/server/rust/payment",
+]
+
+# ワークスペース共通の Rust バージョン指定
+[workspace.package]
+rust-version = "1.93"
+
+# ワークスペース共通リント: プロダクションコードでの unwrap() 使用を禁止する
+[workspace.lints.clippy]
+unwrap_used = "deny"
+
+# リリースビルドの最適化設定
+[profile.dev]
+debug = 1
+
+[profile.release]
+lto = "thin"
+strip = true
+opt-level = 3

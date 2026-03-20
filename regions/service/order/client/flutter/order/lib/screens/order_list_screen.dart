@@ -79,7 +79,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                   itemCount: orders.length,
                   itemBuilder: (context, index) {
                     final order = orders[index];
-                    return _OrderListTile(order: order);
+                    /// key に注文IDを指定してリスト再構築時の差分検出を最適化する
+                    return _OrderListTile(
+                      key: ValueKey(order.id),
+                      order: order,
+                    );
                   },
                 );
               },
@@ -139,7 +143,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
 class _OrderListTile extends StatelessWidget {
   final Order order;
 
-  const _OrderListTile({required this.order});
+  const _OrderListTile({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {

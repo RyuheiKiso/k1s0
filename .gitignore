@@ -44,6 +44,7 @@ vendor/
 .env.*.local
 **/config/config.dev.yaml
 **/config/config.local.yaml
+**/config/config.docker.yaml
 
 # Docker
 # docker-compose.dev.yaml は git 管理対象（明示的に -f 指定が必要な開発用オーバーライド）

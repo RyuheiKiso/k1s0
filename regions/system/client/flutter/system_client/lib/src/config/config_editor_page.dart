@@ -1,11 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
-import 'config_interpreter.dart';
+import 'config_editor_notifier.dart';
 import 'widgets/category_nav.dart';
 import 'widgets/config_field_list.dart';
 
-class ConfigEditorPage extends StatefulWidget {
+/// 設定エディタページ
+/// Riverpod の StateNotifier で状態管理を行い、setState を排除する
+class ConfigEditorPage extends ConsumerStatefulWidget {
   const ConfigEditorPage({
     super.key,
     required this.dio,
@@ -16,170 +20,132 @@ class ConfigEditorPage extends StatefulWidget {
   final String serviceName;
 
   @override
-  State<ConfigEditorPage> createState() => _ConfigEditorPageState();
+  ConsumerState<ConfigEditorPage> createState() => _ConfigEditorPageState();
 }
 
-class _ConfigEditorPageState extends State<ConfigEditorPage> {
-  ConfigData? _data;
-  String? _selectedCategoryId;
-  bool _isLoading = true;
-  String? _error;
-  bool _isSaving = false;
-  bool _hasConflict = false;
+class _ConfigEditorPageState extends ConsumerState<ConfigEditorPage> {
+  /// サービスごとの Provider インスタンスを保持する
+  late final StateNotifierProvider<ConfigEditorNotifier, ConfigEditorState>
+      _provider;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    /// サービス名と Dio インスタンスに基づいた Provider を生成する
+    _provider = configEditorProvider(widget.dio, widget.serviceName);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  @override
+  Widget build(BuildContext context) {
+    /// Riverpod の ref.watch で状態変更を監視して自動再描画する
+    final editorState = ref.watch(_provider);
 
-    try {
-      final interpreter = ConfigInterpreter(dio: widget.dio);
-      final data = await interpreter.build(widget.serviceName);
-      setState(() {
-        _data = data;
-        _selectedCategoryId = data.categories.firstOrNull?.schema.id;
-        _isLoading = false;
-      });
-    } on DioException catch (e) {
-      setState(() {
-        _error = e.message ?? 'Failed to load config';
-        _isLoading = false;
-      });
+    /// ローディング中はプログレスインジケーターを表示する
+    if (editorState.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
-  }
 
-  ConfigCategoryState? get _selectedCategory {
-    if (_data == null || _selectedCategoryId == null) return null;
-    return _data!.categories
-        .where((category) => category.schema.id == _selectedCategoryId)
-        .firstOrNull;
-  }
-
-  bool get _hasDirtyFields => (_data?.dirtyCount ?? 0) > 0;
-
-  bool get _hasValidationErrors =>
-      _data?.categories.any(
-        (category) => category.fields.any((field) => field.error != null),
-      ) ??
-      false;
-
-  void _onFieldValidationChanged(String key, String? error) {
-    if (_data == null || _selectedCategoryId == null) return;
-
-    setState(() {
-      final categories = _data!.categories.map((category) {
-        if (category.schema.id != _selectedCategoryId) {
-          return category;
-        }
-
-        return category.copyWith(
-          fields: category.fields.map((field) {
-            if (field.key != key) return field;
-            if (error == null) {
-              return field.copyWith(clearError: true);
-            }
-            return field.copyWith(error: error);
-          }).toList(),
-        );
-      }).toList();
-
-      _data = _data!.copyWith(categories: categories);
-      _hasConflict = false;
-    });
-  }
-
-  void _onFieldChanged(String key, dynamic value) {
-    if (_data == null || _selectedCategoryId == null) return;
-
-    setState(() {
-      final categories = _data!.categories.map((category) {
-        if (category.schema.id != _selectedCategoryId) {
-          return category;
-        }
-
-        return category.copyWith(
-          fields: category.fields.map((field) {
-            if (field.key != key) return field;
-            return updateFieldState(field, value);
-          }).toList(),
-        );
-      }).toList();
-
-      _data = _data!.copyWith(
-        categories: categories,
-        dirtyCount: countDirtyFields(categories),
+    /// エラー発生時はエラーメッセージを表示する
+    if (editorState.error != null) {
+      return Scaffold(
+        body: Center(child: Text(editorState.error!)),
       );
-      _hasConflict = false;
-    });
+    }
+
+    final category = editorState.selectedCategory;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(editorState.data?.service ?? widget.serviceName),
+        actions: [
+          /// 変更フィールド数のバッジを表示する
+          if (editorState.hasDirtyFields)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Center(
+                child: Text('${editorState.data?.dirtyCount ?? 0} changes'),
+              ),
+            ),
+          /// 変更を破棄するボタン
+          TextButton(
+            onPressed: editorState.hasDirtyFields
+                ? () => ref.read(_provider.notifier).discard()
+                : null,
+            child: const Text('Discard'),
+          ),
+          /// 保存ボタン（バリデーションエラーや保存中は無効化）
+          FilledButton(
+            onPressed: editorState.hasDirtyFields &&
+                    !editorState.isSaving &&
+                    !editorState.hasValidationErrors
+                ? () => _save()
+                : null,
+            child: editorState.isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Save'),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Row(
+        children: [
+          /// 左側のカテゴリナビゲーション
+          SizedBox(
+            width: 240,
+            child: CategoryNav(
+              categories: editorState.data!.categories
+                  .map((category) => category.schema)
+                  .toList(),
+              selectedId: editorState.selectedCategoryId ?? '',
+              onSelected: (id) => ref.read(_provider.notifier).selectCategory(id),
+            ),
+          ),
+          const VerticalDivider(width: 1),
+          /// 右側のフィールド一覧
+          Expanded(
+            child: category != null
+                ? ConfigFieldList(
+                    category: category,
+                    onFieldChanged: (key, value) =>
+                        ref.read(_provider.notifier).onFieldChanged(key, value),
+                    onFieldValidationChanged: (key, error) =>
+                        ref.read(_provider.notifier).onFieldValidationChanged(key, error),
+                    onResetToDefault: (key) =>
+                        ref.read(_provider.notifier).resetFieldToDefault(key),
+                  )
+                : const Center(child: Text('Select a category')),
+          ),
+        ],
+      ),
+      /// コンフリクト発生時に警告バーを表示する
+      bottomSheet: editorState.hasConflict
+          ? const Material(
+              color: Colors.amber,
+              child: SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text(
+                      'Conflict detected. Reload and review before saving again.'),
+                ),
+              ),
+            )
+          : null,
+    );
   }
 
-  void _resetFieldToDefault(String key) {
-    if (_data == null || _selectedCategoryId == null) return;
-
-    setState(() {
-      final categories = _data!.categories.map((category) {
-        if (category.schema.id != _selectedCategoryId) {
-          return category;
-        }
-
-        return category.copyWith(
-          fields: category.fields.map((field) {
-            if (field.key != key) return field;
-            return updateFieldState(field, field.schema.defaultValue);
-          }).toList(),
-        );
-      }).toList();
-
-      _data = _data!.copyWith(
-        categories: categories,
-        dirtyCount: countDirtyFields(categories),
-      );
-    });
-  }
-
-  void _discard() {
-    if (_data == null) return;
-    setState(() {
-      _data = resetConfigData(_data!);
-      _hasConflict = false;
-    });
-  }
-
+  /// 保存を実行し、コンフリクト発生時はダイアログを表示する
   Future<void> _save() async {
-    if (_data == null || !_hasDirtyFields || _hasValidationErrors) return;
-
-    final dirtyFields = _data!.categories
-        .expand((category) => category.fields)
-        .where((field) => field.isDirty)
-        .toList();
-
-    setState(() => _isSaving = true);
-
-    try {
-      for (final field in dirtyFields) {
-        await widget.dio.put(
-          '/api/v1/config/${Uri.encodeComponent(field.namespace)}/${Uri.encodeComponent(field.key)}',
-          data: {
-            'value': field.value,
-            'version': field.version,
-          },
-        );
-      }
-
-      await _load();
-      if (mounted) {
-        setState(() => _hasConflict = false);
-      }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 409 && mounted) {
-        setState(() => _hasConflict = true);
+    final success = await ref.read(_provider.notifier).save();
+    if (!success && mounted) {
+      final editorState = ref.read(_provider);
+      if (editorState.hasConflict) {
         await showDialog<void>(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -195,99 +161,7 @@ class _ConfigEditorPageState extends State<ConfigEditorPage> {
             ],
           ),
         );
-      } else if (mounted) {
-        setState(() => _error = e.message ?? 'Failed to save config');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
       }
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_error != null) {
-      return Scaffold(
-        body: Center(child: Text(_error!)),
-      );
-    }
-
-    final category = _selectedCategory;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_data?.service ?? widget.serviceName),
-        actions: [
-          if (_hasDirtyFields)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Center(
-                child: Text('${_data?.dirtyCount ?? 0} changes'),
-              ),
-            ),
-          TextButton(
-            onPressed: _hasDirtyFields ? _discard : null,
-            child: const Text('Discard'),
-          ),
-          FilledButton(
-            onPressed: _hasDirtyFields && !_isSaving && !_hasValidationErrors
-                ? _save
-                : null,
-            child: _isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Save'),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Row(
-        children: [
-          SizedBox(
-            width: 240,
-            child: CategoryNav(
-              categories:
-                  _data!.categories.map((category) => category.schema).toList(),
-              selectedId: _selectedCategoryId ?? '',
-              onSelected: (id) => setState(() => _selectedCategoryId = id),
-            ),
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(
-            child: category != null
-                ? ConfigFieldList(
-                    category: category,
-                    onFieldChanged: _onFieldChanged,
-                    onFieldValidationChanged: _onFieldValidationChanged,
-                    onResetToDefault: _resetFieldToDefault,
-                  )
-                : const Center(child: Text('Select a category')),
-          ),
-        ],
-      ),
-      bottomSheet: _hasConflict
-          ? const Material(
-              color: Colors.amber,
-              child: SizedBox(
-                width: double.infinity,
-                child: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text(
-                      'Conflict detected. Reload and review before saving again.'),
-                ),
-              ),
-            )
-          : null,
-    );
   }
 }

@@ -1184,6 +1184,64 @@ env:
 
 ---
 
+## Docker ダイジェスト固定の自動化
+
+### 背景
+
+Dockerfile および GitHub Actions ワークフローのベースイメージ・アクションは SHA ダイジェストでピン留めし、サプライチェーン攻撃を防止する。ダイジェストの手動管理は運用負荷が高いため、自動化ツールで更新を管理する。
+
+### 自動更新ツール: Renovate / Dependabot
+
+| ツール | 設定ファイル | 対象 |
+| --- | --- | --- |
+| Dependabot | `.github/dependabot.yml` | GitHub Actions のアクションバージョン |
+| Renovate | `renovate.json`（導入時） | Dockerfile のベースイメージダイジェスト |
+
+#### Dependabot による GitHub Actions 自動更新
+
+`.github/dependabot.yml` で `package-ecosystem: github-actions` を設定し、アクションの SHA ピン留めを自動更新する。
+
+```yaml
+# .github/dependabot.yml（抜粋）
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+```
+
+#### Renovate による Dockerfile ダイジェスト自動更新（導入検討中）
+
+Renovate は Dockerfile 内のベースイメージタグをダイジェスト付きに自動変換・更新する。
+
+```json
+{
+  "extends": ["config:recommended"],
+  "dockerfile": {
+    "pinDigests": true
+  }
+}
+```
+
+### CI パイプラインでのダイジェスト検証
+
+`security.yaml` の `image-scan` ジョブで Harbor レジストリ上のイメージを Trivy スキャンし、既知の脆弱性を検出する。ダイジェスト固定により、スキャン済みイメージと実際にデプロイされるイメージの一致を保証する。
+
+### 手動更新手順
+
+自動化ツールで対応できない場合の手動更新手順:
+
+1. 対象イメージの最新ダイジェストを取得する
+   ```bash
+   # Docker Hub のイメージダイジェスト取得
+   docker pull rust:1.93-bookworm
+   docker inspect --format='{{index .RepoDigests 0}}' rust:1.93-bookworm
+   ```
+2. Dockerfile または workflow YAML の該当行を更新する
+3. `buf breaking` / `cargo check` / CI でビルド検証する
+4. PR を作成し、セキュリティチームのレビューを受ける
+
+---
+
 ## 関連ドキュメント
 
 - [tier-architecture.md](../../architecture/overview/tier-architecture.md) — Tier アーキテクチャの詳細

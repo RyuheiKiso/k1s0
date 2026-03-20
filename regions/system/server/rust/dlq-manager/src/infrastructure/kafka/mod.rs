@@ -15,8 +15,10 @@ pub struct KafkaConfig {
     pub dlq_topic_pattern: String,
 }
 
+/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
-    "PLAINTEXT".to_string()
+    "SASL_SSL".to_string()
 }
 
 fn default_dlq_topic_pattern() -> String {
@@ -50,7 +52,7 @@ brokers:
   - "localhost:9092"
 "#;
         let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(config.security_protocol, "PLAINTEXT");
+        assert_eq!(config.security_protocol, "SASL_SSL");
         assert_eq!(config.dlq_topic_pattern, "*.v1.dlq");
     }
 }

@@ -22,8 +22,9 @@ path "secret/data/k1s0/system/keycloak/bff-proxy" {
   capabilities = ["read"]
 }
 
-# PKI certificate issuance (system tier)
-path "pki_int/issue/system" {
+# PKI 証明書発行（サービス固有ロールに制限）
+# 最小権限の原則: system tier 共通ロールではなく、bff-proxy 専用ロールで発行する
+path "pki_int/issue/bff-proxy" {
   capabilities = ["create", "update"]
 }
 

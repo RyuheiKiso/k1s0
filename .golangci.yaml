@@ -17,7 +17,8 @@ linters:
 
 linters-settings:
   gocyclo:
-    min-complexity: 15
+    # 循環的複雑度の閾値を15から12に引き下げ、より厳格なコード品質を確保する
+    min-complexity: 12
   revive:
     rules:
       - name: exported

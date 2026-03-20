@@ -353,6 +353,136 @@ PR 作成 / 更新
 
 ---
 
+## サービス間統合テスト設計
+
+### 概要
+
+Docker Compose ベースのサービス間統合テストにより、複数サービスが連携するフローの正常性を検証する。本番環境の Kubernetes デプロイ前に、ローカルおよび CI 環境で高速にフィードバックを得ることを目的とする。
+
+### テスト用 Docker Compose 構成
+
+テスト専用の `docker-compose.test.yaml` を作成し、テスト実行に必要なサービスのみを起動する。
+
+```yaml
+# docker-compose.test.yaml（設計方針）
+# テスト専用のオーバーライド設定
+# 使用方法: docker compose -f docker-compose.yaml -f docker-compose.test.yaml --profile infra --profile system up -d
+services:
+  # テストランナー: テスト完了後に自動終了する
+  test-runner:
+    build:
+      context: ./tests
+      dockerfile: Dockerfile
+    depends_on:
+      auth-rust:
+        condition: service_healthy
+      config-rust:
+        condition: service_healthy
+      bff-proxy:
+        condition: service_healthy
+    environment:
+      - BASE_URL=http://bff-proxy:8080
+      - AUTH_URL=http://auth-rust:8080
+      - KEYCLOAK_URL=http://keycloak:8080
+```
+
+### サービス起動順序
+
+サービス間の依存関係に基づき、以下の順序で起動する。`depends_on` の `condition: service_healthy` で起動順序を保証する。
+
+```
+1. インフラ層:     PostgreSQL → Redis → Kafka → Keycloak → Vault
+2. System 層:      auth → config → saga → その他 system サービス
+3. Gateway 層:     graphql-gateway → bff-proxy
+4. Business 層:    domain-master
+5. テストランナー:  全サービス healthy 後に起動
+```
+
+### テストデータのセットアップ方針
+
+| フェーズ | 方法 | 備考 |
+| --- | --- | --- |
+| DB スキーマ | `infra/docker/init-db/*.sql` | PostgreSQL の初期化スクリプトで自動実行 |
+| Keycloak Realm | `infra/docker/keycloak/` の Realm JSON | コンテナ起動時に `--import-realm` で自動インポート |
+| テストユーザー | Realm JSON に定義済み | admin / user / order-manager の 3 ロール |
+| テストデータ | テストケース内で API 経由で作成 | テスト終了後にクリーンアップ |
+| Kafka トピック | `infra/messaging/kafka/create-topics.sh` | kafka-init コンテナで自動作成 |
+
+### CI での実行
+
+`integration-test.yaml` で PostgreSQL + Kafka をサービスコンテナとして起動し、パッケージ単位で並列実行する。サービス間統合テストはサービスコンテナの起動コストが高いため、PR ごとではなく main マージ後に実行することを検討する。
+
+---
+
+## セキュリティテスト
+
+### OWASP Top 10 ベースのセキュリティテストチェックリスト
+
+API サーバーおよび BFF プロキシに対して、以下のセキュリティテストを実施する。
+
+#### A01: アクセス制御の不備
+
+| テスト項目 | 検証内容 | 対象サービス |
+| --- | --- | --- |
+| 認証バイパス | 未認証リクエストが 401 を返すこと | 全サービス |
+| 認可バイパス | 権限不足のリクエストが 403 を返すこと | auth, bff-proxy |
+| IDOR | 他ユーザーのリソースにアクセスできないこと | 全 CRUD API |
+| JWT 改ざん | 署名が無効な JWT が拒否されること | auth |
+| 期限切れトークン | 有効期限切れの JWT が拒否されること | auth |
+
+#### A02: 暗号化の失敗
+
+| テスト項目 | 検証内容 | 対象サービス |
+| --- | --- | --- |
+| TLS 強制 | HTTP リクエストが HTTPS にリダイレクトされること | Kong / Ingress |
+| パスワードハッシュ | Argon2id でハッシュ化されていること | auth |
+| シークレット管理 | API レスポンスにシークレットが含まれないこと | vault |
+
+#### A03: インジェクション
+
+| テスト項目 | 検証内容 | 対象サービス |
+| --- | --- | --- |
+| SQL インジェクション | パラメータ化クエリにより SQL インジェクションが防止されること | 全 DB アクセスサービス |
+| XSS | HTML エスケープによりスクリプト挿入が防止されること | bff-proxy, graphql-gateway |
+| コマンドインジェクション | シェルコマンド実行入力がサニタイズされること | 全サービス |
+
+#### A05: セキュリティの設定ミス
+
+| テスト項目 | 検証内容 | 対象サービス |
+| --- | --- | --- |
+| セキュリティヘッダー | `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security` が設定されていること | bff-proxy, Kong |
+| CORS | 許可されたオリジンのみアクセスできること | bff-proxy |
+| エラー情報漏洩 | スタックトレースやDB情報がレスポンスに含まれないこと | 全サービス |
+
+#### A08: ソフトウェアとデータの整合性の不備
+
+| テスト項目 | 検証内容 | 対象サービス |
+| --- | --- | --- |
+| CSRF | CSRF トークンが検証されること | bff-proxy |
+| Content-Type 検証 | 不正な Content-Type が拒否されること | 全 API |
+
+#### API レート制限テスト
+
+| テスト項目 | 検証内容 | 対象サービス |
+| --- | --- | --- |
+| レート超過 | 制限超過時に 429 Too Many Requests が返ること | ratelimit |
+| レート回復 | ウィンドウ経過後にリクエストが許可されること | ratelimit |
+| IP ベース制限 | 同一 IP からの連続リクエストが制限されること | ratelimit |
+
+### CI でのセキュリティテスト
+
+| ツール | 実行タイミング | 目的 |
+| --- | --- | --- |
+| Trivy (filesystem) | PR 時 + 日次 | 依存関係の脆弱性スキャン |
+| Trivy (image) | 日次 | コンテナイメージの脆弱性スキャン |
+| Trivy (IaC) | PR 時 + 日次 | Terraform / K8s マニフェストの構成ミス検出 |
+| cargo-audit | PR 時 + 日次 | Rust 依存関係の脆弱性監査 |
+| govulncheck | PR 時 + 日次 | Go 依存関係の脆弱性検出 |
+| npm audit | PR 時 + 日次 | npm パッケージの脆弱性監査 |
+| gitleaks | pre-commit | シークレットのコミット防止 |
+
+---
+
 ## 関連ドキュメント
 
 - [E2Eテスト戦略](./e2e-strategy.md) -- E2E テストの詳細設計

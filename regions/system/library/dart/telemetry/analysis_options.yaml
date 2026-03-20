@@ -6,3 +6,5 @@ linter:
     - sort_child_properties_last
     - unawaited_futures
     - unnecessary_lambdas
+    # 型安全性の強化: dynamic 型への暗黙的な呼び出しを禁止する
+    - avoid_dynamic_calls

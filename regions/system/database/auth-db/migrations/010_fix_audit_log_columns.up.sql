@@ -1,5 +1,3 @@
--- auth-db: audit_logs カラム名を正規設計に合わせる
--- migration 009 でリネームされた列名を元の設計（system-database設計.md）に戻す
-
-ALTER TABLE auth.audit_logs RENAME COLUMN metadata TO detail;
-ALTER TABLE auth.audit_logs RENAME COLUMN recorded_at TO created_at;
+-- このマイグレーションは 013_squash_audit_columns で統合されました
+-- 既に適用済みの環境との互換性のため、空のマイグレーションとして残します
+DO $$ BEGIN END $$;

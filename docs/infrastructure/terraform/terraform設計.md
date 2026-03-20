@@ -98,6 +98,34 @@ terraform {
 - **リカバリ**: `consul snapshot restore` で Terraform State を復元する
 - **手順**: 障害発生時は直近のスナップショットから復元し、`terraform plan` で差分を確認してから運用を再開する
 
+### State の暗号化
+
+| レイヤー | 暗号化方式 | 備考 |
+| --- | --- | --- |
+| 通信経路 | TLS（Consul の `scheme = "https"`） | State の転送時暗号化 |
+| 保存時 | Consul の暗号化設定（`encrypt` キー） | Raft ログ・スナップショットの暗号化 |
+| バックアップ | Ceph RGW の SSE-S3 | スナップショットの保存時暗号化 |
+
+### State ロック
+
+Consul バックエンドは `lock = true` でステートロックを有効化する。これにより、複数の `terraform apply` が同時実行された場合に State の競合を防止する。ロックの取得に失敗した場合は、実行中のオペレーションが完了するまで待機する。
+
+手動ロック解除が必要な場合:
+```bash
+# ロック状態の確認
+terraform force-unlock <LOCK_ID>
+```
+
+### アクセス制御
+
+| 環境 | アクセス権 | 制御方法 |
+| --- | --- | --- |
+| dev | 開発チーム全員 | Consul ACL トークン（read/write） |
+| staging | インフラチーム + リード | Consul ACL トークン（read/write）、開発チームは read-only |
+| prod | インフラチーム限定 | Consul ACL トークン（read/write）、CI/CD のみ apply 可能 |
+
+CI/CD パイプラインでは GitHub Actions の self-hosted ランナーから Consul に接続し、環境変数 `CONSUL_HTTP_TOKEN` で認証する。トークンは GitHub Secrets で管理する。
+
 ## モジュール詳細
 
 ### kubernetes-base

@@ -297,6 +297,34 @@ ingress           Nginx Ingress Controller
 
 > **Note**: `master-maintenance` サーバーは `zen-engine` (rquickjs-sys) に依存しており、Windows ネイティブ環境ではビルドできません。WSL2 または devcontainer を使用してください。
 
+### Dev Container セットアップ
+
+VSCode Dev Containers を使用すると、必要なツールチェイン（Rust 1.93, Go 1.24, Node.js 22, Flutter 3.24, Helm 3.16, buf 等）が事前構成された開発環境を即座に利用できます。
+
+#### 必要なもの
+
+| ソフトウェア | 備考 |
+|-------------|------|
+| **Docker Desktop** | WSL2 バックエンド推奨（Windows） |
+| **VSCode** | [Dev Containers 拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) が必要 |
+
+#### セットアップ手順
+
+1. VSCode でリポジトリを開く
+2. コマンドパレット（`F1`）→ `Dev Containers: Reopen in Container` を選択
+3. 初回起動時に Docker イメージのビルドと `post-create.sh` の実行が自動で行われる（数分かかる）
+4. devcontainer 内では `infra` プロファイル（PostgreSQL, Redis, Kafka, Keycloak 等）が自動起動する
+
+#### Windows 固有の注意事項
+
+| 項目 | 対応 |
+|------|------|
+| **改行コード** | `.gitattributes` で `* text=auto eol=lf` を設定済み。Git の `core.autocrlf` は `input` を推奨 |
+| **パスの長さ制限** | Windows のデフォルト 260 文字制限に注意。`git config --system core.longpaths true` で回避可能 |
+| **ファイル監視** | WSL2 ファイルシステム上にクローンすると `inotify` による変更検知が高速に動作する |
+| **Docker リソース** | Docker Desktop の Settings → Resources で メモリ 8GB 以上、CPU 4 コア以上を推奨 |
+| **master-maintenance** | `zen-engine` (rquickjs-sys) は Windows ネイティブ未対応。devcontainer 内でビルドすること |
+
 ### Docker Compose 構成
 
 Docker Compose の設定は安全なベース設定と開発用オーバーライドに分離されています。

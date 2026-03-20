@@ -184,6 +184,8 @@ fn make_test_app() -> axum::Router {
         execute_replay_uc: Arc::new(ExecuteReplayUseCase::new(dlq_client.clone())),
         metrics,
         auth_state: None,
+        // テスト用: DLQクライアントはNoopなのでtrueを設定
+        dlq_noop: true,
     };
 
     router(state)
@@ -275,6 +277,8 @@ async fn test_unauthorized_without_token() {
         execute_replay_uc: Arc::new(ExecuteReplayUseCase::new(dlq_client.clone())),
         metrics,
         auth_state: Some(auth_state),
+        // テスト用: DLQクライアントはNoopなのでtrueを設定
+        dlq_noop: true,
     };
 
     let app = router(state);

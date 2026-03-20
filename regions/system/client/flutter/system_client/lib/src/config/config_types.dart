@@ -1,3 +1,78 @@
+/// 設定値の型安全な表現: dynamic の代わりに sealed class を使用する
+sealed class ConfigValue {
+  const ConfigValue();
+
+  /// JSON互換の値に変換する（API送信やシリアライズ用）
+  dynamic toJson();
+
+  /// JSON互換の値から ConfigValue インスタンスを生成する
+  static ConfigValue fromJson(dynamic value) {
+    if (value is String) return StringConfigValue(value);
+    if (value is bool) return BoolConfigValue(value);
+    if (value is num) return NumberConfigValue(value);
+    if (value is List) {
+      return ListConfigValue(
+        value.map((v) => ConfigValue.fromJson(v)).toList(),
+      );
+    }
+    if (value is Map<String, dynamic>) {
+      return MapConfigValue(
+        value.map((k, v) => MapEntry(k, ConfigValue.fromJson(v))),
+      );
+    }
+    // null またはサポート外の型は文字列として扱う
+    return StringConfigValue(value?.toString() ?? '');
+  }
+}
+
+/// 文字列型の設定値
+class StringConfigValue extends ConfigValue {
+  final String value;
+  const StringConfigValue(this.value);
+
+  @override
+  dynamic toJson() => value;
+}
+
+/// 数値型の設定値
+class NumberConfigValue extends ConfigValue {
+  final num value;
+  const NumberConfigValue(this.value);
+
+  @override
+  dynamic toJson() => value;
+}
+
+/// 真偽値型の設定値
+class BoolConfigValue extends ConfigValue {
+  final bool value;
+  const BoolConfigValue(this.value);
+
+  @override
+  dynamic toJson() => value;
+}
+
+/// リスト型の設定値
+class ListConfigValue extends ConfigValue {
+  final List<ConfigValue> values;
+  const ListConfigValue(this.values);
+
+  @override
+  dynamic toJson() => values.map((v) => v.toJson()).toList();
+}
+
+/// マップ型の設定値
+class MapConfigValue extends ConfigValue {
+  final Map<String, ConfigValue> entries;
+  const MapConfigValue(this.entries);
+
+  @override
+  dynamic toJson() =>
+      entries.map((k, v) => MapEntry(k, v.toJson()));
+}
+
+/// 設定フィールドの型を表す列挙型
+/// YAML スキーマで定義される型名と対応する
 enum ConfigFieldType {
   string,
   integer,
@@ -7,6 +82,7 @@ enum ConfigFieldType {
   object,
   array;
 
+  /// 文字列から ConfigFieldType に変換する（不明な型は string にフォールバック）
   static ConfigFieldType fromString(String value) => switch (value) {
         'string' => ConfigFieldType.string,
         'integer' => ConfigFieldType.integer,
@@ -19,6 +95,8 @@ enum ConfigFieldType {
       };
 }
 
+/// 設定フィールドのスキーマ定義
+/// 各フィールドの型・制約・デフォルト値を保持する
 class ConfigFieldSchema {
   const ConfigFieldSchema({
     required this.key,
@@ -42,21 +120,26 @@ class ConfigFieldSchema {
   final List<String>? options;
   final String? pattern;
   final String? unit;
-  final dynamic defaultValue;
+  /// デフォルト値: ConfigValue sealed class で型安全に保持する
+  final ConfigValue? defaultValue;
 
-  factory ConfigFieldSchema.fromJson(Map<String, dynamic> json) =>
-      ConfigFieldSchema(
-        key: json['key'] as String,
-        label: json['label'] as String,
-        description: json['description'] as String?,
-        type: ConfigFieldType.fromString(json['type'] as String),
-        min: json['min'] as num?,
-        max: json['max'] as num?,
-        options: (json['options'] as List<dynamic>?)?.cast<String>(),
-        pattern: json['pattern'] as String?,
-        unit: json['unit'] as String?,
-        defaultValue: json['default'],
-      );
+  /// JSON マップから ConfigFieldSchema を生成する
+  factory ConfigFieldSchema.fromJson(Map<String, dynamic> json) {
+    final defaultJson = json['default'];
+    return ConfigFieldSchema(
+      key: json['key'] as String,
+      label: json['label'] as String,
+      description: json['description'] as String?,
+      type: ConfigFieldType.fromString(json['type'] as String),
+      min: json['min'] as num?,
+      max: json['max'] as num?,
+      options: (json['options'] as List<dynamic>?)?.cast<String>(),
+      pattern: json['pattern'] as String?,
+      unit: json['unit'] as String?,
+      defaultValue:
+          defaultJson != null ? ConfigValue.fromJson(defaultJson) : null,
+    );
+  }
 }
 
 class ConfigCategorySchema {

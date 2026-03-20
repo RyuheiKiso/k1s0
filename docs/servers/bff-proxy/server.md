@@ -486,3 +486,41 @@ observability:
 ## ObservabilityConfig（log/trace/metrics）
 
 本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+
+---
+
+## DDD 構造からの意図的逸脱
+
+### 背景
+
+本リポジトリの他のサーバー（auth, session, config 等）は Clean Architecture + DDD の層構造（domain / usecase / adapter / infrastructure）を採用しているが、bff-proxy はこの構造に従っていない。これは**意図的な設計判断**であり、技術負債ではない。
+
+### 理由
+
+| 観点 | 説明 |
+| --- | --- |
+| 主目的 | HTTP リクエストの転送（リバースプロキシ）とセッション管理。ドメインロジックを持たない |
+| ドメインモデル不在 | ビジネスルールやエンティティ、集約を扱わないため、domain 層・usecase 層を定義する意味がない |
+| 構成の単純さ | handler → session/oauth/upstream の直線的な呼び出しで完結する。DDD の間接化はオーバーエンジニアリングになる |
+| adapter 層のみ | 実質的に Clean Architecture の adapter 層（HTTP ハンドラー + 外部サービス連携）のみで構成される |
+
+### 現在のモジュール構成
+
+```
+bff-proxy/
+├── cmd/server/          # エントリポイント・DI・ルーター構築
+├── internal/
+│   ├── handler/         # HTTP ハンドラー（auth, proxy, health）
+│   ├── middleware/       # セッション検証・CSRF・Correlation ID
+│   ├── oauth/           # OIDC クライアント（Discovery / PKCE / トークン交換）
+│   ├── session/         # Redis セッションストア
+│   ├── upstream/        # 上流 API へのリバースプロキシ
+│   └── config/          # YAML 設定ローダー
+└── config/              # 設定ファイル
+```
+
+この構成は Go の標準的なプロジェクトレイアウト（`cmd/` + `internal/`）に準拠しており、プロキシサーバーとして適切な抽象度を維持している。
+
+### 今後の方針
+
+bff-proxy にドメインロジック（例: アクセス制御ポリシー、テナント別ルーティング等）を追加する場合は、その時点で DDD 構造への移行を検討する。現時点では不要な複雑さを避けるため、現在の構成を維持する。
