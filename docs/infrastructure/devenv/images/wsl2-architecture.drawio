@@ -1,0 +1,242 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="wsl2-arch-001" name="WSL2 開発環境アーキテクチャ">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="WSL2 開発環境アーキテクチャ（Docker Desktop 不要）" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="900" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Windows ホスト層 ===== -->
+        <mxCell id="win-bg" value="" style="rounded=1;whiteSpace=wrap;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="1340" height="820" as="geometry"/>
+        </mxCell>
+        <mxCell id="win-label" value="&lt;b style=&quot;font-size:16px&quot;&gt;Windows 11&lt;/b&gt;" style="text;html=1;fontSize=16;fontStyle=1;align=left;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="45" y="65" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Windows 側ツール -->
+        <mxCell id="vscode" value="&lt;b&gt;VS Code&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Remote WSL 拡張&lt;br&gt;Dev Containers 拡張&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFFFFF;strokeColor=#666666;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="terminal" value="&lt;b&gt;Windows Terminal&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;WSL2 シェル&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFFFFF;strokeColor=#666666;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="110" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="browser" value="&lt;b&gt;ブラウザ&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;localhost でアクセス&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFFFFF;strokeColor=#666666;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="110" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== WSL2 層 ===== -->
+        <mxCell id="wsl2-bg" value="" style="rounded=1;whiteSpace=wrap;fillColor=#DAE8FC;strokeColor=#6C8EBF;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="210" width="1300" height="650" as="geometry"/>
+        </mxCell>
+        <mxCell id="wsl2-label" value="&lt;b style=&quot;font-size:16px&quot;&gt;WSL2 (Ubuntu 24.04)&lt;/b&gt;&lt;font style=&quot;font-size:10px&quot;&gt; — Linux カーネル&lt;/font&gt;" style="text;html=1;fontSize=16;fontStyle=1;align=left;fontColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="65" y="215" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Git リポジトリ -->
+        <mxCell id="repo" value="&lt;b&gt;k1s0 リポジトリ&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;~/work/k1s0&lt;br&gt;（WSL2 ファイルシステム内）&lt;/font&gt;" style="shape=folder;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFFFFF;strokeColor=#6C8EBF;shadow=1;tabWidth=80;tabHeight=20;tabPosition=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="260" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- systemd -->
+        <mxCell id="systemd" value="&lt;b&gt;systemd&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Docker 自動起動&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFFFFF;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="265" width="120" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- just -->
+        <mxCell id="just" value="&lt;b&gt;just&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;タスクランナー&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFFFFF;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="265" width="100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Docker Engine 層 ===== -->
+        <mxCell id="docker-bg" value="" style="rounded=1;whiteSpace=wrap;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="70" y="360" width="1260" height="480" as="geometry"/>
+        </mxCell>
+        <mxCell id="docker-label" value="&lt;b style=&quot;font-size:14px&quot;&gt;Docker Engine (CE)&lt;/b&gt;&lt;font style=&quot;font-size:10px&quot;&gt; — ライセンス無料&lt;/font&gt;" style="text;html=1;fontSize=14;fontStyle=1;align=left;fontColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="85" y="365" width="350" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Dev Container ===== -->
+        <mxCell id="devcon-bg" value="" style="rounded=1;whiteSpace=wrap;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="90" y="400" width="580" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="devcon-label" value="&lt;b style=&quot;font-size:14px&quot;&gt;Dev Container&lt;/b&gt;&lt;font style=&quot;font-size:10px&quot;&gt; — 方法 A（推奨）&lt;/font&gt;" style="text;html=1;fontSize=14;fontStyle=1;align=left;fontColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="105" y="405" width="300" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- ツールチェーン -->
+        <mxCell id="rust" value="&lt;b&gt;Rust 1.93&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;clippy, rustfmt&lt;br&gt;tauri-cli&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="445" width="120" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="golang" value="&lt;b&gt;Go 1.24&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;golangci-lint&lt;br&gt;protoc-gen-go&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="445" width="120" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nodejs" value="&lt;b&gt;Node.js 22&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;npm, ESLint&lt;br&gt;Prettier&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="445" width="120" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="flutter" value="&lt;b&gt;Flutter 3.24.0&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Dart SDK&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="530" y="445" width="120" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- 共通ツール -->
+        <mxCell id="buf" value="&lt;b&gt;buf 1.47.2&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Proto lint/gen&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="520" width="120" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="protoc" value="&lt;b&gt;protoc&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Protocol Buffers&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="520" width="120" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="vscode-server" value="&lt;b&gt;VS Code Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;拡張機能一式&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="520" width="120" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="docker-in-docker" value="&lt;b&gt;Docker-in-Docker&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;compose 実行可能&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="530" y="520" width="120" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- post-create.sh ノート -->
+        <mxCell id="post-create" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;post-create.sh&lt;/b&gt;&lt;br&gt;全ツールを自動インストール&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFFACD;strokeColor=#D6B656;fontSize=9;align=center;" vertex="1" parent="1">
+          <mxGeometry x="110" y="585" width="180" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ワークスペースマウント -->
+        <mxCell id="workspace" value="&lt;b&gt;/workspace&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;リポジトリマウント&lt;/font&gt;" style="shape=folder;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFFACD;strokeColor=#D6B656;shadow=1;tabWidth=60;tabHeight=15;tabPosition=left;" vertex="1" parent="1">
+          <mxGeometry x="110" y="650" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ポートフォワード -->
+        <mxCell id="ports" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;ポートフォワード&lt;/b&gt;&lt;br&gt;3000, 5173, 8080&lt;br&gt;50051, ...&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFFACD;strokeColor=#D6B656;fontSize=9;align=center;" vertex="1" parent="1">
+          <mxGeometry x="110" y="720" width="150" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== インフラサービス群 ===== -->
+        <mxCell id="infra-bg" value="" style="rounded=1;whiteSpace=wrap;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="700" y="400" width="610" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="infra-label" value="&lt;b style=&quot;font-size:14px&quot;&gt;docker compose --profile infra&lt;/b&gt;" style="text;html=1;fontSize=14;fontStyle=1;align=left;fontColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="715" y="405" width="350" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- DB -->
+        <mxCell id="pg" value="&lt;b&gt;PostgreSQL 17&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:5432&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;size=8;" vertex="1" parent="1">
+          <mxGeometry x="720" y="450" width="110" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="redis-svc" value="&lt;b&gt;Redis 7&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:6379&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;size=8;" vertex="1" parent="1">
+          <mxGeometry x="850" y="450" width="110" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="kafka-svc" value="&lt;b&gt;Kafka 3.8&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:9092&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="450" width="110" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="keycloak-svc" value="&lt;b&gt;Keycloak 26&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:8180&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="450" width="110" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="vault-svc" value="&lt;b&gt;Vault&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:8200&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="530" width="110" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="mysql-svc" value="&lt;b&gt;MySQL 8.4&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:3306&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;size=8;" vertex="1" parent="1">
+          <mxGeometry x="850" y="525" width="110" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="minio-svc" value="&lt;b&gt;MinIO&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:9000&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="530" width="110" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Observability -->
+        <mxCell id="obs-sub-bg" value="" style="rounded=1;whiteSpace=wrap;fillColor=#E8F5E9;strokeColor=#82B366;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="715" y="600" width="580" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="obs-sub-label" value="&lt;b&gt;--profile observability&lt;/b&gt;" style="text;html=1;fontSize=10;fontStyle=1;align=left;fontColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="720" y="603" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="jaeger-svc" value="&lt;b&gt;Jaeger&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:16686&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="730" y="630" width="100" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="prometheus-svc" value="&lt;b&gt;Prometheus&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:9090&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="850" y="630" width="100" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="grafana-svc" value="&lt;b&gt;Grafana&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:3200&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="970" y="630" width="100" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="loki-svc" value="&lt;b&gt;Loki&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;:3100&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="630" width="100" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- DB tier servers -->
+        <mxCell id="tier-sub-bg" value="" style="rounded=1;whiteSpace=wrap;fillColor=#E8F5E9;strokeColor=#82B366;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="715" y="720" width="580" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="tier-sub-label" value="&lt;b&gt;--profile system / business / service&lt;/b&gt;" style="text;html=1;fontSize=10;fontStyle=1;align=left;fontColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="720" y="723" width="300" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="app-servers" value="&lt;b&gt;アプリケーションサーバー群&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;auth, config, bff-proxy, saga, graphql-gateway, ...&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="730" y="750" width="550" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 接続矢印 ===== -->
+
+        <!-- VS Code → WSL2 -->
+        <mxCell id="e-vscode-wsl" value="&lt;font style=&quot;font-size:9px&quot;&gt;Remote WSL&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;strokeWidth=2;fontSize=9;fontStyle=1;" edge="1" source="vscode" target="repo" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- VS Code → Dev Container -->
+        <mxCell id="e-vscode-devcon" value="&lt;font style=&quot;font-size:9px&quot;&gt;Dev Containers&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;strokeWidth=2;fontSize=9;fontStyle=1;" edge="1" source="vscode" target="vscode-server" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="135" y="195"/>
+              <mxPoint x="620" y="195"/>
+              <mxPoint x="620" y="543"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- repo → workspace (volume mount) -->
+        <mxCell id="e-repo-ws" value="&lt;font style=&quot;font-size:9px&quot;&gt;volume mount&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;strokeWidth=1;fontSize=9;dashed=1;dashPattern=4 4;" edge="1" source="repo" target="workspace" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- DevContainer → infra (docker compose) -->
+        <mxCell id="e-devcon-infra" value="&lt;font style=&quot;font-size:9px&quot;&gt;docker compose&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontSize=9;fontStyle=1;" edge="1" source="docker-in-docker" target="infra-label" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="543"/>
+              <mxPoint x="670" y="418"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Browser → ports -->
+        <mxCell id="e-browser-ports" value="&lt;font style=&quot;font-size:9px&quot;&gt;localhost:*&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" edge="1" source="browser" target="ports" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="495" y="195"/>
+              <mxPoint x="40" y="195"/>
+              <mxPoint x="40" y="748"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
