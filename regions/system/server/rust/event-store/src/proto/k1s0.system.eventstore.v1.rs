@@ -137,7 +137,7 @@ pub struct EventData {
     #[prost(bytes = "vec", tag = "2")]
     pub payload: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "3")]
-    pub metadata: ::core::option::Option<EventMetadata>,
+    pub metadata: ::core::option::Option<EventStoreMetadata>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StoredEvent {
@@ -152,7 +152,7 @@ pub struct StoredEvent {
     #[prost(bytes = "vec", tag = "5")]
     pub payload: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "6")]
-    pub metadata: ::core::option::Option<EventMetadata>,
+    pub metadata: ::core::option::Option<EventStoreMetadata>,
     /// タイムスタンプ型を共通型に統一（string → Timestamp）
     #[prost(message, optional, tag = "7")]
     pub occurred_at: ::core::option::Option<super::super::common::v1::Timestamp>,
@@ -161,7 +161,7 @@ pub struct StoredEvent {
     pub stored_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EventMetadata {
+pub struct EventStoreMetadata {
     #[prost(string, optional, tag = "1")]
     pub actor_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "2")]
