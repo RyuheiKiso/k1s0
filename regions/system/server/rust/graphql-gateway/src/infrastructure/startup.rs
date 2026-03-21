@@ -57,21 +57,23 @@ pub async fn run() -> anyhow::Result<()> {
     );
 
     // --- gRPC クライアント ---
-    let tenant_client = Arc::new(TenantGrpcClient::connect(&cfg.backends.tenant).await?);
+    // connect_lazy() により起動時のバックエンド接続依存を排除する。
+    // 実際の接続は最初のRPCリクエスト時に確立されるため、バックエンドサービスの起動順序に依存しない。
+    let tenant_client = Arc::new(TenantGrpcClient::new(&cfg.backends.tenant)?);
     let feature_flag_client =
-        Arc::new(FeatureFlagGrpcClient::connect(&cfg.backends.featureflag).await?);
-    let config_client = Arc::new(ConfigGrpcClient::connect(&cfg.backends.config).await?);
+        Arc::new(FeatureFlagGrpcClient::new(&cfg.backends.featureflag)?);
+    let config_client = Arc::new(ConfigGrpcClient::new(&cfg.backends.config)?);
     let navigation_client =
-        Arc::new(NavigationGrpcClient::connect(&cfg.backends.navigation).await?);
+        Arc::new(NavigationGrpcClient::new(&cfg.backends.navigation)?);
     let service_catalog_client =
-        Arc::new(ServiceCatalogGrpcClient::connect(&cfg.backends.service_catalog).await?);
-    let auth_client = Arc::new(AuthGrpcClient::connect(&cfg.backends.auth).await?);
-    let session_client = Arc::new(SessionGrpcClient::connect(&cfg.backends.session).await?);
-    let vault_client = Arc::new(VaultGrpcClient::connect(&cfg.backends.vault).await?);
-    let scheduler_client = Arc::new(SchedulerGrpcClient::connect(&cfg.backends.scheduler).await?);
+        Arc::new(ServiceCatalogGrpcClient::new(&cfg.backends.service_catalog)?);
+    let auth_client = Arc::new(AuthGrpcClient::new(&cfg.backends.auth)?);
+    let session_client = Arc::new(SessionGrpcClient::new(&cfg.backends.session)?);
+    let vault_client = Arc::new(VaultGrpcClient::new(&cfg.backends.vault)?);
+    let scheduler_client = Arc::new(SchedulerGrpcClient::new(&cfg.backends.scheduler)?);
     let notification_client =
-        Arc::new(NotificationGrpcClient::connect(&cfg.backends.notification).await?);
-    let workflow_client = Arc::new(WorkflowGrpcClient::connect(&cfg.backends.workflow).await?);
+        Arc::new(NotificationGrpcClient::new(&cfg.backends.notification)?);
+    let workflow_client = Arc::new(WorkflowGrpcClient::new(&cfg.backends.workflow)?);
 
     // --- JWT 検証 ---
     // new() が Result を返すようになったため ? で伝播する

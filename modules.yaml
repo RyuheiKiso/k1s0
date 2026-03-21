@@ -44,13 +44,15 @@ tier_dependencies:
 # ライブラリ言語パリティ表
 # ============================================================
 # 各ライブラリがどの言語で実装されているかを明示する。
-# scope: all = 4言語全て (rust, go, ts, dart)
-#        rust-only = Rust のみ（ビルドツールや Rust 固有の抽象）
-#        server = サーバーサイド言語のみ (rust, go)
-#        partial = 一部言語のみ（詳細は languages フィールドを参照）
+# 3カテゴリ分類:
+#   core   = 全言語 (rust, go, ts, dart) — 基盤的なクロスプラットフォームライブラリ
+#   server = サーバーサイドのみ (rust, go) — バックエンド固有の実装
+#   client = クライアントサイドのみ (ts, dart) — フロントエンド固有の実装
+# 補足:
+#   lang_specific = 特定言語固有（ビルドツール、proc-macro等）
 library_parity:
-  # 4言語全てで実装済み（43ライブラリ）
-  all:
+  # Core: 4言語全てで実装済み（全プラットフォーム共通ライブラリ）
+  core:
     - app-updater
     - audit-client
     - auth
@@ -98,23 +100,25 @@ library_parity:
     - webhook-client
     - websocket
 
-  # Rust のみ（ビルドツール・Rust 固有の抽象層）
-  rust_only:
-    - proto-build        # tonic-build ラッパー（Rust ビルド専用）
-    - bb-core            # Building Blocks コア抽象（Rust 専用）
-    - telemetry-macros   # proc-macro による計装マクロ（Rust 専用）
-
-  # サーバーサイド言語のみ (rust, go)
-  server_only:
+  # Server: サーバーサイド言語のみ (rust, go)
+  server:
     # Rust では bb- prefix、Go では prefix なしの命名
     - binding            # rust: bb-binding, go: binding
     - pubsub             # rust: bb-pubsub, go: pubsub
     - secretstore        # rust: bb-secretstore, go: secret-store
     - statestore         # rust: bb-statestore, go: statestore
 
-  # Go のみ
-  go_only:
-    - telemetry-macros   # Go 版テレメトリマクロ（go generate ベース）
+  # Client: クライアントサイドのみ (ts, dart) — 現在該当なし
+  client: []
+
+  # lang_specific: 特定言語固有のビルドツール・言語抽象（3分類外）
+  lang_specific:
+    rust:
+      - proto-build        # tonic-build ラッパー（Rust ビルド専用）
+      - bb-core            # Building Blocks コア抽象（Rust 専用）
+      - telemetry-macros   # proc-macro による計装マクロ（Rust 専用）
+    go:
+      - telemetry-macros   # Go 版テレメトリマクロ（go generate ベース）
 
 modules:
   # ============================================================

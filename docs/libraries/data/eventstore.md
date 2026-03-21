@@ -310,6 +310,52 @@ class PostgresSnapshotStore implements SnapshotStore {
 
 **カバレッジ目標**: 85%以上
 
+## Doc Sync (2026-03-21)
+
+### EventStore 3件の改善 [技術品質監査 High 3-2, 3-3, Medium 3-6]
+
+**背景・問題**
+
+`postgres.go` に以下の3件の問題があった：
+
+1. **[High 3-2] トランザクション分離レベル未設定**
+   `BeginTx(ctx, nil)` を使用していた。デフォルト分離レベル（READ COMMITTED）では、
+   楽観的ロックのバージョンチェック中にファントムリードが発生し、二重コミットの可能性があった。
+
+2. **[High 3-3] LoadFrom の LIMIT 未設定**
+   `LoadFrom()` に上限がなく、大量イベントが存在する場合にメモリ枯渇の原因となる可能性があった。
+   `Load()` は `defaultLoadLimit = 10000` 付きで `LoadWithLimit()` を呼ぶ設計だったが、
+   `LoadFrom()` は無制限クエリのままだった。
+
+3. **[Medium 3-6] json.RawMessage の二重エンコード**
+   `json.Marshal(json.RawMessage(event.Payload))` は `json.RawMessage` を再度 marshal するため
+   不要なアロケーションが発生していた。`event.Payload` はすでに `json.RawMessage`（`[]byte`）であり、
+   直接 `[]byte` として渡せばよい。
+
+**対応内容**
+
+1. **分離レベル REPEATABLE READ に変更**
+   ```go
+   tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+   ```
+
+2. **LoadFrom に LIMIT 追加**
+   ```go
+   // LIMIT $3 を追加
+   FROM events WHERE stream_id = $1 AND version >= $2 ORDER BY version ASC LIMIT $3
+   ```
+   `defaultLoadLimit` (10000) を使用して無制限クエリを防止。
+
+3. **直接バイト列を使用**
+   ```go
+   payload := []byte(event.Payload)
+   metadata := []byte(event.Metadata)
+   ```
+
+**影響範囲**
+
+- `regions/system/library/go/eventstore/postgres.go`
+
 ## 関連ドキュメント
 
 - [system-library-概要](../_common/概要.md) — ライブラリ一覧・テスト方針

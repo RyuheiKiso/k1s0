@@ -82,12 +82,14 @@ func run() error {
 	// Redis接続を確認する。
 	// redis.Cmdable インターフェース経由で Ping を呼び出すことで、
 	// スタンドアロン・Sentinel どちらのモードでも安全に動作する。
-	// Redis接続が必須でない場合のみスキップを許可する
+	// ALLOW_REDIS_SKIP は development 環境のみ有効。production/staging では無視してエラーで終了する。
 	if err := redisClient.Ping(ctx).Err(); err != nil {
-		if os.Getenv("ALLOW_REDIS_SKIP") == "true" {
-			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします", slog.String("error", err.Error()))
+		env := cfg.App.Environment
+		allowSkip := os.Getenv("ALLOW_REDIS_SKIP") == "true" && env == "development"
+		if allowSkip {
+			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（development環境のみ）", slog.String("error", err.Error()))
 		} else {
-			logger.Error("Redis接続に失敗しました", slog.String("error", err.Error()))
+			logger.Error("Redis接続に失敗しました", slog.String("error", err.Error()), slog.String("environment", env))
 			return fmt.Errorf("Redis接続に失敗しました: %w", err)
 		}
 	}

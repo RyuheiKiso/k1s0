@@ -2,6 +2,8 @@
 # 変更されたファイルから影響を受けるモジュールを検出するスクリプト
 # CI パイプラインでモジュール単位のビルド・テスト最適化に使用する
 #
+# modules.yaml を唯一の情報源として使用し、skip-ci: true や archived モジュールを除外する。
+#
 # 使用方法:
 #   scripts/detect-affected-modules.sh [base-branch] [language]
 #   base-branch: 比較対象のブランチ（デフォルト: main）
@@ -9,9 +11,29 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+MODULES_YAML="${REPO_ROOT}/modules.yaml"
+
 # 引数からベースブランチと言語フィルタを取得
 BASE_BRANCH="${1:-main}"
 LANG_FILTER="${2:-}"
+
+# modules.yaml から skip-ci: true または status: archived のパスを取得する
+# Python の yaml モジュールを使ってパースし、除外パスリストを生成する
+SKIP_PATHS=()
+if command -v python3 >/dev/null 2>&1 && [ -f "$MODULES_YAML" ]; then
+  # skip-ci: true または status: archived のモジュールパスを一覧化する
+  mapfile -t SKIP_PATHS < <(python3 - <<'PYEOF'
+import sys, yaml
+with open(sys.argv[1]) as f:
+    data = yaml.safe_load(f)
+for mod in data.get('modules', []):
+    if mod.get('skip-ci', False) or mod.get('status') == 'archived':
+        print(mod['path'])
+PYEOF
+  "$MODULES_YAML" 2>/dev/null || true)
+fi
 
 # ベースブランチを明示的に fetch してマージベースを確実に取得する
 # CI 環境では shallow clone のためベースブランチが存在しない場合がある
@@ -68,7 +90,17 @@ find_module_root() {
           CLI/crates/k1s0-gui/regions/*)
             ;;
           *)
-            echo "${lang}:${dir}"
+            # modules.yaml で skip-ci: true または archived と指定されたパスを除外する
+            skip=false
+            for skip_path in "${SKIP_PATHS[@]:-}"; do
+              if [ "${dir}" = "${skip_path}" ] || [[ "${dir}" == "${skip_path}/"* ]]; then
+                skip=true
+                break
+              fi
+            done
+            if [ "$skip" = "false" ]; then
+              echo "${lang}:${dir}"
+            fi
             return
             ;;
         esac

@@ -38,7 +38,8 @@ pub async fn run() -> anyhow::Result<()> {
     let cfg = Config::load(&config_path)?;
 
     // ServerBuilder でテレメトリを初期化する（全サーバー共通の初期化パターン）
-    let server = ServerBuilder::new("k1s0-notification-server", "0.1.0");
+    // tier を必須引数として渡す（P2-34: ServerBuilder tier 必須化）
+    let server = ServerBuilder::new("k1s0-notification-server", "0.1.0", "system");
     server.init_telemetry(
         &cfg.app.environment,
         &ObservabilityFields {

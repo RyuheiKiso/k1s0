@@ -142,6 +142,8 @@ pub async fn run() -> anyhow::Result<()> {
         workflow_repo.clone() as Arc<dyn domain::repository::WorkflowRepository>,
         execute_saga_uc.clone(),
     ));
+    // グレースフルシャットダウン用に task_tracker を AppState へのムーブ前に取得する
+    let task_tracker = start_saga_uc.task_tracker().clone();
 
     let get_saga_uc = Arc::new(usecase::GetSagaUseCase::new(saga_repo.clone()));
     let list_sagas_uc = Arc::new(usecase::ListSagasUseCase::new(saga_repo.clone()));
@@ -254,6 +256,8 @@ pub async fn run() -> anyhow::Result<()> {
         let _ = k1s0_server_common::shutdown::shutdown_signal().await;
     });
 
+    // task_tracker は start_saga_uc 作成直後（AppState へのムーブ前）に取得済み
+
     // Run REST and gRPC concurrently.
     tokio::select! {
         result = rest_future => {
@@ -266,6 +270,19 @@ pub async fn run() -> anyhow::Result<()> {
                 tracing::error!("gRPC server error: {}", e);
             }
         }
+    }
+
+    // サーバーが終了した後、実行中の Saga タスクが完了するまで最大 30 秒待機する。
+    // 超過した場合でもタスクは Tokio ランタイムのシャットダウンで強制終了される。
+    let active = task_tracker.active_count();
+    if active > 0 {
+        info!(active_tasks = active, "waiting for in-progress saga tasks to complete (max 30s)");
+        let _ = tokio::time::timeout(
+            std::time::Duration::from_secs(30),
+            task_tracker.wait_for_completion(),
+        )
+        .await;
+        info!("saga task drain complete");
     }
 
     // テレメトリのシャットダウン処理

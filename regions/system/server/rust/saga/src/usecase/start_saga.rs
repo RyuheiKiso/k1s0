@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::saga_state::SagaState;
 use crate::domain::repository::{SagaRepository, WorkflowRepository};
+use crate::infrastructure::task_tracker::SagaTaskTracker;
 use crate::usecase::ExecuteSagaUseCase;
 
 /// StartSagaUseCase はSagaの開始を担う。
@@ -12,6 +13,8 @@ pub struct StartSagaUseCase {
     saga_repo: Arc<dyn SagaRepository>,
     workflow_repo: Arc<dyn WorkflowRepository>,
     execute_saga_uc: Arc<ExecuteSagaUseCase>,
+    /// バックグラウンドタスクの生存管理（グレースフルシャットダウン用）
+    task_tracker: SagaTaskTracker,
 }
 
 impl StartSagaUseCase {
@@ -24,7 +27,14 @@ impl StartSagaUseCase {
             saga_repo,
             workflow_repo,
             execute_saga_uc,
+            task_tracker: SagaTaskTracker::new(),
         }
+    }
+
+    /// SagaTaskTracker への参照を返す。
+    /// シャットダウン時に `tracker.wait_for_completion()` を呼び出すために使用する。
+    pub fn task_tracker(&self) -> &SagaTaskTracker {
+        &self.task_tracker
     }
 
     /// Sagaを開始する。ワークフロー存在確認 → SagaState作成 → バックグラウンド実行。
@@ -55,9 +65,10 @@ impl StartSagaUseCase {
             "saga started, launching background execution"
         );
 
-        // Launch background execution
+        // SagaTaskTracker 経由でバックグラウンド実行を起動する。
+        // spawn ではなく tracker.spawn を使うことでシャットダウン時の完了待機が可能になる。
         let execute_uc = self.execute_saga_uc.clone();
-        tokio::spawn(async move {
+        self.task_tracker.spawn(async move {
             if let Err(e) = execute_uc.run(saga_id, &workflow).await {
                 tracing::error!(
                     saga_id = %saga_id,

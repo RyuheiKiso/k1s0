@@ -34,11 +34,8 @@ pub fn validate_email(field: &str, email: &str) -> Result<(), ValidationError> {
     if EMAIL_RE.is_match(email) {
         Ok(())
     } else {
-        Err(err(
-            field,
-            "INVALID_EMAIL",
-            format!("invalid email: {email}"),
-        ))
+        // PII 保護: エラーメッセージにユーザー入力値を含めない
+        Err(err(field, "INVALID_EMAIL", "invalid email format".to_string()))
     }
 }
 
@@ -47,20 +44,23 @@ pub fn validate_uuid(field: &str, id: &str) -> Result<(), ValidationError> {
     if UUID_RE.is_match(id) {
         Ok(())
     } else {
-        Err(err(field, "INVALID_UUID", format!("invalid uuid v4: {id}")))
+        // PII 保護: エラーメッセージにユーザー入力値を含めない
+        Err(err(field, "INVALID_UUID", "invalid uuid v4 format".to_string()))
     }
 }
 
 pub fn validate_url(field: &str, input: &str) -> Result<(), ValidationError> {
     let parsed = url::Url::parse(input)
-        .map_err(|_| err(field, "INVALID_URL", format!("invalid url: {input}")))?;
+        // PII 保護: エラーメッセージにユーザー入力値を含めない
+        .map_err(|_| err(field, "INVALID_URL", "invalid url format".to_string()))?;
 
     match parsed.scheme() {
         "http" | "https" => Ok(()),
+        // PII 保護: スキーム名はシステム情報であり含めても問題ないが、入力値そのものは除外する
         scheme => Err(err(
             field,
             "INVALID_URL",
-            format!("unsupported scheme: {scheme}"),
+            format!("unsupported url scheme: {scheme}"),
         )),
     }
 }
@@ -68,10 +68,11 @@ pub fn validate_url(field: &str, input: &str) -> Result<(), ValidationError> {
 // テナントIDを検証する。先頭・末尾は英数字、中間はハイフン許可（4言語統一パターン H-18）
 pub fn validate_tenant_id(field: &str, id: &str) -> Result<(), ValidationError> {
     if !TENANT_ID_RE.is_match(id) {
+        // PII 保護: エラーメッセージにユーザー入力値を含めない
         return Err(err(
             field,
             "INVALID_TENANT_ID",
-            format!("tenant ID must be 3-63 chars, lowercase alphanumeric and hyphens, no leading/trailing hyphens: {id}"),
+            "tenant ID must be 3-63 chars, lowercase alphanumeric and hyphens, no leading/trailing hyphens".to_string(),
         ));
     }
     Ok(())

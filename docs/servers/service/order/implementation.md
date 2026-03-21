@@ -530,6 +530,44 @@ cargo test --features db-tests
 
 ---
 
+## Doc Sync (2026-03-21)
+
+### gRPC ハンドラー 認証必須化 [技術品質監査 Critical 2-1]
+
+**背景・問題**
+
+`order_grpc.rs` の `create_order` および `update_order_status` ハンドラーで
+`actor_from_claims(request.extensions().get())` を直接呼び出していた。
+`actor_from_claims` は `None` を受け取ると "anonymous" を返すため、
+認証ミドルウェアが設定した Claims が存在しない場合でも処理が続行する問題があった。
+
+**対応内容**
+
+2つのハンドラーで Claims の存在チェックを明示的に行うよう変更した。
+
+```rust
+// 変更前（None の場合は anonymous として続行）
+let actor = actor_from_claims(request.extensions().get());
+
+// 変更後（Claims がなければ Unauthenticated エラーを返す）
+let claims: &Claims = request
+    .extensions()
+    .get()
+    .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+let actor = actor_from_claims(Some(claims));
+```
+
+**影響範囲**
+
+- `src/adapter/grpc/order_grpc.rs`（`create_order`・`update_order_status` ハンドラー）
+
+**設計上の注意**
+
+認証ミドルウェアが正しく設定されている場合、Claims は常に extensions に存在するはずである。
+このチェックは、認証ミドルウェアのバイパスや設定漏れを早期検出するためのフェイルセーフとして機能する。
+
+---
+
 ## 関連ドキュメント
 
 - [service-order-server.md](server.md) -- 概要・API 定義・アーキテクチャ

@@ -607,6 +607,37 @@ Kubernetes 上では以下の 3 種類の StorageClass を使用する。
 | `app.kubernetes.io/managed-by` | helm           | 管理ツール           |
 | `tier`                         | service        | Tier 階層            |
 
+## Doc Sync (2026-03-21)
+
+### k1s0-operator ロールの secrets 権限削減 [技術品質監査 High 4-5]
+
+**背景・問題**
+
+`infra/kubernetes/rbac/cluster-roles.yaml` の `k1s0-operator` ロールが
+`secrets` リソースに対して `create, update, delete` を含む全書き込み操作を許可していた。
+運用者が誤ってシークレットを削除・上書きするリスクがあり、最小権限の原則に反していた。
+
+**対応内容**
+
+`secrets` リソースの権限を参照系のみ（`get, list, watch`）に限定した。
+
+```yaml
+# 変更前
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
+
+# 変更後（secrets を分離して参照のみに限定）
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+```
+
+シークレットの書き込み操作が必要な場合は `k1s0-admin` ロールを使用すること。
+
 ## 関連ドキュメント
 
 - [tier-architecture](../../architecture/overview/tier-architecture.md)

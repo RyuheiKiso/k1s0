@@ -99,10 +99,12 @@ func (p *RedisPubSub) Subscribe(ctx context.Context, topic string) (<-chan *Mess
 			Data:      payload,
 			Timestamp: time.Now(),
 		}
-		// チャネルが満杯の場合はメッセージをドロップして処理を継続する。
+		// コンテキストキャンセルまでチャネルへの送信をブロックする。
+		// default による無言ドロップを排除し、ctx.Done() でシャットダウンを検出する。
 		select {
 		case ch <- msg:
-		default:
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 		return nil
 	}

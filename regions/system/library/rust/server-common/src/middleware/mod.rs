@@ -32,6 +32,6 @@ pub use grpc_auth::GrpcAuthLayer;
 #[cfg(feature = "kafka-setup")]
 pub use kafka_setup::{KafkaConfig, KafkaSetup};
 #[cfg(feature = "auth")]
-pub use rbac::Tier;
+pub use rbac::{check_permission, Tier};
 pub use request_id::RequestIdLayer;
 pub use stack::{K1s0Stack, Profile};

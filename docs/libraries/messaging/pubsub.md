@@ -399,6 +399,48 @@ mod tests {
 
 ---
 
+## Doc Sync (2026-03-21)
+
+### goroutine チャネル送信の ctx.Done() 対応 [技術品質監査 High 3-1]
+
+**背景・問題**
+
+`kafka_pubsub.go` および `redis_pubsub.go` の `Subscribe` ハンドラー内で、
+チャネルバッファが満杯の場合に `select { default: }` でメッセージを無言でドロップしていた。
+バッファが一時的に満杯になった場合でも、受信側の処理が追いつけばメッセージを送信できるはずだが、
+`default:` パターンではその機会を失う問題があった。
+
+**対応内容**
+
+Kafka・Redis 双方のハンドラーで `default:` ケースを除去し、`ctx.Done()` ケースに置き換えた。
+
+```go
+// 変更前: バッファ満杯時はドロップ
+select {
+case ch <- msg:
+default:
+}
+
+// 変更後: コンテキストキャンセルまでブロック
+select {
+case ch <- msg:
+case <-ctx.Done():
+    return ctx.Err()
+}
+```
+
+これにより：
+- バッファが一時的に満杯でも、受信側の処理が追いつけばメッセージを送信できる
+- コンテキストがキャンセルされた場合はエラーを返して処理を終了する
+- lessons.md の「goroutine内チャネル送信は select + ctx.Done()」ポリシーに準拠
+
+**影響範囲**
+
+- `regions/system/library/go/building-blocks/kafka_pubsub.go`（Subscribe ハンドラー）
+- `regions/system/library/go/building-blocks/redis_pubsub.go`（Subscribe ハンドラー）
+
+---
+
 ## 関連ドキュメント
 
 - [Building Blocks 概要](../_common/building-blocks.md) — BB 設計思想・共通インターフェース

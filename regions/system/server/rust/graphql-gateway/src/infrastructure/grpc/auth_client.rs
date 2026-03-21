@@ -6,6 +6,7 @@ use tracing::instrument;
 
 use crate::domain::model::{AuditLog, PermissionCheck, Role, User};
 use crate::infrastructure::config::BackendConfig;
+use crate::infrastructure::grpc_retry::with_retry;
 
 #[allow(dead_code)]
 pub mod proto {
@@ -34,11 +35,12 @@ pub struct AuthGrpcClient {
 }
 
 impl AuthGrpcClient {
-    pub async fn connect(cfg: &BackendConfig) -> anyhow::Result<Self> {
+    /// バックエンド設定からクライアントを生成する。
+    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
-            .connect()
-            .await?;
+            .connect_lazy();
         Ok(Self {
             auth_client: AuthServiceClient::new(channel.clone()),
             audit_client: AuditServiceClient::new(channel),
@@ -47,11 +49,17 @@ impl AuthGrpcClient {
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_user(&self, user_id: &str) -> anyhow::Result<Option<User>> {
-        let request = tonic::Request::new(proto::k1s0::system::auth::v1::GetUserRequest {
-            user_id: user_id.to_owned(),
-        });
+        // 一時的エラー（UNAVAILABLE/DEADLINE_EXCEEDED）は最大 3 回リトライする
+        let resp = with_retry("AuthService.GetUser", 3, || {
+            let mut client = self.auth_client.clone();
+            let req = tonic::Request::new(proto::k1s0::system::auth::v1::GetUserRequest {
+                user_id: user_id.to_owned(),
+            });
+            async move { client.get_user(req).await }
+        })
+        .await;
 
-        match self.auth_client.clone().get_user(request).await {
+        match resp {
             Ok(resp) => {
                 let u = match resp.into_inner().user {
                     Some(u) => u,

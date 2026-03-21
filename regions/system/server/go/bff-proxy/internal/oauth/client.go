@@ -53,9 +53,21 @@ type Client struct {
 	verifier *oidc.IDTokenVerifier
 }
 
+// ClientOption は NewClient に渡せるオプション関数型。
+type ClientOption func(*Client)
+
+// WithHTTPTimeout は OAuth HTTP クライアントのタイムアウトを設定するオプション。
+// デフォルト値は 10 秒。テストや低レイテンシ環境での上書きに使用する。
+func WithHTTPTimeout(d time.Duration) ClientOption {
+	return func(c *Client) {
+		c.httpClient = &http.Client{Timeout: d}
+	}
+}
+
 // NewClient creates an OIDC client for the BFF proxy.
-func NewClient(discoveryURL, clientID, clientSecret, redirectURI string, scopes []string) *Client {
-	return &Client{
+// オプション関数を渡すことで HTTP タイムアウト等の動作をカスタマイズできる。
+func NewClient(discoveryURL, clientID, clientSecret, redirectURI string, scopes []string, opts ...ClientOption) *Client {
+	c := &Client{
 		discoveryURL: discoveryURL,
 		clientID:     clientID,
 		clientSecret: clientSecret,
@@ -63,6 +75,10 @@ func NewClient(discoveryURL, clientID, clientSecret, redirectURI string, scopes 
 		scopes:       scopes,
 		httpClient:   &http.Client{Timeout: 10 * time.Second},
 	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 // Discover fetches the OIDC discovery document and caches the endpoints.

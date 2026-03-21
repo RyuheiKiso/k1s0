@@ -59,7 +59,8 @@ pub async fn initiate_payment(
     Json(body): Json<InitiatePaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // 認証済みユーザーのアクター情報を抽出する
-    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    tracing::debug!(actor = %actor, "payment operation invoked");
 
     let input = InitiatePayment {
         order_id: body.order_id,
@@ -139,7 +140,8 @@ pub async fn complete_payment(
     Json(body): Json<CompletePaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // 認証済みユーザーのアクター情報を抽出する
-    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    tracing::debug!(actor = %actor, "payment operation invoked");
     let id = parse_uuid(&payment_id)?;
 
     let payment = state
@@ -160,7 +162,8 @@ pub async fn fail_payment(
     Json(body): Json<FailPaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // 認証済みユーザーのアクター情報を抽出する
-    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    tracing::debug!(actor = %actor, "payment operation invoked");
     let id = parse_uuid(&payment_id)?;
 
     let payment = state
@@ -181,7 +184,8 @@ pub async fn refund_payment(
     Json(body): Json<RefundPaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // 認証済みユーザーのアクター情報を抽出する
-    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    tracing::debug!(actor = %actor, "payment operation invoked");
     let id = parse_uuid(&payment_id)?;
 
     // 返金理由をユースケースに伝播する

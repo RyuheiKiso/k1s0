@@ -28,19 +28,26 @@ docs/ @k1s0-platform/docs-team
 /scripts/ @k1s0-ops
 
 # === 言語別ギルドのオーナーシップ ===
-# 各言語の専門チームが横断的にレビューする
+# GitHub CODEOWNERS は最後にマッチしたパターンが適用される（last-match-wins）。
+# ディレクトリパターンの後に言語ギルドパターンを配置することで、
+# 「ディレクトリ担当チーム + 言語ギルド」の両方がレビュアーに指定される。
 
-# Rust コード
-*.rs @k1s0-platform/rust-guild
+# Rust コード（ディレクトリ担当チームとギルドの両方をレビュアーに設定）
+regions/system/**/*.rs @k1s0-platform/system-team @k1s0-platform/rust-guild
+regions/service/**/*.rs @k1s0-platform/service-team @k1s0-platform/rust-guild
+regions/business/**/*.rs @k1s0-platform/business-team @k1s0-platform/rust-guild
+CLI/**/*.rs @k1s0-platform/cli-team @k1s0-platform/rust-guild
 
 # Go コード
-*.go @k1s0-platform/go-guild
+regions/system/**/*.go @k1s0-platform/system-team @k1s0-platform/go-guild
+regions/service/**/*.go @k1s0-platform/service-team @k1s0-platform/go-guild
+regions/business/**/*.go @k1s0-platform/business-team @k1s0-platform/go-guild
 
 # TypeScript / JavaScript コード
-*.ts @k1s0-platform/ts-guild
-*.tsx @k1s0-platform/ts-guild
-*.js @k1s0-platform/ts-guild
-*.jsx @k1s0-platform/ts-guild
+regions/**/*.ts @k1s0-platform/ts-guild
+regions/**/*.tsx @k1s0-platform/ts-guild
+CLI/**/*.ts @k1s0-platform/cli-team @k1s0-platform/ts-guild
+CLI/**/*.tsx @k1s0-platform/cli-team @k1s0-platform/ts-guild
 
 # Dart / Flutter コード
-*.dart @k1s0-platform/dart-guild
+regions/**/*.dart @k1s0-platform/dart-guild

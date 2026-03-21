@@ -4,6 +4,7 @@ use async_graphql::futures_util::Stream;
 use chrono::{DateTime, Utc};
 use tonic::transport::Channel;
 use tracing::instrument;
+use tracing::warn;
 
 use crate::domain::model::ConfigEntry;
 use crate::infrastructure::config::BackendConfig;
@@ -33,11 +34,12 @@ pub struct ConfigGrpcClient {
 }
 
 impl ConfigGrpcClient {
-    pub async fn connect(cfg: &BackendConfig) -> anyhow::Result<Self> {
+    /// バックエンド設定からクライアントを生成する。
+    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
-            .connect()
-            .await?;
+            .connect_lazy();
         Ok(Self {
             client: ConfigServiceClient::new(channel),
         })
@@ -60,7 +62,11 @@ impl ConfigGrpcClient {
                     Some(e) => e,
                     None => return Ok(None),
                 };
-                let value_str = String::from_utf8(entry.value).unwrap_or_default();
+                // UTF-8 デコード失敗時はエラーを伝播する（サイレントな空文字列化を避ける）
+                let value_str = String::from_utf8(entry.value).map_err(|e| {
+                    warn!(namespace = %entry.namespace, key = %entry.key, "config value is not valid UTF-8: {}", e);
+                    anyhow::anyhow!("config value is not valid UTF-8: {}", e)
+                })?;
                 Ok(Some(ConfigEntry {
                     key: format!("{}/{}", entry.namespace, entry.key),
                     value: value_str,
@@ -104,7 +110,11 @@ impl ConfigGrpcClient {
                         target_keys.iter().map(|s| s.as_str()).collect();
                     for entry in resp.into_inner().entries {
                         if target_set.contains(entry.key.as_str()) {
-                            let value_str = String::from_utf8(entry.value).unwrap_or_default();
+                            // UTF-8 デコード失敗時はエラーを伝播する（サイレントな空文字列化を避ける）
+                            let value_str = String::from_utf8(entry.value).map_err(|e| {
+                                warn!(namespace = %entry.namespace, key = %entry.key, "config value is not valid UTF-8: {}", e);
+                                anyhow::anyhow!("config value is not valid UTF-8: {}", e)
+                            })?;
                             results.push(ConfigEntry {
                                 key: format!("{}/{}", entry.namespace, entry.key),
                                 value: value_str,
@@ -122,9 +132,13 @@ impl ConfigGrpcClient {
     }
 
     /// WatchConfig Server-Side Streaming を購読し、変更イベントを ConfigEntry として返す。
-    /// .expect() によるパニックを排除し、接続失敗時は anyhow::Error として伝播する。
+    /// ストリームアイテムは `Result<ConfigEntry, tonic::Status>` として返し、
+    /// 接続中の gRPC エラーをサブスクライバーに伝播する（P2-26）。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn watch_config(&self, namespaces: Vec<String>) -> anyhow::Result<impl Stream<Item = ConfigEntry>> {
+    pub async fn watch_config(
+        &self,
+        namespaces: Vec<String>,
+    ) -> anyhow::Result<impl Stream<Item = Result<ConfigEntry, tonic::Status>>> {
         let request =
             tonic::Request::new(proto::k1s0::system::config::v1::WatchConfigRequest { namespaces });
 
@@ -136,20 +150,45 @@ impl ConfigGrpcClient {
             .await?
             .into_inner();
 
-        Ok(async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
-            match stream.message().await {
-                Ok(Some(resp)) => {
-                    let value_str = String::from_utf8(resp.new_value).unwrap_or_default();
-                    let entry = ConfigEntry {
-                        key: format!("{}/{}", resp.namespace, resp.key),
-                        value: value_str,
-                        updated_at: timestamp_to_rfc3339(resp.changed_at),
-                    };
-                    Some((entry, stream))
+        // unfold のクロージャ内で loop を使い、UTF-8 デコード失敗時はスキップして次メッセージを処理する。
+        // ストリームエラー（tonic::Status）は Err() としてサブスクライバーに伝播し、
+        // 切断理由が不明のまま購読が終了するのを防ぐ。
+        Ok(async_graphql::futures_util::stream::unfold(
+            stream,
+            |mut stream| async move {
+                loop {
+                    match stream.message().await {
+                        Ok(Some(resp)) => {
+                            match String::from_utf8(resp.new_value) {
+                                Ok(value_str) => {
+                                    let entry = ConfigEntry {
+                                        key: format!("{}/{}", resp.namespace, resp.key),
+                                        value: value_str,
+                                        updated_at: timestamp_to_rfc3339(resp.changed_at),
+                                    };
+                                    return Some((Ok(entry), stream));
+                                }
+                                Err(e) => {
+                                    // UTF-8 デコード失敗時は警告を出してこのエントリをスキップする
+                                    warn!(namespace = %resp.namespace, key = %resp.key, "watch_config: value is not valid UTF-8, skipping: {}", e);
+                                    // ループ継続して次メッセージを処理する
+                                }
+                            }
+                        }
+                        // ストリームが正常終了した場合は購読を終了する
+                        Ok(None) => return None,
+                        // ストリームエラーはサブスクライバーに伝播してから購読を終了する
+                        Err(status) => {
+                            tracing::error!(
+                                error = %status,
+                                "watch_config: gRPC stream error, terminating subscription"
+                            );
+                            return Some((Err(status), stream));
+                        }
+                    }
                 }
-                _ => None,
-            }
-        }))
+            },
+        ))
     }
 }
 

@@ -222,6 +222,51 @@ impl InitiatePaymentUseCase {
 
 ---
 
+## Doc Sync (2026-03-21)
+
+### gRPC 全ハンドラー 認証チェック追加 [技術品質監査 Critical 2-1]
+
+**背景・問題**
+
+`payment_grpc.rs` の全 6 ハンドラーで認証チェックが未実装であった。
+Claims を取得せずに処理を続行していたため、未認証リクエストを受け入れる可能性があった。
+
+また `payment_handler.rs` の REST ハンドラーでは `let _actor` と変数名にアンダースコアを付けており、
+actor 情報をログ出力に使用していなかった。
+
+**対応内容**
+
+**gRPC ハンドラー（`payment_grpc.rs`）:**
+
+全 6 ハンドラー（`initiate_payment`, `get_payment`, `list_payments`, `complete_payment`, `fail_payment`, `refund_payment`）に認証チェックを追加。
+
+```rust
+// 書き込み系ハンドラー（initiate / complete / fail / refund）
+let claims: &Claims = request
+    .extensions()
+    .get()
+    .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+let _actor = actor_from_claims(Some(claims));
+
+// 読み取り系ハンドラー（get / list）
+request
+    .extensions()
+    .get::<Claims>()
+    .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+```
+
+**REST ハンドラー（`payment_handler.rs`）:**
+
+書き込み系 3 ハンドラー（`initiate_payment`, `complete_payment`, `fail_payment`, `refund_payment`）で
+`let _actor` を `let actor` に変更し、`tracing::debug!` でログ出力するよう修正した。
+
+**影響範囲**
+
+- `src/adapter/grpc/payment_grpc.rs`（全 6 ハンドラー）
+- `src/adapter/handler/payment_handler.rs`（書き込み系ハンドラー）
+
+---
+
 ## 関連ドキュメント
 
 - [service-payment-server.md](server.md) -- 概要・API 定義・アーキテクチャ

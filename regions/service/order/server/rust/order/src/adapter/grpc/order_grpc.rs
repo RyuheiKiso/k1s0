@@ -10,7 +10,7 @@ use crate::proto::k1s0::service::order::v1::{
 use crate::proto::k1s0::system::common::v1::PaginationResult;
 use crate::usecase;
 use chrono::{DateTime, Utc};
-use k1s0_auth::actor_from_claims;
+use k1s0_auth::{actor_from_claims, Claims};
 // カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
 use crate::proto::k1s0::system::common::v1::Timestamp;
 use std::sync::Arc;
@@ -46,7 +46,12 @@ impl OrderService for OrderGrpcService {
         &self,
         request: Request<CreateOrderRequest>,
     ) -> Result<Response<CreateOrderResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // 認証ミドルウェアが設定したClaimsがない場合は認証エラーを返す
+        let claims: &Claims = request
+            .extensions()
+            .get()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let input = CreateOrder {
             customer_id: req.customer_id,
@@ -138,7 +143,12 @@ impl OrderService for OrderGrpcService {
         &self,
         request: Request<UpdateOrderStatusRequest>,
     ) -> Result<Response<UpdateOrderStatusResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // 認証ミドルウェアが設定したClaimsがない場合は認証エラーを返す
+        let claims: &Claims = request
+            .extensions()
+            .get()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let order_id = parse_uuid(&req.order_id, "order_id")?;
         let new_status: OrderStatus = req

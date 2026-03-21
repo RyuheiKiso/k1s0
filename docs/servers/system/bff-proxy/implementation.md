@@ -116,3 +116,43 @@ type OAuthClient interface {
 - エラーコードは `BFF_*` の固定値を返す。
 - 認証・CSRF 不備は 401/403、内部処理失敗は 500。
 - `request_id` を全エラーレスポンスに付与する。
+
+## Doc Sync (2026-03-21)
+
+### BFF-Proxy 3件の改善 [技術品質監査 High 3-4, 3-5, Medium 7-2]
+
+**P1-9: リバースプロキシのタイムアウト完全化 [High 3-4]**
+
+`reverse_proxy.go` でタイムアウト設定が `ResponseHeaderTimeout` のみだった。
+他のタイムアウトが未設定のままだと、TCP 接続確立・TLS ハンドシェイク・アイドル接続が
+無制限にハングする可能性があった。
+
+以下のタイムアウトを明示設定するよう変更：
+
+| 設定 | 値 | 用途 |
+| --- | --- | --- |
+| `DialContext` (Timeout) | 30s | TCP 接続確立（DNS + 3way HS） |
+| `DialContext` (KeepAlive) | 30s | TCP Keep-Alive |
+| `TLSHandshakeTimeout` | 10s | TLS 証明書検証を含むハンドシェイク |
+| `IdleConnTimeout` | 90s | アイドル接続の保持上限 |
+| `ResponseHeaderTimeout` | configurable | アップストリーム応答待ち |
+
+**P1-10: OAuth HTTP クライアントのタイムアウト設定可能化 [High 3-5]**
+
+`oauth/client.go` の `NewClient` がタイムアウトを `10 * time.Second` にハードコードしていた。
+`WithHTTPTimeout(d time.Duration)` オプション関数を追加し、後方互換性を維持しつつカスタマイズ可能にした。
+
+```go
+// デフォルト（10秒）
+client := oauth.NewClient(...)
+
+// カスタムタイムアウト
+client := oauth.NewClient(..., oauth.WithHTTPTimeout(30 * time.Second))
+```
+
+**P1-19: ALLOW_REDIS_SKIP の本番環境ガード [Medium 7-2]**
+
+`main.go` で `ALLOW_REDIS_SKIP=true` を設定すると、どの環境でも Redis 接続失敗を無視してしまっていた。
+`cfg.App.Environment == "development"` の場合のみスキップを許可するよう変更した。
+
+production / staging 環境では `ALLOW_REDIS_SKIP=true` でも Redis 接続失敗はエラーで終了する。

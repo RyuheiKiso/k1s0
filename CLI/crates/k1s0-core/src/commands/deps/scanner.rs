@@ -114,12 +114,14 @@ fn scan_domain_servers(tier_dir: &Path, tier: &str, services: &mut Vec<ServiceIn
 }
 
 /// ディレクトリ内のエントリをソートして返す。
+/// シンボリックリンクはリポジトリ外を指す可能性があるため除外する。
 fn read_dir_sorted(dir: &Path) -> Vec<fs::DirEntry> {
     let mut entries: Vec<fs::DirEntry> = fs::read_dir(dir)
         .ok()
         .into_iter()
         .flat_map(std::iter::Iterator::flatten)
-        .filter(|e| e.path().is_dir())
+        // シンボリックリンクを除外してからディレクトリかどうかを判定する
+        .filter(|e| !e.path().is_symlink() && e.path().is_dir())
         .collect();
     entries.sort_by_key(std::fs::DirEntry::file_name);
     entries

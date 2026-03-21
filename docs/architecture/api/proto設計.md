@@ -4922,6 +4922,41 @@ buf breaking api/proto --against '.git#branch=main'
 
 ---
 
+## Doc Sync (2026-03-21)
+
+### カスタム Timestamp 型から google.protobuf.Timestamp への移行計画 [技術品質監査 Critical 6-2]
+
+**背景**
+
+`k1s0.system.common.v1.Timestamp` は `google.protobuf.Timestamp` と同一のフィールド定義を持つ
+独自型として定義されている。Well-Known Types への追加依存を避けるため独自型を使用してきたが、
+エコシステムとの互換性・標準ライブラリのサポートを活用するため段階的移行を計画する。
+
+**現状**
+
+- `api/proto/k1s0/system/common/v1/types.proto` に `message Timestamp` として定義
+- 全サービスの proto ファイルで `k1s0.system.common.v1.Timestamp` を使用
+- Rust 実装では `datetime_to_timestamp()` / `timestamp_to_datetime()` ヘルパーを使用
+
+**移行方針（3フェーズ）**
+
+**Phase A（準備）:** `google.protobuf.Timestamp` の import を追加しつつ、
+既存フィールドに `deprecated` アノテーションを付与してビルドを継続する。
+
+**Phase B（段階移行）:** 新規追加フィールドから `google.protobuf.Timestamp` を使用し始める。
+既存フィールドは後方互換性のために残す。
+
+**Phase C（移行完了）:** 全フィールドを `google.protobuf.Timestamp` に移行し、
+`k1s0.system.common.v1.Timestamp` を deprecated として最終的に削除する。
+
+**制約・注意事項**
+
+- 移行は破壊的変更（wire format は同一だがパッケージ名が変わる）のため慎重に進める
+- `buf breaking` で事前検証を必須とする
+- クライアント側（Flutter/TypeScript）も同時移行が必要
+
+---
+
 ## 関連ドキュメント
 
 - [API設計.md](./API設計.md) -- gRPC サービス定義パターン (D-009)・gRPC バージョニング (D-010)
