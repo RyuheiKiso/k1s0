@@ -183,7 +183,10 @@ migrations/
 ├── 001_create_inventory_items.up.sql    # スキーマ・inventory_items テーブル・インデックス・制約
 ├── 001_create_inventory_items.down.sql
 ├── 002_create_outbox.up.sql             # outbox_events テーブル・部分インデックス
-└── 002_create_outbox.down.sql
+├── 002_create_outbox.down.sql
+├── ...（003〜006: outbox 拡張）
+├── 007_create_inventory_reservations.up.sql   # inventory_reservations テーブル（Saga 補償用）
+└── 007_create_inventory_reservations.down.sql
 ```
 
 ### マイグレーション一覧
@@ -192,6 +195,8 @@ migrations/
 |------|-----------|------|
 | 001 | create_inventory_items | `inventory_service` スキーマ・`inventory_items` テーブル・UNIQUE 制約・CHECK 制約・product_id / warehouse_id インデックス |
 | 002 | create_outbox | `outbox_events` テーブル・未配信イベント用部分インデックス |
+| 003〜006 | outbox 拡張 | idempotency_key・updated_at トリガー・processing_at・タイムアウトインデックス |
+| 007 | create_inventory_reservations | `inventory_reservations` テーブル・Saga 補償用の order_id 逆引きインデックス・冪等性 UNIQUE 制約 |
 
 ### 001_create_inventory_items.up.sql
 
