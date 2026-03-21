@@ -1,0 +1,89 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/backup-verification.yaml
+# staging 環境のバックアップ整合性を週次で自動検証するワークフロー。
+# リストア手順書（docs/infrastructure/kubernetes/バックアップリストア手順書.md）に基づく。
+# 失敗時は GitHub Actions のジョブ失敗として記録され、通知が送られる。
+name: Backup Verification
+
+permissions: {}
+
+on:
+  schedule:
+    # 毎週水曜日 01:00 UTC（日本時間 10:00）に実行する
+    # バックアップは 03:00 JST に取得されるため、取得完了後の時間帯を選択
+    - cron: '0 1 * * 3'
+  workflow_dispatch:
+    # 手動実行（バックアップリストア手順書のドライラン・緊急確認に使用）
+    inputs:
+      components:
+        description: '検証対象コンポーネント（スペース区切り: postgres vault etcd harbor）'
+        required: false
+        default: 'postgres vault etcd harbor'
+      environment:
+        description: '対象環境（staging のみ許可）'
+        required: false
+        default: 'staging'
+
+jobs:
+  verify-backups:
+    runs-on: ubuntu-latest
+    # staging クラスタへの接続のみ許可（本番への誤接続防止）
+    environment: staging
+    permissions:
+      contents: read
+    env:
+      # 対象環境を環境変数として明示する（スクリプト内でも参照する）
+      TARGET_ENV: ${{ inputs.environment || 'staging' }}
+      COMPONENTS: ${{ inputs.components || 'postgres vault etcd harbor' }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: kubectl のセットアップ
+        # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+        uses: azure/setup-kubectl@776e30f3604f7fa8e7df58f9e8f68a0bb1b1a40c # v4
+
+      - name: staging クラスタへの kubeconfig を設定する
+        # シークレットから kubeconfig を復元する（本番クラスタへの接続は別シークレットで管理）
+        run: |
+          mkdir -p "${HOME}/.kube"
+          echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > "${HOME}/.kube/config"
+          chmod 600 "${HOME}/.kube/config"
+
+      - name: クラスタ接続確認
+        # 接続できない場合は後続ステップで誤動作するため、早期に失敗させる
+        run: kubectl cluster-info --context staging 2>/dev/null || kubectl cluster-info
+
+      - name: バックアップ検証スクリプトを実行する
+        id: verify
+        run: |
+          chmod +x scripts/verify-backup-restore.sh
+          COMPONENTS="${COMPONENTS}" \
+          NAMESPACE="k1s0-system" \
+          VERIFY_NAMESPACE="k1s0-backup-verify" \
+            scripts/verify-backup-restore.sh 2>&1 | tee /tmp/verify-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: 検証結果サマリを GitHub Step Summary に出力する
+        if: always()
+        run: |
+          echo "## バックアップ検証結果 — $(date '+%Y-%m-%d')" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**対象環境**: \`${TARGET_ENV}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**対象コンポーネント**: \`${COMPONENTS}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/verify-output.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "出力なし" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 検証用 Namespace のクリーンアップ
+        # 失敗しても次回実行のために Namespace を削除する
+        if: always()
+        run: |
+          kubectl delete namespace k1s0-backup-verify --ignore-not-found=true || true
+
+      - name: 検証失敗時にアノテーションを追加する
+        if: steps.verify.outputs.exit_code != '0'
+        run: |
+          echo "::error::バックアップ検証が失敗しました。詳細は Step Summary を確認してください。"
+          echo "::error::対処手順: docs/infrastructure/kubernetes/バックアップリストア手順書.md"
+          exit 1

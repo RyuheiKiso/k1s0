@@ -5,26 +5,27 @@
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
 /// AccountingDomainMaster ドメイン固有のエラー型。
+/// エラーメッセージはハンドラー層と統一するため日本語で記述する（m-15 対応）。
 #[derive(Debug, thiserror::Error)]
 pub enum AccountingDomainMasterError {
     /// マスターデータが見つからない
-    #[error("accounting master data '{0}' not found")]
+    #[error("会計マスタデータ '{0}' が見つかりません")]
     NotFound(String),
 
     /// マスターデータが既に存在する
-    #[error("accounting master data already exists: {0}")]
+    #[error("会計マスタデータが既に存在します: {0}")]
     AlreadyExists(String),
 
     /// バージョン競合
-    #[error("version conflict: {0}")]
+    #[error("バージョン競合が発生しました: {0}")]
     VersionConflict(String),
 
     /// バリデーションエラー
-    #[error("validation failed: {0}")]
+    #[error("バリデーションに失敗しました: {0}")]
     ValidationFailed(String),
 
     /// 内部エラー
-    #[error("internal error: {0}")]
+    #[error("内部エラーが発生しました: {0}")]
     Internal(String),
 }
 

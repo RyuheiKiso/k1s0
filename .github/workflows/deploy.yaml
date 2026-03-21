@@ -158,6 +158,8 @@ jobs:
           name: trivy-sarif-${{ steps.image.outputs.service_name }}
           path: trivy-results.sarif
           if-no-files-found: warn
+          # 監査証跡として1年分保持する（m-04対応: デフォルト90日では監査要件を満たせないため）
+          retention-days: 365
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Install Cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
@@ -227,7 +229,7 @@ jobs:
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            --certificate-identity-regexp "^https://github\\.com/k1s0-org/k1s0/\\.github/workflows/.*" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
@@ -300,7 +302,7 @@ jobs:
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            --certificate-identity-regexp "^https://github\\.com/k1s0-org/k1s0/\\.github/workflows/.*" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
@@ -378,7 +380,7 @@ jobs:
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            --certificate-identity-regexp "^https://github\\.com/k1s0-org/k1s0/\\.github/workflows/.*" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4

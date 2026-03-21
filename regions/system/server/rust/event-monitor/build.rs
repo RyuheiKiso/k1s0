@@ -1,6 +1,8 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let event_monitor_proto =
         "../../../../../api/proto/k1s0/system/eventmonitor/v1/event_monitor.proto";
+    // DLQ Manager の gRPC クライアントコードを生成するための proto ファイルパス
+    let dlq_proto = "../../../../../api/proto/k1s0/system/dlq/v1/dlq.proto";
     let proto_include = "../../../../../api/proto";
 
     if !std::path::Path::new(event_monitor_proto).exists() {
@@ -11,6 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
+    // event_monitor サービス: サーバー側コードを生成する（このサービス自身がサーバー）
     match tonic_build::configure()
         .build_server(true)
         .build_client(false)
@@ -27,5 +30,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
     }
+
+    // DLQ Manager サービス: クライアント側コードを生成する（このサービスが gRPC クライアントとして呼び出す）
+    if std::path::Path::new(dlq_proto).exists() {
+        match tonic_build::configure()
+            .build_server(false)
+            .build_client(true)
+            .out_dir("src/proto")
+            .compile_protos(&[dlq_proto], &[proto_include])
+        {
+            Ok(()) => {
+                println!("cargo:warning=tonic-build succeeded for dlq proto (client)");
+            }
+            Err(e) => {
+                println!(
+                    "cargo:warning=tonic-build failed for dlq proto: {}",
+                    e
+                );
+            }
+        }
+    } else {
+        println!(
+            "cargo:warning=DLQ proto file not found, skipping dlq client codegen: {}",
+            dlq_proto
+        );
+    }
+
     Ok(())
 }

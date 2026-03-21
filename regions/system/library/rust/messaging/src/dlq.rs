@@ -185,7 +185,8 @@ mod tests {
     }
 
     // リトライが全て失敗した場合に process_with_dlq_fallback が DLQ へフォールバックし Ok を返すことを確認する。
-    #[tokio::test]
+    // start_paused = true でエクスポネンシャルバックオフの sleep を即時スキップさせることで実行時間を削減する。
+    #[tokio::test(start_paused = true)]
     async fn test_process_with_dlq_fallback_all_retries_fail() {
         let producer = NoOpEventProducer;
         let result = process_with_dlq_fallback(
@@ -232,7 +233,8 @@ mod tests {
     }
 
     // 2 回目のリトライで成功する場合に DLQ に転送されないことを確認する。
-    #[tokio::test]
+    // start_paused = true でバックオフ sleep を即時スキップする。
+    #[tokio::test(start_paused = true)]
     async fn test_process_with_dlq_fallback_succeeds_on_second_retry() {
         let producer = NoOpEventProducer;
         let call_count = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
@@ -283,7 +285,8 @@ mod tests {
     }
 
     // max_retries を None にした場合にデフォルト（3回）のリトライが実行されることを確認する。
-    #[tokio::test]
+    // start_paused = true でバックオフ sleep を即時スキップする。
+    #[tokio::test(start_paused = true)]
     async fn test_process_with_dlq_fallback_default_retries() {
         let producer = NoOpEventProducer;
         let call_count = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));

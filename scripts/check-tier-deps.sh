@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# エラー発生時に即座に終了し、未定義変数をエラーとして扱い、パイプラインの途中エラーも検知する（M-26対応）
+set -euo pipefail
 # Tier 依存関係の整合性チェック。
 # modules.yaml に定義された tier_dependencies に基づき、
 # 上位層（service/business）から下位層（system）への依存のみを許可する。

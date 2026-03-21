@@ -453,7 +453,7 @@ jobs:
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            --certificate-identity-regexp "^https://github\\.com/k1s0-org/k1s0/\\.github/workflows/.*" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
         with:
@@ -516,7 +516,7 @@ jobs:
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            --certificate-identity-regexp "^https://github\\.com/k1s0-org/k1s0/\\.github/workflows/.*" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
         with:
@@ -581,7 +581,7 @@ jobs:
         run: |
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            --certificate-identity-regexp "^https://github\\.com/k1s0-org/k1s0/\\.github/workflows/.*" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ steps.meta.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
         with:
@@ -648,20 +648,20 @@ jobs:
 
 | ジョブ | 実行タイミング | 目的 |
 | --- | --- | --- |
-| `trivy-scan` | 日次 + PR 時 | リポジトリ全体のファイルシステム脆弱性スキャン（HIGH/CRITICAL） |
+| `trivy-scan` | 日次 + PR 時 | リポジトリ全体のファイルシステム脆弱性スキャン（MEDIUM/HIGH/CRITICAL） |
 | `dependency-check` | 日次 + PR 時 | Go / Rust / npm / Dart の依存関係脆弱性チェック（`list-modules.sh` ベース） |
-| `image-scan` | 日次 + main マージ後 | 全サービスのコンテナイメージ脆弱性スキャン（system / business / service 全ティア対象）。HIGH/CRITICAL 検出時は `exit-code: 1` でジョブ失敗 |
+| `image-scan` | 日次 + main マージ後 | 全サービスのコンテナイメージ脆弱性スキャン（system / business / service 全ティア対象）。MEDIUM/HIGH/CRITICAL 検出時は `exit-code: 1` でジョブ失敗 |
 | `iac-scan` | 日次 + PR 時 | `infra/` ディレクトリの Terraform / Kubernetes マニフェスト構成ミス検出（Trivy config scan） |
 | `license-scan` | 日次 + PR 時 | 依存関係のライセンスコンプライアンスチェック（Trivy license scanner） |
 | `sast` | 日次 + PR 時 | Go (gosec) + Rust (clippy security lints) による SAST スキャン |
 
 #### IaC スキャン
 
-`iac-scan` ジョブは Trivy の `config` スキャンタイプを使用して `infra/` ディレクトリを走査する。Terraform 定義ファイルおよび Kubernetes マニフェストの設定ミス（セキュリティグループの過剰開放、暗号化未設定、特権コンテナ等）を HIGH/CRITICAL レベルで検出し、検出時は `exit-code: 1` でジョブを失敗させる。
+`iac-scan` ジョブは Trivy の `config` スキャンタイプを使用して `infra/` ディレクトリを走査する。Terraform 定義ファイルおよび Kubernetes マニフェストの設定ミス（セキュリティグループの過剰開放、暗号化未設定、特権コンテナ等）を MEDIUM/HIGH/CRITICAL レベルで検出し、検出時は `exit-code: 1` でジョブを失敗させる。
 
 #### ライセンススキャン
 
-`license-scan` ジョブは Trivy の `license` スキャナーを使用してリポジトリ全体の依存関係ライセンスを検証する。許容されないライセンス（GPL 等の強力なコピーレフトライセンス）が HIGH/CRITICAL として検出された場合、ジョブを失敗させる。これにより、意図しないライセンス汚染を CI レベルで防止する。
+`license-scan` ジョブは Trivy の `license` スキャナーを使用してリポジトリ全体の依存関係ライセンスを検証する。許容されないライセンス（GPL 等の強力なコピーレフトライセンス）が MEDIUM/HIGH/CRITICAL として検出された場合、ジョブを失敗させる。これにより、意図しないライセンス汚染を CI レベルで防止する。
 
 #### イメージスキャン拡大
 
@@ -699,7 +699,8 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          severity: HIGH,CRITICAL
+          # MEDIUM も含めてスキャン（M-23対応）
+          severity: MEDIUM,HIGH,CRITICAL
           format: table
           exit-code: 1
 
@@ -806,9 +807,10 @@ jobs:
           scan-type: image
           # 最新のバージョンタグを動的に取得してスキャン（:latest は使用しない）
           image-ref: harbor.internal.example.com/k1s0-${{ matrix.tier }}/${{ matrix.service }}:${{ steps.version.outputs.value }}
-          severity: HIGH,CRITICAL
+          # MEDIUM も含めてスキャン（M-23対応）
+          severity: MEDIUM,HIGH,CRITICAL
           format: table
-          # HIGH/CRITICAL 脆弱性検出時にジョブを失敗させる（他のスキャンと統一）
+          # MEDIUM/HIGH/CRITICAL 脆弱性検出時にジョブを失敗させる（他のスキャンと統一）
           exit-code: 1
 
   # IaC（Infrastructure as Code）構成ミススキャン
@@ -824,7 +826,8 @@ jobs:
         with:
           scan-type: config
           scan-ref: infra/
-          severity: HIGH,CRITICAL
+          # MEDIUM も含めてスキャン（M-23対応）
+          severity: MEDIUM,HIGH,CRITICAL
           format: table
           exit-code: 1
 
@@ -1502,6 +1505,76 @@ bash scripts/check-modules-consistency.sh
 | `${GITHUB_SHA::7}` | `${GITHUB_SHA::12}` | `deploy.yaml`（4箇所）、`_service-deploy.yaml`（全箇所） |
 
 イメージタグ形式: `{version}-{12桁git-sha}`（例: `1.2.3-a1b2c3d4e5f6`）
+
+---
+
+## Doc Sync (2026-03-22)
+
+### codecov fail_ci_if_error を true に変更（M-16対応）
+
+`_test.yaml` の全カバレッジアップロードジョブ（`test-go` / `coverage-rust` / `coverage-ts` / `test-dart`）で
+`codecov/codecov-action` の `fail_ci_if_error` を `true` に変更した。
+
+**背景（M-16指摘）**: 従来はデフォルト値（`false`）のままであり、Codecov への
+アップロードが失敗しても CI はパスし続けていた。サイレントなカバレッジ計測欠落を
+検知できないため、アップロード失敗時は CI を失敗させる。
+
+```yaml
+# _test.yaml（test-go / coverage-rust / coverage-ts / test-dart 各ジョブ共通）
+- name: Upload coverage
+  uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
+  with:
+    # カバレッジアップロード失敗を CI エラーとして扱う（M-16対応）
+    fail_ci_if_error: true
+```
+
+---
+
+### security.yaml Trivy severity を MEDIUM,HIGH,CRITICAL に変更（M-23対応）
+
+`security.yaml` の全 Trivy スキャンジョブ（`trivy-scan` / `image-scan` / `iac-scan` / `license-scan`）で
+`severity` を `HIGH,CRITICAL` から `MEDIUM,HIGH,CRITICAL` に変更した。
+
+**背景（M-23指摘）**: サプライチェーン攻撃の踏み台となる MEDIUM 脆弱性が見落とされていた。
+MEDIUM 以上をスキャン対象に含めることで、潜在的な攻撃経路を早期に検出できる。
+
+| 変更前 | 変更後 |
+| --- | --- |
+| `severity: HIGH,CRITICAL` | `severity: MEDIUM,HIGH,CRITICAL` |
+
+```yaml
+# security.yaml（全 Trivy スキャンジョブ共通）
+- name: Trivy スキャン
+  uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
+  with:
+    # MEDIUM も含めてスキャン: サプライチェーン攻撃は MEDIUM 脆弱性の悪用から始まることが多い（M-23対応）
+    severity: MEDIUM,HIGH,CRITICAL
+```
+
+---
+
+### Cosign identity-regexp を厳密化（C-06対応）
+
+`deploy.yaml` および `_service-deploy.yaml` の全デプロイジョブで
+`cosign verify` の `--certificate-identity-regexp` を厳密化した。
+
+**背景（C-06指摘）**: 従来の正規表現 `github.com/k1s0-org/k1s0` は `^` / `$` アンカーがなく、
+`evil-github.com/k1s0-org/k1s0-evil` のような文字列でもマッチしてしまう危険があった。
+`^https://` で始まり `\\.github/workflows/.*` で終わる厳密なパターンに変更した。
+
+| 変更前 | 変更後 |
+| --- | --- |
+| `--certificate-identity-regexp "github.com/k1s0-org/k1s0"` | `--certificate-identity-regexp "^https://github\\.com/k1s0-org/k1s0/\\.github/workflows/.*"` |
+
+```yaml
+# deploy.yaml / _service-deploy.yaml（deploy-dev / deploy-staging / deploy-prod 各ジョブ共通）
+- name: Verify image signature
+  run: |
+    cosign verify \
+      --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+      --certificate-identity-regexp "^https://github\\.com/k1s0-org/k1s0/\\.github/workflows/.*" \
+      ${{ env.REGISTRY }}/...
+```
 
 ---
 

@@ -173,6 +173,7 @@ fn make_grpc_service(token_success: bool) -> AuthGrpcService {
 
 // --- gRPC Integration Tests ---
 
+// 有効なトークンで validate_token gRPC を呼び出すと成功レスポンスが返ることを検証する
 #[tokio::test]
 async fn test_validate_token_grpc_success() {
     let svc = make_grpc_service(true);
@@ -180,16 +181,37 @@ async fn test_validate_token_grpc_success() {
     let req = ValidateTokenRequest {
         token: "valid-grpc-token".to_string(),
     };
-    let resp = svc.validate_token(req).await.unwrap();
+    // gRPC レスポンス取得: トークン検証 gRPC 呼び出しが失敗してはならない
+    let resp = svc
+        .validate_token(req)
+        .await
+        .expect("有効なトークンで validate_token gRPC 呼び出しが失敗しました");
 
-    assert!(resp.valid);
-    let claims = resp.claims.unwrap();
-    assert_eq!(claims.sub, "grpc-test-user-1");
-    assert_eq!(claims.preferred_username, "grpc.test.user");
-    assert_eq!(claims.email, "grpc.test@example.com");
-    assert!(resp.error_message.is_empty());
+    // 検証結果が有効であることを確認する
+    assert!(resp.valid, "有効なトークンであれば valid フィールドが true でなければならない");
+    // クレームが返ることを確認する
+    let claims = resp
+        .claims
+        .expect("有効なトークンであれば claims フィールドが Some でなければならない");
+    assert_eq!(
+        claims.sub, "grpc-test-user-1",
+        "sub クレームが期待値 'grpc-test-user-1' と一致しなければならない"
+    );
+    assert_eq!(
+        claims.preferred_username, "grpc.test.user",
+        "preferred_username クレームが期待値 'grpc.test.user' と一致しなければならない"
+    );
+    assert_eq!(
+        claims.email, "grpc.test@example.com",
+        "email クレームが期待値 'grpc.test@example.com' と一致しなければならない"
+    );
+    assert!(
+        resp.error_message.is_empty(),
+        "有効なトークンであれば error_message は空でなければならない"
+    );
 }
 
+// 無効なトークンで validate_token gRPC を呼び出すと無効レスポンスが返ることを検証する
 #[tokio::test]
 async fn test_validate_token_grpc_invalid() {
     let svc = make_grpc_service(false);
@@ -197,13 +219,28 @@ async fn test_validate_token_grpc_invalid() {
     let req = ValidateTokenRequest {
         token: "invalid-grpc-token".to_string(),
     };
-    let resp = svc.validate_token(req).await.unwrap();
+    // gRPC レスポンス取得: 無効トークンでも gRPC 自体のエラーではなくレスポンスが返る
+    let resp = svc
+        .validate_token(req)
+        .await
+        .expect("無効なトークンでも validate_token gRPC 呼び出し自体は成功しなければならない");
 
-    assert!(!resp.valid);
-    assert!(resp.claims.is_none());
-    assert!(!resp.error_message.is_empty());
+    // 検証結果が無効であることを確認する
+    assert!(
+        !resp.valid,
+        "無効なトークンであれば valid フィールドが false でなければならない"
+    );
+    assert!(
+        resp.claims.is_none(),
+        "無効なトークンであれば claims フィールドは None でなければならない"
+    );
+    assert!(
+        !resp.error_message.is_empty(),
+        "無効なトークンであれば error_message に理由が設定されていなければならない"
+    );
 }
 
+// 存在するユーザー ID で get_user gRPC を呼び出すとユーザー情報が返ることを検証する
 #[tokio::test]
 async fn test_get_user_grpc_success() {
     let svc = make_grpc_service(true);
@@ -211,15 +248,35 @@ async fn test_get_user_grpc_success() {
     let req = GetUserRequest {
         user_id: "grpc-user-1".to_string(),
     };
-    let resp = svc.get_user(req).await.unwrap();
+    // gRPC レスポンス取得: 存在するユーザーの取得に失敗してはならない
+    let resp = svc
+        .get_user(req)
+        .await
+        .expect("存在するユーザー ID で get_user gRPC 呼び出しが失敗しました");
 
-    let user = resp.user.unwrap();
-    assert_eq!(user.id, "grpc-user-1");
-    assert_eq!(user.username, "grpc.test.user");
-    assert_eq!(user.email, "grpc.test@example.com");
-    assert!(user.enabled);
+    // ユーザー情報が返ることを確認する
+    let user = resp
+        .user
+        .expect("存在するユーザーであれば user フィールドが Some でなければならない");
+    assert_eq!(
+        user.id, "grpc-user-1",
+        "ユーザー ID が期待値 'grpc-user-1' と一致しなければならない"
+    );
+    assert_eq!(
+        user.username, "grpc.test.user",
+        "ユーザー名が期待値 'grpc.test.user' と一致しなければならない"
+    );
+    assert_eq!(
+        user.email, "grpc.test@example.com",
+        "メールアドレスが期待値 'grpc.test@example.com' と一致しなければならない"
+    );
+    assert!(
+        user.enabled,
+        "アクティブなユーザーであれば enabled フラグが true でなければならない"
+    );
 }
 
+// 存在しないユーザー ID で get_user gRPC を呼び出すと NotFound エラーが返ることを検証する
 #[tokio::test]
 async fn test_get_user_grpc_not_found() {
     let svc = make_grpc_service(true);
@@ -227,17 +284,29 @@ async fn test_get_user_grpc_not_found() {
     let req = GetUserRequest {
         user_id: "nonexistent-grpc-user".to_string(),
     };
+    // 存在しないユーザー ID ではエラーが返ることを確認する
     let result = svc.get_user(req).await;
 
-    assert!(result.is_err());
+    assert!(
+        result.is_err(),
+        "存在しないユーザー ID の場合は Err が返らなければならない"
+    );
     match result.unwrap_err() {
         GrpcError::NotFound(msg) => {
-            assert!(msg.contains("not found"));
+            assert!(
+                msg.contains("not found"),
+                "NotFound エラーメッセージに 'not found' が含まれていなければならない: 実際={}",
+                msg
+            );
         }
-        e => unreachable!("unexpected error in test: {:?}", e),
+        e => unreachable!(
+            "存在しないユーザー ID の場合は GrpcError::NotFound が返るべきだが、予期しないエラーが発生しました: {:?}",
+            e
+        ),
     }
 }
 
+// ページネーションなしで list_users gRPC を呼び出すと全ユーザーが返ることを検証する
 #[tokio::test]
 async fn test_list_users_grpc_success() {
     let svc = make_grpc_service(true);
@@ -247,17 +316,41 @@ async fn test_list_users_grpc_success() {
         search: String::new(),
         enabled: None,
     };
-    let resp = svc.list_users(req).await.unwrap();
+    // gRPC レスポンス取得: ユーザー一覧の取得に失敗してはならない
+    let resp = svc
+        .list_users(req)
+        .await
+        .expect("list_users gRPC 呼び出しが失敗しました");
 
-    assert_eq!(resp.users.len(), 2);
-    assert_eq!(resp.users[0].id, "grpc-user-1");
-    assert_eq!(resp.users[1].id, "grpc-user-2");
+    assert_eq!(
+        resp.users.len(),
+        2,
+        "テストリポジトリには 2 件のユーザーが存在するため、返却ユーザー数が 2 でなければならない"
+    );
+    assert_eq!(
+        resp.users[0].id, "grpc-user-1",
+        "1 件目のユーザー ID が 'grpc-user-1' でなければならない"
+    );
+    assert_eq!(
+        resp.users[1].id, "grpc-user-2",
+        "2 件目のユーザー ID が 'grpc-user-2' でなければならない"
+    );
 
-    let pagination = resp.pagination.unwrap();
-    assert_eq!(pagination.total_count, 2);
-    assert!(!pagination.has_next);
+    // ページネーション情報が返ることを確認する
+    let pagination = resp
+        .pagination
+        .expect("list_users レスポンスに pagination フィールドが存在しなければならない");
+    assert_eq!(
+        pagination.total_count, 2,
+        "total_count が実際のユーザー数 2 と一致しなければならない"
+    );
+    assert!(
+        !pagination.has_next,
+        "全件が 1 ページに収まるため has_next が false でなければならない"
+    );
 }
 
+// ページネーション指定で list_users gRPC を呼び出すとページ情報付きで返ることを検証する
 #[tokio::test]
 async fn test_list_users_grpc_with_pagination() {
     let svc = make_grpc_service(true);
@@ -270,15 +363,36 @@ async fn test_list_users_grpc_with_pagination() {
         search: String::new(),
         enabled: None,
     };
-    let resp = svc.list_users(req).await.unwrap();
+    // gRPC レスポンス取得: ページネーション付きのユーザー一覧取得に失敗してはならない
+    let resp = svc
+        .list_users(req)
+        .await
+        .expect("ページネーション指定での list_users gRPC 呼び出しが失敗しました");
 
-    assert_eq!(resp.users.len(), 2);
-    let pagination = resp.pagination.unwrap();
-    assert_eq!(pagination.page, 1);
-    assert_eq!(pagination.page_size, 10);
-    assert_eq!(pagination.total_count, 2);
+    assert_eq!(
+        resp.users.len(),
+        2,
+        "page_size=10 の場合、テストデータ 2 件が全て返らなければならない"
+    );
+    // ページネーションメタデータの検証
+    let pagination = resp
+        .pagination
+        .expect("ページネーション付きレスポンスに pagination フィールドが存在しなければならない");
+    assert_eq!(
+        pagination.page, 1,
+        "レスポンスの page が要求値 1 と一致しなければならない"
+    );
+    assert_eq!(
+        pagination.page_size, 10,
+        "レスポンスの page_size が要求値 10 と一致しなければならない"
+    );
+    assert_eq!(
+        pagination.total_count, 2,
+        "total_count がリポジトリの総ユーザー数 2 と一致しなければならない"
+    );
 }
 
+// 権限を持つロールでの check_permission gRPC 呼び出しが許可されることを検証する
 #[tokio::test]
 async fn test_check_permission_grpc_success() {
     let svc = make_grpc_service(true);
@@ -289,12 +403,23 @@ async fn test_check_permission_grpc_success() {
         resource: "audit_logs".to_string(),
         roles: vec!["sys_auditor".to_string()],
     };
-    let resp = svc.check_permission(req).await.unwrap();
+    // gRPC レスポンス取得: 権限チェック gRPC 呼び出しに失敗してはならない
+    let resp = svc
+        .check_permission(req)
+        .await
+        .expect("check_permission gRPC 呼び出しが失敗しました");
 
-    assert!(resp.allowed);
-    assert!(resp.reason.is_empty());
+    assert!(
+        resp.allowed,
+        "sys_auditor ロールは audit_logs への read 権限を持つため allowed が true でなければならない"
+    );
+    assert!(
+        resp.reason.is_empty(),
+        "許可された場合は reason が空でなければならない"
+    );
 }
 
+// 権限を持たないロールでの check_permission gRPC 呼び出しが拒否されることを検証する
 #[tokio::test]
 async fn test_check_permission_grpc_denied() {
     let svc = make_grpc_service(true);
@@ -305,12 +430,24 @@ async fn test_check_permission_grpc_denied() {
         resource: "users".to_string(),
         roles: vec!["user".to_string()],
     };
-    let resp = svc.check_permission(req).await.unwrap();
+    // gRPC レスポンス取得: 権限チェック gRPC 呼び出しに失敗してはならない
+    let resp = svc
+        .check_permission(req)
+        .await
+        .expect("check_permission gRPC 呼び出しが失敗しました");
 
-    assert!(!resp.allowed);
-    assert!(resp.reason.contains("insufficient permissions"));
+    assert!(
+        !resp.allowed,
+        "一般ユーザーロールは users への admin 権限を持たないため allowed が false でなければならない"
+    );
+    assert!(
+        resp.reason.contains("insufficient permissions"),
+        "権限不足の場合は reason に 'insufficient permissions' が含まれなければならない: 実際={}",
+        resp.reason
+    );
 }
 
+// 存在するユーザーの get_user_roles gRPC 呼び出しでロール一覧が返ることを検証する
 #[tokio::test]
 async fn test_get_user_roles_grpc_success() {
     let svc = make_grpc_service(true);
@@ -318,14 +455,45 @@ async fn test_get_user_roles_grpc_success() {
     let req = GetUserRolesRequest {
         user_id: "grpc-user-1".to_string(),
     };
-    let resp = svc.get_user_roles(req).await.unwrap();
+    // gRPC レスポンス取得: ユーザーロール取得 gRPC 呼び出しに失敗してはならない
+    let resp = svc
+        .get_user_roles(req)
+        .await
+        .expect("get_user_roles gRPC 呼び出しが失敗しました");
 
-    assert_eq!(resp.user_id, "grpc-user-1");
-    assert_eq!(resp.realm_roles.len(), 2);
-    assert_eq!(resp.realm_roles[0].name, "user");
-    assert_eq!(resp.realm_roles[1].name, "sys_auditor");
-    assert_eq!(resp.client_roles.len(), 1);
-    assert!(resp.client_roles.contains_key("order-service"));
-    assert_eq!(resp.client_roles["order-service"].roles.len(), 1);
-    assert_eq!(resp.client_roles["order-service"].roles[0].name, "read");
+    assert_eq!(
+        resp.user_id, "grpc-user-1",
+        "レスポンスの user_id が要求した 'grpc-user-1' と一致しなければならない"
+    );
+    assert_eq!(
+        resp.realm_roles.len(),
+        2,
+        "grpc-user-1 は realm ロールを 2 件持つため長さが 2 でなければならない"
+    );
+    assert_eq!(
+        resp.realm_roles[0].name, "user",
+        "1 件目の realm ロール名が 'user' でなければならない"
+    );
+    assert_eq!(
+        resp.realm_roles[1].name, "sys_auditor",
+        "2 件目の realm ロール名が 'sys_auditor' でなければならない"
+    );
+    assert_eq!(
+        resp.client_roles.len(),
+        1,
+        "grpc-user-1 はクライアントロールを 1 件持つため長さが 1 でなければならない"
+    );
+    assert!(
+        resp.client_roles.contains_key("order-service"),
+        "クライアントロールに 'order-service' エントリが存在しなければならない"
+    );
+    assert_eq!(
+        resp.client_roles["order-service"].roles.len(),
+        1,
+        "'order-service' クライアントのロール数が 1 でなければならない"
+    );
+    assert_eq!(
+        resp.client_roles["order-service"].roles[0].name, "read",
+        "'order-service' クライアントのロール名が 'read' でなければならない"
+    );
 }

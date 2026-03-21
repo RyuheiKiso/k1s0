@@ -19,6 +19,10 @@ pub enum PaymentError {
     #[error("version conflict for payment '{0}'")]
     VersionConflict(String),
 
+    /// 同一 order_id で異なる金額/通貨の決済が既に存在する場合の冪等性違反エラー。
+    #[error("冪等性違反: 注文 '{order_id}' の決済は異なる金額/通貨で既に存在します")]
+    IdempotencyViolation { order_id: String },
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -43,6 +47,12 @@ impl From<PaymentError> for ServiceError {
             PaymentError::VersionConflict(msg) => ServiceError::Conflict {
                 code: ErrorCode::new("SVC_PAYMENT_VERSION_CONFLICT"),
                 message: msg,
+                details: vec![],
+            },
+            // 冪等性違反は HTTP 409 Conflict にマッピングする。
+            PaymentError::IdempotencyViolation { order_id } => ServiceError::Conflict {
+                code: ErrorCode::new("SVC_PAYMENT_IDEMPOTENCY_VIOLATION"),
+                message: format!("冪等性違反: 注文 '{}' の決済は異なる金額/通貨で既に存在します", order_id),
                 details: vec![],
             },
             PaymentError::Internal(msg) => ServiceError::Internal {

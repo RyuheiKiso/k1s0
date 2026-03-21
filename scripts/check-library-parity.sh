@@ -52,6 +52,14 @@ parity = data.get('library_parity', {})
 issues = []
 checked = 0
 
+def to_dart_dir_name(lib_name: str) -> str:
+    """
+    Dart パッケージのディレクトリ名は snake_case を使用する（Dart/Flutter 命名規約）。
+    modules.yaml では kebab-case で宣言されているため、ハイフンをアンダースコアに変換する。
+    例: "dlq-client" -> "dlq_client", "bb-ai-client" -> "bb_ai_client"
+    """
+    return lib_name.replace('-', '_')
+
 for category, libs in parity.items():
     # lang_specific カテゴリは言語固有のため対象外
     if category == 'lang_specific':
@@ -62,10 +70,16 @@ for category, libs in parity.items():
     expected_langs = CATEGORY_LANGS.get(category, [])
     for lib in libs:
         for lang in expected_langs:
-            lib_dir = os.path.join(repo_root, LANG_PATHS[lang], lib)
+            # Dart は snake_case、他言語（Go/Rust/TypeScript）は kebab-case のディレクトリ名を使用する。
+            # modules.yaml の宣言名（kebab-case）を Dart 用に変換してパスを構築する。
+            if lang == 'dart':
+                dir_name = to_dart_dir_name(lib)
+            else:
+                dir_name = lib
+            lib_dir = os.path.join(repo_root, LANG_PATHS[lang], dir_name)
             if not os.path.isdir(lib_dir):
                 issues.append(
-                    f"MISSING [{category}] {lib} — {lang}: {LANG_PATHS[lang]}/{lib}/"
+                    f"MISSING [{category}] {lib} — {lang}: {LANG_PATHS[lang]}/{dir_name}/"
                 )
             checked += 1
 

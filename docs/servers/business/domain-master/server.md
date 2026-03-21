@@ -43,9 +43,13 @@ accounting 領域のドメインマスタデータハブ。型安全な固定ス
 
 [認証認可設計.md](../../architecture/auth/認証認可設計.md) の RBAC モデルに基づき、以下の方針で実装する。
 
+> **4言語パリティ（m-17 対応）**: accounting サービスは現在 **Rust のみ** 実装されている。
+> Go / TypeScript / Dart の実装は現時点では存在しない（`template-only` 状態）。
+> 将来的に 4 言語対応を検討する際は、本ドキュメントの API 定義（REST/gRPC）を各言語のテンプレートとして活用すること。
+
 | 項目 | 設計 |
 | --- | --- |
-| 実装言語 | Rust |
+| 実装言語 | **Rust のみ**（Go / TypeScript / Dart は未実装） |
 | 型安全な固定スキーマ | master_categories, master_items, master_item_versions, tenant_master_extensions の 4 テーブルで構成 |
 | バリデーション | カテゴリ定義の `validation_schema` (JSONB) による項目属性バリデーション |
 | テナントカスタマイズ | 表示名・属性のオーバーライド、有効/無効制御 |

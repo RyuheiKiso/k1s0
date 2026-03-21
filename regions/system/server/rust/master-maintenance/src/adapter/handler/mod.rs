@@ -204,16 +204,16 @@ fn require_table_operation(
             {
                 Ok(flags) => flags,
                 Err(err) => {
-                    let message = err.to_string();
-                    let status = if message.contains("not found") {
-                        StatusCode::NOT_FOUND
-                    } else {
-                        StatusCode::INTERNAL_SERVER_ERROR
+                    // 型安全な MasterMaintenanceError の match により文字列マッチングを廃止する（C-04対応）
+                    use crate::domain::error::MasterMaintenanceError;
+                    let status = match &err {
+                        MasterMaintenanceError::TableNotFound(_) => StatusCode::NOT_FOUND,
+                        _ => StatusCode::INTERNAL_SERVER_ERROR,
                     };
                     return (
                         status,
                         Json(serde_json::json!({
-                            "error": message
+                            "error": err.to_string()
                         })),
                     )
                         .into_response();

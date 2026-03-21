@@ -33,6 +33,14 @@ on:
         type: string
         required: false
         default: ''
+      ts_modules:
+        type: string
+        required: false
+        default: ''
+      dart_modules:
+        type: string
+        required: false
+        default: ''
 
 jobs:
   # Go ユニットテスト
@@ -104,7 +112,8 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          fail_ci_if_error: false
+          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
+          fail_ci_if_error: true
 
   # Rust ユニットテスト
   test-rust:
@@ -220,7 +229,8 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          fail_ci_if_error: false
+          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
+          fail_ci_if_error: true
 
   # コード生成テンプレートのコンパイル検証（golden path compile test）
   golden-path-compile:
@@ -258,17 +268,35 @@ jobs:
           cache: 'pnpm'
       - name: Test TypeScript packages
         shell: bash
+        env:
+          AFFECTED_MODULES: ${{ inputs.ts_modules }}
         run: |
-          chmod +x scripts/list-modules.sh
-          mapfile -t packages < <(scripts/list-modules.sh --lang ts --no-skip-ci)
-          for package_dir in "${packages[@]}"; do
-            echo "=== Testing $package_dir ==="
-            (
-              cd "$package_dir"
-              pnpm install --frozen-lockfile
-              pnpm test --if-present
-            )
-          done
+          # 影響モジュールが検出された場合はそのモジュールのみ処理する
+          if [ -n "$AFFECTED_MODULES" ]; then
+            IFS=',' read -ra entries <<< "$AFFECTED_MODULES"
+            for entry in "${entries[@]}"; do
+              dir="${entry#ts:}"
+              if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
+                echo "=== Testing $dir ==="
+                (
+                  cd "$dir"
+                  pnpm install --frozen-lockfile
+                  pnpm test --if-present
+                )
+              fi
+            done
+          else
+            chmod +x scripts/list-modules.sh
+            mapfile -t packages < <(scripts/list-modules.sh --lang ts --no-skip-ci)
+            for package_dir in "${packages[@]}"; do
+              echo "=== Testing $package_dir ==="
+              (
+                cd "$package_dir"
+                pnpm install --frozen-lockfile
+                pnpm test --if-present
+              )
+            done
+          fi
 
   # TypeScript テストカバレッジ計測
   coverage-ts:
@@ -316,7 +344,8 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          fail_ci_if_error: false
+          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
+          fail_ci_if_error: true
 
   # Dart/Flutter ユニットテスト + カバレッジ
   test-dart:
@@ -339,17 +368,35 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lcov
       - name: Test Dart and Flutter packages
         shell: bash
+        env:
+          AFFECTED_MODULES: ${{ inputs.dart_modules }}
         run: |
-          chmod +x scripts/list-modules.sh
-          mapfile -t packages < <(scripts/list-modules.sh --lang dart --no-skip-ci)
-          for package_dir in "${packages[@]}"; do
-            echo "=== Testing $package_dir ==="
-            if grep -q "sdk: flutter" "$package_dir/pubspec.yaml"; then
-              (cd "$package_dir" && flutter pub get && flutter test)
-            else
-              (cd "$package_dir" && dart pub get && dart test)
-            fi
-          done
+          # 影響モジュールが検出された場合はそのモジュールのみ処理する
+          if [ -n "$AFFECTED_MODULES" ]; then
+            IFS=',' read -ra entries <<< "$AFFECTED_MODULES"
+            for entry in "${entries[@]}"; do
+              dir="${entry#dart:}"
+              if [ -d "$dir" ] && [ -f "$dir/pubspec.yaml" ]; then
+                echo "=== Testing $dir ==="
+                if grep -q "sdk: flutter" "$dir/pubspec.yaml"; then
+                  (cd "$dir" && flutter pub get && flutter test)
+                else
+                  (cd "$dir" && dart pub get && dart test)
+                fi
+              fi
+            done
+          else
+            chmod +x scripts/list-modules.sh
+            mapfile -t packages < <(scripts/list-modules.sh --lang dart --no-skip-ci)
+            for package_dir in "${packages[@]}"; do
+              echo "=== Testing $package_dir ==="
+              if grep -q "sdk: flutter" "$package_dir/pubspec.yaml"; then
+                (cd "$package_dir" && flutter pub get && flutter test)
+              else
+                (cd "$package_dir" && dart pub get && dart test)
+              fi
+            done
+          fi
       - name: Dart/Flutter テストカバレッジ計測・閾値チェック
         shell: bash
         run: |
@@ -421,4 +468,5 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          fail_ci_if_error: false
+          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
+          fail_ci_if_error: true

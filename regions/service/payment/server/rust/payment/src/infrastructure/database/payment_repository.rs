@@ -195,7 +195,8 @@ impl PaymentRepository for PaymentPostgresRepository {
             .bind(&input.order_id)
             .fetch_optional(&mut *tx)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Payment not found after conflict"))?;
+            // ON CONFLICT で upsert 後に再取得できない場合は内部エラーとして扱う。
+            .ok_or_else(|| PaymentError::Internal(format!("注文 '{}' の決済を競合解決後に取得できませんでした", input.order_id)))?;
             existing_row.try_into()?
         };
 
@@ -580,8 +581,9 @@ impl TryFrom<PaymentRow> for Payment {
             currency: row.currency,
             status: row
                 .status
+                // DB に保存されたステータス文字列が不正な場合は内部エラーとして返す。
                 .parse::<PaymentStatus>()
-                .map_err(|e| anyhow::anyhow!("{}", e))?,
+                .map_err(|e| PaymentError::Internal(format!("無効なステータス値: {}", e)))?,
             payment_method: row.payment_method,
             transaction_id: row.transaction_id,
             error_code: row.error_code,

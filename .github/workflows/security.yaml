@@ -28,7 +28,8 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          severity: HIGH,CRITICAL
+          # MEDIUM も含めてスキャン: サプライチェーン攻撃は MEDIUM 脆弱性の悪用から始まることが多い（M-23対応）
+          severity: MEDIUM,HIGH,CRITICAL
           format: table
           exit-code: 1
 
@@ -212,7 +213,8 @@ jobs:
           scan-type: image
           # 最新のバージョンタグを動的に取得してスキャン（:latest は使用しない）
           image-ref: harbor.internal.example.com/k1s0-${{ matrix.tier }}/${{ matrix.service }}:${{ steps.version.outputs.value }}
-          severity: HIGH,CRITICAL
+          # MEDIUM も含めてスキャン: サプライチェーン攻撃は MEDIUM 脆弱性の悪用から始まることが多い（M-23対応）
+          severity: MEDIUM,HIGH,CRITICAL
           format: table
           # HIGH/CRITICAL 脆弱性検出時にジョブを失敗させる（他のスキャンと統一）
           exit-code: 1
@@ -232,7 +234,8 @@ jobs:
         with:
           scan-type: config
           scan-ref: infra/
-          severity: HIGH,CRITICAL
+          # MEDIUM も含めてスキャン: サプライチェーン攻撃は MEDIUM 脆弱性の悪用から始まることが多い（M-23対応）
+          severity: MEDIUM,HIGH,CRITICAL
           format: table
           exit-code: 1
 
@@ -252,7 +255,8 @@ jobs:
           scan-type: fs
           scan-ref: .
           scanners: license
-          severity: HIGH,CRITICAL
+          # MEDIUM も含めてスキャン: サプライチェーン攻撃は MEDIUM 脆弱性の悪用から始まることが多い（M-23対応）
+          severity: MEDIUM,HIGH,CRITICAL
           format: table
           exit-code: 1
 

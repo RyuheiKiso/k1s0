@@ -1,4 +1,5 @@
-#![allow(clippy::unwrap_used)]
+// 統合テスト: Auth サービスのエンドポイント全フローを検証する。
+// unwrap() を expect() に置換し、失敗時のデバッグメッセージを明示化する。
 use std::sync::Arc;
 
 use axum::body::Body;
@@ -213,28 +214,28 @@ fn make_test_app(token_success: bool) -> axum::Router {
 async fn test_full_health_check_flow() {
     let app = make_test_app(true);
 
-    // healthz
+    // healthz エンドポイントが 200 を返すことを確認する
     let req = Request::builder()
         .uri("/healthz")
         .body(Body::empty())
-        .unwrap();
-    let resp = app.clone().oneshot(req).await.unwrap();
+        .expect("healthz リクエストの構築に失敗");
+    let resp = app.clone().oneshot(req).await.expect("healthz リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
 
-    // readyz
+    // readyz エンドポイントが 200 を返すことを確認する
     let req = Request::builder()
         .uri("/readyz")
         .body(Body::empty())
-        .unwrap();
-    let resp = app.clone().oneshot(req).await.unwrap();
+        .expect("readyz リクエストの構築に失敗");
+    let resp = app.clone().oneshot(req).await.expect("readyz リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
 
-    // metrics
+    // metrics エンドポイントが 200 を返すことを確認する
     let req = Request::builder()
         .uri("/metrics")
         .body(Body::empty())
-        .unwrap();
-    let resp = app.oneshot(req).await.unwrap();
+        .expect("metrics リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("metrics リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -242,35 +243,35 @@ async fn test_full_health_check_flow() {
 async fn test_token_validate_and_introspect_flow() {
     let app = make_test_app(true);
 
-    // validate
+    // validate エンドポイントが有効なトークンで 200 と valid=true を返すことを確認する
     let req = Request::builder()
         .method("POST")
         .uri("/api/v1/auth/token/validate")
         .header("content-type", "application/json")
         .body(Body::from(r#"{"token":"test-valid-token"}"#))
-        .unwrap();
-    let resp = app.clone().oneshot(req).await.unwrap();
+        .expect("validate リクエストの構築に失敗");
+    let resp = app.clone().oneshot(req).await.expect("validate リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        .expect("validate レスポンスボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("validate レスポンスの JSON パースに失敗");
     assert_eq!(json["valid"], true);
     assert_eq!(json["claims"]["sub"], "test-user-1");
 
-    // introspect
+    // introspect エンドポイントが有効なトークンで active=true を返すことを確認する
     let req = Request::builder()
         .method("POST")
         .uri("/api/v1/auth/token/introspect")
         .header("content-type", "application/json")
         .body(Body::from(r#"{"token":"test-valid-token"}"#))
-        .unwrap();
-    let resp = app.oneshot(req).await.unwrap();
+        .expect("introspect リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("introspect リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        .expect("introspect レスポンスボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("introspect レスポンスの JSON パースに失敗");
     assert_eq!(json["active"], true);
 }
 
@@ -278,28 +279,29 @@ async fn test_token_validate_and_introspect_flow() {
 async fn test_token_validate_failure_flow() {
     let app = make_test_app(false);
 
+    // validate エンドポイントが無効なトークンで 401 を返すことを確認する
     let req = Request::builder()
         .method("POST")
         .uri("/api/v1/auth/token/validate")
         .header("content-type", "application/json")
         .body(Body::from(r#"{"token":"invalid-token"}"#))
-        .unwrap();
-    let resp = app.clone().oneshot(req).await.unwrap();
+        .expect("validate 失敗リクエストの構築に失敗");
+    let resp = app.clone().oneshot(req).await.expect("validate 失敗リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
 
-    // introspect returns active: false
+    // introspect エンドポイントが無効なトークンで active: false を返すことを確認する
     let req = Request::builder()
         .method("POST")
         .uri("/api/v1/auth/token/introspect")
         .header("content-type", "application/json")
         .body(Body::from(r#"{"token":"invalid-token"}"#))
-        .unwrap();
-    let resp = app.oneshot(req).await.unwrap();
+        .expect("introspect 失敗リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("introspect 失敗リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        .expect("introspect 失敗レスポンスボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("introspect 失敗レスポンスの JSON パースに失敗");
     assert_eq!(json["active"], false);
 }
 
@@ -307,56 +309,56 @@ async fn test_token_validate_failure_flow() {
 async fn test_user_crud_flow() {
     let app = make_test_app(true);
 
-    // get user
+    // 既存ユーザーの取得が成功することを確認する
     let req = Request::builder()
         .uri("/api/v1/users/existing-user")
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
-        .unwrap();
-    let resp = app.clone().oneshot(req).await.unwrap();
+        .expect("ユーザー取得リクエストの構築に失敗");
+    let resp = app.clone().oneshot(req).await.expect("ユーザー取得リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        .expect("ユーザー取得レスポンスボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("ユーザー取得レスポンスの JSON パースに失敗");
     assert_eq!(json["id"], "existing-user");
     assert_eq!(json["username"], "integration.test");
 
-    // get non-existent user
+    // 存在しないユーザーの取得が 404 を返すことを確認する
     let req = Request::builder()
         .uri("/api/v1/users/nonexistent")
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
-        .unwrap();
-    let resp = app.clone().oneshot(req).await.unwrap();
+        .expect("不在ユーザー取得リクエストの構築に失敗");
+    let resp = app.clone().oneshot(req).await.expect("不在ユーザー取得リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 
-    // list users
+    // ユーザー一覧の取得が成功することを確認する
     let req = Request::builder()
         .uri("/api/v1/users")
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
-        .unwrap();
-    let resp = app.clone().oneshot(req).await.unwrap();
+        .expect("ユーザー一覧リクエストの構築に失敗");
+    let resp = app.clone().oneshot(req).await.expect("ユーザー一覧リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert!(!json["users"].as_array().unwrap().is_empty());
+        .expect("ユーザー一覧レスポンスボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("ユーザー一覧レスポンスの JSON パースに失敗");
+    assert!(!json["users"].as_array().expect("users フィールドが配列でない").is_empty());
 
-    // get user roles
+    // ユーザーロール取得が成功することを確認する
     let req = Request::builder()
         .uri("/api/v1/users/existing-user/roles")
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
-        .unwrap();
-    let resp = app.oneshot(req).await.unwrap();
+        .expect("ユーザーロール取得リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("ユーザーロール取得リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        .expect("ユーザーロール取得レスポンスボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("ユーザーロール取得レスポンスの JSON パースに失敗");
     assert_eq!(json["user_id"], "existing-user");
 }
 
@@ -389,34 +391,35 @@ async fn test_audit_log_record_and_search_flow() {
         "detail": {"client_id": "react-spa"}
     });
 
+    // 監査ログ記録リクエストを構築して送信する
     let req = Request::builder()
         .method("POST")
         .uri("/api/v1/audit/logs")
         .header("content-type", "application/json")
         .header("Authorization", "Bearer test-token")
-        .body(Body::from(serde_json::to_string(&body).unwrap()))
-        .unwrap();
-    let resp = app.clone().oneshot(req).await.unwrap();
+        .body(Body::from(serde_json::to_string(&body).expect("監査ログボディの JSON シリアライズに失敗")))
+        .expect("監査ログ記録リクエストの構築に失敗");
+    let resp = app.clone().oneshot(req).await.expect("監査ログ記録リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::CREATED);
     let resp_body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&resp_body).unwrap();
+        .expect("監査ログ記録レスポンスボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&resp_body).expect("監査ログ記録レスポンスの JSON パースに失敗");
     assert!(json["id"].is_string());
 
-    // Search audit logs
+    // 監査ログ検索リクエストを構築して送信する
     let req = Request::builder()
         .uri("/api/v1/audit/logs?user_id=user-uuid-1234")
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
-        .unwrap();
-    let resp = app.clone().oneshot(req).await.unwrap();
+        .expect("監査ログ検索リクエストの構築に失敗");
+    let resp = app.clone().oneshot(req).await.expect("監査ログ検索リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let resp_body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&resp_body).unwrap();
-    assert_eq!(json["logs"].as_array().unwrap().len(), 1);
+        .expect("監査ログ検索レスポンスボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&resp_body).expect("監査ログ検索レスポンスの JSON パースに失敗");
+    assert_eq!(json["logs"].as_array().expect("logs フィールドが配列でない").len(), 1);
     assert_eq!(json["pagination"]["total_count"], 1);
 }
 
@@ -424,7 +427,7 @@ async fn test_audit_log_record_and_search_flow() {
 async fn test_audit_log_validation_errors() {
     let app = make_test_app(true);
 
-    // Missing event_type
+    // event_type が空の場合に 400 を返すことを確認する
     let body = serde_json::json!({
         "event_type": "",
         "user_id": "user-1",
@@ -439,12 +442,12 @@ async fn test_audit_log_validation_errors() {
         .uri("/api/v1/audit/logs")
         .header("content-type", "application/json")
         .header("Authorization", "Bearer test-token")
-        .body(Body::from(serde_json::to_string(&body).unwrap()))
-        .unwrap();
-    let resp = app.clone().oneshot(req).await.unwrap();
+        .body(Body::from(serde_json::to_string(&body).expect("バリデーションエラーテスト1 ボディの JSON シリアライズに失敗")))
+        .expect("バリデーションエラーテスト1 リクエストの構築に失敗");
+    let resp = app.clone().oneshot(req).await.expect("バリデーションエラーテスト1 リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 
-    // Invalid result value
+    // result 値が無効な場合に 400 を返すことを確認する
     let body = serde_json::json!({
         "event_type": "LOGIN_ATTEMPT",
         "user_id": "user-1",
@@ -459,8 +462,8 @@ async fn test_audit_log_validation_errors() {
         .uri("/api/v1/audit/logs")
         .header("content-type", "application/json")
         .header("Authorization", "Bearer test-token")
-        .body(Body::from(serde_json::to_string(&body).unwrap()))
-        .unwrap();
-    let resp = app.oneshot(req).await.unwrap();
+        .body(Body::from(serde_json::to_string(&body).expect("バリデーションエラーテスト2 ボディの JSON シリアライズに失敗")))
+        .expect("バリデーションエラーテスト2 リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("バリデーションエラーテスト2 リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }

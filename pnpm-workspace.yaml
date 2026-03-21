@@ -6,3 +6,5 @@ packages:
   - 'regions/system/client/react/app-catalog'
   - 'regions/service/*/client/react/*'
   - 'regions/business/*/client/react/*'
+  # TypeScript ライブラリを workspace に追加: workspace:* 依存解決と整合性チェックを有効にする（M-10対応）
+  - 'regions/system/library/typescript/*'
