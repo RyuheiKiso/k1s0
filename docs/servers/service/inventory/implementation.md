@@ -189,6 +189,44 @@ impl ReserveStockUseCase {
 
 ---
 
+## Doc Sync (2026-03-21)
+
+### REST ハンドラー 全エンドポイント認証必須化 [技術品質監査 Critical 2-1]
+
+**問題**
+
+`inventory_handler.rs` の REST ハンドラーで以下の認証不備が存在した：
+
+- `get_inventory`・`list_inventory`：`Claims` パラメーター自体が欠落しており、未認証リクエストを無条件に受け入れていた
+- `reserve_stock`・`release_stock`・`update_stock`：`Option<Extension<Claims>>` を受け取るが、
+  `let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0))` のみで `None` 時の 401 返却がなかった
+
+**修正内容**
+
+全 5 ハンドラーに統一パターンを適用した：
+
+```rust
+// read 系（get_inventory / list_inventory）
+claims.ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
+
+// write 系（reserve_stock / release_stock / update_stock）
+let claims = claims
+    .ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
+let actor = actor_from_claims(Some(&claims.0));
+tracing::info!(actor = %actor, "handler_name invoked");
+```
+
+**影響範囲**
+
+- `src/adapter/handler/inventory_handler.rs`（全 5 ハンドラー）
+
+**設計上の注意**
+
+認証ミドルウェアが正しく設定されている場合、Claims は常に extensions に存在するはずである。
+このチェックは、認証ミドルウェアのバイパスや設定漏れを早期検出するためのフェイルセーフとして機能する。
+
+---
+
 ## 関連ドキュメント
 
 - [service-inventory-server.md](server.md) -- 概要・API 定義・アーキテクチャ

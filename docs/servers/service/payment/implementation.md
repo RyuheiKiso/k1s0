@@ -257,13 +257,27 @@ request
 
 **REST ハンドラー（`payment_handler.rs`）:**
 
-書き込み系 3 ハンドラー（`initiate_payment`, `complete_payment`, `fail_payment`, `refund_payment`）で
-`let _actor` を `let actor` に変更し、`tracing::debug!` でログ出力するよう修正した。
+全 6 ハンドラーで認証不備を修正した：
+
+- `get_payment`・`list_payments`：`Claims` パラメーター自体が欠落していたため追加した
+- 全 6 ハンドラー：`Option<Extension<Claims>>` に対して `.ok_or_else(|| ServiceError::unauthorized(...))?` を適用し、
+  未認証時に確実に 401 を返すよう変更した
+
+```rust
+// write 系
+let claims = claims
+    .ok_or_else(|| ServiceError::unauthorized("PAYMENT", "authentication required"))?;
+let actor = actor_from_claims(Some(&claims.0));
+tracing::info!(actor = %actor, "initiate_payment invoked");
+
+// read 系（get_payment / list_payments）
+claims.ok_or_else(|| ServiceError::unauthorized("PAYMENT", "authentication required"))?;
+```
 
 **影響範囲**
 
 - `src/adapter/grpc/payment_grpc.rs`（全 6 ハンドラー）
-- `src/adapter/handler/payment_handler.rs`（書き込み系ハンドラー）
+- `src/adapter/handler/payment_handler.rs`（全 6 ハンドラー）
 
 ---
 

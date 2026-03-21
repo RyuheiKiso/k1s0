@@ -568,6 +568,36 @@ let actor = actor_from_claims(Some(claims));
 
 ---
 
+### REST ハンドラー 全エンドポイント認証必須化 [技術品質監査 Critical 2-1 補完]
+
+**問題**
+
+`order_handler.rs` の REST ハンドラーで以下の認証不備が存在した：
+
+- `get_order`・`list_orders`：`Claims` パラメーター自体が欠落しており、未認証リクエストを無条件に受け入れていた
+- `create_order`・`update_order_status`：`Option<Extension<Claims>>` を受け取るが `None` 時の 401 返却がなかった
+
+**修正内容**
+
+全 4 ハンドラーに統一パターンを適用した：
+
+```rust
+// read 系（get_order / list_orders）
+claims.ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
+
+// write 系（create_order / update_order_status）
+let claims = claims
+    .ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
+let actor = actor_from_claims(Some(&claims.0));
+tracing::info!(actor = %actor, "handler_name invoked");
+```
+
+**影響範囲**
+
+- `src/adapter/handler/order_handler.rs`（全 4 ハンドラー）
+
+---
+
 ## 関連ドキュメント
 
 - [service-order-server.md](server.md) -- 概要・API 定義・アーキテクチャ
