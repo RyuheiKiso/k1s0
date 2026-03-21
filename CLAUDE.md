@@ -58,3 +58,10 @@
 ## コミットについて
 
 - コミットは禁止です。
+
+## 技術的な決定について
+
+- 重要な技術的決定を行う場合は、ADR（Architecture Decision Record）を作成すること。
+- ADRは `docs/architecture/adr` ディレクトリに Markdown 形式で保存すること。
+- ADRのテンプレートは `docs/architecture/adr/0001-template.md` を参照すること。
+- ADRには、決定の背景、内容、理由、影響、代替案、参考資料を明確に記載すること。
