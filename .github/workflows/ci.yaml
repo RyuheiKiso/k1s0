@@ -1084,8 +1084,24 @@ jobs:
         shell: bash
         run: |
           chmod +x scripts/list-modules.sh
-          # modules.yaml に登録されているパスを取得
-          registered=$(scripts/list-modules.sh | sort)
+          # modules.yaml からマニフェストファイルを持つエントリのみ取得する。
+          # type:database (SQL のみ、Cargo.toml なし) と lang:yaml (infra) は
+          # 対応するマニフェストファイルが存在しないため比較対象から除外する。
+          # これにより「正しい登録も誤検知する」問題を修正する（Finding 14）。
+          registered=$(
+            {
+              # Rust: workspace/server/library/cli/client は Cargo.toml を持つ（database は除外）
+              scripts/list-modules.sh --lang rust --type workspace
+              scripts/list-modules.sh --lang rust --type server
+              scripts/list-modules.sh --lang rust --type library
+              scripts/list-modules.sh --lang rust --type cli
+              scripts/list-modules.sh --lang rust --type client
+              # Go/TypeScript/Dart: 全エントリが go.mod/package.json/pubspec.yaml を持つ
+              scripts/list-modules.sh --lang go
+              scripts/list-modules.sh --lang typescript
+              scripts/list-modules.sh --lang dart
+            } | sort -u
+          )
           # ディスク上の全マニフェストからモジュールパスを取得
           disk_modules=$(
             {
@@ -1099,7 +1115,7 @@ jobs:
               find regions CLI -name 'pubspec.yaml' 2>/dev/null | while read -r f; do dirname "$f"; done
             } | sort -u
           )
-          # 差分を検出
+          # 差分を検出（disk に存在するが modules.yaml に未登録）
           unregistered=$(comm -23 <(echo "$disk_modules") <(echo "$registered"))
           if [ -n "$unregistered" ]; then
             echo "::error::以下のモジュールが modules.yaml に未登録です:"

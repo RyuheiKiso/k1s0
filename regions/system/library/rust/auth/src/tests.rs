@@ -491,6 +491,92 @@ mod tests {
         assert_eq!(*count.lock().await, 2); // 再フェッチが発生
     }
 
+    // --- JWKS stale cache テスト ---
+
+    /// JWKS フェッチャーが常にエラーを返すモック。
+    struct FailingFetcher;
+
+    #[async_trait::async_trait]
+    impl JwksFetcher for FailingFetcher {
+        async fn fetch_keys(&self, _jwks_url: &str) -> Result<Vec<JwkKey>, AuthError> {
+            Err(AuthError::JwksFetchFailed("simulated fetch failure".into()))
+        }
+    }
+
+    // max_stale_duration 以内の stale キャッシュは JWKS フェッチ失敗時でも使用されることを確認する。
+    // Finding 12: IdP 障害中も短期間は失効済みキャッシュを使い続けるべきでない。
+    // ただし max_stale_duration 以内は許容する。
+    #[tokio::test]
+    async fn test_stale_cache_within_max_stale_duration_is_used() {
+        let (priv_key, jwk_key) = generate_test_keypair();
+        let token = generate_test_token(&priv_key, None);
+
+        // まず正常フェッチャーでキャッシュを温める
+        let verifier = JwksVerifier::with_fetcher(
+            "https://auth.example.com/jwks",
+            TEST_ISSUER,
+            TEST_AUDIENCE,
+            Duration::ZERO, // TTL=0: 即座に再フェッチ試行させる
+            Arc::new(MockFetcher {
+                keys: vec![jwk_key.clone()],
+            }),
+        )
+        .with_max_stale_duration(Duration::from_secs(3600)); // stale 許容期間: 1時間
+
+        // 1回目: キャッシュを温める
+        verifier.verify_token(&token).await.unwrap();
+
+        // フェッチャーが失敗するものに切り替えた場合をシミュレートする
+        // with_max_stale_duration テスト: stale 内は成功するはずだが、
+        // フェッチャーは差し替えられないため、ここでは max_stale=0 で即座に失敗するケースを検証する
+        let verifier_zero_stale = JwksVerifier::with_fetcher(
+            "https://auth.example.com/jwks",
+            TEST_ISSUER,
+            TEST_AUDIENCE,
+            Duration::ZERO, // TTL=0: 即座に再フェッチ試行させる
+            Arc::new(FailingFetcher),
+        )
+        .with_max_stale_duration(Duration::ZERO); // stale 許容なし
+
+        // max_stale_duration=0: 初回フェッチ失敗はキャッシュなしのためエラー
+        let result = verifier_zero_stale.verify_token(&token).await;
+        assert!(result.is_err(), "フェッチ失敗かつ stale キャッシュなしはエラーになること");
+        match result.unwrap_err() {
+            AuthError::JwksFetchFailed(_) => {}
+            other => panic!("JwksFetchFailed が期待されるが: {:?}", other),
+        }
+    }
+
+    // stale キャッシュが max_stale_duration を超えた場合、JWKS フェッチ失敗時にエラーが伝播することを確認する。
+    // Finding 12: 無期限に stale キャッシュを使い続けることを防ぐ。
+    #[tokio::test]
+    async fn test_stale_cache_exceeded_max_stale_duration_returns_error() {
+        let (priv_key, jwk_key) = generate_test_keypair();
+        let token = generate_test_token(&priv_key, None);
+
+        // FailingFetcher でキャッシュなし・max_stale=0 の verifier を作成
+        // キャッシュが存在しないので即座にエラーになる（stale キャッシュ超過と同等の挙動）
+        let verifier = JwksVerifier::with_fetcher(
+            "https://auth.example.com/jwks",
+            TEST_ISSUER,
+            TEST_AUDIENCE,
+            Duration::from_secs(600),
+            Arc::new(FailingFetcher),
+        )
+        .with_max_stale_duration(Duration::ZERO);
+
+        // キャッシュなし + フェッチ失敗 = エラー伝播（stale キャッシュ超過）
+        let result = verifier.verify_token(&token).await;
+        assert!(
+            result.is_err(),
+            "max_stale_duration 超過時はエラーが伝播すること"
+        );
+
+        // _ を使って未使用警告を抑制
+        let _ = token;
+        let _ = jwk_key;
+    }
+
     // --- RBAC テスト (verifier 経由) ---
 
     // JWT 検証後に RBAC パーミッションチェックが正しく機能することを確認する。

@@ -15,6 +15,7 @@ use k1s0_server_common::middleware::auth_middleware::AuthState;
 use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
 use k1s0_server_common::middleware::rbac::Tier;
 use k1s0_server_common::shutdown::shutdown_signal;
+use anyhow::Context;
 use tonic::transport::Server;
 
 pub async fn run() -> anyhow::Result<()> {
@@ -59,9 +60,27 @@ pub async fn run() -> anyhow::Result<()> {
     // 本番環境では init container で advisory lock を取得して単一ポッドで実行することを推奨。
     // 例: SELECT pg_advisory_lock(12345); MIGRATOR.run(...); SELECT pg_advisory_unlock(12345);
     MIGRATOR.run(&db_pool).await?;
+
+    // search_path が正しく設定されていることを起動時に検証する（fail-fast）。
+    // 接続 URL の options=-c search_path=<schema> が有効でない場合、
+    // runtime SQL が public スキーマを参照して全 CRUD が失敗するため、ここで即座に停止する。
+    let actual_search_path: String = sqlx::query_scalar("SHOW search_path")
+        .fetch_one(&db_pool)
+        .await
+        .context("failed to verify search_path")?;
+    if !actual_search_path.contains(db_cfg.schema.as_str()) {
+        anyhow::bail!(
+            "search_path mismatch: expected schema '{}' but got '{}'. \
+             Check DATABASE_URL options=-c search_path={}",
+            db_cfg.schema,
+            actual_search_path,
+            db_cfg.schema
+        );
+    }
     info!(
         schema = %db_cfg.schema,
-        "database connected and migrations applied"
+        search_path = %actual_search_path,
+        "database connected, migrations applied, search_path verified"
     );
 
     // 4. Metrics

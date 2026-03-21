@@ -175,6 +175,14 @@ impl JwksVerifier {
         }
     }
 
+    /// max_stale_duration を上書きする（テスト用ビルダー）。
+    /// JWKS 取得失敗時に stale キャッシュを許容する最大期間を変更する。
+    #[cfg(test)]
+    pub fn with_max_stale_duration(mut self, max_stale_duration: Duration) -> Self {
+        self.max_stale_duration = max_stale_duration;
+        self
+    }
+
     /// JWT トークン文字列を検証し、Claims を返す。
     pub async fn verify_token(&self, token: &str) -> Result<Claims, AuthError> {
         let keys = self.get_keys().await?;

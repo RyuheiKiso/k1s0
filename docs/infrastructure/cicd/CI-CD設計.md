@@ -961,7 +961,7 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 
 **`infra` タイプ**: `infra/` 配下のインフラストラクチャ設定（Ansible, Docker, Helm, Istio, Keycloak, Kong, Kubernetes, Terraform, Vault 等）を登録。全モジュールに `skip-ci: true` を設定し、CI のリント・テスト・ビルドの対象外とする（インフラ設定は言語固有の CI ジョブでは検証しないため）。
 
-これにより、`validate-modules` ジョブの双方向チェック（ディスク上のモジュールと `modules.yaml` の整合性検証）が全モジュールをカバーする。
+なお `validate-modules` ジョブの双方向チェック（ディスク上のマニフェストと `modules.yaml` の整合性検証）は、マニフェストファイルを持つエントリのみを比較対象とする。`type: database`（SQL ディレクトリ）と `lang: yaml`（infra 設定）はマニフェストファイルを持たないため比較対象から除外し、誤検知（false positive）を防ぐ。
 
 ### フィルタリングスクリプト
 
@@ -986,6 +986,7 @@ scripts/list-modules.sh --status experimental
 
 - **順方向チェック**: ディスク上に存在するが `modules.yaml` に未登録のモジュール → エラー
 - **逆方向チェック**: `modules.yaml` に登録されているがディスク上に存在しないモジュール → エラー
+- **比較対象**: `lang: rust`（`type: database` 除く）・`lang: go`・`lang: typescript`・`lang: dart` のエントリのみ。`type: database` は SQL マイグレーションファイルのみのディレクトリ（Cargo.toml なし）、`lang: yaml` は infra 設定のため除外。
 
 ### 再発防止 lint ジョブ
 
