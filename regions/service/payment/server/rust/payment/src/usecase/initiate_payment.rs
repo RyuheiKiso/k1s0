@@ -16,8 +16,18 @@ impl InitiatePaymentUseCase {
         // ドメインバリデーション（PaymentError を返す）
         PaymentDomainService::validate_initiate_payment(input)?;
 
-        // 冪等性チェック: 同一 order_id の決済が既に存在する場合はそれを返す（二重課金防止）
+        // 冪等性チェック: 同一 order_id の決済が既に存在する場合、
+        // 金額と通貨が一致するならそれを返す（二重課金防止）。
+        // 金額または通貨が異なる場合は冪等性違反としてエラーを返す。
         if let Some(existing) = self.payment_repo.find_by_order_id(&input.order_id).await? {
+            // 同一 order_id で異なる金額/通貨のリクエストは冪等性違反として拒否する。
+            // これにより、誤ったリトライや不正な重複決済を防止する。
+            if existing.amount != input.amount || existing.currency != input.currency {
+                return Err(anyhow::anyhow!(
+                    "Idempotency violation: payment for order {} already exists with different amount/currency",
+                    input.order_id
+                ));
+            }
             tracing::info!(
                 order_id = %input.order_id,
                 payment_id = %existing.id,
