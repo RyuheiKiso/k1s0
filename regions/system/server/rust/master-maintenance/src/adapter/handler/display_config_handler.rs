@@ -16,7 +16,7 @@ pub async fn list_display_configs(
     Path(name): Path<String>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let configs = state
         .manage_display_configs_uc
@@ -32,7 +32,7 @@ pub async fn get_display_config(
     Path((_name, id)): Path<(String, uuid::Uuid)>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let config = state
         .manage_display_configs_uc
@@ -87,7 +87,7 @@ pub async fn update_display_config(
     Json(input): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let config = state
         .manage_display_configs_uc
@@ -103,7 +103,7 @@ pub async fn delete_display_config(
     Path((_name, id)): Path<(String, uuid::Uuid)>,
 ) -> Result<StatusCode, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     state
         .manage_display_configs_uc

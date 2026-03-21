@@ -26,7 +26,7 @@ pub async fn list_items(
     Query(query): Query<ListItemsQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
     let items = state
         .manage_items_uc
@@ -43,7 +43,7 @@ pub async fn get_item(
     Path((category_code, item_code)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
     let item = state
         .manage_items_uc

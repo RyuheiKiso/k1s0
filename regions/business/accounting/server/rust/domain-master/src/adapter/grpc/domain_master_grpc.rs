@@ -211,6 +211,7 @@ impl DomainMasterService for DomainMasterGrpcService {
         }))
     }
 
+    #[allow(clippy::result_large_err)]
     async fn create_item(
         &self,
         request: Request<CreateItemRequest>,
@@ -249,6 +250,7 @@ impl DomainMasterService for DomainMasterGrpcService {
         }))
     }
 
+    #[allow(clippy::result_large_err)]
     async fn update_item(
         &self,
         request: Request<UpdateItemRequest>,

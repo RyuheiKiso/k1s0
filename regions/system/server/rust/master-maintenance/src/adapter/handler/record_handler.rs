@@ -31,7 +31,7 @@ pub async fn list_records(
     Query(query): Query<ListRecordsQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let result = state
         .crud_records_uc
@@ -69,7 +69,7 @@ pub async fn get_record(
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let record = state
         .crud_records_uc

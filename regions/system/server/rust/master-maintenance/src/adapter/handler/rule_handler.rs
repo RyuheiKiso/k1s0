@@ -25,7 +25,7 @@ pub async fn list_rules(
     Query(query): Query<ListRulesQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let rules = state
         .manage_rules_uc
@@ -46,7 +46,7 @@ pub async fn get_rule(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let rule = state
         .manage_rules_uc
@@ -95,7 +95,7 @@ pub async fn update_rule(
     Json(input): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let rule = state.manage_rules_uc.update_rule(id, &input, None).await?;
     Ok(Json(rule))
@@ -108,7 +108,7 @@ pub async fn delete_rule(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<StatusCode, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     state.manage_rules_uc.delete_rule(id).await?;
     Ok(StatusCode::NO_CONTENT)
@@ -121,7 +121,7 @@ pub async fn execute_rule(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let result = state.check_consistency_uc.execute_rule(id, None).await?;
     Ok(Json(result))
@@ -134,7 +134,7 @@ pub async fn check_rules(
     Json(input): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let table_name = input
         .get("table_name")

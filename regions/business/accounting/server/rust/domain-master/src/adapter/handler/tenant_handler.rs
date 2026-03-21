@@ -19,7 +19,7 @@ pub async fn get_tenant_extension(
     Path((tenant_id, item_id)): Path<(String, Uuid)>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
     let extension = state
         .manage_tenant_extensions_uc
@@ -82,7 +82,7 @@ pub async fn list_tenant_items(
     Path((tenant_id, category_code)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
     let merged_items = state
         .manage_tenant_extensions_uc

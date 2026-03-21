@@ -14,7 +14,7 @@ pub async fn list_relationships(
     claims: Option<Extension<Claims>>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let relationships = state.manage_relationships_uc.list_relationships().await?;
     Ok(Json(relationships))
@@ -58,7 +58,7 @@ pub async fn update_relationship(
     Json(input): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let relationship = state
         .manage_relationships_uc
@@ -74,7 +74,7 @@ pub async fn delete_relationship(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<StatusCode, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     state
         .manage_relationships_uc
@@ -90,7 +90,7 @@ pub async fn get_related_records(
     Path((name, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, AppError> {
     // 認証トークンが存在しない場合は 401 を返す
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let related = state
         .manage_relationships_uc

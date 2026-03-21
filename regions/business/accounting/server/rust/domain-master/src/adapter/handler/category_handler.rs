@@ -63,7 +63,7 @@ pub async fn list_categories(
     Query(query): Query<ListCategoriesQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
     let categories = state
         .manage_categories_uc
@@ -80,7 +80,7 @@ pub async fn get_category(
     Path(code): Path<String>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
-    let _ = claims
+    let _guard = claims
         .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
     let category = state
         .manage_categories_uc
