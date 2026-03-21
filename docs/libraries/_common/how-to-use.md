@@ -83,15 +83,12 @@
 |-------------|------|-----|
 | binding | k1s0-bb-binding | binding |
 | pubsub | k1s0-bb-pubsub | pubsub |
-| secret-store | k1s0-bb-secretstore | secret-store |
-| state-store | k1s0-bb-statestore | statestore |
+| secretstore | k1s0-bb-secretstore | secret-store |
+| statestore | k1s0-bb-statestore | statestore |
 
 ### Client ライブラリ（2言語: TypeScript, Dart）
 
-| ライブラリ名 | TypeScript | Dart |
-|-------------|------------|------|
-| react-sdk | @k1s0/react-sdk | — |
-| flutter-sdk | — | k1s0_flutter_sdk |
+現在該当ライブラリなし（将来のクライアント専用ライブラリ用に予約済み）。
 
 ---
 

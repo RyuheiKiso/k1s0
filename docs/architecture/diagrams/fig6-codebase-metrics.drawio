@@ -1,0 +1,48 @@
+<mxGraphModel pageWidth="900" pageHeight="380" grid="0" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- タイトル: k1s0既存資産の実測規模を経営層向けに視覚化 -->
+    <mxCell id="t1" value="k1s0 既存資産規模（実測値）— 導入前から存在する構築済み基盤" style="text;html=1;fontSize=15;fontStyle=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="20" y="8" width="860" height="24" as="geometry" />
+    </mxCell>
+    <!-- サブタイトル: 再構築コスト試算の根拠を示す -->
+    <mxCell id="t2" value="196ライブラリ × 4言語 × 2〜5人日 × 5,000円/時間 ≈ 6,272〜15,680万円 相当の資産が既に存在" style="text;html=1;fontSize=11;fontColor=#555555;fontStyle=2;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="20" y="32" width="860" height="18" as="geometry" />
+    </mxCell>
+
+    <!-- Row 1: サーバー / ライブラリ / テストファイル -->
+    <!-- サーバー: システム基盤の規模を示す青ボックス -->
+    <mxCell id="b1" value="&lt;font style='font-size:38px;font-weight:bold;color:#1e4d78'&gt;32&lt;/font&gt;&lt;br/&gt;&lt;b&gt;&lt;font color='#1e4d78'&gt;サーバー&lt;/font&gt;&lt;/b&gt;&lt;br/&gt;&lt;font style='font-size:10px;color:#6c8ebf'&gt;System 28 + Business 1 + Service 3&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;verticalAlign=middle;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="20" y="58" width="268" height="118" as="geometry" />
+    </mxCell>
+    <!-- ライブラリ: 4言語対応ライブラリ数を示す緑ボックス -->
+    <mxCell id="b2" value="&lt;font style='font-size:38px;font-weight:bold;color:#2d6a2d'&gt;196&lt;/font&gt;&lt;br/&gt;&lt;b&gt;&lt;font color='#2d6a2d'&gt;ライブラリ&lt;/font&gt;&lt;/b&gt;&lt;br/&gt;&lt;font style='font-size:10px;color:#82b366'&gt;Rust 53 + Go 51 + TS 46 + Dart 46&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=middle;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="316" y="58" width="268" height="118" as="geometry" />
+    </mxCell>
+    <!-- テストファイル: 品質保証インフラを示すオレンジボックス -->
+    <mxCell id="b3" value="&lt;font style='font-size:38px;font-weight:bold;color:#7a4700'&gt;675+&lt;/font&gt;&lt;br/&gt;&lt;b&gt;&lt;font color='#7a4700'&gt;テストファイル&lt;/font&gt;&lt;/b&gt;&lt;br/&gt;&lt;font style='font-size:10px;color:#d6b656'&gt;Rust 124 + Go 113 + TS 438&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;align=center;verticalAlign=middle;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="612" y="58" width="268" height="118" as="geometry" />
+    </mxCell>
+
+    <!-- Row 2: ドキュメント / CIワークフロー / CLIコマンド -->
+    <!-- ドキュメント: 知識資産の規模を示す紫ボックス -->
+    <mxCell id="b4" value="&lt;font style='font-size:38px;font-weight:bold;color:#5a3a6a'&gt;375&lt;/font&gt;&lt;br/&gt;&lt;b&gt;&lt;font color='#5a3a6a'&gt;ドキュメント&lt;/font&gt;&lt;/b&gt;&lt;br/&gt;&lt;font style='font-size:10px;color:#9673a6'&gt;オンボーディング32 + テンプレート37 + ランブック12&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=middle;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="20" y="194" width="268" height="118" as="geometry" />
+    </mxCell>
+    <!-- CIワークフロー: 自動化基盤の規模を示す緑ボックス -->
+    <mxCell id="b5" value="&lt;font style='font-size:38px;font-weight:bold;color:#2d6a2d'&gt;31&lt;/font&gt;&lt;br/&gt;&lt;b&gt;&lt;font color='#2d6a2d'&gt;CI/CDワークフロー&lt;/font&gt;&lt;/b&gt;&lt;br/&gt;&lt;font style='font-size:10px;color:#82b366'&gt;6層セキュリティ + 再利用可能テンプレート内蔵&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=middle;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="316" y="194" width="268" height="118" as="geometry" />
+    </mxCell>
+    <!-- CLIコマンド: 開発者体験の提供手段を示す青ボックス -->
+    <mxCell id="b6" value="&lt;font style='font-size:38px;font-weight:bold;color:#1e4d78'&gt;13&lt;/font&gt;&lt;br/&gt;&lt;b&gt;&lt;font color='#1e4d78'&gt;CLIコマンド&lt;/font&gt;&lt;/b&gt;&lt;br/&gt;&lt;font style='font-size:10px;color:#6c8ebf'&gt;generate / build / test / deploy / dev / deps 他&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;verticalAlign=middle;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="612" y="194" width="268" height="118" as="geometry" />
+    </mxCell>
+
+    <!-- フッター注釈: SLOとパフォーマンス目標の実績値 -->
+    <mxCell id="ann" value="SLO: system 99.95% / business・service 99.9%　　性能目標: auth 1,000 RPS、bff-proxy 2,000 RPS　　100% OSSスタック（ライセンス費ゼロ）" style="text;html=1;fontSize=10;fontColor=#777777;fontStyle=2;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="20" y="324" width="860" height="18" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>

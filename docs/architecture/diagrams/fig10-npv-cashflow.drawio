@@ -1,0 +1,196 @@
+<mxGraphModel pageWidth="900" pageHeight="540" grid="0" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- タイトル: NPV分析でCFO・経営層向けの財務言語で説得力を持たせる -->
+    <mxCell id="t1" value="NPV（正味現在価値）分析 — 割引率別の累積キャッシュフロー（5年間）" style="text;html=1;fontSize=15;fontStyle=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="20" y="8" width="860" height="24" as="geometry" />
+    </mxCell>
+    <mxCell id="t2" value="IRR（内部収益率）≈ 71%　　日本企業の標準ハードルレート（8〜12%）を大幅に超過　　全シナリオで5年後NPVは+5,831万円以上" style="text;html=1;fontSize=10;fontColor=#0070c0;fontStyle=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="20" y="32" width="860" height="16" as="geometry" />
+    </mxCell>
+
+    <!-- チャートエリア: x=100〜860(760px), y=50〜490(440px) -->
+    <!-- X軸: Year 0〜5、152px/年 -->
+    <!-- Y軸: -4,000万〜+8,000万 (range 12,000万, 440px) -->
+    <!-- y(V万) = 343 - V * 0.03667   (0線はy=343) -->
+
+    <!-- グリッド線（横）: Y軸目盛り -->
+    <!-- +8000万 → y=83 -->
+    <mxCell id="gy8" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#eeeeee;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="100" y="83" as="sourcePoint" />
+        <mxPoint x="860" y="83" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- +4000万 → y=343-147=196 wait, y(4000) = 343 - 4000*0.03667 = 343 - 147 = 196 -->
+    <mxCell id="gy4" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#eeeeee;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="100" y="196" as="sourcePoint" />
+        <mxPoint x="860" y="196" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- +2000万 → y(2000) = 343 - 2000*0.03667 = 343-73 = 270 -->
+    <mxCell id="gy2" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#eeeeee;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="100" y="270" as="sourcePoint" />
+        <mxPoint x="860" y="270" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- -2000万 → y(−2000) = 343 + 73 = 416 -->
+    <mxCell id="gym2" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#eeeeee;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="100" y="416" as="sourcePoint" />
+        <mxPoint x="860" y="416" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ゼロライン（黒実線）: y=343 -->
+    <mxCell id="zeroline" value="" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="100" y="343" as="sourcePoint" />
+        <mxPoint x="860" y="343" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="zerolabel" value="NPV = 0" style="text;html=1;fontSize=10;fontStyle=1;fontColor=#333333;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="40" y="335" width="56" height="16" as="geometry" />
+    </mxCell>
+
+    <!-- Y軸メモリラベル -->
+    <mxCell id="yv8" value="+8,000万" style="text;html=1;fontSize=9;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="28" y="76" width="68" height="14" as="geometry" />
+    </mxCell>
+    <mxCell id="yv4" value="+4,000万" style="text;html=1;fontSize=9;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="28" y="189" width="68" height="14" as="geometry" />
+    </mxCell>
+    <mxCell id="yv2" value="+2,000万" style="text;html=1;fontSize=9;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="28" y="263" width="68" height="14" as="geometry" />
+    </mxCell>
+    <mxCell id="yvm2" value="−2,000万" style="text;html=1;fontSize=9;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="28" y="409" width="68" height="14" as="geometry" />
+    </mxCell>
+
+    <!-- X軸ラベル: Year 0〜5 -->
+    <mxCell id="x0" value="Year 0&#xa;（初期投資）" style="text;html=1;fontSize=10;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="70" y="494" width="80" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="x1" value="Year 1" style="text;html=1;fontSize=10;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="222" y="494" width="60" height="16" as="geometry" />
+    </mxCell>
+    <mxCell id="x2" value="Year 2" style="text;html=1;fontSize=10;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="374" y="494" width="60" height="16" as="geometry" />
+    </mxCell>
+    <mxCell id="x3" value="Year 3" style="text;html=1;fontSize=10;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="526" y="494" width="60" height="16" as="geometry" />
+    </mxCell>
+    <mxCell id="x4" value="Year 4" style="text;html=1;fontSize=10;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="678" y="494" width="60" height="16" as="geometry" />
+    </mxCell>
+    <mxCell id="x5" value="Year 5" style="text;html=1;fontSize=10;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="830" y="494" width="60" height="16" as="geometry" />
+    </mxCell>
+
+    <!-- r=5%ライン（青）: 最楽観 -->
+    <!-- 座標: (0,-3100)→(100,457), (1,-856)→(252,374), (2,1282)→(404,296), (3,3317)→(556,221), (4,5256)→(708,150), (5,7102)→(860,83) -->
+    <mxCell id="line5" value="" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#0070c0;strokeWidth=2.5;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="100" y="457" as="sourcePoint" />
+        <mxPoint x="860" y="83" as="targetPoint" />
+        <Array as="points">
+          <mxPoint x="252" y="374" />
+          <mxPoint x="404" y="296" />
+          <mxPoint x="556" y="221" />
+          <mxPoint x="708" y="150" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- r=8%ライン（緑）: 標準 -->
+    <!-- 座標: (0,-3100)→(100,457), (1,-919)→(252,377), (2,1101)→(404,303), (3,2971)→(556,234), (4,4703)→(708,171), (5,6307)→(860,112) -->
+    <mxCell id="line8" value="" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#00AA44;strokeWidth=2.5;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="100" y="457" as="sourcePoint" />
+        <mxPoint x="860" y="112" as="targetPoint" />
+        <Array as="points">
+          <mxPoint x="252" y="377" />
+          <mxPoint x="404" y="303" />
+          <mxPoint x="556" y="234" />
+          <mxPoint x="708" y="171" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- r=10%ライン（オレンジ）: 厳しい条件 -->
+    <!-- 座標: (0,-3100)→(100,457), (1,-958)→(252,378), (2,990)→(404,307), (3,2760)→(556,242), (4,4369)→(708,183), (5,5832)→(860,129) -->
+    <mxCell id="line10" value="" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#d79b00;strokeWidth=2.5;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="100" y="457" as="sourcePoint" />
+        <mxPoint x="860" y="129" as="targetPoint" />
+        <Array as="points">
+          <mxPoint x="252" y="378" />
+          <mxPoint x="404" y="307" />
+          <mxPoint x="556" y="242" />
+          <mxPoint x="708" y="183" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 初期投資点（全ライン共通）: Year0 -3,100万 -->
+    <mxCell id="dot0" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=#333333;" vertex="1" parent="1">
+      <mxGeometry x="95" y="452" width="10" height="10" as="geometry" />
+    </mxCell>
+    <mxCell id="dot0l" value="−3,100万円&#xa;（初期投資）" style="text;html=1;fontSize=9;fontColor=#333333;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="108" y="446" width="90" height="28" as="geometry" />
+    </mxCell>
+
+    <!-- 回収完了の注釈: Year 1.3付近でゼロラインと交差 -->
+    <mxCell id="breakeven" value="回収完了（約1.3年）" style="text;html=1;fontSize=10;fontStyle=1;fontColor=#0070c0;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="262" y="318" width="130" height="18" as="geometry" />
+    </mxCell>
+    <!-- 矢印: 回収完了点を指す -->
+    <mxCell id="brarr" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#0070c0;fontSize=9;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="318" y="338" as="sourcePoint" />
+        <mxPoint x="318" y="344" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 5年後の最終値ラベル -->
+    <mxCell id="end5" value="+7,102万（5%）&#xa;+6,307万（8%）&#xa;+5,832万（10%）" style="text;html=1;fontSize=10;align=left;strokeColor=none;fillColor=none;fontColor=#333333;" vertex="1" parent="1">
+      <mxGeometry x="736" y="88" width="120" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- 凡例 -->
+    <mxCell id="leg_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;" vertex="1" parent="1">
+      <mxGeometry x="540" y="446" width="300" height="36" as="geometry" />
+    </mxCell>
+    <mxCell id="leg1" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#0070c0;strokeWidth=2.5;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="552" y="460" as="sourcePoint" />
+        <mxPoint x="576" y="460" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="leg1t" value="割引率 5%" style="text;html=1;fontSize=10;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="580" y="454" width="62" height="14" as="geometry" />
+    </mxCell>
+    <mxCell id="leg2" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#00AA44;strokeWidth=2.5;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="648" y="460" as="sourcePoint" />
+        <mxPoint x="672" y="460" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="leg2t" value="割引率 8%" style="text;html=1;fontSize=10;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="676" y="454" width="62" height="14" as="geometry" />
+    </mxCell>
+    <mxCell id="leg3" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#d79b00;strokeWidth=2.5;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="744" y="460" as="sourcePoint" />
+        <mxPoint x="768" y="460" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="leg3t" value="割引率 10%" style="text;html=1;fontSize=10;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="772" y="454" width="64" height="14" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>
