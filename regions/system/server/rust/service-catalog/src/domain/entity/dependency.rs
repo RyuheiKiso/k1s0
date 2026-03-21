@@ -42,3 +42,40 @@ impl std::str::FromStr for DependencyType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// DependencyType の Display 変換テスト
+    #[test]
+    fn test_dependency_type_display() {
+        assert_eq!(DependencyType::Runtime.to_string(), "runtime");
+        assert_eq!(DependencyType::Build.to_string(), "build");
+        assert_eq!(DependencyType::Optional.to_string(), "optional");
+    }
+
+    /// DependencyType の FromStr 正常変換テスト
+    #[test]
+    fn test_dependency_type_from_str_valid() {
+        use std::str::FromStr;
+        assert_eq!(DependencyType::from_str("runtime").unwrap(), DependencyType::Runtime);
+        assert_eq!(DependencyType::from_str("build").unwrap(), DependencyType::Build);
+        assert_eq!(DependencyType::from_str("optional").unwrap(), DependencyType::Optional);
+    }
+
+    /// DependencyType の FromStr は大文字小文字を区別しない
+    #[test]
+    fn test_dependency_type_from_str_case_insensitive() {
+        use std::str::FromStr;
+        assert_eq!(DependencyType::from_str("RUNTIME").unwrap(), DependencyType::Runtime);
+        assert_eq!(DependencyType::from_str("Build").unwrap(), DependencyType::Build);
+    }
+
+    /// 不明な文字列は Err を返す
+    #[test]
+    fn test_dependency_type_from_str_invalid() {
+        use std::str::FromStr;
+        assert!(DependencyType::from_str("unknown").is_err());
+    }
+}

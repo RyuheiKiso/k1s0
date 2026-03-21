@@ -59,7 +59,8 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://dev:dev@localhost:5432/k1s0_service?options=-c%20search_path%3Dorder,public
+      # スキーマ名は Rust コードの default_schema() = "order_service" と一致させる
+      DATABASE_URL: postgresql://dev:dev@localhost:5432/k1s0_service?options=-c%20search_path%3Dorder_service,public
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
