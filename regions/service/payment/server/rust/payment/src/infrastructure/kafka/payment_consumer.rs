@@ -281,10 +281,63 @@ mod tests {
     async fn test_dispatch_empty_payload_order_created() {
         // 空バイト列は Protobuf デコード成功（全フィールドがデフォルト値）
         // order_id = "" などが domain バリデーションで ValidationFailed になることを確認する
-        let mock_repo = MockPaymentRepository::new();
-        let uc = make_uc(mock_repo);
-        let result = dispatch_message(&uc, "order.created", "order.created", &[]).await;
+        let mut initiate_repo = MockPaymentRepository::new();
+        // 空 order_id でも find_by_order_id は呼ばれる（バリデーションはその後）
+        initiate_repo
+            .expect_find_by_order_id()
+            .returning(|_| Ok(None));
+        let uc = make_uc(initiate_repo, MockPaymentRepository::new(), MockPaymentRepository::new());
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.created", &[]).await;
         // Protobuf デコードは成功するが、空 order_id が決済ドメインバリデーションで Err になる
         assert!(result.is_err());
+    }
+
+    // order.cancelled を受信して Initiated の決済が Failed に遷移することを確認する（M-20）
+    #[tokio::test]
+    async fn test_dispatch_order_cancelled_fails_payment() {
+        let order_id = "ORD-CANCEL-001";
+        let payment = sample_payment(order_id);
+        let payment_id = payment.id;
+        let payment_clone = payment.clone();
+        let mut failed_payment = payment.clone();
+        failed_payment.status = PaymentStatus::Failed;
+        let failed_clone = failed_payment.clone();
+
+        // search_repo: 注文 ID から決済を検索する
+        let mut search_repo = MockPaymentRepository::new();
+        search_repo
+            .expect_find_by_order_id()
+            .times(1)
+            .returning(move |_| Ok(Some(payment_clone.clone())));
+
+        // fail_uc 用モック: find_by_id → fail の順に呼び出される
+        let mut fail_repo = MockPaymentRepository::new();
+        fail_repo
+            .expect_find_by_id()
+            .withf(move |id| *id == payment_id)
+            .times(1)
+            .returning(move |_| {
+                let mut p = payment.clone();
+                p.status = PaymentStatus::Initiated;
+                Ok(Some(p))
+            });
+        fail_repo
+            .expect_fail()
+            .times(1)
+            .returning(move |_, _, _, _| Ok(failed_clone.clone()));
+
+        let uc = make_uc(MockPaymentRepository::new(), fail_repo, search_repo);
+        let payload = encode_order_cancelled(order_id);
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.cancelled", &payload).await;
+        assert!(result.is_ok());
+    }
+
+    // order.cancelled トピックに不正なバイト列を受信した場合はデシリアライズエラーを返すことを確認する
+    #[tokio::test]
+    async fn test_dispatch_order_cancelled_invalid_protobuf() {
+        let uc = make_uc(MockPaymentRepository::new(), MockPaymentRepository::new(), MockPaymentRepository::new());
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.cancelled", b"\xff\xfe").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("デシリアライズに失敗"));
     }
 }
