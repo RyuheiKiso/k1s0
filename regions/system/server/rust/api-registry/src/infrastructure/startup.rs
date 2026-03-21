@@ -4,6 +4,9 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::cache::SchemaCache;
 use super::config::Config;
 use super::database::create_pool;
@@ -193,6 +196,9 @@ pub async fn run() -> anyhow::Result<()> {
             .transpose()?,
     )?;
 
+    // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, api_registry_grpc_action);
+
     // REST app state
     let mut state = adapter::handler::AppState {
         list_schemas_uc: list_schemas_uc.clone(),
@@ -238,6 +244,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(ApiRegistryServiceServer::new(tonic_svc))
             .serve_with_shutdown(grpc_addr, async move {
@@ -273,4 +280,13 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名を RBAC アクション（read/write）にマッピングする。
+/// スキーマ・バージョンの登録・削除は write、それ以外は read とする。
+fn api_registry_grpc_action(method: &str) -> &'static str {
+    match method {
+        "RegisterSchema" | "RegisterVersion" | "DeleteVersion" => "write",
+        _ => "read",
+    }
 }

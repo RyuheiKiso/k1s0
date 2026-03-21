@@ -4,6 +4,9 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::config::Config;
 use super::persistence::DlqPostgresRepository;
 use crate::adapter::grpc::{dlq_grpc::DlqGrpcService, tonic_service::DlqServiceTonic};
@@ -169,6 +172,9 @@ pub async fn run() -> anyhow::Result<()> {
             .transpose()?,
     )?;
 
+    // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, dlq_manager_grpc_action);
+
     // AppState
     let mut state = AppState {
         list_messages_uc,
@@ -202,6 +208,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .add_service(DlqServiceServer::new(dlq_tonic))
             .serve_with_shutdown(grpc_addr, async move {
                 let _ = grpc_shutdown.await;
@@ -238,6 +245,15 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名を RBAC アクション（read/write）にマッピングする。
+/// メッセージのリトライ・削除・一括リトライは write、それ以外は read とする。
+fn dlq_manager_grpc_action(method: &str) -> &'static str {
+    match method {
+        "RetryMessage" | "DeleteMessage" | "RetryAll" => "write",
+        _ => "read",
+    }
 }
 
 // --- In-memory DLQ Message Repository for dev mode ---

@@ -6,6 +6,10 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
 
+// gRPC 認証レイヤー
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use crate::adapter;
 use crate::infrastructure;
 use crate::proto;
@@ -262,6 +266,8 @@ pub async fn run() -> anyhow::Result<()> {
         metrics: metrics.clone(),
         auth_state: None,
     };
+    // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, quota_grpc_action);
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);
     }
@@ -284,6 +290,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(QuotaServiceServer::new(quota_tonic))
             .serve_with_shutdown(grpc_addr, async move {
@@ -320,6 +327,20 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名から必要な RBAC アクション文字列を返す。
+/// CreateQuotaPolicy / UpdateQuotaPolicy / DeleteQuotaPolicy / IncrementQuotaUsage / ResetQuotaUsage は write、
+/// それ以外は read。
+fn quota_grpc_action(method: &str) -> &'static str {
+    match method {
+        "CreateQuotaPolicy"
+        | "UpdateQuotaPolicy"
+        | "DeleteQuotaPolicy"
+        | "IncrementQuotaUsage"
+        | "ResetQuotaUsage" => "write",
+        _ => "read",
+    }
 }
 
 // --- Cron-based quota usage reset ---

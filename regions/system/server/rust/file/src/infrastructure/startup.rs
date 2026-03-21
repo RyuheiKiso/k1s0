@@ -5,6 +5,9 @@ use std::time::Duration;
 
 use tracing::info;
 
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::config::Config;
 use super::in_memory::{InMemoryFileMetadataRepository, InMemoryFileStorageRepository};
 use super::kafka_producer::{FileEventPublisher, FileKafkaProducer, NoopFileEventPublisher};
@@ -191,6 +194,9 @@ pub async fn run() -> anyhow::Result<()> {
             .transpose()?,
     )?;
 
+    // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, file_grpc_action);
+
     // REST app state
     let mut state = crate::adapter::handler::AppState {
         list_files_uc: list_files_uc.clone(),
@@ -234,6 +240,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(FileServiceServer::new(tonic_svc))
             .serve_with_shutdown(grpc_addr, async move {
@@ -271,4 +278,13 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名を RBAC アクション（read/write）にマッピングする。
+/// アップロード URL 生成・アップロード完了・ファイル削除・タグ更新は write、それ以外は read とする。
+fn file_grpc_action(method: &str) -> &'static str {
+    match method {
+        "GenerateUploadUrl" | "CompleteUpload" | "DeleteFile" | "UpdateFileTags" => "write",
+        _ => "read",
+    }
 }

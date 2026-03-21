@@ -4,6 +4,10 @@ use std::sync::Arc;
 
 use tracing::info;
 
+// gRPC 認証レイヤー
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use crate::adapter;
 use crate::domain;
 use crate::infrastructure;
@@ -190,6 +194,9 @@ pub async fn run() -> anyhow::Result<()> {
             .transpose()?,
     )?;
 
+    // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, saga_grpc_action);
+
     // AppState (REST handler用)
     let mut state = AppState {
         start_saga_uc,
@@ -237,6 +244,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SagaServiceServer::new(saga_tonic))
             .serve_with_shutdown(grpc_addr, async move {
@@ -289,6 +297,15 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名から必要な RBAC アクション文字列を返す。
+/// StartSaga / CancelSaga / CompensateSaga / RegisterWorkflow は write、それ以外は read。
+fn saga_grpc_action(method: &str) -> &'static str {
+    match method {
+        "StartSaga" | "CancelSaga" | "CompensateSaga" | "RegisterWorkflow" => "write",
+        _ => "read",
+    }
 }
 
 // --- In-memory Saga Repository for dev mode ---
