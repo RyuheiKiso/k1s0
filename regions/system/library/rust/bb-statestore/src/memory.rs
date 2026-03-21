@@ -88,14 +88,16 @@ impl StateStore for InMemoryStateStore {
     ) -> Result<String, StateStoreError> {
         let mut store = self.store.write().await;
         // ETag が指定されている場合、既存エントリの ETag と一致するか検証する。
-        if let Some(expected_etag) = etag
-            && let Some(existing) = store.get(key)
-            && existing.etag != expected_etag
-        {
-            return Err(StateStoreError::ETagMismatch {
-                expected: expected_etag.to_string(),
-                actual: existing.etag.clone(),
-            });
+        // edition 2021 では let チェーンが使えないため、ネストした if let で記述する。
+        if let Some(expected_etag) = etag {
+            if let Some(existing) = store.get(key) {
+                if existing.etag != expected_etag {
+                    return Err(StateStoreError::ETagMismatch {
+                        expected: expected_etag.to_string(),
+                        actual: existing.etag.clone(),
+                    });
+                }
+            }
         }
         let new_etag = Uuid::new_v4().to_string();
         store.insert(
@@ -111,14 +113,16 @@ impl StateStore for InMemoryStateStore {
     async fn delete(&self, key: &str, etag: Option<&str>) -> Result<(), StateStoreError> {
         let mut store = self.store.write().await;
         // ETag が指定されている場合、既存エントリの ETag と一致するか検証する。
-        if let Some(expected_etag) = etag
-            && let Some(existing) = store.get(key)
-            && existing.etag != expected_etag
-        {
-            return Err(StateStoreError::ETagMismatch {
-                expected: expected_etag.to_string(),
-                actual: existing.etag.clone(),
-            });
+        // edition 2021 では let チェーンが使えないため、ネストした if let で記述する。
+        if let Some(expected_etag) = etag {
+            if let Some(existing) = store.get(key) {
+                if existing.etag != expected_etag {
+                    return Err(StateStoreError::ETagMismatch {
+                        expected: expected_etag.to_string(),
+                        actual: existing.etag.clone(),
+                    });
+                }
+            }
         }
         store.remove(key);
         Ok(())

@@ -2,6 +2,7 @@ package eventstore
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,6 +15,29 @@ func TestNewPostgresEventStore_InvalidURL(t *testing.T) {
 	store, err := NewPostgresEventStore("postgres://user:pass@localhost:5432/testdb?sslmode=disable")
 	if err != nil {
 		// If the postgres driver is not registered, this test is expected to fail.
+		t.Skipf("postgres driver not available: %v", err)
+	}
+	require.NotNil(t, store)
+	store.Close()
+}
+
+// DefaultEventStoreConfigがデフォルト接続プール設定（MaxOpenConns=10, MaxIdleConns=5, 5分）を返すことを確認する。
+func TestDefaultEventStoreConfig(t *testing.T) {
+	cfg := DefaultEventStoreConfig()
+	assert.Equal(t, 10, cfg.MaxOpenConns)
+	assert.Equal(t, 5, cfg.MaxIdleConns)
+	assert.Equal(t, 5*time.Minute, cfg.ConnMaxLifetime)
+}
+
+// NewPostgresEventStoreWithConfigがカスタム設定でストアインスタンスを生成できることを確認する。
+func TestNewPostgresEventStoreWithConfig(t *testing.T) {
+	cfg := EventStoreConfig{
+		MaxOpenConns:    20,
+		MaxIdleConns:    10,
+		ConnMaxLifetime: 10 * time.Minute,
+	}
+	store, err := NewPostgresEventStoreWithConfig("postgres://user:pass@localhost:5432/testdb?sslmode=disable", cfg)
+	if err != nil {
 		t.Skipf("postgres driver not available: %v", err)
 	}
 	require.NotNil(t, store)

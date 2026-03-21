@@ -102,6 +102,17 @@ println!("failures: {}, successes: {}", metrics.failure_count, metrics.success_c
 
 **依存関係**: なし（標準ライブラリのみ）
 
+### HalfOpen 状態の同時実行制御
+
+Go 実装の `Call` メソッドは HalfOpen 状態において `sync/atomic` の CAS（Compare-And-Swap）操作を使用し、同時に **1件のみ** プローブリクエストを通過させる。
+
+- `halfOpenInFlight int32` フィールドをアトミックに管理する
+- `atomic.CompareAndSwapInt32(&cb.halfOpenInFlight, 0, 1)` で1件のみ通過を許可
+- 2件目以降は即座に `ErrOpen` を返す
+- プローブリクエスト完了後（成功・失敗どちらでも）`atomic.StoreInt32(&cb.halfOpenInFlight, 0)` でリセット
+
+これにより、回復途中のサービスに複数のプローブが同時に到達してサービスを再ダウンさせるリスクを防ぐ。
+
 **主要インターフェース**:
 
 ```go

@@ -25,6 +25,9 @@ on:
       - 'regions/service/payment/client/**'
       - 'regions/service/payment/database/**'
       - 'regions/business/accounting/**'
+  schedule:
+    # 毎週月曜 03:00 UTC に全テストを定期実行し、回帰テスト失敗を検知する
+    - cron: '0 3 * * 1'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -36,6 +39,7 @@ permissions: {}
 jobs:
   # ---------- Step 1: 変更検出 ----------
   # ファイル変更の検出（言語ごとのフィルタリング）
+  # schedule トリガー時は全言語を true にして全テストを実行する（変更検出をバイパス）
   detect-changes:
     runs-on: ubuntu-latest
     # コードの読み取りと PR 情報の読み取り（paths-filter）が必要
@@ -43,19 +47,22 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      go: ${{ steps.filter.outputs.go }}
-      rust: ${{ steps.filter.outputs.rust }}
-      ts: ${{ steps.filter.outputs.ts }}
-      dart: ${{ steps.filter.outputs.dart }}
-      proto: ${{ steps.filter.outputs.proto }}
-      helm: ${{ steps.filter.outputs.helm }}
-      docker: ${{ steps.filter.outputs.docker }}
-      shell: ${{ steps.filter.outputs.shell }}
+      # schedule 時は全言語を 'true' にして全テストを実行する
+      go: ${{ github.event_name == 'schedule' && 'true' || steps.filter.outputs.go }}
+      rust: ${{ github.event_name == 'schedule' && 'true' || steps.filter.outputs.rust }}
+      ts: ${{ github.event_name == 'schedule' && 'true' || steps.filter.outputs.ts }}
+      dart: ${{ github.event_name == 'schedule' && 'true' || steps.filter.outputs.dart }}
+      proto: ${{ github.event_name == 'schedule' && 'true' || steps.filter.outputs.proto }}
+      helm: ${{ github.event_name == 'schedule' && 'true' || steps.filter.outputs.helm }}
+      docker: ${{ github.event_name == 'schedule' && 'true' || steps.filter.outputs.docker }}
+      shell: ${{ github.event_name == 'schedule' && 'true' || steps.filter.outputs.shell }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      # schedule トリガー時は paths-filter をスキップし、全言語を処理対象にする
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
+        if: github.event_name != 'schedule'
         with:
           filters: |
             go:
@@ -109,6 +116,7 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
         run: |
           # detect-affected-modules.sh を使って言語ごとの影響モジュールを検出
+          # schedule トリガー時は go_modules 等を空文字列にして _test.yaml が全モジュールを処理する
           chmod +x scripts/detect-affected-modules.sh
           go_mods=$(scripts/detect-affected-modules.sh "$BASE_REF" go | paste -sd ',' - || echo "")
           rust_mods=$(scripts/detect-affected-modules.sh "$BASE_REF" rust | paste -sd ',' - || echo "")

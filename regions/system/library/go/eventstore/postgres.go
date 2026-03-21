@@ -32,18 +32,44 @@ type PostgresEventStore struct {
 	db *sql.DB
 }
 
-// NewPostgresEventStore は新しい PostgresEventStore を生成する。
+// EventStoreConfig は PostgresEventStore の接続プール設定を保持する
+type EventStoreConfig struct {
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
+}
+
+// DefaultEventStoreConfig はデフォルトの接続プール設定（後方互換）
+func DefaultEventStoreConfig() EventStoreConfig {
+	return EventStoreConfig{
+		MaxOpenConns:    10,
+		MaxIdleConns:    5,
+		ConnMaxLifetime: 5 * time.Minute,
+	}
+}
+
+// NewPostgresEventStoreWithConfig は接続プール設定を指定して新しい PostgresEventStore を生成する。
 //
 // databaseURL は PostgreSQL 接続 URL (例: "postgres://user:pass@localhost:5432/dbname?sslmode=disable")
-func NewPostgresEventStore(databaseURL string) (*PostgresEventStore, error) {
+// cfg には接続プールのパラメータ（最大接続数、アイドル接続数、接続最大有効期間）を指定する。
+func NewPostgresEventStoreWithConfig(databaseURL string, cfg EventStoreConfig) (*PostgresEventStore, error) {
 	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {
 		return nil, &EventStoreError{Code: "CONNECTION_ERROR", Message: err.Error()}
 	}
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	// 外部化された設定値を接続プールに適用する
+	db.SetMaxOpenConns(cfg.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.MaxIdleConns)
+	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 	return &PostgresEventStore{db: db}, nil
+}
+
+// NewPostgresEventStore は新しい PostgresEventStore をデフォルト設定で生成する（後方互換）。
+//
+// databaseURL は PostgreSQL 接続 URL (例: "postgres://user:pass@localhost:5432/dbname?sslmode=disable")
+func NewPostgresEventStore(databaseURL string) (*PostgresEventStore, error) {
+	// デフォルト設定を使用して後方互換性を維持する
+	return NewPostgresEventStoreWithConfig(databaseURL, DefaultEventStoreConfig())
 }
 
 // NewPostgresEventStoreFromDB は既存の *sql.DB から PostgresEventStore を生成する。
@@ -79,7 +105,7 @@ func (s *PostgresEventStore) Append(ctx context.Context, streamID StreamId, even
 		}
 	}()
 
-	// Get current version with row-level lock
+	// 行レベルロックを使用して現在のバージョンを取得する。
 	var currentVersion int64
 	err = tx.QueryRowContext(ctx,
 		"SELECT COALESCE(MAX(version), 0) FROM events WHERE stream_id = $1 FOR UPDATE",
@@ -171,15 +197,17 @@ func (s *PostgresEventStore) LoadFrom(ctx context.Context, streamID StreamId, fr
 }
 
 func (s *PostgresEventStore) Exists(ctx context.Context, streamID StreamId) (bool, error) {
-	var count int64
+	// SELECT EXISTS を使用することで COUNT(*) より効率的にストリーム存在確認を行う。
+	// PostgreSQL は EXISTS サブクエリで最初の一致行を見つけた時点でスキャンを停止する。
+	var exists bool
 	err := s.db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM events WHERE stream_id = $1 LIMIT 1",
+		"SELECT EXISTS(SELECT 1 FROM events WHERE stream_id = $1)",
 		streamID.String(),
-	).Scan(&count)
+	).Scan(&exists)
 	if err != nil {
 		return false, &EventStoreError{Code: "QUERY_ERROR", Message: err.Error()}
 	}
-	return count > 0, nil
+	return exists, nil
 }
 
 func (s *PostgresEventStore) CurrentVersion(ctx context.Context, streamID StreamId) (uint64, error) {

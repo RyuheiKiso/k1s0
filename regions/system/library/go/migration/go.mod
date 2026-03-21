@@ -1,6 +1,6 @@
 module github.com/k1s0-platform/system-library-go-migration
 
-go 1.24.0
+go 1.26.1
 
 require (
 	github.com/BurntSushi/toml v1.6.0

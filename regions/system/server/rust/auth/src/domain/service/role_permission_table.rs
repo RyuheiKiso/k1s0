@@ -41,19 +41,33 @@ impl RolePermissionTable {
         Ok(())
     }
 
-    pub fn start_background_refresh(self: Arc<Self>, refresh_interval: Duration) {
+    /// tokio-util の CancellationToken を使ってキャンセル可能なバックグラウンドリフレッシュタスクを起動する。
+    /// 呼び出し元は返却された JoinHandle を保持し、シャットダウン時に cancellation_token.cancel() を呼ぶこと。
+    pub fn start_background_refresh(
+        self: Arc<Self>,
+        refresh_interval: Duration,
+        cancellation_token: tokio_util::sync::CancellationToken,
+    ) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             let mut ticker = tokio::time::interval(refresh_interval);
             loop {
-                ticker.tick().await;
-                if let Err(err) = self.sync_once().await {
-                    tracing::warn!(
-                        error = %err,
-                        "failed to refresh keycloak role-permission table"
-                    );
+                // キャンセルシグナルとタイマーを同時に待機し、キャンセル時はタスクを終了する
+                tokio::select! {
+                    _ = ticker.tick() => {
+                        if let Err(err) = self.sync_once().await {
+                            tracing::warn!(
+                                error = %err,
+                                "failed to refresh keycloak role-permission table"
+                            );
+                        }
+                    }
+                    _ = cancellation_token.cancelled() => {
+                        tracing::info!("バックグラウンドリフレッシュタスクをキャンセルしました");
+                        return;
+                    }
                 }
             }
-        });
+        })
     }
 
     /// Returns None when the table has not been refreshed yet.

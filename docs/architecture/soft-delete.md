@@ -122,6 +122,37 @@ fn soft_delete_order(order_id) {
 - サービス層で明示的に制御することで、ビジネスルールの適用が容易
 - Outbox パターンとの統合が自然に行える
 
+## ソフトデリートと UNIQUE 制約の共存
+
+### 問題
+
+`UNIQUE` 制約が存在するカラムにソフトデリートを適用すると、削除済みレコードと同じ値を持つ新規レコードを作成できない。
+
+例: `tenant.tenants` テーブルの `name` カラムには UNIQUE 制約が存在する。テナントを論理削除（`status = 'deleted'`）した後、同名テナントを再プロビジョニングしようとすると UNIQUE 違反が発生する。
+
+### 解決策: 条件付きユニーク制約（部分インデックス）
+
+PostgreSQL の部分インデックスを使用して、**削除済みレコードを除いたアクティブなレコードのみ**にユニーク性を適用する。
+
+```sql
+-- 無条件 UNIQUE 制約を削除する
+ALTER TABLE {schema}.{table} DROP CONSTRAINT IF EXISTS {table}_{column}_key;
+
+-- 論理削除済みを除いた条件付きユニーク制約を追加する
+CREATE UNIQUE INDEX uix_{table}_{column}_active
+    ON {schema}.{table} ({column})
+    WHERE status != 'deleted';
+```
+
+### 適用例
+
+- `tenant.tenants.name`: マイグレーション 007 で条件付きユニーク制約に移行済み（`uix_tenants_name_active`）
+
+### 注意事項
+
+- ソフトデリートのフラグカラム名（`deleted_at`, `status` 等）に応じて WHERE 句を調整すること
+- ロールバック時は削除済みテナントと同名のアクティブテナントが存在しないことを事前に確認すること
+
 ## ソフトデリート対象外のテーブル
 
 以下のテーブルはソフトデリートを適用しない。

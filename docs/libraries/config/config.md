@@ -8,7 +8,7 @@
 
 | 関数 | シグネチャ | 説明 |
 |------|-----------|------|
-| `Load` / `load` | `(basePath, envPath?) -> (Config, Error?)` | YAML を読み込み Config を返す |
+| `Load` / `load` | `(basePath, envPath?) -> (Config, Error?)` | YAML を読み込み Config を返す。**ロード後に自動でバリデーションを実行する**（Go 実装）。バリデーション失敗時は `ErrConfigValidation` を返す |
 | `Validate` / `validate` | `(config) -> Error?` | 設定値のバリデーション（全 4 言語で実装済み） |
 | `MergeVaultSecrets` / `merge_vault_secrets` | `(receiver, secrets) -> void` | Vault シークレットで in-place 上書き |
 
@@ -125,10 +125,15 @@ type KafkaConfig struct {
     Topics           KafkaTopics      `yaml:"topics"`
 }
 
+// KafkaSASLConfig は SASL 認証設定を保持する。
+// KafkaConfig.SASL がポインタ（*KafkaSASLConfig）のため、SASL 無効時（nil）は
+// validate タグの検証はスキップされる。SASL 有効時（非 nil）は Username / Password が必須。
 type KafkaSASLConfig struct {
     Mechanism string `yaml:"mechanism" validate:"required,oneof=SCRAM-SHA-512 PLAIN"`
-    Username  string `yaml:"username"`
-    Password  string `yaml:"password"`
+    // SASL 有効時に必須（validate:"required"）
+    Username  string `yaml:"username" validate:"required"`
+    // SASL 有効時に必須（validate:"required"）
+    Password  string `yaml:"password" validate:"required"`
 }
 
 type KafkaTLSConfig struct {

@@ -141,6 +141,21 @@ func TestSnapshot_SaveAndLoad(t *testing.T) {
 	assert.Equal(t, `{"total":100}`, string(loaded.State))
 }
 
+// WithMetadataオプションを指定してNewEventEnvelopeを呼び出すとMetadataが設定されることを確認する。
+func TestNewEventEnvelope_WithMetadata(t *testing.T) {
+	sid := es.NewStreamId("order-123")
+	meta := json.RawMessage(`{"correlation_id":"req-abc"}`)
+	event := es.NewEventEnvelope(sid, 1, "OrderCreated", json.RawMessage(`{}`), es.WithMetadata(meta))
+	assert.Equal(t, string(meta), string(event.Metadata))
+}
+
+// WithMetadataオプションなしで呼び出した場合はMetadataがデフォルト値（空オブジェクト）になることを確認する。
+func TestNewEventEnvelope_DefaultMetadata(t *testing.T) {
+	sid := es.NewStreamId("order-123")
+	event := es.NewEventEnvelope(sid, 1, "OrderCreated", json.RawMessage(`{}`))
+	assert.Equal(t, "{}", string(event.Metadata))
+}
+
 // LoadSnapshotが存在しないストリームIDを指定した場合にnilを返すことを確認する。
 func TestSnapshot_LoadNotFound(t *testing.T) {
 	store := es.NewInMemorySnapshotStore()

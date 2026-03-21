@@ -14,8 +14,8 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/upstream"
 )
 
-// ProxyHandler provides reverse proxy functionality that converts
-// cookie-based sessions to bearer token authentication for upstream APIs.
+// ProxyHandler はクッキーベースのセッションをベアラートークン認証に変換し、
+// アップストリーム API へのリバースプロキシ機能を提供する。
 type ProxyHandler struct {
 	reverseProxy *upstream.ReverseProxy
 	sessionStore session.Store
@@ -28,7 +28,7 @@ type ProxyHandler struct {
 	refreshGroup singleflight.Group
 }
 
-// NewProxyHandler creates a new reverse proxy handler targeting the upstream URL.
+// NewProxyHandler はアップストリーム URL を対象とした新しいリバースプロキシハンドラーを生成する。
 func NewProxyHandler(
 	upstreamURL string,
 	sessionStore session.Store,
@@ -51,8 +51,8 @@ func NewProxyHandler(
 	}, nil
 }
 
-// Handle proxies requests to the upstream API after attaching the bearer token
-// from the session. If the access token has expired, it attempts a silent refresh.
+// Handle はセッションからベアラートークンを付加してアップストリーム API へリクエストをプロキシする。
+// アクセストークンが期限切れの場合はサイレントリフレッシュを試みる。
 func (h *ProxyHandler) Handle(c *gin.Context) {
 	sess, ok := middleware.GetSessionData(c)
 	if !ok {
@@ -60,7 +60,14 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 		return
 	}
 
-	sessionID, _ := middleware.GetSessionID(c)
+	// GetSessionID はセッション ID を gin コンテキストから取得する。
+	// 取得失敗時（SessionMiddleware がセットしていない場合）は空文字列になり
+	// singleflight キーが衝突するため、明示的に 401 を返して処理を中断する。
+	sessionID, ok := middleware.GetSessionID(c)
+	if !ok || sessionID == "" {
+		abortErrorWithMessage(c, http.StatusUnauthorized, "BFF_PROXY_NO_SESSION_ID", "セッション ID が取得できません")
+		return
+	}
 
 	// SessionMiddleware が session_needs_refresh フラグを立てた場合のみ silent refresh を試みる。
 	// フラグは「期限切れ かつ refresh token あり」の場合のみ middleware が設定する。
@@ -97,7 +104,7 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 
 		tokenResp := val.(*refreshResult).tokenResp
 
-		// Update session with new tokens.
+		// 新しいトークンでセッションを更新する。
 		sess.AccessToken = tokenResp.AccessToken
 		if tokenResp.RefreshToken != "" {
 			sess.RefreshToken = tokenResp.RefreshToken
@@ -107,14 +114,15 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 		}
 		sess.ExpiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
 
+		// リフレッシュ後のセッション更新に失敗した場合はエラーログを記録する。
 		if err := h.sessionStore.Update(c.Request.Context(), sessionID, sess, h.sessionTTL); err != nil {
-			h.logger.Error("failed to update session after refresh",
+			h.logger.Error("リフレッシュ後のセッション更新に失敗しました",
 				slog.String("error", err.Error()),
 			)
 		}
 	}
 
-	// Inject Authorization header for upstream.
+	// アップストリーム向けに Authorization ヘッダーを付加する。
 	c.Request.Header.Set("Authorization", "Bearer "+sess.AccessToken)
 
 	// 相関ヘッダーをアップストリームに伝播する
@@ -131,7 +139,7 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 		}
 	}
 
-	// Strip session cookie from upstream request.
+	// アップストリームへのリクエストからセッション Cookie を除去する。
 	c.Request.Header.Del("Cookie")
 
 	h.reverseProxy.ServeHTTP(c.Writer, c.Request)

@@ -171,8 +171,31 @@ func (c *Claims) IsExpired() bool {
 	return time.Now().After(c.ExpiresAt)
 }
 
+// maskEmail はメールアドレスの PII をマスキングする。
+// "@" より前の部分の先頭1文字を残して "***" で置換する。
+// 例: "user@example.com" → "u***@example.com"
+// "@" がない場合や空文字列の場合は "***" を返す。
+func maskEmail(email string) string {
+	if email == "" {
+		return "***"
+	}
+	atIdx := -1
+	for i, ch := range email {
+		if ch == '@' {
+			atIdx = i
+			break
+		}
+	}
+	if atIdx < 0 {
+		return "***"
+	}
+	// 先頭1文字 + "***" + "@以降" の形式でマスク
+	return email[:1] + "***" + email[atIdx:]
+}
+
 // String は Claims のデバッグ用文字列を返す。
+// email は PII のため maskEmail でマスキングして出力する。
 func (c *Claims) String() string {
 	return fmt.Sprintf("Claims{sub=%s, iss=%s, aud=%v, username=%s, email=%s}",
-		c.Sub, c.Issuer, c.Audience, c.Username, c.Email)
+		c.Sub, c.Issuer, c.Audience, c.Username, maskEmail(c.Email))
 }

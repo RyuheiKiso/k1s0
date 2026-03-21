@@ -200,6 +200,29 @@ type InMemorySecretStore struct{}
 func NewInMemorySecretStore() *InMemorySecretStore
 ```
 
+## セキュリティ注意事項
+
+### FileSecretStore: パストラバーサル防止
+
+`FileSecretStore.Get` は `key` パラメータに `../` を含むパストラバーサル攻撃（例: `../../etc/passwd`）を防止するためのバリデーションを実装している。
+
+**防止メカニズム**:
+- `filepath.Abs` でキーを結合したパスの絶対パスを解決する
+- 解決後のパスが基底ディレクトリ（`dir`）配下にあることを `strings.HasPrefix` で検証する
+- ディレクトリセパレータを付加して境界を正確に確認する（例: `/secrets` と `/secrets-extra` を誤って一致させない）
+- バリデーション失敗時は `ErrPathTraversal` をラップした `ComponentError` を返す
+
+**拒否される入力例**:
+- `../../etc/passwd` — 上位ディレクトリへの相対パス
+- `../sibling/secret` — 隣接ディレクトリへの相対パス
+- `/absolute/path/secret` — 絶対パス指定
+
+**注意**: キーには単純なファイル名（例: `db-password`, `api-key`）のみを使用すること。サブディレクトリを持つキー（例: `subdir/secret`）が必要な場合は、解決後のパスが基底ディレクトリ配下にあれば許可される。
+
+### EnvSecretStore: 環境変数インジェクション
+
+`EnvSecretStore` は `prefix + key` の形式で環境変数を参照する。`key` に改行文字や特殊文字を含む入力は環境変数名として無効なため、OS 側で自動的に拒否される。ただし、攻撃者が環境変数名を推測可能な場合は機密情報が漏洩するリスクがある。シークレット名には推測困難な命名規則を採用すること。
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/building-blocks/`

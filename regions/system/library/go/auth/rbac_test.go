@@ -60,10 +60,12 @@ func TestCheckPermission_SysAdmin_GrantsAll(t *testing.T) {
 	assert.True(t, CheckPermission(claims, "any-resource", "any-action"))
 }
 
-// admin ロールを持つユーザーは全権限を持つ
-func TestCheckPermission_Admin_GrantsAll(t *testing.T) {
+// realm_access の admin ロールを持つユーザーは全権限を持たない（最小権限原則）。
+// sys_admin のみ全権限を持ち、admin は通常ロールとして resource_access の明示的な付与のみで権限を得る。
+func TestCheckPermission_Admin_DoesNotGrantAll(t *testing.T) {
 	claims := testClaims([]string{"admin"}, nil, nil)
-	assert.True(t, CheckPermission(claims, "any-resource", "any-action"))
+	// realm_access の admin は全権限を付与しない
+	assert.False(t, CheckPermission(claims, "any-resource", "any-action"))
 }
 
 // resource_access に対応するアクションがある場合は true を返す

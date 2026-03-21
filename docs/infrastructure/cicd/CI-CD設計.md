@@ -26,7 +26,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 
 | ワークフロー      | ファイル          | トリガー                    | 目的                     |
 | ----------------- | ----------------- | --------------------------- | ------------------------ |
-| CI                | `ci.yaml`         | PR 作成・更新時             | lint → test → build + モジュールレジストリ検証 + ティア間依存検証 |
+| CI                | `ci.yaml`         | PR 作成・更新時 + **毎週月曜 03:00 UTC（schedule）** | lint → test → build + モジュールレジストリ検証 + ティア間依存検証。schedule 時は変更検出をバイパスし全テストを実行する |
 | Deploy            | `deploy.yaml`     | main マージ時               | image push → deploy     |
 | **Rust サービス CI (reusable)** | `_rust-service-ci.yaml` | `workflow_call` | Rust サービスの共通 lint → test → build |
 | **Go サービス CI (reusable)** | `_go-service-ci.yaml` | `workflow_call` | Go サービスの共通 lint → test → build |
@@ -91,6 +91,23 @@ TypeScript/React パッケージのインストールは `npm ci` から `pnpm i
 | --- | --- |
 | H7対応: `dart-outdated.outcome` チェック追加 | `スキャン結果の集約` ステップに `dart-outdated.outcome` の failure 判定を追加し、Dart 依存チェック失敗時も CI 全体が失敗するよう修正 |
 
+### 定期実行スケジュール（週次全テスト）
+
+`ci.yaml` には `schedule` トリガーが設定されており、毎週月曜 03:00 UTC に全テストを自動実行する。
+
+| 目的 | 内容 |
+| --- | --- |
+| 回帰テスト検知 | PR がない期間でも依存ライブラリの更新・外部 API の変更による回帰を週次で検知する |
+| 変更検出バイパス | `schedule` トリガー時は `detect-changes` が全言語フラグを `'true'` に設定し、`paths-filter` をスキップして全テストを実行する |
+| 全モジュールテスト | `go_modules` 等を空文字列にすることで `_test.yaml` が `list-modules.sh` 経由で全モジュールをテストする |
+
+**設定**:
+```yaml
+schedule:
+  # 毎週月曜 03:00 UTC に全テストを定期実行し、回帰テスト失敗を検知する
+  - cron: '0 3 * * 1'
+```
+
 ### CI ワークフロー（ci.yaml）
 
 ```yaml
@@ -100,6 +117,10 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  schedule:
+    # 毎週月曜 03:00 UTC に全テストを定期実行し、回帰テスト失敗を検知する
+    # schedule 時は detect-changes が全言語を 'true' に設定して変更検出をバイパスする
+    - cron: '0 3 * * 1'
 
 concurrency:
   group: ci-${{ github.ref }}

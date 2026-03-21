@@ -28,19 +28,18 @@ func HasResourceRole(claims *Claims, resource, role string) bool {
 
 // CheckPermission は Claims に指定の権限があるかを判定する。
 // realm_access と resource_access の両方をチェックする。
-// admin ロールを持つ場合は全権限を付与する。
+// sys_admin のみ全リソース全アクションの権限を持つ（最小権限原則）。
+// admin は resource_access で明示的に付与されたリソースのみ全アクションを許可する通常ロールとして扱う。
 func CheckPermission(claims *Claims, resource, action string) bool {
-	// sys_admin は全権限
+	// sys_admin のみ全権限を付与する（スーパーユーザー）。
+	// admin ロールは realm_access に存在しても全権限を付与しない（最小権限原則）。
 	if HasRole(claims, "sys_admin") {
 		return true
 	}
 
-	// realm_access に admin ロールがある場合
-	if HasRole(claims, "admin") {
-		return true
-	}
-
-	// resource_access のチェック（指定リソースのロールを確認）
+	// resource_access のチェック（指定リソースのロールを確認）。
+	// resource_access に admin ロールがある場合はそのリソース内の全アクションを許可する。
+	// realm_access の admin は通常ロールとして扱い、ここでは判定しない。
 	if access, ok := claims.ResourceAccess[resource]; ok {
 		for _, role := range access.Roles {
 			if role == action || role == "admin" {

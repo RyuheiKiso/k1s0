@@ -72,7 +72,8 @@ Kafka メッセージでは `tenant_id` ヘッダーを使用する。
 
 - `auth.users` / `auth.roles` / `auth.permissions`（認証基盤）
 - `config.config_entries`（システム設定）
-- `featureflag.feature_flags`（フィーチャーフラグ）
+- `featureflag.feature_flags`（フィーチャーフラグ）— システム全体のグローバル設定として設計（ADR-0012 参照）
+- `api-registry-db` 全テーブル — サービスディスカバリのグローバル情報として設計（ADR-0012 参照）
 - マスタデータ系テーブル
 
 ### マイグレーション時の注意点
@@ -92,6 +93,11 @@ Kafka メッセージでは `tenant_id` ヘッダーを使用する。
   - `order-db`: `orders`, `order_items` テーブルへの `tenant_id` 追加と RLS ポリシー設定（マイグレーション 009）
   - `payment-db`: `payments` テーブルへの `tenant_id` 追加と RLS ポリシー設定（マイグレーション 007）
   - `inventory-db`: `inventory_items`, `inventory_reservations` テーブルへの `tenant_id` 追加と RLS ポリシー設定（マイグレーション 008）
+- **system 層 RLS 追加** (ADR-0012 対応):
+  - `saga-db`: `saga.saga_states`, `saga.saga_step_logs` テーブルへの `tenant_id` 追加と RLS ポリシー設定（マイグレーション 008）
+  - `event-store-db`: `eventstore.event_streams`, `eventstore.events`, `eventstore.snapshots` テーブルへの `tenant_id` 追加と RLS ポリシー設定（マイグレーション 006）
+  - `featureflag-db`: テナント非依存（グローバル設定）として扱う — tenant_id / RLS 対象外
+  - `api-registry-db`: テナント非依存（サービスディスカバリ）として扱う — tenant_id / RLS 対象外
 
 ### RLS ポリシーの動作
 

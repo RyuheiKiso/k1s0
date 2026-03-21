@@ -52,6 +52,9 @@ tracing-subscriber = {workspace = true}
 # Cache
 moka = { version = "0.12", features = ["future"] }
 
+# バックグラウンドタスクのキャンセル制御に使用する（CancellationToken はデフォルト機能で利用可能）
+tokio-util = { version = "0.7" }
+
 # Kafka
 rdkafka = { version = "0.37", features = ["cmake-build"] }
 

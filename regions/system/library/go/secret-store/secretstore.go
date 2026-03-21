@@ -5,12 +5,17 @@ package secretstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 )
+
+// ErrPathTraversal はパストラバーサル攻撃を試みたキーが指定された場合に返すエラー。
+// "../" や絶対パスなど、基底ディレクトリ外を参照するキーを拒否するために使用する。
+var ErrPathTraversal = errors.New("path traversal detected")
 
 // ComponentStatus はコンポーネントの現在の状態を表す文字列型。
 type ComponentStatus string
@@ -336,17 +341,35 @@ func (s *FileSecretStore) Status(_ context.Context) ComponentStatus {
 // Get は設定されたディレクトリ内の key という名前のファイルからシークレットを読み取る。
 // 末尾の改行文字は除去する（Kubernetes のシークレットマウント動作に合わせるため）。
 // ファイルが存在しない場合またはファイル読み取りに失敗した場合は ComponentError を返す。
+// パストラバーサル攻撃（"../../etc/passwd" 等）を試みるキーはエラーを返す。
 func (s *FileSecretStore) Get(_ context.Context, key string) (*Secret, error) {
+	// パストラバーサル防止: filepath.Abs で解決した後のパスが基底ディレクトリ配下にあることを確認する。
+	// "../" や絶対パスなど基底ディレクトリ外を参照するキーは ErrPathTraversal で拒否する。
+	absDir, err := filepath.Abs(s.dir)
+	if err != nil {
+		return nil, NewComponentError("file-secretstore", "Get",
+			"failed to resolve base directory path", err)
+	}
+	absPath, err := filepath.Abs(filepath.Join(s.dir, key))
+	if err != nil {
+		return nil, NewComponentError("file-secretstore", "Get",
+			"failed to resolve secret file path", err)
+	}
+	// ディレクトリセパレータを付加して "absDir" が "absDirExtra" 等にも一致しないよう境界を正確に検証する。
+	if !strings.HasPrefix(absPath, absDir+string(filepath.Separator)) && absPath != absDir {
+		return nil, NewComponentError("file-secretstore", "Get",
+			fmt.Sprintf("invalid key %q", key), ErrPathTraversal)
+	}
+
 	// ディレクトリとキーを結合してファイルパスを生成する。
-	path := filepath.Join(s.dir, key)
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(absPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, NewComponentError("file-secretstore", "Get",
-				fmt.Sprintf("secret file %q not found", path), nil)
+				fmt.Sprintf("secret file %q not found", absPath), nil)
 		}
 		return nil, NewComponentError("file-secretstore", "Get",
-			fmt.Sprintf("failed to read secret file %q", path), err)
+			fmt.Sprintf("failed to read secret file %q", absPath), err)
 	}
 	// Kubernetes のシークレットマウントと互換性を保つため末尾の改行を除去する。
 	value := strings.TrimRight(string(data), "\r\n")

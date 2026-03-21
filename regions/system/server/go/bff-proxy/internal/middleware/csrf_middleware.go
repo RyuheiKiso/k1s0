@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	// DefaultCSRFHeader is the default header name for CSRF tokens.
+	// DefaultCSRFHeader は CSRF トークンに使用するデフォルトのヘッダー名。
 	DefaultCSRFHeader = "X-CSRF-Token"
 )
 
-// CSRFMiddleware validates the CSRF token from the request header against the
-// session-bound token. Only enforced for state-changing methods (POST, PUT, PATCH, DELETE).
+// CSRFMiddleware はリクエストヘッダーの CSRF トークンをセッションに紐付いたトークンと照合する。
+// 状態変更メソッド（POST, PUT, PATCH, DELETE）のみに適用される。
 // SessionMiddleware がチェーン上で先に実行されている場合は gin.Context からセッションを取得し、
 // 冗長なストアへの問い合わせを回避する。コンテキストにセッションがない場合はフォールバックとして
 // ストアから直接取得する。
