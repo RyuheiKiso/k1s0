@@ -112,6 +112,24 @@ pub struct InventoryItem {
 }
 ```
 
+### InventoryReservation
+
+Saga 補償トランザクション用の在庫予約エンティティ。`reserve_stock` 呼び出し時に同一トランザクション内で挿入される。
+
+```rust
+pub struct InventoryReservation {
+    pub id: Uuid,
+    pub order_id: String,
+    pub inventory_item_id: Uuid,
+    pub product_id: String,
+    pub warehouse_id: String,
+    pub quantity: i32,
+    pub status: String,  // 'reserved' | 'released' | 'confirmed'
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
 ---
 
 ## リポジトリトレイト実装（Rust）
