@@ -27,7 +27,7 @@ pub async fn list_items(
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
     let _guard = claims
-        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "認証が必要です"))?;
     let items = state
         .manage_items_uc
         .list_items(&category_code, query.active_only.unwrap_or(false))
@@ -44,7 +44,7 @@ pub async fn get_item(
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
     let _guard = claims
-        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "認証が必要です"))?;
     let item = state
         .manage_items_uc
         .get_item(&category_code, &item_code)
@@ -70,7 +70,7 @@ pub async fn create_item(
     // Claims が存在しない（未認証）場合は 401 を返す。actor_from_claims は None 時に
     // "anonymous" を返すため、明示的な認証チェックが必要（P0-2 対応）。
     let claims = claims
-        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "認証が必要です"))?;
     let actor = actor_from_claims(Some(&claims.0));
     let item = state
         .manage_items_uc
@@ -90,7 +90,7 @@ pub async fn update_item(
     // Claims が存在しない（未認証）場合は 401 を返す。actor_from_claims は None 時に
     // "anonymous" を返すため、明示的な認証チェックが必要（P0-2 対応）。
     let claims = claims
-        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "認証が必要です"))?;
     let actor = actor_from_claims(Some(&claims.0));
     let item = state
         .manage_items_uc
@@ -109,7 +109,7 @@ pub async fn delete_item(
     // Claims が存在しない（未認証）場合は 401 を返す。actor_from_claims は None 時に
     // "anonymous" を返すため、明示的な認証チェックが必要（P0-2 対応）。
     let claims = claims
-        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "認証が必要です"))?;
     let actor = actor_from_claims(Some(&claims.0));
     state
         .manage_items_uc
