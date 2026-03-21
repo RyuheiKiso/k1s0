@@ -26,15 +26,75 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// WorkflowStepType はワークフローステップの種別。
+type WorkflowStepType int32
+
+const (
+	// WORKFLOW_STEP_TYPE_UNSPECIFIED は未指定（デフォルト値）。
+	WorkflowStepType_WORKFLOW_STEP_TYPE_UNSPECIFIED WorkflowStepType = 0
+	// WORKFLOW_STEP_TYPE_APPROVAL は人間による承認タスク。
+	WorkflowStepType_WORKFLOW_STEP_TYPE_APPROVAL WorkflowStepType = 1
+	// WORKFLOW_STEP_TYPE_AUTOMATED は自動実行タスク。
+	WorkflowStepType_WORKFLOW_STEP_TYPE_AUTOMATED WorkflowStepType = 2
+	// WORKFLOW_STEP_TYPE_NOTIFICATION は通知のみのタスク。
+	WorkflowStepType_WORKFLOW_STEP_TYPE_NOTIFICATION WorkflowStepType = 3
+)
+
+// Enum value maps for WorkflowStepType.
+var (
+	WorkflowStepType_name = map[int32]string{
+		0: "WORKFLOW_STEP_TYPE_UNSPECIFIED",
+		1: "WORKFLOW_STEP_TYPE_APPROVAL",
+		2: "WORKFLOW_STEP_TYPE_AUTOMATED",
+		3: "WORKFLOW_STEP_TYPE_NOTIFICATION",
+	}
+	WorkflowStepType_value = map[string]int32{
+		"WORKFLOW_STEP_TYPE_UNSPECIFIED":  0,
+		"WORKFLOW_STEP_TYPE_APPROVAL":     1,
+		"WORKFLOW_STEP_TYPE_AUTOMATED":    2,
+		"WORKFLOW_STEP_TYPE_NOTIFICATION": 3,
+	}
+)
+
+func (x WorkflowStepType) Enum() *WorkflowStepType {
+	p := new(WorkflowStepType)
+	*p = x
+	return p
+}
+
+func (x WorkflowStepType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowStepType) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_workflow_v1_workflow_proto_enumTypes[0].Descriptor()
+}
+
+func (WorkflowStepType) Type() protoreflect.EnumType {
+	return &file_k1s0_system_workflow_v1_workflow_proto_enumTypes[0]
+}
+
+func (x WorkflowStepType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowStepType.Descriptor instead.
+func (WorkflowStepType) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_workflow_v1_workflow_proto_rawDescGZIP(), []int{0}
+}
+
 type WorkflowStep struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StepId        string                 `protobuf:"bytes,1,opt,name=step_id,json=stepId,proto3" json:"step_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	StepType      string                 `protobuf:"bytes,3,opt,name=step_type,json=stepType,proto3" json:"step_type,omitempty"`
-	AssigneeRole  *string                `protobuf:"bytes,4,opt,name=assignee_role,json=assigneeRole,proto3,oneof" json:"assignee_role,omitempty"`
-	TimeoutHours  *uint32                `protobuf:"varint,5,opt,name=timeout_hours,json=timeoutHours,proto3,oneof" json:"timeout_hours,omitempty"`
-	OnApprove     *string                `protobuf:"bytes,6,opt,name=on_approve,json=onApprove,proto3,oneof" json:"on_approve,omitempty"`
-	OnReject      *string                `protobuf:"bytes,7,opt,name=on_reject,json=onReject,proto3,oneof" json:"on_reject,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	StepId string                 `protobuf:"bytes,1,opt,name=step_id,json=stepId,proto3" json:"step_id,omitempty"`
+	Name   string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Deprecated: use step_type_enum instead.
+	StepType     string  `protobuf:"bytes,3,opt,name=step_type,json=stepType,proto3" json:"step_type,omitempty"`
+	AssigneeRole *string `protobuf:"bytes,4,opt,name=assignee_role,json=assigneeRole,proto3,oneof" json:"assignee_role,omitempty"`
+	TimeoutHours *uint32 `protobuf:"varint,5,opt,name=timeout_hours,json=timeoutHours,proto3,oneof" json:"timeout_hours,omitempty"`
+	OnApprove    *string `protobuf:"bytes,6,opt,name=on_approve,json=onApprove,proto3,oneof" json:"on_approve,omitempty"`
+	OnReject     *string `protobuf:"bytes,7,opt,name=on_reject,json=onReject,proto3,oneof" json:"on_reject,omitempty"`
+	// ステップ種別の enum 版（step_type の型付き版）。
+	StepTypeEnum  WorkflowStepType `protobuf:"varint,8,opt,name=step_type_enum,json=stepTypeEnum,proto3,enum=k1s0.system.workflow.v1.WorkflowStepType" json:"step_type_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -116,6 +176,13 @@ func (x *WorkflowStep) GetOnReject() string {
 		return *x.OnReject
 	}
 	return ""
+}
+
+func (x *WorkflowStep) GetStepTypeEnum() WorkflowStepType {
+	if x != nil {
+		return x.StepTypeEnum
+	}
+	return WorkflowStepType_WORKFLOW_STEP_TYPE_UNSPECIFIED
 }
 
 type WorkflowDefinition struct {
@@ -2034,7 +2101,7 @@ var File_k1s0_system_workflow_v1_workflow_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\n" +
-	"&k1s0/system/workflow/v1/workflow.proto\x12\x17k1s0.system.workflow.v1\x1a!k1s0/system/common/v1/types.proto\"\xb3\x02\n" +
+	"&k1s0/system/workflow/v1/workflow.proto\x12\x17k1s0.system.workflow.v1\x1a!k1s0/system/common/v1/types.proto\"\x84\x03\n" +
 	"\fWorkflowStep\x12\x17\n" +
 	"\astep_id\x18\x01 \x01(\tR\x06stepId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1b\n" +
@@ -2043,7 +2110,8 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\rtimeout_hours\x18\x05 \x01(\rH\x01R\ftimeoutHours\x88\x01\x01\x12\"\n" +
 	"\n" +
 	"on_approve\x18\x06 \x01(\tH\x02R\tonApprove\x88\x01\x01\x12 \n" +
-	"\ton_reject\x18\a \x01(\tH\x03R\bonReject\x88\x01\x01B\x10\n" +
+	"\ton_reject\x18\a \x01(\tH\x03R\bonReject\x88\x01\x01\x12O\n" +
+	"\x0estep_type_enum\x18\b \x01(\x0e2).k1s0.system.workflow.v1.WorkflowStepTypeR\fstepTypeEnumB\x10\n" +
 	"\x0e_assignee_roleB\x10\n" +
 	"\x0e_timeout_hoursB\r\n" +
 	"\v_on_approveB\f\n" +
@@ -2243,7 +2311,12 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\fnext_task_id\x18\x03 \x01(\tH\x00R\n" +
 	"nextTaskId\x88\x01\x01\x12'\n" +
 	"\x0finstance_status\x18\x04 \x01(\tR\x0einstanceStatusB\x0f\n" +
-	"\r_next_task_id2\xa3\v\n" +
+	"\r_next_task_id*\x9e\x01\n" +
+	"\x10WorkflowStepType\x12\"\n" +
+	"\x1eWORKFLOW_STEP_TYPE_UNSPECIFIED\x10\x00\x12\x1f\n" +
+	"\x1bWORKFLOW_STEP_TYPE_APPROVAL\x10\x01\x12 \n" +
+	"\x1cWORKFLOW_STEP_TYPE_AUTOMATED\x10\x02\x12#\n" +
+	"\x1fWORKFLOW_STEP_TYPE_NOTIFICATION\x10\x032\xa3\v\n" +
 	"\x0fWorkflowService\x12n\n" +
 	"\rListWorkflows\x12-.k1s0.system.workflow.v1.ListWorkflowsRequest\x1a..k1s0.system.workflow.v1.ListWorkflowsResponse\x12q\n" +
 	"\x0eCreateWorkflow\x12..k1s0.system.workflow.v1.CreateWorkflowRequest\x1a/.k1s0.system.workflow.v1.CreateWorkflowResponse\x12h\n" +
@@ -2272,104 +2345,107 @@ func file_k1s0_system_workflow_v1_workflow_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_workflow_v1_workflow_proto_rawDescData
 }
 
+var file_k1s0_system_workflow_v1_workflow_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_k1s0_system_workflow_v1_workflow_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_k1s0_system_workflow_v1_workflow_proto_goTypes = []any{
-	(*WorkflowStep)(nil),           // 0: k1s0.system.workflow.v1.WorkflowStep
-	(*WorkflowDefinition)(nil),     // 1: k1s0.system.workflow.v1.WorkflowDefinition
-	(*ListWorkflowsRequest)(nil),   // 2: k1s0.system.workflow.v1.ListWorkflowsRequest
-	(*ListWorkflowsResponse)(nil),  // 3: k1s0.system.workflow.v1.ListWorkflowsResponse
-	(*CreateWorkflowRequest)(nil),  // 4: k1s0.system.workflow.v1.CreateWorkflowRequest
-	(*CreateWorkflowResponse)(nil), // 5: k1s0.system.workflow.v1.CreateWorkflowResponse
-	(*GetWorkflowRequest)(nil),     // 6: k1s0.system.workflow.v1.GetWorkflowRequest
-	(*GetWorkflowResponse)(nil),    // 7: k1s0.system.workflow.v1.GetWorkflowResponse
-	(*WorkflowSteps)(nil),          // 8: k1s0.system.workflow.v1.WorkflowSteps
-	(*UpdateWorkflowRequest)(nil),  // 9: k1s0.system.workflow.v1.UpdateWorkflowRequest
-	(*UpdateWorkflowResponse)(nil), // 10: k1s0.system.workflow.v1.UpdateWorkflowResponse
-	(*DeleteWorkflowRequest)(nil),  // 11: k1s0.system.workflow.v1.DeleteWorkflowRequest
-	(*DeleteWorkflowResponse)(nil), // 12: k1s0.system.workflow.v1.DeleteWorkflowResponse
-	(*StartInstanceRequest)(nil),   // 13: k1s0.system.workflow.v1.StartInstanceRequest
-	(*StartInstanceResponse)(nil),  // 14: k1s0.system.workflow.v1.StartInstanceResponse
-	(*GetInstanceRequest)(nil),     // 15: k1s0.system.workflow.v1.GetInstanceRequest
-	(*GetInstanceResponse)(nil),    // 16: k1s0.system.workflow.v1.GetInstanceResponse
-	(*ListInstancesRequest)(nil),   // 17: k1s0.system.workflow.v1.ListInstancesRequest
-	(*ListInstancesResponse)(nil),  // 18: k1s0.system.workflow.v1.ListInstancesResponse
-	(*CancelInstanceRequest)(nil),  // 19: k1s0.system.workflow.v1.CancelInstanceRequest
-	(*CancelInstanceResponse)(nil), // 20: k1s0.system.workflow.v1.CancelInstanceResponse
-	(*WorkflowTask)(nil),           // 21: k1s0.system.workflow.v1.WorkflowTask
-	(*ListTasksRequest)(nil),       // 22: k1s0.system.workflow.v1.ListTasksRequest
-	(*ListTasksResponse)(nil),      // 23: k1s0.system.workflow.v1.ListTasksResponse
-	(*ReassignTaskRequest)(nil),    // 24: k1s0.system.workflow.v1.ReassignTaskRequest
-	(*ReassignTaskResponse)(nil),   // 25: k1s0.system.workflow.v1.ReassignTaskResponse
-	(*WorkflowInstance)(nil),       // 26: k1s0.system.workflow.v1.WorkflowInstance
-	(*ApproveTaskRequest)(nil),     // 27: k1s0.system.workflow.v1.ApproveTaskRequest
-	(*ApproveTaskResponse)(nil),    // 28: k1s0.system.workflow.v1.ApproveTaskResponse
-	(*RejectTaskRequest)(nil),      // 29: k1s0.system.workflow.v1.RejectTaskRequest
-	(*RejectTaskResponse)(nil),     // 30: k1s0.system.workflow.v1.RejectTaskResponse
-	(*v1.Timestamp)(nil),           // 31: k1s0.system.common.v1.Timestamp
-	(*v1.Pagination)(nil),          // 32: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),    // 33: k1s0.system.common.v1.PaginationResult
+	(WorkflowStepType)(0),          // 0: k1s0.system.workflow.v1.WorkflowStepType
+	(*WorkflowStep)(nil),           // 1: k1s0.system.workflow.v1.WorkflowStep
+	(*WorkflowDefinition)(nil),     // 2: k1s0.system.workflow.v1.WorkflowDefinition
+	(*ListWorkflowsRequest)(nil),   // 3: k1s0.system.workflow.v1.ListWorkflowsRequest
+	(*ListWorkflowsResponse)(nil),  // 4: k1s0.system.workflow.v1.ListWorkflowsResponse
+	(*CreateWorkflowRequest)(nil),  // 5: k1s0.system.workflow.v1.CreateWorkflowRequest
+	(*CreateWorkflowResponse)(nil), // 6: k1s0.system.workflow.v1.CreateWorkflowResponse
+	(*GetWorkflowRequest)(nil),     // 7: k1s0.system.workflow.v1.GetWorkflowRequest
+	(*GetWorkflowResponse)(nil),    // 8: k1s0.system.workflow.v1.GetWorkflowResponse
+	(*WorkflowSteps)(nil),          // 9: k1s0.system.workflow.v1.WorkflowSteps
+	(*UpdateWorkflowRequest)(nil),  // 10: k1s0.system.workflow.v1.UpdateWorkflowRequest
+	(*UpdateWorkflowResponse)(nil), // 11: k1s0.system.workflow.v1.UpdateWorkflowResponse
+	(*DeleteWorkflowRequest)(nil),  // 12: k1s0.system.workflow.v1.DeleteWorkflowRequest
+	(*DeleteWorkflowResponse)(nil), // 13: k1s0.system.workflow.v1.DeleteWorkflowResponse
+	(*StartInstanceRequest)(nil),   // 14: k1s0.system.workflow.v1.StartInstanceRequest
+	(*StartInstanceResponse)(nil),  // 15: k1s0.system.workflow.v1.StartInstanceResponse
+	(*GetInstanceRequest)(nil),     // 16: k1s0.system.workflow.v1.GetInstanceRequest
+	(*GetInstanceResponse)(nil),    // 17: k1s0.system.workflow.v1.GetInstanceResponse
+	(*ListInstancesRequest)(nil),   // 18: k1s0.system.workflow.v1.ListInstancesRequest
+	(*ListInstancesResponse)(nil),  // 19: k1s0.system.workflow.v1.ListInstancesResponse
+	(*CancelInstanceRequest)(nil),  // 20: k1s0.system.workflow.v1.CancelInstanceRequest
+	(*CancelInstanceResponse)(nil), // 21: k1s0.system.workflow.v1.CancelInstanceResponse
+	(*WorkflowTask)(nil),           // 22: k1s0.system.workflow.v1.WorkflowTask
+	(*ListTasksRequest)(nil),       // 23: k1s0.system.workflow.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),      // 24: k1s0.system.workflow.v1.ListTasksResponse
+	(*ReassignTaskRequest)(nil),    // 25: k1s0.system.workflow.v1.ReassignTaskRequest
+	(*ReassignTaskResponse)(nil),   // 26: k1s0.system.workflow.v1.ReassignTaskResponse
+	(*WorkflowInstance)(nil),       // 27: k1s0.system.workflow.v1.WorkflowInstance
+	(*ApproveTaskRequest)(nil),     // 28: k1s0.system.workflow.v1.ApproveTaskRequest
+	(*ApproveTaskResponse)(nil),    // 29: k1s0.system.workflow.v1.ApproveTaskResponse
+	(*RejectTaskRequest)(nil),      // 30: k1s0.system.workflow.v1.RejectTaskRequest
+	(*RejectTaskResponse)(nil),     // 31: k1s0.system.workflow.v1.RejectTaskResponse
+	(*v1.Timestamp)(nil),           // 32: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),          // 33: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),    // 34: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_workflow_v1_workflow_proto_depIdxs = []int32{
-	0,  // 0: k1s0.system.workflow.v1.WorkflowDefinition.steps:type_name -> k1s0.system.workflow.v1.WorkflowStep
-	31, // 1: k1s0.system.workflow.v1.WorkflowDefinition.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	31, // 2: k1s0.system.workflow.v1.WorkflowDefinition.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	32, // 3: k1s0.system.workflow.v1.ListWorkflowsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	1,  // 4: k1s0.system.workflow.v1.ListWorkflowsResponse.workflows:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
-	33, // 5: k1s0.system.workflow.v1.ListWorkflowsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	0,  // 6: k1s0.system.workflow.v1.CreateWorkflowRequest.steps:type_name -> k1s0.system.workflow.v1.WorkflowStep
-	1,  // 7: k1s0.system.workflow.v1.CreateWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
-	1,  // 8: k1s0.system.workflow.v1.GetWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
-	0,  // 9: k1s0.system.workflow.v1.WorkflowSteps.items:type_name -> k1s0.system.workflow.v1.WorkflowStep
-	8,  // 10: k1s0.system.workflow.v1.UpdateWorkflowRequest.steps:type_name -> k1s0.system.workflow.v1.WorkflowSteps
-	1,  // 11: k1s0.system.workflow.v1.UpdateWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
-	31, // 12: k1s0.system.workflow.v1.StartInstanceResponse.started_at:type_name -> k1s0.system.common.v1.Timestamp
-	26, // 13: k1s0.system.workflow.v1.GetInstanceResponse.instance:type_name -> k1s0.system.workflow.v1.WorkflowInstance
-	32, // 14: k1s0.system.workflow.v1.ListInstancesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	26, // 15: k1s0.system.workflow.v1.ListInstancesResponse.instances:type_name -> k1s0.system.workflow.v1.WorkflowInstance
-	33, // 16: k1s0.system.workflow.v1.ListInstancesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	26, // 17: k1s0.system.workflow.v1.CancelInstanceResponse.instance:type_name -> k1s0.system.workflow.v1.WorkflowInstance
-	31, // 18: k1s0.system.workflow.v1.WorkflowTask.due_at:type_name -> k1s0.system.common.v1.Timestamp
-	31, // 19: k1s0.system.workflow.v1.WorkflowTask.decided_at:type_name -> k1s0.system.common.v1.Timestamp
-	31, // 20: k1s0.system.workflow.v1.WorkflowTask.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	31, // 21: k1s0.system.workflow.v1.WorkflowTask.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	32, // 22: k1s0.system.workflow.v1.ListTasksRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	21, // 23: k1s0.system.workflow.v1.ListTasksResponse.tasks:type_name -> k1s0.system.workflow.v1.WorkflowTask
-	33, // 24: k1s0.system.workflow.v1.ListTasksResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	21, // 25: k1s0.system.workflow.v1.ReassignTaskResponse.task:type_name -> k1s0.system.workflow.v1.WorkflowTask
-	31, // 26: k1s0.system.workflow.v1.WorkflowInstance.started_at:type_name -> k1s0.system.common.v1.Timestamp
-	31, // 27: k1s0.system.workflow.v1.WorkflowInstance.completed_at:type_name -> k1s0.system.common.v1.Timestamp
-	31, // 28: k1s0.system.workflow.v1.WorkflowInstance.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	2,  // 29: k1s0.system.workflow.v1.WorkflowService.ListWorkflows:input_type -> k1s0.system.workflow.v1.ListWorkflowsRequest
-	4,  // 30: k1s0.system.workflow.v1.WorkflowService.CreateWorkflow:input_type -> k1s0.system.workflow.v1.CreateWorkflowRequest
-	6,  // 31: k1s0.system.workflow.v1.WorkflowService.GetWorkflow:input_type -> k1s0.system.workflow.v1.GetWorkflowRequest
-	9,  // 32: k1s0.system.workflow.v1.WorkflowService.UpdateWorkflow:input_type -> k1s0.system.workflow.v1.UpdateWorkflowRequest
-	11, // 33: k1s0.system.workflow.v1.WorkflowService.DeleteWorkflow:input_type -> k1s0.system.workflow.v1.DeleteWorkflowRequest
-	13, // 34: k1s0.system.workflow.v1.WorkflowService.StartInstance:input_type -> k1s0.system.workflow.v1.StartInstanceRequest
-	15, // 35: k1s0.system.workflow.v1.WorkflowService.GetInstance:input_type -> k1s0.system.workflow.v1.GetInstanceRequest
-	17, // 36: k1s0.system.workflow.v1.WorkflowService.ListInstances:input_type -> k1s0.system.workflow.v1.ListInstancesRequest
-	19, // 37: k1s0.system.workflow.v1.WorkflowService.CancelInstance:input_type -> k1s0.system.workflow.v1.CancelInstanceRequest
-	22, // 38: k1s0.system.workflow.v1.WorkflowService.ListTasks:input_type -> k1s0.system.workflow.v1.ListTasksRequest
-	24, // 39: k1s0.system.workflow.v1.WorkflowService.ReassignTask:input_type -> k1s0.system.workflow.v1.ReassignTaskRequest
-	27, // 40: k1s0.system.workflow.v1.WorkflowService.ApproveTask:input_type -> k1s0.system.workflow.v1.ApproveTaskRequest
-	29, // 41: k1s0.system.workflow.v1.WorkflowService.RejectTask:input_type -> k1s0.system.workflow.v1.RejectTaskRequest
-	3,  // 42: k1s0.system.workflow.v1.WorkflowService.ListWorkflows:output_type -> k1s0.system.workflow.v1.ListWorkflowsResponse
-	5,  // 43: k1s0.system.workflow.v1.WorkflowService.CreateWorkflow:output_type -> k1s0.system.workflow.v1.CreateWorkflowResponse
-	7,  // 44: k1s0.system.workflow.v1.WorkflowService.GetWorkflow:output_type -> k1s0.system.workflow.v1.GetWorkflowResponse
-	10, // 45: k1s0.system.workflow.v1.WorkflowService.UpdateWorkflow:output_type -> k1s0.system.workflow.v1.UpdateWorkflowResponse
-	12, // 46: k1s0.system.workflow.v1.WorkflowService.DeleteWorkflow:output_type -> k1s0.system.workflow.v1.DeleteWorkflowResponse
-	14, // 47: k1s0.system.workflow.v1.WorkflowService.StartInstance:output_type -> k1s0.system.workflow.v1.StartInstanceResponse
-	16, // 48: k1s0.system.workflow.v1.WorkflowService.GetInstance:output_type -> k1s0.system.workflow.v1.GetInstanceResponse
-	18, // 49: k1s0.system.workflow.v1.WorkflowService.ListInstances:output_type -> k1s0.system.workflow.v1.ListInstancesResponse
-	20, // 50: k1s0.system.workflow.v1.WorkflowService.CancelInstance:output_type -> k1s0.system.workflow.v1.CancelInstanceResponse
-	23, // 51: k1s0.system.workflow.v1.WorkflowService.ListTasks:output_type -> k1s0.system.workflow.v1.ListTasksResponse
-	25, // 52: k1s0.system.workflow.v1.WorkflowService.ReassignTask:output_type -> k1s0.system.workflow.v1.ReassignTaskResponse
-	28, // 53: k1s0.system.workflow.v1.WorkflowService.ApproveTask:output_type -> k1s0.system.workflow.v1.ApproveTaskResponse
-	30, // 54: k1s0.system.workflow.v1.WorkflowService.RejectTask:output_type -> k1s0.system.workflow.v1.RejectTaskResponse
-	42, // [42:55] is the sub-list for method output_type
-	29, // [29:42] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	0,  // 0: k1s0.system.workflow.v1.WorkflowStep.step_type_enum:type_name -> k1s0.system.workflow.v1.WorkflowStepType
+	1,  // 1: k1s0.system.workflow.v1.WorkflowDefinition.steps:type_name -> k1s0.system.workflow.v1.WorkflowStep
+	32, // 2: k1s0.system.workflow.v1.WorkflowDefinition.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	32, // 3: k1s0.system.workflow.v1.WorkflowDefinition.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	33, // 4: k1s0.system.workflow.v1.ListWorkflowsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	2,  // 5: k1s0.system.workflow.v1.ListWorkflowsResponse.workflows:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
+	34, // 6: k1s0.system.workflow.v1.ListWorkflowsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	1,  // 7: k1s0.system.workflow.v1.CreateWorkflowRequest.steps:type_name -> k1s0.system.workflow.v1.WorkflowStep
+	2,  // 8: k1s0.system.workflow.v1.CreateWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
+	2,  // 9: k1s0.system.workflow.v1.GetWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
+	1,  // 10: k1s0.system.workflow.v1.WorkflowSteps.items:type_name -> k1s0.system.workflow.v1.WorkflowStep
+	9,  // 11: k1s0.system.workflow.v1.UpdateWorkflowRequest.steps:type_name -> k1s0.system.workflow.v1.WorkflowSteps
+	2,  // 12: k1s0.system.workflow.v1.UpdateWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
+	32, // 13: k1s0.system.workflow.v1.StartInstanceResponse.started_at:type_name -> k1s0.system.common.v1.Timestamp
+	27, // 14: k1s0.system.workflow.v1.GetInstanceResponse.instance:type_name -> k1s0.system.workflow.v1.WorkflowInstance
+	33, // 15: k1s0.system.workflow.v1.ListInstancesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	27, // 16: k1s0.system.workflow.v1.ListInstancesResponse.instances:type_name -> k1s0.system.workflow.v1.WorkflowInstance
+	34, // 17: k1s0.system.workflow.v1.ListInstancesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	27, // 18: k1s0.system.workflow.v1.CancelInstanceResponse.instance:type_name -> k1s0.system.workflow.v1.WorkflowInstance
+	32, // 19: k1s0.system.workflow.v1.WorkflowTask.due_at:type_name -> k1s0.system.common.v1.Timestamp
+	32, // 20: k1s0.system.workflow.v1.WorkflowTask.decided_at:type_name -> k1s0.system.common.v1.Timestamp
+	32, // 21: k1s0.system.workflow.v1.WorkflowTask.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	32, // 22: k1s0.system.workflow.v1.WorkflowTask.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	33, // 23: k1s0.system.workflow.v1.ListTasksRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	22, // 24: k1s0.system.workflow.v1.ListTasksResponse.tasks:type_name -> k1s0.system.workflow.v1.WorkflowTask
+	34, // 25: k1s0.system.workflow.v1.ListTasksResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	22, // 26: k1s0.system.workflow.v1.ReassignTaskResponse.task:type_name -> k1s0.system.workflow.v1.WorkflowTask
+	32, // 27: k1s0.system.workflow.v1.WorkflowInstance.started_at:type_name -> k1s0.system.common.v1.Timestamp
+	32, // 28: k1s0.system.workflow.v1.WorkflowInstance.completed_at:type_name -> k1s0.system.common.v1.Timestamp
+	32, // 29: k1s0.system.workflow.v1.WorkflowInstance.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	3,  // 30: k1s0.system.workflow.v1.WorkflowService.ListWorkflows:input_type -> k1s0.system.workflow.v1.ListWorkflowsRequest
+	5,  // 31: k1s0.system.workflow.v1.WorkflowService.CreateWorkflow:input_type -> k1s0.system.workflow.v1.CreateWorkflowRequest
+	7,  // 32: k1s0.system.workflow.v1.WorkflowService.GetWorkflow:input_type -> k1s0.system.workflow.v1.GetWorkflowRequest
+	10, // 33: k1s0.system.workflow.v1.WorkflowService.UpdateWorkflow:input_type -> k1s0.system.workflow.v1.UpdateWorkflowRequest
+	12, // 34: k1s0.system.workflow.v1.WorkflowService.DeleteWorkflow:input_type -> k1s0.system.workflow.v1.DeleteWorkflowRequest
+	14, // 35: k1s0.system.workflow.v1.WorkflowService.StartInstance:input_type -> k1s0.system.workflow.v1.StartInstanceRequest
+	16, // 36: k1s0.system.workflow.v1.WorkflowService.GetInstance:input_type -> k1s0.system.workflow.v1.GetInstanceRequest
+	18, // 37: k1s0.system.workflow.v1.WorkflowService.ListInstances:input_type -> k1s0.system.workflow.v1.ListInstancesRequest
+	20, // 38: k1s0.system.workflow.v1.WorkflowService.CancelInstance:input_type -> k1s0.system.workflow.v1.CancelInstanceRequest
+	23, // 39: k1s0.system.workflow.v1.WorkflowService.ListTasks:input_type -> k1s0.system.workflow.v1.ListTasksRequest
+	25, // 40: k1s0.system.workflow.v1.WorkflowService.ReassignTask:input_type -> k1s0.system.workflow.v1.ReassignTaskRequest
+	28, // 41: k1s0.system.workflow.v1.WorkflowService.ApproveTask:input_type -> k1s0.system.workflow.v1.ApproveTaskRequest
+	30, // 42: k1s0.system.workflow.v1.WorkflowService.RejectTask:input_type -> k1s0.system.workflow.v1.RejectTaskRequest
+	4,  // 43: k1s0.system.workflow.v1.WorkflowService.ListWorkflows:output_type -> k1s0.system.workflow.v1.ListWorkflowsResponse
+	6,  // 44: k1s0.system.workflow.v1.WorkflowService.CreateWorkflow:output_type -> k1s0.system.workflow.v1.CreateWorkflowResponse
+	8,  // 45: k1s0.system.workflow.v1.WorkflowService.GetWorkflow:output_type -> k1s0.system.workflow.v1.GetWorkflowResponse
+	11, // 46: k1s0.system.workflow.v1.WorkflowService.UpdateWorkflow:output_type -> k1s0.system.workflow.v1.UpdateWorkflowResponse
+	13, // 47: k1s0.system.workflow.v1.WorkflowService.DeleteWorkflow:output_type -> k1s0.system.workflow.v1.DeleteWorkflowResponse
+	15, // 48: k1s0.system.workflow.v1.WorkflowService.StartInstance:output_type -> k1s0.system.workflow.v1.StartInstanceResponse
+	17, // 49: k1s0.system.workflow.v1.WorkflowService.GetInstance:output_type -> k1s0.system.workflow.v1.GetInstanceResponse
+	19, // 50: k1s0.system.workflow.v1.WorkflowService.ListInstances:output_type -> k1s0.system.workflow.v1.ListInstancesResponse
+	21, // 51: k1s0.system.workflow.v1.WorkflowService.CancelInstance:output_type -> k1s0.system.workflow.v1.CancelInstanceResponse
+	24, // 52: k1s0.system.workflow.v1.WorkflowService.ListTasks:output_type -> k1s0.system.workflow.v1.ListTasksResponse
+	26, // 53: k1s0.system.workflow.v1.WorkflowService.ReassignTask:output_type -> k1s0.system.workflow.v1.ReassignTaskResponse
+	29, // 54: k1s0.system.workflow.v1.WorkflowService.ApproveTask:output_type -> k1s0.system.workflow.v1.ApproveTaskResponse
+	31, // 55: k1s0.system.workflow.v1.WorkflowService.RejectTask:output_type -> k1s0.system.workflow.v1.RejectTaskResponse
+	43, // [43:56] is the sub-list for method output_type
+	30, // [30:43] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_workflow_v1_workflow_proto_init() }
@@ -2394,13 +2470,14 @@ func file_k1s0_system_workflow_v1_workflow_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_workflow_v1_workflow_proto_rawDesc), len(file_k1s0_system_workflow_v1_workflow_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_k1s0_system_workflow_v1_workflow_proto_goTypes,
 		DependencyIndexes: file_k1s0_system_workflow_v1_workflow_proto_depIdxs,
+		EnumInfos:         file_k1s0_system_workflow_v1_workflow_proto_enumTypes,
 		MessageInfos:      file_k1s0_system_workflow_v1_workflow_proto_msgTypes,
 	}.Build()
 	File_k1s0_system_workflow_v1_workflow_proto = out.File

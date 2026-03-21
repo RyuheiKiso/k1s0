@@ -594,8 +594,10 @@ func (x *GetSecretMetadataResponse) GetUpdatedAt() *v1.Timestamp {
 }
 
 type ListSecretsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Prefix        string                 `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Prefix string                 `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix,omitempty"`
+	// ページネーションパラメータを共通型に統一
+	Pagination    *v1.Pagination `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -637,9 +639,18 @@ func (x *ListSecretsRequest) GetPrefix() string {
 	return ""
 }
 
+func (x *ListSecretsRequest) GetPagination() *v1.Pagination {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
 type ListSecretsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Keys          []string               `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Keys  []string               `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
+	// ページネーション結果
+	Pagination    *v1.PaginationResult `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -681,10 +692,17 @@ func (x *ListSecretsResponse) GetKeys() []string {
 	return nil
 }
 
+func (x *ListSecretsResponse) GetPagination() *v1.PaginationResult {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
 type ListAuditLogsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Offset        int32                  `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
-	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ページネーションパラメータを共通型に統一
+	Pagination    *v1.Pagination `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -719,23 +737,18 @@ func (*ListAuditLogsRequest) Descriptor() ([]byte, []int) {
 	return file_k1s0_system_vault_v1_vault_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *ListAuditLogsRequest) GetOffset() int32 {
+func (x *ListAuditLogsRequest) GetPagination() *v1.Pagination {
 	if x != nil {
-		return x.Offset
+		return x.Pagination
 	}
-	return 0
-}
-
-func (x *ListAuditLogsRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
+	return nil
 }
 
 type ListAuditLogsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Logs          []*AuditLogEntry       `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Logs  []*AuditLogEntry       `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
+	// ページネーション結果
+	Pagination    *v1.PaginationResult `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -773,6 +786,13 @@ func (*ListAuditLogsResponse) Descriptor() ([]byte, []int) {
 func (x *ListAuditLogsResponse) GetLogs() []*AuditLogEntry {
 	if x != nil {
 		return x.Logs
+	}
+	return nil
+}
+
+func (x *ListAuditLogsResponse) GetPagination() *v1.PaginationResult {
+	if x != nil {
+		return x.Pagination
 	}
 	return nil
 }
@@ -932,16 +952,26 @@ const file_k1s0_system_vault_v1_vault_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\",\n" +
+	"updated_at\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"o\n" +
 	"\x12ListSecretsRequest\x12\x16\n" +
-	"\x06prefix\x18\x01 \x01(\tR\x06prefix\")\n" +
+	"\x06prefix\x18\x01 \x01(\tR\x06prefix\x12A\n" +
+	"\n" +
+	"pagination\x18\x02 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
+	"pagination\"r\n" +
 	"\x13ListSecretsResponse\x12\x12\n" +
-	"\x04keys\x18\x01 \x03(\tR\x04keys\"D\n" +
-	"\x14ListAuditLogsRequest\x12\x16\n" +
-	"\x06offset\x18\x01 \x01(\x05R\x06offset\x12\x14\n" +
-	"\x05limit\x18\x02 \x01(\x05R\x05limit\"P\n" +
+	"\x04keys\x18\x01 \x03(\tR\x04keys\x12G\n" +
+	"\n" +
+	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
+	"pagination\"t\n" +
+	"\x14ListAuditLogsRequest\x12A\n" +
+	"\n" +
+	"pagination\x18\x03 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
+	"paginationJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x06offsetR\x05limit\"\x99\x01\n" +
 	"\x15ListAuditLogsResponse\x127\n" +
-	"\x04logs\x18\x01 \x03(\v2#.k1s0.system.vault.v1.AuditLogEntryR\x04logs\"\x97\x02\n" +
+	"\x04logs\x18\x01 \x03(\v2#.k1s0.system.vault.v1.AuditLogEntryR\x04logs\x12G\n" +
+	"\n" +
+	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
+	"pagination\"\x97\x02\n" +
 	"\rAuditLogEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
 	"\bkey_path\x18\x02 \x01(\tR\akeyPath\x12\x16\n" +
@@ -997,6 +1027,8 @@ var file_k1s0_system_vault_v1_vault_proto_goTypes = []any{
 	nil,                               // 16: k1s0.system.vault.v1.SetSecretRequest.DataEntry
 	nil,                               // 17: k1s0.system.vault.v1.RotateSecretRequest.DataEntry
 	(*v1.Timestamp)(nil),              // 18: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),             // 19: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),       // 20: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_vault_v1_vault_proto_depIdxs = []int32{
 	15, // 0: k1s0.system.vault.v1.GetSecretResponse.data:type_name -> k1s0.system.vault.v1.GetSecretResponse.DataEntry
@@ -1007,27 +1039,31 @@ var file_k1s0_system_vault_v1_vault_proto_depIdxs = []int32{
 	17, // 5: k1s0.system.vault.v1.RotateSecretRequest.data:type_name -> k1s0.system.vault.v1.RotateSecretRequest.DataEntry
 	18, // 6: k1s0.system.vault.v1.GetSecretMetadataResponse.created_at:type_name -> k1s0.system.common.v1.Timestamp
 	18, // 7: k1s0.system.vault.v1.GetSecretMetadataResponse.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	14, // 8: k1s0.system.vault.v1.ListAuditLogsResponse.logs:type_name -> k1s0.system.vault.v1.AuditLogEntry
-	18, // 9: k1s0.system.vault.v1.AuditLogEntry.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	0,  // 10: k1s0.system.vault.v1.VaultService.GetSecret:input_type -> k1s0.system.vault.v1.GetSecretRequest
-	2,  // 11: k1s0.system.vault.v1.VaultService.SetSecret:input_type -> k1s0.system.vault.v1.SetSecretRequest
-	4,  // 12: k1s0.system.vault.v1.VaultService.RotateSecret:input_type -> k1s0.system.vault.v1.RotateSecretRequest
-	6,  // 13: k1s0.system.vault.v1.VaultService.DeleteSecret:input_type -> k1s0.system.vault.v1.DeleteSecretRequest
-	8,  // 14: k1s0.system.vault.v1.VaultService.GetSecretMetadata:input_type -> k1s0.system.vault.v1.GetSecretMetadataRequest
-	10, // 15: k1s0.system.vault.v1.VaultService.ListSecrets:input_type -> k1s0.system.vault.v1.ListSecretsRequest
-	12, // 16: k1s0.system.vault.v1.VaultService.ListAuditLogs:input_type -> k1s0.system.vault.v1.ListAuditLogsRequest
-	1,  // 17: k1s0.system.vault.v1.VaultService.GetSecret:output_type -> k1s0.system.vault.v1.GetSecretResponse
-	3,  // 18: k1s0.system.vault.v1.VaultService.SetSecret:output_type -> k1s0.system.vault.v1.SetSecretResponse
-	5,  // 19: k1s0.system.vault.v1.VaultService.RotateSecret:output_type -> k1s0.system.vault.v1.RotateSecretResponse
-	7,  // 20: k1s0.system.vault.v1.VaultService.DeleteSecret:output_type -> k1s0.system.vault.v1.DeleteSecretResponse
-	9,  // 21: k1s0.system.vault.v1.VaultService.GetSecretMetadata:output_type -> k1s0.system.vault.v1.GetSecretMetadataResponse
-	11, // 22: k1s0.system.vault.v1.VaultService.ListSecrets:output_type -> k1s0.system.vault.v1.ListSecretsResponse
-	13, // 23: k1s0.system.vault.v1.VaultService.ListAuditLogs:output_type -> k1s0.system.vault.v1.ListAuditLogsResponse
-	17, // [17:24] is the sub-list for method output_type
-	10, // [10:17] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	19, // 8: k1s0.system.vault.v1.ListSecretsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	20, // 9: k1s0.system.vault.v1.ListSecretsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	19, // 10: k1s0.system.vault.v1.ListAuditLogsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	14, // 11: k1s0.system.vault.v1.ListAuditLogsResponse.logs:type_name -> k1s0.system.vault.v1.AuditLogEntry
+	20, // 12: k1s0.system.vault.v1.ListAuditLogsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	18, // 13: k1s0.system.vault.v1.AuditLogEntry.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 14: k1s0.system.vault.v1.VaultService.GetSecret:input_type -> k1s0.system.vault.v1.GetSecretRequest
+	2,  // 15: k1s0.system.vault.v1.VaultService.SetSecret:input_type -> k1s0.system.vault.v1.SetSecretRequest
+	4,  // 16: k1s0.system.vault.v1.VaultService.RotateSecret:input_type -> k1s0.system.vault.v1.RotateSecretRequest
+	6,  // 17: k1s0.system.vault.v1.VaultService.DeleteSecret:input_type -> k1s0.system.vault.v1.DeleteSecretRequest
+	8,  // 18: k1s0.system.vault.v1.VaultService.GetSecretMetadata:input_type -> k1s0.system.vault.v1.GetSecretMetadataRequest
+	10, // 19: k1s0.system.vault.v1.VaultService.ListSecrets:input_type -> k1s0.system.vault.v1.ListSecretsRequest
+	12, // 20: k1s0.system.vault.v1.VaultService.ListAuditLogs:input_type -> k1s0.system.vault.v1.ListAuditLogsRequest
+	1,  // 21: k1s0.system.vault.v1.VaultService.GetSecret:output_type -> k1s0.system.vault.v1.GetSecretResponse
+	3,  // 22: k1s0.system.vault.v1.VaultService.SetSecret:output_type -> k1s0.system.vault.v1.SetSecretResponse
+	5,  // 23: k1s0.system.vault.v1.VaultService.RotateSecret:output_type -> k1s0.system.vault.v1.RotateSecretResponse
+	7,  // 24: k1s0.system.vault.v1.VaultService.DeleteSecret:output_type -> k1s0.system.vault.v1.DeleteSecretResponse
+	9,  // 25: k1s0.system.vault.v1.VaultService.GetSecretMetadata:output_type -> k1s0.system.vault.v1.GetSecretMetadataResponse
+	11, // 26: k1s0.system.vault.v1.VaultService.ListSecrets:output_type -> k1s0.system.vault.v1.ListSecretsResponse
+	13, // 27: k1s0.system.vault.v1.VaultService.ListAuditLogs:output_type -> k1s0.system.vault.v1.ListAuditLogsResponse
+	21, // [21:28] is the sub-list for method output_type
+	14, // [14:21] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_vault_v1_vault_proto_init() }

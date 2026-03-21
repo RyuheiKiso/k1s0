@@ -27,6 +27,8 @@ export interface WorkflowStep {
      */
     name: string;
     /**
+     * Deprecated: use step_type_enum instead.
+     *
      * @generated from protobuf field: string step_type = 3
      */
     stepType: string;
@@ -46,6 +48,12 @@ export interface WorkflowStep {
      * @generated from protobuf field: optional string on_reject = 7
      */
     onReject?: string;
+    /**
+     * ステップ種別の enum 版（step_type の型付き版）。
+     *
+     * @generated from protobuf field: k1s0.system.workflow.v1.WorkflowStepType step_type_enum = 8
+     */
+    stepTypeEnum: WorkflowStepType;
 }
 /**
  * @generated from protobuf message k1s0.system.workflow.v1.WorkflowDefinition
@@ -625,6 +633,37 @@ export interface RejectTaskResponse {
      */
     instanceStatus: string;
 }
+/**
+ * WorkflowStepType はワークフローステップの種別。
+ *
+ * @generated from protobuf enum k1s0.system.workflow.v1.WorkflowStepType
+ */
+export enum WorkflowStepType {
+    /**
+     * WORKFLOW_STEP_TYPE_UNSPECIFIED は未指定（デフォルト値）。
+     *
+     * @generated from protobuf enum value: WORKFLOW_STEP_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * WORKFLOW_STEP_TYPE_APPROVAL は人間による承認タスク。
+     *
+     * @generated from protobuf enum value: WORKFLOW_STEP_TYPE_APPROVAL = 1;
+     */
+    APPROVAL = 1,
+    /**
+     * WORKFLOW_STEP_TYPE_AUTOMATED は自動実行タスク。
+     *
+     * @generated from protobuf enum value: WORKFLOW_STEP_TYPE_AUTOMATED = 2;
+     */
+    AUTOMATED = 2,
+    /**
+     * WORKFLOW_STEP_TYPE_NOTIFICATION は通知のみのタスク。
+     *
+     * @generated from protobuf enum value: WORKFLOW_STEP_TYPE_NOTIFICATION = 3;
+     */
+    NOTIFICATION = 3
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class WorkflowStep$Type extends MessageType<WorkflowStep> {
     constructor() {
@@ -635,7 +674,8 @@ class WorkflowStep$Type extends MessageType<WorkflowStep> {
             { no: 4, name: "assignee_role", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "timeout_hours", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ },
             { no: 6, name: "on_approve", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "on_reject", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "on_reject", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "step_type_enum", kind: "enum", T: () => ["k1s0.system.workflow.v1.WorkflowStepType", WorkflowStepType, "WORKFLOW_STEP_TYPE_"] }
         ]);
     }
     create(value?: PartialMessage<WorkflowStep>): WorkflowStep {
@@ -643,6 +683,7 @@ class WorkflowStep$Type extends MessageType<WorkflowStep> {
         message.stepId = "";
         message.name = "";
         message.stepType = "";
+        message.stepTypeEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<WorkflowStep>(this, message, value);
         return message;
@@ -672,6 +713,9 @@ class WorkflowStep$Type extends MessageType<WorkflowStep> {
                     break;
                 case /* optional string on_reject */ 7:
                     message.onReject = reader.string();
+                    break;
+                case /* k1s0.system.workflow.v1.WorkflowStepType step_type_enum */ 8:
+                    message.stepTypeEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -706,6 +750,9 @@ class WorkflowStep$Type extends MessageType<WorkflowStep> {
         /* optional string on_reject = 7; */
         if (message.onReject !== undefined)
             writer.tag(7, WireType.LengthDelimited).string(message.onReject);
+        /* k1s0.system.workflow.v1.WorkflowStepType step_type_enum = 8; */
+        if (message.stepTypeEnum !== 0)
+            writer.tag(8, WireType.Varint).int32(message.stepTypeEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

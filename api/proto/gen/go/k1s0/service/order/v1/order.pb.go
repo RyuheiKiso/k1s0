@@ -26,21 +26,91 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// OrderStatus は注文のステータス。
+type OrderStatus int32
+
+const (
+	OrderStatus_ORDER_STATUS_UNSPECIFIED OrderStatus = 0
+	OrderStatus_ORDER_STATUS_PENDING     OrderStatus = 1
+	OrderStatus_ORDER_STATUS_CONFIRMED   OrderStatus = 2
+	OrderStatus_ORDER_STATUS_PROCESSING  OrderStatus = 3
+	OrderStatus_ORDER_STATUS_SHIPPED     OrderStatus = 4
+	OrderStatus_ORDER_STATUS_DELIVERED   OrderStatus = 5
+	OrderStatus_ORDER_STATUS_CANCELLED   OrderStatus = 6
+	OrderStatus_ORDER_STATUS_REFUNDED    OrderStatus = 7
+)
+
+// Enum value maps for OrderStatus.
+var (
+	OrderStatus_name = map[int32]string{
+		0: "ORDER_STATUS_UNSPECIFIED",
+		1: "ORDER_STATUS_PENDING",
+		2: "ORDER_STATUS_CONFIRMED",
+		3: "ORDER_STATUS_PROCESSING",
+		4: "ORDER_STATUS_SHIPPED",
+		5: "ORDER_STATUS_DELIVERED",
+		6: "ORDER_STATUS_CANCELLED",
+		7: "ORDER_STATUS_REFUNDED",
+	}
+	OrderStatus_value = map[string]int32{
+		"ORDER_STATUS_UNSPECIFIED": 0,
+		"ORDER_STATUS_PENDING":     1,
+		"ORDER_STATUS_CONFIRMED":   2,
+		"ORDER_STATUS_PROCESSING":  3,
+		"ORDER_STATUS_SHIPPED":     4,
+		"ORDER_STATUS_DELIVERED":   5,
+		"ORDER_STATUS_CANCELLED":   6,
+		"ORDER_STATUS_REFUNDED":    7,
+	}
+)
+
+func (x OrderStatus) Enum() *OrderStatus {
+	p := new(OrderStatus)
+	*p = x
+	return p
+}
+
+func (x OrderStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (OrderStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_service_order_v1_order_proto_enumTypes[0].Descriptor()
+}
+
+func (OrderStatus) Type() protoreflect.EnumType {
+	return &file_k1s0_service_order_v1_order_proto_enumTypes[0]
+}
+
+func (x OrderStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use OrderStatus.Descriptor instead.
+func (OrderStatus) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_service_order_v1_order_proto_rawDescGZIP(), []int{0}
+}
+
 // 注文
 type Order struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	CustomerId    string                 `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
-	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	TotalAmount   int64                  `protobuf:"varint,4,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
-	Currency      string                 `protobuf:"bytes,5,opt,name=currency,proto3" json:"currency,omitempty"`
-	Notes         *string                `protobuf:"bytes,6,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
-	CreatedBy     string                 `protobuf:"bytes,7,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
-	UpdatedBy     *string                `protobuf:"bytes,8,opt,name=updated_by,json=updatedBy,proto3,oneof" json:"updated_by,omitempty"`
-	Version       int32                  `protobuf:"varint,9,opt,name=version,proto3" json:"version,omitempty"`
-	Items         []*OrderItem           `protobuf:"bytes,10,rep,name=items,proto3" json:"items,omitempty"`
-	CreatedAt     *v1.Timestamp          `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *v1.Timestamp          `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	CustomerId string                 `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	// Deprecated: status_enum を使用すること。
+	//
+	// Deprecated: Marked as deprecated in k1s0/service/order/v1/order.proto.
+	Status      string        `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	TotalAmount int64         `protobuf:"varint,4,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
+	Currency    string        `protobuf:"bytes,5,opt,name=currency,proto3" json:"currency,omitempty"`
+	Notes       *string       `protobuf:"bytes,6,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	CreatedBy   string        `protobuf:"bytes,7,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	UpdatedBy   *string       `protobuf:"bytes,8,opt,name=updated_by,json=updatedBy,proto3,oneof" json:"updated_by,omitempty"`
+	Version     int32         `protobuf:"varint,9,opt,name=version,proto3" json:"version,omitempty"`
+	Items       []*OrderItem  `protobuf:"bytes,10,rep,name=items,proto3" json:"items,omitempty"`
+	CreatedAt   *v1.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt   *v1.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// 注文ステータス（enum）
+	StatusEnum    OrderStatus `protobuf:"varint,13,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.service.order.v1.OrderStatus" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -89,6 +159,7 @@ func (x *Order) GetCustomerId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/service/order/v1/order.proto.
 func (x *Order) GetStatus() string {
 	if x != nil {
 		return x.Status
@@ -157,6 +228,13 @@ func (x *Order) GetUpdatedAt() *v1.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *Order) GetStatusEnum() OrderStatus {
+	if x != nil {
+		return x.StatusEnum
+	}
+	return OrderStatus_ORDER_STATUS_UNSPECIFIED
 }
 
 // 注文明細
@@ -529,10 +607,15 @@ func (x *GetOrderResponse) GetOrder() *Order {
 }
 
 type ListOrdersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CustomerId    *string                `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3,oneof" json:"customer_id,omitempty"`
-	Status        *string                `protobuf:"bytes,2,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	Pagination    *v1.Pagination         `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	CustomerId *string                `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3,oneof" json:"customer_id,omitempty"`
+	// Deprecated: status_enum を使用すること。
+	//
+	// Deprecated: Marked as deprecated in k1s0/service/order/v1/order.proto.
+	Status     *string        `protobuf:"bytes,2,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Pagination *v1.Pagination `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	// 注文ステータスフィルタ（enum）
+	StatusEnum    *OrderStatus `protobuf:"varint,4,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.service.order.v1.OrderStatus,oneof" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -574,6 +657,7 @@ func (x *ListOrdersRequest) GetCustomerId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/service/order/v1/order.proto.
 func (x *ListOrdersRequest) GetStatus() string {
 	if x != nil && x.Status != nil {
 		return *x.Status
@@ -586,6 +670,13 @@ func (x *ListOrdersRequest) GetPagination() *v1.Pagination {
 		return x.Pagination
 	}
 	return nil
+}
+
+func (x *ListOrdersRequest) GetStatusEnum() OrderStatus {
+	if x != nil && x.StatusEnum != nil {
+		return *x.StatusEnum
+	}
+	return OrderStatus_ORDER_STATUS_UNSPECIFIED
 }
 
 type ListOrdersResponse struct {
@@ -641,9 +732,14 @@ func (x *ListOrdersResponse) GetPagination() *v1.PaginationResult {
 }
 
 type UpdateOrderStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	OrderId string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	// Deprecated: status_enum を使用すること。
+	//
+	// Deprecated: Marked as deprecated in k1s0/service/order/v1/order.proto.
+	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// 注文ステータス（enum）
+	StatusEnum    OrderStatus `protobuf:"varint,3,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.service.order.v1.OrderStatus" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -685,11 +781,19 @@ func (x *UpdateOrderStatusRequest) GetOrderId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/service/order/v1/order.proto.
 func (x *UpdateOrderStatusRequest) GetStatus() string {
 	if x != nil {
 		return x.Status
 	}
 	return ""
+}
+
+func (x *UpdateOrderStatusRequest) GetStatusEnum() OrderStatus {
+	if x != nil {
+		return x.StatusEnum
+	}
+	return OrderStatus_ORDER_STATUS_UNSPECIFIED
 }
 
 type UpdateOrderStatusResponse struct {
@@ -740,12 +844,12 @@ var File_k1s0_service_order_v1_order_proto protoreflect.FileDescriptor
 
 const file_k1s0_service_order_v1_order_proto_rawDesc = "" +
 	"\n" +
-	"!k1s0/service/order/v1/order.proto\x12\x15k1s0.service.order.v1\x1a!k1s0/system/common/v1/types.proto\"\xda\x03\n" +
+	"!k1s0/service/order/v1/order.proto\x12\x15k1s0.service.order.v1\x1a!k1s0/system/common/v1/types.proto\"\xa3\x04\n" +
 	"\x05Order\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vcustomer_id\x18\x02 \x01(\tR\n" +
-	"customerId\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\tR\x06status\x12!\n" +
+	"customerId\x12\x1a\n" +
+	"\x06status\x18\x03 \x01(\tB\x02\x18\x01R\x06status\x12!\n" +
 	"\ftotal_amount\x18\x04 \x01(\x03R\vtotalAmount\x12\x1a\n" +
 	"\bcurrency\x18\x05 \x01(\tR\bcurrency\x12\x19\n" +
 	"\x05notes\x18\x06 \x01(\tH\x00R\x05notes\x88\x01\x01\x12\x1d\n" +
@@ -759,7 +863,9 @@ const file_k1s0_service_order_v1_order_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\v \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAtB\b\n" +
+	"updated_at\x18\f \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12C\n" +
+	"\vstatus_enum\x18\r \x01(\x0e2\".k1s0.service.order.v1.OrderStatusR\n" +
+	"statusEnumB\b\n" +
 	"\x06_notesB\r\n" +
 	"\v_updated_by\"\x90\x02\n" +
 	"\tOrderItem\x12\x0e\n" +
@@ -793,26 +899,40 @@ const file_k1s0_service_order_v1_order_proto_rawDesc = "" +
 	"\x0fGetOrderRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\"F\n" +
 	"\x10GetOrderResponse\x122\n" +
-	"\x05order\x18\x01 \x01(\v2\x1c.k1s0.service.order.v1.OrderR\x05order\"\xb4\x01\n" +
+	"\x05order\x18\x01 \x01(\v2\x1c.k1s0.service.order.v1.OrderR\x05order\"\x92\x02\n" +
 	"\x11ListOrdersRequest\x12$\n" +
 	"\vcustomer_id\x18\x01 \x01(\tH\x00R\n" +
-	"customerId\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x02 \x01(\tH\x01R\x06status\x88\x01\x01\x12A\n" +
+	"customerId\x88\x01\x01\x12\x1f\n" +
+	"\x06status\x18\x02 \x01(\tB\x02\x18\x01H\x01R\x06status\x88\x01\x01\x12A\n" +
 	"\n" +
 	"pagination\x18\x03 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
-	"paginationB\x0e\n" +
+	"pagination\x12H\n" +
+	"\vstatus_enum\x18\x04 \x01(\x0e2\".k1s0.service.order.v1.OrderStatusH\x02R\n" +
+	"statusEnum\x88\x01\x01B\x0e\n" +
 	"\f_customer_idB\t\n" +
-	"\a_status\"\xa6\x01\n" +
+	"\a_statusB\x0e\n" +
+	"\f_status_enum\"\xa6\x01\n" +
 	"\x12ListOrdersResponse\x124\n" +
 	"\x06orders\x18\x01 \x03(\v2\x1c.k1s0.service.order.v1.OrderR\x06orders\x12G\n" +
 	"\n" +
 	"pagination\x18\x03 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"paginationJ\x04\b\x02\x10\x03R\vtotal_count\"M\n" +
+	"paginationJ\x04\b\x02\x10\x03R\vtotal_count\"\x96\x01\n" +
 	"\x18UpdateOrderStatusRequest\x12\x19\n" +
-	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"O\n" +
+	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x1a\n" +
+	"\x06status\x18\x02 \x01(\tB\x02\x18\x01R\x06status\x12C\n" +
+	"\vstatus_enum\x18\x03 \x01(\x0e2\".k1s0.service.order.v1.OrderStatusR\n" +
+	"statusEnum\"O\n" +
 	"\x19UpdateOrderStatusResponse\x122\n" +
-	"\x05order\x18\x01 \x01(\v2\x1c.k1s0.service.order.v1.OrderR\x05order2\xac\x03\n" +
+	"\x05order\x18\x01 \x01(\v2\x1c.k1s0.service.order.v1.OrderR\x05order*\xeb\x01\n" +
+	"\vOrderStatus\x12\x1c\n" +
+	"\x18ORDER_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14ORDER_STATUS_PENDING\x10\x01\x12\x1a\n" +
+	"\x16ORDER_STATUS_CONFIRMED\x10\x02\x12\x1b\n" +
+	"\x17ORDER_STATUS_PROCESSING\x10\x03\x12\x18\n" +
+	"\x14ORDER_STATUS_SHIPPED\x10\x04\x12\x1a\n" +
+	"\x16ORDER_STATUS_DELIVERED\x10\x05\x12\x1a\n" +
+	"\x16ORDER_STATUS_CANCELLED\x10\x06\x12\x19\n" +
+	"\x15ORDER_STATUS_REFUNDED\x10\a2\xac\x03\n" +
 	"\fOrderService\x12d\n" +
 	"\vCreateOrder\x12).k1s0.service.order.v1.CreateOrderRequest\x1a*.k1s0.service.order.v1.CreateOrderResponse\x12[\n" +
 	"\bGetOrder\x12&.k1s0.service.order.v1.GetOrderRequest\x1a'.k1s0.service.order.v1.GetOrderResponse\x12a\n" +
@@ -832,48 +952,53 @@ func file_k1s0_service_order_v1_order_proto_rawDescGZIP() []byte {
 	return file_k1s0_service_order_v1_order_proto_rawDescData
 }
 
+var file_k1s0_service_order_v1_order_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_k1s0_service_order_v1_order_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_k1s0_service_order_v1_order_proto_goTypes = []any{
-	(*Order)(nil),                     // 0: k1s0.service.order.v1.Order
-	(*OrderItem)(nil),                 // 1: k1s0.service.order.v1.OrderItem
-	(*CreateOrderRequest)(nil),        // 2: k1s0.service.order.v1.CreateOrderRequest
-	(*CreateOrderItemRequest)(nil),    // 3: k1s0.service.order.v1.CreateOrderItemRequest
-	(*CreateOrderResponse)(nil),       // 4: k1s0.service.order.v1.CreateOrderResponse
-	(*GetOrderRequest)(nil),           // 5: k1s0.service.order.v1.GetOrderRequest
-	(*GetOrderResponse)(nil),          // 6: k1s0.service.order.v1.GetOrderResponse
-	(*ListOrdersRequest)(nil),         // 7: k1s0.service.order.v1.ListOrdersRequest
-	(*ListOrdersResponse)(nil),        // 8: k1s0.service.order.v1.ListOrdersResponse
-	(*UpdateOrderStatusRequest)(nil),  // 9: k1s0.service.order.v1.UpdateOrderStatusRequest
-	(*UpdateOrderStatusResponse)(nil), // 10: k1s0.service.order.v1.UpdateOrderStatusResponse
-	(*v1.Timestamp)(nil),              // 11: k1s0.system.common.v1.Timestamp
-	(*v1.Pagination)(nil),             // 12: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),       // 13: k1s0.system.common.v1.PaginationResult
+	(OrderStatus)(0),                  // 0: k1s0.service.order.v1.OrderStatus
+	(*Order)(nil),                     // 1: k1s0.service.order.v1.Order
+	(*OrderItem)(nil),                 // 2: k1s0.service.order.v1.OrderItem
+	(*CreateOrderRequest)(nil),        // 3: k1s0.service.order.v1.CreateOrderRequest
+	(*CreateOrderItemRequest)(nil),    // 4: k1s0.service.order.v1.CreateOrderItemRequest
+	(*CreateOrderResponse)(nil),       // 5: k1s0.service.order.v1.CreateOrderResponse
+	(*GetOrderRequest)(nil),           // 6: k1s0.service.order.v1.GetOrderRequest
+	(*GetOrderResponse)(nil),          // 7: k1s0.service.order.v1.GetOrderResponse
+	(*ListOrdersRequest)(nil),         // 8: k1s0.service.order.v1.ListOrdersRequest
+	(*ListOrdersResponse)(nil),        // 9: k1s0.service.order.v1.ListOrdersResponse
+	(*UpdateOrderStatusRequest)(nil),  // 10: k1s0.service.order.v1.UpdateOrderStatusRequest
+	(*UpdateOrderStatusResponse)(nil), // 11: k1s0.service.order.v1.UpdateOrderStatusResponse
+	(*v1.Timestamp)(nil),              // 12: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),             // 13: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),       // 14: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_service_order_v1_order_proto_depIdxs = []int32{
-	1,  // 0: k1s0.service.order.v1.Order.items:type_name -> k1s0.service.order.v1.OrderItem
-	11, // 1: k1s0.service.order.v1.Order.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	11, // 2: k1s0.service.order.v1.Order.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	11, // 3: k1s0.service.order.v1.OrderItem.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	3,  // 4: k1s0.service.order.v1.CreateOrderRequest.items:type_name -> k1s0.service.order.v1.CreateOrderItemRequest
-	0,  // 5: k1s0.service.order.v1.CreateOrderResponse.order:type_name -> k1s0.service.order.v1.Order
-	0,  // 6: k1s0.service.order.v1.GetOrderResponse.order:type_name -> k1s0.service.order.v1.Order
-	12, // 7: k1s0.service.order.v1.ListOrdersRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	0,  // 8: k1s0.service.order.v1.ListOrdersResponse.orders:type_name -> k1s0.service.order.v1.Order
-	13, // 9: k1s0.service.order.v1.ListOrdersResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	0,  // 10: k1s0.service.order.v1.UpdateOrderStatusResponse.order:type_name -> k1s0.service.order.v1.Order
-	2,  // 11: k1s0.service.order.v1.OrderService.CreateOrder:input_type -> k1s0.service.order.v1.CreateOrderRequest
-	5,  // 12: k1s0.service.order.v1.OrderService.GetOrder:input_type -> k1s0.service.order.v1.GetOrderRequest
-	7,  // 13: k1s0.service.order.v1.OrderService.ListOrders:input_type -> k1s0.service.order.v1.ListOrdersRequest
-	9,  // 14: k1s0.service.order.v1.OrderService.UpdateOrderStatus:input_type -> k1s0.service.order.v1.UpdateOrderStatusRequest
-	4,  // 15: k1s0.service.order.v1.OrderService.CreateOrder:output_type -> k1s0.service.order.v1.CreateOrderResponse
-	6,  // 16: k1s0.service.order.v1.OrderService.GetOrder:output_type -> k1s0.service.order.v1.GetOrderResponse
-	8,  // 17: k1s0.service.order.v1.OrderService.ListOrders:output_type -> k1s0.service.order.v1.ListOrdersResponse
-	10, // 18: k1s0.service.order.v1.OrderService.UpdateOrderStatus:output_type -> k1s0.service.order.v1.UpdateOrderStatusResponse
-	15, // [15:19] is the sub-list for method output_type
-	11, // [11:15] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	2,  // 0: k1s0.service.order.v1.Order.items:type_name -> k1s0.service.order.v1.OrderItem
+	12, // 1: k1s0.service.order.v1.Order.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	12, // 2: k1s0.service.order.v1.Order.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 3: k1s0.service.order.v1.Order.status_enum:type_name -> k1s0.service.order.v1.OrderStatus
+	12, // 4: k1s0.service.order.v1.OrderItem.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	4,  // 5: k1s0.service.order.v1.CreateOrderRequest.items:type_name -> k1s0.service.order.v1.CreateOrderItemRequest
+	1,  // 6: k1s0.service.order.v1.CreateOrderResponse.order:type_name -> k1s0.service.order.v1.Order
+	1,  // 7: k1s0.service.order.v1.GetOrderResponse.order:type_name -> k1s0.service.order.v1.Order
+	13, // 8: k1s0.service.order.v1.ListOrdersRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	0,  // 9: k1s0.service.order.v1.ListOrdersRequest.status_enum:type_name -> k1s0.service.order.v1.OrderStatus
+	1,  // 10: k1s0.service.order.v1.ListOrdersResponse.orders:type_name -> k1s0.service.order.v1.Order
+	14, // 11: k1s0.service.order.v1.ListOrdersResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	0,  // 12: k1s0.service.order.v1.UpdateOrderStatusRequest.status_enum:type_name -> k1s0.service.order.v1.OrderStatus
+	1,  // 13: k1s0.service.order.v1.UpdateOrderStatusResponse.order:type_name -> k1s0.service.order.v1.Order
+	3,  // 14: k1s0.service.order.v1.OrderService.CreateOrder:input_type -> k1s0.service.order.v1.CreateOrderRequest
+	6,  // 15: k1s0.service.order.v1.OrderService.GetOrder:input_type -> k1s0.service.order.v1.GetOrderRequest
+	8,  // 16: k1s0.service.order.v1.OrderService.ListOrders:input_type -> k1s0.service.order.v1.ListOrdersRequest
+	10, // 17: k1s0.service.order.v1.OrderService.UpdateOrderStatus:input_type -> k1s0.service.order.v1.UpdateOrderStatusRequest
+	5,  // 18: k1s0.service.order.v1.OrderService.CreateOrder:output_type -> k1s0.service.order.v1.CreateOrderResponse
+	7,  // 19: k1s0.service.order.v1.OrderService.GetOrder:output_type -> k1s0.service.order.v1.GetOrderResponse
+	9,  // 20: k1s0.service.order.v1.OrderService.ListOrders:output_type -> k1s0.service.order.v1.ListOrdersResponse
+	11, // 21: k1s0.service.order.v1.OrderService.UpdateOrderStatus:output_type -> k1s0.service.order.v1.UpdateOrderStatusResponse
+	18, // [18:22] is the sub-list for method output_type
+	14, // [14:18] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_service_order_v1_order_proto_init() }
@@ -889,13 +1014,14 @@ func file_k1s0_service_order_v1_order_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_service_order_v1_order_proto_rawDesc), len(file_k1s0_service_order_v1_order_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_k1s0_service_order_v1_order_proto_goTypes,
 		DependencyIndexes: file_k1s0_service_order_v1_order_proto_depIdxs,
+		EnumInfos:         file_k1s0_service_order_v1_order_proto_enumTypes,
 		MessageInfos:      file_k1s0_service_order_v1_order_proto_msgTypes,
 	}.Build()
 	File_k1s0_service_order_v1_order_proto = out.File

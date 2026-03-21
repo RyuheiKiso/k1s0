@@ -20,10 +20,12 @@ pub struct StreamInfo {
     pub aggregate_type: ::prost::alloc::string::String,
     #[prost(int64, tag="3")]
     pub current_version: i64,
-    #[prost(string, tag="4")]
-    pub created_at: ::prost::alloc::string::String,
-    #[prost(string, tag="5")]
-    pub updated_at: ::prost::alloc::string::String,
+    /// タイムスタンプ型を共通型に統一（string → Timestamp）
+    #[prost(message, optional, tag="4")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    /// タイムスタンプ型を共通型に統一（string → Timestamp）
+    #[prost(message, optional, tag="5")]
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppendEventsRequest {
@@ -101,8 +103,9 @@ pub struct CreateSnapshotResponse {
     pub stream_id: ::prost::alloc::string::String,
     #[prost(int64, tag="3")]
     pub snapshot_version: i64,
-    #[prost(string, tag="4")]
-    pub created_at: ::prost::alloc::string::String,
+    /// タイムスタンプ型を共通型に統一（string → Timestamp）
+    #[prost(message, optional, tag="4")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(string, tag="5")]
     pub aggregate_type: ::prost::alloc::string::String,
 }
@@ -135,7 +138,7 @@ pub struct EventData {
     #[prost(bytes="vec", tag="2")]
     pub payload: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag="3")]
-    pub metadata: ::core::option::Option<EventMetadata>,
+    pub metadata: ::core::option::Option<EventStoreMetadata>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct StoredEvent {
@@ -150,14 +153,16 @@ pub struct StoredEvent {
     #[prost(bytes="vec", tag="5")]
     pub payload: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag="6")]
-    pub metadata: ::core::option::Option<EventMetadata>,
-    #[prost(string, tag="7")]
-    pub occurred_at: ::prost::alloc::string::String,
-    #[prost(string, tag="8")]
-    pub stored_at: ::prost::alloc::string::String,
+    pub metadata: ::core::option::Option<EventStoreMetadata>,
+    /// タイムスタンプ型を共通型に統一（string → Timestamp）
+    #[prost(message, optional, tag="7")]
+    pub occurred_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    /// タイムスタンプ型を共通型に統一（string → Timestamp）
+    #[prost(message, optional, tag="8")]
+    pub stored_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct EventMetadata {
+pub struct EventStoreMetadata {
     #[prost(string, optional, tag="1")]
     pub actor_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag="2")]
@@ -177,8 +182,9 @@ pub struct Snapshot {
     pub aggregate_type: ::prost::alloc::string::String,
     #[prost(bytes="vec", tag="5")]
     pub state: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag="6")]
-    pub created_at: ::prost::alloc::string::String,
+    /// タイムスタンプ型を共通型に統一（string → Timestamp）
+    #[prost(message, optional, tag="6")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 include!("k1s0.system.eventstore.v1.tonic.rs");
 // @@protoc_insertion_point(module)

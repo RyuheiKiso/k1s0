@@ -11,6 +11,8 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { PaginationResult } from "../../common/v1/types";
+import { Pagination } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
 /**
  * @generated from protobuf message k1s0.system.vault.v1.GetSecretRequest
@@ -180,6 +182,12 @@ export interface ListSecretsRequest {
      * @generated from protobuf field: string prefix = 1
      */
     prefix: string;
+    /**
+     * ページネーションパラメータを共通型に統一
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 2
+     */
+    pagination?: Pagination;
 }
 /**
  * @generated from protobuf message k1s0.system.vault.v1.ListSecretsResponse
@@ -189,19 +197,23 @@ export interface ListSecretsResponse {
      * @generated from protobuf field: repeated string keys = 1
      */
     keys: string[];
+    /**
+     * ページネーション結果
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.PaginationResult pagination = 2
+     */
+    pagination?: PaginationResult;
 }
 /**
  * @generated from protobuf message k1s0.system.vault.v1.ListAuditLogsRequest
  */
 export interface ListAuditLogsRequest {
     /**
-     * @generated from protobuf field: int32 offset = 1
+     * ページネーションパラメータを共通型に統一
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 3
      */
-    offset: number;
-    /**
-     * @generated from protobuf field: int32 limit = 2
-     */
-    limit: number;
+    pagination?: Pagination;
 }
 /**
  * @generated from protobuf message k1s0.system.vault.v1.ListAuditLogsResponse
@@ -211,6 +223,12 @@ export interface ListAuditLogsResponse {
      * @generated from protobuf field: repeated k1s0.system.vault.v1.AuditLogEntry logs = 1
      */
     logs: AuditLogEntry[];
+    /**
+     * ページネーション結果
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.PaginationResult pagination = 2
+     */
+    pagination?: PaginationResult;
 }
 /**
  * @generated from protobuf message k1s0.system.vault.v1.AuditLogEntry
@@ -902,7 +920,8 @@ export const GetSecretMetadataResponse = new GetSecretMetadataResponse$Type();
 class ListSecretsRequest$Type extends MessageType<ListSecretsRequest> {
     constructor() {
         super("k1s0.system.vault.v1.ListSecretsRequest", [
-            { no: 1, name: "prefix", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "prefix", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "pagination", kind: "message", T: () => Pagination }
         ]);
     }
     create(value?: PartialMessage<ListSecretsRequest>): ListSecretsRequest {
@@ -920,6 +939,9 @@ class ListSecretsRequest$Type extends MessageType<ListSecretsRequest> {
                 case /* string prefix */ 1:
                     message.prefix = reader.string();
                     break;
+                case /* k1s0.system.common.v1.Pagination pagination */ 2:
+                    message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -935,6 +957,9 @@ class ListSecretsRequest$Type extends MessageType<ListSecretsRequest> {
         /* string prefix = 1; */
         if (message.prefix !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.prefix);
+        /* k1s0.system.common.v1.Pagination pagination = 2; */
+        if (message.pagination)
+            Pagination.internalBinaryWrite(message.pagination, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -949,7 +974,8 @@ export const ListSecretsRequest = new ListSecretsRequest$Type();
 class ListSecretsResponse$Type extends MessageType<ListSecretsResponse> {
     constructor() {
         super("k1s0.system.vault.v1.ListSecretsResponse", [
-            { no: 1, name: "keys", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "keys", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "pagination", kind: "message", T: () => PaginationResult }
         ]);
     }
     create(value?: PartialMessage<ListSecretsResponse>): ListSecretsResponse {
@@ -967,6 +993,9 @@ class ListSecretsResponse$Type extends MessageType<ListSecretsResponse> {
                 case /* repeated string keys */ 1:
                     message.keys.push(reader.string());
                     break;
+                case /* k1s0.system.common.v1.PaginationResult pagination */ 2:
+                    message.pagination = PaginationResult.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -982,6 +1011,9 @@ class ListSecretsResponse$Type extends MessageType<ListSecretsResponse> {
         /* repeated string keys = 1; */
         for (let i = 0; i < message.keys.length; i++)
             writer.tag(1, WireType.LengthDelimited).string(message.keys[i]);
+        /* k1s0.system.common.v1.PaginationResult pagination = 2; */
+        if (message.pagination)
+            PaginationResult.internalBinaryWrite(message.pagination, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -996,14 +1028,11 @@ export const ListSecretsResponse = new ListSecretsResponse$Type();
 class ListAuditLogsRequest$Type extends MessageType<ListAuditLogsRequest> {
     constructor() {
         super("k1s0.system.vault.v1.ListAuditLogsRequest", [
-            { no: 1, name: "offset", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 2, name: "limit", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 3, name: "pagination", kind: "message", T: () => Pagination }
         ]);
     }
     create(value?: PartialMessage<ListAuditLogsRequest>): ListAuditLogsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.offset = 0;
-        message.limit = 0;
         if (value !== undefined)
             reflectionMergePartial<ListAuditLogsRequest>(this, message, value);
         return message;
@@ -1013,11 +1042,8 @@ class ListAuditLogsRequest$Type extends MessageType<ListAuditLogsRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* int32 offset */ 1:
-                    message.offset = reader.int32();
-                    break;
-                case /* int32 limit */ 2:
-                    message.limit = reader.int32();
+                case /* k1s0.system.common.v1.Pagination pagination */ 3:
+                    message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1031,12 +1057,9 @@ class ListAuditLogsRequest$Type extends MessageType<ListAuditLogsRequest> {
         return message;
     }
     internalBinaryWrite(message: ListAuditLogsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* int32 offset = 1; */
-        if (message.offset !== 0)
-            writer.tag(1, WireType.Varint).int32(message.offset);
-        /* int32 limit = 2; */
-        if (message.limit !== 0)
-            writer.tag(2, WireType.Varint).int32(message.limit);
+        /* k1s0.system.common.v1.Pagination pagination = 3; */
+        if (message.pagination)
+            Pagination.internalBinaryWrite(message.pagination, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1051,7 +1074,8 @@ export const ListAuditLogsRequest = new ListAuditLogsRequest$Type();
 class ListAuditLogsResponse$Type extends MessageType<ListAuditLogsResponse> {
     constructor() {
         super("k1s0.system.vault.v1.ListAuditLogsResponse", [
-            { no: 1, name: "logs", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AuditLogEntry }
+            { no: 1, name: "logs", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AuditLogEntry },
+            { no: 2, name: "pagination", kind: "message", T: () => PaginationResult }
         ]);
     }
     create(value?: PartialMessage<ListAuditLogsResponse>): ListAuditLogsResponse {
@@ -1069,6 +1093,9 @@ class ListAuditLogsResponse$Type extends MessageType<ListAuditLogsResponse> {
                 case /* repeated k1s0.system.vault.v1.AuditLogEntry logs */ 1:
                     message.logs.push(AuditLogEntry.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* k1s0.system.common.v1.PaginationResult pagination */ 2:
+                    message.pagination = PaginationResult.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1084,6 +1111,9 @@ class ListAuditLogsResponse$Type extends MessageType<ListAuditLogsResponse> {
         /* repeated k1s0.system.vault.v1.AuditLogEntry logs = 1; */
         for (let i = 0; i < message.logs.length; i++)
             AuditLogEntry.internalBinaryWrite(message.logs[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.PaginationResult pagination = 2; */
+        if (message.pagination)
+            PaginationResult.internalBinaryWrite(message.pagination, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

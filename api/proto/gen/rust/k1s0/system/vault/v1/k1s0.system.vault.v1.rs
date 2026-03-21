@@ -86,23 +86,31 @@ pub struct GetSecretMetadataResponse {
 pub struct ListSecretsRequest {
     #[prost(string, tag="1")]
     pub prefix: ::prost::alloc::string::String,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag="2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListSecretsResponse {
     #[prost(string, repeated, tag="1")]
     pub keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// ページネーション結果
+    #[prost(message, optional, tag="2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListAuditLogsRequest {
-    #[prost(int32, tag="1")]
-    pub offset: i32,
-    #[prost(int32, tag="2")]
-    pub limit: i32,
+    /// ページネーションパラメータを共通型に統一
+    #[prost(message, optional, tag="3")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListAuditLogsResponse {
     #[prost(message, repeated, tag="1")]
     pub logs: ::prost::alloc::vec::Vec<AuditLogEntry>,
+    /// ページネーション結果
+    #[prost(message, optional, tag="2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AuditLogEntry {

@@ -25,6 +25,67 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// NotificationStatus は通知配信のステータス。
+type NotificationStatus int32
+
+const (
+	// NOTIFICATION_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+	NotificationStatus_NOTIFICATION_STATUS_UNSPECIFIED NotificationStatus = 0
+	// NOTIFICATION_STATUS_PENDING は送信待ち。
+	NotificationStatus_NOTIFICATION_STATUS_PENDING NotificationStatus = 1
+	// NOTIFICATION_STATUS_SENT は送信済み。
+	NotificationStatus_NOTIFICATION_STATUS_SENT NotificationStatus = 2
+	// NOTIFICATION_STATUS_FAILED は送信失敗。
+	NotificationStatus_NOTIFICATION_STATUS_FAILED NotificationStatus = 3
+	// NOTIFICATION_STATUS_RETRYING はリトライ中。
+	NotificationStatus_NOTIFICATION_STATUS_RETRYING NotificationStatus = 4
+)
+
+// Enum value maps for NotificationStatus.
+var (
+	NotificationStatus_name = map[int32]string{
+		0: "NOTIFICATION_STATUS_UNSPECIFIED",
+		1: "NOTIFICATION_STATUS_PENDING",
+		2: "NOTIFICATION_STATUS_SENT",
+		3: "NOTIFICATION_STATUS_FAILED",
+		4: "NOTIFICATION_STATUS_RETRYING",
+	}
+	NotificationStatus_value = map[string]int32{
+		"NOTIFICATION_STATUS_UNSPECIFIED": 0,
+		"NOTIFICATION_STATUS_PENDING":     1,
+		"NOTIFICATION_STATUS_SENT":        2,
+		"NOTIFICATION_STATUS_FAILED":      3,
+		"NOTIFICATION_STATUS_RETRYING":    4,
+	}
+)
+
+func (x NotificationStatus) Enum() *NotificationStatus {
+	p := new(NotificationStatus)
+	*p = x
+	return p
+}
+
+func (x NotificationStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (NotificationStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_notification_v1_notification_proto_enumTypes[0].Descriptor()
+}
+
+func (NotificationStatus) Type() protoreflect.EnumType {
+	return &file_k1s0_system_notification_v1_notification_proto_enumTypes[0]
+}
+
+func (x NotificationStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use NotificationStatus.Descriptor instead.
+func (NotificationStatus) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_notification_v1_notification_proto_rawDescGZIP(), []int{0}
+}
+
 type SendNotificationRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	ChannelId         string                 `protobuf:"bytes,1,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
@@ -113,9 +174,12 @@ type SendNotificationResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	NotificationId string                 `protobuf:"bytes,1,opt,name=notification_id,json=notificationId,proto3" json:"notification_id,omitempty"`
 	Status         string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	CreatedAt      string                 `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Deprecated: created_at_ts を使用すること。
+	CreatedAt string `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// created_at_ts は created_at の Timestamp 型。
+	CreatedAtTs   *v1.Timestamp `protobuf:"bytes,4,opt,name=created_at_ts,json=createdAtTs,proto3" json:"created_at_ts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SendNotificationResponse) Reset() {
@@ -167,6 +231,13 @@ func (x *SendNotificationResponse) GetCreatedAt() string {
 		return x.CreatedAt
 	}
 	return ""
+}
+
+func (x *SendNotificationResponse) GetCreatedAtTs() *v1.Timestamp {
+	if x != nil {
+		return x.CreatedAtTs
+	}
+	return nil
 }
 
 type GetNotificationRequest struct {
@@ -459,19 +530,28 @@ func (x *ListNotificationsResponse) GetPagination() *v1.PaginationResult {
 }
 
 type NotificationLog struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ChannelId     string                 `protobuf:"bytes,2,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
-	ChannelType   string                 `protobuf:"bytes,3,opt,name=channel_type,json=channelType,proto3" json:"channel_type,omitempty"`
-	TemplateId    *string                `protobuf:"bytes,4,opt,name=template_id,json=templateId,proto3,oneof" json:"template_id,omitempty"`
-	Recipient     string                 `protobuf:"bytes,5,opt,name=recipient,proto3" json:"recipient,omitempty"`
-	Subject       *string                `protobuf:"bytes,6,opt,name=subject,proto3,oneof" json:"subject,omitempty"`
-	Body          string                 `protobuf:"bytes,7,opt,name=body,proto3" json:"body,omitempty"`
-	Status        string                 `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
-	RetryCount    uint32                 `protobuf:"varint,9,opt,name=retry_count,json=retryCount,proto3" json:"retry_count,omitempty"`
-	ErrorMessage  *string                `protobuf:"bytes,10,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
-	SentAt        *string                `protobuf:"bytes,11,opt,name=sent_at,json=sentAt,proto3,oneof" json:"sent_at,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ChannelId   string                 `protobuf:"bytes,2,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
+	ChannelType string                 `protobuf:"bytes,3,opt,name=channel_type,json=channelType,proto3" json:"channel_type,omitempty"`
+	TemplateId  *string                `protobuf:"bytes,4,opt,name=template_id,json=templateId,proto3,oneof" json:"template_id,omitempty"`
+	Recipient   string                 `protobuf:"bytes,5,opt,name=recipient,proto3" json:"recipient,omitempty"`
+	Subject     *string                `protobuf:"bytes,6,opt,name=subject,proto3,oneof" json:"subject,omitempty"`
+	Body        string                 `protobuf:"bytes,7,opt,name=body,proto3" json:"body,omitempty"`
+	// Deprecated: use status_enum instead.
+	Status       string  `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
+	RetryCount   uint32  `protobuf:"varint,9,opt,name=retry_count,json=retryCount,proto3" json:"retry_count,omitempty"`
+	ErrorMessage *string `protobuf:"bytes,10,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
+	// Deprecated: sent_at_ts を使用すること。
+	SentAt *string `protobuf:"bytes,11,opt,name=sent_at,json=sentAt,proto3,oneof" json:"sent_at,omitempty"`
+	// Deprecated: created_at_ts を使用すること。
+	CreatedAt string `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// 通知ステータスの enum 版（status の型付き版）。
+	StatusEnum NotificationStatus `protobuf:"varint,13,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.system.notification.v1.NotificationStatus" json:"status_enum,omitempty"`
+	// sent_at_ts は sent_at の Timestamp 型。
+	SentAtTs *v1.Timestamp `protobuf:"bytes,14,opt,name=sent_at_ts,json=sentAtTs,proto3,oneof" json:"sent_at_ts,omitempty"`
+	// created_at_ts は created_at の Timestamp 型。
+	CreatedAtTs   *v1.Timestamp `protobuf:"bytes,15,opt,name=created_at_ts,json=createdAtTs,proto3" json:"created_at_ts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -590,15 +670,42 @@ func (x *NotificationLog) GetCreatedAt() string {
 	return ""
 }
 
+func (x *NotificationLog) GetStatusEnum() NotificationStatus {
+	if x != nil {
+		return x.StatusEnum
+	}
+	return NotificationStatus_NOTIFICATION_STATUS_UNSPECIFIED
+}
+
+func (x *NotificationLog) GetSentAtTs() *v1.Timestamp {
+	if x != nil {
+		return x.SentAtTs
+	}
+	return nil
+}
+
+func (x *NotificationLog) GetCreatedAtTs() *v1.Timestamp {
+	if x != nil {
+		return x.CreatedAtTs
+	}
+	return nil
+}
+
 type Channel struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	ChannelType   string                 `protobuf:"bytes,3,opt,name=channel_type,json=channelType,proto3" json:"channel_type,omitempty"`
-	ConfigJson    string                 `protobuf:"bytes,4,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
-	Enabled       bool                   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name        string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ChannelType string                 `protobuf:"bytes,3,opt,name=channel_type,json=channelType,proto3" json:"channel_type,omitempty"`
+	ConfigJson  string                 `protobuf:"bytes,4,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
+	Enabled     bool                   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// Deprecated: created_at_ts を使用すること。
+	CreatedAt string `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Deprecated: updated_at_ts を使用すること。
+	UpdatedAt string `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// created_at_ts は created_at の Timestamp 型。
+	CreatedAtTs *v1.Timestamp `protobuf:"bytes,8,opt,name=created_at_ts,json=createdAtTs,proto3" json:"created_at_ts,omitempty"`
+	// updated_at_ts は updated_at の Timestamp 型。
+	UpdatedAtTs   *v1.Timestamp `protobuf:"bytes,9,opt,name=updated_at_ts,json=updatedAtTs,proto3" json:"updated_at_ts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -680,6 +787,20 @@ func (x *Channel) GetUpdatedAt() string {
 		return x.UpdatedAt
 	}
 	return ""
+}
+
+func (x *Channel) GetCreatedAtTs() *v1.Timestamp {
+	if x != nil {
+		return x.CreatedAtTs
+	}
+	return nil
+}
+
+func (x *Channel) GetUpdatedAtTs() *v1.Timestamp {
+	if x != nil {
+		return x.UpdatedAtTs
+	}
+	return nil
 }
 
 type ListChannelsRequest struct {
@@ -1210,10 +1331,16 @@ type Template struct {
 	ChannelType     string                 `protobuf:"bytes,3,opt,name=channel_type,json=channelType,proto3" json:"channel_type,omitempty"`
 	SubjectTemplate *string                `protobuf:"bytes,4,opt,name=subject_template,json=subjectTemplate,proto3,oneof" json:"subject_template,omitempty"`
 	BodyTemplate    string                 `protobuf:"bytes,5,opt,name=body_template,json=bodyTemplate,proto3" json:"body_template,omitempty"`
-	CreatedAt       string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt       string                 `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Deprecated: created_at_ts を使用すること。
+	CreatedAt string `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Deprecated: updated_at_ts を使用すること。
+	UpdatedAt string `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// created_at_ts は created_at の Timestamp 型。
+	CreatedAtTs *v1.Timestamp `protobuf:"bytes,8,opt,name=created_at_ts,json=createdAtTs,proto3" json:"created_at_ts,omitempty"`
+	// updated_at_ts は updated_at の Timestamp 型。
+	UpdatedAtTs   *v1.Timestamp `protobuf:"bytes,9,opt,name=updated_at_ts,json=updatedAtTs,proto3" json:"updated_at_ts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Template) Reset() {
@@ -1293,6 +1420,20 @@ func (x *Template) GetUpdatedAt() string {
 		return x.UpdatedAt
 	}
 	return ""
+}
+
+func (x *Template) GetCreatedAtTs() *v1.Timestamp {
+	if x != nil {
+		return x.CreatedAtTs
+	}
+	return nil
+}
+
+func (x *Template) GetUpdatedAtTs() *v1.Timestamp {
+	if x != nil {
+		return x.UpdatedAtTs
+	}
+	return nil
 }
 
 type ListTemplatesRequest struct {
@@ -1828,12 +1969,13 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\f_template_idB\n" +
 	"\n" +
 	"\b_subjectB\a\n" +
-	"\x05_body\"z\n" +
+	"\x05_body\"\xc0\x01\n" +
 	"\x18SendNotificationResponse\x12'\n" +
 	"\x0fnotification_id\x18\x01 \x01(\tR\x0enotificationId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\tR\tcreatedAt\"A\n" +
+	"created_at\x18\x03 \x01(\tR\tcreatedAt\x12D\n" +
+	"\rcreated_at_ts\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\vcreatedAtTs\"A\n" +
 	"\x16GetNotificationRequest\x12'\n" +
 	"\x0fnotification_id\x18\x01 \x01(\tR\x0enotificationId\"k\n" +
 	"\x17GetNotificationResponse\x12P\n" +
@@ -1855,7 +1997,7 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\rnotifications\x18\x01 \x03(\v2,.k1s0.system.notification.v1.NotificationLogR\rnotifications\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xb4\x03\n" +
+	"pagination\"\xa0\x05\n" +
 	"\x0fNotificationLog\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1873,13 +2015,19 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	" \x01(\tH\x02R\ferrorMessage\x88\x01\x01\x12\x1c\n" +
 	"\asent_at\x18\v \x01(\tH\x03R\x06sentAt\x88\x01\x01\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\f \x01(\tR\tcreatedAtB\x0e\n" +
+	"created_at\x18\f \x01(\tR\tcreatedAt\x12P\n" +
+	"\vstatus_enum\x18\r \x01(\x0e2/.k1s0.system.notification.v1.NotificationStatusR\n" +
+	"statusEnum\x12C\n" +
+	"\n" +
+	"sent_at_ts\x18\x0e \x01(\v2 .k1s0.system.common.v1.TimestampH\x04R\bsentAtTs\x88\x01\x01\x12D\n" +
+	"\rcreated_at_ts\x18\x0f \x01(\v2 .k1s0.system.common.v1.TimestampR\vcreatedAtTsB\x0e\n" +
 	"\f_template_idB\n" +
 	"\n" +
 	"\b_subjectB\x10\n" +
 	"\x0e_error_messageB\n" +
 	"\n" +
-	"\b_sent_at\"\xc9\x01\n" +
+	"\b_sent_atB\r\n" +
+	"\v_sent_at_ts\"\xd5\x02\n" +
 	"\aChannel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
@@ -1890,7 +2038,9 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\tR\tupdatedAt\"\xc5\x01\n" +
+	"updated_at\x18\a \x01(\tR\tupdatedAt\x12D\n" +
+	"\rcreated_at_ts\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\vcreatedAtTs\x12D\n" +
+	"\rupdated_at_ts\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\vupdatedAtTs\"\xc5\x01\n" +
 	"\x13ListChannelsRequest\x12&\n" +
 	"\fchannel_type\x18\x01 \x01(\tH\x00R\vchannelType\x88\x01\x01\x12!\n" +
 	"\fenabled_only\x18\x02 \x01(\bR\venabledOnly\x12A\n" +
@@ -1931,7 +2081,7 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"K\n" +
 	"\x15DeleteChannelResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xf9\x01\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x85\x03\n" +
 	"\bTemplate\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
@@ -1941,7 +2091,9 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\tR\tupdatedAtB\x13\n" +
+	"updated_at\x18\a \x01(\tR\tupdatedAt\x12D\n" +
+	"\rcreated_at_ts\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\vcreatedAtTs\x12D\n" +
+	"\rupdated_at_ts\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\vupdatedAtTsB\x13\n" +
 	"\x11_subject_template\"\xa3\x01\n" +
 	"\x14ListTemplatesRequest\x12&\n" +
 	"\fchannel_type\x18\x01 \x01(\tH\x00R\vchannelType\x88\x01\x01\x12A\n" +
@@ -1980,7 +2132,13 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"L\n" +
 	"\x16DeleteTemplateResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2\xc5\r\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage*\xba\x01\n" +
+	"\x12NotificationStatus\x12#\n" +
+	"\x1fNOTIFICATION_STATUS_UNSPECIFIED\x10\x00\x12\x1f\n" +
+	"\x1bNOTIFICATION_STATUS_PENDING\x10\x01\x12\x1c\n" +
+	"\x18NOTIFICATION_STATUS_SENT\x10\x02\x12\x1e\n" +
+	"\x1aNOTIFICATION_STATUS_FAILED\x10\x03\x12 \n" +
+	"\x1cNOTIFICATION_STATUS_RETRYING\x10\x042\xc5\r\n" +
 	"\x13NotificationService\x12\x7f\n" +
 	"\x10SendNotification\x124.k1s0.system.notification.v1.SendNotificationRequest\x1a5.k1s0.system.notification.v1.SendNotificationResponse\x12|\n" +
 	"\x0fGetNotification\x123.k1s0.system.notification.v1.GetNotificationRequest\x1a4.k1s0.system.notification.v1.GetNotificationResponse\x12\x82\x01\n" +
@@ -2010,95 +2168,106 @@ func file_k1s0_system_notification_v1_notification_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_notification_v1_notification_proto_rawDescData
 }
 
+var file_k1s0_system_notification_v1_notification_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_k1s0_system_notification_v1_notification_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_k1s0_system_notification_v1_notification_proto_goTypes = []any{
-	(*SendNotificationRequest)(nil),   // 0: k1s0.system.notification.v1.SendNotificationRequest
-	(*SendNotificationResponse)(nil),  // 1: k1s0.system.notification.v1.SendNotificationResponse
-	(*GetNotificationRequest)(nil),    // 2: k1s0.system.notification.v1.GetNotificationRequest
-	(*GetNotificationResponse)(nil),   // 3: k1s0.system.notification.v1.GetNotificationResponse
-	(*RetryNotificationRequest)(nil),  // 4: k1s0.system.notification.v1.RetryNotificationRequest
-	(*RetryNotificationResponse)(nil), // 5: k1s0.system.notification.v1.RetryNotificationResponse
-	(*ListNotificationsRequest)(nil),  // 6: k1s0.system.notification.v1.ListNotificationsRequest
-	(*ListNotificationsResponse)(nil), // 7: k1s0.system.notification.v1.ListNotificationsResponse
-	(*NotificationLog)(nil),           // 8: k1s0.system.notification.v1.NotificationLog
-	(*Channel)(nil),                   // 9: k1s0.system.notification.v1.Channel
-	(*ListChannelsRequest)(nil),       // 10: k1s0.system.notification.v1.ListChannelsRequest
-	(*ListChannelsResponse)(nil),      // 11: k1s0.system.notification.v1.ListChannelsResponse
-	(*CreateChannelRequest)(nil),      // 12: k1s0.system.notification.v1.CreateChannelRequest
-	(*CreateChannelResponse)(nil),     // 13: k1s0.system.notification.v1.CreateChannelResponse
-	(*GetChannelRequest)(nil),         // 14: k1s0.system.notification.v1.GetChannelRequest
-	(*GetChannelResponse)(nil),        // 15: k1s0.system.notification.v1.GetChannelResponse
-	(*UpdateChannelRequest)(nil),      // 16: k1s0.system.notification.v1.UpdateChannelRequest
-	(*UpdateChannelResponse)(nil),     // 17: k1s0.system.notification.v1.UpdateChannelResponse
-	(*DeleteChannelRequest)(nil),      // 18: k1s0.system.notification.v1.DeleteChannelRequest
-	(*DeleteChannelResponse)(nil),     // 19: k1s0.system.notification.v1.DeleteChannelResponse
-	(*Template)(nil),                  // 20: k1s0.system.notification.v1.Template
-	(*ListTemplatesRequest)(nil),      // 21: k1s0.system.notification.v1.ListTemplatesRequest
-	(*ListTemplatesResponse)(nil),     // 22: k1s0.system.notification.v1.ListTemplatesResponse
-	(*CreateTemplateRequest)(nil),     // 23: k1s0.system.notification.v1.CreateTemplateRequest
-	(*CreateTemplateResponse)(nil),    // 24: k1s0.system.notification.v1.CreateTemplateResponse
-	(*GetTemplateRequest)(nil),        // 25: k1s0.system.notification.v1.GetTemplateRequest
-	(*GetTemplateResponse)(nil),       // 26: k1s0.system.notification.v1.GetTemplateResponse
-	(*UpdateTemplateRequest)(nil),     // 27: k1s0.system.notification.v1.UpdateTemplateRequest
-	(*UpdateTemplateResponse)(nil),    // 28: k1s0.system.notification.v1.UpdateTemplateResponse
-	(*DeleteTemplateRequest)(nil),     // 29: k1s0.system.notification.v1.DeleteTemplateRequest
-	(*DeleteTemplateResponse)(nil),    // 30: k1s0.system.notification.v1.DeleteTemplateResponse
-	nil,                               // 31: k1s0.system.notification.v1.SendNotificationRequest.TemplateVariablesEntry
-	(*v1.Pagination)(nil),             // 32: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),       // 33: k1s0.system.common.v1.PaginationResult
+	(NotificationStatus)(0),           // 0: k1s0.system.notification.v1.NotificationStatus
+	(*SendNotificationRequest)(nil),   // 1: k1s0.system.notification.v1.SendNotificationRequest
+	(*SendNotificationResponse)(nil),  // 2: k1s0.system.notification.v1.SendNotificationResponse
+	(*GetNotificationRequest)(nil),    // 3: k1s0.system.notification.v1.GetNotificationRequest
+	(*GetNotificationResponse)(nil),   // 4: k1s0.system.notification.v1.GetNotificationResponse
+	(*RetryNotificationRequest)(nil),  // 5: k1s0.system.notification.v1.RetryNotificationRequest
+	(*RetryNotificationResponse)(nil), // 6: k1s0.system.notification.v1.RetryNotificationResponse
+	(*ListNotificationsRequest)(nil),  // 7: k1s0.system.notification.v1.ListNotificationsRequest
+	(*ListNotificationsResponse)(nil), // 8: k1s0.system.notification.v1.ListNotificationsResponse
+	(*NotificationLog)(nil),           // 9: k1s0.system.notification.v1.NotificationLog
+	(*Channel)(nil),                   // 10: k1s0.system.notification.v1.Channel
+	(*ListChannelsRequest)(nil),       // 11: k1s0.system.notification.v1.ListChannelsRequest
+	(*ListChannelsResponse)(nil),      // 12: k1s0.system.notification.v1.ListChannelsResponse
+	(*CreateChannelRequest)(nil),      // 13: k1s0.system.notification.v1.CreateChannelRequest
+	(*CreateChannelResponse)(nil),     // 14: k1s0.system.notification.v1.CreateChannelResponse
+	(*GetChannelRequest)(nil),         // 15: k1s0.system.notification.v1.GetChannelRequest
+	(*GetChannelResponse)(nil),        // 16: k1s0.system.notification.v1.GetChannelResponse
+	(*UpdateChannelRequest)(nil),      // 17: k1s0.system.notification.v1.UpdateChannelRequest
+	(*UpdateChannelResponse)(nil),     // 18: k1s0.system.notification.v1.UpdateChannelResponse
+	(*DeleteChannelRequest)(nil),      // 19: k1s0.system.notification.v1.DeleteChannelRequest
+	(*DeleteChannelResponse)(nil),     // 20: k1s0.system.notification.v1.DeleteChannelResponse
+	(*Template)(nil),                  // 21: k1s0.system.notification.v1.Template
+	(*ListTemplatesRequest)(nil),      // 22: k1s0.system.notification.v1.ListTemplatesRequest
+	(*ListTemplatesResponse)(nil),     // 23: k1s0.system.notification.v1.ListTemplatesResponse
+	(*CreateTemplateRequest)(nil),     // 24: k1s0.system.notification.v1.CreateTemplateRequest
+	(*CreateTemplateResponse)(nil),    // 25: k1s0.system.notification.v1.CreateTemplateResponse
+	(*GetTemplateRequest)(nil),        // 26: k1s0.system.notification.v1.GetTemplateRequest
+	(*GetTemplateResponse)(nil),       // 27: k1s0.system.notification.v1.GetTemplateResponse
+	(*UpdateTemplateRequest)(nil),     // 28: k1s0.system.notification.v1.UpdateTemplateRequest
+	(*UpdateTemplateResponse)(nil),    // 29: k1s0.system.notification.v1.UpdateTemplateResponse
+	(*DeleteTemplateRequest)(nil),     // 30: k1s0.system.notification.v1.DeleteTemplateRequest
+	(*DeleteTemplateResponse)(nil),    // 31: k1s0.system.notification.v1.DeleteTemplateResponse
+	nil,                               // 32: k1s0.system.notification.v1.SendNotificationRequest.TemplateVariablesEntry
+	(*v1.Timestamp)(nil),              // 33: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),             // 34: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),       // 35: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_notification_v1_notification_proto_depIdxs = []int32{
-	31, // 0: k1s0.system.notification.v1.SendNotificationRequest.template_variables:type_name -> k1s0.system.notification.v1.SendNotificationRequest.TemplateVariablesEntry
-	8,  // 1: k1s0.system.notification.v1.GetNotificationResponse.notification:type_name -> k1s0.system.notification.v1.NotificationLog
-	8,  // 2: k1s0.system.notification.v1.RetryNotificationResponse.notification:type_name -> k1s0.system.notification.v1.NotificationLog
-	32, // 3: k1s0.system.notification.v1.ListNotificationsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	8,  // 4: k1s0.system.notification.v1.ListNotificationsResponse.notifications:type_name -> k1s0.system.notification.v1.NotificationLog
-	33, // 5: k1s0.system.notification.v1.ListNotificationsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	32, // 6: k1s0.system.notification.v1.ListChannelsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	9,  // 7: k1s0.system.notification.v1.ListChannelsResponse.channels:type_name -> k1s0.system.notification.v1.Channel
-	33, // 8: k1s0.system.notification.v1.ListChannelsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	9,  // 9: k1s0.system.notification.v1.CreateChannelResponse.channel:type_name -> k1s0.system.notification.v1.Channel
-	9,  // 10: k1s0.system.notification.v1.GetChannelResponse.channel:type_name -> k1s0.system.notification.v1.Channel
-	9,  // 11: k1s0.system.notification.v1.UpdateChannelResponse.channel:type_name -> k1s0.system.notification.v1.Channel
-	32, // 12: k1s0.system.notification.v1.ListTemplatesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	20, // 13: k1s0.system.notification.v1.ListTemplatesResponse.templates:type_name -> k1s0.system.notification.v1.Template
-	33, // 14: k1s0.system.notification.v1.ListTemplatesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	20, // 15: k1s0.system.notification.v1.CreateTemplateResponse.template:type_name -> k1s0.system.notification.v1.Template
-	20, // 16: k1s0.system.notification.v1.GetTemplateResponse.template:type_name -> k1s0.system.notification.v1.Template
-	20, // 17: k1s0.system.notification.v1.UpdateTemplateResponse.template:type_name -> k1s0.system.notification.v1.Template
-	0,  // 18: k1s0.system.notification.v1.NotificationService.SendNotification:input_type -> k1s0.system.notification.v1.SendNotificationRequest
-	2,  // 19: k1s0.system.notification.v1.NotificationService.GetNotification:input_type -> k1s0.system.notification.v1.GetNotificationRequest
-	4,  // 20: k1s0.system.notification.v1.NotificationService.RetryNotification:input_type -> k1s0.system.notification.v1.RetryNotificationRequest
-	6,  // 21: k1s0.system.notification.v1.NotificationService.ListNotifications:input_type -> k1s0.system.notification.v1.ListNotificationsRequest
-	10, // 22: k1s0.system.notification.v1.NotificationService.ListChannels:input_type -> k1s0.system.notification.v1.ListChannelsRequest
-	12, // 23: k1s0.system.notification.v1.NotificationService.CreateChannel:input_type -> k1s0.system.notification.v1.CreateChannelRequest
-	14, // 24: k1s0.system.notification.v1.NotificationService.GetChannel:input_type -> k1s0.system.notification.v1.GetChannelRequest
-	16, // 25: k1s0.system.notification.v1.NotificationService.UpdateChannel:input_type -> k1s0.system.notification.v1.UpdateChannelRequest
-	18, // 26: k1s0.system.notification.v1.NotificationService.DeleteChannel:input_type -> k1s0.system.notification.v1.DeleteChannelRequest
-	21, // 27: k1s0.system.notification.v1.NotificationService.ListTemplates:input_type -> k1s0.system.notification.v1.ListTemplatesRequest
-	23, // 28: k1s0.system.notification.v1.NotificationService.CreateTemplate:input_type -> k1s0.system.notification.v1.CreateTemplateRequest
-	25, // 29: k1s0.system.notification.v1.NotificationService.GetTemplate:input_type -> k1s0.system.notification.v1.GetTemplateRequest
-	27, // 30: k1s0.system.notification.v1.NotificationService.UpdateTemplate:input_type -> k1s0.system.notification.v1.UpdateTemplateRequest
-	29, // 31: k1s0.system.notification.v1.NotificationService.DeleteTemplate:input_type -> k1s0.system.notification.v1.DeleteTemplateRequest
-	1,  // 32: k1s0.system.notification.v1.NotificationService.SendNotification:output_type -> k1s0.system.notification.v1.SendNotificationResponse
-	3,  // 33: k1s0.system.notification.v1.NotificationService.GetNotification:output_type -> k1s0.system.notification.v1.GetNotificationResponse
-	5,  // 34: k1s0.system.notification.v1.NotificationService.RetryNotification:output_type -> k1s0.system.notification.v1.RetryNotificationResponse
-	7,  // 35: k1s0.system.notification.v1.NotificationService.ListNotifications:output_type -> k1s0.system.notification.v1.ListNotificationsResponse
-	11, // 36: k1s0.system.notification.v1.NotificationService.ListChannels:output_type -> k1s0.system.notification.v1.ListChannelsResponse
-	13, // 37: k1s0.system.notification.v1.NotificationService.CreateChannel:output_type -> k1s0.system.notification.v1.CreateChannelResponse
-	15, // 38: k1s0.system.notification.v1.NotificationService.GetChannel:output_type -> k1s0.system.notification.v1.GetChannelResponse
-	17, // 39: k1s0.system.notification.v1.NotificationService.UpdateChannel:output_type -> k1s0.system.notification.v1.UpdateChannelResponse
-	19, // 40: k1s0.system.notification.v1.NotificationService.DeleteChannel:output_type -> k1s0.system.notification.v1.DeleteChannelResponse
-	22, // 41: k1s0.system.notification.v1.NotificationService.ListTemplates:output_type -> k1s0.system.notification.v1.ListTemplatesResponse
-	24, // 42: k1s0.system.notification.v1.NotificationService.CreateTemplate:output_type -> k1s0.system.notification.v1.CreateTemplateResponse
-	26, // 43: k1s0.system.notification.v1.NotificationService.GetTemplate:output_type -> k1s0.system.notification.v1.GetTemplateResponse
-	28, // 44: k1s0.system.notification.v1.NotificationService.UpdateTemplate:output_type -> k1s0.system.notification.v1.UpdateTemplateResponse
-	30, // 45: k1s0.system.notification.v1.NotificationService.DeleteTemplate:output_type -> k1s0.system.notification.v1.DeleteTemplateResponse
-	32, // [32:46] is the sub-list for method output_type
-	18, // [18:32] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	32, // 0: k1s0.system.notification.v1.SendNotificationRequest.template_variables:type_name -> k1s0.system.notification.v1.SendNotificationRequest.TemplateVariablesEntry
+	33, // 1: k1s0.system.notification.v1.SendNotificationResponse.created_at_ts:type_name -> k1s0.system.common.v1.Timestamp
+	9,  // 2: k1s0.system.notification.v1.GetNotificationResponse.notification:type_name -> k1s0.system.notification.v1.NotificationLog
+	9,  // 3: k1s0.system.notification.v1.RetryNotificationResponse.notification:type_name -> k1s0.system.notification.v1.NotificationLog
+	34, // 4: k1s0.system.notification.v1.ListNotificationsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	9,  // 5: k1s0.system.notification.v1.ListNotificationsResponse.notifications:type_name -> k1s0.system.notification.v1.NotificationLog
+	35, // 6: k1s0.system.notification.v1.ListNotificationsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	0,  // 7: k1s0.system.notification.v1.NotificationLog.status_enum:type_name -> k1s0.system.notification.v1.NotificationStatus
+	33, // 8: k1s0.system.notification.v1.NotificationLog.sent_at_ts:type_name -> k1s0.system.common.v1.Timestamp
+	33, // 9: k1s0.system.notification.v1.NotificationLog.created_at_ts:type_name -> k1s0.system.common.v1.Timestamp
+	33, // 10: k1s0.system.notification.v1.Channel.created_at_ts:type_name -> k1s0.system.common.v1.Timestamp
+	33, // 11: k1s0.system.notification.v1.Channel.updated_at_ts:type_name -> k1s0.system.common.v1.Timestamp
+	34, // 12: k1s0.system.notification.v1.ListChannelsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	10, // 13: k1s0.system.notification.v1.ListChannelsResponse.channels:type_name -> k1s0.system.notification.v1.Channel
+	35, // 14: k1s0.system.notification.v1.ListChannelsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	10, // 15: k1s0.system.notification.v1.CreateChannelResponse.channel:type_name -> k1s0.system.notification.v1.Channel
+	10, // 16: k1s0.system.notification.v1.GetChannelResponse.channel:type_name -> k1s0.system.notification.v1.Channel
+	10, // 17: k1s0.system.notification.v1.UpdateChannelResponse.channel:type_name -> k1s0.system.notification.v1.Channel
+	33, // 18: k1s0.system.notification.v1.Template.created_at_ts:type_name -> k1s0.system.common.v1.Timestamp
+	33, // 19: k1s0.system.notification.v1.Template.updated_at_ts:type_name -> k1s0.system.common.v1.Timestamp
+	34, // 20: k1s0.system.notification.v1.ListTemplatesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	21, // 21: k1s0.system.notification.v1.ListTemplatesResponse.templates:type_name -> k1s0.system.notification.v1.Template
+	35, // 22: k1s0.system.notification.v1.ListTemplatesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	21, // 23: k1s0.system.notification.v1.CreateTemplateResponse.template:type_name -> k1s0.system.notification.v1.Template
+	21, // 24: k1s0.system.notification.v1.GetTemplateResponse.template:type_name -> k1s0.system.notification.v1.Template
+	21, // 25: k1s0.system.notification.v1.UpdateTemplateResponse.template:type_name -> k1s0.system.notification.v1.Template
+	1,  // 26: k1s0.system.notification.v1.NotificationService.SendNotification:input_type -> k1s0.system.notification.v1.SendNotificationRequest
+	3,  // 27: k1s0.system.notification.v1.NotificationService.GetNotification:input_type -> k1s0.system.notification.v1.GetNotificationRequest
+	5,  // 28: k1s0.system.notification.v1.NotificationService.RetryNotification:input_type -> k1s0.system.notification.v1.RetryNotificationRequest
+	7,  // 29: k1s0.system.notification.v1.NotificationService.ListNotifications:input_type -> k1s0.system.notification.v1.ListNotificationsRequest
+	11, // 30: k1s0.system.notification.v1.NotificationService.ListChannels:input_type -> k1s0.system.notification.v1.ListChannelsRequest
+	13, // 31: k1s0.system.notification.v1.NotificationService.CreateChannel:input_type -> k1s0.system.notification.v1.CreateChannelRequest
+	15, // 32: k1s0.system.notification.v1.NotificationService.GetChannel:input_type -> k1s0.system.notification.v1.GetChannelRequest
+	17, // 33: k1s0.system.notification.v1.NotificationService.UpdateChannel:input_type -> k1s0.system.notification.v1.UpdateChannelRequest
+	19, // 34: k1s0.system.notification.v1.NotificationService.DeleteChannel:input_type -> k1s0.system.notification.v1.DeleteChannelRequest
+	22, // 35: k1s0.system.notification.v1.NotificationService.ListTemplates:input_type -> k1s0.system.notification.v1.ListTemplatesRequest
+	24, // 36: k1s0.system.notification.v1.NotificationService.CreateTemplate:input_type -> k1s0.system.notification.v1.CreateTemplateRequest
+	26, // 37: k1s0.system.notification.v1.NotificationService.GetTemplate:input_type -> k1s0.system.notification.v1.GetTemplateRequest
+	28, // 38: k1s0.system.notification.v1.NotificationService.UpdateTemplate:input_type -> k1s0.system.notification.v1.UpdateTemplateRequest
+	30, // 39: k1s0.system.notification.v1.NotificationService.DeleteTemplate:input_type -> k1s0.system.notification.v1.DeleteTemplateRequest
+	2,  // 40: k1s0.system.notification.v1.NotificationService.SendNotification:output_type -> k1s0.system.notification.v1.SendNotificationResponse
+	4,  // 41: k1s0.system.notification.v1.NotificationService.GetNotification:output_type -> k1s0.system.notification.v1.GetNotificationResponse
+	6,  // 42: k1s0.system.notification.v1.NotificationService.RetryNotification:output_type -> k1s0.system.notification.v1.RetryNotificationResponse
+	8,  // 43: k1s0.system.notification.v1.NotificationService.ListNotifications:output_type -> k1s0.system.notification.v1.ListNotificationsResponse
+	12, // 44: k1s0.system.notification.v1.NotificationService.ListChannels:output_type -> k1s0.system.notification.v1.ListChannelsResponse
+	14, // 45: k1s0.system.notification.v1.NotificationService.CreateChannel:output_type -> k1s0.system.notification.v1.CreateChannelResponse
+	16, // 46: k1s0.system.notification.v1.NotificationService.GetChannel:output_type -> k1s0.system.notification.v1.GetChannelResponse
+	18, // 47: k1s0.system.notification.v1.NotificationService.UpdateChannel:output_type -> k1s0.system.notification.v1.UpdateChannelResponse
+	20, // 48: k1s0.system.notification.v1.NotificationService.DeleteChannel:output_type -> k1s0.system.notification.v1.DeleteChannelResponse
+	23, // 49: k1s0.system.notification.v1.NotificationService.ListTemplates:output_type -> k1s0.system.notification.v1.ListTemplatesResponse
+	25, // 50: k1s0.system.notification.v1.NotificationService.CreateTemplate:output_type -> k1s0.system.notification.v1.CreateTemplateResponse
+	27, // 51: k1s0.system.notification.v1.NotificationService.GetTemplate:output_type -> k1s0.system.notification.v1.GetTemplateResponse
+	29, // 52: k1s0.system.notification.v1.NotificationService.UpdateTemplate:output_type -> k1s0.system.notification.v1.UpdateTemplateResponse
+	31, // 53: k1s0.system.notification.v1.NotificationService.DeleteTemplate:output_type -> k1s0.system.notification.v1.DeleteTemplateResponse
+	40, // [40:54] is the sub-list for method output_type
+	26, // [26:40] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_notification_v1_notification_proto_init() }
@@ -2120,13 +2289,14 @@ func file_k1s0_system_notification_v1_notification_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_notification_v1_notification_proto_rawDesc), len(file_k1s0_system_notification_v1_notification_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_k1s0_system_notification_v1_notification_proto_goTypes,
 		DependencyIndexes: file_k1s0_system_notification_v1_notification_proto_depIdxs,
+		EnumInfos:         file_k1s0_system_notification_v1_notification_proto_enumTypes,
 		MessageInfos:      file_k1s0_system_notification_v1_notification_proto_msgTypes,
 	}.Build()
 	File_k1s0_system_notification_v1_notification_proto = out.File

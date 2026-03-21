@@ -30,17 +30,17 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// / DlqService は DLQ メッセージ管理サービス。
+// DlqService は DLQ メッセージ管理サービス。
 type DlqServiceClient interface {
-	/// DLQ メッセージ一覧取得
+	// DLQ メッセージ一覧取得
 	ListMessages(ctx context.Context, in *ListMessagesRequest, opts ...grpc.CallOption) (*ListMessagesResponse, error)
-	/// DLQ メッセージ取得
+	// DLQ メッセージ取得
 	GetMessage(ctx context.Context, in *GetMessageRequest, opts ...grpc.CallOption) (*GetMessageResponse, error)
-	/// DLQ メッセージのリトライ
+	// DLQ メッセージのリトライ
 	RetryMessage(ctx context.Context, in *RetryMessageRequest, opts ...grpc.CallOption) (*RetryMessageResponse, error)
-	/// DLQ メッセージ削除
+	// DLQ メッセージ削除
 	DeleteMessage(ctx context.Context, in *DeleteMessageRequest, opts ...grpc.CallOption) (*DeleteMessageResponse, error)
-	/// DLQ メッセージ一括リトライ
+	// DLQ メッセージ一括リトライ
 	RetryAll(ctx context.Context, in *RetryAllRequest, opts ...grpc.CallOption) (*RetryAllResponse, error)
 }
 
@@ -106,17 +106,17 @@ func (c *dlqServiceClient) RetryAll(ctx context.Context, in *RetryAllRequest, op
 // All implementations must embed UnimplementedDlqServiceServer
 // for forward compatibility.
 //
-// / DlqService は DLQ メッセージ管理サービス。
+// DlqService は DLQ メッセージ管理サービス。
 type DlqServiceServer interface {
-	/// DLQ メッセージ一覧取得
+	// DLQ メッセージ一覧取得
 	ListMessages(context.Context, *ListMessagesRequest) (*ListMessagesResponse, error)
-	/// DLQ メッセージ取得
+	// DLQ メッセージ取得
 	GetMessage(context.Context, *GetMessageRequest) (*GetMessageResponse, error)
-	/// DLQ メッセージのリトライ
+	// DLQ メッセージのリトライ
 	RetryMessage(context.Context, *RetryMessageRequest) (*RetryMessageResponse, error)
-	/// DLQ メッセージ削除
+	// DLQ メッセージ削除
 	DeleteMessage(context.Context, *DeleteMessageRequest) (*DeleteMessageResponse, error)
-	/// DLQ メッセージ一括リトライ
+	// DLQ メッセージ一括リトライ
 	RetryAll(context.Context, *RetryAllRequest) (*RetryAllResponse, error)
 	mustEmbedUnimplementedDlqServiceServer()
 }

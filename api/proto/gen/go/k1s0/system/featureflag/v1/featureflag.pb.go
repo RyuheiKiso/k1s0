@@ -979,12 +979,15 @@ func (x *WatchFeatureFlagRequest) GetFlagKey() string {
 type WatchFeatureFlagResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	FlagKey string                 `protobuf:"bytes,1,opt,name=flag_key,json=flagKey,proto3" json:"flag_key,omitempty"`
+	// Deprecated: use change_type_enum instead.
 	// CREATED, UPDATED, DELETED
-	ChangeType    string        `protobuf:"bytes,2,opt,name=change_type,json=changeType,proto3" json:"change_type,omitempty"`
-	Flag          *FeatureFlag  `protobuf:"bytes,3,opt,name=flag,proto3" json:"flag,omitempty"`
-	ChangedAt     *v1.Timestamp `protobuf:"bytes,4,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ChangeType string        `protobuf:"bytes,2,opt,name=change_type,json=changeType,proto3" json:"change_type,omitempty"`
+	Flag       *FeatureFlag  `protobuf:"bytes,3,opt,name=flag,proto3" json:"flag,omitempty"`
+	ChangedAt  *v1.Timestamp `protobuf:"bytes,4,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"`
+	// 変更操作の種別（change_type の enum 版）。
+	ChangeTypeEnum v1.ChangeType `protobuf:"varint,5,opt,name=change_type_enum,json=changeTypeEnum,proto3,enum=k1s0.system.common.v1.ChangeType" json:"change_type_enum,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *WatchFeatureFlagResponse) Reset() {
@@ -1043,6 +1046,13 @@ func (x *WatchFeatureFlagResponse) GetChangedAt() *v1.Timestamp {
 		return x.ChangedAt
 	}
 	return nil
+}
+
+func (x *WatchFeatureFlagResponse) GetChangeTypeEnum() v1.ChangeType {
+	if x != nil {
+		return x.ChangeTypeEnum
+	}
+	return v1.ChangeType(0)
 }
 
 var File_k1s0_system_featureflag_v1_featureflag_proto protoreflect.FileDescriptor
@@ -1124,14 +1134,15 @@ const file_k1s0_system_featureflag_v1_featureflag_proto_rawDesc = "" +
 	"\x05value\x18\x03 \x01(\tR\x05value\x12\x18\n" +
 	"\avariant\x18\x04 \x01(\tR\avariant\"4\n" +
 	"\x17WatchFeatureFlagRequest\x12\x19\n" +
-	"\bflag_key\x18\x01 \x01(\tR\aflagKey\"\xd4\x01\n" +
+	"\bflag_key\x18\x01 \x01(\tR\aflagKey\"\xa1\x02\n" +
 	"\x18WatchFeatureFlagResponse\x12\x19\n" +
 	"\bflag_key\x18\x01 \x01(\tR\aflagKey\x12\x1f\n" +
 	"\vchange_type\x18\x02 \x01(\tR\n" +
 	"changeType\x12;\n" +
 	"\x04flag\x18\x03 \x01(\v2'.k1s0.system.featureflag.v1.FeatureFlagR\x04flag\x12?\n" +
 	"\n" +
-	"changed_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tchangedAt2\x9d\x06\n" +
+	"changed_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tchangedAt\x12K\n" +
+	"\x10change_type_enum\x18\x05 \x01(\x0e2!.k1s0.system.common.v1.ChangeTypeR\x0echangeTypeEnum2\x9d\x06\n" +
 	"\x12FeatureFlagService\x12q\n" +
 	"\fEvaluateFlag\x12/.k1s0.system.featureflag.v1.EvaluateFlagRequest\x1a0.k1s0.system.featureflag.v1.EvaluateFlagResponse\x12b\n" +
 	"\aGetFlag\x12*.k1s0.system.featureflag.v1.GetFlagRequest\x1a+.k1s0.system.featureflag.v1.GetFlagResponse\x12h\n" +
@@ -1178,6 +1189,7 @@ var file_k1s0_system_featureflag_v1_featureflag_proto_goTypes = []any{
 	(*WatchFeatureFlagResponse)(nil), // 17: k1s0.system.featureflag.v1.WatchFeatureFlagResponse
 	nil,                              // 18: k1s0.system.featureflag.v1.EvaluationContext.AttributesEntry
 	(*v1.Timestamp)(nil),             // 19: k1s0.system.common.v1.Timestamp
+	(v1.ChangeType)(0),               // 20: k1s0.system.common.v1.ChangeType
 }
 var file_k1s0_system_featureflag_v1_featureflag_proto_depIdxs = []int32{
 	2,  // 0: k1s0.system.featureflag.v1.EvaluateFlagRequest.context:type_name -> k1s0.system.featureflag.v1.EvaluationContext
@@ -1195,25 +1207,26 @@ var file_k1s0_system_featureflag_v1_featureflag_proto_depIdxs = []int32{
 	15, // 12: k1s0.system.featureflag.v1.FeatureFlag.rules:type_name -> k1s0.system.featureflag.v1.FlagRule
 	13, // 13: k1s0.system.featureflag.v1.WatchFeatureFlagResponse.flag:type_name -> k1s0.system.featureflag.v1.FeatureFlag
 	19, // 14: k1s0.system.featureflag.v1.WatchFeatureFlagResponse.changed_at:type_name -> k1s0.system.common.v1.Timestamp
-	0,  // 15: k1s0.system.featureflag.v1.FeatureFlagService.EvaluateFlag:input_type -> k1s0.system.featureflag.v1.EvaluateFlagRequest
-	3,  // 16: k1s0.system.featureflag.v1.FeatureFlagService.GetFlag:input_type -> k1s0.system.featureflag.v1.GetFlagRequest
-	5,  // 17: k1s0.system.featureflag.v1.FeatureFlagService.ListFlags:input_type -> k1s0.system.featureflag.v1.ListFlagsRequest
-	7,  // 18: k1s0.system.featureflag.v1.FeatureFlagService.CreateFlag:input_type -> k1s0.system.featureflag.v1.CreateFlagRequest
-	9,  // 19: k1s0.system.featureflag.v1.FeatureFlagService.UpdateFlag:input_type -> k1s0.system.featureflag.v1.UpdateFlagRequest
-	11, // 20: k1s0.system.featureflag.v1.FeatureFlagService.DeleteFlag:input_type -> k1s0.system.featureflag.v1.DeleteFlagRequest
-	16, // 21: k1s0.system.featureflag.v1.FeatureFlagService.WatchFeatureFlag:input_type -> k1s0.system.featureflag.v1.WatchFeatureFlagRequest
-	1,  // 22: k1s0.system.featureflag.v1.FeatureFlagService.EvaluateFlag:output_type -> k1s0.system.featureflag.v1.EvaluateFlagResponse
-	4,  // 23: k1s0.system.featureflag.v1.FeatureFlagService.GetFlag:output_type -> k1s0.system.featureflag.v1.GetFlagResponse
-	6,  // 24: k1s0.system.featureflag.v1.FeatureFlagService.ListFlags:output_type -> k1s0.system.featureflag.v1.ListFlagsResponse
-	8,  // 25: k1s0.system.featureflag.v1.FeatureFlagService.CreateFlag:output_type -> k1s0.system.featureflag.v1.CreateFlagResponse
-	10, // 26: k1s0.system.featureflag.v1.FeatureFlagService.UpdateFlag:output_type -> k1s0.system.featureflag.v1.UpdateFlagResponse
-	12, // 27: k1s0.system.featureflag.v1.FeatureFlagService.DeleteFlag:output_type -> k1s0.system.featureflag.v1.DeleteFlagResponse
-	17, // 28: k1s0.system.featureflag.v1.FeatureFlagService.WatchFeatureFlag:output_type -> k1s0.system.featureflag.v1.WatchFeatureFlagResponse
-	22, // [22:29] is the sub-list for method output_type
-	15, // [15:22] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	20, // 15: k1s0.system.featureflag.v1.WatchFeatureFlagResponse.change_type_enum:type_name -> k1s0.system.common.v1.ChangeType
+	0,  // 16: k1s0.system.featureflag.v1.FeatureFlagService.EvaluateFlag:input_type -> k1s0.system.featureflag.v1.EvaluateFlagRequest
+	3,  // 17: k1s0.system.featureflag.v1.FeatureFlagService.GetFlag:input_type -> k1s0.system.featureflag.v1.GetFlagRequest
+	5,  // 18: k1s0.system.featureflag.v1.FeatureFlagService.ListFlags:input_type -> k1s0.system.featureflag.v1.ListFlagsRequest
+	7,  // 19: k1s0.system.featureflag.v1.FeatureFlagService.CreateFlag:input_type -> k1s0.system.featureflag.v1.CreateFlagRequest
+	9,  // 20: k1s0.system.featureflag.v1.FeatureFlagService.UpdateFlag:input_type -> k1s0.system.featureflag.v1.UpdateFlagRequest
+	11, // 21: k1s0.system.featureflag.v1.FeatureFlagService.DeleteFlag:input_type -> k1s0.system.featureflag.v1.DeleteFlagRequest
+	16, // 22: k1s0.system.featureflag.v1.FeatureFlagService.WatchFeatureFlag:input_type -> k1s0.system.featureflag.v1.WatchFeatureFlagRequest
+	1,  // 23: k1s0.system.featureflag.v1.FeatureFlagService.EvaluateFlag:output_type -> k1s0.system.featureflag.v1.EvaluateFlagResponse
+	4,  // 24: k1s0.system.featureflag.v1.FeatureFlagService.GetFlag:output_type -> k1s0.system.featureflag.v1.GetFlagResponse
+	6,  // 25: k1s0.system.featureflag.v1.FeatureFlagService.ListFlags:output_type -> k1s0.system.featureflag.v1.ListFlagsResponse
+	8,  // 26: k1s0.system.featureflag.v1.FeatureFlagService.CreateFlag:output_type -> k1s0.system.featureflag.v1.CreateFlagResponse
+	10, // 27: k1s0.system.featureflag.v1.FeatureFlagService.UpdateFlag:output_type -> k1s0.system.featureflag.v1.UpdateFlagResponse
+	12, // 28: k1s0.system.featureflag.v1.FeatureFlagService.DeleteFlag:output_type -> k1s0.system.featureflag.v1.DeleteFlagResponse
+	17, // 29: k1s0.system.featureflag.v1.FeatureFlagService.WatchFeatureFlag:output_type -> k1s0.system.featureflag.v1.WatchFeatureFlagResponse
+	23, // [23:30] is the sub-list for method output_type
+	16, // [16:23] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_featureflag_v1_featureflag_proto_init() }

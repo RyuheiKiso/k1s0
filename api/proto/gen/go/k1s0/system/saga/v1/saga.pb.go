@@ -26,6 +26,65 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// SagaStatus は Saga の実行ステータス。
+type SagaStatus int32
+
+const (
+	SagaStatus_SAGA_STATUS_UNSPECIFIED  SagaStatus = 0
+	SagaStatus_SAGA_STATUS_RUNNING      SagaStatus = 1
+	SagaStatus_SAGA_STATUS_COMPLETED    SagaStatus = 2
+	SagaStatus_SAGA_STATUS_FAILED       SagaStatus = 3
+	SagaStatus_SAGA_STATUS_COMPENSATING SagaStatus = 4
+	SagaStatus_SAGA_STATUS_COMPENSATED  SagaStatus = 5
+)
+
+// Enum value maps for SagaStatus.
+var (
+	SagaStatus_name = map[int32]string{
+		0: "SAGA_STATUS_UNSPECIFIED",
+		1: "SAGA_STATUS_RUNNING",
+		2: "SAGA_STATUS_COMPLETED",
+		3: "SAGA_STATUS_FAILED",
+		4: "SAGA_STATUS_COMPENSATING",
+		5: "SAGA_STATUS_COMPENSATED",
+	}
+	SagaStatus_value = map[string]int32{
+		"SAGA_STATUS_UNSPECIFIED":  0,
+		"SAGA_STATUS_RUNNING":      1,
+		"SAGA_STATUS_COMPLETED":    2,
+		"SAGA_STATUS_FAILED":       3,
+		"SAGA_STATUS_COMPENSATING": 4,
+		"SAGA_STATUS_COMPENSATED":  5,
+	}
+)
+
+func (x SagaStatus) Enum() *SagaStatus {
+	p := new(SagaStatus)
+	*p = x
+	return p
+}
+
+func (x SagaStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SagaStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_saga_v1_saga_proto_enumTypes[0].Descriptor()
+}
+
+func (SagaStatus) Type() protoreflect.EnumType {
+	return &file_k1s0_system_saga_v1_saga_proto_enumTypes[0]
+}
+
+func (x SagaStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SagaStatus.Descriptor instead.
+func (SagaStatus) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_saga_v1_saga_proto_rawDescGZIP(), []int{0}
+}
+
 // SagaStateProto は Saga の状態情報。
 type SagaStateProto struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -35,6 +94,7 @@ type SagaStateProto struct {
 	WorkflowName string `protobuf:"bytes,2,opt,name=workflow_name,json=workflowName,proto3" json:"workflow_name,omitempty"`
 	// 現在のステップインデックス
 	CurrentStep int32 `protobuf:"varint,3,opt,name=current_step,json=currentStep,proto3" json:"current_step,omitempty"`
+	// Deprecated: use status_enum instead.
 	// ステータス: STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED
 	Status string `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
 	// 各ステップに渡す JSON ペイロード
@@ -44,9 +104,11 @@ type SagaStateProto struct {
 	// 呼び出し元サービス名
 	InitiatedBy *string `protobuf:"bytes,7,opt,name=initiated_by,json=initiatedBy,proto3,oneof" json:"initiated_by,omitempty"`
 	// エラーメッセージ（失敗時）
-	ErrorMessage  *string       `protobuf:"bytes,8,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
-	CreatedAt     *v1.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *v1.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	ErrorMessage *string       `protobuf:"bytes,8,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
+	CreatedAt    *v1.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt    *v1.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Saga ステータスの enum 版（status の型付き版）。
+	StatusEnum    SagaStatus `protobuf:"varint,11,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.system.saga.v1.SagaStatus" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -149,6 +211,13 @@ func (x *SagaStateProto) GetUpdatedAt() *v1.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *SagaStateProto) GetStatusEnum() SagaStatus {
+	if x != nil {
+		return x.StatusEnum
+	}
+	return SagaStatus_SAGA_STATUS_UNSPECIFIED
 }
 
 // SagaStepLogProto は Saga の各ステップ実行ログ。
@@ -1099,7 +1168,7 @@ var File_k1s0_system_saga_v1_saga_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_saga_v1_saga_proto_rawDesc = "" +
 	"\n" +
-	"\x1ek1s0/system/saga/v1/saga.proto\x12\x13k1s0.system.saga.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xe9\x03\n" +
+	"\x1ek1s0/system/saga/v1/saga.proto\x12\x13k1s0.system.saga.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xab\x04\n" +
 	"\x0eSagaStateProto\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12#\n" +
 	"\rworkflow_name\x18\x02 \x01(\tR\fworkflowName\x12!\n" +
@@ -1113,7 +1182,9 @@ const file_k1s0_system_saga_v1_saga_proto_rawDesc = "" +
 	"created_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAtB\x11\n" +
+	" \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12@\n" +
+	"\vstatus_enum\x18\v \x01(\x0e2\x1f.k1s0.system.saga.v1.SagaStatusR\n" +
+	"statusEnumB\x11\n" +
 	"\x0f_correlation_idB\x0f\n" +
 	"\r_initiated_byB\x10\n" +
 	"\x0e_error_message\"\x85\x04\n" +
@@ -1188,7 +1259,15 @@ const file_k1s0_system_saga_v1_saga_proto_rawDesc = "" +
 	"step_count\x18\x02 \x01(\x05R\tstepCount\"\x16\n" +
 	"\x14ListWorkflowsRequest\"[\n" +
 	"\x15ListWorkflowsResponse\x12B\n" +
-	"\tworkflows\x18\x01 \x03(\v2$.k1s0.system.saga.v1.WorkflowSummaryR\tworkflows2\xbe\x05\n" +
+	"\tworkflows\x18\x01 \x03(\v2$.k1s0.system.saga.v1.WorkflowSummaryR\tworkflows*\xb0\x01\n" +
+	"\n" +
+	"SagaStatus\x12\x1b\n" +
+	"\x17SAGA_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13SAGA_STATUS_RUNNING\x10\x01\x12\x19\n" +
+	"\x15SAGA_STATUS_COMPLETED\x10\x02\x12\x16\n" +
+	"\x12SAGA_STATUS_FAILED\x10\x03\x12\x1c\n" +
+	"\x18SAGA_STATUS_COMPENSATING\x10\x04\x12\x1b\n" +
+	"\x17SAGA_STATUS_COMPENSATED\x10\x052\xbe\x05\n" +
 	"\vSagaService\x12Z\n" +
 	"\tStartSaga\x12%.k1s0.system.saga.v1.StartSagaRequest\x1a&.k1s0.system.saga.v1.StartSagaResponse\x12T\n" +
 	"\aGetSaga\x12#.k1s0.system.saga.v1.GetSagaRequest\x1a$.k1s0.system.saga.v1.GetSagaResponse\x12Z\n" +
@@ -1211,64 +1290,67 @@ func file_k1s0_system_saga_v1_saga_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_saga_v1_saga_proto_rawDescData
 }
 
+var file_k1s0_system_saga_v1_saga_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_k1s0_system_saga_v1_saga_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_k1s0_system_saga_v1_saga_proto_goTypes = []any{
-	(*SagaStateProto)(nil),           // 0: k1s0.system.saga.v1.SagaStateProto
-	(*SagaStepLogProto)(nil),         // 1: k1s0.system.saga.v1.SagaStepLogProto
-	(*WorkflowSummary)(nil),          // 2: k1s0.system.saga.v1.WorkflowSummary
-	(*StartSagaRequest)(nil),         // 3: k1s0.system.saga.v1.StartSagaRequest
-	(*StartSagaResponse)(nil),        // 4: k1s0.system.saga.v1.StartSagaResponse
-	(*GetSagaRequest)(nil),           // 5: k1s0.system.saga.v1.GetSagaRequest
-	(*GetSagaResponse)(nil),          // 6: k1s0.system.saga.v1.GetSagaResponse
-	(*ListSagasRequest)(nil),         // 7: k1s0.system.saga.v1.ListSagasRequest
-	(*ListSagasResponse)(nil),        // 8: k1s0.system.saga.v1.ListSagasResponse
-	(*CancelSagaRequest)(nil),        // 9: k1s0.system.saga.v1.CancelSagaRequest
-	(*CancelSagaResponse)(nil),       // 10: k1s0.system.saga.v1.CancelSagaResponse
-	(*CompensateSagaRequest)(nil),    // 11: k1s0.system.saga.v1.CompensateSagaRequest
-	(*CompensateSagaResponse)(nil),   // 12: k1s0.system.saga.v1.CompensateSagaResponse
-	(*RegisterWorkflowRequest)(nil),  // 13: k1s0.system.saga.v1.RegisterWorkflowRequest
-	(*RegisterWorkflowResponse)(nil), // 14: k1s0.system.saga.v1.RegisterWorkflowResponse
-	(*ListWorkflowsRequest)(nil),     // 15: k1s0.system.saga.v1.ListWorkflowsRequest
-	(*ListWorkflowsResponse)(nil),    // 16: k1s0.system.saga.v1.ListWorkflowsResponse
-	(*structpb.Struct)(nil),          // 17: google.protobuf.Struct
-	(*v1.Timestamp)(nil),             // 18: k1s0.system.common.v1.Timestamp
-	(*v1.Pagination)(nil),            // 19: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),      // 20: k1s0.system.common.v1.PaginationResult
+	(SagaStatus)(0),                  // 0: k1s0.system.saga.v1.SagaStatus
+	(*SagaStateProto)(nil),           // 1: k1s0.system.saga.v1.SagaStateProto
+	(*SagaStepLogProto)(nil),         // 2: k1s0.system.saga.v1.SagaStepLogProto
+	(*WorkflowSummary)(nil),          // 3: k1s0.system.saga.v1.WorkflowSummary
+	(*StartSagaRequest)(nil),         // 4: k1s0.system.saga.v1.StartSagaRequest
+	(*StartSagaResponse)(nil),        // 5: k1s0.system.saga.v1.StartSagaResponse
+	(*GetSagaRequest)(nil),           // 6: k1s0.system.saga.v1.GetSagaRequest
+	(*GetSagaResponse)(nil),          // 7: k1s0.system.saga.v1.GetSagaResponse
+	(*ListSagasRequest)(nil),         // 8: k1s0.system.saga.v1.ListSagasRequest
+	(*ListSagasResponse)(nil),        // 9: k1s0.system.saga.v1.ListSagasResponse
+	(*CancelSagaRequest)(nil),        // 10: k1s0.system.saga.v1.CancelSagaRequest
+	(*CancelSagaResponse)(nil),       // 11: k1s0.system.saga.v1.CancelSagaResponse
+	(*CompensateSagaRequest)(nil),    // 12: k1s0.system.saga.v1.CompensateSagaRequest
+	(*CompensateSagaResponse)(nil),   // 13: k1s0.system.saga.v1.CompensateSagaResponse
+	(*RegisterWorkflowRequest)(nil),  // 14: k1s0.system.saga.v1.RegisterWorkflowRequest
+	(*RegisterWorkflowResponse)(nil), // 15: k1s0.system.saga.v1.RegisterWorkflowResponse
+	(*ListWorkflowsRequest)(nil),     // 16: k1s0.system.saga.v1.ListWorkflowsRequest
+	(*ListWorkflowsResponse)(nil),    // 17: k1s0.system.saga.v1.ListWorkflowsResponse
+	(*structpb.Struct)(nil),          // 18: google.protobuf.Struct
+	(*v1.Timestamp)(nil),             // 19: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),            // 20: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),      // 21: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_saga_v1_saga_proto_depIdxs = []int32{
-	17, // 0: k1s0.system.saga.v1.SagaStateProto.payload:type_name -> google.protobuf.Struct
-	18, // 1: k1s0.system.saga.v1.SagaStateProto.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	18, // 2: k1s0.system.saga.v1.SagaStateProto.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	17, // 3: k1s0.system.saga.v1.SagaStepLogProto.request_payload:type_name -> google.protobuf.Struct
-	17, // 4: k1s0.system.saga.v1.SagaStepLogProto.response_payload:type_name -> google.protobuf.Struct
-	18, // 5: k1s0.system.saga.v1.SagaStepLogProto.started_at:type_name -> k1s0.system.common.v1.Timestamp
-	18, // 6: k1s0.system.saga.v1.SagaStepLogProto.completed_at:type_name -> k1s0.system.common.v1.Timestamp
-	17, // 7: k1s0.system.saga.v1.StartSagaRequest.payload:type_name -> google.protobuf.Struct
-	0,  // 8: k1s0.system.saga.v1.GetSagaResponse.saga:type_name -> k1s0.system.saga.v1.SagaStateProto
-	1,  // 9: k1s0.system.saga.v1.GetSagaResponse.step_logs:type_name -> k1s0.system.saga.v1.SagaStepLogProto
-	19, // 10: k1s0.system.saga.v1.ListSagasRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	0,  // 11: k1s0.system.saga.v1.ListSagasResponse.sagas:type_name -> k1s0.system.saga.v1.SagaStateProto
-	20, // 12: k1s0.system.saga.v1.ListSagasResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	2,  // 13: k1s0.system.saga.v1.ListWorkflowsResponse.workflows:type_name -> k1s0.system.saga.v1.WorkflowSummary
-	3,  // 14: k1s0.system.saga.v1.SagaService.StartSaga:input_type -> k1s0.system.saga.v1.StartSagaRequest
-	5,  // 15: k1s0.system.saga.v1.SagaService.GetSaga:input_type -> k1s0.system.saga.v1.GetSagaRequest
-	7,  // 16: k1s0.system.saga.v1.SagaService.ListSagas:input_type -> k1s0.system.saga.v1.ListSagasRequest
-	9,  // 17: k1s0.system.saga.v1.SagaService.CancelSaga:input_type -> k1s0.system.saga.v1.CancelSagaRequest
-	11, // 18: k1s0.system.saga.v1.SagaService.CompensateSaga:input_type -> k1s0.system.saga.v1.CompensateSagaRequest
-	13, // 19: k1s0.system.saga.v1.SagaService.RegisterWorkflow:input_type -> k1s0.system.saga.v1.RegisterWorkflowRequest
-	15, // 20: k1s0.system.saga.v1.SagaService.ListWorkflows:input_type -> k1s0.system.saga.v1.ListWorkflowsRequest
-	4,  // 21: k1s0.system.saga.v1.SagaService.StartSaga:output_type -> k1s0.system.saga.v1.StartSagaResponse
-	6,  // 22: k1s0.system.saga.v1.SagaService.GetSaga:output_type -> k1s0.system.saga.v1.GetSagaResponse
-	8,  // 23: k1s0.system.saga.v1.SagaService.ListSagas:output_type -> k1s0.system.saga.v1.ListSagasResponse
-	10, // 24: k1s0.system.saga.v1.SagaService.CancelSaga:output_type -> k1s0.system.saga.v1.CancelSagaResponse
-	12, // 25: k1s0.system.saga.v1.SagaService.CompensateSaga:output_type -> k1s0.system.saga.v1.CompensateSagaResponse
-	14, // 26: k1s0.system.saga.v1.SagaService.RegisterWorkflow:output_type -> k1s0.system.saga.v1.RegisterWorkflowResponse
-	16, // 27: k1s0.system.saga.v1.SagaService.ListWorkflows:output_type -> k1s0.system.saga.v1.ListWorkflowsResponse
-	21, // [21:28] is the sub-list for method output_type
-	14, // [14:21] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	18, // 0: k1s0.system.saga.v1.SagaStateProto.payload:type_name -> google.protobuf.Struct
+	19, // 1: k1s0.system.saga.v1.SagaStateProto.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	19, // 2: k1s0.system.saga.v1.SagaStateProto.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 3: k1s0.system.saga.v1.SagaStateProto.status_enum:type_name -> k1s0.system.saga.v1.SagaStatus
+	18, // 4: k1s0.system.saga.v1.SagaStepLogProto.request_payload:type_name -> google.protobuf.Struct
+	18, // 5: k1s0.system.saga.v1.SagaStepLogProto.response_payload:type_name -> google.protobuf.Struct
+	19, // 6: k1s0.system.saga.v1.SagaStepLogProto.started_at:type_name -> k1s0.system.common.v1.Timestamp
+	19, // 7: k1s0.system.saga.v1.SagaStepLogProto.completed_at:type_name -> k1s0.system.common.v1.Timestamp
+	18, // 8: k1s0.system.saga.v1.StartSagaRequest.payload:type_name -> google.protobuf.Struct
+	1,  // 9: k1s0.system.saga.v1.GetSagaResponse.saga:type_name -> k1s0.system.saga.v1.SagaStateProto
+	2,  // 10: k1s0.system.saga.v1.GetSagaResponse.step_logs:type_name -> k1s0.system.saga.v1.SagaStepLogProto
+	20, // 11: k1s0.system.saga.v1.ListSagasRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	1,  // 12: k1s0.system.saga.v1.ListSagasResponse.sagas:type_name -> k1s0.system.saga.v1.SagaStateProto
+	21, // 13: k1s0.system.saga.v1.ListSagasResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	3,  // 14: k1s0.system.saga.v1.ListWorkflowsResponse.workflows:type_name -> k1s0.system.saga.v1.WorkflowSummary
+	4,  // 15: k1s0.system.saga.v1.SagaService.StartSaga:input_type -> k1s0.system.saga.v1.StartSagaRequest
+	6,  // 16: k1s0.system.saga.v1.SagaService.GetSaga:input_type -> k1s0.system.saga.v1.GetSagaRequest
+	8,  // 17: k1s0.system.saga.v1.SagaService.ListSagas:input_type -> k1s0.system.saga.v1.ListSagasRequest
+	10, // 18: k1s0.system.saga.v1.SagaService.CancelSaga:input_type -> k1s0.system.saga.v1.CancelSagaRequest
+	12, // 19: k1s0.system.saga.v1.SagaService.CompensateSaga:input_type -> k1s0.system.saga.v1.CompensateSagaRequest
+	14, // 20: k1s0.system.saga.v1.SagaService.RegisterWorkflow:input_type -> k1s0.system.saga.v1.RegisterWorkflowRequest
+	16, // 21: k1s0.system.saga.v1.SagaService.ListWorkflows:input_type -> k1s0.system.saga.v1.ListWorkflowsRequest
+	5,  // 22: k1s0.system.saga.v1.SagaService.StartSaga:output_type -> k1s0.system.saga.v1.StartSagaResponse
+	7,  // 23: k1s0.system.saga.v1.SagaService.GetSaga:output_type -> k1s0.system.saga.v1.GetSagaResponse
+	9,  // 24: k1s0.system.saga.v1.SagaService.ListSagas:output_type -> k1s0.system.saga.v1.ListSagasResponse
+	11, // 25: k1s0.system.saga.v1.SagaService.CancelSaga:output_type -> k1s0.system.saga.v1.CancelSagaResponse
+	13, // 26: k1s0.system.saga.v1.SagaService.CompensateSaga:output_type -> k1s0.system.saga.v1.CompensateSagaResponse
+	15, // 27: k1s0.system.saga.v1.SagaService.RegisterWorkflow:output_type -> k1s0.system.saga.v1.RegisterWorkflowResponse
+	17, // 28: k1s0.system.saga.v1.SagaService.ListWorkflows:output_type -> k1s0.system.saga.v1.ListWorkflowsResponse
+	22, // [22:29] is the sub-list for method output_type
+	15, // [15:22] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_saga_v1_saga_proto_init() }
@@ -1284,13 +1366,14 @@ func file_k1s0_system_saga_v1_saga_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_saga_v1_saga_proto_rawDesc), len(file_k1s0_system_saga_v1_saga_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_k1s0_system_saga_v1_saga_proto_goTypes,
 		DependencyIndexes: file_k1s0_system_saga_v1_saga_proto_depIdxs,
+		EnumInfos:         file_k1s0_system_saga_v1_saga_proto_enumTypes,
 		MessageInfos:      file_k1s0_system_saga_v1_saga_proto_msgTypes,
 	}.Build()
 	File_k1s0_system_saga_v1_saga_proto = out.File

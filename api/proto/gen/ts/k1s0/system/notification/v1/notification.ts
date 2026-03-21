@@ -13,6 +13,7 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { PaginationResult } from "../../common/v1/types";
 import { Pagination } from "../../common/v1/types";
+import { Timestamp } from "../../common/v1/types";
 /**
  * @generated from protobuf message k1s0.system.notification.v1.SendNotificationRequest
  */
@@ -57,9 +58,17 @@ export interface SendNotificationResponse {
      */
     status: string;
     /**
+     * Deprecated: created_at_ts を使用すること。
+     *
      * @generated from protobuf field: string created_at = 3
      */
     createdAt: string;
+    /**
+     * created_at_ts は created_at の Timestamp 型。
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at_ts = 4
+     */
+    createdAtTs?: Timestamp;
 }
 /**
  * @generated from protobuf message k1s0.system.notification.v1.GetNotificationRequest
@@ -162,6 +171,8 @@ export interface NotificationLog {
      */
     body: string;
     /**
+     * Deprecated: use status_enum instead.
+     *
      * @generated from protobuf field: string status = 8
      */
     status: string;
@@ -174,13 +185,35 @@ export interface NotificationLog {
      */
     errorMessage?: string;
     /**
+     * Deprecated: sent_at_ts を使用すること。
+     *
      * @generated from protobuf field: optional string sent_at = 11
      */
     sentAt?: string;
     /**
+     * Deprecated: created_at_ts を使用すること。
+     *
      * @generated from protobuf field: string created_at = 12
      */
     createdAt: string;
+    /**
+     * 通知ステータスの enum 版（status の型付き版）。
+     *
+     * @generated from protobuf field: k1s0.system.notification.v1.NotificationStatus status_enum = 13
+     */
+    statusEnum: NotificationStatus;
+    /**
+     * sent_at_ts は sent_at の Timestamp 型。
+     *
+     * @generated from protobuf field: optional k1s0.system.common.v1.Timestamp sent_at_ts = 14
+     */
+    sentAtTs?: Timestamp;
+    /**
+     * created_at_ts は created_at の Timestamp 型。
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at_ts = 15
+     */
+    createdAtTs?: Timestamp;
 }
 /**
  * @generated from protobuf message k1s0.system.notification.v1.Channel
@@ -207,13 +240,29 @@ export interface Channel {
      */
     enabled: boolean;
     /**
+     * Deprecated: created_at_ts を使用すること。
+     *
      * @generated from protobuf field: string created_at = 6
      */
     createdAt: string;
     /**
+     * Deprecated: updated_at_ts を使用すること。
+     *
      * @generated from protobuf field: string updated_at = 7
      */
     updatedAt: string;
+    /**
+     * created_at_ts は created_at の Timestamp 型。
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at_ts = 8
+     */
+    createdAtTs?: Timestamp;
+    /**
+     * updated_at_ts は updated_at の Timestamp 型。
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at_ts = 9
+     */
+    updatedAtTs?: Timestamp;
 }
 /**
  * @generated from protobuf message k1s0.system.notification.v1.ListChannelsRequest
@@ -372,13 +421,29 @@ export interface Template {
      */
     bodyTemplate: string;
     /**
+     * Deprecated: created_at_ts を使用すること。
+     *
      * @generated from protobuf field: string created_at = 6
      */
     createdAt: string;
     /**
+     * Deprecated: updated_at_ts を使用すること。
+     *
      * @generated from protobuf field: string updated_at = 7
      */
     updatedAt: string;
+    /**
+     * created_at_ts は created_at の Timestamp 型。
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at_ts = 8
+     */
+    createdAtTs?: Timestamp;
+    /**
+     * updated_at_ts は updated_at の Timestamp 型。
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at_ts = 9
+     */
+    updatedAtTs?: Timestamp;
 }
 /**
  * @generated from protobuf message k1s0.system.notification.v1.ListTemplatesRequest
@@ -508,6 +573,43 @@ export interface DeleteTemplateResponse {
      */
     message: string;
 }
+/**
+ * NotificationStatus は通知配信のステータス。
+ *
+ * @generated from protobuf enum k1s0.system.notification.v1.NotificationStatus
+ */
+export enum NotificationStatus {
+    /**
+     * NOTIFICATION_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+     *
+     * @generated from protobuf enum value: NOTIFICATION_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * NOTIFICATION_STATUS_PENDING は送信待ち。
+     *
+     * @generated from protobuf enum value: NOTIFICATION_STATUS_PENDING = 1;
+     */
+    PENDING = 1,
+    /**
+     * NOTIFICATION_STATUS_SENT は送信済み。
+     *
+     * @generated from protobuf enum value: NOTIFICATION_STATUS_SENT = 2;
+     */
+    SENT = 2,
+    /**
+     * NOTIFICATION_STATUS_FAILED は送信失敗。
+     *
+     * @generated from protobuf enum value: NOTIFICATION_STATUS_FAILED = 3;
+     */
+    FAILED = 3,
+    /**
+     * NOTIFICATION_STATUS_RETRYING はリトライ中。
+     *
+     * @generated from protobuf enum value: NOTIFICATION_STATUS_RETRYING = 4;
+     */
+    RETRYING = 4
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class SendNotificationRequest$Type extends MessageType<SendNotificationRequest> {
     constructor() {
@@ -614,7 +716,8 @@ class SendNotificationResponse$Type extends MessageType<SendNotificationResponse
         super("k1s0.system.notification.v1.SendNotificationResponse", [
             { no: 1, name: "notification_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "created_at_ts", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<SendNotificationResponse>): SendNotificationResponse {
@@ -640,6 +743,9 @@ class SendNotificationResponse$Type extends MessageType<SendNotificationResponse
                 case /* string created_at */ 3:
                     message.createdAt = reader.string();
                     break;
+                case /* k1s0.system.common.v1.Timestamp created_at_ts */ 4:
+                    message.createdAtTs = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAtTs);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -661,6 +767,9 @@ class SendNotificationResponse$Type extends MessageType<SendNotificationResponse
         /* string created_at = 3; */
         if (message.createdAt !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.createdAt);
+        /* k1s0.system.common.v1.Timestamp created_at_ts = 4; */
+        if (message.createdAtTs)
+            Timestamp.internalBinaryWrite(message.createdAtTs, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -986,7 +1095,10 @@ class NotificationLog$Type extends MessageType<NotificationLog> {
             { no: 9, name: "retry_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 10, name: "error_message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "sent_at", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 12, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "status_enum", kind: "enum", T: () => ["k1s0.system.notification.v1.NotificationStatus", NotificationStatus, "NOTIFICATION_STATUS_"] },
+            { no: 14, name: "sent_at_ts", kind: "message", T: () => Timestamp },
+            { no: 15, name: "created_at_ts", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<NotificationLog>): NotificationLog {
@@ -999,6 +1111,7 @@ class NotificationLog$Type extends MessageType<NotificationLog> {
         message.status = "";
         message.retryCount = 0;
         message.createdAt = "";
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<NotificationLog>(this, message, value);
         return message;
@@ -1043,6 +1156,15 @@ class NotificationLog$Type extends MessageType<NotificationLog> {
                     break;
                 case /* string created_at */ 12:
                     message.createdAt = reader.string();
+                    break;
+                case /* k1s0.system.notification.v1.NotificationStatus status_enum */ 13:
+                    message.statusEnum = reader.int32();
+                    break;
+                case /* optional k1s0.system.common.v1.Timestamp sent_at_ts */ 14:
+                    message.sentAtTs = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.sentAtTs);
+                    break;
+                case /* k1s0.system.common.v1.Timestamp created_at_ts */ 15:
+                    message.createdAtTs = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAtTs);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1092,6 +1214,15 @@ class NotificationLog$Type extends MessageType<NotificationLog> {
         /* string created_at = 12; */
         if (message.createdAt !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.createdAt);
+        /* k1s0.system.notification.v1.NotificationStatus status_enum = 13; */
+        if (message.statusEnum !== 0)
+            writer.tag(13, WireType.Varint).int32(message.statusEnum);
+        /* optional k1s0.system.common.v1.Timestamp sent_at_ts = 14; */
+        if (message.sentAtTs)
+            Timestamp.internalBinaryWrite(message.sentAtTs, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.Timestamp created_at_ts = 15; */
+        if (message.createdAtTs)
+            Timestamp.internalBinaryWrite(message.createdAtTs, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1112,7 +1243,9 @@ class Channel$Type extends MessageType<Channel> {
             { no: 4, name: "config_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 6, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "created_at_ts", kind: "message", T: () => Timestamp },
+            { no: 9, name: "updated_at_ts", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<Channel>): Channel {
@@ -1154,6 +1287,12 @@ class Channel$Type extends MessageType<Channel> {
                 case /* string updated_at */ 7:
                     message.updatedAt = reader.string();
                     break;
+                case /* k1s0.system.common.v1.Timestamp created_at_ts */ 8:
+                    message.createdAtTs = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAtTs);
+                    break;
+                case /* k1s0.system.common.v1.Timestamp updated_at_ts */ 9:
+                    message.updatedAtTs = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAtTs);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1187,6 +1326,12 @@ class Channel$Type extends MessageType<Channel> {
         /* string updated_at = 7; */
         if (message.updatedAt !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.updatedAt);
+        /* k1s0.system.common.v1.Timestamp created_at_ts = 8; */
+        if (message.createdAtTs)
+            Timestamp.internalBinaryWrite(message.createdAtTs, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.Timestamp updated_at_ts = 9; */
+        if (message.updatedAtTs)
+            Timestamp.internalBinaryWrite(message.updatedAtTs, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1748,7 +1893,9 @@ class Template$Type extends MessageType<Template> {
             { no: 4, name: "subject_template", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "body_template", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "created_at_ts", kind: "message", T: () => Timestamp },
+            { no: 9, name: "updated_at_ts", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<Template>): Template {
@@ -1789,6 +1936,12 @@ class Template$Type extends MessageType<Template> {
                 case /* string updated_at */ 7:
                     message.updatedAt = reader.string();
                     break;
+                case /* k1s0.system.common.v1.Timestamp created_at_ts */ 8:
+                    message.createdAtTs = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAtTs);
+                    break;
+                case /* k1s0.system.common.v1.Timestamp updated_at_ts */ 9:
+                    message.updatedAtTs = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAtTs);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1822,6 +1975,12 @@ class Template$Type extends MessageType<Template> {
         /* string updated_at = 7; */
         if (message.updatedAt !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.updatedAt);
+        /* k1s0.system.common.v1.Timestamp created_at_ts = 8; */
+        if (message.createdAtTs)
+            Timestamp.internalBinaryWrite(message.createdAtTs, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.Timestamp updated_at_ts = 9; */
+        if (message.updatedAtTs)
+            Timestamp.internalBinaryWrite(message.updatedAtTs, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

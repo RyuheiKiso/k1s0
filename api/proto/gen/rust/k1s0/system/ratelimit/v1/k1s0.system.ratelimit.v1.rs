@@ -117,6 +117,7 @@ pub struct RateLimitRule {
     pub limit: i64,
     #[prost(int64, tag="5")]
     pub window_seconds: i64,
+    /// Deprecated: use algorithm_enum instead.
     #[prost(string, tag="6")]
     pub algorithm: ::prost::alloc::string::String,
     #[prost(bool, tag="7")]
@@ -127,6 +128,9 @@ pub struct RateLimitRule {
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(string, tag="10")]
     pub name: ::prost::alloc::string::String,
+    /// レートリミットアルゴリズムの enum 版（algorithm の型付き版）。
+    #[prost(enumeration="RateLimitAlgorithm", tag="11")]
+    pub algorithm_enum: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetUsageRequest {
@@ -143,6 +147,7 @@ pub struct GetUsageResponse {
     pub limit: i64,
     #[prost(int64, tag="4")]
     pub window_seconds: i64,
+    /// Deprecated: use algorithm_enum instead.
     #[prost(string, tag="5")]
     pub algorithm: ::prost::alloc::string::String,
     #[prost(bool, tag="6")]
@@ -153,6 +158,9 @@ pub struct GetUsageResponse {
     pub remaining: ::core::option::Option<i64>,
     #[prost(int64, optional, tag="9")]
     pub reset_at: ::core::option::Option<i64>,
+    /// レートリミットアルゴリズムの enum 版（algorithm の型付き版）。
+    #[prost(enumeration="RateLimitAlgorithm", tag="10")]
+    pub algorithm_enum: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ResetLimitRequest {
@@ -165,6 +173,47 @@ pub struct ResetLimitRequest {
 pub struct ResetLimitResponse {
     #[prost(bool, tag="1")]
     pub success: bool,
+}
+/// RateLimitAlgorithm はレートリミットのアルゴリズム種別。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RateLimitAlgorithm {
+    /// RATE_LIMIT_ALGORITHM_UNSPECIFIED は未指定（デフォルト値）。
+    Unspecified = 0,
+    /// RATE_LIMIT_ALGORITHM_SLIDING_WINDOW はスライディングウィンドウアルゴリズム。
+    SlidingWindow = 1,
+    /// RATE_LIMIT_ALGORITHM_TOKEN_BUCKET はトークンバケットアルゴリズム。
+    TokenBucket = 2,
+    /// RATE_LIMIT_ALGORITHM_FIXED_WINDOW は固定ウィンドウアルゴリズム。
+    FixedWindow = 3,
+    /// RATE_LIMIT_ALGORITHM_LEAKY_BUCKET はリーキーバケットアルゴリズム。
+    LeakyBucket = 4,
+}
+impl RateLimitAlgorithm {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "RATE_LIMIT_ALGORITHM_UNSPECIFIED",
+            Self::SlidingWindow => "RATE_LIMIT_ALGORITHM_SLIDING_WINDOW",
+            Self::TokenBucket => "RATE_LIMIT_ALGORITHM_TOKEN_BUCKET",
+            Self::FixedWindow => "RATE_LIMIT_ALGORITHM_FIXED_WINDOW",
+            Self::LeakyBucket => "RATE_LIMIT_ALGORITHM_LEAKY_BUCKET",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "RATE_LIMIT_ALGORITHM_UNSPECIFIED" => Some(Self::Unspecified),
+            "RATE_LIMIT_ALGORITHM_SLIDING_WINDOW" => Some(Self::SlidingWindow),
+            "RATE_LIMIT_ALGORITHM_TOKEN_BUCKET" => Some(Self::TokenBucket),
+            "RATE_LIMIT_ALGORITHM_FIXED_WINDOW" => Some(Self::FixedWindow),
+            "RATE_LIMIT_ALGORITHM_LEAKY_BUCKET" => Some(Self::LeakyBucket),
+            _ => None,
+        }
+    }
 }
 include!("k1s0.system.ratelimit.v1.tonic.rs");
 // @@protoc_insertion_point(module)

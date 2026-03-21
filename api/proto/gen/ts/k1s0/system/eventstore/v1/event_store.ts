@@ -11,6 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { Timestamp } from "../../common/v1/types";
 import { PaginationResult } from "../../common/v1/types";
 import { Pagination } from "../../common/v1/types";
 /**
@@ -52,13 +53,17 @@ export interface StreamInfo {
      */
     currentVersion: string;
     /**
-     * @generated from protobuf field: string created_at = 4
+     * タイムスタンプ型を共通型に統一（string → Timestamp）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 4
      */
-    createdAt: string;
+    createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: string updated_at = 5
+     * タイムスタンプ型を共通型に統一（string → Timestamp）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 5
      */
-    updatedAt: string;
+    updatedAt?: Timestamp;
 }
 /**
  * @generated from protobuf message k1s0.system.eventstore.v1.AppendEventsRequest
@@ -206,9 +211,11 @@ export interface CreateSnapshotResponse {
      */
     snapshotVersion: string;
     /**
-     * @generated from protobuf field: string created_at = 4
+     * タイムスタンプ型を共通型に統一（string → Timestamp）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 4
      */
-    createdAt: string;
+    createdAt?: Timestamp;
     /**
      * @generated from protobuf field: string aggregate_type = 5
      */
@@ -267,9 +274,9 @@ export interface EventData {
      */
     payload: Uint8Array;
     /**
-     * @generated from protobuf field: k1s0.system.eventstore.v1.EventMetadata metadata = 3
+     * @generated from protobuf field: k1s0.system.eventstore.v1.EventStoreMetadata metadata = 3
      */
-    metadata?: EventMetadata;
+    metadata?: EventStoreMetadata;
 }
 /**
  * @generated from protobuf message k1s0.system.eventstore.v1.StoredEvent
@@ -296,22 +303,26 @@ export interface StoredEvent {
      */
     payload: Uint8Array;
     /**
-     * @generated from protobuf field: k1s0.system.eventstore.v1.EventMetadata metadata = 6
+     * @generated from protobuf field: k1s0.system.eventstore.v1.EventStoreMetadata metadata = 6
      */
-    metadata?: EventMetadata;
+    metadata?: EventStoreMetadata;
     /**
-     * @generated from protobuf field: string occurred_at = 7
+     * タイムスタンプ型を共通型に統一（string → Timestamp）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp occurred_at = 7
      */
-    occurredAt: string;
+    occurredAt?: Timestamp;
     /**
-     * @generated from protobuf field: string stored_at = 8
+     * タイムスタンプ型を共通型に統一（string → Timestamp）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp stored_at = 8
      */
-    storedAt: string;
+    storedAt?: Timestamp;
 }
 /**
- * @generated from protobuf message k1s0.system.eventstore.v1.EventMetadata
+ * @generated from protobuf message k1s0.system.eventstore.v1.EventStoreMetadata
  */
-export interface EventMetadata {
+export interface EventStoreMetadata {
     /**
      * @generated from protobuf field: optional string actor_id = 1
      */
@@ -350,9 +361,11 @@ export interface Snapshot {
      */
     state: Uint8Array;
     /**
-     * @generated from protobuf field: string created_at = 6
+     * タイムスタンプ型を共通型に統一（string → Timestamp）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 6
      */
-    createdAt: string;
+    createdAt?: Timestamp;
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class ListStreamsRequest$Type extends MessageType<ListStreamsRequest> {
@@ -461,8 +474,8 @@ class StreamInfo$Type extends MessageType<StreamInfo> {
             { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "aggregate_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "current_version", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 4, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 5, name: "updated_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<StreamInfo>): StreamInfo {
@@ -470,8 +483,6 @@ class StreamInfo$Type extends MessageType<StreamInfo> {
         message.id = "";
         message.aggregateType = "";
         message.currentVersion = "0";
-        message.createdAt = "";
-        message.updatedAt = "";
         if (value !== undefined)
             reflectionMergePartial<StreamInfo>(this, message, value);
         return message;
@@ -490,11 +501,11 @@ class StreamInfo$Type extends MessageType<StreamInfo> {
                 case /* int64 current_version */ 3:
                     message.currentVersion = reader.int64().toString();
                     break;
-                case /* string created_at */ 4:
-                    message.createdAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp created_at */ 4:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* string updated_at */ 5:
-                    message.updatedAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp updated_at */ 5:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -517,12 +528,12 @@ class StreamInfo$Type extends MessageType<StreamInfo> {
         /* int64 current_version = 3; */
         if (message.currentVersion !== "0")
             writer.tag(3, WireType.Varint).int64(message.currentVersion);
-        /* string created_at = 4; */
-        if (message.createdAt !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.createdAt);
-        /* string updated_at = 5; */
-        if (message.updatedAt !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.updatedAt);
+        /* k1s0.system.common.v1.Timestamp created_at = 4; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.Timestamp updated_at = 5; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -992,7 +1003,7 @@ class CreateSnapshotResponse$Type extends MessageType<CreateSnapshotResponse> {
             { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "snapshot_version", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 4, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 5, name: "aggregate_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -1001,7 +1012,6 @@ class CreateSnapshotResponse$Type extends MessageType<CreateSnapshotResponse> {
         message.id = "";
         message.streamId = "";
         message.snapshotVersion = "0";
-        message.createdAt = "";
         message.aggregateType = "";
         if (value !== undefined)
             reflectionMergePartial<CreateSnapshotResponse>(this, message, value);
@@ -1021,8 +1031,8 @@ class CreateSnapshotResponse$Type extends MessageType<CreateSnapshotResponse> {
                 case /* int64 snapshot_version */ 3:
                     message.snapshotVersion = reader.int64().toString();
                     break;
-                case /* string created_at */ 4:
-                    message.createdAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp created_at */ 4:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
                 case /* string aggregate_type */ 5:
                     message.aggregateType = reader.string();
@@ -1048,9 +1058,9 @@ class CreateSnapshotResponse$Type extends MessageType<CreateSnapshotResponse> {
         /* int64 snapshot_version = 3; */
         if (message.snapshotVersion !== "0")
             writer.tag(3, WireType.Varint).int64(message.snapshotVersion);
-        /* string created_at = 4; */
-        if (message.createdAt !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.createdAt);
+        /* k1s0.system.common.v1.Timestamp created_at = 4; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         /* string aggregate_type = 5; */
         if (message.aggregateType !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.aggregateType);
@@ -1265,7 +1275,7 @@ class EventData$Type extends MessageType<EventData> {
         super("k1s0.system.eventstore.v1.EventData", [
             { no: 1, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "payload", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
-            { no: 3, name: "metadata", kind: "message", T: () => EventMetadata }
+            { no: 3, name: "metadata", kind: "message", T: () => EventStoreMetadata }
         ]);
     }
     create(value?: PartialMessage<EventData>): EventData {
@@ -1287,8 +1297,8 @@ class EventData$Type extends MessageType<EventData> {
                 case /* bytes payload */ 2:
                     message.payload = reader.bytes();
                     break;
-                case /* k1s0.system.eventstore.v1.EventMetadata metadata */ 3:
-                    message.metadata = EventMetadata.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                case /* k1s0.system.eventstore.v1.EventStoreMetadata metadata */ 3:
+                    message.metadata = EventStoreMetadata.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1308,9 +1318,9 @@ class EventData$Type extends MessageType<EventData> {
         /* bytes payload = 2; */
         if (message.payload.length)
             writer.tag(2, WireType.LengthDelimited).bytes(message.payload);
-        /* k1s0.system.eventstore.v1.EventMetadata metadata = 3; */
+        /* k1s0.system.eventstore.v1.EventStoreMetadata metadata = 3; */
         if (message.metadata)
-            EventMetadata.internalBinaryWrite(message.metadata, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+            EventStoreMetadata.internalBinaryWrite(message.metadata, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1330,9 +1340,9 @@ class StoredEvent$Type extends MessageType<StoredEvent> {
             { no: 3, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "version", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 5, name: "payload", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
-            { no: 6, name: "metadata", kind: "message", T: () => EventMetadata },
-            { no: 7, name: "occurred_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "stored_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "metadata", kind: "message", T: () => EventStoreMetadata },
+            { no: 7, name: "occurred_at", kind: "message", T: () => Timestamp },
+            { no: 8, name: "stored_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<StoredEvent>): StoredEvent {
@@ -1342,8 +1352,6 @@ class StoredEvent$Type extends MessageType<StoredEvent> {
         message.eventType = "";
         message.version = "0";
         message.payload = new Uint8Array(0);
-        message.occurredAt = "";
-        message.storedAt = "";
         if (value !== undefined)
             reflectionMergePartial<StoredEvent>(this, message, value);
         return message;
@@ -1368,14 +1376,14 @@ class StoredEvent$Type extends MessageType<StoredEvent> {
                 case /* bytes payload */ 5:
                     message.payload = reader.bytes();
                     break;
-                case /* k1s0.system.eventstore.v1.EventMetadata metadata */ 6:
-                    message.metadata = EventMetadata.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                case /* k1s0.system.eventstore.v1.EventStoreMetadata metadata */ 6:
+                    message.metadata = EventStoreMetadata.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
                     break;
-                case /* string occurred_at */ 7:
-                    message.occurredAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp occurred_at */ 7:
+                    message.occurredAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.occurredAt);
                     break;
-                case /* string stored_at */ 8:
-                    message.storedAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp stored_at */ 8:
+                    message.storedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.storedAt);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1404,15 +1412,15 @@ class StoredEvent$Type extends MessageType<StoredEvent> {
         /* bytes payload = 5; */
         if (message.payload.length)
             writer.tag(5, WireType.LengthDelimited).bytes(message.payload);
-        /* k1s0.system.eventstore.v1.EventMetadata metadata = 6; */
+        /* k1s0.system.eventstore.v1.EventStoreMetadata metadata = 6; */
         if (message.metadata)
-            EventMetadata.internalBinaryWrite(message.metadata, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
-        /* string occurred_at = 7; */
-        if (message.occurredAt !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.occurredAt);
-        /* string stored_at = 8; */
-        if (message.storedAt !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.storedAt);
+            EventStoreMetadata.internalBinaryWrite(message.metadata, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.Timestamp occurred_at = 7; */
+        if (message.occurredAt)
+            Timestamp.internalBinaryWrite(message.occurredAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.Timestamp stored_at = 8; */
+        if (message.storedAt)
+            Timestamp.internalBinaryWrite(message.storedAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1424,21 +1432,21 @@ class StoredEvent$Type extends MessageType<StoredEvent> {
  */
 export const StoredEvent = new StoredEvent$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class EventMetadata$Type extends MessageType<EventMetadata> {
+class EventStoreMetadata$Type extends MessageType<EventStoreMetadata> {
     constructor() {
-        super("k1s0.system.eventstore.v1.EventMetadata", [
+        super("k1s0.system.eventstore.v1.EventStoreMetadata", [
             { no: 1, name: "actor_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "correlation_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "causation_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<EventMetadata>): EventMetadata {
+    create(value?: PartialMessage<EventStoreMetadata>): EventStoreMetadata {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<EventMetadata>(this, message, value);
+            reflectionMergePartial<EventStoreMetadata>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: EventMetadata): EventMetadata {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: EventStoreMetadata): EventStoreMetadata {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -1463,7 +1471,7 @@ class EventMetadata$Type extends MessageType<EventMetadata> {
         }
         return message;
     }
-    internalBinaryWrite(message: EventMetadata, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: EventStoreMetadata, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* optional string actor_id = 1; */
         if (message.actorId !== undefined)
             writer.tag(1, WireType.LengthDelimited).string(message.actorId);
@@ -1480,9 +1488,9 @@ class EventMetadata$Type extends MessageType<EventMetadata> {
     }
 }
 /**
- * @generated MessageType for protobuf message k1s0.system.eventstore.v1.EventMetadata
+ * @generated MessageType for protobuf message k1s0.system.eventstore.v1.EventStoreMetadata
  */
-export const EventMetadata = new EventMetadata$Type();
+export const EventStoreMetadata = new EventStoreMetadata$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class Snapshot$Type extends MessageType<Snapshot> {
     constructor() {
@@ -1492,7 +1500,7 @@ class Snapshot$Type extends MessageType<Snapshot> {
             { no: 3, name: "snapshot_version", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 4, name: "aggregate_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "state", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
-            { no: 6, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "created_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<Snapshot>): Snapshot {
@@ -1502,7 +1510,6 @@ class Snapshot$Type extends MessageType<Snapshot> {
         message.snapshotVersion = "0";
         message.aggregateType = "";
         message.state = new Uint8Array(0);
-        message.createdAt = "";
         if (value !== undefined)
             reflectionMergePartial<Snapshot>(this, message, value);
         return message;
@@ -1527,8 +1534,8 @@ class Snapshot$Type extends MessageType<Snapshot> {
                 case /* bytes state */ 5:
                     message.state = reader.bytes();
                     break;
-                case /* string created_at */ 6:
-                    message.createdAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp created_at */ 6:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1557,9 +1564,9 @@ class Snapshot$Type extends MessageType<Snapshot> {
         /* bytes state = 5; */
         if (message.state.length)
             writer.tag(5, WireType.LengthDelimited).bytes(message.state);
-        /* string created_at = 6; */
-        if (message.createdAt !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.createdAt);
+        /* k1s0.system.common.v1.Timestamp created_at = 6; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

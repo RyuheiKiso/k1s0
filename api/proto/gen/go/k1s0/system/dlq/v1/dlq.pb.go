@@ -22,7 +22,63 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-/// DlqMessage は DLQ メッセージ。
+// DlqMessageStatus は DLQ メッセージのステータス。
+type DlqMessageStatus int32
+
+const (
+	DlqMessageStatus_DLQ_MESSAGE_STATUS_UNSPECIFIED DlqMessageStatus = 0
+	DlqMessageStatus_DLQ_MESSAGE_STATUS_PENDING     DlqMessageStatus = 1
+	DlqMessageStatus_DLQ_MESSAGE_STATUS_RETRYING    DlqMessageStatus = 2
+	DlqMessageStatus_DLQ_MESSAGE_STATUS_SUCCEEDED   DlqMessageStatus = 3
+	DlqMessageStatus_DLQ_MESSAGE_STATUS_FAILED      DlqMessageStatus = 4
+)
+
+// Enum value maps for DlqMessageStatus.
+var (
+	DlqMessageStatus_name = map[int32]string{
+		0: "DLQ_MESSAGE_STATUS_UNSPECIFIED",
+		1: "DLQ_MESSAGE_STATUS_PENDING",
+		2: "DLQ_MESSAGE_STATUS_RETRYING",
+		3: "DLQ_MESSAGE_STATUS_SUCCEEDED",
+		4: "DLQ_MESSAGE_STATUS_FAILED",
+	}
+	DlqMessageStatus_value = map[string]int32{
+		"DLQ_MESSAGE_STATUS_UNSPECIFIED": 0,
+		"DLQ_MESSAGE_STATUS_PENDING":     1,
+		"DLQ_MESSAGE_STATUS_RETRYING":    2,
+		"DLQ_MESSAGE_STATUS_SUCCEEDED":   3,
+		"DLQ_MESSAGE_STATUS_FAILED":      4,
+	}
+)
+
+func (x DlqMessageStatus) Enum() *DlqMessageStatus {
+	p := new(DlqMessageStatus)
+	*p = x
+	return p
+}
+
+func (x DlqMessageStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DlqMessageStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_dlq_v1_dlq_proto_enumTypes[0].Descriptor()
+}
+
+func (DlqMessageStatus) Type() protoreflect.EnumType {
+	return &file_k1s0_system_dlq_v1_dlq_proto_enumTypes[0]
+}
+
+func (x DlqMessageStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DlqMessageStatus.Descriptor instead.
+func (DlqMessageStatus) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_dlq_v1_dlq_proto_rawDescGZIP(), []int{0}
+}
+
+// DlqMessage は DLQ メッセージ。
 type DlqMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -31,11 +87,14 @@ type DlqMessage struct {
 	RetryCount    int32                  `protobuf:"varint,4,opt,name=retry_count,json=retryCount,proto3" json:"retry_count,omitempty"`
 	MaxRetries    int32                  `protobuf:"varint,5,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries,omitempty"`
 	// JSON-encoded payload bytes.
-	Payload       []byte        `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`
-	Status        string        `protobuf:"bytes,7,opt,name=status,proto3" json:"status,omitempty"`
-	CreatedAt     *v1.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *v1.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	LastRetryAt   *v1.Timestamp `protobuf:"bytes,10,opt,name=last_retry_at,json=lastRetryAt,proto3,oneof" json:"last_retry_at,omitempty"`
+	Payload []byte `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`
+	// Deprecated: use status_enum instead.
+	Status      string        `protobuf:"bytes,7,opt,name=status,proto3" json:"status,omitempty"`
+	CreatedAt   *v1.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt   *v1.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	LastRetryAt *v1.Timestamp `protobuf:"bytes,10,opt,name=last_retry_at,json=lastRetryAt,proto3,oneof" json:"last_retry_at,omitempty"`
+	// メッセージステータスの enum 版（status の型付き版）。
+	StatusEnum    DlqMessageStatus `protobuf:"varint,11,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.system.dlq.v1.DlqMessageStatus" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -140,7 +199,14 @@ func (x *DlqMessage) GetLastRetryAt() *v1.Timestamp {
 	return nil
 }
 
-/// ListMessagesRequest は一覧取得リクエスト。
+func (x *DlqMessage) GetStatusEnum() DlqMessageStatus {
+	if x != nil {
+		return x.StatusEnum
+	}
+	return DlqMessageStatus_DLQ_MESSAGE_STATUS_UNSPECIFIED
+}
+
+// ListMessagesRequest は一覧取得リクエスト。
 type ListMessagesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Topic string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
@@ -194,7 +260,7 @@ func (x *ListMessagesRequest) GetPagination() *v1.Pagination {
 	return nil
 }
 
-/// ListMessagesResponse は一覧取得レスポンス。
+// ListMessagesResponse は一覧取得レスポンス。
 type ListMessagesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Messages      []*DlqMessage          `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
@@ -247,7 +313,7 @@ func (x *ListMessagesResponse) GetPagination() *v1.PaginationResult {
 	return nil
 }
 
-/// GetMessageRequest はメッセージ取得リクエスト。
+// GetMessageRequest はメッセージ取得リクエスト。
 type GetMessageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -292,7 +358,7 @@ func (x *GetMessageRequest) GetId() string {
 	return ""
 }
 
-/// GetMessageResponse はメッセージ取得レスポンス。
+// GetMessageResponse はメッセージ取得レスポンス。
 type GetMessageResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Message       *DlqMessage            `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
@@ -337,7 +403,7 @@ func (x *GetMessageResponse) GetMessage() *DlqMessage {
 	return nil
 }
 
-/// RetryMessageRequest はリトライリクエスト。
+// RetryMessageRequest はリトライリクエスト。
 type RetryMessageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -382,7 +448,7 @@ func (x *RetryMessageRequest) GetId() string {
 	return ""
 }
 
-/// RetryMessageResponse はリトライレスポンス。
+// RetryMessageResponse はリトライレスポンス。
 type RetryMessageResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Message       *DlqMessage            `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
@@ -427,7 +493,7 @@ func (x *RetryMessageResponse) GetMessage() *DlqMessage {
 	return nil
 }
 
-/// DeleteMessageRequest は削除リクエスト。
+// DeleteMessageRequest は削除リクエスト。
 type DeleteMessageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -472,7 +538,7 @@ func (x *DeleteMessageRequest) GetId() string {
 	return ""
 }
 
-/// DeleteMessageResponse は削除レスポンス。
+// DeleteMessageResponse は削除レスポンス。
 type DeleteMessageResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -517,7 +583,7 @@ func (x *DeleteMessageResponse) GetId() string {
 	return ""
 }
 
-/// RetryAllRequest は一括リトライリクエスト。
+// RetryAllRequest は一括リトライリクエスト。
 type RetryAllRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Topic         string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
@@ -562,7 +628,7 @@ func (x *RetryAllRequest) GetTopic() string {
 	return ""
 }
 
-/// RetryAllResponse は一括リトライレスポンス。
+// RetryAllResponse は一括リトライレスポンス。
 type RetryAllResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RetriedCount  int32                  `protobuf:"varint,1,opt,name=retried_count,json=retriedCount,proto3" json:"retried_count,omitempty"`
@@ -619,7 +685,7 @@ var File_k1s0_system_dlq_v1_dlq_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_dlq_v1_dlq_proto_rawDesc = "" +
 	"\n" +
-	"\x1ck1s0/system/dlq/v1/dlq.proto\x12\x12k1s0.system.dlq.v1\x1a!k1s0/system/common/v1/types.proto\"\xbb\x03\n" +
+	"\x1ck1s0/system/dlq/v1/dlq.proto\x12\x12k1s0.system.dlq.v1\x1a!k1s0/system/common/v1/types.proto\"\x82\x04\n" +
 	"\n" +
 	"DlqMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
@@ -636,7 +702,9 @@ const file_k1s0_system_dlq_v1_dlq_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12I\n" +
 	"\rlast_retry_at\x18\n" +
-	" \x01(\v2 .k1s0.system.common.v1.TimestampH\x00R\vlastRetryAt\x88\x01\x01B\x10\n" +
+	" \x01(\v2 .k1s0.system.common.v1.TimestampH\x00R\vlastRetryAt\x88\x01\x01\x12E\n" +
+	"\vstatus_enum\x18\v \x01(\x0e2$.k1s0.system.dlq.v1.DlqMessageStatusR\n" +
+	"statusEnumB\x10\n" +
 	"\x0e_last_retry_at\"\x7f\n" +
 	"\x13ListMessagesRequest\x12\x14\n" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\x12A\n" +
@@ -664,7 +732,13 @@ const file_k1s0_system_dlq_v1_dlq_proto_rawDesc = "" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\"Q\n" +
 	"\x10RetryAllResponse\x12#\n" +
 	"\rretried_count\x18\x01 \x01(\x05R\fretriedCount\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2\xec\x03\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage*\xb8\x01\n" +
+	"\x10DlqMessageStatus\x12\"\n" +
+	"\x1eDLQ_MESSAGE_STATUS_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aDLQ_MESSAGE_STATUS_PENDING\x10\x01\x12\x1f\n" +
+	"\x1bDLQ_MESSAGE_STATUS_RETRYING\x10\x02\x12 \n" +
+	"\x1cDLQ_MESSAGE_STATUS_SUCCEEDED\x10\x03\x12\x1d\n" +
+	"\x19DLQ_MESSAGE_STATUS_FAILED\x10\x042\xec\x03\n" +
 	"\n" +
 	"DlqService\x12a\n" +
 	"\fListMessages\x12'.k1s0.system.dlq.v1.ListMessagesRequest\x1a(.k1s0.system.dlq.v1.ListMessagesResponse\x12[\n" +
@@ -686,47 +760,50 @@ func file_k1s0_system_dlq_v1_dlq_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_dlq_v1_dlq_proto_rawDescData
 }
 
+var file_k1s0_system_dlq_v1_dlq_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_k1s0_system_dlq_v1_dlq_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_k1s0_system_dlq_v1_dlq_proto_goTypes = []any{
-	(*DlqMessage)(nil),            // 0: k1s0.system.dlq.v1.DlqMessage
-	(*ListMessagesRequest)(nil),   // 1: k1s0.system.dlq.v1.ListMessagesRequest
-	(*ListMessagesResponse)(nil),  // 2: k1s0.system.dlq.v1.ListMessagesResponse
-	(*GetMessageRequest)(nil),     // 3: k1s0.system.dlq.v1.GetMessageRequest
-	(*GetMessageResponse)(nil),    // 4: k1s0.system.dlq.v1.GetMessageResponse
-	(*RetryMessageRequest)(nil),   // 5: k1s0.system.dlq.v1.RetryMessageRequest
-	(*RetryMessageResponse)(nil),  // 6: k1s0.system.dlq.v1.RetryMessageResponse
-	(*DeleteMessageRequest)(nil),  // 7: k1s0.system.dlq.v1.DeleteMessageRequest
-	(*DeleteMessageResponse)(nil), // 8: k1s0.system.dlq.v1.DeleteMessageResponse
-	(*RetryAllRequest)(nil),       // 9: k1s0.system.dlq.v1.RetryAllRequest
-	(*RetryAllResponse)(nil),      // 10: k1s0.system.dlq.v1.RetryAllResponse
-	(*v1.Timestamp)(nil),          // 11: k1s0.system.common.v1.Timestamp
-	(*v1.Pagination)(nil),         // 12: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),   // 13: k1s0.system.common.v1.PaginationResult
+	(DlqMessageStatus)(0),         // 0: k1s0.system.dlq.v1.DlqMessageStatus
+	(*DlqMessage)(nil),            // 1: k1s0.system.dlq.v1.DlqMessage
+	(*ListMessagesRequest)(nil),   // 2: k1s0.system.dlq.v1.ListMessagesRequest
+	(*ListMessagesResponse)(nil),  // 3: k1s0.system.dlq.v1.ListMessagesResponse
+	(*GetMessageRequest)(nil),     // 4: k1s0.system.dlq.v1.GetMessageRequest
+	(*GetMessageResponse)(nil),    // 5: k1s0.system.dlq.v1.GetMessageResponse
+	(*RetryMessageRequest)(nil),   // 6: k1s0.system.dlq.v1.RetryMessageRequest
+	(*RetryMessageResponse)(nil),  // 7: k1s0.system.dlq.v1.RetryMessageResponse
+	(*DeleteMessageRequest)(nil),  // 8: k1s0.system.dlq.v1.DeleteMessageRequest
+	(*DeleteMessageResponse)(nil), // 9: k1s0.system.dlq.v1.DeleteMessageResponse
+	(*RetryAllRequest)(nil),       // 10: k1s0.system.dlq.v1.RetryAllRequest
+	(*RetryAllResponse)(nil),      // 11: k1s0.system.dlq.v1.RetryAllResponse
+	(*v1.Timestamp)(nil),          // 12: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),         // 13: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),   // 14: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_dlq_v1_dlq_proto_depIdxs = []int32{
-	11, // 0: k1s0.system.dlq.v1.DlqMessage.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	11, // 1: k1s0.system.dlq.v1.DlqMessage.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	11, // 2: k1s0.system.dlq.v1.DlqMessage.last_retry_at:type_name -> k1s0.system.common.v1.Timestamp
-	12, // 3: k1s0.system.dlq.v1.ListMessagesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	0,  // 4: k1s0.system.dlq.v1.ListMessagesResponse.messages:type_name -> k1s0.system.dlq.v1.DlqMessage
-	13, // 5: k1s0.system.dlq.v1.ListMessagesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	0,  // 6: k1s0.system.dlq.v1.GetMessageResponse.message:type_name -> k1s0.system.dlq.v1.DlqMessage
-	0,  // 7: k1s0.system.dlq.v1.RetryMessageResponse.message:type_name -> k1s0.system.dlq.v1.DlqMessage
-	1,  // 8: k1s0.system.dlq.v1.DlqService.ListMessages:input_type -> k1s0.system.dlq.v1.ListMessagesRequest
-	3,  // 9: k1s0.system.dlq.v1.DlqService.GetMessage:input_type -> k1s0.system.dlq.v1.GetMessageRequest
-	5,  // 10: k1s0.system.dlq.v1.DlqService.RetryMessage:input_type -> k1s0.system.dlq.v1.RetryMessageRequest
-	7,  // 11: k1s0.system.dlq.v1.DlqService.DeleteMessage:input_type -> k1s0.system.dlq.v1.DeleteMessageRequest
-	9,  // 12: k1s0.system.dlq.v1.DlqService.RetryAll:input_type -> k1s0.system.dlq.v1.RetryAllRequest
-	2,  // 13: k1s0.system.dlq.v1.DlqService.ListMessages:output_type -> k1s0.system.dlq.v1.ListMessagesResponse
-	4,  // 14: k1s0.system.dlq.v1.DlqService.GetMessage:output_type -> k1s0.system.dlq.v1.GetMessageResponse
-	6,  // 15: k1s0.system.dlq.v1.DlqService.RetryMessage:output_type -> k1s0.system.dlq.v1.RetryMessageResponse
-	8,  // 16: k1s0.system.dlq.v1.DlqService.DeleteMessage:output_type -> k1s0.system.dlq.v1.DeleteMessageResponse
-	10, // 17: k1s0.system.dlq.v1.DlqService.RetryAll:output_type -> k1s0.system.dlq.v1.RetryAllResponse
-	13, // [13:18] is the sub-list for method output_type
-	8,  // [8:13] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	12, // 0: k1s0.system.dlq.v1.DlqMessage.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	12, // 1: k1s0.system.dlq.v1.DlqMessage.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	12, // 2: k1s0.system.dlq.v1.DlqMessage.last_retry_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 3: k1s0.system.dlq.v1.DlqMessage.status_enum:type_name -> k1s0.system.dlq.v1.DlqMessageStatus
+	13, // 4: k1s0.system.dlq.v1.ListMessagesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	1,  // 5: k1s0.system.dlq.v1.ListMessagesResponse.messages:type_name -> k1s0.system.dlq.v1.DlqMessage
+	14, // 6: k1s0.system.dlq.v1.ListMessagesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	1,  // 7: k1s0.system.dlq.v1.GetMessageResponse.message:type_name -> k1s0.system.dlq.v1.DlqMessage
+	1,  // 8: k1s0.system.dlq.v1.RetryMessageResponse.message:type_name -> k1s0.system.dlq.v1.DlqMessage
+	2,  // 9: k1s0.system.dlq.v1.DlqService.ListMessages:input_type -> k1s0.system.dlq.v1.ListMessagesRequest
+	4,  // 10: k1s0.system.dlq.v1.DlqService.GetMessage:input_type -> k1s0.system.dlq.v1.GetMessageRequest
+	6,  // 11: k1s0.system.dlq.v1.DlqService.RetryMessage:input_type -> k1s0.system.dlq.v1.RetryMessageRequest
+	8,  // 12: k1s0.system.dlq.v1.DlqService.DeleteMessage:input_type -> k1s0.system.dlq.v1.DeleteMessageRequest
+	10, // 13: k1s0.system.dlq.v1.DlqService.RetryAll:input_type -> k1s0.system.dlq.v1.RetryAllRequest
+	3,  // 14: k1s0.system.dlq.v1.DlqService.ListMessages:output_type -> k1s0.system.dlq.v1.ListMessagesResponse
+	5,  // 15: k1s0.system.dlq.v1.DlqService.GetMessage:output_type -> k1s0.system.dlq.v1.GetMessageResponse
+	7,  // 16: k1s0.system.dlq.v1.DlqService.RetryMessage:output_type -> k1s0.system.dlq.v1.RetryMessageResponse
+	9,  // 17: k1s0.system.dlq.v1.DlqService.DeleteMessage:output_type -> k1s0.system.dlq.v1.DeleteMessageResponse
+	11, // 18: k1s0.system.dlq.v1.DlqService.RetryAll:output_type -> k1s0.system.dlq.v1.RetryAllResponse
+	14, // [14:19] is the sub-list for method output_type
+	9,  // [9:14] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_dlq_v1_dlq_proto_init() }
@@ -740,13 +817,14 @@ func file_k1s0_system_dlq_v1_dlq_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_dlq_v1_dlq_proto_rawDesc), len(file_k1s0_system_dlq_v1_dlq_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_k1s0_system_dlq_v1_dlq_proto_goTypes,
 		DependencyIndexes: file_k1s0_system_dlq_v1_dlq_proto_depIdxs,
+		EnumInfos:         file_k1s0_system_dlq_v1_dlq_proto_enumTypes,
 		MessageInfos:      file_k1s0_system_dlq_v1_dlq_proto_msgTypes,
 	}.Build()
 	File_k1s0_system_dlq_v1_dlq_proto = out.File

@@ -34,7 +34,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// / QuotaService はクォータポリシー管理サービス。
+// QuotaService はクォータポリシー管理サービス。
 type QuotaServiceClient interface {
 	CreateQuotaPolicy(ctx context.Context, in *CreateQuotaPolicyRequest, opts ...grpc.CallOption) (*CreateQuotaPolicyResponse, error)
 	GetQuotaPolicy(ctx context.Context, in *GetQuotaPolicyRequest, opts ...grpc.CallOption) (*GetQuotaPolicyResponse, error)
@@ -149,7 +149,7 @@ func (c *quotaServiceClient) ResetQuotaUsage(ctx context.Context, in *ResetQuota
 // All implementations must embed UnimplementedQuotaServiceServer
 // for forward compatibility.
 //
-// / QuotaService はクォータポリシー管理サービス。
+// QuotaService はクォータポリシー管理サービス。
 type QuotaServiceServer interface {
 	CreateQuotaPolicy(context.Context, *CreateQuotaPolicyRequest) (*CreateQuotaPolicyResponse, error)
 	GetQuotaPolicy(context.Context, *GetQuotaPolicyRequest) (*GetQuotaPolicyResponse, error)
