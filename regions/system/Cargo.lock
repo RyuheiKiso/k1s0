@@ -2128,6 +2128,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "etcetera"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26c7b13d0780cb82722fd59f6f57f925e143427e4a75313a6c77243bf5326ae6"
+dependencies = [
+ "cfg-if",
+ "home",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "event-listener"
 version = "5.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3253,7 +3264,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tracing",
@@ -3288,7 +3299,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tracing",
@@ -3325,7 +3336,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -3359,7 +3370,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "sqlx",
- "testcontainers",
+ "testcontainers 0.24.0",
  "testcontainers-modules",
  "thiserror 2.0.18",
  "tokio",
@@ -3448,7 +3459,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "sqlx",
- "testcontainers",
+ "testcontainers 0.24.0",
  "testcontainers-modules",
  "thiserror 2.0.18",
  "tokio",
@@ -3657,7 +3668,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -3734,7 +3745,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -3801,7 +3812,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -3837,7 +3848,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -3904,7 +3915,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -3957,7 +3968,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4008,7 +4019,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4099,11 +4110,11 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sqlx",
- "testcontainers",
+ "testcontainers 0.24.0",
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4172,7 +4183,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tracing",
@@ -4219,7 +4230,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4284,7 +4295,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4343,7 +4354,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4389,12 +4400,12 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sqlx",
- "testcontainers",
+ "testcontainers 0.24.0",
  "testcontainers-modules",
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4462,7 +4473,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4515,7 +4526,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4540,7 +4551,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
- "tonic",
+ "tonic 0.14.5",
  "urlencoding",
 ]
 
@@ -4575,7 +4586,7 @@ dependencies = [
  "tokio",
  "tokio-test",
  "tokio-util",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4640,7 +4651,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4672,7 +4683,7 @@ dependencies = [
  "sqlx",
  "thiserror 2.0.18",
  "tokio",
- "tonic",
+ "tonic 0.14.5",
  "tower 0.5.3",
  "tracing",
  "utoipa",
@@ -4763,7 +4774,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4786,7 +4797,7 @@ dependencies = [
  "prometheus",
  "sqlx",
  "tokio",
- "tonic",
+ "tonic 0.14.5",
  "tower 0.5.3",
  "tracing",
  "tracing-opentelemetry",
@@ -4845,7 +4856,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -4865,7 +4876,7 @@ dependencies = [
  "jsonwebtoken",
  "serde",
  "serde_json",
- "testcontainers",
+ "testcontainers 0.24.0",
  "testcontainers-modules",
  "tokio",
  "uuid",
@@ -4903,7 +4914,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
- "tonic",
+ "tonic 0.14.5",
  "tracing",
  "wiremock",
 ]
@@ -4935,7 +4946,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tower-http",
@@ -5006,7 +5017,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
- "tonic",
+ "tonic 0.14.5",
  "tonic-build",
  "tower 0.5.3",
  "tracing",
@@ -5232,9 +5243,9 @@ dependencies = [
 
 [[package]]
 name = "mockall"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39a6bfcc6c8c7eed5ee98b9c3e33adc726054389233e201c95dab2d41a3839d2"
+checksum = "f58d964098a5f9c6b63d0798e5372fd04708193510a7af313c22e9f29b7b620b"
 dependencies = [
  "cfg-if",
  "downcast",
@@ -5246,9 +5257,9 @@ dependencies = [
 
 [[package]]
 name = "mockall_derive"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25ca3004c2efe9011bd4e461bd8256445052b9615405b4f7ea43fc8ca5c20898"
+checksum = "ca41ce716dda6a9be188b385aa78ee5260fc25cd3802cb2a8afdc6afbe6b6dbf"
 dependencies = [
  "cfg-if",
  "proc-macro2",
@@ -5569,7 +5580,7 @@ dependencies = [
  "prost",
  "thiserror 1.0.69",
  "tokio",
- "tonic",
+ "tonic 0.12.3",
  "tracing",
 ]
 
@@ -5582,7 +5593,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
  "prost",
- "tonic",
+ "tonic 0.12.3",
 ]
 
 [[package]]
@@ -6332,9 +6343,9 @@ dependencies = [
 
 [[package]]
 name = "rdkafka"
-version = "0.37.0"
+version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14b52c81ac3cac39c9639b95c20452076e74b8d9a71bc6fc4d83407af2ea6fff"
+checksum = "d7956f9ac12b5712e50372d9749a3102f4810a8d42481c5eae3748d36d585bcf"
 dependencies = [
  "futures-channel",
  "futures-util",
@@ -7470,7 +7481,7 @@ dependencies = [
  "chrono",
  "crc",
  "dotenvy",
- "etcetera",
+ "etcetera 0.8.0",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -7779,7 +7790,36 @@ dependencies = [
  "bytes",
  "docker_credential",
  "either",
- "etcetera",
+ "etcetera 0.8.0",
+ "futures",
+ "log",
+ "memchr",
+ "parse-display",
+ "pin-project-lite",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+ "tokio-tar",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
+name = "testcontainers"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23bb7577dca13ad86a78e8271ef5d322f37229ec83b8d98da6d996c588a1ddb1"
+dependencies = [
+ "async-trait",
+ "bollard",
+ "bollard-stubs",
+ "bytes",
+ "docker_credential",
+ "either",
+ "etcetera 0.10.0",
  "futures",
  "log",
  "memchr",
@@ -7802,7 +7842,7 @@ version = "0.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d43ed4e8f58424c3a2c6c56dbea6643c3c23e8666a34df13c54f0a184e6c707"
 dependencies = [
- "testcontainers",
+ "testcontainers 0.23.3",
 ]
 
 [[package]]
@@ -8159,6 +8199,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "tonic"
+version = "0.14.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fec7c61a0695dc1887c1b53952990f3ad2e3a31453e1f49f10e75424943a93ec"
+dependencies = [
+ "async-trait",
+ "axum 0.8.8",
+ "base64 0.22.1",
+ "bytes",
+ "h2 0.4.13",
+ "http 1.4.0",
+ "http-body 1.0.1",
+ "http-body-util",
+ "hyper 1.8.1",
+ "hyper-timeout",
+ "hyper-util",
+ "percent-encoding",
+ "pin-project",
+ "socket2 0.6.3",
+ "sync_wrapper",
+ "tokio",
+ "tokio-stream",
+ "tower 0.5.3",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
 name = "tonic-build"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8200,7 +8269,9 @@ checksum = "ebe5ef63511595f1344e2d5cfa636d973292adc0eec1f0ad45fae9f0851ab1d4"
 dependencies = [
  "futures-core",
  "futures-util",
+ "indexmap 2.13.0",
  "pin-project-lite",
+ "slab",
  "sync_wrapper",
  "tokio",
  "tokio-util",

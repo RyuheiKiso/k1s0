@@ -56,7 +56,7 @@ moka = { version = "0.12", features = ["future"] }
 tokio-util = { version = "0.7" }
 
 # Kafka
-rdkafka = { version = "0.37", features = ["cmake-build"] }
+rdkafka = { version = "0.39", features = ["cmake-build"] }
 
 # HTTP client (for Keycloak)
 reqwest = {workspace = true, features = ["rustls-tls"]}
@@ -89,7 +89,7 @@ mockall = {workspace = true}
 tokio-test = {workspace = true}
 axum-test = "17"
 tower = {workspace = true}
-testcontainers = "0.23"
+testcontainers = "0.24"
 testcontainers-modules = { version = "0.11", features = ["postgres"] }
 wiremock = "0.6"
 

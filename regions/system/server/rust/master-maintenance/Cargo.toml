@@ -78,7 +78,7 @@ prost = {workspace = true}
 prost-types = {workspace = true}
 
 # Kafka
-rdkafka = { version = "0.37", features = ["cmake-build"] }
+rdkafka = { version = "0.39", features = ["cmake-build"] }
 
 [build-dependencies]
 tonic-build = {workspace = true}
@@ -90,7 +90,7 @@ db-tests = []
 mockall = {workspace = true}
 tokio-test = {workspace = true}
 tower = {workspace = true}
-testcontainers = "0.23"
+testcontainers = "0.24"
 axum-test = "17"
 
 [lints]
