@@ -13,6 +13,88 @@
 
 ---
 
+## 言語間API互換性対応表
+
+`modules.yaml` の `library_parity` セクションで管理され、CI (`library-parity-check.yaml`) で自動検証される。
+
+### 命名規約
+
+| 言語 | パッケージプレフィックス | 例 |
+|------|------------------------|-----|
+| Rust | `k1s0-{name}` (crate) | `k1s0-auth` |
+| Go | パッケージ名のまま | `authlib` |
+| TypeScript | `@k1s0/{name}` (npm scope) | `@k1s0/auth` |
+| Dart | `k1s0_{name}` (pub) | `k1s0_auth` |
+
+### Core ライブラリ（4言語: Rust, Go, TypeScript, Dart）
+
+| ライブラリ名 | Rust | Go | TypeScript | Dart |
+|-------------|------|----|------------|------|
+| app-updater | k1s0-app-updater | app-updater | @k1s0/app-updater | k1s0_app_updater |
+| audit-client | k1s0-audit-client | audit-client | @k1s0/audit-client | k1s0_audit_client |
+| auth | k1s0-auth | authlib | @k1s0/auth | k1s0_auth |
+| bb-ai-client | k1s0-bb-ai-client | bb-ai-client | @k1s0/bb-ai-client | k1s0_bb_ai_client |
+| building-blocks | k1s0-building-blocks | building-blocks | @k1s0/building-blocks | k1s0_building_blocks |
+| bulkhead | k1s0-bulkhead | bulkhead | @k1s0/bulkhead | k1s0_bulkhead |
+| cache | k1s0-cache | cache | @k1s0/cache | k1s0_cache |
+| circuit-breaker | k1s0-circuit-breaker | circuitbreaker | @k1s0/circuit-breaker | k1s0_circuit_breaker |
+| codegen | k1s0-codegen | codegen | @k1s0/codegen | k1s0_codegen |
+| config | k1s0-config | config | @k1s0/config | k1s0_config |
+| correlation | k1s0-correlation | correlation | @k1s0/correlation | k1s0_correlation |
+| distributed-lock | k1s0-distributed-lock | distributedlock | @k1s0/distributed-lock | k1s0_distributed_lock |
+| dlq-client | k1s0-dlq-client | dlq-client | @k1s0/dlq-client | k1s0_dlq_client |
+| encryption | k1s0-encryption | encryption | @k1s0/encryption | k1s0_encryption |
+| event-bus | k1s0-event-bus | eventbus | @k1s0/event-bus | k1s0_event_bus |
+| eventstore | k1s0-eventstore | eventstore | @k1s0/eventstore | k1s0_eventstore |
+| featureflag | k1s0-featureflag | featureflag | @k1s0/featureflag | k1s0_featureflag |
+| file-client | k1s0-file-client | file-client | @k1s0/file-client | k1s0_file_client |
+| graphql-client | k1s0-graphql-client | graphql-client | @k1s0/graphql-client | k1s0_graphql_client |
+| health | k1s0-health | health | @k1s0/health | k1s0_health |
+| idempotency | k1s0-idempotency | idempotency | @k1s0/idempotency | k1s0_idempotency |
+| kafka | k1s0-kafka | kafka | @k1s0/kafka | k1s0_kafka |
+| messaging | k1s0-messaging | messaging | @k1s0/messaging | k1s0_messaging |
+| migration | k1s0-migration | migration | @k1s0/migration | k1s0_migration |
+| notification-client | k1s0-notification-client | notification-client | @k1s0/notification-client | k1s0_notification_client |
+| outbox | k1s0-outbox | outbox | @k1s0/outbox | k1s0_outbox |
+| pagination | k1s0-pagination | pagination | @k1s0/pagination | k1s0_pagination |
+| quota-client | k1s0-quota-client | quota-client | @k1s0/quota-client | k1s0_quota_client |
+| ratelimit-client | k1s0-ratelimit-client | ratelimit-client | @k1s0/ratelimit-client | k1s0_ratelimit_client |
+| resiliency | k1s0-resiliency | resiliency | @k1s0/resiliency | k1s0_resiliency |
+| retry | k1s0-retry | retry | @k1s0/retry | k1s0_retry |
+| saga | k1s0-saga | saga | @k1s0/saga | k1s0_saga |
+| scheduler-client | k1s0-scheduler-client | scheduler-client | @k1s0/scheduler-client | k1s0_scheduler_client |
+| schemaregistry | k1s0-schemaregistry | schemaregistry | @k1s0/schemaregistry | k1s0_schemaregistry |
+| search-client | k1s0-search-client | search-client | @k1s0/search-client | k1s0_search_client |
+| server-common | k1s0-server-common | server-common | @k1s0/server-common | k1s0_server_common |
+| serviceauth | k1s0-serviceauth | serviceauth | @k1s0/serviceauth | k1s0_serviceauth |
+| session-client | k1s0-session-client | session-client | @k1s0/session-client | k1s0_session_client |
+| telemetry | k1s0-telemetry | telemetry | @k1s0/telemetry | k1s0_telemetry |
+| tenant-client | k1s0-tenant-client | tenant-client | @k1s0/tenant-client | k1s0_tenant_client |
+| test-helper | k1s0-test-helper | test-helper | @k1s0/test-helper | k1s0_test_helper |
+| tracing | k1s0-tracing | tracing | @k1s0/tracing | k1s0_tracing |
+| validation | k1s0-validation | validation | @k1s0/validation | k1s0_validation |
+| vault-client | k1s0-vault-client | vault-client | @k1s0/vault-client | k1s0_vault_client |
+| webhook-client | k1s0-webhook-client | webhook-client | @k1s0/webhook-client | k1s0_webhook_client |
+| websocket | k1s0-websocket | websocket | @k1s0/websocket | k1s0_websocket |
+
+### Server ライブラリ（2言語: Rust, Go）
+
+| ライブラリ名 | Rust | Go |
+|-------------|------|-----|
+| binding | k1s0-bb-binding | binding |
+| pubsub | k1s0-bb-pubsub | pubsub |
+| secret-store | k1s0-bb-secretstore | secret-store |
+| state-store | k1s0-bb-statestore | statestore |
+
+### Client ライブラリ（2言語: TypeScript, Dart）
+
+| ライブラリ名 | TypeScript | Dart |
+|-------------|------------|------|
+| react-sdk | @k1s0/react-sdk | — |
+| flutter-sdk | — | k1s0_flutter_sdk |
+
+---
+
 ## 1. 認証ライブラリ（auth）
 
 **やりたいこと**: JWT トークンを検証してクレーム（ユーザー情報・ロール）を取得する。
