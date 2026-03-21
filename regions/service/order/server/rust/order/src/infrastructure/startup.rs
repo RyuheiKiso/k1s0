@@ -149,6 +149,8 @@ pub async fn run() -> anyhow::Result<()> {
     } else {
         None
     };
+    // auth 設定必須チェック: 本番環境では auth_state が None の場合は起動を拒否する
+    let auth_state = k1s0_server_common::auth::require_auth_state("order", &cfg.app.environment, auth_state)?;
 
     // 10. AppState + Router
     let state = AppState {

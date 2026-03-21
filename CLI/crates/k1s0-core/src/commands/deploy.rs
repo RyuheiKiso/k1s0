@@ -714,12 +714,13 @@ fn scan_targets_recursive(path: &Path, targets: &mut Vec<String>) {
     }
 
     let is_deployable = path.join("Dockerfile").exists();
+    // deployable なディレクトリを見つけてもネストされた子アプリも探索を継続する
     if is_deployable {
         let path_str = path.to_string_lossy().replace('\\', "/");
         if !path_str.contains("/library/") {
             targets.push(path.to_string_lossy().to_string());
         }
-        return;
+        // return を削除: ネストされたアプリも検出するため再帰を継続する
     }
 
     if let Ok(entries) = fs::read_dir(path) {
@@ -891,6 +892,30 @@ mod tests {
     #[test]
     fn test_total_deploy_steps() {
         assert_eq!(TOTAL_DEPLOY_STEPS, 4);
+    }
+
+    #[test]
+    fn test_scan_deployable_targets_detects_nested_apps() {
+        // 親が deployable でその配下に子も deployable なネスト構造を検出できることを検証する
+        let tmp = TempDir::new().unwrap();
+
+        // 親: Rust サーバー（Dockerfile あり）
+        let parent_path = tmp.path().join("regions/service/order/server/rust");
+        fs::create_dir_all(&parent_path).unwrap();
+        fs::write(parent_path.join("Dockerfile"), "FROM scratch\n").unwrap();
+
+        // 子: React クライアント（Rust サーバー配下、Dockerfile あり）
+        let child_path = parent_path.join("client/react");
+        fs::create_dir_all(&child_path).unwrap();
+        fs::write(child_path.join("Dockerfile"), "FROM node:20\n").unwrap();
+
+        let targets = scan_deployable_targets_at(tmp.path());
+        // 親と子の両方が検出される必要がある
+        assert_eq!(
+            targets.len(),
+            2,
+            "ネストされた親と子の両方が検出される必要がある: {targets:?}"
+        );
     }
 
     #[test]

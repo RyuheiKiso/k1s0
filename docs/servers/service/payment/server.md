@@ -297,6 +297,21 @@ service PaymentService {
 
 ---
 
+## 冪等性保証
+
+### create の ON CONFLICT 方式
+
+`payment_repository.rs` の `create` メソッドは `ON CONFLICT (order_id) DO NOTHING` を使用して冪等な INSERT を実現する。同一 `order_id` で競合した場合は RETURNING が空になり、既存レコードをフォールバック SELECT で取得して返す。
+
+```
+INSERT INTO payments ... ON CONFLICT (order_id) DO NOTHING RETURNING *
+→ 競合時は None → SELECT で既存レコードを取得
+```
+
+`InitiatePaymentUseCase` は `find_by_order_id` による事前チェック + `create` の二段構成で、アプリケーション層とデータベース層の双方で重複防止を実現する（二重課金防止）。
+
+---
+
 ## Kafka イベント
 
 決済のライフサイクルイベントを Kafka トピックに非同期配信する。Outbox Pattern で at-least-once delivery を保証する。

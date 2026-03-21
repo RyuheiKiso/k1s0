@@ -1,7 +1,11 @@
 # k1s0 monorepo build orchestration
 # Usage: just <recipe> or just <recipe>-<lang>
+# TypeScript レシピは pnpm を使用する（pnpm-workspace.yaml で workspace:* 依存を管理）
+# 前提: pnpm がインストール済みであること（npm install -g pnpm または corepack enable pnpm）
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
+# Windows 環境では PowerShell を使用する（ただし WSL2/Git Bash 推奨）
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 # ローカル開発で起動する Docker Compose profile（infra + system tier）
 _dc_profiles := "--profile infra --profile system"
@@ -86,9 +90,9 @@ lint-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Linting $dir ==="
-            # package-lock.json を使って依存関係をインストールし、リント・型チェックを実行
+            # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストールし、リント・型チェックを実行
             # --if-present: スクリプト未定義のパッケージでもエラーにしない
-            (cd "$dir" && npm ci && npm run lint --if-present && npm run typecheck --if-present)
+            (cd "$dir" && pnpm install --frozen-lockfile && pnpm run lint --if-present && pnpm run typecheck --if-present)
         fi
     done
 
@@ -156,8 +160,8 @@ test-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Testing $dir ==="
-            # package-lock.json を使って依存関係をインストールし、テストを実行
-            (cd "$dir" && npm ci && npm test --if-present)
+            # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストールし、テストを実行
+            (cd "$dir" && pnpm install --frozen-lockfile && pnpm test --if-present)
         fi
     done
 
@@ -219,8 +223,8 @@ fmt-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Formatting $dir ==="
-            # package-lock.json を使って依存関係をインストールし、フォーマットを実行
-            (cd "$dir" && npm ci && npm run format --if-present)
+            # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストールし、フォーマットを実行
+            (cd "$dir" && pnpm install --frozen-lockfile && pnpm run format --if-present)
         fi
     done
 
@@ -279,8 +283,8 @@ build-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Building $dir ==="
-            # package-lock.json を使って依存関係をインストールし、ビルドを実行
-            (cd "$dir" && npm ci && npm run build --if-present)
+            # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストールし、ビルドを実行
+            (cd "$dir" && pnpm install --frozen-lockfile && pnpm run build --if-present)
         fi
     done
 

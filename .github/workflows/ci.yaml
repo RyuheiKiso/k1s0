@@ -290,10 +290,14 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # pnpm セットアップ（workspace:* 依存の解決に必要）
+      - uses: pnpm/action-setup@fe02b74ab4e416c4c7bab5f6b855b3dfcebc46e2 # v4
+        with:
+          version: 9
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
-          cache: 'npm'
+          cache: 'pnpm'
       - name: Lint TypeScript packages
         shell: bash
         env:
@@ -308,10 +312,10 @@ jobs:
                 echo "=== Linting $dir ==="
                 (
                   cd "$dir"
-                  # package-lock.json を使って依存関係をインストール
-                  npm ci
-                  npm run lint
-                  npm run typecheck
+                  # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストール
+                  pnpm install --frozen-lockfile
+                  pnpm run lint
+                  pnpm run typecheck
                 )
               fi
             done
@@ -322,10 +326,10 @@ jobs:
               echo "=== Linting $package_dir ==="
               (
                 cd "$package_dir"
-                # package-lock.json を使って依存関係をインストール
-                npm ci
-                npm run lint
-                npm run typecheck
+                # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストール
+                pnpm install --frozen-lockfile
+                pnpm run lint
+                pnpm run typecheck
               )
             done
           fi
@@ -660,10 +664,14 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # pnpm セットアップ（workspace:* 依存の解決に必要）
+      - uses: pnpm/action-setup@fe02b74ab4e416c4c7bab5f6b855b3dfcebc46e2 # v4
+        with:
+          version: 9
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
-          cache: 'npm'
+          cache: 'pnpm'
       - name: Test TypeScript packages
         shell: bash
         run: |
@@ -673,9 +681,9 @@ jobs:
             echo "=== Testing $package_dir ==="
             (
               cd "$package_dir"
-              # package-lock.json を使って依存関係をインストール
-              npm ci
-              npm test --if-present
+              # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストール
+              pnpm install --frozen-lockfile
+              pnpm test --if-present
             )
           done
 
@@ -688,10 +696,14 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # pnpm セットアップ（workspace:* 依存の解決に必要）
+      - uses: pnpm/action-setup@fe02b74ab4e416c4c7bab5f6b855b3dfcebc46e2 # v4
+        with:
+          version: 9
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
-          cache: 'npm'
+          cache: 'pnpm'
       - name: TypeScript テストカバレッジ計測・閾値チェック
         shell: bash
         run: |
@@ -705,15 +717,15 @@ jobs:
             echo "=== Coverage $package_dir ==="
             (
               cd "$package_dir"
-              # package-lock.json を使って依存関係をインストール
-              npm ci
+              # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストール
+              pnpm install --frozen-lockfile
               # vitest --coverage が利用可能な場合はカバレッジ計測する（閾値チェック付き）
               if npx --no-install vitest --help >/dev/null 2>&1; then
                 npx vitest run --coverage \
                   --coverage.thresholds.lines="$TS_COVERAGE_THRESHOLD" \
                   --reporter=json \
                   --outputFile="$GITHUB_WORKSPACE/coverage/$(basename "$package_dir").json"
-              elif npm run test:coverage --if-present 2>/dev/null; then
+              elif pnpm run test:coverage --if-present 2>/dev/null; then
                 true
               fi
             )
@@ -963,10 +975,14 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # pnpm セットアップ（workspace:* 依存の解決に必要）
+      - uses: pnpm/action-setup@fe02b74ab4e416c4c7bab5f6b855b3dfcebc46e2 # v4
+        with:
+          version: 9
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
-          cache: 'npm'
+          cache: 'pnpm'
       - name: Build TypeScript packages
         shell: bash
         run: |
@@ -976,9 +992,9 @@ jobs:
             echo "=== Building $package_dir ==="
             (
               cd "$package_dir"
-              # package-lock.json を使って依存関係をインストール
-              npm ci
-              npm run build --if-present
+              # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストール
+              pnpm install --frozen-lockfile
+              pnpm run build --if-present
             )
           done
 
@@ -991,6 +1007,7 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: read
+    # Known Issue: Rolldown panic on Windows (GitHub Issue #XXX) - tracking required
     continue-on-error: true
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -1003,6 +1020,13 @@ jobs:
         run: |
           npm ci
           npm run build
+      - name: Report Windows GUI build status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "failure" ]; then
+            echo "::warning::Windows GUI build failed (Known Issue: Rolldown panic). See job logs for details."
+          fi
+        shell: bash
 
   # Docker イメージのビルド検証
   build-docker:
@@ -1290,6 +1314,31 @@ jobs:
             exit 1
           fi
           echo "ティア間依存関係の検証が完了しました（逆方向依存なし）"
+
+  # Terraform の構文・フォーマット検証
+  iac-validation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3
+      - name: Terraform format check
+        # フォーマット不整合があればエラーとする
+        run: terraform fmt -check -recursive infra/terraform/
+      - name: Terraform validate (dev)
+        # dev 環境の構文検証（バックエンド初期化なし）
+        working-directory: infra/terraform/environments/dev
+        run: |
+          terraform init -backend=false
+          terraform validate
+      - name: Terraform validate (prod)
+        # prod 環境の構文検証（バックエンド初期化なし、変数未設定はデフォルト値でチェック）
+        working-directory: infra/terraform/environments/prod
+        run: |
+          terraform init -backend=false
+          terraform validate
 
   # セキュリティスキャン（Trivy）
   security-scan:

@@ -15,29 +15,41 @@ variable "kubernetes_host" {
 variable "ldap_url" {
   description = "LDAP server URL (LDAPS)"
   type        = string
-  # プレースホルダー: 本番環境では適切な値に置換すること
-  default     = "ldaps://ldap.example.com:636"
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !can(regex("example\\.com", var.ldap_url))
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "ldap_user_dn" {
   description = "LDAP user DN for user search"
   type        = string
-  # プレースホルダー: 本番環境では適切な値に置換すること
-  default     = "ou=users,dc=example,dc=com"
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !can(regex("example\\.com", var.ldap_user_dn))
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "ldap_group_dn" {
   description = "LDAP group DN for group search"
   type        = string
-  # プレースホルダー: 本番環境では適切な値に置換すること
-  default     = "ou=groups,dc=example,dc=com"
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !can(regex("example\\.com", var.ldap_group_dn))
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "ldap_bind_dn" {
   description = "LDAP bind DN for Vault authentication"
   type        = string
-  # プレースホルダー: 本番環境では適切な値に置換すること
-  default     = "cn=vault,ou=service-accounts,dc=example,dc=com"
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !can(regex("example\\.com", var.ldap_bind_dn))
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "ldap_bind_password" {

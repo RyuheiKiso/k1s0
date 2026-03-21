@@ -17,6 +17,8 @@ on:
       - 'regions/service/*/server/rust/**'
       # DB migration 変更は結合テストで検証が必要なため起動する
       - 'regions/**/database/postgres/migrations/**'
+      # DB 初期化スクリプト変更はテスト環境のスキーマに影響するため起動する
+      - 'infra/docker/init-db/**'
       # CI スクリプト変更は結合テストの挙動に影響するため起動する
       - 'scripts/ci-list-integration-servers.sh'
       - 'scripts/list-modules.sh'

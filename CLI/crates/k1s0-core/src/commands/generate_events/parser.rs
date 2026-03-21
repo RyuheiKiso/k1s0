@@ -52,11 +52,13 @@ pub fn parse_events_yaml(path: &str) -> Result<EventsConfig> {
 /// 正規表現のコンパイルに失敗した場合にパニックする（定数パターンのため発生しない）。
 pub fn validate(config: &EventsConfig) -> Result<()> {
     // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
-    let kebab_re = KEBAB_RE.get_or_init(|| Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").expect("static regex"));
+    let kebab_re =
+        KEBAB_RE.get_or_init(|| Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").expect("static regex"));
     let event_name_re = EVENT_NAME_RE.get_or_init(|| {
         Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*(\.[a-z0-9]+(-[a-z0-9]+)*)+$").expect("static regex")
     });
-    let snake_re = SNAKE_RE.get_or_init(|| Regex::new(r"^[a-z_][a-z0-9_]*$").expect("static regex"));
+    let snake_re =
+        SNAKE_RE.get_or_init(|| Regex::new(r"^[a-z_][a-z0-9_]*$").expect("static regex"));
 
     // domain
     if !kebab_re.is_match(&config.domain) {

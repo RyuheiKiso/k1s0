@@ -102,6 +102,10 @@ pub struct AuthConfig {
     /// JWKS エンドポイント URL
     #[serde(default = "default_jwks_url")]
     pub jwks_url: String,
+    // JWT 発行者検証用 issuer（省略時は検証をスキップ）
+    pub issuer: Option<String>,
+    // JWT 対象者検証用 audience（省略時は検証をスキップ）
+    pub audience: Option<String>,
 }
 
 fn default_jwks_url() -> String {
@@ -112,6 +116,8 @@ impl Default for AuthConfig {
     fn default() -> Self {
         Self {
             jwks_url: default_jwks_url(),
+            issuer: None,
+            audience: None,
         }
     }
 }

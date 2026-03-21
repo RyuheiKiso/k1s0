@@ -27,9 +27,13 @@ fn render_flagger(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "flagger")
-        .server_port(server_port)
-        .build();
+    // business tier では domain が必須のため、テスト用ドメインを設定する
+    let mut builder = TemplateContextBuilder::new(service_name, tier, "go", "flagger")
+        .server_port(server_port);
+    if tier == "business" {
+        builder = builder.domain("order");
+    }
+    let ctx = builder.build();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();

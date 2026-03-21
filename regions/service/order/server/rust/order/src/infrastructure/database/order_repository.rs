@@ -328,27 +328,32 @@ impl OrderRepository for OrderPostgresRepository {
         Ok(())
     }
 
-    /// 未パブリッシュイベントを FOR UPDATE SKIP LOCKED で取得する（mark は行わない）。
+    /// 未パブリッシュイベントを取得し、processing_at をセットしてクレームする。
     /// at-least-once 配信のため、publish 成功後に mark_events_published を呼ぶこと。
     async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
         let mut tx = self.pool.begin().await?;
 
-        // 未パブリッシュイベントを FOR UPDATE SKIP LOCKED でロック付き取得する
+        // FOR UPDATE SKIP LOCKED で排他取得し、同一トランザクション内で processing_at をセット。
+        // これにより他のポーラーが同じイベントを取得することを防ぐ。
         let rows = sqlx::query_as::<_, OutboxEventRow>(
             r#"
-            SELECT id, aggregate_type, aggregate_id, event_type, payload,
-                   created_at, published_at
-            FROM outbox_events
-            WHERE published_at IS NULL
-            ORDER BY created_at ASC
-            LIMIT $1
-            FOR UPDATE SKIP LOCKED
+            UPDATE outbox_events
+            SET processing_at = NOW()
+            WHERE id IN (
+                SELECT id FROM outbox_events
+                WHERE published_at IS NULL AND processing_at IS NULL
+                ORDER BY created_at ASC
+                LIMIT $1
+                FOR UPDATE SKIP LOCKED
+            )
+            RETURNING id, aggregate_type, aggregate_id, event_type, payload, created_at, published_at
             "#,
         )
         .bind(limit)
         .fetch_all(&mut *tx)
         .await?;
 
+        // クレーム UPDATE をコミットし、ロックを解放する（processing_at が保護を継続）
         tx.commit().await?;
 
         Ok(rows.into_iter().map(OutboxEvent::from).collect())
@@ -471,6 +476,9 @@ struct OutboxEventRow {
     payload: serde_json::Value,
     created_at: chrono::DateTime<Utc>,
     published_at: Option<chrono::DateTime<Utc>>,
+    // クレーム方式のポーラー制御用タイムスタンプ（他のポーラーが重複取得しないよう保護する）
+    #[allow(dead_code)]
+    processing_at: Option<chrono::DateTime<Utc>>,
 }
 
 impl From<OutboxEventRow> for OutboxEvent {

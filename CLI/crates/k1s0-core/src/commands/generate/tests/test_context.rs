@@ -128,3 +128,54 @@ fn test_build_template_context_server_has_empty_framework() {
     assert_eq!(ctx.framework, "", "Server should have empty framework");
     assert_eq!(ctx.language, "rust");
 }
+
+#[test]
+fn test_build_template_context_business_tier_sets_domain() {
+    // business tier では placement から domain が正しく設定されることを検証する
+    let config = GenerateConfig {
+        kind: Kind::Server,
+        tier: Tier::Business,
+        placement: Some("accounting".to_string()),
+        lang_fw: LangFw::Language(Language::Go),
+        detail: DetailConfig {
+            name: Some("ledger".to_string()),
+            api_styles: vec![ApiStyle::Grpc],
+            db: None,
+            kafka: false,
+            redis: false,
+            bff_language: None,
+        },
+    };
+    let cli_config = CliConfig::default();
+    let ctx = build_template_context(&config, &cli_config).unwrap();
+    assert_eq!(
+        ctx.domain, "accounting",
+        "business tier では domain が placement から設定される必要がある"
+    );
+    assert_eq!(ctx.tier, "business");
+    // module_path に domain が含まれることを検証する
+    assert!(
+        ctx.module_path.contains("accounting"),
+        "module_path に domain が含まれる必要がある: {}",
+        ctx.module_path
+    );
+}
+
+#[test]
+fn test_build_template_context_business_tier_empty_domain_fails_validation() {
+    // business tier で domain が空の場合に validate() がエラーを返すことを検証する
+    use crate::template::context::TemplateContextBuilder;
+
+    let builder = TemplateContextBuilder::new("ledger", "business", "go", "server");
+    // domain を設定しない（空のまま）ので validate() はエラーになる
+    let result = builder.try_build();
+    assert!(
+        result.is_err(),
+        "business tier で domain が未設定の場合、try_build() はエラーを返す必要がある"
+    );
+    let error = result.unwrap_err();
+    assert!(
+        error.contains("domain"),
+        "エラーメッセージに 'domain' が含まれる必要がある: {error}"
+    );
+}

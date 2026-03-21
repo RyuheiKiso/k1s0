@@ -46,7 +46,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | payment CI        | `payment-ci.yaml` | PR 時 (`regions/service/payment/server/**`, `regions/service/payment/client/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
 | domain-master CI  | `domain-master-ci.yaml` | PR 時 (`regions/business/accounting/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
 | bff-proxy CI      | `bff-proxy-ci.yaml` | PR 時 (`regions/system/server/go/bff-proxy/**`) | `_go-service-ci.yaml` 呼び出し |
-| Integration Test  | `integration-test.yaml` | PR 時 (`regions/system/{server,library}/rust/**`, `regions/business/*/server/rust/**`, `regions/service/*/server/rust/**`, `Cargo.{toml,lock}`, `regions/**/database/postgres/migrations/**`, `scripts/ci-list-integration-servers.sh`, `scripts/list-modules.sh`) | postgres:17 + kafka:3.8.0 起動、system/business/service 全ティア対応。`ci-list-integration-servers.sh [system\|business\|service]` でティア別サーバー自動検出・パッケージ単位並列統合テスト（test-utils feature 自動検出）。DB migration 変更・CI スクリプト変更時も起動する |
+| Integration Test  | `integration-test.yaml` | PR 時 (`regions/system/{server,library}/rust/**`, `regions/business/*/server/rust/**`, `regions/service/*/server/rust/**`, `Cargo.{toml,lock}`, `regions/**/database/postgres/migrations/**`, `infra/docker/init-db/**`, `scripts/ci-list-integration-servers.sh`, `scripts/list-modules.sh`) | postgres:17 + kafka:3.8.0 起動、system/business/service 全ティア対応。`ci-list-integration-servers.sh [system\|business\|service]` でティア別サーバー自動検出・パッケージ単位並列統合テスト（test-utils feature 自動検出）。DB migration 変更・`infra/docker/init-db/` 変更（テスト環境スキーマに影響）・CI スクリプト変更時も起動する |
 | Golden Path Compile | `golden-path-compile.yaml` | PR 時 (`CLI/crates/k1s0-codegen/**`, `CLI/templates/**`) | CLI テンプレートからサーバーを生成し `cargo check` でコンパイル検証 |
 | auth Deploy       | `auth-deploy.yaml` | main マージ時 (`regions/system/server/rust/auth/**`) | `_service-deploy.yaml` 呼び出し |
 | app-registry Deploy | `app-registry-deploy.yaml` | main マージ時 (`regions/system/server/rust/app-registry/**`) | `_service-deploy.yaml` 呼び出し |
@@ -62,7 +62,28 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | ジョブ名 | 目的 |
 | --- | --- |
 | `check-tier-deps` | H5対応: system→business→service のティア依存方向を強制し、逆方向依存（system が business/service に依存する等）を CI で検出・失敗させる |
-| `build-gui-windows` | GUI フロントエンド（CLI/crates/k1s0-gui/ui）の Windows 環境でのビルド検証。Rolldown/Vite の Windows 互換性を可視化する。既知の Rolldown panic で失敗する可能性があるため `continue-on-error: true` を設定 |
+| `build-gui-windows` | GUI フロントエンド（CLI/crates/k1s0-gui/ui）の Windows 環境でのビルド検証。Rolldown/Vite の Windows 互換性を可視化する。既知の Rolldown panic で失敗する可能性があるため `continue-on-error: true` を設定。失敗時は `::warning::` アノテーションで既知課題である旨を通知する |
+| `iac-validation` | IaC 検証: `infra/terraform/` の `terraform fmt -check` および dev/prod 環境の `terraform validate`（バックエンド初期化なし）を実行し、Terraform 構文・フォーマット不整合を CI で検出する |
+
+### TypeScript パッケージマネージャー（pnpm 採用）
+
+TypeScript/React パッケージのインストールは `npm ci` から `pnpm install --frozen-lockfile` へ移行した。
+
+**理由:** `pnpm-workspace.yaml` で `workspace:*` 依存（モノリポ内パッケージ間参照）を管理しており、`npm ci` ではこの依存が解決できない。`pnpm` を使用することで `workspace:*` 参照が正しく解決される。
+
+**影響範囲:**
+- `.github/workflows/ci.yaml`: `lint-ts`, `test-ts`, `coverage-ts`, `build-ts` の各ジョブで `pnpm/action-setup@v4` を追加し、`cache: 'npm'` → `cache: 'pnpm'` に変更
+- `justfile`: `lint-ts`, `test-ts`, `fmt-ts`, `build-ts` の各レシピで `npm ci` → `pnpm install --frozen-lockfile`、`npm run` → `pnpm run` に変更
+
+> **注意:** `build-gui-windows` ジョブは Windows ネイティブ環境のため `npm ci` を維持する（`CLI/crates/k1s0-gui/ui` は `pnpm-workspace.yaml` のスコープ外）。
+
+### Windows GUI Build の Known Issue
+
+`build-gui-windows` ジョブは Rolldown の Windows 対応 panic が発生する可能性がある既知の問題を抱えている。
+
+- `continue-on-error: true` を設定し、失敗してもパイプライン全体はブロックしない
+- 失敗時はジョブの末尾ステップで `::warning::` アノテーションを出力し、既知課題として追跡可能にする
+- 解消されたら `continue-on-error: true` を削除し、通常の必須ジョブに昇格させること
 
 ### security.yaml 変更点（セキュリティ監査対応）
 
@@ -303,14 +324,18 @@ jobs:
           #   system:   regions/system/server/{lang}/{service}/...
           #   business: regions/business/{domain}/server/{lang}/{service}/...
           #   service:  regions/service/{service}/server/{lang}/{service}/...
+          # infra/helm/services/ 変更時は対応するサービスを逆引きしてデプロイ対象に含める
           CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
-            grep -E '^regions/' | \
-            sed 's|^regions/||' | \
+            (grep -E '^(regions/|infra/helm/services/)' || true) | \
+            sed 's|^infra/helm/services/||; s|^regions/||' | \
             while IFS= read -r path; do
               case "$path" in
                 system/server/*/*/*)       echo "$path" | cut -d'/' -f1-4 ;;
                 business/*/server/*/*/*)   echo "$path" | cut -d'/' -f1-5 ;;
                 service/*/server/*/*/*)    echo "$path" | cut -d'/' -f1-5 ;;
+                system/*/Chart.yaml|system/*/*.yaml)   echo "system/server/$(echo "$path" | cut -d'/' -f2)" ;;
+                business/*/*/Chart.yaml|business/*/*.yaml) echo "business/$(echo "$path" | cut -d'/' -f2)/server" ;;
+                service/*/Chart.yaml|service/*/*.yaml) echo "service/$(echo "$path" | cut -d'/' -f2)/server" ;;
               esac
             done | sort -u | head -20)
           echo "services=$(echo "$CHANGED" | jq -R -s -c 'split("\n") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"

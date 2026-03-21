@@ -188,6 +188,9 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
+	// アクセストークンから Keycloak realm roles を取得する（失敗しても続行）
+	roles := oauth.ExtractRolesFromAccessToken(tokenResp.AccessToken)
+
 	// Create session.
 	sessData := &session.SessionData{
 		AccessToken:  tokenResp.AccessToken,
@@ -196,6 +199,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		ExpiresAt:    time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix(),
 		CSRFToken:    csrfToken,
 		Subject:      subject,
+		Roles:        roles,
 	}
 
 	sessionID, err := h.sessionStore.Create(c.Request.Context(), sessData, h.sessionTTL)
@@ -312,11 +316,18 @@ func (h *AuthHandler) Session(c *gin.Context) {
 		return
 	}
 
-	// 有効なセッション情報を返す
+	// roles が nil の場合は空スライスを返す（JSON で null ではなく [] になる）
+	roles := sess.Roles
+	if roles == nil {
+		roles = []string{}
+	}
+
+	// 有効なセッション情報を返す（roles はフロントエンドの /admin ルート認可に使用する）
 	c.JSON(http.StatusOK, gin.H{
 		"id":            sess.Subject,
 		"authenticated": true,
 		"csrf_token":    sess.CSRFToken,
+		"roles":         roles,
 	})
 }
 

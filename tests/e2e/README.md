@@ -25,6 +25,15 @@ npx playwright install --with-deps chromium
   docker compose --profile infra --profile system ps
   ```
 
+## AI サービスの起動（実験的）
+
+AI 関連サービス（ai-gateway, ai-agent）は実験中のサービスです。
+通常の開発では不要ですが、AI 機能のテストが必要な場合は以下のプロファイルを追加します:
+
+```bash
+docker compose --profile infra --profile system --profile experimental-ai up -d
+```
+
 ## テスト実行
 
 ```bash

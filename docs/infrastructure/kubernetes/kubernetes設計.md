@@ -342,6 +342,17 @@ spec:
 
 ![バックアップスケジュールタイムライン](images/k8s-backup-schedule-timeline.svg)
 
+### 環境別バックアップ方式
+
+バックアップの管理方式は環境によって異なる。
+
+| 環境 | 管理方式 | ソース of Truth |
+| --- | --- | --- |
+| **本番 (prod)** | Terraform による S3 オフロード方式 | `infra/terraform/modules/database/backup.tf` |
+| **dev / staging** | Kubernetes CronJob による PVC 保存方式 | `infra/kubernetes/backup/` |
+
+### dev / staging 環境バックアップ（K8s CronJob 方式）
+
 各コンポーネントのバックアップは CronJob として `k1s0-system` Namespace で実行する。実装ファイルは `infra/kubernetes/backup/` に格納されている。
 
 | CronJob 名          | 対象               | スケジュール         | 保持期間 | 実装ファイル                      |
@@ -362,6 +373,15 @@ spec:
   - S3 クレデンシャルは `backup-s3-credentials` Secret から環境変数で注入
   - バケット命名: `k1s0-backup-{component}-{environment}`
   - S3 アップロード失敗時はバックアップ自体は成功とし、アラート通知のみ実施
+
+### 本番環境バックアップ（Terraform S3 オフロード方式）
+
+本番環境のバックアップは `infra/terraform/modules/database/backup.tf` で Terraform 管理する。S3 互換ストレージ（Ceph RGW）へ直接アップロードする方式であり、PVC への中間保存は行わない。
+
+| コンポーネント | スケジュール | バケット | 実装ファイル |
+| --- | --- | --- | --- |
+| PostgreSQL | 毎日 03:00 UTC | `k1s0-db-backup-prod/postgresql/` | `infra/terraform/modules/database/backup.tf` |
+| MySQL | 毎日 03:00 UTC | `k1s0-db-backup-prod/mysql/` | `infra/terraform/modules/database/backup.tf` |
 
 ### PostgreSQL バックアップ対象 DB
 

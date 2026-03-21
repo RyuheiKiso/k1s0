@@ -13,6 +13,8 @@ interface SessionResponse {
   id: string;
   authenticated: boolean;
   csrf_token: string;
+  // ユーザーのロール一覧（admin 等の権限管理に使用）
+  roles?: string[];
 }
 
 export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProps) {
@@ -37,7 +39,7 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
           setUser({
             id: data.id,
             username: data.id,
-            roles: [],
+            roles: data.roles ?? [],
           });
         } else {
           setUser(null);

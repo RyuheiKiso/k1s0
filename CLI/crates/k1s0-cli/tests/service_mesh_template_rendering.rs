@@ -42,11 +42,15 @@ fn render_service_mesh(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "service-mesh")
+    // business tier では domain が必須のため、テスト用ドメインを設定する
+    let mut builder = TemplateContextBuilder::new(service_name, tier, "go", "service-mesh")
         .api_style(api_style)
         .server_port(server_port)
-        .grpc_port(grpc_port)
-        .build();
+        .grpc_port(grpc_port);
+    if tier == "business" {
+        builder = builder.domain("order");
+    }
+    let ctx = builder.build();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -93,11 +97,15 @@ fn render_service_mesh_with_kind(
     fs::create_dir_all(&output_dir).unwrap();
 
     // kind="service-mesh" でビルダーを作成してコンテキストを生成
-    let base_ctx = TemplateContextBuilder::new(service_name, tier, "go", "service-mesh")
+    // business tier では domain が必須のため、テスト用ドメインを設定する
+    let mut base_builder = TemplateContextBuilder::new(service_name, tier, "go", "service-mesh")
         .api_style(api_style)
         .server_port(server_port)
-        .grpc_port(grpc_port)
-        .build();
+        .grpc_port(grpc_port);
+    if tier == "business" {
+        base_builder = base_builder.domain("order");
+    }
+    let base_ctx = base_builder.build();
 
     // Tera コンテキストを生成し、kind を上書き
     let mut tera_ctx = base_ctx.to_tera_context();

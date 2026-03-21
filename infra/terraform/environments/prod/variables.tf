@@ -176,8 +176,11 @@ variable "harbor_chart_version" {
 variable "harbor_domain" {
   description = "Harbor external domain"
   type        = string
-  # プレースホルダー: 本番環境では適切な値に置換すること
-  default     = "harbor.internal.example.com"
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !can(regex("example\\.com", var.harbor_domain))
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "harbor_s3_bucket" {
@@ -189,8 +192,11 @@ variable "harbor_s3_bucket" {
 variable "ceph_s3_endpoint" {
   description = "Ceph S3-compatible endpoint URL"
   type        = string
-  # プレースホルダー: 本番環境では適切な値に置換すること
-  default     = "http://ceph-rgw.internal.example.com:8080"
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !can(regex("example\\.com", var.ceph_s3_endpoint))
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 # --- Vault ---
@@ -209,36 +215,52 @@ variable "kubernetes_host" {
 variable "ldap_url" {
   description = "LDAP server URL"
   type        = string
-  # プレースホルダー: 本番環境では適切な値に置換すること
-  default     = "ldaps://ldap.example.com:636"
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !can(regex("example\\.com", var.ldap_url))
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "ldap_user_dn" {
   description = "LDAP user DN"
   type        = string
-  # プレースホルダー: 本番環境では適切な値に置換すること
-  default     = "ou=users,dc=example,dc=com"
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !can(regex("example\\.com", var.ldap_user_dn))
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "ldap_group_dn" {
   description = "LDAP group DN"
   type        = string
-  # プレースホルダー: 本番環境では適切な値に置換すること
-  default     = "ou=groups,dc=example,dc=com"
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !can(regex("example\\.com", var.ldap_group_dn))
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "ldap_bind_dn" {
   description = "LDAP bind DN"
   type        = string
-  # プレースホルダー: 本番環境では適切な値に置換すること
-  default     = "cn=vault,ou=service-accounts,dc=example,dc=com"
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !can(regex("example\\.com", var.ldap_bind_dn))
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "ldap_bind_password" {
   description = "LDAP bind password"
   type        = string
   sensitive   = true
-  default     = ""
+  validation {
+    # 本番環境では空の LDAP バインドパスワードを禁止する
+    condition     = length(var.ldap_bind_password) > 0
+    error_message = "本番環境では ldap_bind_password に有効な値を設定してください。"
+  }
 }
 
 # --- Service Mesh (Istio) ---
@@ -267,23 +289,35 @@ variable "keycloak_url" {
   default     = "https://keycloak.k1s0-system.svc.cluster.local:8443"
 }
 
-# prod 環境: 本番ドメイン（example.com）ベースのリダイレクト URI
+# prod 環境: 本番ドメイン（example.com プレースホルダー不可）のリダイレクト URI
 variable "react_spa_redirect_uris" {
   description = "Keycloak React SPA クライアントの許可リダイレクト URI リスト"
   type        = list(string)
-  default     = ["https://app.k1s0.example.com/*"]
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !anytrue([for uri in var.react_spa_redirect_uris : can(regex("example\\.com", uri))])
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "react_spa_web_origins" {
   description = "Keycloak React SPA クライアントの許可 Web オリジン リスト"
   type        = list(string)
-  default     = ["https://app.k1s0.example.com"]
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !anytrue([for origin in var.react_spa_web_origins : can(regex("example\\.com", origin))])
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 variable "bff_redirect_uris" {
   description = "Keycloak BFF クライアントの許可リダイレクト URI リスト"
   type        = list(string)
-  default     = ["https://api.k1s0.example.com/callback"]
+  validation {
+    # 本番環境ではプレースホルダードメインの使用を禁止する
+    condition     = !anytrue([for uri in var.bff_redirect_uris : can(regex("example\\.com", uri))])
+    error_message = "本番環境では example.com プレースホルダーを使用できません。実際のドメインを指定してください。"
+  }
 }
 
 # --- Vault Database ---

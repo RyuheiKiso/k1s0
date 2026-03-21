@@ -110,11 +110,14 @@ impl PaymentRepository for PaymentPostgresRepository {
         let payment_id = Uuid::new_v4();
         let now = Utc::now();
 
+        // ON CONFLICT を使用して冪等な挿入を実現する。
+        // 同一 order_id での競合時は何もせず RETURNING が空になるため、SELECT でフォールバックする。
         let payment_row = sqlx::query_as::<_, PaymentRow>(
             r#"
             INSERT INTO payments (id, order_id, customer_id, amount, currency, status,
                                   payment_method, version, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, $9)
+            ON CONFLICT (order_id) DO NOTHING
             RETURNING id, order_id, customer_id, amount, currency, status,
                       payment_method, transaction_id, error_code, error_message,
                       version, created_at, updated_at
@@ -129,51 +132,76 @@ impl PaymentRepository for PaymentPostgresRepository {
         .bind(&input.payment_method)
         .bind(now)
         .bind(now)
-        .fetch_one(&mut *tx)
+        .fetch_optional(&mut *tx)
         .await?;
 
-        // Outbox イベントを同一トランザクション内に挿入
-        let outbox_payload = serde_json::json!({
-            "metadata": {
-                "event_id": Uuid::new_v4().to_string(),
-                "event_type": "payment.initiated",
-                "source": "payment-server",
-                "timestamp": now.timestamp_millis(),
-                "trace_id": "",
-                "correlation_id": payment_id.to_string(),
-                "schema_version": 1
-            },
-            "payment_id": payment_id.to_string(),
-            "order_id": input.order_id,
-            "customer_id": input.customer_id,
-            "amount": input.amount,
-            "currency": input.currency,
-            "payment_method": input.payment_method,
-            "initiated_at": now.to_rfc3339(),
-        });
+        // INSERT が競合した場合（row が None）は既存レコードを取得する
+        let payment: Payment = if let Some(row) = payment_row {
+            // Outbox イベントを同一トランザクション内に挿入（新規作成時のみ）
+            let outbox_payload = serde_json::json!({
+                "metadata": {
+                    "event_id": Uuid::new_v4().to_string(),
+                    "event_type": "payment.initiated",
+                    "source": "payment-server",
+                    "timestamp": now.timestamp_millis(),
+                    "trace_id": "",
+                    "correlation_id": payment_id.to_string(),
+                    "schema_version": 1
+                },
+                "payment_id": payment_id.to_string(),
+                "order_id": input.order_id,
+                "customer_id": input.customer_id,
+                "amount": input.amount,
+                "currency": input.currency,
+                "payment_method": input.payment_method,
+                "initiated_at": now.to_rfc3339(),
+            });
 
-        // idempotency_key に event_id を使用して冪等性を保証する
-        let event_id = Uuid::new_v4();
-        sqlx::query(
-            r#"
-            INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at, idempotency_key)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (idempotency_key) DO NOTHING
-            "#,
-        )
-        .bind(event_id)
-        .bind("payment")
-        .bind(payment_id.to_string())
-        .bind("payment.initiated")
-        .bind(&outbox_payload)
-        .bind(now)
-        .bind(event_id.to_string())
-        .execute(&mut *tx)
-        .await?;
+            // idempotency_key に event_id を使用して冪等性を保証する
+            let event_id = Uuid::new_v4();
+            sqlx::query(
+                r#"
+                INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at, idempotency_key)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                ON CONFLICT (idempotency_key) DO NOTHING
+                "#,
+            )
+            .bind(event_id)
+            .bind("payment")
+            .bind(payment_id.to_string())
+            .bind("payment.initiated")
+            .bind(&outbox_payload)
+            .bind(now)
+            .bind(event_id.to_string())
+            .execute(&mut *tx)
+            .await?;
+
+            row.try_into()?
+        } else {
+            // UNIQUE 制約競合 → 既存 payment をトランザクション内で取得する
+            tracing::info!(
+                order_id = %input.order_id,
+                "payment creation conflict detected, returning existing payment"
+            );
+            let existing_row = sqlx::query_as::<_, PaymentRow>(
+                r#"
+                SELECT id, order_id, customer_id, amount, currency, status,
+                       payment_method, transaction_id, error_code, error_message,
+                       version, created_at, updated_at
+                FROM payments
+                WHERE order_id = $1
+                "#,
+            )
+            .bind(&input.order_id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Payment not found after conflict"))?;
+            existing_row.try_into()?
+        };
 
         tx.commit().await?;
 
-        payment_row.try_into()
+        Ok(payment)
     }
 
     async fn complete(
@@ -467,27 +495,32 @@ impl PaymentRepository for PaymentPostgresRepository {
         Ok(())
     }
 
-    /// 未パブリッシュイベントを FOR UPDATE SKIP LOCKED で取得する（mark は行わない）。
+    /// 未パブリッシュイベントを取得し、processing_at をセットしてクレームする。
     /// at-least-once 配信のため、publish 成功後に mark_events_published を呼ぶこと。
     async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
         let mut tx = self.pool.begin().await?;
 
-        // 未パブリッシュイベントを FOR UPDATE SKIP LOCKED でロック付き取得する
+        // FOR UPDATE SKIP LOCKED で排他取得し、同一トランザクション内で processing_at をセット。
+        // これにより他のポーラーが同じイベントを取得することを防ぐ。
         let rows = sqlx::query_as::<_, OutboxEventRow>(
             r#"
-            SELECT id, aggregate_type, aggregate_id, event_type, payload,
-                   created_at, published_at
-            FROM outbox_events
-            WHERE published_at IS NULL
-            ORDER BY created_at ASC
-            LIMIT $1
-            FOR UPDATE SKIP LOCKED
+            UPDATE outbox_events
+            SET processing_at = NOW()
+            WHERE id IN (
+                SELECT id FROM outbox_events
+                WHERE published_at IS NULL AND processing_at IS NULL
+                ORDER BY created_at ASC
+                LIMIT $1
+                FOR UPDATE SKIP LOCKED
+            )
+            RETURNING id, aggregate_type, aggregate_id, event_type, payload, created_at, published_at
             "#,
         )
         .bind(limit)
         .fetch_all(&mut *tx)
         .await?;
 
+        // クレーム UPDATE をコミットし、ロックを解放する（processing_at が保護を継続）
         tx.commit().await?;
 
         Ok(rows.into_iter().map(OutboxEvent::from).collect())
@@ -566,6 +599,9 @@ struct OutboxEventRow {
     payload: serde_json::Value,
     created_at: chrono::DateTime<Utc>,
     published_at: Option<chrono::DateTime<Utc>>,
+    // クレーム方式のポーラー制御用タイムスタンプ（他のポーラーが重複取得しないよう保護する）
+    #[allow(dead_code)]
+    processing_at: Option<chrono::DateTime<Utc>>,
 }
 
 impl From<OutboxEventRow> for OutboxEvent {

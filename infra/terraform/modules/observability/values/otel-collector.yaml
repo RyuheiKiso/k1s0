@@ -37,6 +37,13 @@ config:
       endpoint: jaeger-collector.observability.svc.cluster.local:4317
       tls:
         insecure: true
+    # メトリクスを Prometheus に送信するための remote write エクスポーター
+    prometheusremotewrite:
+      endpoint: "http://prometheus-kube-prometheus-prometheus.observability.svc.cluster.local:9090/api/v1/write"
+      tls:
+        insecure: true
+      resource_to_telemetry_conversion:
+        enabled: true
 
   service:
     pipelines:
@@ -47,7 +54,8 @@ config:
       metrics:
         receivers: [otlp]
         processors: [batch]
-        exporters: [otlp/jaeger]
+        # metrics は Jaeger（trace バックエンド）ではなく Prometheus に送信する
+        exporters: [prometheusremotewrite]
 
 resources:
   requests:

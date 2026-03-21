@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -296,6 +297,53 @@ func (c *Client) ExtractSubject(ctx context.Context, idToken string) (string, er
 	}
 
 	return token.Subject, nil
+}
+
+// keycloakAccessTokenClaims は Keycloak アクセストークンから roles を取得するための claims 構造体。
+type keycloakAccessTokenClaims struct {
+	// RealmAccess は Keycloak realm レベルのロール情報を保持する。
+	RealmAccess struct {
+		Roles []string `json:"roles"`
+	} `json:"realm_access"`
+}
+
+// ExtractRoles は JWT アクセストークンのペイロードを解析し、Keycloak realm roles を返す。
+// アクセストークンの署名検証は行わない（BFF は既に ID トークン検証済みのセッションを前提とする）。
+// 解析に失敗した場合は空スライスを返す（roles 取得失敗でログインを妨げない）。
+func ExtractRolesFromAccessToken(accessToken string) []string {
+	// JWT は header.payload.signature の形式で構成される
+	parts := strings.SplitN(accessToken, ".", 3)
+	if len(parts) != 3 {
+		return []string{}
+	}
+
+	// Base64URL デコード（パディングなし）
+	payload, err := base64URLDecode(parts[1])
+	if err != nil {
+		return []string{}
+	}
+
+	var claims keycloakAccessTokenClaims
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return []string{}
+	}
+
+	if claims.RealmAccess.Roles == nil {
+		return []string{}
+	}
+	return claims.RealmAccess.Roles
+}
+
+// base64URLDecode は Base64URL エンコードされた文字列をデコードする（パディングなし対応）。
+func base64URLDecode(s string) ([]byte, error) {
+	// パディングを追加する
+	switch len(s) % 4 {
+	case 2:
+		s += "=="
+	case 3:
+		s += "="
+	}
+	return base64.RawURLEncoding.DecodeString(strings.TrimRight(s, "="))
 }
 
 // ensureVerifier はverifierを初期化してキャッシュする。

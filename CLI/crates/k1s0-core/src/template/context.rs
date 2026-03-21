@@ -324,6 +324,7 @@ impl TemplateContextBuilder {
     /// 必須コンテキスト変数が設定されているかバリデーションし、未設定の場合はエラーを返す。
     ///
     /// service_name, tier, language, kind が空文字列でないことを検証する。
+    /// business tier の場合は domain も必須とする。
     pub fn validate(&self) -> Result<(), String> {
         let mut missing = Vec::new();
         if self.service_name.is_empty() {
@@ -337,6 +338,10 @@ impl TemplateContextBuilder {
         }
         if self.kind.is_empty() {
             missing.push("kind");
+        }
+        // business tier では domain（業務領域名）が必須
+        if self.tier == "business" && self.domain.is_empty() {
+            missing.push("domain");
         }
         if missing.is_empty() {
             Ok(())
@@ -705,7 +710,10 @@ mod tests {
 
     #[test]
     fn test_context_docker_project_business() {
-        let ctx = TemplateContextBuilder::new("crm", "business", "rust", "server").build();
+        // business tier では domain が必須のため設定する
+        let ctx = TemplateContextBuilder::new("crm", "business", "rust", "server")
+            .domain("sales")
+            .build();
 
         assert_eq!(ctx.docker_project, "k1s0-business");
     }
@@ -1113,7 +1121,10 @@ mod tests {
 
     #[test]
     fn test_namespace_derived_from_tier_business() {
-        let ctx = TemplateContextBuilder::new("ledger", "business", "rust", "server").build();
+        // business tier では domain が必須のため設定する
+        let ctx = TemplateContextBuilder::new("ledger", "business", "rust", "server")
+            .domain("accounting")
+            .build();
         assert_eq!(ctx.namespace, "k1s0-business");
     }
 

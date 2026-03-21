@@ -1676,12 +1676,15 @@ pub struct SubscriptionRoot {
 impl SubscriptionRoot {
     /// 設定変更イベントをストリームで購読する。
     /// 接続失敗時は GraphQL エラーとして返し、ストリーム中のエラーはアイテムレベルで伝播する（P2-26）。
+    /// 購読には読み取り権限（sys_admin / sys_operator / sys_auditor）が必要。
     #[graphql(name = "configChanged")]
     async fn config_changed(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         #[graphql(default)] namespaces: Vec<String>,
     ) -> async_graphql::Result<impl Stream<Item = async_graphql::Result<ConfigEntry>>> {
+        // RBAC チェック: subscription にも read 権限を要求する（query と同等の保護）
+        ensure_read_permission(ctx)?;
         let stream = self
             .subscription
             .watch_config(namespaces)
@@ -1696,12 +1699,15 @@ impl SubscriptionRoot {
     }
 
     /// テナント更新イベントをストリームで購読する。gRPC 接続失敗時は GraphQL エラーとして返す。
+    /// 購読には読み取り権限（sys_admin / sys_operator / sys_auditor）が必要。
     #[graphql(name = "tenantUpdated")]
     async fn tenant_updated(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         tenant_id: async_graphql::ID,
     ) -> async_graphql::Result<impl Stream<Item = Tenant>> {
+        // RBAC チェック: subscription にも read 権限を要求する（query と同等の保護）
+        ensure_read_permission(ctx)?;
         self.subscription
             .watch_tenant_updated(tenant_id.to_string())
             .await
@@ -1709,12 +1715,15 @@ impl SubscriptionRoot {
     }
 
     /// フィーチャーフラグ変更イベントをストリームで購読する。gRPC 接続失敗時は GraphQL エラーとして返す。
+    /// 購読には読み取り権限（sys_admin / sys_operator / sys_auditor）が必要。
     #[graphql(name = "featureFlagChanged")]
     async fn feature_flag_changed(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         key: String,
     ) -> async_graphql::Result<impl Stream<Item = FeatureFlag>> {
+        // RBAC チェック: subscription にも read 権限を要求する（query と同等の保護）
+        ensure_read_permission(ctx)?;
         self.subscription
             .watch_feature_flag_changed(key)
             .await

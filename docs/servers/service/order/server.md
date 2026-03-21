@@ -418,6 +418,9 @@ PostgreSQL への接続を確認する。
 | `audience` | string | - | JWT audience |
 | `jwks_cache_ttl_secs` | int | `300` | JWKS キャッシュ TTL（秒） |
 
+> **認証必須**: `auth` セクションは本番環境では必須。未設定の場合は起動時に `require_auth_state` によりエラーとなる。dev/test 環境では `ALLOW_INSECURE_NO_AUTH=true` を設定することで認証なし起動が可能（リリースビルドでは不可）。
+> gRPC ハンドラー（GetOrder・ListOrders）はミドルウェアとは独立して Claims チェックを実施する（defense-in-depth）。
+
 ### config.yaml（本番）
 
 ```yaml

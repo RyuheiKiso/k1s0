@@ -325,6 +325,30 @@ VSCode Dev Containers を使用すると、必要なツールチェイン（Rust
 | **Docker リソース** | Docker Desktop の Settings → Resources で メモリ 8GB 以上、CPU 4 コア以上を推奨 |
 | **master-maintenance** | `zen-engine` (rquickjs-sys) は Windows ネイティブ未対応。devcontainer 内でビルドすること |
 
+#### Windows 環境での開発
+
+Windows での開発は WSL2 (Windows Subsystem for Linux) を推奨します。
+
+- **推奨:** WSL2 上の Ubuntu/Debian で開発する
+- **Git Bash 使用時:** `cygpath` が必要（Git for Windows に含まれる）
+- **PowerShell:** `set windows-shell` が設定済みですが、一部の bash スクリプトは WSL2 が必要
+
+Windows ネイティブでのビルドに必要なツール:
+- `cmake` (rdkafka, openssl ビルド用)
+- `patch` (zen-engine/rquickjs-sys ビルド用)
+- Visual C++ Build Tools または MSVC
+
+### ネイティブビルド依存関係
+
+一部のサービスは追加のネイティブライブラリを必要とします:
+
+| サービス/機能 | 依存関係 | インストール方法 (Ubuntu/Debian) |
+|-------------|---------|-------------------------------|
+| `master-maintenance` | `patch` コマンド | `apt-get install patch` |
+| business/service tier Rust サーバー | `zlib` 開発ライブラリ | `apt-get install libz-dev` |
+| Kafka 接続 (rdkafka) | `libsasl2`, `openssl` | `apt-get install libsasl2-dev libssl-dev` |
+| Windows の場合 | cmake, openssl, patch | [vcpkg](https://vcpkg.io/) 推奨 |
+
 ### Docker Compose 構成
 
 Docker Compose の設定は安全なベース設定と開発用オーバーライドに分離されています。

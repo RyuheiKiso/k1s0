@@ -83,6 +83,12 @@ impl OrderService for OrderGrpcService {
         &self,
         request: Request<GetOrderRequest>,
     ) -> Result<Response<GetOrderResponse>, Status> {
+        // 多層防御: ミドルウェアを通過しても Claims がなければ認証エラーを返す（defense-in-depth）
+        request
+            .extensions()
+            .get::<Claims>()
+            .cloned()
+            .ok_or_else(|| Status::unauthenticated("Claims not found"))?;
         let order_id = parse_uuid(&request.get_ref().order_id, "order_id")?;
         let (order, items) = self
             .get_order_uc
@@ -99,6 +105,12 @@ impl OrderService for OrderGrpcService {
         &self,
         request: Request<ListOrdersRequest>,
     ) -> Result<Response<ListOrdersResponse>, Status> {
+        // 多層防御: ミドルウェアを通過しても Claims がなければ認証エラーを返す（defense-in-depth）
+        request
+            .extensions()
+            .get::<Claims>()
+            .cloned()
+            .ok_or_else(|| Status::unauthenticated("Claims not found"))?;
         let req = request.into_inner();
         let status = req
             .status

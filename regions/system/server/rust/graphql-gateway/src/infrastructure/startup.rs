@@ -76,8 +76,11 @@ pub async fn run() -> anyhow::Result<()> {
     let workflow_client = Arc::new(WorkflowGrpcClient::new(&cfg.backends.workflow)?);
 
     // --- JWT 検証 ---
-    // new() が Result を返すようになったため ? で伝播する
-    let jwks_verifier = Arc::new(JwksVerifier::new(cfg.auth.jwks_url.clone())?);
+    // issuer/audience が設定されている場合は JWT クレームを厳密に検証する
+    let jwks_verifier = Arc::new(
+        JwksVerifier::new(cfg.auth.jwks_url.clone())?
+            .with_issuer_audience(cfg.auth.issuer.clone(), cfg.auth.audience.clone()),
+    );
 
     // --- Metrics ---
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
@@ -187,11 +190,15 @@ pub async fn run() -> anyhow::Result<()> {
     info!("graphql-gateway starting on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app)
-        .with_graceful_shutdown(async {
-            let _ = k1s0_server_common::shutdown::shutdown_signal().await;
-        })
-        .await?;
+    // ConnectInfo を供給することで ratelimit_middleware が実際のクライアント IP を取得できる
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(async {
+        let _ = k1s0_server_common::shutdown::shutdown_signal().await;
+    })
+    .await?;
 
     info!("graphql-gateway exited");
 
